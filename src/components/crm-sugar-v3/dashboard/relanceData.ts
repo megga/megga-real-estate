@@ -18,6 +18,16 @@ export type KycStatus = 'verified' | 'pending' | 'none'
 
 export interface RelanceLead {
   id: string
+  /** Real Supabase contact id when sourced from `contacts`; null for seed
+   * demo leads. Used by the Resend wiring to decide whether to send the
+   * email for real or just log the audit attempt against a synthetic
+   * destination. */
+  contactId: string | null
+  /** Real contact email when present. Mock seed leads carry null — the
+   * relance session synthesizes `${first}.${last}@relance-demo.megga.local`
+   * so the audit row reflects a real Resend attempt + the deliverability
+   * failure. When `email` is non-null, the send goes to a real recipient. */
+  email: string | null
   first: string
   last: string
   avatarBg: string
@@ -43,6 +53,8 @@ export interface DraftTemplate {
 const TOP_LEADS: RelanceLead[] = [
   {
     id: 'lead-01',
+    contactId: null,
+    email: null,
     first: 'Sophie',
     last: 'Aebischer',
     avatarBg: '#3B82F6',
@@ -68,6 +80,8 @@ const TOP_LEADS: RelanceLead[] = [
   },
   {
     id: 'lead-02',
+    contactId: null,
+    email: null,
     first: 'Marc',
     last: 'Devaud',
     avatarBg: '#10B981',
@@ -91,6 +105,8 @@ const TOP_LEADS: RelanceLead[] = [
   },
   {
     id: 'lead-03',
+    contactId: null,
+    email: null,
     first: 'Léa',
     last: 'Rochat',
     avatarBg: '#F59E0B',
@@ -114,6 +130,8 @@ const TOP_LEADS: RelanceLead[] = [
   },
   {
     id: 'lead-04',
+    contactId: null,
+    email: null,
     first: 'Pierre',
     last: 'Müller',
     avatarBg: '#8B5CF6',
@@ -137,6 +155,8 @@ const TOP_LEADS: RelanceLead[] = [
   },
   {
     id: 'lead-05',
+    contactId: null,
+    email: null,
     first: 'Camille',
     last: 'Schneider',
     avatarBg: '#EF4444',
@@ -161,6 +181,8 @@ const TOP_LEADS: RelanceLead[] = [
   },
   {
     id: 'lead-06',
+    contactId: null,
+    email: null,
     first: 'Thomas',
     last: 'Favre',
     avatarBg: '#06B6D4',
@@ -183,6 +205,8 @@ const TOP_LEADS: RelanceLead[] = [
   },
   {
     id: 'lead-07',
+    contactId: null,
+    email: null,
     first: 'Aïcha',
     last: 'Dupont',
     avatarBg: '#EC4899',
@@ -206,6 +230,8 @@ const TOP_LEADS: RelanceLead[] = [
   },
   {
     id: 'lead-08',
+    contactId: null,
+    email: null,
     first: 'Olivier',
     last: 'Maillard',
     avatarBg: '#84CC16',
@@ -254,6 +280,8 @@ function buildFillers(): RelanceLead[] {
     const r = DORM_REASONS[i % DORM_REASONS.length]
     fillers.push({
       id: `lead-${String(9 + i).padStart(2, '0')}`,
+      contactId: null,
+      email: null,
       first: f,
       last: l,
       avatarBg: AVATAR_BGS[i % AVATAR_BGS.length],

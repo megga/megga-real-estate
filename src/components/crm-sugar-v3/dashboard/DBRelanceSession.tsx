@@ -33,15 +33,15 @@ import {
 } from './relanceData'
 import { useDashboardAudit } from './useDashboardAudit'
 import { useAuth } from '@/hooks/useAuth'
+import { useRelanceLeads } from '@/hooks/useRelanceLeads'
 import { supabase } from '@/lib/supabase'
 
-// Synthesize a demo email for mock leads (RELANCE_LEADS has no email
-// field — they're seed data). Resend will reject these as undeliverable
-// which is the honest outcome: the audit row reflects a real attempt
-// that failed because the destination doesn't exist. When the relance
-// session is wired to real Supabase contacts (separate chip), the lead
-// will carry its real email and the send will go through.
-function demoEmailFor(leadId: string, first: string, last: string): string {
+// Synthesize a placeholder destination for seed/demo leads (those without
+// a real contact.email). The send will fail with an undeliverable error;
+// the audit row reflects the real attempt + the deliverability failure,
+// which is the honest outcome. Real leads from useRelanceLeads carry
+// `lead.email` and the send goes through normally.
+function fallbackEmailFor(leadId: string, first: string, last: string): string {
   const slug = `${first}.${last}`.toLowerCase().replace(/[^a-z0-9.]/g, '')
   return `${slug || leadId}@relance-demo.megga.local`
 }
@@ -1075,7 +1075,15 @@ interface DBRelanceSessionProps {
 }
 
 export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSessionProps) {
-  const LEADS = RELANCE_LEADS
+  // Real-data first: fetch the agency's dormant contacts. Fall back to
+  // the seed RELANCE_LEADS when:
+  //   - agency has 0 dormant contacts (fresh signup, empty pipeline)
+  //   - hook is still loading (first paint, avoid empty session flash)
+  // Either way the session opens with content, but the source is marked
+  // via `isDemoData` so we can show an honest banner.
+  const { leads: realLeads, isLoading: leadsLoading, isEmpty: noRealLeads } = useRelanceLeads()
+  const LEADS = realLeads.length > 0 ? realLeads : RELANCE_LEADS
+  const isDemoData = noRealLeads || (leadsLoading && realLeads.length === 0)
   const audit = useDashboardAudit()
   const { profile } = useAuth()
   const [sending, setSending] = useState(false)
@@ -1256,7 +1264,10 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
     if (action === 'sent') {
       setSending(true)
       try {
-        const to = demoEmailFor(lead.id, lead.first, lead.last)
+        // Prefer the real contact email when present (useRelanceLeads
+        // populates it from contacts.email). Fall back to a synthetic
+        // demo address for seed leads — the send will fail honestly.
+        const to = lead.email ?? fallbackEmailFor(lead.id, lead.first, lead.last)
         const result = await sendRelanceEmail({
           to,
           subject,
@@ -1477,6 +1488,38 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
               </button>
             </div>
           </header>
+
+          {/* Demo-data banner — visible when the relance session falls back
+              to the seed RELANCE_LEADS (agency has no dormant contacts yet,
+              or the query is still loading). The session UI still works for
+              the click-through demo, but the agent should know nothing is
+              hitting real recipients. */}
+          {isDemoData && (
+            <div
+              role="status"
+              style={{
+                margin: '0 28px',
+                marginTop: 12,
+                padding: '8px 14px',
+                borderRadius: 10,
+                background: '#FEF3C7',
+                color: '#92400E',
+                border: '1px solid #FCD34D',
+                fontSize: 12,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span>⚠️</span>
+              <span>
+                <strong>Mode démo</strong> — Aucun contact dormant dans votre agence.
+                Les leads affichés sont des exemples. Importez ou créez des contacts
+                pour voir vos vrais leads dormants ici.
+              </span>
+            </div>
+          )}
 
           {/* BODY 3 COLONNES — voir responsive.css db-relance-body */}
           <div
