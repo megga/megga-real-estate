@@ -51,7 +51,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Generate baselines (update snapshots)
-        run: npx playwright test --update-snapshots tests/e2e/visual-regression.spec.ts
+        # Spec file FIRST, then flags — recent Playwright treats the next
+        # positional after --update-snapshots as the mode (all|changed|missing|none)
+        # and rejects a file path there.
+        run: npx playwright test tests/e2e/visual-regression.spec.ts --update-snapshots=all
 
       - name: Commit & push baselines if changed
         run: |
