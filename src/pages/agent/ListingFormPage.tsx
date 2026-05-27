@@ -19,7 +19,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { cn, formatCHF, formatRent } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
 import type { PropertyType } from '@/lib/constants'
-import ListingGenerator from '@/components/ai-copilot/ListingGenerator'
+// ListingGenerator import removed alongside its render block — the
+// component generated text via a hardcoded switch (no Claude call).
 import SwissAddressAutocomplete from '@/components/listings/SwissAddressAutocomplete'
 import type { SwissAddressSuggestion } from '@/hooks/useSwissAddress'
 import {
@@ -1383,11 +1384,21 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
         </div>
       )}
 
-      {/* MEGGA Staging — Virtual Staging IA */}
-      {allPhotos.length > 0 && <StagingSection photos={allPhotos} propertyId="draft" onStagedPhoto={(url) => {
-        const currentPhotos = form.getValues('photos') || []
-        form.setValue('photos', [...currentPhotos, url])
-      }} />}
+      {/* MEGGA Staging — Virtual Staging IA
+          Only shown once the property has a real id (edit mode or
+          auto-saved draft). Without an id the Edge Function would log
+          usage under the literal string "draft" and break per-property
+          attribution / quota tracking. */}
+      {allPhotos.length > 0 && propertyId && (
+        <StagingSection
+          photos={allPhotos}
+          propertyId={propertyId}
+          onStagedPhoto={(url) => {
+            const currentPhotos = form.getValues('photos') || []
+            form.setValue('photos', [...currentPhotos, url])
+          }}
+        />
+      )}
 
       {/* C2PA — Certification des photos */}
       {allPhotos.length > 0 && (
@@ -1731,18 +1742,11 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
         </div>
       </div>
 
-      {/* AI Listing Generator */}
-      {title && city && price > 0 && rooms > 0 && surface > 0 && (
-        <ListingGenerator
-          propertyTitle={title}
-          propertyType={type || 'apartment'}
-          rooms={rooms}
-          surface={surface}
-          city={city}
-          price={price}
-          features={form.watch('features') || []}
-        />
-      )}
+      {/* "AI Listing Generator" block removed — the component generated
+          text via a hardcoded switch statement (no Claude / Edge
+          Function call) and labeled itself "Généré par IA". Real
+          ai-copilot-based description generation is tracked as a
+          separate chip. */}
 
       {/* Preview card */}
       <div>

@@ -113,11 +113,11 @@ export default function BienDetailSugarV3Page() {
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<BienEditDraft>(() => buildDraft(bien))
-  const [descTab, setDescTab] = useState<'public' | 'private'>('public')
-  const [privateDesc, setPrivateDesc] = useState(
-    "Notes privées — visibles uniquement par l'équipe MEGGA.",
-  )
-  const [editPrivate, setEditPrivate] = useState(false)
+  // Note: a "Notes privées" tab was previously rendered alongside the
+  // public description, but the data lived only in component state (no
+  // load from DB, no save) — every edit was lost on unmount. Removed
+  // until a real `properties.private_notes` column + persistence layer
+  // is built (separate chip).
   const [toast, setToast] = useState<{ title: string; actions: string[] } | null>(
     null,
   )
@@ -213,7 +213,9 @@ export default function BienDetailSugarV3Page() {
     setEditing(false)
   }
   const saveAndPublish = () => {
-    const patch: { id: string } & Partial<CreatePropertyInput> = {
+    const wasDraft = bien.status === 'draft'
+
+    const patch: { id: string } & Partial<CreatePropertyInput> & { status?: string; published_at?: string } = {
       id: bien.id,
       title: draft.title,
       address: draft.address,
@@ -239,13 +241,23 @@ export default function BienDetailSugarV3Page() {
     if (commission != null) patch.mandate_commission_pct = commission
     if (draft.mandate_expires_at) patch.mandate_expires_at = draft.mandate_expires_at
 
+    // Real publish transition: when the bien is still in draft, flip to
+    // active + stamp published_at. Without this, the "Publier le bien"
+    // button was a silent no-op for the most important state change on
+    // a listing.
+    if (wasDraft) {
+      patch.status = 'active'
+      patch.published_at = new Date().toISOString()
+    }
+
     updateProperty(patch, {
       onSuccess: () => {
-        // AuditEvent nLPD 'Annonce modifiée' (category=bien, severity=info)
+        // AuditEvent nLPD (category=bien, severity=info). Action name
+        // reflects the actual transition.
         logAudit({
           category: 'bien',
           severity: 'info',
-          action: 'Annonce modifiée',
+          action: wasDraft ? 'Annonce publiée' : 'Annonce modifiée',
           entityType: 'property',
           entityId: bien.id,
           objectLabel: draft.title || bien.title,
@@ -253,20 +265,21 @@ export default function BienDetailSugarV3Page() {
             price: price ?? bien.price,
             mandate_type: draft.mandate_type,
             surface_m2: area ?? bien.surface_m2,
+            ...(wasDraft ? { transition: 'draft → active' } : {}),
           },
         })
         setEditing(false)
+        // Toast reflects ONLY what really happened: DB update + audit row.
+        // "Notification envoyée au vendeur" was a lie (no Resend call);
+        // "Re-publiée sur les portails actifs" was a lie (no portal
+        // sync wiring). Both removed.
         setToast({
-          title: 'Annonce mise à jour',
+          title: wasDraft ? 'Annonce publiée' : 'Annonce mise à jour',
           actions: [
-            bien.published_at
-              ? 'Re-publiée sur les portails actifs'
-              : null,
-            'Notification envoyée au vendeur',
+            wasDraft ? 'Statut passé en actif' : null,
             "Entrée ajoutée au journal d'audit nLPD",
           ].filter((x): x is string => !!x),
         })
-        // L'auto-dismiss 5s est géré par l'useEffect [toast] avec cleanup safe.
       },
     })
   }
@@ -404,32 +417,10 @@ export default function BienDetailSugarV3Page() {
                 c2paVerified={bien.c2pa_verified}
                 photoCount={bien.photos?.length}
               />
-              {bien.photos && bien.photos.length > 0 && (
-                <button
-                  style={{
-                    position: 'absolute',
-                    right: 18,
-                    bottom: 18,
-                    padding: '10px 16px',
-                    borderRadius: 999,
-                    border: 0,
-                    background: 'rgba(255,255,255,0.92)',
-                    color: SugarV3.ink,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    whiteSpace: 'nowrap',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    boxShadow: SugarV3.shadowSm,
-                  }}
-                >
-                  <SgIcon name="photos" size={13} stroke={SugarV3.ink} />
-                  Voir les {bien.photos.length} photos
-                </button>
-              )}
+              {/* "Voir les N photos" button removed — had no onClick,
+                  pure decoration. Real lightbox/gallery view is a
+                  separate chip; agents currently access the full set
+                  via the inline gallery on /listings/:id/edit. */}
             </div>
             <div
               style={{
@@ -821,55 +812,8 @@ export default function BienDetailSugarV3Page() {
                 }}
               >
                 <BdEyebrow>Description</BdEyebrow>
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    gap: 4,
-                    padding: 4,
-                    borderRadius: 999,
-                    background: SugarV3.cardSubtle,
-                  }}
-                >
-                  {(
-                    [
-                      { id: 'public' as const, l: 'Publique', icon: 'globe' as const },
-                      { id: 'private' as const, l: 'Privée', icon: 'lock' as const },
-                    ]
-                  ).map((o) => {
-                    const a = descTab === o.id
-                    return (
-                      <button
-                        key={o.id}
-                        onClick={() => setDescTab(o.id)}
-                        style={{
-                          height: 30,
-                          padding: '0 14px',
-                          borderRadius: 999,
-                          border: 0,
-                          background: a ? SugarV3.card : 'transparent',
-                          color: a ? SugarV3.ink : SugarV3.muted,
-                          fontFamily: 'inherit',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          boxShadow: a ? SugarV3.shadowSm : 'none',
-                          transition: 'all .15s ease',
-                        }}
-                      >
-                        <SgIcon
-                          name={o.icon}
-                          size={11}
-                          stroke={a ? SugarV3.ink : SugarV3.muted}
-                          sw={1.8}
-                        />
-                        {o.l}
-                      </button>
-                    )
-                  })}
-                </div>
+                {/* Public/Private toggle removed — the "Privée" branch
+                    was non-persisted (see state cleanup above). */}
               </div>
               <h2
                 style={{
@@ -880,13 +824,10 @@ export default function BienDetailSugarV3Page() {
                   letterSpacing: -0.4,
                 }}
               >
-                {descTab === 'public'
-                  ? 'Annonce visible par les acheteurs'
-                  : 'Notes équipe MEGGA'}
+                Annonce visible par les acheteurs
               </h2>
 
-              {descTab === 'public' ? (
-                <div>
+              <div>
                   {editing ? (
                     <textarea
                       value={draft.description}
@@ -925,140 +866,12 @@ export default function BienDetailSugarV3Page() {
                     </p>
                   )}
 
-                  {/* Suggestion MEGGA AI */}
-                  <div
-                    style={{
-                      marginTop: 20,
-                      padding: '14px 16px',
-                      borderRadius: 16,
-                      background: SugarV3.cardSubtle,
-                      display: 'flex',
-                      gap: 12,
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 999,
-                        background: SugarV3.ink,
-                        color: '#fff',
-                        flexShrink: 0,
-                        display: 'grid',
-                        placeItems: 'center',
-                      }}
-                    >
-                      <SgIcon name="sparkle" size={13} stroke="#fff" sw={2} />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: SugarV3.ink,
-                          marginBottom: 3,
-                        }}
-                      >
-                        MEGGA AI · suggestion
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12.5,
-                          color: SugarV3.inkSoft,
-                          lineHeight: 1.55,
-                        }}
-                      >
-                        La description gagnerait à mettre en avant{' '}
-                        {bien.canton === 'GE'
-                          ? 'la proximité du lac'
-                          : 'le potentiel locatif'}
-                        . Voulez-vous générer 3 variantes&nbsp;?
-                      </div>
-                    </div>
-                    <button
-                      style={{
-                        height: 32,
-                        padding: '0 14px',
-                        borderRadius: 999,
-                        border: 0,
-                        background: SugarV3.card,
-                        color: SugarV3.ink,
-                        fontWeight: 600,
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
-                        boxShadow: SugarV3.shadowSm,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Générer
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  {editPrivate ? (
-                    <textarea
-                      value={privateDesc}
-                      onChange={(e) => setPrivateDesc(e.target.value)}
-                      rows={6}
-                      autoFocus
-                      onBlur={() => setEditPrivate(false)}
-                      style={{
-                        width: '100%',
-                        padding: 16,
-                        borderRadius: 14,
-                        background: SugarV3.cardSubtle,
-                        border: 0,
-                        fontFamily: 'inherit',
-                        fontSize: 14,
-                        color: SugarV3.ink,
-                        lineHeight: 1.6,
-                        resize: 'vertical',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => setEditPrivate(true)}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: 16,
-                        borderRadius: 14,
-                        background: SugarV3.cardSubtle,
-                        border: 0,
-                        fontFamily: 'inherit',
-                        fontSize: 14,
-                        color: SugarV3.inkSoft,
-                        lineHeight: 1.7,
-                        cursor: 'text',
-                      }}
-                    >
-                      {privateDesc}
-                    </button>
-                  )}
-                  <div
-                    style={{
-                      marginTop: 14,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '6px 12px',
-                      borderRadius: 999,
-                      background: SugarV3.cardSubtle,
-                      color: SugarV3.muted,
-                      fontSize: 11,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <SgIcon name="lock" size={10} stroke={SugarV3.muted} sw={2} />
-                    Visible uniquement par l'équipe MEGGA · jamais publié
-                  </div>
-                </div>
-              )}
+                  {/* "Suggestion MEGGA AI" block removed — the text was a
+                      static template (canton ternary) and the "Générer"
+                      button had no onClick. Real AI-generated description
+                      variants need the ai-copilot Edge Function with
+                      property context — tracked as a separate chip. */}
+              </div>
             </BdCard>
 
             {/* Deals liés */}
