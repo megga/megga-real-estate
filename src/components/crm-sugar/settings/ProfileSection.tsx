@@ -40,7 +40,9 @@ export function ProfileSection() {
 
   const handleSave = async () => {
     if (!hasBackend) {
-      toast.success('Profil enregistré', { duration: 2400 })
+      // Plus de faux succès quand l'utilisateur n'est pas authentifié —
+      // on remonte l'état réel (session expirée / non connecté).
+      toast.error('Session expirée — reconnectez-vous pour enregistrer')
       return
     }
     try {

@@ -51,7 +51,7 @@ export function NotificationsSection() {
 
   const handleSave = async () => {
     if (!hasBackend) {
-      toast.success('Notifications enregistrées', { duration: 2400 })
+      toast.error('Session expirée — reconnectez-vous pour enregistrer')
       return
     }
     try {
@@ -61,6 +61,7 @@ export function NotificationsSection() {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[NotificationsSection] save failed', err)
+      toast.error('Erreur lors de l’enregistrement')
     }
   }
 
