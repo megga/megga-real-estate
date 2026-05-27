@@ -1,202 +1,92 @@
-// MEGGA CRM Sugar v2 — Settings Agency section (Tier 3.k stub)
-// 1:1 port from `crm-screen-settings-step2.jsx` (SettingsAgencySection).
+// MEGGA CRM Sugar v2 — Settings Agency section (wired).
+//
+// Persiste sur agencies via useAgencySettings. Champs édités : nom, adresse,
+// ville, canton, téléphone, email, site web, URL du logo. Les anciens champs
+// purement locaux (raison sociale, IDE, année, description courte, charte
+// graphique multi-couleurs, réseau d'affiliation) ont été retirés tant qu'il
+// n'existe pas de colonnes ou d'agency_branding table — chips pour le retour.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/Toast'
+import { useAgencySettings, type AgencySettingsData } from '@/hooks/useAgencySettings'
 import {
   ConfirmModal,
   SectionHeader,
   SetCard,
-  SetIcon,
   SetInput,
-  SetTextarea,
   StickySaveBar,
-  Toast,
 } from './atoms'
 import { SET_PALETTE } from './data'
 
 const SET = SET_PALETTE
 
-interface AgencyBranding {
-  logoBg: string
-  primary: string
-  accent: string
-  initials: string
-}
-
-interface AgencyData {
-  name: string
-  legal: string
-  ide: string
-  foundedYear: number
-  address: string
-  postal: string
-  city: string
-  country: string
-  phone: string
-  email: string
-  web: string
-  aboutShort: string
-  branding: AgencyBranding
-  network: string
-}
-
-const DEFAULT_AGENCY: AgencyData = {
-  name: 'MEGGA Genève',
-  legal: 'MEGGA Real Estate SA',
-  ide: 'CHE-100.000.001',
-  foundedYear: 2018,
-  address: '14 rue du Rhône',
-  postal: '1204',
-  city: 'Genève',
-  country: 'Suisse',
-  phone: '+41 22 555 00 00',
-  email: 'geneve@megga.ch',
-  web: 'megga.ch',
-  aboutShort:
-    'Cabinet boutique spécialisé sur Genève rive droite et rive gauche, mandats exclusifs et conseil patrimonial.',
-  branding: {
-    logoBg: '#0B0C0E',
-    primary: '#0B0C0E',
-    accent: '#0B0C0E',
-    initials: 'MG',
-  },
-  network: 'megga',
-}
-
-// NETWORK_OPTIONS removed alongside the "Réseau d'affiliation" card.
-// Will be re-introduced when the affiliation feature is rebuilt against
-// a real partner registry (separate chip).
-
-interface ColorFieldProps {
-  label: string
-  value: string
-  onChange: (v: string) => void
-}
-
-function ColorField({ label, value, onChange }: ColorFieldProps) {
-  const [open, setOpen] = useState(false)
-  const PRESET = [
-    '#0B0C0E', '#1E3A5F', '#2C2416', '#5C2C16',
-    '#0041D9', '#0F766E', '#9F1239', '#7C3AED',
-  ]
-  return (
-    <div style={{ position: 'relative' }}>
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: SET.muted,
-          letterSpacing: 0.6,
-          textTransform: 'uppercase',
-          marginBottom: 8,
-        }}
-      >
-        {label}
-      </div>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          height: 48,
-          width: '100%',
-          padding: '0 12px',
-          borderRadius: 14,
-          border: 0,
-          background: SET.cardSubtle,
-          fontFamily: 'inherit',
-          fontSize: 14,
-          fontWeight: 500,
-          color: SET.ink,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
-        }}
-      >
-        <span
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            background: value,
-            boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.10)',
-            flexShrink: 0,
-          }}
-        />
-        <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>
-          {value.toUpperCase()}
-        </span>
-      </button>
-      {open && (
-        <>
-          <div
-            onClick={() => setOpen(false)}
-            style={{ position: 'fixed', inset: 0, zIndex: 30 }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              marginTop: 6,
-              zIndex: 31,
-              background: SET.card,
-              borderRadius: 16,
-              padding: 12,
-              boxShadow: SET.shadowLg,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(8, 28px)',
-              gap: 8,
-              animation: 'setFadeUp .18s cubic-bezier(.2,.8,.2,1) both',
-            }}
-          >
-            {PRESET.map(c => (
-              <button
-                key={c}
-                onClick={() => {
-                  onChange(c)
-                  setOpen(false)
-                }}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  border: 0,
-                  background: c,
-                  cursor: 'pointer',
-                  boxShadow:
-                    c === value
-                      ? `0 0 0 2px #fff, 0 0 0 4px ${SET.black}`
-                      : 'inset 0 0 0 1px rgba(0,0,0,0.10)',
-                }}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
+const SWISS_CANTONS = [
+  'GE', 'VD', 'VS', 'NE', 'FR', 'BE', 'JU', 'BS', 'BL', 'AG', 'SO',
+  'ZH', 'LU', 'ZG', 'SZ', 'NW', 'OW', 'UR', 'GL', 'SH', 'TG',
+  'AR', 'AI', 'SG', 'GR', 'TI',
+] as const
 
 export function AgencySection() {
-  const [data, setData] = useState<AgencyData>(DEFAULT_AGENCY)
-  const [saved, setSaved] = useState<AgencyData>(DEFAULT_AGENCY)
-  const dirty = JSON.stringify(data) !== JSON.stringify(saved)
-  const set = (patch: Partial<AgencyData>) => setData(d => ({ ...d, ...patch }))
-  const setBranding = (patch: Partial<AgencyBranding>) =>
-    set({ branding: { ...data.branding, ...patch } })
-
-  const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState(false)
+  const { agency: serverAgency, isLoading, isSaving, hasBackend, save } = useAgencySettings()
+  const [data, setData] = useState<AgencySettingsData>(serverAgency)
+  const [saved, setSaved] = useState<AgencySettingsData>(serverAgency)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
-  const handleSave = () => {
-    setSaving(true)
-    setTimeout(() => {
+  useEffect(() => {
+    setData(serverAgency)
+    setSaved(serverAgency)
+  }, [serverAgency])
+
+  const dirty = JSON.stringify(data) !== JSON.stringify(saved)
+  const set = (patch: Partial<AgencySettingsData>) => setData(d => ({ ...d, ...patch }))
+
+  const toast = useToast()
+
+  const handleSave = async () => {
+    if (!hasBackend) {
+      toast.error('Aucune agence associée à votre profil')
+      return
+    }
+    try {
+      await save(data)
       setSaved(data)
-      setSaving(false)
-      setToast(true)
-      setTimeout(() => setToast(false), 2400)
-    }, 700)
+      toast.success('Agence enregistrée', { duration: 2400 })
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[AgencySection] save failed', err)
+      toast.error('Erreur lors de l’enregistrement')
+    }
   }
+
+  const handleCancel = () => {
+    if (!dirty) return
+    setConfirmOpen(true)
+  }
+
+  if (isLoading && !serverAgency.name) {
+    return (
+      <div style={{ padding: 40, color: SET.muted, fontSize: 13 }}>
+        Chargement de l'agence…
+      </div>
+    )
+  }
+
+  if (!hasBackend) {
+    return (
+      <div style={{ padding: 40, color: SET.muted, fontSize: 13 }}>
+        Aucune agence associée à votre profil. Contactez votre administrateur.
+      </div>
+    )
+  }
+
+  // Initiales pour la prévisualisation du logo (fallback quand pas d'image)
+  const initials = (data.name || '?')
+    .split(/\s+/)
+    .map(w => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 
   return (
     <>
@@ -211,8 +101,8 @@ export function AgencySection() {
       >
         <SectionHeader
           kicker="Mon agence"
-          title="L'identité légale et publique de votre cabinet"
-          sub="Apparaît sur les mandats, factures, courriers officiels et le pied de toutes vos communications."
+          title="L'identité publique de votre cabinet"
+          sub="Apparaît sur les mandats, factures et toutes vos communications. Les modifications sont visibles immédiatement."
         />
 
         {/* Card identité visuelle + nom */}
@@ -226,47 +116,25 @@ export function AgencySection() {
                 alignItems: 'center',
                 gap: 14,
                 borderRight: `1px solid ${SET.line}`,
-                minWidth: 240,
+                minWidth: 220,
               }}
             >
-              <div style={{ position: 'relative' }}>
-                <div
-                  style={{
-                    width: 120,
-                    height: 120,
-                    borderRadius: 24,
-                    background: data.branding.logoBg,
-                    color: '#fff',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: 38,
-                    fontWeight: 800,
-                    letterSpacing: '.05em',
-                    boxShadow: `0 12px 30px ${data.branding.logoBg}55`,
-                  }}
-                >
-                  {data.branding.initials}
-                </div>
-                <button
-                  title="Téléverser un logo"
-                  style={{
-                    position: 'absolute',
-                    bottom: -6,
-                    right: -6,
-                    width: 36,
-                    height: 36,
-                    borderRadius: 999,
-                    border: 0,
-                    background: SET.black,
-                    color: '#fff',
-                    display: 'grid',
-                    placeItems: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 6px 16px rgba(11,12,14,0.30)',
-                  }}
-                >
-                  <SetIcon name="camera" size={16} stroke="#fff" />
-                </button>
+              <div
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: 24,
+                  background: data.logoUrl ? `url(${data.logoUrl}) center/cover` : SET.black,
+                  color: '#fff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: 38,
+                  fontWeight: 800,
+                  letterSpacing: '.05em',
+                  boxShadow: '0 12px 30px rgba(11,12,14,0.20)',
+                }}
+              >
+                {!data.logoUrl && initials}
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div
@@ -277,7 +145,7 @@ export function AgencySection() {
                     letterSpacing: -0.2,
                   }}
                 >
-                  {data.name}
+                  {data.name || 'Nom non défini'}
                 </div>
                 <div
                   style={{
@@ -287,75 +155,23 @@ export function AgencySection() {
                     marginTop: 2,
                   }}
                 >
-                  {data.legal}
+                  {data.canton ? `Canton ${data.canton}` : 'Canton non défini'}
                 </div>
               </div>
-              <button
-                style={{
-                  height: 32,
-                  padding: '0 14px',
-                  borderRadius: 999,
-                  border: 0,
-                  background: SET.cardSubtle,
-                  color: SET.inkSoft,
-                  fontFamily: 'inherit',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Téléverser un logo
-              </button>
             </div>
 
             <div style={{ flex: 1, padding: '28px 32px' }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.4fr 1fr',
-                  gap: 16,
-                  marginBottom: 16,
-                }}
-              >
-                <SetInput
-                  label="Nom commercial"
-                  value={data.name}
-                  onChange={v => set({ name: v })}
-                />
-                <SetInput
-                  label="Année de création"
-                  value={data.foundedYear}
-                  onChange={v => set({ foundedYear: Number(v) || 0 })}
-                  type="number"
-                />
-              </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.4fr 1fr',
-                  gap: 16,
-                  marginBottom: 16,
-                }}
-              >
-                <SetInput
-                  label="Raison sociale"
-                  value={data.legal}
-                  onChange={v => set({ legal: v })}
-                  hint="Nom légal complet (SA, Sàrl, etc.)"
-                />
-                <SetInput
-                  label="Numéro IDE"
-                  value={data.ide}
-                  onChange={v => set({ ide: v })}
-                  hint="Identifiant d'entreprise suisse"
-                />
-              </div>
-              <SetTextarea
-                label="Description courte"
-                value={data.aboutShort}
-                onChange={v => set({ aboutShort: v })}
-                rows={3}
-                placeholder="2 phrases qui résument votre positionnement…"
+              <SetInput
+                label="Nom commercial"
+                value={data.name}
+                onChange={v => set({ name: v })}
+              />
+              <div style={{ height: 16 }} />
+              <SetInput
+                label="URL du logo (https://…)"
+                value={data.logoUrl}
+                onChange={v => set({ logoUrl: v })}
+                hint="Téléversement direct à venir — collez une URL publique pour l'instant"
               />
             </div>
           </div>
@@ -369,7 +185,7 @@ export function AgencySection() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1.5fr 1fr',
+              gridTemplateColumns: '2.4fr 1.4fr 0.8fr',
               gap: 16,
             }}
           >
@@ -379,20 +195,47 @@ export function AgencySection() {
               onChange={v => set({ address: v })}
             />
             <SetInput
-              label="NPA"
-              value={data.postal}
-              onChange={v => set({ postal: v })}
-            />
-            <SetInput
               label="Ville"
               value={data.city}
               onChange={v => set({ city: v })}
             />
-            <SetInput
-              label="Pays"
-              value={data.country}
-              onChange={v => set({ country: v })}
-            />
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: SET.muted,
+                  letterSpacing: 0.6,
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                }}
+              >
+                Canton
+              </div>
+              <select
+                value={data.canton}
+                onChange={e => set({ canton: e.target.value })}
+                style={{
+                  width: '100%',
+                  height: 48,
+                  padding: '0 12px',
+                  borderRadius: 14,
+                  border: 0,
+                  background: SET.cardSubtle,
+                  fontFamily: 'inherit',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: SET.ink,
+                  cursor: 'pointer',
+                  boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+                }}
+              >
+                <option value="">—</option>
+                {SWISS_CANTONS.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </SetCard>
 
@@ -422,86 +265,20 @@ export function AgencySection() {
             />
             <SetInput
               label="Site web"
-              value={data.web}
-              onChange={v => set({ web: v })}
+              value={data.website}
+              onChange={v => set({ website: v })}
               prefix="https://"
             />
           </div>
         </SetCard>
-
-        {/* Card branding */}
-        <SetCard
-          title="Charte de marque"
-          sub="Couleurs et initiales reprises dans les exports, signatures et la première de couverture des dossiers."
-        >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr',
-              gap: 16,
-            }}
-          >
-            <ColorField
-              label="Fond logo"
-              value={data.branding.logoBg}
-              onChange={v => setBranding({ logoBg: v })}
-            />
-            <ColorField
-              label="Couleur primaire"
-              value={data.branding.primary}
-              onChange={v => setBranding({ primary: v })}
-            />
-            <ColorField
-              label="Accent"
-              value={data.branding.accent}
-              onChange={v => setBranding({ accent: v })}
-            />
-            <SetInput
-              label="Initiales"
-              value={data.branding.initials}
-              onChange={v => setBranding({ initials: v.slice(0, 3).toUpperCase() })}
-              hint="Affichées si pas de logo"
-            />
-          </div>
-          <div
-            style={{
-              marginTop: 18,
-              padding: '14px 16px',
-              borderRadius: 14,
-              background: SET.cardSubtle,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-            }}
-          >
-            <SetIcon name="info" size={16} stroke={SET.muted} />
-            <span
-              style={{
-                fontSize: 12.5,
-                color: SET.inkSoft,
-                fontWeight: 500,
-                lineHeight: 1.5,
-              }}
-            >
-              Pour la charte complète (typographies, gabarits, signatures), rendez-vous sur la
-              section <b>Marque & présentation</b>.
-            </span>
-          </div>
-        </SetCard>
-
-        {/* "Réseau d'affiliation" card removed — Tier 3 trim (Julien call):
-            non-essentiel pour le MVP CRM. Le champ data.network reste dans
-            le state pour ne pas casser le save handler ; il sera retiré
-            quand le wizard onboarding ne le proposera plus. */}
       </div>
 
       <StickySaveBar
         dirty={dirty}
-        saving={saving}
+        saving={isSaving}
         onSave={handleSave}
-        onCancel={() => dirty && setConfirmOpen(true)}
+        onCancel={handleCancel}
       />
-      <Toast open={toast} label="Agence enregistrée" />
       {confirmOpen && (
         <ConfirmModal
           title="Annuler les modifications ?"

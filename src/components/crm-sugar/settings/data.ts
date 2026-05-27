@@ -24,21 +24,26 @@ export type SettingsIconName =
   | 'mailSend' | 'crown' | 'more'
   | 'link' | 'external'
 
-// 6 sections cachées du menu jusqu'à wire réel (Agency, Team, Brand, Privacy,
-// Security, Preferences) : leurs handleSave étaient des setTimeout(700ms) qui
-// flashaient "Enregistré" sans rien persister. Chip dédié pour chacune :
-//   - Agency      → write sur agencies (name/address/phone/email/website)
-//   - Team        → query agency_members + invites via Resend
-//   - Brand       → upload logo storage + nouvelle table agency_branding
-//   - Privacy     → DSAR export + suppression compte conformes nLPD
-//   - Security    → MFA via supabase.auth.mfa.enroll/unenroll
-//   - Preferences → profiles.preferences JSON (même pattern que Notifications)
+// Sections câblées (visibles dans le menu) et sections en attente de wire.
 //
-// Les composants restent dans /settings/*Section.tsx pour ne pas perdre
-// l'UI, ils seront réintroduits dans le menu au fur et à mesure des wires.
+// Visible :
+//   - Profile       → useAgentProfileSugar (profiles + agent_profiles)
+//   - Agency        → useAgencySettings (agencies table)
+//   - Notifications → useNotifPreferences (profiles.preferences.notifications)
+//   - Preferences   → useUiPreferences (profiles.preferences.ui)
+//   - Integrations  → useGoogleCalendar + useOutlookCalendar (real OAuth)
+//   - Billing       → reads still partial; chip pour Stripe Checkout
+//
+// Cachées (chip dédiée par section) :
+//   - Team          → query agency_members + invites via Resend
+//   - Brand         → upload logo storage + nouvelle table agency_branding
+//   - Privacy       → DSAR export + delete-account Edge Function
+//   - Security      → MFA via supabase.auth.mfa.enroll/unenroll
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },
+  { id: 'agency', label: 'Mon agence', short: 'Agence', icon: 'building', group: 'moi' },
   { id: 'notifications', label: 'Notifications', short: 'Notifications', icon: 'bell', group: 'produit' },
+  { id: 'preferences', label: 'Préférences', short: 'Préférences', icon: 'sliders', group: 'compte' },
   { id: 'integrations', label: 'Intégrations', short: 'Intégrations', icon: 'plug', group: 'produit' },
   { id: 'billing', label: 'Facturation', short: 'Facturation', icon: 'card', group: 'compte' },
 ]
