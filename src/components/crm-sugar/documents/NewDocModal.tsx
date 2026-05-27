@@ -584,19 +584,24 @@ export interface NewDocPayload {
 
 interface NewDocModalProps {
   folders: DocFolder[]
-  templates: DocTemplate[]
+  /** Document templates. Optional — when empty, the "Depuis un modèle" path is hidden. */
+  templates?: DocTemplate[]
   dark: boolean
+  /** When true, the "Importer le document" CTA is disabled (upload in flight). */
+  uploading?: boolean
   onClose: () => void
   onCreate?: (payload: NewDocPayload) => void
 }
 
 export function NewDocModal({
   folders,
-  templates,
+  templates = [],
   dark,
+  uploading = false,
   onClose,
   onCreate,
 }: NewDocModalProps) {
+  const templatesAvailable = templates.length > 0
   const s = sugarTokens(dark)
 
   const [mode, setMode] = useState<ModeId>(null)
@@ -629,7 +634,9 @@ export function NewDocModal({
   }
   const goNext = () => {
     if (step === 2 && canProceed) {
-      setStep(3)
+      // Le parent ferme la modal sur succès via onClose (et garde la modal
+      // ouverte avec un toast d'erreur en cas d'échec). On n'avance plus
+      // automatiquement à step 3 — le toast suffit comme confirmation.
       if (onCreate && mode && selFolder) {
         onCreate({
           mode,
@@ -860,18 +867,20 @@ export function NewDocModal({
                 paddingBottom: 8,
               }}
             >
-              <GateCard
-                icon="template"
-                title="Depuis un modèle"
-                sub="Pré-rempli avec les données du dossier — prêt à signer en quelques secondes."
-                onClick={() => goMode('template')}
-                recommended
-                s={s}
-              />
+              {templatesAvailable && (
+                <GateCard
+                  icon="template"
+                  title="Depuis un modèle"
+                  sub="Pré-rempli avec les données du dossier — prêt à signer en quelques secondes."
+                  onClick={() => goMode('template')}
+                  recommended
+                  s={s}
+                />
+              )}
               <GateCard
                 icon="upload"
-                title="Document libre"
-                sub="Importer un PDF ou Word existant. L'IA classe et extrait les métadonnées."
+                title="Importer un document"
+                sub="Glissez un PDF ou Word existant — il sera ajouté au dossier choisi."
                 onClick={() => goMode('upload')}
                 s={s}
               />
@@ -1110,21 +1119,25 @@ export function NewDocModal({
                 <GhostPill onClick={goBack} s={s}>
                   Retour
                 </GhostPill>
-                <BlackPill onClick={goNext} disabled={!canProceed} s={s}>
-                  {mode === 'template' ? 'Générer le document' : 'Importer le document'}
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={canProceed ? s.selectInk : s.muted}
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M5 12h14" />
-                    <path d="M12 5l7 7-7 7" />
-                  </svg>
+                <BlackPill onClick={goNext} disabled={!canProceed || uploading} s={s}>
+                  {uploading
+                    ? 'Envoi en cours…'
+                    : mode === 'template' ? 'Générer le document' : 'Importer le document'}
+                  {!uploading && (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={canProceed ? s.selectInk : s.muted}
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M5 12h14" />
+                      <path d="M12 5l7 7-7 7" />
+                    </svg>
+                  )}
                 </BlackPill>
               </>
             )}

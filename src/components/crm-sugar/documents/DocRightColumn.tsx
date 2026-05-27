@@ -16,10 +16,9 @@ interface DocRightColumnProps {
   folder: DocFolder
   doc: DocItem | null
   sp: SugarPalette
-  onOpenStudio: (doc: DocItem) => void
 }
 
-export function DocRightColumn({ folder, doc, sp, onOpenStudio }: DocRightColumnProps) {
+export function DocRightColumn({ folder, doc, sp }: DocRightColumnProps) {
   const [viewerOpen, setViewerOpen] = useState(false)
 
   if (!doc) {
@@ -84,34 +83,10 @@ export function DocRightColumn({ folder, doc, sp, onOpenStudio }: DocRightColumn
         </div>
 
         <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
-          {doc.isMain && (
-            <button
-              onClick={() => onOpenStudio(doc)}
-              style={{
-                flex: 1,
-                padding: '9px 10px',
-                borderRadius: 12,
-                background: sp.ink,
-                color: sp.pageBg,
-                border: 'none',
-                fontSize: 12,
-                fontWeight: 700,
-                fontFamily: 'inherit',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <DocIcon name="sparkles" size={13} color={sp.pageBg} />
-              Studio PDF
-            </button>
-          )}
           <button
             onClick={() => setViewerOpen(true)}
             style={{
-              flex: doc.isMain ? 0 : 1,
+              flex: 1,
               padding: '9px 12px',
               borderRadius: 12,
               background: sp.cardSubBg,
@@ -128,25 +103,7 @@ export function DocRightColumn({ folder, doc, sp, onOpenStudio }: DocRightColumn
             }}
           >
             <DocIcon name="eye" size={13} color={sp.ink} />
-            {!doc.isMain && 'Aperçu'}
-          </button>
-          <button
-            style={{
-              padding: '9px 12px',
-              borderRadius: 12,
-              background: sp.cardSubBg,
-              color: sp.ink,
-              border: `1px solid ${sp.cardBorder}`,
-              fontSize: 12,
-              fontWeight: 600,
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <DocIcon name="download" size={13} color={sp.ink} />
+            Aperçu
           </button>
         </div>
       </div>
@@ -588,20 +545,6 @@ function DocViewer({ doc, folder, onClose }: DocViewerProps) {
           +
         </button>
         <div style={{ width: 1, height: 18, background: '#E4E8EE' }} />
-        <button
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 999,
-            border: 0,
-            background: '#F4F6FA',
-            cursor: 'pointer',
-            display: 'grid',
-            placeItems: 'center',
-          }}
-        >
-          <DocIcon name="download" size={13} color="#0B0C0E" />
-        </button>
         <button
           onClick={onClose}
           style={{

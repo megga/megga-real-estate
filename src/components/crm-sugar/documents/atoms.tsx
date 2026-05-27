@@ -243,7 +243,8 @@ export function DocStatusPill({ status, size = 'md' }: DocStatusPillProps) {
   )
 }
 
-export type DocViewId = 'living' | 'grid' | 'templates'
+// 'templates' retiré : pas de table document_templates en prod, view inerte.
+export type DocViewId = 'living' | 'grid'
 
 interface DocViewToggleProps {
   value: DocViewId
@@ -255,7 +256,6 @@ export function DocViewToggle({ value, onChange, sp }: DocViewToggleProps) {
   const opts: { id: DocViewId; label: string; icon: DocIconName }[] = [
     { id: 'living', label: 'Dossier vivant', icon: 'dossier' },
     { id: 'grid', label: 'Grille docs', icon: 'grid' },
-    { id: 'templates', label: 'Modèles', icon: 'template' },
   ]
   return (
     <div

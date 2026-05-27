@@ -4,6 +4,9 @@
 import { useMemo, useState } from 'react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
@@ -14,24 +17,17 @@ import { DocIcon, DocViewToggle, type DocViewId } from '@/components/crm-sugar/d
 import { DocLeftColumn, type DocFilterId } from '@/components/crm-sugar/documents/DocLeftColumn'
 import { DocLivingColumn } from '@/components/crm-sugar/documents/DocLivingColumn'
 import { DocRightColumn } from '@/components/crm-sugar/documents/DocRightColumn'
-import {
-  DocGridView, DocTemplatesView,
-} from '@/components/crm-sugar/documents/DocViews'
-import { DocStudioModal } from '@/components/crm-sugar/documents/DocStudioModal'
+import { DocGridView } from '@/components/crm-sugar/documents/DocViews'
 import { NewDocModal, type NewDocPayload } from '@/components/crm-sugar/documents/NewDocModal'
-import {
-  TemplateEditorModal, type TemplateEditorPayload,
-} from '@/components/crm-sugar/documents/TemplateEditorModal'
-import {
-  DOC_TEMPLATES,
-  type DocItem, type DocTemplate, type DocFolder,
-} from '@/components/crm-sugar/documents/data'
+import type { DocItem, DocFolder } from '@/components/crm-sugar/documents/data'
 import { useDocumentsSugar } from '@/hooks/useDocumentsSugar'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function DocumentsSugarV2Page() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { user, profile } = useAuth()
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -50,7 +46,7 @@ export default function DocumentsSugarV2Page() {
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
   // Source de vérité : transactions actives Supabase (un dossier = une transaction)
-  // + documents Supabase joints. Templates restent mock (chantier séparé).
+  // + documents Supabase joints.
   const { folders } = useDocumentsSugar()
 
   const [view, setView] = useState<DocViewId>('living')
@@ -58,15 +54,9 @@ export default function DocumentsSugarV2Page() {
   const [query, setQuery] = useState('')
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null)
-  const [studioState, setStudioState] = useState<{
-    doc: DocItem
-    folder: DocFolder
-  } | null>(null)
   const [showNewDoc, setShowNewDoc] = useState(false)
-  const [editingTemplate, setEditingTemplate] = useState<{
-    template: DocTemplate | null
-  } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     if (!toast) return
@@ -95,24 +85,62 @@ export default function DocumentsSugarV2Page() {
   }
 
   const handleNewDocClick = () => setShowNewDoc(true)
-  const handleEditTemplate = (tpl: DocTemplate | null) =>
-    setEditingTemplate({ template: tpl })
 
-  const handleCreateDoc = (payload: NewDocPayload) => {
+  // Upload réel : storage 'documents' + insert documents row.
+  // Le mode 'template' (PDF gen depuis modèle) n'est pas encore wired — chip séparée.
+  const handleCreateDoc = async (payload: NewDocPayload) => {
+    if (payload.mode !== 'upload' || !payload.file) return
+    if (!profile?.agency_id || !user?.id) {
+      setToast('Session expirée — reconnectez-vous')
+      return
+    }
+
     const target = folders.find(f => f.id === payload.folderId)
-    setToast(
-      payload.mode === 'template'
-        ? `Document généré dans ${target?.title ?? 'le dossier'}`
-        : `Document importé dans ${target?.title ?? 'le dossier'}`,
-    )
-  }
+    if (!target) {
+      setToast('Dossier introuvable')
+      return
+    }
 
-  const handleSaveTemplate = (payload: TemplateEditorPayload) => {
-    setToast(
-      editingTemplate?.template
-        ? `Modèle « ${payload.name} » enregistré`
-        : `Nouveau modèle « ${payload.name} » créé`,
-    )
+    setUploading(true)
+    try {
+      const ext = payload.file.name.match(/\.[^.]+$/)?.[0] ?? ''
+      const baseName = payload.docName?.trim() || payload.file.name.replace(/\.[^.]+$/, '')
+      const storagePath = `${profile.agency_id}/${target.id}/${Date.now()}-${baseName.replace(/[^a-zA-Z0-9._-]/g, '_')}${ext}`
+
+      const { error: uploadErr } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, payload.file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: payload.file.type || 'application/octet-stream',
+        })
+      if (uploadErr) throw uploadErr
+
+      const { error: insertErr } = await supabase.from('documents').insert({
+        agency_id: profile.agency_id,
+        transaction_id: target.id,
+        name: baseName,
+        type: 'import',
+        storage_path: storagePath,
+        size_bytes: payload.file.size,
+        status: 'pending',
+        uploaded_by: user.id,
+      })
+      if (insertErr) {
+        // Best-effort rollback of the uploaded blob.
+        await supabase.storage.from('documents').remove([storagePath]).catch(() => {})
+        throw insertErr
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['documents-sugar-documents'] })
+      setToast(`Document importé dans ${target.title}`)
+      setShowNewDoc(false)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
+      setToast(`Échec import : ${msg}`)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const onCmd = () => {
@@ -291,7 +319,6 @@ export default function DocumentsSugarV2Page() {
                   folder={folder}
                   doc={doc}
                   sp={sp}
-                  onOpenStudio={d => setStudioState({ doc: d, folder })}
                 />
               </>
             )}
@@ -313,104 +340,17 @@ export default function DocumentsSugarV2Page() {
                 />
               </div>
             )}
-
-            {view === 'templates' && (
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <DocTemplatesView
-                  templates={DOC_TEMPLATES}
-                  sp={sp}
-                  onEditTemplate={handleEditTemplate}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Floating IA bar */}
-          <div
-            style={{
-              position: 'sticky',
-              bottom: 14,
-              marginTop: 'auto',
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: 12,
-              pointerEvents: 'none',
-            }}
-          >
-            <div
-              style={{
-                pointerEvents: 'auto',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 8px 8px 16px',
-                borderRadius: 999,
-                background: sp.cardBg,
-                border: `1px solid ${sp.cardBorder}`,
-                boxShadow: sp.shadow,
-                minWidth: 360,
-              }}
-            >
-              <DocIcon name="sparkles" size={14} color={sp.ink} />
-              <input
-                placeholder="Demande à l'IA — « génère un compromis pour Loft Pâquis »"
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  color: sp.ink,
-                  fontSize: 12.5,
-                  fontFamily: 'inherit',
-                }}
-              />
-              <button
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: '50%',
-                  background: sp.ink,
-                  color: sp.pageBg,
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                <DocIcon name="arrowR" size={13} color={sp.pageBg} />
-              </button>
-            </div>
           </div>
         </main>
       </div>
 
-      {studioState && (
-        <DocStudioModal
-          doc={studioState.doc}
-          folder={studioState.folder}
-          dark={dark}
-          onClose={() => setStudioState(null)}
-        />
-      )}
-
       {showNewDoc && (
         <NewDocModal
           folders={folders}
-          templates={DOC_TEMPLATES}
           dark={dark}
+          uploading={uploading}
           onClose={() => setShowNewDoc(false)}
           onCreate={handleCreateDoc}
-        />
-      )}
-
-      {editingTemplate && (
-        <TemplateEditorModal
-          template={editingTemplate.template}
-          dark={dark}
-          onClose={() => setEditingTemplate(null)}
-          onSave={handleSaveTemplate}
         />
       )}
 
