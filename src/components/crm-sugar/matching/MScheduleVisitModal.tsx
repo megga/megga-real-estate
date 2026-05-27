@@ -90,7 +90,7 @@ export function MScheduleVisitModal({
   const initials = (buyer.firstName?.[0] || '') + (buyer.lastName?.[0] || '')
   const avatarBg = buyer.avatarBg || '#0041D9'
 
-  const days = useMemo(buildScheduleDays, [])
+  const days = useMemo(() => buildScheduleDays(), [])
 
   const [bienId, setBienId] = useState<string | null>(matches[0]?.bienId || null)
   const [dayIso, setDayIso] = useState<string>(

@@ -50,7 +50,7 @@ export function ProfileSection() {
       setSaved(data)
       toast.success('Profil enregistré', { duration: 2400 })
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.error('[ProfileSection] save failed', err)
       toast.error('Erreur lors de l’enregistrement')
     }

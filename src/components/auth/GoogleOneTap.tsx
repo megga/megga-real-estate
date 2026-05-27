@@ -120,7 +120,7 @@ export default function GoogleOneTap({ disabled }: Props) {
               nonce: rawNonce,
             })
             if (error) {
-              // eslint-disable-next-line no-console
+               
               console.error('[google-one-tap] supabase signIn failed:', error.message)
               return
             }
@@ -134,7 +134,7 @@ export default function GoogleOneTap({ disabled }: Props) {
           window.google.accounts.id.prompt()
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
+         
         console.warn('[google-one-tap] init failed:', (e as Error).message)
       }
     }

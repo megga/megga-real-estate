@@ -170,7 +170,7 @@ export default function VisiteDetailSugarV3Page() {
                 })
                 .eq('id', visit.id)
               if (updErr) {
-                // eslint-disable-next-line no-alert
+                 
                 window.alert(`Impossible de mettre à jour le statut : ${updErr.message}`)
               }
             }}

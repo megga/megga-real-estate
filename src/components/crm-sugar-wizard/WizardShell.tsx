@@ -154,7 +154,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           // The property published successfully — surface the transaction
           // failure as a soft warning rather than blocking the success
           // screen (the agent can re-link from the deal detail page).
-          // eslint-disable-next-line no-console
+           
           console.warn('[wizard] vendor-link transaction failed:', txErr)
         }
       }

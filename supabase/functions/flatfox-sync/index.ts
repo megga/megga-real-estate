@@ -261,7 +261,7 @@ async function fetchFlatfoxPage(offset: number): Promise<{ results: FlatfoxListi
   return resp.json()
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 // Slugify agency name: "Apleona Schweiz AG" → "apleona-schweiz-ag"
 function slugifyName(name: string): string {
   return name
@@ -499,7 +499,10 @@ async function runSweep(supabase: any, syncStartAt: string, _totalSeen: number, 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
   try {
-    const offset = body.offset ?? 0
+    // body.offset n'est plus utilisé en mode chunk/sweep — l'offset est
+    // dérivé du curseur DB. Préfixé `_` pour signaler intentionnel.
+    const _offset = body.offset ?? 0
+    void _offset
     const syncStartAt = body.sync_start_at ?? new Date().toISOString()
     const mode = body.mode ?? 'chunk'
     const stats: SyncStats = body.stats ?? { fetched: 0, upserted: 0, skipped: 0, errors: 0, pages: 0, chunks: 0 }

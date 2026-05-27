@@ -60,7 +60,7 @@ test.describe('AI smoke — marketplace /louer', () => {
         }),
       })
 
-      // eslint-disable-next-line no-console
+       
       console.log('[AI smoke] extracted:', result)
 
       expect(

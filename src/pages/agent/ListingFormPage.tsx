@@ -2636,7 +2636,7 @@ export default function ListingFormPage() {
         }).catch((err) => {
           // Silent — do NOT block navigation or show an error. Signing is
           // a nice-to-have on the publish path; manual retry is available.
-          // eslint-disable-next-line no-console
+           
           console.warn('[c2pa-sign] background signing failed:', (err as Error).message)
         })
       }

@@ -94,7 +94,7 @@ export default function DealDetailSugarV3Page() {
       await updateNotes.mutateAsync({ id: deal.id, notes: privateNotes })
       setNotesEditing(false)
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.error('[DealDetail] save notes failed', err)
     }
   }
@@ -544,7 +544,7 @@ export default function DealDetailSugarV3Page() {
                           { offerId: o.id, dealId: deal!.id, status },
                           {
                             onError: (err) => {
-                              // eslint-disable-next-line no-alert
+                               
                               window.alert(`Échec : ${err.message}`)
                             },
                           }
