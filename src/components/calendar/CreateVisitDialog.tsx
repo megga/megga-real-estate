@@ -166,6 +166,7 @@ function CreateVisitForm({
       description: notes || undefined,
       contactId: contactId || undefined,
       propertyId: propertyId || undefined,
+      meggaType: eventType,
       ...(recurrenceFreq !== 'none' && {
         recurrenceRule: {
           frequency: recurrenceFreq,

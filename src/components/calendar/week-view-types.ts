@@ -257,6 +257,10 @@ export interface CalendarEvent {
   /** MEGGA CRM references */
   contactId?: string;
   propertyId?: string;
+  /** MEGGA event type (visit / meeting / reminder / signing / deadline /
+   * personal). 'visit' insère dans `visits`, les autres dans `reminders`
+   * (avec type 'custom' + le label dans description). */
+  meggaType?: 'visit' | 'meeting' | 'reminder' | 'signing' | 'deadline' | 'personal';
   /** MEGGA visit status */
   visitStatus?: VisitStatus;
   /** Post-visit feedback from buyer */

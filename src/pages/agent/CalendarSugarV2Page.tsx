@@ -25,6 +25,7 @@ import {
 } from '@/components/crm-sugar/calendar/helpers'
 import { useCalendarSugar } from '@/hooks/useCalendarSugar'
 import { useVisits } from '@/hooks/useVisits'
+import { useReminders } from '@/hooks/useReminders'
 import { useToast } from '@/components/ui/Toast'
 import { useQueryClient } from '@tanstack/react-query'
 import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
@@ -54,9 +55,11 @@ export default function CalendarSugarV2Page() {
 
   // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
   const { events, hotBuyers } = useCalendarSugar()
-  const { createVisit, isCreating } = useVisits()
+  const { createVisit, isCreating: isCreatingVisit } = useVisits()
+  const { createReminder, isCreating: isCreatingReminder } = useReminders()
   const queryClient = useQueryClient()
   const toast = useToast()
+  const isCreating = isCreatingVisit || isCreatingReminder
 
   const [view, setView] = useState<CalViewId>('day')
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
@@ -64,19 +67,46 @@ export default function CalendarSugarV2Page() {
   const [filters, setFilters] = useState<Record<string, boolean>>({})
   const [createOpen, setCreateOpen] = useState(false)
 
+  /**
+   * Route selon event.meggaType :
+   *   - 'visit' → insert dans table visits (requiert contact + bien)
+   *   - autres  → insert dans table reminders avec type='custom' + title
+   *               + description, channel='task' par défaut.
+   * Les 2 cas invalident le calendar-sugar query pour refresh la vue.
+   */
   const handleCreateVisit = async (event: CalendarEvent) => {
-    // Le dialog peut créer plusieurs types (visit/meeting/reminder/...) mais
-    // seul "visit" a un wire backend (table visits, requiert contact + bien).
-    // Les autres types remonteront en chip dédiée (table reminders, sync gcal).
-    if (!event.contactId || !event.propertyId) {
-      toast.error('Sélectionnez un contact ET un bien pour planifier une visite')
-      return
+    const meggaType = event.meggaType ?? 'visit'
+    const successLabels: Record<NonNullable<CalendarEvent['meggaType']>, string> = {
+      visit: 'Visite planifiée',
+      meeting: 'Rendez-vous planifié',
+      reminder: 'Relance créée',
+      signing: 'Signature planifiée',
+      deadline: 'Échéance ajoutée',
+      personal: 'Événement personnel ajouté',
     }
     try {
-      await createVisit(event)
-      await queryClient.invalidateQueries({ queryKey: ['visits'] })
-      await queryClient.invalidateQueries({ queryKey: ['calendar-sugar-visits'] })
-      toast.success('Visite planifiée', { duration: 2400 })
+      if (meggaType === 'visit') {
+        // Visite réelle : exige contact + bien (FK constraint table visits).
+        if (!event.contactId || !event.propertyId) {
+          toast.error('Sélectionnez un contact ET un bien pour planifier une visite')
+          return
+        }
+        await createVisit(event)
+        await queryClient.invalidateQueries({ queryKey: ['visits'] })
+        await queryClient.invalidateQueries({ queryKey: ['calendar-sugar-visits'] })
+      } else {
+        // Tous les autres types → reminder custom (contact + bien optionnels).
+        await createReminder({
+          type: 'custom',
+          triggerAt: event.start,
+          title: event.title,
+          description: event.description ?? event.location,
+          contactId: event.contactId ?? null,
+          propertyId: event.propertyId ?? null,
+        })
+        await queryClient.invalidateQueries({ queryKey: ['calendar-sugar-reminders'] })
+      }
+      toast.success(successLabels[meggaType], { duration: 2400 })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur inconnue'
       toast.error(`Échec : ${msg}`)
@@ -371,7 +401,7 @@ export default function CalendarSugarV2Page() {
               }}
             >
               <CalIcon name="plus" size={14} stroke="#fff" sw={2.4} />
-              {isCreating ? 'Création…' : 'Nouvelle visite'}
+              {isCreating ? 'Création…' : 'Nouvel événement'}
             </button>
           </div>
 
