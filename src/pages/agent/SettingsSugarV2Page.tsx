@@ -10,13 +10,15 @@ import {
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-// Imports réduits aux 4 sections câblées + visibles dans le menu (Profile,
-// Notifications, Integrations, Billing). Les 6 autres (Agency, Team, Brand,
-// Privacy, Security, Preferences) sont cachées du menu via data.ts jusqu'à
+// Imports : 6 sections câblées + visibles dans le menu (Profile, Agency,
+// Notifications, Preferences, Integrations, Billing). Les 4 autres (Team,
+// Brand, Privacy, Security) sont cachées du menu via data.ts jusqu'à
 // wire réel — cf. SETTINGS_SECTIONS.
 import { BannerPill } from '@/components/crm-sugar/settings/BannerPill'
 import { ProfileSection } from '@/components/crm-sugar/settings/ProfileSection'
+import { AgencySection } from '@/components/crm-sugar/settings/AgencySection'
 import { NotificationsSection } from '@/components/crm-sugar/settings/NotificationsSection'
+import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesSection'
 import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
 import { SET_PALETTE, type SectionId } from '@/components/crm-sugar/settings/data'
@@ -70,12 +72,13 @@ export default function SettingsSugarV2Page() {
 
   const renderContent = () => {
     if (active === 'profile') return <ProfileSection />
-    if (active === 'integrations') return <IntegrationsSection />
+    if (active === 'agency') return <AgencySection />
     if (active === 'notifications') return <NotificationsSection />
+    if (active === 'preferences') return <PreferencesSection />
+    if (active === 'integrations') return <IntegrationsSection />
     if (active === 'billing') return <BillingSection />
-    // 'agency', 'team', 'brand', 'privacy', 'security', 'preferences' sont
-    // exclus du menu (data.ts) jusqu'à wire réel — fallback null si quelqu'un
-    // force un id non listé.
+    // 'team', 'brand', 'privacy', 'security' sont exclus du menu (data.ts)
+    // jusqu'à wire réel — fallback null si quelqu'un force un id non listé.
     return null
   }
 

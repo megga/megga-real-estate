@@ -1,50 +1,23 @@
-// MEGGA CRM Sugar v2 — Settings Preferences section (Tier 3.k stub)
-// 1:1 port from `crm-screen-settings-step3.jsx` (SettingsPreferencesSection).
+// MEGGA CRM Sugar v2 — Settings Preferences section.
+// Persiste sur profiles.preferences.ui (JSON) via useUiPreferences — mirror du
+// pattern useNotifPreferences. Plus de setTimeout fake.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/Toast'
+import { useUiPreferences } from '@/hooks/useUiPreferences'
+import type { PrefsData } from './PreferencesSection.types'
 import {
   SectionHeader,
   SetCard,
   SetIcon,
   SetSwitch,
   StickySaveBar,
-  Toast,
 } from './atoms'
 import { SET_PALETTE } from './data'
 
+export type { PrefsData }
+
 const SET = SET_PALETTE
-
-export interface PrefsData {
-  language: string
-  timezone: string
-  currency: string
-  units: string
-  dateFormat: string
-  firstDayOfWeek: string
-  defaultScreen: string
-  defaultPipelineView: string
-  density: string
-  theme: string
-  spellcheck: boolean
-  autosave: boolean
-  aiAssist: string
-}
-
-const DEFAULT_PREFS: PrefsData = {
-  language: 'fr',
-  timezone: 'Europe/Zurich',
-  currency: 'CHF',
-  units: 'metric',
-  dateFormat: 'dd.MM.yyyy',
-  firstDayOfWeek: 'monday',
-  defaultScreen: 'today',
-  defaultPipelineView: 'kanban',
-  density: 'comfort',
-  theme: 'system',
-  spellcheck: true,
-  autosave: true,
-  aiAssist: 'balanced',
-}
 
 interface PrefSelectOption {
   id: string
@@ -301,21 +274,35 @@ const SHORTCUTS: { keys: string[]; label: string }[] = [
 ]
 
 export function PreferencesSection() {
-  const [data, setData] = useState<PrefsData>(DEFAULT_PREFS)
-  const [saved, setSaved] = useState<PrefsData>(DEFAULT_PREFS)
+  const { preferences: serverPrefs, isSaving, hasBackend, save } = useUiPreferences()
+  const [data, setData] = useState<PrefsData>(serverPrefs)
+  const [saved, setSaved] = useState<PrefsData>(serverPrefs)
+
+  // Sync depuis le serveur quand la query charge / s'invalide
+  useEffect(() => {
+    setData(serverPrefs)
+    setSaved(serverPrefs)
+  }, [serverPrefs])
+
   const dirty = JSON.stringify(data) !== JSON.stringify(saved)
   const set = (patch: Partial<PrefsData>) => setData(d => ({ ...d, ...patch }))
-  const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState(false)
 
-  const handleSave = () => {
-    setSaving(true)
-    setTimeout(() => {
+  const toast = useToast()
+
+  const handleSave = async () => {
+    if (!hasBackend) {
+      toast.error('Session expirée — reconnectez-vous pour enregistrer')
+      return
+    }
+    try {
+      await save(data)
       setSaved(data)
-      setSaving(false)
-      setToast(true)
-      setTimeout(() => setToast(false), 2400)
-    }, 700)
+      toast.success('Préférences enregistrées', { duration: 2400 })
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[PreferencesSection] save failed', err)
+      toast.error('Erreur lors de l’enregistrement')
+    }
   }
 
   return (
@@ -546,11 +533,10 @@ export function PreferencesSection() {
 
       <StickySaveBar
         dirty={dirty}
-        saving={saving}
+        saving={isSaving}
         onSave={handleSave}
         onCancel={() => setData(saved)}
       />
-      <Toast open={toast} label="Préférences enregistrées" />
     </>
   )
 }
