@@ -6,13 +6,15 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { CRM_STAGES, CRM_STAGE_ORDER, crmFmtCHF, crmInitials, type CrmTheme, type SugarPalette, type StageId } from '../tokens'
 import {
-  CRM_CONTACTS, CRM_BIENS, CRM_DEALS,
   crmContactById, crmBienById,
   type CrmContact,
+  type CrmBien,
 } from '../mockData'
 import { useAuth } from '@/hooks/useAuth'
 import { useCreateContact } from '@/hooks/useContacts'
 import { useCreateTransaction } from '@/hooks/useTransactions'
+import { useContactsSugar } from '@/hooks/useContactsSugar'
+import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
 
 // Mock-id patterns from `src/components/crm-sugar/mockData.ts` — both `c-…`
@@ -125,44 +127,41 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
 
   const needsKycBanner = ['interest-confirmed', 'offer', 'signed'].includes(stage)
   const needsMandate = arch?.id === 'seller-mandate'
+
+  // Real Supabase contacts/biens — replace CRM_CONTACTS / CRM_BIENS mock arrays.
+  // KYC + scores arrivent via useContactsSugar adapter (jointure kyc_cases).
+  const { contacts: realContacts } = useContactsSugar()
+  const { biens: realBiens } = useBiensSugar()
+
   const dupContact = (contactMode === 'new' && newContact.email)
-    ? CRM_CONTACTS.find(c => c.email.toLowerCase() === newContact.email.toLowerCase())
+    ? realContacts.find(c => c.email.toLowerCase() === newContact.email.toLowerCase())
     : null
-  const conflictDeal = (contactId && bienId)
-    ? CRM_DEALS.find(d => d.contactId === contactId && d.bienId === bienId)
-    : null
+  // Note : la détection conflictDeal (même contact + même bien) avec deals
+  // mock n'avait pas de sens — on la retire. Si vraiment besoin de dédup,
+  // une RPC count() sur transactions serait correcte (chip si demandé).
 
   const canCreate = (contactMode === 'existing' ? !!contactId : !!(newContact.firstName && newContact.lastName))
     && (!arch?.needsBien || !!bienId)
 
+  // AI prefill : parse texte → champs newContact. Plus de hardcode "Élodie
+  // Schmidt → c-003 + b-101" (mock IDs qui ne match plus rien en prod).
   const handleAi = () => {
     setAiThinking(true)
     setTimeout(() => {
-      const t = aiText.toLowerCase()
-      if (t.includes('élodie') || t.includes('elodie') || t.includes('schmidt')) {
-        setContactMode('existing')
-        setContactId('c-003')
-        setBienId('b-101')
-        setArch('buyer-bien')
-        setStage('interest-confirmed')
-        setActionKind('kyc')
-        setActionNote("Lancer KYC suite à confirmation d'intérêt par email")
-      } else {
-        const emailMatch = aiText.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)
-        const phoneMatch = aiText.match(/\+?\d[\d\s]{8,}/)
-        const lines = aiText.split('\n').map(l => l.trim()).filter(Boolean)
-        const name = (lines[0] || '').split(' ')
-        setContactMode('new')
-        setNewContact({
-          firstName: name[0] || '',
-          lastName: name.slice(1).join(' ') || '',
-          email: emailMatch?.[0] || '',
-          phone: phoneMatch?.[0] || '',
-          lang: 'fr',
-        })
-        setActionKind('call')
-        setActionNote('Premier appel suite au message reçu')
-      }
+      const emailMatch = aiText.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)
+      const phoneMatch = aiText.match(/\+?\d[\d\s]{8,}/)
+      const lines = aiText.split('\n').map(l => l.trim()).filter(Boolean)
+      const name = (lines[0] || '').split(' ')
+      setContactMode('new')
+      setNewContact({
+        firstName: name[0] || '',
+        lastName: name.slice(1).join(' ') || '',
+        email: emailMatch?.[0] || '',
+        phone: phoneMatch?.[0] || '',
+        lang: 'fr',
+      })
+      setActionKind('call')
+      setActionNote('Premier appel suite au message reçu')
       setAiThinking(false)
       setAiOpen(false)
     }, 900)
@@ -283,6 +282,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
 
               <SectionHeader n="2" title="Contact" sp={sp} />
               <ContactCard sp={sp}
+                contacts={realContacts}
                 mode={contactMode} setMode={setContactMode}
                 query={contactQuery} setQuery={setContactQuery}
                 contactId={contactId} setContactId={setContactId}
@@ -294,6 +294,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
                 <>
                   <SectionHeader n="3" title="Bien concerné" sp={sp} />
                   <BienCard sp={sp}
+                    biens={realBiens}
                     query={bienQuery} setQuery={setBienQuery}
                     bienId={bienId} setBienId={setBienId}
                     archetype={arch} />
@@ -312,7 +313,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
                 due={actionDue} setDue={setActionDue}
                 note={actionNote} setNote={setActionNote} />
 
-              {(needsKycBanner || needsMandate || conflictDeal) && (
+              {(needsKycBanner || needsMandate) && (
                 <div style={{ marginTop: 18 }}>
                   {needsMandate && (
                     <Guard sp={sp} tone="warn"
@@ -323,11 +324,6 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
                     <Guard sp={sp} tone="info"
                       title="KYC obligatoire à cette étape"
                       body="Conformément à la LBA, le contact doit être vérifié avant toute offre. Le KYC sera ajouté comme prochaine action si non lancé." />
-                  )}
-                  {conflictDeal && (
-                    <Guard sp={sp} tone="danger"
-                      title="Deal existant détecté"
-                      body={`Un deal "${CRM_STAGES[conflictDeal.stage].label}" existe déjà entre ce contact et ce bien.`} />
                   )}
                 </div>
               )}
@@ -525,9 +521,10 @@ function InCardSegmented<T extends string>({
 // ─── Contact card ──────────────────────────────────────────────────────
 function ContactCard({
   sp, mode, setMode, query, setQuery, contactId, setContactId,
-  newContact, setNewContact, contactType, dupContact,
+  contacts, newContact, setNewContact, contactType, dupContact,
 }: {
   sp: SugarPalette
+  contacts: CrmContact[]
   mode: 'existing' | 'new'
   setMode: (v: 'existing' | 'new') => void
   query: string
@@ -539,7 +536,8 @@ function ContactCard({
   contactType?: 'buyer' | 'seller'
   dupContact: CrmContact | null | undefined
 }) {
-  const list = CRM_CONTACTS
+  // Liste réelle des contacts de l'agence (useContactsSugar amont).
+  const list = contacts
     .filter(c => contactType ? (c.type === contactType || c.type === 'mixed') : true)
     .filter(c => {
       if (!query) return true
@@ -548,7 +546,7 @@ function ContactCard({
         || c.email.toLowerCase().includes(q)
         || c.phone.replace(/\s/g, '').includes(q.replace(/\s/g, ''))
     })
-    .slice(0, 4)
+    .slice(0, 6)
 
   return (
     <SugarCard sp={sp}>
@@ -666,16 +664,18 @@ function ContactCard({
 
 // ─── Bien card ─────────────────────────────────────────────────────────
 function BienCard({
-  sp, query, setQuery, bienId, setBienId, archetype,
+  sp, biens, query, setQuery, bienId, setBienId, archetype,
 }: {
   sp: SugarPalette
+  biens: CrmBien[]
   query: string
   setQuery: (v: string) => void
   bienId: string | null
   setBienId: (id: string | null) => void
   archetype: Archetype | undefined
 }) {
-  const list = CRM_BIENS
+  // Liste réelle des biens de l'agence (useBiensSugar amont).
+  const list = biens
     .filter(b => {
       if (!query) return true
       const q = query.toLowerCase()
@@ -683,7 +683,7 @@ function BienCard({
         || b.ref.toLowerCase().includes(q)
         || b.addr.toLowerCase().includes(q)
     })
-    .slice(0, 3)
+    .slice(0, 5)
 
   return (
     <SugarCard sp={sp}>
