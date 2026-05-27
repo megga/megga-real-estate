@@ -9,6 +9,13 @@ import type { KycDocument } from '@/types/kyc'
 interface Props {
   docs: KycDocument[]
   onUpload?: () => void
+  /** Open the document in a new tab via a signed URL. Optional — when
+   * omitted the eye button is hidden. Compliance: nLPD art. 8 (right to
+   * consult), LBA art. 7 (proof of due diligence). */
+  onPreview?: (doc: KycDocument) => void
+  /** Force-download via signed URL with Content-Disposition. Optional —
+   * when omitted the download button is hidden. */
+  onDownload?: (doc: KycDocument) => void
 }
 
 type ExpiryStatus = { kind: 'expired' | 'soon' | 'ok'; label: string }
@@ -30,7 +37,7 @@ function getExpiryStatus(expiresAt: string | null): ExpiryStatus | null {
   return { kind: 'ok', label: `Valide jusqu’au ${fmtDateShort(expiresAt)}` }
 }
 
-export function KycDocsSection({ docs, onUpload }: Props) {
+export function KycDocsSection({ docs, onUpload, onPreview, onDownload }: Props) {
   return (
     <div
       style={{
@@ -192,18 +199,24 @@ export function KycDocsSection({ docs, onUpload }: Props) {
                     )}
                   </div>
                 </div>
-                <KycCircleBtn
-                  size={36}
-                  title="Aperçu"
-                  icon={<SgIcon name="eye" size={14} stroke={SugarV3.inkSoft} />}
-                />
-                <KycCircleBtn
-                  size={36}
-                  title="Télécharger"
-                  icon={
-                    <SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />
-                  }
-                />
+                {onPreview && (
+                  <KycCircleBtn
+                    size={36}
+                    title="Aperçu"
+                    onClick={() => onPreview(d)}
+                    icon={<SgIcon name="eye" size={14} stroke={SugarV3.inkSoft} />}
+                  />
+                )}
+                {onDownload && (
+                  <KycCircleBtn
+                    size={36}
+                    title="Télécharger"
+                    onClick={() => onDownload(d)}
+                    icon={
+                      <SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />
+                    }
+                  />
+                )}
               </div>
             )
           })}
