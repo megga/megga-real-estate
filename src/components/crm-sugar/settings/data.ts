@@ -1,9 +1,14 @@
 // MEGGA CRM Sugar v2 — Settings data + palette
 // 1:1 port from `crm-screen-settings-sugar.jsx`.
 
+// 'team' + 'brand' supprimés en PR #455 (BrandSection + TeamSection 100% mock,
+// pas de tables agency_branding ni agency_members en prod). Suivi via les
+// issues GitHub :
+//   - #455 Wire BrandSection back: agency_branding table + storage uploads
+//   - #456 Wire TeamSection back: agency_members + RBAC + Resend invites
 export type SectionId =
-  | 'profile' | 'agency' | 'team'
-  | 'brand' | 'notifications' | 'integrations'
+  | 'profile' | 'agency'
+  | 'notifications' | 'integrations'
   | 'billing' | 'security' | 'privacy' | 'preferences'
 
 export interface SettingsSection {
@@ -37,9 +42,9 @@ export type SettingsIconName =
 //                     / resetPasswordForEmail + SSO. MFA TOTP = chip (PR #454)
 //   - Billing       → reads still partial; chip pour Stripe Checkout
 //
-// Cachées (chip dédiée par section) :
-//   - Team          → query agency_members + invites via Resend
-//   - Brand         → upload logo storage + nouvelle table agency_branding
+// Team + Brand : composants supprimés en PR #455 (suivi via issues GitHub
+// #455 Brand + #456 Team — réintroduits quand agency_branding /
+// agency_members existent en DB).
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },
   { id: 'agency', label: 'Mon agence', short: 'Agence', icon: 'building', group: 'moi' },
