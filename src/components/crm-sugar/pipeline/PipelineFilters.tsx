@@ -40,8 +40,10 @@ export function SugarKpiTile({ label, value, sub, accent, sp, dark }: KpiTilePro
   )
 }
 
-// ─── Segmented view (Kanban / Liste / Timeline) ───────────────────────
-export type PipelineView = 'kanban' | 'list' | 'timeline'
+// ─── Segmented view (Kanban / Liste) ──────────────────────────────────
+// 'timeline' retiré : PipelineTimeline iterait CRM_DEALS mock + pas de dates
+// start/end réelles par deal. Réintroductible quand spec produit définie.
+export type PipelineView = 'kanban' | 'list'
 
 export function SugarSegmentedView({
   value, onChange, sp,
@@ -55,7 +57,6 @@ export function SugarSegmentedView({
       {([
         { k: 'kanban' as const,   label: 'Kanban' },
         { k: 'list' as const,     label: 'Liste' },
-        { k: 'timeline' as const, label: 'Timeline' },
       ]).map(v => (
         <button key={v.k} onClick={() => onChange?.(v.k)} style={{
           padding: '9px 18px', borderRadius: 999, border: 0, cursor: 'pointer',

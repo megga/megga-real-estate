@@ -21,13 +21,11 @@ import {
 import { CRM_STAGE_PROBS } from '@/components/crm-sugar/pipeline/stageConstants'
 import { SugarStageColumn } from '@/components/crm-sugar/pipeline/SugarStageColumn'
 import { PipelineList } from '@/components/crm-sugar/pipeline/PipelineList'
-import { PipelineTimeline } from '@/components/crm-sugar/pipeline/PipelineTimeline'
 import {
   SugarKpiTile, SugarSegmentedView, SugarFilterPill,
   SugarStageFilter, SugarRiskFilter, SugarPeriodFilter,
   type PipelineView, type RiskFilterValue,
 } from '@/components/crm-sugar/pipeline/PipelineFilters'
-import { DealDetailDrawer } from '@/components/crm-sugar/pipeline/DealDetailDrawer'
 import { NewDealDrawer } from '@/components/crm-sugar/pipeline/NewDealDrawer'
 
 const DARK_TONE: DarkTone = 'meggaAi'
@@ -66,7 +64,13 @@ export default function PipelineSugarV2Page() {
 
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
-  const [openDealId, setOpenDealId] = useState<string | null>(null)
+  // Ouverture deal : navigate vers DealDetailSugarV3Page (route réelle wired
+  // sur transactions Supabase). L'ancien DealDetailDrawer (737 lignes, lookup
+  // dans CRM_DEALS mock) a été supprimé — il ne pouvait pas afficher de deal
+  // réel (id UUID jamais dans le mock array).
+  const openDeal = (dealId: string) => {
+    navigate(`/dashboard/transactions/${dealId}`)
+  }
 
   const logAudit = useLogAudit()
 
@@ -472,7 +476,7 @@ export default function PipelineSugarV2Page() {
                   key={stage} stage={stage}
                   deals={filteredByStage(stage)}
                   sp={sp} dark={dark}
-                  onOpenDeal={setOpenDealId}
+                  onOpenDeal={openDeal}
                   draggingId={draggingId}
                   dragOver={dragOverStage === stage}
                   onDragOver={() => handleDragOver(stage)}
@@ -486,9 +490,11 @@ export default function PipelineSugarV2Page() {
           )}
 
           {view === 'list' && (
-            <PipelineList sp={sp} deals={filteredDeals} onOpenDeal={setOpenDealId} />
+            <PipelineList sp={sp} deals={filteredDeals} onOpenDeal={openDeal} />
           )}
-          {view === 'timeline' && <PipelineTimeline sp={sp} />}
+          {/* 'timeline' view retirée — PipelineTimeline iterait CRM_DEALS mock.
+              Le toggle est aussi retiré de PipelineFilters.SugarSegmentedView.
+              Réintroductible quand on aura des dates start/end par deal. */}
         </main>
       </div>
 
@@ -498,12 +504,9 @@ export default function PipelineSugarV2Page() {
         sp={sp} t={t} dark={dark}
         prefill={null}
       />
-      <DealDetailDrawer
-        open={!!openDealId}
-        onClose={() => setOpenDealId(null)}
-        dealId={openDealId}
-        sp={sp} t={t} dark={dark}
-      />
+      {/* DealDetailDrawer retiré : ouvrait CRM_DEALS.find qui ne matche jamais
+          un UUID réel. openDeal() navigue vers /dashboard/transactions/:id
+          (page wired sur transactions). 0 perte de feature. */}
 
       {/* Toast verrou KYC : apparaît après drop bloqué ; "Passer outre" → modal motif */}
       {kycBlockState && !overrideOpen && (() => {
