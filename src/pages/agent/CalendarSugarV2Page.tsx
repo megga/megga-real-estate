@@ -24,6 +24,11 @@ import {
   CAL_MONTHS, fmtDate, fmtTime, sameDay,
 } from '@/components/crm-sugar/calendar/helpers'
 import { useCalendarSugar } from '@/hooks/useCalendarSugar'
+import { useVisits } from '@/hooks/useVisits'
+import { useToast } from '@/components/ui/Toast'
+import { useQueryClient } from '@tanstack/react-query'
+import CreateVisitDialog from '@/components/calendar/CreateVisitDialog'
+import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -49,11 +54,34 @@ export default function CalendarSugarV2Page() {
 
   // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
   const { events, hotBuyers } = useCalendarSugar()
+  const { createVisit, isCreating } = useVisits()
+  const queryClient = useQueryClient()
+  const toast = useToast()
 
   const [view, setView] = useState<CalViewId>('day')
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filters, setFilters] = useState<Record<string, boolean>>({})
+  const [createOpen, setCreateOpen] = useState(false)
+
+  const handleCreateVisit = async (event: CalendarEvent) => {
+    // Le dialog peut créer plusieurs types (visit/meeting/reminder/...) mais
+    // seul "visit" a un wire backend (table visits, requiert contact + bien).
+    // Les autres types remonteront en chip dédiée (table reminders, sync gcal).
+    if (!event.contactId || !event.propertyId) {
+      toast.error('Sélectionnez un contact ET un bien pour planifier une visite')
+      return
+    }
+    try {
+      await createVisit(event)
+      await queryClient.invalidateQueries({ queryKey: ['visits'] })
+      await queryClient.invalidateQueries({ queryKey: ['calendar-sugar-visits'] })
+      toast.success('Visite planifiée', { duration: 2400 })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
+      toast.error(`Échec : ${msg}`)
+    }
+  }
 
   const filtered = useMemo(
     () => events.filter(e => filters[e.type] !== false),
@@ -320,6 +348,31 @@ export default function CalendarSugarV2Page() {
               <CalViewToggle value={view} onChange={setView} />
             </div>
 
+            <button
+              onClick={() => setCreateOpen(true)}
+              disabled={isCreating}
+              style={{
+                height: 38,
+                padding: '0 16px',
+                borderRadius: 999,
+                border: 0,
+                background: SP.black,
+                color: '#fff',
+                fontFamily: 'inherit',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: isCreating ? 'wait' : 'pointer',
+                opacity: isCreating ? 0.7 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                boxShadow: '0 6px 18px rgba(11,12,14,0.18)',
+                flexShrink: 0,
+              }}
+            >
+              <CalIcon name="plus" size={14} stroke="#fff" sw={2.4} />
+              {isCreating ? 'Création…' : 'Nouvelle visite'}
+            </button>
           </div>
 
           {/* Body */}
@@ -396,6 +449,13 @@ export default function CalendarSugarV2Page() {
           </div>
         </main>
       </div>
+
+      <CreateVisitDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        initialDate={currentDate}
+        onCreateEvent={handleCreateVisit}
+      />
     </div>
   )
 }

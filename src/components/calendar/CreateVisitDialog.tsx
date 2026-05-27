@@ -164,6 +164,8 @@ function CreateVisitForm({
       color: config.color,
       location: location || undefined,
       description: notes || undefined,
+      contactId: contactId || undefined,
+      propertyId: propertyId || undefined,
       ...(recurrenceFreq !== 'none' && {
         recurrenceRule: {
           frequency: recurrenceFreq,
