@@ -6,7 +6,7 @@ import type { CSSProperties, ReactNode, MouseEvent as ReactMouseEvent } from 're
 import { useNavigate } from 'react-router-dom'
 import CRMIcon, { type CrmIconName } from './CRMIcon'
 import type { CrmTheme, SugarPalette } from './tokens'
-import { CRM_AGENT } from './mockData'
+// CRM_AGENT mock retiré — l'avatar lit `useAuth().profile` (vrai utilisateur)
 import SugarNotificationsPopover from './notifications/SugarNotificationsPopover'
 import { SUGAR_NOTIFS, type SugarNotif } from './notifications/data'
 import SugarProfileDropdown from './profile/SugarProfileDropdown'
@@ -52,7 +52,20 @@ interface SugarTopNavProps {
 }
 export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark = false }: SugarTopNavProps) {
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const { signOut, profile, user } = useAuth()
+  // Calcule initiales/affichage depuis le vrai profil. Fallback "??" pour
+  // les sessions sans profil (devrait être rare — l'AuthGuard route avant).
+  const displayName = profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Agent'
+  const displayInitials = displayName
+    .split(/\s+/)
+    .map(p => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || '??'
+  const displayRole = profile?.role
+    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
+    : 'Agent'
   const [notifs, setNotifs] = useState<SugarNotif[]>(SUGAR_NOTIFS)
   const [notifOpen, setNotifOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -196,7 +209,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
             onClick={() => { setProfileOpen(o => !o); setNotifOpen(false) }}
             aria-haspopup="menu"
             aria-expanded={profileOpen}
-            title={`${CRM_AGENT.name} · ${CRM_AGENT.role || 'Agent'}`}
+            title={`${displayName} · ${displayRole}`}
             style={{
               width: 44, height: 44, borderRadius: 999, border: 0,
               background: profileOpen ? sp.ink : t.primary,
@@ -207,7 +220,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
                 ? '0 6px 20px rgba(11,12,14,0.25)'
                 : sp.shadow,
               transition: 'background 200ms ease, box-shadow 200ms ease',
-            }}>{CRM_AGENT.initials}</button>
+            }}>{displayInitials}</button>
           {profileOpen && (
             <SugarProfileDropdown
               sp={sp}

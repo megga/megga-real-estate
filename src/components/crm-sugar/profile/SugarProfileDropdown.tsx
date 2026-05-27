@@ -6,7 +6,8 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { SugarPalette } from '../tokens'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
-import { CRM_AGENT } from '../mockData'
+import { useAuth } from '@/hooks/useAuth'
+import { useAgencySettings } from '@/hooks/useAgencySettings'
 
 // ─── Inline icons not in CRMIcon ──────────────────────────────────────
 type InlineIconName = 'external' | 'shield' | 'card' | 'help' | 'logout' | 'check'
@@ -156,11 +157,27 @@ interface SugarProfileDropdownProps {
 export default function SugarProfileDropdown({
   sp, dark, onClose, onSettings, onKyc, onAgencyPublic, onHelp, onLogout,
 }: SugarProfileDropdownProps) {
+  const { profile, user } = useAuth()
+  const { agency: agencyData } = useAgencySettings()
+
+  const fullName = profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Agent'
+  const initials = fullName
+    .split(/\s+/)
+    .map(p => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || '??'
+  const role = profile?.role
+    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
+    : 'Agent'
+  const agencyName = agencyData?.name?.trim() || 'Agence non définie'
+
   const agent = {
-    name: CRM_AGENT.name,
-    role: CRM_AGENT.role || 'Agent',
-    agency: CRM_AGENT.agency || 'MEGGA',
-    initials: CRM_AGENT.initials,
+    name: fullName,
+    role,
+    agency: agencyName,
+    initials,
   }
 
   const solidBg = dark ? '#1A1B1F' : '#FFFFFF'
