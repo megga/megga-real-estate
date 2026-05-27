@@ -12,7 +12,6 @@ import {
 import { PCDossierFrame } from '@/components/crm-sugar/parcours/PCDossierFrame'
 import { PCFilters } from '@/components/crm-sugar/parcours/PCFilters'
 import {
-  type ParcoursTask,
   type StageId,
   type Urgency,
 } from '@/components/crm-sugar/parcours/parcoursData'
@@ -39,36 +38,20 @@ export default function ParcoursSugarV2Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
-  // Source de vérité : transactions actives Supabase (1 dossier = 1 transaction)
-  // Équipe agence + tâches granulaires restent dérivés heuristiquement (chantier RBAC séparé).
+  // Source de vérité : transactions actives Supabase (1 dossier = 1 transaction).
+  // Filtre Agent retiré (pas de table profiles/teammates wire) — réintroduit avec RBAC.
   const { dossiers: liveDossiers } = useParcoursSugar()
 
-  const [agentFilter, setAgentFilter] = useState<string>('all')
   const [stageFilter, setStageFilter] = useState<StageId | 'all'>('all')
   const [urgencyFilter, setUrgencyFilter] = useState<Urgency | 'all'>('all')
-  const [toast, setToast] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!toast) return
-    const id = window.setTimeout(() => setToast(null), 2000)
-    return () => window.clearTimeout(id)
-  }, [toast])
 
   const dossiers = useMemo(() => {
     return liveDossiers.filter(d => {
       if (urgencyFilter !== 'all' && d.urgency !== urgencyFilter) return false
       if (stageFilter !== 'all' && d.stageActive !== stageFilter) return false
-      if (agentFilter !== 'all') {
-        const has =
-          d.team.some(m => m.agentId === agentFilter) ||
-          Object.values(d.columns).some(arr =>
-            arr.some(task => task.agentId === agentFilter),
-          )
-        if (!has) return false
-      }
       return true
     })
-  }, [liveDossiers, agentFilter, stageFilter, urgencyFilter])
+  }, [liveDossiers, stageFilter, urgencyFilter])
 
   const onCmd = () => {
     /* placeholder */
@@ -110,10 +93,6 @@ export default function ParcoursSugarV2Page() {
     }
   }
 
-  const handleTaskClick = (task: ParcoursTask) => {
-    setToast(`Tâche ouverte — ${task.label}`)
-  }
-
   return (
     <div
       style={{
@@ -124,12 +103,6 @@ export default function ParcoursSugarV2Page() {
       }}
     >
       <style>{SUGAR_KEYFRAMES}</style>
-      <style>{`
-        @keyframes pc-toast {
-          from { opacity: 0; transform: translate(-50%, 12px); }
-          to   { opacity: 1; transform: translate(-50%, 0); }
-        }
-      `}</style>
       <SugarTopNav
         active="parcours"
         t={t}
@@ -193,8 +166,6 @@ export default function ParcoursSugarV2Page() {
             <PCFilters
               sp={sp}
               dark={dark}
-              agentFilter={agentFilter}
-              setAgentFilter={setAgentFilter}
               stageFilter={stageFilter}
               setStageFilter={setStageFilter}
               urgencyFilter={urgencyFilter}
@@ -233,35 +204,13 @@ export default function ParcoursSugarV2Page() {
                   dossier={d}
                   sp={sp}
                   dark={dark}
-                  onTaskClick={handleTaskClick}
+                  onTaskClick={() => navigate(`/dashboard/transactions/${d.id}`)}
                 />
               ))
             )}
           </div>
         </main>
       </div>
-
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 28,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: sp.focusBg,
-            color: sp.focusInk,
-            padding: '10px 18px',
-            borderRadius: 999,
-            fontSize: 13,
-            fontWeight: 600,
-            boxShadow: sp.focusShadow,
-            animation: 'pc-toast 220ms cubic-bezier(.22,1,.36,1)',
-            zIndex: 50,
-          }}
-        >
-          {toast}
-        </div>
-      )}
     </div>
   )
 }

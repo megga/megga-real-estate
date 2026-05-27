@@ -4,7 +4,6 @@
 import type { SugarPalette } from '../tokens'
 import {
   PARCOURS_STAGES,
-  PARCOURS_TEAM,
   URGENCY_MAP,
   type StageId,
   type Urgency,
@@ -13,8 +12,6 @@ import {
 interface PCFiltersProps {
   sp: SugarPalette
   dark: boolean
-  agentFilter: string
-  setAgentFilter: (v: string) => void
   stageFilter: StageId | 'all'
   setStageFilter: (v: StageId | 'all') => void
   urgencyFilter: Urgency | 'all'
@@ -22,11 +19,11 @@ interface PCFiltersProps {
   count: number
 }
 
+// Filtre Agent retiré : pas de table profiles peuplée par agence pour wire
+// les vrais teammates. Réintroduit quand RBAC ship.
 export function PCFilters({
   sp,
   dark,
-  agentFilter,
-  setAgentFilter,
   stageFilter,
   setStageFilter,
   urgencyFilter,
@@ -68,62 +65,6 @@ export function PCFilters({
         alignItems: 'center',
       }}
     >
-      {/* Agent */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: sp.sub,
-            textTransform: 'uppercase',
-            letterSpacing: 0.6,
-          }}
-        >
-          Agent
-        </span>
-        <button
-          style={activePill(agentFilter === 'all')}
-          onClick={() => setAgentFilter('all')}
-        >
-          Tous
-        </button>
-        {PARCOURS_TEAM.slice(0, 5).map(a => (
-          <button
-            key={a.id}
-            style={{
-              ...activePill(agentFilter === a.id),
-              padding: '0 12px 0 4px',
-            }}
-            onClick={() => setAgentFilter(a.id)}
-          >
-            <span
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: 999,
-                background: a.avatarBg,
-                color: '#fff',
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 9.5,
-                fontWeight: 700,
-              }}
-            >
-              {a.initials}
-            </span>
-            {a.firstName}
-          </button>
-        ))}
-      </div>
-
-      <div
-        style={{
-          width: 1,
-          height: 22,
-          background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)',
-        }}
-      />
-
       {/* Stade */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span

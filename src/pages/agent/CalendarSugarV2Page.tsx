@@ -19,9 +19,7 @@ import { CalMonthView } from '@/components/crm-sugar/calendar/CalMonthView'
 import { CalAgendaView } from '@/components/crm-sugar/calendar/CalAgendaView'
 import { CalLeftPanel } from '@/components/crm-sugar/calendar/CalLeftPanel'
 import { CalRightPanel } from '@/components/crm-sugar/calendar/CalRightPanel'
-import {
-  CAL_AI_INSIGHTS, CAL_PALETTE,
-} from '@/components/crm-sugar/calendar/data'
+import { CAL_PALETTE } from '@/components/crm-sugar/calendar/data'
 import {
   CAL_MONTHS, fmtDate, fmtTime, sameDay,
 } from '@/components/crm-sugar/calendar/helpers'
@@ -50,7 +48,6 @@ export default function CalendarSugarV2Page() {
   const SP = CAL_PALETTE
 
   // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
-  // HOT_BUYERS et AI_INSIGHTS restent câblés sur le mock pour cette PR.
   const { events, hotBuyers } = useCalendarSugar()
 
   const [view, setView] = useState<CalViewId>('day')
@@ -323,28 +320,6 @@ export default function CalendarSugarV2Page() {
               <CalViewToggle value={view} onChange={setView} />
             </div>
 
-            <button
-              style={{
-                height: 38,
-                padding: '0 16px',
-                borderRadius: 999,
-                border: 0,
-                background: SP.black,
-                color: '#fff',
-                fontFamily: 'inherit',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                boxShadow: '0 6px 18px rgba(11,12,14,0.18)',
-                flexShrink: 0,
-              }}
-            >
-              <CalIcon name="plus" size={14} stroke="#fff" sw={2.4} />
-              Nouvel événement
-            </button>
           </div>
 
           {/* Body */}
@@ -363,7 +338,7 @@ export default function CalendarSugarV2Page() {
               filters={filters}
               onFilters={setFilters}
               hotBuyers={hotBuyers}
-              aiInsights={CAL_AI_INSIGHTS}
+              aiInsights={[]}
               onSelectEvent={setSelectedId}
             />
 
@@ -382,82 +357,42 @@ export default function CalendarSugarV2Page() {
             {!isAgendaOrMonth && <CalRightPanel event={selected} />}
           </div>
 
-          {/* Footer */}
+          {/* Footer — clock + RDV restants */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
+              gap: 10,
+              padding: '10px 16px',
+              borderRadius: 999,
+              background: SP.card,
+              boxShadow: SP.shadowSm,
+              alignSelf: 'flex-start',
               flexShrink: 0,
             }}
           >
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '10px 16px',
+                width: 8,
+                height: 8,
                 borderRadius: 999,
-                background: SP.card,
-                boxShadow: SP.shadowSm,
+                background: '#10B981',
+                animation: 'calPulseDot 1.6s ease-in-out infinite',
               }}
-            >
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 999,
-                  background: '#10B981',
-                  animation: 'calPulseDot 1.6s ease-in-out infinite',
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: SP.ink,
-                  letterSpacing: 0.2,
-                }}
-              >
-                {fmtTime(liveNow)}
-              </span>
-              <span style={{ fontSize: 11.5, color: SP.muted, fontWeight: 500 }}>
-                · {remainingToday} RDV restants aujourd'hui
-              </span>
-            </div>
-
-            <div
+            />
+            <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 8px 8px 18px',
-                borderRadius: 999,
-                background: SP.card,
-                boxShadow: SP.shadow,
-                minWidth: 360,
+                fontSize: 12,
+                fontWeight: 700,
+                color: SP.ink,
+                letterSpacing: 0.2,
               }}
             >
-              <CalIcon name="sparkle" size={14} stroke={SP.muted} sw={2} />
-              <input
-                placeholder='Demander à MEGGA AI · ex : "visite Marie demain 14h"'
-                style={{
-                  flex: 1,
-                  border: 0,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  fontSize: 13,
-                  color: SP.ink,
-                  background: 'transparent',
-                }}
-              />
-              <CalCircleBtn
-                icon={<CalIcon name="mic" size={14} stroke={SP.inkSoft} />}
-                title="Voix"
-                size={32}
-              />
-            </div>
+              {fmtTime(liveNow)}
+            </span>
+            <span style={{ fontSize: 11.5, color: SP.muted, fontWeight: 500 }}>
+              · {remainingToday} RDV restants aujourd'hui
+            </span>
           </div>
         </main>
       </div>
