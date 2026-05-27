@@ -24,17 +24,23 @@ export type SettingsIconName =
   | 'mailSend' | 'crown' | 'more'
   | 'link' | 'external'
 
+// 6 sections cachées du menu jusqu'à wire réel (Agency, Team, Brand, Privacy,
+// Security, Preferences) : leurs handleSave étaient des setTimeout(700ms) qui
+// flashaient "Enregistré" sans rien persister. Chip dédié pour chacune :
+//   - Agency      → write sur agencies (name/address/phone/email/website)
+//   - Team        → query agency_members + invites via Resend
+//   - Brand       → upload logo storage + nouvelle table agency_branding
+//   - Privacy     → DSAR export + suppression compte conformes nLPD
+//   - Security    → MFA via supabase.auth.mfa.enroll/unenroll
+//   - Preferences → profiles.preferences JSON (même pattern que Notifications)
+//
+// Les composants restent dans /settings/*Section.tsx pour ne pas perdre
+// l'UI, ils seront réintroduits dans le menu au fur et à mesure des wires.
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },
-  { id: 'agency', label: 'Mon agence', short: 'Agence', icon: 'building', group: 'moi' },
-  { id: 'team', label: 'Équipe & rôles', short: 'Équipe', icon: 'users', group: 'moi' },
-  { id: 'brand', label: 'Marque & présentation', short: 'Marque', icon: 'palette', group: 'produit' },
   { id: 'notifications', label: 'Notifications', short: 'Notifications', icon: 'bell', group: 'produit' },
   { id: 'integrations', label: 'Intégrations', short: 'Intégrations', icon: 'plug', group: 'produit' },
   { id: 'billing', label: 'Facturation', short: 'Facturation', icon: 'card', group: 'compte' },
-  { id: 'security', label: 'Sécurité', short: 'Sécurité', icon: 'lock', group: 'compte' },
-  { id: 'privacy', label: 'Confidentialité', short: 'Confidentialité', icon: 'shield', group: 'compte' },
-  { id: 'preferences', label: 'Préférences', short: 'Préférences', icon: 'sliders', group: 'compte' },
 ]
 
 export const SETTINGS_GROUPS: { id: 'moi' | 'produit' | 'compte'; label: string }[] = [

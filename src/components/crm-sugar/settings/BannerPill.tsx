@@ -104,6 +104,7 @@ export function BannerPill({ active, onChange }: BannerPillProps) {
               </button>
             )
           })}
+          {SECONDARY.length > 0 && (
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setMoreOpen(o => !o)}
@@ -212,6 +213,7 @@ export function BannerPill({ active, onChange }: BannerPillProps) {
               </>
             )}
           </div>
+          )}
         </div>
       </div>
 

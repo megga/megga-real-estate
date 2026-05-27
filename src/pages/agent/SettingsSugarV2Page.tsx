@@ -10,16 +10,14 @@ import {
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
+// Imports réduits aux 4 sections câblées + visibles dans le menu (Profile,
+// Notifications, Integrations, Billing). Les 6 autres (Agency, Team, Brand,
+// Privacy, Security, Preferences) sont cachées du menu via data.ts jusqu'à
+// wire réel — cf. SETTINGS_SECTIONS.
 import { BannerPill } from '@/components/crm-sugar/settings/BannerPill'
 import { ProfileSection } from '@/components/crm-sugar/settings/ProfileSection'
 import { NotificationsSection } from '@/components/crm-sugar/settings/NotificationsSection'
-import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesSection'
-import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
-import { PrivacySection } from '@/components/crm-sugar/settings/PrivacySection'
 import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
-import { AgencySection } from '@/components/crm-sugar/settings/AgencySection'
-import { TeamSection } from '@/components/crm-sugar/settings/TeamSection'
-import { BrandSection } from '@/components/crm-sugar/settings/BrandSection'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
 import { SET_PALETTE, type SectionId } from '@/components/crm-sugar/settings/data'
 
@@ -72,17 +70,12 @@ export default function SettingsSugarV2Page() {
 
   const renderContent = () => {
     if (active === 'profile') return <ProfileSection />
-    if (active === 'agency') return <AgencySection />
-    if (active === 'team') return <TeamSection />
-    if (active === 'brand') return <BrandSection />
     if (active === 'integrations') return <IntegrationsSection />
     if (active === 'notifications') return <NotificationsSection />
-    if (active === 'preferences') return <PreferencesSection />
-    if (active === 'security') return <SecuritySection />
-    if (active === 'privacy') return <PrivacySection />
     if (active === 'billing') return <BillingSection />
-    // Toutes les section IDs connues ci-dessus → fallback null (ne peut pas
-    // arriver via BannerPill, qui n'expose que les SectionId valides).
+    // 'agency', 'team', 'brand', 'privacy', 'security', 'preferences' sont
+    // exclus du menu (data.ts) jusqu'à wire réel — fallback null si quelqu'un
+    // force un id non listé.
     return null
   }
 
