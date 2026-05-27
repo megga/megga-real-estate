@@ -3,7 +3,9 @@
 
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CRM_AGENT, crmBienById } from '../mockData'
+import { crmBienById } from '../mockData'
+import { useAuth } from '@/hooks/useAuth'
+import { useAgencySettings } from '@/hooks/useAgencySettings'
 import type { SugarPalette } from '../tokens'
 import { BienIcon } from './BienIcon'
 import { mColor, matchKey, type MatchGroup } from './helpers'
@@ -30,6 +32,14 @@ export function MSendDossierModal({
   const initials = (buyer.firstName?.[0] || '') + (buyer.lastName?.[0] || '')
   const avatarBg = buyer.avatarBg || '#0041D9'
 
+  // Signature email lue depuis le vrai agent connecté + agence (au lieu de
+  // "Gregory Lyonnet · MEGGA Genève · +41 22 555 01 02" hardcodé).
+  const { profile, user } = useAuth()
+  const { agency } = useAgencySettings()
+  const agentName = profile?.full_name?.trim() || user?.email?.split('@')[0] || 'L\'équipe MEGGA'
+  const agencyName = agency?.name?.trim() || 'MEGGA'
+  const agencyPhone = agency?.phone?.trim() || ''
+
   const [channel, setChannel] = useState<SendChannel>('email')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(matches.filter(m => m.score >= 75).map(matchKey)),
@@ -40,9 +50,9 @@ export function MSendDossierModal({
     `Suite à notre échange, je vous transmets une sélection de biens qui correspondent à vos critères.\n\n` +
     `N'hésitez pas à me dire ce que vous en pensez, et nous organiserons les visites des biens qui vous intéressent.\n\n` +
     `Bien à vous,\n` +
-    `${CRM_AGENT.name}\n` +
-    `${CRM_AGENT.agency}\n` +
-    `${CRM_AGENT.phone}`
+    `${agentName}\n` +
+    `${agencyName}` +
+    (agencyPhone ? `\n${agencyPhone}` : '')
   const [message, setMessage] = useState(defaultMessage)
 
   const recipient = channel === 'email' ? buyer.email : buyer.phone
