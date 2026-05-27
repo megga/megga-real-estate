@@ -276,11 +276,18 @@ export function DdConditionPill({
 export function DdOfferCard({
   offer,
   isCurrent,
+  onUpdateStatus,
 }: {
   offer: Offer
   isCurrent: boolean
+  /** Wire status mutations (Accept / Reject / Withdraw / Mark signed).
+   * Optional — parent decides whether the actions are exposed
+   * (currently only DealDetailSugarV3Page passes this for `isCurrent`
+   * + `status==='pending'` offers). */
+  onUpdateStatus?: (status: 'accepted' | 'rejected' | 'withdrawn' | 'expired') => void
 }) {
   const isCounter = offer.kind === 'counter'
+  const canAct = !!onUpdateStatus && isCurrent && offer.status === 'pending'
   return (
     <div
       style={{
@@ -528,6 +535,53 @@ export function DdOfferCard({
                 </div>
               )}
             </div>
+
+            {/* Action row — visible only on the current pending offer.
+                Acceptation / refus / retrait sont des transitions à
+                trace nLPD via le trigger DB sur crm_offers.status. */}
+            {canAct && (
+              <div style={{
+                marginTop: 14,
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}>
+                <button
+                  onClick={() => onUpdateStatus?.('accepted')}
+                  style={{
+                    height: 36, padding: '0 16px', borderRadius: 999, border: 0,
+                    background: SugarV3.ok, color: '#fff',
+                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(16,170,113,0.25)',
+                  }}
+                >
+                  Accepter
+                </button>
+                <button
+                  onClick={() => onUpdateStatus?.('rejected')}
+                  style={{
+                    height: 36, padding: '0 16px', borderRadius: 999, border: `1px solid ${SugarV3.cardSubtle}`,
+                    background: SugarV3.card, color: SugarV3.errDarker,
+                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Refuser
+                </button>
+                <button
+                  onClick={() => onUpdateStatus?.('withdrawn')}
+                  style={{
+                    height: 36, padding: '0 16px', borderRadius: 999, border: `1px solid ${SugarV3.cardSubtle}`,
+                    background: SugarV3.card, color: SugarV3.inkSoft,
+                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Retirer
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

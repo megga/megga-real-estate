@@ -232,8 +232,19 @@ export default function OfferModalSugarV3Page() {
   const [deposit, setDeposit] = useState<number>(
     parentOffer?.deposit ?? Math.round(defaultAmount * 0.1),
   )
-  const [closingDate, setClosingDate] = useState('2026-07-31')
-  const [expDate, setExpDate] = useState('2026-05-22')
+  // Default dates computed from today — the previous hardcoded literals
+  // ('2026-07-31' closing, '2026-05-22' expiration) silently shipped
+  // pre-expired offers any time the agent didn't manually override.
+  const [closingDate, setClosingDate] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 90)
+    return d.toISOString().slice(0, 10)
+  })
+  const [expDate, setExpDate] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 7)
+    return d.toISOString().slice(0, 10)
+  })
   const [expTime, setExpTime] = useState('18:00')
   const [conditions, setConditions] = useState<OfferConditions>(() => ({
     ...EMPTY_OFFER_CONDITIONS,
@@ -1041,26 +1052,11 @@ export default function OfferModalSugarV3Page() {
                     </div>
                   ))}
                 </div>
-                <div
-                  style={{
-                    marginTop: 22,
-                    paddingTop: 18,
-                    borderTop: '1px solid rgba(255,255,255,0.10)',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                    fontSize: 12,
-                    color: 'rgba(255,255,255,0.65)',
-                    lineHeight: 1.55,
-                  }}
-                >
-                  <SgIcon name="sparkle" size={13} stroke="#fff" sw={2} />
-                  <span>
-                    MEGGA AI peut générer le document PDF de l'offre, prêt à
-                    signer électroniquement, et notifier{' '}
-                    {isCounter ? "l'acheteur" : 'le vendeur'} automatiquement.
-                  </span>
-                </div>
+                {/* "MEGGA AI peut générer le PDF + e-sign + notifier
+                    automatiquement" tagline removed — none of those
+                    actually wire. `submit()` only inserts the offer row.
+                    Real PDF gen + e-sign + Resend notification are
+                    tracked as separate chips. */}
               </div>
             </>
           )}

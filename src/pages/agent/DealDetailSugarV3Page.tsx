@@ -34,7 +34,7 @@ import {
 import { useTransaction, useUpdateTransactionNotes } from '@/hooks/useTransactions'
 import { useContact } from '@/hooks/useContacts'
 import { useProperty } from '@/hooks/useProperties'
-import { useOfferChain, lastOffer } from '@/hooks/useOffers'
+import { useOfferChain, lastOffer, useUpdateOfferStatus } from '@/hooks/useOffers'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import type { TransactionStage } from '@/lib/constants'
 import {
@@ -105,6 +105,7 @@ export default function DealDetailSugarV3Page() {
 
   const offers = useMemo(() => offerChain ?? [], [offerChain])
   const last = lastOffer(offers)
+  const updateOfferStatus = useUpdateOfferStatus()
 
   const kycStatus = kycDossier?.dossier_status ?? 'none'
   const kycBlocking =
@@ -530,6 +531,25 @@ export default function DealDetailSugarV3Page() {
                       key={o.id}
                       offer={o}
                       isCurrent={i === offers.length - 1}
+                      onUpdateStatus={(status) => {
+                        if (typeof window !== 'undefined') {
+                          const verb =
+                            status === 'accepted' ? 'accepter'
+                            : status === 'rejected' ? 'refuser'
+                            : status === 'withdrawn' ? 'retirer'
+                            : 'marquer expirée'
+                          if (!window.confirm(`Voulez-vous ${verb} cette offre ?`)) return
+                        }
+                        updateOfferStatus.mutate(
+                          { offerId: o.id, dealId: deal!.id, status },
+                          {
+                            onError: (err) => {
+                              // eslint-disable-next-line no-alert
+                              window.alert(`Échec : ${err.message}`)
+                            },
+                          }
+                        )
+                      }}
                     />
                   ))}
                 </div>
