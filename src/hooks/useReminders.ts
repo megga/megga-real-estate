@@ -229,6 +229,45 @@ export function useReminders() {
   // gone. action-board components share the same table, so they invalidate
   // automatically too.
   const updateReminder = useUpdateMutation(supabase.from('reminders'), ['id'])
+  const insertReminder = useInsertMutation(supabase.from('reminders'), ['id'])
+
+  /**
+   * Create a custom reminder from the Calendar dialog (meeting / reminder /
+   * signing / deadline / personal). All fields optional except agency_id
+   * (set automatically from profile).
+   */
+  const createReminder = useCallback(
+    async (input: {
+      type: ReminderType
+      triggerAt: Date
+      title?: string
+      description?: string
+      contactId?: string | null
+      propertyId?: string | null
+      transactionId?: string | null
+      channel?: ReminderChannel
+    }) => {
+      if (!agencyId) throw new Error('Aucune agence rattachée')
+      const titlePart = input.title ? `[${input.title}] ` : ''
+      const message = `${titlePart}${input.description ?? ''}`.trim()
+      const rows = await insertReminder.mutateAsync([
+        {
+          agency_id: agencyId,
+          type: input.type,
+          status: 'pending',
+          trigger_at: input.triggerAt.toISOString(),
+          trigger_rule: 'manual',
+          channel: input.channel ?? 'task',
+          contact_id: input.contactId ?? null,
+          property_id: input.propertyId ?? null,
+          transaction_id: input.transactionId ?? null,
+          message_template: message || null,
+        },
+      ])
+      return Array.isArray(rows) ? rows[0] : rows
+    },
+    [agencyId, insertReminder],
+  )
 
   const markAsDone = useCallback(
     (id: string) => {
@@ -280,6 +319,8 @@ export function useReminders() {
     active,
     triggered,
     pending,
+    createReminder,
+    isCreating: insertReminder.isPending,
     markAsDone,
     snooze,
     cancel,
