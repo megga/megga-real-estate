@@ -1,0 +1,48 @@
+{
+  "database.commerceOrder.userItems": [],
+  "database.commerceOrder.userItems%5B%5D.product.f_sku_properties_3dr": [],
+  "65e8ae93ba8fa124e4aa691a": [
+    {
+      "url": "https://propertytemplates.webflow.io/property-location/los-angeles.html",
+      "slug": "los-angeles"
+    }
+  ],
+  "65e8ae01c91edc0e5a811138": [
+    {
+      "url": "https://propertytemplates.webflow.io/property-category/houses.html",
+      "slug": "houses"
+    }
+  ],
+  "65e8af00bf83aeb402c1403f": [
+    {
+      "url": "https://propertytemplates.webflow.io/property-type/for-sale.html",
+      "slug": "for-sale"
+    }
+  ],
+  "65e8af83bb4960e2c0470f92": [
+    {
+      "url": "https://propertytemplates.webflow.io/property/luxury-loft-in-san-francisco.html",
+      "slug": "luxury-loft-in-san-francisco"
+    }
+  ],
+  "65e8b297400485a0ee9dac21": [
+    {
+      "url": "https://propertytemplates.webflow.io/agent/john-carter.html",
+      "slug": "john-carter"
+    }
+  ],
+  "65e5e5474c606fdc3f19a5c5": [
+    {
+      "url": "https://propertytemplates.webflow.io/blog/first-time-homebuyers-guide-steps-for-beginners.html",
+      "slug": "first-time-homebuyers-guide-steps-for-beginners"
+    }
+  ],
+  "database.commerceOrder.availableShippingMethods": [],
+  "database.commerceOrder.extraItems": [],
+  "65e5e5474c606fdc3f19a5ff": [
+    {
+      "url": "https://propertytemplates.webflow.io/product/2-property-credit.html",
+      "slug": "2-property-credit"
+    }
+  ]
+}
