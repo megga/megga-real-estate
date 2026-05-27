@@ -48,6 +48,30 @@ jobs:
           # Sentry source maps upload — no-op si le secret est absent
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
+      # The public storefront on megga.ch is the static Property X "V3"
+      # site (sites/property-preview), NOT the React Property X pages.
+      # We overlay that static site at the root of the Cloudflare deploy
+      # so it owns "/" and all storefront paths, while the React app
+      # (CRM /dashboard, /auth, /portail, etc.) is still served from the
+      # same deploy via the SPA shell preserved as /app.html.
+      # The React Property X source (PropertyX*.tsx) stays in the repo;
+      # it is simply no longer the thing served at the public routes.
+      - name: Overlay V3 static storefront onto React build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -e
+          # Preserve the React SPA shell so app routes can boot it.
+          cp dist/index.html dist/app.html
+          # Overlay the V3 storefront — its index.html takes over "/".
+          cp -a sites/property-preview/. dist/
+          # Routing: reserved app paths -> React SPA shell (/app.html);
+          # everything else -> static V3 files, falling back to V3 home.
+          # Cloudflare serves real static assets (e.g. /assets/*, /images/*)
+          # before evaluating these rules, so React bundles still resolve.
+          # Rules live in .github/deploy/megga-redirects (keeps this YAML
+          # block free of heredoc indentation hazards).
+          cp .github/deploy/megga-redirects dist/_redirects
+
       - name: Setup Supabase CLI
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: supabase/setup-cli@v1
@@ -132,6 +156,11 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Pin wrangler v4 — v3.x silently skips functions/_middleware
+          # detection on direct uploads, which would drop the V3 Basic Auth
+          # gate (sites/property-preview/functions/_middleware.ts) now living
+          # in dist/functions/ after the overlay step above.
+          wranglerVersion: "4.86.0"
           # `--commit-message="deploy <sha>"` court-circuite l'introspection
           # git de wrangler. Sans ça, wrangler pousse le message du HEAD vers
           # l'API Cloudflare, qui a un validateur UTF-8 strict bogué : il
