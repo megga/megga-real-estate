@@ -4,11 +4,26 @@ import {
   ChevronRight,
   ArrowLeft, Sparkles, Loader2, Eye, Download, Check, Save,
 } from 'lucide-react'
+import { pdf } from '@react-pdf/renderer'
 import { cn, formatCHF } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useCustomTemplates } from '@/hooks/useCustomTemplates'
 import { useContacts } from '@/hooks/useContacts'
 import { useAgencyProperties } from '@/hooks/useProperties'
+import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
+import { PdfDocument, type PdfSection } from '@/components/documents/PdfDocument'
+
+// Compute the SHA-256 hex digest of the blob. Used to populate
+// `documents.sha256_hash` so duplicate downloads can be detected and the
+// integrity of an archived document can be verified later.
+async function sha256Hex(blob: Blob): Promise<string> {
+  const buf = await blob.arrayBuffer()
+  const digest = await crypto.subtle.digest('SHA-256', buf)
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -239,23 +254,114 @@ export default function DocumentGenerator() {
     }, 1500)
   }
 
-  function handleDownload() {
-    // ⚠️ DISABLED — the previous implementation downloaded a 16-byte text
-    // file containing the literal string 'Document preview' under a `.pdf`
-    // extension. That's a legal exposure on regulated documents (mandat
-    // exclusif, bon de visite, …) — an agent could believe they've
-    // generated a real document when they haven't.
-    //
-    // Real PDF generation (server-side pdf-lib renderer + INSERT into
-    // `documents` table) is a separate chip. Until then, surface the
-    // limitation honestly via the disabled banner below.
-    // eslint-disable-next-line no-alert
-    alert(
-      'Téléchargement PDF en développement.\n\n' +
-      "La génération de documents (mandat, bon de visite, etc.) sera disponible " +
-      "dans une prochaine release. Pour l'instant, utilisez votre éditeur habituel " +
-      "pour finaliser le document à partir de l'aperçu ci-dessus."
-    )
+  const { user, profile } = useAuth()
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
+
+  // Real PDF generation via @react-pdf/renderer. Renders the template
+  // values to a text-based PDF (selectable, accessible, ~30-80 KB for a
+  // typical mandat), uploads to Storage under {agency_id}/{document_id}.pdf,
+  // indexes via a documents row, then triggers the browser download.
+  async function handleDownload() {
+    if (!templateConfig || downloading) return
+    setDownloadError(null)
+
+    if (!profile?.agency_id) {
+      setDownloadError('Aucune agence rattachée — impossible de générer le document.')
+      return
+    }
+
+    setDownloading(true)
+    try {
+      // 1) Build the PDF payload from the form values, grouped by section.
+      const pdfSections: PdfSection[] = sectionEntries.map(([sectionName, fields]) => ({
+        name: sectionName,
+        fields: fields.map((field) => ({
+          label: field.label,
+          value: formData[field.name] ?? '',
+          long: field.type === 'textarea',
+        })),
+      }))
+
+      // 2) Render to Blob.
+      const blob = await pdf(
+        <PdfDocument
+          templateName={templateConfig.name}
+          description={templateConfig.description}
+          agencyName={profile.agency_id}
+          agentName={profile.full_name ?? user?.email ?? null}
+          generatedAt={new Date()}
+          sections={pdfSections}
+        />
+      ).toBlob()
+
+      const hash = await sha256Hex(blob)
+      const sizeBytes = blob.size
+
+      // 3) Insert the documents row FIRST so we have an id for the path.
+      const fileName = `${templateConfig.name.replace(/[^a-zA-Z0-9-_]/g, '-')}.pdf`
+      const { data: docRow, error: insertErr } = await supabase
+        .from('documents')
+        .insert({
+          agency_id: profile.agency_id,
+          name: fileName,
+          type: 'generated',
+          status: 'available',
+          size_bytes: sizeBytes,
+          sha256_hash: hash,
+          uploaded_by: user?.id ?? null,
+          // Temporary placeholder — patched below with the real path.
+          storage_path: 'pending',
+          document_category: 'other',
+        })
+        .select('id')
+        .single()
+      if (insertErr || !docRow) {
+        throw new Error(insertErr?.message ?? 'documents insert failed')
+      }
+
+      // 4) Upload to Storage under {agency_id}/{document_id}.pdf — the
+      // path matches the RLS policy added in 20260527000000.
+      const storagePath = `${profile.agency_id}/${docRow.id}.pdf`
+      const { error: uploadErr } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, blob, {
+          contentType: 'application/pdf',
+          cacheControl: '3600',
+          upsert: false,
+        })
+      if (uploadErr) {
+        // Roll back the documents row so we don't leave an orphan.
+        await supabase.from('documents').delete().eq('id', docRow.id)
+        throw new Error(`upload: ${uploadErr.message}`)
+      }
+
+      // 5) Patch the storage_path on the row.
+      await supabase
+        .from('documents')
+        .update({ storage_path: storagePath })
+        .eq('id', docRow.id)
+
+      // 6) Track usage on custom templates (carry-over from the previous
+      // implementation — was below the broken alert).
+      if (selectedTemplate?.startsWith('custom-')) {
+        incrementUsage(selectedTemplate)
+      }
+
+      // 7) Trigger the browser download from the rendered blob (no
+      // extra round-trip to Storage — agent gets the file immediately).
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Erreur inconnue'
+      setDownloadError(message)
+    } finally {
+      setDownloading(false)
+    }
   }
 
   // Group fields by section
@@ -501,20 +607,16 @@ export default function DocumentGenerator() {
       {/* Step 2: Preview */}
       {step === 2 && templateConfig && generated && (
         <div className="space-y-6">
-          {/* Honest banner — real PDF generation isn't wired yet.
-              Without this, agents would download a 16-byte placeholder file
-              and believe they have a valid mandat. */}
-          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 flex items-start gap-3 text-amber-900">
-            <span className="text-base">⚠️</span>
-            <div className="text-sm">
-              <div className="font-semibold mb-0.5">Téléchargement PDF en développement</div>
-              <div className="text-xs leading-relaxed">
-                L'aperçu ci-dessous est correct, mais la génération du fichier PDF
-                final (mandat, bon de visite, …) sera disponible dans une prochaine
-                release. Utilisez votre éditeur habituel pour finaliser le document.
+          {/* Download error banner (only when a download attempt failed) */}
+          {downloadError && (
+            <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 flex items-start gap-3 text-red-900" role="alert">
+              <span className="text-base">⚠️</span>
+              <div className="text-sm">
+                <div className="font-semibold mb-0.5">Échec du téléchargement</div>
+                <div className="text-xs leading-relaxed">{downloadError}</div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Preview card */}
           <div className="rounded-xl border border-theme-border overflow-hidden">
@@ -598,9 +700,9 @@ export default function DocumentGenerator() {
               Modifier
             </Button>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleDownload} className="gap-2">
-                <Download className="w-4 h-4" />
-                Télécharger PDF
+              <Button variant="outline" onClick={handleDownload} disabled={downloading} className="gap-2">
+                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {downloading ? 'Génération…' : 'Télécharger PDF'}
               </Button>
               <Button onClick={() => navigate('/dashboard/documents')} className="gap-2">
                 <Check className="w-4 h-4" />
