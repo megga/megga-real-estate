@@ -126,7 +126,10 @@ const DealDetailSugarV3Page = lazy(() => import('@/pages/agent/DealDetailSugarV3
 const OfferModalSugarV3Page = lazy(() => import('@/pages/agent/OfferModalSugarV3Page'))
 const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
 const VisiteDetailSugarV3Page = lazy(() => import('@/pages/agent/VisiteDetailSugarV3Page'))
-const VisitCompanionPage = lazy(() => import('@/pages/agent/VisitCompanionPage'))
+// VisitCompanionPage removed — the mobile companion view contained only
+// non-functional UI (mic recording / photo capture / signature / sentiment
+// cards with no persistence). The route + page were removed; real on-site
+// visit capture is a separate sprint.
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
 const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
 const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
@@ -465,10 +468,8 @@ function AnimatedRoutes() {
                 <Route path="transactions/:id/offre/:kind" element={<OfferModalSugarV3Page />} />
                 {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}
                 <Route path="visites/nouveau" element={<VisitModalSugarV3Page />} />
-                {/* Sprint 2 — Fiche Visite (bon + rapport + mobile compagnon) */}
+                {/* Sprint 2 — Fiche Visite (bon + rapport) */}
                 <Route path="visites/:id" element={<VisiteDetailSugarV3Page />} />
-                {/* Sprint 2 — Vue mobile compagnon /visites/:id/companion (responsive 375px) */}
-                <Route path="visites/:id/companion" element={<VisitCompanionPage />} />
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
                 <Route path="matching" element={<MatchingSugarV2Page />} />

@@ -13,7 +13,7 @@ import {
   mColor,
   matchKey,
   tabOfGroup,
-  AI_NOTES,
+  // AI_NOTES import removed alongside the "Note IA" panel — see line ~864.
   type MatchGroup,
 } from './helpers'
 import {
@@ -655,7 +655,7 @@ export function FocusPanel({
 }: FocusPanelProps) {
   const { buyer, matches, topScore } = group
   const tab = tabOfGroup(group)
-  const aiNote = AI_NOTES[buyer.id]
+  // aiNote derivation removed alongside the "Note IA" panel.
   const kycStatus = buyer.kyc?.status || 'none'
   const needsKyc =
     (kycStatus === 'none' || kycStatus === 'stale') && tab !== 'archived'
@@ -861,62 +861,11 @@ export function FocusPanel({
         </div>
       )}
 
-      {/* Note IA */}
-      {aiNote && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 12,
-            padding: '13px 16px',
-            borderRadius: 14,
-            background: sp.cardSubBg,
-          }}
-        >
-          <div
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 7,
-              background: sp.ink,
-              color: sp.pageBg,
-              display: 'grid',
-              placeItems: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <svg
-              width={12}
-              height={12}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={sp.pageBg}
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m12 3 1.6 5.7L19 10l-5.4 1.3L12 17l-1.6-5.7L5 10l5.4-1.3Z" />
-            </svg>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                fontSize: 9.5,
-                fontWeight: 800,
-                color: sp.ink,
-                letterSpacing: 0.6,
-                textTransform: 'uppercase',
-                marginBottom: 3,
-              }}
-            >
-              MEGGA AI
-            </div>
-            <div style={{ fontSize: 13, color: sp.soft, lineHeight: 1.5 }}>
-              {aiNote}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* "Note IA" block removed — AI_NOTES was a hardcoded Record<string,
+          string> keyed on demo contact IDs (c-001..c-007). Real Supabase
+          contacts have UUIDs so the panel never rendered for production
+          data. Real AI-generated notes (ai-copilot Edge Function tied to
+          contact context) are tracked as a separate sprint. */}
 
       {/* Bannière KYC — visible si none / stale (CLAUDE.md : KYC requis avant offre) */}
       {needsKyc && (

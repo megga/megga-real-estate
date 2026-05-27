@@ -15,20 +15,19 @@ import { SgIcon } from '@/components/crm-sugar-v3/icons'
 import {
   SgBlackPill,
   SgGhostPill,
-  SgCircleBtn,
 } from '@/components/crm-sugar-v3/primitives'
 import {
   VdEyebrow,
   VdCard,
   VdBonPanel,
   VdRapportPanel,
-  VdMobileCompanion,
 } from '@/components/crm-sugar-v3/visite-detail/VdShared'
 import {
   useVisitDetail,
   useVisitRealtime,
   useSignVisitBon,
 } from '@/hooks/useVisitDetail'
+import { supabase } from '@/lib/supabase'
 
 function vdDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-CH', {
@@ -144,10 +143,9 @@ export default function VisiteDetailSugarV3Page() {
             {visit.id.slice(0, 8).toUpperCase()}
           </span>
           <div style={{ flex: 1 }} />
-          <SgCircleBtn
-            icon={<SgIcon name="pencil" size={17} stroke={SugarV3.inkSoft} />}
-            title="Modifier"
-          />
+          {/* "Modifier" icon button removed — no inline-edit page exists.
+              Drag-drop on the calendar handles reschedule today. Inline
+              edition is a separate chip. */}
           <SgBlackPill
             icon={
               <SgIcon
@@ -157,8 +155,31 @@ export default function VisiteDetailSugarV3Page() {
                 sw={2}
               />
             }
+            onClick={async () => {
+              // Real lifecycle transition based on current status:
+              //   planned   → confirmed   (agent confirms attendance)
+              //   confirmed → done        (agent reports visit happened)
+              //   done      → no action (display-only label)
+              if (isDone) return
+              const nextStatus = visit.status === 'confirmed' ? 'done' : 'confirmed'
+              const { error: updErr } = await supabase
+                .from('visits')
+                .update({
+                  status: nextStatus,
+                  ...(nextStatus === 'done' ? { completed_at: new Date().toISOString() } : {}),
+                })
+                .eq('id', visit.id)
+              if (updErr) {
+                // eslint-disable-next-line no-alert
+                window.alert(`Impossible de mettre à jour le statut : ${updErr.message}`)
+              }
+            }}
           >
-            {isDone ? 'Rapport publié' : 'Démarrer la visite'}
+            {isDone
+              ? 'Visite effectuée'
+              : visit.status === 'confirmed'
+                ? 'Marquer effectuée'
+                : 'Confirmer la visite'}
           </SgBlackPill>
         </header>
 
@@ -278,7 +299,10 @@ export default function VisiteDetailSugarV3Page() {
             />
             <VdRapportPanel visit={visit} />
           </div>
-          <VdMobileCompanion visit={visit} framed={true} />
+          {/* VdMobileCompanion preview removed — the component held mostly
+              non-functional UI (sentiment cards, mic, photo, signature
+              with no persistence). Real on-site visit capture is a
+              separate sprint. */}
         </div>
       </main>
     </div>
