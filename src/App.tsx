@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AnimatePresence } from 'motion/react'
 import { AuthProvider } from '@/hooks/useAuth'
@@ -90,11 +90,14 @@ const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
 
-// Legacy + secondary public pages
-const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
-const ListingPage = lazy(() => import('@/pages/public/ListingPage'))
+// Ancienne fiche bien /listing/:id → redirige vers la fiche Property X en préservant l'id
+function LegacyListingRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/propriete/${id}`} replace />
+}
+
+// Secondary public pages
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
-const LouerPage = lazy(() => import('@/pages/public/LouerPage'))
 const VendrePage = lazy(() => import('@/pages/public/VendrePage'))
 const EstimationsPage = lazy(() => import('@/pages/public/EstimationsPage'))
 const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
@@ -313,8 +316,9 @@ function AnimatedRoutes() {
               <Route path="/design-system/colors" element={<PropertyXDesignSystemColorsPage />} />
               <Route path="/design-system/typography" element={<PropertyXDesignSystemTypographyPage />} />
               <Route path="/design-system/shadows" element={<PropertyXDesignSystemShadowsPage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/listing/:id" element={<ListingPage />} />
+              {/* Anciennes URLs marketplace → redirigées vers Property X */}
+              <Route path="/search" element={<Navigate to="/acheter" replace />} />
+              <Route path="/listing/:id" element={<LegacyListingRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
               <Route path="/login" element={<Navigate to="/auth/connexion" replace />} />
@@ -331,13 +335,11 @@ function AnimatedRoutes() {
               <Route path="/auth/mot-de-passe-oublie/redefinir" element={<AuthSetNewPasswordPage />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
-              {/* Marketplace publique — Property X design, branchée Supabase.
-                  SearchPage (ancien design avec carte) reste accessible via
-                  /acheter-legacy en attendant la v1.1 (toggle list/carte). */}
+              {/* Marketplace publique — Property X (source de vérité), branchée Supabase. */}
               <Route path="/acheter" element={<PropertyXListingsPage context="buy" />} />
               <Route path="/louer" element={<PropertyXListingsPage context="rent" />} />
-              <Route path="/acheter-legacy" element={<SearchPage />} />
-              <Route path="/louer-legacy" element={<LouerPage />} />
+              <Route path="/acheter-legacy" element={<Navigate to="/acheter" replace />} />
+              <Route path="/louer-legacy" element={<Navigate to="/louer" replace />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/vendre" element={<VendrePage />} />
               <Route path="/estimations" element={<EstimationsPage />} />
