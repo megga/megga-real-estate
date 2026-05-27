@@ -148,36 +148,10 @@ export const CRM_SUBMISSIONS: CrmSubmission[] = [
   },
 ]
 
-export interface BienHistoryEvent {
-  at: string
-  kind: 'mandate-signed' | 'photos' | 'published' | 'price-change' | 'visit' | 'offer' | 'draft-created'
-  text: string
-}
-
-export const CRM_BIEN_HISTORY: Record<string, BienHistoryEvent[]> = {
-  'b-101': [
-    { at: '2026-02-22T10:00:00', kind: 'mandate-signed', text: 'Mandat exclusif signé avec Jean-Marc Aebischer (commission 3.0%, expire le 22/08).' },
-    { at: '2026-02-25T09:30:00', kind: 'photos', text: 'Shooting photo C2PA — 18 photos signées par MEGGA.' },
-    { at: '2026-02-26T14:00:00', kind: 'published', text: 'Publié sur MEGGA, Homegate et ImmoScout.' },
-    { at: '2026-04-15T11:20:00', kind: 'price-change', text: "Prix ajusté de CHF 880'000 à CHF 850'000 après 7 semaines." },
-    { at: '2026-04-29T15:32:00', kind: 'visit', text: "Visite avec Marie Bertrand — feedback positif sur l'exposition." },
-  ],
-  'b-103': [
-    { at: '2026-03-25T15:00:00', kind: 'mandate-signed', text: 'Mandat exclusif signé (commission 3.5%, expire le 25/09).' },
-    { at: '2026-03-28T10:15:00', kind: 'photos', text: '22 photos prises, 20 signées C2PA (2 à signer).' },
-    { at: '2026-03-30T09:00:00', kind: 'published', text: 'Publié sur MEGGA, Homegate et ImmoScout.' },
-    { at: '2026-04-29T17:32:00', kind: 'visit', text: 'Visite effectuée — Marie Bertrand.' },
-  ],
-  'b-104': [
-    { at: '2026-01-30T11:00:00', kind: 'mandate-signed', text: 'Mandat exclusif signé (commission 3.0%).' },
-    { at: '2026-02-05T10:00:00', kind: 'photos', text: '24 photos signées C2PA.' },
-    { at: '2026-02-08T14:00:00', kind: 'published', text: 'Publié — visibilité privée (off-market).' },
-    { at: '2026-04-27T14:40:00', kind: 'offer', text: "Offre déposée — CHF 3'850'000 par Antoine Picard." },
-  ],
-  'b-105': [
-    { at: '2026-04-26T16:00:00', kind: 'draft-created', text: "Brouillon créé manuellement par l'agent." },
-  ],
-}
+// BienHistoryEvent + CRM_BIEN_HISTORY retirés : étaient consommés par
+// BnDetailOverlay (onglet Historique) mais le wire backend (query
+// activity_events filter entity_type='property') n'existait pas. BnDetailOverlay
+// affiche maintenant l'empty state "Aucun événement enregistré".
 
 export interface BienAlert {
   level: 'blocker' | 'warn'

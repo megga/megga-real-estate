@@ -1,16 +1,89 @@
 // MEGGA CRM Sugar v2 Wizard — Step 0 : Démarrer
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx — `SgStepStart`).
+//
+// Le panneau "Reprendre une soumission" lit les vraies soumissions vendeur
+// via useSellerLeads (table `seller_leads`, alimentée par le formulaire
+// public `/vendre`). Plus de CRM_SUBMISSIONS mock — chaque agence voit ses
+// propres leads vendeur (filter status='new').
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { SugarV2, type WizardData } from '../tokens'
 import { SgGateCard, SgIcon } from '../primitives'
-import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
-import { CRM_SUBMISSIONS, type CrmSubmission } from '../mockSubmissions'
+import { useSellerLeads, type SellerLeadRow } from '@/hooks/useSellerLeads'
+
+interface CrmSubmission {
+  id: string
+  title: string
+  contactId?: string
+  contactDraft?: { firstName: string; lastName: string; email: string; phone: string }
+  type: 'appartement' | 'maison' | 'villa' | 'terrain'
+  transaction: 'vente' | 'location'
+  addr: string
+  canton: string
+  area: number
+  rooms: number
+  beds: number
+  baths: number
+  year: number
+  energy: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
+  features: string[]
+  desc: string
+  askingPrice: number
+  accent: string
+  receivedAt: string
+}
+
+function mapPropertyType(raw: string): CrmSubmission['type'] {
+  const t = (raw || '').toLowerCase()
+  if (t.includes('villa')) return 'villa'
+  if (t.includes('house') || t.includes('maison')) return 'maison'
+  if (t.includes('land') || t.includes('terrain')) return 'terrain'
+  return 'appartement'
+}
+
+function leadToSubmission(lead: SellerLeadRow): CrmSubmission {
+  const fullName = lead.contact_name.trim().split(/\s+/)
+  const askingPrice =
+    lead.estimation_median ?? lead.estimation_max ?? lead.estimation_min ?? 0
+  const accents = ['#0041D9', '#E53935', '#10B981', '#F59E0B', '#7C3AED']
+  const accentIdx = lead.id.split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % accents.length
+  return {
+    id: lead.id,
+    title: `${lead.property_data.type} · ${lead.property_data.city}`,
+    contactId: lead.contact_id ?? undefined,
+    contactDraft: lead.contact_id
+      ? undefined
+      : {
+          firstName: fullName[0] || '',
+          lastName: fullName.slice(1).join(' ') || '',
+          email: lead.contact_email,
+          phone: lead.contact_phone ?? '',
+        },
+    type: mapPropertyType(lead.property_data.type),
+    transaction: 'vente',
+    addr: lead.property_data.address,
+    canton: lead.property_data.canton,
+    area: lead.property_data.surface,
+    rooms: Math.floor(Number.parseFloat(lead.property_data.rooms) || 0),
+    beds: 0,
+    baths: 0,
+    year: 0,
+    energy: 'C',
+    features: [],
+    desc: lead.motivation || '',
+    askingPrice,
+    accent: accents[accentIdx],
+    receivedAt: lead.created_at,
+  }
+}
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
 export function Step0Start({ data, set }: StepProps) {
-  const subs = CRM_SUBMISSIONS
+  // Filtre status='new' : seules les soumissions encore à traiter (les autres
+  // sont déjà converties en mandat ou perdues).
+  const { data: leads = [] } = useSellerLeads('new')
+  const subs = useMemo(() => leads.map(leadToSubmission), [leads])
 
   return (
     <div style={{
@@ -93,7 +166,6 @@ function SubmissionsCard({
   subs, data, set,
 }: { subs: CrmSubmission[]; data: WizardData; set: (patch: Partial<WizardData>) => void }) {
   const [hover, setHover] = useState<string | null>(null)
-  const allContacts = CRM_CONTACTS
 
   if (subs.length === 0) {
     return (
@@ -188,12 +260,12 @@ function SubmissionsCard({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
         {subs.map(sub => {
           const sel = data.fromSubmissionId === sub.id
-          const contact = sub.contactId ? allContacts.find(c => c.id === sub.contactId) : null
-          const name = contact
-            ? `${contact.firstName} ${contact.lastName}`
-            : sub.contactDraft
-              ? `${sub.contactDraft.firstName} ${sub.contactDraft.lastName}`
-              : 'Vendeur inconnu'
+          // Pas de lookup CRM_CONTACTS — seller_leads embarque contact_name +
+          // contact_email + contact_phone directement, donc contactDraft est
+          // toujours rempli côté adapter leadToSubmission().
+          const name = sub.contactDraft
+            ? `${sub.contactDraft.firstName} ${sub.contactDraft.lastName}`
+            : 'Vendeur inconnu'
           const initials = name.split(' ').filter(Boolean).map(p => p[0]).join('').substring(0, 2).toUpperCase()
 
           return (

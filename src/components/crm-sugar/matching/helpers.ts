@@ -2,8 +2,6 @@
 // 1:1 port from `crm-screen-matching-sugar.jsx`.
 
 import {
-  CRM_CONTACTS,
-  CRM_MATCHES,
   type CrmBien,
   type CrmContact,
   type CrmMatch,
@@ -16,17 +14,9 @@ export interface MatchGroup {
   topScore: number
 }
 
-export function buildMatchGroups(): MatchGroup[] {
-  return CRM_CONTACTS.filter(c => c.type === 'buyer')
-    .map(buyer => {
-      const matches = CRM_MATCHES.filter(m => m.contactId === buyer.id).sort(
-        (a, b) => b.score - a.score,
-      )
-      return { buyer, matches, topScore: matches[0]?.score || 0 }
-    })
-    .filter(g => g.matches.length > 0)
-    .sort((a, b) => b.topScore - a.topScore)
-}
+// buildMatchGroups (helper qui iterait CRM_CONTACTS + CRM_MATCHES) retiré :
+// jamais importé ailleurs. useMatchingSugar fait le vrai calcul depuis
+// contacts.criteria + properties.attributes.
 
 export function mColor(score: number): string {
   if (score >= 75) return '#0041D9'
@@ -80,13 +70,8 @@ export function getCities(b: CrmContact): string {
     .join(', ')
 }
 
-export const AI_NOTES: Record<string, string> = {
-  'c-001': "Marie a visité le 5p Carouge il y a 36h sans suivi. Le bien à 94% colle pile à son profil famille.",
-  'c-003': 'Lead chaud — KYC requis avant offre.',
-  'c-002': 'Investisseur, pas pressé. Élargir au marché public MEGGA.',
-  'c-007': 'Offre en cours sur Cologny. Ne pas brouiller le signal.',
-  'c-005': 'Expat US, arrive en juillet. Le 3p Pâquis coche tout.',
-}
+// AI_NOTES retiré : Record hardcodé "c-001 → Marie a visité..." plus importé
+// nulle part (MatchingFocusPanel a viré le panneau "Note IA" depuis PR #446).
 
 export function getStatusMap(sp: SugarPalette): Record<
   CrmMatch['status'],

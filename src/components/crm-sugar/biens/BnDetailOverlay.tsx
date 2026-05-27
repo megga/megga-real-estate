@@ -5,11 +5,27 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
 import CRMIcon, { type CrmIconName } from '../CRMIcon'
-import { CRM_MATCHES, crmContactById, type CrmBien } from '../mockData'
+import { crmContactById, type CrmBien } from '../mockData'
 import { crmInitials, type SugarPalette } from '../tokens'
-import { CRM_BIEN_HISTORY } from './biensData'
 import { bnFmtCHF, bnFmtDate, bnRelative, bnStatus } from './helpers'
 import { BnPhoto } from './BnPhoto'
+
+// Types pour matches + history affichés dans les onglets "Demandes" et
+// "Historique". Les arrays sont vides en attendant le wire backend :
+//   - matches  : chip — query contact_matches (ou RPC) by bien_id
+//   - history  : chip — query activity_events filter entity_type='property'
+//                + entity_id = bien.id (timeline réelle des actions agent)
+// L'UI gère déjà l'empty state ("Aucune demande / Aucun événement").
+interface BienMatch {
+  contactId: string
+  bienId: string
+  score: number
+  status: string
+}
+interface BienHistoryEntry {
+  text: string
+  at: string
+}
 
 type DetailTab = 'infos' | 'perf' | 'demand' | 'history'
 
@@ -32,8 +48,10 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
       ? bnFmtCHF(bien.price)
       : '—'
   const ppm2 = bien.price && bien.area ? Math.round(bien.price / bien.area) : null
-  const matches = CRM_MATCHES.filter(m => m.bienId === bien.id)
-  const history = CRM_BIEN_HISTORY[bien.id] || []
+  // Arrays vides : pas de mock CRM_MATCHES / CRM_BIEN_HISTORY. Wire backend
+  // chip — cf. commentaire en haut du fichier.
+  const matches: BienMatch[] = []
+  const history: BienHistoryEntry[] = []
 
   const [tab, setTab] = useState<DetailTab>('infos')
   const tabs: { id: DetailTab; label: string; count?: number }[] = [
