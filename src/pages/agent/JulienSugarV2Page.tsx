@@ -7,7 +7,7 @@
 //   streaming token-by-token natif → on retire la simulation streaming locale.
 // - useAuth().profile remplace window.CRM_AGENT pour le prénom et l'avatar.
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
@@ -122,48 +122,11 @@ function getDynamicSuggestions(prevScreen: PrevScreen): Suggestion[] {
   ]
 }
 
-// ─── Historique simulé (mock pour MVP visuel) ────────────────────────────
-
-interface HistoryEntry {
-  id: string
-  title: string
-  group: 'today' | 'week' | 'month' | 'older'
-  preview: string
-  dossier?: { label: string; color: string }
-  pinned?: boolean
-}
-
-const HISTORY: HistoryEntry[] = [
-  { id: 'h1', title: 'Analyse marché Rive Gauche', group: 'today', preview: 'Le marché genevois montre une légère...', dossier: { label: 'Champel', color: '#0041D9' }, pinned: true },
-  { id: 'h2', title: 'Email suivi visite Champel', group: 'today', preview: "Madame Müller, suite à notre visite de l'appartement de Champel...", dossier: { label: 'Martinez', color: '#0E9F6E' } },
-  { id: 'h3', title: 'Checklist compromis Carouge', group: 'week', preview: 'Voici la liste complète des points à vérifier avant signature...' },
-  { id: 'h4', title: 'Résumé dossiers semaine', group: 'week', preview: 'Cette semaine : 3 dossiers actifs, 2 visites planifiées...' },
-  { id: 'h5', title: 'Pitch mandat Eaux-Vives', group: 'week', preview: 'Pour convaincre M. Leclerc, insistez sur la rareté du bien...', dossier: { label: 'Eaux-Vives', color: '#F59E0B' } },
-  { id: 'h6', title: 'Argumentaire Cologny villa', group: 'month', preview: 'Trois angles à privilégier pour votre présentation...' },
-  { id: 'h7', title: 'Estimation T5 Florissant', group: 'month', preview: 'Sur la base des comparables récents dans le quartier...' },
-  { id: 'h8', title: 'Réponse offre acheteur', group: 'older', preview: 'Voici une réponse mesurée à l\'offre proposée par...' },
-]
-
-const GROUPS = [
-  { key: 'today', label: "Aujourd'hui" },
-  { key: 'week', label: 'Cette semaine' },
-  { key: 'month', label: 'Ce mois-ci' },
-  { key: 'older', label: 'Plus ancien' },
-] as const
-
-// Contextes dossiers simulés (pour le ContextPicker)
-interface DossierContext {
-  id: string
-  label: string
-  icon: JIconName
-  color: string
-}
-
-const DOSSIERS_CONTEXT: DossierContext[] = [
-  { id: 'd1', label: 'Champel · T4 · 2.1M CHF', icon: 'folder', color: '#0041D9' },
-  { id: 'd2', label: 'Martinez · Acheteur · Actif', icon: 'contacts', color: '#0E9F6E' },
-  { id: 'd3', label: 'Carouge · Mandat excl.', icon: 'bien', color: '#F59E0B' },
-]
+// ─── Historique conversations + contextes dossiers ────────────────────
+// Retirés cette PR : pas de table ai_copilot_conversations en prod, et le
+// ContextPicker dropdown surfacait 3 dossiers hardcodés (Champel/Martinez/
+// Carouge) sans lien aux transactions réelles. Chip séparée pour la
+// persistance + le ContextPicker câblé à transactions/contacts.
 
 // ─── Tokens Julien (modèle dark/light propre, distinct de SP) ────────────
 
@@ -314,7 +277,6 @@ export default function JulienSugarV2Page() {
   const sp = crmSugarPalette(t, dark, DARK_TONE)
   const s = tok(dark)
 
-  const [drawerOpen, setDrawerOpen] = useState(false)
   const [prevScreen] = useState<PrevScreen>(() => {
     const ref = document.referrer
     if (ref.includes('/dashboard/pipeline')) return 'pipeline'
@@ -402,26 +364,8 @@ export default function JulienSugarV2Page() {
             active="ai"
             onNavigate={onNavigate} onCmd={onCmd}
             dark={dark} setDark={setDark} sp={sp}
-            extraBottomBtn={
-              <HistoryRailBtn
-                open={drawerOpen}
-                onToggle={() => setDrawerOpen(o => !o)}
-                dark={dark}
-                spInk={sp.ink}
-                spFocusInk={sp.focusInk}
-                spSoft={sp.soft}
-                spFocusShadow={sp.focusShadow}
-              />
-            }
           />
         </div>
-
-        <HistoryPanel
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          onSelect={() => { /* TODO charger conversation */ }}
-          dark={dark} s={s}
-        />
 
         <main
           style={{
@@ -460,7 +404,6 @@ interface JulienConversationProps {
 
 function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversationProps) {
   const [messages, setMessages] = useState<JulienMessage[]>([])
-  const [context, setContext] = useState<DossierContext | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const { sendMessageStream, isLoading } = useCopilot()
 
@@ -474,7 +417,6 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
     if (isLoading) return
     const uid = Date.now()
     const lid = uid + 1
-    const contextNote = context ? `\n\nContexte actif : ${context.label}` : ''
     setMessages(prev => [
       ...prev,
       { id: uid, role: 'user', content: text },
@@ -488,7 +430,7 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
     try {
       let acc = ''
       await sendMessageStream(
-        text + contextNote,
+        text,
         undefined,
         chunk => {
           acc += chunk
@@ -544,8 +486,6 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
 
           <PromptBar
             onSend={sendMessage} loading={isLoading} dark={dark} s={s}
-            context={context} onRemoveContext={() => setContext(null)}
-            onSetContext={setContext}
           />
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 580 }}>
@@ -586,8 +526,6 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
         <div style={{ width: '100%', padding: '12px 24px 24px', display: 'flex', justifyContent: 'center' }}>
           <PromptBar
             onSend={sendMessage} loading={isLoading} dark={dark} s={s}
-            context={context} onRemoveContext={() => setContext(null)}
-            onSetContext={setContext}
           />
         </div>
       )}
@@ -602,12 +540,6 @@ interface BubbleProps { msg: JulienMessage; s: JulienTokens; dark: boolean }
 function Bubble({ msg, s, dark }: BubbleProps) {
   const isUser = msg.role === 'user'
   const [copied, setCopied] = useState(false)
-  const [actionDone, setActionDone] = useState<string | null>(null)
-
-  const fireAction = (key: string) => {
-    setActionDone(key)
-    setTimeout(() => setActionDone(null), 2200)
-  }
 
   const email = (!msg.streaming && !msg.loading && msg.content) ? parseEmail(msg.content) : null
 
@@ -681,69 +613,24 @@ function Bubble({ msg, s, dark }: BubbleProps) {
 
         {msg.streaming && <StreamingIndicator dark={dark} s={s} />}
       </div>
-      {!msg.loading && !msg.streaming && msg.content && (
-        <div style={{ paddingLeft: 30, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div
+      {!msg.loading && !msg.streaming && msg.content && !email && (
+        <div style={{ paddingLeft: 30, marginTop: 12, display: 'flex', gap: 4 }}>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(msg.content).catch(() => {})
+              setCopied(true)
+              setTimeout(() => setCopied(false), 1800)
+            }}
             style={{
-              display: 'flex', flexWrap: 'wrap', gap: 6,
-              padding: '10px 12px', borderRadius: 14,
-              background: dark ? 'rgba(255,255,255,0.025)' : 'rgba(11,12,14,0.025)',
-              border: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(11,12,14,0.04)',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 999, border: 0,
+              background: 'transparent', color: s.muted,
+              fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
             }}
           >
-            <div
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '7px 8px 7px 4px', marginRight: 4,
-                fontSize: 11, fontWeight: 700, color: s.muted,
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}
-            >
-              <JIcon name="sparkle" size={11} color="currentColor" sw={2} />
-              Actions
-            </div>
-            <QuickAction
-              icon="mail"
-              label={email ? 'Ouvrir dans un email' : 'Envoyer par email'}
-              done={actionDone === 'email'}
-              doneLabel={email ? 'Brouillon prêt' : 'Brouillon créé'}
-              onClick={() => fireAction('email')}
-              s={s} dark={dark}
-            />
-            <QuickAction
-              icon="folderAdd" label="Ajouter au dossier"
-              done={actionDone === 'folder'} doneLabel="Ajouté au dossier"
-              onClick={() => fireAction('folder')}
-              s={s} dark={dark}
-            />
-            <QuickAction
-              icon="task" label="Créer une tâche"
-              done={actionDone === 'task'} doneLabel="Tâche créée"
-              onClick={() => fireAction('task')}
-              s={s} dark={dark}
-            />
-          </div>
-
-          {!email && (
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(msg.content).catch(() => {})
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 1800)
-                }}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '4px 10px', borderRadius: 999, border: 0,
-                  background: 'transparent', color: s.muted,
-                  fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                }}
-              >
-                <JIcon name={copied ? 'check' : 'copy'} size={12} color="currentColor" />
-                {copied ? 'Copié !' : 'Copier'}
-              </button>
-            </div>
-          )}
+            <JIcon name={copied ? 'check' : 'copy'} size={12} color="currentColor" />
+            {copied ? 'Copié !' : 'Copier'}
+          </button>
         </div>
       )}
     </div>
@@ -911,72 +798,26 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
   )
 }
 
-// ─── QuickAction (post-réponse) ──────────────────────────────────────────
-
-interface QuickActionProps {
-  icon: JIconName
-  label: string
-  onClick: () => void
-  done?: boolean
-  doneLabel?: string
-  s: JulienTokens
-  dark: boolean
-}
-
-function QuickAction({ icon, label, onClick, done, doneLabel, s, dark }: QuickActionProps) {
-  const [hov, setHov] = useState(false)
-  const isDone = !!done
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '7px 12px', borderRadius: 10, border: 0,
-        background: isDone
-          ? (dark ? 'rgba(34,197,94,0.14)' : 'rgba(34,197,94,0.10)')
-          : (hov
-            ? (dark ? 'rgba(255,255,255,0.10)' : 'rgba(11,12,14,0.07)')
-            : (dark ? 'rgba(255,255,255,0.05)' : 'rgba(11,12,14,0.04)')),
-        color: isDone ? '#16A34A' : s.inkSoft,
-        fontSize: 12.5, fontWeight: 600, fontFamily: 'inherit',
-        cursor: isDone ? 'default' : 'pointer',
-        transition: 'all .15s ease',
-        boxShadow: hov && !isDone
-          ? (dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(15,23,42,0.06)')
-          : 'none',
-      }}
-    >
-      <JIcon name={isDone ? 'check' : icon} size={13} color="currentColor" sw={2} />
-      {isDone ? (doneLabel || 'Fait') : label}
-    </button>
-  )
-}
-
-// ─── PromptBar (textarea + attach + mic + ContextPicker + send) ──────────
+// ─── PromptBar (textarea + send) ─────────────────────────────────────────
+// Attach + mic + ContextPicker retirés : pas d'upload réel (fichiers
+// silencieusement droppés à send), pas de STT wired, pas de table contextes.
+// Chips séparées pour : real file upload → ai-copilot, MediaRecorder/Whisper,
+// ContextPicker câblé à transactions/contacts.
 
 interface PromptBarProps {
   onSend: (text: string) => void
   loading: boolean
   dark: boolean
   s: JulienTokens
-  context: DossierContext | null
-  onRemoveContext: () => void
-  onSetContext: (d: DossierContext) => void
 }
 
-function PromptBar({ onSend, loading, dark, s, context, onRemoveContext, onSetContext }: PromptBarProps) {
+function PromptBar({ onSend, loading, dark, s }: PromptBarProps) {
   const [val, setVal] = useState('')
-  const [listening, setListening] = useState(false)
-  const fileRef = useRef<HTMLInputElement | null>(null)
-  const [files, setFiles] = useState<File[]>([])
 
   const send = () => {
     if (!val.trim() || loading) return
     onSend(val.trim())
     setVal('')
-    setFiles([])
   }
   const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -987,8 +828,6 @@ function PromptBar({ onSend, loading, dark, s, context, onRemoveContext, onSetCo
 
   return (
     <div style={{ width: '100%', maxWidth: 580, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-      <ContextCapsule dossier={context} onRemove={onRemoveContext} dark={dark} s={s} />
-
       <div
         style={{
           width: '100%',
@@ -1002,29 +841,6 @@ function PromptBar({ onSend, loading, dark, s, context, onRemoveContext, onSetCo
           overflow: 'hidden',
         }}
       >
-        {files.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '12px 16px 0' }}>
-            {files.map((f, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
-                  borderRadius: 999, background: s.surfaceB, fontSize: 12, color: s.inkSoft,
-                }}
-              >
-                <JIcon name="attach" size={12} color={s.muted} />
-                {f.name}
-                <button
-                  onClick={() => setFiles(fs => fs.filter((_, j) => j !== i))}
-                  style={{ border: 0, background: 'transparent', cursor: 'pointer', color: s.muted, padding: 0, fontSize: 14 }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
         <div style={{ padding: '14px 16px 0' }}>
           <textarea
             value={val} onChange={e => setVal(e.target.value)} onKeyDown={onKey}
@@ -1043,48 +859,7 @@ function PromptBar({ onSend, loading, dark, s, context, onRemoveContext, onSetCo
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <input
-              ref={fileRef} type="file" multiple style={{ display: 'none' }}
-              onChange={e => {
-                if (e.target.files) setFiles(fs => [...fs, ...Array.from(e.target.files!)])
-              }}
-            />
-            <button
-              onClick={() => fileRef.current?.click()}
-              style={{ width: 34, height: 34, borderRadius: 10, border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', color: s.muted, transition: 'background .15s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = s.surfaceB }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-            >
-              <JIcon name="plus" size={18} color="currentColor" />
-            </button>
-            <button
-              onClick={() => setListening(l => !l)}
-              style={{ width: 34, height: 34, borderRadius: 10, border: 0, background: listening ? s.black : 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', transition: 'all .2s' }}
-              onMouseEnter={e => { if (!listening) e.currentTarget.style.background = s.surfaceB }}
-              onMouseLeave={e => { if (!listening) e.currentTarget.style.background = 'transparent' }}
-            >
-              {listening ? (
-                <div style={{ display: 'flex', gap: 2, alignItems: 'center', height: 16 }}>
-                  {[4, 7, 5, 9, 6, 4, 8].map((h, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: 2.5, borderRadius: 2, background: s.selInk, height: h,
-                        animation: `jbar 0.8s ease-in-out ${i * 0.08}s infinite alternate`,
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <JIcon name="mic" size={18} color={s.muted} />
-              )}
-            </button>
-
-            <ContextPicker onSelect={onSetContext} dark={dark} s={s} />
-          </div>
-
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '10px 12px 12px' }}>
           <button
             onClick={send}
             disabled={!val.trim() && !loading}
@@ -1105,416 +880,3 @@ function PromptBar({ onSend, loading, dark, s, context, onRemoveContext, onSetCo
   )
 }
 
-// ─── Capsule contexte (au-dessus de la PromptBar) ───────────────────────
-
-interface ContextCapsuleProps { dossier: DossierContext | null; onRemove: () => void; dark: boolean; s: JulienTokens }
-
-function ContextCapsule({ dossier, onRemove, dark, s }: ContextCapsuleProps) {
-  if (!dossier) return null
-  return (
-    <div
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        padding: '7px 14px', borderRadius: 999,
-        background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.85)',
-        backdropFilter: 'blur(20px) saturate(1.5)',
-        WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
-        border: dark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.9)',
-        boxShadow: dark ? '0 4px 20px rgba(0,0,0,.3)' : '0 4px 20px rgba(15,23,42,0.08)',
-        marginBottom: 8,
-        animation: 'capsule-in .25s cubic-bezier(.2,.8,.2,1)',
-      }}
-    >
-      <div style={{ width: 8, height: 8, borderRadius: '50%', background: dossier.color, flexShrink: 0 }} />
-      <span style={{ fontSize: 12.5, fontWeight: 700, color: s.ink }}>Contexte :</span>
-      <span style={{ fontSize: 12.5, fontWeight: 500, color: s.inkSoft }}>{dossier.label}</span>
-      <button
-        onClick={onRemove}
-        style={{
-          width: 18, height: 18, borderRadius: 999, border: 0,
-          background: 'transparent', cursor: 'pointer',
-          display: 'grid', placeItems: 'center', marginLeft: 2,
-        }}
-      >
-        <JIcon name="x" size={12} color={s.muted} />
-      </button>
-    </div>
-  )
-}
-
-// ─── ContextPicker (@-dossier dropdown dans la PromptBar) ──────────────
-
-function ContextPicker({ onSelect, dark, s }: { onSelect: (d: DossierContext) => void; dark: boolean; s: JulienTokens }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div style={{ position: 'relative' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          height: 28, padding: '0 10px', borderRadius: 999, border: 0,
-          background: open ? s.black : (dark ? 'rgba(255,255,255,0.07)' : 'rgba(11,12,14,0.06)'),
-          color: open ? s.selInk : s.muted,
-          fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 5, transition: 'all .15s',
-        }}
-      >
-        <span style={{ fontSize: 14 }}>@</span>
-        Contexte
-      </button>
-      {open && (
-        <div
-          style={{
-            position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
-            width: 230, borderRadius: 16,
-            background: dark ? 'rgba(18,18,22,0.97)' : 'rgba(255,255,255,0.98)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            boxShadow: dark
-              ? '0 0 0 1px rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,.6)'
-              : '0 0 0 1px rgba(0,0,0,0.08), 0 24px 60px rgba(15,23,42,0.15)',
-            overflow: 'hidden', zIndex: 200,
-            animation: 'capsule-in .2s cubic-bezier(.2,.8,.2,1)',
-          }}
-        >
-          <div
-            style={{
-              padding: '8px 12px 6px', fontSize: 11, fontWeight: 700,
-              color: s.muted, textTransform: 'uppercase', letterSpacing: '0.08em',
-            }}
-          >
-            Injecter un contexte
-          </div>
-          {DOSSIERS_CONTEXT.map(d => (
-            <button
-              key={d.id}
-              onClick={() => { onSelect(d); setOpen(false) }}
-              style={{
-                width: '100%', textAlign: 'left', padding: '9px 14px',
-                border: 0, background: 'transparent', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 10,
-                fontFamily: 'inherit', transition: 'background .12s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.05)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-            >
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: s.ink }}>{d.label}</span>
-            </button>
-          ))}
-          <div style={{ height: 8 }} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── HistoryRailBtn (extra rail bouton bas) ──────────────────────────────
-
-interface HistoryRailBtnProps {
-  open: boolean
-  onToggle: () => void
-  dark: boolean
-  spInk: string
-  spFocusInk: string
-  spSoft: string
-  spFocusShadow: string
-}
-
-function HistoryRailBtn({ open, onToggle, dark, spInk, spFocusInk, spSoft, spFocusShadow }: HistoryRailBtnProps) {
-  const idleBg = dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'
-  return (
-    <button
-      title="Historique"
-      onClick={onToggle}
-      style={{
-        width: 52, height: 52, borderRadius: 16, border: 0,
-        background: open ? spInk : idleBg,
-        boxShadow: open ? spFocusShadow : 'none',
-        display: 'grid', placeItems: 'center', cursor: 'pointer',
-        transition: 'background .16s ease',
-        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-      }}
-      onMouseEnter={e => { if (!open) e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)' }}
-      onMouseLeave={e => { if (!open) e.currentTarget.style.background = idleBg }}
-    >
-      <JIcon name="clock" size={22} color={open ? spFocusInk : spSoft} sw={1.7} />
-    </button>
-  )
-}
-
-// ─── HistoryPanel (drawer historique inline Sugar) ──────────────────────
-
-interface HistoryPanelProps {
-  open: boolean
-  onClose: () => void
-  onSelect: (h: HistoryEntry) => void
-  dark: boolean
-  s: JulienTokens
-}
-
-function HistoryPanel({ open, onClose, onSelect, dark, s }: HistoryPanelProps) {
-  const [hov, setHov] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
-  const [pinned, setPinned] = useState<string[]>(() =>
-    HISTORY.filter(h => h.pinned).map(h => h.id),
-  )
-
-  const togglePin = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    setPinned(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
-  }
-
-  if (!open) return null
-
-  const q = query.trim().toLowerCase()
-  const filtered = HISTORY.filter(h =>
-    !q || h.title.toLowerCase().includes(q) || h.preview.toLowerCase().includes(q),
-  )
-  const pinnedItems = filtered.filter(h => pinned.includes(h.id))
-  const grouped = GROUPS.map(g => ({
-    ...g,
-    items: filtered.filter(h => h.group === g.key && !pinned.includes(h.id)),
-  })).filter(g => g.items.length > 0)
-
-  const cardBg = dark ? '#15151A' : '#FFFFFF'
-  const cardSubtle = dark ? 'rgba(255,255,255,0.04)' : '#F5F6F8'
-  const shadow = dark
-    ? '0 24px 60px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.25)'
-    : '0 24px 60px rgba(15,23,42,0.10), 0 4px 16px rgba(15,23,42,0.05)'
-
-  return (
-    <aside
-      style={{
-        width: 340, flexShrink: 0,
-        marginRight: 20, marginTop: 12, marginBottom: 24,
-        background: cardBg,
-        borderRadius: 28,
-        boxShadow: shadow,
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-        animation: 'hist-in .35s cubic-bezier(.2,.85,.25,1)',
-        height: 'calc(100vh - 175px)',
-        maxHeight: 720,
-        alignSelf: 'flex-start',
-      }}
-    >
-      <div style={{ padding: '22px 22px 14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-            <div
-              style={{
-                width: 36, height: 36, borderRadius: 12,
-                background: cardSubtle,
-                display: 'grid', placeItems: 'center', flexShrink: 0,
-              }}
-            >
-              <JIcon name="clock" size={17} color={s.ink} sw={1.8} />
-            </div>
-            <div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: s.ink, letterSpacing: '-0.4px', lineHeight: 1.1 }}>
-                Historique
-              </div>
-              <div style={{ fontSize: 11.5, color: s.muted, fontWeight: 500, marginTop: 2 }}>
-                {HISTORY.length} conversations
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            title="Fermer"
-            style={{
-              width: 32, height: 32, borderRadius: 10, border: 0,
-              background: cardSubtle, cursor: 'pointer',
-              display: 'grid', placeItems: 'center', transition: 'background .15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.10)' : '#EBECF0' }}
-            onMouseLeave={e => { e.currentTarget.style.background = cardSubtle }}
-          >
-            <JIcon name="x" size={14} color={s.inkSoft} sw={2} />
-          </button>
-        </div>
-
-        <div
-          style={{
-            display: 'flex', alignItems: 'center', gap: 9,
-            padding: '11px 14px', borderRadius: 14,
-            background: cardSubtle,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={s.muted} strokeWidth="2" strokeLinecap="round">
-            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
-          </svg>
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Rechercher…"
-            style={{
-              flex: 1, border: 0, background: 'transparent', outline: 'none',
-              color: s.ink, fontSize: 13, fontFamily: 'Manrope, system-ui, sans-serif',
-              fontWeight: 500,
-            }}
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 0, display: 'grid', placeItems: 'center' }}
-            >
-              <JIcon name="x" size={12} color={s.muted} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 14px 14px' }}>
-        {filtered.length === 0 && (
-          <div
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', padding: '50px 20px', gap: 10,
-            }}
-          >
-            <div
-              style={{
-                width: 52, height: 52, borderRadius: 16,
-                background: cardSubtle,
-                display: 'grid', placeItems: 'center',
-              }}
-            >
-              <JIcon name="clock" size={22} color={s.muted} />
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: s.inkSoft }}>Aucun résultat</div>
-          </div>
-        )}
-
-        {pinnedItems.length > 0 && (
-          <HistorySection
-            label="Épinglés"
-            icon={<svg width="10" height="10" viewBox="0 0 24 24" fill={s.muted}><path d="M16 4v3l2 5v2h-5v6l-1 1-1-1v-6H6v-2l2-5V4z" /></svg>}
-            s={s}
-          >
-            {pinnedItems.map((h, i) => (
-              <HistoryItem
-                key={h.id} h={h} idx={i} hov={hov} setHov={setHov}
-                onSelect={hh => { onSelect(hh); onClose() }}
-                togglePin={togglePin} pinned dark={dark} s={s} cardSubtle={cardSubtle}
-              />
-            ))}
-          </HistorySection>
-        )}
-
-        {grouped.map(g => (
-          <HistorySection key={g.key} label={g.label} s={s}>
-            {g.items.map((h, i) => (
-              <HistoryItem
-                key={h.id} h={h} idx={i} hov={hov} setHov={setHov}
-                onSelect={hh => { onSelect(hh); onClose() }}
-                togglePin={togglePin} pinned={pinned.includes(h.id)} dark={dark} s={s} cardSubtle={cardSubtle}
-              />
-            ))}
-          </HistorySection>
-        ))}
-      </div>
-    </aside>
-  )
-}
-
-function HistorySection({ label, icon, children, s }: { label: string; icon?: ReactNode; children: ReactNode; s: JulienTokens }) {
-  return (
-    <div style={{ marginBottom: 6 }}>
-      <div
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '10px 8px 6px',
-          fontSize: 10.5, fontWeight: 700, color: s.muted,
-          textTransform: 'uppercase', letterSpacing: '0.09em',
-        }}
-      >
-        {icon}{label}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-interface HistoryItemProps {
-  h: HistoryEntry
-  idx: number
-  hov: string | null
-  setHov: (id: string | null) => void
-  onSelect: (h: HistoryEntry) => void
-  togglePin: (e: React.MouseEvent, id: string) => void
-  pinned: boolean
-  dark: boolean
-  s: JulienTokens
-  cardSubtle: string
-}
-
-function HistoryItem({ h, idx, hov, setHov, onSelect, togglePin, pinned, dark, s, cardSubtle }: HistoryItemProps) {
-  const isHov = hov === h.id
-  const itemStyle: CSSProperties = {
-    width: '100%', textAlign: 'left', padding: '12px 14px',
-    borderRadius: 14, border: 0,
-    background: isHov ? cardSubtle : 'transparent',
-    cursor: 'pointer', fontFamily: 'Manrope, system-ui, sans-serif',
-    transition: 'background .15s',
-    display: 'flex', flexDirection: 'column', gap: 4,
-    position: 'relative',
-    animation: `item-in .35s ease ${idx * 0.04}s both`,
-  }
-  return (
-    <button
-      onClick={() => onSelect(h)}
-      onMouseEnter={() => setHov(h.id)}
-      onMouseLeave={() => setHov(null)}
-      style={itemStyle}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div
-          style={{
-            fontSize: 13, fontWeight: 600, color: s.ink, lineHeight: 1.3,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
-          }}
-        >
-          {h.title}
-        </div>
-        <button
-          onClick={e => togglePin(e, h.id)}
-          style={{
-            width: 22, height: 22, borderRadius: 6, border: 0,
-            background: 'transparent', cursor: 'pointer',
-            display: 'grid', placeItems: 'center',
-            opacity: isHov || pinned ? 1 : 0,
-            transition: 'opacity .15s',
-            color: pinned ? s.ink : s.muted,
-          }}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-            <path d="M16 4v3l2 5v2h-5v6l-1 1-1-1v-6H6v-2l2-5V4z" />
-          </svg>
-        </button>
-      </div>
-      <div
-        style={{
-          fontSize: 11.5, color: s.muted, fontWeight: 500,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          lineHeight: 1.4,
-        }}
-      >
-        {h.preview}
-      </div>
-      {h.dossier && (
-        <div
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            marginTop: 3, padding: '2px 8px', borderRadius: 999,
-            background: dark ? 'rgba(255,255,255,0.05)' : 'rgba(11,12,14,0.04)',
-            alignSelf: 'flex-start',
-          }}
-        >
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: h.dossier.color }} />
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: s.inkSoft }}>{h.dossier.label}</span>
-        </div>
-      )}
-    </button>
-  )
-}
