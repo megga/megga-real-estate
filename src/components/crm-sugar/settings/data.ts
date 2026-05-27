@@ -32,12 +32,12 @@ export type SettingsIconName =
 //   - Notifications → useNotifPreferences (profiles.preferences.notifications)
 //   - Preferences   → useUiPreferences (profiles.preferences.ui)
 //   - Integrations  → useGoogleCalendar + useOutlookCalendar (real OAuth)
+//   - Privacy       → delete-account Edge Function + mailto DSAR (PR #453)
 //   - Billing       → reads still partial; chip pour Stripe Checkout
 //
 // Cachées (chip dédiée par section) :
 //   - Team          → query agency_members + invites via Resend
 //   - Brand         → upload logo storage + nouvelle table agency_branding
-//   - Privacy       → DSAR export + delete-account Edge Function
 //   - Security      → MFA via supabase.auth.mfa.enroll/unenroll
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },
@@ -45,6 +45,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'notifications', label: 'Notifications', short: 'Notifications', icon: 'bell', group: 'produit' },
   { id: 'preferences', label: 'Préférences', short: 'Préférences', icon: 'sliders', group: 'compte' },
   { id: 'integrations', label: 'Intégrations', short: 'Intégrations', icon: 'plug', group: 'produit' },
+  { id: 'privacy', label: 'Confidentialité', short: 'Confidentialité', icon: 'shield', group: 'compte' },
   { id: 'billing', label: 'Facturation', short: 'Facturation', icon: 'card', group: 'compte' },
 ]
 

@@ -21,6 +21,7 @@ import { NotificationsSection } from '@/components/crm-sugar/settings/Notificati
 import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesSection'
 import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
+import { PrivacySection } from '@/components/crm-sugar/settings/PrivacySection'
 import { SET_PALETTE, type SectionId } from '@/components/crm-sugar/settings/data'
 
 const DARK_TONE: DarkTone = 'meggaAi'
@@ -76,9 +77,10 @@ export default function SettingsSugarV2Page() {
     if (active === 'notifications') return <NotificationsSection />
     if (active === 'preferences') return <PreferencesSection />
     if (active === 'integrations') return <IntegrationsSection />
+    if (active === 'privacy') return <PrivacySection />
     if (active === 'billing') return <BillingSection />
-    // 'team', 'brand', 'privacy', 'security' sont exclus du menu (data.ts)
-    // jusqu'à wire réel — fallback null si quelqu'un force un id non listé.
+    // 'team', 'brand', 'security' sont exclus du menu (data.ts) jusqu'à wire
+    // réel — fallback null si quelqu'un force un id non listé.
     return null
   }
 
