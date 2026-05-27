@@ -265,9 +265,11 @@ function AnimatedRoutes() {
     <AnimatePresence mode="popLayout" initial={false}>
       <Routes location={location} key={location.pathname}>
               {/* Public storefront (home, about, properties, contact, FAQ,
-                  blog, agents, property single, design-system…) is now served
-                  by the static V3 HTML site (sites/property-preview), overlaid
-                  at the deploy root — no longer React Property X pages. */}
+                  blog, agents, property single, design-system…) is served by
+                  the static V3 HTML site (sites/property-preview) on megga.ch.
+                  This React app is deployed separately on app.megga.ch, where
+                  "/" lands on the dashboard (which bounces to login if needed). */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
