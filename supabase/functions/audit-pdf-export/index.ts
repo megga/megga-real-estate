@@ -102,7 +102,8 @@ async function buildPdf(
   const colTime = 90
   const colAction = 230
   const colObject = 165
-  const colSev = 60
+  // colSev retiré : la colonne "Sévérité" du PDF n'est plus dessinée (cf.
+  // rendu ligne ~150). Conservé en commentaire pour réintroduction propre.
 
   const genTimestamp = new Date().toISOString()
   let page = doc.addPage([595, 842]) // A4

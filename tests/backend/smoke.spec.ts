@@ -12,7 +12,7 @@ describe.skipIf(!HAS_KEYS)('backend smoke — local Supabase is reachable', () =
   beforeAll(() => {
     // Visible reminder if the run is gated — easier than digging in skip logs.
     if (!HAS_KEYS) {
-      // eslint-disable-next-line no-console
+       
       console.log('[backend smoke] skipped: SUPABASE_TEST_*_KEY env vars not set. Run `supabase status` and fill .env.test.local.')
     }
   })

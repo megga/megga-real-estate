@@ -37,7 +37,7 @@ const cleaned = src
   .replace(/^if \(!SUPABASE_URL[\s\S]+?^\}\s*$/m, '')
   .replace(/^#!.*$/m, '')
 
-// eslint-disable-next-line no-new-func
+ 
 const extract = new Function(`
   ${cleaned}
   return { BUY_LISTINGS, RENT_LISTINGS, buildRecord };

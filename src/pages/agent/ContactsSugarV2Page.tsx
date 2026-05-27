@@ -185,46 +185,29 @@ export default function ContactsSugarV2Page() {
 
   // ── Cmd palette / navigation ────────────────────────────────────────
   const flashToast = (msg: string) => setToast(msg)
-  const onCmd = () => flashToast('Recherche — ⌘K (à venir)')
+  // Command palette pas encore wired — pas de toast "à venir" qui fait illusion.
+  const onCmd = () => { /* noop */ }
 
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
-      case 'today':
-        navigate('/dashboard'); break
-      case 'pipeline':
-        navigate('/dashboard/pipeline'); break
-      case 'matching':
-        navigate('/dashboard/matching'); break
-      case 'contacts':
-        break // already here
-      case 'biens':
-        navigate('/dashboard/listings'); break
-      case 'biens-new':
-        navigate('/dashboard/listings/new'); break
-      case 'calendar':
-        navigate('/dashboard/calendar'); break
-      case 'docs':
-        navigate('/dashboard/documents'); break
-      case 'kyc':
-        navigate('/dashboard/kyc'); break
-      case 'reseau':
-        navigate('/dashboard/reseau'); break
+      case 'today':    navigate('/dashboard'); break
+      case 'pipeline': navigate('/dashboard/pipeline'); break
+      case 'matching': navigate('/dashboard/matching'); break
+      case 'contacts': break // already here
+      case 'biens':    navigate('/dashboard/listings'); break
+      case 'biens-new':navigate('/dashboard/listings/new'); break
+      case 'calendar': navigate('/dashboard/calendar'); break
+      case 'docs':     navigate('/dashboard/documents'); break
+      case 'kyc':      navigate('/dashboard/kyc'); break
+      case 'reseau':   navigate('/dashboard/reseau'); break
+      case 'parcours': navigate('/dashboard/parcours'); break
       case 'ai':
-      case 'julien':
-        navigate('/dashboard/julien'); break
+      case 'julien':   navigate('/dashboard/julien'); break
       case 'chat':
-      case 'dashboard':
-        navigate('/dashboard/analytics'); break
-      case 'settings':
-        navigate('/dashboard/settings'); break
-      case 'parcours':
-      case 'julien':
-      case 'ai':
-      case 'add':
-      case 'search':
-        flashToast(`${id} — à venir dans Tier 3`); break
+      case 'dashboard':navigate('/dashboard/analytics'); break
+      case 'settings': navigate('/dashboard/settings'); break
       default:
-        flashToast(`${id} — à venir`)
+        /* Pas de toast "à venir" — un bouton qui ne fait rien doit disparaître. */
     }
   }
 

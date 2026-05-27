@@ -299,7 +299,7 @@ export function PreferencesSection() {
       setSaved(data)
       toast.success('Préférences enregistrées', { duration: 2400 })
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.error('[PreferencesSection] save failed', err)
       toast.error('Erreur lors de l’enregistrement')
     }

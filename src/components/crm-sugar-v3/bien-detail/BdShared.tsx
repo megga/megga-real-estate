@@ -314,7 +314,7 @@ export function bdFormatPrice(
   isRent: boolean,
 ): string {
   if (amount == null) return '—'
-  const base = `CHF ${amount.toLocaleString('fr-CH').replace(/[  ,]/g, "'")}`
+  const base = `CHF ${amount.toLocaleString('fr-CH').replace(/[\u00A0\u202F,]/g, "'")}`
   return isRent ? `${base}/mois` : base
 }
 
@@ -325,13 +325,13 @@ export function bdPricePerM2(
 ): string | null {
   if (!price || !area || area === 0) return null
   const ppm2 = Math.round(price / area)
-  return `CHF ${ppm2.toLocaleString('fr-CH').replace(/[  ,]/g, "'")}/m²`
+  return `CHF ${ppm2.toLocaleString('fr-CH').replace(/[\u00A0\u202F,]/g, "'")}/m²`
 }
 
 /** Format CHF simple (sans /mois). */
 export function bdFmtCHF(n: number | null | undefined): string {
   if (n == null) return '—'
-  return `CHF ${n.toLocaleString('fr-CH').replace(/[  ,]/g, "'")}`
+  return `CHF ${n.toLocaleString('fr-CH').replace(/[\u00A0\u202F,]/g, "'")}`
 }
 
 // ─── Labels stage pipeline (deals liés) ─────────────────────────────────

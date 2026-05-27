@@ -52,7 +52,7 @@ export function AgencySection() {
       setSaved(data)
       toast.success('Agence enregistrée', { duration: 2400 })
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.error('[AgencySection] save failed', err)
       toast.error('Erreur lors de l’enregistrement')
     }

@@ -222,7 +222,7 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
       set({ _agenceDone: false })
       setStep((s) => Math.min(s + 1, STEPS.length - 1))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [data._agenceDone])
 
   const canNext = useMemo(() => {

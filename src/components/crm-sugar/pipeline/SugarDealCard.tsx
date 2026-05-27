@@ -213,7 +213,7 @@ function CardQuickActions({
   // event for compliance).
   async function archiveDeal() {
     if (isMockId(dealId)) {
-      // eslint-disable-next-line no-alert
+       
       window.alert('Archivage disponible sur un deal réel uniquement (donnée de démo).')
       return
     }
@@ -225,7 +225,7 @@ function CardQuickActions({
       .from('transactions')
       .update({ status: 'cancelled' })
       .eq('id', dealId)
-    // eslint-disable-next-line no-alert
+     
     if (error) window.alert(`Échec : ${error.message}`)
     // Cache Helpers in sibling hooks invalidates on update via auto-key
     // matching; the pipeline kanban refreshes on next render.
@@ -233,7 +233,7 @@ function CardQuickActions({
 
   async function markLost() {
     if (isMockId(dealId)) {
-      // eslint-disable-next-line no-alert
+       
       window.alert('Marquer perdu disponible sur un deal réel uniquement (donnée de démo).')
       return
     }
@@ -248,7 +248,7 @@ function CardQuickActions({
       })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'erreur inconnue'
-      // eslint-disable-next-line no-alert
+       
       window.alert(`Échec : ${msg}`)
     }
   }
@@ -274,7 +274,7 @@ function CardQuickActions({
         onClick={e => {
           stop(e)
           if (contact.phone) window.location.href = `tel:${contact.phone.replace(/\s/g, '')}`
-          // eslint-disable-next-line no-alert
+           
           else window.alert(`Pas de numéro renseigné pour ${contact.firstName} ${contact.lastName}`)
         }}
         style={baseBtn()}
@@ -318,7 +318,7 @@ function CardQuickActions({
             <MenuItem sp={sp} icon="contacts" label="Réassigner" onClick={() => {
               if (isMockId(dealId)) {
                 setMenuOpen(false)
-                // eslint-disable-next-line no-alert
+                 
                 window.alert('Réassignation disponible sur un deal réel uniquement (donnée de démo).')
                 return
               }

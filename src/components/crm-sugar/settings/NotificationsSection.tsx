@@ -59,7 +59,7 @@ export function NotificationsSection() {
       setSaved(data)
       toast.success('Notifications enregistrées', { duration: 2400 })
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.error('[NotificationsSection] save failed', err)
       toast.error('Erreur lors de l’enregistrement')
     }

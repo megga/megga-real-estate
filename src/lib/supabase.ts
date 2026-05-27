@@ -37,7 +37,7 @@ const role = decodeJwtRole(supabaseAnonKey)
 if (role === 'service_role') {
   // Refuse to expose a service_role key in the browser.
   // Fall back to the safe hardcoded anon key and warn loudly.
-  // eslint-disable-next-line no-console
+   
   console.error(
     '[supabase] VITE_SUPABASE_ANON_KEY contains a service_role JWT. ' +
       'Refusing to use it — falling back to the hardcoded anon key. ' +
@@ -99,7 +99,7 @@ function purgeAuthTokens(reason: string) {
       try { store.removeItem(key) } catch { /* ignore */ }
     }
   }
-  // eslint-disable-next-line no-console
+   
   console.info(`[supabase] purged auth tokens (${reason})`)
 }
 
@@ -166,14 +166,14 @@ function purgeExpiredAuthTokens() {
           // about to refresh on its own.
           if (exp && exp + 60 < now) {
             store.removeItem(key)
-            // eslint-disable-next-line no-console
+             
             console.info(`[supabase] purged expired auth token: ${key}`)
           }
         } catch {
           // Malformed JSON in the auth slot — also nuke it, supabase-js
           // can't recover from it either.
           store.removeItem(key)
-          // eslint-disable-next-line no-console
+           
           console.info(`[supabase] purged malformed auth token: ${key}`)
         }
       }

@@ -496,7 +496,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
             const { data, error: signErr } = await supabase.storage
               .from('kyc-documents')
               .createSignedUrl(doc.storage_path, 60)
-            // eslint-disable-next-line no-alert
+             
             if (signErr) { window.alert(`Aperçu impossible : ${signErr.message}`); return }
             window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
           }}
@@ -506,7 +506,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
             const { data, error: signErr } = await supabase.storage
               .from('kyc-documents')
               .createSignedUrl(doc.storage_path, 60, { download: doc.name ?? true })
-            // eslint-disable-next-line no-alert
+             
             if (signErr) { window.alert(`Téléchargement impossible : ${signErr.message}`); return }
             window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
           }}

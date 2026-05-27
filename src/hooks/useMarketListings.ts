@@ -350,7 +350,7 @@ export function useMarketListings(filters: MarketFilters = {}) {
           // Internal-listings failure is non-fatal — they're a tiny set of
           // agent-owned mandates and should not break the marketplace view.
           // We log and continue with just market listings.
-          // eslint-disable-next-line no-console
+           
           console.warn('[useMarketListings] internal properties query failed:', internalError.message)
         } else if (internalData) {
           for (let i = 0; i < internalData.length; i++) {
