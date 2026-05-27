@@ -48,29 +48,10 @@ jobs:
           # Sentry source maps upload — no-op si le secret est absent
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-      # The public storefront on megga.ch is the static Property X "V3"
-      # site (sites/property-preview), NOT the React Property X pages.
-      # We overlay that static site at the root of the Cloudflare deploy
-      # so it owns "/" and all storefront paths, while the React app
-      # (CRM /dashboard, /auth, /portail, etc.) is still served from the
-      # same deploy via the SPA shell preserved as /app.html.
-      # The React Property X source (PropertyX*.tsx) stays in the repo;
-      # it is simply no longer the thing served at the public routes.
-      - name: Overlay V3 static storefront onto React build
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          set -e
-          # Preserve the React SPA shell so app routes can boot it.
-          cp dist/index.html dist/app.html
-          # Overlay the V3 storefront — its index.html takes over "/".
-          cp -a sites/property-preview/. dist/
-          # Routing: reserved app paths -> React SPA shell (/app.html);
-          # everything else -> static V3 files, falling back to V3 home.
-          # Cloudflare serves real static assets (e.g. /assets/*, /images/*)
-          # before evaluating these rules, so React bundles still resolve.
-          # Rules live in .github/deploy/megga-redirects (keeps this YAML
-          # block free of heredoc indentation hazards).
-          cp .github/deploy/megga-redirects dist/_redirects
+      # NOTE: the V3 static storefront is overlaid onto dist/ by the npm
+      # `postbuild` hook (scripts/overlay-storefront.mjs), so it runs for
+      # BOTH this workflow AND the git-connected Cloudflare Pages build.
+      # No overlay step is needed here.
 
       - name: Setup Supabase CLI
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -159,7 +140,7 @@ jobs:
           # Pin wrangler v4 — v3.x silently skips functions/_middleware
           # detection on direct uploads, which would drop the V3 Basic Auth
           # gate (sites/property-preview/functions/_middleware.ts) now living
-          # in dist/functions/ after the overlay step above.
+          # in dist/functions/ after the postbuild overlay.
           wranglerVersion: "4.86.0"
           # `--commit-message="deploy <sha>"` court-circuite l'introspection
           # git de wrangler. Sans ça, wrangler pousse le message du HEAD vers
@@ -171,7 +152,10 @@ jobs:
           # au dist/ buildé localement. NOTE : tout sur une seule ligne — les
           # backslashes de continuation bash ne sont pas interprétés dans un
           # YAML block scalar et wrangler les recevrait comme args littéraux.
-          command: pages deploy dist --project-name=megga-real-estate --commit-message="deploy ${{ github.sha }}" --commit-dirty=true
+          # `--branch=main` forces the production environment so the custom
+          # domain (megga.ch) is updated — without it wrangler can infer a
+          # detached-HEAD branch in CI and publish a preview-only deployment.
+          command: pages deploy dist --project-name=megga-real-estate --branch=main --commit-message="deploy ${{ github.sha }}" --commit-dirty=true
 
       - name: Link Supabase project and deploy functions
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
