@@ -26,36 +26,15 @@ import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Lazy-loaded public pages
-// PropertyX public pages (anciennement eager — désormais lazy pour le SEO/LCP)
-const PropertyXHomePage = lazy(() => import('@/pages/public/PropertyXHomePage'))
-const PropertyXAboutPage = lazy(() => import('@/pages/public/PropertyXAboutPage'))
-const PropertyXFAQPage = lazy(() => import('@/pages/public/PropertyXFAQPage'))
-const PropertyXListingsPage = lazy(() => import('@/pages/public/PropertyXListingsPage'))
-const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
-const PropertyXContactPage = lazy(() => import('@/pages/public/PropertyXContactPage'))
-const PropertyXComingSoonPage = lazy(() => import('@/pages/public/PropertyXComingSoonPage'))
-const PropertyXSubmitPropertyPage = lazy(() => import('@/pages/public/PropertyXSubmitPropertyPage'))
-const PropertyXBlogPostPage = lazy(() => import('@/pages/public/PropertyXBlogPostPage'))
-const PropertyXAgentProfilePage = lazy(() => import('@/pages/public/PropertyXAgentProfilePage'))
-
-// Design System internes — pas dans le payload public initial
-const PropertyXDesignSystemButtonsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemButtonsPage'))
-const PropertyXDesignSystemLinksPage = lazy(() => import('@/pages/public/PropertyXDesignSystemLinksPage'))
-const PropertyXDesignSystemBadgesPage = lazy(() => import('@/pages/public/PropertyXDesignSystemBadgesPage'))
-const PropertyXDesignSystemListsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemListsPage'))
-const PropertyXDesignSystemIconsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemIconsPage'))
-const PropertyXDesignSystemIconFontsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemIconFontsPage'))
-const PropertyXDesignSystemAvatarsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemAvatarsPage'))
-const PropertyXDesignSystemInputsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemInputsPage'))
-const PropertyXDesignSystemColorsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemColorsPage'))
-const PropertyXDesignSystemTypographyPage = lazy(() => import('@/pages/public/PropertyXDesignSystemTypographyPage'))
-const PropertyXDesignSystemShadowsPage = lazy(() => import('@/pages/public/PropertyXDesignSystemShadowsPage'))
+// Property X storefront pages were removed — the public storefront on
+// megga.ch is now the static V3 HTML site (sites/property-preview), overlaid
+// at the deploy root by the npm postbuild hook. The Px* atom library under
+// src/components/propertyx/ stays (used by the CRM, auth and skeletons).
 
 // Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
 const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
 
-// Auth + blog v2 — lazy car secondary path
-const BlogV2Page = lazy(() => import('@/pages/public/BlogV2Page'))
+// Auth — lazy car secondary path
 const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
 // New auth bento (modal-style) — pages wrap AuthBentoApp.
 const AuthConnexionPage = lazy(() =>
@@ -100,16 +79,12 @@ const EstimationsPage = lazy(() => import('@/pages/public/EstimationsPage'))
 const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
 const PublierPage = lazy(() => import('@/pages/public/PublierPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
-const PropertyXPasswordProtectedPage = lazy(() => import('@/pages/public/PropertyXPasswordProtectedPage'))
-const PropertyXCityPropertiesPage = lazy(() => import('@/pages/public/PropertyXCityPropertiesPage'))
-const PropertyXLocationCmsPage = lazy(() => import('@/pages/public/PropertyXLocationCmsPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
 const AgentDirectoryPage = lazy(() => import('@/pages/public/AgentDirectoryPage'))
 const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
-const PropertyXAgencyProfilePage = lazy(() => import('@/pages/public/PropertyXAgencyProfilePage'))
 const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
@@ -289,30 +264,10 @@ function AnimatedRoutes() {
     // popLayout — preserved for shared-element transitions only.
     <AnimatePresence mode="popLayout" initial={false}>
       <Routes location={location} key={location.pathname}>
-              {/* Public */}
-              <Route path="/" element={<PropertyXHomePage />} />
-              <Route path="/a-propos" element={<PropertyXAboutPage />} />
-              <Route path="/faq" element={<PropertyXFAQPage />} />
-              <Route path="/properties" element={<PropertyXListingsPage />} />
-              <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
-              <Route path="/propriete/:id" element={<PropertyXSinglePropertyPage />} />
-              <Route path="/contact" element={<PropertyXContactPage />} />
-              <Route path="/coming-soon" element={<PropertyXComingSoonPage />} />
-              <Route path="/publier-bien" element={<PropertyXSubmitPropertyPage />} />
-              <Route path="/blog" element={<BlogV2Page />} />
-              <Route path="/blog/example" element={<PropertyXBlogPostPage />} />
-              <Route path="/agent/example" element={<PropertyXAgentProfilePage />} />
-              <Route path="/design-system/buttons" element={<PropertyXDesignSystemButtonsPage />} />
-              <Route path="/design-system/links" element={<PropertyXDesignSystemLinksPage />} />
-              <Route path="/design-system/badges" element={<PropertyXDesignSystemBadgesPage />} />
-              <Route path="/design-system/lists" element={<PropertyXDesignSystemListsPage />} />
-              <Route path="/design-system/icons" element={<PropertyXDesignSystemIconsPage />} />
-              <Route path="/design-system/iconfonts" element={<PropertyXDesignSystemIconFontsPage />} />
-              <Route path="/design-system/avatars" element={<PropertyXDesignSystemAvatarsPage />} />
-              <Route path="/design-system/inputs" element={<PropertyXDesignSystemInputsPage />} />
-              <Route path="/design-system/colors" element={<PropertyXDesignSystemColorsPage />} />
-              <Route path="/design-system/typography" element={<PropertyXDesignSystemTypographyPage />} />
-              <Route path="/design-system/shadows" element={<PropertyXDesignSystemShadowsPage />} />
+              {/* Public storefront (home, about, properties, contact, FAQ,
+                  blog, agents, property single, design-system…) is now served
+                  by the static V3 HTML site (sites/property-preview), overlaid
+                  at the deploy root — no longer React Property X pages. */}
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
@@ -331,11 +286,6 @@ function AnimatedRoutes() {
               <Route path="/auth/mot-de-passe-oublie/redefinir" element={<AuthSetNewPasswordPage />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
-              {/* Marketplace publique — Property X design, branchée Supabase.
-                  SearchPage (ancien design avec carte) reste accessible via
-                  /acheter-legacy en attendant la v1.1 (toggle list/carte). */}
-              <Route path="/acheter" element={<PropertyXListingsPage context="buy" />} />
-              <Route path="/louer" element={<PropertyXListingsPage context="rent" />} />
               <Route path="/acheter-legacy" element={<SearchPage />} />
               <Route path="/louer-legacy" element={<LouerPage />} />
               <Route path="/about" element={<AboutPage />} />
@@ -345,16 +295,12 @@ function AnimatedRoutes() {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/publier" element={<PublierPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/password" element={<PropertyXPasswordProtectedPage />} />
-              <Route path="/properties-by-location" element={<PropertyXCityPropertiesPage />} />
-              <Route path="/location" element={<PropertyXLocationCmsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/visite/:id/modifier" element={<VisitManagePage />} />
               <Route path="/visite/:id/feedback" element={<VisitFeedbackPage />} />
               <Route path="/agents" element={<AgentDirectoryPage />} />
               <Route path="/agents/:slug" element={<AgentProfilePage />} />
               <Route path="/agences" element={<AgenciesPage />} />
-              <Route path="/agences/:slug" element={<PropertyXAgencyProfilePage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
               {/* Mon compte — public-side dashboard (favoris, recherches, messagerie, profil) */}
