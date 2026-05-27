@@ -1,0 +1,16 @@
+/dashboard/*        /app.html    200
+/auth/*             /app.html    200
+/login              /app.html    200
+/register           /app.html    200
+/compte             /app.html    200
+/kyc/*              /app.html    200
+/aide/*             /app.html    200
+/support/*          /app.html    200
+/portail            /app.html    200
+/portail/*          /app.html    200
+/accept-invite/*    /app.html    200
+/reset-password     /app.html    200
+/privacy            /app.html    200
+/visite/*           /app.html    200
+/dev/*              /app.html    200
+/*                  /index.html  200
