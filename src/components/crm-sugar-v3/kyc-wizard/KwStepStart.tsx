@@ -90,9 +90,12 @@ export function KwStepStart({ data, set }: Props) {
               stroke={data.source === 'import' ? '#fff' : SugarV3.black}
             />
           }
-          title="Importer un dossier externe"
-          sub="PDF Persona, ComplyAdvantage, ou rapport agence partenaire. MEGGA AI parse les checks."
-          onClick={() => set({ source: 'import' })}
+          title="Importer un dossier externe (bientôt)"
+          sub="L'import + parsing automatique (PDF Persona, ComplyAdvantage, rapport agence partenaire) arrive dans une prochaine release. Utilisez « Lier à un contact existant » en attendant."
+          // Disabled — the wizard's `finish()` treats 'import' identically
+          // to 'existing'; advertising AI-parsing without delivering it
+          // breaks CLAUDE.md's "IA présentée comme automatique" rule.
+          onClick={() => { /* intentionally disabled */ }}
         />
         <KwGateCard
           selected={data.source === 'magic'}

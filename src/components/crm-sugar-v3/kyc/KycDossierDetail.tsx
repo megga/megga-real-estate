@@ -27,6 +27,7 @@ import {
   useMarkKycCheck,
   useMarkAllChecksCompleted,
 } from '@/hooks/useKycDossier'
+import { supabase } from '@/lib/supabase'
 import type {
   KycCheckCategory,
   KycChecklistItem,
@@ -485,8 +486,39 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
       <KycSourceOfFundsCard dossier={dossier} documents={docs} agentId={agentId} />
 
       <div className="sg-grid-detail-bottom" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <KycDocsSection docs={docs} onUpload={() => setUploadOpen(true)} />
-        <KycAuditTrail events={auditEvents ?? []} />
+        <KycDocsSection
+          docs={docs}
+          onUpload={() => setUploadOpen(true)}
+          onPreview={async (doc) => {
+            // Open the document in a new tab via a signed URL (60s ttl).
+            // KYC docs live in the kyc-documents bucket — created by
+            // migration 20260323_001_kyc_screening_fields.sql.
+            const { data, error: signErr } = await supabase.storage
+              .from('kyc-documents')
+              .createSignedUrl(doc.storage_path, 60)
+            // eslint-disable-next-line no-alert
+            if (signErr) { window.alert(`Aperçu impossible : ${signErr.message}`); return }
+            window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+          }}
+          onDownload={async (doc) => {
+            // Same signed URL but force download via the `download=true`
+            // option on Supabase Storage (sets Content-Disposition).
+            const { data, error: signErr } = await supabase.storage
+              .from('kyc-documents')
+              .createSignedUrl(doc.storage_path, 60, { download: doc.name ?? true })
+            // eslint-disable-next-line no-alert
+            if (signErr) { window.alert(`Téléchargement impossible : ${signErr.message}`); return }
+            window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+          }}
+        />
+        <KycAuditTrail
+          events={auditEvents ?? []}
+          onExportPdf={() => {
+            // LBA art. 7 deliverable — opens the audit-trail PDF export
+            // route already wired in App.tsx (#442).
+            window.open(`/dashboard/kyc/${dossierId}/export`, '_blank', 'noopener,noreferrer')
+          }}
+        />
       </div>
 
       {actionMessage && (

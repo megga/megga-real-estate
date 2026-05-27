@@ -154,7 +154,6 @@ export function KwStepVigilance({ data, set }: Props) {
           onClick={() => set({ vigilance: 'standard', riskLevel: 'low' })}
         />
         <KwGateCard
-          recommended={data.smartReco === 'renforced'}
           selected={data.vigilance === 'renforced'}
           icon={
             <SgIcon
@@ -193,7 +192,7 @@ export function KwStepVigilance({ data, set }: Props) {
               flexShrink: 0,
             }}
           >
-            <SgIcon name="sparkle" size={16} stroke={SugarV3.inkSoft} />
+            <SgIcon name="user" size={16} stroke={SugarV3.inkSoft} />
           </div>
           <div style={{ flex: 1 }}>
             <div
@@ -204,10 +203,12 @@ export function KwStepVigilance({ data, set }: Props) {
                 marginBottom: 2,
               }}
             >
-              MEGGA AI recommande :{' '}
-              <span style={{ color: SugarV3.black }}>
-                vigilance {data.smartReco === 'renforced' ? 'renforcée' : 'standard'}
-              </span>
+              {contact.first_name} {contact.last_name} ·{' '}
+              {contact.type === 'buyer'
+                ? 'acheteur'
+                : contact.type === 'seller'
+                  ? 'vendeur'
+                  : 'locataire'}
             </div>
             <div
               style={{
@@ -217,16 +218,10 @@ export function KwStepVigilance({ data, set }: Props) {
                 lineHeight: 1.5,
               }}
             >
-              {contact.first_name} {contact.last_name} ·{' '}
-              {contact.type === 'buyer'
-                ? 'acheteur'
-                : contact.type === 'seller'
-                  ? 'vendeur'
-                  : 'locataire'}{' '}
-              · profil{' '}
-              {data.smartReco === 'renforced'
-                ? 'avec indicateurs de risque détectés'
-                : 'sans indicateur de risque détecté'}.
+              Choisissez le niveau de vigilance en fonction du contexte
+              (montant, origine des fonds, PEP, juridictions à risque).
+              Une recommandation IA basée sur le profil arrivera dans une
+              prochaine release.
             </div>
           </div>
         </div>
