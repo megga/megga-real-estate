@@ -4,9 +4,11 @@
 // par un loading modal générique — l'auth flow custom de chaque provider sera porté dans
 // une PR future si nécessaire (le UX est équivalent pour le démo : connexion → toast).
 
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { SectionHeader, SetGhostBtn, SetIcon, Toast } from './atoms'
 import { SET_PALETTE } from './data'
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
+import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 
 const SET = SET_PALETTE
 
@@ -94,11 +96,18 @@ interface Integration {
   recommended?: boolean
   premium?: boolean
   connected: boolean
+  /** true uniquement si un wire OAuth réel existe (Google / Microsoft). */
+  connectable?: boolean
   account?: string
   connectedSince?: string
   services?: IntegrationServices
 }
 
+// Seuls Google + Microsoft ont un wire OAuth réel (useGoogleCalendar /
+// useOutlookCalendar + tables google_calendar_tokens / outlook_calendar_tokens
+// + Edge Functions google-calendar-sync / outlook-calendar-sync).
+// Les autres providers sont affichés à titre informatif — le bouton "Connecter"
+// est désactivé jusqu'à wire réel (chip dédiée pour chacun).
 const INITIAL_INTEGRATIONS: Integration[] = [
   {
     id: 'google',
@@ -108,10 +117,9 @@ const INITIAL_INTEGRATIONS: Integration[] = [
     desc: 'Synchronisez Google Calendar, Gmail et Contacts en un seul branchement OAuth.',
     logoBg: '#FFFFFF',
     logo: <GoogleG size={22} />,
-    connected: true,
-    account: 'gregory@megga.ch',
-    connectedSince: 'Mars 2024',
-    services: { calendar: true, gmail: true, contacts: false },
+    connected: false,
+    connectable: true,
+    services: { calendar: false, gmail: false, contacts: false },
   },
   {
     id: 'microsoft',
@@ -122,6 +130,7 @@ const INITIAL_INTEGRATIONS: Integration[] = [
     logoBg: '#FFFFFF',
     logo: <MsLogo size={22} />,
     connected: false,
+    connectable: true,
     services: { calendar: false, mail: false, contacts: false },
   },
   {
@@ -153,9 +162,7 @@ const INITIAL_INTEGRATIONS: Integration[] = [
     desc: 'Comparables et estimations en temps réel sur tout le marché suisse.',
     logoBg: '#003B71',
     logoText: 'IZ',
-    connected: true,
-    account: 'Licence Pro',
-    connectedSince: 'Septembre 2023',
+    connected: false,
   },
   {
     id: 'mls-realadvisor',
@@ -183,9 +190,7 @@ const INITIAL_INTEGRATIONS: Integration[] = [
     desc: "Vérification d'identité et anti-blanchiment automatisés.",
     logoBg: '#3D38FA',
     logoText: 'O',
-    connected: true,
-    account: 'Pack Diligence',
-    connectedSince: 'Octobre 2024',
+    connected: false,
   },
   {
     id: 'id-veri',
@@ -453,25 +458,25 @@ function IntegrationCard({
         ) : (
           <>
             <span style={{ fontSize: 12, color: SET.muted, fontWeight: 500 }}>
-              Non connecté
+              {item.connectable ? 'Non connecté' : 'Non disponible'}
             </span>
             <button
               onClick={e => {
                 e.stopPropagation()
-                onConnect()
+                if (item.connectable) onConnect()
               }}
-              disabled={connecting}
+              disabled={connecting || !item.connectable}
               style={{
                 height: 32,
                 padding: '0 14px',
                 borderRadius: 999,
                 border: 0,
-                background: SET.black,
-                color: '#fff',
+                background: item.connectable ? SET.black : SET.cardSubtle,
+                color: item.connectable ? '#fff' : SET.muted,
                 fontFamily: 'inherit',
                 fontSize: 12,
                 fontWeight: 700,
-                cursor: 'pointer',
+                cursor: item.connectable ? 'pointer' : 'not-allowed',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
@@ -495,7 +500,12 @@ function IntegrationCard({
                 </>
               ) : (
                 <>
-                  <SetIcon name="link" size={11} stroke="#fff" sw={2.4} />
+                  <SetIcon
+                    name="link"
+                    size={11}
+                    stroke={item.connectable ? '#fff' : SET.muted}
+                    sw={2.4}
+                  />
                   Connecter
                 </>
               )}
@@ -507,781 +517,85 @@ function IntegrationCard({
   )
 }
 
-// ─── OAuthFlow Google/Microsoft (DocuSign/Skribble simulés via stub) ─────
-type OAuthScope = 'calendar' | 'gmail' | 'mail' | 'contacts'
-
-interface OAuthFlowProps {
-  item: Integration
-  onCancel: () => void
-  onComplete: (account: string, scopes: string[]) => void
-}
-
-function OAuthFlow({ item, onCancel, onComplete }: OAuthFlowProps) {
-  const isGoogle = item.provider === 'google'
-  const isCustomProvider = item.provider === 'docusign' || item.provider === 'skribble'
-
-  // DocuSign + Skribble stub : loading modal direct + auto-complete
-  // (les flows custom officiels du proto sont remplacés par cette version simplifiée)
-  if (isCustomProvider) {
-    return <ProviderLoadingStub item={item} onCancel={onCancel} onComplete={onComplete} />
-  }
-
-  const accentBlue = isGoogle ? '#1A73E8' : '#0067B8'
-  const [step, setStep] = useState<'choose' | 'consent' | 'loading'>('choose')
-  const [account, setAccount] = useState<{
-    email: string
-    name: string
-    initial: string
-    color: string
-  } | null>(null)
-  const [scopes, setScopes] = useState<OAuthScope[]>(
-    isGoogle ? ['calendar', 'gmail'] : ['calendar', 'mail'],
-  )
-
-  const accounts = isGoogle
-    ? [
-        { email: 'gregory@megga.ch', name: 'Grégory Beuret', initial: 'G', color: '#1A73E8' },
-        { email: 'g.beuret@gmail.com', name: 'Grégory Beuret', initial: 'G', color: '#34A853' },
-      ]
-    : [{ email: 'gregory@megga.ch', name: 'Grégory Beuret', initial: 'G', color: '#0067B8' }]
-
-  const allScopes = isGoogle
-    ? [
-        {
-          key: 'calendar' as OAuthScope,
-          icon: 'calendar' as const,
-          title: 'Voir, créer et modifier vos événements Google Calendar',
-          sub: 'MEGGA pourra lire votre agenda et y ajouter visites, signatures et rendez-vous.',
-        },
-        {
-          key: 'gmail' as OAuthScope,
-          icon: 'mail' as const,
-          title: 'Lire, envoyer et gérer vos emails Gmail',
-          sub: 'Conversations clients liées automatiquement aux deals dans le CRM.',
-        },
-        {
-          key: 'contacts' as OAuthScope,
-          icon: 'users' as const,
-          title: 'Voir et modifier vos contacts',
-          sub: 'Synchroniser le carnet d\'adresses avec les contacts du CRM.',
-        },
-      ]
-    : [
-        {
-          key: 'calendar' as OAuthScope,
-          icon: 'calendar' as const,
-          title: 'Lire et écrire dans votre Outlook Calendar',
-          sub: 'MEGGA pourra ajouter et synchroniser visites et rendez-vous.',
-        },
-        {
-          key: 'mail' as OAuthScope,
-          icon: 'mail' as const,
-          title: 'Lire et envoyer des emails Outlook',
-          sub: 'Conversations clients liées aux deals MEGGA.',
-        },
-        {
-          key: 'contacts' as OAuthScope,
-          icon: 'users' as const,
-          title: 'Accéder à votre carnet d\'adresses',
-          sub: 'Synchroniser les contacts Exchange.',
-        },
-      ]
-
-  const toggle = (k: OAuthScope) => {
-    setScopes(s => (s.includes(k) ? s.filter(x => x !== k) : [...s, k]))
-  }
-
-  const handleAllow = () => {
-    if (!account) return
-    setStep('loading')
-    setTimeout(() => onComplete(account.email, scopes), 1200)
-  }
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 250,
-        background: 'rgba(11,12,14,0.55)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        display: 'grid',
-        placeItems: 'center',
-        animation: 'setFadeIn .2s ease both',
-      }}
-      onClick={onCancel}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#fff',
-          borderRadius: 12,
-          width: 460,
-          maxWidth: '94%',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.30), 0 0 0 1px rgba(0,0,0,0.06)',
-          animation: 'setScaleIn .25s cubic-bezier(.2,.8,.2,1) both',
-          fontFamily:
-            '"Google Sans", "Segoe UI", Roboto, system-ui, -apple-system, sans-serif',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 14px',
-            background: '#F1F3F4',
-            borderBottom: '1px solid #E0E0E0',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 6 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 999, background: '#FF5F57' }} />
-            <span style={{ width: 10, height: 10, borderRadius: 999, background: '#FEBC2E' }} />
-            <span style={{ width: 10, height: 10, borderRadius: 999, background: '#28C840' }} />
-          </div>
-          <div
-            style={{
-              flex: 1,
-              height: 22,
-              borderRadius: 999,
-              background: '#fff',
-              border: '1px solid #DADCE0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '0 10px',
-              fontSize: 11,
-              color: '#5F6368',
-              fontWeight: 500,
-            }}
-          >
-            <SetIcon name="lock" size={10} stroke="#5F6368" sw={2.2} />
-            <span>{isGoogle ? 'accounts.google.com' : 'login.microsoftonline.com'}</span>
-          </div>
-        </div>
-
-        <div style={{ padding: '32px 40px 28px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
-            {isGoogle ? <GoogleG size={36} /> : <MsLogo size={36} />}
-          </div>
-
-          {step === 'choose' && (
-            <>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: 22,
-                  fontWeight: 400,
-                  color: '#202124',
-                  textAlign: 'center',
-                  letterSpacing: -0.2,
-                }}
-              >
-                Choisir un compte
-              </h2>
-              <p
-                style={{
-                  margin: '6px 0 22px',
-                  fontSize: 14,
-                  color: '#5F6368',
-                  textAlign: 'center',
-                  fontWeight: 400,
-                }}
-              >
-                pour continuer vers <span style={{ color: '#202124', fontWeight: 500 }}>MEGGA</span>
-              </p>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  border: '1px solid #DADCE0',
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                }}
-              >
-                {accounts.map((a, i) => (
-                  <button
-                    key={a.email}
-                    onClick={() => {
-                      setAccount(a)
-                      setStep('consent')
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 14,
-                      padding: '12px 16px',
-                      border: 0,
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      borderBottom: i < accounts.length - 1 ? '1px solid #DADCE0' : 'none',
-                      fontFamily: 'inherit',
-                      textAlign: 'left',
-                      transition: 'background .12s',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = '#F8F9FA'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'transparent'
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 999,
-                        background: a.color,
-                        color: '#fff',
-                        display: 'grid',
-                        placeItems: 'center',
-                        fontSize: 15,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {a.initial}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{ fontSize: 14, color: '#202124', fontWeight: 500 }}
-                      >
-                        {a.name}
-                      </div>
-                      <div style={{ fontSize: 13, color: '#5F6368' }}>{a.email}</div>
-                    </div>
-                  </button>
-                ))}
-                <button
-                  onClick={onCancel}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: '14px 16px',
-                    border: 0,
-                    borderTop: '1px solid #DADCE0',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    textAlign: 'left',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = '#F8F9FA'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = 'transparent'
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 999,
-                      border: '1px solid #DADCE0',
-                      display: 'grid',
-                      placeItems: 'center',
-                      color: '#5F6368',
-                    }}
-                  >
-                    <SetIcon name="plus" size={16} stroke="#5F6368" sw={2.2} />
-                  </div>
-                  <div style={{ fontSize: 14, color: '#202124', fontWeight: 500 }}>
-                    Utiliser un autre compte
-                  </div>
-                </button>
-              </div>
-              <p
-                style={{
-                  margin: '22px 0 0',
-                  fontSize: 12,
-                  color: '#5F6368',
-                  lineHeight: 1.5,
-                  textAlign: 'center',
-                }}
-              >
-                Avant d'utiliser cette application, vous pouvez consulter les{' '}
-                <span style={{ color: accentBlue, cursor: 'pointer' }}>
-                  conditions d'utilisation
-                </span>{' '}
-                et la{' '}
-                <span style={{ color: accentBlue, cursor: 'pointer' }}>
-                  politique de confidentialité
-                </span>{' '}
-                de MEGGA.
-              </p>
-            </>
-          )}
-
-          {step === 'consent' && account && (
-            <>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: 22,
-                  fontWeight: 400,
-                  color: '#202124',
-                  textAlign: 'center',
-                  letterSpacing: -0.2,
-                }}
-              >
-                MEGGA souhaite accéder à votre compte {isGoogle ? 'Google' : 'Microsoft'}
-              </h2>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  margin: '18px auto 22px',
-                  padding: '6px 14px 6px 6px',
-                  border: '1px solid #DADCE0',
-                  borderRadius: 999,
-                  width: 'fit-content',
-                }}
-              >
-                <div
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 999,
-                    background: account.color,
-                    color: '#fff',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: 12,
-                    fontWeight: 500,
-                  }}
-                >
-                  {account.initial}
-                </div>
-                <span style={{ fontSize: 13, color: '#202124', fontWeight: 500 }}>
-                  {account.email}
-                </span>
-              </div>
-              <p
-                style={{
-                  margin: '0 0 14px',
-                  fontSize: 13.5,
-                  color: '#202124',
-                  lineHeight: 1.55,
-                  fontWeight: 500,
-                }}
-              >
-                Vérifiez les autorisations que MEGGA pourra utiliser. Vous pouvez révoquer cet accès à
-                tout moment dans votre compte {isGoogle ? 'Google' : 'Microsoft'}.
-              </p>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                  marginBottom: 18,
-                }}
-              >
-                {allScopes.map(s => {
-                  const on = scopes.includes(s.key)
-                  return (
-                    <label
-                      key={s.key}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 12,
-                        padding: '10px 12px',
-                        borderRadius: 8,
-                        cursor: 'pointer',
-                        background: on ? '#F8FBFF' : 'transparent',
-                        transition: 'background .12s',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={() => toggle(s.key)}
-                        style={{
-                          margin: '3px 0 0',
-                          width: 16,
-                          height: 16,
-                          accentColor: accentBlue,
-                          cursor: 'pointer',
-                        }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: '#202124',
-                            fontWeight: 500,
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {s.title}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: '#5F6368',
-                            lineHeight: 1.45,
-                            marginTop: 2,
-                          }}
-                        >
-                          {s.sub}
-                        </div>
-                      </div>
-                    </label>
-                  )
-                })}
-              </div>
-              <div
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 8,
-                  background: '#F1F3F4',
-                  marginBottom: 22,
-                  fontSize: 12,
-                  color: '#5F6368',
-                  lineHeight: 1.5,
-                }}
-              >
-                En cliquant sur <strong style={{ color: '#202124' }}>Autoriser</strong>, vous
-                permettez à MEGGA d'utiliser vos données conformément à ses conditions
-                d'utilisation et à sa politique de confidentialité.
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 12,
-                }}
-              >
-                <button
-                  onClick={onCancel}
-                  style={{
-                    height: 36,
-                    padding: '0 18px',
-                    borderRadius: 4,
-                    border: 0,
-                    background: 'transparent',
-                    color: accentBlue,
-                    fontFamily: 'inherit',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    letterSpacing: 0.1,
-                  }}
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleAllow}
-                  disabled={scopes.length === 0}
-                  style={{
-                    height: 36,
-                    padding: '0 22px',
-                    borderRadius: 4,
-                    border: 0,
-                    background: scopes.length === 0 ? '#DADCE0' : accentBlue,
-                    color: '#fff',
-                    fontFamily: 'inherit',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: scopes.length === 0 ? 'not-allowed' : 'pointer',
-                    letterSpacing: 0.1,
-                    boxShadow: scopes.length === 0 ? 'none' : '0 1px 2px rgba(0,0,0,0.10)',
-                  }}
-                >
-                  Autoriser
-                </button>
-              </div>
-            </>
-          )}
-
-          {step === 'loading' && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 18,
-                padding: '30px 0 18px',
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 999,
-                  border: `3px solid ${accentBlue}25`,
-                  borderTopColor: accentBlue,
-                  animation: 'setSpin .8s linear infinite',
-                }}
-              />
-              <div
-                style={{
-                  fontSize: 14,
-                  color: '#202124',
-                  fontWeight: 500,
-                  textAlign: 'center',
-                }}
-              >
-                Connexion en cours…
-              </div>
-              <div
-                style={{
-                  fontSize: 12.5,
-                  color: '#5F6368',
-                  textAlign: 'center',
-                  lineHeight: 1.5,
-                }}
-              >
-                Redirection vers MEGGA après autorisation
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── ProviderLoadingStub (DocuSign / Skribble — auth flow simplifié) ─────
-function ProviderLoadingStub({ item, onCancel, onComplete }: OAuthFlowProps) {
-  const isDocuSign = item.provider === 'docusign'
-  const brand = isDocuSign ? '#FFCC22' : '#0B0C0E'
-  const [step, setStep] = useState<'connecting' | 'done'>('connecting')
-
-  const handleConnect = () => {
-    setStep('connecting')
-    setTimeout(() => {
-      setStep('done')
-      setTimeout(() => {
-        const scopes = isDocuSign
-          ? ['send', 'template', 'webhook']
-          : ['sign', 'attach', 'status']
-        onComplete('gregory@megga.ch', scopes)
-      }, 800)
-    }, 1100)
-  }
-
-  // Auto-launch the connection on mount (matches proto UX of immediate redirect)
-  useState(() => {
-    setTimeout(handleConnect, 250)
-    return null
-  })
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 250,
-        background: 'rgba(11,12,14,0.55)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        display: 'grid',
-        placeItems: 'center',
-        animation: 'setFadeIn .2s ease both',
-      }}
-      onClick={onCancel}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#fff',
-          borderRadius: 16,
-          width: 420,
-          maxWidth: '94%',
-          padding: '36px 32px',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.30), 0 0 0 1px rgba(0,0,0,0.06)',
-          animation: 'setScaleIn .25s cubic-bezier(.2,.8,.2,1) both',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 14,
-            background: brand,
-            color: isDocuSign ? '#0B0C0E' : '#fff',
-            display: 'grid',
-            placeItems: 'center',
-            margin: '0 auto 18px',
-            fontSize: 22,
-            fontWeight: 800,
-            letterSpacing: -0.4,
-          }}
-        >
-          {item.logoText}
-        </div>
-        <h3
-          style={{
-            margin: '0 0 6px',
-            fontSize: 18,
-            fontWeight: 700,
-            color: SET.ink,
-            letterSpacing: -0.3,
-          }}
-        >
-          {step === 'connecting'
-            ? `Connexion à ${item.name}…`
-            : `${item.name} connecté`}
-        </h3>
-        <p
-          style={{
-            margin: '0 0 20px',
-            fontSize: 13,
-            color: SET.muted,
-            fontWeight: 500,
-            lineHeight: 1.55,
-          }}
-        >
-          {step === 'connecting'
-            ? `Authentification en cours via ${item.name}.`
-            : 'Toutes les permissions ont été accordées.'}
-        </p>
-        {step === 'connecting' ? (
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 999,
-              border: `3px solid ${brand}30`,
-              borderTopColor: brand,
-              margin: '0 auto',
-              animation: 'setSpin .7s linear infinite',
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 999,
-              background: SET.ok,
-              margin: '0 auto',
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            <SetIcon name="check" size={18} stroke="#fff" sw={3} />
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  SECTION — INTÉGRATIONS
-// ═══════════════════════════════════════════════════════════════════════
 export function IntegrationsSection() {
-  const [items, setItems] = useState<Integration[]>(INITIAL_INTEGRATIONS)
+  // État réel Google / Microsoft via les vrais hooks OAuth (tables
+  // google_calendar_tokens / outlook_calendar_tokens + Edge Functions).
+  const google = useGoogleCalendar()
+  const outlook = useOutlookCalendar()
+
   const [filter, setFilter] = useState<string>('all')
   const [details, setDetails] = useState<Integration | null>(null)
   const [confirmDisc, setConfirmDisc] = useState<Integration | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [connecting, setConnecting] = useState<string | null>(null)
-  const [oauthFor, setOauthFor] = useState<Integration | null>(null)
+  const [connecting] = useState<string | null>(null)
+
+  // On surcharge l'état "connected" + "account" depuis les hooks réels pour
+  // Google et Microsoft. Tous les autres providers restent à connected:false
+  // (cf. connectable:false dans INITIAL_INTEGRATIONS — bouton désactivé).
+  const items = useMemo<Integration[]>(() =>
+    INITIAL_INTEGRATIONS.map(it => {
+      if (it.id === 'google') {
+        return {
+          ...it,
+          connected: google.isConnected,
+          account: google.googleEmail ?? undefined,
+        }
+      }
+      if (it.id === 'microsoft') {
+        return {
+          ...it,
+          connected: outlook.isConnected,
+          account: outlook.outlookEmail ?? undefined,
+        }
+      }
+      return it
+    }),
+    [google.isConnected, google.googleEmail, outlook.isConnected, outlook.outlookEmail],
+  )
 
   const categories = ['all', ...Array.from(new Set(items.map(i => i.category)))]
   const visible = filter === 'all' ? items : items.filter(i => i.category === filter)
   const connected = items.filter(i => i.connected)
 
-  const fakeConnect = (id: string) => {
+  // Connect : redirige vers le vrai OAuth Supabase (Google ou Microsoft).
+  // L'utilisateur autorise sur la page officielle du provider, revient sur
+  // /auth/callback, et la query du hook reflète la connexion réelle.
+  // Les autres providers ont leur bouton désactivé en amont (connectable:false).
+  const handleConnect = (id: string) => {
     const item = items.find(i => i.id === id)
-    if (
-      item &&
-      (item.provider === 'google' ||
-        item.provider === 'microsoft' ||
-        item.provider === 'docusign' ||
-        item.provider === 'skribble')
-    ) {
-      setOauthFor(item)
-      return
-    }
-    setConnecting(id)
-    setTimeout(() => {
-      setItems(arr =>
-        arr.map(it =>
-          it.id === id
-            ? {
-                ...it,
-                connected: true,
-                account: 'gregory@megga.ch',
-                connectedSince: "À l'instant",
-              }
-            : it,
-        ),
-      )
-      setConnecting(null)
-      setToast('Connecté avec succès')
-      setTimeout(() => setToast(null), 2400)
-    }, 1100)
-  }
-
-  const completeOAuth = (item: Integration, account: string, scopes: string[]) => {
-    let services: IntegrationServices
+    if (!item) return
     if (item.provider === 'google') {
-      services = {
-        calendar: scopes.includes('calendar'),
-        gmail: scopes.includes('gmail'),
-        contacts: scopes.includes('contacts'),
-      }
+      google.connectGoogleCalendar()
     } else if (item.provider === 'microsoft') {
-      services = {
-        calendar: scopes.includes('calendar'),
-        mail: scopes.includes('mail'),
-        contacts: scopes.includes('contacts'),
-      }
-    } else if (item.provider === 'skribble') {
-      services = {
-        sign: scopes.includes('sign'),
-        attach: scopes.includes('attach'),
-        status: scopes.includes('status'),
-      }
-    } else {
-      services = {
-        send: scopes.includes('send'),
-        template: scopes.includes('template'),
-        webhook: scopes.includes('webhook'),
-      }
+      outlook.connectOutlookCalendar()
     }
-    const accountLabel =
-      item.provider === 'docusign'
-        ? `${account} · Plan Business`
-        : item.provider === 'skribble'
-          ? `${account} · Plan Business`
-          : account
-    setItems(arr =>
-      arr.map(it =>
-        it.id === item.id
-          ? { ...it, connected: true, account: accountLabel, connectedSince: "À l'instant", services }
-          : it,
-      ),
-    )
-    setOauthFor(null)
-    setToast(`${item.name} connecté`)
-    setTimeout(() => setToast(null), 2400)
   }
 
-  const updateServices = (id: string, services: IntegrationServices) => {
-    setItems(arr => arr.map(it => (it.id === id ? { ...it, services } : it)))
+  // services granulaires retirés : la table tokens ne stocke pas le scope
+  // au niveau row. Réintroduit quand on aura agency_integrations.services.
+  const updateServices = (_id: string, _services: IntegrationServices) => {
+    /* no-op pour l'instant — chip dédiée pour persister les scopes choisis */
   }
 
-  const disconnect = (id: string) => {
-    setItems(arr =>
-      arr.map(it =>
-        it.id === id
-          ? { ...it, connected: false, account: undefined, connectedSince: undefined }
-          : it,
-      ),
-    )
+  const disconnect = async (id: string) => {
+    const item = items.find(i => i.id === id)
     setConfirmDisc(null)
-    setToast('Intégration déconnectée')
-    setTimeout(() => setToast(null), 2400)
+    if (!item) return
+    try {
+      if (item.provider === 'google') {
+        await google.disconnectGoogleCalendar()
+      } else if (item.provider === 'microsoft') {
+        await outlook.disconnectOutlookCalendar()
+      } else {
+        return // Pas de wire backend pour ce provider
+      }
+      setToast(`${item.name} déconnecté`)
+      setTimeout(() => setToast(null), 2400)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
+      setToast(`Échec déconnexion : ${msg}`)
+      setTimeout(() => setToast(null), 2400)
+    }
   }
 
   return (
@@ -1417,7 +731,7 @@ export function IntegrationsSection() {
               key={it.id}
               item={it}
               onClick={() => setDetails(it)}
-              onConnect={() => fakeConnect(it.id)}
+              onConnect={() => handleConnect(it.id)}
               onDisconnect={() => setConfirmDisc(it)}
               connecting={connecting === it.id}
             />
@@ -1816,28 +1130,36 @@ export function IntegrationsSection() {
               ) : (
                 <button
                   onClick={() => {
-                    fakeConnect(details.id)
+                    if (!details.connectable) return
+                    handleConnect(details.id)
                     setDetails(null)
                   }}
+                  disabled={!details.connectable}
                   style={{
                     height: 44,
                     padding: '0 22px',
                     borderRadius: 999,
                     border: 0,
-                    background: SET.black,
-                    color: '#fff',
+                    background: details.connectable ? SET.black : SET.cardSubtle,
+                    color: details.connectable ? '#fff' : SET.muted,
                     fontFamily: 'inherit',
                     fontSize: 13.5,
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
+                    cursor: details.connectable ? 'pointer' : 'not-allowed',
+                    boxShadow: details.connectable
+                      ? '0 6px 16px rgba(11,12,14,0.18)'
+                      : 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 8,
                   }}
                 >
-                  <SetIcon name="link" size={14} stroke="#fff" />
-                  Connecter
+                  <SetIcon
+                    name="link"
+                    size={14}
+                    stroke={details.connectable ? '#fff' : SET.muted}
+                  />
+                  {details.connectable ? 'Connecter' : 'Non disponible'}
                 </button>
               )}
             </div>
@@ -1845,14 +1167,10 @@ export function IntegrationsSection() {
         </div>
       )}
 
-      {/* OAuth officiel Google / Microsoft (+ stub DocuSign / Skribble) */}
-      {oauthFor && (
-        <OAuthFlow
-          item={oauthFor}
-          onCancel={() => setOauthFor(null)}
-          onComplete={(account, scopes) => completeOAuth(oauthFor, account, scopes)}
-        />
-      )}
+      {/* OAuthFlow modal retiré : on redirige directement vers la page
+          officielle Google / Microsoft via supabase.auth.signInWithOAuth.
+          Le modal styled simulait la consent screen — chip pour
+          réintroduire un picker de scopes une fois agency_integrations en place. */}
 
       {/* Confirm déconnexion */}
       {confirmDisc && (

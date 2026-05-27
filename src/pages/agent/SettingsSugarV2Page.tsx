@@ -12,7 +12,6 @@ import {
 } from '@/components/crm-sugar/SugarShell'
 import { BannerPill } from '@/components/crm-sugar/settings/BannerPill'
 import { ProfileSection } from '@/components/crm-sugar/settings/ProfileSection'
-import { PlaceholderSection } from '@/components/crm-sugar/settings/PlaceholderSection'
 import { NotificationsSection } from '@/components/crm-sugar/settings/NotificationsSection'
 import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesSection'
 import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
@@ -22,9 +21,7 @@ import { AgencySection } from '@/components/crm-sugar/settings/AgencySection'
 import { TeamSection } from '@/components/crm-sugar/settings/TeamSection'
 import { BrandSection } from '@/components/crm-sugar/settings/BrandSection'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
-import {
-  SETTINGS_SECTIONS, SET_PALETTE, type SectionId,
-} from '@/components/crm-sugar/settings/data'
+import { SET_PALETTE, type SectionId } from '@/components/crm-sugar/settings/data'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -48,8 +45,6 @@ export default function SettingsSugarV2Page() {
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
   const [active, setActive] = useState<SectionId>('profile')
-  const activeSection =
-    SETTINGS_SECTIONS.find(s => s.id === active) || SETTINGS_SECTIONS[0]
 
   const onCmd = () => {
     /* placeholder */
@@ -86,7 +81,9 @@ export default function SettingsSugarV2Page() {
     if (active === 'security') return <SecuritySection />
     if (active === 'privacy') return <PrivacySection />
     if (active === 'billing') return <BillingSection />
-    return <PlaceholderSection section={activeSection} />
+    // Toutes les section IDs connues ci-dessus → fallback null (ne peut pas
+    // arriver via BannerPill, qui n'expose que les SectionId valides).
+    return null
   }
 
   return (
