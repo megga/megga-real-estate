@@ -461,8 +461,11 @@ export default function MatchingSugarV2Page() {
       })
     }
 
-    // Mutation Supabase : UPDATE matches SET status='sent', sent_via, sent_at
-    // Channel 'sms' → 'whatsapp' (DB n'a pas de tone SMS distinct)
+    // Marks the match as 'sent' in DB — but NO email/SMS is actually
+    // dispatched from here (useSendMatchToClient was wired with a wrong
+    // payload shape for send-property-email and never worked). Until the
+    // real dispatcher lands (separate chip), the audit + toast are
+    // explicit that it's a manual status flip, not a system send.
     const dbChannel = channel === 'sms' ? 'whatsapp' : channel
     for (const id of matchIds) {
       sendMatch(id, dbChannel as 'email' | 'whatsapp' | 'both')
@@ -471,21 +474,22 @@ export default function MatchingSugarV2Page() {
     const channelLabel =
       channel === 'whatsapp' ? 'WhatsApp' : channel === 'sms' ? 'SMS' : 'email'
     setToast(
-      `Dossier envoyé par ${channelLabel} — ${matchIds.length} bien${
+      `Marqué comme envoyé par ${channelLabel} — ${matchIds.length} bien${
         matchIds.length > 1 ? 's' : ''
-      }`,
+      }. Pensez à envoyer le dossier réel via votre client mail/messagerie.`,
     )
-    setTimeout(() => setToast(null), 3000)
+    setTimeout(() => setToast(null), 4500)
 
     if (buyer) {
       logAudit.mutate({
         category: 'ai',
         severity: 'info',
-        action: 'Dossier matching envoyé',
+        // Honest action name — see PR #438 for the same `-marked-` pattern.
+        action: 'Dossier matching marqué envoyé',
         entityType: 'contact',
         entityId: buyer.id,
         objectLabel: `${buyer.firstName} ${buyer.lastName}`,
-        metadata: { channel, matchIds, count: matchIds.length },
+        metadata: { channel, matchIds, count: matchIds.length, system_dispatch: false },
       })
     }
   }

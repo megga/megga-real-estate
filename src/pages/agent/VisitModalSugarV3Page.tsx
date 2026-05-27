@@ -672,48 +672,11 @@ export default function VisitModalSugarV3Page() {
                   </Field>
                 </div>
 
-                {/* Suggestions IA */}
-                <div style={{ marginTop: 26 }}>
-                  <div
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      color: SugarV3.muted,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.6,
-                      marginBottom: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                  >
-                    <SgIcon name="sparkle" size={12} stroke={SugarV3.muted} sw={1.8} />
-                    Créneaux conseillés par MEGGA AI
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {['Demain · 10:00', 'Demain · 17:00', 'Sam. · 11:00', 'Mar. · 18:30'].map(
-                      (s) => (
-                        <button
-                          key={s}
-                          style={{
-                            height: 38,
-                            padding: '0 16px',
-                            borderRadius: 999,
-                            border: 0,
-                            background: SugarV3.cardSubtle,
-                            color: SugarV3.inkSoft,
-                            fontFamily: 'inherit',
-                            fontSize: 12.5,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {s}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                </div>
+                {/* "Créneaux conseillés par MEGGA AI" section removed —
+                    the 4 pills were hardcoded ('Demain · 10:00', etc.),
+                    not AI-generated, with no onClick. Real slot
+                    suggestions (calendar availability + buyer
+                    preferences) are tracked as a separate sprint. */}
               </div>
             </>
           )}
