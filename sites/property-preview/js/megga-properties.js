@@ -94,7 +94,8 @@
         node.style.transform = 'none';
         grid.appendChild(fillCard(node, it));
       });
-    }).catch(function () {
+    }).catch(function (err) {
+      console.error('[megga] fetchListings failed:', err);
       grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Une erreur est survenue. Réessayez.</div>';
     });
   }

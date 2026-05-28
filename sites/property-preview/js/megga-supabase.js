@@ -23,13 +23,15 @@ window.MeggaSupabase = (function () {
     if (f.city) params.set('city', 'ilike.' + f.city + '%');
     if (f.type) params.set('type', 'eq.' + f.type);
     params.set('order', 'created_at.desc');
+    // Paginate via query params (not a Range header) — simpler CORS request,
+    // avoids proxy/extension quirks with the Range header. No exact count.
+    params.set('limit', String(limit));
+    params.set('offset', String(offset));
 
     return fetch(BASE_URL + '/market_listings?' + params.toString(), {
       headers: {
         apikey: ANON_KEY,
         Authorization: 'Bearer ' + ANON_KEY,
-        // Range paginates without an exact count (perf: never count: exact).
-        Range: offset + '-' + (offset + limit - 1),
       },
     }).then(function (res) {
       if (!res.ok) throw new Error('Supabase ' + res.status);
