@@ -1,7 +1,10 @@
 // MEGGA Marketplace — Property X "Agences" page Hero section.
-// Inspiré de PxPropertiesHero (node 9552:21438) :
-// container dark neutral700 rounded-24 + badge eyebrow + H1 + paragraph
-// + browser pill (search + canton select) overlapping bottom.
+// Reprend la structure du browser de PxPropertiesHero (4 zones) pour
+// cohérence visuelle avec /acheter, /louer et la homepage :
+//   <Search input (rounded LEFT pill, flex)>
+//   <Canton select 220×52>
+//   <Specialty select 220×52>
+//   <Verified select 220×52 (rounded RIGHT pill)>
 
 import { useTranslation } from 'react-i18next'
 import { PX, PxFigmaIcon } from '..'
@@ -20,16 +23,21 @@ const CANTON_LABELS: Record<string, string> = {
   UR: 'Uri', VD: 'Vaud', VS: 'Valais', ZG: 'Zoug', ZH: 'Zurich',
 }
 
+const SPECIALTIES = ['residential', 'commercial', 'luxury', 'new', 'rental'] as const
+
 interface PxAgenciesHeroProps {
   search: string
   onSearchChange: (value: string) => void
   canton: string
   onCantonChange: (value: string) => void
+  specialty: string
+  onSpecialtyChange: (value: string) => void
+  verifiedOnly: boolean
+  onVerifiedOnlyChange: (value: boolean) => void
   totalCount: number | null
 }
 
 // Badge dark "Annuaire" — bg neutral600, cercle neutral500 + icône home, texte blanc
-// Pattern identique à AllPropertiesBadgeDark de PxPropertiesHero.
 function DirectoryBadgeDark({ label }: { label: string }) {
   return (
     <span style={{
@@ -66,10 +74,10 @@ function DirectoryBadgeDark({ label }: { label: string }) {
   )
 }
 
+// Style commun aux selects : 220×52, bg #fafafb, padding 16/6/16/6
 const selectFieldStyle: React.CSSProperties = {
   background: PX.neutral200,
-  width: 280,
-  maxWidth: '100%',
+  width: 220,
   height: 52,
   minHeight: 48,
   display: 'flex',
@@ -80,9 +88,6 @@ const selectFieldStyle: React.CSSProperties = {
   paddingTop: 6,
   paddingBottom: 6,
   position: 'relative',
-  borderTopRightRadius: PX.radius.pill,
-  borderBottomRightRadius: PX.radius.pill,
-  flex: '1 1 200px',
 }
 
 const placeholderStyle: React.CSSProperties = {
@@ -105,11 +110,14 @@ export default function PxAgenciesHero({
   onSearchChange,
   canton,
   onCantonChange,
+  specialty,
+  onSpecialtyChange,
+  verifiedOnly,
+  onVerifiedOnlyChange,
   totalCount,
 }: PxAgenciesHeroProps) {
   const { t } = useTranslation('directory')
 
-  // Subtitle utilise la même clé que l'ancienne page : agencies.subtitle
   const countLabel = totalCount != null ? totalCount.toLocaleString('fr-CH') : '—'
 
   return (
@@ -170,7 +178,7 @@ export default function PxAgenciesHero({
             </h1>
           </div>
 
-          {/* Paragraph : pt-16 pb-32, w-562 */}
+          {/* Paragraph */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -195,44 +203,53 @@ export default function PxAgenciesHero({
           </div>
         </div>
 
-        {/* Browser : absolute bottom -48, white pill rounded-48 */}
-        <div className="px-agencies-browser" style={{
-          position: 'absolute',
-          bottom: -48,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: PX.neutral100,
-          borderRadius: 32,
-          padding: 16,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          gap: 8,
-          boxShadow: PX.shadow.small,
-          maxWidth: 'calc(100% - 32px)',
-          width: 720,
-          boxSizing: 'border-box',
-        }}>
+        {/* Browser : 4 zones, mirror PxPropertiesHero. Absolute bottom -48,
+            white pill rounded-48, p-24 gap-2 + shadow-small.
+            Pas de flex-wrap au desktop : la largeur naturelle = 1068px tient
+            dans la grille. La media query stack en mobile. */}
+        <form
+          className="px-agencies-browser"
+          onSubmit={e => e.preventDefault()}
+          style={{
+            position: 'absolute',
+            bottom: -48,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: PX.neutral100,
+            borderRadius: 48,
+            padding: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            boxShadow: PX.shadow.small,
+          }}
+        >
           <style>{`
-            @media (max-width: 720px) {
-              .px-agencies-browser { border-radius: 24px !important; padding: 12px !important; }
-              .px-agencies-browser > div { width: 100% !important; flex: 1 1 100% !important; }
-              .px-agencies-browser > div:first-child {
-                border-top-right-radius: ${PX.radius.pill}px !important;
-                border-bottom-right-radius: ${PX.radius.pill}px !important;
+            @media (max-width: 1140px) {
+              .px-agencies-browser {
+                border-radius: 24px !important;
+                padding: 12px !important;
+                gap: 8px !important;
+                flex-wrap: wrap !important;
+                width: calc(100% - 32px) !important;
+                max-width: 720px !important;
               }
-              .px-agencies-browser > div:last-child {
-                border-top-left-radius: ${PX.radius.pill}px !important;
-                border-bottom-left-radius: ${PX.radius.pill}px !important;
+              .px-agencies-browser > div {
+                width: 100% !important;
+                flex: 1 1 220px !important;
+                border-radius: ${PX.radius.pill}px !important;
+              }
+              .px-agencies-browser > div:first-child {
+                flex-basis: 100% !important;
               }
             }
           `}</style>
-          {/* Search input : flex 1, left pill */}
+
+          {/* Zone 1 : Search input — 400×52, bg neutral200, rounded LEFT pill */}
           <div style={{
             background: PX.neutral200,
-            flex: '1 1 280px',
-            minWidth: 200,
+            width: 400,
             height: 52,
             minHeight: 52,
             display: 'flex',
@@ -279,7 +296,7 @@ export default function PxAgenciesHero({
             </span>
           </div>
 
-          {/* Canton select : 280×52 right pill */}
+          {/* Zone 2 : Canton — 220×52 */}
           <div style={selectFieldStyle}>
             <select
               value={canton}
@@ -290,15 +307,54 @@ export default function PxAgenciesHero({
                 color: canton ? PX.neutral700 : PX.neutral500,
               }}
             >
-              {CANTONS.map(c => (
-                <option key={c || 'all'} value={c}>
-                  {c ? `${CANTON_LABELS[c] || c} (${c})` : t('agencies.allCantons')}
-                </option>
+              <option value="">{t('filterCanton')}</option>
+              {CANTONS.filter(Boolean).map(c => (
+                <option key={c} value={c}>{CANTON_LABELS[c] || c} ({c})</option>
               ))}
             </select>
             <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
           </div>
-        </div>
+
+          {/* Zone 3 : Specialty — 220×52 */}
+          <div style={selectFieldStyle}>
+            <select
+              value={specialty}
+              onChange={e => onSpecialtyChange(e.target.value)}
+              aria-label={t('filterSpecialty')}
+              style={{
+                ...placeholderStyle,
+                color: specialty ? PX.neutral700 : PX.neutral500,
+              }}
+            >
+              <option value="">{t('filterSpecialty')}</option>
+              {SPECIALTIES.map(s => (
+                <option key={s} value={s}>{t(`specialty.${s}`)}</option>
+              ))}
+            </select>
+            <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
+          </div>
+
+          {/* Zone 4 : Verified — 220×52, rounded RIGHT pill */}
+          <div style={{
+            ...selectFieldStyle,
+            borderTopRightRadius: PX.radius.pill,
+            borderBottomRightRadius: PX.radius.pill,
+          }}>
+            <select
+              value={verifiedOnly ? '1' : ''}
+              onChange={e => onVerifiedOnlyChange(e.target.value === '1')}
+              aria-label={t('filterVerified')}
+              style={{
+                ...placeholderStyle,
+                color: verifiedOnly ? PX.neutral700 : PX.neutral500,
+              }}
+            >
+              <option value="">{t('filterAll')}</option>
+              <option value="1">{t('filterVerified')}</option>
+            </select>
+            <PxFigmaIcon name="chevron-down" size={16} color={PX.neutral500} />
+          </div>
+        </form>
       </div>
     </section>
   )

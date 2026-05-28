@@ -1,7 +1,7 @@
 // MEGGA Marketplace — Annuaire des agences (refonte design Property X).
 // Composition :
 //   <PxNav>
-//   <PxAgenciesHero> (search + canton dans un browser pill)
+//   <PxAgenciesHero> (search + canton + spécialité + vérifié, browser 4 zones)
 //   <PxAgenciesGrid> (compteur + grille 2-col de cards)
 //   <PxFooterPropertyX>
 //
@@ -37,7 +37,7 @@ function useAgencies() {
       const requests = Array.from({ length: MAX_PAGES }, (_, i) =>
         supabase
           .from('agency_profiles')
-          .select('id, name, slug, canton, city, logo_url, website_url, status')
+          .select('id, name, slug, canton, city, logo_url, website_url, status, specialties')
           .order('name')
           .range(i * PAGE, (i + 1) * PAGE - 1)
       )
@@ -58,11 +58,17 @@ export default function AgenciesPage() {
   const { data: agencies, isLoading } = useAgencies()
   const [search, setSearch] = useState('')
   const [canton, setCanton] = useState('')
+  const [specialty, setSpecialty] = useState('')
+  const [verifiedOnly, setVerifiedOnly] = useState(false)
 
   const filtered = useMemo<AgencyDirectoryItem[]>(() => {
     if (!agencies) return []
     let list = agencies
     if (canton) list = list.filter(a => a.canton === canton)
+    if (verifiedOnly) list = list.filter(a => a.status === 'verified')
+    if (specialty) {
+      list = list.filter(a => Array.isArray(a.specialties) && a.specialties.includes(specialty))
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(a =>
@@ -71,13 +77,15 @@ export default function AgenciesPage() {
       )
     }
     return list
-  }, [agencies, search, canton])
+  }, [agencies, search, canton, specialty, verifiedOnly])
 
-  const hasFilter = Boolean(search || canton)
+  const hasFilter = Boolean(search || canton || specialty || verifiedOnly)
 
   function clearFilters() {
     setSearch('')
     setCanton('')
+    setSpecialty('')
+    setVerifiedOnly(false)
   }
 
   return (
@@ -94,6 +102,10 @@ export default function AgenciesPage() {
         onSearchChange={setSearch}
         canton={canton}
         onCantonChange={setCanton}
+        specialty={specialty}
+        onSpecialtyChange={setSpecialty}
+        verifiedOnly={verifiedOnly}
+        onVerifiedOnlyChange={setVerifiedOnly}
         totalCount={agencies?.length ?? null}
       />
 

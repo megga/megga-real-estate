@@ -85,6 +85,7 @@ const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
 const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
 const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
+const AgencyProfilePage = lazy(() => import('@/pages/public/AgencyProfilePage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
 // Lazy-loaded agent pages
@@ -349,6 +350,7 @@ function AnimatedRoutes() {
               <Route path="/agents" element={<Navigate to="/agencies" replace />} />
               <Route path="/agents/:slug" element={<AgentProfilePage />} />
               <Route path="/agencies" element={<AgenciesPage />} />
+              <Route path="/agencies/:slug" element={<AgencyProfilePage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
               {/* Legacy FR routes — 301 redirects preserve bookmarks + external links. */}

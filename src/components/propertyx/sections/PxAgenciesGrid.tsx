@@ -24,6 +24,7 @@ export interface AgencyDirectoryItem {
   logo_url: string | null
   website_url: string | null
   status?: string | null
+  specialties?: string[] | null
 }
 
 interface PxAgenciesGridProps {
