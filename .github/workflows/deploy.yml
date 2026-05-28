@@ -81,6 +81,7 @@ jobs:
           SB_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -e
+          # Only re-apply migrations dated today (YYYYMMDD, 8 chars).
           TODAY=$(date -u +%Y%m%d)
           PROJECT_REF=eayczugyrvmtqnnmvjod
           shopt -s nullglob
@@ -123,8 +124,14 @@ jobs:
 
           for f in $(ls supabase/migrations/*.sql | sort); do
             base=$(basename "$f")
-            stamp="${base%%_*}"
-            if [ "$stamp" -ge "$TODAY" ]; then
+            # Migration filenames use YYYYMMDDHHMMSS (14 chars). Compare only
+            # the date portion with TODAY (8 chars). Without this, bash
+            # integer comparison treated 20260526140000 (14 digits) as
+            # greater than 20260528 (8 digits) → every recent migration was
+            # re-applied on every deploy and the first non-idempotent one
+            # broke the chain (`CREATE POLICY` without `IF NOT EXISTS`).
+            stamp_date="${base:0:8}"
+            if [ "$stamp_date" -ge "$TODAY" ]; then
               echo "::group::Applying $base"
               apply_migration "$f"
               echo "::endgroup::"
