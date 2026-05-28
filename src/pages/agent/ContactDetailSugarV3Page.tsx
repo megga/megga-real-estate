@@ -31,6 +31,7 @@ import { CdTimelineCard } from '@/components/crm-sugar-v3/contact-detail/CdTimel
 import { CdNotesCard } from '@/components/crm-sugar-v3/contact-detail/CdNotesCard'
 import { CdDocsCard } from '@/components/crm-sugar-v3/contact-detail/CdDocsCard'
 import { CdCriteriaCard } from '@/components/crm-sugar-v3/contact-detail/CdCriteriaCard'
+import { CdWhatsAppCard } from '@/components/crm-sugar-v3/contact-detail/CdWhatsAppCard'
 import { useContact } from '@/hooks/useContacts'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import { useAuditEvents } from '@/hooks/useAuditLog'
@@ -174,6 +175,7 @@ export default function ContactDetailSugarV3Page() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <CdTimelineCard events={contactEvents} />
                 <CdNotesCard notes={contact.notes} />
+                <CdWhatsAppCard contactId={contact.id} />
               </div>
 
               {/* COLONNE LATÉRALE */}
