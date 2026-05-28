@@ -8,16 +8,16 @@ import { useAvatar } from '@/hooks/useAvatar'
 // ─── Navigation links ───────────────────────────────────────────────────
 
 const leftLinks = [
-  { label: 'Acheter', href: '/acheter' },
-  { label: 'Louer', href: '/louer' },
-  { label: 'Vendre', href: '/vendre' },
+  { label: 'Acheter', href: '/buy' },
+  { label: 'Louer', href: '/rent' },
+  { label: 'Vendre', href: '/sell' },
 ]
 
 const proDropdownLeft = {
   title: 'Trouver un professionnel',
   items: [
     { label: 'Agents immobiliers', href: '/agents', desc: 'Trouvez un courtier dans votre région' },
-    { label: 'Agences immobilières', href: '/agences', desc: 'Annuaire des agences en Suisse' },
+    { label: 'Agences immobilières', href: '/agencies', desc: 'Annuaire des agences en Suisse' },
   ],
 }
 
@@ -26,19 +26,19 @@ const proDropdownRight = {
   items: [
     { label: 'Solutions agent', href: '/services', desc: 'CRM, KYC, matching, IA' },
     { label: 'Tarifs agences', href: '/services#tarifs', desc: 'Plans Starter, Pro et Entreprise' },
-    { label: 'Centre de ressources', href: '/aide', desc: 'Guides, tutoriels et FAQ' },
+    { label: 'Centre de ressources', href: '/help', desc: 'Guides, tutoriels et FAQ' },
     { label: 'Créer un compte agent', href: '/register', desc: 'Gratuit, sans engagement' },
   ],
 }
 
 const mobileLinks = [
-  { label: 'Acheter', href: '/acheter' },
-  { label: 'Louer', href: '/louer' },
-  { label: 'Vendre', href: '/vendre' },
+  { label: 'Acheter', href: '/buy' },
+  { label: 'Louer', href: '/rent' },
+  { label: 'Vendre', href: '/sell' },
   { label: 'Trouver un agent', href: '/agents' },
-  { label: 'Trouver une agence', href: '/agences' },
+  { label: 'Trouver une agence', href: '/agencies' },
   { label: 'Créer un profil', href: '/devenir-agent' },
-  { label: 'Estimations', href: '/estimations' },
+  { label: 'Estimations', href: '/estimates' },
   { label: 'Services', href: '/services' },
 ]
 
@@ -225,7 +225,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                 'flex items-center gap-1 px-3.5 py-1.5 text-[15px] font-medium transition-all duration-150',
                 agentDropOpen
                   ? 'text-theme-primary'
-                  : (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agences') || location.pathname.startsWith('/services'))
+                  : (location.pathname.startsWith('/agents') || location.pathname.startsWith('/agencies') || location.pathname.startsWith('/services'))
                     ? 'text-theme-primary'
                     : 'text-theme-tertiary hover:text-theme-primary'
               )}
@@ -464,7 +464,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                         {([
                           { label: 'Documents', href: '/dashboard/documents', desc: 'Mandats, bons de visite', count: '12' },
                           { label: 'Calendrier', href: '/dashboard/calendar', desc: 'Visites, rendez-vous', count: '3' },
-                          { label: 'Centre d\'aide', href: '/aide', desc: 'Guides et tutoriels', count: null },
+                          { label: 'Centre d\'aide', href: '/help', desc: 'Guides et tutoriels', count: null },
                           { label: 'Paramètres', href: '/dashboard/settings', desc: 'Profil, équipe, abonnement', count: null },
                         ] as const).map((item, i) => (
                           <Link
@@ -517,7 +517,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
 
           {/* Publier */}
           <Link
-            to="/publier"
+            to="/publish"
             className={cn(
               'flex items-center gap-1.5 h-9 px-3 text-[15px] font-medium transition-all duration-150',
               isTransparent
@@ -549,7 +549,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                   </div>
                   <div className="py-1">
                     <Link
-                      to={isAgent ? '/dashboard' : '/compte#profile'}
+                      to={isAgent ? '/dashboard' : '/account#profile'}
                       className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                       onClick={() => setDropdownOpen(false)}
                     >
@@ -559,7 +559,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                     {!isAgent && (
                       <>
                         <Link
-                          to="/compte#favorites"
+                          to="/account#favorites"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
@@ -567,7 +567,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                           Favoris
                         </Link>
                         <Link
-                          to="/compte#searches"
+                          to="/account#searches"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
@@ -575,7 +575,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                           Mes recherches
                         </Link>
                         <Link
-                          to="/compte#messages"
+                          to="/account#messages"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-theme-secondary hover:bg-theme-hover transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
@@ -618,7 +618,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
           {loading ? (
             <div className="h-8 w-8 rounded-full bg-theme-hover animate-pulse" />
           ) : user ? (
-            <Link to={isAgent ? '/dashboard' : '/portail'}>
+            <Link to={isAgent ? '/dashboard' : '/portal'}>
               <UserAvatar name={displayName} email={displayEmail} avatarUrl={avatarUrl} size="sm" />
             </Link>
           ) : (
@@ -664,10 +664,10 @@ export default function Navbar({ transparent = false }: NavbarProps) {
 
           {/* Aide (mobile) */}
           <Link
-            to="/aide"
+            to="/help"
             className={cn(
               'px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150',
-              location.pathname.startsWith('/aide')
+              location.pathname.startsWith('/help')
                 ? 'text-theme-primary bg-theme-hover'
                 : 'text-theme-secondary hover:text-theme-primary hover:bg-theme-hover'
             )}
@@ -698,7 +698,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
           </div>
 
           <div className="flex flex-col gap-2.5 pt-4 border-t border-theme-border-subtle mt-2">
-            <Link to="/publier" onClick={() => setMobileOpen(false)}>
+            <Link to="/publish" onClick={() => setMobileOpen(false)}>
               <button className="w-full h-10 text-sm font-medium rounded-lg border border-theme-border text-theme-secondary hover:bg-theme-hover transition-colors flex items-center justify-center gap-2">
                 <Plus className="w-4 h-4" />
                 Publier une annonce
@@ -715,7 +715,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                   </div>
                 </div>
                 <Link
-                  to={isAgent ? '/dashboard' : '/portail'}
+                  to={isAgent ? '/dashboard' : '/portal'}
                   className="px-3 py-2.5 text-sm font-medium text-theme-secondary hover:bg-theme-hover rounded-lg"
                   onClick={() => setMobileOpen(false)}
                 >

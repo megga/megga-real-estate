@@ -3,7 +3,7 @@
 // Migration : 20260517_001_sprint2_crm_offers_visits.sql
 //
 // Distinct de useVisits.ts (qui sert le calendrier + booking public).
-// Ici on cible la fiche Visite + la vue mobile compagnon /visite/:id/companion.
+// Ici on cible la fiche Visite + la vue mobile compagnon /visit/:id/companion.
 
 import { useEffect, useId } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'

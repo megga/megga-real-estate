@@ -6,11 +6,11 @@ import Footer from '@/components/layout/Footer'
 import GettingStartedIllustration from '@/components/illustrations/GettingStartedIllustration'
 
 const STEPS = [
-  { num: 1, title: 'Configurez votre profil', description: 'Remplissez votre nom, canton, et uploadez votre photo. Configurez les informations de votre agence.', link: '/aide/agent/configurer-profil' },
-  { num: 2, title: 'Importez vos contacts', description: 'CSV, vCard, ou saisie manuelle. 4 méthodes disponibles pour importer votre base clients.', link: '/aide/agent/importer-contacts' },
-  { num: 3, title: "Découvrez votre Action Board", description: "MEGGA vous dit quoi faire aujourd'hui : relances, matchs, urgences, suggestions IA.", link: '/aide/agent/action-board' },
-  { num: 4, title: 'Créez votre premier deal', description: 'Drag & drop dans le pipeline. 14 étapes de "Nouveau lead" à "Signé".', link: '/aide/agent/premier-deal' },
-  { num: 5, title: 'Lancez votre première vérification KYC', description: 'Conformité LAB en quelques clics. Screening PEP & Sanctions intégré.', link: '/aide/agent/creer-kyc' },
+  { num: 1, title: 'Configurez votre profil', description: 'Remplissez votre nom, canton, et uploadez votre photo. Configurez les informations de votre agence.', link: '/help/agent/configurer-profil' },
+  { num: 2, title: 'Importez vos contacts', description: 'CSV, vCard, ou saisie manuelle. 4 méthodes disponibles pour importer votre base clients.', link: '/help/agent/importer-contacts' },
+  { num: 3, title: "Découvrez votre Action Board", description: "MEGGA vous dit quoi faire aujourd'hui : relances, matchs, urgences, suggestions IA.", link: '/help/agent/action-board' },
+  { num: 4, title: 'Créez votre premier deal', description: 'Drag & drop dans le pipeline. 14 étapes de "Nouveau lead" à "Signé".', link: '/help/agent/premier-deal' },
+  { num: 5, title: 'Lancez votre première vérification KYC', description: 'Conformité LAB en quelques clics. Screening PEP & Sanctions intégré.', link: '/help/agent/creer-kyc' },
 ]
 
 export default function HelpStartPage() {
@@ -20,7 +20,7 @@ export default function HelpStartPage() {
       <HomeStickyHeader alwaysShow />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
-          <Link to="/aide" className="hover:text-gray-600 transition-colors">{t('help.backToHelpCenter')}</Link>
+          <Link to="/help" className="hover:text-gray-600 transition-colors">{t('help.backToHelpCenter')}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">{t('help.quickStart')}</span>
         </div>
@@ -55,10 +55,10 @@ export default function HelpStartPage() {
           <p className="text-xl font-semibold text-gray-900 mb-2">{t('help.youAreReady')}</p>
           <p className="text-sm text-gray-500 mb-4">{t('help.needHelp')}</p>
           <div className="flex items-center justify-center gap-3">
-            <Link to="/aide" className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-gray-400 transition-colors inline-flex items-center">
+            <Link to="/help" className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-gray-400 transition-colors inline-flex items-center">
               {t('help.browseGuides')}
             </Link>
-            <Link to="/aide/contact" className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-gray-400 transition-colors inline-flex items-center">
+            <Link to="/help/contact" className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-gray-400 transition-colors inline-flex items-center">
               {t('help.sendTicket')}
             </Link>
           </div>

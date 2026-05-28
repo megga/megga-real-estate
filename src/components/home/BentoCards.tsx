@@ -12,7 +12,7 @@ export default function BentoCards() {
 
           {/* Card 01 — Acheter (grande, 2/3 largeur) */}
           <Link
-            to="/acheter"
+            to="/buy"
             className="group md:col-span-2 md:row-span-2 relative bg-amber-50/60 rounded-2xl p-8 md:p-12 flex flex-col justify-between min-h-[320px] md:min-h-[480px] overflow-hidden transition-colors duration-300 hover:bg-amber-50"
           >
             <img
@@ -37,7 +37,7 @@ export default function BentoCards() {
 
           {/* Card 02 — Louer (petite, 1/3) */}
           <Link
-            to="/louer"
+            to="/rent"
             className="group relative bg-blue-50/50 rounded-2xl p-7 md:p-8 flex flex-col justify-between min-h-[240px] overflow-hidden transition-colors duration-300 hover:bg-blue-50/80"
           >
             <img
@@ -62,7 +62,7 @@ export default function BentoCards() {
 
           {/* Card 03 — Estimer (petite, 1/3) */}
           <Link
-            to="/estimations"
+            to="/estimates"
             className="group relative bg-emerald-50/50 rounded-2xl p-7 md:p-8 flex flex-col justify-between min-h-[240px] overflow-hidden transition-colors duration-300 hover:bg-emerald-50/80"
           >
             <img

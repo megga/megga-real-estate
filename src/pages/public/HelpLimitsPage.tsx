@@ -12,7 +12,7 @@ export default function HelpLimitsPage() {
       <HomeStickyHeader alwaysShow />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
-          <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
+          <Link to="/help" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">Limites et quotas</span>
         </div>
@@ -49,7 +49,7 @@ export default function HelpLimitsPage() {
         </div>
 
         <p className="text-xs text-gray-500 mt-4 text-center">
-          Besoin d'un plan sur mesure ? <Link to="/aide/contact" className="underline hover:text-gray-600">Contactez-nous</Link>
+          Besoin d'un plan sur mesure ? <Link to="/help/contact" className="underline hover:text-gray-600">Contactez-nous</Link>
         </p>
       </div>
       <Footer />

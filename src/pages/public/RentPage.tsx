@@ -1,5 +1,5 @@
 import SearchPage from './SearchPage'
 
-export default function LouerPage() {
+export default function RentPage() {
   return <SearchPage context="rent" />
 }

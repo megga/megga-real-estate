@@ -135,7 +135,7 @@ function getNotifications(
       id: 'visit-upcoming',
       label: 'Visite à venir',
       description: `Le ${d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' })} à ${d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}`,
-      link: '/portail/visites',
+      link: '/portal/visits',
       isNew: true,
       tone: 'primary',
     })
@@ -146,7 +146,7 @@ function getNotifications(
       id: 'offers-active',
       label: `${activeOffers.length} offre${activeOffers.length > 1 ? 's' : ''} en cours`,
       description: `Meilleure : CHF ${Math.max(...activeOffers.map((o) => o.amount)).toLocaleString('fr-CH').replace(/,/g, "'")}`,
-      link: '/portail/offres',
+      link: '/portal/offers',
       isNew: true,
       tone: 'mint',
     })
@@ -155,7 +155,7 @@ function getNotifications(
     id: 'docs-missing',
     label: '2 documents manquants',
     description: 'Diagnostic amiante et certificat CECB',
-    link: '/portail/documents',
+    link: '/portal/documents',
     isNew: false,
     tone: 'coral',
   })
@@ -342,7 +342,7 @@ function SwissMadeRow() {
 
 // ─── Main page ───────────────────────────────────────────────────────────
 
-export default function MonDossierPage() {
+export default function MyFilePage() {
   const portalData = useSellerPortalData()
   const { property, kpis, activities, visits, offers } = portalData
   const currentStepIdx = getStepIndex(kpis.current_step)
@@ -403,7 +403,7 @@ export default function MonDossierPage() {
         title: "Décider de la suite pour l'offre la plus élevée",
         body: `La meilleure offre est à ${formatCHF(bestActiveOffer.amount)}. Répondez à votre agent avant vendredi.`,
         cta: 'Répondre',
-        href: '/portail/offres',
+        href: '/portal/offers',
       }
     }
     return {
@@ -411,7 +411,7 @@ export default function MonDossierPage() {
       title: 'Fournir le diagnostic amiante',
       body: "Nécessaire avant la signature chez le notaire. Dépôt en 2 clics.",
       cta: 'Déposer le document',
-      href: '/portail/documents',
+      href: '/portal/documents',
     }
   })()
 
@@ -436,7 +436,7 @@ export default function MonDossierPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              to="/portail/messages"
+              to="/portal/messages"
               className={cn(
                 'inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-semibold transition-all',
                 'border border-[#EEF0F3] bg-white hover:bg-[#F5F6F8]',
@@ -587,7 +587,7 @@ export default function MonDossierPage() {
           <section className={cn(CARD, 'p-5 flex flex-col')}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-extrabold">Nouveautés</h2>
-              <Link to="/portail/messages" className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: tokens.primary }}>
+              <Link to="/portal/messages" className="text-xs font-bold hover:opacity-80 transition-opacity" style={{ color: tokens.primary }}>
                 Tout voir
               </Link>
             </div>

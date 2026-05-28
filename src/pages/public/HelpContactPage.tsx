@@ -87,7 +87,7 @@ export default function HelpContactPage() {
             <Link to={trackingUrl} className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-gray-400 transition-colors inline-flex items-center gap-1.5">
               {t('help.trackTicket')} <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-            <Link to="/aide" className="h-9 px-4 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors inline-flex items-center">
+            <Link to="/help" className="h-9 px-4 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors inline-flex items-center">
               {t('help.backToHelpCenter')}
             </Link>
           </div>
@@ -104,7 +104,7 @@ export default function HelpContactPage() {
         <HomeStickyHeader alwaysShow />
         <div className="max-w-xl mx-auto px-4 py-12">
           <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
-            <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
+            <Link to="/help" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
             <ChevronRight className="h-3.5 w-3.5" />
             <button onClick={() => setSelectedPersona(null)} className="hover:text-gray-600 transition-colors">{t('help.contactUs')}</button>
             <ChevronRight className="h-3.5 w-3.5" />
@@ -227,7 +227,7 @@ export default function HelpContactPage() {
       <div className="max-w-5xl mx-auto px-4 py-12">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-10">
-          <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
+          <Link to="/help" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">Contact</span>
         </div>

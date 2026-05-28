@@ -286,7 +286,7 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
   const { t } = useTranslation()
   // Strip prefix (market-/internal-) pour la query .neq sur le raw id
   const rawId = currentListing?.id.replace(/^(market-|internal-)/, '')
-  const browseHref = currentListing?.context === 'rent' ? '/louer' : '/acheter'
+  const browseHref = currentListing?.context === 'rent' ? '/rent' : '/buy'
 
   const { data: related } = useRelatedListings({
     canton: currentListing?.canton,

@@ -216,13 +216,13 @@ export default function MarketAccountRail({
         icon={<IcoMessage s={22} />}
         label="Messagerie"
         count={unreadMessagesCount}
-        href="/compte#messages"
+        href="/account#messages"
       />
       <RailTab
         active={activeView === 'profile'}
         icon={<IcoUser s={22} />}
         label="Profil"
-        href="/compte#profile"
+        href="/account#profile"
       />
     </aside>
   )

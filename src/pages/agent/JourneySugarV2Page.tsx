@@ -9,17 +9,17 @@ import {
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { PCDossierFrame } from '@/components/crm-sugar/parcours/PCDossierFrame'
-import { PCFilters } from '@/components/crm-sugar/parcours/PCFilters'
+import { PCDossierFrame } from '@/components/crm-sugar/journey/PCDossierFrame'
+import { PCFilters } from '@/components/crm-sugar/journey/PCFilters'
 import {
   type StageId,
   type Urgency,
-} from '@/components/crm-sugar/parcours/parcoursData'
+} from '@/components/crm-sugar/journey/journeyData'
 import { useParcoursSugar } from '@/hooks/useParcoursSugar'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
-export default function ParcoursSugarV2Page() {
+export default function JourneySugarV2Page() {
   const navigate = useNavigate()
 
   const [dark, setDark] = useState<boolean>(() => {
@@ -80,7 +80,7 @@ export default function ParcoursSugarV2Page() {
       case 'kyc':
         navigate('/dashboard/kyc'); break
       case 'reseau':
-        navigate('/dashboard/reseau'); break
+        navigate('/dashboard/network'); break
       case 'ai':
       case 'julien':
         navigate('/dashboard/julien'); break

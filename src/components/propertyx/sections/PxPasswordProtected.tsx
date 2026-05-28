@@ -110,13 +110,13 @@ function PasswordProtectedHeader() {
               Pages
               <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
             </Link>
-            <Link to="/compte" style={navLinkStyle}>Cart (0)</Link>
+            <Link to="/account" style={navLinkStyle}>Cart (0)</Link>
           </nav>
         </div>
 
         {/* CTA "Start exploring" — Primary button DARK (bg neutral700, text white) */}
         <Link
-          to="/acheter"
+          to="/buy"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -525,12 +525,12 @@ export default function PxPasswordProtected() {
           <PostPropertyCard
             title="Post a free property"
             description="Lorem ipsum dolor sit amet consectetur vitae aenean amet in eros neque nulla mattis sit."
-            to="/publier?type=free"
+            to="/publish?type=free"
           />
           <PostPropertyCard
             title="Post a paid property"
             description="Lorem ipsum dolor sit amet consectetur vitae aenean amet in eros neque nulla mattis sit."
-            to="/publier?type=premium"
+            to="/publish?type=premium"
           />
         </div>
       </div>

@@ -3,7 +3,7 @@
 //
 // Le panneau "Reprendre une soumission" lit les vraies soumissions vendeur
 // via useSellerLeads (table `seller_leads`, alimentée par le formulaire
-// public `/vendre`). Plus de CRM_SUBMISSIONS mock — chaque agence voit ses
+// public `/sell`). Plus de CRM_SUBMISSIONS mock — chaque agence voit ses
 // propres leads vendeur (filter status='new').
 
 import { useMemo, useState } from 'react'

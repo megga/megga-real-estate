@@ -64,7 +64,7 @@ export default function DashboardSugarV4Page() {
         navigate('/dashboard/matching')
         break
       case 'parcours':
-        navigate('/dashboard/parcours')
+        navigate('/dashboard/journey')
         break
       case 'ai':
       case 'julien':
@@ -80,7 +80,7 @@ export default function DashboardSugarV4Page() {
         navigate('/dashboard/listings/new')
         break
       case 'reseau':
-        navigate('/dashboard/reseau')
+        navigate('/dashboard/network')
         break
       default:
     }

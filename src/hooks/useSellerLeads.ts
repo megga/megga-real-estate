@@ -162,7 +162,7 @@ export function useAcceptSellerLead() {
             template: 'seller_portal_access',
             data: {
               name: lead.contact_name,
-              portal_url: `${window.location.origin}/portail/${token}`,
+              portal_url: `${window.location.origin}/portal/${token}`,
               address: (lead.property_data as { address?: string } | null)?.address || '',
               agent_name: agentName,
             },

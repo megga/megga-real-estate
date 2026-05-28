@@ -100,7 +100,7 @@ function ActivityBar({ data, maxVisits }: { data: WeekActivity; maxVisits: numbe
 
 // ── Main page ────────────────────────────────────────────────────────────
 
-export default function AnalysePage() {
+export default function AnalyticsPage() {
   const { property, kpis } = useSellerPortalData()
 
   const pricePerM2 = Math.round(property.price / property.surface_m2)

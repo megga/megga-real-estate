@@ -116,7 +116,7 @@ export default function HomeFeaturedGrid() {
           </p>
         </div>
         <Link
-          to="/louer"
+          to="/rent"
           style={{
             display: 'inline-flex',
             alignItems: 'center',

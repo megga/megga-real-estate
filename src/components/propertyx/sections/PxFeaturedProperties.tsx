@@ -424,7 +424,7 @@ export default function PxFeaturedProperties() {
           justifyContent: 'center',
           paddingTop: 24,
         }}>
-          <PxButton to="/acheter" variant="invert" size="lg">
+          <PxButton to="/buy" variant="invert" size="lg">
             Commencer
           </PxButton>
         </div>

@@ -44,7 +44,7 @@ function chipsFor(s: SavedSearch): string[] {
 }
 
 function SavedSearchCard({ s }: { s: SavedSearch }) {
-  const target = s.filters.context === 'rent' ? '/louer' : '/acheter'
+  const target = s.filters.context === 'rent' ? '/rent' : '/buy'
   const chips = chipsFor(s)
   return (
     <a
@@ -185,7 +185,7 @@ export default function MySearchRow() {
       subtitle={`${searches.length} recherche${searches.length > 1 ? 's' : ''} · ${favs.length} favori${favs.length > 1 ? 's' : ''}`}
       action={
         <a
-          href="/louer"
+          href="/rent"
           style={{
             height: 30,
             padding: '0 12px',

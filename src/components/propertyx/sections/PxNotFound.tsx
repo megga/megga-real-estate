@@ -80,11 +80,11 @@ function PrimaryButtonDark({ to, label }: { to: string; label: string }) {
 
 // Vrais liens MEGGA — alignés avec HomeStickyHeader (source de vérité).
 const NAV_LINKS = [
-  { label: 'Acheter', to: '/acheter' },
-  { label: 'Louer', to: '/louer' },
-  { label: 'Estimer', to: '/estimations' },
+  { label: 'Acheter', to: '/buy' },
+  { label: 'Louer', to: '/rent' },
+  { label: 'Estimer', to: '/estimates' },
   { label: 'Services', to: '/services' },
-  { label: 'Pour les pros', to: '/agences' },
+  { label: 'Pour les pros', to: '/agencies' },
 ] as const
 
 // ─── Header (Figma node 11781:22569 — Header/V1 variant LIGHT page) ────────────

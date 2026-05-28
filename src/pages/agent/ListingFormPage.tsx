@@ -1982,7 +1982,7 @@ function UrlImportScreen({ onExtracted, onBack }: {
               <input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://www.homegate.ch/acheter/12345..."
+                placeholder="https://www.homegate.ch/buy/12345..."
                 className="w-full h-11 px-4 text-sm bg-transparent border border-theme-border rounded-xl focus:outline-none focus:border-accent/40 text-theme-primary placeholder:text-theme-muted"
                 type="url"
                 autoFocus

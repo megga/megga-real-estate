@@ -116,7 +116,7 @@ export default function HomeHeroSection() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const path = tab === 'louer' ? '/louer' : '/acheter'
+    const path = tab === 'louer' ? '/rent' : '/buy'
     if (!query.trim()) {
       navigate(path)
       return
@@ -443,9 +443,9 @@ export default function HomeHeroSection() {
 // Logo gauche (white) · pill nav glass center · lang + login droite.
 
 const HERO_NAV_LINKS = [
-  { label: 'Acheter', to: '/acheter' },
-  { label: 'Louer', to: '/louer' },
-  { label: 'Estimer', to: '/estimations' },
+  { label: 'Acheter', to: '/buy' },
+  { label: 'Louer', to: '/rent' },
+  { label: 'Estimer', to: '/estimates' },
   { label: 'Services', to: '/services' },
 ]
 

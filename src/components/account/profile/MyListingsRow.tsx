@@ -218,7 +218,7 @@ function ListingCard({ listing: l, onOpenStats }: CardProps) {
             {formatCHF(l.price)}
           </div>
           <a
-            href="/compte#listings"
+            href="/account#listings"
             style={{
               fontFamily: T.fontStack,
               fontSize: 11,
@@ -276,7 +276,7 @@ export default function MyListingsRow({ onOpenStats }: Props) {
         id="profile-listings"
       >
         <a
-          href="/vendre"
+          href="/sell"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -305,7 +305,7 @@ export default function MyListingsRow({ onOpenStats }: Props) {
       subtitle={`${listings.length} bien${listings.length > 1 ? 's' : ''} sur le marché`}
       action={
         <a
-          href="/vendre"
+          href="/sell"
           style={{
             height: 30,
             padding: '0 12px',

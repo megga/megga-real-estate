@@ -217,7 +217,7 @@ export default function CalendarSugarV2Page() {
       case 'biens-new':
         navigate('/dashboard/listings/new'); break
       case 'parcours':
-        navigate('/dashboard/parcours'); break
+        navigate('/dashboard/journey'); break
       case 'calendar':
         break
       case 'docs':
@@ -225,7 +225,7 @@ export default function CalendarSugarV2Page() {
       case 'kyc':
         navigate('/dashboard/kyc'); break
       case 'reseau':
-        navigate('/dashboard/reseau'); break
+        navigate('/dashboard/network'); break
       case 'ai':
       case 'julien':
         navigate('/dashboard/julien'); break

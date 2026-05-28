@@ -13,7 +13,7 @@ export default function HelpShortcutsPage() {
       <HomeStickyHeader alwaysShow />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
-          <Link to="/aide" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
+          <Link to="/help" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">Raccourcis clavier</span>
         </div>

@@ -228,8 +228,8 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
               onClose={() => setProfileOpen(false)}
               onSettings={() => navigate('/dashboard/settings')}
               onKyc={() => navigate('/dashboard/kyc')}
-              onAgencyPublic={() => window.open('/agences', '_blank', 'noopener,noreferrer')}
-              onHelp={() => navigate('/aide')}
+              onAgencyPublic={() => window.open('/agencies', '_blank', 'noopener,noreferrer')}
+              onHelp={() => navigate('/help')}
               onLogout={async () => { await signOut(); navigate('/login') }}
             />
           )}

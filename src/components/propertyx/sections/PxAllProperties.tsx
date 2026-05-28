@@ -358,7 +358,7 @@ export default function PxAllProperties() {
           paddingBottom: 16,
         }}>
           <Link
-            to="/acheter"
+            to="/buy"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

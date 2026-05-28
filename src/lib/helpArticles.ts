@@ -121,7 +121,7 @@ Si vous venez de créer votre compte, une barre de progression vous guide à tra
 
 ### Leads vendeurs
 
-Les nouveaux leads vendeurs (soumis via /vendre) apparaissent dans une section dédiée avec les boutons Accepter / Rejeter.`,
+Les nouveaux leads vendeurs (soumis via /sell) apparaissent dans une section dédiée avec les boutons Accepter / Rejeter.`,
   },
   {
     slug: 'premier-deal',
@@ -1664,7 +1664,7 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   { date: '2026-03-30', title: 'Carte Zillow-style', description: 'Split 3 modes, pins prix individuels, clustering intelligent, hover tooltips.' },
-  { date: '2026-03-29', title: 'Wizard /vendre + Estimation IA', description: 'Estimez votre bien en 2 minutes. Fourchette basée sur 38\u2019000 biens suisses.' },
+  { date: '2026-03-29', title: 'Wizard /sell + Estimation IA', description: 'Estimez votre bien en 2 minutes. Fourchette basée sur 38\u2019000 biens suisses.' },
   { date: '2026-03-28', title: 'Onboarding agent', description: "Wizard de bienvenue, données de démo, checklist d'activation 5 étapes." },
   { date: '2026-03-27', title: 'Import multi-sources', description: "Importez vos biens depuis URL, PDF, ou duplication. 8 portails suisses supportés." },
   { date: '2026-03-26', title: 'MEGGA AI Copilote', description: 'Chat IA métier : résumé client, relance, analyse marché, KYC.' },

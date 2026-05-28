@@ -917,7 +917,7 @@ export default function ListingsSection({ onSign, onOpenStats }: Props) {
           title={t('empty.listings.title')}
           body={t('empty.listings.body')}
           cta={t('empty.listings.cta')}
-          ctaHref="/vendre"
+          ctaHref="/sell"
         />
         {/* Demo seed button (only when empty) */}
         <div

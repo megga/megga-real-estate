@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 type SearchMode = 'biens' | 'agents' | 'agences';
 
 const MODES: { value: SearchMode; label: string; placeholder: string; path: string }[] = [
-  { value: 'biens', label: 'Biens', placeholder: 'Genève, 4 pièces, vue lac...', path: '/acheter' },
+  { value: 'biens', label: 'Biens', placeholder: 'Genève, 4 pièces, vue lac...', path: '/buy' },
   { value: 'agents', label: 'Agents', placeholder: 'Nom, ville, spécialité...', path: '/agents' },
   { value: 'agences', label: 'Agences', placeholder: 'Nom ou ville de l\'agence...', path: '/agents' },
 ];

@@ -63,7 +63,7 @@ export default function BienBreadcrumb({
 
   const items: Array<{ l: string; h: string | null }> = [
     { l: 'Accueil', h: '/' },
-    { l: mode === 'louer' ? 'Louer' : 'Acheter', h: mode === 'louer' ? '/louer' : '/acheter' },
+    { l: mode === 'louer' ? 'Louer' : 'Acheter', h: mode === 'louer' ? '/rent' : '/buy' },
   ]
   if (canton) items.push({ l: canton, h: `/${mode}?canton=${canton}` })
   if (neighborhood || address) items.push({ l: (neighborhood || address) as string, h: null })

@@ -307,13 +307,13 @@ export default function LoginPage() {
       return <Navigate to={redirect} replace />
     }
     if (isAgentRole(profile.role)) return <Navigate to="/dashboard" replace />
-    return <Navigate to="/acheter" replace />
+    return <Navigate to="/buy" replace />
   }
   if (!authLoading && user && !profile && canRedirect) {
     const metaRole = user.user_metadata?.role as string | undefined
     if (metaRole && isAgentRole(metaRole as UserRole))
       return <Navigate to="/dashboard" replace />
-    return <Navigate to="/acheter" replace />
+    return <Navigate to="/buy" replace />
   }
 
 
@@ -382,7 +382,7 @@ export default function LoginPage() {
   async function handleSso(provider: 'google' | 'facebook' | 'microsoft') {
     setOauthLoading(provider)
     setError(null)
-    const redirect = searchParams.get('redirect') || (isAgent ? '/dashboard' : '/acheter')
+    const redirect = searchParams.get('redirect') || (isAgent ? '/dashboard' : '/buy')
     sessionStorage.setItem('megga_redirect', redirect)
     if (isAgent) localStorage.setItem('megga_oauth_role', 'agent')
     const fn =

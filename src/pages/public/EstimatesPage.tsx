@@ -62,7 +62,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   )
 }
 
-export default function EstimationsPage() {
+export default function EstimatesPage() {
   const { t } = useTranslation('common')
   usePageMeta({
     title: 'Estimation immobilière gratuite en Suisse',

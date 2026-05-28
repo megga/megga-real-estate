@@ -725,7 +725,7 @@ export default function ListingStatsDrawer({ open, dossier, onClose }: Props) {
             }}
           >
             <a
-              href="/vendre"
+              href="/sell"
               style={{
                 fontFamily: T.fontStack,
                 fontSize: 12,

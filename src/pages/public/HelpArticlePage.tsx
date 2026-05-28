@@ -130,7 +130,7 @@ export default function HelpArticlePage() {
         <HomeStickyHeader alwaysShow />
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
           <p className="text-gray-500">Article introuvable.</p>
-          <Link to="/aide" className="text-sm text-gray-900 underline mt-4 inline-block">
+          <Link to="/help" className="text-sm text-gray-900 underline mt-4 inline-block">
             Retour au centre d'aide
           </Link>
         </div>
@@ -158,11 +158,11 @@ export default function HelpArticlePage() {
       <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-10 flex-wrap">
-          <Link to="/aide" className="hover:text-gray-600 transition-colors">
+          <Link to="/help" className="hover:text-gray-600 transition-colors">
             Centre d'aide
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <Link to={`/aide/${category}`} className="hover:text-gray-600 transition-colors">
+          <Link to={`/help/${category}`} className="hover:text-gray-600 transition-colors">
             {CATEGORY_LABELS[category || ''] || category}
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
@@ -228,7 +228,7 @@ export default function HelpArticlePage() {
                     {related.map(a => (
                       <Link
                         key={a.slug}
-                        to={`/aide/${a.category}/${a.slug}`}
+                        to={`/help/${a.category}/${a.slug}`}
                         className="block text-sm text-gray-700 hover:text-blue-600 transition-colors"
                       >
                         {a.title}
@@ -252,7 +252,7 @@ export default function HelpArticlePage() {
               Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
             </p>
             <Link
-              to="/aide/contact"
+              to="/help/contact"
               className="h-11 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center w-fit"
             >
               Contactez-nous

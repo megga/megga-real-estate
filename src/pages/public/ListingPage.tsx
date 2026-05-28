@@ -241,7 +241,7 @@ export default function ListingPage() {
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <p className="text-xl font-semibold text-gray-900 mb-2">Bien non trouvé</p>
           <p className="text-sm text-gray-500 mb-6">Ce bien n'existe pas ou a été retiré.</p>
-          <Link to="/acheter"><Button>Retour à la recherche</Button></Link>
+          <Link to="/buy"><Button>Retour à la recherche</Button></Link>
         </div>
       </div>
     )

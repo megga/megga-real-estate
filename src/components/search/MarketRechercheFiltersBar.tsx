@@ -203,7 +203,7 @@ export default function MarketRechercheFiltersBar({
   const isRent = filters.context === 'rent'
 
   const switchToTab = (tab: 'acheter' | 'louer') => {
-    const target = tab === 'louer' ? '/louer' : '/acheter'
+    const target = tab === 'louer' ? '/rent' : '/buy'
     if (location.pathname === target) return
     // Preserve current search params
     navigate({ pathname: target, search: location.search })

@@ -431,7 +431,7 @@ export default function PxExploreCTA() {
                   aenean consequat. Id tellus eget libero eget non odio tristique.
                 </p>
                 <div style={{ paddingTop: 24 }}>
-                  <PxButton to="/acheter" variant="invert" size="sm">
+                  <PxButton to="/buy" variant="invert" size="sm">
                     Start exploring
                   </PxButton>
                 </div>

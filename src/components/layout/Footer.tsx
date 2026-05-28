@@ -26,22 +26,22 @@ export default function Footer() {
   const { t } = useTranslation('common')
 
   const LINKS_RECHERCHER = [
-    { label: t('footer.buy'), href: '/acheter' },
-    { label: t('footer.rent'), href: '/louer' },
-    { label: t('footer.estimate'), href: '/estimations' },
+    { label: t('footer.buy'), href: '/buy' },
+    { label: t('footer.rent'), href: '/rent' },
+    { label: t('footer.estimate'), href: '/estimates' },
   ]
 
   const LINKS_PRO = [
     { label: t('footer.realEstateCRM'), href: '/services' },
-    { label: t('footer.publishProperty'), href: '/publier' },
+    { label: t('footer.publishProperty'), href: '/publish' },
     { label: t('footer.agencyPricing'), href: '/services#tarifs' },
     { label: t('footer.becomePartner'), href: '/register' },
   ]
 
   const LINKS_MEGGA = [
     { label: t('footer.about'), href: '/services#about' },
-    { label: t('footer.helpCenter'), href: '/aide' },
-    { label: t('footer.contactUs'), href: '/aide/contact' },
+    { label: t('footer.helpCenter'), href: '/help' },
+    { label: t('footer.contactUs'), href: '/help/contact' },
     { label: t('footer.privacy'), href: '/privacy' },
     { label: t('footer.terms'), href: '/privacy' },
   ]

@@ -506,7 +506,7 @@ export default function PxAboutSection() {
 
           {/* Button Row (Figma 9641:26915) : pt-24 */}
           <div style={{ paddingTop: 24 }}>
-            <PxButton to="/acheter" variant="primary" size="lg">
+            <PxButton to="/buy" variant="primary" size="lg">
               Commencer
             </PxButton>
           </div>

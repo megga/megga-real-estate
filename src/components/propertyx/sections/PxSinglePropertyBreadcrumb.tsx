@@ -34,7 +34,7 @@ export default function PxSinglePropertyBreadcrumb({ listing }: Props) {
 
   const isRent = listing.context === 'rent'
   const segmentLabel = isRent ? t('marketplaceProperty.breadcrumb.rent') : t('marketplaceProperty.breadcrumb.buy')
-  const segmentHref = isRent ? '/louer' : '/acheter'
+  const segmentHref = isRent ? '/rent' : '/buy'
   const cantonLabel = listing.canton ? CANTONS[listing.canton] ?? listing.canton : null
 
   const items: Array<{ label: string; href?: string }> = [

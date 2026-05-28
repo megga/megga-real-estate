@@ -58,7 +58,7 @@ export default function ExploreCities() {
             return (
               <Link
                 key={city.name}
-                to={`/acheter?canton=${city.canton}`}
+                to={`/buy?canton=${city.canton}`}
                 className={`relative rounded-xl overflow-hidden group bg-gradient-to-br ${city.gradient} ${
                   city.large ? 'col-span-2 row-span-2 md:col-span-1 md:row-span-2' : ''
                 }`}

@@ -38,7 +38,7 @@ function vdDateLong(iso: string): string {
   })
 }
 
-export default function VisiteDetailSugarV3Page() {
+export default function VisitDetailSugarV3Page() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: visit, isLoading, isError, error } = useVisitDetail(id)

@@ -328,7 +328,7 @@ export function useSellerPortals() {
   }, [])
 
   const getPortalUrl = useCallback((token: string): string => {
-    return `${window.location.origin}/portail/${token}`
+    return `${window.location.origin}/portal/${token}`
   }, [])
 
   const createPortal = useCallback(async (_params: {
