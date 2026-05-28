@@ -17,7 +17,10 @@
 // sans recréer le contenu mobile en React.
 
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PX, PxFigmaIcon } from '..'
+import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/ui/Toast'
 
 // Badge "Newsletter" — LIGHT : bg-neutral300 + cercle bg-neutral400 + icône pencil
 function NewsletterBadge() {
@@ -67,11 +70,27 @@ function ArrowRight({ color }: { color: string }) {
 }
 
 export default function PxNewsletter() {
+  const { i18n } = useTranslation()
+  const toast = useToast()
   const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    // TODO : brancher sur la table newsletter_subscribers (Supabase)
+    const trimmed = email.trim()
+    if (!trimmed || submitting) return
+    setSubmitting(true)
+    const lang = (i18n.language?.slice(0, 2) || 'fr') as 'fr' | 'de' | 'en' | 'it'
+    const { error } = await supabase
+      .from('newsletter_subscribers')
+      .insert({ email: trimmed, lang, source: 'px_newsletter' })
+    setSubmitting(false)
+    if (error && error.code !== '23505') {
+      toast.error('Inscription échouée — réessayez dans un instant.')
+      return
+    }
+    setEmail('')
+    toast.success('Merci, votre inscription est confirmée.')
   }
 
   return (
@@ -187,9 +206,9 @@ export default function PxNewsletter() {
             letterSpacing: '-0.48px',
             color: PX.neutral500,
           }}>
-            Lorem ipsum dolor sit amet consectetur. Gravida elementum dolor semper
-            felis pulvinar feugiat risus adipiscing dictum. Ultricies nec elementum
-            nisi ut. Cras diam odio sed auctor pellentesque. Sit nisl ipsum.
+            Tendances mensuelles du marché suisse, nouvelles annonces dans vos
+            cantons préférés, et changements réglementaires LAB/KYC qui vous
+            concernent. 2 e-mails par mois — jamais de spam.
           </p>
 
           {/* Buttom Row : pt-24 — email input pill avec Subscribe button nested */}
@@ -219,6 +238,8 @@ export default function PxNewsletter() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
                 required
+                disabled={submitting}
+                aria-label="Email address"
                 style={{
                   flex: '1 0 0',
                   minWidth: 0,
@@ -236,11 +257,13 @@ export default function PxNewsletter() {
               />
               <button
                 type="submit"
+                disabled={submitting}
                 style={{
                   background: PX.neutral700,
                   color: PX.neutral100,
                   border: 0,
-                  cursor: 'pointer',
+                  cursor: submitting ? 'wait' : 'pointer',
+                  opacity: submitting ? 0.7 : 1,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -259,7 +282,7 @@ export default function PxNewsletter() {
                   whiteSpace: 'nowrap',
                   transition: `transform ${PX.duration.fast} ${PX.ease}`,
                 }}>
-                <span style={{ paddingTop: 2, display: 'inline-block' }}>Subscribe</span>
+                <span style={{ paddingTop: 2, display: 'inline-block' }}>{submitting ? 'Sending…' : 'Subscribe'}</span>
                 <span style={{
                   width: 28,
                   height: 28,

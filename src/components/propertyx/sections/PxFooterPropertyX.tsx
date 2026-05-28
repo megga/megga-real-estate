@@ -10,9 +10,12 @@
 //   Utility Pages, Contact us, sales/help sans titre)
 // - Logo Property X (inline SVG) + copyright "Property X | Designed by BRIX"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { PX, PxSocialIcon, PxIcon } from '..'
+import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/ui/Toast'
 
 // Logo Property X — vrais assets SVG Figma téléchargés dans
 // /public/icons/figma/propertyx/. Le footer utilise les tailles 23.167×23.167
@@ -241,6 +244,29 @@ function ContactInfo({ icon, label, value }: { icon: 'mail' | 'phone' | 'briefca
 }
 
 export default function PxFooterPropertyX() {
+  const { i18n } = useTranslation()
+  const toast = useToast()
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleNewsletterSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const trimmed = email.trim()
+    if (!trimmed || submitting) return
+    setSubmitting(true)
+    const lang = (i18n.language?.slice(0, 2) || 'fr') as 'fr' | 'de' | 'en' | 'it'
+    const { error } = await supabase
+      .from('newsletter_subscribers')
+      .insert({ email: trimmed, lang, source: 'px_footer_propertyx' })
+    setSubmitting(false)
+    if (error && error.code !== '23505') {
+      toast.error('Inscription échouée — réessayez dans un instant.')
+      return
+    }
+    setEmail('')
+    toast.success('Merci, votre inscription est confirmée.')
+  }
+
   return (
     <footer className="px-footer-pxv2" style={{
       paddingLeft: 24,
@@ -369,7 +395,7 @@ export default function PxFooterPropertyX() {
                 Lorem ipsum dolor sit amet consectetur. Egestas eu amet dictum tellus. Purus morbi lorem viverra cras.
               </p>
               {/* Input pill */}
-              <form onSubmit={e => e.preventDefault()} style={{
+              <form onSubmit={handleNewsletterSubmit} style={{
                 width: 410,
                 minHeight: 52,
                 paddingLeft: 16,
@@ -384,7 +410,12 @@ export default function PxFooterPropertyX() {
               }}>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
+                  aria-label="Email address"
+                  required
+                  disabled={submitting}
                   style={{
                     flex: 1,
                     background: 'transparent',
@@ -400,6 +431,7 @@ export default function PxFooterPropertyX() {
                 />
                 <button
                   type="submit"
+                  disabled={submitting}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -411,7 +443,8 @@ export default function PxFooterPropertyX() {
                     background: PX.neutral100,
                     border: 0,
                     borderRadius: PX.radius.pill,
-                    cursor: 'pointer',
+                    cursor: submitting ? 'wait' : 'pointer',
+                    opacity: submitting ? 0.7 : 1,
                     fontFamily: PX.font.display,
                     fontSize: 16,
                     fontWeight: 500,
@@ -420,7 +453,7 @@ export default function PxFooterPropertyX() {
                     color: PX.neutral700,
                   }}
                 >
-                  Subscribe
+                  {submitting ? 'Sending…' : 'Subscribe'}
                   <span style={{
                     width: 28,
                     height: 28,

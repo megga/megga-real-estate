@@ -20,8 +20,12 @@
 //     </Container>
 //   </Footer wrapper>
 
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { PX, PxLogo, PxSocialIcon, PxIcon, PxFigmaIcon } from '..'
+import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/ui/Toast'
 
 // ─── Colonnes de liens — texte EXACT Figma ──────────────────────────
 const COL_MAIN = {
@@ -252,6 +256,29 @@ function ContactInfo({
 // ─── Composant principal ─────────────────────────────────────────────
 
 export default function PxFooter() {
+  const { i18n } = useTranslation()
+  const toast = useToast()
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleNewsletterSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const trimmed = email.trim()
+    if (!trimmed || submitting) return
+    setSubmitting(true)
+    const lang = (i18n.language?.slice(0, 2) || 'fr') as 'fr' | 'de' | 'en' | 'it'
+    const { error } = await supabase
+      .from('newsletter_subscribers')
+      .insert({ email: trimmed, lang, source: 'px_footer' })
+    setSubmitting(false)
+    if (error && error.code !== '23505') {
+      toast.error('Inscription échouée — réessayez dans un instant.')
+      return
+    }
+    setEmail('')
+    toast.success('Merci, votre inscription est confirmée.')
+  }
+
   return (
     <footer style={{
       paddingLeft: 24,
@@ -346,7 +373,7 @@ export default function PxFooter() {
 
               {/* Input Text pill : bg-neutral600, pl-16 pr-6 py-6, min-h-52, rounded-pill, w-410 */}
               <form
-                onSubmit={e => e.preventDefault()}
+                onSubmit={handleNewsletterSubmit}
                 style={{
                   width: 410,
                   minHeight: 52,
@@ -380,8 +407,12 @@ export default function PxFooter() {
                   }}>
                     <input
                       type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email address"
                       aria-label="Email address"
+                      required
+                      disabled={submitting}
                       style={{
                         background: 'transparent',
                         border: 0,
@@ -401,6 +432,7 @@ export default function PxFooter() {
                 {/* Subscribe Primary Button : bg-white, pl-16 pr-6 py-6, gap-6, rounded-pill */}
                 <button
                   type="submit"
+                  disabled={submitting}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -413,7 +445,8 @@ export default function PxFooter() {
                     background: PX.neutral100,
                     border: 0,
                     borderRadius: PX.radius.pill,
-                    cursor: 'pointer',
+                    cursor: submitting ? 'wait' : 'pointer',
+                    opacity: submitting ? 0.7 : 1,
                     flexShrink: 0,
                   }}
                 >
@@ -431,7 +464,7 @@ export default function PxFooter() {
                     color: PX.neutral700,
                     textAlign: 'center',
                     whiteSpace: 'nowrap',
-                  }}>Subscribe</span>
+                  }}>{submitting ? 'Sending…' : 'Subscribe'}</span>
                   {/* Icon circle : bg-neutral700, size-28, rounded-pill */}
                   <span style={{
                     width: 28,

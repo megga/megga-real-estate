@@ -3061,6 +3061,36 @@ export type Database = {
           },
         ]
       }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          lang: string
+          source: string
+          status: string
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          lang?: string
+          source?: string
+          status?: string
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          lang?: string
+          source?: string
+          status?: string
+          unsubscribed_at?: string | null
+        }
+        Relationships: []
+      }
       offers: {
         Row: {
           agency_id: string | null
