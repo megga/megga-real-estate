@@ -107,7 +107,7 @@
     if (state.type) params.set('type', state.type);
     var q = document.getElementById('search');
     if (q && q.value.trim()) params.set('q', q.value.trim());
-    window.location.href = 'company-pages/properties.html?' + params.toString();
+    window.location.href = '/company-pages/properties.html?' + params.toString();
   }
 
   function init() {

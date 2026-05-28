@@ -22,6 +22,7 @@ window.MeggaSupabase = (function () {
     params.set('quality_score', 'gte.50');
     if (f.city) params.set('city', 'ilike.' + f.city + '%');
     if (f.type) params.set('type', 'eq.' + f.type);
+    if (f.q) params.set('title', 'ilike.*' + f.q + '*'); // free-text keyword on title
     params.set('order', 'created_at.desc');
     // Paginate via query params (not a Range header) — simpler CORS request,
     // avoids proxy/extension quirks with the Range header. No exact count.

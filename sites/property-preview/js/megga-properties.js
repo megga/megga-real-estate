@@ -8,7 +8,7 @@
     var isBuy = item.transaction_type === 'buy';
 
     var a = node.querySelector('a.property-wrapper-v1');
-    if (a) a.setAttribute('href', '../property/luxury-loft-in-san-francisco.html?id=' + item.id);
+    if (a) a.setAttribute('href', '/property/luxury-loft-in-san-francisco.html?id=' + item.id);
 
     var img = node.querySelector('img.cover-image');
     var photo = (item.photos && item.photos[0]) || '';
@@ -79,7 +79,7 @@
     grid.innerHTML = '<div id="megga-status" style="padding:24px;grid-column:1/-1">Chargement…</div>';
 
     window.MeggaSupabase.fetchListings({
-      transaction: qp('transaction'), city: qp('ville'), type: qp('type'), limit: 24,
+      transaction: qp('transaction'), city: qp('ville'), type: qp('type'), q: qp('q'), limit: 24,
     }).then(function (items) {
       grid.innerHTML = '';
       if (!items.length) {
