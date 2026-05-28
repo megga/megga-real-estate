@@ -35,14 +35,17 @@ export default {
     if (url.pathname === '/api/listings') {
       const target = SUPABASE_URL + '/market_listings?' + url.searchParams.toString();
       try {
+        // Manual timeout (more portable than AbortSignal.timeout).
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 10000);
         const sb = await fetch(target, {
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
           },
-          // 10s upstream timeout — fail fast rather than hang the visitor.
-          signal: AbortSignal.timeout(10000),
+          signal: ctrl.signal,
         });
+        clearTimeout(to);
         const body = await sb.text();
         return new Response(body, {
           status: sb.status,
