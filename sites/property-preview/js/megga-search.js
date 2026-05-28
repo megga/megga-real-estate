@@ -6,7 +6,8 @@
     'Lofts': 'loft', 'Bureaux': 'office' };
   var TX_MAP = { 'À louer': 'louer', 'À vendre': 'acheter' };
 
-  var state = { city: '', type: '', transaction: 'louer' };
+  // scope: '' | 'city' | 'canton'. value is the canonical city name or canton code.
+  var state = { scope: '', value: '', label: '', type: '', transaction: 'louer' };
 
   function toggleLabel(dropdown) {
     return dropdown.querySelector('.input-dropdown-toggle > div');
@@ -55,45 +56,82 @@
     var row = document.createElement('div');
     row.className = 'megga-city-row';
     row.innerHTML =
-      '<input id="megga-city" type="text" autocomplete="off" placeholder="Tapez une ville" ' +
+      '<input id="megga-city" type="text" autocomplete="off" placeholder="Ville ou canton" ' +
       'style="width:100%;box-sizing:border-box;border:0;border-bottom:1px solid #EEEFF1;' +
       'padding:10px 12px;font:inherit;outline:none">' +
-      '<div id="megga-city-suggest" style="max-height:180px;overflow:auto"></div>';
+      '<div id="megga-city-suggest" style="max-height:240px;overflow:auto"></div>';
     list.insertBefore(row, list.firstChild);
 
     var input = row.querySelector('#megga-city');
     var sug = row.querySelector('#megga-city-suggest');
 
-    function choose(name) {
-      input.value = name; state.city = name; sug.innerHTML = '';
+    function pickCity(c) {
+      state.scope = 'city'; state.value = c.name; state.label = c.name + ' · ' + c.canton;
+      input.value = c.name; sug.innerHTML = '';
       var lbl = toggleLabel(dropdown);
-      if (lbl) lbl.textContent = name;
+      if (lbl) lbl.textContent = c.name;
+    }
+    function pickCanton(k) {
+      state.scope = 'canton'; state.value = k.code; state.label = k.name + ' (canton)';
+      input.value = k.name; sug.innerHTML = '';
+      var lbl = toggleLabel(dropdown);
+      if (lbl) lbl.textContent = k.name + ' · canton';
+    }
+
+    function renderSuggestion(text, kind, onPick) {
+      var item = document.createElement('div');
+      item.style.cssText = 'padding:8px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:12px';
+      var left = document.createElement('span'); left.textContent = text;
+      var right = document.createElement('span');
+      right.textContent = kind;
+      right.style.cssText = 'opacity:.55;font-size:.85em';
+      item.appendChild(left); item.appendChild(right);
+      item.addEventListener('mouseover', function () { item.style.background = '#FAFAFB'; });
+      item.addEventListener('mouseout', function () { item.style.background = ''; });
+      item.addEventListener('mousedown', function (e) { e.preventDefault(); onPick(); });
+      sug.appendChild(item);
     }
 
     input.addEventListener('click', function (e) { e.stopPropagation(); });
     input.addEventListener('input', function () {
-      var q = input.value.trim().toLowerCase();
-      state.city = input.value.trim();
+      var raw = input.value.trim();
+      var q = raw.toLowerCase();
+      // While typing freely, capture the value as a city fallback (server will
+      // try eq.<value>); a confirmed pick overrides this below.
+      state.scope = 'city'; state.value = raw; state.label = raw;
       sug.innerHTML = '';
       if (q.length < 2) return;
-      (window.CH_CITIES || []).filter(function (c) {
-        return c.name.toLowerCase().indexOf(q) === 0;
-      }).slice(0, 8).forEach(function (c) {
-        var item = document.createElement('div');
-        item.textContent = c.name + ' · ' + c.canton;
-        item.style.cssText = 'padding:8px 12px;cursor:pointer';
-        item.addEventListener('mouseover', function () { item.style.background = '#FAFAFB'; });
-        item.addEventListener('mouseout', function () { item.style.background = ''; });
-        item.addEventListener('mousedown', function (e) { e.preventDefault(); choose(c.name); });
-        sug.appendChild(item);
+
+      // Cantons first (smaller set, broader scope — usually the more useful match).
+      var cantons = (window.CH_CANTONS || []).filter(function (k) {
+        return k.code.toLowerCase().indexOf(q) === 0 || k.name.toLowerCase().indexOf(q) === 0;
+      }).slice(0, 3);
+      cantons.forEach(function (k) {
+        renderSuggestion(k.name, 'canton', function () { pickCanton(k); });
+      });
+
+      // Cities: prefix match on canonical name OR any variant (catches "lausanne",
+      // "yverdon-les-bains" typed lowercase, etc.).
+      var cities = (window.CH_CITIES || []).filter(function (c) {
+        if (c.name.toLowerCase().indexOf(q) === 0) return true;
+        for (var i = 0; i < (c.variants || []).length; i++) {
+          if (c.variants[i].toLowerCase().indexOf(q) === 0) return true;
+        }
+        return false;
+      }).slice(0, 8);
+      cities.forEach(function (c) {
+        renderSuggestion(c.name, c.canton, function () { pickCity(c); });
       });
     });
 
-    // Existing Genève/Lausanne/Zurich quick links → set city instead of navigating.
+    // Quick links inside the dropdown (Genève / Lausanne / Zürich) → treat as city pick.
     dropdown.querySelectorAll('.input-dropdown-list a.link').forEach(function (opt) {
       opt.addEventListener('click', function (e) {
         e.preventDefault();
-        choose((opt.querySelector('div') || opt).textContent.trim());
+        var name = (opt.querySelector('div') || opt).textContent.trim();
+        var match = (window.CH_FIND_CITY && window.CH_FIND_CITY(name)) ||
+                    { name: name, canton: '', variants: [name] };
+        pickCity(match);
         closeDropdown(dropdown);
       });
     });
@@ -103,7 +141,8 @@
     if (e) e.preventDefault();
     var params = new URLSearchParams();
     params.set('transaction', state.transaction || 'louer');
-    if (state.city) params.set('ville', state.city);
+    if (state.scope === 'canton' && state.value) params.set('canton', state.value);
+    else if (state.scope === 'city' && state.value) params.set('ville', state.value);
     if (state.type) params.set('type', state.type);
     var q = document.getElementById('search');
     if (q && q.value.trim()) params.set('q', q.value.trim());

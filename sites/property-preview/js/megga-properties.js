@@ -78,22 +78,34 @@
     var tplHTML = template.outerHTML;
     grid.innerHTML = '<div id="megga-status" style="padding:24px;grid-column:1/-1">Chargement…</div>';
 
-    var ville = qp('ville').toLowerCase();
+    var canton = qp('canton');
+    var ville = qp('ville');
     var kw = qp('q').toLowerCase();
+    // Resolve the city's DB spelling variants (case, postal sectors). Falls
+    // back to a single-value eq lookup if the city isn't in the curated list.
+    var cityEntry = (window.CH_FIND_CITY && window.CH_FIND_CITY(ville)) || null;
+    var villes = cityEntry ? cityEntry.variants : (ville ? [ville] : []);
+    // What the user typed/picked, for the empty-state copy.
+    var scopeLabel = canton
+      ? ((window.CH_FIND_CANTON && (window.CH_FIND_CANTON(canton) || {}).name) || canton)
+      : (ville || qp('q') || '…');
+
     window.MeggaSupabase.fetchListings({
-      transaction: qp('transaction'), limit: 120,
+      transaction: qp('transaction'),
+      canton: canton,
+      villes: villes,
     }).then(function (items) {
-      // City / keyword filtering is done here (no server index for it).
+      // Geographic scope is server-side. Keyword stays client-side because
+      // title is not indexed — but the pool is small once we've narrowed.
       var filtered = items.filter(function (it) {
+        if (!kw) return true;
         var c = (it.city || '').toLowerCase();
         var t = (it.title || '').toLowerCase();
-        if (ville && c.indexOf(ville) < 0) return false;
-        if (kw && t.indexOf(kw) < 0 && c.indexOf(kw) < 0) return false;
-        return true;
+        return t.indexOf(kw) >= 0 || c.indexOf(kw) >= 0;
       }).slice(0, 24);
       grid.innerHTML = '';
       if (!filtered.length) {
-        grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Aucun bien récent pour « ' + (qp('ville') || qp('q') || '…') + ' ». Essayez une autre ville.</div>';
+        grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Aucun bien récent pour « ' + scopeLabel + ' ». Essayez un autre lieu ou élargissez au canton.</div>';
         return;
       }
       filtered.forEach(function (it) {
