@@ -1,0 +1,13 @@
+-- Drop idx_ml_relevance — 0 scans since stats reset, 4.5 MB on disk and
+-- (more importantly) one more index for the planner to consider on every
+-- query and one more index to maintain on every UPSERT.
+--
+-- Index def:
+--   CREATE INDEX idx_ml_relevance ON market_listings
+--     USING btree (transaction_type, relevance_score DESC, created_at DESC)
+--     WHERE status = 'active' AND quality_score >= 50;
+--
+-- It was created for a never-shipped "relevance" sort feature. The current
+-- storefront and CRM searches all order by created_at, not relevance_score.
+-- pg_stat_user_indexes confirms zero use.
+DROP INDEX IF EXISTS public.idx_ml_relevance;
