@@ -4404,7 +4404,20 @@ figcaption {
 
 .grid-2-columns.properties-grid---v1 {
   grid-row-gap: 40px;
+  grid-template-columns: repeat(3, 1fr);
   place-items: stretch stretch;
+}
+
+@media screen and (max-width: 991px) {
+  .grid-2-columns.properties-grid---v1 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .grid-2-columns.properties-grid---v1 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .grid-2-columns.cta-v1-grid {
