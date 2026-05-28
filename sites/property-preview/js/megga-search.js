@@ -77,6 +77,12 @@
       var lbl = toggleLabel(dropdown);
       if (lbl) lbl.textContent = k.name + ' · canton';
     }
+    function pickAgglo(a) {
+      state.scope = 'agglo'; state.value = a.slug; state.label = a.name;
+      input.value = a.name; sug.innerHTML = '';
+      var lbl = toggleLabel(dropdown);
+      if (lbl) lbl.textContent = a.name;
+    }
 
     function renderSuggestion(text, kind, onPick) {
       var item = document.createElement('div');
@@ -102,7 +108,19 @@
       sug.innerHTML = '';
       if (q.length < 2) return;
 
-      // Cantons first (smaller set, broader scope — usually the more useful match).
+      // Agglomérations first — the broadest match users typically want when
+      // searching by a major city ("Lausanne" really means "Lausanne and
+      // around", "Genève" means "Grand Genève").
+      var agglos = (window.CH_AGGLOMERATIONS || []).filter(function (a) {
+        if (a.slug.indexOf(q) === 0) return true;
+        if (a.name.toLowerCase().indexOf(q) >= 0) return true;
+        return false;
+      }).slice(0, 3);
+      agglos.forEach(function (a) {
+        renderSuggestion(a.name, 'agglomération', function () { pickAgglo(a); });
+      });
+
+      // Cantons next (smaller set, broader scope — usually the more useful match).
       var cantons = (window.CH_CANTONS || []).filter(function (k) {
         return k.code.toLowerCase().indexOf(q) === 0 || k.name.toLowerCase().indexOf(q) === 0;
       }).slice(0, 3);
@@ -141,7 +159,8 @@
     if (e) e.preventDefault();
     var params = new URLSearchParams();
     params.set('transaction', state.transaction || 'louer');
-    if (state.scope === 'canton' && state.value) params.set('canton', state.value);
+    if (state.scope === 'agglo' && state.value) params.set('agglo', state.value);
+    else if (state.scope === 'canton' && state.value) params.set('canton', state.value);
     else if (state.scope === 'city' && state.value) params.set('ville', state.value);
     if (state.type) params.set('type', state.type);
     var q = document.getElementById('search');
