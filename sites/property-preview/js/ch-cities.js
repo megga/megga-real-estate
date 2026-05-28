@@ -97,6 +97,61 @@ window.CH_CITIES = [
   { name: 'Appenzell',         canton: 'AI', variants: ['Appenzell'] },
 ];
 
+// Curated Swiss agglomerations — the natural search scope for a real-estate
+// user looking in "Lausanne" who'd happily take a rental in Pully or Renens.
+// Each agglomeration's `cities` list is the exact DB-spelling values found
+// in market_listings.city (compiled from a 2026-05-28 query). The storefront
+// passes them as city=in.(...) to the partial index — same fast path as the
+// city-variant lookup.
+//
+// Six agglomerations cover ~80% of the rental marketplace volume. Adding
+// more is cheap (just extend this array); harder is keeping the city lists
+// in sync as Flatfox spelling drifts — a quarterly review is reasonable.
+window.CH_AGGLOMERATIONS = [
+  { slug: 'lausanne',  name: 'Lausanne et environs',  canton: 'VD',
+    cities: ['Lausanne', 'lausanne', 'LAUSANNE', 'Lausanne 25', 'Lausanne Centre',
+             'Crissier', 'Le Mont-sur-Lausanne', 'Le Mont-Sur-Lausanne',
+             'Pully', 'Bussigny', 'Bussigny-près-Lausanne', 'Bussigny-Lausanne',
+             'Chavannes-près-Renens', 'Chavannes-Renens',
+             'Renens', 'renens', 'Prilly',
+             'Belmont-sur-Lausanne', 'Ecublens', 'Epalinges',
+             'Cheseaux-sur-Lausanne', 'Cheseaux-Lausanne', 'CHESEAUX-SUR-LAUSANNE',
+             'Romanel-sur-Lausanne', 'Romanel-s-Lausanne',
+             'Lutry', 'Jouxtens-Mézery', 'Paudex'] },
+  { slug: 'geneve',    name: 'Grand Genève',          canton: 'GE',
+    cities: ['Genève', 'genève', 'Genf',
+             'Meyrin', 'MEYRIN', 'Vernier', 'vernier', 'VERNIER',
+             'Petit-Lancy', 'Grand-Lancy', 'Lancy',
+             'Plan-les-Ouates', 'Versoix', 'Thônex',
+             'Carouge', 'Chambésy', 'Bellevue', 'Chêne-Bourg',
+             'Onex', 'Chêne-Bougeries', 'Genthod', 'Cologny',
+             'Collonge-Bellerive', 'Bernex', 'Vésenaz',
+             'Choulex', 'Hermance', 'Anières', 'Confignon', 'Puplinge'] },
+  { slug: 'zurich',    name: 'Région zurichoise',     canton: 'ZH',
+    cities: ['Zürich', 'zürich', 'ZÜRICH', 'Zurich',
+             'Dübendorf', 'dübendorf', 'Dietikon', 'Schlieren',
+             'Kloten', 'Wallisellen', 'Uster', 'uster', 'Uster 1',
+             'Adliswil', 'Bülach', 'Thalwil', 'Volketswil',
+             'Opfikon', 'Zollikon', 'Bassersdorf', 'Meilen',
+             'Zumikon', 'Rüschlikon', 'Kilchberg', 'Erlenbach',
+             'Winterthur', 'winterthur', 'WINTERTHUR', 'Winterthur 8405'] },
+  { slug: 'berne',     name: 'Région bernoise',       canton: 'BE',
+    cities: ['Bern', 'bern', 'BErn', 'BERN',
+             'Ittigen', 'Liebefeld', 'Wabern', 'Belp', 'Köniz',
+             'Münsingen', 'Zollikofen', 'Münchenbuchsee',
+             'Bolligen', 'Worb', 'Muri bei Bern'] },
+  { slug: 'bale',      name: 'Région bâloise',        canton: 'BS',
+    cities: ['Basel', 'basel',
+             'Allschwil', 'Pratteln', 'Muttenz', 'Binningen',
+             'Münchenstein', 'Riehen', 'Birsfelden', 'Reinach',
+             'Bottmingen', 'Liestal'] },
+  { slug: 'lugano',    name: 'Région luganaise',      canton: 'TI',
+    cities: ['Lugano', 'lugano', 'LUGANO',
+             'Paradiso', 'Massagno', 'Pregassona',
+             'Caslano', 'Manno', 'Agno',
+             'Cadempino', 'Vezia', 'Lamone'] },
+];
+
 // Helper: find a city by canonical name (used by megga-properties.js to look
 // up variants when the URL only has ?ville=Lausanne).
 window.CH_FIND_CITY = function (name) {
@@ -104,6 +159,15 @@ window.CH_FIND_CITY = function (name) {
   var lc = String(name).toLowerCase();
   for (var i = 0; i < window.CH_CITIES.length; i++) {
     if (window.CH_CITIES[i].name.toLowerCase() === lc) return window.CH_CITIES[i];
+  }
+  return null;
+};
+
+window.CH_FIND_AGGLO = function (slug) {
+  if (!slug) return null;
+  var s = String(slug).toLowerCase();
+  for (var i = 0; i < window.CH_AGGLOMERATIONS.length; i++) {
+    if (window.CH_AGGLOMERATIONS[i].slug === s) return window.CH_AGGLOMERATIONS[i];
   }
   return null;
 };

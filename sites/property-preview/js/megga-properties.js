@@ -78,17 +78,22 @@
     var tplHTML = template.outerHTML;
     grid.innerHTML = '<div id="megga-status" style="padding:24px;grid-column:1/-1">Chargement…</div>';
 
+    var agglo = qp('agglo');
     var canton = qp('canton');
     var ville = qp('ville');
     var kw = qp('q').toLowerCase();
-    // Resolve the city's DB spelling variants (case, postal sectors). Falls
-    // back to a single-value eq lookup if the city isn't in the curated list.
-    var cityEntry = (window.CH_FIND_CITY && window.CH_FIND_CITY(ville)) || null;
-    var villes = cityEntry ? cityEntry.variants : (ville ? [ville] : []);
+    // Scope resolution: agglomération > canton > ville (no overlap — only one is
+    // ever set at a time by the search UI).
+    var aggloEntry = agglo ? ((window.CH_FIND_AGGLO && window.CH_FIND_AGGLO(agglo)) || null) : null;
+    var cityEntry = ville ? ((window.CH_FIND_CITY && window.CH_FIND_CITY(ville)) || null) : null;
+    var villes = aggloEntry
+      ? aggloEntry.cities
+      : (cityEntry ? cityEntry.variants : (ville ? [ville] : []));
     // What the user typed/picked, for the empty-state copy.
-    var scopeLabel = canton
-      ? ((window.CH_FIND_CANTON && (window.CH_FIND_CANTON(canton) || {}).name) || canton)
-      : (ville || qp('q') || '…');
+    var scopeLabel = aggloEntry ? aggloEntry.name
+      : (canton
+        ? ((window.CH_FIND_CANTON && (window.CH_FIND_CANTON(canton) || {}).name) || canton)
+        : (ville || qp('q') || '…'));
 
     window.MeggaSupabase.fetchListings({
       transaction: qp('transaction'),
