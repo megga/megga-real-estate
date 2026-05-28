@@ -13,11 +13,13 @@
 
 import { test, expect } from '@playwright/test'
 
+// `/` and `/louer` were dropped after the deploy split (#490): `/` now just
+// redirects to `/dashboard`, and `/louer` lives on the V3 static storefront
+// (megga.ch), not in this React app. Their old baselines no longer matched
+// reality, so they're removed from the snapshot set.
 const PAGES_TO_SNAPSHOT = [
-  { path: '/', name: 'homepage' },
   { path: '/dashboard', name: 'dashboard-agent' },
   { path: '/dashboard/pipeline', name: 'dashboard-pipeline' },
-  { path: '/louer', name: 'marketplace-rent' },
   { path: '/portail', name: 'seller-portal' },
 ] as const
 
