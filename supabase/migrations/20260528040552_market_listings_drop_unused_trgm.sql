@@ -1,0 +1,18 @@
+-- Drop the GIN trigram index on market_listings(city) added in
+-- 20260528025802_market_listings_city_trgm_install.sql.
+--
+-- Why: the storefront search ended up using exact match (city=eq.X) and
+-- variant lists (city=in.(...)) via the existing btree
+-- idx_market_listings_city_type_price, so the trigram is unused. Keeping
+-- it on the table inflates write cost during the daily Flatfox UPSERT
+-- burst (each insert/update has to maintain one more GIN index) AND
+-- inflates planner time on the anon role — observed 2.8s planning for a
+-- trivial /louer-style query, pushing real PostgREST anon requests into
+-- the 3s statement_timeout.
+--
+-- The pg_trgm extension itself stays installed (cheap, may be useful for
+-- a future fuzzy-search feature gated behind a stricter scope).
+--
+-- Already applied on production via Supabase MCP on 2026-05-28; this
+-- file mirrors that exact DDL so migration history stays in sync.
+DROP INDEX IF EXISTS public.idx_ml_rent_active_city_trgm;
