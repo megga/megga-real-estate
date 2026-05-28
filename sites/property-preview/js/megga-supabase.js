@@ -20,21 +20,26 @@ window.MeggaSupabase = (function () {
     params.set('transaction_type', 'eq.' + tx);
     params.set('status', 'eq.active');
     params.set('quality_score', 'gte.50');
-    if (f.city) params.set('city', 'ilike.' + f.city + '%');
+    // City: from the Localisation dropdown OR the free-text box. Uses the
+    // trigram index → fast. The free-text keyword only narrows WITHIN a city
+    // (small subset) to avoid an unindexed title scan over ~59k rows.
+    var city = f.city || f.q;
+    if (city) params.set('city', 'ilike.' + city + '%');
     if (f.type) params.set('type', 'eq.' + f.type);
-    if (f.q) params.set('title', 'ilike.*' + f.q + '*'); // free-text keyword on title
+    if (f.q && f.city) params.set('title', 'ilike.*' + f.q + '*');
     params.set('order', 'created_at.desc');
-    // Paginate via query params (not a Range header) — simpler CORS request,
-    // avoids proxy/extension quirks with the Range header. No exact count.
+    // Paginate via query params (not a Range header) — simpler CORS request.
     params.set('limit', String(limit));
     params.set('offset', String(offset));
 
+    // Client-side timeout so the page never stays stuck on "Chargement…".
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var to = ctrl ? setTimeout(function () { ctrl.abort(); }, 15000) : null;
     return fetch(BASE_URL + '/market_listings?' + params.toString(), {
-      headers: {
-        apikey: ANON_KEY,
-        Authorization: 'Bearer ' + ANON_KEY,
-      },
+      headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY },
+      signal: ctrl ? ctrl.signal : undefined,
     }).then(function (res) {
+      if (to) clearTimeout(to);
       if (!res.ok) throw new Error('Supabase ' + res.status);
       return res.json();
     });
