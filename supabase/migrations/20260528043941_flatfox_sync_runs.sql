@@ -37,6 +37,7 @@ CREATE INDEX IF NOT EXISTS idx_flatfox_sync_runs_running
 ALTER TABLE public.flatfox_sync_runs ENABLE ROW LEVEL SECURITY;
 
 -- service_role only — admin/debug surface, no public reads.
+DROP POLICY IF EXISTS "Service role full access on flatfox_sync_runs" ON public.flatfox_sync_runs;
 CREATE POLICY "Service role full access on flatfox_sync_runs"
   ON public.flatfox_sync_runs
   FOR ALL

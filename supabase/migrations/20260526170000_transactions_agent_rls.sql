@@ -11,6 +11,11 @@
 -- Adds the standard agency-scoped policy set, mirroring `contacts`,
 -- `properties`, `kyc_cases`, etc.
 
+DROP POLICY IF EXISTS "transactions_select" ON public.transactions;
+DROP POLICY IF EXISTS "transactions_insert" ON public.transactions;
+DROP POLICY IF EXISTS "transactions_update" ON public.transactions;
+DROP POLICY IF EXISTS "transactions_delete" ON public.transactions;
+
 CREATE POLICY "transactions_select"
   ON public.transactions
   FOR SELECT

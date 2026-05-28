@@ -14,6 +14,8 @@
 -- mirrors `Buyers read their threads` on message_threads — same rationale:
 -- a buyer is the resource owner when buyer_email matches their auth email.
 
+DROP POLICY IF EXISTS "visits_select_by_buyer_email" ON public.visits;
+
 CREATE POLICY "visits_select_by_buyer_email"
   ON public.visits
   FOR SELECT
