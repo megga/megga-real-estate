@@ -91,7 +91,7 @@ export default function AgentProfilePage() {
           </p>
           <p style={{ fontFamily: FF, fontSize: 14, color: T.soft, marginBottom: 32 }}>{t('noResultsSubtitle')}</p>
           <Link
-            to="/agents"
+            to="/agencies"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

@@ -399,7 +399,6 @@ export default function FooterMega() {
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <FooterLink to="/agencies">Pour les agences</FooterLink>
-            <FooterLink to="/agents">Pour les agents</FooterLink>
             <FooterLink to="/dashboard" badge="Nouveau">CRM MEGGA</FooterLink>
           </div>
         </div>

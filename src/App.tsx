@@ -83,7 +83,6 @@ const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
-const AgentDirectoryPage = lazy(() => import('@/pages/public/AgentDirectoryPage'))
 const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
 const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
@@ -347,7 +346,7 @@ function AnimatedRoutes() {
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/visit/:id/edit" element={<VisitManagePage />} />
               <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
-              <Route path="/agents" element={<AgentDirectoryPage />} />
+              <Route path="/agents" element={<Navigate to="/agencies" replace />} />
               <Route path="/agents/:slug" element={<AgentProfilePage />} />
               <Route path="/agencies" element={<AgenciesPage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
