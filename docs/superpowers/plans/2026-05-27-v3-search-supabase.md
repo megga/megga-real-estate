@@ -6,7 +6,7 @@
 
 **Architecture:** Static site (`sites/property-preview`) calls Supabase PostgREST (`/rest/v1/market_listings`) directly from the browser with the public anon key (no React, no build). The home search redirects to `company-pages/properties.html?...`; that page reads URL params, fetches listings, and renders cards by cloning the existing card template. A trigram index on `city` keeps the filter fast.
 
-**Tech Stack:** Vanilla JS (ES2017, no bundler), Supabase PostgREST + pg_trgm, Webflow-generated static HTML.
+**Tech Stack:** Vanilla JS (ES2017, no bundler), Supabase PostgREST + pg_trgm, static HTML.
 
 > Verification note: this is a static site with no JS test runner. "Tests" = curl against PostgREST + a headless browser check via the webapp-testing skill (local `python3 -m http.server --directory sites/property-preview`). Commit after each task.
 

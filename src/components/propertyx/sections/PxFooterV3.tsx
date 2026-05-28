@@ -153,7 +153,7 @@ export default function PxFooterV3() {
         letterSpacing: '-0.48px',
         color: PX.neutral300,
       }}>
-        Copyright © Property X | Designed by BRIX Templates - Powered by Webflow
+        © 2026 MEGGA Real Estate. Tous droits réservés.
       </p>
 
       {/* Social icons : absolu left-1208 top-217 (centrés sur cette ligne), gap-16, size-16

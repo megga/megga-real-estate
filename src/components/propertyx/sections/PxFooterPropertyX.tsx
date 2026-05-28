@@ -99,8 +99,6 @@ const COL_BLOG_LINKS = {
     { label: 'FAQs', to: '/aide' },
     { label: 'Coming soon', to: '/coming-soon' },
     { label: 'Subscribe page', to: '/subscribe' },
-    // CTA highlight — Figma rend ce lien en Medium 500 (cf. node 9643:27743 col 1 row 8)
-    { label: 'More Webflow Templates', to: '/templates', weight: 500 as const },
   ],
 }
 
@@ -520,7 +518,7 @@ export default function PxFooterPropertyX() {
                 letterSpacing: '-0.48px',
                 color: PX.neutral300,
               }}>
-                Copyright © Property X | Designed by BRIX Templates - Powered by Webflow
+                © 2026 MEGGA Real Estate. Tous droits réservés.
               </p>
             </div>
           </div>
