@@ -5,6 +5,8 @@
 import { type ReactNode, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/ui/Toast'
 
 const FT_BG = '#0A0F1A'
 const FT_PANEL = '#141B2A'
@@ -149,7 +151,31 @@ function SocialLink({ children, label, href = '#' }: SocialLinkProps) {
 }
 
 function NewsletterPanel() {
+  const { i18n } = useTranslation()
+  const toast = useToast()
   const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const trimmed = email.trim()
+    if (!trimmed || submitting) return
+    setSubmitting(true)
+    const lang = (i18n.language?.slice(0, 2) || 'fr') as 'fr' | 'de' | 'en' | 'it'
+    const { error } = await supabase
+      .from('newsletter_subscribers')
+      .insert({ email: trimmed, lang, source: 'footer_marketplace' })
+    setSubmitting(false)
+    // 23505 = unique_violation → email déjà inscrit. On traite en succès doux
+    // pour éviter de divulguer l'existence d'un email (anti-énumération).
+    if (error && error.code !== '23505') {
+      toast.error('Inscription échouée — réessayez dans un instant.')
+      return
+    }
+    setEmail('')
+    toast.success('Merci, votre inscription est confirmée.')
+  }
+
   return (
     <div
       style={{
@@ -194,9 +220,7 @@ function NewsletterPanel() {
       </div>
       <div>
         <form
-          onSubmit={e => {
-            e.preventDefault()
-          }}
+          onSubmit={handleSubmit}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -212,6 +236,9 @@ function NewsletterPanel() {
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="vous@exemple.ch"
+            required
+            disabled={submitting}
+            aria-label="Adresse e-mail"
             style={{
               flex: 1,
               minWidth: 0,
@@ -227,6 +254,7 @@ function NewsletterPanel() {
           />
           <button
             type="submit"
+            disabled={submitting}
             style={{
               height: 40,
               padding: '0 22px',
@@ -237,14 +265,15 @@ function NewsletterPanel() {
               fontFamily: FONT,
               fontSize: 13,
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: submitting ? 'wait' : 'pointer',
+              opacity: submitting ? 0.7 : 1,
               display: 'flex',
               alignItems: 'center',
               gap: 6,
               whiteSpace: 'nowrap',
             }}
           >
-            S’abonner
+            {submitting ? 'Envoi…' : 'S’abonner'}
             <span>→</span>
           </button>
         </form>
