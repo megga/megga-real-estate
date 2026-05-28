@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import CRMIcon from '../CRMIcon'
 import type { SugarPalette } from '../tokens'
-import type { ParcoursAgent, ParcoursTask } from './parcoursData'
+import type { ParcoursAgent, ParcoursTask } from './journeyData'
 
 interface CardProps {
   task: ParcoursTask

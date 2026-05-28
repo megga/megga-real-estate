@@ -90,7 +90,7 @@ export default function PxSearchBar() {
     if (q) params.set('q', q)
     if (type) params.set('type', type)
     if (canton) params.set('canton', canton)
-    const route = tx === 'rent' ? '/louer' : '/acheter'
+    const route = tx === 'rent' ? '/rent' : '/buy'
     navigate(`${route}?${params.toString()}`)
   }
 

@@ -74,7 +74,7 @@ export default function MessagesSection() {
         title={t('empty.messages.title')}
         body={t('empty.messages.body')}
         cta={t('empty.messages.cta')}
-        ctaHref="/louer"
+        ctaHref="/rent"
       />
     )
   }

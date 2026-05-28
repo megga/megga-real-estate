@@ -1,4 +1,4 @@
-// Design tokens for the /compte (Account) page tree.
+// Design tokens for the /account (Account) page tree.
 // Imported by all components under src/components/account/.
 // Mirrors the MEGGA Compte design bundle (window.MEGGA_M + window.MEGGA_fontStack).
 

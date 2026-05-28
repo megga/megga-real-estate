@@ -199,8 +199,8 @@ export default function ContactsSugarV2Page() {
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'docs':     navigate('/dashboard/documents'); break
       case 'kyc':      navigate('/dashboard/kyc'); break
-      case 'reseau':   navigate('/dashboard/reseau'); break
-      case 'parcours': navigate('/dashboard/parcours'); break
+      case 'reseau':   navigate('/dashboard/network'); break
+      case 'parcours': navigate('/dashboard/journey'); break
       case 'ai':
       case 'julien':   navigate('/dashboard/julien'); break
       case 'chat':

@@ -79,7 +79,7 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
 
   const switchPortal = (to: Portail) => {
     if (to === route.portail) return
-    navigate(to === 'agent' ? '/auth/connexion?pro' : '/auth/connexion', {
+    navigate(to === 'agent' ? '/auth/login?pro' : '/auth/login', {
       replace: true,
     })
   }
@@ -93,13 +93,13 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
       resetCaptcha()
       if (error) {
         await logAuthEvent('magic_link.failure', { detail: error })
-        navigate(`/auth/connexion/erreur?reason=${encodeURIComponent('rate_limited')}`, {
+        navigate(`/auth/login/error?reason=${encodeURIComponent('rate_limited')}`, {
           replace: true,
         })
         return
       }
       await logAuthEvent('magic_link.sent')
-      navigate(`/auth/connexion/lien-envoye?email=${encodeURIComponent(email)}`, {
+      navigate(`/auth/login/link-sent?email=${encodeURIComponent(email)}`, {
         replace: true,
       })
     },
@@ -112,10 +112,10 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
         detail: error ?? 'resend',
       })
     },
-    onChangeEmail: () => navigate('/auth/connexion', { replace: true }),
+    onChangeEmail: () => navigate('/auth/login', { replace: true }),
     onRetry: async () => {
       if (!currentEmail) {
-        navigate('/auth/connexion', { replace: true })
+        navigate('/auth/login', { replace: true })
         return
       }
       const captchaToken = await executeCaptcha()
@@ -124,7 +124,7 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
       await logAuthEvent(error ? 'magic_link.failure' : 'magic_link.sent', {
         detail: error ?? 'retry',
       })
-      navigate(`/auth/connexion/lien-envoye?email=${encodeURIComponent(currentEmail)}`, {
+      navigate(`/auth/login/link-sent?email=${encodeURIComponent(currentEmail)}`, {
         replace: true,
       })
     },
@@ -149,7 +149,7 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
       }
       await logAuthEvent('signup.created')
       navigate(
-        `/auth/inscription/email-verifier?email=${encodeURIComponent(email)}`,
+        `/auth/signup/verify-email?email=${encodeURIComponent(email)}`,
         { replace: true },
       )
     },
@@ -161,7 +161,7 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
         detail: error ?? 'resend-verification',
       })
     },
-    onBackToSignup: () => navigate('/auth/inscription', { replace: true }),
+    onBackToSignup: () => navigate('/auth/signup', { replace: true }),
     onResetRequest: async (email) => {
       const captchaToken = await executeCaptcha()
       const { error } = await auth.resetPassword(email, captchaToken)
@@ -170,7 +170,7 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
         error ? 'password.reset_failure' : 'password.reset_requested',
         { detail: error ?? undefined },
       )
-      navigate(`/auth/mot-de-passe-oublie/envoye?email=${encodeURIComponent(email)}`, {
+      navigate(`/auth/forgot-password/sent?email=${encodeURIComponent(email)}`, {
         replace: true,
       })
     },
@@ -195,10 +195,10 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
       }
     },
     onForgotPassword: () =>
-      navigate('/auth/mot-de-passe-oublie', { replace: true }),
-    onGoSignUp: () => navigate('/auth/inscription', { replace: true }),
-    onGoSignIn: () => navigate('/auth/connexion?pro', { replace: true }),
-    onBackToSignIn: () => navigate('/auth/connexion?pro', { replace: true }),
+      navigate('/auth/forgot-password', { replace: true }),
+    onGoSignUp: () => navigate('/auth/signup', { replace: true }),
+    onGoSignIn: () => navigate('/auth/login?pro', { replace: true }),
+    onBackToSignIn: () => navigate('/auth/login?pro', { replace: true }),
   }
 
   return (

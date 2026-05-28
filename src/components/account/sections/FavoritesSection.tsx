@@ -207,7 +207,7 @@ export default function FavoritesSection() {
         title={t('empty.favorites.title')}
         body={t('empty.favorites.body')}
         cta={t('empty.favorites.cta')}
-        ctaHref="/louer"
+        ctaHref="/rent"
       />
     )
   }

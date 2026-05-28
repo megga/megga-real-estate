@@ -132,10 +132,10 @@ export default function PxHero() {
             alignItems: 'center',
             gap: 16,
           }}>
-            <PxButton to="/acheter" variant="primary" size="sm">
+            <PxButton to="/buy" variant="primary" size="sm">
               Commencer
             </PxButton>
-            <PxLink to="/publier" variant="light" weight="medium">
+            <PxLink to="/publish" variant="light" weight="medium">
               <span style={{
                 display: 'inline-flex',
                 alignItems: 'center',

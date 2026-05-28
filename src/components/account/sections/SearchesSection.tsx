@@ -220,7 +220,7 @@ export default function SearchesSection() {
         title={t('empty.searches.title')}
         body={t('empty.searches.body')}
         cta={t('empty.searches.cta')}
-        ctaHref="/louer"
+        ctaHref="/rent"
       />
     )
   }
@@ -235,7 +235,7 @@ export default function SearchesSection() {
           onSetFreq={(freq) => updateFrequency(s.id, freq)}
           onDelete={() => deleteSearch(s.id)}
           onOpen={() => {
-            const target = s.filters.context === 'buy' ? '/acheter' : '/louer'
+            const target = s.filters.context === 'buy' ? '/buy' : '/rent'
             navigate(`${target}?savedSearch=${s.id}`)
           }}
         />

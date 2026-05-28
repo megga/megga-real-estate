@@ -4,7 +4,7 @@
 // - `alwaysShow={false}` (défaut, homepage) : Hidden au load, slides down
 //   quand scrollY > 80% viewport. Permet au hero d'être full-bleed sans
 //   chrome au load.
-// - `alwaysShow={true}` (search/listing/vendre) : Toujours visible en
+// - `alwaysShow={true}` (search/listing/sell) : Toujours visible en
 //   haut de page (le proto MEGGA Recherche.html utilise ce mode).
 //
 // Background opaque rgba(250,251,253,0.88) + backdrop blur 14px · 64px
@@ -30,7 +30,7 @@ function i18nToDisplay(raw: string | undefined): LangCode {
 const HEADER_HEIGHT = 64
 
 interface HomeStickyHeaderProps {
-  /** Si true, le header est toujours visible (utile sur /louer, /acheter,
+  /** Si true, le header est toujours visible (utile sur /rent, /buy,
    *  /biens/:id, etc.). Si false (défaut, homepage), il slide-down au scroll. */
   alwaysShow?: boolean
 }
@@ -42,11 +42,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: 'buy', label: 'Acheter', to: '/acheter' },
-  { key: 'rent', label: 'Louer', to: '/louer' },
-  { key: 'estimate', label: 'Estimer', to: '/estimations' },
+  { key: 'buy', label: 'Acheter', to: '/buy' },
+  { key: 'rent', label: 'Louer', to: '/rent' },
+  { key: 'estimate', label: 'Estimer', to: '/estimates' },
   { key: 'services', label: 'Services', to: '/services' },
-  { key: 'pro', label: 'Pour les pros', to: '/agences' },
+  { key: 'pro', label: 'Pour les pros', to: '/agencies' },
 ]
 
 export default function HomeStickyHeader({ alwaysShow = false }: HomeStickyHeaderProps = {}) {

@@ -7,7 +7,7 @@ import {
   URGENCY_MAP,
   type StageId,
   type Urgency,
-} from './parcoursData'
+} from './journeyData'
 
 interface PCFiltersProps {
   sp: SugarPalette

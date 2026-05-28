@@ -220,7 +220,7 @@ const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-export default function GlossairePage() {
+export default function GlossaryPage() {
   const { t } = useTranslation('common');
   const [search, setSearch] = useState('');
   const [activeLetter, setActiveLetter] = useState<string | null>(null);

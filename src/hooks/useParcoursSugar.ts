@@ -17,7 +17,7 @@ import {
   type ParcoursTask,
   type StageId,
   type Urgency,
-} from '@/components/crm-sugar/parcours/parcoursData'
+} from '@/components/crm-sugar/journey/journeyData'
 
 // Mapping stage transaction → stage parcours (4 colonnes)
 function stageToParcours(s: TransactionStage): StageId {

@@ -168,7 +168,7 @@ export default function BiensSugarV2Page() {
       case 'kyc':
         navigate('/dashboard/kyc'); break
       case 'reseau':
-        navigate('/dashboard/reseau'); break
+        navigate('/dashboard/network'); break
       case 'ai':
       case 'julien':
         navigate('/dashboard/julien'); break

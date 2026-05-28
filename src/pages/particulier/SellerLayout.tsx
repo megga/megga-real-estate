@@ -20,12 +20,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Mon bien', href: '/portail', icon: Home },
-  { label: 'Visites', href: '/portail/visites', icon: Eye, badge: 1 },
-  { label: 'Offres', href: '/portail/offres', icon: HandCoins, badge: 2 },
-  { label: 'Documents', href: '/portail/documents', icon: FileText },
-  { label: 'Messages', href: '/portail/messages', icon: MessageCircle },
-  { label: 'Analyse', href: '/portail/analyse', icon: BarChart3 },
+  { label: 'Mon bien', href: '/portal', icon: Home },
+  { label: 'Visites', href: '/portal/visits', icon: Eye, badge: 1 },
+  { label: 'Offres', href: '/portal/offers', icon: HandCoins, badge: 2 },
+  { label: 'Documents', href: '/portal/documents', icon: FileText },
+  { label: 'Messages', href: '/portal/messages', icon: MessageCircle },
+  { label: 'Analyse', href: '/portal/analytics', icon: BarChart3 },
 ]
 
 // ── Fade label helper ────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ function SellerLayoutInner() {
   const { property, agent } = useSellerPortalData()
 
   function isActive(href: string) {
-    if (href === '/portail') return location.pathname === '/portail'
+    if (href === '/portal') return location.pathname === '/portal'
     return location.pathname.startsWith(href)
   }
 
@@ -74,7 +74,7 @@ function SellerLayoutInner() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
       <div className={cn('h-14 flex items-center border-b border-theme-border-subtle shrink-0 transition-[padding] duration-200', isCol ? 'justify-center px-2' : 'px-4')}>
-        <Link to="/portail" className="flex items-center shrink-0">
+        <Link to="/portal" className="flex items-center shrink-0">
           {isCol ? (
             <img src="/megga-gg.svg" alt="MEGGA" className="h-5 w-auto" style={{ filter: 'var(--logo-filter, none)' }} />
           ) : (

@@ -9,7 +9,7 @@ const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'man
 
 function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role)) return '/dashboard'
-  return '/portail'
+  return '/portal'
 }
 
 export default function AuthCallbackPage() {
@@ -110,7 +110,7 @@ export default function AuthCallbackPage() {
       }
       // Handle password recovery redirect → new bento auth screen
       if (event === 'PASSWORD_RECOVERY') {
-        navigate('/auth/mot-de-passe-oublie/redefinir', { replace: true })
+        navigate('/auth/forgot-password/reset', { replace: true })
       }
     })
 
@@ -120,7 +120,7 @@ export default function AuthCallbackPage() {
       if (session?.user) {
         handleRedirect(session.user.id, session.user)
       } else {
-        navigate('/auth/connexion', { replace: true })
+        navigate('/auth/login', { replace: true })
       }
     }, 5000)
 

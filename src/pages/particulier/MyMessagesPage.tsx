@@ -41,7 +41,7 @@ function groupMessagesByDay(messages: SellerMessage[]): { label: string; message
 
 // ── Main component ───────────────────────────────────────────────────────
 
-export default function MesMessagesPage() {
+export default function MyMessagesPage() {
   const { agent } = useSellerPortalData()
   const [messages, setMessages] = useState(MOCK_SELLER_MESSAGES)
   const [input, setInput] = useState('')

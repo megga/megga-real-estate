@@ -85,7 +85,7 @@ export default function RecentListings() {
             </p>
           </div>
           <Link
-            to="/acheter"
+            to="/buy"
             className="hidden md:inline-flex items-center gap-2 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors group"
           >
             {t('home.viewAllListings')}
@@ -162,7 +162,7 @@ export default function RecentListings() {
         {/* Mobile CTA */}
         <div className="mt-8 text-center md:hidden">
           <Link
-            to="/acheter"
+            to="/buy"
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-900"
           >
             {t('home.viewAllListings')}

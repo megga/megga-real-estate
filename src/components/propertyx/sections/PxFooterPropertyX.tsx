@@ -79,10 +79,10 @@ const COL_PROPS_LINKS = {
   title: '',
   links: [
     { label: 'Property single', to: '/listing' },
-    { label: 'Agences', to: '/agences' },
-    { label: 'Page agence', to: '/agences' },
-    { label: 'Post a free property', to: '/publier?type=free' },
-    { label: 'Post a paid property', to: '/publier?type=premium' },
+    { label: 'Agences', to: '/agencies' },
+    { label: 'Page agence', to: '/agencies' },
+    { label: 'Post a free property', to: '/publish?type=free' },
+    { label: 'Post a paid property', to: '/publish?type=premium' },
     { label: 'Blog V1', to: '/blog' },
     { label: 'Blog V2', to: '/blog' },
     { label: 'Blog V3', to: '/blog' },
@@ -96,7 +96,7 @@ const COL_BLOG_LINKS = {
     { label: 'Contact V1', to: '/contact' },
     { label: 'Contact V2', to: '/contact' },
     { label: 'Contact V3', to: '/contact' },
-    { label: 'FAQs', to: '/aide' },
+    { label: 'FAQs', to: '/help' },
     { label: 'Coming soon', to: '/coming-soon' },
     { label: 'Subscribe page', to: '/subscribe' },
   ],
@@ -105,7 +105,7 @@ const COL_BLOG_LINKS = {
 const COL_UTILITY = {
   title: 'Utility Pages',
   links: [
-    { label: 'Start here', to: '/aide' },
+    { label: 'Start here', to: '/help' },
     { label: 'Style guide', to: '/style-guide' },
     { label: 'Password protected', to: '/password' },
     { label: '404 not found', to: '/404' },

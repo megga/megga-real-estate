@@ -217,7 +217,7 @@ export default function PopularAreas() {
             </p>
           </div>
           <Link
-            to="/acheter"
+            to="/buy"
             className="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors group"
           >
             {t('home.exploreMap')}
@@ -331,7 +331,7 @@ export default function PopularAreas() {
                 </div>
 
                 <Link
-                  to="/acheter"
+                  to="/buy"
                   className="flex items-center justify-center gap-1.5 w-full h-10 text-sm font-medium rounded-full mt-4 border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
                 >
                   {t('home.viewProperties')}
@@ -388,7 +388,7 @@ export default function PopularAreas() {
 
             {/* Mobile CTA */}
             <Link
-              to="/acheter"
+              to="/buy"
               className="lg:hidden flex items-center justify-center gap-1.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors py-2"
             >
               {t('home.exploreFullMap')}

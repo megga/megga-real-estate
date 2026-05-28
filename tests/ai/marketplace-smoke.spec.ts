@@ -1,6 +1,6 @@
 // AI-driven smoke test (Stagehand + Claude Haiku 4.5).
 //
-// What it does: opens /louer in a real browser, asks the LLM to count the
+// What it does: opens /rent in a real browser, asks the LLM to count the
 // visible property cards, asserts the count is > 0. The point is not to
 // replicate the scripted E2E suite — it's to verify Claude can navigate the
 // marketplace and read its content correctly, which catches a class of
@@ -26,10 +26,10 @@ import { z } from 'zod'
 
 const HAS_KEY = !!process.env.ANTHROPIC_API_KEY
 
-test.describe('AI smoke — marketplace /louer', () => {
+test.describe('AI smoke — marketplace /rent', () => {
   test.skip(!HAS_KEY, 'ANTHROPIC_API_KEY not set — see file header for setup')
 
-  test('Claude can count property listings on /louer', async () => {
+  test('Claude can count property listings on /rent', async () => {
     const stagehand = new Stagehand({
       env: 'LOCAL',
       model: {
@@ -42,7 +42,7 @@ test.describe('AI smoke — marketplace /louer', () => {
 
     try {
       const page = stagehand.context.pages()[0]
-      await page.goto('http://localhost:5173/louer')
+      await page.goto('http://localhost:5173/rent')
       await page.waitForLoadState('networkidle')
       // Give the infinite-query a beat to settle the first batch
       await page.waitForTimeout(2_000)

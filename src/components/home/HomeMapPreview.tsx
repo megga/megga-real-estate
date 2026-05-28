@@ -67,7 +67,7 @@ export default function HomeMapPreview() {
             par prix, type, surface, écoles à proximité, transports.
           </p>
           <Link
-            to="/louer"
+            to="/rent"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

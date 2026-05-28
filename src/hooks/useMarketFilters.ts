@@ -1,7 +1,7 @@
 // MEGGA Marketplace — URL ↔ MarketFilters sync.
 //
 // L'URL est la source de vérité pour les filtres de la marketplace publique.
-// Permet le deep-linking (/acheter?canton=GE&type=apartment&minPrice=500000)
+// Permet le deep-linking (/buy?canton=GE&type=apartment&minPrice=500000)
 // et la synchronisation entre Hero search, FilterBar et SortSelector.
 //
 // Convention :
@@ -99,7 +99,7 @@ export interface UrlMarketFilters {
 /**
  * Lit les filtres depuis l'URL et expose un setter qui écrit dans l'URL.
  * Le `context` (buy/rent) est passé en argument car il vient du routeur
- * (`/acheter` vs `/louer`), pas de l'URL search params.
+ * (`/buy` vs `/rent`), pas de l'URL search params.
  */
 export function useMarketFilters(context: 'buy' | 'rent'): UrlMarketFilters {
   const [params, setParams] = useSearchParams()

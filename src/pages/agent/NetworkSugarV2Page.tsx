@@ -27,7 +27,7 @@ import {
   type AgencyPartner, type AgencyRelationStatus, type AgencyShareLevel,
   type BienShareRule, type ReceivedListing, type ReseauTabId,
   type ShareRequest, type ShareRequestDirection,
-} from '@/components/crm-sugar/reseau/data'
+} from '@/components/crm-sugar/network/data'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -49,7 +49,7 @@ function fmtRelative(iso: string): string {
   return `il y a ${Math.floor(days / 365)} ans`
 }
 
-export default function ReseauSugarV2Page() {
+export default function NetworkSugarV2Page() {
   const navigate = useNavigate()
 
   const [dark, setDark] = useState<boolean>(() => {
@@ -106,11 +106,11 @@ export default function ReseauSugarV2Page() {
       case 'contacts': navigate('/dashboard/contacts'); break
       case 'biens': navigate('/dashboard/listings'); break
       case 'biens-new': navigate('/dashboard/listings/new'); break
-      case 'parcours': navigate('/dashboard/parcours'); break
+      case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'docs': navigate('/dashboard/documents'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'reseau': navigate('/dashboard/reseau'); break
+      case 'reseau': navigate('/dashboard/network'); break
       case 'ai':
       case 'julien': navigate('/dashboard/julien'); break
       case 'dashboard': navigate('/dashboard/analytics'); break

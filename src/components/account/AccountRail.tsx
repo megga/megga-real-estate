@@ -133,7 +133,7 @@ export default function AccountRail({ section, counts, onSelect }: Props) {
         active={false}
         Icon={SearchIcon}
         label={t('rail.search')}
-        onClick={() => navigate('/louer')}
+        onClick={() => navigate('/rent')}
       />
       <div style={{ height: 1, background: T.border, margin: '8px 12px' }} />
       {SECTIONS.map((s) => (

@@ -143,7 +143,7 @@ export default function PxPropertiesHero() {
     if (q) params.set('q', q)
     if (kind) params.set('type', kind)
     if (location) params.set('canton', location)
-    const route = tx === 'buy' ? '/acheter' : '/louer'
+    const route = tx === 'buy' ? '/buy' : '/rent'
     navigate(`${route}?${params.toString()}`)
   }
 

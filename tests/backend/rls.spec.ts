@@ -59,7 +59,7 @@ describe.skipIf(!HAS_KEYS)('RLS policies — anon cannot read internal tables', 
 
 describe.skipIf(!HAS_KEYS)('RPC behavior — get_user_agency_id (bug #404 guard)', () => {
   it('returns null or errors gracefully for anonymous callers', async () => {
-    // This was the bug behind #404: the RPC was called for anon users on /louer
+    // This was the bug behind #404: the RPC was called for anon users on /rent
     // and produced "permission denied" warnings. The frontend now guards the
     // call by checking session?.user first. Here we verify the RPC itself
     // handles anon callers without crashing.

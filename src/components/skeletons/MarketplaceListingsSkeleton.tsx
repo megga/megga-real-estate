@@ -1,7 +1,7 @@
 import Shimmer from '@/components/ui/Shimmer'
 
 /**
- * Skeleton mimicking the structure of /louer + /acheter (PropertyXListingsPage).
+ * Skeleton mimicking the structure of /rent + /buy (PropertyXListingsPage).
  * Rendered as Suspense fallback while the listings chunk + first data are loading.
  *
  * Composition:

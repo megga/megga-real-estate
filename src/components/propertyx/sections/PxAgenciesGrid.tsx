@@ -104,7 +104,7 @@ function AgencyCardPx({ agency }: { agency: AgencyDirectoryItem }) {
 
   return (
     <Link
-      to={`/agences/${agency.slug}`}
+      to={`/agencies/${agency.slug}`}
       className="px-agency-card"
       style={{
         display: 'flex',

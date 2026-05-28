@@ -373,7 +373,7 @@ export default function BienDetailSugarV3Page() {
           <SgCircleBtn
             icon={<SgIcon name="cal" size={17} stroke={SugarV3.inkSoft} />}
             title="Planifier une visite"
-            onClick={() => navigate(`/dashboard/visites/nouveau?bienId=${bien.id}`)}
+            onClick={() => navigate(`/dashboard/visits/nouveau?bienId=${bien.id}`)}
           />
           <SgBlackPill
             icon={

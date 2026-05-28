@@ -2,7 +2,7 @@
 // pages. Routes accessibles sans authentification (ou avec bypass mock).
 //
 // Scope : pages "core" — homepage, marketplace, landing produit, légales,
-// auth, annuaires, blog, help center root. Les sous-routes /aide/:category
+// auth, annuaires, blog, help center root. Les sous-routes /help/:category
 // et le design-system sont hors scope (internes/dev).
 
 import { test, expect } from '@playwright/test'
@@ -20,12 +20,12 @@ interface RouteSpec {
 const PUBLIC_ROUTES: RouteSpec[] = [
   // ── Homepage & landing ─────────────────────────────────────────────────
   { path: '/', label: 'Homepage' },
-  { path: '/vendre', label: 'Vendre (landing)' },
+  { path: '/sell', label: 'Vendre (landing)' },
   { path: '/services', label: 'Services' },
-  { path: '/estimations', label: 'Estimations' },
+  { path: '/estimates', label: 'Estimations' },
 
   // ── Marketplace ────────────────────────────────────────────────────────
-  { path: '/acheter', label: 'Marketplace Acheter' },
+  { path: '/buy', label: 'Marketplace Acheter' },
   { path: '/properties', label: 'Marketplace Properties' },
 
   // ── Info / about / legal ───────────────────────────────────────────────
@@ -36,15 +36,15 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   { path: '/coming-soon', label: 'Coming soon' },
 
   // ── Annuaires ──────────────────────────────────────────────────────────
-  { path: '/agences', label: 'Annuaire agences' },
+  { path: '/agencies', label: 'Annuaire agences' },
   { path: '/agents', label: 'Annuaire agents' },
 
   // ── Blog ───────────────────────────────────────────────────────────────
   { path: '/blog', label: 'Blog' },
 
   // ── Help center ────────────────────────────────────────────────────────
-  { path: '/aide', label: 'Help center' },
-  { path: '/aide/glossaire', label: 'Help > Glossaire' },
+  { path: '/help', label: 'Help center' },
+  { path: '/help/glossary', label: 'Help > Glossaire' },
 
   // ── Auth pages (en bypass auth, peuvent rediriger vers /dashboard) ─────
   { path: '/login', label: 'Login' },
@@ -52,14 +52,14 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   { path: '/reset-password', label: 'Reset password' },
 
   // ── Publier ────────────────────────────────────────────────────────────
-  { path: '/publier-bien', label: 'Publier un bien' },
+  { path: '/publish-listing', label: 'Publier un bien' },
 
   // ── Routes paramétrées (mock IDs / slugs) ──────────────────────────────
   { path: `/propriete/${MOCK_UUID}`, label: 'Propriete detail (mock)' },
   { path: `/listing/${MOCK_UUID}`, label: 'Listing detail legacy (mock)' },
-  { path: `/agences/${MOCK_SLUG}`, label: 'Agence profile (mock slug)' },
+  { path: `/agencies/${MOCK_SLUG}`, label: 'Agence profile (mock slug)' },
   { path: `/agents/${MOCK_SLUG}`, label: 'Agent profile (mock slug)' },
-  { path: `/portail/${MOCK_TOKEN}`, label: 'Portail vendeur prod (mock token)' },
+  { path: `/portal/${MOCK_TOKEN}`, label: 'Portail vendeur prod (mock token)' },
 ]
 
 test.describe('Marketplace publique — parametric route coverage', () => {

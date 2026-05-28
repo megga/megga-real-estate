@@ -231,7 +231,7 @@ export default function AgentProfilePage() {
               <VerifiedBadge status={agent.status} />
               {agency && (
                 <Link
-                  to={`/agences/${agency.slug}`}
+                  to={`/agencies/${agency.slug}`}
                   style={{
                     fontFamily: FF,
                     fontSize: 14,

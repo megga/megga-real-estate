@@ -21,9 +21,9 @@ interface Props {
 }
 
 const NAV_LINKS: Array<[string, string]> = [
-  ['/acheter', 'Acheter'],
-  ['/louer', 'Louer'],
-  ['/estimations', 'Estimer'],
+  ['/buy', 'Acheter'],
+  ['/rent', 'Louer'],
+  ['/estimates', 'Estimer'],
   ['/services', 'Services'],
   ['/services', 'Pro'],
 ]
@@ -311,7 +311,7 @@ export default function AccountHeader({ onLogout }: Props) {
               <div style={{ height: 1, background: T.border, margin: '6px 8px' }} />
 
               <Link
-                to="/aide"
+                to="/help"
                 role="menuitem"
                 onClick={() => setMenuOpen(false)}
                 style={{
@@ -340,7 +340,7 @@ export default function AccountHeader({ onLogout }: Props) {
               </Link>
 
               <Link
-                to="/aide"
+                to="/help"
                 role="menuitem"
                 onClick={() => setMenuOpen(false)}
                 style={{

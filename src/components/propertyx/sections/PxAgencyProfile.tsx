@@ -411,7 +411,7 @@ function ProfileCard({ agency }: { agency: AgencyData }) {
         </div>
 
         {/* Share URL pill */}
-        <ShareUrlPill url={`megga.ch/agences/${agency.slug}`} />
+        <ShareUrlPill url={`megga.ch/agencies/${agency.slug}`} />
       </div>
     </div>
   )
