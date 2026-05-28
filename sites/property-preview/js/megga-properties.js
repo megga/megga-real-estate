@@ -96,7 +96,8 @@
       });
     }).catch(function (err) {
       console.error('[megga] fetchListings failed:', err);
-      grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Une erreur est survenue. Réessayez.</div>';
+      var msg = (err && err.name === 'AbortError') ? 'délai dépassé' : (err && err.message ? err.message : String(err));
+      grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Une erreur est survenue (' + msg + '). Réessayez.</div>';
     });
   }
 

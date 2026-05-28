@@ -27,7 +27,9 @@ window.MeggaSupabase = (function () {
     if (city) params.set('city', 'ilike.' + city + '%');
     if (f.type) params.set('type', 'eq.' + f.type);
     if (f.q && f.city) params.set('title', 'ilike.*' + f.q + '*');
-    params.set('order', 'created_at.desc');
+    // No ORDER BY: ordering by created_at on top of a city ILIKE filter (no
+    // matching index) makes Postgres scan/sort the whole filtered set and the
+    // request hangs (>15s). Without order, LIMIT lets it stop at first matches.
     // Paginate via query params (not a Range header) — simpler CORS request.
     params.set('limit', String(limit));
     params.set('offset', String(offset));
