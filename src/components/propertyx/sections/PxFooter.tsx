@@ -66,7 +66,6 @@ const COL_BLOG = {
     { label: 'FAQs', to: '/aide/faq' },
     { label: 'Coming soon', to: '/coming-soon' },
     { label: 'Subscribe page', to: '/subscribe' },
-    { label: 'More Webflow Templates', to: '/templates', emphasized: true },
   ],
 }
 
@@ -546,7 +545,7 @@ export default function PxFooter() {
                 letterSpacing: '-0.48px',
                 color: PX.neutral300,
               }}>
-                Copyright © Property X | Designed by BRIX Templates - Powered by Webflow
+                © 2026 MEGGA Real Estate. Tous droits réservés.
               </p>
             </div>
           </div>
