@@ -12,7 +12,21 @@
 
     var img = node.querySelector('img.cover-image');
     var photo = (item.photos && item.photos[0]) || '';
-    if (img && photo) { img.src = photo; img.alt = item.title || 'Bien'; img.removeAttribute('srcset'); }
+    if (img) {
+      img.removeAttribute('srcset');
+      var wrap = img.closest('.image-wrapper');
+      var fallback = function () {
+        img.style.display = 'none';
+        if (wrap) wrap.style.background = '#EEEFF1';
+      };
+      if (photo) {
+        img.alt = item.title || 'Bien';
+        img.onerror = fallback; // expired Flatfox signature / 404 → neutral bg
+        img.src = photo;
+      } else {
+        fallback();
+      }
+    }
 
     var badge = node.querySelector('.property-badge .text-fix div');
     if (badge) badge.textContent = isBuy ? 'À vendre' : 'À louer';
@@ -21,8 +35,9 @@
     if (title) {
       title.textContent = item.title || ((item.rooms ? item.rooms + ' pièces · ' : '') + (item.city || 'Bien'));
       // Inject a price line right after the title (the template has none).
-      if (!title.nextElementSibling || !title.nextElementSibling.classList.contains('megga-price')) {
-        var amount = item.rent || item.price || item.current_price;
+      // Only when we have a real amount (some commercial listings have price 0).
+      var amount = Number(item.rent || item.price || item.current_price);
+      if (amount > 0 && (!title.nextElementSibling || !title.nextElementSibling.classList.contains('megga-price'))) {
         var price = document.createElement('div');
         price.className = 'megga-price';
         price.style.cssText = 'margin-top:4px;font-weight:500';
