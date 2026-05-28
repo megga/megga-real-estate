@@ -27,11 +27,11 @@ const CRM_AGENT_PARAM_ROUTES: ParamRouteSpec[] = [
   { path: `/dashboard/transactions/${MOCK_UUID}`, label: 'Transaction detail' },
   { path: `/dashboard/transactions/${MOCK_UUID}/offre/offer`, label: 'Offer modal' },
   { path: `/dashboard/transactions/${MOCK_UUID}/offre/counter`, label: 'Counter-offer modal' },
-  { path: `/dashboard/visites/${MOCK_UUID}`, label: 'Visit detail' },
-  { path: `/dashboard/visites/${MOCK_UUID}/companion`, label: 'Visit companion (mobile)' },
+  { path: `/dashboard/visits/${MOCK_UUID}`, label: 'Visit detail' },
+  { path: `/dashboard/visits/${MOCK_UUID}/companion`, label: 'Visit companion (mobile)' },
   { path: `/dashboard/kyc/${MOCK_UUID}`, label: 'KYC dossier detail' },
   { path: `/dashboard/kyc/${MOCK_UUID}/export`, label: 'KYC export PDF' },
-  { path: `/dashboard/marche/${MOCK_EXTERNAL_ID}`, label: 'External listing detail' },
+  { path: `/dashboard/market/${MOCK_EXTERNAL_ID}`, label: 'External listing detail' },
   { path: `/dashboard/support/${MOCK_UUID}`, label: 'Support ticket detail' },
 ]
 

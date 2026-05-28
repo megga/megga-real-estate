@@ -1,5 +1,5 @@
 // Phase B — Couverture étendue du portail vendeur (dev mock).
-// L'index /portail est déjà couvert dans seller-portal.spec.ts ; ici on
+// L'index /portal est déjà couvert dans seller-portal.spec.ts ; ici on
 // ajoute les 5 sub-routes principales. PortalDevWrapper injecte les
 // mock seller data, donc toutes les pages doivent render.
 
@@ -12,11 +12,11 @@ interface RouteSpec {
 }
 
 const SELLER_PORTAL_ROUTES: RouteSpec[] = [
-  { path: '/portail/visites', label: 'Visites' },
-  { path: '/portail/offres', label: 'Offres' },
-  { path: '/portail/documents', label: 'Documents' },
-  { path: '/portail/messages', label: 'Messages' },
-  { path: '/portail/analyse', label: 'Analyse' },
+  { path: '/portal/visits', label: 'Visites' },
+  { path: '/portal/offers', label: 'Offres' },
+  { path: '/portal/documents', label: 'Documents' },
+  { path: '/portal/messages', label: 'Messages' },
+  { path: '/portal/analytics', label: 'Analyse' },
 ]
 
 test.describe('Seller portal — parametric route coverage', () => {

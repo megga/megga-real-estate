@@ -7,7 +7,7 @@
 //   - Grid : panneau bon + rapport (gauche) | iPhone compagnon (droite)
 //
 // Sync Realtime : tout update push du mobile arrive ici via useVisitRealtime.
-// Route : /dashboard/visites/:id
+// Route : /dashboard/visits/:id
 
 import { useNavigate, useParams } from 'react-router-dom'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'

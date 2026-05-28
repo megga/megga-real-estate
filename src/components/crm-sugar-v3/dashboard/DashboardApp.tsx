@@ -91,7 +91,7 @@ export function DashboardApp({ embedded = true }: DashboardAppProps) {
     const ai = CK_DATA[ckMapPeriod(period)]?.aiHint
     audit('coach-cta-clicked', ai?.title, { period, cta: ai?.cta })
     // Stub : v1 ouvre le modal Visite (lien Sprint 2)
-    navigate('/dashboard/visites/nouveau')
+    navigate('/dashboard/visits/nouveau')
   }
 
   // Drilldown source de leads → Contacts filtrés (handoff §"Polish Entonnoir").

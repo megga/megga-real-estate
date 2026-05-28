@@ -287,7 +287,7 @@ function CardQuickActions({
           stop(e)
           const q = new URLSearchParams()
           if (!isMockId(contact.id)) q.set('contactId', contact.id)
-          navigate(`/dashboard/visites/nouveau${q.toString() ? '?' + q : ''}`)
+          navigate(`/dashboard/visits/nouveau${q.toString() ? '?' + q : ''}`)
         }}
         style={baseBtn()}
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
