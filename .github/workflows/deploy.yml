@@ -81,6 +81,7 @@ jobs:
           SB_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -e
+          # Only re-apply migrations dated today (YYYYMMDD, 8 chars).
           TODAY=$(date -u +%Y%m%d)
           PROJECT_REF=eayczugyrvmtqnnmvjod
           shopt -s nullglob
