@@ -45,14 +45,7 @@ interface SyncRequest {
 
 interface SyncStats {
   fetched: number
-  // Real row writes (full UPSERT). inserted + updated == upserted.
-  inserted: number
-  updated: number
   upserted: number
-  // Diff-aware optimization: rows whose significant fields didn't change get
-  // a single-column UPDATE of last_seen_at — orders of magnitude cheaper than
-  // a full UPSERT (touches one index instead of 19).
-  touched: number
   skipped: number
   errors: number
   pages: number
@@ -431,130 +424,25 @@ function mapListingToRow(ff: FlatfoxListing, nowIso: string, agencyProfileIdMap:
 // was reliably tripping 504 on the daily run. 25 rows × ~19 indexes per row
 // stays comfortably under 10s per batch under normal load.
 const UPSERT_BATCH = 25
-// `UPDATE … SET last_seen_at = … WHERE id IN (...)` is cheap (single column,
-// HOT updates likely) so we batch generously. 200 IDs per call keeps the URL
-// well under PostgREST limits and the statement under 1s.
-const TOUCH_BATCH = 200
-
-// Fields we consider "significant" — a change here means we re-write the full
-// row. Everything else (description, address, surface, rooms…) rarely changes
-// on a Flatfox listing once posted; if it does, the next price/photos diff
-// will catch the row anyway. Keeping this set small is the whole optimization.
-const DIFF_FIELDS = ['price', 'current_price', 'status', 'photos_count', 'title'] as const
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowHasChanged(existing: any, fresh: Record<string, any>): boolean {
-  for (const f of DIFF_FIELDS) {
-    const a = existing[f]
-    const b = fresh[f]
-    // Numeric fields: tolerate string/number drift from PostgREST.
-    if (f === 'price' || f === 'current_price' || f === 'photos_count') {
-      if (Number(a) !== Number(b)) return true
-    } else if (String(a ?? '') !== String(b ?? '')) {
-      return true
-    }
-  }
-  return false
-}
-
-// Diff-aware write: most rows on a daily sync are unchanged (~80%+ stable
-// inventory), so we split each page into three buckets:
-//   - inserted: source_id never seen → full UPSERT (creates the row)
-//   - updated:  source_id exists AND significant fields differ → full UPSERT
-//   - touched:  source_id exists AND nothing significant changed → cheap
-//               `UPDATE … SET last_seen_at = nowIso` on the pkey
-//
-// The touch path is the optimization. PostgreSQL's HOT-update mechanism
-// avoids maintaining the 19 indexes when only last_seen_at changes (only
-// idx_market_listings_last_seen is updated), turning a ~150ms multi-index
-// UPSERT into a ~5ms heap-only tuple update. With ~80% of rows hitting the
-// touch path, per-chunk cost drops from ~30s to ~3s — enough for the
-// self-invoke chain to actually complete and the sweep to fire.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function writeRowsDiffAware(supabase: any, rows: Record<string, any>[], nowIso: string): Promise<{ inserted: number; updated: number; touched: number; errors: number }> {
-  if (rows.length === 0) return { inserted: 0, updated: 0, touched: 0, errors: 0 }
-
-  // 1. Look up existing rows by (source_portal, source_id). One round trip
-  // per page — cheap thanks to the unique index market_listings_portal_source_unique.
-  const sourceIds = rows.map(r => String(r.source_id))
-  const cols = ['id', 'source_id', ...DIFF_FIELDS].join(',')
-  const { data: existing, error: selErr } = await supabase
-    .from('market_listings')
-    .select(cols)
-    .eq('source_portal', 'flatfox')
-    .in('source_id', sourceIds)
-
-  if (selErr) {
-    // Fall back to plain UPSERT — slower but correct. We never want a select
-    // failure to drop rows on the floor.
-    console.error('[diff select] error, falling back to plain upsert:', selErr.message)
-    return upsertAllAsFallback(supabase, rows)
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const existingMap = new Map<string, any>()
-  for (const e of (existing || [])) existingMap.set(String(e.source_id), e)
-
-  // 2. Partition.
-  const toWrite: Record<string, unknown>[] = []
-  const toTouchIds: string[] = []
-  let inserted = 0
-  let updated = 0
-  for (const r of rows) {
-    const e = existingMap.get(String(r.source_id))
-    if (!e) { toWrite.push(r); inserted++; continue }
-    if (rowHasChanged(e, r)) { toWrite.push(r); updated++; continue }
-    toTouchIds.push(e.id)
-  }
-
-  // 3. Execute the two write paths.
-  let errors = 0
-  let touched = 0
-
-  // 3a. Full UPSERT for new + changed rows (small batches, the slow path).
-  for (let i = 0; i < toWrite.length; i += UPSERT_BATCH) {
-    const batch = toWrite.slice(i, i + UPSERT_BATCH)
-    const { error } = await supabase
-      .from('market_listings')
-      .upsert(batch, { onConflict: 'source_portal,source_id' })
-    if (error) {
-      console.error(`upsert batch error (rows ${i}-${i + batch.length}):`, error.message)
-      errors += batch.length
-    }
-  }
-
-  // 3b. Touch-only UPDATE for unchanged rows (cheap, large batches).
-  for (let i = 0; i < toTouchIds.length; i += TOUCH_BATCH) {
-    const batch = toTouchIds.slice(i, i + TOUCH_BATCH)
-    const { error } = await supabase
-      .from('market_listings')
-      .update({ last_seen_at: nowIso })
-      .in('id', batch)
-    if (error) {
-      console.error(`touch batch error (ids ${i}-${i + batch.length}):`, error.message)
-      errors += batch.length
-    } else {
-      touched += batch.length
-    }
-  }
-
-  return { inserted, updated, touched, errors }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function upsertAllAsFallback(supabase: any, rows: Record<string, any>[]): Promise<{ inserted: number; updated: number; touched: number; errors: number }> {
+async function upsertRows(supabase: any, rows: Record<string, any>[]): Promise<{ upserted: number; errors: number }> {
+  if (rows.length === 0) return { upserted: 0, errors: 0 }
+  let upserted = 0
   let errors = 0
   for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
     const batch = rows.slice(i, i + UPSERT_BATCH)
     const { error } = await supabase
       .from('market_listings')
       .upsert(batch, { onConflict: 'source_portal,source_id' })
-    if (error) { errors += batch.length }
+    if (error) {
+      console.error(`upsert batch error (rows ${i}-${i + batch.length}):`, error.message)
+      errors += batch.length
+    } else {
+      upserted += batch.length
+    }
   }
-  // Without the diff select we can't split inserted vs updated — report
-  // everything in the `updated` bucket so the row count stays consistent
-  // (inserted+updated = total real writes).
-  return { inserted: 0, updated: rows.length - errors, touched: 0, errors }
+  return { upserted, errors }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -590,9 +478,6 @@ async function updateRunChunk(supabase: any, runId: string | undefined, stats: S
     await supabase.from('flatfox_sync_runs').update({
       total_expected: totalExpected || null,
       total_upserted: stats.upserted,
-      total_inserted: stats.inserted,
-      total_updated: stats.updated,
-      total_touched: stats.touched,
       total_errors: stats.errors,
       pages_fetched: stats.pages,
       chunks_completed: stats.chunks,
@@ -693,7 +578,7 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
     void _offset
     const syncStartAt = body.sync_start_at ?? new Date().toISOString()
     const mode = body.mode ?? 'chunk'
-    const stats: SyncStats = body.stats ?? { fetched: 0, inserted: 0, updated: 0, upserted: 0, touched: 0, skipped: 0, errors: 0, pages: 0, chunks: 0 }
+    const stats: SyncStats = body.stats ?? { fetched: 0, upserted: 0, skipped: 0, errors: 0, pages: 0, chunks: 0 }
     let totalExpected = body.total_expected ?? 0
 
     // ─── SWEEP MODE ───
@@ -788,11 +673,8 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
         if (row === null) { stats.skipped++; continue }
         rows.push(row)
       }
-      const { inserted, updated, touched, errors } = await writeRowsDiffAware(supabase, rows, nowIso)
-      stats.inserted += inserted
-      stats.updated += updated
-      stats.upserted += (inserted + updated) // real writes — back-compat with the old "upserted" total
-      stats.touched += touched
+      const { upserted, errors } = await upsertRows(supabase, rows)
+      stats.upserted += upserted
       stats.errors += errors
     }
 
