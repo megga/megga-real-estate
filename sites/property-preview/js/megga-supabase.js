@@ -4,11 +4,16 @@ window.MeggaSupabase = (function () {
   var BASE_URL = 'https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1';
   var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWN6dWd5cnZtdHFubm12am9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM4ODgsImV4cCI6MjA4OTE4OTg4OH0.T257g0ws-PmTTBSDBcUQF6WFvVRLmTFHUwIYMgmCrMw';
 
-  // filters: { transaction: 'louer'|'acheter', city, type, offset, limit }
+  // filters: { transaction: 'louer'|'acheter', offset, limit }
+  // IMPORTANT: only the base filters (transaction/status/quality) + ORDER BY
+  // created_at run server-side — that combination is covered by the partial
+  // index idx_ml_rent_active_created and returns in <1s. City / type / keyword
+  // filtering on ~59k rows has NO matching index and makes the request hang,
+  // so it's done CLIENT-SIDE (see megga-properties.js) over this recent pool.
   function fetchListings(filters) {
     var f = filters || {};
     var tx = f.transaction === 'acheter' ? 'buy' : 'rent';
-    var limit = f.limit || 24;
+    var limit = f.limit || 120;
     var offset = f.offset || 0;
     var cols = [
       'id', 'title', 'price', 'rent', 'current_price', 'address', 'city',
@@ -20,17 +25,7 @@ window.MeggaSupabase = (function () {
     params.set('transaction_type', 'eq.' + tx);
     params.set('status', 'eq.active');
     params.set('quality_score', 'gte.50');
-    // City: from the Localisation dropdown OR the free-text box. Uses the
-    // trigram index → fast. The free-text keyword only narrows WITHIN a city
-    // (small subset) to avoid an unindexed title scan over ~59k rows.
-    var city = f.city || f.q;
-    if (city) params.set('city', 'ilike.' + city + '%');
-    if (f.type) params.set('type', 'eq.' + f.type);
-    if (f.q && f.city) params.set('title', 'ilike.*' + f.q + '*');
-    // No ORDER BY: ordering by created_at on top of a city ILIKE filter (no
-    // matching index) makes Postgres scan/sort the whole filtered set and the
-    // request hangs (>15s). Without order, LIMIT lets it stop at first matches.
-    // Paginate via query params (not a Range header) — simpler CORS request.
+    params.set('order', 'created_at.desc');
     params.set('limit', String(limit));
     params.set('offset', String(offset));
 

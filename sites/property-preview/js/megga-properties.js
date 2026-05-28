@@ -78,15 +78,25 @@
     var tplHTML = template.outerHTML;
     grid.innerHTML = '<div id="megga-status" style="padding:24px;grid-column:1/-1">Chargement…</div>';
 
+    var ville = qp('ville').toLowerCase();
+    var kw = qp('q').toLowerCase();
     window.MeggaSupabase.fetchListings({
-      transaction: qp('transaction'), city: qp('ville'), type: qp('type'), q: qp('q'), limit: 24,
+      transaction: qp('transaction'), limit: 120,
     }).then(function (items) {
+      // City / keyword filtering is done here (no server index for it).
+      var filtered = items.filter(function (it) {
+        var c = (it.city || '').toLowerCase();
+        var t = (it.title || '').toLowerCase();
+        if (ville && c.indexOf(ville) < 0) return false;
+        if (kw && t.indexOf(kw) < 0 && c.indexOf(kw) < 0) return false;
+        return true;
+      }).slice(0, 24);
       grid.innerHTML = '';
-      if (!items.length) {
-        grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Aucun bien pour ces critères. Essayez une autre ville.</div>';
+      if (!filtered.length) {
+        grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Aucun bien récent pour « ' + (qp('ville') || qp('q') || '…') + ' ». Essayez une autre ville.</div>';
         return;
       }
-      items.forEach(function (it) {
+      filtered.forEach(function (it) {
         var wrap = document.createElement('div');
         wrap.innerHTML = tplHTML;
         var node = wrap.firstElementChild;
