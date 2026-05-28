@@ -25,6 +25,8 @@ export interface AgencyDirectoryItem {
   website_url: string | null
   status?: string | null
   specialties?: string[] | null
+  agent_count?: number | null
+  active_listings_count?: number | null
 }
 
 interface PxAgenciesGridProps {
@@ -239,6 +241,46 @@ function AgencyCardPx({ agency }: { agency: AgencyDirectoryItem }) {
             )}
             {verified && <VerifiedPill label={t('badge.verified')} />}
           </div>
+
+          {/* Stats row : agents + biens actifs (seulement si > 0) */}
+          {((agency.agent_count ?? 0) > 0 || (agency.active_listings_count ?? 0) > 0) && (
+            <div style={{
+              display: 'flex',
+              gap: 16,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              marginTop: 4,
+            }}>
+              {(agency.agent_count ?? 0) > 0 && (
+                <span style={{
+                  fontFamily: PX.font.display,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  lineHeight: 1.25,
+                  letterSpacing: '-0.39px',
+                  color: PX.neutral500,
+                  whiteSpace: 'nowrap',
+                }}>
+                  <strong style={{ fontWeight: 600, color: PX.neutral700 }}>{agency.agent_count}</strong>{' '}
+                  {t('agents', { count: agency.agent_count ?? 0 })}
+                </span>
+              )}
+              {(agency.active_listings_count ?? 0) > 0 && (
+                <span style={{
+                  fontFamily: PX.font.display,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  lineHeight: 1.25,
+                  letterSpacing: '-0.39px',
+                  color: PX.neutral500,
+                  whiteSpace: 'nowrap',
+                }}>
+                  <strong style={{ fontWeight: 600, color: PX.neutral700 }}>{agency.active_listings_count}</strong>{' '}
+                  {t('activeListings', { count: agency.active_listings_count ?? 0 })}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Primary Circle Button DARK 40 + chevron-right 16 (PxBlogTeaser exact) */}

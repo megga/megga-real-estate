@@ -112,5 +112,8 @@
   "agencies.withLogo": "{{count}} with logo",
   "agencies.noResult": "No agency found",
   "agencies.clearSearch": "Clear search",
-  "agencies.loadMore": "Show more ({{shown}} / {{total}})"
+  "agencies.loadMore": "Show more ({{shown}} / {{total}})",
+  "agency.notFound.title": "Agency not found",
+  "agency.notFound.subtitle": "This agency doesn't exist or is no longer listed.",
+  "agency.notFound.cta": "View all agencies"
 }

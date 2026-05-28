@@ -112,5 +112,8 @@
   "agencies.withLogo": "{{count}} avec logo",
   "agencies.noResult": "Aucune agence trouvée",
   "agencies.clearSearch": "Effacer la recherche",
-  "agencies.loadMore": "Voir plus ({{shown}} / {{total}})"
+  "agencies.loadMore": "Voir plus ({{shown}} / {{total}})",
+  "agency.notFound.title": "Agence introuvable",
+  "agency.notFound.subtitle": "Cette agence n'existe pas ou n'est plus référencée.",
+  "agency.notFound.cta": "Voir toutes les agences"
 }

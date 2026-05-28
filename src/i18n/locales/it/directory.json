@@ -112,5 +112,8 @@
   "agencies.withLogo": "{{count}} con logo",
   "agencies.noResult": "Nessuna agenzia trovata",
   "agencies.clearSearch": "Cancella ricerca",
-  "agencies.loadMore": "Mostra di più ({{shown}} / {{total}})"
+  "agencies.loadMore": "Mostra di più ({{shown}} / {{total}})",
+  "agency.notFound.title": "Agenzia non trovata",
+  "agency.notFound.subtitle": "Questa agenzia non esiste o non è più elencata.",
+  "agency.notFound.cta": "Vedi tutte le agenzie"
 }

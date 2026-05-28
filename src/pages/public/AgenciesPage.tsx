@@ -37,7 +37,7 @@ function useAgencies() {
       const requests = Array.from({ length: MAX_PAGES }, (_, i) =>
         supabase
           .from('agency_profiles')
-          .select('id, name, slug, canton, city, logo_url, website_url, status, specialties')
+          .select('id, name, slug, canton, city, logo_url, website_url, status, specialties, agent_count, active_listings_count')
           .order('name')
           .range(i * PAGE, (i + 1) * PAGE - 1)
       )
