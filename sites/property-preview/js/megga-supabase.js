@@ -1,15 +1,16 @@
-// Browser-side Supabase reader for the static marketplace.
-// The anon key is PUBLIC BY DESIGN (RLS-protected) — same key the app ships.
+// Browser-side reader for the static marketplace.
+// Calls our SAME-ORIGIN proxy /api/listings (handled by _worker.js) instead
+// of supabase.co directly — avoids any browser/CORS/throttle issues on the
+// visitor's side; the worker holds the anon key server-side and forwards.
+//
+// IMPORTANT: only the base filters (transaction/status/quality) + ORDER BY
+// created_at are sent server-side — that combination is covered by the
+// partial index idx_ml_rent_active_created and returns fast. City / type /
+// keyword filtering on ~59k rows has no matching index so it's done
+// CLIENT-SIDE in megga-properties.js over the recent pool returned here.
 window.MeggaSupabase = (function () {
-  var BASE_URL = 'https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1';
-  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWN6dWd5cnZtdHFubm12am9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM4ODgsImV4cCI6MjA4OTE4OTg4OH0.T257g0ws-PmTTBSDBcUQF6WFvVRLmTFHUwIYMgmCrMw';
+  var PROXY_URL = '/api/listings';
 
-  // filters: { transaction: 'louer'|'acheter', offset, limit }
-  // IMPORTANT: only the base filters (transaction/status/quality) + ORDER BY
-  // created_at run server-side — that combination is covered by the partial
-  // index idx_ml_rent_active_created and returns in <1s. City / type / keyword
-  // filtering on ~59k rows has NO matching index and makes the request hang,
-  // so it's done CLIENT-SIDE (see megga-properties.js) over this recent pool.
   function fetchListings(filters) {
     var f = filters || {};
     var tx = f.transaction === 'acheter' ? 'buy' : 'rent';
@@ -29,15 +30,14 @@ window.MeggaSupabase = (function () {
     params.set('limit', String(limit));
     params.set('offset', String(offset));
 
-    // Client-side timeout so the page never stays stuck on "Chargement…".
+    // Client-side timeout (the worker also has its own 10s upstream timeout).
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var to = ctrl ? setTimeout(function () { ctrl.abort(); }, 15000) : null;
-    return fetch(BASE_URL + '/market_listings?' + params.toString(), {
-      headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY },
+    var to = ctrl ? setTimeout(function () { ctrl.abort(); }, 12000) : null;
+    return fetch(PROXY_URL + '?' + params.toString(), {
       signal: ctrl ? ctrl.signal : undefined,
     }).then(function (res) {
       if (to) clearTimeout(to);
-      if (!res.ok) throw new Error('Supabase ' + res.status);
+      if (!res.ok) throw new Error('proxy ' + res.status);
       return res.json();
     });
   }
@@ -49,5 +49,5 @@ window.MeggaSupabase = (function () {
     return 'CHF ' + Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
   }
 
-  return { BASE_URL: BASE_URL, ANON_KEY: ANON_KEY, fetchListings: fetchListings, formatCHF: formatCHF };
+  return { PROXY_URL: PROXY_URL, fetchListings: fetchListings, formatCHF: formatCHF };
 })();
