@@ -12,7 +12,10 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
-    include: ['tests/unit/**/*.{spec,test}.{ts,tsx}', 'supabase/functions/_shared/**/*.test.ts'],
+    // Only whatsapp-gateway from _shared runs under Node/Vitest (Web Crypto only).
+    // Other _shared modules (e.g. pii-redaction) use Deno https: imports that the
+    // Node ESM loader can't resolve — they must NOT be globbed into the unit run.
+    include: ['tests/unit/**/*.{spec,test}.{ts,tsx}', 'supabase/functions/_shared/whatsapp-gateway.test.ts'],
     exclude: ['node_modules', 'dist', 'tests/e2e/**', 'tests/e2e-admin/**', 'tests/ai/**'],
     css: false,
   },
