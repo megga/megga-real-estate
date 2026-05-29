@@ -114,7 +114,7 @@
     {
       "key": "megga/flow-pipeline",
       "namespace": "megga",
-      "value": "FLUX B (contact -> closing): lead (import IA/web/portal) -> contacts -> qualif (score) -> visits -> offres (crm_offers + contre-offres, trigger audit) -> transactions stages (lead->qualified->visit->offer->negotiation->reserved->financing->notary->signed->closed) -> gate KYC (LBA art.7, WARN non bloquant, revu MLRO) -> closing + activity_events.",
+      "value": "FLUX B (contact -> closing): lead (import IA/web/portal) -> contacts -> qualif (score) -> visits -> offres (crm_offers + contre-offres, trigger audit) -> transactions stages (new_lead->to_qualify->active_search->visit_planned->visit_done->interest_confirmed->offer->negotiation->reserved->financing->notary->signed) -> gate KYC (LBA art.7, WARN non bloquant, revu MLRO) -> closing + activity_events.",
       "tags": "flow,pipeline,transactions"
     },
     {
@@ -246,7 +246,7 @@
     {
       "key": "megga/transaction-stages",
       "namespace": "megga",
-      "value": "Pipeline transaction_stage (ordre): lead -> qualified -> visit_planned -> offer -> negotiation -> reserved -> financing -> notary -> signed -> closed. Le passage vers offer/reserved/financing/notary/signed declenche le gate KYC (monitor_transaction_kyc_gate, LBA art.7, WARN non bloquant, revu MLRO). Offres via crm_offers (+ crm_offers_history immutable), contre-offres via parent_offer_id.",
+      "value": "Pipeline transaction_stage (DB ~18 valeurs, 14 canoniques): new_lead -> to_qualify -> active_search (+to_recontact) -> visit_planned -> visit_done -> interest_confirmed -> offer -> negotiation -> reserved -> financing -> notary -> signed (closed obsolete) ; + lost. Kanban UI = 9 colonnes qui AGREGENT (la colonne 'offer' regroupe offer+negotiation+reserved+financing+notary). Stepper du deal = 8 cercles. status transaction: active/on_hold/cancelled/completed. mandate_type: simple/exclusive/semi_exclusive.",
       "tags": "pipeline,transactions,enums"
     },
     {
@@ -476,6 +476,48 @@
       "namespace": "megga",
       "value": "Score engine (DISTINCT du matching: matches.score = 'fit' vs score-engine = 'qualite'). Contact buyer score: reactivite 20% (temps entre interactions), engagement 25% (interactions 30j + tendance), coherence budget 20% (biens visites vs declare), qualite visites 20% (reliability done/no-show + rating), conversion 15% (stade pipeline + offre) -> table contact_scores (+ conversionProbability). Property heat score: market position 30%, interest level 25%, freshness 25% (jours en ligne), price trend 20% (baisse=opportunite) -> property_scores. Calcule par RPC calculate_contact_scores / calculate_property_scores.",
       "tags": "scoring,score-engine,intelligence"
+    },
+    {
+      "key": "megga/transactions-table",
+      "namespace": "megga",
+      "value": "Table transactions (coeur du pipeline de closing): agency_id, property_id, contact_buyer_id, contact_seller_id, assigned_to (agent responsable), stage (enum transaction_stage), status (active/on_hold/cancelled/completed), price_offered/price_final (BIGINT CHF), mandate_type (simple/exclusive/semi_exclusive), notes, created/updated_at. RLS agency-scoped (agency_id via profiles de auth.uid()), super_admin SELECT all.",
+      "tags": "transactions,database,pipeline"
+    },
+    {
+      "key": "megga/pipeline-kanban",
+      "namespace": "megga",
+      "value": "Pipeline Kanban (PipelineSugarV2Page): 9 colonnes UI (CRM_STAGES dans crm-sugar/tokens.ts) qui AGREGENT les sous-stages: new-lead, to-qualify, searching (active_search+to_recontact), visit-scheduled, visit-done, interest-confirmed, offer (regroupe offer+negotiation+reserved+financing+notary), signed, lost. Drag-drop dnd-kit: overlay optimiste -> useUpdateTransactionStage -> UPDATE transactions.stage -> trigger monitor_transaction_kyc_gate -> activity_event. PIEGE: useUpdateTransactionStage ecrit 2 tables (transactions + activity_events) donc reste en useMutation brut avec invalidateQueries explicite (pas Cache Helpers).",
+      "tags": "transactions,pipeline,kanban,frontend"
+    },
+    {
+      "key": "megga/deal-detail",
+      "namespace": "megga",
+      "value": "DealDetailSugarV3Page (/dashboard/transactions/:id): DdStageStepper = 8 cercles (mapTransactionStageToStepper agrege offer..notary en 'Offre'). Banniere KYC BLOQUANTE UI si stage dans {interest_confirmed, offer, signed} ET kyc_status != verified -> blocker rouge avec option override (raison texte, audit severity=critical si signed sinon warn). Timeline des offres via useOfferChain(deal_id) (RPC, parent_offer_id = filiation). Activity log (activity_events entity_type transaction/crm_offer).",
+      "tags": "transactions,deal,frontend"
+    },
+    {
+      "key": "megga/offers-model",
+      "namespace": "megga",
+      "value": "Offres: crm_offers (deal_id, parent_offer_id NULL=racine sinon contre-offre, kind offer/counter, from_party buyer/seller, by_id/by_label, amount CHF, conditions JSONB {financing/sale/diagnostic/occupancy toggles + texte 'autres'}, deposit, closing_date, expires_at, status pending/accepted/rejected/expired/withdrawn, attachments). crm_offers_history immutable (preuve LBA 10 ans). Cron crm-offers-expire-hourly (0 * * * *, expire_crm_offers_now) -> expire les pending echus. Trigger audit_crm_offer_event (SECURITY DEFINER) loggue creation/contre-offre/acceptee/refusee/expiree.",
+      "tags": "transactions,offers,database"
+    },
+    {
+      "key": "megga/offers-wizard",
+      "namespace": "megga",
+      "value": "Offre wizard (OfferModalSugarV3Page, /transactions/:id/offre/nouvelle ou /contre): 3 etapes — 1) Montant (amount CHF + ecart vs prix demande, deposit, closing_date), 2) Conditions (4 toggles financing/sale/diagnostic/occupancy + texte libre 'autres conditions'), 3) Delai & envoi (expires_at 24h/48h/7j/custom + recap). Submit useCreateOffer -> INSERT crm_offers -> trigger audit -> retour DealDetail. kind=offer (acheteur) ou counter (contre-offre depuis la derniere).",
+      "tags": "transactions,offers,wizard,frontend"
+    },
+    {
+      "key": "megga/visits",
+      "namespace": "megga",
+      "value": "Visites: table visits (extensions Sprint2: duration_minutes def 45, agent_id, bon JSONB {generatedAt, signedAt, docId, visitorNames/Ids}, rapport JSONB {sentiment hot/warm/cool/cold, interestLevel 0-10, highlights, objections, nextSteps, photos, voiceNote, followUpScheduledAt}). status DB planned/confirmed/done/no_show/cancelled -> front scheduled/done/no-show/cancelled. VisitModalSugarV3Page (3 etapes: bien+visiteur, date/heure/duree 30/45/60/90, confirmation + toggles email/bon/signature). VisitDetailSugarV3Page (bon imprimable + rapport). Les objections (rapport) alimentent l'analyse IA affichee anonymisee au portail vendeur.",
+      "tags": "transactions,visits,frontend"
+    },
+    {
+      "key": "megga/transaction-kyc-gate",
+      "namespace": "megga",
+      "value": "Gate KYC transactions (trigger monitor_transaction_kyc_gate AFTER UPDATE OF stage, NON BLOQUANT = monitoring only). Declenche sur transition vers offer/negotiation/reserved/financing/notary/signed/closed. Logique: skip si transition interne entre 2 stages surveilles (grandfather), si pas de buyer (mandat vente seul), ou montant < 100'000 CHF (seuil LBA art.7). Sinon lit kyc_cases du buyer: verified+non expire -> silence; sinon INSERT activity_events severity=warn metadata (attempted_stage, kyc_status, amount, mode=monitoring_only). PAS de RAISE: l'agent continue, le MLRO filtre category=deal severity=warn. NB: a ne pas confondre avec guard_manual_kyc_verified (blocage dur cote dossier KYC).",
+      "tags": "transactions,kyc,compliance,gate"
     }
   ]
 }
