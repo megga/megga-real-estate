@@ -11,6 +11,8 @@ export { PX, type PxPalette } from './tokens'
 // Buttons
 export { default as PxButton, PxArrowRight, PxCircleButton } from './PxButton'
 export type { PxButtonVariant, PxButtonSize } from './PxButton'
+export { default as PxWhatsAppButton, buildWaMeUrl } from './PxWhatsAppButton'
+export type { PxWhatsAppVariant, PxWhatsAppSize } from './PxWhatsAppButton'
 
 // Badges
 export { default as PxBadge } from './PxBadge'

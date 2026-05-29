@@ -12,7 +12,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
-    include: ['tests/unit/**/*.{spec,test}.{ts,tsx}'],
+    include: ['tests/unit/**/*.{spec,test}.{ts,tsx}', 'supabase/functions/_shared/**/*.test.ts'],
     exclude: ['node_modules', 'dist', 'tests/e2e/**', 'tests/e2e-admin/**', 'tests/ai/**'],
     css: false,
   },

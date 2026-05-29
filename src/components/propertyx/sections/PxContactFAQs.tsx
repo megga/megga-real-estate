@@ -1,46 +1,62 @@
 // MEGGA Marketplace — Property X "Contact V1 — FAQs" section.
-// Source : Figma node 11774:16850 — code Figma EXACT.
+// Source visuelle : Figma node 11774:16850.
 //
 // Anatomie :
-// - Section py-80 centered, h=819
-// - Top Content : Badge "FAQs" + H2 "Frequently asked questions" 48 + paragraph
-// - Accordion 843×449 : bg-neutral100 rounded-20 shadow-small
-//   - paddingTop 44 / paddingBottom 38 (Figma exact : wrapper at y=44 within accordion)
-//   - 4 items, items have NO vertical padding (only paddingX 40)
-//     - Item collapsed : title 30h + plus icon abs right (18.385 size)
-//     - Item expanded : title 30 + 16 gap + answer 48 = 94h + minus dark button abs right (40×40)
-//   - Spacing inter-items : 30+1+30 = 61 avec divider 1px neutral300 au centre
+// - Section py-80 centered
+// - Top Content : Badge + H2 + paragraph
+// - Accordion 843 wide : bg-neutral100 rounded-20 shadow-small
+//   - 4 items pliables (par défaut le premier ouvert)
+//   - Item collapsed : title 24 + plus icon (18.385 size)
+//   - Item expanded : title + answer 16/1.5 + minus button (40×40 dark)
+//   - Spacing inter-items : padding 30/30 avec divider 1px neutral300
 //
-// Total accordion : 44 + 94 + 60 + 30 + 60 + 30 + 60 + 30 + 38 = 446 (≈ Figma 449)
+// Différences avec le Figma de base :
+//   - Contenu FR (vraies FAQs MEGGA : estimation, mandat, marketplace, KYC)
+//   - Items configurables via props
+//   - Accordéon : `defaultOpen` configurable, click pour ouvrir/fermer
+//   - JSON-LD FAQ rendu par la page parente, pas ici (séparation des concerns)
 
 import { Fragment, useState } from 'react'
 import { PX, PxFigmaIcon } from '..'
 
-interface FAQItem {
+export interface FAQItem {
   question: string
   answer: string
 }
 
-const FAQS: FAQItem[] = [
+interface PxContactFAQsProps {
+  badge?: string
+  title?: string
+  description?: string
+  faqs?: FAQItem[]
+  /** Index de l'item ouvert par défaut. -1 pour tout fermer. */
+  defaultOpenIndex?: number
+}
+
+const DEFAULT_FAQS: FAQItem[] = [
   {
-    question: 'How can I post my house for sale?',
-    answer: 'Lorem ipsum dolor sit amet consectetur et ullamcorper morbi lectus fermentum viverra malesuada consequat.',
+    question: 'Sous combien de temps recevrai-je une réponse ?',
+    answer:
+      'Un membre de l’équipe MEGGA répond personnellement à chaque message sous 24 heures ouvrées. Les demandes urgentes (visite déjà programmée, dossier en cours) sont traitées en priorité.',
   },
   {
-    question: 'What is your realtor sale commission?',
-    answer: 'Lorem ipsum dolor sit amet consectetur et ullamcorper morbi lectus fermentum viverra malesuada consequat.',
+    question: 'Puis-je faire estimer mon bien gratuitement ?',
+    answer:
+      'Oui. L’estimation MEGGA combine une analyse algorithmique (~30 secondes) et la validation d’un agent local sur place, sans aucun engagement. Vous recevez un rapport PDF en moins de 48 heures.',
   },
   {
-    question: 'Which type of house do you take for promoting?',
-    answer: 'Lorem ipsum dolor sit amet consectetur et ullamcorper morbi lectus fermentum viverra malesuada consequat.',
+    question: 'Quels sont vos frais de mandat ?',
+    answer:
+      'Nos honoraires de mandat exclusif s’élèvent à 3 % HT du prix de vente, intégralement à la charge du vendeur et uniquement dus en cas de transaction signée chez le notaire. Aucun frais caché, aucun frais de retrait.',
   },
   {
-    question: "What's the average time to sale a house?",
-    answer: 'Lorem ipsum dolor sit amet consectetur et ullamcorper morbi lectus fermentum viverra malesuada consequat.',
+    question: 'Comment publier mon bien sur la marketplace MEGGA ?',
+    answer:
+      'Les particuliers passent par notre page « Publier un bien » : photos, description, prix et coordonnées. La diffusion sur megga.ch est gratuite. Les agences professionnelles bénéficient d’une intégration automatisée via notre CRM.',
   },
 ]
 
-function FaqsBadge() {
+function FaqsBadge({ label }: { label: string }) {
   return (
     <span style={{
       display: 'inline-flex',
@@ -73,7 +89,7 @@ function FaqsBadge() {
         color: PX.neutral700,
         paddingTop: 2,
       }}>
-        FAQs
+        {label}
       </span>
     </span>
   )
@@ -93,6 +109,7 @@ function AccordionItem({ item, isOpen, onToggle }: {
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
         style={{
           display: 'block',
           width: '100%',
@@ -107,9 +124,9 @@ function AccordionItem({ item, isOpen, onToggle }: {
           margin: 0,
           fontFamily: PX.font.sans,
           fontWeight: 500,
-          fontSize: 24,
-          lineHeight: 1.25,
-          letterSpacing: '-0.72px',
+          fontSize: 22,
+          lineHeight: 1.3,
+          letterSpacing: '-0.66px',
           color: PX.neutral700,
           paddingRight: 60,
         }}>
@@ -122,10 +139,10 @@ function AccordionItem({ item, isOpen, onToggle }: {
               fontFamily: PX.font.sans,
               fontWeight: 400,
               fontSize: 16,
-              lineHeight: 1.5,
+              lineHeight: 1.55,
               letterSpacing: '-0.48px',
               color: PX.neutral500,
-              maxWidth: 470,
+              maxWidth: 600,
             }}>
               {item.answer}
             </p>
@@ -133,24 +150,23 @@ function AccordionItem({ item, isOpen, onToggle }: {
         )}
       </button>
 
-      {/* Right-side icon/button — absolutely positioned so it doesn't add to item height */}
       <div style={{
         position: 'absolute',
-        top: isOpen ? -5 : 6,  // Figma : minus button is 40h centered with title 30, so -5 ; plus icon 18 → roughly 6 to center on title
+        top: isOpen ? -2 : 4,
         right: 40,
         pointerEvents: 'none',
       }}>
         {isOpen ? (
           <span style={{
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             borderRadius: PX.radius.pill,
             background: PX.neutral700,
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10" stroke={PX.neutral100} strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </span>
@@ -167,8 +183,17 @@ function AccordionItem({ item, isOpen, onToggle }: {
   )
 }
 
-export default function PxContactFAQs() {
-  const [openIdx, setOpenIdx] = useState<number>(0)
+export default function PxContactFAQs(props: PxContactFAQsProps = {}) {
+  const {
+    badge = 'Questions fréquentes',
+    title = 'Vos questions, nos réponses',
+    description =
+      'Les réponses aux questions qui reviennent le plus souvent. Si la vôtre n’y est pas, écrivez-nous — nous répondons sous 24 heures ouvrées.',
+    faqs = DEFAULT_FAQS,
+    defaultOpenIndex = 0,
+  } = props
+
+  const [openIdx, setOpenIdx] = useState<number>(defaultOpenIndex)
 
   return (
     <section style={{
@@ -181,22 +206,21 @@ export default function PxContactFAQs() {
       alignItems: 'center',
       background: PX.pageBg,
     }}>
-      {/* Top Content */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <FaqsBadge />
+        <FaqsBadge label={badge} />
         <div style={{ paddingTop: 16 }}>
           <h2 style={{
             margin: 0,
             fontFamily: PX.font.sans,
             fontWeight: 500,
             fontSize: 48,
-            lineHeight: 1.25,
+            lineHeight: 1.1,
             letterSpacing: '-1.44px',
             color: PX.neutral700,
             textAlign: 'center',
             maxWidth: 686,
           }}>
-            Frequently asked questions
+            {title}
           </h2>
         </div>
         <div style={{ paddingTop: 16, paddingBottom: 32 }}>
@@ -211,12 +235,11 @@ export default function PxContactFAQs() {
             textAlign: 'center',
             maxWidth: 562,
           }}>
-            Lorem ipsum dolor sit amet consectetur. Id eu mi ac ac aliquam etiam ultrices augue convallis nunc ultrices amet consequat adipiscing.
+            {description}
           </p>
         </div>
       </div>
 
-      {/* Accordion */}
       <div style={{
         background: PX.neutral100,
         width: 843,
@@ -227,14 +250,14 @@ export default function PxContactFAQs() {
         paddingBottom: 38,
         boxSizing: 'border-box',
       }}>
-        {FAQS.map((item, idx) => (
+        {faqs.map((item, idx) => (
           <Fragment key={item.question}>
             <AccordionItem
               item={item}
               isOpen={openIdx === idx}
               onToggle={() => setOpenIdx(openIdx === idx ? -1 : idx)}
             />
-            {idx < FAQS.length - 1 && (
+            {idx < faqs.length - 1 && (
               <div style={{ paddingTop: 30, paddingBottom: 30 }}>
                 <hr style={{
                   height: 1,

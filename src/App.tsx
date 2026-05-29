@@ -153,6 +153,7 @@ const HelpCategoryPage = lazy(() => import('@/pages/public/HelpCategoryPage'))
 const HelpArticlePage = lazy(() => import('@/pages/public/HelpArticlePage'))
 const HelpStartPage = lazy(() => import('@/pages/public/HelpStartPage'))
 const HelpContactPage = lazy(() => import('@/pages/public/HelpContactPage'))
+const ContactPage = lazy(() => import('@/pages/public/ContactPage'))
 const HelpStatusPage = lazy(() => import('@/pages/public/HelpStatusPage'))
 const HelpChangelogPage = lazy(() => import('@/pages/public/HelpChangelogPage'))
 const HelpShortcutsPage = lazy(() => import('@/pages/public/HelpShortcutsPage'))
@@ -291,6 +292,7 @@ function AnimatedRoutes() {
               <Route path="/acheter-legacy" element={<SearchPage />} />
               <Route path="/louer-legacy" element={<LouerPage />} />
               <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
               <Route path="/vendre" element={<VendrePage />} />
               <Route path="/estimations" element={<EstimationsPage />} />
               <Route path="/estimer" element={<EstimationsPage />} />
