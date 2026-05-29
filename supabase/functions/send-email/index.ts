@@ -265,6 +265,63 @@ function ticketResolved(data: Record<string, unknown>): { subject: string; html:
   return { subject: emailSubject, html: wrapHTML(emailSubject, bodyHTML) }
 }
 
+// ── Template: Contact Form — confirmation au visiteur ──────────
+
+function contactConfirmation(data: Record<string, unknown>): { subject: string; html: string } {
+  const name    = (data.name    as string) || ''
+  const subject = (data.subject as string) || ''
+  const message = (data.message as string) || ''
+  const firstName = name.split(' ')[0] || name
+
+  const emailSubject = 'Nous avons bien reçu votre message — MEGGA'
+
+  const bodyHTML = [
+    p(`Bonjour ${firstName},`),
+    p('Merci de nous avoir écrit. Votre message est bien arrivé et un membre de l\'équipe MEGGA vous répondra <strong>sous 24 heures ouvrées</strong>.'),
+    box(`
+      ${subject ? row('Sujet', subject) : ''}
+      <div style="border-top:1px solid #e5e7eb;margin:8px 0"></div>
+      <p style="margin:0;font-size:13px;color:#374151;white-space:pre-wrap">${message.substring(0, 400)}${message.length > 400 ? '…' : ''}</p>
+    `),
+    p('En attendant, vous pouvez explorer nos biens disponibles ou estimer votre logement en moins de 2 minutes :'),
+    cta('Voir les biens disponibles', 'https://megga.ch/acheter'),
+    p('<span style="font-size:12px;color:#9ca3af">Vous pouvez répondre directement à cet email pour compléter votre demande.</span>'),
+  ].join('\n')
+
+  return { subject: emailSubject, html: wrapHTML(emailSubject, bodyHTML) }
+}
+
+// ── Template: Contact Form — notification admin ─────────────────
+
+function contactNotificationAdmin(data: Record<string, unknown>): { subject: string; html: string } {
+  const name    = (data.name    as string) || 'Inconnu'
+  const email   = (data.email   as string) || ''
+  const phone   = (data.phone   as string) || 'Non renseigné'
+  const subject = (data.subject as string) || '(sans sujet)'
+  const message = (data.message as string) || ''
+  const lang    = (data.lang    as string) || 'fr'
+  const dashboardUrl = (data.dashboard_url as string) || 'https://megga.ch/dashboard'
+
+  const emailSubject = `Nouveau message contact — ${name}`
+
+  const bodyHTML = [
+    p('<strong>Nouveau message via la page /contact</strong>'),
+    box(`
+      ${row('Nom', name)}
+      ${row('Email', email)}
+      ${row('Téléphone', phone)}
+      ${row('Langue', lang.toUpperCase())}
+      ${row('Sujet', subject)}
+      <div style="border-top:1px solid #e5e7eb;margin:8px 0"></div>
+      <p style="margin:0;font-size:13px;color:#374151;white-space:pre-wrap">${message}</p>
+    `),
+    cta('Voir dans le back-office', dashboardUrl),
+    p(`<span style="font-size:12px;color:#9ca3af">Pour répondre, écrivez directement à <a href="mailto:${email}">${email}</a>.</span>`),
+  ].join('\n')
+
+  return { subject: emailSubject, html: wrapHTML(emailSubject, bodyHTML) }
+}
+
 // ── Main handler ────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -276,7 +333,7 @@ serve(async (req) => {
     const { to, subject: overrideSubject, template, data }: SendEmailRequest = await req.json()
 
     // ── Auth check (skip for public templates) ──────────────────────────────
-    const PUBLIC_TEMPLATES = ['ticket_confirmation', 'visit_confirmation_buyer']
+    const PUBLIC_TEMPLATES = ['ticket_confirmation', 'visit_confirmation_buyer', 'contact_confirmation', 'contact_notification_admin']
     const isPublicTemplate = PUBLIC_TEMPLATES.includes(template)
     if (!isPublicTemplate) {
       const authHeader = req.headers.get('Authorization')
@@ -335,6 +392,18 @@ serve(async (req) => {
       }
       case 'ticket_resolved': {
         const result = ticketResolved(data)
+        emailSubject = overrideSubject || result.subject
+        emailHtml = result.html
+        break
+      }
+      case 'contact_confirmation': {
+        const result = contactConfirmation(data)
+        emailSubject = overrideSubject || result.subject
+        emailHtml = result.html
+        break
+      }
+      case 'contact_notification_admin': {
+        const result = contactNotificationAdmin(data)
         emailSubject = overrideSubject || result.subject
         emailHtml = result.html
         break
