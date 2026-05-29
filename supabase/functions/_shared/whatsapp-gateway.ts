@@ -1,0 +1,130 @@
+// Couche d'abstraction provider WhatsApp. Le code applicatif (edge function,
+// futur envoi) parle à cette interface, jamais directement à OpenWA ni Meta.
+// Phase 1 : entrant seulement (parseInbound + verifyHmac). L'envoi (send) sera
+// ajouté en Phase 2.
+// N'utilise que la Web Crypto API → testable Vitest (Node) ET exécutable Deno.
+
+export interface NormalizedInboundMessage {
+  providerMessageId: string
+  sessionId: string | null
+  fromPhone: string
+  toPhone: string | null
+  body: string | null
+  mediaType: NormalizedMediaType | null
+  mediaUrl: string | null
+  timestamp: string | null
+  raw: unknown
+}
+
+export type NormalizedMediaType =
+  | 'image' | 'audio' | 'video' | 'document' | 'location' | 'contact' | 'sticker'
+
+export interface WhatsAppProvider {
+  readonly name: 'openwa' | 'meta'
+  parseInbound(payload: unknown): NormalizedInboundMessage | null
+}
+
+export function normalizePhone(jid: string): string {
+  return (jid || '').split('@')[0].replace(/\D/g, '')
+}
+
+const OPENWA_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
+  image: 'image', audio: 'audio', ptt: 'audio', video: 'video',
+  document: 'document', location: 'location', vcard: 'contact', sticker: 'sticker',
+}
+
+export async function verifyHmac(rawBody: string, signatureHeader: string, secret: string): Promise<boolean> {
+  if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false
+  const provided = signatureHeader.slice('sha256='.length)
+  const enc = new TextEncoder()
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(rawBody))
+  const expected = [...new Uint8Array(sigBuf)].map(b => b.toString(16).padStart(2, '0')).join('')
+  if (provided.length !== expected.length) return false
+  let diff = 0
+  for (let i = 0; i < expected.length; i++) diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i)
+  return diff === 0
+}
+
+class OpenWAProvider implements WhatsAppProvider {
+  readonly name = 'openwa' as const
+
+  parseInbound(payload: unknown): NormalizedInboundMessage | null {
+    const p = payload as Record<string, unknown>
+    if (!p || p.event !== 'message.received') return null
+    const data = (p.data ?? {}) as Record<string, unknown>
+    const id = data.id as string | undefined
+    const from = data.from as string | undefined
+    if (!id || !from) return null
+    const type = (data.type as string) || 'chat'
+    const mediaType = OPENWA_TYPE_TO_MEDIA[type] ?? null
+    const ts = data.timestamp as number | undefined
+    return {
+      providerMessageId: id,
+      sessionId: (p.sessionId as string) ?? null,
+      fromPhone: normalizePhone(from),
+      toPhone: data.to ? normalizePhone(data.to as string) : null,
+      body: (data.body as string) || (data.caption as string) || null,
+      mediaType,
+      mediaUrl: (data.mediaUrl as string) ?? null,
+      timestamp: ts ? new Date(ts * 1000).toISOString() : null,
+      raw: payload,
+    }
+  }
+}
+
+// ── Meta Cloud API provider ──────────────────────────────────────
+// Payload Meta : { object:'whatsapp_business_account', entry:[{ changes:[{
+//   field:'messages', value:{ messages:[...], metadata:{...} } }] }] }
+// Signature : header X-Hub-Signature-256 = sha256=HMAC-SHA256(app_secret, rawBody)
+// → on réutilise verifyHmac() tel quel (même schéma que OpenWA).
+
+const META_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
+  image: 'image', audio: 'audio', voice: 'audio', video: 'video',
+  document: 'document', location: 'location', contacts: 'contact', sticker: 'sticker',
+}
+
+class MetaProvider implements WhatsAppProvider {
+  readonly name = 'meta' as const
+
+  parseInbound(payload: unknown): NormalizedInboundMessage | null {
+    const p = payload as Record<string, unknown>
+    if (!p || p.object !== 'whatsapp_business_account') return null
+    const entry = (p.entry as Record<string, unknown>[] | undefined)?.[0]
+    const changes = entry?.changes as Record<string, unknown>[] | undefined
+    const change = changes?.find((c) => c.field === 'messages') ?? changes?.[0]
+    const value = change?.value as Record<string, unknown> | undefined
+    const message = (value?.messages as Record<string, unknown>[] | undefined)?.[0]
+    if (!message) return null // statuses-only / events non-message → ignorer
+    const metadata = value?.metadata as Record<string, unknown> | undefined
+    const type = (message.type as string) || 'text'
+    const text = message.text as { body?: string } | undefined
+    const mediaObj = message[type] as { caption?: string } | undefined
+    const tsRaw = message.timestamp as string | number | undefined
+    const ts = tsRaw != null ? Number(tsRaw) : undefined
+    return {
+      providerMessageId: message.id as string,
+      sessionId: (metadata?.phone_number_id as string) ?? null,
+      fromPhone: normalizePhone(message.from as string),
+      toPhone: metadata?.display_phone_number
+        ? normalizePhone(metadata.display_phone_number as string)
+        : ((metadata?.phone_number_id as string) ?? null),
+      body: text?.body ?? mediaObj?.caption ?? null,
+      mediaType: META_TYPE_TO_MEDIA[type] ?? null,
+      mediaUrl: null, // média Meta = media_id → fetch séparé via Graph API (Phase 2)
+      timestamp: ts ? new Date(ts * 1000).toISOString() : null,
+      raw: payload,
+    }
+  }
+}
+
+const PROVIDERS: Record<string, WhatsAppProvider> = {
+  openwa: new OpenWAProvider(),
+  meta: new MetaProvider(),
+}
+
+export function getProvider(name = 'openwa'): WhatsAppProvider {
+  const p = PROVIDERS[name]
+  if (!p) throw new Error(`Unknown WhatsApp provider: ${name}`)
+  return p
+}

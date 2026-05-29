@@ -1203,6 +1203,54 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          consent_privacy: boolean
+          created_at: string
+          email: string
+          id: string
+          lang: string
+          message: string
+          name: string
+          phone: string | null
+          responded_at: string | null
+          responded_by: string | null
+          source: string
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          consent_privacy: boolean
+          created_at?: string
+          email: string
+          id?: string
+          lang?: string
+          message: string
+          name: string
+          phone?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          source?: string
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          consent_privacy?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          lang?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          source?: string
+          status?: string
+          subject?: string | null
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           agency_id: string | null
@@ -3088,6 +3136,63 @@ export type Database = {
           source?: string
           status?: string
           unsubscribed_at?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_messages: {
+        Row: {
+          agency_id: string | null
+          body: string | null
+          contact_id: string | null
+          created_at: string
+          direction: string
+          id: string
+          media_type: string | null
+          media_url: string | null
+          provider: string
+          provider_message_id: string
+          raw: Json | null
+          session_id: string | null
+          status: string
+          wa_from: string
+          wa_timestamp: string | null
+          wa_to: string | null
+        }
+        Insert: {
+          agency_id?: string | null
+          body?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          provider?: string
+          provider_message_id: string
+          raw?: Json | null
+          session_id?: string | null
+          status?: string
+          wa_from: string
+          wa_timestamp?: string | null
+          wa_to?: string | null
+        }
+        Update: {
+          agency_id?: string | null
+          body?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          provider?: string
+          provider_message_id?: string
+          raw?: Json | null
+          session_id?: string | null
+          status?: string
+          wa_from?: string
+          wa_timestamp?: string | null
+          wa_to?: string | null
         }
         Relationships: []
       }
