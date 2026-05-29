@@ -314,6 +314,126 @@
       "namespace": "megga",
       "value": "Supabase Realtime (pattern OBLIGATOIRE, bug A1): TOUJOURS useId() pour le nom du channel sinon crash au re-mount (StrictMode/navigation). const channelId = useId(); supabase.channel(`nom-${channelId}`).on('postgres_changes', {...}).subscribe(); cleanup avec removeChannel. Fichiers concernes (tous fixes): useAdminNotifications, useAdminLiveFeed, useMessaging.",
       "tags": "frontend,realtime,gotchas,critical"
+    },
+    {
+      "key": "megga/whatsapp-overview",
+      "namespace": "megga",
+      "value": "Agent WhatsApp (feature phare #2, Phase 1 mergee): vision = l'agent immobilier est toujours sur WhatsApp, donc chaque message entrant remonte dans le CRM (mieux qu'une app, l'agent y est deja actif). Phase 1 = miroir entrant lecture seule. Suite: envoi (outbound), conseils IA facon Claude depuis WhatsApp, actions (ex 'je veux visiter' -> cree une visite CRM), sync temps reel.",
+      "tags": "whatsapp,vision,feature"
+    },
+    {
+      "key": "megga/whatsapp-architecture",
+      "namespace": "megga",
+      "value": "WhatsApp architecture: couche d'abstraction supabase/functions/_shared/whatsapp-gateway.ts (interface WhatsAppProvider). Phase 1 = OpenWA (prototype local localhost:2785), Phase 4 = Meta Cloud API officielle (transparence via gateway). Webhook signe HMAC-SHA256 (verifyHmac timing-safe, Web Crypto), detection du provider par header (x-openwa-signature vs x-hub-signature-256). Secrets: WHATSAPP_WEBHOOK_SECRET, META_APP_SECRET, WHATSAPP_VERIFY_TOKEN, WHATSAPP_PROVIDER.",
+      "tags": "whatsapp,architecture,edge-functions"
+    },
+    {
+      "key": "megga/whatsapp-inbound-flow",
+      "namespace": "megga",
+      "value": "WhatsApp flux inbound (edge whatsapp-webhook): message -> webhook POST -> verifie signature HMAC (401 si invalide, 500 si secret absent) -> parse via gateway (NormalizedInboundMessage) -> mapping best-effort wa_from -> contacts.phone (9 derniers chiffres) -> contact_id + agency_id -> INSERT idempotent whatsapp_messages (upsert onConflict provider+provider_message_id) -> activity_events 'whatsapp_message_received' (non bloquant) -> 200. Mapping contact et audit en try/catch (best-effort, resilient).",
+      "tags": "whatsapp,flow,inbound"
+    },
+    {
+      "key": "megga/whatsapp-data-model",
+      "namespace": "megga",
+      "value": "Tables WhatsApp. whatsapp_messages: id, provider (openwa/meta), provider_message_id, direction (inbound/outbound), wa_from/wa_to (digits only), contact_id FK, agency_id FK, body, media_type (image/audio/video/document/location/contact/sticker), media_url, status (received/read/failed), wa_timestamp, raw jsonb (debug Phase1, a PURGER Phase4). UNIQUE(provider, provider_message_id) = idempotence. Index (contact_id, created_at), (agency_id, created_at). contact_messages = formulaire public /contact (name/email/phone/subject/message, consent_privacy LPD obligatoire, status new/answered/archived/spam).",
+      "tags": "whatsapp,database"
+    },
+    {
+      "key": "megga/whatsapp-rls-security",
+      "namespace": "megga",
+      "value": "WhatsApp RLS/securite: policy whatsapp_messages_agency_select -> agency_id = get_my_agency_id() (un agent ne voit que les messages de son agence; messages non mappes agency_id NULL invisibles sauf super_admin via is_super_admin()). Test tests/backend/whatsapp-messages-rls.spec.ts valide 3 scenarios: voit son agence, ne voit PAS l'agence B (cross-tenant), ne voit PAS un message non mappe. LPD: champ raw = PII a purger avant prod, RLS stricte, aucune donnee client via OpenWA local en prod.",
+      "tags": "whatsapp,rls,security,compliance"
+    },
+    {
+      "key": "megga/whatsapp-crm-integration",
+      "namespace": "megga",
+      "value": "WhatsApp integration CRM: hook useWhatsAppMessages(contactId) (React Query, staleTime 30s, SELECT whatsapp_messages avec RLS), composant CdWhatsAppCard (bulles chronologiques: inbound gauche/gris, outbound droite/vert, badge media) monte dans ContactDetailSugarV3Page (colonne principale, sous timeline + notes). PxWhatsAppButton = lien wa.me (buildWaMeUrl normalise digits + message pre-rempli) cote public. Page /contact (ContactPage): form + bouton WhatsApp + useCreateContactMessage -> contact_messages + emails Resend fire-and-forget.",
+      "tags": "whatsapp,frontend,crm"
+    },
+    {
+      "key": "megga/pages-inventory-public",
+      "namespace": "megga",
+      "value": "Pages publiques/marketing (~39): HomePage, SearchPage (/buy /rent), ListingPage, SellPage, EstimatesPage, ServicesPage, PublishPage, AgenciesPage, AgentDirectoryPage, AgentProfilePage, ContactPage, GlossaryPage, PrivacyPage, BlogV2Page; aide HelpCenter/Category/Article/Start/Contact/Status/Changelog/Shortcuts/Compliance/Limits/Resources; auth AuthBentoPage (login/signup/reset/magic-link/verify), AuthCallbackPage, AcceptInvitePage, ResetPasswordPage; KycPublicPage; VisitManage/Feedback, TicketStatus/Feedback; NotFoundPage.",
+      "tags": "frontend,pages,public"
+    },
+    {
+      "key": "megga/pages-inventory-app",
+      "namespace": "megga",
+      "value": "Pages CRM agent (~36): TodaySugarPage (Action Board), DashboardSugarV4Page, PipelineSugarV2Page (Kanban 14 colonnes), ContactsSugarV2Page + ContactDetailSugarV3Page, BiensSugarV2Page + BienDetailSugarV3Page, ListingFormPage (wizard + annonce IA), MatchingSugarV2Page, DealDetailSugarV3Page, Offer/Visit ModalSugarV3Page, VisitDetailSugarV3Page, Kyc List/Detail/SugarV3 + KycExportPage, DocumentsSugarV2Page + DocumentGenerator/Viewer + CustomTemplatePage, CalendarSugarV2Page, Journey/Network SugarV2Page, SettingsSugarV2Page, ImportLeadSugarV3Page, ContactImportPage, AuditSugarPage, Support(+Detail). Portail vendeur ~11 (MyFile/Visits/Offers/Documents/Messages/Profile + Analytics). Admin 14, dev 4. NB: ~104 ecrans reels (vs 42 du MVP spec).",
+      "tags": "frontend,pages,agent,admin"
+    },
+    {
+      "key": "megga/component-families",
+      "namespace": "megga",
+      "value": "Familles de composants (~400 au total): propertyx/ (~89 atoms Px* + sections + tokens.ts), crm-sugar/ (~83: shell + sous-domaines biens/calendar/contacts/documents/journey/kyc/matching/network/pipeline/settings), crm-sugar-v3/ (~53 refonte pixel-pres: contact-detail/ dashboard/ kyc/ kyc-wizard/ pipeline/ audit/), listing(s)/ (fiches + grid + AffordabilityCalculator + BeforeAfterSlider staging), search/ (~16), calendar/ (~14), matching/ (MatchScoreCard 100pts), kyc/ + kyc-magic-link/ + kyc-report/, ui/ (Radix+shadcn+Motion), layout/, ai-copilot/, map/ (Mapbox + HexagonMap choropleth), skeletons/, illustrations/.",
+      "tags": "frontend,components,inventory"
+    },
+    {
+      "key": "megga/roadmap-sprints",
+      "namespace": "megga",
+      "value": "Roadmap (~16 semaines, spec Gregory). CRM enrichi 6 etapes: 1) migrations DB, 2) ContactDetail enrichie (resume IA, timeline unifiee, next-best-action), 3) Pipeline Kanban 14 colonnes, 4) Action Board ('quoi faire aujourd'hui'), 5) matching acheteurs<->biens 100pts, 6) relances 6 types. Puis Sprint 5 IA (ai-copilot/matching/scoring + daily_actions pg_cron), Sprint 6 communication (WhatsApp Business envoi/reception + messaging unifie + portail vendeur), Sprint 7 marketplace (recherche conversationnelle, copilot negociation, annonces multi-versions). Pilote 10-20 agences.",
+      "tags": "roadmap,planning"
+    },
+    {
+      "key": "megga/backlog-decided",
+      "namespace": "megga",
+      "value": "Backlog decide/pret (ce qu'on va faire): 1) Copilote agent transversal (ai-copilot-agent, tools query_contacts/pipeline/kyc, match_listing, market_stats, suggest_priorities; bulle flottante ou Cmd+K; go si >=5 agents payants; Claude Sonnet vs DeepSeek 16x moins cher). 2) Smart input marketplace (parser NLP sur la barre de recherche, DeepSeek V3, features balcon/piscine/vue lac/garage/meuble/animaux/ascenseur). 3) Calculateur accessibilite inline (regles suisses 33% revenu, 20% apport; differenciateur vs Homegate/ImmoScout24). 4) Virtual staging IA (Gemini, pricing CHF 2.90/photo, pack 5 CHF 9.90, Pro 89/mois 20 inclus).",
+      "tags": "roadmap,backlog,planning"
+    },
+    {
+      "key": "megga/kyc-overview",
+      "namespace": "megga",
+      "value": "KYC/compliance = feature phare MEGGA (differenciateur cle: quasi aucun CRM immobilier ne le fait). Pipeline LBA complet. dossier_status (cycle de vie): none -> pending -> verified (auto par trigger quand checklist complete) -> stale (>12 mois) -> failed (PEP match sans derogation). Types: buyer_pp, buyer_pm, seller_pp, seller_pm. Principe: l'IA assiste (score, analyse qualitative) mais la validation MLRO humaine est OBLIGATOIRE (human-in-the-loop, jamais compliance-replacing).",
+      "tags": "kyc,compliance,overview,feature"
+    },
+    {
+      "key": "megga/kyc-data-model",
+      "namespace": "megga",
+      "value": "Donnees KYC. kyc_cases: type, pep_status/sanctions_status (not_checked/pending/clear/match)+details, risk_level/risk_score/risk_factors, vigilance (standard/renforced), dossier_status, expires_at (+12 mois), source_of_funds_type/description/doc_id, ai_analysis JSON (qualitative_risk, vigilance_recommendation, patterns_detected, confidence), validated_by/at. kyc_checklist_items: 5 checks LBA (id/address/pep/sanctions/funds, is_required). documents: sha256_hash, document_category (identity/domicile/financial/compliance/other), issued_at/expires_at, status pending/validated/rejected, bucket kyc-documents. kyc_screening_decisions (append-only, supersedes_id). kyc_magic_links.",
+      "tags": "kyc,database"
+    },
+    {
+      "key": "megga/kyc-vigilance-funds",
+      "namespace": "megga",
+      "value": "Vigilance LBA. Standard (art.3-4): 4 checks obligatoires id+address+pep+sanctions (defaut: PP, montant <100k CHF). Renforcee (art.6): ajoute le 5e check 'source des fonds' obligatoire; declenchee si vigilance='renforced' OU transaction >100'000 CHF. source_of_funds_type: salary/sale_property/sale_business/inheritance/investment/crypto/loan/mixed/other. crypto et mixed exigent une description >=20 caracteres + AuditEvent severity=warn (signalement MLRO).",
+      "tags": "kyc,lba,vigilance"
+    },
+    {
+      "key": "megga/kyc-dilisense-screening",
+      "namespace": "megga",
+      "value": "Screening (edge kyc-screening): nom+nationalite DERIVES server-side depuis kyc_cases.contact_id (anti prompt injection). Appel Dilisense v1 checkIndividual/checkEntity (header x-api-key DILISENSE_API_KEY, fuzzy_search, timeout 15s). Separe hits PEP (source_type PEP) et Sanctions -> statuts not_checked/pending/clear/match, rollback si timeout (ne fige pas en pending). Puis Claude Sonnet 4 (optionnel, graceful degradation si API down): qualitative_risk, vigilance_recommendation, patterns_detected, justification, confidence -> kyc_cases.ai_analysis. Loggue actor_kind='ai'. UI: 2 cartes PEP+Sanctions, bouton 'Examiner le match'.",
+      "tags": "kyc,dilisense,screening,ai"
+    },
+    {
+      "key": "megga/kyc-magic-link-flow",
+      "namespace": "megga",
+      "value": "Magic link KYC (upload client sans compte, Sprint 4.7.A): 1) CREATE (magic-link-create): token signe HMAC-SHA256 = base64url(payload).base64url(sig), le payload contient SEULEMENT magic_link.id (jamais kyc_case_id/contact_id), exp 7j (max 30). 2) SEND-EMAIL: URL kyc.megga.ch/{token} + message custom (Resend). 3) UPLOAD (public, KycPublicPage): verif token + SHA-256 du fichier, sanitize filename, upload bucket kyc-documents path {agency}/{case}/{ts}_{name}, INSERT documents status=pending. 4) CONFIRM: status=confirmed/revoked. 5) REGENERATE (max 3). Isolation cross-agency, expiry+HMAC anti-forgery.",
+      "tags": "kyc,magic-link,flow,security"
+    },
+    {
+      "key": "megga/kyc-checklist-validation",
+      "namespace": "megga",
+      "value": "Checklist + validation KYC. Trigger seed_kyc_lba_checks() cree 5 checks a l'INSERT du dossier (is_required selon vigilance+montant). Trigger auto_verify_kyc_dossier() sur UPDATE checklist: log AuditEvent; 1er check coche -> dossier_status pending; TOUS les is_required coches -> dossier_status='verified' + expires_at=+12 mois + log. Validation manuelle (human-in-the-loop): bouton 'Valider le dossier' -> useValidateKycCase -> status='validated', validated_by/at. Hooks: useMarkKycCheck, useMarkAllChecksCompleted.",
+      "tags": "kyc,checklist,validation"
+    },
+    {
+      "key": "megga/kyc-security-p0",
+      "namespace": "megga",
+      "value": "Securite KYC Sprint P0 #397 (migration 20260522_003_kyc_guard_manual_verified). Faille red-team F5: un agent pouvait via DevTools faire supabase.update({dossier_status:'verified'}) en contournant les checks LBA (RLS le laissait passer). Fix: trigger guard_manual_kyc_verified() BEFORE UPDATE OF dossier_status: si NEW=verified et pg_trigger_depth()<=1 (UPDATE direct) -> RAISE EXCEPTION + log forensique 'manual_verified_bypass_blocked'; si depth>=2 (cascade depuis auto_verify via checklist) -> autorise. Seul chemin legal = checklist complete. Auth: requireAgentAuth + get_my_agency_id() (SECURITY DEFINER, anti JWT falsifie, cross-agency=403). Prompt injection: sanitizeForPrompt + balises <untrusted_user_data>.",
+      "tags": "kyc,security,red-team,critical"
+    },
+    {
+      "key": "megga/kyc-audit-retention",
+      "namespace": "megga",
+      "value": "Audit & retention KYC. activity_events append-only (agents ne peuvent UPDATE/DELETE), loggue chaque toggle checklist / upload / validation / changement de statut / consultation (nLPD art.12 read logging via useLogKycRead). Champs: severity (info/warn/critical), category, object_label, ip_address, actor_kind (user/system/ai). Retention LBA art.10: 10 ans, soft-delete via deleted_at. Export PDF (KycExportPage, auto window.print): 3 pages (dossier+stats / 5 checks+fonds+docs+Dilisense / audit trail+notes+decisions), signe par chaine de hash SHA-256 (integrite verifiable FINMA).",
+      "tags": "kyc,audit,retention,compliance"
+    },
+    {
+      "key": "megga/kyc-ui-hooks",
+      "namespace": "megga",
+      "value": "KYC UI: /dashboard/kyc (KycSugarV3Page = KycListView + filtres + 4 bento stats), /dashboard/kyc/:id (KycDossierDetail = Hero + 5 KycCheckCard + KycDocsSection + KycAuditTrail + KycSourceOfFundsCard), /:id/export (KycExportPage PDF), /kyc/:token public (KycPublicPage). Menus contextuels clic droit (voir/screening/changer statut/valider; doc telecharger/valider/rejeter; check completer/lier doc). Hooks: useKycDossiers/useKycDossierByContact/useKycCountByStatus/useMarkKycCheck/useCreateKycDossier (Sprint1) + useKyc.ts (useScreenKycCase, useValidateKycCase, useUploadKycDocument, useCreateKycScreeningDecision justification>=30 car, useLogKycRead). Roles: agent (son agence), MLRO (validation), super_admin (bypass).",
+      "tags": "kyc,frontend,hooks,ui"
     }
   ]
 }

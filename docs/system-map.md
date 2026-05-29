@@ -195,6 +195,18 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
+## 6bis · Agent WhatsApp (feature phare #2 — Phase 1) 📱
+
+Vision : l'agent est toujours sur WhatsApp → chaque message remonte dans le CRM (mieux qu'une app). Phase 1 = **miroir entrant lecture seule**.
+
+- **Archi** : abstraction `_shared/whatsapp-gateway.ts` (`WhatsAppProvider`). Phase 1 = **OpenWA** (proto local) ; Phase 4 = **Meta Cloud API**. Webhook signé **HMAC-SHA256** (`verifyHmac` timing-safe), provider détecté par header (`x-openwa-signature` / `x-hub-signature-256`).
+- **Inbound** (`whatsapp-webhook`) : message → vérif HMAC (401 sinon) → parse gateway → map `wa_from` → `contacts.phone` (9 derniers chiffres) → INSERT idempotent `whatsapp_messages` (`UNIQUE(provider, provider_message_id)`) → `activity_events` (best-effort) → 200.
+- **Données** : `whatsapp_messages` (provider, direction, wa_from/to, contact_id, agency_id, body, media_*, status, `raw` à purger Ph.4) ; `contact_messages` (form public `/contact`). RLS : un agent ne voit que son agence (`get_my_agency_id()`), non-mappés réservés super_admin (test `whatsapp-messages-rls.spec.ts`).
+- **CRM** : `useWhatsAppMessages(contactId)` → `CdWhatsAppCard` (bulles) dans `ContactDetailSugarV3Page` ; `PxWhatsAppButton` (lien `wa.me`) + page publique `/contact`.
+- **Roadmap** : Ph.2 outbound + **conseils IA façon Claude** + actions (« je veux visiter » → visite CRM) ; Ph.3 sync temps réel ; Ph.4 Meta Cloud API + purge `raw`. Secrets : `WHATSAPP_WEBHOOK_SECRET`, `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_PROVIDER`.
+
+---
+
 ## 7. Compliance (Suisse) 🇨🇭
 
 - **LAB/KYC (LBA)** : `kyc_cases` vigilance standard/renforcée, source des fonds (crypto/mixte → description ≥20 car. requise), screening PEP/sanctions Dilisense, **validation humaine MLRO obligatoire**, rétention 10 ans.
