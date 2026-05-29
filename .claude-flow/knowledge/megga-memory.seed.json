@@ -1,0 +1,169 @@
+{
+  "schema": "ruflo-memory-export/v1",
+  "source": "docs/system-map.md — curated system knowledge seed (regenerate from the system map when architecture changes)",
+  "namespace": "megga",
+  "entries": [
+    {
+      "key": "megga/overview",
+      "namespace": "megga",
+      "value": "MEGGA Real Estate: SaaS immobilier suisse AI-native, compliance-first. Marketplace publique (33k+ biens Flatfox location) + CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin. Stack React/Vite sur Cloudflare Pages + Supabase (Postgres, 57 edge functions, RLS, pg_cron). L'IA est compliance-enabling, jamais compliance-replacing.",
+      "tags": "system,overview"
+    },
+    {
+      "key": "megga/objectives",
+      "namespace": "megga",
+      "value": "Les 5 objectifs strategiques (toute feature doit en servir au moins 1): 1) reduire le temps administratif, 2) reduire le risque LAB/KYC, 3) accelerer le closing, 4) augmenter la transparence client, 5) remplacer un outil fragmente.",
+      "tags": "strategy,product"
+    },
+    {
+      "key": "megga/stack-frontend",
+      "namespace": "megga",
+      "value": "Frontend: React 18 + TypeScript + Vite + Tailwind. React Router v6, React Query (+ supabase-cache-helpers), react-hook-form + Zod, dnd-kit (pipeline kanban), Mapbox GL (lazy), Recharts, Lucide, react-i18next (FR/DE/EN/IT), Sentry, PostHog. Build: tsc -b && vite build (+ postbuild overlay-storefront).",
+      "tags": "stack,frontend"
+    },
+    {
+      "key": "megga/stack-backend",
+      "namespace": "megga",
+      "value": "Backend: Supabase Pro (ref eayczugyrvmtqnnmvjod, eu-west-1). Postgres 15, Auth, Storage, Realtime, pgvector, pg_cron, pg_net. 57 Edge Functions Deno dans supabase/functions/. CI/CD: push main -> GitHub Actions -> Cloudflare Pages + Supabase edge auto-deploy.",
+      "tags": "stack,backend,supabase"
+    },
+    {
+      "key": "megga/ai-architecture",
+      "namespace": "megga",
+      "value": "Abstraction IA dans supabase/functions/_shared/ai-provider.ts: Claude (Sonnet/Haiku) cote agent, DeepSeek V3 cote public + fallback. Tracking de cout -> table ai_usage_logs. PII redaction (pii-redaction.ts) OBLIGATOIRE avant tout appel IA. Photo-vision via Claude Vision.",
+      "tags": "ai,architecture"
+    },
+    {
+      "key": "megga/audiences-routing",
+      "namespace": "megga",
+      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace publique (/buy /rent /listing/:id, SearchPage+ListingPage). Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token/*). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
+      "tags": "frontend,routing,audiences"
+    },
+    {
+      "key": "megga/crm-pages",
+      "namespace": "megga",
+      "value": "CRM agent (layout AgentSugarLayout, dark): dashboard (TodaySugar KPI), pipeline (deals par stage), contacts (+detail), listings (+detail/new wizard/edit), transactions/:id (stepper 8 etapes + banniere KYC + offres), matching, journey, calendar (Google/Outlook), documents (+generate/templates), kyc (+:dossierId/export PDF), network, audit (journal nLPD), analytics, settings. Onboarding: /dashboard/onboarding -> /dashboard/premier-jour.",
+      "tags": "frontend,crm"
+    },
+    {
+      "key": "megga/super-admin",
+      "namespace": "megga",
+      "value": "Super-admin 14 pages sous /dashboard/admin/* (accent violet, SuperAdminGuard): agencies (+detail), users (impersonate audite), monitoring, marketplace (moderation), compliance, support, changelog, feature-flags, plans, live (feed temps reel), security, nps. Silo RLS separe sur tables admin_*.",
+      "tags": "frontend,admin"
+    },
+    {
+      "key": "megga/db-domains",
+      "namespace": "megga",
+      "value": "Tables par domaine: tenant (agencies, profiles, agency_profiles, agent_profiles, team_invitations); contacts (contacts, seller_leads, contact_scores); biens (properties, listings, market_listings ~33k, external_listings); pipeline (transactions, crm_offers+history, visits, client_searches, matches); KYC (kyc_cases, kyc_checklist_items, kyc_magic_links+uploads, kyc_screening_decisions, documents); portail (seller_portals, vendor_dossiers); billing (subscriptions); messaging (message_threads, messages, email_messages_cache); audit (activity_events, auth_events, platform_metrics, flatfox_sync_runs). Detail: docs/schema.md.",
+      "tags": "database,schema"
+    },
+    {
+      "key": "megga/rls-model",
+      "namespace": "megga",
+      "value": "RLS agency-first. Agents: WHERE agency_id IN (SELECT agency_id FROM profiles WHERE id=auth.uid()). Anon marketplace: market_listings SELECT WHERE status='active'; inquiries/newsletter INSERT only. Acheteur: ses message_threads (buyer_user_id=auth.uid()). Vendeur: via seller_portals.token (stateless). service_role: edge functions, triggers ecrivent activity_events actor_kind='system'. RLS active sur CHAQUE table.",
+      "tags": "database,rls,security"
+    },
+    {
+      "key": "megga/flatfox-pipeline",
+      "namespace": "megga",
+      "value": "Pipeline marketplace: cron flatfox-sync-daily (0 4 * * *, 04:00 UTC) -> edge flatfox-sync (chunked self-invoke, 5 pages/chunk, rate-limit 1 req/s, lock singleton, safety >=80% vus avant sweep). UPSERT market_listings (source_id UNIQUE), photos -> Cloudflare R2 via photo-processor (photos_cf), quality_score + relevance_score GENERATED. Observabilite: table flatfox_sync_runs.",
+      "tags": "marketplace,flatfox,pipeline"
+    },
+    {
+      "key": "megga/perf-rules",
+      "namespace": "megga",
+      "value": "Regles perf DB (statement timeout 3-8s sur 33k rows): JAMAIS count:'exact' (-> seq scan, utiliser estimated); JAMAIS ORDER BY sans partial index couvrant le WHERE; .eq('status','active') pas .in(...) (IN ne matche pas les partial indexes); ne pas SELECT description/photos en liste (66MB). Index: idx_ml_rent_active_created (rent+active+quality>=50), idx_market_listings_tx_type_status.",
+      "tags": "performance,database,critical"
+    },
+    {
+      "key": "megga/pg-cron",
+      "namespace": "megga",
+      "value": "Jobs pg_cron: flatfox-sync-daily (0 4 * * *) -> flatfox-sync; platform-metrics-hourly (15 * * * *) -> admin-monitoring; + automation-engine, ai-billing-monitor, weekly-report, search-alert. Declenches via pg_net http_post vers les edge functions.",
+      "tags": "backend,cron"
+    },
+    {
+      "key": "megga/edge-fn-ai",
+      "namespace": "megga",
+      "value": "Edge functions IA: ai-copilot (chat agent + actions structurees, Claude), ai-search (semantique pgvector), dashboard-ai-hint, parse-search-query (DeepSeek, public), support-chatbot. Plus extraction: extract-lead, extract-property-pdf, extract-property-url, photo-labeler (Vision). Secrets: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY.",
+      "tags": "edge-functions,ai"
+    },
+    {
+      "key": "megga/edge-fn-kyc",
+      "namespace": "megga",
+      "value": "Edge functions KYC/compliance: kyc-screening (Dilisense PEP/sanctions + analyse contextuelle Claude), magic-link-create/get/confirm/regenerate/send-email/upload (HMAC-SHA256), delete-account (nLPD art.32), log-auth-event (IP hashee salt quotidien), audit-pdf-export (chaine de hash SHA-256, LBA 10 ans). Validation humaine MLRO obligatoire.",
+      "tags": "edge-functions,kyc,compliance"
+    },
+    {
+      "key": "megga/edge-fn-email-stripe",
+      "namespace": "megga",
+      "value": "Email (Resend): send-email, send-property-email, send-relance-email, send-reminder-email, send-team-invite, send-visit-email, detect-new-device. Paiements (Stripe): stripe-checkout, stripe-portal, stripe-webhook (signature STRIPE_WEBHOOK_SECRET), admin-stripe-metrics (MRR/ARR/churn).",
+      "tags": "edge-functions,email,stripe"
+    },
+    {
+      "key": "megga/edge-fn-media-misc",
+      "namespace": "megga",
+      "value": "Media: photo-processor (R2), backfill-cf-images, c2pa-sign/verify (Content Credentials), public-staging (Gemini, rate-limit IP), virtual-staging (garde-fous LPD: Vision gate confidence>=85% + quota plan). Divers: translate-on-demand (DeepSeek + cache), deepgram-token/speech-to-text, ticket-ai-reply, automation-engine (cron), matching-engine, score-engine, search-alert, calendars Google/Outlook.",
+      "tags": "edge-functions,media"
+    },
+    {
+      "key": "megga/flow-marketplace",
+      "namespace": "megga",
+      "value": "FLUX A (sync -> marketplace): pg_cron 04:00 -> flatfox-sync -> UPSERT market_listings (photos->R2, quality/relevance) -> RLS anon status='active' -> /rent via useMarketListings (partial index) -> /listing/:id -> marketplace_inquiries -> creation contact.",
+      "tags": "flow,marketplace"
+    },
+    {
+      "key": "megga/flow-pipeline",
+      "namespace": "megga",
+      "value": "FLUX B (contact -> closing): lead (import IA/web/portal) -> contacts -> qualif (score) -> visits -> offres (crm_offers + contre-offres, trigger audit) -> transactions stages (lead->qualified->visit->offer->negotiation->reserved->financing->notary->signed->closed) -> gate KYC (LBA art.7, WARN non bloquant, revu MLRO) -> closing + activity_events.",
+      "tags": "flow,pipeline,transactions"
+    },
+    {
+      "key": "megga/flow-portal-kyc",
+      "namespace": "megga",
+      "value": "FLUX C (portail vendeur token): agent cree seller_portals (token 6 mois) -> vendeur /portal/:token sans login -> RLS via token (READ property/transac, UPLOAD documents) -> updates visibles CRM -> expiry revoque. FLUX D (KYC Dilisense): transaction reserved -> kyc_cases (vigilance standard/renforcee selon montant + source des fonds) -> magic link upload (OCR, sha256) -> screening async Dilisense -> kyc_screening_decisions (PEP/sanctions) -> revue humaine MLRO -> analyse qualitative Claude (assist).",
+      "tags": "flow,portal,kyc"
+    },
+    {
+      "key": "megga/flow-matching-audit",
+      "namespace": "megga",
+      "value": "FLUX E (matching): client_searches (criteria JSONB) -> matching-engine compare budget/zones/type vs market_listings+properties -> matches (score+raisons) -> envoi agent -> alertes email (market_alerts/search-alert cron Resend). FLUX F (audit): tout changement -> triggers SECURITY DEFINER -> activity_events immutable (actor_id+kind, severity, category, metadata) -> timeline contact + audit super-admin + export PDF signe.",
+      "tags": "flow,matching,audit"
+    },
+    {
+      "key": "megga/compliance",
+      "namespace": "megga",
+      "value": "Compliance Suisse. LBA/KYC: kyc_cases vigilance standard/renforcee, source des fonds (crypto/mixte -> description >=20 car requise), screening PEP/sanctions Dilisense, validation MLRO obligatoire, retention 10 ans. nLPD/LPD: activity_events immutable, retention_until, droit effacement (delete-account), redaction PII AVANT IA, IP hashees. Integrite media: C2PA sur photos IA. IA = assistance/estimation, jamais automatique/garantie.",
+      "tags": "compliance,lba,nlpd,critical"
+    },
+    {
+      "key": "megga/design-system",
+      "namespace": "megga",
+      "value": "Design: minimal/transparent (Linear/Notion). Bentos rounded-xl border border-theme-border SANS ombres. Boutons style ghost (border + text-theme-secondary), JAMAIS bg-accent text-white. Badges texte colore sans fond. Modals TOUJOURS createPortal(document.body) z-[100]. Tokens theme (bg-theme-*, text-theme-*, border-theme-*). Marketplace: atoms Property X (Px*) = source de verite, ne pas recreer; tokens PX.*. Pages /design-system/* = source de verite.",
+      "tags": "design,ui,frontend"
+    },
+    {
+      "key": "megga/gotchas",
+      "namespace": "megga",
+      "value": "Pieges critiques: Realtime -> TOUJOURS useId() pour le nom de channel (sinon crash au re-mount). formatCHF()/formatRent() type-defensive (accepte string/null), ne jamais .toFixed() sur valeur de form. Prix CHF 720'000 (apostrophe suisse). Surface 120 m2. Date DD.MM.YYYY. JAMAIS bg-white/text-gray-*/border-gray-* (cassent dark mode). Pas de any TS. RLS sur chaque table. Pas de console.log en prod. Ne pas mentionner Lovable/Claude/ChatGPT dans l'UI.",
+      "tags": "gotchas,conventions,critical"
+    },
+    {
+      "key": "megga/dev-ci",
+      "namespace": "megga",
+      "value": "Commandes: npm run dev (vite 5173), npm run build (tsc -b && vite build + postbuild), npm run lint (eslint), npm run test:unit (vitest), test:backend, test:e2e (playwright: ai/admin/visual). Prod megga.ch actuellement password-gated (Basic Auth realm 'MEGGA — acces restreint', pre-lancement). Branche de dev courante: feature branch (jamais push direct main sans validation).",
+      "tags": "dev,ci,testing"
+    },
+    {
+      "key": "megga/secrets",
+      "namespace": "megga",
+      "value": "Secrets Supabase par service: ANTHROPIC_API_KEY (8 fn IA), DEEPSEEK_API_KEY, STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, DILISENSE_API_KEY, GOOGLE_AI_API_KEY, DEEPGRAM_API_KEY, GOOGLE_CLIENT_ID/SECRET, MICROSOFT_CLIENT_ID/SECRET, CF_ACCOUNT_ID + R2_* (photos). Secrets GitHub Actions: VITE_SUPABASE_URL/ANON_KEY, VITE_MAPBOX_TOKEN, CLOUDFLARE_API_TOKEN/ACCOUNT_ID, SUPABASE_ACCESS_TOKEN.",
+      "tags": "secrets,integrations"
+    },
+    {
+      "key": "megga/docs-index",
+      "namespace": "megga",
+      "value": "Docs de reference: CLAUDE.md (source de verite: regles, conventions, design, perf, etat impl), docs/system-map.md (cette carte des rouages), docs/schema.md (schema DB complet), docs/pages.md (42 ecrans MVP), docs/ai-modules.md (specs IA), docs/design-system.md + design-system-propertyx.md, docs/roadmap.md + backlog.md + CHANGELOG.md.",
+      "tags": "docs,reference"
+    }
+  ]
+}

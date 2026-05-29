@@ -74,5 +74,14 @@ case "$http" in
   *)   echo "/louer     : HTTP $http  ⚠" ;;
 esac
 
+# 6. Warm ruflo's ephemeral memory with the committed MEGGA system knowledge.
+# Background, best-effort, non-blocking. Durable knowledge = docs/system-map.md; this
+# just re-seeds ruflo's LOCAL semantic memory each session (100% local, no API, no tokens).
+# Disable with RUFLO_NO_AUTOSEED=1.
+if [ "${RUFLO_NO_AUTOSEED:-0}" != "1" ] && [ -f scripts/ruflo-seed-memory.mjs ] && [ -f .claude-flow/knowledge/megga-memory.seed.json ]; then
+  ( node scripts/ruflo-seed-memory.mjs >/tmp/ruflo-seed.log 2>&1 & ) >/dev/null 2>&1 || true
+  echo "ruflo      : memory seed dispatched in background (RUFLO_NO_AUTOSEED=1 to skip)"
+fi
+
 echo "──────────────────────────────────────"
 exit 0
