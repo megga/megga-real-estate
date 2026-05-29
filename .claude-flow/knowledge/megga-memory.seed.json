@@ -518,6 +518,48 @@
       "namespace": "megga",
       "value": "Gate KYC transactions (trigger monitor_transaction_kyc_gate AFTER UPDATE OF stage, NON BLOQUANT = monitoring only). Declenche sur transition vers offer/negotiation/reserved/financing/notary/signed/closed. Logique: skip si transition interne entre 2 stages surveilles (grandfather), si pas de buyer (mandat vente seul), ou montant < 100'000 CHF (seuil LBA art.7). Sinon lit kyc_cases du buyer: verified+non expire -> silence; sinon INSERT activity_events severity=warn metadata (attempted_stage, kyc_status, amount, mode=monitoring_only). PAS de RAISE: l'agent continue, le MLRO filtre category=deal severity=warn. NB: a ne pas confondre avec guard_manual_kyc_verified (blocage dur cote dossier KYC).",
       "tags": "transactions,kyc,compliance,gate"
+    },
+    {
+      "key": "megga/copilot-engine",
+      "namespace": "megga",
+      "value": "Copilote MEGGA AI (edge ai-copilot): STATELESS (pas de session DB, history cote client max ~10-20 msgs). Input CopilotRequest {action, message, context, history, language FR/DE/EN/IT}. Modele claude-sonnet-4-20250514, max_tokens 2000, PAS de streaming edge-side (reponse JSON bloquante), PAS de tool-calling en v1. Le contexte CRM (contact/deal/matches/kyc actifs) est injecte en texte cle-valeur dans le prompt. Sortie {result, action, usage tokens}. Auth Bearer (sauf mode search public_buyer). logAiCopilotInteraction -> activity_events actor_kind='ai' (copilot_action, input/output_tokens, success).",
+      "tags": "ai,copilot,engine,edge-functions"
+    },
+    {
+      "key": "megga/copilot-actions",
+      "namespace": "megga",
+      "value": "Copilote — 9 actions (ai-copilot, ACTION_PROMPTS): chat, summarize_contact (resume 3-5 pts), suggest_next_action (1 prioritaire + 2 alternatives = Next Best Action), draft_email (relance personnalisee + biens du matching), draft_description (annonce 150-250 mots), analyze_kyc (docs manquants + risque preliminaire, PAS de validation), score_lead (chaud/tiede/froid 0-100), analyze_market (positionnement prix/m2 + comparables), detect_intent (JSON intent/confidence). Detection auto par regex (useCopilot.detectAction): resume/profil->summarize, relance/email->draft_email, marche/comparable->analyze_market, kyc/conformite->analyze_kyc, score/lead->score_lead, actions/priorite->suggest_next_action, sinon chat.",
+      "tags": "ai,copilot,actions,nba"
+    },
+    {
+      "key": "megga/copilot-frontend",
+      "namespace": "megga",
+      "value": "Copilote frontend. useCopilot(): detectAction (regex->action), sendMessage (bloquant + history max 10), sendMessageStream (streaming SIMULE cote client: decoupe la reponse par mots, delai 30-55ms + pause apres ponctuation -> illusion de frappe), clearHistory. CopilotContextProvider/useCopilotContext: page courante + activeContact (id/nom/type/email/phone). buildContactContext(): snapshot CRM -> texte structure ~1500 tokens (profil, criteres, notes, tags, interactions max15, biens envoyes max8, visites max6, transactions). PromptInputBar: slash commands /resume /relance /matching /analyse /mandat /actions /kyc /offre + autocomplete contacts/biens + context pills + vocal. Composants: CopilotSummary (badge 'estimation IA'), ListingGenerator, NegotiationCopilot, BuyerIntelligence, SellerIntelligence, ObjectionAnalysis.",
+      "tags": "ai,copilot,frontend,hooks"
+    },
+    {
+      "key": "megga/copilot-system-prompt",
+      "namespace": "megga",
+      "value": "Copilote system prompt (MEGGA_SYSTEM): persona courtier senior suisse (residentiel/prestige/commercial), expertise LAB-KYC / redaction / marche / negociation. Regles: ASSISTANCE pas DECISION (l'agent valide toujours), jamais valider KYC / contacter le client / changer prix-statut-etape sans humain, scores = 'estimation IA'. Style ANTI-IA agressif: bannit 'serves as' / 'Let's dive in' / fausse profondeur ('At its core') / sycophanterie; impose avis tranches, specificite, variation de rythme, format suisse (CHF 720'000, JJ.MM.AAAA), tutoiement de l'agent / vouvoiement dans les textes clients, markdown.",
+      "tags": "ai,copilot,prompt,guardrails"
+    },
+    {
+      "key": "megga/ai-three-surfaces",
+      "namespace": "megga",
+      "value": "3 surfaces IA distinctes. 1) ai-copilot (agent, Claude Sonnet 4, 9 actions, compliance-critical). 2) dashboard-ai-hint (cockpit agent, Claude Sonnet 4.5 = claude-sonnet-4-5-20250929 max 400 tokens, 1 suggestion actionnable basee sur les KPIs, fallback heuristique KYC>gap budget>momentum, cache 1h cote client). 3) support-chatbot (help center PUBLIC, DeepSeek V3 + fallback Claude Haiku via callPublicAI, RAG: top-k articles injectes anti-hallucination, sortie texte + SUGGESTED articles + ESCALATE flag, 150 mots max, sans auth).",
+      "tags": "ai,surfaces,architecture"
+    },
+    {
+      "key": "megga/copilot-models-pii",
+      "namespace": "megga",
+      "value": "Copilote modeles & PII. Strategie: agent-side = Claude Sonnet 4 SANS fallback (deterministe, compliance), public-side = DeepSeek V3 + fallback Claude Haiku (cost control; decision 2026-04-17: public = listings anonymes uniquement, jamais de PII user). Pricing USD/1M: DeepSeek in0.27/out1.10 (~16x moins cher), Sonnet 3/15, Haiku 1/5. Data residency: Claude API = Anthropic EU DPA (OK LPD agent-side). NUANCE compliance importante: ai-copilot injecte actuellement le contexte CRM BRUT (PAS de pii-redaction active dans son code, contrairement a extract-lead) -> repose sur le DPA Anthropic EU, pas sur la redaction. Logs: ai_usage_logs (provider, tokens, estimated_cost_usd, was_fallback).",
+      "tags": "ai,copilot,models,pii,compliance"
+    },
+    {
+      "key": "megga/copilot-agent-planned",
+      "namespace": "megga",
+      "value": "PLANIFIE: ai-copilot-agent (backlog decide 2026-04-18, go si >=5 agents payants). Difference: le copilote actuel = actions predefinies sur l'entite courante; l'AGENT = requetes libres multi-entites avec TOOL-CALLING + raisonnement portefeuille global. 6 tools v1 (read-only, security-definer filtres agency_id): query_contacts, query_pipeline, query_kyc, match_contacts_to_listing, suggest_priorities_today, get_market_stats. Edge ai-copilot-agent Claude Sonnet 4 + streaming SSE (vs stateless actuel). UX: bulle flottante Radix sticky bottom-right + cards action + deep-links + Cmd+K. Couts: 10 agents CHF200/mois, 50 CHF1k, 200 CHF4k. ~10-12 jours. Exemples: 'contacts score>70 sans contact depuis 14j', 'priorites du jour', 'prix median 4p Carouge'.",
+      "tags": "ai,copilot,planned,roadmap"
     }
   ]
 }
