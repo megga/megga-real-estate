@@ -23,11 +23,43 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+/**
+ * Vérifie l'auth du caller. Accepte :
+ *   - Appel interne magic-link-create (service_role exact)
+ *   - Agent humain (JWT vérifié)
+ *
+ * Retourne le mode pour permettre au caller de scope les checks
+ * d'ownership ensuite (le mode "agent" doit vérifier agency_id).
+ *
+ * Red-team finding F4 (audit 2026-05-19) : avant ce check, n'importe qui
+ * connaissant un magic_link_id pouvait spammer le client cible (abus
+ * Resend) + exfiltrer son email via la réponse.
+ */
+async function authorizeSendEmailCall(
+  req: Request,
+): Promise<
+  | { mode: 'service_role' }
+  | { mode: 'agent'; agencyId: string }
+  | { mode: 'denied'; response: Response }
+> {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
+
+  if (serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`) {
+    return { mode: 'service_role' }
+  }
+
+  const auth = await requireAgentAuth(req, corsHeaders)
+  if (auth instanceof Response) return { mode: 'denied', response: auth }
+  return { mode: 'agent', agencyId: auth.profile.agency_id }
 }
 
 const PUBLIC_DOMAIN = Deno.env.get('MEGGA_KYC_PUBLIC_DOMAIN') ?? 'kyc.megga.ch'
@@ -242,6 +274,10 @@ serve(async (req) => {
     })
   }
 
+  // Auth obligatoire AVANT tout (red-team P0).
+  const authz = await authorizeSendEmailCall(req)
+  if (authz.mode === 'denied') return authz.response
+
   let body: SendEmailRequest
   try {
     body = (await req.json()) as SendEmailRequest
@@ -283,6 +319,16 @@ serve(async (req) => {
       status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+  }
+
+  // Cross-agency guard pour le mode agent.
+  // En service_role (pg_cron / appel interne magic-link-create), bypass —
+  // le caller est trusted et l'ownership est déjà vérifié par magic-link-create.
+  if (authz.mode === 'agent' && link.agency_id !== authz.agencyId) {
+    return new Response(
+      JSON.stringify({ error: 'forbidden: cross-agency access' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
   }
 
   if (!link.channels?.includes('email')) {
