@@ -178,7 +178,7 @@ export default function PxNavPropertyX() {
               </Link>
               {/* Cart link */}
               <Link
-                to="/compte"
+                to="/account"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -200,7 +200,7 @@ export default function PxNavPropertyX() {
           {/* CTA droite : "Start exploring" — Primary button LIGHT
               bg-white, pl-16 pr-6 py-6, rounded-pill, contient texte + circle dark */}
           <Link
-            to="/acheter"
+            to="/buy"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

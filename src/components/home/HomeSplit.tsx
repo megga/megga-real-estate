@@ -128,7 +128,7 @@ export default function HomeSplit() {
             </div>
           </div>
           <Link
-            to="/estimations"
+            to="/estimates"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -145,7 +145,7 @@ export default function HomeSplit() {
               fontWeight: 600,
             }}
           >
-            /estimations <span>→</span>
+            /estimates <span>→</span>
           </Link>
         </div>
 

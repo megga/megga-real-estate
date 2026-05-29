@@ -42,7 +42,7 @@ export function useUserActivity(): { events: ActivityEvent[]; loading: boolean }
           at: t.last_message_at ?? '',
           title: `${t.contact_name} a répondu`,
           sub: t.last_message ? `« ${t.last_message.slice(0, 80)} »` : t.property_title || undefined,
-          deepLink: '/compte#messages',
+          deepLink: '/account#messages',
         })
       )
     },
@@ -69,7 +69,7 @@ export function useUserActivity(): { events: ActivityEvent[]; loading: boolean }
           at: p.published_at as string,
           title: 'Annonce mise en ligne',
           sub: p.title || undefined,
-          deepLink: '/compte#listings',
+          deepLink: '/account#listings',
         })
       )
     },
@@ -85,7 +85,7 @@ export function useUserActivity(): { events: ActivityEvent[]; loading: boolean }
         at: s.createdAt,
         title: `Recherche : ${s.name}`,
         sub: s.alertEnabled ? `Alerte ${s.alertFrequency === 'daily' ? 'quotidienne' : 'hebdomadaire'} activée` : 'Sans alerte',
-        deepLink: '/compte#searches',
+        deepLink: '/account#searches',
       })),
     [searches]
   )
@@ -100,7 +100,7 @@ export function useUserActivity(): { events: ActivityEvent[]; loading: boolean }
         at: new Date().toISOString(),
         title: `${favoriteIds.length} bien${favoriteIds.length > 1 ? 's' : ''} en favoris`,
         sub: 'Synchronisés sur tous vos appareils',
-        deepLink: '/compte#favorites',
+        deepLink: '/account#favorites',
       },
     ]
   }, [favoriteIds])

@@ -4,6 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,43 @@ const corsHeaders = {
 
 interface RequestBody {
   agency_id: string
+}
+
+/**
+ * Vérifie l'auth du caller avant tout accès service_role.
+ * Accepte 2 modes :
+ *   - pg_cron interne : header `Authorization: Bearer <SERVICE_ROLE_KEY>` exact
+ *   - Agent humain   : JWT valide + profile.agency_id == agency_id ciblé
+ *
+ * Red-team finding F3 (audit 2026-05-19) : avant ce check, n'importe qui
+ * pouvait POST agency_id arbitraire → création de reminders dans des
+ * agences tierces (cross-tenant DoS + pollution timeline).
+ */
+async function authorizeAutomationCall(
+  req: Request,
+  targetAgencyId: string,
+): Promise<{ ok: true } | { ok: false; response: Response }> {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
+
+  // Mode 1 : appel pg_cron interne (service_role exact)
+  if (serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`) {
+    return { ok: true }
+  }
+
+  // Mode 2 : appel agent humain (JWT vérifié + agency match)
+  const auth = await requireAgentAuth(req, corsHeaders)
+  if (auth instanceof Response) return { ok: false, response: auth }
+  if (auth.profile.agency_id !== targetAgencyId) {
+    return {
+      ok: false,
+      response: new Response(
+        JSON.stringify({ error: 'forbidden: cross-agency access' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      ),
+    }
+  }
+  return { ok: true }
 }
 
 interface ReminderInsert {
@@ -35,16 +73,20 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
     const { agency_id } = (await req.json()) as RequestBody
 
     if (!agency_id) {
       throw new Error('agency_id is required')
     }
+
+    // Auth + agency check obligatoire AVANT toute opération service_role.
+    const authz = await authorizeAutomationCall(req, agency_id)
+    if (!authz.ok) return authz.response
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
 
     let remindersCreated = 0
     let emailsSent = 0

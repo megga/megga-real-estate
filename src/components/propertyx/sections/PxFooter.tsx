@@ -35,10 +35,10 @@ const COL_MAIN = {
     { label: 'Home V2', to: '/' },
     { label: 'Home V3', to: '/' },
     { label: 'About', to: '/about' },
-    { label: 'Properties', to: '/acheter' },
-    { label: 'Properties by location', to: '/acheter' },
-    { label: 'Properties by type of property', to: '/acheter' },
-    { label: 'Properties by type', to: '/acheter' },
+    { label: 'Properties', to: '/buy' },
+    { label: 'Properties by location', to: '/buy' },
+    { label: 'Properties by type of property', to: '/buy' },
+    { label: 'Properties by type', to: '/buy' },
   ],
 }
 
@@ -46,10 +46,10 @@ const COL_PROPS = {
   title: '',  // colonne sans titre (suit Main pages)
   links: [
     { label: 'Property single', to: '/listing' },
-    { label: 'Agences', to: '/agences' },
-    { label: 'Page agence', to: '/agences' },
-    { label: 'Post a free property', to: '/publier?type=free' },
-    { label: 'Post a paid property', to: '/publier?type=premium' },
+    { label: 'Agences', to: '/agencies' },
+    { label: 'Page agence', to: '/agencies' },
+    { label: 'Post a free property', to: '/publish?type=free' },
+    { label: 'Post a paid property', to: '/publish?type=premium' },
     { label: 'Blog V1', to: '/blog' },
     { label: 'Blog V2', to: '/blog' },
     { label: 'Blog V3', to: '/blog' },
@@ -63,10 +63,9 @@ const COL_BLOG = {
     { label: 'Contact V1', to: '/contact' },
     { label: 'Contact V2', to: '/contact' },
     { label: 'Contact V3', to: '/contact' },
-    { label: 'FAQs', to: '/aide/faq' },
+    { label: 'FAQs', to: '/help/faq' },
     { label: 'Coming soon', to: '/coming-soon' },
     { label: 'Subscribe page', to: '/subscribe' },
-    { label: 'More Webflow Templates', to: '/templates', emphasized: true },
   ],
 }
 
@@ -546,7 +545,7 @@ export default function PxFooter() {
                 letterSpacing: '-0.48px',
                 color: PX.neutral300,
               }}>
-                Copyright © Property X | Designed by BRIX Templates - Powered by Webflow
+                © 2026 MEGGA Real Estate. Tous droits réservés.
               </p>
             </div>
           </div>

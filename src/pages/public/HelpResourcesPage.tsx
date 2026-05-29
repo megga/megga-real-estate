@@ -84,13 +84,13 @@ export default function HelpResourcesPage() {
               {/* Section header — blue title + arrow */}
               <div className="flex items-center justify-between mb-1">
                 <Link
-                  to={`/aide/${group.category}`}
+                  to={`/help/${group.category}`}
                   className="text-lg font-bold text-blue-600 hover:text-blue-700 transition-colors leading-snug"
                 >
                   {group.section}
                 </Link>
                 <Link
-                  to={`/aide/${group.category}`}
+                  to={`/help/${group.category}`}
                   className="h-9 w-9 rounded-full border-2 border-blue-600 flex items-center justify-center flex-shrink-0 hover:bg-blue-600 hover:text-white transition-colors group"
                 >
                   <ArrowRight className="h-4 w-4 text-blue-600 group-hover:text-white transition-colors" />
@@ -107,7 +107,7 @@ export default function HelpResourcesPage() {
                 {group.articles.map((article) => (
                   <Link
                     key={article.slug}
-                    to={`/aide/${article.category}/${article.slug}`}
+                    to={`/help/${article.category}/${article.slug}`}
                     className="block text-sm text-gray-700 hover:text-blue-600 transition-colors leading-relaxed"
                   >
                     {article.title}
@@ -132,7 +132,7 @@ export default function HelpResourcesPage() {
               {t('help.contactSubtitle')}
             </p>
             <Link
-              to="/aide/contact"
+              to="/help/contact"
               className="h-11 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center w-fit"
             >
               {t('help.contactUs')}

@@ -98,7 +98,7 @@ function vendorDossierToMandateListing(
   }
 }
 
-export default function ComptePage() {
+export default function AccountPage() {
   useManropeFont()
   const { t } = useTranslation('compte')
   const { user, profile } = useAuth()
@@ -113,7 +113,7 @@ export default function ComptePage() {
   const { threads } = useMessaging(null)
   const { dossiers, advance } = useVendorDossiers()
 
-  // Listen for hash changes (e.g. clicking a link from Navbar with /compte#favorites)
+  // Listen for hash changes (e.g. clicking a link from Navbar with /account#favorites)
   useEffect(() => {
     const onHash = () => setSection(readHashSection())
     window.addEventListener('hashchange', onHash)
@@ -181,7 +181,7 @@ export default function ComptePage() {
     if (section === 'listings') {
       return (
         <a
-          href="/vendre"
+          href="/sell"
           style={{
             height: 42,
             padding: '0 18px',
@@ -205,7 +205,7 @@ export default function ComptePage() {
     if (section === 'searches') {
       return (
         <a
-          href="/louer"
+          href="/rent"
           style={{
             height: 42,
             padding: '0 18px',
@@ -229,7 +229,7 @@ export default function ComptePage() {
     if (section === 'favorites' && counts.favorites > 0) {
       return (
         <a
-          href="/louer"
+          href="/rent"
           style={{
             height: 42,
             padding: '0 18px',

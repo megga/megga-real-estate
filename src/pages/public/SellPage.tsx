@@ -196,7 +196,7 @@ function getSubSteps(propertyType: string, t: (key: string) => string): SubStepD
   return common
 }
 
-export default function VendrePage() {
+export default function SellPage() {
   const { t } = useTranslation('common')
   const [step, setStep] = useState(0) // 0 = hero, 1-4 = wizard steps
   const [subStep, setSubStep] = useState(0) // substep within step 2

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AnimatePresence } from 'motion/react'
 import { AuthProvider } from '@/hooks/useAuth'
@@ -37,8 +37,8 @@ const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
 // Auth — lazy car secondary path
 const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
 // New auth bento (modal-style) — pages wrap AuthBentoApp.
-const AuthConnexionPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthConnexionPage })),
+const AuthLoginPage = lazy(() =>
+  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthLoginPage })),
 )
 const AuthMagicSentPage = lazy(() =>
   import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthMagicSentPage })),
@@ -73,11 +73,11 @@ const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLogin
 const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
 const ListingPage = lazy(() => import('@/pages/public/ListingPage'))
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
-const LouerPage = lazy(() => import('@/pages/public/LouerPage'))
-const VendrePage = lazy(() => import('@/pages/public/VendrePage'))
-const EstimationsPage = lazy(() => import('@/pages/public/EstimationsPage'))
+const RentPage = lazy(() => import('@/pages/public/RentPage'))
+const SellPage = lazy(() => import('@/pages/public/SellPage'))
+const EstimatesPage = lazy(() => import('@/pages/public/EstimatesPage'))
 const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
-const PublierPage = lazy(() => import('@/pages/public/PublierPage'))
+const PublishPage = lazy(() => import('@/pages/public/PublishPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
@@ -100,7 +100,7 @@ const BienDetailSugarV3Page = lazy(() => import('@/pages/agent/BienDetailSugarV3
 const DealDetailSugarV3Page = lazy(() => import('@/pages/agent/DealDetailSugarV3Page'))
 const OfferModalSugarV3Page = lazy(() => import('@/pages/agent/OfferModalSugarV3Page'))
 const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
-const VisiteDetailSugarV3Page = lazy(() => import('@/pages/agent/VisiteDetailSugarV3Page'))
+const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugarV3Page'))
 // VisitCompanionPage removed — the mobile companion view contained only
 // non-functional UI (mic recording / photo capture / signature / sentiment
 // cards with no persistence). The route + page were removed; real on-site
@@ -108,7 +108,7 @@ const VisiteDetailSugarV3Page = lazy(() => import('@/pages/agent/VisiteDetailSug
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
 const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
 const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
-const ParcoursSugarV2Page = lazy(() => import('@/pages/agent/ParcoursSugarV2Page'))
+const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
 const DocumentsSugarV2Page = lazy(() => import('@/pages/agent/DocumentsSugarV2Page'))
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
@@ -121,7 +121,7 @@ const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
-const ReseauSugarV2Page = lazy(() => import('@/pages/agent/ReseauSugarV2Page'))
+const NetworkSugarV2Page = lazy(() => import('@/pages/agent/NetworkSugarV2Page'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
 const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
@@ -137,15 +137,15 @@ const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
 // Lazy-loaded seller portal pages
 const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
 const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
-const MonDossierPage = lazy(() => import('@/pages/particulier/MonDossierPage'))
-const MesVisitesPage = lazy(() => import('@/pages/particulier/MesVisitesPage'))
-const MesOffresPage = lazy(() => import('@/pages/particulier/MesOffresPage'))
-const MesDocumentsPage = lazy(() => import('@/pages/particulier/MesDocumentsPage'))
-const MesMessagesPage = lazy(() => import('@/pages/particulier/MesMessagesPage'))
-const AnalysePage = lazy(() => import('@/pages/particulier/AnalysePage'))
-const MonProfilPage = lazy(() => import('@/pages/particulier/MonProfilPage'))
+const MyFilePage = lazy(() => import('@/pages/particulier/MyFilePage'))
+const MyVisitsPage = lazy(() => import('@/pages/particulier/MyVisitsPage'))
+const MyOffersPage = lazy(() => import('@/pages/particulier/MyOffersPage'))
+const MyDocumentsPage = lazy(() => import('@/pages/particulier/MyDocumentsPage'))
+const MyMessagesPage = lazy(() => import('@/pages/particulier/MyMessagesPage'))
+const AnalyticsPage = lazy(() => import('@/pages/particulier/AnalyticsPage'))
+const MyProfilePage = lazy(() => import('@/pages/particulier/MyProfilePage'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
-const ComptePage = lazy(() => import('@/pages/public/ComptePage'))
+const AccountPage = lazy(() => import('@/pages/public/AccountPage'))
 
 // Lazy-loaded help center pages
 const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
@@ -160,7 +160,7 @@ const HelpShortcutsPage = lazy(() => import('@/pages/public/HelpShortcutsPage'))
 const HelpCompliancePage = lazy(() => import('@/pages/public/HelpCompliancePage'))
 const HelpLimitsPage = lazy(() => import('@/pages/public/HelpLimitsPage'))
 const HelpResourcesPage = lazy(() => import('@/pages/public/HelpResourcesPage'))
-const GlossairePage = lazy(() => import('@/pages/public/GlossairePage'))
+const GlossaryPage = lazy(() => import('@/pages/public/GlossaryPage'))
 const TicketStatusPage = lazy(() => import('@/pages/public/TicketStatusPage'))
 const TicketFeedbackPage = lazy(() => import('@/pages/public/TicketFeedbackPage'))
 
@@ -259,6 +259,37 @@ const queryClient = new QueryClient({
  * framer-motion to interpolate any `layoutId` pair between source and target.
  * It is intentionally the ONLY transition behaviour at this level.
  */
+// Param-preserving redirects — <Navigate> doesn't interpolate :id, so wrap
+// useParams + Navigate when a legacy FR route needs to keep its dynamic segment.
+function VisitModifyRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/visit/${id}/edit`} replace />
+}
+function VisitFeedbackRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/visit/${id}/feedback`} replace />
+}
+function PortalSubRedirect({ to }: { to: string }) {
+  const { token } = useParams()
+  return <Navigate to={`/portal/${token}/${to}`.replace(/\/$/, '')} replace />
+}
+function HelpCategoryRedirect() {
+  const { category } = useParams()
+  return <Navigate to={`/help/${category}`} replace />
+}
+function HelpArticleRedirect() {
+  const { category, slug } = useParams()
+  return <Navigate to={`/help/${category}/${slug}`} replace />
+}
+function DashboardVisitRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/dashboard/visits/${id}`} replace />
+}
+function DashboardMarketRedirect() {
+  const { externalId } = useParams()
+  return <Navigate to={`/dashboard/market/${externalId}`} replace />
+}
+
 function AnimatedRoutes() {
   const location = useLocation()
   return (
@@ -275,79 +306,128 @@ function AnimatedRoutes() {
               <Route path="/listing/:id" element={<ListingPage />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
-              <Route path="/login" element={<Navigate to="/auth/connexion" replace />} />
-              <Route path="/register" element={<Navigate to="/auth/inscription" replace />} />
+              <Route path="/login" element={<Navigate to="/auth/login" replace />} />
+              <Route path="/register" element={<Navigate to="/auth/signup" replace />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               {/* New bento auth (modal-style, Property X strict, light + dark Pure Ink) */}
-              <Route path="/auth/connexion" element={<AuthConnexionPage />} />
-              <Route path="/auth/connexion/lien-envoye" element={<AuthMagicSentPage />} />
-              <Route path="/auth/connexion/erreur" element={<AuthMagicErrorPage />} />
-              <Route path="/auth/inscription" element={<AuthSignupPage />} />
-              <Route path="/auth/inscription/email-verifier" element={<AuthVerifyEmailPage />} />
-              <Route path="/auth/mot-de-passe-oublie" element={<AuthResetPage />} />
-              <Route path="/auth/mot-de-passe-oublie/envoye" element={<AuthResetSentPage />} />
-              <Route path="/auth/mot-de-passe-oublie/redefinir" element={<AuthSetNewPasswordPage />} />
+              <Route path="/auth/login" element={<AuthLoginPage />} />
+              <Route path="/auth/login/link-sent" element={<AuthMagicSentPage />} />
+              <Route path="/auth/login/error" element={<AuthMagicErrorPage />} />
+              <Route path="/auth/signup" element={<AuthSignupPage />} />
+              <Route path="/auth/signup/verify-email" element={<AuthVerifyEmailPage />} />
+              <Route path="/auth/forgot-password" element={<AuthResetPage />} />
+              <Route path="/auth/forgot-password/sent" element={<AuthResetSentPage />} />
+              <Route path="/auth/forgot-password/reset" element={<AuthSetNewPasswordPage />} />
+              {/* Legacy FR auth routes — 301 redirects preserve existing magic links in emails. */}
+              <Route path="/auth/connexion" element={<Navigate to="/auth/login" replace />} />
+              <Route path="/auth/connexion/lien-envoye" element={<Navigate to="/auth/login/link-sent" replace />} />
+              <Route path="/auth/connexion/erreur" element={<Navigate to="/auth/login/error" replace />} />
+              <Route path="/auth/inscription" element={<Navigate to="/auth/signup" replace />} />
+              <Route path="/auth/inscription/email-verifier" element={<Navigate to="/auth/signup/verify-email" replace />} />
+              <Route path="/auth/mot-de-passe-oublie" element={<Navigate to="/auth/forgot-password" replace />} />
+              <Route path="/auth/mot-de-passe-oublie/envoye" element={<Navigate to="/auth/forgot-password/sent" replace />} />
+              <Route path="/auth/mot-de-passe-oublie/redefinir" element={<Navigate to="/auth/forgot-password/reset" replace />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
-              <Route path="/acheter-legacy" element={<SearchPage />} />
-              <Route path="/louer-legacy" element={<LouerPage />} />
+              <Route path="/search-legacy" element={<SearchPage />} />
+              <Route path="/rent-legacy" element={<RentPage />} />
+              {/* /buy + /rent — short aliases used by storefront CTAs. Both
+                  point at the SearchPage which already handles `?transaction=`
+                  filters. */}
+              <Route path="/buy" element={<SearchPage />} />
+              <Route path="/rent" element={<RentPage />} />
+              <Route path="/acheter" element={<Navigate to="/buy" replace />} />
+              <Route path="/louer" element={<Navigate to="/rent" replace />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
-              <Route path="/vendre" element={<VendrePage />} />
-              <Route path="/estimations" element={<EstimationsPage />} />
-              <Route path="/estimer" element={<EstimationsPage />} />
+              <Route path="/sell" element={<SellPage />} />
+              <Route path="/estimates" element={<EstimatesPage />} />
+              <Route path="/estimate" element={<EstimatesPage />} />
               <Route path="/services" element={<ServicesPage />} />
-              <Route path="/publier" element={<PublierPage />} />
+              <Route path="/publish" element={<PublishPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/visite/:id/modifier" element={<VisitManagePage />} />
-              <Route path="/visite/:id/feedback" element={<VisitFeedbackPage />} />
+              <Route path="/visit/:id/edit" element={<VisitManagePage />} />
+              <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
               <Route path="/agents" element={<AgentDirectoryPage />} />
               <Route path="/agents/:slug" element={<AgentProfilePage />} />
-              <Route path="/agences" element={<AgenciesPage />} />
+              <Route path="/agencies" element={<AgenciesPage />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
-              {/* Mon compte — public-side dashboard (favoris, recherches, messagerie, profil) */}
+              {/* Legacy FR routes — 301 redirects preserve bookmarks + external links. */}
+              <Route path="/acheter-legacy" element={<Navigate to="/search-legacy" replace />} />
+              <Route path="/louer-legacy" element={<Navigate to="/rent-legacy" replace />} />
+              <Route path="/vendre" element={<Navigate to="/sell" replace />} />
+              <Route path="/estimations" element={<Navigate to="/estimates" replace />} />
+              <Route path="/estimer" element={<Navigate to="/estimate" replace />} />
+              <Route path="/publier" element={<Navigate to="/publish" replace />} />
+              <Route path="/visite/:id/modifier" element={<VisitModifyRedirect />} />
+              <Route path="/visite/:id/feedback" element={<VisitFeedbackRedirect />} />
+              <Route path="/agences" element={<Navigate to="/agencies" replace />} />
+
+              {/* Account — public-side dashboard (favorites, saved searches, messaging, profile) */}
               <Route
-                path="/compte"
+                path="/account"
                 element={
                   <ProtectedRoute>
-                    <ComptePage />
+                    <AccountPage />
                   </ProtectedRoute>
                 }
               />
+              <Route path="/compte" element={<Navigate to="/account" replace />} />
 
               {/* Help Center */}
-              <Route path="/aide" element={<HelpCenterPage />} />
-              <Route path="/aide/demarrage" element={<HelpStartPage />} />
-              <Route path="/aide/contact" element={<HelpContactPage />} />
-              <Route path="/aide/statut" element={<HelpStatusPage />} />
-              <Route path="/aide/nouveautes" element={<HelpChangelogPage />} />
-              <Route path="/aide/raccourcis" element={<HelpShortcutsPage />} />
-              <Route path="/aide/conformite" element={<HelpCompliancePage />} />
-              <Route path="/aide/limites" element={<HelpLimitsPage />} />
-              <Route path="/aide/ressources" element={<HelpResourcesPage />} />
-              <Route path="/aide/glossaire" element={<GlossairePage />} />
-              <Route path="/aide/:category" element={<HelpCategoryPage />} />
-              <Route path="/aide/:category/:slug" element={<HelpArticlePage />} />
+              <Route path="/help" element={<HelpCenterPage />} />
+              <Route path="/help/start" element={<HelpStartPage />} />
+              <Route path="/help/contact" element={<HelpContactPage />} />
+              <Route path="/help/status" element={<HelpStatusPage />} />
+              <Route path="/help/changelog" element={<HelpChangelogPage />} />
+              <Route path="/help/shortcuts" element={<HelpShortcutsPage />} />
+              <Route path="/help/compliance" element={<HelpCompliancePage />} />
+              <Route path="/help/limits" element={<HelpLimitsPage />} />
+              <Route path="/help/resources" element={<HelpResourcesPage />} />
+              <Route path="/help/glossary" element={<GlossaryPage />} />
+              <Route path="/help/:category" element={<HelpCategoryPage />} />
+              <Route path="/help/:category/:slug" element={<HelpArticlePage />} />
+              {/* Legacy FR help routes */}
+              <Route path="/aide" element={<Navigate to="/help" replace />} />
+              <Route path="/aide/demarrage" element={<Navigate to="/help/start" replace />} />
+              <Route path="/aide/contact" element={<Navigate to="/help/contact" replace />} />
+              <Route path="/aide/statut" element={<Navigate to="/help/status" replace />} />
+              <Route path="/aide/nouveautes" element={<Navigate to="/help/changelog" replace />} />
+              <Route path="/aide/raccourcis" element={<Navigate to="/help/shortcuts" replace />} />
+              <Route path="/aide/conformite" element={<Navigate to="/help/compliance" replace />} />
+              <Route path="/aide/limites" element={<Navigate to="/help/limits" replace />} />
+              <Route path="/aide/ressources" element={<Navigate to="/help/resources" replace />} />
+              <Route path="/aide/glossaire" element={<Navigate to="/help/glossary" replace />} />
+              <Route path="/aide/:category" element={<HelpCategoryRedirect />} />
+              <Route path="/aide/:category/:slug" element={<HelpArticleRedirect />} />
 
               {/* Support tickets (public) */}
               <Route path="/support/:ticketNumber" element={<TicketStatusPage />} />
               <Route path="/support/:ticketNumber/feedback" element={<TicketFeedbackPage />} />
 
-              {/* Portail vendeur — accès direct (dev/test) — wraps in
+              {/* Seller portal — direct access (dev/test) — wraps in
                   SellerPortalProvider with MOCK_SELLER_DATA so child pages
                   don't crash with "useSellerPortalData must be used inside
                   SellerPortalProvider" (audit bug A2). */}
-              <Route path="/portail" element={<PortalDevWrapper />}>
-                <Route index element={<MonDossierPage />} />
-                <Route path="visites" element={<MesVisitesPage />} />
-                <Route path="offres" element={<MesOffresPage />} />
-                <Route path="documents" element={<MesDocumentsPage />} />
-                <Route path="messages" element={<MesMessagesPage />} />
-                <Route path="analyse" element={<AnalysePage />} />
-                <Route path="profil" element={<MonProfilPage />} />
+              <Route path="/portal" element={<PortalDevWrapper />}>
+                <Route index element={<MyFilePage />} />
+                <Route path="visits" element={<MyVisitsPage />} />
+                <Route path="offers" element={<MyOffersPage />} />
+                <Route path="documents" element={<MyDocumentsPage />} />
+                <Route path="messages" element={<MyMessagesPage />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="profile" element={<MyProfilePage />} />
               </Route>
+              {/* Legacy FR portal routes */}
+              <Route path="/portail" element={<Navigate to="/portal" replace />} />
+              <Route path="/portail/visites" element={<Navigate to="/portal/visits" replace />} />
+              <Route path="/portail/offres" element={<Navigate to="/portal/offers" replace />} />
+              <Route path="/portail/documents" element={<Navigate to="/portal/documents" replace />} />
+              <Route path="/portail/messages" element={<Navigate to="/portal/messages" replace />} />
+              <Route path="/portail/analyse" element={<Navigate to="/portal/analytics" replace />} />
+              <Route path="/portail/profil" element={<Navigate to="/portal/profile" replace />} />
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
@@ -355,15 +435,22 @@ function AnimatedRoutes() {
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/configuring" element={<D0ConfiguringDemoPage />} />
 
-              {/* Portail vendeur — accès tokénisé (production) */}
-              <Route path="/portail/:token" element={<PortalGateway />}>
-                <Route index element={<MonDossierPage />} />
-                <Route path="visites" element={<MesVisitesPage />} />
-                <Route path="offres" element={<MesOffresPage />} />
-                <Route path="documents" element={<MesDocumentsPage />} />
-                <Route path="messages" element={<MesMessagesPage />} />
-                <Route path="analyse" element={<AnalysePage />} />
+              {/* Seller portal — tokenized access (production) */}
+              <Route path="/portal/:token" element={<PortalGateway />}>
+                <Route index element={<MyFilePage />} />
+                <Route path="visits" element={<MyVisitsPage />} />
+                <Route path="offers" element={<MyOffersPage />} />
+                <Route path="documents" element={<MyDocumentsPage />} />
+                <Route path="messages" element={<MyMessagesPage />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
               </Route>
+              {/* Legacy FR portal tokenized routes — keep magic links in emails working. */}
+              <Route path="/portail/:token" element={<PortalSubRedirect to="" />} />
+              <Route path="/portail/:token/visites" element={<PortalSubRedirect to="visits" />} />
+              <Route path="/portail/:token/offres" element={<PortalSubRedirect to="offers" />} />
+              <Route path="/portail/:token/documents" element={<PortalSubRedirect to="documents" />} />
+              <Route path="/portail/:token/messages" element={<PortalSubRedirect to="messages" />} />
+              <Route path="/portail/:token/analyse" element={<PortalSubRedirect to="analytics" />} />
 
               {/* Onboarding wizard (protected, no sidebar) */}
               <Route
@@ -417,13 +504,17 @@ function AnimatedRoutes() {
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
                 <Route path="transactions/:id/offre/:kind" element={<OfferModalSugarV3Page />} />
                 {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}
-                <Route path="visites/nouveau" element={<VisitModalSugarV3Page />} />
+                <Route path="visits/new" element={<VisitModalSugarV3Page />} />
                 {/* Sprint 2 — Fiche Visite (bon + rapport) */}
-                <Route path="visites/:id" element={<VisiteDetailSugarV3Page />} />
+                <Route path="visits/:id" element={<VisitDetailSugarV3Page />} />
+                {/* Legacy FR */}
+                <Route path="visites/nouveau" element={<Navigate to="/dashboard/visits/new" replace />} />
+                <Route path="visites/:id" element={<DashboardVisitRedirect />} />
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
                 <Route path="matching" element={<MatchingSugarV2Page />} />
-                <Route path="parcours" element={<ParcoursSugarV2Page />} />
+                <Route path="journey" element={<JourneySugarV2Page />} />
+                <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
                 <Route path="documents" element={<DocumentsSugarV2Page />} />
                 <Route path="settings" element={<SettingsSugarV2Page />} />
@@ -434,7 +525,8 @@ function AnimatedRoutes() {
                 <Route path="kyc/showcase" element={<KycShowcasePage />} />
                 <Route path="kyc/v2" element={<KycListSugarV2Page />} />
                 <Route path="kyc/v2/:id" element={<KycDetailSugarV2Page />} />
-                <Route path="reseau" element={<ReseauSugarV2Page />} />
+                <Route path="network" element={<NetworkSugarV2Page />} />
+                <Route path="reseau" element={<Navigate to="/dashboard/network" replace />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
                 <Route path="audit" element={<AuditSugarPage />} />
                 <Route path="julien" element={<JulienSugarV2Page />} />
@@ -455,7 +547,8 @@ function AnimatedRoutes() {
                 <Route path="contacts/import" element={<ContactImportPage />} />
                 {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) */}
                 <Route path="contacts/:id" element={<ContactDetailSugarV3Page />} />
-                <Route path="marche/:externalId" element={<ExternalListingDetailPage />} />
+                <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
+                <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
                 <Route path="documents/generate" element={<DocumentGenerator />} />

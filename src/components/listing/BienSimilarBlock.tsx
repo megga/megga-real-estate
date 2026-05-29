@@ -37,7 +37,7 @@ interface BienSimilarBlockProps {
   type?: string | null
   canton?: string | null
   mode?: 'louer' | 'acheter'
-  /** Lien "Voir tous les biens" — par défaut /acheter ou /louer */
+  /** Lien "Voir tous les biens" — par défaut /buy ou /rent */
   searchHref?: string
   count?: number
 }
@@ -167,7 +167,7 @@ export default function BienSimilarBlock({
   if (typeLabel) captionParts.push(typeLabel)
   if (canton) captionParts.push(canton)
   captionParts.push('±30% prix')
-  const defaultHref = mode === 'louer' ? '/louer' : '/acheter'
+  const defaultHref = mode === 'louer' ? '/rent' : '/buy'
 
   return (
     <div

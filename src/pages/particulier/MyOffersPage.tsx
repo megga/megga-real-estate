@@ -312,7 +312,7 @@ function ReplyModal({
 
 // ─── Main page ───────────────────────────────────────────────────────────
 
-export default function MesOffresPage() {
+export default function MyOffersPage() {
   const { property, offers } = useSellerPortalData()
   const [replyOffer, setReplyOffer] = useState<SellerOffer | null>(null)
 

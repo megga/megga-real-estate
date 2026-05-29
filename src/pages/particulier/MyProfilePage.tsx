@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 
-export default function MonProfilPage() {
+export default function MyProfilePage() {
   const navigate = useNavigate()
   const { profile, signOut, refreshProfile } = useAuth()
   const [fullName, setFullName] = useState(profile?.full_name || '')

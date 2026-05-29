@@ -35,7 +35,7 @@ export default function HelpCategoryPage() {
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <p className="text-gray-500 text-base">Cat\u00e9gorie introuvable.</p>
           <Link
-            to="/aide"
+            to="/help"
             className="text-sm text-gray-900 underline mt-4 inline-block hover:text-gray-700 transition-colors"
           >
             Retour au centre d'aide
@@ -54,7 +54,7 @@ export default function HelpCategoryPage() {
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm mb-8">
           <Link
-            to="/aide"
+            to="/help"
             className="text-gray-500 hover:text-gray-600 transition-colors"
           >
             Centre d'aide
@@ -103,7 +103,7 @@ export default function HelpCategoryPage() {
                     {sectionArticles.map(article => (
                       <Link
                         key={article.slug}
-                        to={`/aide/${category}/${article.slug}`}
+                        to={`/help/${category}/${article.slug}`}
                         className="block text-sm text-gray-700 hover:text-blue-600 transition-colors leading-relaxed"
                       >
                         {article.title}
@@ -127,7 +127,7 @@ export default function HelpCategoryPage() {
               Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
             </p>
             <Link
-              to="/aide/contact"
+              to="/help/contact"
               className="h-11 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center w-fit"
             >
               Contactez-nous

@@ -45,7 +45,7 @@ export interface MapPoint {
 }
 
 // Bumped from 20 → 50 : x2.5 réduction des round-trips réseau sur scroll
-// infinite (audit perf /louer Sprint 4 polish). 50 items = ~3.5 pages
+// infinite (audit perf /rent Sprint 4 polish). 50 items = ~3.5 pages
 // virtuelles à 14 rows visibles dans la viewport — confortable.
 const PAGE_SIZE = 50
 
@@ -319,8 +319,8 @@ export function useMarketListings(filters: MarketFilters = {}) {
           )
           .eq('status', 'active')
 
-        // Filter by transaction_type so BUY properties don't appear on /louer
-        // and RENT properties don't appear on /acheter
+        // Filter by transaction_type so BUY properties don't appear on /rent
+        // and RENT properties don't appear on /buy
         if (filters.context) {
           internalQuery = internalQuery.eq('transaction_type', filters.context)
         }

@@ -1,16 +1,16 @@
 // MEGGA Auth — page wrappers utilisant AuthBentoApp
 // Routes :
-//   /auth/connexion                       → particulier · initial
-//   /auth/connexion?pro                   → agent · signin
-//   /auth/connexion/lien-envoye?email=…   → particulier · sent
-//   /auth/connexion/erreur                → particulier · error
-//   /auth/inscription                     → agent · signup
-//   /auth/mot-de-passe-oublie             → agent · reset
-//   /auth/mot-de-passe-oublie/envoye?email=…  → agent · resetsent
+//   /auth/login                       → particulier · initial
+//   /auth/login?pro                   → agent · signin
+//   /auth/login/link-sent?email=…     → particulier · sent
+//   /auth/login/error                 → particulier · error
+//   /auth/signup                      → agent · signup
+//   /auth/forgot-password             → agent · reset
+//   /auth/forgot-password/sent?email=…  → agent · resetsent
 import { useSearchParams } from 'react-router-dom'
 import { AuthBentoApp } from '@/components/auth-bento/AuthBentoApp'
 
-export function AuthConnexionPage() {
+export function AuthLoginPage() {
   const [params] = useSearchParams()
   const isAgent = params.has('pro')
   return (

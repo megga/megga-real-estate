@@ -787,7 +787,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView({ listi
   // Graceful fallback when VITE_MAPBOX_TOKEN is missing — without this guard,
   // mapbox-gl crashes deep inside its initialization (`Cannot read properties
   // of undefined (reading '0')` on pointRayInte…), which previously broke
-  // /louer and /acheter in any env without the token (audit bug B3). We render
+  // /rent and /buy in any env without the token (audit bug B3). We render
   // a lightweight placeholder so the page itself stays usable; consumers
   // (SearchPage, etc.) continue to render their list view alongside.
   if (!MAPBOX_TOKEN) {

@@ -45,7 +45,7 @@ export default function SmartPageLoader() {
 
   const skeleton = (() => {
     // Marketplace listings (highest-traffic public routes)
-    if (pathname === '/louer' || pathname === '/acheter') {
+    if (pathname === '/rent' || pathname === '/buy') {
       return <MarketplaceListingsSkeleton />
     }
     // Property detail (both legacy and Property X variants)

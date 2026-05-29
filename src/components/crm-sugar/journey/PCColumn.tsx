@@ -3,7 +3,7 @@
 
 import { Fragment } from 'react'
 import type { SugarPalette } from '../tokens'
-import { parcoursAgentById, type ParcoursStage, type ParcoursTask } from './parcoursData'
+import { parcoursAgentById, type ParcoursStage, type ParcoursTask } from './journeyData'
 import { PCBigCard, PCColConnector, PCGridCard, PCMiniRow } from './PCCards'
 
 interface PCColumnProps {

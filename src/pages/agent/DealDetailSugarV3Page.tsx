@@ -222,7 +222,7 @@ export default function DealDetailSugarV3Page() {
             title="Planifier une visite"
             onClick={() =>
               navigate(
-                `/dashboard/visites/nouveau?bienId=${deal.property_id}&contactId=${deal.contact_buyer_id ?? ''}&dealId=${deal.id}`,
+                `/dashboard/visits/nouveau?bienId=${deal.property_id}&contactId=${deal.contact_buyer_id ?? ''}&dealId=${deal.id}`,
               )
             }
           />

@@ -22,13 +22,13 @@ const CARDS: PostCard[] = [
     id: 'free',
     title: 'Post a free property',
     description: 'Lorem ipsum dolor sit amet consectetur vitae aenean amet in eros neque nulla mattis sit.',
-    href: '/publier?type=free',
+    href: '/publish?type=free',
   },
   {
     id: 'paid',
     title: 'Post a paid property',
     description: 'Lorem ipsum dolor sit amet consectetur vitae aenean amet in eros neque nulla mattis sit.',
-    href: '/publier?type=premium',
+    href: '/publish?type=premium',
   },
 ]
 

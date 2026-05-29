@@ -1,1 +1,72 @@
-/* /index.html 200
+# Legacy FR routes → EN routes (301 SEO-preserving redirects).
+# Évalués AVANT le SPA fallback, donc Cloudflare répond directement avec un 301
+# sans charger l'app React. Préserve SEO + bookmarks + magic links existants.
+#
+# Les routes paramétrées (:splat) capturent tout segment dynamique.
+
+# Auth
+/auth/connexion                              /auth/login                       301
+/auth/connexion/lien-envoye                  /auth/login/link-sent             301
+/auth/connexion/erreur                       /auth/login/error                 301
+/auth/inscription                            /auth/signup                      301
+/auth/inscription/email-verifier             /auth/signup/verify-email         301
+/auth/mot-de-passe-oublie                    /auth/forgot-password             301
+/auth/mot-de-passe-oublie/envoye             /auth/forgot-password/sent        301
+/auth/mot-de-passe-oublie/redefinir          /auth/forgot-password/reset       301
+
+# Storefront
+/acheter                                     /buy                              301
+/louer                                       /rent                             301
+/vendre                                      /sell                             301
+/estimations                                 /estimates                        301
+/estimer                                     /estimate                         301
+/publier                                     /publish                          301
+/agences                                     /agencies                         301
+/acheter-legacy                              /search-legacy                    301
+/louer-legacy                                /rent-legacy                      301
+
+# Account
+/compte                                      /account                          301
+
+# Help center
+/aide                                        /help                             301
+/aide/demarrage                              /help/start                       301
+/aide/contact                                /help/contact                     301
+/aide/statut                                 /help/status                      301
+/aide/nouveautes                             /help/changelog                   301
+/aide/raccourcis                             /help/shortcuts                   301
+/aide/conformite                             /help/compliance                  301
+/aide/limites                                /help/limits                      301
+/aide/ressources                             /help/resources                   301
+/aide/glossaire                              /help/glossary                    301
+/aide/:category                              /help/:category                   301
+/aide/:category/:slug                        /help/:category/:slug             301
+
+# Seller portal
+/portail                                     /portal                           301
+/portail/visites                             /portal/visits                    301
+/portail/offres                              /portal/offers                    301
+/portail/documents                           /portal/documents                 301
+/portail/messages                            /portal/messages                  301
+/portail/analyse                             /portal/analytics                 301
+/portail/profil                              /portal/profile                   301
+/portail/:token                              /portal/:token                    301
+/portail/:token/visites                      /portal/:token/visits             301
+/portail/:token/offres                       /portal/:token/offers             301
+/portail/:token/documents                    /portal/:token/documents          301
+/portail/:token/messages                     /portal/:token/messages           301
+/portail/:token/analyse                      /portal/:token/analytics          301
+
+# Visit (public)
+/visite/:id/modifier                         /visit/:id/edit                   301
+/visite/:id/feedback                         /visit/:id/feedback               301
+
+# Agent dashboard
+/dashboard/visites/nouveau                   /dashboard/visits/new             301
+/dashboard/visites/:id                       /dashboard/visits/:id             301
+/dashboard/parcours                          /dashboard/journey                301
+/dashboard/reseau                            /dashboard/network                301
+/dashboard/marche/:externalId                /dashboard/market/:externalId     301
+
+# SPA fallback — MUST stay last
+/*                                           /index.html                       200

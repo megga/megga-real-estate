@@ -60,7 +60,7 @@ export default function HelpSearchBar() {
     (article: HelpArticle) => {
       setOpen(false)
       setQuery('')
-      navigate(`/aide/${article.category}/${article.slug}`)
+      navigate(`/help/${article.category}/${article.slug}`)
     },
     [navigate]
   )

@@ -147,7 +147,7 @@ export default function HomeRegions() {
             return (
               <Link
                 key={r.id}
-                to={`/louer?region=${r.id}`}
+                to={`/rent?region=${r.id}`}
                 onMouseEnter={() => setActive(r.id)}
                 onMouseLeave={() => setActive(null)}
                 style={{

@@ -6,8 +6,8 @@
 //   2. Date, heure, durée + suggestions MEGGA AI
 //   3. Détails & confirmation (récap noir + 3 toggles automatisations)
 //
-// Route : /dashboard/visites/nouveau?bienId=X&contactId=Y
-// Au submit : useCreateAgentVisit → redirect /dashboard/visites/:newId
+// Route : /dashboard/visits/nouveau?bienId=X&contactId=Y
+// Au submit : useCreateAgentVisit → redirect /dashboard/visits/:newId
 
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -176,7 +176,7 @@ export default function VisitModalSugarV3Page() {
       },
       {
         onSuccess: (newVisit) => {
-          navigate(`/dashboard/visites/${newVisit.id}`)
+          navigate(`/dashboard/visits/${newVisit.id}`)
         },
       },
     )

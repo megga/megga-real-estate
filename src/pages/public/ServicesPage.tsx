@@ -402,7 +402,7 @@ const particulierCards = [
       'Prix au m² actualisé par canton',
     ],
     cta: 'Estimer mon bien',
-    href: '/estimations',
+    href: '/estimates',
   },
   {
     icon: Rocket,
@@ -417,7 +417,7 @@ const particulierCards = [
       'Commission 30-50% moins chère',
     ],
     cta: 'Vendre mon bien',
-    href: '/vendre',
+    href: '/sell',
   },
 ]
 

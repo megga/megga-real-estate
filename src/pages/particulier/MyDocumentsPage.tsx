@@ -119,7 +119,7 @@ type FilterTab = 'all' | 'validated' | 'pending' | 'missing'
 
 // ─── Main page ──────────────────────────────────────────────────────────
 
-export default function MesDocumentsPage() {
+export default function MyDocumentsPage() {
   const [filter, setFilter] = useState<FilterTab>('all')
   const [dragTarget, setDragTarget] = useState<string | null>(null)
   const [dragOverGeneral, setDragOverGeneral] = useState(false)

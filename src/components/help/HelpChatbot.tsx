@@ -111,7 +111,7 @@ const PAGE_CONTEXT: Record<string, { label: string; sections: typeof HELP_SECTIO
       { title: 'Plans et tarifs', slug: 'plans-et-tarifs', category: 'agent' },
     ],
   },
-  '/acheter': {
+  '/buy': {
     label: 'Recherche',
     sections: [
       { title: 'Rechercher un bien', slug: 'rechercher-bien', category: 'acheteur' },
@@ -120,14 +120,14 @@ const PAGE_CONTEXT: Record<string, { label: string; sections: typeof HELP_SECTIO
       { title: 'Calculateur d\'accessibilité', slug: 'calculateur', category: 'acheteur' },
     ],
   },
-  '/vendre': {
+  '/sell': {
     label: 'Vendre',
     sections: [
       { title: 'Estimer et vendre votre bien', slug: 'estimer-vendre', category: 'acheteur' },
       { title: 'Les étapes d\'une vente en Suisse', slug: 'processus-vente-suisse', category: 'vendeur' },
     ],
   },
-  '/portail': {
+  '/portal': {
     label: 'Portail vendeur',
     sections: [
       { title: 'Accéder à votre espace', slug: 'acces-portail', category: 'vendeur' },
@@ -616,12 +616,12 @@ export default function HelpChatbot() {
 
   function goToArticle(category: string, slug: string) {
     setOpen(false)
-    navigate(`/aide/${category}/${slug}`)
+    navigate(`/help/${category}/${slug}`)
   }
 
   function handleCreateTicket() {
     setOpen(false)
-    navigate(`/aide/contact?category=${encodeURIComponent(selectedCategory || '')}&ref=${conversationId || ''}`)
+    navigate(`/help/contact?category=${encodeURIComponent(selectedCategory || '')}&ref=${conversationId || ''}`)
   }
 
   // ── Launcher ──────────────────────────────────────────────────────
@@ -1158,7 +1158,7 @@ export default function HelpChatbot() {
                       <ChevronRight className="h-4 w-4 text-blue-500 flex-shrink-0" />
                     </button>
                   ))}
-                  <Link to="/aide/ressources" onClick={() => setOpen(false)}
+                  <Link to="/help/resources" onClick={() => setOpen(false)}
                     className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-theme-border text-sm font-medium text-theme-secondary hover:border-theme-active transition-colors">
                     Voir tous les articles <ArrowRight className="h-4 w-4" />
                   </Link>

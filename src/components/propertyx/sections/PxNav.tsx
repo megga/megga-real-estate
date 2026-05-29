@@ -35,14 +35,14 @@ interface PxNavProps {
 
 // Liens primaires — uniquement des routes au nouveau design PropertyX.
 const PRIMARY_LINKS = [
-  { label: 'Acheter', to: '/acheter' },
-  { label: 'Louer', to: '/louer' },
+  { label: 'Acheter', to: '/buy' },
+  { label: 'Louer', to: '/rent' },
   { label: 'Publier un bien', to: '/publier-bien' },
 ] as const
 
 // Dropdown "Plus" — pages secondaires, toutes en design PropertyX.
 const MORE_LINKS = [
-  { label: 'Agences', to: '/agences', desc: 'Annuaire des agences' },
+  { label: 'Agences', to: '/agencies', desc: 'Annuaire des agences' },
   { label: 'À propos', to: '/a-propos', desc: 'L’équipe et la mission' },
   { label: 'FAQ', to: '/faq', desc: 'Questions fréquentes' },
   { label: 'Contact', to: '/contact', desc: 'Nous écrire' },

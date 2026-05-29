@@ -13,7 +13,7 @@ import {
   type ParcoursAgent,
   type ParcoursDossier,
   type ParcoursTask,
-} from './parcoursData'
+} from './journeyData'
 
 interface PCDossierFrameProps {
   dossier: ParcoursDossier

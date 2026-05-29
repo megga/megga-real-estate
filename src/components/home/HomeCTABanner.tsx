@@ -89,7 +89,7 @@ export default function HomeCTABanner() {
             </p>
           </div>
           <Link
-            to="/vendre"
+            to="/sell"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

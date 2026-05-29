@@ -19,7 +19,7 @@ const PERSONAS = [
   {
     label: 'Je suis agent immobilier',
     subtitle: 'CRM, pipeline, KYC, matching, IA',
-    href: '/aide/agent',
+    href: '/help/agent',
     count: getArticlesByCategory('agent').length,
     Illustration: AgentIllustration,
     border: 'hover:border-blue-200',
@@ -27,7 +27,7 @@ const PERSONAS = [
   {
     label: 'Je vends mon bien',
     subtitle: 'Estimation, mandat, suivi, portail',
-    href: '/aide/vendeur',
+    href: '/help/vendeur',
     count: getArticlesByCategory('vendeur').length,
     Illustration: SellerIllustration,
     border: 'hover:border-emerald-200',
@@ -35,7 +35,7 @@ const PERSONAS = [
   {
     label: 'Je cherche un bien',
     subtitle: 'Recherche, visites, accessibilité',
-    href: '/aide/acheteur',
+    href: '/help/acheteur',
     count: getArticlesByCategory('acheteur').length,
     Illustration: null,
     illustrationSrc: '/illustration-looking.svg',
@@ -113,7 +113,7 @@ function PopularArticlesCarousel() {
           {visible.map((article) => (
             <Link
               key={article.slug}
-              to={`/aide/${article.category}/${article.slug}`}
+              to={`/help/${article.category}/${article.slug}`}
               className="bg-white rounded-2xl p-7 hover:shadow-lg transition-all group flex flex-col w-[320px] h-[280px] flex-shrink-0"
             >
               {/* Category dot */}
@@ -230,7 +230,7 @@ export default function HelpCenterPage() {
       {/* ── Browse all ── */}
       <div className="flex justify-center pb-16">
         <Link
-          to="/aide/ressources"
+          to="/help/resources"
           className="h-12 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2"
         >
           {t('help.browseAllGuides')} <ArrowRight className="h-4 w-4" />
@@ -254,7 +254,7 @@ export default function HelpCenterPage() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
-                to="/aide/contact"
+                to="/help/contact"
                 className="h-12 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center"
               >
                 {t('help.contactUs')}

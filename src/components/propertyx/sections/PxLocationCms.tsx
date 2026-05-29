@@ -74,10 +74,10 @@ function LocationHeader() {
               Pages
               <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
             </Link>
-            <Link to="/compte" style={navLinkStyle}>Cart (0)</Link>
+            <Link to="/account" style={navLinkStyle}>Cart (0)</Link>
           </nav>
         </div>
-        <Link to="/acheter" style={{
+        <Link to="/buy" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           paddingLeft: 16, paddingRight: 6, paddingTop: 6, paddingBottom: 6,
           background: PX.neutral700, borderRadius: PX.radius.pill, textDecoration: 'none',
@@ -232,7 +232,7 @@ function LocationHero() {
             {/* Buttons Row : gap-16 */}
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
               {/* Primary Button "Start exploring" */}
-              <Link to="/acheter" style={{
+              <Link to="/buy" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 paddingLeft: 16, paddingRight: 6, paddingTop: 6, paddingBottom: 6,
                 background: PX.neutral700, borderRadius: PX.radius.pill, textDecoration: 'none',
@@ -249,7 +249,7 @@ function LocationHero() {
                 </span>
               </Link>
               {/* Link "Post properties" + chevron right (color neutral300 ~ white-ish) */}
-              <Link to="/publier" style={{
+              <Link to="/publish" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 textDecoration: 'none',
               }}>

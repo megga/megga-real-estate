@@ -1527,7 +1527,7 @@ export default function ListingPreviewPanel({ listingId, onClose, inline }: List
 
                           {listing.agency_profile_slug && (
                             <Link
-                              to={`/agences/${listing.agency_profile_slug}`}
+                              to={`/agencies/${listing.agency_profile_slug}`}
                               className="block w-full text-center text-sm font-semibold text-accent border border-accent/30 hover:bg-accent hover:text-white transition-colors rounded-lg py-2 mt-3"
                             >
                               Voir le profil →

@@ -371,11 +371,11 @@ export default function FooterMega() {
 
         {/* Product */}
         <FooterColumn title="Produit">
-          <FooterLink to="/acheter">Acheter</FooterLink>
-          <FooterLink to="/louer">Louer</FooterLink>
-          <FooterLink to="/estimations">Estimer</FooterLink>
-          <FooterLink to="/louer">Carte</FooterLink>
-          <FooterLink to="/compte">Alertes</FooterLink>
+          <FooterLink to="/buy">Acheter</FooterLink>
+          <FooterLink to="/rent">Louer</FooterLink>
+          <FooterLink to="/estimates">Estimer</FooterLink>
+          <FooterLink to="/rent">Carte</FooterLink>
+          <FooterLink to="/account">Alertes</FooterLink>
         </FooterColumn>
 
         {/* For pros */}
@@ -398,7 +398,7 @@ export default function FooterMega() {
             Professionnels
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <FooterLink to="/agences">Pour les agences</FooterLink>
+            <FooterLink to="/agencies">Pour les agences</FooterLink>
             <FooterLink to="/agents">Pour les agents</FooterLink>
             <FooterLink to="/dashboard" badge="Nouveau">CRM MEGGA</FooterLink>
           </div>

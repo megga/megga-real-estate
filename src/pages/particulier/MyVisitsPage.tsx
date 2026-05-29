@@ -230,7 +230,7 @@ function DateTile({ date, accent = 'emerald' }: { date: Date; accent?: 'emerald'
 
 // ─── Main page ───────────────────────────────────────────────────────────
 
-export default function MesVisitesPage() {
+export default function MyVisitsPage() {
   const { visits, kpis } = useSellerPortalData()
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set())
   const [postponeVisit, setPostponeVisit] = useState<SellerVisit | null>(null)

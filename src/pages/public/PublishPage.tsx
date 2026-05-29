@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 
-export default function PublierPage() {
+export default function PublishPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
