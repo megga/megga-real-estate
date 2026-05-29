@@ -23,13 +23,33 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const FLATFOX_BASE = 'https://flatfox.ch'
 const PAGE_SIZE = 100
-const CHUNK_PAGES = 5  // 5 pages × ~1.5s (fetch + upsert + delay) = ~8s par invocation
+const CHUNK_PAGES = 5  // pages traitées par "bloc" entre deux updates de tracking
 const DELAY_MS = 300   // 300ms entre pages (Flatfox ne rate-limite pas, on reste poli)
 const USER_AGENT = 'MEGGA Real Estate Sync (contact: tech@megga.ch)'
 
 // Safety : ne JAMAIS sweeper si on a upserté moins de N% du total attendu
 // (protège contre un incident Flatfox qui retourne 0 listings → on supprimerait tout sinon)
 const SAFETY_MIN_RATIO = 0.8 // au moins 80% des listings attendus doivent avoir été vus
+
+// ─── Anti-fan-out / concurrence (le fix de fond) ──────────────────────────
+// Une invocation traite des blocs EN SÉRIE dans une seule boucle jusqu'à
+// TIME_BUDGET_MS, PUIS fait UN SEUL self-invoke pour continuer. La concurrence
+// est donc structurellement 1 (au lieu du fan-out parallèle de l'ancienne
+// version qui planifiait le chunk suivant AVANT de bosser → ~40 invocations
+// simultanées → pool de 60 connexions épuisé → DB down).
+//
+// Supabase Pro edge functions : ~150s de wall-clock par invocation. On rend
+// la main à 100s pour garder une marge (le self-invoke + le dernier
+// updateRunChunk + le sweep ont besoin de temps).
+const TIME_BUDGET_MS = 100_000
+// Plafond dur sur le nombre de relais : ~35k biens / ~4k par relais ≈ 9 relais
+// en régime normal. 30 = marge large ; au-delà c'est forcément un bug → on
+// coupe pour ne JAMAIS partir en runaway.
+const MAX_HANDOFFS = 30
+// Un run 'running' dont le dernier chunk date de > 10 min est considéré mort :
+// on le marque 'failed' au démarrage du run suivant pour libérer le verrou
+// singleton (sinon une chaîne morte bloquerait tous les runs futurs).
+const STALE_RUN_MS = 10 * 60 * 1000
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -41,6 +61,7 @@ interface SyncRequest {
   stats?: SyncStats        // stats accumulées
   run_id?: string          // id de la row flatfox_sync_runs (créée au premier chunk)
   trigger_source?: string  // 'cron' | 'manual' | etc — stocké dans flatfox_sync_runs
+  handoff_count?: number   // nombre de relais self-invoke déjà faits (plafond MAX_HANDOFFS)
 }
 
 interface SyncStats {
@@ -456,18 +477,52 @@ function sleep(ms: number): Promise<void> {
 // silently no-op if the table is unavailable (the sync must never fail
 // because tracking failed).
 
+// Reap dead runs BEFORE trying to acquire the lock. A 'running' row whose
+// last_chunk_at is older than STALE_RUN_MS (or which never recorded a chunk
+// and is older than STALE_RUN_MS) is considered dead — mark it 'failed' so the
+// singleton unique index frees up and a new run can start. Without this, one
+// crashed chain would block every future run forever.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function createRunRow(supabase: any, triggerSource: string | undefined): Promise<string | null> {
+async function reapStaleRuns(supabase: any): Promise<void> {
+  const cutoff = new Date(Date.now() - STALE_RUN_MS).toISOString()
+  try {
+    // Rows that recorded at least one chunk but went silent.
+    await supabase.from('flatfox_sync_runs')
+      .update({ status: 'failed', ended_at: new Date().toISOString(), error_message: 'auto-reaped: no chunk progress > 10min (chain died)' })
+      .eq('status', 'running')
+      .lt('last_chunk_at', cutoff)
+    // Rows that died at chunk 0 (never set last_chunk_at).
+    await supabase.from('flatfox_sync_runs')
+      .update({ status: 'failed', ended_at: new Date().toISOString(), error_message: 'auto-reaped: started but no chunk > 10min (chain died early)' })
+      .eq('status', 'running')
+      .is('last_chunk_at', null)
+      .lt('started_at', cutoff)
+  } catch (err) { console.error('[reap] exception:', err) }
+}
+
+// Acquire the singleton lock by INSERTing a 'running' row. The partial unique
+// index flatfox_sync_runs_one_running guarantees at most one running row, so a
+// concurrent INSERT fails with 23505 → we report blocked=true and the caller
+// aborts. This is the DB-level guarantee against the parallel fan-out.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function createRunRow(supabase: any, triggerSource: string | undefined): Promise<{ id: string | null; blocked: boolean }> {
   try {
     const { data, error } = await supabase
       .from('flatfox_sync_runs')
       .insert({ trigger_source: triggerSource || 'cron' })
       .select('id')
       .single()
-    if (error) { console.error('[run create] error:', error.message); return null }
-    return data?.id ?? null
+    if (error) {
+      // 23505 = unique_violation on flatfox_sync_runs_one_running → a run is
+      // already active. Any other error → treat as a soft failure (no tracking).
+      const blocked = (error.code === '23505') || /duplicate key|unique/i.test(error.message || '')
+      if (blocked) console.warn('[run create] another run is already active — aborting this trigger')
+      else console.error('[run create] error:', error.message)
+      return { id: null, blocked }
+    }
+    return { id: data?.id ?? null, blocked: false }
   } catch (err) {
-    console.error('[run create] exception:', err); return null
+    console.error('[run create] exception:', err); return { id: null, blocked: false }
   }
 }
 
@@ -567,15 +622,15 @@ async function runSweep(supabase: any, syncStartAt: string, _totalSeen: number, 
 
 // ─── Main handler ────────────────────────────────────────────────
 
-// ─── Background worker : fait TOUT le travail après la réponse HTTP ────────────
+// ─── Background worker : worker SÉRIEL avec budget de temps ────────────────
+// Une invocation = une boucle qui traite des blocs descendants jusqu'à
+// TIME_BUDGET_MS, puis UN seul self-invoke pour continuer (concurrence = 1).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
+  const startedAtMs = Date.now()
   let runId: string | undefined = body.run_id
+  const handoffCount = body.handoff_count ?? 0
   try {
-    // body.offset n'est plus utilisé en mode chunk/sweep — l'offset est
-    // dérivé du curseur DB. Préfixé `_` pour signaler intentionnel.
-    const _offset = body.offset ?? 0
-    void _offset
     const syncStartAt = body.sync_start_at ?? new Date().toISOString()
     const mode = body.mode ?? 'chunk'
     const stats: SyncStats = body.stats ?? { fetched: 0, upserted: 0, skipped: 0, errors: 0, pages: 0, chunks: 0 }
@@ -594,120 +649,89 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       return
     }
 
-    // ─── CHUNK MODE ───
-    // Stratégie anti-kill : on fait un peek sur la première page pour connaître
-    // le total et décider si on a une suite. Puis on SCHEDULE tout de suite le
-    // chunk suivant (ou le sweep) AVANT de faire le travail. Comme ça, même si
-    // l'isolate se fait tuer mid-chunk, le prochain est déjà en queue.
-    //
-    // ⚠️ Flatfox's API ignores `ordering=-created`/`-pk` — results are always
-    // returned with lowest pk first (oldest first). This means offset=0 gives
-    // us 2018 listings and the newest are near the END (offset ~= count-page).
-    //
-    // To ensure we always catch the freshest listings first — especially when
-    // the self-invoke chain gets killed mid-sync — we walk BACKWARDS: first
-    // invocation starts near `count`, each self-invoke decrements offset.
-    // This way if the chain dies after N chunks, we've at least captured the
-    // N*CHUNK_SIZE most recent listings.
+    // ─── Plafond dur anti-runaway ───
+    if (handoffCount > MAX_HANDOFFS) {
+      console.error(`[chunk] handoff ceiling exceeded (${handoffCount} > ${MAX_HANDOFFS}) — aborting`)
+      await finalizeRun(supabase, runId, { status: 'failed', errorMessage: `exceeded MAX_HANDOFFS (${MAX_HANDOFFS})` })
+      return
+    }
+
+    // ⚠️ L'API Flatfox ignore `ordering=-created` — les résultats sortent
+    // toujours du plus ancien (offset 0) au plus récent (offset ≈ count). On
+    // marche donc à REBOURS : on commence près de `count` et on décrémente, pour
+    // capturer les annonces les plus fraîches en premier si la chaîne meurt.
     const nowIso = new Date().toISOString()
     const CHUNK_SPAN = CHUNK_PAGES * PAGE_SIZE
 
-    // On the very first invocation (body.offset === undefined), we don't yet
-    // know `count`. Peek with a tiny request to learn it, then start from the
-    // end.
-    let startOffset = body.offset
-    if (startOffset === undefined) {
+    // ─── Première invocation : peek count + reap + acquisition du verrou ───
+    let blockStart = body.offset
+    if (blockStart === undefined) {
       const peek = await fetchFlatfoxPage(0)
       totalExpected = peek.count || 0
-      startOffset = Math.max(0, totalExpected - CHUNK_SPAN)
-      console.log(`[chunk] first invocation: total=${totalExpected}, starting at offset=${startOffset}`)
-      // First invocation only: open the tracking row. Subsequent self-invokes
-      // inherit run_id via body.run_id.
-      if (!runId) {
-        runId = (await createRunRow(supabase, body.trigger_source)) ?? undefined
-        if (runId) console.log(`[run] created flatfox_sync_runs id=${runId}`)
+      // Libère un éventuel verrou mort AVANT de tenter de prendre le nôtre.
+      await reapStaleRuns(supabase)
+      const lock = await createRunRow(supabase, body.trigger_source)
+      if (lock.blocked) {
+        // Un autre run est déjà actif (cron qui se superpose, double-fire,
+        // run manuel en cours). On abandonne proprement — pas de fan-out.
+        console.warn('[chunk] aborting: another sync run is already active')
+        return
       }
+      runId = lock.id ?? undefined
+      blockStart = Math.max(0, totalExpected - CHUNK_SPAN)
+      console.log(`[chunk] first invocation: total=${totalExpected}, starting at offset=${blockStart}, runId=${runId}`)
     }
 
-    const firstPage = await fetchFlatfoxPage(startOffset)
-    if (totalExpected === 0 && firstPage.count) totalExpected = firstPage.count
-    const firstResults = firstPage.results || []
-
-    if (firstResults.length === 0) {
-      // Empty page at this offset — either we walked off the end or the
-      // total shrunk between peek and fetch. Go to sweep.
-      console.log(`[chunk] empty results at offset=${startOffset}, triggering sweep`)
-      await selfInvoke({ mode: 'sweep', sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source })
-      return
-    }
-
-    // Schedule the NEXT chunk = one CHUNK_SPAN earlier in the list (closer to
-    // offset 0). When we reach offset 0, we switch to sweep mode.
-    const nextOffset = startOffset - CHUNK_SPAN
-    if (nextOffset >= 0) {
-      await selfInvoke({ mode: 'chunk', offset: nextOffset, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source })
-    } else if (startOffset > 0) {
-      // Final chunk from offset 0 to pick up the oldest 2500 listings, then sweep
-      await selfInvoke({ mode: 'chunk', offset: 0, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source })
-    } else {
-      // Already at offset 0 — this chunk is the last one, it will trigger sweep after work
-      console.log(`[chunk] reached offset=0, this is the final chunk before sweep`)
-    }
-    // Local alias so the rest of the function reads naturally
-    const offsetForWork = startOffset
-
-    // Maintenant, le travail du chunk courant (peut se faire tuer sans casser la chaîne)
-    let currentOffset = offsetForWork
-    let pagesThisChunk = 0
-
-    // Page 1 déjà fetched (firstPage)
-    const processPage = async (results: FlatfoxListing[]) => {
-      stats.fetched += results.length
-      stats.pages++
-      pagesThisChunk++
-      // First: upsert all unique agencies in this page, get slug→id map
-      const agencyProfileIdMap = await upsertAgencyProfiles(supabase, results)
-      const rows: Record<string, unknown>[] = []
-      for (const r of results) {
-        const row = mapListingToRow(r, nowIso, agencyProfileIdMap)
-        if (row === null) { stats.skipped++; continue }
-        rows.push(row)
+    // Traite UN bloc (jusqu'à CHUNK_PAGES pages) à l'offset donné.
+    const processBlock = async (off: number): Promise<void> => {
+      for (let p = 0; p < CHUNK_PAGES; p++) {
+        const pageOffset = off + p * PAGE_SIZE
+        if (p > 0) await sleep(DELAY_MS)
+        const page = await fetchFlatfoxPage(pageOffset)
+        if (totalExpected === 0 && page.count) totalExpected = page.count
+        const results = page.results || []
+        if (results.length === 0) break
+        stats.fetched += results.length
+        stats.pages++
+        const agencyProfileIdMap = await upsertAgencyProfiles(supabase, results)
+        const rows: Record<string, unknown>[] = []
+        for (const r of results) {
+          const row = mapListingToRow(r, nowIso, agencyProfileIdMap)
+          if (row === null) { stats.skipped++; continue }
+          rows.push(row)
+        }
+        const { upserted, errors } = await upsertRows(supabase, rows)
+        stats.upserted += upserted
+        stats.errors += errors
+        if (!page.next) break
       }
-      const { upserted, errors } = await upsertRows(supabase, rows)
-      stats.upserted += upserted
-      stats.errors += errors
+      stats.chunks++
     }
 
-    await processPage(firstResults)
-    if (!firstPage.next) {
-      console.log(`[chunk done-early] offset=${offsetForWork} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected}`)
+    // ─── Boucle sérielle : descend les blocs jusqu'au budget de temps ───
+    while (true) {
+      await processBlock(blockStart)
       await updateRunChunk(supabase, runId, stats, totalExpected)
-      return
-    }
+      console.log(`[chunk] block offset=${blockStart} done — upserted=${stats.upserted}/${totalExpected} pages=${stats.pages} elapsed=${Math.round((Date.now() - startedAtMs) / 1000)}s`)
 
-    let reachedEnd = !firstPage.next
-    while (pagesThisChunk < CHUNK_PAGES) {
-      currentOffset += PAGE_SIZE
-      await sleep(DELAY_MS)
-      const page = await fetchFlatfoxPage(currentOffset)
-      const results = page.results || []
-      if (results.length === 0) { reachedEnd = true; break }
-      await processPage(results)
-      if (!page.next) { reachedEnd = true; break }
-    }
-    stats.chunks++
-    console.log(`[chunk ${stats.chunks}] offset=${offsetForWork}→${currentOffset} pages=${pagesThisChunk} upserted=${stats.upserted}/${totalExpected} reachedEnd=${reachedEnd}`)
+      // Atteint le début du dataset → terminé, on lance le sweep (UN hop,
+      // budget de temps frais pour l'UPDATE de sweep).
+      if (blockStart === 0) {
+        console.log('[chunk] reached offset 0 — handing off to sweep')
+        await selfInvoke({ mode: 'sweep', sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source })
+        return
+      }
 
-    // Persist running stats so dead chains are detectable from
-    // flatfox_sync_runs (status='running' with stale last_chunk_at).
-    await updateRunChunk(supabase, runId, stats, totalExpected)
+      const nextBlock = Math.max(0, blockStart - CHUNK_SPAN)
 
-    // Si ce chunk est le premier (offset=0) et qu'on n'a PAS pré-scheduled un chunk
-    // suivant (backward walk reached the start), on déclenche le sweep nous-même.
-    const weScheduledNext = offsetForWork > 0
-    if (!weScheduledNext) {
-      console.log(`[chunk] offset=0 chunk completed, triggering sweep`)
-      await selfInvoke({ mode: 'sweep', sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source })
+      // Budget de temps dépassé → UN seul self-invoke de continuation, puis stop.
+      if (Date.now() - startedAtMs > TIME_BUDGET_MS) {
+        console.log(`[chunk] time budget reached — handing off chunk at offset=${nextBlock} (handoff ${handoffCount + 1})`)
+        await selfInvoke({ mode: 'chunk', offset: nextBlock, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source, handoff_count: handoffCount + 1 })
+        return
+      }
+
+      blockStart = nextBlock
     }
   } catch (err) {
     console.error('flatfox-sync background error:', err)
