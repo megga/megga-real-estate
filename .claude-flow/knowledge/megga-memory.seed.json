@@ -434,6 +434,48 @@
       "namespace": "megga",
       "value": "KYC UI: /dashboard/kyc (KycSugarV3Page = KycListView + filtres + 4 bento stats), /dashboard/kyc/:id (KycDossierDetail = Hero + 5 KycCheckCard + KycDocsSection + KycAuditTrail + KycSourceOfFundsCard), /:id/export (KycExportPage PDF), /kyc/:token public (KycPublicPage). Menus contextuels clic droit (voir/screening/changer statut/valider; doc telecharger/valider/rejeter; check completer/lier doc). Hooks: useKycDossiers/useKycDossierByContact/useKycCountByStatus/useMarkKycCheck/useCreateKycDossier (Sprint1) + useKyc.ts (useScreenKycCase, useValidateKycCase, useUploadKycDocument, useCreateKycScreeningDecision justification>=30 car, useLogKycRead). Roles: agent (son agence), MLRO (validation), super_admin (bypass).",
       "tags": "kyc,frontend,hooks,ui"
+    },
+    {
+      "key": "megga/matching-scoring-algo",
+      "namespace": "megga",
+      "value": "Moteur de matching — scoring 100 pts FIXE (edge matching-engine, seuil min 60 pour creer le match). Budget 30: dans [min,max]=30, jusqu'a +15% du max=degrade lineaire, [min*0.7,min[=20, sinon 0. Zone 25: ville exacte=25, canton=15, sinon 0. Type 15: exact=15, villa<->house similaire=10, sinon 0. Pieces+Surface 15: pieces dans [min,max]=8 (ou -1 piece=4) + surface>=min=7 (ou -10%=4). Features 15: round(found/total*15), si 0 critere=10 par defaut. Score stocke avec breakdown JSONB reasons (par critere: match/score/detail). Logique sur Edge (Deno), pas cote front (securite + determinisme).",
+      "tags": "matching,scoring,algorithm,critical"
+    },
+    {
+      "key": "megga/matching-modes",
+      "namespace": "megga",
+      "value": "Moteur de matching — 3 modes (edge matching-engine): match-property (nouveau bien -> tous les client_searches is_active), match-contact (nouvel/modif acheteur -> properties actives + market_listings), scan-all (global agency-wide, pg_cron ou bouton agent, complexite O(searches x properties)). Flag include_market = opt-in du matching marche externe. RLS agency-scoped (agency_id) ou service_role JWT. Chaque match cree -> activity_events (actor_kind='ai') pour tracabilite.",
+      "tags": "matching,modes,triggers"
+    },
+    {
+      "key": "megga/matching-data-model",
+      "namespace": "megga",
+      "value": "Tables matching. matches: agency_id, contact_id, property_id (NULL si market), market_listing_id (NULL si internal), client_search_id, score 0-100, reasons JSONB (budget/zone/type/rooms/features chacun match+score+detail), status (suggested/sent/visit_planned/interested/rejected/ignored), source (internal/market), sent_via (email/whatsapp/both), sent_at, response_at. client_searches: contact_id, label, criteria JSONB (budget_min/max, zones[], type, rooms_min/max, surface_min/max, features[], must_have/nice_to_have), is_active (surveillance continue), last_matched_at. IMPORTANT: client_searches.criteria = source de verite du moteur (PAS contacts.search_criteria).",
+      "tags": "matching,database"
+    },
+    {
+      "key": "megga/matching-lifecycle",
+      "namespace": "megga",
+      "value": "Cycle de vie d'un match: suggested (cree par le moteur si score>=60) -> sent (agent clique Envoyer -> status=sent, sent_via email/whatsapp/both, sent_at) -> visit_planned (creation d'une visite) -> interested|rejected (feedback contact) ou ignored (agent rejette sans envoi). Envoi via SendMatchDialog: choix du canal, message auto-genere editable, mutation useSendMatchToClient -> UPDATE matches + activity_event audit.",
+      "tags": "matching,lifecycle,workflow"
+    },
+    {
+      "key": "megga/matching-external",
+      "namespace": "megga",
+      "value": "Matching marche externe (edge external-matching): source RealAdvisor.ch (scrape HTML, parse des chunks Next.js RSC self.__next_f), construit ExternalListing[], cache table external_listings (search_hash, ~30min). Resolution de zone via ZONE_SLUGS + slugify, images via CDN img.realadvisor.ch. Un listing externe avec score>=60 -> matches(source='market', market_listing_id). Distinct du matching interne (properties). Hook useExternalMatching(criteria). MVP: RealAdvisor seul; geospatial lat/lng present mais pas encore utilise par l'algo.",
+      "tags": "matching,external,marketplace"
+    },
+    {
+      "key": "megga/matching-ui-hooks",
+      "namespace": "megga",
+      "value": "Matching UI/hooks. Page MatchingSugarV2Page (layout type client-mail: queue + focus panel, sous-nav Tous/A envoyer/Engage/Sans retour/Archives, dark meggaAi). Composants: MatchScoreCard (photo + barre de score + badges raisons verts + actions Envoyer/Visite), MatchingPanel (segments suggested/sent + bouton rafraichir), SendMatchDialog. Hooks: useMatching(contactId) (matches/suggested/sent/internal/market + sendMatch/ignoreMatch/runMatching), useMatchingSugar (adapter CRM, groups par acheteur, updateCriteria), useExternalMatching. PIEGE: updateCriteria ecrit DEUX tables (contacts.search_criteria + client_searches.criteria) sinon le moteur ne voit pas le changement.",
+      "tags": "matching,frontend,hooks,ui"
+    },
+    {
+      "key": "megga/score-engine",
+      "namespace": "megga",
+      "value": "Score engine (DISTINCT du matching: matches.score = 'fit' vs score-engine = 'qualite'). Contact buyer score: reactivite 20% (temps entre interactions), engagement 25% (interactions 30j + tendance), coherence budget 20% (biens visites vs declare), qualite visites 20% (reliability done/no-show + rating), conversion 15% (stade pipeline + offre) -> table contact_scores (+ conversionProbability). Property heat score: market position 30%, interest level 25%, freshness 25% (jours en ligne), price trend 20% (baisse=opportunite) -> property_scores. Calcule par RPC calculate_contact_scores / calculate_property_scores.",
+      "tags": "scoring,score-engine,intelligence"
     }
   ]
 }
