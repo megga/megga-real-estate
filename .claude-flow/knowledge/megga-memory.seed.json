@@ -164,6 +164,156 @@
       "namespace": "megga",
       "value": "Docs de reference: CLAUDE.md (source de verite: regles, conventions, design, perf, etat impl), docs/system-map.md (cette carte des rouages), docs/schema.md (schema DB complet), docs/pages.md (42 ecrans MVP), docs/ai-modules.md (specs IA), docs/design-system.md + design-system-propertyx.md, docs/roadmap.md + backlog.md + CHANGELOG.md.",
       "tags": "docs,reference"
+    },
+    {
+      "key": "megga/ai-megga-ai",
+      "namespace": "megga",
+      "value": "MEGGA AI (copilote, edge ai-copilot): bouton flottant Sparkles ghost sur toute page agent, panel slide-in. Commandes naturelles: resume ce client, redige une relance, quels biens envoyer, prepare un mandat, prochaines actions, resume les objections. REGLE: toujours nourri par les vraies donnees CRM du contact/bien/deal actif, jamais de reponse dans le vide.",
+      "tags": "ai,copilote"
+    },
+    {
+      "key": "megga/ai-matching-spec",
+      "namespace": "megga",
+      "value": "Matching IA acheteurs<->biens: nouveau bien -> analyse tous les acheteurs + client_searches -> score 0-100 (budget/zone/type/pieces/surface/features) -> classe -> envoi 1 clic. Nouvel acheteur -> propose les biens actifs pertinents. Surveillance continue si client_searches.is_active: nouveaux biens / changements de prix / remises en ligne -> notification agent.",
+      "tags": "ai,matching"
+    },
+    {
+      "key": "megga/ai-relances",
+      "namespace": "megga",
+      "value": "Relances intelligentes (edge automation-engine + send-reminder-email): bien envoye J+3, visite J+1 (feedback), lead inactif J+30, acheteur chaud non relance J+7, vendeur sans suivi J+14, document manquant J+3. Creent des suggestions/taches, PAS d'envois silencieux sauf si l'agent active explicitement l'envoi auto. L'agent garde toujours le controle.",
+      "tags": "ai,relances,automation"
+    },
+    {
+      "key": "megga/ai-intelligence",
+      "namespace": "megga",
+      "value": "Buyer Intelligence (score-engine): serieux 0-100, budget reel estime, timing (immediat/1-3/3-6/6-12 mois/long terme), proba achat 0-100, engagement very_high->dormant. Seller Intelligence: tension (calm/moderate/tense/critical), risque insatisfaction, proba accepter une baisse 0-100, urgence. Tout affiche comme 'estimation IA', indicatif.",
+      "tags": "ai,scoring,intelligence"
+    },
+    {
+      "key": "megga/ai-negociation-content",
+      "namespace": "megga",
+      "value": "Copilote negociation: marge (offre vs prix demande vs marche), timing (duree en vente, nb visites), strategie de contre-offre, interet probable acheteur. Generation annonces multi-versions (standard/premium/luxe/courte/reseaux) - l'agent choisit/edite/valide, pas de publication auto. Analyse objections post-visite -> visits.ai_objections, affichee anonymisee au portail vendeur.",
+      "tags": "ai,negociation,content"
+    },
+    {
+      "key": "megga/ai-conversational-search",
+      "namespace": "megga",
+      "value": "Recherche IA conversationnelle (edge ai-search): query langage naturel -> embedding -> pgvector top-20 listings -> prompt Claude (listings + historique + contraintes) -> filtre/classe/repond -> carte + liste. Garde-fous: pas de discrimination, pas de contenu trompeur, redirige vers agent humain si offre/negociation/juridique, max 10 tours, cible <2s, disclaimer 'a titre indicatif'.",
+      "tags": "ai,search,marketplace"
+    },
+    {
+      "key": "megga/ai-guardrails",
+      "namespace": "megga",
+      "value": "Garde-fous IA (absolus): l'IA ne contacte JAMAIS un client sans validation agent (sauf relance auto explicitement activee); ne modifie JAMAIS prix/statut/etape pipeline sans action humaine; n'envoie JAMAIS de document juridique sans validation; scores buyer/seller = 'estimation IA' indicative, pas verite; copilote negociation = suggestions pas decisions; toute action IA loggee dans activity_events avec actor_id='ai'. Human-in-the-loop obligatoire.",
+      "tags": "ai,guardrails,compliance,critical"
+    },
+    {
+      "key": "megga/kyc-risk-score",
+      "namespace": "megga",
+      "value": "Score de risque KYC (calculateRiskScore dans src/lib/kycUtils.ts + edge kyc-screening): 5 facteurs - nationalite FATF/GAFI 25pts, PEP 25pts, montant >5M 20pts, PM vs PP 15pts, docs incomplets 15pts -> 0-100 low/medium/high. Listes FATF_HIGH_RISK_COUNTRIES / FATF_INCREASED_MONITORING dans src/lib/constants.ts. dilisense checkIndividual/checkEntity (PEP + Sanctions separes). Label 'estimation IA', validation MLRO humaine obligatoire.",
+      "tags": "kyc,scoring,compliance"
+    },
+    {
+      "key": "megga/components-tree",
+      "namespace": "megga",
+      "value": "Composants (src/components/): propertyx/ (atoms Px* = source de verite + sections/), ui/ (primitives headless + Motion: modal/dialog/Sheet/Toast/Shimmer/popover/tabs/context-menu), layout/ (ProtectedRoute, PasswordGate, StaleBundleDetector, AgentLayout, AgentSugarLayout), crm-sugar/ + crm-sugar-v3/ (shell CRM, contact detail, KYC pixel-pres, tokens dark). Domaines: search listings matching transactions kyc* documents calendar messaging portal onboarding* admin directory map ai-copilot skeletons auth-bento.",
+      "tags": "frontend,components"
+    },
+    {
+      "key": "megga/hooks-crm",
+      "namespace": "megga",
+      "value": "Hooks CRM (React Query): contacts (useContacts, useContactsSugar, useContactTimeline, useContactDuplicates), biens (useListings, useBiensSugar, usePropertyEstimation, useNeighborhood, useNaturalHazards), transactions (useTransactions, useUpdateTransactionStage, usePipelineSugar, useContactTransactions), KYC (useKycDossiers, useKycCase, useMarkKycCheck, useCreateKycDossier, useScreenKycCase), matching (useMatching, useExternalMatching). Adapters *Sugar = Supabase -> vues CRM.",
+      "tags": "frontend,hooks,crm"
+    },
+    {
+      "key": "megga/hooks-marketplace-admin",
+      "namespace": "megga",
+      "value": "Hooks marketplace/dashboard/admin: useMarketListings (debounce/pool), useMapPoints (lazy), useSmartSearchParser (NL->filtres), useFavorites, useSavedSearches, useMarketStats; useTodaySugarKpi, useDashboardCockpit/Funnel/Objectif, useDashboardAiHint; useCopilot, useExtractLead, useTranslatedDescription; admin useAdminUsers/Agencies/Monitoring/Compliance/Moderation, useAuditLog, useAdminLiveFeed, useSecurityAudit. a11y/ui: useFocusTrap, useReducedMotion, useMediaQuery, useSwipeNavigation, usePageMeta.",
+      "tags": "frontend,hooks,marketplace,admin"
+    },
+    {
+      "key": "megga/lib-modules",
+      "namespace": "megga",
+      "value": "src/lib/: supabase.ts (client typé, anon key, rememberAwareStorage), utils.ts (formatCHF, formatDate DD.MM.YYYY, formatRelativeDate, formatSurface, cn), constants.ts (CANTONS, types, TRANSACTION_STAGES, FATF_*). sugarAdapters.ts (contactToCrm/transactionToCrmDeal/propertyToCrmBien). Metier: estimation, matching, kycUtils, cantonalTaxRates, plans, agencyHealthScore. Export: auditPdfExport, auditCsvExport, exportCsv. Integr: mapboxClient, captcha, sentry, posthog. Content: figma-catalog, helpArticles, listingPhotos, imageOptimizer.",
+      "tags": "frontend,lib"
+    },
+    {
+      "key": "megga/types-enums",
+      "namespace": "megga",
+      "value": "Types clés (src/types/): Contact + ContactType (buyer/seller/investor/tenant/landlord/both/lead); Transaction + TransactionStatus (active/on_hold/cancelled/completed) + MandateType (simple/exclusive/semi_exclusive); KycCase + KycStatus (pending/blocking/risk/verified) + KycSourceOfFundsType; UserProfile + UserRole (agent/particulier/super_admin/dev); MatchResult + MatchStatus (suggested/sent/visit_planned/interested/rejected/ignored); Offer + OfferKind (offer/counter_offer). database.ts = types auto-generes des migrations.",
+      "tags": "frontend,types,enums"
+    },
+    {
+      "key": "megga/transaction-stages",
+      "namespace": "megga",
+      "value": "Pipeline transaction_stage (ordre): lead -> qualified -> visit_planned -> offer -> negotiation -> reserved -> financing -> notary -> signed -> closed. Le passage vers offer/reserved/financing/notary/signed declenche le gate KYC (monitor_transaction_kyc_gate, LBA art.7, WARN non bloquant, revu MLRO). Offres via crm_offers (+ crm_offers_history immutable), contre-offres via parent_offer_id.",
+      "tags": "pipeline,transactions,enums"
+    },
+    {
+      "key": "megga/react-query-patterns",
+      "namespace": "megga",
+      "value": "Pattern data: React Query + @supabase-cache-helpers (queryKey auto, useInsert/Update/DeleteMutation auto-invalident). QueryClient (App.tsx): staleTime 2min, retry 1, retryDelay min(500*2^n,4000), refetchOnWindowFocus, refetchOnReconnect, networkMode always. Fetch conditionnel: enabled: !!user / !!profile?.agency_id. La RLS gere le filtrage par agency (pas de WHERE agency_id explicite cote front).",
+      "tags": "frontend,react-query,patterns"
+    },
+    {
+      "key": "megga/design-tokens-propertyx",
+      "namespace": "megga",
+      "value": "Design System Property X (src/components/propertyx/tokens.ts, tokens PX.*): 100% neutres, AUCUNE couleur d'accent. Neutrals: neutral100 #FFFFFF, neutral200 #FAFAFB, neutral300 #EEEFF1, neutral400 #A4A6B0 (muted), neutral500 #464851, neutral700 #14161C (primary/ink). Font Objectivity (fallback Plus Jakarta Sans), letter-spacing -3, weights 400/500 (pas de bold). Radius: tiny 8 / small 12 / medium 16 / large 24 / pill 200. Gaps xs8/sm12/md16/lg24/xl40.",
+      "tags": "design,tokens,marketplace"
+    },
+    {
+      "key": "megga/design-px-atoms",
+      "namespace": "megga",
+      "value": "Atoms Property X (ne JAMAIS recreer, utiliser tokens PX.*): PxButton, PxBadge, PxCheckbox, PxLink, PxInput, PxAvatar, PxIcon, PxLogo, PxSectionLabel... Les 11 pages /design-system/* = source de verite ABSOLUE: colors, typography, shadows, buttons, links, badges, lists, icons, iconfonts, avatars, inputs. AVANT de creer un composant: consulter /design-system/<page> + src/lib/figma-catalog.ts (mapping node Figma -> composant React).",
+      "tags": "design,components,marketplace"
+    },
+    {
+      "key": "megga/edge-flatfox-arch",
+      "namespace": "megga",
+      "value": "flatfox-sync (architecture): self-invoking chunked (5 pages/chunk, timeout ~100s, sequentiel via self-invoke), rate-limit Flatfox 1 req/s, lock singleton (anti-concurrence). Safety: >=80% des listings attendus vus avant qu'un sweep ne marque les manquants comme removed (anti-wipe). Photos -> Cloudflare R2 via photo-processor (3 variants thumb/detail/hero -> photos_cf). Tracking par run dans flatfox_sync_runs.",
+      "tags": "edge-functions,flatfox,marketplace"
+    },
+    {
+      "key": "megga/edge-ai-provider",
+      "namespace": "megga",
+      "value": "_shared/ai-provider.ts: abstraction multi-IA. callClaude() cote agent (Sonnet/Haiku), callDeepSeek() cote public, callPublicAI() (DeepSeek + fallback Claude). Tracking cout -> ai_usage_logs. Balance DeepSeek monitoree par ai-billing-monitor (cron). photo-vision.ts = Claude Vision (room type + quality). pii-redaction.ts scrub (AVS/IBAN/passeport/cartes/cles) OBLIGATOIRE avant tout appel IA sur du texte libre.",
+      "tags": "edge-functions,ai,architecture"
+    },
+    {
+      "key": "megga/edge-virtual-staging",
+      "namespace": "megga",
+      "value": "virtual-staging (garde-fous LPD): gate photo-vision (Claude Vision -> confidence >=85%, quality >=50/100, AUCUNE personne detectee) avant generation; prompt enrichi par Claude Haiku; image via Google AI (Gemini Nano Banana). Quota/mois par plan: starter 0, pro 50, agency 200. public-staging = version publique rate-limitee 5/h/IP. Resultat -> Storage + ai_generated_photos + activity_events.",
+      "tags": "edge-functions,media,ai,compliance"
+    },
+    {
+      "key": "megga/edge-audit-export",
+      "namespace": "megga",
+      "value": "audit-pdf-export: exporte activity_events en PDF (filtres date/categorie/severite/recherche), signe par chaine de hash SHA-256 (chaque event = SHA(prev_hash + canonical_json)) -> integrite verifiable. Conformite nLPD art.12 (tracabilite) + LBA art.7 al.3 (conservation 10 ans). Sortie {pdf base64, hash, chain_hash, count}. Front: lib/auditPdfExport.ts (jsPDF) + auditCsvExport.ts.",
+      "tags": "edge-functions,audit,compliance"
+    },
+    {
+      "key": "megga/storage-buckets",
+      "namespace": "megga",
+      "value": "Storage Supabase (RLS): documents (KYC/transac uploads, CRUD par agency_id), property-photos (write agent, read public si publie), avatars (user own, public read), kyc-magic-link/{agency}/{link}/ (uploads via magic link, sha256). Photos marketplace optimisees -> Cloudflare R2 (champ photos_cf) via photo-processor.",
+      "tags": "backend,storage"
+    },
+    {
+      "key": "megga/i18n-namespaces",
+      "namespace": "megga",
+      "value": "i18n (react-i18next, src/i18n/): FR defaut eager, DE/EN/IT lazy (import() au switch). 16 namespaces: common dashboard settings contacts pipeline listings kyc messages calendar matching documents admin directory compte comingSoon auth. Detection localStorage -> browser. Switch = LanguageChangeOverlay shimmer 350ms. Garder les 4 langues synchro (skill i18n-sync).",
+      "tags": "frontend,i18n"
+    },
+    {
+      "key": "megga/testing",
+      "namespace": "megga",
+      "value": "Tests: vitest unit (npm run test:unit), vitest backend (test:backend, config dediee), Playwright e2e (test:e2e) avec configs ai/admin/visual (test:e2e:ai workers=1, test:e2e:admin, test:e2e:visual). Lint eslint (npm run lint). TypeScript strict (pas de any). Build = tsc -b && vite build + postbuild overlay-storefront (dist = site statique V3 sites/property-preview).",
+      "tags": "dev,testing,ci"
+    },
+    {
+      "key": "megga/realtime-pattern",
+      "namespace": "megga",
+      "value": "Supabase Realtime (pattern OBLIGATOIRE, bug A1): TOUJOURS useId() pour le nom du channel sinon crash au re-mount (StrictMode/navigation). const channelId = useId(); supabase.channel(`nom-${channelId}`).on('postgres_changes', {...}).subscribe(); cleanup avec removeChannel. Fichiers concernes (tous fixes): useAdminNotifications, useAdminLiveFeed, useMessaging.",
+      "tags": "frontend,realtime,gotchas,critical"
     }
   ]
 }
