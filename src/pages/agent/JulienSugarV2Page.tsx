@@ -17,6 +17,13 @@ import {
 } from '@/components/crm-sugar/SugarShell'
 import { useAuth } from '@/hooks/useAuth'
 import { useCopilot } from '@/hooks/useCopilot'
+import {
+  useCopilotConversations,
+  useCopilotConversation,
+  useCopilotMutations,
+  groupConversationsByPeriod,
+  type CopilotConversationRow,
+} from '@/hooks/useCopilotConversations'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -289,6 +296,15 @@ export default function JulienSugarV2Page() {
     return null
   })
 
+  // ─── Persistance conversations IA (PR ai_copilot_conversations) ───────
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+
+  const newConversation = () => {
+    setActiveConversationId(null)
+    setHistoryOpen(false)
+  }
+
   const onCmd = () => {}
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
@@ -364,8 +380,28 @@ export default function JulienSugarV2Page() {
             active="ai"
             onNavigate={onNavigate} onCmd={onCmd}
             dark={dark} setDark={setDark} sp={sp}
+            extraBottomBtn={
+              <HistoryRailBtn
+                open={historyOpen}
+                onToggle={() => setHistoryOpen(o => !o)}
+                dark={dark}
+              />
+            }
           />
         </div>
+
+        <HistoryPanel
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          activeId={activeConversationId}
+          onSelect={(id) => {
+            setActiveConversationId(id)
+            setHistoryOpen(false)
+          }}
+          onNew={newConversation}
+          dark={dark}
+          s={s}
+        />
 
         <main
           style={{
@@ -378,9 +414,263 @@ export default function JulienSugarV2Page() {
           <JulienConversation
             s={s} dark={dark} prevScreen={prevScreen}
             firstName={(profile?.full_name?.split(' ')[0]) || 'Grégory'}
+            activeConversationId={activeConversationId}
+            onConversationCreated={setActiveConversationId}
+            onNewConversation={newConversation}
           />
         </main>
       </div>
+    </div>
+  )
+}
+
+// ─── HistoryRailBtn (bouton rail bottom) ──────────────────────────────────
+
+function HistoryRailBtn({
+  open, onToggle, dark,
+}: { open: boolean; onToggle: () => void; dark: boolean }) {
+  const [hov, setHov] = useState(false)
+  const bg = open
+    ? (dark ? '#F2F0EC' : '#0B0C0E')
+    : hov
+      ? (dark ? 'rgba(255,255,255,0.08)' : 'rgba(11,12,14,0.06)')
+      : 'transparent'
+  const color = open
+    ? (dark ? '#0B0C0E' : '#FFFFFF')
+    : (dark ? '#B5B7C4' : '#3A3D44')
+  return (
+    <button
+      onClick={onToggle}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      title="Historique des conversations"
+      aria-label="Historique"
+      aria-pressed={open}
+      style={{
+        width: 40, height: 40, borderRadius: 12, border: 0,
+        background: bg, color, cursor: 'pointer',
+        display: 'grid', placeItems: 'center',
+        transition: 'all .18s',
+      }}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 8v4l3 2" />
+        <path d="M3.05 11a9 9 0 1 0 .5-4" />
+        <path d="M3 3v6h6" />
+      </svg>
+    </button>
+  )
+}
+
+// ─── HistoryPanel (drawer conversations réelles) ──────────────────────────
+
+interface HistoryPanelProps {
+  open: boolean
+  onClose: () => void
+  activeId: string | null
+  onSelect: (id: string) => void
+  onNew: () => void
+  dark: boolean
+  s: JulienTokens
+}
+
+function HistoryPanel({ open, onClose, activeId, onSelect, onNew, dark, s }: HistoryPanelProps) {
+  const { data: convs = [], isLoading } = useCopilotConversations(50)
+  const { remove } = useCopilotMutations()
+  const groups = useMemo(() => groupConversationsByPeriod(convs), [convs])
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    if (typeof window !== 'undefined' && !window.confirm('Supprimer cette conversation ?')) return
+    remove.mutate(id, {
+      onSuccess: () => {
+        if (activeId === id) onNew()
+      },
+    })
+  }
+
+  if (!open) return null
+
+  return (
+    <div
+      style={{
+        width: 320, flexShrink: 0,
+        background: s.drawerBg,
+        backdropFilter: 'blur(20px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+        borderRight: `1px solid ${s.border}`,
+        height: 'calc(100vh - 88px)',
+        overflowY: 'auto',
+        animation: 'hist-in .25s cubic-bezier(.2,.8,.2,1)',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: '18px 20px 12px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: `1px solid ${s.border}`,
+          position: 'sticky', top: 0, background: s.drawerBg, zIndex: 1,
+        }}
+      >
+        <div style={{ fontSize: 14, fontWeight: 700, color: s.ink }}>
+          Historique
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={onNew}
+            title="Nouvelle conversation"
+            aria-label="Nouvelle conversation"
+            style={{
+              width: 32, height: 32, borderRadius: 10, border: 0,
+              background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.04)',
+              color: s.ink, cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+            }}
+          >
+            <JIcon name="newchat" size={14} color="currentColor" />
+          </button>
+          <button
+            onClick={onClose}
+            aria-label="Fermer"
+            style={{
+              width: 32, height: 32, borderRadius: 10, border: 0,
+              background: 'transparent', color: s.muted, cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+            }}
+          >
+            <JIcon name="x" size={14} color="currentColor" />
+          </button>
+        </div>
+      </div>
+
+      {isLoading && (
+        <div style={{ padding: 20, fontSize: 12.5, color: s.muted }}>
+          Chargement…
+        </div>
+      )}
+      {!isLoading && convs.length === 0 && (
+        <div style={{ padding: '40px 20px', fontSize: 13, color: s.muted, lineHeight: 1.55, textAlign: 'center' }}>
+          Aucune conversation enregistrée pour l'instant.<br />
+          Posez une question pour démarrer.
+        </div>
+      )}
+
+      {(['today', 'week', 'month', 'older'] as const).map(group => {
+        const items = groups[group]
+        if (items.length === 0) return null
+        const labels = {
+          today: "Aujourd'hui",
+          week: 'Cette semaine',
+          month: 'Ce mois-ci',
+          older: 'Plus ancien',
+        }
+        return (
+          <HistorySection key={group} label={labels[group]} s={s}>
+            {items.map(c => (
+              <HistoryItem
+                key={c.id}
+                conv={c}
+                active={c.id === activeId}
+                onClick={() => onSelect(c.id)}
+                onDelete={(e) => handleDelete(e, c.id)}
+                dark={dark}
+                s={s}
+              />
+            ))}
+          </HistorySection>
+        )
+      })}
+    </div>
+  )
+}
+
+function HistorySection({ label, children, s }: { label: string; children: ReactNode; s: JulienTokens }) {
+  return (
+    <div style={{ padding: '14px 12px 4px' }}>
+      <div
+        style={{
+          fontSize: 10.5, fontWeight: 700, color: s.muted,
+          letterSpacing: 0.6, textTransform: 'uppercase',
+          padding: '0 8px 8px',
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function HistoryItem({
+  conv, active, onClick, onDelete, dark, s,
+}: {
+  conv: CopilotConversationRow
+  active: boolean
+  onClick: () => void
+  onDelete: (e: React.MouseEvent) => void
+  dark: boolean
+  s: JulienTokens
+}) {
+  const [hov, setHov] = useState(false)
+  const bg = active
+    ? (dark ? 'rgba(255,255,255,0.10)' : 'rgba(11,12,14,0.07)')
+    : hov
+      ? (dark ? 'rgba(255,255,255,0.04)' : 'rgba(11,12,14,0.03)')
+      : 'transparent'
+  // Preview text : 1er message user, tronqué
+  const firstUser = conv.messages.find(m => m.role === 'user')
+  const preview = firstUser?.content.slice(0, 60) ?? ''
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+        background: bg,
+        display: 'flex', alignItems: 'center', gap: 8,
+        transition: 'background .15s',
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 13, fontWeight: 600, color: s.ink, letterSpacing: -0.1,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}
+        >
+          {conv.title}
+        </div>
+        {preview && (
+          <div
+            style={{
+              fontSize: 11, color: s.muted, fontWeight: 500, marginTop: 2,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}
+          >
+            {preview}
+          </div>
+        )}
+      </div>
+      {(hov || active) && (
+        <button
+          onClick={onDelete}
+          aria-label="Supprimer"
+          style={{
+            width: 26, height: 26, borderRadius: 8, border: 0,
+            background: 'transparent', color: s.muted, cursor: 'pointer',
+            display: 'grid', placeItems: 'center', flexShrink: 0,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.10)' : 'rgba(11,12,14,0.06)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+        >
+          <JIcon name="x" size={13} color="currentColor" />
+        </button>
+      )}
     </div>
   )
 }
@@ -400,12 +690,39 @@ interface JulienConversationProps {
   dark: boolean
   prevScreen: PrevScreen
   firstName: string
+  activeConversationId: string | null
+  onConversationCreated: (id: string) => void
+  onNewConversation: () => void
 }
 
-function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversationProps) {
+function JulienConversation({
+  s, dark, prevScreen, firstName,
+  activeConversationId, onConversationCreated,
+}: JulienConversationProps) {
   const [messages, setMessages] = useState<JulienMessage[]>([])
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const { sendMessageStream, isLoading } = useCopilot()
+
+  // Persistance Supabase (ai_copilot_conversations) — create + append.
+  const { create, append } = useCopilotMutations()
+  const { data: loadedConv } = useCopilotConversation(activeConversationId)
+
+  // Hydrate les messages depuis une conversation chargée (clic Historique).
+  // hydratedRef évite de réécraser l'état optimiste pendant un envoi en cours.
+  const hydratedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!activeConversationId) {
+      setMessages([])
+      hydratedRef.current = null
+      return
+    }
+    if (loadedConv && !isLoading && hydratedRef.current !== activeConversationId) {
+      setMessages(loadedConv.messages.map((m, i) => ({
+        id: i, role: m.role, content: m.content,
+      })))
+      hydratedRef.current = activeConversationId
+    }
+  }, [activeConversationId, loadedConv, isLoading])
 
   useEffect(() => {
     if (bottomRef.current && bottomRef.current.parentElement) {
@@ -427,6 +744,27 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
       m.id === lid ? { ...m, loading: false, streaming: true, content: '' } : m,
     ))
 
+    // Persiste le message user immédiatement : crée la conversation si c'est
+    // le 1er message, sinon append. Non-bloquant pour le streaming (un échec
+    // de persistance ne casse pas la réponse IA affichée).
+    let convId = activeConversationId
+    const now = new Date().toISOString()
+    try {
+      if (!convId) {
+        const created = await create.mutateAsync({ firstPrompt: text })
+        convId = created.id
+        hydratedRef.current = created.id // déjà à jour localement, pas de re-hydrate
+        onConversationCreated(created.id)
+      } else {
+        await append.mutateAsync({
+          conversationId: convId,
+          message: { role: 'user', content: text, created_at: now },
+        })
+      }
+    } catch {
+      // persistance best-effort — on continue le streaming quoi qu'il arrive
+    }
+
     try {
       let acc = ''
       await sendMessageStream(
@@ -442,6 +780,15 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
       setMessages(prev => prev.map(m =>
         m.id === lid ? { ...m, streaming: false } : m,
       ))
+      // Persiste la réponse assistant une fois le stream terminé.
+      if (convId && acc) {
+        try {
+          await append.mutateAsync({
+            conversationId: convId,
+            message: { role: 'assistant', content: acc, created_at: new Date().toISOString() },
+          })
+        } catch { /* best-effort */ }
+      }
     } catch {
       setMessages(prev => prev.map(m =>
         m.id === lid ? { ...m, content: "Désolé, je n'ai pas pu traiter ta demande. Réessaie.", loading: false, streaming: false } : m,
