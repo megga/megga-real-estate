@@ -318,7 +318,7 @@
     {
       "key": "megga/whatsapp-overview",
       "namespace": "megga",
-      "value": "Agent WhatsApp (feature phare #2): vision = l'agent immobilier est toujours sur WhatsApp, donc chaque message entrant remonte dans le CRM et il repond depuis le CRM. Phase 1 (mergee) = miroir entrant lecture seule. Phase 2 (mergee) = envoi sortant (gateway send + edge whatsapp-send + composer dans CdWhatsAppCard), validee e2e sur Meta reel (HTTP 200, wamid retourne). Suite: conseils IA facon Claude depuis WhatsApp, actions ('je veux visiter' -> cree une visite CRM), notifications templates (visite/offre/KYC), sync statut delivery via webhook statuses.",
+      "value": "Agent WhatsApp (feature phare #2): vision = l'agent immobilier est toujours sur WhatsApp. Phase 1 (mergee) = miroir entrant lecture seule (valide e2e sur Meta reel: message client -> CRM). Phase 2 (mergee) = envoi sortant (gateway send + edge whatsapp-send + composer CdWhatsAppCard): CODE deploye + tests unit 7/7 + appel Graph API OK, MAIS envoi vers un combine reel NON confirme (bloque par allowlist 131030 et moyen de paiement Meta en mode test). Phase 3 (en cours) = l'agent interroge MEGGA AI depuis WhatsApp (appairage + routage webhook -> ai-copilot), lecture seule. Suite: actions ('je veux visiter' -> visite CRM), notifications templates, sync statut delivery.",
       "tags": "whatsapp,vision,feature"
     },
     {
@@ -698,6 +698,12 @@
       "namespace": "megga",
       "value": "WhatsApp Phase 2 statut: gateway send() Meta+OpenWA (7/7 tests unit), edge whatsapp-send deployee, 3 secrets poses (META_WHATSAPP_TOKEN, META_PHONE_NUMBER_ID=1153218994539921, WHATSAPP_PROVIDER=meta). Leg d'envoi VALIDEE en reel: Graph API v22.0 -> HTTP 200, wamid retourne, message livre au numero test allowliste. Numero test Meta +1 555-657-2763 (WABA 1851988629546399). Destinataires test doivent etre allowlistes par OTP. Token = System User permanent. A faire avant prod public: verification entreprise Meta (extrait RC/IDE), regenerer secrets passes en clair (token+app secret), purge champ raw (PII).",
       "tags": "whatsapp,phase2,status,meta"
+    },
+    {
+      "key": "megga/whatsapp-agent-copilot",
+      "namespace": "megga",
+      "value": "WhatsApp Phase 3 (agent <-> MEGGA AI, lecture seule): un agent lie son numero via whatsapp_agent_links (RPC generate_whatsapp_pairing_code -> code 6 chiffres dans Reglages CRM -> l'agent l'envoie au numero MEGGA -> webhook verifie, set verified+wa_number). Le webhook resout l'expediteur AVANT la branche client: si wa_number = agent verifie -> appelle ai-copilot (action chat, context.agency_id, Bearer service-role) -> renvoie le champ result via gateway buildSendTextRequest sur le WhatsApp de l'agent (fenetre 24h ouverte, pas de template) -> log whatsapp_messages in/out + activity_events actor_kind='ai'. LECTURE SEULE: aucune ecriture CRM (action chat only). Garde-fou: appairage = barriere d'auth (code 6 chiffres, expiry 15min, usage unique); toute ecriture future exigera re-confirmation. Contrainte Meta: notif spontanee hors fenetre 24h = template requis (hors scope). Runtime live claude-flow@3.10.13 operationnel (npx claude-flow memory store/search autorise) -> le cerveau apprend en direct.",
+      "tags": "whatsapp,phase3,agent,copilot,ai"
     }
   ]
 }
