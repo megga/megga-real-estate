@@ -263,6 +263,39 @@ serve(async (req: Request) => {
       systemPrompt += `\n\nLangue de réponse : ${language}`
     }
 
+    // Personnalisation agent (Day 0) : si l'agent connecté a un profil IA
+    // provisionné (agent_ai_profiles.brief.system_addendum, généré par
+    // day0-activation-setup à partir de son calibrage), on l'injecte dans le
+    // system prompt pour adapter le copilote à sa spécialité / zones / priorité /
+    // autonomie. Best-effort : jamais bloquant pour la réponse IA.
+    if (!isPublicSearch) {
+      try {
+        const token = (req.headers.get('Authorization') || '')
+          .replace(/^Bearer\s+/i, '')
+          .trim()
+        const sbUrl = Deno.env.get('SUPABASE_URL')
+        const sbKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+        if (token && sbUrl && sbKey) {
+          const sb = createClient(sbUrl, sbKey)
+          const { data: u } = await sb.auth.getUser(token)
+          if (u?.user) {
+            const { data: aiProfile } = await sb
+              .from('agent_ai_profiles')
+              .select('brief')
+              .eq('agent_id', u.user.id)
+              .maybeSingle()
+            const addendum = (aiProfile?.brief as { system_addendum?: string } | null)
+              ?.system_addendum
+            if (typeof addendum === 'string' && addendum.trim()) {
+              systemPrompt += `\n\n--- Contexte de l'agent (calibrage Day 0) ---\n${addendum.trim()}`
+            }
+          }
+        }
+      } catch (_) {
+        // personnalisation optionnelle — ne jamais bloquer la réponse IA
+      }
+    }
+
     // Build messages array
     const messages: { role: 'user' | 'assistant'; content: string }[] = []
 
