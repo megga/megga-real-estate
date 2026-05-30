@@ -2,7 +2,7 @@
 // Lecture seule (Phase 1) des messages WhatsApp d'un contact. La RLS garantit
 // le cloisonnement par agence — le hook ne fait aucun filtre tenant côté client.
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 export interface WhatsAppMessageRow {
@@ -31,6 +31,23 @@ export function useWhatsAppMessages(contactId: string | undefined) {
         .order('created_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as WhatsAppMessageRow[]
+    },
+  })
+}
+
+export function useSendWhatsAppMessage(contactId: string | undefined) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: string) => {
+      const { data, error } = await supabase.functions.invoke('whatsapp-send', {
+        body: { contactId, body },
+      })
+      if (error) throw error
+      if (data && (data as { error?: string }).error) throw new Error((data as { error: string }).error)
+      return data as { ok: boolean; providerMessageId: string | null }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['whatsapp-messages', contactId] })
     },
   })
 }
