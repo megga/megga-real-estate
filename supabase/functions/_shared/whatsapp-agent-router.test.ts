@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { extractPairingCode, isPairingCodeValid } from './whatsapp-agent-router'
+import {
+  extractPairingCode,
+  isPairingCodeValid,
+  toolTier,
+  parseConfirmation,
+  isPendingActionValid,
+} from './whatsapp-agent-router'
 
 describe('whatsapp-agent-router — pairing code', () => {
   it('extractPairingCode : isole 6 chiffres exacts (espaces/texte tolérés)', () => {
@@ -23,5 +29,54 @@ describe('whatsapp-agent-router — pairing code', () => {
     expect(isPairingCodeValid(past)).toBe(false)
     expect(isPairingCodeValid(null)).toBe(false)
     expect(isPairingCodeValid('not-a-date')).toBe(false)
+  })
+})
+
+describe('toolTier', () => {
+  it('classe les outils read', () => {
+    expect(toolTier('get_my_agenda')).toBe('read')
+    expect(toolTier('search_contacts')).toBe('read')
+  })
+  it('classe les outils auto', () => {
+    expect(toolTier('create_contact')).toBe('auto')
+    expect(toolTier('add_note')).toBe('auto')
+  })
+  it('classe les outils confirm', () => {
+    expect(toolTier('send_client_message')).toBe('confirm')
+  })
+  it('par défaut un outil inconnu est confirm (fail-safe)', () => {
+    expect(toolTier('delete_everything')).toBe('confirm')
+  })
+})
+
+describe('parseConfirmation', () => {
+  it('reconnaît oui', () => {
+    expect(parseConfirmation('oui')).toBe('yes')
+    expect(parseConfirmation('  OUI ')).toBe('yes')
+    expect(parseConfirmation('ok')).toBe('yes')
+    expect(parseConfirmation('vas-y')).toBe('yes')
+    expect(parseConfirmation('confirme')).toBe('yes')
+  })
+  it('reconnaît non', () => {
+    expect(parseConfirmation('non')).toBe('no')
+    expect(parseConfirmation('annule')).toBe('no')
+    expect(parseConfirmation('stop')).toBe('no')
+  })
+  it('renvoie none si ce n’est ni oui ni non', () => {
+    expect(parseConfirmation('crée un contact Marie')).toBe('none')
+    expect(parseConfirmation('')).toBe('none')
+    expect(parseConfirmation(null)).toBe('none')
+  })
+})
+
+describe('isPendingActionValid', () => {
+  it('valide si non expiré', () => {
+    const future = new Date(Date.now() + 60_000).toISOString()
+    expect(isPendingActionValid(future)).toBe(true)
+  })
+  it('invalide si expiré ou absent', () => {
+    const past = new Date(Date.now() - 60_000).toISOString()
+    expect(isPendingActionValid(past)).toBe(false)
+    expect(isPendingActionValid(null)).toBe(false)
   })
 })
