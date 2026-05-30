@@ -105,10 +105,11 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 
 **Onboarding** : `/dashboard/onboarding` (wizard) → `/dashboard/premier-jour` (calibrage IA one-shot).
 Flux `PremierJourShell` : `welcome → q0..q3 → synthesis → configuring → today`. La phase `configuring`
-rend **`D0Activation`** (écran d'activation IA « atterrissage » grand format : anneau Meta + phrases
-pilotées par les réponses + état succès) ; remplace l'ancien `D0Configuring`. Roadmap 4 phases :
-classic CSS (fait) → Supabase (durée = init réel) → Framer Motion (anneau FB/Meta + anneau de fin) →
-setup IA réel en arrière-plan.
+rend **`D0Activation`** (écran d'activation IA « atterrissage » grand format, épuré : anneau Meta +
+phrases pilotées par les réponses + état succès + toggle thème animé ; pas de particules/progress/ETA) ;
+remplace l'ancien `D0Configuring`. Animations **Framer Motion** (anneau Meta rotate + `pathLength`,
+anneau de fin spring, défilement texte `AnimatePresence`). Roadmap 4 phases : 1) classic ✅ →
+2) Supabase (durée = init réel) → 3) Framer Motion ✅ → 4) setup IA réel en arrière-plan.
 **Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/mfa`, `/dev/sentry-test`, `/dev/configuring`, `/dev/activation`.
 
 ### Composants (`src/components/`)

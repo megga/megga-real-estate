@@ -11,13 +11,21 @@
 // Toggle de thème animé (sun/moon framer-motion, ObThemeToggle) en haut à
 // droite, cohérent avec welcome / questions / synthesis.
 //
-// Phase 1 (design fidelity) : animations CSS pures (rendu garanti hors Framer),
-// timer requestAnimationFrame, phrases pilotées par les VRAIES réponses du
-// calibrage. Phases ultérieures : Supabase (durée réelle), Framer Motion
-// (anneau Meta + anneau de fin), setup IA réel en arrière-plan.
+// Phase 3 (Framer Motion) : toutes les animations sont portées sur framer-motion
+//   · Anneau Meta = rotation continue + arc qui croît/rétracte (pathLength +
+//     pathOffset) — le loader Instagram/Meta, fluide et hardware-friendly.
+//   · Anneau de fin = tracé pathLength + coche + entrée spring (animation dédiée,
+//     distincte de l'anneau de préparation).
+//   · Défilement du texte = AnimatePresence (spring + blur), cross-fade fluide.
+//   · GG qui respire, hero, état succès = motion.
+//   · prefers-reduced-motion respecté via useReducedMotion().
+//
+// Phase 1 : durée fixe (timer). Phase 2 : durée pilotée par l'init backend réel.
+// Phase 4 : setup IA réel en arrière-plan à partir des réponses.
 //
 // Source : design_handoff_day0_activation/crm-day0-activation-v5-grand.jsx
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { obPalette } from '@/components/onboarding-sugar/tokens'
 import { ObThemeToggle } from '@/components/onboarding-sugar/OnboardingShell'
 import { findZone } from './data'
@@ -30,6 +38,9 @@ const ACTIVATION_ACCENT = '#059669'
 // réelle d'init backend (ou bornée, avec passage à `done` dès l'init terminée —
 // ne jamais faire attendre artificiellement).
 const ACTIVATION_DURATION_MS = 10_000
+
+// Easing « confident » partagé par les tracés de l'état de succès.
+const DRAW_EASE = [0.65, 0, 0.36, 1] as const
 
 type Phrase = { main: string; sub: string }
 
@@ -124,57 +135,80 @@ function buildActivationPhrases(answers: D0Answers): Phrase[] {
   ]
 }
 
-// ─── Anneau « Meta » : une seule ligne épaisse dont l'arc s'allonge / se
-// rétracte en tournant (le loader Instagram/Meta). pathLength=100 → dash en %.
-// Phase 1 : animations CSS. Phase 3 : portage Framer Motion (motion path).
-function MetaRing({ size, accent }: { size: number; accent: string }) {
-  const stroke = Math.max(3, size * 0.035)
-  const radius = size * 0.44
+// ─── Anneau « Meta » (Framer Motion) ───────────────────────────────────
+// Le loader Instagram/Meta : un arc épais qui tourne en continu pendant que sa
+// longueur croît puis se rétracte (pathLength) et que son point de départ
+// glisse autour du cercle (pathOffset). La rotation est un transform (GPU),
+// la respiration de l'arc reste légère → rendu « parfaitement fluide ».
+function MetaRing({
+  size,
+  accent,
+  reduced,
+}: {
+  size: number
+  accent: string
+  reduced: boolean
+}) {
+  const stroke = Math.max(3, size * 0.04)
+  const c = size / 2
+  const r = size * 0.42
   return (
-    <div
-      className="d0a-spin"
-      style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        width: size,
-        height: size,
-        transform: 'translate(-50%, -50%)',
-        animation: 'd0aRotate 1.9s linear infinite',
-      }}
+    <motion.svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      aria-hidden="true"
+      style={{ position: 'absolute', top: 0, left: 0 }}
+      animate={reduced ? undefined : { rotate: 360 }}
+      transition={
+        reduced ? undefined : { duration: 2, ease: 'linear', repeat: Infinity }
+      }
     >
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        aria-hidden="true"
-      >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={accent}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          pathLength={100}
-          className="d0a-dash"
-          style={{ animation: 'd0aDash 1.5s ease-in-out infinite' }}
-        />
-      </svg>
-    </div>
+      {/* Piste quasi invisible — donne du corps à l'anneau. */}
+      <circle
+        cx={c}
+        cy={c}
+        r={r}
+        fill="none"
+        stroke={accent}
+        strokeOpacity={0.07}
+        strokeWidth={stroke}
+      />
+      <motion.circle
+        cx={c}
+        cy={c}
+        r={r}
+        fill="none"
+        stroke={accent}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        initial={false}
+        animate={
+          reduced
+            ? { pathLength: 0.7, pathOffset: 0 }
+            : { pathLength: [0.05, 0.62, 0.05], pathOffset: [0, 0.5, 1] }
+        }
+        transition={
+          reduced
+            ? undefined
+            : { duration: 1.5, ease: 'easeInOut', repeat: Infinity }
+        }
+      />
+    </motion.svg>
   )
 }
 
-// ─── Bloc visuel central : anneau Meta + GG ────────────────────────────
+// ─── Bloc visuel central : anneau Meta + GG qui respire ────────────────
 function ActivationVisual({
   size,
   accent,
   dark,
+  reduced,
 }: {
   size: number
   accent: string
   dark?: boolean
+  reduced: boolean
 }) {
   return (
     <div
@@ -186,17 +220,17 @@ function ActivationVisual({
         placeItems: 'center',
       }}
     >
-      {/* Anneau Meta unique, ligne épaisse. */}
-      <MetaRing size={size} accent={accent} />
+      <MetaRing size={size} accent={accent} reduced={reduced} />
 
       {/* GG au centre, qui respire très lentement. */}
-      <div
-        className="d0a-breath"
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          animation: 'd0aBreath 5s ease-in-out infinite',
-        }}
+      <motion.div
+        style={{ position: 'relative', zIndex: 2 }}
+        animate={reduced ? undefined : { scale: [1, 1.025, 1] }}
+        transition={
+          reduced
+            ? undefined
+            : { duration: 5, ease: 'easeInOut', repeat: Infinity }
+        }
       >
         <img
           src="/megga-gg.svg"
@@ -209,38 +243,45 @@ function ActivationVisual({
             filter: dark ? 'invert(1)' : 'none',
           }}
         />
-      </div>
+      </motion.div>
     </div>
   )
 }
 
-// ─── État final : anneau qui se trace + coche + CTA ────────────────────
+// ─── État final : anneau qui se trace + coche + CTA (Framer Motion) ─────
+// Animation dédiée, distincte de l'anneau de préparation : entrée spring du
+// cercle, tracé pathLength de l'anneau puis de la coche, puis titre + CTA en
+// cascade. Aucun pulse / halo (fil de trait uniquement).
 function ActivationDone({
   accent,
   dark,
   prenom,
   ctaLabel,
   onEnter,
+  reduced,
 }: {
   accent: string
   dark?: boolean
   prenom: string
   ctaLabel: string
   onEnter: () => void
+  reduced: boolean
 }) {
   const t = obPalette(dark)
   return (
-    <div
+    <motion.div
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 30,
-        animation: 'd0aDoneIn .6s cubic-bezier(.2,.8,.2,1) both',
       }}
+      initial={reduced ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: DRAW_EASE }}
     >
-      {/* Cercle de validation — anneau qui se trace, puis coche (fil de trait). */}
-      <div
+      {/* Cercle de validation — entrée spring + tracé anneau puis coche. */}
+      <motion.div
         style={{
           position: 'relative',
           width: 108,
@@ -248,6 +289,9 @@ function ActivationDone({
           display: 'grid',
           placeItems: 'center',
         }}
+        initial={reduced ? false : { scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 240, damping: 18 }}
       >
         <svg
           width={108}
@@ -257,21 +301,20 @@ function ActivationDone({
           aria-hidden="true"
         >
           <circle cx={54} cy={54} r={46} fill="none" stroke={`${accent}26`} strokeWidth={4} />
-          <circle
-            cx={54}
-            cy={54}
-            r={46}
-            fill="none"
-            stroke={accent}
-            strokeWidth={4}
-            strokeLinecap="round"
-            transform="rotate(-90 54 54)"
-            style={{
-              strokeDasharray: 289.03,
-              strokeDashoffset: 289.03,
-              animation: 'd0aRingDraw .7s cubic-bezier(.65,0,.36,1) forwards',
-            }}
-          />
+          <g transform="rotate(-90 54 54)">
+            <motion.circle
+              cx={54}
+              cy={54}
+              r={46}
+              fill="none"
+              stroke={accent}
+              strokeWidth={4}
+              strokeLinecap="round"
+              initial={reduced ? false : { pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.7, ease: DRAW_EASE, delay: reduced ? 0 : 0.1 }}
+            />
+          </g>
         </svg>
         <svg
           viewBox="0 0 24 24"
@@ -280,23 +323,21 @@ function ActivationDone({
           style={{ gridArea: '1 / 1' }}
           aria-hidden="true"
         >
-          <path
+          <motion.path
             d="m5 12.5 4.2 4.3L19 6.5"
             stroke={accent}
             strokeWidth={3}
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
-            style={{
-              strokeDasharray: 30,
-              strokeDashoffset: 30,
-              animation: 'd0aCheck .42s .55s cubic-bezier(.65,0,.36,1) forwards',
-            }}
+            initial={reduced ? false : { pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.4, ease: DRAW_EASE, delay: reduced ? 0 : 0.62 }}
           />
         </svg>
-      </div>
+      </motion.div>
 
-      <h2
+      <motion.h2
         style={{
           margin: 0,
           fontSize: 34,
@@ -306,11 +347,14 @@ function ActivationDone({
           lineHeight: 1.12,
           textAlign: 'center',
         }}
+        initial={reduced ? false : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: DRAW_EASE, delay: reduced ? 0 : 0.35 }}
       >
         {prenom ? `Bienvenue, ${prenom}.` : 'Bienvenue.'}
-      </h2>
+      </motion.h2>
 
-      <button
+      <motion.button
         type="button"
         onClick={onEnter}
         style={{
@@ -330,6 +374,11 @@ function ActivationDone({
           alignItems: 'center',
           gap: 10,
         }}
+        initial={reduced ? false : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: DRAW_EASE, delay: reduced ? 0 : 0.5 }}
+        whileHover={reduced ? undefined : { scale: 1.03 }}
+        whileTap={reduced ? undefined : { scale: 0.98 }}
       >
         {ctaLabel}
         <svg
@@ -346,8 +395,8 @@ function ActivationDone({
           <path d="M5 12h14" />
           <path d="m12 5 7 7-7 7" />
         </svg>
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   )
 }
 
@@ -369,6 +418,7 @@ export function D0Activation({
 }) {
   const t = obPalette(dark)
   const accent = ACTIVATION_ACCENT
+  const reduced = !!useReducedMotion()
   const phrases = useMemo(() => buildActivationPhrases(answers), [answers])
 
   // Visuel responsive (borné largeur + hauteur) + mode compact écran court.
@@ -379,32 +429,22 @@ export function D0Activation({
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Temps écoulé / progression / done — pilotés par requestAnimationFrame.
-  const [elapsed, setElapsed] = useState(0)
+  // Phrase courante + fin. Phase 1/3 : timer fixe (chaque phrase ~ durée/n,
+  // dernière phrase jusqu'à la fin). Phase 2 : remplacé par un signal backend.
+  const [phraseIdx, setPhraseIdx] = useState(0)
   const [done, setDone] = useState(false)
-  const startRef = useRef<number | null>(null)
-
   useEffect(() => {
-    startRef.current = performance.now()
-    let raf = 0
-    const tick = (now: number) => {
-      const dt = now - (startRef.current ?? now)
-      if (dt >= ACTIVATION_DURATION_MS) {
-        setElapsed(ACTIVATION_DURATION_MS)
-        setDone(true)
-        return
-      }
-      setElapsed(dt)
-      raf = requestAnimationFrame(tick)
+    const n = phrases.length
+    const stepMs = ACTIVATION_DURATION_MS / n
+    const interval = window.setInterval(() => {
+      setPhraseIdx((i) => (i >= n - 1 ? i : i + 1))
+    }, stepMs)
+    const doneTimer = window.setTimeout(() => setDone(true), ACTIVATION_DURATION_MS)
+    return () => {
+      window.clearInterval(interval)
+      window.clearTimeout(doneTimer)
     }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [])
-
-  // `progress` sert uniquement à indexer la phrase courante (plus de barre).
-  const progress = Math.max(0, Math.min(1, elapsed / ACTIVATION_DURATION_MS))
-  const rawIdx = Math.floor(progress * phrases.length)
-  const phraseIdx = Math.max(0, Math.min(phrases.length - 1, Number.isFinite(rawIdx) ? rawIdx : 0))
+  }, [phrases.length])
   const phrase = phrases[phraseIdx] ?? phrases[0]
 
   return (
@@ -420,8 +460,6 @@ export function D0Activation({
         alignItems: 'center',
       }}
     >
-      <style>{D0_ACTIVATION_CSS}</style>
-
       {/* Header : toggle de thème animé (sun/moon framer-motion) en haut à
           droite — cohérent avec welcome / questions / synthesis. */}
       {onThemeChange && (
@@ -441,114 +479,133 @@ export function D0Activation({
           padding: compact ? '64px 24px 64px' : '120px 32px 120px',
           maxWidth: 720,
           width: '100%',
-          gap: compact ? 32 : 56,
         }}
       >
-        {!done ? (
-          <>
-            {/* Hero au-dessus du visuel. */}
-            <div style={{ textAlign: 'center', animation: 'd0aFadeIn .6s ease both' }}>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: compact ? 32 : 40,
-                  fontWeight: 700,
-                  color: t.ink,
-                  letterSpacing: '-1px',
-                  lineHeight: 1.08,
-                }}
-              >
-                Je prépare votre compte,
-                <br />
-                {prenom}.
-              </h1>
-            </div>
-
-            <ActivationVisual size={visualSize} accent={accent} dark={dark} />
-
-            {/* Étape courante (texte dynamique, re-animé à chaque changement). */}
-            <div
-              aria-live="polite"
+        <AnimatePresence mode="wait">
+          {!done ? (
+            <motion.div
+              key="prep"
               style={{
-                textAlign: 'center',
-                maxWidth: 560,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 12,
-                minHeight: 130,
+                gap: compact ? 32 : 56,
+                width: '100%',
               }}
+              exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.25 } }}
             >
+              {/* Hero au-dessus du visuel. */}
+              <motion.div
+                style={{ textAlign: 'center' }}
+                initial={reduced ? false : { opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+              >
+                <h1
+                  style={{
+                    margin: 0,
+                    fontSize: compact ? 32 : 40,
+                    fontWeight: 700,
+                    color: t.ink,
+                    letterSpacing: '-1px',
+                    lineHeight: 1.08,
+                  }}
+                >
+                  Je prépare votre compte,
+                  <br />
+                  {prenom}.
+                </h1>
+              </motion.div>
+
+              <ActivationVisual
+                size={visualSize}
+                accent={accent}
+                dark={dark}
+                reduced={reduced}
+              />
+
+              {/* Étape courante — défilement fluide (AnimatePresence spring). */}
               <div
-                key={`m-${phraseIdx}`}
+                aria-live="polite"
                 style={{
-                  fontSize: 21,
-                  fontWeight: 700,
-                  color: t.ink,
-                  letterSpacing: '-0.4px',
-                  lineHeight: 1.3,
-                  animation: 'd0aCross .55s .05s cubic-bezier(.2,.8,.2,1) both',
+                  textAlign: 'center',
+                  maxWidth: 560,
+                  width: '100%',
+                  minHeight: 130,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'center',
                 }}
               >
-                {phrase.main}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={phraseIdx}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 12,
+                    }}
+                    initial={
+                      reduced
+                        ? { opacity: 0 }
+                        : { opacity: 0, y: 18, filter: 'blur(6px)' }
+                    }
+                    animate={
+                      reduced
+                        ? { opacity: 1 }
+                        : { opacity: 1, y: 0, filter: 'blur(0px)' }
+                    }
+                    exit={
+                      reduced
+                        ? { opacity: 0 }
+                        : { opacity: 0, y: -18, filter: 'blur(6px)' }
+                    }
+                    transition={
+                      reduced
+                        ? { duration: 0.2 }
+                        : { type: 'spring', stiffness: 240, damping: 28, mass: 0.8 }
+                    }
+                  >
+                    <div
+                      style={{
+                        fontSize: 21,
+                        fontWeight: 700,
+                        color: t.ink,
+                        letterSpacing: '-0.4px',
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {phrase.main}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: t.inkSoft,
+                        lineHeight: 1.55,
+                        letterSpacing: '-0.1px',
+                      }}
+                    >
+                      {phrase.sub}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
               </div>
-              <div
-                key={`s-${phraseIdx}`}
-                style={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: t.inkSoft,
-                  lineHeight: 1.55,
-                  letterSpacing: '-0.1px',
-                  animation: 'd0aCross .55s .1s cubic-bezier(.2,.8,.2,1) both',
-                }}
-              >
-                {phrase.sub}
-              </div>
-            </div>
-          </>
-        ) : (
-          <ActivationDone
-            accent={accent}
-            dark={dark}
-            prenom={prenom}
-            ctaLabel={ctaLabel}
-            onEnter={onComplete}
-          />
-        )}
+            </motion.div>
+          ) : (
+            <ActivationDone
+              key="done"
+              accent={accent}
+              dark={dark}
+              prenom={prenom}
+              ctaLabel={ctaLabel}
+              onEnter={onComplete}
+              reduced={reduced}
+            />
+          )}
+        </AnimatePresence>
       </main>
     </div>
   )
 }
-
-// ─── CSS d'animations (Phase 1 — pures CSS, indépendantes de Framer) ───
-const D0_ACTIVATION_CSS = `
-  @keyframes d0aRotate { to { transform: translate(-50%, -50%) rotate(360deg); } }
-  @keyframes d0aDash {
-    0%   { stroke-dasharray: 1 100;  stroke-dashoffset: 0; }
-    50%  { stroke-dasharray: 55 100; stroke-dashoffset: -12; }
-    100% { stroke-dasharray: 1 100;  stroke-dashoffset: -100; }
-  }
-  @keyframes d0aBreath {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.025); }
-  }
-  @keyframes d0aFadeIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes d0aCross {
-    from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
-    to   { opacity: 1; transform: translateY(0);  filter: blur(0); }
-  }
-  @keyframes d0aDoneIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes d0aRingDraw { to { stroke-dashoffset: 0; } }
-  @keyframes d0aCheck    { to { stroke-dashoffset: 0; } }
-
-  @media (prefers-reduced-motion: reduce) {
-    .d0a-spin, .d0a-dash, .d0a-breath { animation: none !important; }
-  }
-`
