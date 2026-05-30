@@ -6,9 +6,9 @@
 // insert idempotent whatsapp_messages → audit activity_events.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, verifyHmac, type SendConfig } from '../_shared/whatsapp-gateway.ts'
-import { extractPairingCode, isPairingCodeValid } from '../_shared/whatsapp-agent-router.ts'
+import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid } from '../_shared/whatsapp-agent-router.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -91,8 +91,8 @@ serve(async (req) => {
       .maybeSingle()
 
     if (agentLink) {
-      // Log inbound de l'agent (pas de contact_id).
-      await admin.from('whatsapp_messages').upsert({
+      // Dédup : insert inbound idempotent ; si rejeu Meta, on s'arrête (pas de double action).
+      const { data: insertedRows } = await admin.from('whatsapp_messages').upsert({
         provider: provider.name,
         provider_message_id: msg.providerMessageId,
         session_id: msg.sessionId,
@@ -106,29 +106,37 @@ serve(async (req) => {
         wa_timestamp: msg.timestamp,
         raw: msg.raw,
       }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
-
-      // MEGGA AI (ai-copilot) avec l'identité agence de l'agent. action 'chat'
-      // exige un Bearer → service-role. La réponse texte est dans `result`.
-      let reply = "Désolé, je n'ai pas pu traiter votre demande pour le moment."
-      try {
-        const aiRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/ai-copilot`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          },
-          body: JSON.stringify({
-            action: 'chat',
-            message: msg.body ?? '',
-            context: { agency_id: agentLink.agency_id },
-            language: 'fr',
-          }),
+        .select('id')
+      if (!insertedRows || insertedRows.length === 0) {
+        return new Response(JSON.stringify({ ok: true, routed: 'agent_duplicate' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
-        const aiData = await aiRes.json().catch(() => ({}))
-        // ai-copilot renvoie { result, action, usage } — le texte est dans `result`.
-        if (aiData?.result) reply = String(aiData.result)
-      } catch (err) {
-        console.error('ai-copilot call failed:', err)
+      }
+
+      // Action sensible en attente (tier confirm) ? Sinon, MEGGA agit via whatsapp-agent.
+      let reply = "Désolé, je n'ai pas pu traiter ta demande pour le moment."
+      const { data: pendingAction } = await admin
+        .from('whatsapp_pending_actions')
+        .select('id, tool, args, summary, expires_at')
+        .eq('profile_id', agentLink.profile_id)
+        .maybeSingle()
+
+      if (pendingAction) {
+        const decision = parseConfirmation(msg.body)
+        const valid = isPendingActionValid(pendingAction.expires_at)
+        // On consomme l'attente quoi qu'il arrive (oui / non / expirée / autre message).
+        await admin.from('whatsapp_pending_actions').delete().eq('id', pendingAction.id)
+        if (decision === 'yes' && valid) {
+          reply = await executePending(admin, provider, agentLink, pendingAction)
+        } else if (decision === 'no') {
+          reply = "C'est annulé, je n'ai rien envoyé."
+        } else if (!valid) {
+          reply = 'La demande en attente a expiré. Redis-moi ce que tu veux faire.'
+        } else {
+          reply = await callAgentBrain(agentLink, msg)
+        }
+      } else {
+        reply = await callAgentBrain(agentLink, msg)
       }
 
       // Renvoyer la réponse sur le WhatsApp de l'agent (fenêtre 24h ouverte).
@@ -204,10 +212,9 @@ serve(async (req) => {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-      // Code présent mais invalide/expiré : un code n'est pas un message client.
-      return new Response(JSON.stringify({ ok: true, routed: 'pairing_invalid' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      // Code à 6 chiffres mais SANS correspondance en attente : ce n'était pas un
+      // appairage. On NE court-circuite PAS — on laisse filer vers la branche client
+      // (sinon un vrai message client réductible à 6 chiffres serait perdu).
     }
   }
   // ── fin routage agent — sinon, branche client ci-dessous ──
@@ -225,6 +232,14 @@ serve(async (req) => {
       .maybeSingle()
     if (contact) { contactId = contact.id; agencyId = contact.agency_id }
   } catch { /* mapping best-effort, non bloquant */ }
+
+  // Repli : numéro inconnu => rattacher à une agence par défaut si configurée,
+  // sinon log (le message reste en base mais sans agence = invisible en CRM).
+  if (!agencyId) {
+    const fallback = Deno.env.get('WHATSAPP_FALLBACK_AGENCY_ID')
+    if (fallback) agencyId = fallback
+    else console.warn('whatsapp inbound: numéro inconnu, message sans agence:', msg.fromPhone.slice(-4))
+  }
 
   // 4. Insert idempotent (ON CONFLICT via upsert sur la contrainte unique)
   const { error: insErr } = await admin
@@ -266,3 +281,68 @@ serve(async (req) => {
 
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 })
+
+// ── Helpers Phase 4A ────────────────────────────────────────────────
+// Appelle le cerveau agentique (whatsapp-agent) en service-role et renvoie son texte.
+async function callAgentBrain(
+  agentLink: { profile_id: string; agency_id: string | null },
+  msg: { fromPhone: string; body: string | null },
+): Promise<string> {
+  try {
+    const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        profileId: agentLink.profile_id,
+        agencyId: agentLink.agency_id,
+        waNumber: msg.fromPhone,
+        message: msg.body ?? '',
+      }),
+    })
+    const data = await r.json().catch(() => ({}))
+    return (data?.reply as string) || "Désolé, je n'ai pas pu traiter ta demande."
+  } catch (err) {
+    console.error('whatsapp-agent call failed:', err)
+    return "Désolé, je n'ai pas pu traiter ta demande pour le moment."
+  }
+}
+
+// Exécute une action confirmée (Phase 4A : send_client_message). Garde-fou agence.
+async function executePending(
+  admin: SupabaseClient,
+  provider: ReturnType<typeof getProvider>,
+  agentLink: { profile_id: string; agency_id: string | null },
+  pending: { tool: string; args: Record<string, unknown> },
+): Promise<string> {
+  if (pending.tool === 'send_client_message') {
+    const contactId = String(pending.args.contact_id ?? '')
+    const text = String(pending.args.body ?? '')
+    if (!contactId || !text) return "Action incomplète, je n'ai rien envoyé."
+    const { data: contact } = await admin
+      .from('contacts').select('id, phone, agency_id').eq('id', contactId).maybeSingle()
+    if (!contact || contact.agency_id !== agentLink.agency_id || !contact.phone) {
+      return 'Contact introuvable dans ton agence, rien envoyé.'
+    }
+    const sendConfig: SendConfig = {
+      metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+      metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+      metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+    }
+    const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: text }, sendConfig)
+    try {
+      const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body })
+      if (!sres.ok) return "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?)."
+    } catch { return "L'envoi au client a échoué (réseau)." }
+    try {
+      await admin.from('activity_events').insert({
+        agency_id: agentLink.agency_id, actor_id: agentLink.profile_id, actor_kind: 'ai',
+        action: 'whatsapp_ai_send_client_message', entity_type: 'contact', entity_id: contactId, category: 'messaging',
+      })
+    } catch { /* non bloquant */ }
+    return '✅ Message envoyé au client.'
+  }
+  return "Type d'action inconnu, rien fait."
+}
