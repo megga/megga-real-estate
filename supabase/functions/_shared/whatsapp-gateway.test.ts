@@ -54,3 +54,26 @@ describe('whatsapp-gateway — OpenWA provider', () => {
     expect(await verifyHmac(raw, '', secret)).toBe(false)
   })
 })
+
+describe('whatsapp-gateway — outbound send', () => {
+  it('Meta: build request targets Graph API with token + text body', () => {
+    const p = getProvider('meta')
+    const req = p.buildSendTextRequest({ toPhone: '41791112233', body: 'Bonjour' }, { metaToken: 'TKN', metaPhoneNumberId: '123' })
+    expect(req.url).toBe('https://graph.facebook.com/v22.0/123/messages')
+    expect(req.headers.Authorization).toBe('Bearer TKN')
+    const body = JSON.parse(req.body)
+    expect(body).toMatchObject({ messaging_product: 'whatsapp', to: '41791112233', type: 'text', text: { body: 'Bonjour' } })
+  })
+  it('Meta: parseSendResult extracts message id on success / error on failure', () => {
+    const p = getProvider('meta')
+    expect(p.parseSendResult(200, { messages: [{ id: 'wamid.X' }] })).toEqual({ ok: true, providerMessageId: 'wamid.X' })
+    expect(p.parseSendResult(400, { error: { message: 'Bad' } })).toEqual({ ok: false, providerMessageId: null, error: 'Bad' })
+  })
+  it('OpenWA: build request targets local send-text endpoint', () => {
+    const p = getProvider('openwa')
+    const req = p.buildSendTextRequest({ toPhone: '41790000000', body: 'Hi' }, { openwaBaseUrl: 'http://localhost:2785', openwaApiKey: 'k', openwaSessionId: 's1' })
+    expect(req.url).toBe('http://localhost:2785/api/sessions/s1/messages/send-text')
+    expect(req.headers['X-API-Key']).toBe('k')
+    expect(JSON.parse(req.body)).toEqual({ to: '41790000000', message: 'Hi' })
+  })
+})

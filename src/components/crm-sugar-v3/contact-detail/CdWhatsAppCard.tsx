@@ -1,12 +1,31 @@
-// Affichage read-only des messages WhatsApp d'un contact (Phase 1 : miroir
-// entrant). Pas d'envoi ici — ce sera la Phase 2.
+// Affichage des messages WhatsApp d'un contact + composer outbound (Phase 2).
 
-import { useWhatsAppMessages } from '@/hooks/useWhatsAppMessages'
+import { useState } from 'react'
+import type { KeyboardEvent } from 'react'
+import { useWhatsAppMessages, useSendWhatsAppMessage } from '@/hooks/useWhatsAppMessages'
 
 interface Props { contactId: string }
 
 export function CdWhatsAppCard({ contactId }: Props) {
   const { data: messages = [], isLoading } = useWhatsAppMessages(contactId)
+  const send = useSendWhatsAppMessage(contactId)
+  const [draft, setDraft] = useState('')
+
+  const canSend = draft.trim().length > 0 && !send.isPending
+
+  function handleSend() {
+    if (!canSend) return
+    send.mutate(draft.trim(), {
+      onSuccess: () => setDraft(''),
+    })
+  }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
 
   return (
     <div className="rounded-xl border border-theme-border bg-theme-card p-4">
@@ -40,6 +59,34 @@ export function CdWhatsAppCard({ contactId }: Props) {
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Composer outbound */}
+      <div className="mt-3 pt-3 border-t border-theme-border">
+        <textarea
+          className="w-full resize-none rounded-lg border border-theme-border bg-theme-section text-sm text-theme-primary placeholder:text-theme-muted px-3 py-2 focus:outline-none focus:ring-1 focus:ring-theme-border"
+          rows={2}
+          placeholder="Répondre sur WhatsApp…"
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={send.isPending}
+        />
+        {send.isError && (
+          <p className="mt-1 text-xs text-red-500">
+            Échec de l'envoi. La fenêtre de 24h est peut-être expirée.
+          </p>
+        )}
+        <div className="flex justify-end mt-2">
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!canSend}
+            className="text-xs border border-theme-border text-theme-secondary rounded-lg px-3 py-1.5 disabled:opacity-40 hover:bg-theme-hover transition-colors"
+          >
+            {send.isPending ? 'Envoi…' : 'Envoyer'}
+          </button>
+        </div>
       </div>
     </div>
   )

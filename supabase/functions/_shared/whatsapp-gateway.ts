@@ -19,9 +19,40 @@ export interface NormalizedInboundMessage {
 export type NormalizedMediaType =
   | 'image' | 'audio' | 'video' | 'document' | 'location' | 'contact' | 'sticker'
 
+export interface OutboundTextMessage {
+  toPhone: string   // digits only, international without +
+  body: string
+}
+
+export interface SendConfig {
+  // Meta Cloud API
+  metaToken?: string
+  metaPhoneNumberId?: string
+  metaApiVersion?: string        // default 'v22.0'
+  // OpenWA
+  openwaBaseUrl?: string          // e.g. http://localhost:2785
+  openwaApiKey?: string
+  openwaSessionId?: string
+}
+
+export interface SendHttpRequest {
+  url: string
+  method: 'POST'
+  headers: Record<string, string>
+  body: string                    // JSON string
+}
+
+export interface SendResult {
+  ok: boolean
+  providerMessageId: string | null
+  error?: string
+}
+
 export interface WhatsAppProvider {
   readonly name: 'openwa' | 'meta'
   parseInbound(payload: unknown): NormalizedInboundMessage | null
+  buildSendTextRequest(msg: OutboundTextMessage, config: SendConfig): SendHttpRequest
+  parseSendResult(status: number, responseBody: unknown): SendResult
 }
 
 export function normalizePhone(jid: string): string {
@@ -71,6 +102,30 @@ class OpenWAProvider implements WhatsAppProvider {
       raw: payload,
     }
   }
+
+  buildSendTextRequest(msg: OutboundTextMessage, config: SendConfig): SendHttpRequest {
+    return {
+      url: `${config.openwaBaseUrl}/api/sessions/${config.openwaSessionId}/messages/send-text`,
+      method: 'POST',
+      headers: {
+        'X-API-Key': config.openwaApiKey ?? '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ to: msg.toPhone, message: msg.body }),
+    }
+  }
+
+  parseSendResult(status: number, responseBody: unknown): SendResult {
+    const body = responseBody as Record<string, unknown>
+    if (status >= 200 && status < 300) {
+      const id =
+        (body.id as string) ??
+        ((body.data as Record<string, unknown>)?.id as string) ??
+        null
+      return { ok: true, providerMessageId: id }
+    }
+    return { ok: false, providerMessageId: null, error: 'HTTP ' + status }
+  }
 }
 
 // ── Meta Cloud API provider ──────────────────────────────────────
@@ -115,6 +170,35 @@ class MetaProvider implements WhatsAppProvider {
       timestamp: ts ? new Date(ts * 1000).toISOString() : null,
       raw: payload,
     }
+  }
+
+  buildSendTextRequest(msg: OutboundTextMessage, config: SendConfig): SendHttpRequest {
+    const apiVersion = config.metaApiVersion ?? 'v22.0'
+    return {
+      url: `https://graph.facebook.com/${apiVersion}/${config.metaPhoneNumberId}/messages`,
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + config.metaToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: msg.toPhone,
+        type: 'text',
+        text: { body: msg.body },
+      }),
+    }
+  }
+
+  parseSendResult(status: number, responseBody: unknown): SendResult {
+    const body = responseBody as Record<string, unknown>
+    if (status >= 200 && status < 300) {
+      const id = (body.messages as Array<{ id?: string }>)?.[0]?.id ?? null
+      return { ok: true, providerMessageId: id }
+    }
+    const err =
+      ((body.error as Record<string, unknown>)?.message as string) ?? `HTTP ${status}`
+    return { ok: false, providerMessageId: null, error: err }
   }
 }
 
