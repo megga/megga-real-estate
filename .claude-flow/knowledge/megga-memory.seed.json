@@ -36,7 +36,7 @@
     {
       "key": "megga/audiences-routing",
       "namespace": "megga",
-      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace publique (/buy /rent /listing/:id, SearchPage+ListingPage). Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token/*). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
+      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace publique (/buy /rent SearchPage; fiche bien /propriete/:id -> ListingPage, alias back-compat /listing/:id). Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token/*). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
       "tags": "frontend,routing,audiences"
     },
     {
@@ -618,13 +618,13 @@
     {
       "key": "megga/listing-card",
       "namespace": "megga",
-      "value": "Marketplace cards. ListingCard: lien vers la fiche bien (id prefixe market-/internal-; routes renommees FR->EN avec 301 #504), carousel photos snap-x lazy (rend +-1 position), bouton favori (etat local sync useFavorites), badges is_hot (Hot price), video_url, C2PA verified (pill emerald + shield), icones type (pieces/chambres/m2), tag Meuble (rent). Images via pickPhoto/pickSrcSet (photos_cf R2: srcset thumb 400w/detail 1200w/hero 1600w; fallback icone Building2 si 0 photo). Comparateur CompareDrawer: modal 2-3 colonnes, 8+ lignes (prix/prix-m2/surface/pieces/jours en ligne, meilleure valeur surlignee emerald), max 3 biens (URL ?compare + localStorage).",
+      "value": "Marketplace cards. ListingCard: lien Link to=/propriete/:id (fiche bien; id prefixe market-/internal-; routes renommees FR->EN avec 301 #504), carousel photos snap-x lazy (rend +-1 position), bouton favori (etat local sync useFavorites), badges is_hot (Hot price), video_url, C2PA verified (pill emerald + shield), icones type (pieces/chambres/m2), tag Meuble (rent). Images via pickPhoto/pickSrcSet (photos_cf R2: srcset thumb 400w/detail 1200w/hero 1600w; fallback icone Building2 si 0 photo). Comparateur CompareDrawer: modal 2-3 colonnes, 8+ lignes (prix/prix-m2/surface/pieces/jours en ligne, meilleure valeur surlignee emerald), max 3 biens (URL ?compare + localStorage).",
       "tags": "marketplace,listings,cards,frontend"
     },
     {
       "key": "megga/listing-detail",
       "namespace": "megga",
-      "value": "Fiche bien (ListingPage, id prefixe market-/internal-). Data: useMarketListing (market_listings + join agency_profile) ou properties (interne), transformSupabaseToListing (titre lang-aware). Blocks modulaires: BienTitleBar (favori/share/contact), ListingHeroGallery (mosaic + lightbox), BienPriceCard (CHF, /mois + charges si rent, hypotheque estimee, AffordabilityCalculator), BienSpecsBlock, BienEnergyBlock (label A-G, kWh), BienNeighborhoodBlock (POI + WalkScore: transport 30% / commerce 25% / ecole 20% / sante 15% / loisir 10%, scoring par distance), BienDocumentsBlock, BienSimilarBlock (useRelatedListings canton+type), BienAgentCard, InteractiveFloorPlan, C2paBadge, ListingMobileBar sticky. useNeighborhood(lat,lng) + useNaturalHazards(lat,lng: flood/landslide/avalanche).",
+      "value": "Fiche bien = ListingPage, route /propriete/:id (alias back-compat /listing/:id). Tous les liens marketplace (card, preview modal, favoris, recherches sauvegardees, similaires, partage lightbox, canonical SEO) pointent /propriete/:id; cette route avait ete supprimee avec PropertyXSinglePropertyPage (#470) laissant les liens morts -> NotFoundPage, re-ajoutee pointant ListingPage. id prefixe market-/internal-. Data: useMarketListing (market_listings + join agency_profile) ou properties (interne), transformSupabaseToListing (titre lang-aware). Blocks modulaires: BienTitleBar (favori/share/contact), ListingHeroGallery (mosaic + lightbox), BienPriceCard (CHF, /mois + charges si rent, hypotheque estimee, AffordabilityCalculator), BienSpecsBlock, BienEnergyBlock (label A-G, kWh), BienNeighborhoodBlock (POI + WalkScore: transport 30% / commerce 25% / ecole 20% / sante 15% / loisir 10%, scoring par distance), BienDocumentsBlock, BienSimilarBlock (useRelatedListings canton+type), BienAgentCard, InteractiveFloorPlan, C2paBadge, ListingMobileBar sticky. useNeighborhood(lat,lng) + useNaturalHazards(lat,lng: flood/landslide/avalanche).",
       "tags": "marketplace,listings,detail,frontend"
     },
     {

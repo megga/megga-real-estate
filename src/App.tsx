@@ -305,6 +305,16 @@ function AnimatedRoutes() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/listing/:id" element={<ListingPage />} />
+              {/* Marketplace listing detail. The whole React marketplace — listing
+                  cards, the preview modal/panel, favourites, saved searches, the
+                  "similar listings" carousels, the lightbox share link and the SEO
+                  canonical — all point at /propriete/:id. The PropertyX single-
+                  property *page* was dropped in #470, but those links were never
+                  migrated, so every click fell through to the 404 catch-all
+                  (NotFoundPage). Render the canonical MEGGA detail page here;
+                  /listing/:id above stays as a back-compat alias. */}
+              <Route path="/propriete/:id" element={<ListingPage />} />
+              <Route path="/propriete" element={<Navigate to="/buy" replace />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
               <Route path="/login" element={<Navigate to="/auth/login" replace />} />
