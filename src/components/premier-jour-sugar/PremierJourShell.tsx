@@ -20,10 +20,12 @@ import { D0Synthesis } from './D0Synthesis'
 import { D0Activation } from './D0Activation'
 import { D0TodayPremierJour } from './D0Today'
 import { useActivationChecklist } from '@/hooks/useActivationChecklist'
+import { supabase } from '@/lib/supabase'
 import {
   D0_PRIORITY_ROUTES,
   D0_PRIORITY_TO_CHECKLIST,
   D0_QUESTIONS,
+  findZone,
 } from './data'
 import {
   clearLocalState,
@@ -299,6 +301,17 @@ export function PremierJourShell({
         prenom={firstName}
         dark={dark}
         onThemeChange={onThemeChange}
+        onProvision={() =>
+          supabase.functions.invoke('day0-activation-setup', {
+            body: {
+              answers: { ...answers, autonomy },
+              zoneLabels: answers.zone
+                .map((id) => findZone(id)?.label)
+                .filter((l): l is string => Boolean(l)),
+              prenom: firstName,
+            },
+          })
+        }
         onComplete={() => setPhase('today')}
       />
     )

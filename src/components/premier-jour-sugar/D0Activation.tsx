@@ -24,7 +24,7 @@
 // Phase 4 : setup IA réel en arrière-plan à partir des réponses.
 //
 // Source : design_handoff_day0_activation/crm-day0-activation-v5-grand.jsx
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { obPalette } from '@/components/onboarding-sugar/tokens'
 import { ObThemeToggle } from '@/components/onboarding-sugar/OnboardingShell'
@@ -34,10 +34,13 @@ import type { D0Answers } from './types'
 // Accent fonctionnel unique de l'écran (vert validation) — fidèle à la maquette.
 const ACTIVATION_ACCENT = '#059669'
 
-// Durée de la préparation. Phase 1 : fixe. Phase 2 : remplacée par la durée
-// réelle d'init backend (ou bornée, avec passage à `done` dès l'init terminée —
-// ne jamais faire attendre artificiellement).
-const ACTIVATION_DURATION_MS = 14_000
+// Phase 2 : la fin de l'écran est pilotée par l'init backend RÉELLE (prop
+// `onProvision`). On garde une durée d'affichage minimale « confortable » (on ne
+// termine pas avant, même si l'init est plus rapide) et un cap dur si l'init
+// traîne ou échoue — l'agent n'est jamais bloqué. Sans `onProvision` (preview
+// dev), l'écran se comporte comme un simple timer de `ACTIVATION_DISPLAY_MS`.
+const ACTIVATION_DISPLAY_MS = 14_000
+const ACTIVATION_MAX_MS = 22_000
 
 // Easing « confident » partagé par les tracés de l'état de succès.
 const DRAW_EASE = [0.65, 0, 0.36, 1] as const
@@ -407,6 +410,7 @@ export function D0Activation({
   dark,
   onComplete,
   onThemeChange,
+  onProvision,
   ctaLabel = 'Entrer dans le CRM',
 }: {
   answers: D0Answers
@@ -414,6 +418,13 @@ export function D0Activation({
   dark?: boolean
   onComplete: () => void
   onThemeChange?: (theme: 'light' | 'dark') => void
+  /**
+   * Setup IA réel en arrière-plan (Phase 2/4). Déclenché une fois au montage ;
+   * l'écran ne passe à l'état de succès qu'une fois ce setup résolu (ou rejeté
+   * — fallback), après la durée d'affichage minimale. Absent (preview dev) →
+   * simple timer.
+   */
+  onProvision?: () => Promise<unknown>
   ctaLabel?: string
 }) {
   const t = obPalette(dark)
@@ -429,22 +440,48 @@ export function D0Activation({
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Phrase courante + fin. Phase 1/3 : timer fixe (chaque phrase ~ durée/n,
-  // dernière phrase jusqu'à la fin). Phase 2 : remplacé par un signal backend.
+  // Phrase courante + fin de l'écran.
   const [phraseIdx, setPhraseIdx] = useState(0)
   const [done, setDone] = useState(false)
+  // `setupReady` : true dès que le provisioning backend a résolu (ou rejeté →
+  // fallback). Sans onProvision, prêt d'emblée (preview dev = simple timer).
+  const setupReadyRef = useRef(onProvision == null)
+  const provisionStartedRef = useRef(false)
+  const startRef = useRef<number | null>(null)
+
+  // Déclenche le setup IA réel une seule fois (Phase 2/4). Fallback-safe : toute
+  // erreur (fonction pas encore déployée, réseau, 401…) marque quand même prêt,
+  // l'écran retombe alors sur sa durée d'affichage.
   useEffect(() => {
+    if (provisionStartedRef.current || !onProvision) return
+    provisionStartedRef.current = true
+    Promise.resolve()
+      .then(() => onProvision())
+      .catch(() => {})
+      .finally(() => {
+        setupReadyRef.current = true
+      })
+  }, [onProvision])
+
+  // Cycle des phrases + transition vers l'état de succès quand l'init réelle est
+  // prête, après la durée d'affichage minimale (et au plus tard à MAX).
+  useEffect(() => {
+    if (done) return
+    if (startRef.current == null) startRef.current = performance.now()
     const n = phrases.length
-    const stepMs = ACTIVATION_DURATION_MS / n
-    const interval = window.setInterval(() => {
-      setPhraseIdx((i) => (i >= n - 1 ? i : i + 1))
-    }, stepMs)
-    const doneTimer = window.setTimeout(() => setDone(true), ACTIVATION_DURATION_MS)
-    return () => {
-      window.clearInterval(interval)
-      window.clearTimeout(doneTimer)
-    }
-  }, [phrases.length])
+    const stepMs = ACTIVATION_DISPLAY_MS / n
+    const id = window.setInterval(() => {
+      const elapsed = performance.now() - (startRef.current ?? performance.now())
+      setPhraseIdx(Math.max(0, Math.min(n - 1, Math.floor(elapsed / stepMs))))
+      if (
+        (elapsed >= ACTIVATION_DISPLAY_MS && setupReadyRef.current) ||
+        elapsed >= ACTIVATION_MAX_MS
+      ) {
+        setDone(true)
+      }
+    }, 200)
+    return () => window.clearInterval(id)
+  }, [done, phrases.length])
   const phrase = phrases[phraseIdx] ?? phrases[0]
 
   return (

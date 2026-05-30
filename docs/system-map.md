@@ -109,7 +109,11 @@ rend **`D0Activation`** (écran d'activation IA « atterrissage » grand format,
 phrases pilotées par les réponses + état succès + toggle thème animé ; pas de particules/progress/ETA) ;
 remplace l'ancien `D0Configuring`. Animations **Framer Motion** (anneau Meta rotate + `pathLength`,
 anneau de fin spring, défilement texte `AnimatePresence`). Roadmap 4 phases : 1) classic ✅ →
-2) Supabase (durée = init réel) → 3) Framer Motion ✅ → 4) setup IA réel en arrière-plan.
+2) Supabase (durée = init réel) ✅ → 3) Framer Motion ✅ → 4) setup IA réel en arrière-plan ✅.
+**Provisioning réel (Phase 2+4)** : edge function `day0-activation-setup` (prop `onProvision`) → persiste
+`day0_payload`, dérive `compute_agent_preferences` (déterministe, déjà consommé par les engines), génère
+un brief LLM de personnalisation (`callClaude`), upsert `agent_ai_profiles` (RLS). L'écran ne passe à
+l'état succès qu'une fois le provisioning résolu (durée d'affichage min 14s, cap 22s, fallback gracieux).
 **Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/mfa`, `/dev/sentry-test`, `/dev/configuring`, `/dev/activation`.
 
 ### Composants (`src/components/`)
