@@ -113,70 +113,14 @@ serve(async (req) => {
         })
       }
 
-      // Action sensible en attente (tier confirm) ? Sinon, MEGGA agit via whatsapp-agent.
-      let reply = "Désolé, je n'ai pas pu traiter ta demande pour le moment."
-      const { data: pendingAction } = await admin
-        .from('whatsapp_pending_actions')
-        .select('id, tool, args, summary, expires_at')
-        .eq('profile_id', agentLink.profile_id)
-        .maybeSingle()
-
-      if (pendingAction) {
-        const decision = parseConfirmation(msg.body)
-        const valid = isPendingActionValid(pendingAction.expires_at)
-        // On consomme l'attente quoi qu'il arrive (oui / non / expirée / autre message).
-        await admin.from('whatsapp_pending_actions').delete().eq('id', pendingAction.id)
-        if (decision === 'yes' && valid) {
-          reply = await executePending(admin, provider, agentLink, pendingAction)
-        } else if (decision === 'no') {
-          reply = "C'est annulé, je n'ai rien envoyé."
-        } else if (!valid) {
-          reply = 'La demande en attente a expiré. Redis-moi ce que tu veux faire.'
-        } else {
-          reply = await callAgentBrain(agentLink, msg)
-        }
-      } else {
-        reply = await callAgentBrain(agentLink, msg)
-      }
-
-      // Renvoyer la réponse sur le WhatsApp de l'agent (fenêtre 24h ouverte).
-      const sendConfig: SendConfig = {
-        metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-        metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-        metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-      }
-      const sendReq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: reply }, sendConfig)
-      let outId: string | null = null
-      try {
-        const sres = await fetch(sendReq.url, { method: sendReq.method, headers: sendReq.headers, body: sendReq.body })
-        const sbody = await sres.json().catch(() => ({}))
-        outId = provider.parseSendResult(sres.status, sbody).providerMessageId
-      } catch (err) {
-        console.error('whatsapp agent reply send failed:', err)
-      }
-
-      // Log outbound + audit (best-effort).
-      await admin.from('whatsapp_messages').upsert({
-        provider: provider.name,
-        provider_message_id: outId ?? `local-agent-${msg.providerMessageId}`,
-        direction: 'outbound',
-        wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
-        wa_to: msg.fromPhone,
-        agency_id: agentLink.agency_id,
-        body: reply,
-        status: 'received',
-      }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
-
-      try {
-        await admin.from('activity_events').insert({
-          agency_id: agentLink.agency_id,
-          actor_id: agentLink.profile_id,
-          actor_kind: 'ai',
-          action: 'whatsapp_agent_copilot_reply',
-          entity_type: 'whatsapp_message',
-          category: 'messaging',
-        })
-      } catch { /* non bloquant */ }
+      // F12/F6 : ACK Meta IMMÉDIATEMENT. Le cerveau IA + l'envoi peuvent prendre
+      // plusieurs secondes ; si on attend avant de répondre 200, Meta considère l'event
+      // en échec et REJOUE (tempête de rejeux + double traitement). On traite donc en
+      // tâche de fond (EdgeRuntime.waitUntil garde l'instance vivante après la réponse).
+      const bg = processAgentMessage(admin, provider, agentLink, msg)
+      const edge = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime
+      if (edge?.waitUntil) edge.waitUntil(bg)
+      else await bg // fallback (local/typecheck) : pas de waitUntil disponible
 
       return new Response(JSON.stringify({ ok: true, routed: 'agent' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -206,7 +150,7 @@ serve(async (req) => {
         }
         const okMsg = '✅ Votre WhatsApp est lié à MEGGA. Posez-moi vos questions : « Mes RDV demain ? », « Résume le dossier Dubois »…'
         const sreq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: okMsg }, sendConfig)
-        try { await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body }) } catch { /* */ }
+        try { await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) }) } catch { /* */ }
 
         return new Response(JSON.stringify({ ok: true, routed: 'pairing' }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -283,7 +227,86 @@ serve(async (req) => {
 })
 
 // ── Helpers Phase 4A ────────────────────────────────────────────────
+// Traitement de fond d'un message agent (appelé via EdgeRuntime.waitUntil) :
+// gère l'action en attente (confirm) OU appelle le cerveau, puis envoie la réponse.
+async function processAgentMessage(
+  admin: SupabaseClient,
+  provider: ReturnType<typeof getProvider>,
+  agentLink: { profile_id: string; agency_id: string | null },
+  msg: { fromPhone: string; body: string | null; providerMessageId: string },
+): Promise<void> {
+  let reply = "Désolé, je n'ai pas pu traiter ta demande pour le moment."
+
+  const { data: pendingAction } = await admin
+    .from('whatsapp_pending_actions')
+    .select('id, tool, args, summary, expires_at')
+    .eq('profile_id', agentLink.profile_id)
+    .maybeSingle()
+
+  if (pendingAction) {
+    const decision = parseConfirmation(msg.body)
+    const valid = isPendingActionValid(pendingAction.expires_at)
+    // F3 : consommation gagnant-unique. Deux « oui » concurrents lisent la même ligne ;
+    // un seul DELETE renvoie une ligne → seul lui exécute/répond, l'autre s'arrête.
+    const { data: claimed } = await admin
+      .from('whatsapp_pending_actions').delete().eq('id', pendingAction.id).select('id')
+    if (!claimed || claimed.length === 0) return // une autre invocation gère cette attente
+    if (decision === 'yes' && valid) {
+      reply = await executePending(admin, provider, agentLink, pendingAction)
+    } else if (decision === 'no') {
+      reply = "C'est annulé, je n'ai rien envoyé."
+    } else if (!valid) {
+      reply = 'La demande en attente a expiré. Redis-moi ce que tu veux faire.'
+    } else {
+      // F18 : message non lié alors qu'une action attendait → on l'écarte et on le DIT.
+      const brain = await callAgentBrain(agentLink, msg)
+      reply = `(J'ai mis de côté l'action en attente, non confirmée.)\n\n${brain}`
+    }
+  } else {
+    reply = await callAgentBrain(agentLink, msg)
+  }
+
+  // Envoi de la réponse à l'agent (fenêtre 24h ouverte) + log outbound + audit.
+  const sendConfig: SendConfig = {
+    metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+    metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+  }
+  const sendReq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: reply }, sendConfig)
+  let outId: string | null = null
+  try {
+    const sres = await fetch(sendReq.url, { method: sendReq.method, headers: sendReq.headers, body: sendReq.body, signal: AbortSignal.timeout(8000) })
+    const sbody = await sres.json().catch(() => ({}))
+    outId = provider.parseSendResult(sres.status, sbody).providerMessageId
+  } catch (err) {
+    console.error('whatsapp agent reply send failed:', (err as Error)?.name ?? 'error')
+  }
+
+  await admin.from('whatsapp_messages').upsert({
+    provider: provider.name,
+    provider_message_id: outId ?? `local-agent-${msg.providerMessageId}`,
+    direction: 'outbound',
+    wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
+    wa_to: msg.fromPhone,
+    agency_id: agentLink.agency_id,
+    body: reply,
+    status: 'received',
+  }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
+
+  try {
+    await admin.from('activity_events').insert({
+      agency_id: agentLink.agency_id,
+      actor_id: agentLink.profile_id,
+      actor_kind: 'ai',
+      action: 'whatsapp_agent_copilot_reply',
+      entity_type: 'whatsapp_message',
+      category: 'messaging',
+    })
+  } catch { /* non bloquant */ }
+}
+
 // Appelle le cerveau agentique (whatsapp-agent) en service-role et renvoie son texte.
+// agencyId N'EST PAS transmis : l'agent le re-dérive depuis le lien vérifié (anti-forge).
 async function callAgentBrain(
   agentLink: { profile_id: string; agency_id: string | null },
   msg: { fromPhone: string; body: string | null },
@@ -297,20 +320,20 @@ async function callAgentBrain(
       },
       body: JSON.stringify({
         profileId: agentLink.profile_id,
-        agencyId: agentLink.agency_id,
         waNumber: msg.fromPhone,
         message: msg.body ?? '',
       }),
+      signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini
     })
     const data = await r.json().catch(() => ({}))
     return (data?.reply as string) || "Désolé, je n'ai pas pu traiter ta demande."
   } catch (err) {
-    console.error('whatsapp-agent call failed:', err)
+    console.error('whatsapp-agent call failed:', (err as Error)?.name ?? 'error')
     return "Désolé, je n'ai pas pu traiter ta demande pour le moment."
   }
 }
 
-// Exécute une action confirmée (Phase 4A : send_client_message). Garde-fou agence.
+// Exécute une action confirmée (Phase 4A : send_client_message). Garde agence AU SQL.
 async function executePending(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
@@ -318,14 +341,17 @@ async function executePending(
   pending: { tool: string; args: Record<string, unknown> },
 ): Promise<string> {
   if (pending.tool === 'send_client_message') {
+    if (!agentLink.agency_id) return "Ton compte n'a pas d'agence, envoi impossible."
     const contactId = String(pending.args.contact_id ?? '')
     const text = String(pending.args.body ?? '')
     if (!contactId || !text) return "Action incomplète, je n'ai rien envoyé."
+    // Garde agence au niveau SQL : pas de match (ou agency_id NULL) => introuvable.
     const { data: contact } = await admin
-      .from('contacts').select('id, phone, agency_id').eq('id', contactId).maybeSingle()
-    if (!contact || contact.agency_id !== agentLink.agency_id || !contact.phone) {
-      return 'Contact introuvable dans ton agence, rien envoyé.'
-    }
+      .from('contacts').select('id, phone')
+      .eq('id', contactId)
+      .eq('agency_id', agentLink.agency_id)
+      .maybeSingle()
+    if (!contact || !contact.phone) return 'Contact introuvable dans ton agence, rien envoyé.'
     const sendConfig: SendConfig = {
       metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
       metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
@@ -333,7 +359,7 @@ async function executePending(
     }
     const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: text }, sendConfig)
     try {
-      const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body })
+      const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
       if (!sres.ok) return "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?)."
     } catch { return "L'envoi au client a échoué (réseau)." }
     try {

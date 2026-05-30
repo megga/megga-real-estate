@@ -2,6 +2,11 @@
 // l'identité agent (profileId, agencyId) + les args parsés. Renvoient un texte court
 // réinjecté dans la boucle IA (role:'tool'). TOUJOURS scoper par agencyId.
 //
+// SÉCURITÉ (audit 2026-05-30) :
+//  - chaque exécuteur REFUSE si agencyId est null (sinon insert/lookup hors RLS).
+//  - le filtre agence se fait au niveau SQL (.eq('agency_id', …)), JAMAIS par une
+//    comparaison JS `!==` (qui est permissive sur null === null).
+//
 // Schéma prod confirmé (2026-05-30) :
 //  - agenda  -> table `visits` (agent_id, agency_id, scheduled_at, status, contact_id…)
 //  - note    -> `activity_events` (timeline contact : action=titre, object_label=détail,
@@ -19,7 +24,14 @@ export interface ActionCtx {
 type Args = Record<string, unknown>
 const s = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
 
+// Garde commune : aucune action si l'agent n'a pas d'agence (évite tout accès hors RLS).
+const NO_AGENCY = 'Erreur: ton compte n’est rattaché à aucune agence. Contacte un administrateur.'
+function hasAgency(ctx: ActionCtx): boolean {
+  return typeof ctx.agencyId === 'string' && ctx.agencyId.length > 0
+}
+
 export async function execGetMyAgenda(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
   const from = s(a.from), to = s(a.to)
   if (!from || !to) return 'Erreur: dates from/to requises.'
   const { data, error } = await ctx.supabase
@@ -37,11 +49,12 @@ export async function execGetMyAgenda(ctx: ActionCtx, a: Args): Promise<string> 
 }
 
 export async function execSearchContacts(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
   const q = s(a.query)
   if (!q) return 'Erreur: query requise.'
   // Neutralise les caractères qui casseraient le filtre PostgREST .or()
   const safe = q.replace(/[,()%*]/g, ' ').trim()
-  if (!safe) return 'Erreur: recherche vide après nettoyage.'
+  if (safe.length < 2) return 'Erreur: recherche trop courte (2 caractères min).'
   // Tokenise : « Vladimir Poutine » doit matcher first_name=Vladimir ET last_name=Poutine.
   // Chaque token doit apparaître dans AU MOINS une colonne (AND de tokens, OR de colonnes).
   // Les .or() chaînés sont combinés en AND par PostgREST. Max 5 tokens (anti-abus).
@@ -60,16 +73,32 @@ export async function execSearchContacts(ctx: ActionCtx, a: Args): Promise<strin
 }
 
 export async function execCreateContact(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
   const first = s(a.first_name)
   if (!first) return 'Erreur: prénom requis.'
+  const phone = s(a.phone), email = s(a.email), last = s(a.last_name)
+
+  // Dédup (anti-doublon sur messages concurrents / répétés) : si un contact de
+  // l'agence a déjà ce téléphone ou cet email, on ne recrée pas.
+  if (phone || email) {
+    let dq = ctx.supabase.from('contacts').select('id, first_name, last_name').eq('agency_id', ctx.agencyId)
+    if (phone && email) dq = dq.or(`phone.eq.${phone},email.eq.${email}`)
+    else if (phone) dq = dq.eq('phone', phone)
+    else if (email) dq = dq.eq('email', email)
+    const { data: existing } = await dq.limit(1).maybeSingle()
+    if (existing) {
+      return `Un contact existe déjà (${existing.first_name ?? ''} ${existing.last_name ?? ''}, id ${existing.id}). Je ne l’ai pas recréé.`
+    }
+  }
+
   const { data, error } = await ctx.supabase
     .from('contacts')
     .insert({
       agency_id: ctx.agencyId,
       first_name: first,
-      last_name: s(a.last_name),
-      phone: s(a.phone),
-      email: s(a.email),
+      last_name: last,
+      phone,
+      email,
       notes: s(a.notes),
       source: 'whatsapp_ai',
     })
@@ -81,12 +110,17 @@ export async function execCreateContact(ctx: ActionCtx, a: Args): Promise<string
 }
 
 export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
   const contactId = s(a.contact_id), body = s(a.body)
   if (!contactId || !body) return 'Erreur: contact_id et body requis.'
-  // Garde-fou agence : le contact doit appartenir à l'agence de l'agent.
+  // Garde-fou agence AU NIVEAU SQL : on ne charge la ligne que si elle appartient
+  // à l'agence de l'agent. Pas de match (y compris agency_id NULL) => introuvable.
   const { data: c } = await ctx.supabase
-    .from('contacts').select('id, agency_id').eq('id', contactId).maybeSingle()
-  if (!c || c.agency_id !== ctx.agencyId) return 'Erreur: contact introuvable dans votre agence.'
+    .from('contacts').select('id')
+    .eq('id', contactId)
+    .eq('agency_id', ctx.agencyId)
+    .maybeSingle()
+  if (!c) return 'Erreur: contact introuvable dans votre agence.'
   const ok = await logTimeline(ctx, 'Note ajoutée', body, contactId)
   if (!ok) return "Erreur: impossible d'enregistrer la note."
   return 'Note ajoutée à la fiche.'
@@ -108,6 +142,6 @@ async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, 
     severity: 'info',
     metadata: { via: 'whatsapp' },
   })
-  if (error) { console.error('activity_events insert:', error.message); return false }
+  if (error) { console.error('activity_events insert failed'); return false }
   return true
 }
