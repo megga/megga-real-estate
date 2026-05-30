@@ -544,7 +544,7 @@ export function D0Activation({
                     maxWidth: 560,
                     width: '100%',
                     minHeight: 44,
-                    marginTop: compact ? 6 : 10,
+                    marginTop: compact ? 22 : 28,
                     display: 'flex',
                     alignItems: 'flex-start',
                     justifyContent: 'center',
