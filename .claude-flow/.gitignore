@@ -3,5 +3,7 @@ data/
 logs/
 sessions/
 neural/
+metrics/
+security/
 *.log
 *.tmp
