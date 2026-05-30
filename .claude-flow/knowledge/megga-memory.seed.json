@@ -30,7 +30,7 @@
     {
       "key": "megga/ai-architecture",
       "namespace": "megga",
-      "value": "Abstraction IA dans _shared/ai-provider.ts. Modeles: ANTHROPIC_MODEL=claude-sonnet-4-6, HAIKU=claude-haiku-4-5-20251001, DEEPSEEK=deepseek-chat. callPublicAI = DeepSeek SEUL (public marketplace/support, cost control decision 2026-04-17, AUCUN fallback Claude -> erreur si down). callAgentAI = Claude primaire + fallback DeepSeek si Claude echoue. callClaude/callDeepSeek = directs sans fallback. Tracking -> ai_usage_logs (NB: estimateCostUsd est actuellement un stub qui retourne 0). pii-redaction.ts utilisee sur le texte libre public (extract-lead) mais PAS par ai-copilot (contexte CRM brut). Photo-vision via Claude Vision.",
+      "value": "Abstraction IA dans _shared/ai-provider.ts. Modeles (CLAUDE_MODELS): sonnet=claude-sonnet-4-20250514, haiku=claude-haiku-4-5-20251001, DEEPSEEK=deepseek-chat. callPublicAI = DeepSeek SEUL (public marketplace/support, cost control decision 2026-04-17, AUCUN fallback Claude -> erreur si down). callAgentAI = Claude primaire + fallback DeepSeek si Claude echoue. callClaude/callDeepSeek = directs sans fallback. computeCost (via table PRICING) correct -> ai_usage_logs. NB: ai-copilot et kyc-screening font leur propre appel Anthropic direct (hors ai-provider). pii-redaction.ts utilisee sur le texte libre public (extract-lead) mais PAS par ai-copilot (contexte CRM brut). Photo-vision via Claude Vision.",
       "tags": "ai,architecture"
     },
     {
@@ -276,7 +276,7 @@
     {
       "key": "megga/edge-ai-provider",
       "namespace": "megga",
-      "value": "_shared/ai-provider.ts: abstraction multi-IA. Modeles: claude-sonnet-4-6 (ANTHROPIC_MODEL), claude-haiku-4-5-20251001, deepseek-chat. Fonctions: callClaude/callDeepSeek (directs, sans fallback); callPublicAI = DeepSeek SEUL (marketplace/support public, AUCUN fallback Claude - decision 2026-04-17, erreur si down); callAgentAI = Claude primaire + fallback DeepSeek sur echec Claude. Tracking -> ai_usage_logs (NB estimateCostUsd est un stub qui retourne 0). Balance DeepSeek via ai-billing-monitor (cron). photo-vision.ts = Claude Vision. pii-redaction.ts (AVS/IBAN/passeport) sur texte libre public (extract-lead), PAS par ai-copilot. NB: ai-copilot/index.ts hardcode claude-sonnet-4-20250514 (different du shared 4-6).",
+      "value": "_shared/ai-provider.ts: abstraction multi-IA. Modeles CLAUDE_MODELS: sonnet=claude-sonnet-4-20250514, haiku=claude-haiku-4-5-20251001; deepseek-chat. Fonctions: callClaude/callDeepSeek (directs, sans fallback); callPublicAI = DeepSeek SEUL (marketplace/support public, AUCUN fallback Claude - decision 2026-04-17, erreur si down); callAgentAI = Claude primaire + fallback DeepSeek sur echec Claude. computeCost (PRICING) correct -> ai_usage_logs. Balance DeepSeek via ai-billing-monitor (cron). photo-vision.ts = Claude Vision. pii-redaction.ts (AVS/IBAN/passeport) sur texte libre public (extract-lead), PAS par ai-copilot. INCONSISTANCE modeles: la plupart des fn = claude-sonnet-4-20250514, MAIS kyc-screening = claude-sonnet-4-6 et dashboard-ai-hint = claude-sonnet-4-5-20250929.",
       "tags": "edge-functions,ai,architecture"
     },
     {
@@ -552,7 +552,7 @@
     {
       "key": "megga/copilot-models-pii",
       "namespace": "megga",
-      "value": "Copilote modeles & PII. Strategie: ai-copilot appelle callClaude directement (modele hardcode claude-sonnet-4-20250514, sans fallback); le pattern callAgentAI offre Claude -> fallback DeepSeek; public-side callPublicAI = DeepSeek SEUL, AUCUN fallback Claude (decision 2026-04-17, erreur si down; public = listings anonymes, pas de PII user). Pricing USD/1M (constantes): DeepSeek 0.27/1.10 (~16x moins cher), Sonnet 3/15, Haiku 1/5 (mais estimateCostUsd est un stub=0). Data residency: Claude API = Anthropic EU DPA. NUANCE: ai-copilot injecte le contexte CRM BRUT (PAS de pii-redaction, contrairement a extract-lead) -> repose sur le DPA, pas la redaction. Logs ai_usage_logs.",
+      "value": "Copilote modeles & PII. Strategie: ai-copilot appelle directement l'API Anthropic (modele claude-sonnet-4-20250514, sans fallback, hors ai-provider); le pattern callAgentAI offre Claude -> fallback DeepSeek; public-side callPublicAI = DeepSeek SEUL, AUCUN fallback Claude (decision 2026-04-17, erreur si down; public = listings anonymes, pas de PII user). Pricing USD/1M (constantes PRICING): DeepSeek 0.27/1.10 (~16x moins cher), Sonnet 3/15, Haiku 1/5; computeCost est correct MAIS ai-copilot loggue dans activity_events (tokens, SANS cout calcule), donc hors ai_usage_logs. Data residency: Anthropic EU DPA. NUANCE: ai-copilot injecte le contexte CRM BRUT (PAS de pii-redaction, contrairement a extract-lead) -> repose sur le DPA, pas la redaction.",
       "tags": "ai,copilot,models,pii,compliance"
     },
     {
