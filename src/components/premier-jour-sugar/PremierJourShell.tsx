@@ -298,6 +298,7 @@ export function PremierJourShell({
         answers={answers}
         prenom={firstName}
         dark={dark}
+        onThemeChange={onThemeChange}
         onComplete={() => setPhase('today')}
       />
     )

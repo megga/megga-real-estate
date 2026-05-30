@@ -6,24 +6,24 @@
 // personnalisation, plutôt qu'un spinner mort. L'animation raconte ce que l'IA
 // met en place pour l'agent.
 //
-// Phase 1 (design fidelity) : recrée fidèlement la maquette Claude Design
-// (handoff « atterrissage »). Animations CSS pures (rendu garanti hors Framer),
-// timer requestAnimationFrame, phrases pilotées par les VRAIES réponses du
-// calibrage. Couleurs / typo / timings = définitifs (hi-fi).
+// Parti pris visuel (épuré) : anneau Meta + GG central + phrases pilotées par
+// les réponses. PAS de particules, PAS de barre de progression, PAS d'ETA.
+// Toggle de thème animé (sun/moon framer-motion, ObThemeToggle) en haut à
+// droite, cohérent avec welcome / questions / synthesis.
 //
-// Phases ultérieures (non incluses ici) :
-//   · Phase 2 — durée pilotée par l'init réel backend (signal « prêt »).
-//   · Phase 3 — anneau Meta + anneau de fin en Framer Motion (fluidité FB/Meta).
-//   · Phase 4 — setup IA réel en arrière-plan à partir des réponses.
+// Phase 1 (design fidelity) : animations CSS pures (rendu garanti hors Framer),
+// timer requestAnimationFrame, phrases pilotées par les VRAIES réponses du
+// calibrage. Phases ultérieures : Supabase (durée réelle), Framer Motion
+// (anneau Meta + anneau de fin), setup IA réel en arrière-plan.
 //
 // Source : design_handoff_day0_activation/crm-day0-activation-v5-grand.jsx
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { obPalette } from '@/components/onboarding-sugar/tokens'
+import { ObThemeToggle } from '@/components/onboarding-sugar/OnboardingShell'
 import { findZone } from './data'
 import type { D0Answers } from './types'
 
 // Accent fonctionnel unique de l'écran (vert validation) — fidèle à la maquette.
-// Seule couleur « fonctionnelle » : anneau, coche, barre de progression, glow ETA.
 const ACTIVATION_ACCENT = '#059669'
 
 // Durée de la préparation. Phase 1 : fixe. Phase 2 : remplacée par la durée
@@ -34,21 +34,19 @@ const ACTIVATION_DURATION_MS = 10_000
 type Phrase = { main: string; sub: string }
 
 // Métriques responsives. Le visuel est borné par la largeur ET la hauteur pour
-// ne jamais pousser les phrases / le footer hors de l'écran (≈430px réservés au
-// hero, aux phrases et au footer). `compact` réduit paddings / gaps sur les
-// écrans courts (laptops 13" ≈ 720–800px de haut).
+// ne jamais pousser les phrases hors de l'écran (≈400px réservés au hero et aux
+// phrases). `compact` réduit paddings / gaps sur les écrans courts (laptops 13").
 function computeActivationMetrics(): { visualSize: number; compact: boolean } {
   if (typeof window === 'undefined') return { visualSize: 420, compact: false }
   const w = window.innerWidth
   const h = window.innerHeight
-  const visualSize = Math.round(Math.max(220, Math.min(420, w - 80, h - 430)))
+  const visualSize = Math.round(Math.max(220, Math.min(420, w - 80, h - 400)))
   return { visualSize, compact: h < 820 }
 }
 
 // ─── Phrases d'étape pilotées par les réponses réelles du calibrage ────
-// Fidèle à la maquette (6 étapes : matching · zones · documents · rythme ·
-// canaux · première journée) mais avec les vraies valeurs de l'agent
-// substituées là où la maquette montrait des exemples figés.
+// 6 étapes : matching · zones · documents · rythme · canaux · première journée,
+// avec les vraies valeurs de l'agent substituées.
 function buildActivationPhrases(answers: D0Answers): Phrase[] {
   // Zones couvertes → libellés réels (2 max + « … » au-delà).
   const zoneLabels = answers.zone
@@ -168,60 +166,7 @@ function MetaRing({ size, accent }: { size: number; accent: string }) {
   )
 }
 
-// ─── Particules ambiantes (clignotements lointains) — clair seulement ──
-function AmbientParticles({
-  color,
-  count = 16,
-  radius,
-}: {
-  color: string
-  count?: number
-  radius: number
-}) {
-  // Positions déterministes (golden angle) — stables au re-render.
-  const positions = useMemo(() => {
-    const arr: { x: number; y: number; delay: number; size: number; duration: number }[] = []
-    for (let i = 0; i < count; i++) {
-      const angle = i * 137.5 * (Math.PI / 180)
-      const r = radius * (0.55 + (0.45 * ((i * 13) % 100)) / 100)
-      arr.push({
-        x: Math.cos(angle) * r,
-        y: Math.sin(angle) * r,
-        delay: (i * 0.23) % 2,
-        size: 1.5 + (i % 3) * 0.7,
-        duration: 2 + (i % 5) * 0.4,
-      })
-    }
-    return arr
-  }, [count, radius])
-
-  return (
-    <div
-      aria-hidden="true"
-      style={{ position: 'absolute', top: '50%', left: '50%', width: 0, height: 0 }}
-    >
-      {positions.map((p, i) => (
-        <div
-          key={i}
-          className="d0a-twinkle"
-          style={{
-            position: 'absolute',
-            left: p.x - p.size / 2,
-            top: p.y - p.size / 2,
-            width: p.size,
-            height: p.size,
-            borderRadius: 999,
-            background: color,
-            opacity: 0.5,
-            animation: `d0aTwinkle ${p.duration}s ease-in-out ${p.delay}s infinite`,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-// ─── Bloc visuel central : anneau Meta + GG + particules ───────────────
+// ─── Bloc visuel central : anneau Meta + GG ────────────────────────────
 function ActivationVisual({
   size,
   accent,
@@ -241,11 +186,6 @@ function ActivationVisual({
         placeItems: 'center',
       }}
     >
-      {/* Particules ambiantes — masquées en mode sombre (clair seulement). */}
-      {!dark && (
-        <AmbientParticles color={accent} count={16} radius={size * 0.55} />
-      )}
-
       {/* Anneau Meta unique, ligne épaisse. */}
       <MetaRing size={size} accent={accent} />
 
@@ -417,12 +357,14 @@ export function D0Activation({
   prenom = 'Marie',
   dark,
   onComplete,
+  onThemeChange,
   ctaLabel = 'Entrer dans le CRM',
 }: {
   answers: D0Answers
   prenom?: string
   dark?: boolean
   onComplete: () => void
+  onThemeChange?: (theme: 'light' | 'dark') => void
   ctaLabel?: string
 }) {
   const t = obPalette(dark)
@@ -459,11 +401,8 @@ export function D0Activation({
     return () => cancelAnimationFrame(raf)
   }, [])
 
+  // `progress` sert uniquement à indexer la phrase courante (plus de barre).
   const progress = Math.max(0, Math.min(1, elapsed / ACTIVATION_DURATION_MS))
-  const remainingSec = Math.max(
-    0,
-    Math.ceil((ACTIVATION_DURATION_MS - elapsed) / 1000),
-  )
   const rawIdx = Math.floor(progress * phrases.length)
   const phraseIdx = Math.max(0, Math.min(phrases.length - 1, Number.isFinite(rawIdx) ? rawIdx : 0))
   const phrase = phrases[phraseIdx] ?? phrases[0]
@@ -483,6 +422,14 @@ export function D0Activation({
     >
       <style>{D0_ACTIVATION_CSS}</style>
 
+      {/* Header : toggle de thème animé (sun/moon framer-motion) en haut à
+          droite — cohérent avec welcome / questions / synthesis. */}
+      {onThemeChange && (
+        <div style={{ position: 'absolute', top: 22, right: 32, zIndex: 3 }}>
+          <ObThemeToggle dark={!!dark} onChange={onThemeChange} t={t} />
+        </div>
+      )}
+
       {/* Bloc central */}
       <main
         style={{
@@ -491,7 +438,7 @@ export function D0Activation({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: compact ? '64px 24px 40px' : '140px 32px 80px',
+          padding: compact ? '64px 24px 64px' : '120px 32px 120px',
           maxWidth: 720,
           width: '100%',
           gap: compact ? 32 : 56,
@@ -570,59 +517,6 @@ export function D0Activation({
           />
         )}
       </main>
-
-      {/* Footer : ETA + barre de progression. En flux (pas absolu) pour ne
-          jamais chevaucher les phrases sur écran court ; sur écran haut, le
-          main (flex:1) le pousse en bas — rendu identique à la maquette. */}
-      {!done && (
-        <footer
-          style={{
-            flexShrink: 0,
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 18,
-            padding: compact ? '0 24px 28px' : '0 32px 36px',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: t.muted,
-              fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
-              letterSpacing: '0.4px',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            ≈ {remainingSec} s restantes
-          </div>
-          <div
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(progress * 100)}
-            style={{
-              width: 'min(560px, 100%)',
-              height: 2,
-              borderRadius: 999,
-              background: t.divider,
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: `${progress * 100}%`,
-                height: '100%',
-                background: accent,
-                boxShadow: `0 0 8px ${accent}`,
-                transition: 'width 0.1s linear',
-              }}
-            />
-          </div>
-        </footer>
-      )}
     </div>
   )
 }
@@ -638,10 +532,6 @@ const D0_ACTIVATION_CSS = `
   @keyframes d0aBreath {
     0%, 100% { transform: scale(1); }
     50%      { transform: scale(1.025); }
-  }
-  @keyframes d0aTwinkle {
-    0%, 100% { opacity: 0; transform: scale(0.6); }
-    50%      { opacity: 0.85; transform: scale(1.2); }
   }
   @keyframes d0aFadeIn {
     from { opacity: 0; transform: translateY(-6px); }
@@ -659,6 +549,6 @@ const D0_ACTIVATION_CSS = `
   @keyframes d0aCheck    { to { stroke-dashoffset: 0; } }
 
   @media (prefers-reduced-motion: reduce) {
-    .d0a-spin, .d0a-dash, .d0a-twinkle, .d0a-breath { animation: none !important; }
+    .d0a-spin, .d0a-dash, .d0a-breath { animation: none !important; }
   }
 `

@@ -1,6 +1,8 @@
 // Dev preview de l'écran d'activation IA « Atterrissage » (D0Activation) en
 // isolation. Permet d'itérer sur le design sans rejouer tout le flow Premier
 // jour. Accessible via /dev/activation (loop infini : auto-replay au CTA).
+// Le toggle de thème (sun/moon animé) est rendu PAR l'écran lui-même (haut
+// droite) ; le dev toolbar ne garde que « Replay » (bas droite).
 import { useState } from 'react'
 import { D0Activation } from '@/components/premier-jour-sugar/D0Activation'
 import { OB_GLOBAL_CSS, obPalette } from '@/components/onboarding-sugar/tokens'
@@ -33,61 +35,36 @@ export default function D0ActivationDemoPage() {
     >
       <style>{OB_GLOBAL_CSS + D0_CSS}</style>
 
-      {/* Dev toolbar (top-right) — switch dark + replay */}
-      <div
+      {/* Dev toolbar (bas droite) — Replay seulement (le toggle thème est sur
+          l'écran). Bas droite pour ne pas chevaucher le toggle haut droite. */}
+      <button
+        onClick={() => setKey((k) => k + 1)}
         style={{
           position: 'fixed',
-          top: 16,
+          bottom: 16,
           right: 16,
           zIndex: 50,
-          display: 'flex',
-          gap: 8,
-          padding: 6,
-          background: t.card,
-          border: `1px solid ${t.cardBorder}`,
+          padding: '8px 14px',
+          fontFamily: 'inherit',
+          fontSize: 12,
+          fontWeight: 700,
+          color: dark ? '#0B0C0E' : '#FFFFFF',
+          background: t.ink,
+          border: 0,
           borderRadius: 999,
           boxShadow: t.shadow,
+          cursor: 'pointer',
         }}
       >
-        <button
-          onClick={() => setDark((d) => !d)}
-          style={{
-            padding: '8px 14px',
-            fontFamily: 'inherit',
-            fontSize: 12,
-            fontWeight: 600,
-            color: t.inkSoft,
-            background: 'transparent',
-            border: 0,
-            borderRadius: 999,
-            cursor: 'pointer',
-          }}
-        >
-          {dark ? '☀️ Light' : '🌙 Dark'}
-        </button>
-        <button
-          onClick={() => setKey((k) => k + 1)}
-          style={{
-            padding: '8px 14px',
-            fontFamily: 'inherit',
-            fontSize: 12,
-            fontWeight: 700,
-            color: dark ? '#0B0C0E' : '#FFFFFF',
-            background: t.ink,
-            border: 0,
-            borderRadius: 999,
-            cursor: 'pointer',
-          }}
-        >
-          Replay ↻
-        </button>
-      </div>
+        Replay ↻
+      </button>
 
       <D0Activation
         key={key}
         answers={MOCK_ANSWERS}
         prenom="Marie"
         dark={dark}
+        onThemeChange={(next) => setDark(next === 'dark')}
         onComplete={() => setKey((k) => k + 1)}
       />
     </div>
