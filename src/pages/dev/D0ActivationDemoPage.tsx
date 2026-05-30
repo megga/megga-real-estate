@@ -2,7 +2,7 @@
 // isolation. Permet d'itérer sur le design sans rejouer tout le flow Premier
 // jour. Accessible via /dev/activation (loop infini : auto-replay au CTA).
 // Le toggle de thème (sun/moon animé) est rendu PAR l'écran lui-même (haut
-// droite) ; le dev toolbar ne garde que « Replay » (bas droite).
+// droite) ; le replay se fait via le CTA « Entrer dans le CRM » (pas de toolbar).
 import { useState } from 'react'
 import { D0Activation } from '@/components/premier-jour-sugar/D0Activation'
 import { OB_GLOBAL_CSS, obPalette } from '@/components/onboarding-sugar/tokens'
@@ -34,30 +34,6 @@ export default function D0ActivationDemoPage() {
       }}
     >
       <style>{OB_GLOBAL_CSS + D0_CSS}</style>
-
-      {/* Dev toolbar (bas droite) — Replay seulement (le toggle thème est sur
-          l'écran). Bas droite pour ne pas chevaucher le toggle haut droite. */}
-      <button
-        onClick={() => setKey((k) => k + 1)}
-        style={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          zIndex: 50,
-          padding: '8px 14px',
-          fontFamily: 'inherit',
-          fontSize: 12,
-          fontWeight: 700,
-          color: dark ? '#0B0C0E' : '#FFFFFF',
-          background: t.ink,
-          border: 0,
-          borderRadius: 999,
-          boxShadow: t.shadow,
-          cursor: 'pointer',
-        }}
-      >
-        Replay ↻
-      </button>
 
       <D0Activation
         key={key}
