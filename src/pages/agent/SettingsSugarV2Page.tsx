@@ -21,6 +21,7 @@ import { NotificationsSection } from '@/components/crm-sugar/settings/Notificati
 import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesSection'
 import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
+import { WhatsAppPairingCard } from '@/components/crm-sugar/settings/WhatsAppPairingCard'
 import { PrivacySection } from '@/components/crm-sugar/settings/PrivacySection'
 import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
 import { SET_PALETTE, type SectionId } from '@/components/crm-sugar/settings/data'
@@ -77,7 +78,7 @@ export default function SettingsSugarV2Page() {
     if (active === 'agency') return <AgencySection />
     if (active === 'notifications') return <NotificationsSection />
     if (active === 'preferences') return <PreferencesSection />
-    if (active === 'integrations') return <IntegrationsSection />
+    if (active === 'integrations') return (<><IntegrationsSection /><div className="mt-4"><WhatsAppPairingCard /></div></>)
     if (active === 'privacy') return <PrivacySection />
     if (active === 'security') return <SecuritySection />
     if (active === 'billing') return <BillingSection />

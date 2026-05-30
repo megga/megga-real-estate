@@ -3139,6 +3139,42 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_agent_links: {
+        Row: {
+          agency_id: string | null
+          created_at: string
+          id: string
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          profile_id: string
+          verified: boolean
+          verified_at: string | null
+          wa_number: string | null
+        }
+        Insert: {
+          agency_id?: string | null
+          created_at?: string
+          id?: string
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          profile_id: string
+          verified?: boolean
+          verified_at?: string | null
+          wa_number?: string | null
+        }
+        Update: {
+          agency_id?: string | null
+          created_at?: string
+          id?: string
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          profile_id?: string
+          verified?: boolean
+          verified_at?: string | null
+          wa_number?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_messages: {
         Row: {
           agency_id: string | null
