@@ -384,12 +384,11 @@ function ObAgencySearch({
 // ─── Selected agency card (preview + sent/validated states) ──────────
 
 function ObAgencySelected({
-  ag, onBack, onConfirm, onValidateNow, sent, validated, dark,
+  ag, onBack, onConfirm, sent, validated, dark,
 }: {
   ag: ObAgency
   onBack: () => void
   onConfirm: () => void
-  onValidateNow: () => void
   sent: boolean
   validated: boolean
   dark?: boolean
@@ -580,10 +579,9 @@ function ObAgencySelected({
                     color: t.ink,
                     display: 'grid',
                     placeItems: 'center',
-                    animation: 'obRingPulse 2s ease-out infinite',
                   }}
                 >
-                  <PxIcon name="clock" size={20} />
+                  <PxIcon name="info" size={20} />
                 </div>
                 <div>
                   <div
@@ -594,7 +592,7 @@ function ObAgencySelected({
                       letterSpacing: -0.3,
                     }}
                   >
-                    Demande envoyée
+                    La demande n'a pas pu aboutir
                   </div>
                   <div
                     style={{
@@ -604,7 +602,7 @@ function ObAgencySelected({
                       marginTop: 2,
                     }}
                   >
-                    L'admin de {ag.name} reçoit une notification.
+                    Impossible de rejoindre {ag.name} pour le moment.
                   </div>
                 </div>
               </div>
@@ -623,10 +621,10 @@ function ObAgencySelected({
                   lineHeight: 1.5,
                 }}
               >
-                <PxIcon name="mail" size={16} color={t.muted} />
+                <PxIcon name="info" size={16} color={t.muted} />
                 <span>
-                  Un email vous sera envoyé dès validation. Vous pouvez
-                  continuer l'onboarding pendant ce temps.
+                  Vérifiez votre connexion et réessayez. Si le problème persiste,
+                  choisissez une autre agence ou créez la vôtre.
                 </span>
               </div>
 
@@ -638,26 +636,24 @@ function ObAgencySelected({
                   alignItems: 'center',
                 }}
               >
-                <ObBlackPill onClick={onValidateNow} dark={dark} size="md">
-                  Continuer
+                <ObBlackPill onClick={onConfirm} dark={dark} size="md">
+                  Réessayer
                 </ObBlackPill>
                 <button
-                  onClick={onValidateNow}
+                  onClick={onBack}
                   style={{
                     background: 'transparent',
                     border: 0,
                     color: t.muted,
                     fontFamily: 'inherit',
-                    fontSize: 12,
+                    fontSize: 12.5,
                     fontWeight: 600,
                     cursor: 'pointer',
                     padding: '6px 10px',
                     borderRadius: 8,
-                    letterSpacing: 0.3,
-                    textTransform: 'uppercase',
                   }}
                 >
-                  ⚡ Simuler validation admin
+                  Choisir une autre agence
                 </button>
               </div>
             </div>
@@ -1159,10 +1155,6 @@ export function StepAgence({
             // Phase MVP : attache directe via RPC join_agency
             const ok = await joinAgency(selected.id)
             set({ agenceSent: true, agenceValidated: ok })
-          }}
-          onValidateNow={() => {
-            if (!validated) set({ agenceValidated: true })
-            else set({ _agenceDone: true })
           }}
           dark={dark}
         />

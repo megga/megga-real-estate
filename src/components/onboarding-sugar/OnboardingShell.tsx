@@ -207,6 +207,7 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
   const [step, setStep] = useState(0)
   const [replayKey, _setReplayKey] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [data, setDataRaw] = useState<OnboardingData>(() => ({
     ...INITIAL_DATA,
     ...(initialAgent ? { agentProfile: initialAgent } : {}),
@@ -237,7 +238,8 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
     return true
   }, [step, data])
 
-  const splashFirstName = data.agentProfile?.firstName || 'Marie'
+  const splashFirstName =
+    data.agentProfile?.firstName || profile?.full_name?.split(' ')[0] || ''
 
   const persistProgress = async (nextStep: number) => {
     if (!profile) return
@@ -256,34 +258,52 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
       // Last step (Forfait) → finalize + go directly to /dashboard.
       // L'écran "Bienvenue, Marie." (OnboardingFinal) est skipped : on
       // saute direct au "Premier jour" (la vue Aujourd'hui du CRM).
-      await finalizeOnboarding()
+      const ok = await finalizeOnboarding()
+      // Échec d'une écriture critique → on n'entre PAS (onboarding_completed
+      // n'est pas marqué) ; l'erreur est affichée et l'agent peut réessayer.
+      if (!ok) return
       await enterCrm()
     }
   }
 
-  const prev = () => setStep((s) => Math.max(s - 1, 0))
+  const prev = () => {
+    setError(null)
+    setStep((s) => Math.max(s - 1, 0))
+  }
 
-  const finalizeOnboarding = async () => {
-    if (!profile || saving) return
+  const finalizeOnboarding = async (): Promise<boolean> => {
+    if (!profile || saving) return false
     setSaving(true)
+    setError(null)
     try {
       // 1. Agent profile (full_name, phone, avatar_url, agent_role, spoken_languages)
-      await saveAgentProfile(profile.id, data)
+      //    — CRITIQUE : sans ça, le profil agent est incomplet.
+      const okAgent = await saveAgentProfile(profile.id, data)
+      if (!okAgent) {
+        setError(
+          "Impossible d'enregistrer votre profil. Vérifiez votre connexion et réessayez.",
+        )
+        return false
+      }
 
-      // 2. Canton + onboarding_step on profile (the agent_role / spoken_languages
-      //    updates went through saveAgentProfile, but canton lives on profile too).
+      // 2. Canton + onboarding_step on profile — CRITIQUE.
       const canton =
         data.agenceCreated?.canton ??
         data.agenceSelected?.canton ??
         profile.canton ??
         null
-      await supabase
+      const { error: cantonErr } = await supabase
         .from('profiles')
         .update({ canton, onboarding_step: STEPS.length })
         .eq('id', profile.id)
+      if (cantonErr) {
+        setError('Impossible de finaliser votre profil. Réessayez.')
+        return false
+      }
 
-      // 3. Agency profile (logo, address, contact) — only for agencies the user
-      //    created (joined ones are owned by the existing admin).
+      // 3. Agency profile (logo, address, contact) + plan — best-effort, pour les
+      //    agences créées (les agences rejointes appartiennent à l'admin existant).
+      //    Un échec ici ne bloque pas l'entrée : modifiable ensuite dans les réglages.
       const ownedAgencyId = data.agenceCreatedId
       if (ownedAgencyId) {
         const ap = data.agenceProfile
@@ -299,13 +319,16 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
             logoUrl: ap.logo,
           })
         }
-        // 4. Plan + billing on the owned agency
         if (data.plan) {
           await savePlanOnAgency(ownedAgencyId, data.plan, data.billing)
         }
       }
 
       await refreshProfile()
+      return true
+    } catch {
+      setError('Une erreur est survenue. Réessayez.')
+      return false
     } finally {
       setSaving(false)
     }
@@ -465,6 +488,20 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
                 gap: 16,
               }}
             >
+              {error && (
+                <span
+                  role="alert"
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: '#DC2626',
+                    maxWidth: 320,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {error}
+                </span>
+              )}
               {step !== 1 && (
                 <ObBlackPill
                   onClick={next}
