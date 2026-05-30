@@ -596,6 +596,48 @@
       "namespace": "megga",
       "value": "Recherches sauvegardees + alertes. useSavedSearches: localStorage (anon, migre au login) / Supabase saved_searches (connecte, staleTime 5min), MAX 10. SavedSearch {name, filters JSONB (context/types/prix/pieces/city/canton/energyLabel/lifestyleTags), alertEnabled, alertFrequency instant/daily/weekly, email, last_alerted_at, resultsCount}. Edge search-alert (cron): pour chaque saved_search alert_enabled, shouldProcess selon frequence (instant 30min/daily 24h/weekly 7j), requete miroir de applyFilters + first_seen_at > last_alerted_at (nouveautes uniquement), top 20, email HTML Resend (5 cards visibles + '+N autres'), update last_alerted_at. SavedSearchesPanel + AlertsPanel (badges frequence).",
       "tags": "marketplace,alerts,saved-searches"
+    },
+    {
+      "key": "megga/map-mapbox",
+      "namespace": "megga",
+      "value": "Marketplace carte (MapView ~2000 lignes, react-map-gl). Token VITE_MAPBOX_TOKEN (fallback gracieux si absent). 3 styles (Light/Satellite/Dark, toggle fade). Init Geneve {lng 6.1432, lat 46.2044, zoom 11.5}. Layers GeoJSON natifs (symbol+circle). Price pills = sprite Canvas 112x48 @2x (blanc/ink defaut, ink/blanc au hover). Popup hover compact 260px, popup click 300px style Zillow (carousel photos + favori + badge C2PA). Mode dessin polygone freehand -> filtre point-in-polygon (zoneFilterIds). Reverse geocoding Mapbox (debounce 350ms). src/lib/mapboxClient.ts = Geocoding + Matrix API.",
+      "tags": "marketplace,map,mapbox,frontend"
+    },
+    {
+      "key": "megga/map-clustering-perf",
+      "namespace": "megga",
+      "value": "Marketplace carte — clustering & perf 33k points. Utilise le clustering NATIF Mapbox (GeoJSON source + symbol layers, GPU) — PAS Supercluster.js (que CLAUDE.md liste seulement comme idee future d'optim). Hover via setFeatureState (efficace), throttle 80ms sur queryRenderedFeatures. useMapPoints = requete SEPAREE lightweight {id, lat, lng, price, type, rooms}. Cache sessionStorage 10min (cle megga:map-points:filtres) -> pins instantanes (hydrate initialData + refresh background, pas de spinner). Lookup listingsMap O(1).",
+      "tags": "marketplace,map,performance,clustering"
+    },
+    {
+      "key": "megga/map-choropleth",
+      "namespace": "megga",
+      "value": "Marketplace carte — choropleth prix/m2. Hook usePriceHexagons({bbox, zoom, transactionType}) -> RPC SQL get_price_hexagons (PAS Mapbox): taille hex dynamique par zoom (4000m si z<9 ... 250m si z>=13), retourne GeoJSON polygones {median_price_m2, listing_count, p25, p75}, anti-outlier p_min_count=3. Echelle couleur interpolee par transaction_type: rent 15->45 CHF/m2/mois, vente 4000->20000 CHF/m2 (vert->rouge, opacity 0.5). Toggle via toggleHeatmap (MapViewHandle imperative ref), cache 60s. Medians cantonaux: useCantonalMedians (vue cantonal_price_medians, cache 24h).",
+      "tags": "marketplace,map,choropleth,prices"
+    },
+    {
+      "key": "megga/listing-card",
+      "namespace": "megga",
+      "value": "Marketplace cards. ListingCard: lien vers la fiche bien (id prefixe market-/internal-; routes renommees FR->EN avec 301 #504), carousel photos snap-x lazy (rend +-1 position), bouton favori (etat local sync useFavorites), badges is_hot (Hot price), video_url, C2PA verified (pill emerald + shield), icones type (pieces/chambres/m2), tag Meuble (rent). Images via pickPhoto/pickSrcSet (photos_cf R2: srcset thumb 400w/detail 1200w/hero 1600w; fallback icone Building2 si 0 photo). Comparateur CompareDrawer: modal 2-3 colonnes, 8+ lignes (prix/prix-m2/surface/pieces/jours en ligne, meilleure valeur surlignee emerald), max 3 biens (URL ?compare + localStorage).",
+      "tags": "marketplace,listings,cards,frontend"
+    },
+    {
+      "key": "megga/listing-detail",
+      "namespace": "megga",
+      "value": "Fiche bien (ListingPage, id prefixe market-/internal-). Data: useMarketListing (market_listings + join agency_profile) ou properties (interne), transformSupabaseToListing (titre lang-aware). Blocks modulaires: BienTitleBar (favori/share/contact), ListingHeroGallery (mosaic + lightbox), BienPriceCard (CHF, /mois + charges si rent, hypotheque estimee, AffordabilityCalculator), BienSpecsBlock, BienEnergyBlock (label A-G, kWh), BienNeighborhoodBlock (POI + WalkScore: transport 30% / commerce 25% / ecole 20% / sante 15% / loisir 10%, scoring par distance), BienDocumentsBlock, BienSimilarBlock (useRelatedListings canton+type), BienAgentCard, InteractiveFloorPlan, C2paBadge, ListingMobileBar sticky. useNeighborhood(lat,lng) + useNaturalHazards(lat,lng: flood/landslide/avalanche).",
+      "tags": "marketplace,listings,detail,frontend"
+    },
+    {
+      "key": "megga/listing-images",
+      "namespace": "megga",
+      "value": "Marketplace images. Pipeline Cloudflare R2: champ photos_cf (variants thumb 400w q80 / detail 1200w q85 / hero 1600w q90), remplissage ~150 listings/h depuis Flatfox via photo-processor (backfill-cf-images). IMAGE_PRESETS: card 400w q75, preview 800w q80, full 1200w q85, lightbox 1920w q90, thumb 200w q70. Helpers hasCFPhotos/pickPhoto/pickSrcSet (src/lib/listingPhotos.ts, imageOptimizer.ts). Fallback si photos_cf vide -> photos[] (CDN Flatfox, referrerPolicy no-referrer anti-hotlink). loading=lazy sauf 1er, decoding async.",
+      "tags": "marketplace,images,r2,performance"
+    },
+    {
+      "key": "megga/marketplace-planned",
+      "namespace": "megga",
+      "value": "Marketplace — planifie (roadmap/backlog, Phase 2 non encore implementee). 1) Carte des prix TEMPORELLE: slider 12 mois, evolution prix/m2 historique par zone (RPC get_price_history_by_month, switch de layer vs heatmap). 2) 'Mes lieux' multi-POI: sauvegarder travail/ecole/sport + afficher les TRAJETS vers chaque bien (Mapbox Matrix API travelMatrix driving/walking, temps+distance), stockage search_zones (geometry). 3) Accessibilite financiere inline partout (cards + fiche, estimateMonthly). 4) Audit perf /louer (Lighthouse, lazy images, virtualisation liste, Supercluster en worker). Accessibilite suisse: charges = prix x 7%, <=33% revenu + >=20% apport (differenciateur vs Homegate/ImmoScout24).",
+      "tags": "marketplace,roadmap,planned"
     }
   ]
 }
