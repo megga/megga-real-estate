@@ -560,6 +560,42 @@
       "namespace": "megga",
       "value": "PLANIFIE: ai-copilot-agent (backlog decide 2026-04-18, go si >=5 agents payants). Difference: le copilote actuel = actions predefinies sur l'entite courante; l'AGENT = requetes libres multi-entites avec TOOL-CALLING + raisonnement portefeuille global. 6 tools v1 (read-only, security-definer filtres agency_id): query_contacts, query_pipeline, query_kyc, match_contacts_to_listing, suggest_priorities_today, get_market_stats. Edge ai-copilot-agent Claude Sonnet 4 + streaming SSE (vs stateless actuel). UX: bulle flottante Radix sticky bottom-right + cards action + deep-links + Cmd+K. Couts: 10 agents CHF200/mois, 50 CHF1k, 200 CHF4k. ~10-12 jours. Exemples: 'contacts score>70 sans contact depuis 14j', 'priorites du jour', 'prix median 4p Carouge'.",
       "tags": "ai,copilot,planned,roadmap"
+    },
+    {
+      "key": "megga/search-page",
+      "namespace": "megga",
+      "value": "Marketplace SearchPage (/buy et /rent, deux contextes): URL = SOURCE DE VERITE des filtres (parseFiltersFromParams au mount, filtersToParams ecrit l'URL a chaque changement -> deep-links partageables). Layout 3 colonnes: liste de cards VIRTUALISEE (react-virtual, 1 col mobile / 2 cols sm+, ~400px/row, overscan 3) + MapView lazy (Mapbox ~470KB, prefetch parallele au mount ~300ms gagnees) + sidebar toggle (MarketAccountRail 5 vues: search/favorites/saved/alerts/calculator/contact). Pagination useInfiniteQuery 50 items/page + bouton 'Charger plus'. Comparateur max 3 biens (URL ?compare + localStorage).",
+      "tags": "marketplace,search,frontend"
+    },
+    {
+      "key": "megga/search-filters",
+      "namespace": "megga",
+      "value": "Filtres marketplace. 8 types (apartment/house/villa/commercial/office/parking/storage/land, multi-select), contexte buy/rent (rent ajoute Meuble + Dispo immediate, retire 'recommended'). Principaux (FilterPill): lieu (city ILIKE OU canton eq, exclusifs), prix min/max (CHF buy ou /mois rent + presets), pieces >=, surface min. Avances (modal 'Plus de filtres'): bathrooms >=, annee (UI-only non appliquee backend), classe energie CECB A-G/minergie, 12 features (Balcon/Parking/Garage/Jardin/Ascenseur/Vue lac/Vue pano/Cheminee/Clim/Cave/Terrasse/Piscine). Tri: relevance/recommended/price_asc/price_desc/newest/surface_desc/best_deals. toServerFilters mappe les features -> 11 colonnes booleennes (has_balcony, has_parking, has_garage, has_elevator, is_furnished, has_fireplace, has_nice_view, has_swimming_pool, is_minergie, pets_allowed, is_new_building).",
+      "tags": "marketplace,search,filters"
+    },
+    {
+      "key": "megga/search-query-perf",
+      "namespace": "megga",
+      "value": "useMarketListings (requete + perf 33k rows). select('*').eq('status','active').eq('transaction_type', ctx).gte('quality_score',50) + filtres (canton eq, city ilike echappe, price gte/lte, rooms gte, type in, features eq true) .order(sort).limit(50).offset. REGLES: .eq('status') PAS .in (partial index idx_ml_rent_active_created); JAMAIS count:'exact' (totalCount approx depuis page[0]); seuls created_at (index) et relevance_score (idx_ml_relevance pour 'recommended') sont triables; colonnes lourdes (photos[], description) PAS fetchees en liste. useMapPoints = RPC SEPARE lightweight {id, lat, lng, price, type, rooms} pour la carte. Listings masques filtres cote client (useHiddenListings).",
+      "tags": "marketplace,search,performance,critical"
+    },
+    {
+      "key": "megga/search-smart",
+      "namespace": "megga",
+      "value": "Recherche intelligente marketplace. Heuristique client isLikelyNaturalLanguage (>=3 mots OU chiffres OU keywords prix/features) -> si oui, edge parse-search-query (DeepSeek V3, sans fallback Claude) qui retourne JSON {canton, city, types[], min/maxPrice, min/maxRooms, surface, features[], confidence high/medium/low} avec whitelist cantons/types/features; sinon ou erreur -> regex client parseNaturalLanguageQuery (fallback gracieux). Chip 'Compris: Geneve · 4+ pieces · < 1.2M' (sparkle IA). Feature flag VITE_SMART_SEARCH_ENABLED. A distinguer de ai-search (conversationnel pgvector + Claude, multi-tours, max 10 tours).",
+      "tags": "marketplace,search,ai,smart-input"
+    },
+    {
+      "key": "megga/search-favorites",
+      "namespace": "megga",
+      "value": "Favoris marketplace (useFavorites): etat singleton global + localStorage 'megga-favorites' (anon, zero friction) + table market_favorites (user_id, listing_id, unique) si connecte. mergeOnLogin idempotent (push local->DB, pull remote->local). Prompt de login au 3e favori (si non dismiss). FavoritesPanel: filtre par favoriteIds, group by ville si >=5, rows compactes (thumb + prix + adresse + remove). RLS: market_favorites user voit ses lignes; market_listings anon read WHERE status='active'.",
+      "tags": "marketplace,favorites,frontend"
+    },
+    {
+      "key": "megga/search-saved-alerts",
+      "namespace": "megga",
+      "value": "Recherches sauvegardees + alertes. useSavedSearches: localStorage (anon, migre au login) / Supabase saved_searches (connecte, staleTime 5min), MAX 10. SavedSearch {name, filters JSONB (context/types/prix/pieces/city/canton/energyLabel/lifestyleTags), alertEnabled, alertFrequency instant/daily/weekly, email, last_alerted_at, resultsCount}. Edge search-alert (cron): pour chaque saved_search alert_enabled, shouldProcess selon frequence (instant 30min/daily 24h/weekly 7j), requete miroir de applyFilters + first_seen_at > last_alerted_at (nouveautes uniquement), top 20, email HTML Resend (5 cards visibles + '+N autres'), update last_alerted_at. SavedSearchesPanel + AlertsPanel (badges frequence).",
+      "tags": "marketplace,alerts,saved-searches"
     }
   ]
 }
