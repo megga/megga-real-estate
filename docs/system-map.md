@@ -89,7 +89,7 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|
-| **Marketplace publique** | `/buy` `/rent` · fiche `/propriete/:id` (alias `/listing/:id`) | `SearchPage` (filtres, favoris, carte Mapbox lazy, comparateur), `ListingPage` (tous les liens biens pointent `/propriete/:id`) |
+| **Marketplace publique** | `/buy` `/rent` · fiche `/propriete/:id` (alias `/listing/:id`) | `SearchPage` (filtres, favoris, carte Mapbox lazy, comparateur), `PropertyXSinglePropertyPage` (direction artistique Property X — sections `PxSingleProperty*` ; tous les liens biens pointent `/propriete/:id`) |
 | **Marketing public** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` `/help*` | pages secondaires + centre d'aide |
 | **Compte visiteur** | `/account` | favoris, recherches sauvegardées, messagerie acheteur |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |

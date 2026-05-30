@@ -71,7 +71,10 @@ const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLogin
 
 // Legacy + secondary public pages
 const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
-const ListingPage = lazy(() => import('@/pages/public/ListingPage'))
+// Marketplace property detail = the Property X art direction (PxSingleProperty*
+// sections), data-connected via useListingDetail. (The old split-format
+// ListingPage was retired.)
+const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
 const RentPage = lazy(() => import('@/pages/public/RentPage'))
 const SellPage = lazy(() => import('@/pages/public/SellPage'))
@@ -290,6 +293,12 @@ function DashboardMarketRedirect() {
   const { externalId } = useParams()
   return <Navigate to={`/dashboard/market/${externalId}`} replace />
 }
+// Back-compat: the canonical marketplace detail URL is /propriete/:id. Old
+// /listing/:id links/bookmarks redirect there.
+function ListingIdRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/propriete/${id}`} replace />
+}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -304,17 +313,16 @@ function AnimatedRoutes() {
                   "/" lands on the dashboard (which bounces to login if needed). */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/listing/:id" element={<ListingPage />} />
-              {/* Marketplace listing detail. The whole React marketplace — listing
-                  cards, the preview modal/panel, favourites, saved searches, the
-                  "similar listings" carousels, the lightbox share link and the SEO
-                  canonical — all point at /propriete/:id. The PropertyX single-
-                  property *page* was dropped in #470, but those links were never
-                  migrated, so every click fell through to the 404 catch-all
-                  (NotFoundPage). Render the canonical MEGGA detail page here;
-                  /listing/:id above stays as a back-compat alias. */}
-              <Route path="/propriete/:id" element={<ListingPage />} />
-              <Route path="/propriete" element={<Navigate to="/buy" replace />} />
+              {/* Marketplace property detail — the Property X art direction
+                  (PxSingleProperty* sections), data-connected via useListingDetail.
+                  The whole marketplace (cards, preview modal/panel, favourites,
+                  saved searches, "similar listings" carousels, lightbox share link,
+                  SEO canonical) points at /propriete/:id. /propriete without an :id
+                  renders the page's Figma demo state. */}
+              <Route path="/propriete/:id" element={<PropertyXSinglePropertyPage />} />
+              <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
+              {/* Legacy /listing/:id → canonical /propriete/:id (back-compat). */}
+              <Route path="/listing/:id" element={<ListingIdRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
               <Route path="/login" element={<Navigate to="/auth/login" replace />} />
