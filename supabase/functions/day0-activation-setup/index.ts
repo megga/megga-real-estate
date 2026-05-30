@@ -11,7 +11,7 @@
 //   2. Persiste les réponses (profiles.day0_payload) — elles sont finales ici.
 //   3. Dérive les préférences déterministes (compute_agent_preferences) — déjà
 //      consommées par score-engine / matching-engine / automation-engine.
-//   4. Génère via LLM (Claude) un BRIEF de personnalisation (system_addendum +
+//   4. Génère via LLM (DeepSeek) un BRIEF de personnalisation (system_addendum +
 //      3 priorités du jour + axes de focus) → adapte MEGGA AI à l'agent.
 //   5. Upsert agent_ai_profiles (status 'ready') + audit activity_events.
 //
@@ -21,7 +21,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
-import { callClaude } from '../_shared/ai-provider.ts'
+import { callDeepSeek } from '../_shared/ai-provider.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -268,14 +268,15 @@ serve(async (req: Request) => {
     if (!error && prefs) preferences = prefs
   } catch (_) { /* fallback: {} */ }
 
-  // ── 4. Brief LLM (réel) avec repli déterministe. ──
+  // ── 4. Brief LLM (réel) avec repli déterministe. Moteur DeepSeek (cohérence
+  //    coût avec ai-copilot ; appel unique par agent au Day 0). ──
   let brief: Brief
   let model = 'fallback'
   try {
-    const ai = await callClaude(
+    const ai = await callDeepSeek(
       [{ role: 'user', content: buildPrompt(answers, zoneLabels, prenom, preferences) }],
       BRIEF_SYSTEM,
-      { model: 'sonnet', maxTokens: 900, temperature: 0.5 },
+      { maxTokens: 900, temperature: 0.5 },
     )
     const parsed = parseBrief(ai.text)
     if (parsed) {
