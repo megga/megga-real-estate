@@ -104,7 +104,12 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 `kyc` (+ `/:dossierId`, `/export` PDF) · `network` · `audit` (journal nLPD) · `analytics` · `settings`.
 
 **Onboarding** : `/dashboard/onboarding` (wizard) → `/dashboard/premier-jour` (calibrage IA one-shot).
-**Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/mfa`, `/dev/sentry-test`, `/dev/configuring`.
+Flux `PremierJourShell` : `welcome → q0..q3 → synthesis → configuring → today`. La phase `configuring`
+rend **`D0Activation`** (écran d'activation IA « atterrissage » grand format : anneau Meta + phrases
+pilotées par les réponses + état succès) ; remplace l'ancien `D0Configuring`. Roadmap 4 phases :
+classic CSS (fait) → Supabase (durée = init réel) → Framer Motion (anneau FB/Meta + anneau de fin) →
+setup IA réel en arrière-plan.
+**Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/mfa`, `/dev/sentry-test`, `/dev/configuring`, `/dev/activation`.
 
 ### Composants (`src/components/`)
 - `propertyx/` — atoms Design System Property X (`Px*` : Button, Badge, Icon, Input, Avatar, Logo… — **source de vérité**, ne pas recréer) + `sections/`.

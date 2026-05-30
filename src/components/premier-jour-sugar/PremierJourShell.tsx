@@ -17,7 +17,7 @@ import { D0_CSS } from './tokens'
 import { D0Welcome } from './D0Welcome'
 import { D0QuestionScreen } from './D0Question'
 import { D0Synthesis } from './D0Synthesis'
-import { D0Configuring } from './D0Configuring'
+import { D0Activation } from './D0Activation'
 import { D0TodayPremierJour } from './D0Today'
 import { useActivationChecklist } from '@/hooks/useActivationChecklist'
 import {
@@ -294,8 +294,9 @@ export function PremierJourShell({
     )
   } else if (phase === 'configuring') {
     body = (
-      <D0Configuring
+      <D0Activation
         answers={answers}
+        prenom={firstName}
         dark={dark}
         onComplete={() => setPhase('today')}
       />

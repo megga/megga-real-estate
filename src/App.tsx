@@ -127,6 +127,7 @@ const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage')
 const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const D0ConfiguringDemoPage = lazy(() => import('@/pages/dev/D0ConfiguringDemoPage'))
+const D0ActivationDemoPage = lazy(() => import('@/pages/dev/D0ActivationDemoPage'))
 const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
 const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
 const CustomTemplatePage = lazy(() => import('@/pages/agent/CustomTemplatePage'))
@@ -434,6 +435,7 @@ function AnimatedRoutes() {
               <Route path="/dev/mfa" element={<MfaShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/configuring" element={<D0ConfiguringDemoPage />} />
+              <Route path="/dev/activation" element={<D0ActivationDemoPage />} />
 
               {/* Seller portal — tokenized access (production) */}
               <Route path="/portal/:token" element={<PortalGateway />}>
