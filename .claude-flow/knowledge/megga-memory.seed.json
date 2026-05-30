@@ -156,7 +156,7 @@
     {
       "key": "megga/secrets",
       "namespace": "megga",
-      "value": "Secrets Supabase par service: ANTHROPIC_API_KEY (8 fn IA), DEEPSEEK_API_KEY, STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, DILISENSE_API_KEY, GOOGLE_AI_API_KEY, DEEPGRAM_API_KEY, GOOGLE_CLIENT_ID/SECRET, MICROSOFT_CLIENT_ID/SECRET, CF_ACCOUNT_ID + R2_* (photos). Secrets GitHub Actions: VITE_SUPABASE_URL/ANON_KEY, VITE_MAPBOX_TOKEN, CLOUDFLARE_API_TOKEN/ACCOUNT_ID, SUPABASE_ACCESS_TOKEN.",
+      "value": "Secrets Supabase Edge: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, DILISENSE_API_KEY, GOOGLE_AI_API_KEY, DEEPGRAM_API_KEY, GOOGLE_CLIENT_ID/SECRET, MICROSOFT_CLIENT_ID/SECRET, CF_ACCOUNT_ID + R2_* + CAPTURE_API_TOKEN + TRUFO_API_KEY + C2PA_PROVIDER (photos/C2PA), WHATSAPP_WEBHOOK_SECRET + META_APP_SECRET + WHATSAPP_VERIFY_TOKEN (WhatsApp), MEGGA_MAGIC_LINK_HMAC_SECRET + AUTH_EVENT_SALT_SECRET + CRON_SECRET, MEGGA_KYC_FROM_EMAIL/NAME + MEGGA_KYC_PUBLIC_DOMAIN, DEFAULT_PUBLIC_AGENCY_ID. Secrets GitHub Actions: VITE_SUPABASE_URL/ANON_KEY, VITE_MAPBOX_TOKEN, VITE_TURNSTILE_SITE_KEY, VITE_POSTHOG_KEY, VITE_SENTRY_DSN, CLOUDFLARE_API_TOKEN/ACCOUNT_ID, SUPABASE_ACCESS_TOKEN.",
       "tags": "secrets,integrations"
     },
     {
@@ -192,7 +192,7 @@
     {
       "key": "megga/ai-negociation-content",
       "namespace": "megga",
-      "value": "Copilote negociation: marge (offre vs prix demande vs marche), timing (duree en vente, nb visites), strategie de contre-offre, interet probable acheteur. Generation annonces multi-versions (standard/premium/luxe/courte/reseaux) - l'agent choisit/edite/valide, pas de publication auto. Analyse objections post-visite -> visits.ai_objections, affichee anonymisee au portail vendeur.",
+      "value": "Copilote negociation (spec ai-modules 8.7): marge (offre vs prix demande vs marche), timing (duree en vente, nb visites), strategie de contre-offre, interet probable acheteur. Generation d'annonce: SEULE l'action draft_description existe (annonce 150-250 mots); les multi-versions (standard/premium/luxe/courte/reseaux) sont une SPEC non encore codee. Analyse objections post-visite -> visits.rapport.objections (alimente l'analyse affichee anonymisee au portail vendeur).",
       "tags": "ai,negociation,content"
     },
     {
@@ -240,13 +240,13 @@
     {
       "key": "megga/types-enums",
       "namespace": "megga",
-      "value": "Types clés (src/types/): Contact + ContactType (buyer/seller/investor/tenant/landlord/both/lead); Transaction + TransactionStatus (active/on_hold/cancelled/completed) + MandateType (simple/exclusive/semi_exclusive); KycCase + KycStatus (pending/blocking/risk/verified) + KycSourceOfFundsType; UserProfile + UserRole (agent/particulier/super_admin/dev); MatchResult + MatchStatus (suggested/sent/visit_planned/interested/rejected/ignored); Offer + OfferKind (offer/counter_offer). database.ts = types auto-generes des migrations.",
+      "value": "Types clés (src/types/): Contact + ContactType (buyer/seller/investor/tenant/landlord/both/lead); Transaction + TransactionStatus (active/on_hold/cancelled/completed) + MandateType (simple/exclusive/semi_exclusive); KycCase + KycStatus (pending/in_progress/review/validated/rejected) ET KycDossierStatus (none/pending/verified/stale/failed = vocabulaire Sprint1 actuel) + KycSourceOfFundsType; UserProfile + UserRole (buyer/seller/particulier/agent/manager/admin/assistant/super_admin = 8 roles); MatchResult + MatchStatus (suggested/sent/visit_planned/interested/rejected/ignored); Offer + OfferKind (offer/counter). database.ts = types auto-generes des migrations.",
       "tags": "frontend,types,enums"
     },
     {
       "key": "megga/transaction-stages",
       "namespace": "megga",
-      "value": "Pipeline transaction_stage (DB ~18 valeurs, 14 canoniques): new_lead -> to_qualify -> active_search (+to_recontact) -> visit_planned -> visit_done -> interest_confirmed -> offer -> negotiation -> reserved -> financing -> notary -> signed (closed obsolete) ; + lost. Kanban UI = 9 colonnes qui AGREGENT (la colonne 'offer' regroupe offer+negotiation+reserved+financing+notary). Stepper du deal = 8 cercles. status transaction: active/on_hold/cancelled/completed. mandate_type: simple/exclusive/semi_exclusive.",
+      "value": "Pipeline transaction_stage = 14 valeurs (src/lib/constants.ts TRANSACTION_STAGES): new_lead -> to_qualify -> active_search (+to_recontact) -> visit_planned -> visit_done -> interest_confirmed -> offer -> negotiation -> reserved -> financing -> notary -> signed ; + lost. PAS de 'closed' cote TS (alias legacy DB uniquement). Kanban UI = 9 colonnes qui AGREGENT (colonne 'offer' = offer+negotiation+reserved+financing+notary; 'searching' = active_search+to_recontact). Stepper du deal = 8 cercles. status transaction: active/on_hold/cancelled/completed. mandate_type: simple/exclusive/semi_exclusive.",
       "tags": "pipeline,transactions,enums"
     },
     {
@@ -294,7 +294,7 @@
     {
       "key": "megga/storage-buckets",
       "namespace": "megga",
-      "value": "Storage Supabase (RLS): documents (KYC/transac uploads, CRUD par agency_id), property-photos (write agent, read public si publie), avatars (user own, public read), kyc-magic-link/{agency}/{link}/ (uploads via magic link, sha256). Photos marketplace optimisees -> Cloudflare R2 (champ photos_cf) via photo-processor.",
+      "value": "Storage Supabase (6 buckets, RLS): documents (KYC/transac uploads, CRUD par agency_id), property-photos (write agent, read public si publie), avatars (user own, public read), kyc-magic-link/{agency}/{link}/ (uploads magic link, sha256), agency-logos, chat-attachments (useMessaging). Photos marketplace optimisees -> Cloudflare R2 (champ photos_cf) via photo-processor.",
       "tags": "backend,storage"
     },
     {
@@ -660,13 +660,13 @@
     {
       "key": "megga/signatures-overview",
       "namespace": "megga",
-      "value": "Signatures MEGGA = plusieurs systemes (juridique / integrite / securite). MANDAT: flux Swisscom Sign QES construit dans MandateSignModal (vise valeur Art.14 CO = manuscrite) - voir signature-mandate-visit. BON DE VISITE: signature SIMPLE click-to-sign (SES, attestation de presence). C2PA: integrite des photos. magic-link HMAC + audit hash chain: securite/tamper-evident. Niveaux ZertES/SCSE: SES (bon de visite) -> AES -> QES (mandat = la cible legale forte). PLANIFIE: generaliser la QES aux offres/contrats + multi-fournisseur (ajouter Skribble a cote de Swisscom). C'est la que les integrations portent la signature.",
+      "value": "Signatures MEGGA = plusieurs systemes (juridique / integrite / securite). MANDAT: UI de flux Swisscom Sign QES dans MandateSignModal (vise Art.14 CO) MAIS l'appel Swisscom est SIMULE (setTimeout, pas d'API) -> pas encore une vraie QES; voir signature-mandate-visit. BON DE VISITE: signature SIMPLE click-to-sign (SES, attestation de presence). C2PA: integrite des photos. magic-link HMAC + audit hash chain: securite/tamper-evident. Niveaux ZertES/SCSE: SES (bon de visite) -> AES -> QES (mandat = la cible legale forte). PLANIFIE: generaliser la QES aux offres/contrats + multi-fournisseur (ajouter Skribble a cote de Swisscom). C'est la que les integrations portent la signature.",
       "tags": "signatures,overview,compliance"
     },
     {
       "key": "megga/signature-mandate-visit",
       "namespace": "megga",
-      "value": "Signature mandat & bon de visite. MANDAT (MandateSignModal, dans seller-portal; showcase sur /dev/mandate-sign): flux Swisscom Sign QES en 3 etapes (1 revue PDF ~187Ko + acceptation termes Art.412ss CO/SCSE, 2 identification SMS OTP 6 chiffres, 3 MSStep3Sign = application certificat numerique + horodatage legal). Capture {signedAt, signataire, transaction_id SC-xxx, type QES, autorite Swisscom AG}. ATTENTION: l'appel Swisscom Sign semble SIMULE cote front (~2400ms) -> verifier le cablage backend avant de s'appuyer juridiquement dessus. BON DE VISITE (visits.bon JSONB, useSignVisitBon): signedAt = click-to-sign SIMPLE (non-QES), attestation de visite. DocumentGenerator (@react-pdf/renderer, PDF texte selectionnable): templates bon-visite/offre-achat/mandat-exclusif + variables -> documents.sha256_hash -> etape signature.",
+      "value": "Signature mandat & bon de visite. MANDAT (MandateSignModal, dans seller-portal; showcase sur /dev/mandate-sign): flux Swisscom Sign QES en 3 etapes (1 revue PDF ~187Ko + acceptation termes Art.412ss CO/SCSE, 2 identification SMS OTP 6 chiffres, 3 MSStep3Sign = application certificat numerique + horodatage legal). Capture {signedAt, signataire, transaction_id SC-xxx, type QES, autorite Swisscom AG}. ATTENTION: l'appel Swisscom Sign est SIMULE cote front (setTimeout ~2400ms, AUCUN appel API Swisscom ni backend) -> ce n'est PAS encore une vraie QES, a cabler avant toute valeur juridique. BON DE VISITE (visits.bon JSONB, useSignVisitBon): signedAt = click-to-sign SIMPLE (non-QES), attestation de visite. DocumentGenerator (@react-pdf/renderer, PDF texte selectionnable): templates bon-visite/offre-achat/mandat-exclusif + variables -> documents.sha256_hash -> etape signature.",
       "tags": "signatures,mandate,visits,documents"
     },
     {
@@ -678,7 +678,7 @@
     {
       "key": "megga/signature-qes-planned",
       "namespace": "megga",
-      "value": "E-signature qualifiee (QES) — etat reel. IMPLEMENTE (flux UX): MandateSignModal integre Swisscom Sign QES (conforme ZertES/SCSE/Art.14 CO) pour les mandats; MAIS l'appel API Swisscom semble SIMULE cote front actuellement (a cabler/verifier en prod). PLANIFIE (roadmap Phase 2 'signature electronique integree'): generaliser la QES aux OFFRES d'achat et contrats (aujourd'hui de simples PDF non signes), multi-fournisseur (ajouter Skribble - souvent prefere en CH pour cout/UX), relances auto des non-signes, multi-signatures en cascade (vendeur->agent->acheteur). Lacunes notees: offres non signees, ZertES a confirmer, le fallback C2PA 'MEGGA Shield' (SHA-256) n'est PAS un vrai C2PA (badge a clarifier).",
+      "value": "E-signature qualifiee (QES) — etat reel. MandateSignModal a l'UI 3 etapes Swisscom Sign QES (ZertES/SCSE/Art.14 CO) MAIS l'appel est SIMULE (setTimeout 2400ms, AUCUNE API Swisscom) -> la QES n'est PAS encore reellement implementee/cablee. PLANIFIE (roadmap Phase 2 'signature electronique integree'): generaliser la QES aux OFFRES d'achat et contrats (aujourd'hui de simples PDF non signes), multi-fournisseur (ajouter Skribble - souvent prefere en CH pour cout/UX), relances auto des non-signes, multi-signatures en cascade (vendeur->agent->acheteur). Lacunes notees: offres non signees, ZertES a confirmer, le fallback C2PA 'MEGGA Shield' (SHA-256) n'est PAS un vrai C2PA (badge a clarifier).",
       "tags": "signatures,qes,planned,integrations"
     }
   ]
