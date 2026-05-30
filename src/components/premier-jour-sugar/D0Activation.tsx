@@ -37,7 +37,7 @@ const ACTIVATION_ACCENT = '#059669'
 // Durée de la préparation. Phase 1 : fixe. Phase 2 : remplacée par la durée
 // réelle d'init backend (ou bornée, avec passage à `done` dès l'init terminée —
 // ne jamais faire attendre artificiellement).
-const ACTIVATION_DURATION_MS = 10_000
+const ACTIVATION_DURATION_MS = 14_000
 
 // Easing « confident » partagé par les tracés de l'état de succès.
 const DRAW_EASE = [0.65, 0, 0.36, 1] as const
@@ -161,7 +161,7 @@ function MetaRing({
       style={{ position: 'absolute', top: 0, left: 0 }}
       animate={reduced ? undefined : { rotate: 360 }}
       transition={
-        reduced ? undefined : { duration: 2, ease: 'linear', repeat: Infinity }
+        reduced ? undefined : { duration: 3, ease: 'linear', repeat: Infinity }
       }
     >
       {/* Piste quasi invisible — donne du corps à l'anneau. */}
@@ -186,12 +186,12 @@ function MetaRing({
         animate={
           reduced
             ? { pathLength: 0.7, pathOffset: 0 }
-            : { pathLength: [0.05, 0.62, 0.05], pathOffset: [0, 0.5, 1] }
+            : { pathLength: [0.06, 0.58, 0.06], pathOffset: [0, 0.5, 1] }
         }
         transition={
           reduced
             ? undefined
-            : { duration: 1.5, ease: 'easeInOut', repeat: Infinity }
+            : { duration: 2.6, ease: 'easeInOut', repeat: Infinity }
         }
       />
     </motion.svg>
@@ -489,7 +489,7 @@ export function D0Activation({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: compact ? 32 : 56,
+                gap: compact ? 28 : 40,
                 width: '100%',
               }}
               exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.25 } }}
@@ -517,57 +517,42 @@ export function D0Activation({
                 </h1>
               </motion.div>
 
-              <ActivationVisual
-                size={visualSize}
-                accent={accent}
-                dark={dark}
-                reduced={reduced}
-              />
-
-              {/* Étape courante — défilement fluide (AnimatePresence spring). */}
+              {/* Anneau + étape groupés : le texte reste calé sous l'anneau
+                  (écart fixe), indépendamment du centrage vertical du bloc. */}
               <div
-                aria-live="polite"
                 style={{
-                  textAlign: 'center',
-                  maxWidth: 560,
-                  width: '100%',
-                  minHeight: 130,
                   display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  width: '100%',
                 }}
               >
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={phraseIdx}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 12,
-                    }}
-                    initial={
-                      reduced
-                        ? { opacity: 0 }
-                        : { opacity: 0, y: 18, filter: 'blur(6px)' }
-                    }
-                    animate={
-                      reduced
-                        ? { opacity: 1 }
-                        : { opacity: 1, y: 0, filter: 'blur(0px)' }
-                    }
-                    exit={
-                      reduced
-                        ? { opacity: 0 }
-                        : { opacity: 0, y: -18, filter: 'blur(6px)' }
-                    }
-                    transition={
-                      reduced
-                        ? { duration: 0.2 }
-                        : { type: 'spring', stiffness: 240, damping: 28, mass: 0.8 }
-                    }
-                  >
-                    <div
+                <ActivationVisual
+                  size={visualSize}
+                  accent={accent}
+                  dark={dark}
+                  reduced={reduced}
+                />
+
+                {/* Étape courante — une seule ligne (sobre, en noir), défilement
+                    fluide (AnimatePresence spring + blur). La sous-ligne grise a
+                    été retirée sur demande. */}
+                <div
+                  aria-live="polite"
+                  style={{
+                    textAlign: 'center',
+                    maxWidth: 560,
+                    width: '100%',
+                    minHeight: 44,
+                    marginTop: compact ? -8 : -14,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={phraseIdx}
                       style={{
                         fontSize: 21,
                         fontWeight: 700,
@@ -575,22 +560,31 @@ export function D0Activation({
                         letterSpacing: '-0.4px',
                         lineHeight: 1.3,
                       }}
+                      initial={
+                        reduced
+                          ? { opacity: 0 }
+                          : { opacity: 0, y: 16, filter: 'blur(6px)' }
+                      }
+                      animate={
+                        reduced
+                          ? { opacity: 1 }
+                          : { opacity: 1, y: 0, filter: 'blur(0px)' }
+                      }
+                      exit={
+                        reduced
+                          ? { opacity: 0 }
+                          : { opacity: 0, y: -16, filter: 'blur(6px)' }
+                      }
+                      transition={
+                        reduced
+                          ? { duration: 0.2 }
+                          : { type: 'spring', stiffness: 240, damping: 28, mass: 0.8 }
+                      }
                     >
                       {phrase.main}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: t.inkSoft,
-                        lineHeight: 1.55,
-                        letterSpacing: '-0.1px',
-                      }}
-                    >
-                      {phrase.sub}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
               </div>
             </motion.div>
           ) : (
