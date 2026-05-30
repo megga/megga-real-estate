@@ -245,10 +245,13 @@ serve(async (req: Request) => {
       )
     }
 
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')
-    if (!anthropicApiKey) {
+    // Moteur DeepSeek (deepseek-chat) — décision coût : MEGGA AI tourne sur
+    // DeepSeek (~16x moins cher que Claude). Claude reste réservé au KYC
+    // (kyc-screening) pour la compliance. Le nom exposé reste "MEGGA AI".
+    const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY')
+    if (!deepseekApiKey) {
       return new Response(
-        JSON.stringify({ error: 'ANTHROPIC_API_KEY non configurée' }),
+        JSON.stringify({ error: 'DEEPSEEK_API_KEY non configurée' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -290,37 +293,36 @@ serve(async (req: Request) => {
 
     messages.push({ role: 'user', content: userContent })
 
-    // Call Claude API
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    // Call DeepSeek API (OpenAI-compatible). Le system prompt est passé comme
+    // 1er message role:'system' (DeepSeek n'a pas de champ `system` séparé).
+    const deepseekResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${deepseekApiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'deepseek-chat',
         max_tokens: 2000,
-        system: systemPrompt,
-        messages,
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
       }),
     })
 
-    if (!claudeResponse.ok) {
-      const errText = await claudeResponse.text()
-      throw new Error(`Claude API ${claudeResponse.status}: ${errText}`)
+    if (!deepseekResponse.ok) {
+      const errText = await deepseekResponse.text()
+      throw new Error(`DeepSeek API ${deepseekResponse.status}: ${errText}`)
     }
 
-    const claudeData = await claudeResponse.json()
-    const result = claudeData.content?.[0]?.text || ''
+    const deepseekData = await deepseekResponse.json()
+    const result = deepseekData.choices?.[0]?.message?.content || ''
 
     // LBA/IA audit trail — log toute interaction liée à une entité CRM
     await logAiCopilotInteraction({
       action,
       context: context ?? {},
       tokens: {
-        input: claudeData.usage?.input_tokens,
-        output: claudeData.usage?.output_tokens,
+        input: deepseekData.usage?.prompt_tokens,
+        output: deepseekData.usage?.completion_tokens,
       },
       success: true,
     })
@@ -330,8 +332,8 @@ serve(async (req: Request) => {
         result,
         action,
         usage: {
-          input_tokens: claudeData.usage?.input_tokens,
-          output_tokens: claudeData.usage?.output_tokens,
+          input_tokens: deepseekData.usage?.prompt_tokens,
+          output_tokens: deepseekData.usage?.completion_tokens,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
