@@ -33,3 +33,15 @@ supabase/.temp/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# ruflo / claude-flow runtime (ephemeral binaries — durable knowledge lives in
+# committed exports, NOT these DBs which are machine-specific and churn)
+.swarm/
+ruvector.db
+.claude/memory.db
+*.db-shm
+*.db-wal
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
+.claude-flow/neural/

@@ -1,0 +1,685 @@
+{
+  "schema": "ruflo-memory-export/v1",
+  "source": "docs/system-map.md — curated system knowledge seed (regenerate from the system map when architecture changes)",
+  "namespace": "megga",
+  "entries": [
+    {
+      "key": "megga/overview",
+      "namespace": "megga",
+      "value": "MEGGA Real Estate: SaaS immobilier suisse AI-native, compliance-first. Marketplace publique (33k+ biens Flatfox location) + CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin. Stack React/Vite sur Cloudflare Pages + Supabase (Postgres, 57 edge functions, RLS, pg_cron). L'IA est compliance-enabling, jamais compliance-replacing.",
+      "tags": "system,overview"
+    },
+    {
+      "key": "megga/objectives",
+      "namespace": "megga",
+      "value": "Les 5 objectifs strategiques (toute feature doit en servir au moins 1): 1) reduire le temps administratif, 2) reduire le risque LAB/KYC, 3) accelerer le closing, 4) augmenter la transparence client, 5) remplacer un outil fragmente.",
+      "tags": "strategy,product"
+    },
+    {
+      "key": "megga/stack-frontend",
+      "namespace": "megga",
+      "value": "Frontend: React 18 + TypeScript + Vite + Tailwind. React Router v6, React Query (+ supabase-cache-helpers), react-hook-form + Zod, dnd-kit (pipeline kanban), Mapbox GL (lazy), Recharts, Lucide, react-i18next (FR/DE/EN/IT), Sentry, PostHog. Build: tsc -b && vite build (+ postbuild overlay-storefront).",
+      "tags": "stack,frontend"
+    },
+    {
+      "key": "megga/stack-backend",
+      "namespace": "megga",
+      "value": "Backend: Supabase Pro (ref eayczugyrvmtqnnmvjod, eu-west-1). Postgres 15, Auth, Storage, Realtime, pgvector, pg_cron, pg_net. 57 Edge Functions Deno dans supabase/functions/. CI/CD: push main -> GitHub Actions -> Cloudflare Pages + Supabase edge auto-deploy.",
+      "tags": "stack,backend,supabase"
+    },
+    {
+      "key": "megga/ai-architecture",
+      "namespace": "megga",
+      "value": "Abstraction IA dans _shared/ai-provider.ts. Modeles (CLAUDE_MODELS): sonnet=claude-sonnet-4-20250514, haiku=claude-haiku-4-5-20251001, DEEPSEEK=deepseek-chat. callPublicAI = DeepSeek SEUL (public marketplace/support, cost control decision 2026-04-17, AUCUN fallback Claude -> erreur si down). callAgentAI = Claude primaire + fallback DeepSeek si Claude echoue. callClaude/callDeepSeek = directs sans fallback. computeCost (via table PRICING) correct -> ai_usage_logs. NB: ai-copilot et kyc-screening font leur propre appel Anthropic direct (hors ai-provider). pii-redaction.ts utilisee sur le texte libre public (extract-lead) mais PAS par ai-copilot (contexte CRM brut). Photo-vision via Claude Vision.",
+      "tags": "ai,architecture"
+    },
+    {
+      "key": "megga/audiences-routing",
+      "namespace": "megga",
+      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace publique (/buy /rent /listing/:id, SearchPage+ListingPage). Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token/*). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
+      "tags": "frontend,routing,audiences"
+    },
+    {
+      "key": "megga/crm-pages",
+      "namespace": "megga",
+      "value": "CRM agent (layout AgentSugarLayout, dark): dashboard (TodaySugar KPI), pipeline (deals par stage), contacts (+detail), listings (+detail/new wizard/edit), transactions/:id (stepper 8 etapes + banniere KYC + offres), matching, journey, calendar (Google/Outlook), documents (+generate/templates), kyc (+:dossierId/export PDF), network, audit (journal nLPD), analytics, settings. Onboarding: /dashboard/onboarding -> /dashboard/premier-jour.",
+      "tags": "frontend,crm"
+    },
+    {
+      "key": "megga/super-admin",
+      "namespace": "megga",
+      "value": "Super-admin 14 pages sous /dashboard/admin/* (accent violet, SuperAdminGuard): agencies (+detail), users (impersonate audite), monitoring, marketplace (moderation), compliance, support, changelog, feature-flags, plans, live (feed temps reel), security, nps. Silo RLS separe sur tables admin_*.",
+      "tags": "frontend,admin"
+    },
+    {
+      "key": "megga/db-domains",
+      "namespace": "megga",
+      "value": "Tables par domaine: tenant (agencies, profiles, agency_profiles, agent_profiles, team_invitations); contacts (contacts, seller_leads, contact_scores); biens (properties, listings, market_listings ~33k, external_listings); pipeline (transactions, crm_offers+history, visits, client_searches, matches); KYC (kyc_cases, kyc_checklist_items, kyc_magic_links+uploads, kyc_screening_decisions, documents); portail (seller_portals, vendor_dossiers); billing (subscriptions); messaging (message_threads, messages, email_messages_cache); audit (activity_events, auth_events, platform_metrics, flatfox_sync_runs). Detail: docs/schema.md.",
+      "tags": "database,schema"
+    },
+    {
+      "key": "megga/rls-model",
+      "namespace": "megga",
+      "value": "RLS agency-first. Agents: WHERE agency_id IN (SELECT agency_id FROM profiles WHERE id=auth.uid()). Anon marketplace: market_listings SELECT WHERE status='active'; inquiries/newsletter INSERT only. Acheteur: ses message_threads (buyer_user_id=auth.uid()). Vendeur: via seller_portals.token (stateless). service_role: edge functions, triggers ecrivent activity_events actor_kind='system'. RLS active sur CHAQUE table.",
+      "tags": "database,rls,security"
+    },
+    {
+      "key": "megga/flatfox-pipeline",
+      "namespace": "megga",
+      "value": "Pipeline marketplace: cron flatfox-sync-daily (0 4 * * *, 04:00 UTC) -> edge flatfox-sync (chunked self-invoke, 5 pages/chunk, rate-limit 1 req/s, lock singleton, safety >=80% vus avant sweep). UPSERT market_listings (source_id UNIQUE), photos -> Cloudflare R2 via photo-processor (photos_cf), quality_score + relevance_score GENERATED. Observabilite: table flatfox_sync_runs.",
+      "tags": "marketplace,flatfox,pipeline"
+    },
+    {
+      "key": "megga/perf-rules",
+      "namespace": "megga",
+      "value": "Regles perf DB (statement timeout 3-8s sur 33k rows): JAMAIS count:'exact' (-> seq scan, utiliser estimated); JAMAIS ORDER BY sans partial index couvrant le WHERE; .eq('status','active') pas .in(...) (IN ne matche pas les partial indexes); ne pas SELECT description/photos en liste (66MB). Index: idx_ml_rent_active_created (rent+active+quality>=50), idx_market_listings_tx_type_status.",
+      "tags": "performance,database,critical"
+    },
+    {
+      "key": "megga/pg-cron",
+      "namespace": "megga",
+      "value": "Jobs pg_cron: flatfox-sync-daily (0 4 * * *) -> flatfox-sync; platform-metrics-hourly (15 * * * *) -> admin-monitoring; + automation-engine, ai-billing-monitor, weekly-report, search-alert. Declenches via pg_net http_post vers les edge functions.",
+      "tags": "backend,cron"
+    },
+    {
+      "key": "megga/edge-fn-ai",
+      "namespace": "megga",
+      "value": "Edge functions IA: ai-copilot (chat agent + actions structurees, Claude), ai-search (semantique pgvector), dashboard-ai-hint, parse-search-query (DeepSeek, public), support-chatbot. Plus extraction: extract-lead, extract-property-pdf, extract-property-url, photo-labeler (Vision). Secrets: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY.",
+      "tags": "edge-functions,ai"
+    },
+    {
+      "key": "megga/edge-fn-kyc",
+      "namespace": "megga",
+      "value": "Edge functions KYC/compliance: kyc-screening (Dilisense PEP/sanctions + analyse contextuelle Claude), magic-link-create/get/confirm/regenerate/send-email/upload (HMAC-SHA256), delete-account (nLPD art.32), log-auth-event (IP hashee salt quotidien), audit-pdf-export (chaine de hash SHA-256, LBA 10 ans). Validation humaine MLRO obligatoire.",
+      "tags": "edge-functions,kyc,compliance"
+    },
+    {
+      "key": "megga/edge-fn-email-stripe",
+      "namespace": "megga",
+      "value": "Email (Resend): send-email, send-property-email, send-relance-email, send-reminder-email, send-team-invite, send-visit-email, detect-new-device. Paiements (Stripe): stripe-checkout, stripe-portal, stripe-webhook (signature STRIPE_WEBHOOK_SECRET), admin-stripe-metrics (MRR/ARR/churn).",
+      "tags": "edge-functions,email,stripe"
+    },
+    {
+      "key": "megga/edge-fn-media-misc",
+      "namespace": "megga",
+      "value": "Media: photo-processor (R2), backfill-cf-images, c2pa-sign/verify (Content Credentials), public-staging (Gemini, rate-limit IP), virtual-staging (garde-fous LPD: Vision gate confidence>=85% + quota plan). Divers: translate-on-demand (DeepSeek + cache), deepgram-token/speech-to-text, ticket-ai-reply, automation-engine (cron), matching-engine, score-engine, search-alert, calendars Google/Outlook.",
+      "tags": "edge-functions,media"
+    },
+    {
+      "key": "megga/flow-marketplace",
+      "namespace": "megga",
+      "value": "FLUX A (sync -> marketplace): pg_cron 04:00 -> flatfox-sync -> UPSERT market_listings (photos->R2, quality/relevance) -> RLS anon status='active' -> /rent via useMarketListings (partial index) -> /listing/:id -> marketplace_inquiries -> creation contact.",
+      "tags": "flow,marketplace"
+    },
+    {
+      "key": "megga/flow-pipeline",
+      "namespace": "megga",
+      "value": "FLUX B (contact -> closing): lead (import IA/web/portal) -> contacts -> qualif (score) -> visits -> offres (crm_offers + contre-offres, trigger audit) -> transactions stages (new_lead->to_qualify->active_search->visit_planned->visit_done->interest_confirmed->offer->negotiation->reserved->financing->notary->signed) -> gate KYC (LBA art.7, WARN non bloquant, revu MLRO) -> closing + activity_events.",
+      "tags": "flow,pipeline,transactions"
+    },
+    {
+      "key": "megga/flow-portal-kyc",
+      "namespace": "megga",
+      "value": "FLUX C (portail vendeur token): agent cree seller_portals (token 6 mois) -> vendeur /portal/:token sans login -> RLS via token (READ property/transac, UPLOAD documents) -> updates visibles CRM -> expiry revoque. FLUX D (KYC Dilisense): transaction reserved -> kyc_cases (vigilance standard/renforcee selon montant + source des fonds) -> magic link upload (OCR, sha256) -> screening async Dilisense -> kyc_screening_decisions (PEP/sanctions) -> revue humaine MLRO -> analyse qualitative Claude (assist).",
+      "tags": "flow,portal,kyc"
+    },
+    {
+      "key": "megga/flow-matching-audit",
+      "namespace": "megga",
+      "value": "FLUX E (matching): client_searches (criteria JSONB) -> matching-engine compare budget/zones/type vs market_listings+properties -> matches (score+raisons) -> envoi agent -> alertes email (market_alerts/search-alert cron Resend). FLUX F (audit): tout changement -> triggers SECURITY DEFINER -> activity_events immutable (actor_id+kind, severity, category, metadata) -> timeline contact + audit super-admin + export PDF signe.",
+      "tags": "flow,matching,audit"
+    },
+    {
+      "key": "megga/compliance",
+      "namespace": "megga",
+      "value": "Compliance Suisse. LBA/KYC: kyc_cases vigilance standard/renforcee, source des fonds (crypto/mixte -> description >=20 car requise), screening PEP/sanctions Dilisense, validation MLRO obligatoire, retention 10 ans. nLPD/LPD: activity_events immutable, retention_until, droit effacement (delete-account), redaction PII AVANT IA, IP hashees. Integrite media: C2PA sur photos IA. IA = assistance/estimation, jamais automatique/garantie.",
+      "tags": "compliance,lba,nlpd,critical"
+    },
+    {
+      "key": "megga/design-system",
+      "namespace": "megga",
+      "value": "Design: minimal/transparent (Linear/Notion). Bentos rounded-xl border border-theme-border SANS ombres. Boutons style ghost (border + text-theme-secondary), JAMAIS bg-accent text-white. Badges texte colore sans fond. Modals TOUJOURS createPortal(document.body) z-[100]. Tokens theme (bg-theme-*, text-theme-*, border-theme-*). Marketplace: atoms Property X (Px*) = source de verite, ne pas recreer; tokens PX.*. Pages /design-system/* = source de verite.",
+      "tags": "design,ui,frontend"
+    },
+    {
+      "key": "megga/gotchas",
+      "namespace": "megga",
+      "value": "Pieges critiques: Realtime -> TOUJOURS useId() pour le nom de channel (sinon crash au re-mount). formatCHF()/formatRent() type-defensive (accepte string/null), ne jamais .toFixed() sur valeur de form. Prix CHF 720'000 (apostrophe suisse). Surface 120 m2. Date DD.MM.YYYY. JAMAIS bg-white/text-gray-*/border-gray-* (cassent dark mode). Pas de any TS. RLS sur chaque table. Pas de console.log en prod. Ne pas mentionner Lovable/Claude/ChatGPT dans l'UI.",
+      "tags": "gotchas,conventions,critical"
+    },
+    {
+      "key": "megga/dev-ci",
+      "namespace": "megga",
+      "value": "Commandes: npm run dev (vite 5173), npm run build (tsc -b && vite build + postbuild), npm run lint (eslint), npm run test:unit (vitest), test:backend, test:e2e (playwright: ai/admin/visual). Prod megga.ch actuellement password-gated (Basic Auth realm 'MEGGA — acces restreint', pre-lancement). Branche de dev courante: feature branch (jamais push direct main sans validation).",
+      "tags": "dev,ci,testing"
+    },
+    {
+      "key": "megga/secrets",
+      "namespace": "megga",
+      "value": "Secrets Supabase Edge: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, DILISENSE_API_KEY, GOOGLE_AI_API_KEY, DEEPGRAM_API_KEY, GOOGLE_CLIENT_ID/SECRET, MICROSOFT_CLIENT_ID/SECRET, CF_ACCOUNT_ID + R2_* + CAPTURE_API_TOKEN + TRUFO_API_KEY + C2PA_PROVIDER (photos/C2PA), WHATSAPP_WEBHOOK_SECRET + META_APP_SECRET + WHATSAPP_VERIFY_TOKEN (WhatsApp), MEGGA_MAGIC_LINK_HMAC_SECRET + AUTH_EVENT_SALT_SECRET + CRON_SECRET, MEGGA_KYC_FROM_EMAIL/NAME + MEGGA_KYC_PUBLIC_DOMAIN, DEFAULT_PUBLIC_AGENCY_ID. Secrets GitHub Actions: VITE_SUPABASE_URL/ANON_KEY, VITE_MAPBOX_TOKEN, VITE_TURNSTILE_SITE_KEY, VITE_POSTHOG_KEY, VITE_SENTRY_DSN, CLOUDFLARE_API_TOKEN/ACCOUNT_ID, SUPABASE_ACCESS_TOKEN.",
+      "tags": "secrets,integrations"
+    },
+    {
+      "key": "megga/docs-index",
+      "namespace": "megga",
+      "value": "Docs de reference: CLAUDE.md (source de verite: regles, conventions, design, perf, etat impl), docs/system-map.md (cette carte des rouages), docs/schema.md (schema DB complet), docs/pages.md (42 ecrans MVP), docs/ai-modules.md (specs IA), docs/design-system.md + design-system-propertyx.md, docs/roadmap.md + backlog.md + CHANGELOG.md.",
+      "tags": "docs,reference"
+    },
+    {
+      "key": "megga/ai-megga-ai",
+      "namespace": "megga",
+      "value": "MEGGA AI (copilote, edge ai-copilot): bouton flottant Sparkles ghost sur toute page agent, panel slide-in. Commandes naturelles: resume ce client, redige une relance, quels biens envoyer, prepare un mandat, prochaines actions, resume les objections. REGLE: toujours nourri par les vraies donnees CRM du contact/bien/deal actif, jamais de reponse dans le vide.",
+      "tags": "ai,copilote"
+    },
+    {
+      "key": "megga/ai-matching-spec",
+      "namespace": "megga",
+      "value": "Matching IA acheteurs<->biens: nouveau bien -> analyse tous les acheteurs + client_searches -> score 0-100 (budget/zone/type/pieces/surface/features) -> classe -> envoi 1 clic. Nouvel acheteur -> propose les biens actifs pertinents. Surveillance continue si client_searches.is_active: nouveaux biens / changements de prix / remises en ligne -> notification agent.",
+      "tags": "ai,matching"
+    },
+    {
+      "key": "megga/ai-relances",
+      "namespace": "megga",
+      "value": "Relances intelligentes (edge automation-engine + send-reminder-email): bien envoye J+3, visite J+1 (feedback), lead inactif J+30, acheteur chaud non relance J+7, vendeur sans suivi J+14, document manquant J+3. Creent des suggestions/taches, PAS d'envois silencieux sauf si l'agent active explicitement l'envoi auto. L'agent garde toujours le controle.",
+      "tags": "ai,relances,automation"
+    },
+    {
+      "key": "megga/ai-intelligence",
+      "namespace": "megga",
+      "value": "Buyer Intelligence (score-engine): serieux 0-100, budget reel estime, timing (immediat/1-3/3-6/6-12 mois/long terme), proba achat 0-100, engagement very_high->dormant. Seller Intelligence: tension (calm/moderate/tense/critical), risque insatisfaction, proba accepter une baisse 0-100, urgence. Tout affiche comme 'estimation IA', indicatif.",
+      "tags": "ai,scoring,intelligence"
+    },
+    {
+      "key": "megga/ai-negociation-content",
+      "namespace": "megga",
+      "value": "Copilote negociation (spec ai-modules 8.7): marge (offre vs prix demande vs marche), timing (duree en vente, nb visites), strategie de contre-offre, interet probable acheteur. Generation d'annonce: SEULE l'action draft_description existe (annonce 150-250 mots); les multi-versions (standard/premium/luxe/courte/reseaux) sont une SPEC non encore codee. Analyse objections post-visite -> visits.rapport.objections (alimente l'analyse affichee anonymisee au portail vendeur).",
+      "tags": "ai,negociation,content"
+    },
+    {
+      "key": "megga/ai-conversational-search",
+      "namespace": "megga",
+      "value": "Recherche IA conversationnelle (edge ai-search): query langage naturel -> embedding -> pgvector top-20 listings -> prompt Claude (listings + historique + contraintes) -> filtre/classe/repond -> carte + liste. Garde-fous: pas de discrimination, pas de contenu trompeur, redirige vers agent humain si offre/negociation/juridique, max 10 tours, cible <2s, disclaimer 'a titre indicatif'.",
+      "tags": "ai,search,marketplace"
+    },
+    {
+      "key": "megga/ai-guardrails",
+      "namespace": "megga",
+      "value": "Garde-fous IA (absolus): l'IA ne contacte JAMAIS un client sans validation agent (sauf relance auto explicitement activee); ne modifie JAMAIS prix/statut/etape pipeline sans action humaine; n'envoie JAMAIS de document juridique sans validation; scores buyer/seller = 'estimation IA' indicative, pas verite; copilote negociation = suggestions pas decisions; toute action IA loggee dans activity_events avec actor_id='ai'. Human-in-the-loop obligatoire.",
+      "tags": "ai,guardrails,compliance,critical"
+    },
+    {
+      "key": "megga/kyc-risk-score",
+      "namespace": "megga",
+      "value": "Score de risque KYC (calculateRiskScore dans src/lib/kycUtils.ts + edge kyc-screening): 5 facteurs - nationalite FATF/GAFI 25pts, PEP 25pts, montant >5M 20pts, PM vs PP 15pts, docs incomplets 15pts -> 0-100 low/medium/high. Listes FATF_HIGH_RISK_COUNTRIES / FATF_INCREASED_MONITORING dans src/lib/constants.ts. dilisense checkIndividual/checkEntity (PEP + Sanctions separes). Label 'estimation IA', validation MLRO humaine obligatoire.",
+      "tags": "kyc,scoring,compliance"
+    },
+    {
+      "key": "megga/components-tree",
+      "namespace": "megga",
+      "value": "Composants (src/components/): propertyx/ (atoms Px* = source de verite + sections/), ui/ (primitives headless + Motion: modal/dialog/Sheet/Toast/Shimmer/popover/tabs/context-menu), layout/ (ProtectedRoute, PasswordGate, StaleBundleDetector, AgentLayout, AgentSugarLayout), crm-sugar/ + crm-sugar-v3/ (shell CRM, contact detail, KYC pixel-pres, tokens dark). Domaines: search listings matching transactions kyc* documents calendar messaging portal onboarding* admin directory map ai-copilot skeletons auth-bento.",
+      "tags": "frontend,components"
+    },
+    {
+      "key": "megga/hooks-crm",
+      "namespace": "megga",
+      "value": "Hooks CRM (React Query): contacts (useContacts, useContactsSugar, useContactTimeline, useContactDuplicates), biens (useListings, useBiensSugar, usePropertyEstimation, useNeighborhood, useNaturalHazards), transactions (useTransactions, useUpdateTransactionStage, usePipelineSugar, useContactTransactions), KYC (useKycDossiers, useKycCase, useMarkKycCheck, useCreateKycDossier, useScreenKycCase), matching (useMatching, useExternalMatching). Adapters *Sugar = Supabase -> vues CRM.",
+      "tags": "frontend,hooks,crm"
+    },
+    {
+      "key": "megga/hooks-marketplace-admin",
+      "namespace": "megga",
+      "value": "Hooks marketplace/dashboard/admin: useMarketListings (debounce/pool), useMapPoints (lazy), useSmartSearchParser (NL->filtres), useFavorites, useSavedSearches, useMarketStats; useTodaySugarKpi, useDashboardCockpit/Funnel/Objectif, useDashboardAiHint; useCopilot, useExtractLead, useTranslatedDescription; admin useAdminUsers/Agencies/Monitoring/Compliance/Moderation, useAuditLog, useAdminLiveFeed, useSecurityAudit. a11y/ui: useFocusTrap, useReducedMotion, useMediaQuery, useSwipeNavigation, usePageMeta.",
+      "tags": "frontend,hooks,marketplace,admin"
+    },
+    {
+      "key": "megga/lib-modules",
+      "namespace": "megga",
+      "value": "src/lib/: supabase.ts (client typé, anon key, rememberAwareStorage), utils.ts (formatCHF, formatDate DD.MM.YYYY, formatRelativeDate, formatSurface, cn), constants.ts (CANTONS, types, TRANSACTION_STAGES, FATF_*). sugarAdapters.ts (contactToCrm/transactionToCrmDeal/propertyToCrmBien). Metier: estimation, matching, kycUtils, cantonalTaxRates, plans, agencyHealthScore. Export: auditPdfExport, auditCsvExport, exportCsv. Integr: mapboxClient, captcha, sentry, posthog. Content: figma-catalog, helpArticles, listingPhotos, imageOptimizer.",
+      "tags": "frontend,lib"
+    },
+    {
+      "key": "megga/types-enums",
+      "namespace": "megga",
+      "value": "Types clés (src/types/): Contact + ContactType (buyer/seller/investor/tenant/landlord/both/lead); Transaction + TransactionStatus (active/on_hold/cancelled/completed) + MandateType (simple/exclusive/semi_exclusive); KycCase + KycStatus (pending/in_progress/review/validated/rejected) ET KycDossierStatus (none/pending/verified/stale/failed = vocabulaire Sprint1 actuel) + KycSourceOfFundsType; UserProfile + UserRole (buyer/seller/particulier/agent/manager/admin/assistant/super_admin = 8 roles); MatchResult + MatchStatus (suggested/sent/visit_planned/interested/rejected/ignored); Offer + OfferKind (offer/counter). database.ts = types auto-generes des migrations.",
+      "tags": "frontend,types,enums"
+    },
+    {
+      "key": "megga/transaction-stages",
+      "namespace": "megga",
+      "value": "Pipeline transaction_stage = 14 valeurs (src/lib/constants.ts TRANSACTION_STAGES): new_lead -> to_qualify -> active_search (+to_recontact) -> visit_planned -> visit_done -> interest_confirmed -> offer -> negotiation -> reserved -> financing -> notary -> signed ; + lost. PAS de 'closed' cote TS (alias legacy DB uniquement). Kanban UI = 9 colonnes qui AGREGENT (colonne 'offer' = offer+negotiation+reserved+financing+notary; 'searching' = active_search+to_recontact). Stepper du deal = 8 cercles. status transaction: active/on_hold/cancelled/completed. mandate_type: simple/exclusive/semi_exclusive.",
+      "tags": "pipeline,transactions,enums"
+    },
+    {
+      "key": "megga/react-query-patterns",
+      "namespace": "megga",
+      "value": "Pattern data: React Query + @supabase-cache-helpers (queryKey auto, useInsert/Update/DeleteMutation auto-invalident). QueryClient (App.tsx): staleTime 2min, retry 1, retryDelay min(500*2^n,4000), refetchOnWindowFocus, refetchOnReconnect, networkMode always. Fetch conditionnel: enabled: !!user / !!profile?.agency_id. La RLS gere le filtrage par agency (pas de WHERE agency_id explicite cote front).",
+      "tags": "frontend,react-query,patterns"
+    },
+    {
+      "key": "megga/design-tokens-propertyx",
+      "namespace": "megga",
+      "value": "Design System Property X (src/components/propertyx/tokens.ts, tokens PX.*): 100% neutres, AUCUNE couleur d'accent. Neutrals: neutral100 #FFFFFF, neutral200 #FAFAFB, neutral300 #EEEFF1, neutral400 #A4A6B0 (muted), neutral500 #464851, neutral700 #14161C (primary/ink). Font Objectivity (fallback Plus Jakarta Sans), letter-spacing -3, weights 400/500 (pas de bold). Radius: tiny 8 / small 12 / medium 16 / large 24 / pill 200. Gaps xs8/sm12/md16/lg24/xl40.",
+      "tags": "design,tokens,marketplace"
+    },
+    {
+      "key": "megga/design-px-atoms",
+      "namespace": "megga",
+      "value": "Atoms Property X (ne JAMAIS recreer, utiliser tokens PX.*): PxButton, PxBadge, PxCheckbox, PxLink, PxInput, PxAvatar, PxIcon, PxLogo, PxSectionLabel... Les 11 pages /design-system/* = source de verite ABSOLUE: colors, typography, shadows, buttons, links, badges, lists, icons, iconfonts, avatars, inputs. AVANT de creer un composant: consulter /design-system/<page> + src/lib/figma-catalog.ts (mapping node Figma -> composant React).",
+      "tags": "design,components,marketplace"
+    },
+    {
+      "key": "megga/edge-flatfox-arch",
+      "namespace": "megga",
+      "value": "flatfox-sync (architecture): self-invoking chunked (5 pages/chunk = CHUNK_PAGES, timeout ~100s, sequentiel via self-invoke), DELAY_MS=300ms entre pages (poli, sous la limite Flatfox), lock singleton (anti-concurrence). Safety: >=80% des listings attendus vus avant qu'un sweep ne marque les manquants comme removed (anti-wipe). Photos -> Cloudflare R2 via photo-processor (3 variants thumb/detail/hero -> photos_cf). Tracking par run dans flatfox_sync_runs.",
+      "tags": "edge-functions,flatfox,marketplace"
+    },
+    {
+      "key": "megga/edge-ai-provider",
+      "namespace": "megga",
+      "value": "_shared/ai-provider.ts: abstraction multi-IA. Modeles CLAUDE_MODELS: sonnet=claude-sonnet-4-20250514, haiku=claude-haiku-4-5-20251001; deepseek-chat. Fonctions: callClaude/callDeepSeek (directs, sans fallback); callPublicAI = DeepSeek SEUL (marketplace/support public, AUCUN fallback Claude - decision 2026-04-17, erreur si down); callAgentAI = Claude primaire + fallback DeepSeek sur echec Claude. computeCost (PRICING) correct -> ai_usage_logs. Balance DeepSeek via ai-billing-monitor (cron). photo-vision.ts = Claude Vision. pii-redaction.ts (AVS/IBAN/passeport) sur texte libre public (extract-lead), PAS par ai-copilot. INCONSISTANCE modeles: la plupart des fn = claude-sonnet-4-20250514, MAIS kyc-screening = claude-sonnet-4-6 et dashboard-ai-hint = claude-sonnet-4-5-20250929.",
+      "tags": "edge-functions,ai,architecture"
+    },
+    {
+      "key": "megga/edge-virtual-staging",
+      "namespace": "megga",
+      "value": "virtual-staging (garde-fous LPD): gate photo-vision (Claude Vision -> confidence >=85%, quality >=50/100, AUCUNE personne detectee) avant generation; prompt enrichi par Claude Haiku; image via Google AI (Gemini Nano Banana). Quota/mois par plan: starter 0, pro 50, agency 200. public-staging = version publique rate-limitee 5/h/IP. Resultat -> Storage + ai_generated_photos + activity_events.",
+      "tags": "edge-functions,media,ai,compliance"
+    },
+    {
+      "key": "megga/edge-audit-export",
+      "namespace": "megga",
+      "value": "audit-pdf-export: exporte activity_events en PDF (filtres date/categorie/severite/recherche), signe par chaine de hash SHA-256 (chaque event = SHA(prev_hash + canonical_json)) -> integrite verifiable. Conformite nLPD art.12 (tracabilite) + LBA art.7 al.3 (conservation 10 ans). Sortie {pdf base64, hash, chain_hash, count}. Front: lib/auditPdfExport.ts (jsPDF) + auditCsvExport.ts.",
+      "tags": "edge-functions,audit,compliance"
+    },
+    {
+      "key": "megga/storage-buckets",
+      "namespace": "megga",
+      "value": "Storage Supabase (6 buckets, RLS): documents (KYC/transac uploads, CRUD par agency_id), property-photos (write agent, read public si publie), avatars (user own, public read), kyc-magic-link/{agency}/{link}/ (uploads magic link, sha256), agency-logos, chat-attachments (useMessaging). Photos marketplace optimisees -> Cloudflare R2 (champ photos_cf) via photo-processor.",
+      "tags": "backend,storage"
+    },
+    {
+      "key": "megga/i18n-namespaces",
+      "namespace": "megga",
+      "value": "i18n (react-i18next, src/i18n/): FR defaut eager, DE/EN/IT lazy (import() au switch). 16 namespaces: common dashboard settings contacts pipeline listings kyc messages calendar matching documents admin directory compte comingSoon auth. Detection localStorage -> browser. Switch = LanguageChangeOverlay shimmer 350ms. Garder les 4 langues synchro (skill i18n-sync).",
+      "tags": "frontend,i18n"
+    },
+    {
+      "key": "megga/testing",
+      "namespace": "megga",
+      "value": "Tests: vitest unit (npm run test:unit), vitest backend (test:backend, config dediee), Playwright e2e (test:e2e) avec configs ai/admin/visual (test:e2e:ai workers=1, test:e2e:admin, test:e2e:visual). Lint eslint (npm run lint). TypeScript strict (pas de any). Build = tsc -b && vite build + postbuild overlay-storefront (dist = site statique V3 sites/property-preview).",
+      "tags": "dev,testing,ci"
+    },
+    {
+      "key": "megga/realtime-pattern",
+      "namespace": "megga",
+      "value": "Supabase Realtime (pattern OBLIGATOIRE, bug A1): TOUJOURS useId() pour le nom du channel sinon crash au re-mount (StrictMode/navigation). const channelId = useId(); supabase.channel(`nom-${channelId}`).on('postgres_changes', {...}).subscribe(); cleanup avec removeChannel. Fichiers concernes (tous fixes): useAdminNotifications, useAdminLiveFeed, useMessaging.",
+      "tags": "frontend,realtime,gotchas,critical"
+    },
+    {
+      "key": "megga/whatsapp-overview",
+      "namespace": "megga",
+      "value": "Agent WhatsApp (feature phare #2, Phase 1 mergee): vision = l'agent immobilier est toujours sur WhatsApp, donc chaque message entrant remonte dans le CRM (mieux qu'une app, l'agent y est deja actif). Phase 1 = miroir entrant lecture seule. Suite: envoi (outbound), conseils IA facon Claude depuis WhatsApp, actions (ex 'je veux visiter' -> cree une visite CRM), sync temps reel.",
+      "tags": "whatsapp,vision,feature"
+    },
+    {
+      "key": "megga/whatsapp-architecture",
+      "namespace": "megga",
+      "value": "WhatsApp architecture: couche d'abstraction supabase/functions/_shared/whatsapp-gateway.ts (interface WhatsAppProvider). Phase 1 = OpenWA (prototype local localhost:2785), Phase 4 = Meta Cloud API officielle (transparence via gateway). Webhook signe HMAC-SHA256 (verifyHmac timing-safe, Web Crypto), detection du provider par header (x-openwa-signature vs x-hub-signature-256). Secrets: WHATSAPP_WEBHOOK_SECRET, META_APP_SECRET, WHATSAPP_VERIFY_TOKEN, WHATSAPP_PROVIDER.",
+      "tags": "whatsapp,architecture,edge-functions"
+    },
+    {
+      "key": "megga/whatsapp-inbound-flow",
+      "namespace": "megga",
+      "value": "WhatsApp flux inbound (edge whatsapp-webhook): message -> webhook POST -> verifie signature HMAC (401 si invalide, 500 si secret absent) -> parse via gateway (NormalizedInboundMessage) -> mapping best-effort wa_from -> contacts.phone (9 derniers chiffres) -> contact_id + agency_id -> INSERT idempotent whatsapp_messages (upsert onConflict provider+provider_message_id) -> activity_events 'whatsapp_message_received' (non bloquant) -> 200. Mapping contact et audit en try/catch (best-effort, resilient).",
+      "tags": "whatsapp,flow,inbound"
+    },
+    {
+      "key": "megga/whatsapp-data-model",
+      "namespace": "megga",
+      "value": "Tables WhatsApp. whatsapp_messages: id, provider (openwa/meta), provider_message_id, direction (inbound/outbound), wa_from/wa_to (digits only), contact_id FK, agency_id FK, body, media_type (image/audio/video/document/location/contact/sticker), media_url, status (received/read/failed), wa_timestamp, raw jsonb (debug Phase1, a PURGER Phase4). UNIQUE(provider, provider_message_id) = idempotence. Index (contact_id, created_at), (agency_id, created_at). contact_messages = formulaire public /contact (name/email/phone/subject/message, consent_privacy LPD obligatoire, status new/answered/archived/spam).",
+      "tags": "whatsapp,database"
+    },
+    {
+      "key": "megga/whatsapp-rls-security",
+      "namespace": "megga",
+      "value": "WhatsApp RLS/securite: policy whatsapp_messages_agency_select -> agency_id = get_my_agency_id() (un agent ne voit que les messages de son agence; messages non mappes agency_id NULL invisibles sauf super_admin via is_super_admin()). Test tests/backend/whatsapp-messages-rls.spec.ts valide 3 scenarios: voit son agence, ne voit PAS l'agence B (cross-tenant), ne voit PAS un message non mappe. LPD: champ raw = PII a purger avant prod, RLS stricte, aucune donnee client via OpenWA local en prod.",
+      "tags": "whatsapp,rls,security,compliance"
+    },
+    {
+      "key": "megga/whatsapp-crm-integration",
+      "namespace": "megga",
+      "value": "WhatsApp integration CRM: hook useWhatsAppMessages(contactId) (React Query, staleTime 30s, SELECT whatsapp_messages avec RLS), composant CdWhatsAppCard (bulles chronologiques: inbound gauche/gris, outbound droite/vert, badge media) monte dans ContactDetailSugarV3Page (colonne principale, sous timeline + notes). PxWhatsAppButton = lien wa.me (buildWaMeUrl normalise digits + message pre-rempli) cote public. Page /contact (ContactPage): form + bouton WhatsApp + useCreateContactMessage -> contact_messages + emails Resend fire-and-forget.",
+      "tags": "whatsapp,frontend,crm"
+    },
+    {
+      "key": "megga/pages-inventory-public",
+      "namespace": "megga",
+      "value": "Pages publiques/marketing (~39): HomePage, SearchPage (/buy /rent), ListingPage, SellPage, EstimatesPage, ServicesPage, PublishPage, AgenciesPage, AgentDirectoryPage, AgentProfilePage, ContactPage, GlossaryPage, PrivacyPage, BlogV2Page; aide HelpCenter/Category/Article/Start/Contact/Status/Changelog/Shortcuts/Compliance/Limits/Resources; auth AuthBentoPage (login/signup/reset/magic-link/verify), AuthCallbackPage, AcceptInvitePage, ResetPasswordPage; KycPublicPage; VisitManage/Feedback, TicketStatus/Feedback; NotFoundPage.",
+      "tags": "frontend,pages,public"
+    },
+    {
+      "key": "megga/pages-inventory-app",
+      "namespace": "megga",
+      "value": "Pages CRM agent (~36): TodaySugarPage (Action Board), DashboardSugarV4Page, PipelineSugarV2Page (Kanban 14 colonnes), ContactsSugarV2Page + ContactDetailSugarV3Page, BiensSugarV2Page + BienDetailSugarV3Page, ListingFormPage (wizard + annonce IA), MatchingSugarV2Page, DealDetailSugarV3Page, Offer/Visit ModalSugarV3Page, VisitDetailSugarV3Page, Kyc List/Detail/SugarV3 + KycExportPage, DocumentsSugarV2Page + DocumentGenerator/Viewer + CustomTemplatePage, CalendarSugarV2Page, Journey/Network SugarV2Page, SettingsSugarV2Page, ImportLeadSugarV3Page, ContactImportPage, AuditSugarPage, Support(+Detail). Portail vendeur ~11 (MyFile/Visits/Offers/Documents/Messages/Profile + Analytics). Admin 14, dev 4. NB: ~104 ecrans reels (vs 42 du MVP spec).",
+      "tags": "frontend,pages,agent,admin"
+    },
+    {
+      "key": "megga/component-families",
+      "namespace": "megga",
+      "value": "Familles de composants (~400 au total): propertyx/ (~89 atoms Px* + sections + tokens.ts), crm-sugar/ (~83: shell + sous-domaines biens/calendar/contacts/documents/journey/kyc/matching/network/pipeline/settings), crm-sugar-v3/ (~53 refonte pixel-pres: contact-detail/ dashboard/ kyc/ kyc-wizard/ pipeline/ audit/), listing(s)/ (fiches + grid + AffordabilityCalculator + BeforeAfterSlider staging), search/ (~16), calendar/ (~14), matching/ (MatchScoreCard 100pts), kyc/ + kyc-magic-link/ + kyc-report/, ui/ (Radix+shadcn+Motion), layout/, ai-copilot/, map/ (Mapbox + HexagonMap choropleth), skeletons/, illustrations/.",
+      "tags": "frontend,components,inventory"
+    },
+    {
+      "key": "megga/roadmap-sprints",
+      "namespace": "megga",
+      "value": "Roadmap (~16 semaines, spec Gregory). CRM enrichi 6 etapes: 1) migrations DB, 2) ContactDetail enrichie (resume IA, timeline unifiee, next-best-action), 3) Pipeline Kanban 14 colonnes, 4) Action Board ('quoi faire aujourd'hui'), 5) matching acheteurs<->biens 100pts, 6) relances 6 types. Puis Sprint 5 IA (ai-copilot/matching/scoring + daily_actions pg_cron), Sprint 6 communication (WhatsApp Business envoi/reception + messaging unifie + portail vendeur), Sprint 7 marketplace (recherche conversationnelle, copilot negociation, annonces multi-versions). Pilote 10-20 agences.",
+      "tags": "roadmap,planning"
+    },
+    {
+      "key": "megga/backlog-decided",
+      "namespace": "megga",
+      "value": "Backlog decide/pret (ce qu'on va faire): 1) Copilote agent transversal (ai-copilot-agent, tools query_contacts/pipeline/kyc, match_listing, market_stats, suggest_priorities; bulle flottante ou Cmd+K; go si >=5 agents payants; Claude Sonnet vs DeepSeek 16x moins cher). 2) Smart input marketplace (parser NLP sur la barre de recherche, DeepSeek V3, features balcon/piscine/vue lac/garage/meuble/animaux/ascenseur). 3) Calculateur accessibilite inline (regles suisses 33% revenu, 20% apport; differenciateur vs Homegate/ImmoScout24). 4) Virtual staging IA (Gemini, pricing CHF 2.90/photo, pack 5 CHF 9.90, Pro 89/mois 20 inclus).",
+      "tags": "roadmap,backlog,planning"
+    },
+    {
+      "key": "megga/kyc-overview",
+      "namespace": "megga",
+      "value": "KYC/compliance = feature phare MEGGA (differenciateur cle: quasi aucun CRM immobilier ne le fait). Pipeline LBA complet. dossier_status (cycle de vie): none -> pending -> verified (auto par trigger quand checklist complete) -> stale (>12 mois) -> failed (PEP match sans derogation). Types: buyer_pp, buyer_pm, seller_pp, seller_pm. Principe: l'IA assiste (score, analyse qualitative) mais la validation MLRO humaine est OBLIGATOIRE (human-in-the-loop, jamais compliance-replacing).",
+      "tags": "kyc,compliance,overview,feature"
+    },
+    {
+      "key": "megga/kyc-data-model",
+      "namespace": "megga",
+      "value": "Donnees KYC. kyc_cases: type, pep_status/sanctions_status (not_checked/pending/clear/match)+details, risk_level/risk_score/risk_factors, vigilance (standard/renforced), dossier_status, expires_at (+12 mois), source_of_funds_type/description/doc_id, ai_analysis JSON (qualitative_risk, vigilance_recommendation, patterns_detected, confidence), validated_by/at. kyc_checklist_items: 5 checks LBA (id/address/pep/sanctions/funds, is_required). documents: sha256_hash, document_category (identity/domicile/financial/compliance/other), issued_at/expires_at, status pending/validated/rejected, bucket kyc-documents. kyc_screening_decisions (append-only, supersedes_id). kyc_magic_links.",
+      "tags": "kyc,database"
+    },
+    {
+      "key": "megga/kyc-vigilance-funds",
+      "namespace": "megga",
+      "value": "Vigilance LBA. Standard (art.3-4): 4 checks obligatoires id+address+pep+sanctions (defaut: PP, montant <100k CHF). Renforcee (art.6): ajoute le 5e check 'source des fonds' obligatoire; declenchee si vigilance='renforced' OU transaction >100'000 CHF. source_of_funds_type: salary/sale_property/sale_business/inheritance/investment/crypto/loan/mixed/other. crypto et mixed exigent une description >=20 caracteres + AuditEvent severity=warn (signalement MLRO).",
+      "tags": "kyc,lba,vigilance"
+    },
+    {
+      "key": "megga/kyc-dilisense-screening",
+      "namespace": "megga",
+      "value": "Screening (edge kyc-screening): nom+nationalite DERIVES server-side depuis kyc_cases.contact_id (anti prompt injection). Appel Dilisense v1 checkIndividual/checkEntity (header x-api-key DILISENSE_API_KEY, fuzzy_search, timeout 15s). Separe hits PEP (source_type PEP) et Sanctions -> statuts not_checked/pending/clear/match, rollback si timeout (ne fige pas en pending). Puis Claude Sonnet 4 (optionnel, graceful degradation si API down): qualitative_risk, vigilance_recommendation, patterns_detected, justification, confidence -> kyc_cases.ai_analysis. Loggue actor_kind='ai'. UI: 2 cartes PEP+Sanctions, bouton 'Examiner le match'.",
+      "tags": "kyc,dilisense,screening,ai"
+    },
+    {
+      "key": "megga/kyc-magic-link-flow",
+      "namespace": "megga",
+      "value": "Magic link KYC (upload client sans compte, Sprint 4.7.A): 1) CREATE (magic-link-create): token signe HMAC-SHA256 = base64url(payload).base64url(sig), le payload contient SEULEMENT magic_link.id (jamais kyc_case_id/contact_id), exp 7j (max 30). 2) SEND-EMAIL: URL kyc.megga.ch/{token} + message custom (Resend). 3) UPLOAD (public, KycPublicPage): verif token + SHA-256 du fichier, sanitize filename, upload bucket kyc-documents path {agency}/{case}/{ts}_{name}, INSERT documents status=pending. 4) CONFIRM: status=confirmed/revoked. 5) REGENERATE (max 3). Isolation cross-agency, expiry+HMAC anti-forgery.",
+      "tags": "kyc,magic-link,flow,security"
+    },
+    {
+      "key": "megga/kyc-checklist-validation",
+      "namespace": "megga",
+      "value": "Checklist + validation KYC. Trigger seed_kyc_lba_checks() cree 5 checks a l'INSERT du dossier (is_required selon vigilance+montant). Trigger auto_verify_kyc_dossier() sur UPDATE checklist: log AuditEvent; 1er check coche -> dossier_status pending; TOUS les is_required coches -> dossier_status='verified' + expires_at=+12 mois + log. Validation manuelle (human-in-the-loop): bouton 'Valider le dossier' -> useValidateKycCase -> status='validated', validated_by/at. Hooks: useMarkKycCheck, useMarkAllChecksCompleted.",
+      "tags": "kyc,checklist,validation"
+    },
+    {
+      "key": "megga/kyc-security-p0",
+      "namespace": "megga",
+      "value": "Securite KYC Sprint P0 #397 (migration 20260522_003_kyc_guard_manual_verified). Faille red-team F5: un agent pouvait via DevTools faire supabase.update({dossier_status:'verified'}) en contournant les checks LBA (RLS le laissait passer). Fix: trigger guard_manual_kyc_verified() BEFORE UPDATE OF dossier_status: si NEW=verified et pg_trigger_depth()<=1 (UPDATE direct) -> RAISE EXCEPTION + log forensique 'manual_verified_bypass_blocked'; si depth>=2 (cascade depuis auto_verify via checklist) -> autorise. Seul chemin legal = checklist complete. Auth: requireAgentAuth + get_my_agency_id() (SECURITY DEFINER, anti JWT falsifie, cross-agency=403). Prompt injection: sanitizeForPrompt + balises <untrusted_user_data>.",
+      "tags": "kyc,security,red-team,critical"
+    },
+    {
+      "key": "megga/kyc-audit-retention",
+      "namespace": "megga",
+      "value": "Audit & retention KYC. activity_events append-only (agents ne peuvent UPDATE/DELETE), loggue chaque toggle checklist / upload / validation / changement de statut / consultation (nLPD art.12 read logging via useLogKycRead). Champs: severity (info/warn/critical), category, object_label, ip_address, actor_kind (user/system/ai). Retention LBA art.10: 10 ans, soft-delete via deleted_at. Export PDF (KycExportPage, auto window.print): 3 pages (dossier+stats / 5 checks+fonds+docs+Dilisense / audit trail+notes+decisions), signe par chaine de hash SHA-256 (integrite verifiable FINMA).",
+      "tags": "kyc,audit,retention,compliance"
+    },
+    {
+      "key": "megga/kyc-ui-hooks",
+      "namespace": "megga",
+      "value": "KYC UI: /dashboard/kyc (KycSugarV3Page = KycListView + filtres + 4 bento stats), /dashboard/kyc/:id (KycDossierDetail = Hero + 5 KycCheckCard + KycDocsSection + KycAuditTrail + KycSourceOfFundsCard), /:id/export (KycExportPage PDF), /kyc/:token public (KycPublicPage). Menus contextuels clic droit (voir/screening/changer statut/valider; doc telecharger/valider/rejeter; check completer/lier doc). Hooks: useKycDossiers/useKycDossierByContact/useKycCountByStatus/useMarkKycCheck/useCreateKycDossier (Sprint1) + useKyc.ts (useScreenKycCase, useValidateKycCase, useUploadKycDocument, useCreateKycScreeningDecision justification>=30 car, useLogKycRead). Roles: agent (son agence), MLRO (validation), super_admin (bypass).",
+      "tags": "kyc,frontend,hooks,ui"
+    },
+    {
+      "key": "megga/matching-scoring-algo",
+      "namespace": "megga",
+      "value": "Moteur de matching — scoring 100 pts FIXE (edge matching-engine, seuil min 60 pour creer le match). Budget 30: dans [min,max]=30, jusqu'a +15% du max=degrade lineaire, [min*0.7,min[=20, sinon 0. Zone 25: ville exacte=25, canton=15, sinon 0. Type 15: exact=15, villa<->house similaire=10, sinon 0. Pieces+Surface 15: pieces dans [min,max]=8 (ou -1 piece=4) + surface>=min=7 (ou -10%=4). Features 15: round(found/total*15), si 0 critere=10 par defaut. Score stocke avec breakdown JSONB reasons (par critere: match/score/detail). Logique sur Edge (Deno), pas cote front (securite + determinisme).",
+      "tags": "matching,scoring,algorithm,critical"
+    },
+    {
+      "key": "megga/matching-modes",
+      "namespace": "megga",
+      "value": "Moteur de matching — 3 modes (edge matching-engine): match-property (nouveau bien -> tous les client_searches is_active), match-contact (nouvel/modif acheteur -> properties actives + market_listings), scan-all (global agency-wide, pg_cron ou bouton agent, complexite O(searches x properties)). Flag include_market = opt-in du matching marche externe. RLS agency-scoped (agency_id) ou service_role JWT. Chaque match cree -> activity_events (actor_kind='ai') pour tracabilite.",
+      "tags": "matching,modes,triggers"
+    },
+    {
+      "key": "megga/matching-data-model",
+      "namespace": "megga",
+      "value": "Tables matching. matches: agency_id, contact_id, property_id (NULL si market), market_listing_id (NULL si internal), client_search_id, score 0-100, reasons JSONB (budget/zone/type/rooms/features chacun match+score+detail), status (suggested/sent/visit_planned/interested/rejected/ignored), source (internal/market), sent_via (email/whatsapp/both), sent_at, response_at. client_searches: contact_id, label, criteria JSONB (budget_min/max, zones[], type, rooms_min/max, surface_min/max, features[], must_have/nice_to_have), is_active (surveillance continue), last_matched_at. IMPORTANT: client_searches.criteria = source de verite du moteur (PAS contacts.search_criteria).",
+      "tags": "matching,database"
+    },
+    {
+      "key": "megga/matching-lifecycle",
+      "namespace": "megga",
+      "value": "Cycle de vie d'un match: suggested (cree par le moteur si score>=60) -> sent (agent clique Envoyer -> status=sent, sent_via email/whatsapp/both, sent_at) -> visit_planned (creation d'une visite) -> interested|rejected (feedback contact) ou ignored (agent rejette sans envoi). Envoi via SendMatchDialog: choix du canal, message auto-genere editable, mutation useSendMatchToClient -> UPDATE matches + activity_event audit.",
+      "tags": "matching,lifecycle,workflow"
+    },
+    {
+      "key": "megga/matching-external",
+      "namespace": "megga",
+      "value": "Matching marche externe (edge external-matching): source RealAdvisor.ch (scrape HTML, parse des chunks Next.js RSC self.__next_f), construit ExternalListing[], cache table external_listings (search_hash, ~30min). Resolution de zone via ZONE_SLUGS + slugify, images via CDN img.realadvisor.ch. Un listing externe avec score>=60 -> matches(source='market', market_listing_id). Distinct du matching interne (properties). Hook useExternalMatching(criteria). MVP: RealAdvisor seul; geospatial lat/lng present mais pas encore utilise par l'algo.",
+      "tags": "matching,external,marketplace"
+    },
+    {
+      "key": "megga/matching-ui-hooks",
+      "namespace": "megga",
+      "value": "Matching UI/hooks. Page MatchingSugarV2Page (layout type client-mail: queue + focus panel, sous-nav Tous/A envoyer/Engage/Sans retour/Archives, dark meggaAi). Composants: MatchScoreCard (photo + barre de score + badges raisons verts + actions Envoyer/Visite), MatchingPanel (segments suggested/sent + bouton rafraichir), SendMatchDialog. Hooks: useMatching(contactId) (matches/suggested/sent/internal/market + sendMatch/ignoreMatch/runMatching), useMatchingSugar (adapter CRM, groups par acheteur, updateCriteria), useExternalMatching. PIEGE: updateCriteria ecrit DEUX tables (contacts.search_criteria + client_searches.criteria) sinon le moteur ne voit pas le changement.",
+      "tags": "matching,frontend,hooks,ui"
+    },
+    {
+      "key": "megga/score-engine",
+      "namespace": "megga",
+      "value": "Score engine (DISTINCT du matching: matches.score = 'fit' vs score-engine = 'qualite'). Contact buyer score: reactivite 20% (temps entre interactions), engagement 25% (interactions 30j + tendance), coherence budget 20% (biens visites vs declare), qualite visites 20% (reliability done/no-show + rating), conversion 15% (stade pipeline + offre) -> table contact_scores (+ conversionProbability). Property heat score: market position 30%, interest level 25%, freshness 25% (jours en ligne), price trend 20% (baisse=opportunite) -> property_scores. Calcule par RPC calculate_contact_scores / calculate_property_scores.",
+      "tags": "scoring,score-engine,intelligence"
+    },
+    {
+      "key": "megga/transactions-table",
+      "namespace": "megga",
+      "value": "Table transactions (coeur du pipeline de closing): agency_id, property_id, contact_buyer_id, contact_seller_id, assigned_to (agent responsable), stage (enum transaction_stage), status (active/on_hold/cancelled/completed), price_offered/price_final (BIGINT CHF), mandate_type (simple/exclusive/semi_exclusive), notes, created/updated_at. RLS agency-scoped (agency_id via profiles de auth.uid()), super_admin SELECT all.",
+      "tags": "transactions,database,pipeline"
+    },
+    {
+      "key": "megga/pipeline-kanban",
+      "namespace": "megga",
+      "value": "Pipeline Kanban (PipelineSugarV2Page): 9 colonnes UI (CRM_STAGES dans crm-sugar/tokens.ts) qui AGREGENT les sous-stages: new-lead, to-qualify, searching (active_search+to_recontact), visit-scheduled, visit-done, interest-confirmed, offer (regroupe offer+negotiation+reserved+financing+notary), signed, lost. Drag-drop dnd-kit: overlay optimiste -> useUpdateTransactionStage -> UPDATE transactions.stage -> trigger monitor_transaction_kyc_gate -> activity_event. PIEGE: useUpdateTransactionStage ecrit 2 tables (transactions + activity_events) donc reste en useMutation brut avec invalidateQueries explicite (pas Cache Helpers).",
+      "tags": "transactions,pipeline,kanban,frontend"
+    },
+    {
+      "key": "megga/deal-detail",
+      "namespace": "megga",
+      "value": "DealDetailSugarV3Page (/dashboard/transactions/:id): DdStageStepper = 8 cercles (mapTransactionStageToStepper agrege offer..notary en 'Offre'). Banniere KYC BLOQUANTE UI si stage dans {interest_confirmed, offer, signed} ET kyc_status != verified -> blocker rouge avec option override (raison texte, audit severity=critical si signed sinon warn). Timeline des offres via useOfferChain(deal_id) (RPC, parent_offer_id = filiation). Activity log (activity_events entity_type transaction/crm_offer).",
+      "tags": "transactions,deal,frontend"
+    },
+    {
+      "key": "megga/offers-model",
+      "namespace": "megga",
+      "value": "Offres: crm_offers (deal_id, parent_offer_id NULL=racine sinon contre-offre, kind offer/counter, from_party buyer/seller, by_id/by_label, amount CHF, conditions JSONB {financing/sale/diagnostic/occupancy toggles + texte 'autres'}, deposit, closing_date, expires_at, status pending/accepted/rejected/expired/withdrawn, attachments). crm_offers_history immutable (preuve LBA 10 ans). Cron crm-offers-expire-hourly (0 * * * *, expire_crm_offers_now) -> expire les pending echus. Trigger audit_crm_offer_event (SECURITY DEFINER) loggue creation/contre-offre/acceptee/refusee/expiree.",
+      "tags": "transactions,offers,database"
+    },
+    {
+      "key": "megga/offers-wizard",
+      "namespace": "megga",
+      "value": "Offre wizard (OfferModalSugarV3Page, /transactions/:id/offre/nouvelle ou /contre): 3 etapes — 1) Montant (amount CHF + ecart vs prix demande, deposit, closing_date), 2) Conditions (4 toggles financing/sale/diagnostic/occupancy + texte libre 'autres conditions'), 3) Delai & envoi (expires_at 24h/48h/7j/custom + recap). Submit useCreateOffer -> INSERT crm_offers -> trigger audit -> retour DealDetail. kind=offer (acheteur) ou counter (contre-offre depuis la derniere).",
+      "tags": "transactions,offers,wizard,frontend"
+    },
+    {
+      "key": "megga/visits",
+      "namespace": "megga",
+      "value": "Visites: table visits (extensions Sprint2: duration_minutes def 45, agent_id, bon JSONB {generatedAt, signedAt, docId, visitorNames/Ids}, rapport JSONB {sentiment hot/warm/cool/cold, interestLevel 0-10, highlights, objections, nextSteps, photos, voiceNote, followUpScheduledAt}). status DB planned/confirmed/done/no_show/cancelled -> front scheduled/done/no-show/cancelled. VisitModalSugarV3Page (3 etapes: bien+visiteur, date/heure/duree 30/45/60/90, confirmation + toggles email/bon/signature). VisitDetailSugarV3Page (bon imprimable + rapport). Les objections (rapport) alimentent l'analyse IA affichee anonymisee au portail vendeur.",
+      "tags": "transactions,visits,frontend"
+    },
+    {
+      "key": "megga/transaction-kyc-gate",
+      "namespace": "megga",
+      "value": "Gate KYC transactions (trigger monitor_transaction_kyc_gate AFTER UPDATE OF stage, NON BLOQUANT = monitoring only). Declenche sur transition vers offer/negotiation/reserved/financing/notary/signed/closed. Logique: skip si transition interne entre 2 stages surveilles (grandfather), si pas de buyer (mandat vente seul), ou montant < 100'000 CHF (seuil LBA art.7). Sinon lit kyc_cases du buyer: verified+non expire -> silence; sinon INSERT activity_events severity=warn metadata (attempted_stage, kyc_status, amount, mode=monitoring_only). PAS de RAISE: l'agent continue, le MLRO filtre category=deal severity=warn. NB: a ne pas confondre avec guard_manual_kyc_verified (blocage dur cote dossier KYC).",
+      "tags": "transactions,kyc,compliance,gate"
+    },
+    {
+      "key": "megga/copilot-engine",
+      "namespace": "megga",
+      "value": "Copilote MEGGA AI (edge ai-copilot): STATELESS (pas de session DB, history cote client max ~10-20 msgs). Input CopilotRequest {action, message, context, history, language FR/DE/EN/IT}. Modele claude-sonnet-4-20250514, max_tokens 2000, PAS de streaming edge-side (reponse JSON bloquante), PAS de tool-calling en v1. Le contexte CRM (contact/deal/matches/kyc actifs) est injecte en texte cle-valeur dans le prompt. Sortie {result, action, usage tokens}. Auth Bearer (sauf mode search public_buyer). logAiCopilotInteraction -> activity_events actor_kind='ai' (copilot_action, input/output_tokens, success).",
+      "tags": "ai,copilot,engine,edge-functions"
+    },
+    {
+      "key": "megga/copilot-actions",
+      "namespace": "megga",
+      "value": "Copilote — 9 actions (ai-copilot, ACTION_PROMPTS): chat, summarize_contact (resume 3-5 pts), suggest_next_action (1 prioritaire + 2 alternatives = Next Best Action), draft_email (relance personnalisee + biens du matching), draft_description (annonce 150-250 mots), analyze_kyc (docs manquants + risque preliminaire, PAS de validation), score_lead (chaud/tiede/froid 0-100), analyze_market (positionnement prix/m2 + comparables), detect_intent (JSON intent/confidence). Detection auto par regex (useCopilot.detectAction): resume/profil->summarize, relance/email->draft_email, marche/comparable->analyze_market, kyc/conformite->analyze_kyc, score/lead->score_lead, actions/priorite->suggest_next_action, sinon chat.",
+      "tags": "ai,copilot,actions,nba"
+    },
+    {
+      "key": "megga/copilot-frontend",
+      "namespace": "megga",
+      "value": "Copilote frontend. useCopilot(): detectAction (regex->action), sendMessage (bloquant + history max 10), sendMessageStream (streaming SIMULE cote client: decoupe la reponse par mots, delai 30-55ms + pause apres ponctuation -> illusion de frappe), clearHistory. CopilotContextProvider/useCopilotContext: page courante + activeContact (id/nom/type/email/phone). buildContactContext(): snapshot CRM -> texte structure ~1500 tokens (profil, criteres, notes, tags, interactions max15, biens envoyes max8, visites max6, transactions). PromptInputBar: slash commands /resume /relance /matching /analyse /mandat /actions /kyc /offre + autocomplete contacts/biens + context pills + vocal. Composants: CopilotSummary (badge 'estimation IA'), ListingGenerator, NegotiationCopilot, BuyerIntelligence, SellerIntelligence, ObjectionAnalysis.",
+      "tags": "ai,copilot,frontend,hooks"
+    },
+    {
+      "key": "megga/copilot-system-prompt",
+      "namespace": "megga",
+      "value": "Copilote system prompt (MEGGA_SYSTEM): persona courtier senior suisse (residentiel/prestige/commercial), expertise LAB-KYC / redaction / marche / negociation. Regles: ASSISTANCE pas DECISION (l'agent valide toujours), jamais valider KYC / contacter le client / changer prix-statut-etape sans humain, scores = 'estimation IA'. Style ANTI-IA agressif: bannit 'serves as' / 'Let's dive in' / fausse profondeur ('At its core') / sycophanterie; impose avis tranches, specificite, variation de rythme, format suisse (CHF 720'000, JJ.MM.AAAA), tutoiement de l'agent / vouvoiement dans les textes clients, markdown.",
+      "tags": "ai,copilot,prompt,guardrails"
+    },
+    {
+      "key": "megga/ai-three-surfaces",
+      "namespace": "megga",
+      "value": "3 surfaces IA distinctes. 1) ai-copilot (agent, Claude Sonnet via callClaude, 9 actions, compliance-critical). 2) dashboard-ai-hint (cockpit agent, Claude Sonnet 4.5 = claude-sonnet-4-5-20250929 max 400 tokens, 1 suggestion actionnable basee sur les KPIs, fallback heuristique KYC>gap budget>momentum, cache 1h cote client). 3) support-chatbot (help center PUBLIC, DeepSeek V3 SEUL via callPublicAI - AUCUN fallback Claude, erreur si DeepSeek down; RAG: top-k articles injectes anti-hallucination, sortie texte + SUGGESTED articles + ESCALATE flag, 150 mots max, sans auth).",
+      "tags": "ai,surfaces,architecture"
+    },
+    {
+      "key": "megga/copilot-models-pii",
+      "namespace": "megga",
+      "value": "Copilote modeles & PII. Strategie: ai-copilot appelle directement l'API Anthropic (modele claude-sonnet-4-20250514, sans fallback, hors ai-provider); le pattern callAgentAI offre Claude -> fallback DeepSeek; public-side callPublicAI = DeepSeek SEUL, AUCUN fallback Claude (decision 2026-04-17, erreur si down; public = listings anonymes, pas de PII user). Pricing USD/1M (constantes PRICING): DeepSeek 0.27/1.10 (~16x moins cher), Sonnet 3/15, Haiku 1/5; computeCost est correct MAIS ai-copilot loggue dans activity_events (tokens, SANS cout calcule), donc hors ai_usage_logs. Data residency: Anthropic EU DPA. NUANCE: ai-copilot injecte le contexte CRM BRUT (PAS de pii-redaction, contrairement a extract-lead) -> repose sur le DPA, pas la redaction.",
+      "tags": "ai,copilot,models,pii,compliance"
+    },
+    {
+      "key": "megga/copilot-agent-planned",
+      "namespace": "megga",
+      "value": "PLANIFIE: ai-copilot-agent (backlog decide 2026-04-18, go si >=5 agents payants). Difference: le copilote actuel = actions predefinies sur l'entite courante; l'AGENT = requetes libres multi-entites avec TOOL-CALLING + raisonnement portefeuille global. 6 tools v1 (read-only, security-definer filtres agency_id): query_contacts, query_pipeline, query_kyc, match_contacts_to_listing, suggest_priorities_today, get_market_stats. Edge ai-copilot-agent Claude Sonnet 4 + streaming SSE (vs stateless actuel). UX: bulle flottante Radix sticky bottom-right + cards action + deep-links + Cmd+K. Couts: 10 agents CHF200/mois, 50 CHF1k, 200 CHF4k. ~10-12 jours. Exemples: 'contacts score>70 sans contact depuis 14j', 'priorites du jour', 'prix median 4p Carouge'.",
+      "tags": "ai,copilot,planned,roadmap"
+    },
+    {
+      "key": "megga/search-page",
+      "namespace": "megga",
+      "value": "Marketplace SearchPage (/buy et /rent, deux contextes): URL = SOURCE DE VERITE des filtres (parseFiltersFromParams au mount, filtersToParams ecrit l'URL a chaque changement -> deep-links partageables). Layout 3 colonnes: liste de cards VIRTUALISEE (react-virtual, 1 col mobile / 2 cols sm+, ~400px/row, overscan 3) + MapView lazy (Mapbox ~470KB, prefetch parallele au mount ~300ms gagnees) + sidebar toggle (MarketAccountRail 5 vues: search/favorites/saved/alerts/calculator/contact). Pagination useInfiniteQuery 50 items/page + bouton 'Charger plus'. Comparateur max 3 biens (URL ?compare + localStorage).",
+      "tags": "marketplace,search,frontend"
+    },
+    {
+      "key": "megga/search-filters",
+      "namespace": "megga",
+      "value": "Filtres marketplace. 8 types (apartment/house/villa/commercial/office/parking/storage/land, multi-select), contexte buy/rent (rent ajoute Meuble + Dispo immediate, retire 'recommended'). Principaux (FilterPill): lieu (city ILIKE OU canton eq, exclusifs), prix min/max (CHF buy ou /mois rent + presets), pieces >=, surface min. Avances (modal 'Plus de filtres'): bathrooms >=, annee (UI-only non appliquee backend), classe energie CECB A-G/minergie, 12 features (Balcon/Parking/Garage/Jardin/Ascenseur/Vue lac/Vue pano/Cheminee/Clim/Cave/Terrasse/Piscine). Tri: relevance/recommended/price_asc/price_desc/newest/surface_desc/best_deals. toServerFilters mappe les features -> 11 colonnes booleennes (has_balcony, has_parking, has_garage, has_elevator, is_furnished, has_fireplace, has_nice_view, has_swimming_pool, is_minergie, pets_allowed, is_new_building).",
+      "tags": "marketplace,search,filters"
+    },
+    {
+      "key": "megga/search-query-perf",
+      "namespace": "megga",
+      "value": "useMarketListings (requete + perf 33k rows). select('*').eq('status','active').eq('transaction_type', ctx).gte('quality_score',50) + filtres (canton eq, city ilike echappe, price gte/lte, rooms gte, type in, features eq true) .order(sort).limit(50).offset. REGLES: .eq('status') PAS .in (partial index idx_ml_rent_active_created); JAMAIS count:'exact' (totalCount approx depuis page[0]); seuls created_at (index) et relevance_score (idx_ml_relevance pour 'recommended') sont triables; colonnes lourdes (photos[], description) PAS fetchees en liste. useMapPoints = RPC SEPARE lightweight {id, lat, lng, price, type, rooms} pour la carte. Listings masques filtres cote client (useHiddenListings).",
+      "tags": "marketplace,search,performance,critical"
+    },
+    {
+      "key": "megga/search-smart",
+      "namespace": "megga",
+      "value": "Recherche intelligente marketplace. Heuristique client isLikelyNaturalLanguage (>=3 mots OU chiffres OU keywords prix/features) -> si oui, edge parse-search-query (DeepSeek V3, sans fallback Claude) qui retourne JSON {canton, city, types[], min/maxPrice, min/maxRooms, surface, features[], confidence high/medium/low} avec whitelist cantons/types/features; sinon ou erreur -> regex client parseNaturalLanguageQuery (fallback gracieux). Chip 'Compris: Geneve · 4+ pieces · < 1.2M' (sparkle IA). Feature flag VITE_SMART_SEARCH_ENABLED. A distinguer de ai-search (conversationnel pgvector + Claude, multi-tours, max 10 tours).",
+      "tags": "marketplace,search,ai,smart-input"
+    },
+    {
+      "key": "megga/search-favorites",
+      "namespace": "megga",
+      "value": "Favoris marketplace (useFavorites): etat singleton global + localStorage 'megga-favorites' (anon, zero friction) + table market_favorites (user_id, listing_id, unique) si connecte. mergeOnLogin idempotent (push local->DB, pull remote->local). Prompt de login au 3e favori (si non dismiss). FavoritesPanel: filtre par favoriteIds, group by ville si >=5, rows compactes (thumb + prix + adresse + remove). RLS: market_favorites user voit ses lignes; market_listings anon read WHERE status='active'.",
+      "tags": "marketplace,favorites,frontend"
+    },
+    {
+      "key": "megga/search-saved-alerts",
+      "namespace": "megga",
+      "value": "Recherches sauvegardees + alertes. useSavedSearches: localStorage (anon, migre au login) / Supabase saved_searches (connecte, staleTime 5min), MAX 10. SavedSearch {name, filters JSONB (context/types/prix/pieces/city/canton/energyLabel/lifestyleTags), alertEnabled, alertFrequency instant/daily/weekly, email, last_alerted_at, resultsCount}. Edge search-alert (cron): pour chaque saved_search alert_enabled, shouldProcess selon frequence (instant 30min/daily 24h/weekly 7j), requete miroir de applyFilters + first_seen_at > last_alerted_at (nouveautes uniquement), top 20, email HTML Resend (5 cards visibles + '+N autres'), update last_alerted_at. SavedSearchesPanel + AlertsPanel (badges frequence).",
+      "tags": "marketplace,alerts,saved-searches"
+    },
+    {
+      "key": "megga/map-mapbox",
+      "namespace": "megga",
+      "value": "Marketplace carte (MapView ~2000 lignes, react-map-gl). Token VITE_MAPBOX_TOKEN (fallback gracieux si absent). 3 styles (Light/Satellite/Dark, toggle fade). Init Geneve {lng 6.1432, lat 46.2044, zoom 11.5}. Layers GeoJSON natifs (symbol+circle). Price pills = sprite Canvas 112x48 @2x (blanc/ink defaut, ink/blanc au hover). Popup hover compact 260px, popup click 300px style Zillow (carousel photos + favori + badge C2PA). Mode dessin polygone freehand -> filtre point-in-polygon (zoneFilterIds). Reverse geocoding Mapbox (debounce 350ms). src/lib/mapboxClient.ts = Geocoding + Matrix API.",
+      "tags": "marketplace,map,mapbox,frontend"
+    },
+    {
+      "key": "megga/map-clustering-perf",
+      "namespace": "megga",
+      "value": "Marketplace carte — clustering & perf 33k points. Utilise le clustering NATIF Mapbox (GeoJSON source + symbol layers, GPU) — PAS Supercluster.js (que CLAUDE.md liste seulement comme idee future d'optim). Hover via setFeatureState (efficace), throttle 80ms sur queryRenderedFeatures. useMapPoints = requete SEPAREE lightweight {id, lat, lng, price, type, rooms}. Cache sessionStorage 10min (cle megga:map-points:filtres) -> pins instantanes (hydrate initialData + refresh background, pas de spinner). Lookup listingsMap O(1).",
+      "tags": "marketplace,map,performance,clustering"
+    },
+    {
+      "key": "megga/map-choropleth",
+      "namespace": "megga",
+      "value": "Marketplace carte — choropleth prix/m2. Hook usePriceHexagons({bbox, zoom, transactionType}) -> RPC SQL get_price_hexagons (PAS Mapbox): taille hex dynamique par zoom (4000m si z<9 ... 250m si z>=13), retourne GeoJSON polygones {median_price_m2, listing_count, p25, p75}, anti-outlier p_min_count=3. Echelle couleur interpolee par transaction_type: rent 15->45 CHF/m2/mois, vente 4000->20000 CHF/m2 (vert->rouge, opacity 0.5). Toggle via toggleHeatmap (MapViewHandle imperative ref), cache 60s. Medians cantonaux: useCantonalMedians (vue cantonal_price_medians, cache 24h).",
+      "tags": "marketplace,map,choropleth,prices"
+    },
+    {
+      "key": "megga/listing-card",
+      "namespace": "megga",
+      "value": "Marketplace cards. ListingCard: lien vers la fiche bien (id prefixe market-/internal-; routes renommees FR->EN avec 301 #504), carousel photos snap-x lazy (rend +-1 position), bouton favori (etat local sync useFavorites), badges is_hot (Hot price), video_url, C2PA verified (pill emerald + shield), icones type (pieces/chambres/m2), tag Meuble (rent). Images via pickPhoto/pickSrcSet (photos_cf R2: srcset thumb 400w/detail 1200w/hero 1600w; fallback icone Building2 si 0 photo). Comparateur CompareDrawer: modal 2-3 colonnes, 8+ lignes (prix/prix-m2/surface/pieces/jours en ligne, meilleure valeur surlignee emerald), max 3 biens (URL ?compare + localStorage).",
+      "tags": "marketplace,listings,cards,frontend"
+    },
+    {
+      "key": "megga/listing-detail",
+      "namespace": "megga",
+      "value": "Fiche bien (ListingPage, id prefixe market-/internal-). Data: useMarketListing (market_listings + join agency_profile) ou properties (interne), transformSupabaseToListing (titre lang-aware). Blocks modulaires: BienTitleBar (favori/share/contact), ListingHeroGallery (mosaic + lightbox), BienPriceCard (CHF, /mois + charges si rent, hypotheque estimee, AffordabilityCalculator), BienSpecsBlock, BienEnergyBlock (label A-G, kWh), BienNeighborhoodBlock (POI + WalkScore: transport 30% / commerce 25% / ecole 20% / sante 15% / loisir 10%, scoring par distance), BienDocumentsBlock, BienSimilarBlock (useRelatedListings canton+type), BienAgentCard, InteractiveFloorPlan, C2paBadge, ListingMobileBar sticky. useNeighborhood(lat,lng) + useNaturalHazards(lat,lng: flood/landslide/avalanche).",
+      "tags": "marketplace,listings,detail,frontend"
+    },
+    {
+      "key": "megga/listing-images",
+      "namespace": "megga",
+      "value": "Marketplace images. Pipeline Cloudflare R2: champ photos_cf (variants thumb 400w q80 / detail 1200w q85 / hero 1600w q90), remplissage ~150 listings/h depuis Flatfox via photo-processor (backfill-cf-images). IMAGE_PRESETS: card 400w q75, preview 800w q80, full 1200w q85, lightbox 1920w q90, thumb 200w q70. Helpers hasCFPhotos/pickPhoto/pickSrcSet (src/lib/listingPhotos.ts, imageOptimizer.ts). Fallback si photos_cf vide -> photos[] (CDN Flatfox, referrerPolicy no-referrer anti-hotlink). loading=lazy sauf 1er, decoding async.",
+      "tags": "marketplace,images,r2,performance"
+    },
+    {
+      "key": "megga/marketplace-planned",
+      "namespace": "megga",
+      "value": "Marketplace — planifie (roadmap/backlog, Phase 2 non encore implementee). 1) Carte des prix TEMPORELLE: slider 12 mois, evolution prix/m2 historique par zone (RPC get_price_history_by_month, switch de layer vs heatmap). 2) 'Mes lieux' multi-POI: sauvegarder travail/ecole/sport + afficher les TRAJETS vers chaque bien (Mapbox Matrix API travelMatrix driving/walking, temps+distance), stockage search_zones (geometry). 3) Accessibilite financiere inline partout (cards + fiche, estimateMonthly). 4) Audit perf /louer (Lighthouse, lazy images, virtualisation liste, Supercluster en worker). Accessibilite suisse: charges = prix x 7%, <=33% revenu + >=20% apport (differenciateur vs Homegate/ImmoScout24).",
+      "tags": "marketplace,roadmap,planned"
+    },
+    {
+      "key": "megga/calendar-google",
+      "namespace": "megga",
+      "value": "Calendrier Google (edge google-calendar-sync, OAuth 2.0 + offline_access, voir docs/oauth-setup.md). Scope auth/calendar (lecture/ecriture). Callback Supabase auth/v1/callback puis /auth/callback?gcal=1 (saveTokens cote AuthCallbackPage). 7 actions: save_tokens, list_events, create_event, update_event, delete_event, sync_all (visites 30j status planned/confirmed), disconnect (revoke). Tokens table google_calendar_tokens (auto-refresh buffer 5min, sync_enabled=false si echec). Mapping visite<->event dans table calendar_sync (user_id, visit_id, google_event_id, UNIQUE). Google Meet AUTO si visit_type=video + video_platform=google_meet (conferenceData -> hangoutLink sauve dans visits.video_link). Secrets GOOGLE_CLIENT_ID/SECRET (Edge).",
+      "tags": "integrations,calendar,google,oauth"
+    },
+    {
+      "key": "megga/calendar-outlook-sync",
+      "namespace": "megga",
+      "value": "Calendrier Outlook (edge outlook-calendar-sync, Microsoft Graph v1.0, OAuth login.microsoftonline.com/common). Scopes Calendars.ReadWrite + offline_access + User.Read. Memes 7 actions que Google. Differences: timeZone explicite, body.content HTML, MS peut renvoyer un nouveau refresh_token a chaque refresh (update obligatoire). Mapping table outlook_calendar_sync (visit_id<->outlook_event_id). Secrets MICROSOFT_CLIENT_ID/SECRET. SYNC bidirectionnelle visite<->agenda: MEGGA = source de verite, push create/update/delete via les sync tables. Front: useGoogleCalendar/useOutlookCalendar (isConnected/connect/sync), useCalendarSugar = AGREGE visits (planned/confirmed) + reminders (pending/triggered) + top hot buyers, fenetre +-60j, en CalendarEvent unifie. CalendarSugarV2Page: vues Day/Week/Month/Agenda, drag-resize + detection de conflits, context-menu, dark mode.",
+      "tags": "integrations,calendar,outlook,sync"
+    },
+    {
+      "key": "megga/integrations-inventory",
+      "namespace": "megga",
+      "value": "Inventaire des integrations externes (~20) (role | secret | mode). Anthropic Claude (IA agent | ANTHROPIC_API_KEY | API). DeepSeek (IA public | DEEPSEEK_API_KEY | API). Stripe (paiements | STRIPE_SECRET/WEBHOOK | API+webhook). Resend (emails, hub 8+ fn | RESEND_API_KEY | API). Dilisense (PEP/sanctions | DILISENSE_API_KEY | API). Google Calendar + Microsoft Graph (OAuth par utilisateur, refresh tokens). Deepgram (STT, token ephemere 60s | DEEPGRAM_API_KEY). Google AI Gemini (staging/vision | GOOGLE_AI_API_KEY). Cloudflare R2 (photos S3). Mapbox (carte | VITE_MAPBOX_TOKEN public). Flatfox (listings, cron). RealAdvisor (scrape). WhatsApp OpenWA->Meta (webhook HMAC). Skribble/DocuSign (e-signature mandats/contrats - PLANIFIE, compte agent connecte, signature 1 clic). Capture/Numbers Protocol + Trufo (C2PA photos). Turnstile (anti-bot | VITE_TURNSTILE_SITE_KEY). PostHog (analytics | VITE_POSTHOG_KEY). Sentry (errors | VITE_SENTRY_DSN). 4 modes: OAuth (calendars/auth), Webhook (Stripe/WhatsApp), API REST (IA/email/KYC/sign), Cron pg_cron (scraping/alertes). Secrets cote Edge sauf VITE_* publics.",
+      "tags": "integrations,inventory,secrets"
+    },
+    {
+      "key": "megga/signatures-overview",
+      "namespace": "megga",
+      "value": "Signatures MEGGA = plusieurs systemes (juridique / integrite / securite). MANDAT/CONTRATS: e-signature qualifiee via integration au CHOIX de l'agent dans les parametres - Skribble OU DocuSign (DECISION: Swisscom QES ABANDONNE). L'UI MandateSignModal existe mais son ancien appel Swisscom etait simule. Voir signature-qes-planned. BON DE VISITE: signature SIMPLE click-to-sign (SES, attestation de presence). C2PA: integrite des photos. magic-link HMAC + audit hash chain: securite/tamper-evident. Niveaux ZertES/SCSE: SES (bon de visite) -> QES (mandats/contrats via Skribble/DocuSign = la cible legale forte). C'est la que les integrations portent la signature.",
+      "tags": "signatures,overview,compliance"
+    },
+    {
+      "key": "megga/signature-mandate-visit",
+      "namespace": "megga",
+      "value": "Signature mandat & bon de visite. MANDAT (MandateSignModal, seller-portal; showcase /dev/mandate-sign): UI en 3 etapes (revue PDF + acceptation termes Art.412ss CO/SCSE -> identification -> signature). DECISION PRODUIT: l'ancien Swisscom Sign (qui etait SIMULE, setTimeout 2400ms, sans API) est ABANDONNE; l'e-signature qualifiee passera par Skribble OU DocuSign, provider choisi dans les parametres d'integration (voir signature-qes-planned). BON DE VISITE (visits.bon JSONB, useSignVisitBon): signedAt = click-to-sign SIMPLE (non-QES, SES), attestation de visite. DocumentGenerator (@react-pdf/renderer, PDF texte selectionnable): templates bon-visite/offre-achat/mandat-exclusif + variables -> documents.sha256_hash -> etape signature.",
+      "tags": "signatures,mandate,visits,documents"
+    },
+    {
+      "key": "megga/signature-crypto-c2pa",
+      "namespace": "megga",
+      "value": "Signatures cryptographiques & integrite. C2PA Content Credentials (edge c2pa-sign, provider via env C2PA_PROVIDER) - 3 niveaux: Capture/Numbers Protocol (C2PA officiel + certificat), Trufo API (~0.01$/img), ou MEGGA Shield PAR DEFAUT (SHA-256 + EXIF, gratuit, PAS un vrai C2PA -> transparence du badge necessaire). Stocke c2pa_verified/_at/_method. c2pa-verify (public no-auth): c2pa-wasm sinon heuristique marqueurs JUMBF/C2PA -> {verified, manifest}. Magic-link HMAC-SHA256 (magic-link-token.ts): token base64url(payload).base64url(sig), payload {id, exp} uniquement, secret MEGGA_MAGIC_LINK_HMAC_SECRET >=32, timing-safe. Audit hash chain (audit-pdf-export): hash[i]=SHA256(hash[i-1] + canonical(event)), immuable, nLPD art.12 + LBA art.7 (10 ans), PDF avec chainHash.",
+      "tags": "signatures,crypto,c2pa,integrity"
+    },
+    {
+      "key": "megga/signature-qes-planned",
+      "namespace": "megga",
+      "value": "E-signature qualifiee — PLAN (decision produit). Swisscom QES ABANDONNE. L'e-signature passera par une integration au CHOIX dans les parametres d'integration: Skribble OU DocuSign. MODELE: l'agence cree son compte chez le fournisseur, le CONNECTE dans MEGGA (OAuth/cle API), puis signe ses documents en UN CLIC (mandats, offres, contrats). Skribble = suisse, QES/AES conforme ZertES/eIDAS (prefere CH); DocuSign = international, large adoption. STATUT: PLANIFIE, pas encore code (MandateSignModal actuel = UI simulee a remplacer). Archi probable: connexion provider stockee par agence -> edge sign-document -> API du provider connecte -> webhook callback (signe) -> statut document + certificat + horodatage. Note: offres/contrats aujourd'hui = PDF non signes; le C2PA 'MEGGA Shield' par defaut n'est pas un vrai C2PA.",
+      "tags": "signatures,qes,planned,integrations"
+    }
+  ]
+}
