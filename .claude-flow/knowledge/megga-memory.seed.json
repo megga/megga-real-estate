@@ -318,13 +318,13 @@
     {
       "key": "megga/whatsapp-overview",
       "namespace": "megga",
-      "value": "Agent WhatsApp (feature phare #2, Phase 1 mergee): vision = l'agent immobilier est toujours sur WhatsApp, donc chaque message entrant remonte dans le CRM (mieux qu'une app, l'agent y est deja actif). Phase 1 = miroir entrant lecture seule. Suite: envoi (outbound), conseils IA facon Claude depuis WhatsApp, actions (ex 'je veux visiter' -> cree une visite CRM), sync temps reel.",
+      "value": "Agent WhatsApp (feature phare #2): vision = l'agent immobilier est toujours sur WhatsApp, donc chaque message entrant remonte dans le CRM et il repond depuis le CRM. Phase 1 (mergee) = miroir entrant lecture seule. Phase 2 (mergee) = envoi sortant (gateway send + edge whatsapp-send + composer dans CdWhatsAppCard), validee e2e sur Meta reel (HTTP 200, wamid retourne). Suite: conseils IA facon Claude depuis WhatsApp, actions ('je veux visiter' -> cree une visite CRM), notifications templates (visite/offre/KYC), sync statut delivery via webhook statuses.",
       "tags": "whatsapp,vision,feature"
     },
     {
       "key": "megga/whatsapp-architecture",
       "namespace": "megga",
-      "value": "WhatsApp architecture: couche d'abstraction supabase/functions/_shared/whatsapp-gateway.ts (interface WhatsAppProvider). Phase 1 = OpenWA (prototype local localhost:2785), Phase 4 = Meta Cloud API officielle (transparence via gateway). Webhook signe HMAC-SHA256 (verifyHmac timing-safe, Web Crypto), detection du provider par header (x-openwa-signature vs x-hub-signature-256). Secrets: WHATSAPP_WEBHOOK_SECRET, META_APP_SECRET, WHATSAPP_VERIFY_TOKEN, WHATSAPP_PROVIDER.",
+      "value": "WhatsApp architecture: couche d'abstraction supabase/functions/_shared/whatsapp-gateway.ts (interface WhatsAppProvider: parseInbound + buildSendTextRequest + parseSendResult). Providers: OpenWA (prototype local localhost:2785) ET Meta Cloud API (officielle, DEJA EN PROD inbound+outbound). Selection par WHATSAPP_PROVIDER (defaut meta). Webhook signe HMAC-SHA256 (verifyHmac timing-safe, Web Crypto), detection provider par header (x-openwa-signature vs x-hub-signature-256), handshake GET Meta (hub.challenge). Secrets: WHATSAPP_WEBHOOK_SECRET, META_APP_SECRET, WHATSAPP_VERIFY_TOKEN, META_WHATSAPP_TOKEN, META_PHONE_NUMBER_ID (1153218994539921), WHATSAPP_PROVIDER.",
       "tags": "whatsapp,architecture,edge-functions"
     },
     {
@@ -686,6 +686,18 @@
       "namespace": "megga",
       "value": "META — le cerveau MEGGA: ce systeme de connaissance = docs/system-map.md (carte lisible) + .claude-flow/knowledge/megga-memory.seed.json (~114 entrees, namespace 'megga'). Durable (committe dans git), local (embeddings ONNX, recherche HNSW), 0 API / 0 token. AUTO: hook .claude/hooks/session-start.sh recharge le seed a chaque session (npm run ruflo:seed; couper avec RUFLO_NO_AUTOSEED=1); CLAUDE.md (lu d'office) demande de consulter le cerveau avant de coder. MANUEL (routine d'apprentissage, le cerveau n'enregistre PAS les conversations seul, sinon bruit): apres une feature -> cartographier le code reel, VERIFIER les faits contre le code, editer le seed (cle megga/<sujet>, valeur dense, tags) + system-map.md, npm run ruflo:seed, commit/push. Interroger: npx ruflo memory search -q '<sujet>' -n megga. En cas de doute, le CODE fait foi.",
       "tags": "meta,brain,maintenance"
+    },
+    {
+      "key": "megga/whatsapp-outbound-flow",
+      "namespace": "megga",
+      "value": "WhatsApp flux outbound (edge whatsapp-send, Phase 2): POST authentifie AGENT via requireAgentAuth (profile.agency_id = seule identite d'agence de confiance). Body {contactId|toPhone, body}. Si contactId -> SELECT contacts, verifie contact.agency_id == profile.agency_id (sinon 403 cross-agency; 404 absent; 422 pas de phone). Provider via WHATSAPP_PROVIDER. gateway.buildSendTextRequest construit la requete (Meta: POST graph.facebook.com/v22.0/{phone_id}/messages, texte libre dans la fenetre 24h; hors fenetre -> erreur Meta 131047, templates requis). fetch -> parseSendResult -> INSERT whatsapp_messages direction=outbound (idempotent, fallback id local) -> activity_events 'whatsapp_message_sent'. Front: useSendWhatsAppMessage (mutation, invalide ['whatsapp-messages',contactId]) + composer dans CdWhatsAppCard (Enter envoie, Shift+Enter newline). Max 4096 chars.",
+      "tags": "whatsapp,flow,outbound,phase2"
+    },
+    {
+      "key": "megga/whatsapp-phase2-status",
+      "namespace": "megga",
+      "value": "WhatsApp Phase 2 statut: gateway send() Meta+OpenWA (7/7 tests unit), edge whatsapp-send deployee, 3 secrets poses (META_WHATSAPP_TOKEN, META_PHONE_NUMBER_ID=1153218994539921, WHATSAPP_PROVIDER=meta). Leg d'envoi VALIDEE en reel: Graph API v22.0 -> HTTP 200, wamid retourne, message livre au numero test allowliste. Numero test Meta +1 555-657-2763 (WABA 1851988629546399). Destinataires test doivent etre allowlistes par OTP. Token = System User permanent. A faire avant prod public: verification entreprise Meta (extrait RC/IDE), regenerer secrets passes en clair (token+app secret), purge champ raw (PII).",
+      "tags": "whatsapp,phase2,status,meta"
     }
   ]
 }
