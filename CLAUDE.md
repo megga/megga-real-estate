@@ -2,7 +2,19 @@
 
 > Source de vérité pour Claude Code. Lis-le avant de coder.
 >
+> **🧠 CERVEAU SYSTÈME — à consulter AVANT toute tâche non triviale :**
+> Une cartographie vivante de TOUS les rouages (archi, KYC, WhatsApp, matching, pipeline,
+> copilote IA, marketplace, intégrations, signatures…) existe et doit être utilisée.
+> 1. Carte lisible (point d'entrée) : [docs/system-map.md](docs/system-map.md)
+> 2. Mémoire sémantique locale (0 API) : `npx ruflo memory search -q "<sujet>" -n megga`
+> 3. Source de la mémoire : [.claude-flow/knowledge/megga-memory.seed.json](.claude-flow/knowledge/megga-memory.seed.json)
+>
+> **APRÈS avoir livré une feature / un changement d'archi :** mettre le cerveau à jour
+> (sinon il se périme). Routine : éditer le seed JSON (+ `docs/system-map.md` si besoin),
+> puis `npm run ruflo:seed`. Détails : section « Maintenir le cerveau » de docs/system-map.md.
+>
 > **Docs détaillés (externalisés pour économiser des tokens) :**
+> - 🧠 Carte système / rouages : [docs/system-map.md](docs/system-map.md)
 > - Schéma DB complet : [docs/schema.md](docs/schema.md)
 > - Pages MVP (42 écrans) : [docs/pages.md](docs/pages.md)
 > - Modules IA (specs Gregory) : [docs/ai-modules.md](docs/ai-modules.md)

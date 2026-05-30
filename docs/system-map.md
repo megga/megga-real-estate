@@ -14,6 +14,36 @@
 
 ---
 
+## 🧠 Le cerveau : comment ça marche & comment le maintenir
+
+Ce document **+** [`.claude-flow/knowledge/megga-memory.seed.json`](../.claude-flow/knowledge/megga-memory.seed.json)
+(≈113 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
+**local** (embeddings ONNX, recherche HNSW) et **gratuit** (0 appel API).
+
+**Ce qui est automatique :**
+- À chaque démarrage de session Claude Code, le hook `session-start.sh` recharge le seed dans la
+  mémoire locale ruflo (`npm run ruflo:seed` en arrière-plan ; `RUFLO_NO_AUTOSEED=1` pour couper).
+- `CLAUDE.md` (lu d'office à chaque session) demande de **consulter le cerveau avant de coder**.
+
+**Ce qui est manuel (et volontaire) — la routine d'apprentissage :**
+Le cerveau **n'enregistre pas** les conversations tout seul (sinon il se remplit de bruit). Après
+avoir livré une feature ou changé l'architecture :
+1. Cartographier la zone touchée (lire le code réel — au besoin via des sous-agents).
+2. **Vérifier les faits contre le code** avant d'écrire (ne jamais committer une affirmation non vérifiée).
+3. Ajouter/corriger les entrées dans le seed JSON (clé stable `megga/<sujet>`, valeur dense ≤ ~600 car., `tags`).
+4. Mettre à jour la section correspondante de **ce document** si l'archi a bougé.
+5. `npm run ruflo:seed` (recharge), puis vérifier : `npx ruflo memory search -q "<sujet>" -n megga`.
+6. Commit + push.
+
+**Interroger :** `npx ruflo memory search -q "comment fonctionne le gate KYC" -n megga`
+**Lister :** `npx ruflo memory list -n megga` · **Recharger :** `npm run ruflo:seed`
+
+> ⚠️ **Fiabilité** : les entrées reflètent le code à leur date d'écriture. En cas de doute, le **code
+> fait foi** — re-vérifier puis corriger le seed. Plusieurs entrées portent des `NUANCE`/`ATTENTION`
+> issues d'un audit factuel ; les garder à jour.
+
+---
+
 ## 0. En une phrase
 
 SaaS immobilier suisse **AI-native, compliance-first** : marketplace publique (33k+ biens
