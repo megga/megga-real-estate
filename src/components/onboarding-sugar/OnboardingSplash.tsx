@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { obPalette } from './tokens'
 
 export function OnboardingSplash({
-  onDone, prenom = 'Marie', dark, replayKey,
+  onDone, prenom = '', dark, replayKey,
 }: {
   onDone: () => void
   prenom?: string
@@ -75,8 +75,15 @@ export function OnboardingSplash({
           transition: 'all .6s cubic-bezier(.2,.8,.2,1)',
         }}
       >
-        Bienvenue,{' '}
-        <span style={{ fontWeight: 700, letterSpacing: -0.8 }}>{prenom}</span>
+        Bienvenue
+        {prenom && (
+          <>
+            ,{' '}
+            <span style={{ fontWeight: 700, letterSpacing: -0.8 }}>
+              {prenom}
+            </span>
+          </>
+        )}
       </div>
 
       <div

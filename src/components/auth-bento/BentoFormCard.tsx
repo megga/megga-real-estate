@@ -9,7 +9,6 @@ import {
   BentoInput,
   BentoLogoWordmark,
   BentoOAuth,
-  BuildingIcon,
   GoogleIcon,
   LockIcon,
   MailIcon,
@@ -41,7 +40,7 @@ export type AuthHandlers = {
   onChangeEmail?: () => void
   onRetry?: () => Promise<void> | void
   onSignin?: (email: string, password: string) => Promise<{ ok: boolean }> | { ok: boolean }
-  onSignup?: (data: { name: string; agency: string; email: string; password: string }) => Promise<void> | void
+  onSignup?: (data: { name: string; email: string; password: string }) => Promise<void> | void
   onResendVerification?: (email: string) => Promise<void> | void
   onBackToSignup?: () => void
   onResetRequest?: (email: string) => Promise<void> | void
@@ -259,7 +258,6 @@ function FormFields({
   const [password, setPasswordRaw] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [name, setName] = useState('')
-  const [agency, setAgency] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [signinError, setSigninError] = useState(false)
   const [setNewPasswordError, setSetNewPasswordError] = useState<string | null>(null)
@@ -501,14 +499,6 @@ function FormFields({
         />
         <BentoInput
           tokens={tokens}
-          type="text"
-          value={agency}
-          onChange={setAgency}
-          placeholder={t('fields.agency')}
-          leftIcon={BuildingIcon}
-        />
-        <BentoInput
-          tokens={tokens}
           type="email"
           value={email}
           onChange={setEmail}
@@ -533,9 +523,9 @@ function FormFields({
           label={t('ctas.signup')}
           loadingLabel={t('ctas.signupLoading')}
           loading={submitting}
-          disabled={!passwordIsValid(password) || !name.trim() || !agency.trim() || !email.trim()}
+          disabled={!passwordIsValid(password) || !name.trim() || !email.trim()}
           onClick={withLoading(() =>
-            handlers.onSignup?.({ name, agency, email, password }),
+            handlers.onSignup?.({ name, email, password }),
           )}
         />
         <div

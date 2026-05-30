@@ -139,7 +139,7 @@ export function AuthBentoApp({ route }: { route: AuthRoute }) {
       await logAuthEvent('signin.success')
       return { ok: true }
     },
-    onSignup: async ({ name, agency: _agency, email, password }) => {
+    onSignup: async ({ name, email, password }) => {
       const captchaToken = await executeCaptcha()
       const { error } = await auth.signUp(email, password, name.trim(), 'agent', captchaToken)
       resetCaptcha()

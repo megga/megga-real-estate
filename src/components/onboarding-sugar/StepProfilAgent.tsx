@@ -267,19 +267,22 @@ export function StepProfilAgent({
   const t: ObTheme = obPalette(dark)
   const { profile } = useAuth()
 
+  // Pré-remplissage depuis le vrai profil (jamais de valeurs démo). Le nom reste
+  // vide si le profil n'en a pas → canNext garde "Continuer" désactivé tant que
+  // l'agent n'a pas saisi son prénom + nom.
   const form: AgentProfile = data.agentProfile ?? {
-    firstName: 'Marie',
-    lastName: 'Schaeffer',
-    avatar: null,
+    firstName: profile?.full_name?.split(' ')[0] ?? '',
+    lastName: profile?.full_name?.split(' ').slice(1).join(' ') ?? '',
+    avatar: profile?.avatar_url ?? null,
     role: 'courtier',
-    phone: '',
+    phone: profile?.phone ?? '',
     languages: ['fr', 'en'],
   }
   const upd = (patch: Partial<AgentProfile>) =>
     set({ agentProfile: { ...form, ...patch } })
 
-  // Seed defaults into the wizard store so the footer "Continuer" CTA enables
-  // on first render (canNext relies on agentProfile being present).
+  // Seed l'ébauche (rôle + langues par défaut, nom pré-rempli depuis le profil)
+  // dans le store. Si le nom est vide, canNext laisse "Continuer" désactivé.
   useEffect(() => {
     if (!data.agentProfile) set({ agentProfile: form })
     // eslint-disable-next-line react-hooks/exhaustive-deps

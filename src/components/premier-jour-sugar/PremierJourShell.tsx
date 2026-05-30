@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useToast } from '@/components/ui/Toast'
 import { OB_GLOBAL_CSS, obPalette } from '@/components/onboarding-sugar/tokens'
 import {
   resolveInitialTheme,
@@ -48,15 +49,6 @@ import {
   type Specialite,
 } from './types'
 
-// Map de réponses pour les valeurs par défaut du skip (côté client en attendant
-// DAY0_SKIP_DEFAULTS env serveur — cf. handoff §"Skip").
-const skipAnswers = (): D0Answers => ({
-  specialite: SKIP_DEFAULTS.specialite,
-  zone: [...SKIP_DEFAULTS.zone],
-  dispo: SKIP_DEFAULTS.dispo,
-  priorite: SKIP_DEFAULTS.priorite,
-})
-
 export function PremierJourShell({
   dark: darkProp,
 }: {
@@ -64,6 +56,7 @@ export function PremierJourShell({
 } = {}) {
   const { profile, refreshProfile } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
 
   // Theme : prop > cookie > prefers-color-scheme > light (même logique que
   // l'OnboardingShell, partage le cookie `megga.theme` avec le bento auth).
@@ -162,11 +155,6 @@ export function PremierJourShell({
     if (currentQ > 0) setPhase(`q${currentQ - 1}` as D0Phase)
     else setPhase('welcome')
   }
-  const handleSkipAll = () => {
-    setAnswers(skipAnswers())
-    setAutonomy(SKIP_DEFAULTS.autonomy)
-    setPhase('today')
-  }
 
   // ─── Mode démo (dev/staging only) — coche/décoche les 5 items en bulk
   // pour visualiser une checklist complète sans avoir à toucher 5 boutons.
@@ -204,12 +192,17 @@ export function PremierJourShell({
         await refreshProfile()
       }
       clearLocalState()
-    } catch {
-      // En cas d'erreur (RLS, réseau), on n'empêche pas l'agent d'entrer.
-      // Le gate ProtectedRoute rejouera le sas au prochain refresh si nécessaire.
-    } finally {
+      // Succès uniquement → on entre dans le CRM.
       setSaving(false)
       navigate(target, { replace: true })
+    } catch {
+      // Échec d'écriture (réseau/RLS) : NE PAS naviguer — le gate rebouclerait
+      // ici tant que first_day_done n'est pas écrit (boucle silencieuse). On
+      // prévient l'agent et on le laisse réessayer (re-clic sur une priorité).
+      setSaving(false)
+      toast.error('Connexion perdue', {
+        description: 'Impossible de finaliser. Réessayez dans un instant.',
+      })
     }
   }
 
@@ -249,7 +242,6 @@ export function PremierJourShell({
         prenom={firstName}
         dark={dark}
         onStart={() => setPhase('q0')}
-        onSkip={handleSkipAll}
         onThemeChange={onThemeChange}
       />
     )
