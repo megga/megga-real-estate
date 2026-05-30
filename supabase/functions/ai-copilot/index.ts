@@ -254,7 +254,7 @@ serve(async (req: Request) => {
     }
 
     // Build system prompt — switch to buyer search mode if requested
-    const isPublicSearch = context?.search_mode === 'public_buyer'
+    // (isPublicSearch déjà déclaré dans le bloc auth ci-dessus — réutilisé ici)
     let systemPrompt = isPublicSearch ? MEGGA_SEARCH_SYSTEM : MEGGA_SYSTEM
     if (language !== 'fr') {
       systemPrompt += `\n\nLangue de réponse : ${language}`
