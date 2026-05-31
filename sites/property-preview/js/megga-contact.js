@@ -113,25 +113,27 @@
       });
   }
 
-  // Light cleanup of the "Reach us directly" column (demo US identity) — only
-  // the elements directly tied to contacting MEGGA. Marketing Lorem copy + the
-  // social block are left for the dedicated content task. Targets exact demo
-  // values so the global footer (info@home.com…) is untouched.
+  // The right-hand "Reach us directly" column is entirely demo (Lorem copy, a
+  // fake email box, social block) → remove it and centre the form. Also de-Lorem
+  // the hero subtitle + localise the heading.
   function localisePage() {
     Array.prototype.forEach.call(document.querySelectorAll('h1'), function (h) {
       if (/contact us/i.test(h.textContent)) h.textContent = 'Contactez-nous';
     });
-    var mail = document.querySelector('a[href="mailto:contact@property.com"]');
-    if (mail) {
-      mail.setAttribute('href', 'mailto:contact@megga.ch');
-      Array.prototype.forEach.call(mail.querySelectorAll('div'), function (d) {
-        if (/contact@property\.com/i.test(d.textContent)) d.textContent = 'contact@megga.ch';
+    var heroP = Array.prototype.filter.call(document.querySelectorAll('p'), function (p) {
+      return /^Lorem ipsum/i.test(p.textContent.trim());
+    })[0];
+    if (heroP) heroP.textContent = 'Une question ? Écrivez-nous — notre équipe vous répond rapidement.';
+
+    // Drop the whole demo info column (every grid child that isn't the form).
+    var grid = document.querySelector('.contact-grid-v1');
+    if (grid) {
+      Array.prototype.forEach.call(grid.children, function (col) {
+        if (!col.querySelector('#' + FORM_ID)) col.style.display = 'none';
       });
-    }
-    var tel = document.querySelector('a[href^="tel:(414)"]');
-    if (tel) {
-      var block = tel.closest('.contact-link---icon-left') || tel.parentElement;
-      if (block) block.style.display = 'none';
+      grid.style.gridTemplateColumns = '1fr';
+      grid.style.maxWidth = '720px';
+      grid.style.margin = '0 auto';
     }
   }
 
