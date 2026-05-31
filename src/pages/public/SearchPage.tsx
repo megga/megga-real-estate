@@ -282,6 +282,20 @@ export default function SearchPage({ context }: SearchPageProps = {}) {
     overscan: 3,
   })
 
+  // Infinite scroll — auto-load the next page once the last virtualized row
+  // enters the render window (overscan 3 prefetches ~3 rows before the bottom,
+  // so the next batch is ready before the user hits the end). `isFetchingNextPage`
+  // guards against double-fetch; once the rows grow, the condition resets until
+  // the user scrolls further. The manual "Load more" button below stays as an
+  // explicit fallback (keyboard users, or when content is shorter than the list).
+  const lastVisibleRow = rowVirtualizer.getVirtualItems().at(-1)?.index
+  useEffect(() => {
+    if (lastVisibleRow == null) return
+    if (lastVisibleRow >= rows.length - 1 && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }, [lastVisibleRow, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage])
+
   const hasActiveFilters =
     filters.types.length > 0 ||
     filters.minPrice !== '' ||
