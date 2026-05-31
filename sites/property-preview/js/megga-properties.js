@@ -3,6 +3,23 @@
 (function () {
   function qp(name) { return new URLSearchParams(location.search).get(name) || ''; }
 
+  // Webflow only puts a `max-height` on the card image box (no fixed height /
+  // aspect-ratio), so each photo renders at its natural ratio capped at 364px —
+  // landscape shots come out short, square/portrait ones hit the cap → a ragged
+  // grid. Pin a fixed 4:3 box and let object-fit:cover crop, so every card photo
+  // is the same (larger) size. Scoped to the properties grid; injected once.
+  function injectCardImageFix() {
+    if (document.getElementById('megga-card-image-fix')) return;
+    var css =
+      '.properties-grid---v1 .property-card-top-content-v1{max-height:none}' +
+      '.properties-grid---v1 .image-wrapper.border-radius-image-default.property-card-top-content-v1---image{aspect-ratio:4/3;height:auto;flex:none;width:100%;display:block}' +
+      '.properties-grid---v1 .image-wrapper.property-card-top-content-v1---image .cover-image{width:100%;height:100%;object-fit:cover;display:block}';
+    var s = document.createElement('style');
+    s.id = 'megga-card-image-fix';
+    s.textContent = css;
+    document.head.appendChild(s);
+  }
+
   function fillCard(node, item) {
     var M = window.MeggaSupabase;
     var isBuy = item.transaction_type === 'buy';
@@ -71,6 +88,7 @@
   }
 
   function run() {
+    injectCardImageFix();
     var grid = document.querySelector('.grid-2-columns.properties-grid---v1.w-dyn-items');
     if (!grid) return;
     var template = grid.querySelector('.w-dyn-item');

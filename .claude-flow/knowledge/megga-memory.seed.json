@@ -568,6 +568,12 @@
       "tags": "marketplace,search,frontend"
     },
     {
+      "key": "megga/storefront-static",
+      "namespace": "megga",
+      "value": "Storefront statique megga.ch (sites/property-preview, Webflow Property X V3) = LA marketplace publique (decision user mai 2026), distincte de la SPA React app.megga.ch (qui a la vraie SearchPage/fiche/Mapbox). Cloudflare Pages + _worker.js: Basic Auth ai/ai + proxy /api/listings -> market_listings (anon key server-side, evite CORS). Grille /company-pages/properties.html peuplee par js/megga-properties.js (clone la demo card .w-dyn-item, remplit img.cover-image/titre/prix/adresse/features; recherche via megga-supabase.js + ch-cities.js). Cartes: Webflow ne pose qu'un max-height 364px -> photos a leur ratio naturel = grille en dents de scie; fix injecte 'megga-card-image-fix' = aspect-ratio 4/3 + object-fit cover (scope .properties-grid---v1). BUG OUVERT: clic carte -> /property/luxury-loft-in-san-francisco.html?id=<uuid> qui IGNORE le ?id (page demo figee) -> placeholder; manque un reader single-property statique.",
+      "tags": "marketplace,storefront,static,critical"
+    },
+    {
       "key": "megga/search-filters",
       "namespace": "megga",
       "value": "Filtres marketplace. 8 types (apartment/house/villa/commercial/office/parking/storage/land, multi-select), contexte buy/rent (rent ajoute Meuble + Dispo immediate, retire 'recommended'). Principaux (FilterPill): lieu (city ILIKE OU canton eq, exclusifs), prix min/max (CHF buy ou /mois rent + presets), pieces >=, surface min. Avances (modal 'Plus de filtres'): bathrooms >=, annee (UI-only non appliquee backend), classe energie CECB A-G/minergie, 12 features (Balcon/Parking/Garage/Jardin/Ascenseur/Vue lac/Vue pano/Cheminee/Clim/Cave/Terrasse/Piscine). Tri: relevance/recommended/price_asc/price_desc/newest/surface_desc/best_deals. toServerFilters mappe les features -> 11 colonnes booleennes (has_balcony, has_parking, has_garage, has_elevator, is_furnished, has_fireplace, has_nice_view, has_swimming_pool, is_minergie, pets_allowed, is_new_building).",
