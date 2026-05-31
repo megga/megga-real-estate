@@ -8,7 +8,7 @@ test.describe('Seller portal (dev mock)', () => {
 
     await expect(page).toHaveURL(/\/portal/)
     await expect(
-      page.getByRole('heading', { name: /tout avance,? sereinement/i })
+      page.getByRole('heading', { name: /où en est votre vente/i })
     ).toBeVisible()
   })
 

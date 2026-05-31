@@ -13,6 +13,7 @@ export interface SellerProperty {
   surface_m2: number
   type: string
   photo: string
+  photos?: string[]
   status: 'active' | 'reserved' | 'sold'
   mandate_type: 'exclusive' | 'simple'
   mandate_signed_at: string
@@ -96,6 +97,13 @@ export const MOCK_SELLER_DATA: SellerPortalData = {
     surface_m2: 145,
     type: 'apartment',
     photo: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=500&fit=crop',
+    photos: [
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&h=800&fit=crop',
+    ],
     status: 'active',
     mandate_type: 'exclusive',
     mandate_signed_at: '2026-02-10T10:00:00Z',

@@ -36,7 +36,7 @@
     {
       "key": "megga/audiences-routing",
       "namespace": "megga",
-      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace SPA app.megga.ch (/buy /rent SearchPage; fiche /propriete/:id -> PropertyXSinglePropertyPage Property X, alias /listing/:id) -- NB le storefront PUBLIC pre-launch = site STATIQUE megga.ch (cf storefront-static), pas la SPA. Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token/*). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
+      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace SPA app.megga.ch (/buy /rent SearchPage; fiche /propriete/:id -> PropertyXSinglePropertyPage Property X, alias /listing/:id) -- NB le storefront PUBLIC pre-launch = site STATIQUE megga.ch (cf storefront-static), pas la SPA. Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token = page unique « Votre vente » Sugar Pure lecture seule; + /portal dev mock). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
       "tags": "frontend,routing,audiences"
     },
     {
@@ -54,7 +54,7 @@
     {
       "key": "megga/db-domains",
       "namespace": "megga",
-      "value": "Tables par domaine: tenant (agencies, profiles, agency_profiles, agent_profiles, team_invitations); contacts (contacts, seller_leads, contact_scores); biens (properties, listings, market_listings ~33k, external_listings); pipeline (transactions, crm_offers+history, visits, client_searches, matches); KYC (kyc_cases, kyc_checklist_items, kyc_magic_links+uploads, kyc_screening_decisions, documents); portail (seller_portals, vendor_dossiers); billing (subscriptions); messaging (message_threads, messages, email_messages_cache); audit (activity_events, auth_events, platform_metrics, flatfox_sync_runs). Detail: docs/schema.md.",
+      "value": "Tables par domaine: tenant (agencies, profiles, agency_profiles, agent_profiles, team_invitations); contacts (contacts, seller_leads, contact_scores); biens (properties, listings, market_listings ~33k, external_listings); pipeline (transactions, crm_offers+history, visits, client_searches, matches); KYC (kyc_cases, kyc_checklist_items, kyc_magic_links+uploads, kyc_screening_decisions, documents); portail (seller_portals, seller_preferences, vendor_dossiers); billing (subscriptions); messaging (message_threads, messages, email_messages_cache); audit (activity_events, auth_events, platform_metrics, flatfox_sync_runs). Detail: docs/schema.md.",
       "tags": "database,schema"
     },
     {
@@ -120,7 +120,7 @@
     {
       "key": "megga/flow-portal-kyc",
       "namespace": "megga",
-      "value": "FLUX C (portail vendeur token): agent cree seller_portals (token 6 mois) -> vendeur /portal/:token sans login -> RLS via token (READ property/transac, UPLOAD documents) -> updates visibles CRM -> expiry revoque. FLUX D (KYC Dilisense): transaction reserved -> kyc_cases (vigilance standard/renforcee selon montant + source des fonds) -> magic link upload (OCR, sha256) -> screening async Dilisense -> kyc_screening_decisions (PEP/sanctions) -> revue humaine MLRO -> analyse qualitative Claude (assist).",
+      "value": "FLUX C (portail vendeur token): agent cree seller_portals (token 6 mois) -> vendeur /portal/:token sans login -> page unique « Votre vente » (VotreVentePage, Sugar Pure, lecture seule; remplace l'ancien mini-CRM 8 pages) -> RLS via token (READ property/transac, UPLOAD documents) -> updates visibles CRM -> expiry revoque. FLUX D (KYC Dilisense): transaction reserved -> kyc_cases (vigilance standard/renforcee selon montant + source des fonds) -> magic link upload (OCR, sha256) -> screening async Dilisense -> kyc_screening_decisions (PEP/sanctions) -> revue humaine MLRO -> analyse qualitative Claude (assist).",
       "tags": "flow,portal,kyc"
     },
     {
@@ -216,7 +216,7 @@
     {
       "key": "megga/components-tree",
       "namespace": "megga",
-      "value": "Composants (src/components/): propertyx/ (atoms Px* = source de verite + sections/), ui/ (primitives headless + Motion: modal/dialog/Sheet/Toast/Shimmer/popover/tabs/context-menu), layout/ (ProtectedRoute, PasswordGate, StaleBundleDetector, AgentLayout, AgentSugarLayout), crm-sugar/ + crm-sugar-v3/ (shell CRM, contact detail, KYC pixel-pres, tokens dark). Domaines: search listings matching transactions kyc* documents calendar messaging portal onboarding* admin directory map ai-copilot skeletons auth-bento.",
+      "value": "Composants (src/components/): propertyx/ (atoms Px* = source de verite + sections/), ui/ (primitives headless + Motion: modal/dialog/Sheet/Toast/Shimmer/popover/tabs/context-menu), layout/ (ProtectedRoute, PasswordGate, StaleBundleDetector, AgentLayout, AgentSugarLayout), crm-sugar/ + crm-sugar-v3/ (shell CRM, contact detail, KYC pixel-pres, tokens dark). Domaines: search listings matching transactions kyc* documents calendar messaging portal seller-portal/votre-vente onboarding* admin directory map ai-copilot skeletons auth-bento.",
       "tags": "frontend,components"
     },
     {
@@ -728,6 +728,29 @@
       "namespace": "megga",
       "value": "Parcours agent complet (audite section par section, hardening pre-lancement fait). 1) AUTH/SIGNUP: /auth/signup (auth-bento, AuthBentoApp+BentoFormCard). signUp(email,pwd,fullName,role='agent',captcha) -> trigger DB on_auth_user_created -> handle_new_user() cree profiles (role='buyer' par defaut, agency_id NULL). Verif email, magic-link, reset, OAuth Google/MS, audit auth_events (log-auth-event), Turnstile, mdp 12 car (passwordRules). Champ AGENCE retire du signup (l'agence se cree au wizard). Legacy LoginPage SUPPRIME (/login,/register redirigent vers /auth/*). 2) GATE: ProtectedRoute (guards REACTIVES): loading->SmartPageLoader; !user->/auth/login (bypass dev=MOCK_USER ok); puis onboarding_completed===false->/dashboard/onboarding; first_day_done===false->/dashboard/premier-jour; sinon CRM. Loop-safe via skipOnboardingCheck sur onboarding+premier-jour. 3) WIZARD /dashboard/onboarding (OnboardingShell): Splash -> StepKYC(info) -> StepAgence(search/create/join via RPC create_agency_and_join | join_agency, etat ERREUR+Reessayer si echec, bouton 'Simuler' retire) -> StepProfilAgence -> StepProfilAgent(nom pre-rempli du profil, plus de demo 'Marie/Schaeffer') -> StepForfait(plan starter/pro sur agencies). finalizeOnboarding() detecte les echecs d'ecriture (toast/erreur, n'entre PAS si critique) puis enterCrm() set onboarding_completed=true. 4) PREMIER-JOUR (PremierJourShell): welcome->q0..q3->synthesis->configuring(D0Activation)->today. saveDay0Payload -> day0_payload + first_day_done + activity_events 'agent.first_day_completed' (idempotent). enterCrm: navigue SEULEMENT au succes, sinon toast (plus de boucle silencieuse). Skip calibrage RETIRE (code mort nettoye). Colonnes profiles du gate: role, agency_id, agent_role, onboarding_completed/step, first_day_done, first_day_completed_at, day0_payload. Tables: agencies, agency_profiles, agent_profiles, subscriptions, team_invitations, kyc_cases. Backlog (minors restants): CGU/consentement (volontairement non ajoute), responsive mobile wizard, join_agency attache directe vs UI 'admin valide', plan non sauve si agent rejoint, '12 documents' hardcode, REVOKE check_email_exists(anon).",
       "tags": "frontend,onboarding,auth,signup,gate,wizard,premier-jour,compliance,launch"
+    },
+    {
+      "key": "megga/seller-votre-vente",
+      "namespace": "megga",
+      "value": "Espace vendeur = page unique « Votre vente » (src/pages/particulier/VotreVentePage.tsx + src/components/seller-portal/votre-vente/). Remplace l'ancien mini-CRM 8 pages (supprime). Acces par lien personnel token (seller_portals, sans compte auth), lecture seule. Grammaire Sugar Pure (tokens SELLER_SP light/dark alignes SugarV3/DB_SP, Manrope, accent noir #0B0C0E, couleur en data-viz only). Blocs: header+parametres, carte bien+lightbox galerie, parcours arc 6 etapes (Mandat signe->En ligne->Visites->Offres->Negociation->Signe), 3 donuts (visites/offres/jours), offres + modal decision (accepter/contre-offrir/refuser -> transmis a l'agent, human-in-the-loop), timeline, carte agent WhatsApp/tel/email sticky, dark mode. Donnees: useSellerPortalData -> toVenteVM (viewModel.ts). Backend (Phase 2 FAIT): edge function seller-portal-action (deployee --no-verify-jwt, token seller_portals valide) -> action offer_decision = enregistre activity_event (actor_kind='system', category='deal') + TRANSMIS a l'agent, JAMAIS de mutation directe crm_offers/transactions (human-in-the-loop, lien fuite = blast radius minimal) ; save/get_preferences = table seller_preferences (RLS lecture agence get_my_agency_id, ecriture service_role). Frontend cable via api.ts (supabase.functions.invoke), token passe par PortalGateway -> VotreVentePage (modals envoi async). Handoff: docs/handoff/espace-vendeur/.",
+      "tags": [
+        "frontend",
+        "seller-portal",
+        "vendeur",
+        "sugar-pure"
+      ]
+    },
+    {
+      "key": "megga/agent-notifications",
+      "namespace": "megga",
+      "value": "Centre de notifications agent (cloche topbar -> SugarNotificationsPopover dans SugarShell) = REEL (remplace l'ancien mock SUGAR_NOTIFS). Hook src/hooks/useAgentNotifications.ts : lit activity_events NON-utilisateur (.neq actor_kind 'user' -> index partiel idx_activity_events_actor_kind), RLS scope agence (policy events_select = agency_id=get_my_agency_id()), realtime via useId() (pattern useAdminLiveFeed, sinon crash re-mount). Map activity_event -> SugarNotif (kind via action/category, priority via severity, group today/yesterday/older, time relatif, title=object_label||fallback). Etat NON-LU = last-seen ts + set d'ids en localStorage (activity_events immuable nLPD) ; markRead/markAllRead. Deep-link clic non cable (ctaTo vide = TODO). La decision vendeur (seller_offer_decision, actor_kind='system') y remonte + dans la timeline contact (CdTimelineCard, ACTION_LABELS['seller_offer_decision']='Décision du vendeur').",
+      "tags": [
+        "frontend",
+        "notifications",
+        "agent",
+        "activity_events",
+        "realtime"
+      ]
     }
   ]
 }

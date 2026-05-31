@@ -138,16 +138,10 @@ const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListi
 const OnboardingWizardPage = lazy(() => import('@/pages/agent/OnboardingWizardPage'))
 const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
 
-// Lazy-loaded seller portal pages
+// Lazy-loaded seller portal — page unique « Votre vente » (lecture seule, lien personnel).
+// PortalDevWrapper (mock) et PortalGateway (token) rendent désormais VotreVentePage.
 const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
 const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
-const MyFilePage = lazy(() => import('@/pages/particulier/MyFilePage'))
-const MyVisitsPage = lazy(() => import('@/pages/particulier/MyVisitsPage'))
-const MyOffersPage = lazy(() => import('@/pages/particulier/MyOffersPage'))
-const MyDocumentsPage = lazy(() => import('@/pages/particulier/MyDocumentsPage'))
-const MyMessagesPage = lazy(() => import('@/pages/particulier/MyMessagesPage'))
-const AnalyticsPage = lazy(() => import('@/pages/particulier/AnalyticsPage'))
-const MyProfilePage = lazy(() => import('@/pages/particulier/MyProfilePage'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 const AccountPage = lazy(() => import('@/pages/public/AccountPage'))
 
@@ -273,9 +267,10 @@ function VisitFeedbackRedirect() {
   const { id } = useParams()
   return <Navigate to={`/visit/${id}/feedback`} replace />
 }
-function PortalSubRedirect({ to }: { to: string }) {
+function PortalTokenRedirect() {
+  // Page unique : tout sous-chemin token (legacy ou bookmark) retombe sur /portal/:token.
   const { token } = useParams()
-  return <Navigate to={`/portal/${token}/${to}`.replace(/\/$/, '')} replace />
+  return <Navigate to={token ? `/portal/${token}` : '/portal'} replace />
 }
 function HelpCategoryRedirect() {
   const { category } = useParams()
@@ -426,27 +421,16 @@ function AnimatedRoutes() {
               <Route path="/support/:ticketNumber" element={<TicketStatusPage />} />
               <Route path="/support/:ticketNumber/feedback" element={<TicketFeedbackPage />} />
 
-              {/* Seller portal — direct access (dev/test) — wraps in
-                  SellerPortalProvider with MOCK_SELLER_DATA so child pages
-                  don't crash with "useSellerPortalData must be used inside
-                  SellerPortalProvider" (audit bug A2). */}
-              <Route path="/portal" element={<PortalDevWrapper />}>
-                <Route index element={<MyFilePage />} />
-                <Route path="visits" element={<MyVisitsPage />} />
-                <Route path="offers" element={<MyOffersPage />} />
-                <Route path="documents" element={<MyDocumentsPage />} />
-                <Route path="messages" element={<MyMessagesPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="profile" element={<MyProfilePage />} />
-              </Route>
-              {/* Legacy FR portal routes */}
+              {/* Seller portal — page unique « Votre vente » (dev/test, mock data). */}
+              <Route path="/portal" element={<PortalDevWrapper />} />
+              {/* Legacy FR portal routes → page unique */}
               <Route path="/portail" element={<Navigate to="/portal" replace />} />
-              <Route path="/portail/visites" element={<Navigate to="/portal/visits" replace />} />
-              <Route path="/portail/offres" element={<Navigate to="/portal/offers" replace />} />
-              <Route path="/portail/documents" element={<Navigate to="/portal/documents" replace />} />
-              <Route path="/portail/messages" element={<Navigate to="/portal/messages" replace />} />
-              <Route path="/portail/analyse" element={<Navigate to="/portal/analytics" replace />} />
-              <Route path="/portail/profil" element={<Navigate to="/portal/profile" replace />} />
+              <Route path="/portail/visites" element={<Navigate to="/portal" replace />} />
+              <Route path="/portail/offres" element={<Navigate to="/portal" replace />} />
+              <Route path="/portail/documents" element={<Navigate to="/portal" replace />} />
+              <Route path="/portail/messages" element={<Navigate to="/portal" replace />} />
+              <Route path="/portail/analyse" element={<Navigate to="/portal" replace />} />
+              <Route path="/portail/profil" element={<Navigate to="/portal" replace />} />
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
@@ -455,22 +439,17 @@ function AnimatedRoutes() {
               <Route path="/dev/configuring" element={<D0ConfiguringDemoPage />} />
               <Route path="/dev/activation" element={<D0ActivationDemoPage />} />
 
-              {/* Seller portal — tokenized access (production) */}
-              <Route path="/portal/:token" element={<PortalGateway />}>
-                <Route index element={<MyFilePage />} />
-                <Route path="visits" element={<MyVisitsPage />} />
-                <Route path="offers" element={<MyOffersPage />} />
-                <Route path="documents" element={<MyDocumentsPage />} />
-                <Route path="messages" element={<MyMessagesPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-              </Route>
+              {/* Seller portal — accès tokenisé (production), page unique « Votre vente ».
+                  Les anciens sous-chemins (visits/offers/…) retombent sur la page. */}
+              <Route path="/portal/:token" element={<PortalGateway />} />
+              <Route path="/portal/:token/*" element={<PortalTokenRedirect />} />
               {/* Legacy FR portal tokenized routes — keep magic links in emails working. */}
-              <Route path="/portail/:token" element={<PortalSubRedirect to="" />} />
-              <Route path="/portail/:token/visites" element={<PortalSubRedirect to="visits" />} />
-              <Route path="/portail/:token/offres" element={<PortalSubRedirect to="offers" />} />
-              <Route path="/portail/:token/documents" element={<PortalSubRedirect to="documents" />} />
-              <Route path="/portail/:token/messages" element={<PortalSubRedirect to="messages" />} />
-              <Route path="/portail/:token/analyse" element={<PortalSubRedirect to="analytics" />} />
+              <Route path="/portail/:token" element={<PortalTokenRedirect />} />
+              <Route path="/portail/:token/visites" element={<PortalTokenRedirect />} />
+              <Route path="/portail/:token/offres" element={<PortalTokenRedirect />} />
+              <Route path="/portail/:token/documents" element={<PortalTokenRedirect />} />
+              <Route path="/portail/:token/messages" element={<PortalTokenRedirect />} />
+              <Route path="/portail/:token/analyse" element={<PortalTokenRedirect />} />
 
               {/* Onboarding wizard (protected, no sidebar) */}
               <Route

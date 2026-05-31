@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MEGGA — Votre vente</title>
+  <link rel="icon" type="image/svg+xml" href="assets/megga-favicon.svg" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100vh; }
+    body {
+      font-family: Manrope, system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      background: #EDEFF3;
+    }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"
+    integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"
+    crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
+    integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"
+    crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
+    integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y"
+    crossorigin="anonymous"></script>
+</head>
+<body>
+  <template id="__bundler_thumbnail">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" rx="20" fill="#0B0C0E" />
+      <circle cx="50" cy="50" r="22" fill="none" stroke="#2A6FDB" stroke-width="7" stroke-linecap="round" stroke-dasharray="90 200" transform="rotate(-90 50 50)" />
+      <text x="50" y="58" text-anchor="middle" font-family="Manrope, sans-serif" font-size="22" font-weight="700" fill="#fff">M</text>
+    </svg>
+  </template>
+  <div id="root"></div>
+
+  <script src="image-slot.js"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="seller-sugar-tokens.jsx"></script>
+  <script type="text/babel" src="seller-sugar-page.jsx"></script>
+  <script type="text/babel" src="seller-sugar-offer-modal.jsx"></script>
+  <script type="text/babel" src="seller-sugar-settings-modal.jsx"></script>
+
+  <script type="text/babel">
+    const SP_DATA = null;
+
+    const STEPS = ["Mandat signé", "En ligne", "Visites", "Offres", "Négociation", "Signé"];
+
+    const STEP_SENTENCES = {
+      0: "Votre mandat est signé. Votre bien se prépare à entrer en ligne.",
+      1: "Votre bien vient d'être mis en ligne. Les premières visites s'organisent.",
+      2: "Votre bien est en ligne. Les visites sont en cours.",
+      3: "Vous avez reçu vos premières offres. Votre agent les étudie avec vous.",
+      4: "La négociation est en cours. Votre agent défend le meilleur prix pour vous.",
+      5: "La vente est signée. Félicitations — tout est finalisé.",
+    };
+
+    const AGENT = {
+      name: "Gregory Lyonnet",
+      role: "Votre agent",
+      whatsapp: "https://wa.me/41791234567",
+      phone: "tel:+41791234567",
+      email: "mailto:gregory.lyonnet@megga.ch",
+    };
+
+    // ─── Biens du vendeur (multi-annonces) ────────────────────────────
+    const PROPERTIES = [
+      {
+        id: "rhone",
+        label: "Rue du Rhône",
+        title: "Appartement lumineux 4.5 pièces",
+        address: "Rue du Rhône 12", city: "1204 Genève", canton: "Genève",
+        attrs: ["4.5 pièces", "120 m²", "Appartement"],
+        price: 1250000, mandate: "Mandat exclusif", daysOnline: 12,
+        step: 3,
+        stats: { visits: { value: 8, sub: "dont 3 ce mois-ci" } },
+        offers: [{ amount: 1180000, status: "pending", date: "28 mai 2026" }],
+        activity: [
+          { text: "Visite planifiée pour samedi", when: "il y a 2 j" },
+          { text: "Offre reçue à CHF 1'180'000", when: "il y a 2 j" },
+          { text: "Nouvelle visite effectuée", when: "il y a 4 j" },
+          { text: "Votre bien est en ligne", when: "il y a 12 j" },
+        ],
+        nextStep: "Votre agent vous présentera chaque offre dès réception, et vous accompagnera à chaque décision.",
+      },
+      {
+        id: "cologny",
+        label: "Villa Cologny",
+        title: "Villa contemporaine 7 pièces",
+        address: "Chemin de la Gradelle 8", city: "1223 Cologny", canton: "Genève",
+        attrs: ["7 pièces", "240 m²", "Villa"],
+        price: 3850000, mandate: "Mandat exclusif", daysOnline: 34,
+        step: 4,
+        stats: { visits: { value: 15, sub: "dont 5 ce mois-ci" } },
+        offers: [
+          { amount: 3700000, status: "counter", date: "27 mai 2026" },
+          { amount: 3650000, status: "pending", date: "22 mai 2026" },
+        ],
+        activity: [
+          { text: "Contre-offre transmise à CHF 3'850'000", when: "il y a 1 j" },
+          { text: "Offre reçue à CHF 3'700'000", when: "il y a 4 j" },
+          { text: "Visite privée organisée", when: "il y a 6 j" },
+          { text: "Votre bien est en ligne", when: "il y a 34 j" },
+        ],
+        nextStep: "La négociation est ouverte. Votre agent défend votre prix et revient vers vous sous 48h.",
+      },
+      {
+        id: "eauxvives",
+        label: "Studio Eaux-Vives",
+        title: "Studio rénové 1.5 pièce",
+        address: "Rue des Eaux-Vives 45", city: "1207 Genève", canton: "Genève",
+        attrs: ["1.5 pièce", "38 m²", "Studio"],
+        price: 545000, mandate: "Mandat simple", daysOnline: 5,
+        step: 1,
+        stats: { visits: { value: 2, sub: "cette semaine" } },
+        offers: [],
+        activity: [
+          { text: "2 demandes de visite reçues", when: "il y a 1 j" },
+          { text: "Votre bien est en ligne", when: "il y a 5 j" },
+          { text: "Photos professionnelles validées", when: "il y a 7 j" },
+        ],
+        nextStep: "Votre bien vient d'être publié. Les premières visites se planifient cette semaine.",
+      },
+    ];
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "etapeOverride": "auto",
+      "offresOverride": "deux",
+      "offreStatut": "pending"
+    }/*EDITMODE-END*/;
+
+    const VentePage = () => {
+      const [tweaks, setTweak] = window.useTweaks
+        ? window.useTweaks(TWEAK_DEFAULTS)
+        : [TWEAK_DEFAULTS, () => {}];
+
+      const agentRef = React.useRef(null);
+      const [activeProperty, setActiveProperty] = React.useState(0);
+      const [activeOffer, setActiveOffer] = React.useState(null);
+      const [galleryProp, setGalleryProp] = React.useState(null);
+      const [showSettings, setShowSettings] = React.useState(false);
+      const [dark, setDark] = React.useState(false);
+      const [settings, setSettings] = React.useState({
+        notifOffre: true, notifVisite: true, notifRetour: true, notifResume: true,
+        jours: ["mer", "sam"], creneaux: ["apresmidi"], preavis: "24h",
+        langue: "fr", canal: "whatsapp",
+      });
+      const updateSetting = (k, v) => setSettings((s) => ({ ...s, [k]: v }));
+
+      // Palette active selon le dark mode (lue par tous les composants)
+      window.SELLER_SP = dark ? window.SELLER_SP_DARK : window.SELLER_SP_LIGHT;
+      const SP = window.SELLER_SP;
+      React.useEffect(() => {
+        document.body.style.background = window.SELLER_SP.bg;
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      }, [dark]);
+
+      const scrollToAgent = () => {
+        const el = agentRef.current;
+        if (el) {
+          const top = el.getBoundingClientRect().top + window.scrollY - 32;
+          window.scrollTo({ top, behavior: "smooth" });
+        }
+      };
+
+      // Bien actif (multi-annonces)
+      const prop = PROPERTIES[Math.min(activeProperty, PROPERTIES.length - 1)];
+
+      // Étape : selon le bien, ou forcée via Tweak
+      const current = tweaks.etapeOverride === "auto"
+        ? prop.step
+        : Math.max(0, Math.min(5, parseInt(tweaks.etapeOverride, 10)));
+
+      // Offres : selon le bien, ou forcées via Tweak
+      let offers;
+      if (tweaks.offresOverride === "auto") offers = prop.offers;
+      else if (tweaks.offresOverride === "aucune") offers = [];
+      else if (tweaks.offresOverride === "deux") {
+        offers = [
+          { amount: 1210000, status: "counter", date: "29 mai 2026" },
+          { amount: 1180000, status: tweaks.offreStatut, date: "28 mai 2026" },
+        ];
+      } else {
+        offers = [{ amount: 1180000, status: tweaks.offreStatut, date: "28 mai 2026" }];
+      }
+
+      const stats = {
+        visits: prop.stats.visits,
+        offers: offers.length,
+        days: prop.daysOnline,
+      };
+
+      return (
+        <div style={{
+          minHeight: "100vh", background: SP.bgGradient,
+          fontFamily: "Manrope, system-ui, sans-serif", color: SP.ink,
+        }}>
+          <style>{window.SELLER_CSS}</style>
+
+          <div className="sv-page" style={{ maxWidth: 1160, margin: "0 auto", padding: "40px 40px 56px" }}>
+            <window.SvHeader agent={AGENT} onAgentClick={scrollToAgent} onSettingsClick={() => setShowSettings(true)} />
+
+            <window.SvPropertySwitcher properties={PROPERTIES} active={activeProperty} onSelect={setActiveProperty} />
+
+            <window.SvPropertyCard property={prop} delay={40} onOpenGallery={setGalleryProp} />
+
+            <window.SvJourneyCard
+              steps={STEPS} current={current}
+              sentence={STEP_SENTENCES[current]} delay={120} />
+
+            {/* Deux colonnes */}
+            <div className="sv-twocol" style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 28, alignItems: "start" }}>
+              {/* Colonne gauche */}
+              <div>
+                <window.SvStatsRow stats={stats} delay={200} />
+                <window.SvOffersCard offers={offers} askingPrice={prop.price} onRespond={setActiveOffer} delay={260} />
+                <window.SvActivityCard events={prop.activity} delay={320} />
+              </div>
+
+              {/* Colonne droite — sticky */}
+              <div className="sv-aside" style={{ position: "sticky", top: 32 }}>
+                <window.SvAgentCard agent={AGENT} anchorRef={agentRef} delay={240} />
+              </div>
+            </div>
+
+            <window.SvFooter />
+          </div>
+
+          {galleryProp && (
+            <window.SvGalleryLightbox
+              property={galleryProp}
+              onClose={() => setGalleryProp(null)}
+            />
+          )}
+
+          {activeOffer && (
+            <window.SvOfferModal
+              offer={activeOffer}
+              askingPrice={prop.price}
+              agent={AGENT}
+              onClose={() => setActiveOffer(null)}
+            />
+          )}
+
+          {showSettings && (
+            <window.SvSettingsModal
+              settings={settings}
+              onChange={updateSetting}
+              dark={dark}
+              onDark={setDark}
+              onClose={() => setShowSettings(false)}
+            />
+          )}
+
+          {/* Tweaks */}
+          {window.TweaksPanel && (
+            <window.TweaksPanel title="Tweaks">
+              <window.TweakSection label="Avancement de la vente">
+                <window.TweakSelect
+                  label="Étape courante"
+                  value={String(tweaks.etapeOverride)}
+                  options={[
+                    { value: "auto", label: "Selon le bien" },
+                    { value: "0", label: "Mandat signé" },
+                    { value: "1", label: "En ligne" },
+                    { value: "2", label: "Visites" },
+                    { value: "3", label: "Offres" },
+                    { value: "4", label: "Négociation" },
+                    { value: "5", label: "Signé" },
+                  ]}
+                  onChange={(v) => setTweak('etapeOverride', v)}
+                />
+              </window.TweakSection>
+
+              <window.TweakSection label="Carte Offres">
+                <window.TweakRadio
+                  label="Nombre d'offres"
+                  value={tweaks.offresOverride}
+                  options={[
+                    { value: "auto", label: "Bien" },
+                    { value: "aucune", label: "0" },
+                    { value: "une", label: "1" },
+                    { value: "deux", label: "2" },
+                  ]}
+                  onChange={(v) => setTweak('offresOverride', v)}
+                />
+                <window.TweakSelect
+                  label="Statut de l'offre"
+                  value={tweaks.offreStatut}
+                  options={[
+                    { value: "pending", label: "En attente" },
+                    { value: "counter", label: "Contre-offre" },
+                    { value: "accepted", label: "Acceptée" },
+                  ]}
+                  onChange={(v) => setTweak('offreStatut', v)}
+                />
+              </window.TweakSection>
+            </window.TweaksPanel>
+          )}
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<VentePage />);
+  </script>
+</body>
+</html>

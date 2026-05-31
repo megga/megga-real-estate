@@ -184,6 +184,7 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
           surface_m2: property?.surface_m2 || 0,
           type: property?.type || 'apartment',
           photo: property?.photos?.[0] || '',
+          photos: property?.photos || [],
           status: (property?.status === 'active' || property?.status === 'reserved' || property?.status === 'sold')
             ? property.status as 'active' | 'reserved' | 'sold'
             : 'active',
@@ -345,7 +346,6 @@ export function useSellerPortals() {
     return existing
   }, [getPortalForContact])
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const markInviteSent = useCallback((_portalId: string) => {
     // No-op — invite tracking is handled by activity_events
   }, [])
