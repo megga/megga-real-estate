@@ -733,6 +733,18 @@
         "vendeur",
         "sugar-pure"
       ]
+    },
+    {
+      "key": "megga/agent-notifications",
+      "namespace": "megga",
+      "value": "Centre de notifications agent (cloche topbar -> SugarNotificationsPopover dans SugarShell) = REEL (remplace l'ancien mock SUGAR_NOTIFS). Hook src/hooks/useAgentNotifications.ts : lit activity_events NON-utilisateur (.neq actor_kind 'user' -> index partiel idx_activity_events_actor_kind), RLS scope agence (policy events_select = agency_id=get_my_agency_id()), realtime via useId() (pattern useAdminLiveFeed, sinon crash re-mount). Map activity_event -> SugarNotif (kind via action/category, priority via severity, group today/yesterday/older, time relatif, title=object_label||fallback). Etat NON-LU = last-seen ts + set d'ids en localStorage (activity_events immuable nLPD) ; markRead/markAllRead. Deep-link clic non cable (ctaTo vide = TODO). La decision vendeur (seller_offer_decision, actor_kind='system') y remonte + dans la timeline contact (CdTimelineCard, ACTION_LABELS['seller_offer_decision']='Décision du vendeur').",
+      "tags": [
+        "frontend",
+        "notifications",
+        "agent",
+        "activity_events",
+        "realtime"
+      ]
     }
   ]
 }

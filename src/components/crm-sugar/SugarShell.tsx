@@ -8,7 +8,7 @@ import CRMIcon, { type CrmIconName } from './CRMIcon'
 import type { CrmTheme, SugarPalette } from './tokens'
 // CRM_AGENT mock retiré — l'avatar lit `useAuth().profile` (vrai utilisateur)
 import SugarNotificationsPopover from './notifications/SugarNotificationsPopover'
-import { SUGAR_NOTIFS, type SugarNotif } from './notifications/data'
+import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import SugarProfileDropdown from './profile/SugarProfileDropdown'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -66,12 +66,11 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
   const displayRole = profile?.role
     ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
     : 'Agent'
-  const [notifs, setNotifs] = useState<SugarNotif[]>(SUGAR_NOTIFS)
+  const { items: notifs, unreadCount, markRead, markAllRead } = useAgentNotifications()
   const [notifOpen, setNotifOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const notifAnchorRef = useRef<HTMLDivElement>(null)
   const profileAnchorRef = useRef<HTMLDivElement>(null)
-  const unreadCount = notifs.filter(n => !n.read).length
 
   useEffect(() => {
     if (!notifOpen && !profileOpen) return
@@ -189,15 +188,14 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
               dark={dark}
               items={notifs}
               onItemClick={(n) => {
-                setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
+                markRead(n.id)
                 setNotifOpen(false)
                 if (onNavigate && n.ctaTo) {
-                  // Map ctaTo to SugarScreenId when possible
-                  const target = n.ctaTo as SugarScreenId
-                  onNavigate(target)
+                  // Deep-link futur : ctaTo est vide pour l'instant (cf. useAgentNotifications).
+                  onNavigate(n.ctaTo as SugarScreenId)
                 }
               }}
-              onMarkAll={() => setNotifs(prev => prev.map(n => ({ ...n, read: true })))}
+              onMarkAll={() => markAllRead()}
               onSeeAll={() => setNotifOpen(false)}
               onMute={() => setNotifOpen(false)}
             />
@@ -302,11 +300,9 @@ export function SugarIconRail({
     )
   }
 
-  const Divider = () => (
-    <div style={{
-      width: 28, height: 1, background: dividerColor, margin: '6px 0', borderRadius: 999,
-    }} />
-  )
+  const dividerStyle = {
+    width: 28, height: 1, background: dividerColor, margin: '6px 0', borderRadius: 999,
+  } as const
 
   return (
     <aside style={{
@@ -319,7 +315,7 @@ export function SugarIconRail({
       {modules.map(it => <RailBtn key={it.id} it={it} />)}
       {tools.map(it => <RailBtn key={it.id} it={it} />)}
 
-      {extraBottomBtn && <>{extraBottomBtn}<Divider /></>}
+      {extraBottomBtn && <>{extraBottomBtn}<div style={dividerStyle} /></>}
 
       <button title="Réglages" onClick={() => onNavigate && onNavigate('settings')} style={{
         width: 52, height: 52, borderRadius: 16, border: 0,

@@ -21,6 +21,11 @@ const CATEGORY_TO_ICON: Record<string, string> = {
   ai: 'sparkle',
 }
 
+// Libellés FR pour les actions techniques (fallback = action brute → comportement inchangé).
+const ACTION_LABELS: Record<string, string> = {
+  seller_offer_decision: 'Décision du vendeur',
+}
+
 export function CdTimelineCard({ events }: Props) {
   const sorted = [...events].sort(
     (a, b) =>
@@ -121,7 +126,7 @@ export function CdTimelineCard({ events }: Props) {
                       marginBottom: 3,
                     }}
                   >
-                    {ev.action}
+                    {ACTION_LABELS[ev.action] ?? ev.action}
                   </div>
                   <div
                     style={{
