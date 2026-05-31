@@ -23,6 +23,7 @@
   function setPhoto(img, url) {
     if (!img) return;
     img.removeAttribute('srcset');
+    img.setAttribute('referrerpolicy', 'no-referrer'); // Flatfox CDN anti-hotlink
     if (!url) { imgFallback(img); return; }
     img.onerror = function () { imgFallback(img); };
     img.style.display = '';
