@@ -36,7 +36,7 @@
     {
       "key": "megga/audiences-routing",
       "namespace": "megga",
-      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace publique (/buy /rent SearchPage; fiche bien /propriete/:id -> PropertyXSinglePropertyPage (Property X), alias back-compat /listing/:id). Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token/*). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
+      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace SPA app.megga.ch (/buy /rent SearchPage; fiche /propriete/:id -> PropertyXSinglePropertyPage Property X, alias /listing/:id) -- NB le storefront PUBLIC pre-launch = site STATIQUE megga.ch (cf storefront-static), pas la SPA. Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token/*). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
       "tags": "frontend,routing,audiences"
     },
     {

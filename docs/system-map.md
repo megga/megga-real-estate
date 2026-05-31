@@ -89,7 +89,7 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|
-| **Marketplace publique** | `/buy` `/rent` · fiche `/propriete/:id` (alias `/listing/:id`) | `SearchPage` (filtres, favoris, carte Mapbox lazy, comparateur), `PropertyXSinglePropertyPage` (direction artistique Property X — sections `PxSingleProperty*` ; tous les liens biens pointent `/propriete/:id`) |
+| **Marketplace SPA** (app.megga.ch) | `/buy` `/rent` · fiche `/propriete/:id` (alias `/listing/:id`) | `SearchPage` (filtres, favoris, Mapbox lazy, comparateur, scroll infini), `PropertyXSinglePropertyPage` (Property X). ⚠️ Le storefront **public** pré-lancement est le site **statique** megga.ch (`sites/property-preview`, cf §1 & §4bis), **pas** cette SPA. |
 | **Marketing public** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` `/help*` | pages secondaires + centre d'aide |
 | **Compte visiteur** | `/account` | favoris, recherches sauvegardées, messagerie acheteur |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
@@ -187,6 +187,17 @@ FR (défaut, eager) + DE/EN/IT (lazy). 16 namespaces : `common, dashboard, setti
 | **Pas de colonnes lourdes en liste** (`description`, `photos`) | 66MB scan ; charger en page détail |
 
 Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `idx_market_listings_tx_type_status`.
+
+---
+
+## 4bis · Storefront public statique (megga.ch) 🌐
+
+> **C'est LA marketplace publique pré-lancement** (décision produit) — un site **Webflow Property X V3** statique dans [`sites/property-preview/`](../sites/property-preview/), distinct de la SPA React (app.megga.ch, §2). Overlay sur `dist/` au build via `scripts/overlay-storefront.mjs` (`MEGGA_BUILD_TARGET`).
+
+- **Worker** (`_worker.js`, Cloudflare Pages advanced) : Basic Auth (`ai`/`ai`, gate pré-lancement) + proxy **`/api/listings`** → `market_listings` (anon key côté serveur, évite CORS navigateur).
+- **Grille** `company-pages/properties.html` : peuplée par `js/megga-properties.js` (clone la demo card Webflow, remplit photo/titre/prix/adresse/features ; recherche lieu via `js/megga-supabase.js` + `js/ch-cities.js`). Photos cartes pinnées **4:3** (`object-fit:cover`, fix `megga-card-image-fix`).
+- **Fiche bien** `property/luxury-loft-in-san-francisco.html` (cible unique de toutes les cartes, `?id=<uuid>`) : `js/megga-property.js` lit `?id` → fetch `/api/listings` → remplit galerie (image + miniatures + lightbox `w-json`), titre, prix CHF, adresse, détails (m²/pièces/sdb/garage), Description, équipements FR (Piscine/Ascenseur/Garage/Cheminée via `has_*`) ; retire l'agent démo + tout le « Lorem ipsum » ; `referrerpolicy=no-referrer` sur les photos (anti-hotlink Flatfox). Sans `?id` → reste la démo.
+- **Limite connue** : section « More properties » de la fiche **masquée** (pas encore peuplée de biens similaires).
 
 ---
 
