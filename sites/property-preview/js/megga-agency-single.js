@@ -92,10 +92,13 @@
     var M = window.MeggaSupabase;
     var loc = [agency.city, agency.canton].filter(Boolean).join(' · ') || 'Suisse';
 
-    // Reveal everything Webflow IX2 left hidden (opacity:0 / off-screen transform).
-    $all('[style]').forEach(function (el) {
-      if (el.style.opacity === '0') el.style.opacity = '1';
-      if (/translate|scale|rotate/.test(el.style.transform || '')) el.style.transform = 'none';
+    // Reveal Webflow IX2-hidden CONTENT (opacity:0 / off-screen transform).
+    // Scoped to <section>s and skips nav/dropdown/modal/lightbox so we never
+    // accidentally pop open hidden navigation or overlays.
+    $all('section, section [style]').forEach(function (el) {
+      if (el.closest('.w-nav, .w-dropdown, [class*="modal"], [class*="popup"], [class*="lightbox"]')) return;
+      if (el.style && el.style.opacity === '0') el.style.opacity = '1';
+      if (el.style && /translate|scale|rotate/.test(el.style.transform || '')) el.style.transform = 'none';
     });
 
     // ── Hero ──
@@ -131,6 +134,19 @@
         wc.style.display = 'none';
       }
     }
+    // Drop the mislabeled demo "Contact agent" CTA in the hero (the site link is
+    // already shown in the hero card; this is an agency, not an agent).
+    var hero = name && name.closest('section');
+    if (hero) {
+      $all('a, [class*="button"]', hero).forEach(function (el) {
+        if (/contact/i.test(el.textContent)) (el.closest('a') || el).style.display = 'none';
+      });
+    }
+    // Keep social/OG titles in sync for sharing.
+    ['og:title', 'twitter:title'].forEach(function (k) {
+      var m = document.querySelector('meta[property="' + k + '"]') || document.querySelector('meta[name="' + k + '"]');
+      if (m) m.setAttribute('content', (agency.name || 'Agence') + ' — MEGGA');
+    });
 
     // ── Hide the bio (About me / My experience) — only its grid column ──
     $all('h2').forEach(function (hh) {

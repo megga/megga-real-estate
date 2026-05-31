@@ -143,16 +143,22 @@
         grid.appendChild(fillCard(node, a));
       });
     }
+    refreshMeta(filtered);
+  }
+
+  function refreshMeta(filtered) {
+    filtered = filtered || applyFilters();
+    var vis = Math.min(state.shown, filtered.length);
     if (countEl) {
       countEl.textContent = filtered.length
         ? (filtered.length + ' agence' + (filtered.length > 1 ? 's' : '') +
-            (state.shown < filtered.length ? ' · ' + visible.length + ' affichées' : ''))
+            (state.shown < filtered.length ? ' · ' + vis + ' affichées' : ''))
         : '';
     }
     if (loadMoreBtn) loadMoreBtn.parentNode.style.display = (state.shown < filtered.length) ? 'flex' : 'none';
   }
 
-  function fetchAllAgencies(offset, acc) {
+  function fetchBatch(offset) {
     var params = new URLSearchParams();
     params.set('select', 'id,name,slug,canton,city,logo_url,website_url');
     params.set('logo_url', 'not.is.null');
@@ -160,14 +166,28 @@
     params.set('limit', String(FETCH_BATCH));
     params.set('offset', String(offset));
     return fetch('/api/agencies?' + params.toString())
-      .then(function (r) { if (!r.ok) throw new Error('proxy ' + r.status); return r.json(); })
+      .then(function (r) { if (!r.ok) throw new Error('proxy ' + r.status); return r.json(); });
+  }
+
+  // Progressive load: paint the first batch immediately, then keep fetching the
+  // rest in the background so the grid + filters cover the full set.
+  function loadAll(offset) {
+    fetchBatch(offset)
       .then(function (rows) {
-        if (!Array.isArray(rows)) return acc;
-        acc = acc.concat(rows);
-        if (rows.length === FETCH_BATCH && acc.length < 8000) {
-          return fetchAllAgencies(offset + FETCH_BATCH, acc); // next page
+        if (!Array.isArray(rows)) rows = [];
+        var firstPaint = all.length === 0;
+        all = all.concat(rows);
+        var more = rows.length === FETCH_BATCH && all.length < 8000;
+        if (firstPaint || !more) applyAndRender();
+        else refreshMeta();
+        if (more) loadAll(offset + FETCH_BATCH);
+      })
+      .catch(function (err) {
+        if (!all.length) {
+          console.error('[megga] agencies load failed:', err);
+          var msg = (err && err.message) ? err.message : String(err);
+          grid.innerHTML = '<div style="padding:24px;grid-column:1/-1;text-align:center">Une erreur est survenue (' + msg + '). Réessayez.</div>';
         }
-        return acc;
       });
   }
 
@@ -186,17 +206,7 @@
     }
     buildFilterBar();
     grid.innerHTML = '<div id="megga-status" style="padding:24px;grid-column:1/-1;text-align:center;color:#85838A">Chargement…</div>';
-
-    fetchAllAgencies(0, [])
-      .then(function (rows) {
-        all = rows || [];
-        applyAndRender();
-      })
-      .catch(function (err) {
-        console.error('[megga] agencies load failed:', err);
-        var msg = (err && err.message) ? err.message : String(err);
-        grid.innerHTML = '<div style="padding:24px;grid-column:1/-1;text-align:center">Une erreur est survenue (' + msg + '). Réessayez.</div>';
-      });
+    loadAll(0);
   }
 
   if (document.readyState !== 'loading') run();
