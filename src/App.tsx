@@ -317,10 +317,10 @@ function AnimatedRoutes() {
                   (PxSingleProperty* sections), data-connected via useListingDetail.
                   The whole marketplace (cards, preview modal/panel, favourites,
                   saved searches, "similar listings" carousels, lightbox share link,
-                  SEO canonical) points at /propriete/:id. /propriete without an :id
-                  renders the page's Figma demo state. */}
+                  SEO canonical) points at /propriete/:id. A bare /propriete (no id)
+                  isn't a real property, so it redirects to the search. */}
               <Route path="/propriete/:id" element={<PropertyXSinglePropertyPage />} />
-              <Route path="/propriete" element={<PropertyXSinglePropertyPage />} />
+              <Route path="/propriete" element={<Navigate to="/buy" replace />} />
               {/* Legacy /listing/:id → canonical /propriete/:id (back-compat). */}
               <Route path="/listing/:id" element={<ListingIdRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
