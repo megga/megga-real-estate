@@ -37,7 +37,7 @@
         if (wrap) wrap.style.background = '#EEEFF1';
       };
       if (photo) {
-        img.alt = item.title || 'Bien';
+        img.alt = item.title || 'Annonce';
         img.onerror = fallback; // expired Flatfox signature / 404 → neutral bg
         img.src = photo;
       } else {
@@ -50,7 +50,7 @@
 
     var title = node.querySelector('.property-card-bottom-content-v1 h2, .property-card-bottom-content-v1 h3');
     if (title) {
-      title.textContent = item.title || ((item.rooms ? item.rooms + ' pièces · ' : '') + (item.city || 'Bien'));
+      title.textContent = item.title || ((item.rooms ? item.rooms + ' pièces · ' : '') + (item.city || 'Annonce'));
       // Inject a price line right after the title (the template has none).
       // Only when we have a real amount (some commercial listings have price 0).
       var amount = Number(item.rent || item.price || item.current_price);
@@ -128,7 +128,7 @@
       }).slice(0, 24);
       grid.innerHTML = '';
       if (!filtered.length) {
-        grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Aucun bien récent pour « ' + scopeLabel + ' ». Essayez un autre lieu ou élargissez au canton.</div>';
+        grid.innerHTML = '<div style="padding:24px;grid-column:1/-1">Aucune annonce récente pour « ' + scopeLabel + ' ». Essayez un autre lieu ou élargissez au canton.</div>';
         return;
       }
       filtered.forEach(function (it) {
