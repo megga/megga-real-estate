@@ -564,7 +564,7 @@
     {
       "key": "megga/search-page",
       "namespace": "megga",
-      "value": "Marketplace SearchPage (/buy et /rent, deux contextes): URL = SOURCE DE VERITE des filtres (parseFiltersFromParams au mount, filtersToParams ecrit l'URL a chaque changement -> deep-links partageables). Layout 3 colonnes: liste de cards VIRTUALISEE (react-virtual, 1 col mobile / 2 cols sm+, ~400px/row, overscan 3) + MapView lazy (Mapbox ~470KB, prefetch parallele au mount ~300ms gagnees) + sidebar toggle (MarketAccountRail 5 vues: search/favorites/saved/alerts/calculator/contact). Pagination useInfiniteQuery 50 items/page + bouton 'Charger plus'. Comparateur max 3 biens (URL ?compare + localStorage).",
+      "value": "Marketplace SearchPage (/buy et /rent, deux contextes): URL = SOURCE DE VERITE des filtres (parseFiltersFromParams au mount, filtersToParams ecrit l'URL a chaque changement -> deep-links partageables). Layout 3 colonnes: liste de cards VIRTUALISEE (react-virtual, 1 col mobile / 2 cols sm+, ~400px/row, overscan 3) + MapView lazy (Mapbox ~470KB, prefetch parallele au mount ~300ms gagnees) + sidebar toggle (MarketAccountRail 5 vues: search/favorites/saved/alerts/calculator/contact). Pagination useInfiniteQuery 50 items/page: SCROLL INFINI (useEffect surveille la derniere ligne virtualisee -> auto fetchNextPage, garde isFetchingNextPage) + bouton 'Charger plus' (search.loadMore) en fallback. NB marche buy quasi vide (~12 biens, Flatfox=rent-only) donc pas de pagination cote /buy. Comparateur max 3 biens (URL ?compare + localStorage).",
       "tags": "marketplace,search,frontend"
     },
     {
