@@ -29,11 +29,13 @@ export default {
 
     const url = new URL(request.url);
 
-    // ---- API proxy: /api/listings?<PostgREST query string> ----
-    // Forwards to market_listings on Supabase with the anon key (server-side),
-    // so the visitor's browser only talks to megga.ch.
-    if (url.pathname === '/api/listings') {
-      const target = SUPABASE_URL + '/market_listings?' + url.searchParams.toString();
+    // ---- API proxy: /api/<resource>?<PostgREST query string> ----
+    // Forwards to Supabase with the anon key (server-side) so the visitor's
+    // browser only ever talks to megga.ch. Whitelisted resources only.
+    const API_TABLES = { '/api/listings': 'market_listings', '/api/agencies': 'agency_profiles' };
+    const apiTable = API_TABLES[url.pathname];
+    if (apiTable) {
+      const target = SUPABASE_URL + '/' + apiTable + '?' + url.searchParams.toString();
       try {
         // Manual timeout (more portable than AbortSignal.timeout).
         const ctrl = new AbortController();
