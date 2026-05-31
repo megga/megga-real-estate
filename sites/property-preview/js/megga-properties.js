@@ -13,7 +13,9 @@
     var css =
       '.properties-grid---v1 .property-card-top-content-v1{max-height:none}' +
       '.properties-grid---v1 .image-wrapper.border-radius-image-default.property-card-top-content-v1---image{aspect-ratio:3/2;height:auto;flex:none;width:100%;display:block}' +
-      '.properties-grid---v1 .image-wrapper.property-card-top-content-v1---image .cover-image{width:100%;height:100%;object-fit:cover;display:block}';
+      '.properties-grid---v1 .image-wrapper.property-card-top-content-v1---image .cover-image{width:100%;height:100%;object-fit:cover;display:block}' +
+      // No separator line between the price/location row and the feature details.
+      '.properties-grid---v1 .divider{display:none}';
     var s = document.createElement('style');
     s.id = 'megga-card-image-fix';
     s.textContent = css;
