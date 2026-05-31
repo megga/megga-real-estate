@@ -17,7 +17,7 @@ import {
   sellerFmtCHF,
 } from '@/components/seller-portal/votre-vente/tokens'
 import { SellerThemeProvider, useSP, useSellerTheme } from '@/components/seller-portal/votre-vente/theme'
-import { SvIcon, SvAvatarCircle } from '@/components/seller-portal/votre-vente/icons'
+import { SvIcon, SvAvatarCircle, SvLogo } from '@/components/seller-portal/votre-vente/icons'
 import SvGalleryLightbox from '@/components/seller-portal/votre-vente/SvGalleryLightbox'
 import SvOfferModal from '@/components/seller-portal/votre-vente/SvOfferModal'
 import SvSettingsModal from '@/components/seller-portal/votre-vente/SvSettingsModal'
@@ -32,9 +32,8 @@ function SvHeader({ agent, onAgentClick, onSettingsClick }: { agent: VenteAgentV
   const SP = useSP()
   return (
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, marginBottom: 36 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-        <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: SP.ink }}>MEGGA</span>
-        <span style={{ fontSize: 15, fontWeight: 500, color: SP.muted, letterSpacing: -0.2 }}>Votre vente</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <SvLogo height={22} color={SP.ink} />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -279,7 +278,6 @@ function SvPropertyCard({ property, delay, onOpenGallery }: { property: VentePro
           <span className="sg-tnum" style={{ fontSize: 34, fontWeight: 700, color: SP.ink, letterSpacing: -1, lineHeight: 1, whiteSpace: 'nowrap' }}>
             {sellerFmtCHF(property.price)}
           </span>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: SP.muted, paddingBottom: 3 }}>{property.mandate}</span>
         </div>
 
         <div className="sg-tnum" style={{ fontSize: 13, fontWeight: 500, color: SP.muted }}>
@@ -809,17 +807,6 @@ function SvAgentCard({ agent, anchorRef, delay }: { agent: VenteAgentVM; anchorR
   )
 }
 
-// ── Pied ─────────────────────────────────────────────────────────────────
-function SvFooter() {
-  const SP = useSP()
-  return (
-    <div style={{ marginTop: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: SP.muted }}>
-      <SvIcon name="lock" size={13} stroke={SP.muted} sw={1.6} />
-      <span style={{ fontSize: 12, fontWeight: 500 }}>MEGGA — vos données sont protégées. Lien personnel, ne pas partager.</span>
-    </div>
-  )
-}
-
 // ── Page ───────────────────────────────────────────────────────────────
 export default function VotreVentePage() {
   const data = useSellerPortalData()
@@ -904,8 +891,6 @@ export default function VotreVentePage() {
               <SvAgentCard agent={vm.agent} anchorRef={agentRef} delay={240} />
             </div>
           </div>
-
-          <SvFooter />
         </div>
 
         {galleryOpen && <SvGalleryLightbox title={vm.property.title} photos={vm.property.photos} onClose={() => setGalleryOpen(false)} />}

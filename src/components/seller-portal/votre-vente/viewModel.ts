@@ -181,7 +181,7 @@ export function toVenteVM(data: SellerPortalData): VenteVM {
     })),
     agent: {
       name: data.agent.name,
-      role: 'Votre conseiller MEGGA',
+      role: 'Votre agent',
       whatsapp: waLink(data.agent.phone),
       phone: data.agent.phone ? `tel:${data.agent.phone.replace(/\s/g, '')}` : '#',
       email: data.agent.email ? `mailto:${data.agent.email}` : '#',
