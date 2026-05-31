@@ -99,6 +99,7 @@
     var agglo = qp('agglo');
     var canton = qp('canton');
     var ville = qp('ville');
+    var type = qp('type');
     var kw = qp('q').toLowerCase();
     // Scope resolution: agglomération > canton > ville (no overlap — only one is
     // ever set at a time by the search UI).
@@ -108,15 +109,20 @@
       ? aggloEntry.cities
       : (cityEntry ? cityEntry.variants : (ville ? [ville] : []));
     // What the user typed/picked, for the empty-state copy.
-    var scopeLabel = aggloEntry ? aggloEntry.name
+    var TYPE_LABELS = { apartment: 'Appartements', house: 'Maisons', villa: 'Villas', commercial: 'Commerces', office: 'Bureaux', parking: 'Parkings', storage: 'Dépôts', land: 'Terrains' };
+    var typeLabel = type ? (TYPE_LABELS[type] || '') : '';
+    var locLabel = aggloEntry ? aggloEntry.name
       : (canton
         ? ((window.CH_FIND_CANTON && (window.CH_FIND_CANTON(canton) || {}).name) || canton)
-        : (ville || qp('q') || '…'));
+        : (ville || ''));
+    var txLabel = qp('transaction') === 'acheter' ? 'À vendre' : '';
+    var scopeLabel = [typeLabel, locLabel].filter(Boolean).join(' à ') || txLabel || qp('q') || 'votre recherche';
 
     window.MeggaSupabase.fetchListings({
       transaction: qp('transaction'),
       canton: canton,
       villes: villes,
+      type: type,
     }).then(function (items) {
       // Geographic scope is server-side. Keyword stays client-side because
       // title is not indexed — but the pool is small once we've narrowed.
