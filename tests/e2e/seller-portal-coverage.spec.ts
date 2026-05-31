@@ -1,41 +1,25 @@
-// Phase B — Couverture étendue du portail vendeur (dev mock).
-// L'index /portal est déjà couvert dans seller-portal.spec.ts ; ici on
-// ajoute les 5 sub-routes principales. PortalDevWrapper injecte les
-// mock seller data, donc toutes les pages doivent render.
+// Couverture du portail vendeur — page unique « Votre vente » (dev mock).
+// L'ancien découpage en sous-routes (/portal/visits, /offers, /documents, /messages,
+// /analytics) a été remplacé par une PAGE UNIQUE. On vérifie ici que ses blocs clés
+// sont rendus, sans erreur console. PortalDevWrapper injecte les mock seller data.
 
 import { test, expect } from '@playwright/test'
 import { collectConsoleErrors } from './helpers/console'
 
-interface RouteSpec {
-  path: string
-  label: string
-}
+test.describe('Seller portal — page unique « Votre vente »', () => {
+  test('rend les blocs clés (parcours, offres, nouvelles, agent) sans erreur console', async ({ page }) => {
+    const collector = collectConsoleErrors(page)
+    await page.goto('/portal')
+    await page.waitForLoadState('networkidle')
 
-const SELLER_PORTAL_ROUTES: RouteSpec[] = [
-  { path: '/portal/visits', label: 'Visites' },
-  { path: '/portal/offers', label: 'Offres' },
-  { path: '/portal/documents', label: 'Documents' },
-  { path: '/portal/messages', label: 'Messages' },
-  { path: '/portal/analytics', label: 'Analyse' },
-]
+    await expect(page.getByRole('heading', { name: /où en est votre vente/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^offres$/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /dernières nouvelles/i })).toBeVisible()
+    await expect(page.getByText(/écrire sur whatsapp/i)).toBeVisible()
 
-test.describe('Seller portal — parametric route coverage', () => {
-  for (const route of SELLER_PORTAL_ROUTES) {
-    test(`${route.label} (${route.path}) loads cleanly`, async ({ page }) => {
-      const collector = collectConsoleErrors(page)
-      await page.goto(route.path)
-      await page.waitForLoadState('networkidle')
-
-      const bodyText = await page.locator('body').innerText()
-      expect(
-        bodyText.length,
-        `${route.path}: body too small (${bodyText.length} chars)`
-      ).toBeGreaterThan(50)
-
-      expect(
-        collector.errors,
-        `${route.path}: blocking console errors:\n${collector.errors.join('\n')}`
-      ).toEqual([])
-    })
-  }
+    expect(
+      collector.errors,
+      `Blocking console errors:\n${collector.errors.join('\n')}`
+    ).toEqual([])
+  })
 })
