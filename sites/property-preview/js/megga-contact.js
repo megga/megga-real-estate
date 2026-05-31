@@ -123,7 +123,7 @@
     var heroP = Array.prototype.filter.call(document.querySelectorAll('p'), function (p) {
       return /^Lorem ipsum/i.test(p.textContent.trim());
     })[0];
-    if (heroP) heroP.textContent = 'Une question ? Écrivez-nous — notre équipe vous répond rapidement.';
+    if (heroP) heroP.textContent = 'Une question ? Écrivez-nous, notre équipe vous répond rapidement.';
 
     // Drop the whole demo info column (every grid child that isn't the form).
     var grid = document.querySelector('.contact-grid-v1');
