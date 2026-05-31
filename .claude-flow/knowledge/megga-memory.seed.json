@@ -36,7 +36,7 @@
     {
       "key": "megga/audiences-routing",
       "namespace": "megga",
-      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace publique (/buy /rent /listing/:id, SearchPage+ListingPage). Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token = page unique « Votre vente » Sugar Pure lecture seule; + /portal dev mock). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
+      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace SPA app.megga.ch (/buy /rent SearchPage; fiche /propriete/:id -> PropertyXSinglePropertyPage Property X, alias /listing/:id) -- NB le storefront PUBLIC pre-launch = site STATIQUE megga.ch (cf storefront-static), pas la SPA. Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token = page unique « Votre vente » Sugar Pure lecture seule; + /portal dev mock). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
       "tags": "frontend,routing,audiences"
     },
     {
@@ -366,7 +366,7 @@
     {
       "key": "megga/component-families",
       "namespace": "megga",
-      "value": "Familles de composants (~400 au total): propertyx/ (~89 atoms Px* + sections + tokens.ts), crm-sugar/ (~83: shell + sous-domaines biens/calendar/contacts/documents/journey/kyc/matching/network/pipeline/settings), crm-sugar-v3/ (~53 refonte pixel-pres: contact-detail/ dashboard/ kyc/ kyc-wizard/ pipeline/ audit/), listing(s)/ (fiches + grid + AffordabilityCalculator + BeforeAfterSlider staging), search/ (~16), calendar/ (~14), matching/ (MatchScoreCard 100pts), kyc/ + kyc-magic-link/ + kyc-report/, ui/ (Radix+shadcn+Motion), layout/, ai-copilot/, map/ (Mapbox + HexagonMap choropleth), skeletons/, illustrations/.",
+      "value": "Familles de composants (~400 au total): propertyx/ (~89 atoms Px* + sections + tokens.ts), crm-sugar/ (~83: shell + sous-domaines biens/calendar/contacts/documents/journey/kyc/matching/network/pipeline/settings), crm-sugar-v3/ (~53 refonte pixel-pres: contact-detail/ dashboard/ kyc/ kyc-wizard/ pipeline/ audit/), listing(s)/ (fiche Px single property + ListingCard grid + ListingLightbox + BeforeAfterSlider staging), search/ (~16), calendar/ (~14), matching/ (MatchScoreCard 100pts), kyc/ + kyc-magic-link/ + kyc-report/, ui/ (Radix+shadcn+Motion), layout/, ai-copilot/, map/ (Mapbox + HexagonMap choropleth), skeletons/, illustrations/.",
       "tags": "frontend,components,inventory"
     },
     {
@@ -564,8 +564,14 @@
     {
       "key": "megga/search-page",
       "namespace": "megga",
-      "value": "Marketplace SearchPage (/buy et /rent, deux contextes): URL = SOURCE DE VERITE des filtres (parseFiltersFromParams au mount, filtersToParams ecrit l'URL a chaque changement -> deep-links partageables). Layout 3 colonnes: liste de cards VIRTUALISEE (react-virtual, 1 col mobile / 2 cols sm+, ~400px/row, overscan 3) + MapView lazy (Mapbox ~470KB, prefetch parallele au mount ~300ms gagnees) + sidebar toggle (MarketAccountRail 5 vues: search/favorites/saved/alerts/calculator/contact). Pagination useInfiniteQuery 50 items/page + bouton 'Charger plus'. Comparateur max 3 biens (URL ?compare + localStorage).",
+      "value": "Marketplace SearchPage (/buy et /rent, deux contextes): URL = SOURCE DE VERITE des filtres (parseFiltersFromParams au mount, filtersToParams ecrit l'URL a chaque changement -> deep-links partageables). Layout 3 colonnes: liste de cards VIRTUALISEE (react-virtual, 1 col mobile / 2 cols sm+, ~400px/row, overscan 3) + MapView lazy (Mapbox ~470KB, prefetch parallele au mount ~300ms gagnees) + sidebar toggle (MarketAccountRail 5 vues: search/favorites/saved/alerts/calculator/contact). Pagination useInfiniteQuery 50 items/page: SCROLL INFINI (useEffect surveille la derniere ligne virtualisee -> auto fetchNextPage, garde isFetchingNextPage) + bouton 'Charger plus' (search.loadMore) en fallback. NB marche buy quasi vide (~12 biens, Flatfox=rent-only) donc pas de pagination cote /buy. Comparateur max 3 biens (URL ?compare + localStorage).",
       "tags": "marketplace,search,frontend"
+    },
+    {
+      "key": "megga/storefront-static",
+      "namespace": "megga",
+      "value": "Storefront statique megga.ch (sites/property-preview, Webflow Property X V3) = LA marketplace publique (decision user mai 2026), distincte de la SPA React app.megga.ch (qui a la vraie SearchPage/fiche/Mapbox). Cloudflare Pages + _worker.js: Basic Auth ai/ai + proxy /api/listings -> market_listings (anon key server-side, evite CORS). Grille /company-pages/properties.html peuplee par js/megga-properties.js (clone la demo card .w-dyn-item, remplit img.cover-image/titre/prix/adresse/features; recherche via megga-supabase.js + ch-cities.js). Cartes: Webflow ne pose qu'un max-height 364px -> photos a leur ratio naturel = grille en dents de scie; fix injecte 'megga-card-image-fix' = aspect-ratio 4/3 + object-fit cover (scope .properties-grid---v1). Fiche single bien: toutes les cartes pointent vers /property/luxury-loft-in-san-francisco.html?id=<uuid> (cible unique); js/megga-property.js lit ?id -> fetch /api/listings?id=eq.<id>&status=eq.active&select=* -> remplit galerie (.property-gallery-wrapper + .gallery-images-grid, MAJ aussi le w-json lightbox), titre/h1, prix CHF (+/mois), adresse, .property-details (m²/pièces/sdb/Garage par icone), Description, equipements FR (Piscine/Ascenseur/Garage/Cheminee via has_*), retire l'agent demo (Sophie Moore + avatar) et balaye tout le 'Lorem ipsum'; cache la section demo 'More properties'. Sans ?id la page reste en demo. (megga-supabase.js charge avant.)",
+      "tags": "marketplace,storefront,static,critical"
     },
     {
       "key": "megga/search-filters",
@@ -618,13 +624,13 @@
     {
       "key": "megga/listing-card",
       "namespace": "megga",
-      "value": "Marketplace cards. ListingCard: lien vers la fiche bien (id prefixe market-/internal-; routes renommees FR->EN avec 301 #504), carousel photos snap-x lazy (rend +-1 position), bouton favori (etat local sync useFavorites), badges is_hot (Hot price), video_url, C2PA verified (pill emerald + shield), icones type (pieces/chambres/m2), tag Meuble (rent). Images via pickPhoto/pickSrcSet (photos_cf R2: srcset thumb 400w/detail 1200w/hero 1600w; fallback icone Building2 si 0 photo). Comparateur CompareDrawer: modal 2-3 colonnes, 8+ lignes (prix/prix-m2/surface/pieces/jours en ligne, meilleure valeur surlignee emerald), max 3 biens (URL ?compare + localStorage).",
+      "value": "Marketplace cards. ListingCard: lien Link to=/propriete/:id (fiche bien; id prefixe market-/internal-; routes renommees FR->EN avec 301 #504), carousel photos snap-x lazy (rend +-1 position), bouton favori (etat local sync useFavorites), badges is_hot (Hot price), video_url, C2PA verified (pill emerald + shield), icones type (pieces/chambres/m2), tag Meuble (rent). Images via pickPhoto/pickSrcSet (photos_cf R2: srcset thumb 400w/detail 1200w/hero 1600w; fallback icone Building2 si 0 photo). Comparateur CompareDrawer: modal 2-3 colonnes, 8+ lignes (prix/prix-m2/surface/pieces/jours en ligne, meilleure valeur surlignee emerald), max 3 biens (URL ?compare + localStorage).",
       "tags": "marketplace,listings,cards,frontend"
     },
     {
       "key": "megga/listing-detail",
       "namespace": "megga",
-      "value": "Fiche bien (ListingPage, id prefixe market-/internal-). Data: useMarketListing (market_listings + join agency_profile) ou properties (interne), transformSupabaseToListing (titre lang-aware). Blocks modulaires: BienTitleBar (favori/share/contact), ListingHeroGallery (mosaic + lightbox), BienPriceCard (CHF, /mois + charges si rent, hypotheque estimee, AffordabilityCalculator), BienSpecsBlock, BienEnergyBlock (label A-G, kWh), BienNeighborhoodBlock (POI + WalkScore: transport 30% / commerce 25% / ecole 20% / sante 15% / loisir 10%, scoring par distance), BienDocumentsBlock, BienSimilarBlock (useRelatedListings canton+type), BienAgentCard, InteractiveFloorPlan, C2paBadge, ListingMobileBar sticky. useNeighborhood(lat,lng) + useNaturalHazards(lat,lng: flood/landslide/avalanche).",
+      "value": "Fiche bien = PropertyXSinglePropertyPage (route /propriete/:id; alias back-compat /listing/:id -> redirect; /propriete sans id -> redirige vers /buy). Direction artistique Property X. Compose PxNav, PxSinglePropertyBreadcrumb, PxSinglePropertyHero (photos/photos_cf + ListingLightbox), PxSinglePropertyBody (titre/prix/desc/amenities + ReportListingDialog), PxSinglePropertyMap, PxSinglePropertyEnergy (si energy_label), PxSinglePropertyMortgage (si context=buy), PxSinglePropertyCTA, PxSinglePropertyRelated (useRelatedListings), PxSinglePropertyMobileBar, PxSinglePropertySeo, PxFooterPropertyX. Data: useListingDetail(id) -> transformToCardData depuis market_listings (prefixe market-) ou properties (internal-). Etats LoadingSkeleton (shimmer) / NotFoundFallback (CTA acheter+louer). HISTORIQUE: route /propriete supprimee avec la page en #470 (storefront statique) laissant les liens morts -> 404, restauree mai 2026; l'ancienne ListingPage (format split, blocs Bien*) + ~29 composants morts supprimes.",
       "tags": "marketplace,listings,detail,frontend"
     },
     {
