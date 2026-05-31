@@ -85,20 +85,14 @@
   }
 
   function fillCard(node, a) {
-    var website = a.website_url || '';
+    // Card → the agency detail page (the agent-single template, ?id-driven).
+    var href = '/agent/john-carter.html?id=' + encodeURIComponent(a.id);
     var links = node.querySelectorAll('a.agent-card, a.primary-button-icon');
     for (var i = 0; i < links.length; i++) {
-      if (website) {
-        links[i].setAttribute('href', website);
-        links[i].setAttribute('target', '_blank');
-        links[i].setAttribute('rel', 'noopener noreferrer');
-      } else {
-        links[i].removeAttribute('href');
-        links[i].style.pointerEvents = 'none';
-      }
+      links[i].setAttribute('href', href);
+      links[i].removeAttribute('target');
+      links[i].removeAttribute('rel');
     }
-    var arrow = node.querySelector('.badge-wrapper---top-right');
-    if (arrow && !website) arrow.style.display = 'none';
 
     var img = node.querySelector('.avatar-wrapper.agent-avatar img');
     if (img) {
