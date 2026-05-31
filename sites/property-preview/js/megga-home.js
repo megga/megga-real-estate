@@ -68,6 +68,14 @@
     $all('img[alt*="Loft contemporain"]', scope).forEach(function (im) { im.alt = item.title || 'Annonce'; });
   }
 
+  // On failure (e.g. a cold-worker timeout) hide the featured section rather
+  // than leave the Webflow demo (US) listings showing on the landing page.
+  function hideFeatured() {
+    var c = document.querySelector('.featured-property-item---main');
+    var sec = c && c.closest('section');
+    if (sec) sec.style.display = 'none';
+  }
+
   function run() {
     var M = window.MeggaSupabase;
     if (!M) return;
@@ -83,7 +91,7 @@
     fetch('/api/listings?' + params.toString())
       .then(function (r) { return r.json(); })
       .then(function (items) {
-        if (!Array.isArray(items) || !items.length) return;
+        if (!Array.isArray(items) || !items.length) { hideFeatured(); return; }
         var withPhotos = items.filter(function (it) { return it.photos && it.photos.length; });
         var use = withPhotos.length >= cards.length ? withPhotos : items;
         cards.forEach(function (c, i) { if (use[i]) fillCard(c, use[i], M); });
@@ -112,7 +120,7 @@
         });
         $all('img[alt*="Loft contemporain"]').forEach(function (im) { im.alt = d.title || 'Annonce'; });
       })
-      .catch(function (e) { console.error('[megga] home featured failed:', e); });
+      .catch(function (e) { console.error('[megga] home featured failed:', e); hideFeatured(); });
   }
 
   if (document.readyState !== 'loading') run();
