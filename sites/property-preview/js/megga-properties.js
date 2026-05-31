@@ -51,23 +51,36 @@
     var title = node.querySelector('.property-card-bottom-content-v1 h2, .property-card-bottom-content-v1 h3');
     if (title) {
       title.textContent = item.title || ((item.rooms ? item.rooms + ' pièces · ' : '') + (item.city || 'Annonce'));
-      // Inject a price line right after the title (the template has none).
-      // Only when we have a real amount (some commercial listings have price 0).
-      var amount = Number(item.rent || item.price || item.current_price);
-      if (amount > 0 && (!title.nextElementSibling || !title.nextElementSibling.classList.contains('megga-price'))) {
-        var price = document.createElement('div');
-        price.className = 'megga-price';
-        price.style.cssText = 'margin-top:4px;font-weight:500';
-        price.textContent = M.formatCHF(amount) + (isBuy ? '' : '/mois');
-        title.parentNode.insertBefore(price, title.nextSibling);
-      }
     }
 
-    // Address line (location feature uses .text-titles).
-    var addr = node.querySelector('.property-card-bottom-content-v1 .text-titles div');
-    if (addr) {
-      addr.textContent = (item.address ? item.address + ', ' : '') +
-        (item.postal_code ? item.postal_code + ' ' : '') + (item.city || '');
+    // Location (pin + .text-titles). Show the city (+ postal) — short enough to
+    // sit to the RIGHT of the price; the full street address is on the detail page.
+    var hasLoc = !!(item.city || item.postal_code);
+    var locWrap = node.querySelector('.property-card-bottom-content-v1 .text-titles');
+    var addr = locWrap && locWrap.querySelector('div');
+    if (addr) addr.textContent = hasLoc ? ((item.postal_code ? item.postal_code + ' ' : '') + (item.city || '')) : '';
+    locWrap = locWrap ? (locWrap.closest('.card-feature-wrapper') || locWrap) : null;
+
+    // Price + location on one row, location to the RIGHT of the price.
+    var amount = Number(item.rent || item.price || item.current_price);
+    if (title && amount > 0 && !(title.nextElementSibling && title.nextElementSibling.classList.contains('megga-price-row'))) {
+      var row = document.createElement('div');
+      row.className = 'megga-price-row';
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px';
+      var price = document.createElement('div');
+      price.className = 'megga-price';
+      price.style.cssText = 'font-weight:600;white-space:nowrap;flex:none';
+      price.textContent = M.formatCHF(amount) + (isBuy ? '' : '/mois');
+      row.appendChild(price);
+      title.parentNode.insertBefore(row, title.nextSibling);
+      if (locWrap && hasLoc) {
+        locWrap.style.margin = '0';
+        locWrap.style.minWidth = '0';
+        locWrap.style.flex = '0 1 auto';
+        row.appendChild(locWrap);
+      } else if (locWrap) {
+        locWrap.style.display = 'none';
+      }
     }
 
     // Feature slots: surface / rooms / bedrooms. Hide a slot when we have no value
