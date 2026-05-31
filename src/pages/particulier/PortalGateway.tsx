@@ -25,7 +25,7 @@ export default function PortalGateway() {
 
   return (
     <SellerPortalProvider data={data}>
-      <VotreVentePage />
+      <VotreVentePage token={token} />
     </SellerPortalProvider>
   )
 }

@@ -2,6 +2,7 @@
 // Notifications · disponibilités visites · langue & contact · apparence (dark mode).
 // Contrôlé : reçoit settings + onChange(key,val) + dark + onDark.
 // Phase 1 (visuel) : la persistance réelle est stubbée (prop onSave).
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useSP } from './theme'
 import { SvIcon } from './icons'
@@ -26,8 +27,8 @@ interface Props {
   dark: boolean
   onDark: (v: boolean) => void
   onClose: () => void
-  /** Phase 2 : persister les préférences vendeur (PATCH token-scoped). */
-  onSave?: (settings: SellerSettings) => void
+  /** Persiste les préférences vendeur (PATCH token-scoped). Peut être async. */
+  onSave?: (settings: SellerSettings) => void | Promise<void>
 }
 
 // ── Contrôles ───────────────────────────────────────────────────────────
@@ -187,6 +188,7 @@ function FieldLabel({ children }: { children: ReactNode }) {
 // ── Modal ───────────────────────────────────────────────────────────────
 export default function SvSettingsModal({ settings, onChange, dark, onDark, onClose, onSave }: Props) {
   const SP = useSP()
+  const [saving, setSaving] = useState(false)
 
   const toggleDay = (d: string) => {
     const next = settings.jours.includes(d) ? settings.jours.filter((x) => x !== d) : [...settings.jours, d]
@@ -196,9 +198,15 @@ export default function SvSettingsModal({ settings, onChange, dark, onDark, onCl
     const next = settings.creneaux.includes(s) ? settings.creneaux.filter((x) => x !== s) : [...settings.creneaux, s]
     onChange('creneaux', next)
   }
-  const save = () => {
-    onSave?.(settings)
-    onClose()
+  const save = async () => {
+    if (saving) return
+    setSaving(true)
+    try {
+      await onSave?.(settings)
+    } finally {
+      setSaving(false)
+      onClose()
+    }
   }
 
   return (
@@ -315,30 +323,33 @@ export default function SvSettingsModal({ settings, onChange, dark, onDark, onCl
         </button>
         <button
           onClick={save}
+          disabled={saving}
           style={{
             flex: 1,
             height: 50,
             borderRadius: 999,
             border: 0,
-            cursor: 'pointer',
-            background: SP.accent,
+            cursor: saving ? 'default' : 'pointer',
+            background: saving ? SP.disabledBg : SP.accent,
             color: SP.onAccent,
             fontSize: 14.5,
             fontWeight: 700,
             fontFamily: 'inherit',
-            boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
+            boxShadow: saving ? 'none' : '0 6px 16px rgba(11,12,14,0.18)',
             transition: 'all .18s ease',
           }}
           onMouseEnter={(e) => {
+            if (saving) return
             e.currentTarget.style.background = SP.accentHover
             e.currentTarget.style.transform = 'translateY(-1px)'
           }}
           onMouseLeave={(e) => {
+            if (saving) return
             e.currentTarget.style.background = SP.accent
             e.currentTarget.style.transform = 'translateY(0)'
           }}
         >
-          Enregistrer
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </div>
     </SvModalShell>

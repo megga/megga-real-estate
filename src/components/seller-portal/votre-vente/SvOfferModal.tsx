@@ -20,8 +20,8 @@ interface Props {
   agentName: string
   agentPhoto?: string | null
   onClose: () => void
-  /** Phase 2 : transmettre la décision à l'agent (edge function token-scoped + audit). */
-  onSubmit?: (payload: { decision: OfferDecision; counterAmount?: number }) => void
+  /** Transmet la décision à l'agent (edge function token-scoped + audit). Peut être async. */
+  onSubmit?: (payload: { decision: OfferDecision; counterAmount?: number }) => void | Promise<void>
 }
 
 export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto, onClose, onSubmit }: Props) {
@@ -29,6 +29,8 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
   const [choice, setChoice] = useState<OfferDecision | null>(null)
   const [counter, setCounter] = useState<number>(askingPrice)
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const ecart = offer.amount - askingPrice
   const ecartPct = Math.round((ecart / askingPrice) * 1000) / 10
@@ -84,10 +86,18 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
 
   // ── Écran principal ─────────────────────────────────────────────────────
   const canConfirm = !!choice && (choice !== 'counter' || counter > 0)
-  const submit = () => {
-    if (!canConfirm || !choice) return
-    onSubmit?.({ decision: choice, counterAmount: choice === 'counter' ? counter : undefined })
-    setSent(true)
+  const submit = async () => {
+    if (!canConfirm || !choice || sending) return
+    setError(null)
+    setSending(true)
+    try {
+      await onSubmit?.({ decision: choice, counterAmount: choice === 'counter' ? counter : undefined })
+      setSent(true)
+    } catch {
+      setError("L'envoi a échoué. Vérifiez votre connexion, ou contactez directement votre agent.")
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -281,6 +291,13 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
         </span>
       </div>
 
+      {/* Erreur de transmission */}
+      {error && (
+        <div style={{ marginBottom: 14, fontSize: 13, fontWeight: 600, color: SP.err, textAlign: 'center', lineHeight: 1.45 }}>
+          {error}
+        </div>
+      )}
+
       {/* Actions */}
       <div style={{ display: 'flex', gap: 12 }}>
         <button
@@ -292,13 +309,13 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
           Annuler
         </button>
         <button
-          disabled={!canConfirm}
+          disabled={!canConfirm || sending}
           onClick={submit}
-          style={blackBtn(SP, !canConfirm)}
-          onMouseEnter={(e) => canConfirm && Object.assign(e.currentTarget.style, blackBtnHover(SP))}
-          onMouseLeave={(e) => canConfirm && Object.assign(e.currentTarget.style, blackBtn(SP, false))}
+          style={blackBtn(SP, !canConfirm || sending)}
+          onMouseEnter={(e) => canConfirm && !sending && Object.assign(e.currentTarget.style, blackBtnHover(SP))}
+          onMouseLeave={(e) => canConfirm && !sending && Object.assign(e.currentTarget.style, blackBtn(SP, false))}
         >
-          Transmettre à mon agent
+          {sending ? 'Transmission…' : 'Transmettre à mon agent'}
         </button>
       </div>
     </SvModalShell>

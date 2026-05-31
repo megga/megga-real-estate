@@ -24,6 +24,7 @@ import SvSettingsModal from '@/components/seller-portal/votre-vente/SvSettingsMo
 import type { SellerSettings } from '@/components/seller-portal/votre-vente/SvSettingsModal'
 import { toVenteVM } from '@/components/seller-portal/votre-vente/viewModel'
 import type { VenteOfferVM, VentePropertyVM, VenteAgentVM, VenteVM } from '@/components/seller-portal/votre-vente/viewModel'
+import { submitOfferDecision, saveSellerPreferences, fetchSellerPreferences } from '@/components/seller-portal/votre-vente/api'
 
 const DARK_PREF_KEY = 'megga-seller-dark'
 
@@ -808,7 +809,7 @@ function SvAgentCard({ agent, anchorRef, delay }: { agent: VenteAgentVM; anchorR
 }
 
 // ── Page ───────────────────────────────────────────────────────────────
-export default function VotreVentePage() {
+export default function VotreVentePage({ token }: { token?: string }) {
   const data = useSellerPortalData()
   const vm = useMemo(() => toVenteVM(data), [data])
 
@@ -846,6 +847,18 @@ export default function VotreVentePage() {
   })
   const updateSetting = <K extends keyof SellerSettings>(k: K, v: SellerSettings[K]) =>
     setSettings((s) => ({ ...s, [k]: v }))
+
+  // Hydrate les préférences enregistrées (si lien token ; le mock dev n'en a pas).
+  useEffect(() => {
+    if (!token) return
+    let alive = true
+    void fetchSellerPreferences(token).then((prefs) => {
+      if (alive && prefs) setSettings((s) => ({ ...s, ...prefs }))
+    })
+    return () => {
+      alive = false
+    }
+  }, [token])
 
   useEffect(() => {
     const prevBg = document.body.style.background
@@ -902,8 +915,9 @@ export default function VotreVentePage() {
             agentName={vm.agent.name}
             agentPhoto={vm.agent.photo}
             onClose={() => setActiveOffer(null)}
-            onSubmit={() => {
-              // Phase 2 : transmettre la décision à l'agent via edge function token-scoped + audit.
+            onSubmit={async (payload) => {
+              if (!token) return // aperçu dev (mock) : pas de transmission réelle
+              await submitOfferDecision(token, { offerId: activeOffer.id, ...payload })
             }}
           />
         )}
@@ -915,8 +929,9 @@ export default function VotreVentePage() {
             dark={dark}
             onDark={setDark}
             onClose={() => setShowSettings(false)}
-            onSave={() => {
-              // Phase 2 : persister les préférences vendeur (PATCH token-scoped).
+            onSave={async (next) => {
+              if (!token) return // aperçu dev (mock) : pas de persistance
+              await saveSellerPreferences(token, next)
             }}
           />
         )}
