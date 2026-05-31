@@ -13,6 +13,62 @@ const PASS = 'ai';
 const SUPABASE_URL = 'https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWN6dWd5cnZtdHFubm12am9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM4ODgsImV4cCI6MjA4OTE4OTg4OH0.T257g0ws-PmTTBSDBcUQF6WFvVRLmTFHUwIYMgmCrMw';
 
+const MOTIVATIONS = ['immediate', '3months', '6months', 'exploring'];
+
+function jsonResponse(obj, status) {
+  return new Response(JSON.stringify(obj), {
+    status: status || 200,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
+// Build a clean seller_leads row from untrusted form input. We NEVER forward the
+// client's raw object to PostgREST — only these whitelisted keys are kept, so the
+// visitor can't set status / assigned_agency_id / estimation_* themselves.
+function buildSellerLeadRow(payload) {
+  const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+  const posNum = (v) => { const n = Number(v); return isFinite(n) && n > 0 ? n : null; };
+
+  const name = str(payload.contact_name, 200);
+  const email = str(payload.contact_email, 200);
+  if (!name) return { error: 'contact_name_required' };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: 'contact_email_invalid' };
+
+  const pd = payload.property_data && typeof payload.property_data === 'object' ? payload.property_data : {};
+  const property_data = {
+    title: str(pd.title, 200),
+    type: str(pd.type, 40),
+    transaction_type: pd.transaction_type === 'buy' ? 'buy' : pd.transaction_type === 'rent' ? 'rent' : '',
+    address: str(pd.address, 200),
+    city: str(pd.city, 120),
+    canton: str(pd.canton, 40),
+    postalCode: str(pd.postalCode, 12),
+    price: posNum(pd.price),
+    rooms: str(typeof pd.rooms === 'number' ? String(pd.rooms) : pd.rooms, 12),
+    bedrooms: str(typeof pd.bedrooms === 'number' ? String(pd.bedrooms) : pd.bedrooms, 12),
+    bathrooms: str(typeof pd.bathrooms === 'number' ? String(pd.bathrooms) : pd.bathrooms, 12),
+    parking: str(typeof pd.parking === 'number' ? String(pd.parking) : pd.parking, 12),
+    surface: posNum(pd.surface),
+    landSurface: posNum(pd.landSurface),
+    description: str(pd.description, 5000),
+    amenities: Array.isArray(pd.amenities) ? pd.amenities.slice(0, 30).map((a) => str(String(a), 60)).filter(Boolean) : [],
+    imagesLink: str(pd.imagesLink, 500),
+    photos: [],
+  };
+
+  return {
+    row: {
+      property_data,
+      contact_name: name,
+      contact_email: email,
+      contact_phone: str(payload.contact_phone, 60) || null,
+      motivation: MOTIVATIONS.indexOf(payload.motivation) >= 0 ? payload.motivation : null,
+      source: 'marketplace',
+      status: 'new',
+    },
+  };
+}
+
 export default {
   async fetch(request, env) {
     const expected = 'Basic ' + btoa(`${USER}:${PASS}`);
@@ -28,6 +84,47 @@ export default {
     }
 
     const url = new URL(request.url);
+
+    // ---- Lead intake: POST /api/seller-lead → Supabase seller_leads ----
+    // The storefront "Publier une annonce" form posts here. We INSERT with the
+    // anon key (RLS: seller_leads_anon_insert) so the visitor's browser never
+    // talks to supabase.co. The lead lands unassigned (assigned_agency_id NULL)
+    // in the CRM "Biens" inbox to be claimed, and a DB trigger raises the agent
+    // notification (activity_events → notification bell).
+    if (url.pathname === '/api/seller-lead') {
+      if (request.method !== 'POST') return jsonResponse({ error: 'method_not_allowed' }, 405);
+      let payload;
+      try {
+        const raw = await request.text();
+        if (raw.length > 20000) return jsonResponse({ error: 'payload_too_large' }, 413);
+        payload = JSON.parse(raw || '{}');
+      } catch {
+        return jsonResponse({ error: 'invalid_json' }, 400);
+      }
+      const built = buildSellerLeadRow(payload);
+      if (built.error) return jsonResponse({ ok: false, error: built.error }, 400);
+      try {
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 10000);
+        const sb = await fetch(SUPABASE_URL + '/seller_leads', {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify(built.row),
+          signal: ctrl.signal,
+        });
+        clearTimeout(to);
+        if (sb.status >= 200 && sb.status < 300) return jsonResponse({ ok: true }, 201);
+        const detail = (await sb.text()).slice(0, 300);
+        return jsonResponse({ ok: false, error: 'upstream', status: sb.status, detail }, 502);
+      } catch (e) {
+        return jsonResponse({ ok: false, error: String(e) }, 502);
+      }
+    }
 
     // ---- API proxy: /api/<resource>?<PostgREST query string> ----
     // Forwards to Supabase with the anon key (server-side) so the visitor's
