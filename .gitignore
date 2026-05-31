@@ -34,6 +34,10 @@ supabase/.temp/
 /blob-report/
 /playwright/.cache/
 
+# wrangler local dev cache (transient build artifacts from `wrangler pages dev`
+# used to test the storefront _worker.js locally — never committed)
+.wrangler/
+
 # ruflo / claude-flow runtime (ephemeral binaries — durable knowledge lives in
 # committed exports, NOT these DBs which are machine-specific and churn)
 .swarm/

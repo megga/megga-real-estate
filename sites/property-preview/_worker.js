@@ -69,6 +69,71 @@ function buildSellerLeadRow(payload) {
   };
 }
 
+// Build a clean contact_messages row from untrusted form input (storefront
+// "Contact" form). Mirrors the table CHECK constraints (message 10-5000, phone
+// 3-40, consent_privacy=true required by RLS).
+function buildContactMessageRow(payload) {
+  const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+  const name = str(payload.name, 120);
+  const email = str(payload.email, 200);
+  const message = str(payload.message, 5000);
+  const phone = str(payload.phone, 40);
+  const subject = str(payload.subject, 200);
+  if (!name) return { error: 'name_required' };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: 'email_invalid' };
+  if (message.length < 10) return { error: 'message_too_short' };
+  if (payload.consent !== true) return { error: 'consent_required' };
+  return {
+    row: {
+      name, email, message,
+      phone: phone.length >= 3 ? phone : null,
+      subject: subject || null,
+      consent_privacy: true,
+      lang: 'fr',
+      source: 'storefront',
+      status: 'new',
+    },
+  };
+}
+
+// INSERT a whitelisted row into a Supabase table with the anon key (server-side),
+// shared by the lead/contact endpoints. Returns a JSON Response (201 / 502).
+async function insertRow(table, row) {
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const sb = await fetch(SUPABASE_URL + '/' + table, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(row),
+      signal: ctrl.signal,
+    });
+    clearTimeout(to);
+    if (sb.status >= 200 && sb.status < 300) return jsonResponse({ ok: true }, 201);
+    const detail = (await sb.text()).slice(0, 300);
+    return jsonResponse({ ok: false, error: 'upstream', status: sb.status, detail }, 502);
+  } catch (e) {
+    clearTimeout(to);
+    return jsonResponse({ ok: false, error: String(e) }, 502);
+  }
+}
+
+// Read + size-guard + parse a JSON request body. Returns { payload } or { response }.
+async function readJsonBody(request) {
+  try {
+    const raw = await request.text();
+    if (raw.length > 20000) return { response: jsonResponse({ error: 'payload_too_large' }, 413) };
+    return { payload: JSON.parse(raw || '{}') };
+  } catch {
+    return { response: jsonResponse({ error: 'invalid_json' }, 400) };
+  }
+}
+
 export default {
   async fetch(request, env) {
     const expected = 'Basic ' + btoa(`${USER}:${PASS}`);
@@ -93,37 +158,24 @@ export default {
     // notification (activity_events → notification bell).
     if (url.pathname === '/api/seller-lead') {
       if (request.method !== 'POST') return jsonResponse({ error: 'method_not_allowed' }, 405);
-      let payload;
-      try {
-        const raw = await request.text();
-        if (raw.length > 20000) return jsonResponse({ error: 'payload_too_large' }, 413);
-        payload = JSON.parse(raw || '{}');
-      } catch {
-        return jsonResponse({ error: 'invalid_json' }, 400);
-      }
+      const { payload, response } = await readJsonBody(request);
+      if (response) return response;
       const built = buildSellerLeadRow(payload);
       if (built.error) return jsonResponse({ ok: false, error: built.error }, 400);
-      try {
-        const ctrl = new AbortController();
-        const to = setTimeout(() => ctrl.abort(), 10000);
-        const sb = await fetch(SUPABASE_URL + '/seller_leads', {
-          method: 'POST',
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-            'Content-Type': 'application/json',
-            Prefer: 'return=minimal',
-          },
-          body: JSON.stringify(built.row),
-          signal: ctrl.signal,
-        });
-        clearTimeout(to);
-        if (sb.status >= 200 && sb.status < 300) return jsonResponse({ ok: true }, 201);
-        const detail = (await sb.text()).slice(0, 300);
-        return jsonResponse({ ok: false, error: 'upstream', status: sb.status, detail }, 502);
-      } catch (e) {
-        return jsonResponse({ ok: false, error: String(e) }, 502);
-      }
+      return insertRow('seller_leads', built.row);
+    }
+
+    // ---- Contact intake: POST /api/contact-message → Supabase contact_messages ----
+    // The storefront "Contact" form posts here. INSERT with the anon key (RLS:
+    // contact_messages_anon_insert, consent_privacy=true). A DB trigger raises the
+    // agent notification (activity_events → notification bell).
+    if (url.pathname === '/api/contact-message') {
+      if (request.method !== 'POST') return jsonResponse({ error: 'method_not_allowed' }, 405);
+      const { payload, response } = await readJsonBody(request);
+      if (response) return response;
+      const built = buildContactMessageRow(payload);
+      if (built.error) return jsonResponse({ ok: false, error: built.error }, 400);
+      return insertRow('contact_messages', built.row);
     }
 
     // ---- API proxy: /api/<resource>?<PostgREST query string> ----
