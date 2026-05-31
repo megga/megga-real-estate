@@ -32,7 +32,7 @@
     if (badge) badge.textContent = isBuy ? 'À vendre' : 'À louer';
     var title = node.querySelector('.property-card-bottom-content-v1 h2, .property-card-bottom-content-v1 h3');
     if (title) {
-      title.textContent = item.title || ((item.rooms ? item.rooms + ' pièces · ' : '') + (item.city || 'Bien'));
+      title.textContent = item.title || ((item.rooms ? item.rooms + ' pièces · ' : '') + (item.city || 'Annonce'));
       var amount = Number(item.rent || item.price || item.current_price);
       if (amount > 0 && (!title.nextElementSibling || !title.nextElementSibling.classList.contains('megga-price'))) {
         var pr = document.createElement('div');
@@ -58,7 +58,7 @@
     return node;
   }
 
-  function loadListings(agencyName, M) {
+  function loadListings(agency, M) {
     var grid = $('.properties-grid---v1.w-dyn-items');
     var section = grid ? (grid.closest('section') || grid.parentElement) : null;
     if (!grid) return;
@@ -67,7 +67,10 @@
     var tpl = template.outerHTML;
     var params = new URLSearchParams();
     params.set('select', 'id,title,rent,price,current_price,address,city,postal_code,rooms,bedrooms,surface_m2,photos,transaction_type');
-    params.set('agency_name', 'eq.' + agencyName);
+    // Flatfox sets EITHER the FK (agency_profile_id) OR just the name — match on
+    // either for the best coverage (some agencies have one, some the other).
+    var nameQ = '"' + String(agency.name || '').replace(/"/g, '\\"') + '"';
+    params.set('or', '(agency_profile_id.eq.' + agency.id + ',agency_name.eq.' + nameQ + ')');
     params.set('status', 'eq.active');
     params.set('order', 'created_at.desc');
     params.set('limit', '12');
@@ -170,7 +173,7 @@
     var lg = $('.properties-grid---v1.w-dyn-items');
     var lsec = lg && lg.closest('section');
     if (lsec) {
-      var lh = lsec.querySelector('h2'); if (lh) lh.textContent = "Biens de l’agence";
+      var lh = lsec.querySelector('h2'); if (lh) lh.textContent = "Annonces de l’agence";
       $all('div,span,p', lsec).forEach(function (el) {
         if (!el.children.length && /^properties\b/i.test(el.textContent.trim())) el.style.display = 'none';
       });
@@ -193,7 +196,7 @@
       t.style.display = 'none';
     });
 
-    loadListings(agency.name, M);
+    loadListings(agency, M);
     $all('p').forEach(function (p) { if (/^\s*Lorem ipsum/i.test(p.textContent)) p.style.display = 'none'; });
   }
 

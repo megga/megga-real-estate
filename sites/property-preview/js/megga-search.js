@@ -29,7 +29,7 @@
     document.querySelectorAll('.input-dropdown').forEach(function (dd) {
       var label = labelText(dd);
       if (label === 'Localisation') map.loc = dd;
-      else if (label === 'Type de bien') map.type = dd;
+      else if (label === "Type d'annonce") map.type = dd;
       else if (label === 'Transaction') map.tx = dd;
     });
     return map;
