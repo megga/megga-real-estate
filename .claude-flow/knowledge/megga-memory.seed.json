@@ -36,7 +36,7 @@
     {
       "key": "megga/audiences-routing",
       "namespace": "megga",
-      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace publique (/buy /rent /listing/:id, SearchPage+ListingPage). Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token/*). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
+      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace publique (/buy /rent /listing/:id, SearchPage+ListingPage). Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token = page unique « Votre vente » Sugar Pure lecture seule; + /portal dev mock). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
       "tags": "frontend,routing,audiences"
     },
     {
@@ -120,7 +120,7 @@
     {
       "key": "megga/flow-portal-kyc",
       "namespace": "megga",
-      "value": "FLUX C (portail vendeur token): agent cree seller_portals (token 6 mois) -> vendeur /portal/:token sans login -> RLS via token (READ property/transac, UPLOAD documents) -> updates visibles CRM -> expiry revoque. FLUX D (KYC Dilisense): transaction reserved -> kyc_cases (vigilance standard/renforcee selon montant + source des fonds) -> magic link upload (OCR, sha256) -> screening async Dilisense -> kyc_screening_decisions (PEP/sanctions) -> revue humaine MLRO -> analyse qualitative Claude (assist).",
+      "value": "FLUX C (portail vendeur token): agent cree seller_portals (token 6 mois) -> vendeur /portal/:token sans login -> page unique « Votre vente » (VotreVentePage, Sugar Pure, lecture seule; remplace l'ancien mini-CRM 8 pages) -> RLS via token (READ property/transac, UPLOAD documents) -> updates visibles CRM -> expiry revoque. FLUX D (KYC Dilisense): transaction reserved -> kyc_cases (vigilance standard/renforcee selon montant + source des fonds) -> magic link upload (OCR, sha256) -> screening async Dilisense -> kyc_screening_decisions (PEP/sanctions) -> revue humaine MLRO -> analyse qualitative Claude (assist).",
       "tags": "flow,portal,kyc"
     },
     {
@@ -216,7 +216,7 @@
     {
       "key": "megga/components-tree",
       "namespace": "megga",
-      "value": "Composants (src/components/): propertyx/ (atoms Px* = source de verite + sections/), ui/ (primitives headless + Motion: modal/dialog/Sheet/Toast/Shimmer/popover/tabs/context-menu), layout/ (ProtectedRoute, PasswordGate, StaleBundleDetector, AgentLayout, AgentSugarLayout), crm-sugar/ + crm-sugar-v3/ (shell CRM, contact detail, KYC pixel-pres, tokens dark). Domaines: search listings matching transactions kyc* documents calendar messaging portal onboarding* admin directory map ai-copilot skeletons auth-bento.",
+      "value": "Composants (src/components/): propertyx/ (atoms Px* = source de verite + sections/), ui/ (primitives headless + Motion: modal/dialog/Sheet/Toast/Shimmer/popover/tabs/context-menu), layout/ (ProtectedRoute, PasswordGate, StaleBundleDetector, AgentLayout, AgentSugarLayout), crm-sugar/ + crm-sugar-v3/ (shell CRM, contact detail, KYC pixel-pres, tokens dark). Domaines: search listings matching transactions kyc* documents calendar messaging portal seller-portal/votre-vente onboarding* admin directory map ai-copilot skeletons auth-bento.",
       "tags": "frontend,components"
     },
     {
@@ -722,6 +722,17 @@
       "namespace": "megga",
       "value": "Parcours agent complet (audite section par section, hardening pre-lancement fait). 1) AUTH/SIGNUP: /auth/signup (auth-bento, AuthBentoApp+BentoFormCard). signUp(email,pwd,fullName,role='agent',captcha) -> trigger DB on_auth_user_created -> handle_new_user() cree profiles (role='buyer' par defaut, agency_id NULL). Verif email, magic-link, reset, OAuth Google/MS, audit auth_events (log-auth-event), Turnstile, mdp 12 car (passwordRules). Champ AGENCE retire du signup (l'agence se cree au wizard). Legacy LoginPage SUPPRIME (/login,/register redirigent vers /auth/*). 2) GATE: ProtectedRoute (guards REACTIVES): loading->SmartPageLoader; !user->/auth/login (bypass dev=MOCK_USER ok); puis onboarding_completed===false->/dashboard/onboarding; first_day_done===false->/dashboard/premier-jour; sinon CRM. Loop-safe via skipOnboardingCheck sur onboarding+premier-jour. 3) WIZARD /dashboard/onboarding (OnboardingShell): Splash -> StepKYC(info) -> StepAgence(search/create/join via RPC create_agency_and_join | join_agency, etat ERREUR+Reessayer si echec, bouton 'Simuler' retire) -> StepProfilAgence -> StepProfilAgent(nom pre-rempli du profil, plus de demo 'Marie/Schaeffer') -> StepForfait(plan starter/pro sur agencies). finalizeOnboarding() detecte les echecs d'ecriture (toast/erreur, n'entre PAS si critique) puis enterCrm() set onboarding_completed=true. 4) PREMIER-JOUR (PremierJourShell): welcome->q0..q3->synthesis->configuring(D0Activation)->today. saveDay0Payload -> day0_payload + first_day_done + activity_events 'agent.first_day_completed' (idempotent). enterCrm: navigue SEULEMENT au succes, sinon toast (plus de boucle silencieuse). Skip calibrage RETIRE (code mort nettoye). Colonnes profiles du gate: role, agency_id, agent_role, onboarding_completed/step, first_day_done, first_day_completed_at, day0_payload. Tables: agencies, agency_profiles, agent_profiles, subscriptions, team_invitations, kyc_cases. Backlog (minors restants): CGU/consentement (volontairement non ajoute), responsive mobile wizard, join_agency attache directe vs UI 'admin valide', plan non sauve si agent rejoint, '12 documents' hardcode, REVOKE check_email_exists(anon).",
       "tags": "frontend,onboarding,auth,signup,gate,wizard,premier-jour,compliance,launch"
+    },
+    {
+      "key": "megga/seller-votre-vente",
+      "namespace": "megga",
+      "value": "Espace vendeur = page unique « Votre vente » (src/pages/particulier/VotreVentePage.tsx + src/components/seller-portal/votre-vente/). Remplace l'ancien mini-CRM 8 pages (supprime). Acces par lien personnel token (seller_portals, sans compte auth), lecture seule. Grammaire Sugar Pure (tokens SELLER_SP light/dark alignes SugarV3/DB_SP, Manrope, accent noir #0B0C0E, couleur en data-viz only). Blocs: header+parametres, carte bien+lightbox galerie, parcours arc 6 etapes (Mandat signe->En ligne->Visites->Offres->Negociation->Signe), 3 donuts (visites/offres/jours), offres + modal decision (accepter/contre-offrir/refuser -> transmis a l'agent, human-in-the-loop), timeline, carte agent WhatsApp/tel/email sticky, dark mode. Donnees: useSellerPortalData -> toVenteVM (viewModel.ts). PHASE 1 = visuel: modals offre/params presentes mais ecriture backend stub (props onSubmit/onSave) = PHASE 2 (edge fn token-scoped + audit, table seller_preferences). Handoff: docs/handoff/espace-vendeur/.",
+      "tags": [
+        "frontend",
+        "seller-portal",
+        "vendeur",
+        "sugar-pure"
+      ]
     }
   ]
 }

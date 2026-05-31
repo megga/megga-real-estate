@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useSellerPortalAccess } from '@/hooks/useSellerPortal'
 import { SellerPortalProvider } from '@/hooks/useSellerPortalContext'
-import SellerLayout from './SellerLayout'
+import VotreVentePage from './VotreVentePage'
 import PortalInvalidPage from './PortalInvalidPage'
 
 export default function PortalGateway() {
@@ -25,7 +25,7 @@ export default function PortalGateway() {
 
   return (
     <SellerPortalProvider data={data}>
-      <SellerLayout />
+      <VotreVentePage />
     </SellerPortalProvider>
   )
 }
