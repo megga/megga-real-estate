@@ -58,6 +58,15 @@ function stripSqlComments(sql) {
     .replace(/--[^\n]*/g, '')
 }
 
+// Regex fragment for a (optionally schema-qualified, optionally quoted) object
+// name. Matches plain `table`, `public.table`, `"table"`, and the form used by
+// `supabase db dump` in the baseline: `"public"."table"`. Without this, the
+// dumped baseline (which quotes every identifier) reads as "RLS not enabled".
+function qualifiedName(name) {
+  // (?:"public"\.|public\.)?  then  "name" | name
+  return `(?:(?:"public"|public)\\s*\\.\\s*)?"?${name}"?`
+}
+
 // ── Check 1: RLS enabled on critical tables ────────────────────────────────
 
 function checkRlsEnabled(migrations) {
@@ -65,17 +74,19 @@ function checkRlsEnabled(migrations) {
 
   for (const table of CRITICAL_TABLES) {
     // Match: ALTER TABLE [public.]table ENABLE ROW LEVEL SECURITY;
-    // Works with optional schema prefix and variable whitespace.
+    // Accepts plain, schema-qualified and quoted identifiers (incl. the
+    // "public"."table" form emitted by supabase db dump in the baseline).
+    const tbl = qualifiedName(table)
     const enableRe = new RegExp(
-      `ALTER\\s+TABLE\\s+(?:public\\.)?${table}\\b[^;]*ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
+      `ALTER\\s+TABLE\\s+(?:ONLY\\s+)?${tbl}[^;]*ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
       'i',
     )
     const forceRe = new RegExp(
-      `ALTER\\s+TABLE\\s+(?:public\\.)?${table}\\b[^;]*FORCE\\s+ROW\\s+LEVEL\\s+SECURITY`,
+      `ALTER\\s+TABLE\\s+(?:ONLY\\s+)?${tbl}[^;]*FORCE\\s+ROW\\s+LEVEL\\s+SECURITY`,
       'i',
     )
     const disableRe = new RegExp(
-      `ALTER\\s+TABLE\\s+(?:public\\.)?${table}\\b[^;]*DISABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
+      `ALTER\\s+TABLE\\s+(?:ONLY\\s+)?${tbl}[^;]*DISABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
       'i',
     )
 
@@ -96,8 +107,12 @@ function checkSuperAdminFunction(migrations) {
   const combinedSql = migrations.map((m) => stripSqlComments(m.content)).join('\n')
 
   // Find CREATE OR REPLACE FUNCTION ... is_super_admin ...
-  // We search for the full body that defines the function.
-  const fnRegex = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?is_super_admin\s*\([^)]*\)[\s\S]*?(?=\$\$|LANGUAGE|;)/gi
+  // Accepts the quoted "public"."is_super_admin" form from the baseline dump.
+  const fn = qualifiedName('is_super_admin')
+  const fnRegex = new RegExp(
+    `CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+${fn}\\s*\\([^)]*\\)[\\s\\S]*?(?=\\$\\$|LANGUAGE|;)`,
+    'gi',
+  )
   const matches = combinedSql.match(fnRegex)
 
   if (!matches || matches.length === 0) {
@@ -107,7 +122,10 @@ function checkSuperAdminFunction(migrations) {
 
   // Check at least one definition includes SECURITY DEFINER.
   // We scan the full surrounding function block (up to the next $$ END or ;).
-  const fullFnRegex = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?is_super_admin\s*\([^)]*\)[\s\S]*?\$\$[\s\S]*?\$\$[^;]*;/gi
+  const fullFnRegex = new RegExp(
+    `CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+${fn}\\s*\\([^)]*\\)[\\s\\S]*?\\$\\$[\\s\\S]*?\\$\\$[^;]*;`,
+    'gi',
+  )
   const fullBlocks = combinedSql.match(fullFnRegex) || []
 
   const hasSecurityDefiner = fullBlocks.some((block) => /SECURITY\s+DEFINER/i.test(block))
