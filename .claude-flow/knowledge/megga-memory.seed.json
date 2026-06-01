@@ -150,8 +150,8 @@
     {
       "key": "megga/dev-ci",
       "namespace": "megga",
-      "value": "Commandes: npm run dev (vite 5173), npm run build (tsc -b && vite build + postbuild), npm run lint (eslint), npm run test:unit (vitest), test:backend, test:e2e (playwright: ai/admin/visual). Prod megga.ch actuellement password-gated (Basic Auth realm 'MEGGA — acces restreint', pre-lancement). Branche de dev courante: feature branch (jamais push direct main sans validation).",
-      "tags": "dev,ci,testing"
+      "value": "Commandes: npm run dev (vite 5173), npm run build (tsc -b && vite build + postbuild), npm run lint (eslint), npm run test:unit (vitest), test:backend, test:e2e (playwright: ai/admin/visual). Prod megga.ch actuellement password-gated (Basic Auth realm 'MEGGA — acces restreint', pre-lancement). Branche de dev courante: feature branch (jamais push direct main sans validation). WORKFLOWS GITHUB ACTIONS (.github/workflows/): backend.yml + deploy.yml + e2e.yml sur push main + pull_request; deploy-app.yml (megga-app) + deploy-rockwell.yml sur push main; visual-baselines.yml sur issue_comment; security-audit.yml = CRON hebdo (lundi 7h03 UTC, + workflow_dispatch manuel) lance scripts/security-audit.mjs (audit RLS+policies+is_super_admin+guards edge functions, analyse statique sur supabase/migrations/* + sonde runtime service_role). GOTCHA (fix #527-ish): security-audit.mjs lisait les fausses anomalies 'RLS not enabled' sur 8 tables critiques + 'is_super_admin absent' car ses regex ne matchaient que les identifiants nus (public.table) alors que la baseline 00000000000000_baseline_remote_schema.sql est un dump `supabase db dump` qui QUOTE+schema-qualifie tout (\"public\".\"table\"). Fix = helper qualifiedName() tolerant guillemets+schema, applique aux 3 regex RLS + 2 regex is_super_admin. RLS reellement actif en prod (pg_class.relrowsecurity=true sur les 8, contacts/kyc_cases FORCE) — c'etait un faux positif du script, pas une regression. Le check planifie tournait sur main (donc echec visible meme sans rapport avec une PR).",
+      "tags": "dev,ci,testing,security-audit,rls,workflows"
     },
     {
       "key": "megga/secrets",
