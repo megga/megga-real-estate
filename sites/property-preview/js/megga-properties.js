@@ -6,14 +6,19 @@
   // Webflow only puts a `max-height` on the card image box (no fixed height /
   // aspect-ratio), so each photo renders at its natural ratio capped at 364px —
   // landscape shots come out short, square/portrait ones hit the cap → a ragged
-  // grid. Pin a fixed 4:3 box and let object-fit:cover crop, so every card photo
-  // is the same (larger) size. Scoped to the properties grid; injected once.
+  // grid. Pin a fixed 3:2 box (wider/landscape) and let object-fit:cover crop, so
+  // every card photo is the same (larger, wider) size. Scoped to the grid.
   function injectCardImageFix() {
     if (document.getElementById('megga-card-image-fix')) return;
     var css =
       '.properties-grid---v1 .property-card-top-content-v1{max-height:none}' +
-      '.properties-grid---v1 .image-wrapper.border-radius-image-default.property-card-top-content-v1---image{aspect-ratio:4/3;height:auto;flex:none;width:100%;display:block}' +
-      '.properties-grid---v1 .image-wrapper.property-card-top-content-v1---image .cover-image{width:100%;height:100%;object-fit:cover;display:block}';
+      '.properties-grid---v1 .image-wrapper.border-radius-image-default.property-card-top-content-v1---image{aspect-ratio:3/2;height:auto;flex:none;width:100%;display:block}' +
+      '.properties-grid---v1 .image-wrapper.property-card-top-content-v1---image .cover-image{width:100%;height:100%;object-fit:cover;display:block}' +
+      // No separator line between the price/location row and the feature details.
+      '.properties-grid---v1 .divider{display:none}' +
+      // Drop the demo "Contact agent" CTA at the bottom of each card
+      // (a `.link.mid` block inside the details wrapper).
+      '.properties-grid---v1 .property-details-wrapper-v1-1 .link.mid{display:none}';
     var s = document.createElement('style');
     s.id = 'megga-card-image-fix';
     s.textContent = css;
@@ -51,23 +56,36 @@
     var title = node.querySelector('.property-card-bottom-content-v1 h2, .property-card-bottom-content-v1 h3');
     if (title) {
       title.textContent = item.title || ((item.rooms ? item.rooms + ' pièces · ' : '') + (item.city || 'Annonce'));
-      // Inject a price line right after the title (the template has none).
-      // Only when we have a real amount (some commercial listings have price 0).
-      var amount = Number(item.rent || item.price || item.current_price);
-      if (amount > 0 && (!title.nextElementSibling || !title.nextElementSibling.classList.contains('megga-price'))) {
-        var price = document.createElement('div');
-        price.className = 'megga-price';
-        price.style.cssText = 'margin-top:4px;font-weight:500';
-        price.textContent = M.formatCHF(amount) + (isBuy ? '' : '/mois');
-        title.parentNode.insertBefore(price, title.nextSibling);
-      }
     }
 
-    // Address line (location feature uses .text-titles).
-    var addr = node.querySelector('.property-card-bottom-content-v1 .text-titles div');
-    if (addr) {
-      addr.textContent = (item.address ? item.address + ', ' : '') +
-        (item.postal_code ? item.postal_code + ' ' : '') + (item.city || '');
+    // Location (pin + .text-titles). Show the city (+ postal) — short enough to
+    // sit to the RIGHT of the price; the full street address is on the detail page.
+    var hasLoc = !!(item.city || item.postal_code);
+    var locWrap = node.querySelector('.property-card-bottom-content-v1 .text-titles');
+    var addr = locWrap && locWrap.querySelector('div');
+    if (addr) addr.textContent = hasLoc ? ((item.postal_code ? item.postal_code + ' ' : '') + (item.city || '')) : '';
+    locWrap = locWrap ? (locWrap.closest('.card-feature-wrapper') || locWrap) : null;
+
+    // Price + location on one row, location to the RIGHT of the price.
+    var amount = Number(item.rent || item.price || item.current_price);
+    if (title && amount > 0 && !(title.nextElementSibling && title.nextElementSibling.classList.contains('megga-price-row'))) {
+      var row = document.createElement('div');
+      row.className = 'megga-price-row';
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px';
+      var price = document.createElement('div');
+      price.className = 'megga-price';
+      price.style.cssText = 'font-weight:600;white-space:nowrap;flex:none';
+      price.textContent = M.formatCHF(amount) + (isBuy ? '' : '/mois');
+      row.appendChild(price);
+      title.parentNode.insertBefore(row, title.nextSibling);
+      if (locWrap && hasLoc) {
+        locWrap.style.margin = '0';
+        locWrap.style.minWidth = '0';
+        locWrap.style.flex = '0 1 auto';
+        row.appendChild(locWrap);
+      } else if (locWrap) {
+        locWrap.style.display = 'none';
+      }
     }
 
     // Feature slots: surface / rooms / bedrooms. Hide a slot when we have no value
@@ -99,6 +117,7 @@
     var agglo = qp('agglo');
     var canton = qp('canton');
     var ville = qp('ville');
+    var type = qp('type');
     var kw = qp('q').toLowerCase();
     // Scope resolution: agglomération > canton > ville (no overlap — only one is
     // ever set at a time by the search UI).
@@ -108,15 +127,20 @@
       ? aggloEntry.cities
       : (cityEntry ? cityEntry.variants : (ville ? [ville] : []));
     // What the user typed/picked, for the empty-state copy.
-    var scopeLabel = aggloEntry ? aggloEntry.name
+    var TYPE_LABELS = { apartment: 'Appartements', house: 'Maisons', villa: 'Villas', commercial: 'Commerces', office: 'Bureaux', parking: 'Parkings', storage: 'Dépôts', land: 'Terrains' };
+    var typeLabel = type ? (TYPE_LABELS[type] || '') : '';
+    var locLabel = aggloEntry ? aggloEntry.name
       : (canton
         ? ((window.CH_FIND_CANTON && (window.CH_FIND_CANTON(canton) || {}).name) || canton)
-        : (ville || qp('q') || '…'));
+        : (ville || ''));
+    var txLabel = qp('transaction') === 'acheter' ? 'À vendre' : '';
+    var scopeLabel = [typeLabel, locLabel].filter(Boolean).join(' à ') || txLabel || qp('q') || 'votre recherche';
 
     window.MeggaSupabase.fetchListings({
       transaction: qp('transaction'),
       canton: canton,
       villes: villes,
+      type: type,
     }).then(function (items) {
       // Geographic scope is server-side. Keyword stays client-side because
       // title is not indexed — but the pool is small once we've narrowed.

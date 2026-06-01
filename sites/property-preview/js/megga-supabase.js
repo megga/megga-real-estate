@@ -52,6 +52,11 @@ window.MeggaSupabase = (function () {
     } else if (ville) {
       params.set('city', 'eq.' + ville);
     }
+    // Optional property type (apartment/house/villa/commercial/office/parking/
+    // storage/land). Covered by idx_ml_active_tx_canton_type; applied on top of
+    // the partial created_at index so it stays fast under LIMIT.
+    var type = (f.type || '').trim();
+    if (type) params.set('type', 'eq.' + type);
     params.set('order', 'created_at.desc');
     params.set('limit', String(limit));
     params.set('offset', String(offset));
