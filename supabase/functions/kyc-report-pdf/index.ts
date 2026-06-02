@@ -81,10 +81,14 @@ serve(async (req) => {
     )
     if (!cfRes.ok) {
       const errTxt = await cfRes.text().catch(() => '')
+      console.error('kyc-report-pdf cf-render', { kyc_case_id, cf_status: cfRes.status, detail: errTxt.slice(0, 200) })
       return json({ error: `cloudflare pdf HTTP ${cfRes.status}`, detail: errTxt.slice(0, 300) }, 502)
     }
     const pdfBytes = new Uint8Array(await cfRes.arrayBuffer())
-    if (pdfBytes.byteLength < 1000) return json({ error: 'pdf empty/too small' }, 502) // garde anti-PDF blanc
+    if (pdfBytes.byteLength < 1000) {
+      console.error('kyc-report-pdf pdf-empty', { kyc_case_id, bytes: pdfBytes.byteLength })
+      return json({ error: 'pdf empty/too small' }, 502) // garde anti-PDF blanc
+    }
 
     // 3. Upload média Meta (éphémère) + 4. envoi document à l'agent.
     const metaToken = Deno.env.get('META_WHATSAPP_TOKEN') ?? ''
@@ -104,7 +108,10 @@ serve(async (req) => {
     )
     const sendRes = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body })
     const sendParsed = provider.parseSendResult(sendRes.status, await sendRes.json().catch(() => ({})))
-    if (!sendParsed.ok) return json({ error: `meta send HTTP ${sendRes.status}: ${sendParsed.error ?? ''}` }, 502)
+    if (!sendParsed.ok) {
+      console.error('kyc-report-pdf meta-send', { kyc_case_id, status: sendRes.status, err: sendParsed.error ?? '' })
+      return json({ error: `meta send HTTP ${sendRes.status}: ${sendParsed.error ?? ''}` }, 502)
+    }
 
     // 5. Audit (actor IA, lecture seule du dossier — règle d'or intacte).
     await supabase.from('activity_events').insert({
@@ -120,6 +127,7 @@ serve(async (req) => {
     return json({ ok: true, reference })
   } catch (err) {
     const name = (err as Error)?.name
+    console.error('kyc-report-pdf catch', { name, msg: err instanceof Error ? err.message : String(err) })
     if (name === 'TimeoutError' || name === 'AbortError') return json({ error: 'render timeout' }, 504)
     return json({ error: err instanceof Error ? err.message : 'Unknown error' }, 500)
   }
