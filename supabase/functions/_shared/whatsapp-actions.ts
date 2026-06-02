@@ -19,7 +19,7 @@ import { PIPELINE_STAGES, isValidStage, stageLabel, type PipelineStage } from '.
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
-import { readDocument } from './vision.ts'
+import { readDocument, isReadableDocMime } from './vision.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -526,6 +526,19 @@ export async function prepareOpenKycCase(ctx: ActionCtx, a: Args): Promise<Prepa
   const type = deriveKycType(contact.type, entity)
   const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || 'ce contact'
 
+  // Dédup : si un dossier KYC ACTIF (none/pending) existe déjà pour ce contact, on n'en
+  // ouvre pas un second (évite les doublons côté MLRO). On laisse rouvrir si le dernier
+  // dossier est verified/stale/failed (renouvellement légitime).
+  const existing = await findOpenKycCase(ctx, contactId)
+  if (existing && (existing.dossier_status === 'none' || existing.dossier_status === 'pending')) {
+    return {
+      ok: false,
+      error: ctx.lang === 'en'
+        ? `${name} already has an open KYC file — no need to open another.`
+        : `${name} a déjà un dossier KYC ouvert — inutile d'en ouvrir un second.`,
+    }
+  }
+
   return {
     ok: true,
     prompt: confirmOpenKyc(ctx.lang ?? 'fr', name, type, vigilance),
@@ -591,9 +604,13 @@ export async function execRunKycScreening(ctx: ActionCtx, a: Args): Promise<stri
         entity_type: kycTypeToEntityType(kc.type),
         agency_id: ctx.agencyId,
       }),
-      signal: AbortSignal.timeout(40_000),
+      signal: AbortSignal.timeout(50_000),
     })
-  } catch {
+  } catch (e) {
+    const n = (e as Error)?.name
+    if (n === 'TimeoutError' || n === 'AbortError') {
+      return 'Le screening prend plus de temps que prévu — il a peut-être abouti, vérifie le dossier dans le CRM dans un instant.'
+    }
     return 'Le screening a échoué (réseau). Réessaie dans un instant.'
   }
   if (res.status === 429) return 'Screening déjà lancé il y a quelques secondes — patiente un instant avant de relancer.'
@@ -636,6 +653,14 @@ export async function execAttachKycDocument(ctx: ActionCtx, a: Args): Promise<st
   } catch {
     return 'Je n’ai pas pu récupérer le document (lien Meta expiré ?). Renvoie-le.'
   }
+
+  // Validation AVANT OCR/upload (parité avec magic-link-upload) : type lisible + taille.
+  // Sinon on gaspille un OCR et, pour >10 Mo, on crée une row documents (rétention 10 ans,
+  // non supprimable) AVANT que l'insert kyc_magic_link_uploads échoue sur son CHECK taille.
+  const MAX_KYC_BYTES = 10 * 1024 * 1024
+  if (!isReadableDocMime(mime)) return 'Ce type de fichier n’est pas accepté pour un document KYC (PDF ou image uniquement).'
+  if (bytes.byteLength <= 0 || bytes.byteLength > MAX_KYC_BYTES) return 'Le document dépasse la taille maximale (10 Mo). Compresse-le ou prends-le en photo.'
+
   const ocr = await readDocument(bytes, mime, Deno.env.get('GEMINI_API_KEY') ?? '', { prompt: KYC_DOC_PROMPT })
   const ocrFields = ocr.ok ? parseKycOcr(ocr.text) : {}
 
@@ -653,7 +678,7 @@ export async function execAttachKycDocument(ctx: ActionCtx, a: Args): Promise<st
   const sha256 = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
 
   // 4. Row documents (canonique, kyc_case_id → rétention 10 ans auto via trigger)
-  const filename = `${category}_${ctx.inboundMedia.messageId}.${ext}`
+  const filename = `${category}_${ctx.inboundMedia.messageId}.${ext}`.slice(0, 255)
   const { data: docRow, error: docErr } = await ctx.supabase.from('documents').insert({
     agency_id: ctx.agencyId,
     kyc_case_id: kc.id,
