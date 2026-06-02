@@ -89,7 +89,7 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|
-| **Marketplace SPA** (app.megga.ch) | `/buy` `/rent` · fiche `/propriete/:id` (alias `/listing/:id`) | `SearchPage` (filtres, favoris, Mapbox lazy, comparateur, scroll infini), `PropertyXSinglePropertyPage` (Property X). ⚠️ Le storefront **public** pré-lancement est le site **statique** megga.ch (`sites/property-preview`, cf §1 & §4bis), **pas** cette SPA. |
+| **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` conservés (imports commentés, réactivation Sprint 7). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
 | **Marketing public** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` `/help*` | pages secondaires + centre d'aide |
 | **Compte visiteur** | `/account` | favoris, recherches sauvegardées, messagerie acheteur |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
@@ -192,7 +192,20 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ## 4bis · Storefront public statique (megga.ch) 🌐
 
-> **C'est LA marketplace publique pré-lancement** (décision produit) — un site **Webflow Property X V3** statique dans [`sites/property-preview/`](../sites/property-preview/), distinct de la SPA React (app.megga.ch, §2). Overlay sur `dist/` au build via `scripts/overlay-storefront.mjs` (`MEGGA_BUILD_TARGET`).
+> ⚠️ **PIVOT juin 2026 — recentrage CRM-first.** megga.ch ne sert **plus** la marketplace : il sert
+> désormais la **vitrine SaaS** [`sites/megga-vitrine/`](../sites/megga-vitrine/) (landing → CRM `app.megga.ch`).
+> Tout l'ancien storefront marketplace Property X décrit ci-dessous est **conservé en sommeil** dans
+> [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/) (ex-`sites/property-preview/`),
+> **rien supprimé**, réactivable en repointant `scripts/overlay-storefront.mjs`. La table `market_listings`
+> (~34k biens) **reste active** : elle nourrit le CRM (matching, estimation, stats copilote). La doc
+> ci-dessous reste valable pour ce dossier en sommeil (phase ultérieure = Sprint 7).
+
+> **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
+> (25 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
+> auto-hébergés — 0 CDN). CTA → `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
+> `megga`/`preview` seul, pas de proxy Supabase). **Reste** : image hero encore CodeAI (à remplacer).
+
+> **Marketplace (en sommeil)** : un site **Webflow Property X V3** statique dans [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/), distinct de la SPA React (app.megga.ch, §2). Overlay sur `dist/` au build via `scripts/overlay-storefront.mjs` (`MEGGA_BUILD_TARGET`).
 
 - **Worker** (`_worker.js`, Cloudflare Pages advanced) : Basic Auth (`ai`/`ai`, gate pré-lancement) + proxy GET **`/api/listings`** → `market_listings` / **`/api/agencies`** → `agency_profiles` (anon key côté serveur, évite CORS navigateur) + endpoint **POST `/api/seller-lead`** → insère dans `seller_leads` (cf. « Publier une annonce »).
 - **Home** `index.html` : hero (recherche `megga-search.js` + CTA) + section « Annonces en vedette » (`featured-property-item---main`) branchée par `js/megga-home.js` — annonces récentes via `/api/listings`, photo/titre/prix injectés, lien vers la fiche ; force-visible IX2 + sweep du démo, panneaux hover masqués.
