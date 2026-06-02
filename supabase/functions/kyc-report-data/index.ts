@@ -4,7 +4,12 @@ import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  // sentry-trace + baggage : la page de rendu /kyc-report/:token tourne dans l'app
+  // (Sentry actif) → le SDK ajoute ces en-têtes au fetch. Sans eux dans l'allowlist,
+  // le préflight CORS bloque le POST (vu en headless : "field baggage is not allowed")
+  // → données jamais chargées → #pdf-ready jamais posé → Cloudflare timeout → 502.
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
 serve(async (req) => {
