@@ -15,6 +15,16 @@ Trois outils copilote WhatsApp par-dessus le moteur KYC existant, sans jamais va
 - **`run_kyc_screening`** (tier auto) — lance Dilisense via l'edge `kyc-screening`, renvoie PEP/sanctions/risque + « prêt à valider dans le CRM ».
 - **Module pur** `_shared/kyc-extract.ts` (prompt OCR + parser + dérivations, testé) ; **migration** `20260602140000` généralise `kyc_magic_link_uploads` (canal WhatsApp) ; **threading média** webhook→agent→`ActionCtx.inboundMedia` ; **auth service-à-service** sur `kyc-screening` (l'agent WhatsApp n'a pas de JWT — clé service-role comparée à temps constant, garde cross-agency conservée, reste `--no-verify-jwt`).
 
+#### Rapport KYC en PDF par WhatsApp (2 juin 2026)
+> Implémenté sur branche `claude/upbeat-tharp-c7442c` (subagent-driven). Prérequis avant prod : poser 4 secrets Supabase (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_RENDER_TOKEN` scopé *Browser Rendering – Edit*, `MEGGA_APP_URL`, `MEGGA_PREVIEW_BASIC_AUTH`). Déploiement edge via CI au merge. Plan : `docs/superpowers/plans/2026-06-02-whatsapp-kyc-report-pdf.md`.
+
+L'agent demande son rapport KYC depuis WhatsApp (« envoie-moi le rapport KYC de Dubois ») → MEGGA génère le **PDF officiel** (identique au CRM, factuel sans IA) et le lui renvoie en pièce jointe. Outil copilote `send_kyc_report` (tier auto). Sert les objectifs 1 (admin) et 4 (transparence).
+- **Option A — Cloudflare Browser Rendering REST API, sans Worker.** L'app étant sur Cloudflare **Pages** (pas Workers), on appelle `POST …/browser-rendering/pdf` directement depuis une edge Supabase (gratuit dans le tier free). Le headless rend la **route publique tokenisée** `/kyc-report/:token` (`KycReportRenderPage`, réutilise `buildPdfReportData` + `PdfPage1/2/3` → un seul template, DRY), traverse le Basic Auth `ai/ai` de megga.ch via le param `authenticate`, attend la sentinelle `#pdf-ready` (données + fontes Manrope).
+- **2 edges.** `kyc-report-data` (lecture seule : valide le token HMAC, **dérive l'agence du dossier server-side**, renvoie le view-model) ; `kyc-report-pdf` (orchestrateur service-à-service comme `kyc-screening` : mint token → CF /pdf → upload média Meta éphémère → envoi document → audit `kyc_report_sent`). Token court (~5 min) `{dossier_id, exp, profile_id}` — jamais d'agence dedans ; `referrerPolicy="no-referrer"` sur la police pour ne pas fuiter le token via `Referer`.
+- **Envoi de document Meta (nouveau)** : `buildSendDocumentRequest` + `uploadMetaMediaDocument` (avant, MEGGA n'envoyait que du texte). Document envoyé **qu'à l'agent** (son numéro WhatsApp vérifié, jamais un numéro arbitraire).
+- **Règle d'or préservée** : générer/envoyer le rapport est en lecture seule (aucune écriture `dossier_status`/`is_completed` ; seul write = l'audit). **Aucune migration** (pas d'archivage du PDF : l'envoi est tracé, le rapport régénérable à l'identique).
+- **Tests** : unit (token `p`, document Meta, upload média, corps CF, tier) ; backend **live** `kyc-report-data.spec.ts` 7/7 (token valide → 200 + scope agence / expiré → 401 / inexistant → 404), câblé via `config.toml [edge_runtime.secrets]` + secret de test dans `backend.yml`.
+
 #### Copilote WhatsApp bilingue FR/EN (2 juin 2026)
 > Même branche. Le CRM étant FR/EN, le copilote (KYC compris) suit la langue de l'agent.
 
