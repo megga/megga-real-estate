@@ -16,6 +16,7 @@ import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execQualifyLead,
+  prepareSendListings, prepareRecordOffer,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 
@@ -123,12 +124,15 @@ serve(async (req) => {
       const tier = toolTier(name)
 
       if (tier === 'confirm') {
-        // On NE l'exécute pas : on la stocke en attente et on demande confirmation.
+        // On NE l'exécute pas : on VALIDE + on PRÉPARE, puis on demande confirmation.
         const stash = await stashPending(ctx, waNumber, name, args)
-        if (!stash.created) {
+        if (stash.status === 'busy') {
           return json({ reply: 'Tu as déjà une action en attente. Réponds « oui » pour la confirmer ou « non » pour l’annuler avant d’en lancer une autre.' }, 200)
         }
-        return json({ reply: `Je vais ${stash.summary}. Tu confirmes ? (réponds « oui » ou « non »)` }, 200)
+        if (stash.status === 'error') {
+          return json({ reply: stash.error ?? 'Je ne peux pas préparer cette action pour le moment.' }, 200)
+        }
+        return json({ reply: stash.prompt ?? 'Tu confirmes ? (« oui » / « non »)' }, 200)
       }
 
       // F4 : si un outil identique a déjà tourné ce tour, réutilise le résultat.
@@ -197,20 +201,32 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
 // confirmerait sans le savoir une autre action que celle annoncée).
 async function stashPending(
   ctx: ActionCtx, waNumber: string, tool: string, args: Record<string, unknown>,
-): Promise<{ created: boolean; summary: string }> {
+): Promise<{ status: 'created' | 'busy' | 'error'; prompt?: string; error?: string }> {
   const { data: existing } = await ctx.supabase
     .from('whatsapp_pending_actions')
     .select('expires_at')
     .eq('profile_id', ctx.profileId)
     .maybeSingle()
   if (existing && Date.parse(existing.expires_at) > Date.now()) {
-    return { created: false, summary: '' }
+    return { status: 'busy' }
   }
 
-  let summary = 'effectuer cette action'
-  if (tool === 'send_client_message') {
+  // Préparation par outil : prompt humain affiché à l'agent + payload figé stocké.
+  // send_listings / record_offer valident et formatent ici → si échec, on le DIT
+  // (et on ne stocke rien), au lieu de promettre une action qui planterait au « oui ».
+  let prompt = 'Je vais effectuer cette action. Tu confirmes ? (« oui » / « non »)'
+  let storeArgs: Record<string, unknown> = args
+  if (tool === 'send_listings') {
+    const p = await prepareSendListings(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'record_offer') {
+    const p = await prepareRecordOffer(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'send_client_message') {
     const preview = String(args.body ?? '').slice(0, 60)
-    summary = `envoyer au client le message « ${preview}${preview.length >= 60 ? '…' : ''} »`
+    prompt = `Je vais envoyer au client le message « ${preview}${preview.length >= 60 ? '…' : ''} ». Tu confirmes ? (« oui » / « non »)`
   } else if (tool === 'update_pipeline') {
     const stage = String(args.stage ?? '')
     const label = STAGE_LABELS_FR[stage as PipelineStage] ?? stage
@@ -222,16 +238,17 @@ async function stashPending(
       const name = c ? `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim() : ''
       if (name) who = `le dossier de ${name}`
     }
-    summary = `déplacer ${who} en « ${label} »`
+    prompt = `Je vais déplacer ${who} en « ${label} ». Tu confirmes ? (« oui » / « non »)`
   }
+
   await ctx.supabase.from('whatsapp_pending_actions').upsert({
     profile_id: ctx.profileId,
     agency_id: ctx.agencyId,
     wa_number: waNumber,
     tool,
-    args,
-    summary,
+    args: storeArgs,
+    summary: prompt,
     expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
   }, { onConflict: 'profile_id' })
-  return { created: true, summary }
+  return { status: 'created', prompt }
 }

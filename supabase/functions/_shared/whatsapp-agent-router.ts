@@ -34,6 +34,8 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // (ai-guardrails : « jamais sans action humaine ») ⇒ confirm (le « oui » de l'agent).
   update_pipeline: 'confirm',
   send_client_message: 'confirm',
+  send_listings: 'confirm',
+  record_offer: 'confirm',
 }
 
 export function toolTier(name: string): ToolTier {

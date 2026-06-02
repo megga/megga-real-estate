@@ -193,4 +193,36 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'send_listings',
+      description: "Envoie une sélection de VRAIS biens à un client par WhatsApp (action confirmée avant envoi). Pour « envoie à Sarah ses meilleures correspondances », « envoie ces biens à Dubois ». Sans listing_ids, envoie les meilleures correspondances du contact.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string' },
+          listing_ids: { type: 'array', items: { type: 'string' }, description: 'IDs de biens (market_listing_id/property_id via get_matches). Optionnel : par défaut, les meilleures correspondances.' },
+        },
+        required: ['contact_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'record_offer',
+      description: "Enregistre une offre dans le dossier d'un contact (action confirmée — le montant est relu avant validation). Pour « Marc a fait une offre de 850k », « offre de 2.1M sur le dossier Cologny ». Le contact doit avoir un dossier ouvert.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string' },
+          amount: { type: 'string', description: "Montant de l'offre. Ex « 850000 », « 2.1M »." },
+          from_party: { type: 'string', enum: ['buyer', 'seller'], description: "Qui fait l'offre (par défaut déduit du dossier)." },
+          expires_in_days: { type: 'number', description: 'Validité de l’offre en jours (défaut 30).' },
+        },
+        required: ['contact_id', 'amount'],
+      },
+    },
+  },
 ]

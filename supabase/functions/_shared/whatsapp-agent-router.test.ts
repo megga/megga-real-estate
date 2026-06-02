@@ -71,9 +71,11 @@ describe('toolTier', () => {
     expect(toolTier('create_reminder')).toBe('auto')
     expect(toolTier('qualify_lead')).toBe('auto')
   })
-  it('classe les outils confirm (sensibles : étape pipeline + envoi client)', () => {
+  it('classe les outils confirm (sensibles : pipeline + envois client + offre)', () => {
     expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')
+    expect(toolTier('send_listings')).toBe('confirm')
+    expect(toolTier('record_offer')).toBe('confirm')
   })
   it('par défaut un outil inconnu est confirm (fail-safe)', () => {
     expect(toolTier('delete_everything')).toBe('confirm')

@@ -11,7 +11,7 @@ import { getProvider, verifyHmac, type SendConfig } from '../_shared/whatsapp-ga
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
-import { execUpdatePipeline, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { execUpdatePipeline, executeRecordOffer, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -363,7 +363,24 @@ async function callAgentBrain(
   }
 }
 
-// Exécute une action confirmée (Phase 4A : send_client_message). Garde agence AU SQL.
+// Envoi d'un texte WhatsApp à un numéro (fenêtre 24h requise, sinon template Meta).
+async function sendWhatsAppText(
+  provider: ReturnType<typeof getProvider>, toPhone: string, body: string,
+): Promise<boolean> {
+  const sendConfig: SendConfig = {
+    metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+    metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+  }
+  const sreq = provider.buildSendTextRequest({ toPhone, body }, sendConfig)
+  try {
+    const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
+    return sres.ok
+  } catch { return false }
+}
+
+// Exécute une action confirmée (send_client_message, update_pipeline, record_offer,
+// send_listings). Garde agence AU SQL ou via l'exécuteur partagé.
 async function executePending(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
@@ -405,6 +422,27 @@ async function executePending(
   if (pending.tool === 'update_pipeline') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id }
     return execUpdatePipeline(ctx, pending.args)
+  }
+  if (pending.tool === 'record_offer') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id }
+    return executeRecordOffer(ctx, pending.args)
+  }
+  if (pending.tool === 'send_listings') {
+    // Payload figé au stash (validé + formaté) : { contact_id, phone, text }. On envoie tel quel.
+    if (!agentLink.agency_id) return "Ton compte n'a pas d'agence, envoi impossible."
+    const phone = String(pending.args.phone ?? '').replace(/\D/g, '')
+    const text = String(pending.args.text ?? '')
+    if (!phone || !text) return 'La sélection était incomplète, rien envoyé.'
+    const sent = await sendWhatsAppText(provider, phone, text)
+    if (!sent) return "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?)."
+    try {
+      await admin.from('activity_events').insert({
+        agency_id: agentLink.agency_id, actor_id: agentLink.profile_id, actor_kind: 'ai',
+        action: 'whatsapp_ai_send_listings', entity_type: 'contact',
+        entity_id: String(pending.args.contact_id ?? '') || null, category: 'messaging',
+      })
+    } catch { /* non bloquant */ }
+    return '✅ Sélection envoyée au client.'
   }
   return "Type d'action inconnu, rien fait."
 }
