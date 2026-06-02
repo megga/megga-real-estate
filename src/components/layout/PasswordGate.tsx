@@ -10,12 +10,16 @@ const BYPASS_GATE = import.meta.env.DEV && import.meta.env.VITE_PASSWORD_GATE_BY
 // Routes publiques accessibles sans gate :
 // - /kyc/* : parcours client KYC magic link (Sprint 4.7.C) — le client
 //   n'a pas de compte MEGGA, il ne doit pas voir le splash Coming Soon.
+// - /kyc-report/* : rendu PDF tokenisé du rapport KYC pour WhatsApp (Sprint 4.7.D),
+//   chargé par Cloudflare Browser Rendering (headless, sans session). S'il voit le
+//   splash, le PDF ne se génère jamais. ⚠️ '/kyc-report/' ne matche PAS le préfixe
+//   '/kyc/' (startsWith) → entrée distincte obligatoire.
 // - /dev/* : routes de preview/showcase pour itération design — UNIQUEMENT
 //   accessibles en dev. En production, elles sont bloquées par le gate pour
 //   éviter de leaker l'esthétique interne / mock data avant lancement.
 const PUBLIC_ROUTE_PREFIXES = import.meta.env.DEV
-  ? ['/kyc/', '/dev/']
-  : ['/kyc/']
+  ? ['/kyc/', '/kyc-report/', '/dev/']
+  : ['/kyc/', '/kyc-report/']
 const isPublicRoute = (): boolean => {
   if (typeof window === 'undefined') return false
   return PUBLIC_ROUTE_PREFIXES.some((p) => window.location.pathname.startsWith(p))
