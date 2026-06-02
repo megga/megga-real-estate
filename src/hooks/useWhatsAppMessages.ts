@@ -16,6 +16,9 @@ export interface WhatsAppMessageRow {
   media_url: string | null
   status: string
   wa_timestamp: string | null
+  transcript: string | null
+  transcript_lang: string | null
+  processing_status: 'pending' | 'processing' | 'done' | 'failed' | 'skipped'
 }
 
 export function useWhatsAppMessages(contactId: string | undefined) {
@@ -26,7 +29,7 @@ export function useWhatsAppMessages(contactId: string | undefined) {
     queryFn: async (): Promise<WhatsAppMessageRow[]> => {
       const { data, error } = await supabase
         .from('whatsapp_messages')
-        .select('id, created_at, direction, wa_from, wa_to, body, media_type, media_url, status, wa_timestamp')
+        .select('id, created_at, direction, wa_from, wa_to, body, media_type, media_url, status, wa_timestamp, transcript, transcript_lang, processing_status')
         .eq('contact_id', contactId!)
         .order('created_at', { ascending: true })
       if (error) throw error

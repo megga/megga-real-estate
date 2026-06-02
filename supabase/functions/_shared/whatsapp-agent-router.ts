@@ -21,13 +21,48 @@ export type ToolTier = 'read' | 'auto' | 'confirm'
 const TOOL_TIERS: Record<string, ToolTier> = {
   get_my_agenda: 'read',
   search_contacts: 'read',
+  get_contact_brief: 'read',
+  list_followups: 'read',
+  get_matches: 'read',
+  get_daily_brief: 'read',
   create_contact: 'auto',
   add_note: 'auto',
+  schedule_visit: 'auto',
+  create_reminder: 'auto',
+  qualify_lead: 'auto',
+  // update_pipeline modifie l'étape pipeline → garde-fou absolu du cerveau
+  // (ai-guardrails : « jamais sans action humaine ») ⇒ confirm (le « oui » de l'agent).
+  update_pipeline: 'confirm',
   send_client_message: 'confirm',
+  send_listings: 'confirm',
+  record_offer: 'confirm',
 }
 
 export function toolTier(name: string): ToolTier {
   return TOOL_TIERS[name] ?? 'confirm'
+}
+
+// Les 14 colonnes canoniques du pipeline (= transactions.stage, hors valeurs legacy
+// lead/qualified/closed/visit_planned_legacy). Source unique partagée par le catalogue
+// d'outils (enum exposé à DeepSeek) et l'exécuteur update_pipeline (validation défensive).
+export const PIPELINE_STAGES = [
+  'new_lead', 'to_qualify', 'active_search', 'visit_planned', 'visit_done',
+  'interest_confirmed', 'offer', 'negotiation', 'reserved', 'financing',
+  'notary', 'signed', 'lost', 'to_recontact',
+] as const
+export type PipelineStage = (typeof PIPELINE_STAGES)[number]
+
+/** Vrai si `stage` est une étape canonique du pipeline (sensible à la casse). */
+export function isValidStage(stage: string): stage is PipelineStage {
+  return (PIPELINE_STAGES as readonly string[]).includes(stage)
+}
+
+/** Libellés FR des étapes — pour parler humain à l'agent (jamais l'enum brut). */
+export const STAGE_LABELS_FR: Record<PipelineStage, string> = {
+  new_lead: 'Nouveau lead', to_qualify: 'À qualifier', active_search: 'Recherche active',
+  visit_planned: 'Visite planifiée', visit_done: 'Visite effectuée', interest_confirmed: 'Intérêt confirmé',
+  offer: 'Offre', negotiation: 'Négociation', reserved: 'Réservé', financing: 'Financement',
+  notary: 'Notaire', signed: 'Signé', lost: 'Perdu', to_recontact: 'À relancer',
 }
 
 const YES = new Set(['oui', 'ok', 'okay', 'yes', 'y', 'vas-y', 'vasy', 'go', 'confirme', 'confirmer', 'valide', "d'accord", 'daccord', 'ouais', 'yep'])
@@ -45,4 +80,19 @@ export function isPendingActionValid(expiresAt: string | null | undefined): bool
   if (!expiresAt) return false
   const t = Date.parse(expiresAt)
   return Number.isFinite(t) && t > Date.now()
+}
+
+// ── Phase 4C / C1 : mémoire de conversation (pur) ───────────────────────────
+export interface WaHistoryRow { direction: string; body: string | null; transcript: string | null }
+
+/** Reconstruit l'historique agent↔MEGGA (lignes triées DESC) en tours chat
+ *  chronologiques : inbound→user, outbound→assistant. transcript prioritaire,
+ *  vides ignorés, contenu borné (1000 car). */
+export function buildHistoryMessages(rowsDesc: WaHistoryRow[]): Array<{ role: 'user' | 'assistant'; content: string }> {
+  return [...rowsDesc].reverse()
+    .map((r) => ({
+      role: (r.direction === 'inbound' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: (r.transcript || r.body || '').trim().slice(0, 1000),
+    }))
+    .filter((m) => m.content.length > 0)
 }

@@ -183,11 +183,23 @@ jobs:
           FAILED=0
           FAILED_FNS=""
 
+          # Toutes les fonctions sont déployées en --no-verify-jwt : la plateforme rejette
+          # la clé service-role legacy quand verify_jwt=true (UNAUTHORIZED_LEGACY_JWT), ce
+          # qui casserait les appels internes (cron→fn, webhook→fn). L'auth des fonctions
+          # internes (whatsapp-agent/process) se fait DANS la fonction (Bearer comparé à la
+          # clé service-role, à temps constant). Allowlist vide ; à remplir le jour où une
+          # fonction doit exiger un JWT UTILISATEUR vérifié par la plateforme.
+          JWT_PROTECTED=""
+
           for fn_dir in supabase/functions/*/; do
             fn_name=$(basename "$fn_dir")
             if [ -f "$fn_dir/index.ts" ]; then
               echo "::group::Deploying $fn_name"
-              supabase functions deploy "$fn_name" --no-verify-jwt
+              if echo " $JWT_PROTECTED " | grep -q " $fn_name "; then
+                supabase functions deploy "$fn_name"
+              else
+                supabase functions deploy "$fn_name" --no-verify-jwt
+              fi
               RC=$?
               echo "::endgroup::"
               if [ $RC -eq 0 ]; then

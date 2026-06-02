@@ -3175,6 +3175,54 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_conversation_insights: {
+        Row: {
+          agency_id: string
+          commitments: Json
+          contact_id: string
+          entities: Json
+          generated_at: string
+          id: string
+          intent: string | null
+          model: string | null
+          next_action: Json | null
+          sentiment: string | null
+          source_last_message_at: string | null
+          source_message_count: number
+          summary: string | null
+        }
+        Insert: {
+          agency_id: string
+          commitments?: Json
+          contact_id: string
+          entities?: Json
+          generated_at?: string
+          id?: string
+          intent?: string | null
+          model?: string | null
+          next_action?: Json | null
+          sentiment?: string | null
+          source_last_message_at?: string | null
+          source_message_count?: number
+          summary?: string | null
+        }
+        Update: {
+          agency_id?: string
+          commitments?: Json
+          contact_id?: string
+          entities?: Json
+          generated_at?: string
+          id?: string
+          intent?: string | null
+          model?: string | null
+          next_action?: Json | null
+          sentiment?: string | null
+          source_last_message_at?: string | null
+          source_message_count?: number
+          summary?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_messages: {
         Row: {
           agency_id: string | null
@@ -3193,6 +3241,16 @@ export type Database = {
           wa_from: string
           wa_timestamp: string | null
           wa_to: string | null
+          processing_status: string
+          claimed_at: string | null
+          retry_count: number
+          last_error: string | null
+          media_r2_key: string | null
+          media_id: string | null
+          media_mime: string | null
+          transcript: string | null
+          transcript_lang: string | null
+          transcript_confidence: number | null
         }
         Insert: {
           agency_id?: string | null
@@ -3211,6 +3269,16 @@ export type Database = {
           wa_from: string
           wa_timestamp?: string | null
           wa_to?: string | null
+          processing_status?: string
+          claimed_at?: string | null
+          retry_count?: number
+          last_error?: string | null
+          media_r2_key?: string | null
+          media_id?: string | null
+          media_mime?: string | null
+          transcript?: string | null
+          transcript_lang?: string | null
+          transcript_confidence?: number | null
         }
         Update: {
           agency_id?: string | null
@@ -3229,6 +3297,16 @@ export type Database = {
           wa_from?: string
           wa_timestamp?: string | null
           wa_to?: string | null
+          processing_status?: string
+          claimed_at?: string | null
+          retry_count?: number
+          last_error?: string | null
+          media_r2_key?: string | null
+          media_id?: string | null
+          media_mime?: string | null
+          transcript?: string | null
+          transcript_lang?: string | null
+          transcript_confidence?: number | null
         }
         Relationships: []
       }

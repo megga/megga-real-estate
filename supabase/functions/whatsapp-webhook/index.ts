@@ -9,6 +9,9 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, verifyHmac, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid } from '../_shared/whatsapp-agent-router.ts'
+import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
+import { transcribe } from '../_shared/whatsapp-transcribe.ts'
+import { execUpdatePipeline, executeRecordOffer, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -200,6 +203,10 @@ serve(async (req) => {
       body: msg.body,
       media_type: msg.mediaType,
       media_url: msg.mediaUrl,
+      media_id: msg.mediaId,
+      media_mime: msg.mediaMime,
+      // L1 : un entrant avec média à récupérer passe en file de traitement.
+      processing_status: msg.mediaId ? 'pending' : 'done',
       status: 'received',
       wa_timestamp: msg.timestamp,
       raw: msg.raw,
@@ -219,7 +226,8 @@ serve(async (req) => {
       action: 'whatsapp_message_received',
       entity_type: contactId ? 'contact' : 'whatsapp_message',
       entity_id: contactId,
-      category: 'messaging',
+      category: 'contact', // 'messaging' n'est pas dans activity_events_category_check
+      severity: 'info',
     })
   } catch { /* non bloquant */ }
 
@@ -233,9 +241,30 @@ async function processAgentMessage(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
   agentLink: { profile_id: string; agency_id: string | null },
-  msg: { fromPhone: string; body: string | null; providerMessageId: string },
+  msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
 ): Promise<void> {
   let reply = "Désolé, je n'ai pas pu traiter ta demande pour le moment."
+
+  // C2 : voix sur le chemin agent — si l'agent envoie un vocal, on le transcrit AVANT
+  // de traiter (Deepgram), et on stocke le transcript sur le message (historique C1 + audit).
+  let userText = (msg.body ?? '').trim()
+  if (!userText && msg.mediaId && msg.mediaType === 'audio') {
+    try {
+      const { bytes, mime } = await fetchMetaMedia(msg.mediaId, {
+        metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
+        apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+      })
+      const t = await transcribe(bytes, mime, Deno.env.get('DEEPGRAM_API_KEY') ?? '')
+      userText = (t.transcript ?? '').trim()
+      if (userText) {
+        await admin.from('whatsapp_messages')
+          .update({ transcript: userText, transcript_lang: t.lang })
+          .eq('provider', provider.name).eq('provider_message_id', msg.providerMessageId)
+      }
+    } catch (err) {
+      console.error('whatsapp agent voice transcription failed:', (err as Error)?.name ?? 'error')
+    }
+  }
 
   const { data: pendingAction } = await admin
     .from('whatsapp_pending_actions')
@@ -244,7 +273,7 @@ async function processAgentMessage(
     .maybeSingle()
 
   if (pendingAction) {
-    const decision = parseConfirmation(msg.body)
+    const decision = parseConfirmation(userText)
     const valid = isPendingActionValid(pendingAction.expires_at)
     // F3 : consommation gagnant-unique. Deux « oui » concurrents lisent la même ligne ;
     // un seul DELETE renvoie une ligne → seul lui exécute/répond, l'autre s'arrête.
@@ -259,11 +288,11 @@ async function processAgentMessage(
       reply = 'La demande en attente a expiré. Redis-moi ce que tu veux faire.'
     } else {
       // F18 : message non lié alors qu'une action attendait → on l'écarte et on le DIT.
-      const brain = await callAgentBrain(agentLink, msg)
+      const brain = await callAgentBrain(agentLink, msg, userText)
       reply = `(J'ai mis de côté l'action en attente, non confirmée.)\n\n${brain}`
     }
   } else {
-    reply = await callAgentBrain(agentLink, msg)
+    reply = await callAgentBrain(agentLink, msg, userText)
   }
 
   // Envoi de la réponse à l'agent (fenêtre 24h ouverte) + log outbound + audit.
@@ -296,11 +325,13 @@ async function processAgentMessage(
   try {
     await admin.from('activity_events').insert({
       agency_id: agentLink.agency_id,
-      actor_id: agentLink.profile_id,
+      actor_id: null, // coherence : actor_kind 'ai' => actor_id NULL ; agent en metadata
       actor_kind: 'ai',
       action: 'whatsapp_agent_copilot_reply',
       entity_type: 'whatsapp_message',
-      category: 'messaging',
+      category: 'ai',
+      severity: 'info',
+      metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
     })
   } catch { /* non bloquant */ }
 }
@@ -309,7 +340,8 @@ async function processAgentMessage(
 // agencyId N'EST PAS transmis : l'agent le re-dérive depuis le lien vérifié (anti-forge).
 async function callAgentBrain(
   agentLink: { profile_id: string; agency_id: string | null },
-  msg: { fromPhone: string; body: string | null },
+  msg: { fromPhone: string; body: string | null; providerMessageId: string },
+  messageText: string,
 ): Promise<string> {
   try {
     const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
@@ -321,7 +353,8 @@ async function callAgentBrain(
       body: JSON.stringify({
         profileId: agentLink.profile_id,
         waNumber: msg.fromPhone,
-        message: msg.body ?? '',
+        message: messageText,
+        currentMessageId: msg.providerMessageId,
       }),
       signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini
     })
@@ -333,7 +366,24 @@ async function callAgentBrain(
   }
 }
 
-// Exécute une action confirmée (Phase 4A : send_client_message). Garde agence AU SQL.
+// Envoi d'un texte WhatsApp à un numéro (fenêtre 24h requise, sinon template Meta).
+async function sendWhatsAppText(
+  provider: ReturnType<typeof getProvider>, toPhone: string, body: string,
+): Promise<boolean> {
+  const sendConfig: SendConfig = {
+    metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+    metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+  }
+  const sreq = provider.buildSendTextRequest({ toPhone, body }, sendConfig)
+  try {
+    const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
+    return sres.ok
+  } catch { return false }
+}
+
+// Exécute une action confirmée (send_client_message, update_pipeline, record_offer,
+// send_listings). Garde agence AU SQL ou via l'exécuteur partagé.
 async function executePending(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
@@ -364,11 +414,40 @@ async function executePending(
     } catch { return "L'envoi au client a échoué (réseau)." }
     try {
       await admin.from('activity_events').insert({
-        agency_id: agentLink.agency_id, actor_id: agentLink.profile_id, actor_kind: 'ai',
-        action: 'whatsapp_ai_send_client_message', entity_type: 'contact', entity_id: contactId, category: 'messaging',
+        agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
+        action: 'whatsapp_ai_send_client_message', entity_type: 'contact', entity_id: contactId, category: 'contact',
+        severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
       })
     } catch { /* non bloquant */ }
     return '✅ Message envoyé au client.'
+  }
+  // Outils CRM internes confirmés (ex. update_pipeline) : on délègue à l'exécuteur
+  // partagé, scopé agence au SQL. L'agence vient du lien vérifié (jamais du body).
+  if (pending.tool === 'update_pipeline') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id }
+    return execUpdatePipeline(ctx, pending.args)
+  }
+  if (pending.tool === 'record_offer') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id }
+    return executeRecordOffer(ctx, pending.args)
+  }
+  if (pending.tool === 'send_listings') {
+    // Payload figé au stash (validé + formaté) : { contact_id, phone, text }. On envoie tel quel.
+    if (!agentLink.agency_id) return "Ton compte n'a pas d'agence, envoi impossible."
+    const phone = String(pending.args.phone ?? '').replace(/\D/g, '')
+    const text = String(pending.args.text ?? '')
+    if (!phone || !text) return 'La sélection était incomplète, rien envoyé.'
+    const sent = await sendWhatsAppText(provider, phone, text)
+    if (!sent) return "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?)."
+    try {
+      await admin.from('activity_events').insert({
+        agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
+        action: 'whatsapp_ai_send_listings', entity_type: 'contact',
+        entity_id: String(pending.args.contact_id ?? '') || null, category: 'contact',
+        severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
+      })
+    } catch { /* non bloquant */ }
+    return '✅ Sélection envoyée au client.'
   }
   return "Type d'action inconnu, rien fait."
 }
