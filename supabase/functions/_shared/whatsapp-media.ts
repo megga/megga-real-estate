@@ -51,3 +51,37 @@ export async function fetchMetaMedia(
   if (!binRes.ok) throw new Error(`meta media bytes HTTP ${binRes.status}`)
   return { bytes: new Uint8Array(await binRes.arrayBuffer()), mime: meta.mime }
 }
+
+/** Réponse Meta upload média ({ id }) → media id, ou null. */
+export function parseMetaMediaUploadResult(json: unknown): string | null {
+  const j = json as { id?: string } | null
+  return j?.id ?? null
+}
+
+export interface MetaUploadConfig {
+  metaToken: string
+  metaPhoneNumberId: string
+  apiVersion?: string
+}
+
+/** Upload un document (PDF) vers Meta → media id (éphémère, ~30 jours).
+ *  multipart/form-data : messaging_product + type + file. fetch global (Deno OK). */
+export async function uploadMetaMediaDocument(
+  bytes: Uint8Array, mime: string, filename: string, cfg: MetaUploadConfig,
+): Promise<string> {
+  const v = cfg.apiVersion ?? 'v22.0'
+  const form = new FormData()
+  form.append('messaging_product', 'whatsapp')
+  form.append('type', mime)
+  form.append('file', new Blob([bytes], { type: mime }), filename)
+  const res = await fetch(`https://graph.facebook.com/${v}/${cfg.metaPhoneNumberId}/media`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${cfg.metaToken}` }, // PAS de Content-Type : FormData fixe le boundary
+    body: form,
+    signal: AbortSignal.timeout(20000),
+  })
+  if (!res.ok) throw new Error(`meta media upload HTTP ${res.status}`)
+  const id = parseMetaMediaUploadResult(await res.json())
+  if (!id) throw new Error('meta media upload: pas de media id')
+  return id
+}
