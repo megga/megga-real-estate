@@ -134,7 +134,9 @@ export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
 async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, contactId: string | null): Promise<boolean> {
   const { error } = await ctx.supabase.from('activity_events').insert({
     agency_id: ctx.agencyId,
-    actor_id: ctx.profileId,
+    // Contrainte activity_events_actor_kind_coherence : actor_id DOIT être NULL si
+    // actor_kind != 'user'. Pour une action IA, l'agent déclencheur va en metadata.
+    actor_id: null,
     actor_kind: 'ai',
     action,
     entity_type: 'contact',
@@ -142,7 +144,7 @@ async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, 
     object_label: objectLabel.slice(0, 500),
     category: 'contact',
     severity: 'info',
-    metadata: { via: 'whatsapp' },
+    metadata: { via: 'whatsapp', profile_id: ctx.profileId },
   })
   if (error) { console.error('activity_events insert failed'); return false }
   return true
@@ -317,10 +319,10 @@ export async function execUpdatePipeline(ctx: ActionCtx, a: Args): Promise<strin
   if (error) return `Erreur pipeline: ${error.message}`
   // Audit non bloquant (LBA) : trace le changement d'étape (category 'deal', actor IA).
   const { error: logErr } = await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'ai',
+    agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
     action: 'stage_change', entity_type: 'transaction', entity_id: deal.id,
     object_label: `${deal.stage} → ${stage}`, category: 'deal', severity: 'info',
-    metadata: { via: 'whatsapp', old_stage: deal.stage, new_stage: stage, contact_id: contactId },
+    metadata: { via: 'whatsapp', profile_id: ctx.profileId, old_stage: deal.stage, new_stage: stage, contact_id: contactId },
   })
   if (logErr) console.error('pipeline audit log failed')
   return `Dossier « ${deal.label} » déplacé en « ${label} ».`

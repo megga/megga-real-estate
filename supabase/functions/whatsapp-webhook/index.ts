@@ -226,7 +226,8 @@ serve(async (req) => {
       action: 'whatsapp_message_received',
       entity_type: contactId ? 'contact' : 'whatsapp_message',
       entity_id: contactId,
-      category: 'messaging',
+      category: 'contact', // 'messaging' n'est pas dans activity_events_category_check
+      severity: 'info',
     })
   } catch { /* non bloquant */ }
 
@@ -324,11 +325,13 @@ async function processAgentMessage(
   try {
     await admin.from('activity_events').insert({
       agency_id: agentLink.agency_id,
-      actor_id: agentLink.profile_id,
+      actor_id: null, // coherence : actor_kind 'ai' => actor_id NULL ; agent en metadata
       actor_kind: 'ai',
       action: 'whatsapp_agent_copilot_reply',
       entity_type: 'whatsapp_message',
-      category: 'messaging',
+      category: 'ai',
+      severity: 'info',
+      metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
     })
   } catch { /* non bloquant */ }
 }
@@ -411,8 +414,9 @@ async function executePending(
     } catch { return "L'envoi au client a échoué (réseau)." }
     try {
       await admin.from('activity_events').insert({
-        agency_id: agentLink.agency_id, actor_id: agentLink.profile_id, actor_kind: 'ai',
-        action: 'whatsapp_ai_send_client_message', entity_type: 'contact', entity_id: contactId, category: 'messaging',
+        agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
+        action: 'whatsapp_ai_send_client_message', entity_type: 'contact', entity_id: contactId, category: 'contact',
+        severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
       })
     } catch { /* non bloquant */ }
     return '✅ Message envoyé au client.'
@@ -437,9 +441,10 @@ async function executePending(
     if (!sent) return "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?)."
     try {
       await admin.from('activity_events').insert({
-        agency_id: agentLink.agency_id, actor_id: agentLink.profile_id, actor_kind: 'ai',
+        agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
         action: 'whatsapp_ai_send_listings', entity_type: 'contact',
-        entity_id: String(pending.args.contact_id ?? '') || null, category: 'messaging',
+        entity_id: String(pending.args.contact_id ?? '') || null, category: 'contact',
+        severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
       })
     } catch { /* non bloquant */ }
     return '✅ Sélection envoyée au client.'
