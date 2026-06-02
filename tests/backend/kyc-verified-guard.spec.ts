@@ -11,10 +11,12 @@ describe.skipIf(!HAS_KEYS)('KYC — guard_manual_kyc_verified', () => {
   beforeAll(async () => {
     setup = await setupTwoAgencies()
     const service = serviceRoleClient()
-    const { data: contact } = await service.from('contacts').insert({
+    const { data: contact, error: cErr } = await service.from('contacts').insert({
       agency_id: setup.agencyAId, first_name: 'Guard', last_name: `Test ${setup.stamp}`,
+      email: `guard-${setup.stamp}@megga-test.local`,
       entity_type: 'pp', type: 'buyer', source: 'manual',
     }).select('id').single()
+    if (cErr) throw new Error(`contact insert: ${cErr.message}`)
     const { data: kc, error } = await service.from('kyc_cases').insert({
       agency_id: setup.agencyAId, contact_id: contact!.id, type: 'buyer_pp', vigilance: 'standard',
     }).select('id').single()

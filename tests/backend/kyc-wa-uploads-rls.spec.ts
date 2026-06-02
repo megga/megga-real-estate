@@ -12,14 +12,17 @@ describe.skipIf(!HAS_KEYS)('kyc_magic_link_uploads — canal whatsapp', () => {
   beforeAll(async () => {
     setup = await setupTwoAgencies()
     const service = serviceRoleClient()
-    const { data: contact } = await service.from('contacts').insert({
+    const { data: contact, error: cErr } = await service.from('contacts').insert({
       agency_id: setup.agencyAId, first_name: 'Wa', last_name: `Up ${setup.stamp}`,
+      email: `wa-up-${setup.stamp}@megga-test.local`,
       entity_type: 'pp', type: 'buyer', source: 'manual',
     }).select('id').single()
+    if (cErr) throw new Error(`contact insert: ${cErr.message}`)
     contactId = contact!.id
-    const { data: kc } = await service.from('kyc_cases').insert({
+    const { data: kc, error: kErr } = await service.from('kyc_cases').insert({
       agency_id: setup.agencyAId, contact_id: contact!.id, type: 'buyer_pp', vigilance: 'standard',
     }).select('id').single()
+    if (kErr) throw new Error(`kyc_cases insert: ${kErr.message}`)
     caseId = kc!.id
   })
 
