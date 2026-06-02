@@ -15,7 +15,7 @@ export default defineConfig({
     // Only whatsapp-gateway from _shared runs under Node/Vitest (Web Crypto only).
     // Other _shared modules (e.g. pii-redaction) use Deno https: imports that the
     // Node ESM loader can't resolve — they must NOT be globbed into the unit run.
-    include: ['tests/unit/**/*.{spec,test}.{ts,tsx}', 'supabase/functions/_shared/whatsapp-gateway.test.ts', 'supabase/functions/_shared/whatsapp-agent-router.test.ts', 'supabase/functions/_shared/whatsapp-media.test.ts', 'supabase/functions/_shared/whatsapp-transcribe.test.ts'],
+    include: ['tests/unit/**/*.{spec,test}.{ts,tsx}', 'supabase/functions/_shared/whatsapp-gateway.test.ts', 'supabase/functions/_shared/whatsapp-agent-router.test.ts', 'supabase/functions/_shared/whatsapp-media.test.ts', 'supabase/functions/_shared/whatsapp-transcribe.test.ts', 'supabase/functions/_shared/whatsapp-comprehend.test.ts'],
     exclude: ['node_modules', 'dist', 'tests/e2e/**', 'tests/e2e-admin/**', 'tests/ai/**'],
     css: false,
   },

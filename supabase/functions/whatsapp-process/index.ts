@@ -9,9 +9,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.17'
 import { fetchMetaMedia, buildMediaKey } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
+import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage } from '../_shared/whatsapp-comprehend.ts'
 
 const BATCH = 25
 const MAX_RETRIES = 3
+const INSIGHT_BATCH = 5      // contacts ré-analysés par tick (borne coût DeepSeek + temps)
 
 function json(o: unknown, c: number): Response {
   return new Response(JSON.stringify(o), { status: c, headers: { 'Content-Type': 'application/json' } })
@@ -37,6 +39,7 @@ serve(async (req) => {
   const metaToken = Deno.env.get('META_WHATSAPP_TOKEN') ?? ''
   const apiVersion = Deno.env.get('META_API_VERSION') ?? 'v22.0'
   const deepgramKey = Deno.env.get('DEEPGRAM_API_KEY') ?? ''
+  const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY') ?? ''
 
   const r2 = new AwsClient({
     accessKeyId: (Deno.env.get('R2_ACCESS_KEY_ID') ?? '').trim(),
@@ -48,10 +51,8 @@ serve(async (req) => {
 
   const { data: jobs, error } = await admin.rpc('claim_whatsapp_jobs', { p_batch: BATCH })
   if (error) return json({ error: error.message }, 500)
-  if (!jobs?.length) return json({ ok: true, claimed: 0 }, 200)
-
   let done = 0, failed = 0
-  for (const m of jobs as Array<Record<string, unknown>>) {
+  for (const m of (jobs ?? []) as Array<Record<string, unknown>>) {
     const id = m.id as string
     try {
       const patch: Record<string, unknown> = { processing_status: 'done', last_error: null }
@@ -86,5 +87,44 @@ serve(async (req) => {
       failed++
     }
   }
-  return json({ ok: true, claimed: (jobs as unknown[]).length, done, failed }, 200)
+  // ── Phase 2 (L2) : compréhension MEGGA des conversations récemment actives. ──
+  // Découplé du statut des messages : on (re)calcule l'insight des contacts dont un
+  // message entrant est plus récent que leur dernier insight. Un échec garde l'ancien
+  // insight et sera réessayé au prochain tick (jamais bloquant pour le reste).
+  let insights = 0
+  if (deepseekKey) {
+    const { data: stale } = await admin.rpc('whatsapp_stale_insight_contacts', { p_limit: INSIGHT_BATCH })
+    for (const c of (stale ?? []) as Array<{ contact_id: string; agency_id: string; last_message_at: string }>) {
+      try {
+        const { data: thread } = await admin
+          .from('whatsapp_messages')
+          .select('direction, body, transcript, created_at')
+          .eq('contact_id', c.contact_id)
+          .order('created_at', { ascending: true })
+          .limit(30)
+        const digest = buildThreadDigest((thread ?? []) as ThreadMessage[])
+        if (!digest) continue
+        const insight = await comprehend(buildMessages(digest), deepseekKey)
+        await admin.from('whatsapp_conversation_insights').upsert({
+          contact_id: c.contact_id,
+          agency_id: c.agency_id,
+          summary: insight.summary,
+          intent: insight.intent,
+          entities: insight.entities,
+          commitments: insight.commitments,
+          sentiment: insight.sentiment,
+          next_action: insight.next_action,
+          model: 'deepseek-chat',
+          source_message_count: (thread ?? []).length,
+          source_last_message_at: c.last_message_at,
+          generated_at: new Date().toISOString(),
+        }, { onConflict: 'contact_id' })
+        insights++
+      } catch (e) {
+        console.error('whatsapp insight failed:', String((e as Error)?.message ?? 'error').slice(0, 120))
+      }
+    }
+  }
+
+  return json({ ok: true, claimed: (jobs ?? []).length, done, failed, insights }, 200)
 })
