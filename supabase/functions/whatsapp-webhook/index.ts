@@ -12,6 +12,7 @@ import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingAct
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
+import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { execUpdatePipeline, executeRecordOffer, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 
 const corsHeaders = {
@@ -329,7 +330,8 @@ async function processAgentMessage(
     metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
     metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
   }
-  const sendReq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: reply }, sendConfig)
+  const outText = toWhatsAppText(reply) // Markdown DeepSeek (**gras**) → syntaxe WhatsApp (*gras*)
+  const sendReq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: outText }, sendConfig)
   let outId: string | null = null
   try {
     const sres = await fetch(sendReq.url, { method: sendReq.method, headers: sendReq.headers, body: sendReq.body, signal: AbortSignal.timeout(8000) })
@@ -346,7 +348,7 @@ async function processAgentMessage(
     wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
     wa_to: msg.fromPhone,
     agency_id: agentLink.agency_id,
-    body: reply,
+    body: outText,
     status: 'received',
   }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
 
@@ -403,7 +405,7 @@ async function sendWhatsAppText(
     metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
     metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
   }
-  const sreq = provider.buildSendTextRequest({ toPhone, body }, sendConfig)
+  const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(body) }, sendConfig)
   try {
     const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
     return sres.ok
@@ -435,7 +437,7 @@ async function executePending(
       metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
       metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
     }
-    const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: text }, sendConfig)
+    const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: toWhatsAppText(text) }, sendConfig)
     try {
       const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
       if (!sres.ok) return "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?)."
