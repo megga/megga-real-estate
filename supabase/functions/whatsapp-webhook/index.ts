@@ -14,7 +14,7 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, type ActionCtx } from '../_shared/whatsapp-actions.ts'
-import { asWaLang, t, type WaLang } from '../_shared/whatsapp-i18n.ts'
+import { asWaLang, detectLang, t, type WaLang } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -325,11 +325,11 @@ async function processAgentMessage(
       reply = t(lang, 'expired')
     } else {
       // F18 : message non lié alors qu'une action attendait → on l'écarte et on le DIT.
-      const brain = await callAgentBrain(agentLink, msg, userText)
+      const brain = await callAgentBrain(agentLink, msg, userText, lang)
       reply = `${t(lang, 'setAside')}\n\n${brain}`
     }
   } else {
-    reply = await callAgentBrain(agentLink, msg, userText)
+    reply = await callAgentBrain(agentLink, msg, userText, detectLang(userText))
   }
 
   // Envoi de la réponse à l'agent (fenêtre 24h ouverte) + log outbound + audit.
@@ -380,6 +380,7 @@ async function callAgentBrain(
   agentLink: { profile_id: string; agency_id: string | null },
   msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
   messageText: string,
+  lang: WaLang,
 ): Promise<string> {
   try {
     const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
@@ -401,10 +402,10 @@ async function callAgentBrain(
       signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini
     })
     const data = await r.json().catch(() => ({}))
-    return (data?.reply as string) || "Désolé, je n'ai pas pu traiter ta demande."
+    return (data?.reply as string) || t(lang, 'cantProcess')
   } catch (err) {
     console.error('whatsapp-agent call failed:', (err as Error)?.name ?? 'error')
-    return "Désolé, je n'ai pas pu traiter ta demande pour le moment."
+    return t(lang, 'cantProcessNow')
   }
 }
 

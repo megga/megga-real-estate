@@ -12,6 +12,8 @@ describe('detectLang', () => {
   it("détecte l'anglais", () => {
     expect(detectLang('open a KYC file for Dubois')).toBe('en')
     expect(detectLang('can you move the file to negotiation please')).toBe('en')
+    expect(detectLang('record offer 900000 from Dubois')).toBe('en') // « from » mot-outil EN
+    expect(detectLang('run KYC screening on Dubois')).toBe('en')      // « on » désormais EN seul
   })
   it('défaut FR sur vide/ambigu', () => {
     expect(detectLang('')).toBe('fr')

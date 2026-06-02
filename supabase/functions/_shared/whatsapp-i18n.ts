@@ -11,10 +11,11 @@
 export type WaLang = 'fr' | 'en'
 
 // Mots-outils (function words) = discriminant FR/EN fiable. Défaut FR (langue par défaut CRM).
+// « on » exclu de FR (ambigu avec la préposition EN « on ») ; FR garde assez d'autres mots-outils.
 const FR_HINTS =
-  /\b(le|la|les|un|une|des|du|de|est|sont|pour|avec|et|ou|mon|ma|mes|ton|ta|tes|son|sa|ce|cette|je|tu|il|elle|on|nous|vous|au|aux|dans|sur|que|qui|ne|pas|oui|non|merci|demain|aujourd|hier|ouvre|crée|ajoute|envoie|déplace|note|cherche|trouve|fais|peux|veux|faut|dossier|bien|rappel)\b/gi
+  /\b(le|la|les|un|une|des|du|de|est|sont|pour|avec|et|ou|mon|ma|mes|ton|ta|tes|son|sa|ce|cette|je|tu|il|elle|nous|vous|au|aux|dans|sur|que|qui|ne|pas|oui|non|merci|demain|aujourd|hier|ouvre|crée|ajoute|envoie|déplace|cherche|trouve|fais|peux|veux|faut|dossier|bien|rappel)\b/gi
 const EN_HINTS =
-  /\b(the|a|an|is|are|was|were|for|with|and|or|my|our|your|his|her|this|that|i|you|he|she|we|they|to|of|in|on|at|do|does|can|could|would|want|need|please|not|yes|no|thanks|tomorrow|today|yesterday|open|create|add|send|move|note|search|find|make|new|file|listing|reminder)\b/gi
+  /\b(the|a|an|is|are|was|were|for|with|from|as|about|and|or|my|our|your|his|her|this|that|i|you|he|she|we|they|to|of|in|on|at|do|does|can|could|would|want|need|please|not|yes|no|thanks|tomorrow|today|yesterday|open|create|add|send|move|search|find|make|new|file|listing|reminder)\b/gi
 
 /** Détecte FR/EN sur le message déclencheur de l'agent. Égalité ou vide → 'fr'. */
 export function detectLang(text: string | null | undefined): WaLang {
