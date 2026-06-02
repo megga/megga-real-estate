@@ -2032,16 +2032,19 @@ export type Database = {
           document_id: string | null
           filename: string
           id: string
-          magic_link_id: string
+          kyc_case_id: string | null
+          magic_link_id: string | null
           mime_type: string | null
           ocr_completed_at: string | null
           ocr_fields: Json | null
           ocr_provider: string | null
           sha256_hash: string | null
           size_bytes: number
+          source: string
           storage_path: string
           type: Database["public"]["Enums"]["kyc_magic_link_upload_type"]
           uploaded_at: string
+          wa_message_id: string | null
         }
         Insert: {
           agency_id: string
@@ -2050,16 +2053,19 @@ export type Database = {
           document_id?: string | null
           filename: string
           id?: string
-          magic_link_id: string
+          kyc_case_id?: string | null
+          magic_link_id?: string | null
           mime_type?: string | null
           ocr_completed_at?: string | null
           ocr_fields?: Json | null
           ocr_provider?: string | null
           sha256_hash?: string | null
           size_bytes: number
+          source?: string
           storage_path: string
           type?: Database["public"]["Enums"]["kyc_magic_link_upload_type"]
           uploaded_at?: string
+          wa_message_id?: string | null
         }
         Update: {
           agency_id?: string
@@ -2068,16 +2074,19 @@ export type Database = {
           document_id?: string | null
           filename?: string
           id?: string
-          magic_link_id?: string
+          kyc_case_id?: string | null
+          magic_link_id?: string | null
           mime_type?: string | null
           ocr_completed_at?: string | null
           ocr_fields?: Json | null
           ocr_provider?: string | null
           sha256_hash?: string | null
           size_bytes?: number
+          source?: string
           storage_path?: string
           type?: Database["public"]["Enums"]["kyc_magic_link_upload_type"]
           uploaded_at?: string
+          wa_message_id?: string | null
         }
         Relationships: [
           {
@@ -2092,6 +2101,13 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kyc_magic_link_uploads_kyc_case_id_fkey"
+            columns: ["kyc_case_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_cases"
             referencedColumns: ["id"]
           },
           {
