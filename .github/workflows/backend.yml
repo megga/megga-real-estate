@@ -27,6 +27,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    env:
+      # Fixed test-only HMAC secret, available at `supabase start` time so the
+      # edge runtime picks it up via config.toml [edge_runtime.secrets].
+      # Used by kyc-report-data.spec.ts to sign test tokens.
+      # NEVER use this value in production — it is intentionally public.
+      MEGGA_MAGIC_LINK_HMAC_SECRET: "test-hmac-secret-for-local-backend-suite-0123456789"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,6 +73,8 @@ jobs:
             echo "SUPABASE_TEST_ANON_KEY=$PUBLISHABLE_KEY"
             echo "SUPABASE_TEST_SERVICE_ROLE_KEY=$SECRET_KEY"
           } >> $GITHUB_ENV
+          # MEGGA_MAGIC_LINK_HMAC_SECRET is already in the job env (above),
+          # so it is visible to all subsequent steps including npm run test:backend.
 
       - name: Run backend tests
         run: npm run test:backend
