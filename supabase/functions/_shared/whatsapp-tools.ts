@@ -44,7 +44,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'create_contact',
-      description: 'Crée un nouveau contact dans le CRM de l’agence.',
+      description: 'Crée un nouveau contact dans le CRM de l’agence. Email et téléphone FACULTATIFS : crée le contact même avec juste un nom (ex. « Vladimir Poutine »), ne réclame pas de coordonnées si l’agent n’en donne pas.',
       parameters: {
         type: 'object',
         properties: {
