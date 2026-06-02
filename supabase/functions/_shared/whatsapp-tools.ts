@@ -253,4 +253,19 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'attach_kyc_document',
+      description: "Joint au dossier KYC d'un contact la pièce que TU VIENS d'envoyer dans ce message (photo/scan/PDF). À n'appeler QUE si tu désignes explicitement la pièce (« c'est la pièce d'identité de Dubois », « justif de domicile de Mme Vaucher »). Le système lit la pièce et la joint — il ne coche jamais la case (réservé au validateur). contact_id via search_contacts.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' },
+          category: { type: 'string', enum: ['identity', 'address', 'funds'], description: "Type de pièce : identity (pièce d'identité), address (justif. domicile), funds (justif. fonds)." },
+        },
+        required: ['contact_id', 'category'],
+      },
+    },
+  },
 ]

@@ -83,6 +83,9 @@ describe('toolTier', () => {
   it('run_kyc_screening est auto (read-only externe, aucun contact client)', () => {
     expect(toolTier('run_kyc_screening')).toBe('auto')
   })
+  it('attach_kyc_document est auto (joint une pièce, aucun envoi client)', () => {
+    expect(toolTier('attach_kyc_document')).toBe('auto')
+  })
   it('par défaut un outil inconnu est confirm (fail-safe)', () => {
     expect(toolTier('delete_everything')).toBe('confirm')
   })

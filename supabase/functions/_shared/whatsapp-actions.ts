@@ -16,12 +16,15 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount } from './whatsapp-lead.ts'
 import { PIPELINE_STAGES, isValidStage, STAGE_LABELS_FR, type PipelineStage } from './whatsapp-agent-router.ts'
-import { deriveKycType, kycTypeToEntityType, type KycPersonType } from './kyc-extract.ts'
+import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
+import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
+import { readDocument } from './vision.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
   profileId: string
   agencyId: string | null
+  inboundMedia?: { mediaId: string; messageId: string } | null
 }
 
 type Args = Record<string, unknown>
@@ -609,4 +612,125 @@ export async function execRunKycScreening(ctx: ActionCtx, a: Args): Promise<stri
   const riskFr: Record<string, string> = { low: 'faible', medium: 'moyen', high: 'élevé' }
   const risk = riskFr[r.risk_level ?? ''] ?? r.risk_level ?? '—'
   return `Screening de ${name} : ${pep}, ${sanc}, risque ${risk}. Le dossier est prêt à valider dans le CRM (à toi de cocher les pièces et valider — je ne valide jamais à ta place).`
+}
+
+// -- KYC par WhatsApp (Task 6) : attach_kyc_document (tier auto) -----------------
+
+export async function execAttachKycDocument(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id), category = s(a.category)
+  if (!contactId || !category) return 'Erreur: contact_id et category requis.'
+  const maps = kycCategoryMaps(category)
+  if (!maps) return 'Erreur: catégorie invalide (identity, address ou funds).'
+  if (!ctx.inboundMedia) return 'Je ne vois pas de document dans ce message. Envoie-moi la pièce (photo ou PDF) avec ta consigne.'
+
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || 'ce contact'
+
+  const kc = await findOpenKycCase(ctx, contactId)
+  if (!kc) return `Aucun dossier KYC ouvert pour ${name}. Ouvre-le d'abord (« ouvre un KYC pour ${name} »).`
+
+  // 1. Re-fetch des bytes (le webhook les a lâchés après l'OCR générique) + OCR structuré KYC.
+  let bytes: Uint8Array, mime: string | null
+  try {
+    const media = await fetchMetaMedia(ctx.inboundMedia.mediaId, {
+      metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
+      apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+    })
+    bytes = media.bytes; mime = media.mime
+  } catch {
+    return 'Je n’ai pas pu récupérer le document (lien Meta expiré ?). Renvoie-le.'
+  }
+  const ocr = await readDocument(bytes, mime, Deno.env.get('GEMINI_API_KEY') ?? '', { prompt: KYC_DOC_PROMPT })
+  const ocrFields = ocr.ok ? parseKycOcr(ocr.text) : {}
+
+  // 2. Upload Storage (bucket privé kyc-magic-link, même que le canal magic link)
+  const ext = extFromMime(mime)
+  const path = `${ctx.agencyId}/${kc.id}/${ctx.inboundMedia.messageId}.${ext}`
+  const { error: upErr } = await ctx.supabase.storage
+    .from('kyc-magic-link')
+    .upload(path, bytes, { contentType: mime ?? 'application/octet-stream', upsert: true })
+  if (upErr) return `Erreur de stockage de la pièce: ${upErr.message}`
+
+  // 3. SHA-256 (preuve d'intégrité FINMA). Cast nécessaire : le typage Deno de
+  // Uint8Array<ArrayBuffer> ne s'assigne pas directement à BufferSource ici.
+  const digest = await crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource)
+  const sha256 = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+
+  // 4. Row documents (canonique, kyc_case_id → rétention 10 ans auto via trigger)
+  const filename = `${category}_${ctx.inboundMedia.messageId}.${ext}`
+  const { data: docRow, error: docErr } = await ctx.supabase.from('documents').insert({
+    agency_id: ctx.agencyId,
+    kyc_case_id: kc.id,
+    name: filename,
+    type: `kyc_${category}`,
+    storage_path: path,
+    size_bytes: bytes.byteLength,
+    status: 'available',
+    document_category: maps.document,
+    sha256_hash: sha256,
+    uploaded_by: null,
+  }).select('id').single()
+  if (docErr) {
+    await ctx.supabase.storage.from('kyc-magic-link').remove([path])
+    return `Erreur d'enregistrement du document: ${docErr.message}`
+  }
+
+  // 5. Row kyc_magic_link_uploads (canal whatsapp + OCR). NB : pas de dédup cross-turn sur
+  // (kyc_case_id, wa_message_id) — re-joindre le même message dans un tour ultérieur recrée
+  // une ligne (et un doc). Acceptable v1 (action rare ; on ne perd jamais une trace).
+  const { error: upRowErr } = await ctx.supabase.from('kyc_magic_link_uploads').insert({
+    agency_id: ctx.agencyId,
+    kyc_case_id: kc.id,
+    source: 'whatsapp',
+    wa_message_id: ctx.inboundMedia.messageId,
+    type: maps.upload,
+    filename,
+    size_bytes: bytes.byteLength,
+    mime_type: mime,
+    storage_path: path,
+    sha256_hash: sha256,
+    ocr_fields: ocrFields,
+    ocr_provider: 'gemini',
+    ocr_completed_at: ocr.ok ? new Date().toISOString() : null,
+    document_id: docRow.id,
+  })
+  if (upRowErr) console.error('kyc attach upload row failed:', upRowErr.message)
+
+  // 6. Lier la pièce à l'item de checklist (document_id) — JAMAIS is_completed (D2 : réservé MLRO).
+  // La pièce reste rattachée au dossier via documents.kyc_case_id même si aucun item ne matche.
+  const { data: linkedItems, error: linkErr } = await ctx.supabase.from('kyc_checklist_items')
+    .update({ document_id: docRow.id })
+    .eq('kyc_case_id', kc.id).eq('category', maps.checklist)
+    .select('id')
+  if (linkErr) console.error('kyc attach checklist link failed:', linkErr.message)
+  else if (!linkedItems?.length) console.warn(`kyc attach: aucun item checklist '${maps.checklist}' pour ce dossier`)
+
+  // 7. Audit IA (actor_kind='ai', actor_id NULL ; agent en metadata)
+  const { error: auditErr } = await ctx.supabase.from('activity_events').insert({
+    agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+    action: 'kyc_document_attached', entity_type: 'kyc_case', entity_id: kc.id,
+    category: 'kyc', severity: 'info',
+    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, category, document_id: docRow.id },
+  })
+  if (auditErr) console.error('kyc attach audit failed')
+
+  // 8. Restituer ce qui a été lu (humain, jamais d'ID brut)
+  const read = summarizeKycOcr(ocrFields)
+  const catLabel = category === 'identity' ? 'pièce d’identité' : category === 'address' ? 'justificatif de domicile' : 'justificatif de fonds'
+  return `${catLabel.charAt(0).toUpperCase() + catLabel.slice(1)} de ${name} jointe au dossier${read ? ` — ${read}` : ''}. (Je ne coche pas la case : c'est à toi de valider dans le CRM.)`
+}
+
+/** Résumé humain des champs OCR (best-effort, jamais d'erreur). */
+function summarizeKycOcr(f: Record<string, unknown>): string {
+  const parts: string[] = []
+  const get = (k: string) => (typeof f[k] === 'string' && (f[k] as string).trim() ? (f[k] as string).trim() : null)
+  const nom = [get('prenom'), get('nom')].filter(Boolean).join(' ')
+  if (nom) parts.push(nom)
+  if (get('numero')) parts.push(`n° ${get('numero')}`)
+  if (get('expiration')) parts.push(`expire ${get('expiration')}`)
+  if (get('montant')) parts.push(`${get('montant')} ${get('devise') ?? ''}`.trim())
+  if (get('adresse')) parts.push(get('adresse')!)
+  return parts.join(', ')
 }

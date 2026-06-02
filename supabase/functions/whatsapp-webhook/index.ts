@@ -376,7 +376,7 @@ async function processAgentMessage(
 // agencyId N'EST PAS transmis : l'agent le re-dérive depuis le lien vérifié (anti-forge).
 async function callAgentBrain(
   agentLink: { profile_id: string; agency_id: string | null },
-  msg: { fromPhone: string; body: string | null; providerMessageId: string },
+  msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
   messageText: string,
 ): Promise<string> {
   try {
@@ -391,6 +391,10 @@ async function callAgentBrain(
         waNumber: msg.fromPhone,
         message: messageText,
         currentMessageId: msg.providerMessageId,
+        inboundMedia:
+          msg.mediaId && (msg.mediaType === 'image' || msg.mediaType === 'document')
+            ? { mediaId: msg.mediaId, messageId: msg.providerMessageId }
+            : null,
       }),
       signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini
     })

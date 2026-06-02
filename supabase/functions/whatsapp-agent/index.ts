@@ -17,7 +17,7 @@ import {
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execQualifyLead,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase,
-  execRunKycScreening,
+  execRunKycScreening, execAttachKycDocument,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 
@@ -55,9 +55,9 @@ serve(async (req) => {
     return json({ error: 'Forbidden' }, 403)
   }
 
-  let body: { profileId?: string; waNumber?: string; message?: string; currentMessageId?: string }
+  let body: { profileId?: string; waNumber?: string; message?: string; currentMessageId?: string; inboundMedia?: { mediaId: string; messageId: string } | null }
   try { body = await req.json() } catch { return json({ error: 'Bad JSON' }, 400) }
-  const { profileId, waNumber = '', message, currentMessageId } = body
+  const { profileId, waNumber = '', message, currentMessageId, inboundMedia } = body
   if (!profileId || !message) return json({ error: 'profileId and message required' }, 400)
 
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
@@ -76,7 +76,7 @@ serve(async (req) => {
     .maybeSingle()
   if (!link) return json({ error: 'Forbidden: no verified agent link' }, 403)
 
-  const ctx: ActionCtx = { supabase, profileId, agencyId: link.agency_id ?? null }
+  const ctx: ActionCtx = { supabase, profileId, agencyId: link.agency_id ?? null, inboundMedia: inboundMedia ?? null }
 
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
@@ -208,6 +208,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'update_pipeline': return execUpdatePipeline(ctx, args)
     case 'qualify_lead': return execQualifyLead(ctx, args)
     case 'run_kyc_screening': return execRunKycScreening(ctx, args)
+    case 'attach_kyc_document': return execAttachKycDocument(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }
