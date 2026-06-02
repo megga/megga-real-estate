@@ -21,6 +21,10 @@ export type ToolTier = 'read' | 'auto' | 'confirm'
 const TOOL_TIERS: Record<string, ToolTier> = {
   get_my_agenda: 'read',
   search_contacts: 'read',
+  get_contact_brief: 'read',
+  list_followups: 'read',
+  get_matches: 'read',
+  get_daily_brief: 'read',
   create_contact: 'auto',
   add_note: 'auto',
   send_client_message: 'confirm',

@@ -49,3 +49,6 @@ ruvector.db
 .claude-flow/logs/
 .claude-flow/sessions/
 .claude-flow/neural/
+
+# Deno (edge functions checked via `deno check`, no lockfile tracked)
+deno.lock

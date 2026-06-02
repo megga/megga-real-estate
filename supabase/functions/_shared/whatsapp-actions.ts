@@ -145,3 +145,69 @@ async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, 
   if (error) { console.error('activity_events insert failed'); return false }
   return true
 }
+
+// ── Phase 4C / C3 : outils LECTURE (scopés agence au SQL) ───────────────────
+
+/** Fiche synthétique d'un contact : infos + critères + 5 dernières entrées timeline. */
+export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) return 'Erreur: contact_id requis (obtiens-le via search_contacts).'
+  const { data: c } = await ctx.supabase
+    .from('contacts')
+    .select('id, first_name, last_name, phone, email, type, score, tags, notes, search_criteria, last_interaction_at')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (!c) return 'Contact introuvable dans votre agence.'
+  const { data: timeline } = await ctx.supabase
+    .from('activity_events').select('action, object_label, created_at')
+    .eq('entity_type', 'contact').eq('entity_id', contactId)
+    .order('created_at', { ascending: false }).limit(5)
+  const { data: searches } = await ctx.supabase
+    .from('client_searches').select('label, criteria')
+    .eq('contact_id', contactId).eq('is_active', true).limit(3)
+  return JSON.stringify({ contact: c, recherches_actives: searches ?? [], timeline: timeline ?? [] })
+}
+
+/** Leads à compléter / relancer (marqués par MEGGA). */
+export async function execListFollowups(ctx: ActionCtx, _a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const { data, error } = await ctx.supabase
+    .from('contacts').select('id, first_name, last_name, type, score, tags')
+    .eq('agency_id', ctx.agencyId)
+    .contains('tags', ['à_compléter'])
+    .order('created_at', { ascending: false })
+    .limit(15)
+  if (error) return `Erreur: ${error.message}`
+  if (!data?.length) return 'Aucun lead à compléter pour le moment.'
+  return JSON.stringify(data)
+}
+
+/** Biens correspondant à un contact (moteur de matching). */
+export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) return 'Erreur: contact_id requis.'
+  const { data, error } = await ctx.supabase
+    .from('matches').select('score, status, market_listing_id, property_id')
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId)
+    .order('score', { ascending: false }).limit(5)
+  if (error) return `Erreur: ${error.message}`
+  if (!data?.length) return 'Aucun bien correspondant (recherche peut-être pas encore lancée).'
+  return JSON.stringify(data)
+}
+
+/** Briefing du jour : visites du jour de l'agent + nombre de leads à compléter. */
+export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const start = new Date(); start.setUTCHours(0, 0, 0, 0)
+  const end = new Date(); end.setUTCHours(23, 59, 59, 999)
+  const { data: visits } = await ctx.supabase
+    .from('visits').select('scheduled_at, status, buyer_name, contact_id')
+    .eq('agency_id', ctx.agencyId).eq('agent_id', ctx.profileId)
+    .gte('scheduled_at', start.toISOString()).lte('scheduled_at', end.toISOString())
+    .order('scheduled_at', { ascending: true }).limit(20)
+  const { data: followups } = await ctx.supabase
+    .from('contacts').select('id, first_name, last_name')
+    .eq('agency_id', ctx.agencyId).contains('tags', ['à_compléter']).limit(10)
+  return JSON.stringify({ visites_du_jour: visits ?? [], leads_a_completer: followups ?? [] })
+}

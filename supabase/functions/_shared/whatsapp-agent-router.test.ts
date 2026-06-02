@@ -57,6 +57,10 @@ describe('toolTier', () => {
   it('classe les outils read', () => {
     expect(toolTier('get_my_agenda')).toBe('read')
     expect(toolTier('search_contacts')).toBe('read')
+    expect(toolTier('get_contact_brief')).toBe('read')
+    expect(toolTier('list_followups')).toBe('read')
+    expect(toolTier('get_matches')).toBe('read')
+    expect(toolTier('get_daily_brief')).toBe('read')
   })
   it('classe les outils auto', () => {
     expect(toolTier('create_contact')).toBe('auto')

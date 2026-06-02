@@ -88,4 +88,36 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_contact_brief',
+      description: "Fiche synthétique d'un contact (infos, critères, 5 dernières actions). Pour « résume Dubois », « où en est X ». contact_id via search_contacts.",
+      parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_followups',
+      description: "Liste les leads à compléter / relancer (marqués par MEGGA). Pour « qui relancer ? », « mes leads à finir ».",
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_matches',
+      description: "Biens correspondant à un contact (moteur de matching). Pour « quels biens pour Sarah ? ». contact_id via search_contacts.",
+      parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_daily_brief',
+      description: "Briefing du jour : visites du jour de l'agent + leads à compléter. Pour « ma journée », « qu'est-ce que je fais aujourd'hui ? ».",
+      parameters: { type: 'object', properties: {} },
+    },
+  },
 ]

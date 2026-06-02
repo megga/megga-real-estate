@@ -14,6 +14,7 @@ import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
 import { toolTier, buildHistoryMessages, type WaHistoryRow } from '../_shared/whatsapp-agent-router.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
+  execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 
@@ -172,6 +173,10 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
   switch (name) {
     case 'get_my_agenda': return execGetMyAgenda(ctx, args)
     case 'search_contacts': return execSearchContacts(ctx, args)
+    case 'get_contact_brief': return execGetContactBrief(ctx, args)
+    case 'list_followups': return execListFollowups(ctx, args)
+    case 'get_matches': return execGetMatches(ctx, args)
+    case 'get_daily_brief': return execGetDailyBrief(ctx, args)
     case 'create_contact': return execCreateContact(ctx, args)
     case 'add_note': return execAddNote(ctx, args)
     default: return `Outil inconnu: ${name}`
