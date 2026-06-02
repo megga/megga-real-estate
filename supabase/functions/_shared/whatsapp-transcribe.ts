@@ -16,9 +16,19 @@ export function parseDeepgram(json: unknown): Transcript {
   }
 }
 
+// Communes/quartiers genevois (+ grandes villes CH) pour booster la reconnaissance
+// des noms propres immobiliers (évite « Carouge » → « Carrouges »). Boost modéré (:2).
+const PLACE_KEYWORDS = [
+  'Carouge', 'Plainpalais', 'Eaux-Vives', 'Champel', 'Servette', 'Pâquis', 'Acacias',
+  'Jonction', 'Lancy', 'Onex', 'Vernier', 'Meyrin', 'Plan-les-Ouates', 'Versoix',
+  'Cologny', 'Vésenaz', 'Chêne-Bourg', 'Chêne-Bougeries', 'Thônex', 'Bernex',
+  'Grand-Saconnex', 'Genève', 'Lausanne', 'Nyon', 'Morges',
+]
+
 /** Appel Deepgram (octets bruts). Lève si HTTP non-2xx. */
 export async function transcribe(bytes: Uint8Array, mime: string | null, apiKey: string): Promise<Transcript> {
   const qs = new URLSearchParams({ model: 'nova-2', detect_language: 'true', smart_format: 'true', punctuate: 'true' })
+  for (const k of PLACE_KEYWORDS) qs.append('keywords', `${k}:2`)
   const res = await fetch(`https://api.deepgram.com/v1/listen?${qs}`, {
     method: 'POST',
     headers: { Authorization: `Token ${apiKey}`, 'Content-Type': mime || 'audio/ogg' },

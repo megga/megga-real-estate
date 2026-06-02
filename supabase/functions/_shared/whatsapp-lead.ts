@@ -27,6 +27,24 @@ const FEATURE_FR: Record<string, string> = {
   garage: 'Garage', cave: 'Cave', ascenseur: 'Ascenseur', piscine: 'Piscine', vue: 'Vue',
 }
 
+// Noms propres mal transcrits / variantes → forme canonique CH (clé = minuscules,
+// tirets/apostrophes → espaces). Garantit que le matching cherche au bon endroit.
+const ZONE_CANON: Record<string, string> = {
+  carrouges: 'Carouge', carouges: 'Carouge', carouge: 'Carouge',
+  geneve: 'Genève', 'eaux vives': 'Eaux-Vives', eauxvives: 'Eaux-Vives',
+  plainpalais: 'Plainpalais', champel: 'Champel', servette: 'Servette',
+  paquis: 'Pâquis', acacias: 'Acacias', jonction: 'Jonction', lancy: 'Lancy',
+  onex: 'Onex', vernier: 'Vernier', meyrin: 'Meyrin', versoix: 'Versoix',
+  cologny: 'Cologny', thonex: 'Thônex', 'chene bourg': 'Chêne-Bourg',
+  'chene bougeries': 'Chêne-Bougeries', 'plan les ouates': 'Plan-les-Ouates', bernex: 'Bernex',
+}
+
+/** Normalise un nom de zone (corrige les coquilles STT connues, sinon renvoie tel quel). */
+export function normalizeZone(z: string): string {
+  const k = z.trim().toLowerCase().replace(/[-']/g, ' ').replace(/\s+/g, ' ').trim()
+  return ZONE_CANON[k] ?? z.trim()
+}
+
 /** rent si location/loyer/mensuel ; buy si achat/vente ; sinon undefined. */
 export function detectTransactionType(text: string | null | undefined): 'rent' | 'buy' | undefined {
   const t = (text ?? '').toLowerCase()
@@ -67,7 +85,9 @@ export function mapCriteria(
   if (typeFr && TYPE_FR_EN[typeFr]) c.type = TYPE_FR_EN[typeFr]
 
   if (Array.isArray(e.zones)) {
-    const zones = (e.zones as unknown[]).filter((z): z is string => typeof z === 'string' && z.trim().length > 0)
+    const zones = (e.zones as unknown[])
+      .filter((z): z is string => typeof z === 'string' && z.trim().length > 0)
+      .map(normalizeZone)
     if (zones.length) c.zones = zones
   }
 

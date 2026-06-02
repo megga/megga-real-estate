@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest'
-import { detectTransactionType, parseAmount, mapCriteria, isSearchable, computeMissing } from './whatsapp-lead'
+import { detectTransactionType, parseAmount, mapCriteria, isSearchable, computeMissing, normalizeZone } from './whatsapp-lead'
+
+describe('normalizeZone', () => {
+  it('corrige les coquilles STT connues', () => {
+    expect(normalizeZone('Carrouges')).toBe('Carouge')
+    expect(normalizeZone('carouge')).toBe('Carouge')
+    expect(normalizeZone('geneve')).toBe('Genève')
+    expect(normalizeZone('Eaux-Vives')).toBe('Eaux-Vives')
+  })
+  it('laisse les zones inconnues telles quelles', () => {
+    expect(normalizeZone('Lausanne')).toBe('Lausanne')
+    expect(normalizeZone('Bidonville')).toBe('Bidonville')
+  })
+})
 
 describe('detectTransactionType', () => {
   it('rent / buy / inconnu', () => {
