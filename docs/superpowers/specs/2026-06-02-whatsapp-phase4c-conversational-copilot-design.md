@@ -16,6 +16,12 @@ Aujourd'hui (Phase 4A) le copilote répond mais : (a) **oublie** chaque message 
 contexte), (b) ne gère **pas la voix**, (c) n'a que **5 outils**. Phase 4C lève ces trois
 limites.
 
+**Canaux : texte ET voix, indifféremment.** Tout (mémoire, outils, réponses, confirmations)
+s'applique aux deux. Le **texte fonctionne déjà** via 4A ; C1 lui ajoute la mémoire. La **voix**
+n'est qu'une porte d'entrée de plus : C2 la transcrit en amont, puis elle passe par exactement
+le même cerveau, la même mémoire et les mêmes outils. Un agent peut alterner voix/texte dans
+un même fil sans rupture.
+
 ## 2. Les 3 piliers
 
 ### 2.1 Mémoire de conversation (l'enabler n°1)
