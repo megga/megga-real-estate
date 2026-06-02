@@ -73,7 +73,7 @@ export async function uploadMetaMediaDocument(
   const form = new FormData()
   form.append('messaging_product', 'whatsapp')
   form.append('type', mime)
-  form.append('file', new Blob([bytes], { type: mime }), filename)
+  form.append('file', new Blob([bytes as unknown as BlobPart], { type: mime }), filename)
   const res = await fetch(`https://graph.facebook.com/${v}/${cfg.metaPhoneNumberId}/media`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${cfg.metaToken}` }, // PAS de Content-Type : FormData fixe le boundary
