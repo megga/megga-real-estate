@@ -11,6 +11,7 @@ import { getProvider, verifyHmac, type SendConfig } from '../_shared/whatsapp-ga
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
+import { readDocument } from '../_shared/vision.ts'
 import { execUpdatePipeline, executeRecordOffer, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 
 const corsHeaders = {
@@ -263,6 +264,33 @@ async function processAgentMessage(
       }
     } catch (err) {
       console.error('whatsapp agent voice transcription failed:', (err as Error)?.name ?? 'error')
+    }
+  }
+
+  // Lecture de document/image (Gemini Vision) : si l'agent envoie une capture, une photo
+  // ou un PDF, MEGGA en lit le contenu et l'ajoute au message — MÊME s'il y a une légende
+  // (« ajoute ça aux notes de X » + screenshot). Texte extrait stocké comme transcript
+  // (audit + historique C1). read_document est provider-swappable (_shared/vision.ts).
+  if (msg.mediaId && (msg.mediaType === 'image' || msg.mediaType === 'document')) {
+    try {
+      const { bytes, mime } = await fetchMetaMedia(msg.mediaId, {
+        metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
+        apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+      })
+      const doc = await readDocument(bytes, mime, Deno.env.get('GEMINI_API_KEY') ?? '', {
+        model: Deno.env.get('GEMINI_MODEL') || undefined,
+      })
+      if (doc.ok && doc.text) {
+        const extract = doc.text.trim().slice(0, 6000)
+        userText = userText
+          ? `${userText}\n\n[Document reçu — contenu lu]:\n${extract}`
+          : `[Document reçu — contenu lu]:\n${extract}`
+        await admin.from('whatsapp_messages')
+          .update({ transcript: extract })
+          .eq('provider', provider.name).eq('provider_message_id', msg.providerMessageId)
+      }
+    } catch (err) {
+      console.error('whatsapp agent document read failed:', (err as Error)?.name ?? 'error')
     }
   }
 
