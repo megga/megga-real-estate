@@ -403,3 +403,14 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# ── Edge functions : JWT vérifié (service-role only) ──────────────────────────
+# Ces fonctions ne sont appelées qu'en interne (webhook→agent, cron→process).
+# La plateforme valide la SIGNATURE du JWT avant exécution — leur garde de rôle
+# ne fait que décoder le claim. NE JAMAIS les déployer en --no-verify-jwt
+# (cf. allowlist JWT_PROTECTED dans .github/workflows/deploy.yml).
+[functions.whatsapp-agent]
+verify_jwt = true
+
+[functions.whatsapp-process]
+verify_jwt = true

@@ -183,11 +183,22 @@ jobs:
           FAILED=0
           FAILED_FNS=""
 
+          # Fonctions internes (appelées en service-role : webhook→agent, cron→process).
+          # JWT vérifié par la plateforme → NE PAS déployer en --no-verify-jwt, sinon
+          # leur garde de rôle (qui ne fait que DÉCODER le JWT, sans vérifier la
+          # signature) devient contournable. Les autres restent publiques (webhook
+          # HMAC, seller-portal-action, log-auth-event…).
+          JWT_PROTECTED="whatsapp-agent whatsapp-process"
+
           for fn_dir in supabase/functions/*/; do
             fn_name=$(basename "$fn_dir")
             if [ -f "$fn_dir/index.ts" ]; then
               echo "::group::Deploying $fn_name"
-              supabase functions deploy "$fn_name" --no-verify-jwt
+              if echo " $JWT_PROTECTED " | grep -q " $fn_name "; then
+                supabase functions deploy "$fn_name"
+              else
+                supabase functions deploy "$fn_name" --no-verify-jwt
+              fi
               RC=$?
               echo "::endgroup::"
               if [ $RC -eq 0 ]; then
