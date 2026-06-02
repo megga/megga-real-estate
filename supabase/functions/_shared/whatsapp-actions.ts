@@ -16,7 +16,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount } from './whatsapp-lead.ts'
 import { PIPELINE_STAGES, isValidStage, STAGE_LABELS_FR, type PipelineStage } from './whatsapp-agent-router.ts'
-import { deriveKycType, type KycPersonType } from './kyc-extract.ts'
+import { deriveKycType, kycTypeToEntityType, type KycPersonType } from './kyc-extract.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -554,4 +554,59 @@ export async function executeOpenKycCase(ctx: ActionCtx, a: Args): Promise<strin
 
   await logTimeline(ctx, 'Dossier KYC ouvert', 'via WhatsApp', contactId)
   return `Dossier KYC ouvert. Les pièces à fournir : identité, domicile, screening PEP, sanctions${vigilance === 'renforced' ? ', source des fonds' : ''}. Tu peux me transférer les documents.`
+}
+
+// -- KYC par WhatsApp (Task 5) : run_kyc_screening (tier auto) -----------------
+
+/** Dernier dossier KYC d'un contact dans l'agence (ou null). */
+async function findOpenKycCase(
+  ctx: ActionCtx, contactId: string,
+): Promise<{ id: string; type: KycPersonType; dossier_status: string } | null> {
+  const { data } = await ctx.supabase
+    .from('kyc_cases').select('id, type, dossier_status')
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  return (data as { id: string; type: KycPersonType; dossier_status: string } | null) ?? null
+}
+
+export async function execRunKycScreening(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || 'ce contact'
+
+  const kc = await findOpenKycCase(ctx, contactId)
+  if (!kc) return `Aucun dossier KYC ouvert pour ${name}. Tu veux que j'en ouvre un ?`
+
+  const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/kyc-screening`
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        kyc_case_id: kc.id,
+        entity_type: kycTypeToEntityType(kc.type),
+        agency_id: ctx.agencyId,
+      }),
+      signal: AbortSignal.timeout(40_000),
+    })
+  } catch {
+    return 'Le screening a échoué (réseau). Réessaie dans un instant.'
+  }
+  if (res.status === 429) return 'Screening déjà lancé il y a quelques secondes — patiente un instant avant de relancer.'
+  if (!res.ok) return `Le screening n'a pas pu aboutir (code ${res.status}).`
+  const r = (await res.json().catch(() => ({}))) as {
+    pep_status?: string; sanctions_status?: string; risk_level?: string
+  }
+  const pep = r.pep_status === 'match' ? 'PEP détecté ⚠️' : 'pas de PEP'
+  const sanc = r.sanctions_status === 'match' ? 'correspondance sanctions ⚠️' : 'pas de sanction'
+  const riskFr: Record<string, string> = { low: 'faible', medium: 'moyen', high: 'élevé' }
+  const risk = riskFr[r.risk_level ?? ''] ?? r.risk_level ?? '—'
+  return `Screening de ${name} : ${pep}, ${sanc}, risque ${risk}. Le dossier est prêt à valider dans le CRM (à toi de cocher les pièces et valider — je ne valide jamais à ta place).`
 }

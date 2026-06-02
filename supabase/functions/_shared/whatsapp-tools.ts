@@ -241,4 +241,16 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'run_kyc_screening',
+      description: "Lance le screening LBA (PEP + listes de sanctions) sur le dossier KYC d'un contact. Read-only côté client, aucun message envoyé. Appelle directement. Exemples : « screen Dubois », « vérifie les sanctions pour Mme Vaucher ». contact_id via search_contacts. Il faut un dossier KYC déjà ouvert (open_kyc_case).",
+      parameters: {
+        type: 'object',
+        properties: { contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' } },
+        required: ['contact_id'],
+      },
+    },
+  },
 ]

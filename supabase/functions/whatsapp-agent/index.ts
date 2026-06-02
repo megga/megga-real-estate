@@ -17,6 +17,7 @@ import {
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execQualifyLead,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase,
+  execRunKycScreening,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 
@@ -206,6 +207,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'create_reminder': return execCreateReminder(ctx, args)
     case 'update_pipeline': return execUpdatePipeline(ctx, args)
     case 'qualify_lead': return execQualifyLead(ctx, args)
+    case 'run_kyc_screening': return execRunKycScreening(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }
