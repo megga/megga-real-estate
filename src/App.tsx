@@ -72,13 +72,14 @@ const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
 
 // Legacy + secondary public pages
-const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
-// Marketplace property detail = the Property X art direction (PxSingleProperty*
-// sections), data-connected via useListingDetail. (The old split-format
-// ListingPage was retired.)
-const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
+// Marketplace publique DÉSACTIVÉE (pivot CRM-first juin 2026) — SearchPage,
+// RentPage et PropertyXSinglePropertyPage ne sont plus routés (→ vitrine megga.ch
+// via MarketplaceDisabledRedirect). Imports conservés en commentaire pour
+// réactivation au Sprint 7 (les pages + composants Px* restent dans le repo).
+// const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
+// const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
+// const RentPage = lazy(() => import('@/pages/public/RentPage'))
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
-const RentPage = lazy(() => import('@/pages/public/RentPage'))
 const SellPage = lazy(() => import('@/pages/public/SellPage'))
 const EstimatesPage = lazy(() => import('@/pages/public/EstimatesPage'))
 const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
@@ -290,11 +291,16 @@ function DashboardMarketRedirect() {
   const { externalId } = useParams()
   return <Navigate to={`/dashboard/market/${externalId}`} replace />
 }
-// Back-compat: the canonical marketplace detail URL is /propriete/:id. Old
-// /listing/:id links/bookmarks redirect there.
-function ListingIdRedirect() {
-  const { id } = useParams()
-  return <Navigate to={`/propriete/${id}`} replace />
+// Pivot CRM-first (juin 2026): la marketplace PUBLIQUE est désactivée. Les routes
+// d'affichage des annonces (/buy /rent /propriete/:id /search /listing/:id…)
+// redirigent vers la vitrine megga.ch. market_listings + le cron Flatfox + le
+// matching (edge matching-engine, include_market) restent INTACTS — seul
+// l'affichage public est coupé. Réversible : restaurer les <Route> d'origine.
+// Redirection externe (autre domaine) → window.location, pas <Navigate>.
+const VITRINE_URL = 'https://megga.ch'
+function MarketplaceDisabledRedirect() {
+  if (typeof window !== 'undefined') window.location.replace(VITRINE_URL)
+  return null
 }
 
 function AnimatedRoutes() {
@@ -309,17 +315,21 @@ function AnimatedRoutes() {
                   This React app is deployed separately on app.megga.ch, where
                   "/" lands on the dashboard (which bounces to login if needed). */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/search" element={<SearchPage />} />
+              {/* Marketplace publique DÉSACTIVÉE (pivot CRM-first juin 2026) →
+                  vitrine megga.ch. market_listings + cron Flatfox + matching
+                  (edge matching-engine) intacts ; l'écran marché INTERNE du CRM
+                  (/dashboard/market/:externalId) reste actif. */}
+              <Route path="/search" element={<MarketplaceDisabledRedirect />} />
               {/* Marketplace property detail — the Property X art direction
                   (PxSingleProperty* sections), data-connected via useListingDetail.
                   The whole marketplace (cards, preview modal/panel, favourites,
                   saved searches, "similar listings" carousels, lightbox share link,
                   SEO canonical) points at /propriete/:id. A bare /propriete (no id)
                   isn't a real property, so it redirects to the search. */}
-              <Route path="/propriete/:id" element={<PropertyXSinglePropertyPage />} />
-              <Route path="/propriete" element={<Navigate to="/buy" replace />} />
-              {/* Legacy /listing/:id → canonical /propriete/:id (back-compat). */}
-              <Route path="/listing/:id" element={<ListingIdRedirect />} />
+              <Route path="/propriete/:id" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/propriete" element={<MarketplaceDisabledRedirect />} />
+              {/* Legacy /listing/:id (back-compat) → vitrine (marketplace désactivée). */}
+              <Route path="/listing/:id" element={<MarketplaceDisabledRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
               <Route path="/login" element={<Navigate to="/auth/login" replace />} />
@@ -347,15 +357,14 @@ function AnimatedRoutes() {
               <Route path="/kyc/:token" element={<KycPublicPage />} />
               {/* Sprint 4.7.D — Rendu PDF tokenisé (Cloudflare Browser Rendering → WhatsApp) */}
               <Route path="/kyc-report/:token" element={<KycReportRenderPage />} />
-              <Route path="/search-legacy" element={<SearchPage />} />
-              <Route path="/rent-legacy" element={<RentPage />} />
-              {/* /buy + /rent — short aliases used by storefront CTAs. Both
-                  point at the SearchPage which already handles `?transaction=`
-                  filters. */}
-              <Route path="/buy" element={<SearchPage />} />
-              <Route path="/rent" element={<RentPage />} />
-              <Route path="/acheter" element={<Navigate to="/buy" replace />} />
-              <Route path="/louer" element={<Navigate to="/rent" replace />} />
+              {/* Marketplace publique désactivée → vitrine. (SearchPage/RentPage
+                  conservés en lazy import pour réactivation Sprint 7.) */}
+              <Route path="/search-legacy" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/rent-legacy" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/buy" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/rent" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/acheter" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/louer" element={<MarketplaceDisabledRedirect />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/sell" element={<SellPage />} />

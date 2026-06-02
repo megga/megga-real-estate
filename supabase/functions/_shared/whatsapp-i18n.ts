@@ -167,9 +167,9 @@ export function confirmOpenKyc(lang: WaLang, name: string, type: KycPersonType, 
 export function openKycResult(lang: WaLang, vigilance: string): string {
   const renf = vigilance === 'renforced'
   if (lang === 'en') {
-    return `KYC file opened. Documents needed: ID, proof of address, PEP screening, sanctions${renf ? ', source of funds' : ''}. You can forward me the documents.`
+    return `KYC file opened. Whenever you like, you can forward me whatever documents you have — ID, proof of address${renf ? ', source of funds' : ''} — nothing is required, it's an optional assist. I can also run the PEP/sanctions screening whenever you want.`
   }
-  return `Dossier KYC ouvert. Les pièces à fournir : identité, domicile, screening PEP, sanctions${renf ? ', source des fonds' : ''}. Tu peux me transférer les documents.`
+  return `Dossier KYC ouvert. Tu peux me transférer les pièces que tu as quand tu veux — pièce d’identité, justificatif de domicile${renf ? ', source des fonds' : ''} — rien n’est obligatoire, c’est une aide facultative. Je peux aussi lancer le screening PEP/sanctions dès que tu me le dis.`
 }
 
 /** send_client_message — prompt de confirmation (aperçu 60 car.). */

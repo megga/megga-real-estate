@@ -62,7 +62,10 @@ serve(async (req) => {
     // 2. Cloudflare Browser Rendering /pdf (REST API, pas de Worker).
     const cfAccount = Deno.env.get('CLOUDFLARE_ACCOUNT_ID') ?? ''
     const cfToken = Deno.env.get('CLOUDFLARE_BROWSER_RENDER_TOKEN') ?? ''
-    const appUrl = Deno.env.get('MEGGA_APP_URL') ?? 'https://megga.ch'
+    // app.megga.ch sert le SPA React (la route /kyc-report/:token) ; megga.ch sert la
+    // vitrine statique depuis le pivot #542. app.megga.ch est OUVERT (pas de Basic Auth) →
+    // authenticate omis si MEGGA_PREVIEW_BASIC_AUTH absent (param gardé au cas où l'app serait gatée).
+    const appUrl = Deno.env.get('MEGGA_APP_URL') ?? 'https://app.megga.ch'
     const { user, pass } = parseBasicAuthPair(Deno.env.get('MEGGA_PREVIEW_BASIC_AUTH'))
     if (!cfAccount || !cfToken) return json({ error: 'CLOUDFLARE_* secrets missing' }, 500)
 
