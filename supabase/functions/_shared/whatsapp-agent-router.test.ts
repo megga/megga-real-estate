@@ -91,6 +91,12 @@ describe('toolTier', () => {
   })
 })
 
+describe('send_kyc_report tier', () => {
+  it('est auto (rapport à soi-même, aucun contact client)', () => {
+    expect(toolTier('send_kyc_report')).toBe('auto')
+  })
+})
+
 describe('parseConfirmation', () => {
   it('reconnaît oui', () => {
     expect(parseConfirmation('oui')).toBe('yes')

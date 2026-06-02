@@ -27,6 +27,7 @@ export interface ActionCtx {
   agencyId: string | null
   inboundMedia?: { mediaId: string; messageId: string } | null
   lang?: WaLang
+  agentPhone?: string  // numéro WhatsApp de l'agent (pour lui renvoyer un document)
 }
 
 type Args = Record<string, unknown>
@@ -623,6 +624,53 @@ export async function execRunKycScreening(ctx: ActionCtx, a: Args): Promise<stri
   const riskFr: Record<string, string> = { low: 'faible', medium: 'moyen', high: 'élevé' }
   const risk = riskFr[r.risk_level ?? ''] ?? r.risk_level ?? '—'
   return `Screening de ${name} : ${pep}, ${sanc}, risque ${risk}. Le dossier est prêt à valider dans le CRM (à toi de cocher les pièces et valider — je ne valide jamais à ta place).`
+}
+
+// -- KYC par WhatsApp : send_kyc_report (tier auto) ---------------------------
+// Génère le PDF officiel du dossier (via l'edge kyc-report-pdf : CF Browser
+// Rendering du template CRM) et l'envoie en DOCUMENT à l'agent lui-même.
+// Lecture seule du dossier (règle d'or). Générable à TOUT stade (décision Q6).
+
+export async function execSendKycReport(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  const toPhone = (ctx.agentPhone ?? '').replace(/\D/g, '')
+  if (!toPhone) return "Erreur: je n'ai pas ton numéro WhatsApp pour t'envoyer le PDF."
+
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || 'ce contact'
+
+  const kc = await findOpenKycCase(ctx, contactId)
+  if (!kc) return `Aucun dossier KYC ouvert pour ${name}. Tu veux que j'en ouvre un ?`
+
+  const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/kyc-report-pdf`
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        kyc_case_id: kc.id,
+        agency_id: ctx.agencyId,
+        profile_id: ctx.profileId,
+        to_phone: toPhone,
+      }),
+      signal: AbortSignal.timeout(60_000),
+    })
+  } catch (e) {
+    const n = (e as Error)?.name
+    if (n === 'TimeoutError' || n === 'AbortError') {
+      return 'La génération du rapport prend plus de temps que prévu — réessaie dans un instant.'
+    }
+    return "L'envoi du rapport a échoué (réseau). Réessaie dans un instant."
+  }
+  if (!res.ok) return `Je n'ai pas pu générer le rapport (code ${res.status}). Réessaie dans un instant.`
+  return `Rapport KYC de ${name} envoyé en pièce jointe (PDF). Tu le reçois dans la conversation.`
 }
 
 // -- KYC par WhatsApp (Task 6) : attach_kyc_document (tier auto) -----------------

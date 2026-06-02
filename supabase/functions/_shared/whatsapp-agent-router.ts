@@ -39,6 +39,7 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   open_kyc_case: 'confirm',
   attach_kyc_document: 'auto',
   run_kyc_screening: 'auto',
+  send_kyc_report: 'auto',
 }
 
 export function toolTier(name: string): ToolTier {

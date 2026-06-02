@@ -18,7 +18,7 @@ import {
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execQualifyLead,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase,
-  execRunKycScreening, execAttachKycDocument,
+  execRunKycScreening, execAttachKycDocument, execSendKycReport,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 
@@ -78,7 +78,7 @@ serve(async (req) => {
     .maybeSingle()
   if (!link) return json({ error: 'Forbidden: no verified agent link' }, 403)
 
-  const ctx: ActionCtx = { supabase, profileId, agencyId: link.agency_id ?? null, inboundMedia: inboundMedia ?? null, lang }
+  const ctx: ActionCtx = { supabase, profileId, agencyId: link.agency_id ?? null, inboundMedia: inboundMedia ?? null, lang, agentPhone: waNumber }
 
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
@@ -211,6 +211,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'qualify_lead': return execQualifyLead(ctx, args)
     case 'run_kyc_screening': return execRunKycScreening(ctx, args)
     case 'attach_kyc_document': return execAttachKycDocument(ctx, args)
+    case 'send_kyc_report': return execSendKycReport(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }

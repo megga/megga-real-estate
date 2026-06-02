@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extFromMime, buildMediaKey, parseMetaMediaMeta } from './whatsapp-media'
+import { extFromMime, buildMediaKey, parseMetaMediaMeta, parseMetaMediaUploadResult } from './whatsapp-media'
 
 describe('extFromMime', () => {
   it('mappe les mimes courants', () => {
@@ -26,5 +26,15 @@ describe('parseMetaMediaMeta', () => {
   })
   it('null si pas d’url', () => {
     expect(parseMetaMediaMeta({})).toBeNull()
+  })
+})
+
+describe('parseMetaMediaUploadResult', () => {
+  it('extrait le media id', () => {
+    expect(parseMetaMediaUploadResult({ id: '1234567890' })).toBe('1234567890')
+  })
+  it('retourne null sans id', () => {
+    expect(parseMetaMediaUploadResult({})).toBeNull()
+    expect(parseMetaMediaUploadResult(null)).toBeNull()
   })
 })

@@ -33,6 +33,8 @@ import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
 const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
+// Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
+const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
 // Auth — lazy car secondary path
 const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
@@ -353,6 +355,8 @@ function AnimatedRoutes() {
               <Route path="/auth/mot-de-passe-oublie/redefinir" element={<Navigate to="/auth/forgot-password/reset" replace />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
+              {/* Sprint 4.7.D — Rendu PDF tokenisé (Cloudflare Browser Rendering → WhatsApp) */}
+              <Route path="/kyc-report/:token" element={<KycReportRenderPage />} />
               {/* Marketplace publique désactivée → vitrine. (SearchPage/RentPage
                   conservés en lazy import pour réactivation Sprint 7.) */}
               <Route path="/search-legacy" element={<MarketplaceDisabledRedirect />} />

@@ -26,6 +26,13 @@ export interface OutboundTextMessage {
   body: string
 }
 
+export interface OutboundDocumentMessage {
+  toPhone: string       // digits only, international sans +
+  mediaId: string       // media id Meta (upload préalable)
+  filename: string      // nom affiché dans WhatsApp
+  caption?: string      // légende optionnelle
+}
+
 export interface SendConfig {
   // Meta Cloud API
   metaToken?: string
@@ -58,6 +65,8 @@ export interface WhatsAppProvider {
   // Accusé de lecture (coches bleues) + indicateur "typing…" optionnel. Optionnel sur
   // l'interface : seul Meta le supporte (OpenWA = prototype legacy sans cette capacité).
   buildMarkReadRequest?(messageId: string, config: SendConfig, opts?: { typing?: boolean }): SendHttpRequest
+  // Envoi d'un document (PDF) déjà uploadé en média. Optionnel : Meta uniquement.
+  buildSendDocumentRequest?(msg: OutboundDocumentMessage, config: SendConfig): SendHttpRequest
 }
 
 export function normalizePhone(jid: string): string {
@@ -208,6 +217,26 @@ class MetaProvider implements WhatsAppProvider {
     const err =
       ((body.error as Record<string, unknown>)?.message as string) ?? `HTTP ${status}`
     return { ok: false, providerMessageId: null, error: err }
+  }
+
+  buildSendDocumentRequest(msg: OutboundDocumentMessage, config: SendConfig): SendHttpRequest {
+    const apiVersion = config.metaApiVersion ?? 'v22.0'
+    const document: Record<string, unknown> = { id: msg.mediaId, filename: msg.filename }
+    if (msg.caption) document.caption = msg.caption
+    return {
+      url: `https://graph.facebook.com/${apiVersion}/${config.metaPhoneNumberId}/messages`,
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + config.metaToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: msg.toPhone,
+        type: 'document',
+        document,
+      }),
+    }
   }
 
   // Marque le message entrant comme lu (coches bleues). opts.typing → affiche en plus
