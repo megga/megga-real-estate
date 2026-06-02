@@ -233,6 +233,10 @@ serve(async (req) => {
     })
   } catch { /* non bloquant */ }
 
+  // Coches bleues côté client : son message est vu par l'agence (pas de « typing » —
+  // MEGGA ne répond pas automatiquement au client, capture seule / human-in-the-loop).
+  await markRead(provider, msg.providerMessageId, false)
+
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 })
 
@@ -245,6 +249,8 @@ async function processAgentMessage(
   agentLink: { profile_id: string; agency_id: string | null },
   msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
 ): Promise<void> {
+  // Coches bleues + « typing… » dès réception : l'agent voit que MEGGA a lu et prépare.
+  await markRead(provider, msg.providerMessageId, true)
   let reply = "Désolé, je n'ai pas pu traiter ta demande pour le moment."
 
   // C2 : voix sur le chemin agent — si l'agent envoie un vocal, on le transcrit AVANT
@@ -410,6 +416,25 @@ async function sendWhatsAppText(
     const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
     return sres.ok
   } catch { return false }
+}
+
+// Accusé de lecture (coches bleues) + « typing… » optionnel. Best-effort, Meta only
+// (buildMarkReadRequest absent sur OpenWA → no-op via l'appel optionnel).
+async function markRead(
+  provider: ReturnType<typeof getProvider>, messageId: string, typing: boolean,
+): Promise<void> {
+  const config: SendConfig = {
+    metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+    metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+  }
+  const req = provider.buildMarkReadRequest?.(messageId, config, { typing })
+  if (!req) return
+  try {
+    await fetch(req.url, { method: req.method, headers: req.headers, body: req.body, signal: AbortSignal.timeout(5000) })
+  } catch (err) {
+    console.error('whatsapp mark-read failed:', (err as Error)?.name ?? 'error')
+  }
 }
 
 // Exécute une action confirmée (send_client_message, update_pipeline, record_offer,

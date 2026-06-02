@@ -55,6 +55,9 @@ export interface WhatsAppProvider {
   parseInbound(payload: unknown): NormalizedInboundMessage | null
   buildSendTextRequest(msg: OutboundTextMessage, config: SendConfig): SendHttpRequest
   parseSendResult(status: number, responseBody: unknown): SendResult
+  // Accusé de lecture (coches bleues) + indicateur "typing…" optionnel. Optionnel sur
+  // l'interface : seul Meta le supporte (OpenWA = prototype legacy sans cette capacité).
+  buildMarkReadRequest?(messageId: string, config: SendConfig, opts?: { typing?: boolean }): SendHttpRequest
 }
 
 export function normalizePhone(jid: string): string {
@@ -205,6 +208,28 @@ class MetaProvider implements WhatsAppProvider {
     const err =
       ((body.error as Record<string, unknown>)?.message as string) ?? `HTTP ${status}`
     return { ok: false, providerMessageId: null, error: err }
+  }
+
+  // Marque le message entrant comme lu (coches bleues). opts.typing → affiche en plus
+  // l'indicateur "typing…" (dissipé à la réponse ou après 25 s) ; à n'utiliser que si
+  // MEGGA va effectivement répondre.
+  buildMarkReadRequest(messageId: string, config: SendConfig, opts?: { typing?: boolean }): SendHttpRequest {
+    const apiVersion = config.metaApiVersion ?? 'v22.0'
+    const body: Record<string, unknown> = {
+      messaging_product: 'whatsapp',
+      status: 'read',
+      message_id: messageId,
+    }
+    if (opts?.typing) body.typing_indicator = { type: 'text' }
+    return {
+      url: `https://graph.facebook.com/${apiVersion}/${config.metaPhoneNumberId}/messages`,
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + config.metaToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }
   }
 }
 
