@@ -69,10 +69,10 @@ describe('toolTier', () => {
     expect(toolTier('add_note')).toBe('auto')
     expect(toolTier('schedule_visit')).toBe('auto')
     expect(toolTier('create_reminder')).toBe('auto')
-    expect(toolTier('update_pipeline')).toBe('auto')
     expect(toolTier('qualify_lead')).toBe('auto')
   })
-  it('classe les outils confirm', () => {
+  it('classe les outils confirm (sensibles : étape pipeline + envoi client)', () => {
+    expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')
   })
   it('par défaut un outil inconnu est confirm (fail-safe)', () => {

@@ -15,7 +15,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing } from './whatsapp-lead.ts'
-import { PIPELINE_STAGES, isValidStage } from './whatsapp-agent-router.ts'
+import { PIPELINE_STAGES, isValidStage, STAGE_LABELS_FR, type PipelineStage } from './whatsapp-agent-router.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -309,7 +309,8 @@ export async function execUpdatePipeline(ctx: ActionCtx, a: Args): Promise<strin
   if (!(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'
   const deal = await resolveContactDeal(ctx, contactId)
   if (!deal) return "Ce contact n’a pas encore de dossier dans le pipeline (aucune transaction). Le dossier doit d’abord être créé dans le CRM."
-  if (deal.stage === stage) return `Le dossier « ${deal.label} » est déjà à l’étape « ${stage} ».`
+  const label = STAGE_LABELS_FR[stage as PipelineStage] ?? stage
+  if (deal.stage === stage) return `Le dossier « ${deal.label} » est déjà à l’étape « ${label} ».`
   const { error } = await ctx.supabase.from('transactions')
     .update({ stage }).eq('id', deal.id).eq('agency_id', ctx.agencyId)
   if (error) return `Erreur pipeline: ${error.message}`
@@ -321,7 +322,7 @@ export async function execUpdatePipeline(ctx: ActionCtx, a: Args): Promise<strin
     metadata: { via: 'whatsapp', old_stage: deal.stage, new_stage: stage, contact_id: contactId },
   })
   if (logErr) console.error('pipeline audit log failed')
-  return `Dossier « ${deal.label} » déplacé en « ${stage} ».`
+  return `Dossier « ${deal.label} » déplacé en « ${label} ».`
 }
 
 /** Qualifie un contact existant : critères structurés → search_criteria + matching auto.

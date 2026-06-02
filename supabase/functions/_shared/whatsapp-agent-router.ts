@@ -29,8 +29,10 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   add_note: 'auto',
   schedule_visit: 'auto',
   create_reminder: 'auto',
-  update_pipeline: 'auto',
   qualify_lead: 'auto',
+  // update_pipeline modifie l'étape pipeline → garde-fou absolu du cerveau
+  // (ai-guardrails : « jamais sans action humaine ») ⇒ confirm (le « oui » de l'agent).
+  update_pipeline: 'confirm',
   send_client_message: 'confirm',
 }
 
@@ -51,6 +53,14 @@ export type PipelineStage = (typeof PIPELINE_STAGES)[number]
 /** Vrai si `stage` est une étape canonique du pipeline (sensible à la casse). */
 export function isValidStage(stage: string): stage is PipelineStage {
   return (PIPELINE_STAGES as readonly string[]).includes(stage)
+}
+
+/** Libellés FR des étapes — pour parler humain à l'agent (jamais l'enum brut). */
+export const STAGE_LABELS_FR: Record<PipelineStage, string> = {
+  new_lead: 'Nouveau lead', to_qualify: 'À qualifier', active_search: 'Recherche active',
+  visit_planned: 'Visite planifiée', visit_done: 'Visite effectuée', interest_confirmed: 'Intérêt confirmé',
+  offer: 'Offre', negotiation: 'Négociation', reserved: 'Réservé', financing: 'Financement',
+  notary: 'Notaire', signed: 'Signé', lost: 'Perdu', to_recontact: 'À relancer',
 }
 
 const YES = new Set(['oui', 'ok', 'okay', 'yes', 'y', 'vas-y', 'vasy', 'go', 'confirme', 'confirmer', 'valide', "d'accord", 'daccord', 'ouais', 'yep'])

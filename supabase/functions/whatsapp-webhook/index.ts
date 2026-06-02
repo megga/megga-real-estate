@@ -11,6 +11,7 @@ import { getProvider, verifyHmac, type SendConfig } from '../_shared/whatsapp-ga
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
+import { execUpdatePipeline, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -398,6 +399,12 @@ async function executePending(
       })
     } catch { /* non bloquant */ }
     return '✅ Message envoyé au client.'
+  }
+  // Outils CRM internes confirmés (ex. update_pipeline) : on délègue à l'exécuteur
+  // partagé, scopé agence au SQL. L'agence vient du lien vérifié (jamais du body).
+  if (pending.tool === 'update_pipeline') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id }
+    return execUpdatePipeline(ctx, pending.args)
   }
   return "Type d'action inconnu, rien fait."
 }
