@@ -313,7 +313,7 @@ async function processAgentMessage(
 // agencyId N'EST PAS transmis : l'agent le re-dérive depuis le lien vérifié (anti-forge).
 async function callAgentBrain(
   agentLink: { profile_id: string; agency_id: string | null },
-  msg: { fromPhone: string; body: string | null },
+  msg: { fromPhone: string; body: string | null; providerMessageId: string },
 ): Promise<string> {
   try {
     const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
@@ -326,6 +326,7 @@ async function callAgentBrain(
         profileId: agentLink.profile_id,
         waNumber: msg.fromPhone,
         message: msg.body ?? '',
+        currentMessageId: msg.providerMessageId,
       }),
       signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini
     })

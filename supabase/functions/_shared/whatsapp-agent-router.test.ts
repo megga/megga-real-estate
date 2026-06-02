@@ -5,7 +5,28 @@ import {
   toolTier,
   parseConfirmation,
   isPendingActionValid,
+  buildHistoryMessages,
 } from './whatsapp-agent-router'
+
+describe('buildHistoryMessages', () => {
+  it('reconstruit le fil chronologique (inbound→user, outbound→assistant)', () => {
+    const rowsDesc = [
+      { direction: 'outbound', body: 'Quel budget ?', transcript: null },
+      { direction: 'inbound', body: 'je cherche un 3 pièces', transcript: null },
+    ]
+    expect(buildHistoryMessages(rowsDesc)).toEqual([
+      { role: 'user', content: 'je cherche un 3 pièces' },
+      { role: 'assistant', content: 'Quel budget ?' },
+    ])
+  })
+  it('priorise le transcript et ignore les messages vides', () => {
+    const rows = [
+      { direction: 'inbound', body: null, transcript: 'vocal transcrit' },
+      { direction: 'inbound', body: '', transcript: null },
+    ]
+    expect(buildHistoryMessages(rows)).toEqual([{ role: 'user', content: 'vocal transcrit' }])
+  })
+})
 
 describe('whatsapp-agent-router — pairing code', () => {
   it('extractPairingCode : isole 6 chiffres exacts (espaces/texte tolérés)', () => {

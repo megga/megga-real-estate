@@ -11,7 +11,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, buildHistoryMessages, type WaHistoryRow } from '../_shared/whatsapp-agent-router.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   type ActionCtx,
@@ -29,7 +29,8 @@ Règles:
 - Pour ajouter/modifier quelque chose, utilise l'outil approprié plutôt que de prétendre l'avoir fait.
 - Si une info manque (ex: quel contact ?), pose UNE question courte au lieu de deviner.
 - Pour agir sur un contact existant, retrouve d'abord son id via search_contacts. N'invente jamais d'identifiant.
-- Après une action, confirme en une phrase ce que tu as fait.`
+- Après une action, confirme en une phrase ce que tu as fait.
+- Tu as l'historique récent du fil : sers-t'en pour les suites et corrections (« et ajoute… », « non, plutôt… »).`
 
 serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -45,9 +46,9 @@ serve(async (req) => {
     return json({ error: 'Forbidden' }, 403)
   }
 
-  let body: { profileId?: string; waNumber?: string; message?: string }
+  let body: { profileId?: string; waNumber?: string; message?: string; currentMessageId?: string }
   try { body = await req.json() } catch { return json({ error: 'Bad JSON' }, 400) }
-  const { profileId, waNumber = '', message } = body
+  const { profileId, waNumber = '', message, currentMessageId } = body
   if (!profileId || !message) return json({ error: 'profileId and message required' }, 400)
 
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
@@ -68,8 +69,22 @@ serve(async (req) => {
 
   const ctx: ActionCtx = { supabase, profileId, agencyId: link.agency_id ?? null }
 
+  // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
+  // en excluant le message courant (déjà stocké par le webhook avant cet appel).
+  const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: histRows } = await supabase
+    .from('whatsapp_messages')
+    .select('direction, body, transcript')
+    .or(`wa_from.eq.${waNumber},wa_to.eq.${waNumber}`)
+    .neq('provider_message_id', currentMessageId ?? '')
+    .gt('created_at', sinceIso)
+    .order('created_at', { ascending: false })
+    .limit(12)
+  const history = buildHistoryMessages((histRows ?? []) as WaHistoryRow[])
+
   const messages: Array<Record<string, unknown>> = [
     { role: 'system', content: SYSTEM },
+    ...history,
     { role: 'user', content: message },
   ]
 

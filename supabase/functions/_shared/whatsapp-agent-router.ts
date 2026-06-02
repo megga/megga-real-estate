@@ -46,3 +46,18 @@ export function isPendingActionValid(expiresAt: string | null | undefined): bool
   const t = Date.parse(expiresAt)
   return Number.isFinite(t) && t > Date.now()
 }
+
+// ── Phase 4C / C1 : mémoire de conversation (pur) ───────────────────────────
+export interface WaHistoryRow { direction: string; body: string | null; transcript: string | null }
+
+/** Reconstruit l'historique agent↔MEGGA (lignes triées DESC) en tours chat
+ *  chronologiques : inbound→user, outbound→assistant. transcript prioritaire,
+ *  vides ignorés, contenu borné (1000 car). */
+export function buildHistoryMessages(rowsDesc: WaHistoryRow[]): Array<{ role: 'user' | 'assistant'; content: string }> {
+  return [...rowsDesc].reverse()
+    .map((r) => ({
+      role: (r.direction === 'inbound' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: (r.transcript || r.body || '').trim().slice(0, 1000),
+    }))
+    .filter((m) => m.content.length > 0)
+}
