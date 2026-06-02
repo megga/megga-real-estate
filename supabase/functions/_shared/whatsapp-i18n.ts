@@ -1,0 +1,193 @@
+// i18n du copilote WhatsApp (FR/EN — les 2 langues du CRM). PUR : aucun I/O, testable Node.
+//
+// Pourquoi ce module : la PLUPART des réponses de MEGGA sont générées par DeepSeek et se
+// localisent via une seule consigne du system prompt (« réponds dans la langue de l'agent »).
+// MAIS les messages de CONFIRMATION + de contrôle sont renvoyés VERBATIM (court-circuitent
+// DeepSeek pour que l'agent confirme une phrase stable et exacte). Ceux-là se traduisent ici.
+//
+// La langue est DÉTECTÉE depuis le message déclencheur de l'agent (detectLang), puis portée
+// par ActionCtx.lang et figée sur l'action en attente (args.__lang) pour le résultat post-« oui ».
+
+export type WaLang = 'fr' | 'en'
+
+// Mots-outils (function words) = discriminant FR/EN fiable. Défaut FR (langue par défaut CRM).
+const FR_HINTS =
+  /\b(le|la|les|un|une|des|du|de|est|sont|pour|avec|et|ou|mon|ma|mes|ton|ta|tes|son|sa|ce|cette|je|tu|il|elle|on|nous|vous|au|aux|dans|sur|que|qui|ne|pas|oui|non|merci|demain|aujourd|hier|ouvre|crée|ajoute|envoie|déplace|note|cherche|trouve|fais|peux|veux|faut|dossier|bien|rappel)\b/gi
+const EN_HINTS =
+  /\b(the|a|an|is|are|was|were|for|with|and|or|my|our|your|his|her|this|that|i|you|he|she|we|they|to|of|in|on|at|do|does|can|could|would|want|need|please|not|yes|no|thanks|tomorrow|today|yesterday|open|create|add|send|move|note|search|find|make|new|file|listing|reminder)\b/gi
+
+/** Détecte FR/EN sur le message déclencheur de l'agent. Égalité ou vide → 'fr'. */
+export function detectLang(text: string | null | undefined): WaLang {
+  if (!text) return 'fr'
+  const fr = (text.match(FR_HINTS) || []).length
+  const en = (text.match(EN_HINTS) || []).length
+  return en > fr ? 'en' : 'fr'
+}
+
+/** Normalise une valeur de langue (ex. depuis args.__lang) en WaLang sûr. */
+export function asWaLang(v: unknown): WaLang {
+  return v === 'en' ? 'en' : 'fr'
+}
+
+// ── Chaînes statiques (confirmation générique + contrôle) ───────────────────
+const STR = {
+  confirmGeneric: {
+    fr: 'Je vais effectuer cette action. Tu confirmes ? (« oui » / « non »)',
+    en: "I'll carry out this action. Confirm? (reply « yes » / « no »)",
+  },
+  fallbackConfirm: {
+    fr: 'Tu confirmes ? (« oui » / « non »)',
+    en: 'Confirm? (reply « yes » / « no »)',
+  },
+  busy: {
+    fr: 'Tu as déjà une action en attente. Réponds « oui » pour la confirmer ou « non » pour l’annuler avant d’en lancer une autre.',
+    en: 'You already have a pending action. Reply « yes » to confirm it or « no » to cancel it before starting another.',
+  },
+  prepFail: {
+    fr: 'Je ne peux pas préparer cette action pour le moment.',
+    en: "I can't prepare this action right now.",
+  },
+  cancelled: {
+    fr: "C'est annulé, je n'ai rien envoyé.",
+    en: "Cancelled — I didn't send anything.",
+  },
+  expired: {
+    fr: 'La demande en attente a expiré. Redis-moi ce que tu veux faire.',
+    en: 'The pending request expired. Tell me again what you want to do.',
+  },
+  setAside: {
+    fr: "(J'ai mis de côté l'action en attente, non confirmée.)",
+    en: '(I set the pending action aside — not confirmed.)',
+  },
+  iaDown: {
+    fr: 'Service IA momentanément indisponible.',
+    en: 'AI service temporarily unavailable.',
+  },
+  cantProcess: {
+    fr: "Désolé, je n'ai pas pu traiter ta demande.",
+    en: "Sorry, I couldn't handle your request.",
+  },
+  cantProcessNow: {
+    fr: "Désolé, je n'ai pas pu traiter ta demande pour le moment.",
+    en: "Sorry, I couldn't handle your request right now.",
+  },
+  tooLarge: {
+    fr: 'Ta demande est trop large pour un seul message. Peux-tu la découper ?',
+    en: 'Your request is too broad for a single message. Can you break it up?',
+  },
+  reformulate: {
+    fr: "Je n'ai pas réussi à finaliser ta demande. Peux-tu la reformuler plus simplement ?",
+    en: "I couldn't finalise your request. Can you rephrase it more simply?",
+  },
+  ok: { fr: 'OK.', en: 'OK.' },
+  noAgencySend: {
+    fr: "Ton compte n'a pas d'agence, envoi impossible.",
+    en: "Your account has no agency — can't send.",
+  },
+  actionIncompleteSend: {
+    fr: "Action incomplète, je n'ai rien envoyé.",
+    en: "Incomplete action — I didn't send anything.",
+  },
+  contactNotFoundSend: {
+    fr: 'Contact introuvable dans ton agence, rien envoyé.',
+    en: 'Contact not found in your agency — nothing sent.',
+  },
+  sendFail24h: {
+    fr: "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?).",
+    en: 'Sending to the client failed (24h window or number not allowed?).',
+  },
+  sendFailNet: {
+    fr: "L'envoi au client a échoué (réseau).",
+    en: 'Sending to the client failed (network).',
+  },
+  clientMsgSent: {
+    fr: '✅ Message envoyé au client.',
+    en: '✅ Message sent to the client.',
+  },
+  selectionIncomplete: {
+    fr: 'La sélection était incomplète, rien envoyé.',
+    en: 'The selection was incomplete — nothing sent.',
+  },
+  listingsSent: {
+    fr: '✅ Sélection envoyée au client.',
+    en: '✅ Selection sent to the client.',
+  },
+  unknownAction: {
+    fr: "Type d'action inconnu, rien fait.",
+    en: 'Unknown action type — nothing done.',
+  },
+} as const
+
+export type WaStringKey = keyof typeof STR
+export function t(lang: WaLang, key: WaStringKey): string {
+  return STR[key][lang]
+}
+
+/** Suffixe de confirmation, réutilisé par les prompts paramétrés. */
+export function confirmSuffix(lang: WaLang): string {
+  return lang === 'en' ? 'Confirm? (reply « yes » / « no »)' : 'Tu confirmes ? (« oui » / « non »)'
+}
+
+// ── Libellés métier bilingues ───────────────────────────────────────────────
+export type KycPersonType = 'buyer_pp' | 'buyer_pm' | 'seller_pp' | 'seller_pm'
+const KYC_TYPE_LABELS: Record<WaLang, Record<KycPersonType, string>> = {
+  fr: {
+    buyer_pp: 'acheteur, personne physique',
+    buyer_pm: 'acheteur, personne morale',
+    seller_pp: 'vendeur, personne physique',
+    seller_pm: 'vendeur, personne morale',
+  },
+  en: {
+    buyer_pp: 'buyer, individual',
+    buyer_pm: 'buyer, company',
+    seller_pp: 'seller, individual',
+    seller_pm: 'seller, company',
+  },
+}
+export function kycTypeLabel(lang: WaLang, type: KycPersonType): string {
+  return KYC_TYPE_LABELS[lang][type]
+}
+export function vigilanceLabel(lang: WaLang, vigilance: string): string {
+  if (vigilance === 'renforced') return lang === 'en' ? 'enhanced' : 'renforcée'
+  return 'standard'
+}
+
+// ── Prompts/résultats paramétrés (confirmation + post-« oui ») ───────────────
+
+/** open_kyc_case — prompt de confirmation. */
+export function confirmOpenKyc(lang: WaLang, name: string, type: KycPersonType, vigilance: string): string {
+  const tl = kycTypeLabel(lang, type)
+  const vl = vigilanceLabel(lang, vigilance)
+  if (lang === 'en') return `I'm opening a KYC file for ${name} (${tl}, ${vl} due diligence). ${confirmSuffix('en')}`
+  return `J'ouvre un dossier KYC pour ${name} (${tl}, vigilance ${vl}). ${confirmSuffix('fr')}`
+}
+
+/** open_kyc_case — résultat post-« oui ». */
+export function openKycResult(lang: WaLang, vigilance: string): string {
+  const renf = vigilance === 'renforced'
+  if (lang === 'en') {
+    return `KYC file opened. Documents needed: ID, proof of address, PEP screening, sanctions${renf ? ', source of funds' : ''}. You can forward me the documents.`
+  }
+  return `Dossier KYC ouvert. Les pièces à fournir : identité, domicile, screening PEP, sanctions${renf ? ', source des fonds' : ''}. Tu peux me transférer les documents.`
+}
+
+/** send_client_message — prompt de confirmation (aperçu 60 car.). */
+export function confirmSendClient(lang: WaLang, preview: string, truncated: boolean): string {
+  const ell = truncated ? '…' : ''
+  if (lang === 'en') return `I'll send the client the message « ${preview}${ell} ». ${confirmSuffix('en')}`
+  return `Je vais envoyer au client le message « ${preview}${ell} ». ${confirmSuffix('fr')}`
+}
+
+/** update_pipeline — prompt de confirmation. `who` = « le dossier de X » / « X's file ». */
+export function confirmUpdatePipeline(lang: WaLang, who: string, stageLabel: string): string {
+  if (lang === 'en') return `I'll move ${who} to « ${stageLabel} ». ${confirmSuffix('en')}`
+  return `Je vais déplacer ${who} en « ${stageLabel} ». ${confirmSuffix('fr')}`
+}
+/** « le dossier » / « the file » (défaut quand le contact n'est pas résolu). */
+export function pipelineWhoDefault(lang: WaLang): string {
+  return lang === 'en' ? 'the file' : 'le dossier'
+}
+/** « le dossier de Jean » / « Jean's file ». */
+export function pipelineWhoNamed(lang: WaLang, name: string): string {
+  return lang === 'en' ? `${name}'s file` : `le dossier de ${name}`
+}
