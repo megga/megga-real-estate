@@ -1,3 +1,9 @@
+# Auth : la vitrine délègue à l'app React (Supabase + OAuth Google/Microsoft).
+/signup       https://app.megga.ch/auth/signup   301
+/signup.html  https://app.megga.ch/auth/signup   301
+/login        https://app.megga.ch/auth/login    301
+/login.html   https://app.megga.ch/auth/login    301
+
 # Vitrine multi-pages — Cloudflare Pages sert les .html par nom ; 404 natif sinon.
 
 # Redirections de courtoisie : anciens chemins (template) → nouvelles URL.
