@@ -37,11 +37,19 @@ $$;
 REVOKE ALL ON FUNCTION public.whatsapp_pending_notices(int) FROM public, anon, authenticated;
 
 -- Purge quotidienne du champ raw (PII brute, dette signalée à l'audit) après 30 j.
-SELECT cron.schedule(
-  'whatsapp-purge-raw-daily',
-  '30 3 * * *',
-  $$ UPDATE public.whatsapp_messages SET raw = NULL
-     WHERE raw IS NOT NULL AND created_at < now() - interval '30 days'; $$
-);
+DO $do$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    PERFORM cron.schedule(
+      'whatsapp-purge-raw-daily',
+      '30 3 * * *',
+      $cron$ UPDATE public.whatsapp_messages SET raw = NULL
+             WHERE raw IS NOT NULL AND created_at < now() - interval '30 days'; $cron$
+    );
+  ELSE
+    RAISE NOTICE 'pg_cron absent (local/CI) — whatsapp-purge-raw-daily non planifié';
+  END IF;
+END
+$do$;
 
 COMMIT;

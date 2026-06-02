@@ -18,8 +18,11 @@ describe.skipIf(!HAS_KEYS)('RLS isolation — whatsapp_conversation_insights', (
     const service = serviceRoleClient()
 
     const mkContact = async (agencyId: string, name: string) => {
+      // contacts impose email + type NOT NULL (et source/score/entity_type ont des défauts).
       const { data, error } = await service
-        .from('contacts').insert({ agency_id: agencyId, first_name: name }).select('id').single()
+        .from('contacts')
+        .insert({ agency_id: agencyId, first_name: name, last_name: 'RLS', email: `${name.toLowerCase()}@test.local`, type: 'lead' })
+        .select('id').single()
       if (error) throw new Error(`contact ${name}: ${error.message}`)
       return data.id as string
     }
