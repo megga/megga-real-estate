@@ -14,6 +14,8 @@
 //  - contact -> `contacts` (pas de created_by ; on met source='whatsapp_ai').
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { mapCriteria, isSearchable, computeMissing } from './whatsapp-lead.ts'
+import { PIPELINE_STAGES, isValidStage } from './whatsapp-agent-router.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -210,4 +212,169 @@ export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<strin
     .from('contacts').select('id, first_name, last_name')
     .eq('agency_id', ctx.agencyId).contains('tags', ['à_compléter']).limit(10)
   return JSON.stringify({ visites_du_jour: visits ?? [], leads_a_completer: followups ?? [] })
+}
+
+// ── Phase 4C / C4 : outils ACTION (tier 🟢 auto — état CRM interne, réversible) ─
+// Aucun envoi client / KYC / argent / signature ici (→ tiers confirm/never).
+
+const frDateTime = (iso: string): string =>
+  new Date(iso).toLocaleString('fr-CH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Zurich' })
+
+/** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null. */
+async function contactInAgency(
+  ctx: ActionCtx, contactId: string,
+): Promise<{ id: string; first_name: string | null; last_name: string | null } | null> {
+  const { data } = await ctx.supabase
+    .from('contacts').select('id, first_name, last_name')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  return (data as { id: string; first_name: string | null; last_name: string | null } | null) ?? null
+}
+
+/** Résout le dossier (transaction) d'un contact : acheteur OU vendeur, le plus récent.
+ *  Le lien contact↔dossier est porté par contact_buyer_id / contact_seller_id. */
+async function resolveContactDeal(
+  ctx: ActionCtx, contactId: string,
+): Promise<{ id: string; label: string; stage: string } | null> {
+  const { data } = await ctx.supabase
+    .from('transactions')
+    .select('id, stage, properties(title, address, city)')
+    .eq('agency_id', ctx.agencyId)
+    .or(`contact_buyer_id.eq.${contactId},contact_seller_id.eq.${contactId}`)
+    .order('created_at', { ascending: false })
+    .limit(1).maybeSingle()
+  if (!data) return null
+  // L'embed PostgREST est typé en tableau à la compilation mais renvoie un objet
+  // (relation to-one via property_id) à l'exécution : on gère les deux formes.
+  type PropRow = { title: string | null; address: string | null; city: string | null }
+  const row = data as unknown as { id: string; stage: string; properties: PropRow | PropRow[] | null }
+  const p = Array.isArray(row.properties) ? (row.properties[0] ?? null) : row.properties
+  return { id: row.id, label: p?.title || p?.address || p?.city || 'dossier', stage: row.stage }
+}
+
+/** Planifie une visite (table visits). property_id ET contact_id obligatoires (NOT NULL). */
+export async function execScheduleVisit(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id), propertyId = s(a.property_id), when = s(a.scheduled_at)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  if (!propertyId) return 'Erreur: pour quel bien ? (property_id requis, via get_matches ou demande à l’agent).'
+  if (!when || !Number.isFinite(Date.parse(when))) return 'Erreur: date/heure (scheduled_at, ISO 8601) requise.'
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
+  const { data: prop } = await ctx.supabase
+    .from('properties').select('id, title').eq('id', propertyId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (!prop) return 'Erreur: bien introuvable dans votre agence.'
+  const propTitle = (prop as { title: string | null }).title ?? 'bien'
+
+  const visitType = s(a.visit_type) === 'video' ? 'video' : 'sur_place'
+  const buyerName = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim() || null
+  const iso = new Date(when).toISOString()
+  const row: Record<string, unknown> = {
+    agency_id: ctx.agencyId, agent_id: ctx.profileId,
+    property_id: propertyId, contact_id: contactId,
+    scheduled_at: iso, status: 'planned', visit_type: visitType, buyer_name: buyerName,
+  }
+  if (typeof a.duration_minutes === 'number' && a.duration_minutes > 0) row.duration_minutes = Math.min(a.duration_minutes, 480)
+  if (visitType === 'video') row.video_platform = 'google_meet'
+  const { error } = await ctx.supabase.from('visits').insert(row)
+  if (error) return `Erreur planification: ${error.message}`
+  await logTimeline(ctx, 'Visite planifiée', `${propTitle} — ${frDateTime(iso)}`, contactId)
+  return `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
+}
+
+/** Crée un rappel/tâche agent (table reminders). type=custom, trigger_rule=manual. */
+export async function execCreateReminder(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const body = s(a.body), when = s(a.due_at)
+  if (!body) return 'Erreur: objet du rappel (body) requis.'
+  if (!when || !Number.isFinite(Date.parse(when))) return 'Erreur: date du rappel (due_at, ISO 8601) requise.'
+  const contactId = s(a.contact_id)
+  if (contactId && !(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'
+  const iso = new Date(when).toISOString()
+  const { error } = await ctx.supabase.from('reminders').insert({
+    agency_id: ctx.agencyId, contact_id: contactId,
+    type: 'custom', trigger_rule: 'manual', status: 'pending', channel: 'task',
+    trigger_at: iso, message_template: body.slice(0, 500),
+  })
+  if (error) return `Erreur rappel: ${error.message}`
+  if (contactId) await logTimeline(ctx, 'Rappel créé', `${body.slice(0, 120)} (${frDateTime(iso)})`, contactId)
+  return `Rappel noté pour le ${frDateTime(iso)} : « ${body.slice(0, 120)} ».`
+}
+
+/** Déplace le dossier (transaction) d'un contact dans le pipeline. */
+export async function execUpdatePipeline(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id), stage = s(a.stage)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  if (!stage || !isValidStage(stage)) return `Erreur: étape invalide. Valeurs possibles : ${PIPELINE_STAGES.join(', ')}.`
+  if (!(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'
+  const deal = await resolveContactDeal(ctx, contactId)
+  if (!deal) return "Ce contact n’a pas encore de dossier dans le pipeline (aucune transaction). Le dossier doit d’abord être créé dans le CRM."
+  if (deal.stage === stage) return `Le dossier « ${deal.label} » est déjà à l’étape « ${stage} ».`
+  const { error } = await ctx.supabase.from('transactions')
+    .update({ stage }).eq('id', deal.id).eq('agency_id', ctx.agencyId)
+  if (error) return `Erreur pipeline: ${error.message}`
+  // Audit non bloquant (LBA) : trace le changement d'étape (category 'deal', actor IA).
+  const { error: logErr } = await ctx.supabase.from('activity_events').insert({
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'ai',
+    action: 'stage_change', entity_type: 'transaction', entity_id: deal.id,
+    object_label: `${deal.stage} → ${stage}`, category: 'deal', severity: 'info',
+    metadata: { via: 'whatsapp', old_stage: deal.stage, new_stage: stage, contact_id: contactId },
+  })
+  if (logErr) console.error('pipeline audit log failed')
+  return `Dossier « ${deal.label} » déplacé en « ${stage} ».`
+}
+
+/** Qualifie un contact existant : critères structurés → search_criteria + matching auto.
+ *  Réutilise la logique pure 4B (mêmes normalisations zones/types que la qualif autonome). */
+export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  const { data } = await ctx.supabase
+    .from('contacts').select('id, phone, email, tags')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  const c = data as { id: string; phone: string | null; email: string | null; tags: string[] | null } | null
+  if (!c) return 'Erreur: contact introuvable dans votre agence.'
+
+  let zones: string[] | undefined
+  if (Array.isArray(a.zones)) zones = (a.zones as unknown[]).filter((z): z is string => typeof z === 'string' && z.trim().length > 0)
+  else if (typeof a.zones === 'string' && a.zones.trim()) zones = a.zones.split(',').map((z) => z.trim()).filter(Boolean)
+
+  const txType = s(a.transaction_type)
+  const intent = txType === 'rent' ? 'recherche_location' : txType === 'buy' ? 'recherche_achat' : null
+  const criteria = mapCriteria(intent, { type: s(a.property_type) ?? undefined, zones, budget: a.budget_max, pieces: a.rooms_min }, '')
+
+  const existingTags = Array.isArray(c.tags) ? c.tags : []
+  const missing = computeMissing(criteria, { phone: c.phone, email: c.email })
+  const newTags = Array.from(new Set([...existingTags, 'whatsapp_ai_qualified', ...(missing.length ? ['à_compléter'] : [])]))
+  const { error: uErr } = await ctx.supabase.from('contacts')
+    .update({ tags: newTags, search_criteria: criteria }).eq('id', contactId).eq('agency_id', ctx.agencyId)
+  if (uErr) return `Erreur qualification: ${uErr.message}`
+
+  let searchCreated = false
+  if (isSearchable(criteria)) {
+    const { data: existing } = await ctx.supabase.from('client_searches')
+      .select('id').eq('contact_id', contactId).eq('is_active', true).limit(1).maybeSingle()
+    if (!existing) {
+      await ctx.supabase.from('client_searches').insert({
+        agency_id: ctx.agencyId, contact_id: contactId,
+        label: `WhatsApp — ${criteria.transaction_type === 'rent' ? 'location' : 'achat'}`,
+        criteria, is_active: true,
+      })
+      searchCreated = true
+    }
+  }
+  const critTxt = [
+    criteria.transaction_type === 'rent' ? 'location' : criteria.transaction_type === 'buy' ? 'achat' : null,
+    criteria.type, (criteria.zones ?? []).join('/') || null,
+    criteria.budget_max ? `budget ${criteria.budget_max}` : null,
+  ].filter(Boolean).join(' · ')
+  await logTimeline(ctx, 'Lead qualifié (WhatsApp)',
+    `Lead qualifié par l’agent.${critTxt ? ` ${critTxt}.` : ''}${missing.length ? ` À compléter : ${missing.join(', ')}.` : ''}`, contactId)
+
+  const parts = ['Lead qualifié.']
+  if (searchCreated) parts.push('Recherche active créée → matching lancé.')
+  else if (!isSearchable(criteria)) parts.push('Critères encore insuffisants pour lancer le matching.')
+  if (missing.length) parts.push(`À compléter : ${missing.join(', ')}.`)
+  return parts.join(' ')
 }

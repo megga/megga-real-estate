@@ -27,11 +27,30 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   get_daily_brief: 'read',
   create_contact: 'auto',
   add_note: 'auto',
+  schedule_visit: 'auto',
+  create_reminder: 'auto',
+  update_pipeline: 'auto',
+  qualify_lead: 'auto',
   send_client_message: 'confirm',
 }
 
 export function toolTier(name: string): ToolTier {
   return TOOL_TIERS[name] ?? 'confirm'
+}
+
+// Les 14 colonnes canoniques du pipeline (= transactions.stage, hors valeurs legacy
+// lead/qualified/closed/visit_planned_legacy). Source unique partagée par le catalogue
+// d'outils (enum exposé à DeepSeek) et l'exécuteur update_pipeline (validation défensive).
+export const PIPELINE_STAGES = [
+  'new_lead', 'to_qualify', 'active_search', 'visit_planned', 'visit_done',
+  'interest_confirmed', 'offer', 'negotiation', 'reserved', 'financing',
+  'notary', 'signed', 'lost', 'to_recontact',
+] as const
+export type PipelineStage = (typeof PIPELINE_STAGES)[number]
+
+/** Vrai si `stage` est une étape canonique du pipeline (sensible à la casse). */
+export function isValidStage(stage: string): stage is PipelineStage {
+  return (PIPELINE_STAGES as readonly string[]).includes(stage)
 }
 
 const YES = new Set(['oui', 'ok', 'okay', 'yes', 'y', 'vas-y', 'vasy', 'go', 'confirme', 'confirmer', 'valide', "d'accord", 'daccord', 'ouais', 'yep'])

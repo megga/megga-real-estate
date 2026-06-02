@@ -6,6 +6,8 @@ import {
   parseConfirmation,
   isPendingActionValid,
   buildHistoryMessages,
+  isValidStage,
+  PIPELINE_STAGES,
 } from './whatsapp-agent-router'
 
 describe('buildHistoryMessages', () => {
@@ -65,6 +67,10 @@ describe('toolTier', () => {
   it('classe les outils auto', () => {
     expect(toolTier('create_contact')).toBe('auto')
     expect(toolTier('add_note')).toBe('auto')
+    expect(toolTier('schedule_visit')).toBe('auto')
+    expect(toolTier('create_reminder')).toBe('auto')
+    expect(toolTier('update_pipeline')).toBe('auto')
+    expect(toolTier('qualify_lead')).toBe('auto')
   })
   it('classe les outils confirm', () => {
     expect(toolTier('send_client_message')).toBe('confirm')
@@ -103,5 +109,22 @@ describe('isPendingActionValid', () => {
     const past = new Date(Date.now() - 60_000).toISOString()
     expect(isPendingActionValid(past)).toBe(false)
     expect(isPendingActionValid(null)).toBe(false)
+  })
+})
+
+describe('isValidStage', () => {
+  it('accepte les 14 étapes canoniques', () => {
+    expect(PIPELINE_STAGES).toHaveLength(14)
+    expect(isValidStage('new_lead')).toBe(true)
+    expect(isValidStage('negotiation')).toBe(true)
+    expect(isValidStage('signed')).toBe(true)
+    expect(isValidStage('to_recontact')).toBe(true)
+  })
+  it('rejette les valeurs legacy, vides ou de mauvaise casse', () => {
+    expect(isValidStage('closed')).toBe(false)
+    expect(isValidStage('lead')).toBe(false)
+    expect(isValidStage('visit_planned_legacy')).toBe(false)
+    expect(isValidStage('')).toBe(false)
+    expect(isValidStage('NEGOTIATION')).toBe(false)
   })
 })
