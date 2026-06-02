@@ -64,7 +64,7 @@ serve(async (req) => {
     region: 'auto', service: 's3',
   })
   const r2Account = (Deno.env.get('CF_ACCOUNT_ID') ?? '').trim()
-  const r2Bucket = Deno.env.get('R2_BUCKET') ?? 'megga-market'
+  const r2Bucket = Deno.env.get('R2_BUCKET_NAME') ?? Deno.env.get('R2_BUCKET') ?? 'megga-market'
 
   // ── Phase 1 : média + transcription (file durable, reprise sur échec). ──
   const { data: jobs, error } = await admin.rpc('claim_whatsapp_jobs', { p_batch: BATCH })
