@@ -225,4 +225,47 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'open_kyc_case',
+      description: "Ouvre un dossier KYC (LBA) pour un contact. Le système retrouve le contact, déduit le type (acheteur/vendeur, personne physique/morale) et confirme avant de créer. Appelle directement l'outil sans rien vérifier avant. Exemples : « ouvre un KYC pour Dubois », « lance la conformité de Mme Vaucher en vigilance renforcée ». contact_id via search_contacts.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' },
+          vigilance: { type: 'string', enum: ['standard', 'renforced'], description: "Défaut 'standard'. 'renforced' si l'agent le demande (PEP, montant élevé…)." },
+          entity: { type: 'string', enum: ['pp', 'pm'], description: "Optionnel. Personne physique (pp) ou morale (pm). Défaut = celui du contact." },
+        },
+        required: ['contact_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'run_kyc_screening',
+      description: "Lance le screening LBA (PEP + listes de sanctions) sur le dossier KYC d'un contact. Read-only côté client, aucun message envoyé. Appelle directement. Exemples : « screen Dubois », « vérifie les sanctions pour Mme Vaucher ». contact_id via search_contacts. Il faut un dossier KYC déjà ouvert (open_kyc_case).",
+      parameters: {
+        type: 'object',
+        properties: { contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' } },
+        required: ['contact_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'attach_kyc_document',
+      description: "Joint au dossier KYC d'un contact la pièce que TU VIENS d'envoyer dans ce message (photo/scan/PDF). À n'appeler QUE si tu désignes explicitement la pièce (« c'est la pièce d'identité de Dubois », « justif de domicile de Mme Vaucher »). Le système lit la pièce et la joint — il ne coche jamais la case (réservé au validateur). contact_id via search_contacts.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' },
+          category: { type: 'string', enum: ['identity', 'address', 'funds'], description: "Type de pièce : identity (pièce d'identité), address (justif. domicile), funds (justif. fonds)." },
+        },
+        required: ['contact_id', 'category'],
+      },
+    },
+  },
 ]

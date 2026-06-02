@@ -36,6 +36,9 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   send_client_message: 'confirm',
   send_listings: 'confirm',
   record_offer: 'confirm',
+  open_kyc_case: 'confirm',
+  attach_kyc_document: 'auto',
+  run_kyc_screening: 'auto',
 }
 
 export function toolTier(name: string): ToolTier {
@@ -63,6 +66,20 @@ export const STAGE_LABELS_FR: Record<PipelineStage, string> = {
   visit_planned: 'Visite planifiée', visit_done: 'Visite effectuée', interest_confirmed: 'Intérêt confirmé',
   offer: 'Offre', negotiation: 'Négociation', reserved: 'Réservé', financing: 'Financement',
   notary: 'Notaire', signed: 'Signé', lost: 'Perdu', to_recontact: 'À relancer',
+}
+
+/** Libellés EN des étapes (copilote bilingue FR/EN, cf. whatsapp-i18n). */
+export const STAGE_LABELS_EN: Record<PipelineStage, string> = {
+  new_lead: 'New lead', to_qualify: 'To qualify', active_search: 'Active search',
+  visit_planned: 'Visit planned', visit_done: 'Visit done', interest_confirmed: 'Interest confirmed',
+  offer: 'Offer', negotiation: 'Negotiation', reserved: 'Reserved', financing: 'Financing',
+  notary: 'Notary', signed: 'Signed', lost: 'Lost', to_recontact: 'To follow up',
+}
+
+/** Libellé d'étape dans la langue de l'agent ('fr' par défaut). */
+export function stageLabel(stage: string, lang: 'fr' | 'en'): string {
+  const map = lang === 'en' ? STAGE_LABELS_EN : STAGE_LABELS_FR
+  return map[stage as PipelineStage] ?? stage
 }
 
 const YES = new Set(['oui', 'ok', 'okay', 'yes', 'y', 'vas-y', 'vasy', 'go', 'confirme', 'confirmer', 'valide', "d'accord", 'daccord', 'ouais', 'yep'])

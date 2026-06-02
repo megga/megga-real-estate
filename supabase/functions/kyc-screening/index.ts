@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -306,6 +307,14 @@ function calculateRiskScore(input: {
   return { score, level, factors }
 }
 
+// Comparaison à temps constant du secret service-role (anti timing-attack).
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -319,9 +328,20 @@ serve(async (req) => {
     // dossier KYC arbitraire (BOLA + IDOR).
     // Maintenant : JWT vérifié + profile.agency_id chargé + vérification
     // que le kyc_case appartient bien à l'agence du caller.
-    const auth = await requireAgentAuth(req, corsHeaders)
-    if (auth instanceof Response) return auth
-    const { profile, supabase: supabaseClient } = auth
+    // Auth à deux chemins (D6) :
+    //  - service-à-service (whatsapp-agent) : Authorization = clé service-role (comparée à
+    //    temps constant) → agency depuis le body (fiable : seul notre backend a la clé).
+    //  - utilisateur (CRM) : requireAgentAuth (JWT vérifié).
+    // La garde cross-agency plus bas (preScreenCase.agency_id !== callerAgencyId) protège
+    // les DEUX chemins contre l'accès au dossier d'une autre agence (BOLA/IDOR).
+    // ⚠️ DÉPLOIEMENT : cette fonction DOIT rester déployée en --no-verify-jwt (cf.
+    // deploy.yml). Le chemin service compare la clé lui-même ; activer verify_jwt
+    // (ou ajouter kyc-screening à JWT_PROTECTED) ferait rejeter la clé service-role
+    // (UNAUTHORIZED_LEGACY_JWT) et casserait le screening par WhatsApp — sans gain de
+    // sécurité (les deux chemins s'auto-authentifient déjà).
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+    const isServiceCall = serviceKey !== '' && safeEqual(providedKey, serviceKey)
 
     const apiKey = Deno.env.get('DILISENSE_API_KEY')
     if (!apiKey) {
@@ -331,8 +351,27 @@ serve(async (req) => {
       )
     }
 
-    const { kyc_case_id, entity_type } = (await req.json()) as ScreeningRequest & {
+    const { kyc_case_id, entity_type, agency_id: bodyAgencyId } = (await req.json()) as ScreeningRequest & {
       entity_type: 'individual' | 'entity'
+      agency_id?: string
+    }
+
+    let supabaseClient: SupabaseClient
+    let callerAgencyId: string
+    if (isServiceCall) {
+      if (!bodyAgencyId) {
+        return new Response(
+          JSON.stringify({ error: 'agency_id required for service call' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+      supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceKey)
+      callerAgencyId = bodyAgencyId
+    } else {
+      const auth = await requireAgentAuth(req, corsHeaders)
+      if (auth instanceof Response) return auth
+      supabaseClient = auth.supabase
+      callerAgencyId = auth.profile.agency_id
     }
 
     if (!kyc_case_id || !entity_type) {
@@ -374,7 +413,7 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
-    if (preScreenCase.agency_id !== profile.agency_id) {
+    if (preScreenCase.agency_id !== callerAgencyId) {
       return new Response(
         JSON.stringify({ error: 'forbidden: cross-agency access' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

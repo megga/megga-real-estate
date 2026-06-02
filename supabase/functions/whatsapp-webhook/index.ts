@@ -13,7 +13,8 @@ import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
-import { execUpdatePipeline, executeRecordOffer, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { asWaLang, detectLang, t, type WaLang } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -310,24 +311,25 @@ async function processAgentMessage(
   if (pendingAction) {
     const decision = parseConfirmation(userText)
     const valid = isPendingActionValid(pendingAction.expires_at)
+    const lang = asWaLang((pendingAction.args as Record<string, unknown>)?.__lang)
     // F3 : consommation gagnant-unique. Deux « oui » concurrents lisent la même ligne ;
     // un seul DELETE renvoie une ligne → seul lui exécute/répond, l'autre s'arrête.
     const { data: claimed } = await admin
       .from('whatsapp_pending_actions').delete().eq('id', pendingAction.id).select('id')
     if (!claimed || claimed.length === 0) return // une autre invocation gère cette attente
     if (decision === 'yes' && valid) {
-      reply = await executePending(admin, provider, agentLink, pendingAction)
+      reply = await executePending(admin, provider, agentLink, pendingAction, lang)
     } else if (decision === 'no') {
-      reply = "C'est annulé, je n'ai rien envoyé."
+      reply = t(lang, 'cancelled')
     } else if (!valid) {
-      reply = 'La demande en attente a expiré. Redis-moi ce que tu veux faire.'
+      reply = t(lang, 'expired')
     } else {
       // F18 : message non lié alors qu'une action attendait → on l'écarte et on le DIT.
-      const brain = await callAgentBrain(agentLink, msg, userText)
-      reply = `(J'ai mis de côté l'action en attente, non confirmée.)\n\n${brain}`
+      const brain = await callAgentBrain(agentLink, msg, userText, lang)
+      reply = `${t(lang, 'setAside')}\n\n${brain}`
     }
   } else {
-    reply = await callAgentBrain(agentLink, msg, userText)
+    reply = await callAgentBrain(agentLink, msg, userText, detectLang(userText))
   }
 
   // Envoi de la réponse à l'agent (fenêtre 24h ouverte) + log outbound + audit.
@@ -376,8 +378,9 @@ async function processAgentMessage(
 // agencyId N'EST PAS transmis : l'agent le re-dérive depuis le lien vérifié (anti-forge).
 async function callAgentBrain(
   agentLink: { profile_id: string; agency_id: string | null },
-  msg: { fromPhone: string; body: string | null; providerMessageId: string },
+  msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
   messageText: string,
+  lang: WaLang,
 ): Promise<string> {
   try {
     const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
@@ -391,14 +394,18 @@ async function callAgentBrain(
         waNumber: msg.fromPhone,
         message: messageText,
         currentMessageId: msg.providerMessageId,
+        inboundMedia:
+          msg.mediaId && (msg.mediaType === 'image' || msg.mediaType === 'document')
+            ? { mediaId: msg.mediaId, messageId: msg.providerMessageId }
+            : null,
       }),
       signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini
     })
     const data = await r.json().catch(() => ({}))
-    return (data?.reply as string) || "Désolé, je n'ai pas pu traiter ta demande."
+    return (data?.reply as string) || t(lang, 'cantProcess')
   } catch (err) {
     console.error('whatsapp-agent call failed:', (err as Error)?.name ?? 'error')
-    return "Désolé, je n'ai pas pu traiter ta demande pour le moment."
+    return t(lang, 'cantProcessNow')
   }
 }
 
@@ -444,19 +451,20 @@ async function executePending(
   provider: ReturnType<typeof getProvider>,
   agentLink: { profile_id: string; agency_id: string | null },
   pending: { tool: string; args: Record<string, unknown> },
+  lang: WaLang,
 ): Promise<string> {
   if (pending.tool === 'send_client_message') {
-    if (!agentLink.agency_id) return "Ton compte n'a pas d'agence, envoi impossible."
+    if (!agentLink.agency_id) return t(lang, 'noAgencySend')
     const contactId = String(pending.args.contact_id ?? '')
     const text = String(pending.args.body ?? '')
-    if (!contactId || !text) return "Action incomplète, je n'ai rien envoyé."
+    if (!contactId || !text) return t(lang, 'actionIncompleteSend')
     // Garde agence au niveau SQL : pas de match (ou agency_id NULL) => introuvable.
     const { data: contact } = await admin
       .from('contacts').select('id, phone')
       .eq('id', contactId)
       .eq('agency_id', agentLink.agency_id)
       .maybeSingle()
-    if (!contact || !contact.phone) return 'Contact introuvable dans ton agence, rien envoyé.'
+    if (!contact || !contact.phone) return t(lang, 'contactNotFoundSend')
     const sendConfig: SendConfig = {
       metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
       metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
@@ -465,8 +473,8 @@ async function executePending(
     const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: toWhatsAppText(text) }, sendConfig)
     try {
       const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-      if (!sres.ok) return "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?)."
-    } catch { return "L'envoi au client a échoué (réseau)." }
+      if (!sres.ok) return t(lang, 'sendFail24h')
+    } catch { return t(lang, 'sendFailNet') }
     try {
       await admin.from('activity_events').insert({
         agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
@@ -474,26 +482,26 @@ async function executePending(
         severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
       })
     } catch { /* non bloquant */ }
-    return '✅ Message envoyé au client.'
+    return t(lang, 'clientMsgSent')
   }
   // Outils CRM internes confirmés (ex. update_pipeline) : on délègue à l'exécuteur
   // partagé, scopé agence au SQL. L'agence vient du lien vérifié (jamais du body).
   if (pending.tool === 'update_pipeline') {
-    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id }
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return execUpdatePipeline(ctx, pending.args)
   }
   if (pending.tool === 'record_offer') {
-    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id }
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return executeRecordOffer(ctx, pending.args)
   }
   if (pending.tool === 'send_listings') {
     // Payload figé au stash (validé + formaté) : { contact_id, phone, text }. On envoie tel quel.
-    if (!agentLink.agency_id) return "Ton compte n'a pas d'agence, envoi impossible."
+    if (!agentLink.agency_id) return t(lang, 'noAgencySend')
     const phone = String(pending.args.phone ?? '').replace(/\D/g, '')
     const text = String(pending.args.text ?? '')
-    if (!phone || !text) return 'La sélection était incomplète, rien envoyé.'
+    if (!phone || !text) return t(lang, 'selectionIncomplete')
     const sent = await sendWhatsAppText(provider, phone, text)
-    if (!sent) return "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?)."
+    if (!sent) return t(lang, 'sendFail24h')
     try {
       await admin.from('activity_events').insert({
         agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
@@ -502,7 +510,11 @@ async function executePending(
         severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
       })
     } catch { /* non bloquant */ }
-    return '✅ Sélection envoyée au client.'
+    return t(lang, 'listingsSent')
   }
-  return "Type d'action inconnu, rien fait."
+  if (pending.tool === 'open_kyc_case') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executeOpenKycCase(ctx, pending.args)
+  }
+  return t(lang, 'unknownAction')
 }

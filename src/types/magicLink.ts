@@ -55,7 +55,10 @@ export interface KycMagicLinkSummary {
 /** Row `kyc_magic_link_uploads`. */
 export interface KycMagicLinkUpload {
   id: string
-  magic_link_id: string
+  magic_link_id: string | null
+  source: string
+  kyc_case_id: string | null
+  wa_message_id: string | null
   agency_id: string
   type: MagicLinkUploadType
   filename: string

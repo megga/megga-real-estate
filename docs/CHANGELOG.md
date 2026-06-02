@@ -6,6 +6,22 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### KYC par WhatsApp — assist agent (2 juin 2026)
+> Implémenté sur branche `claude/beautiful-almeida-0a395a` ; déploiement edge + migration via CI au merge.
+
+Trois outils copilote WhatsApp par-dessus le moteur KYC existant, sans jamais valider à la place du MLRO (règle d'or KYC non-bloquante préservée — un test source-guard vérifie qu'aucun chemin n'écrit `dossier_status='verified'`).
+- **`open_kyc_case`** (tier confirm) — l'agent ouvre un dossier depuis WhatsApp ; le type (`buyer_pp`…) est dérivé de `contacts.type` + `entity_type` ; le trigger `seed_kyc_lba_checks` crée les 5 checks.
+- **`attach_kyc_document`** (tier auto, déclencheur explicite) — re-télécharge la pièce envoyée, OCR structuré via `read_document` (Gemini, prompt KYC), upload bucket `kyc-magic-link`, crée la row `documents` (rétention 10 ans) + `kyc_magic_link_uploads` (`source='whatsapp'`), lie l'item de checklist via `document_id` **sans cocher `is_completed`** (réservé au MLRO).
+- **`run_kyc_screening`** (tier auto) — lance Dilisense via l'edge `kyc-screening`, renvoie PEP/sanctions/risque + « prêt à valider dans le CRM ».
+- **Module pur** `_shared/kyc-extract.ts` (prompt OCR + parser + dérivations, testé) ; **migration** `20260602140000` généralise `kyc_magic_link_uploads` (canal WhatsApp) ; **threading média** webhook→agent→`ActionCtx.inboundMedia` ; **auth service-à-service** sur `kyc-screening` (l'agent WhatsApp n'a pas de JWT — clé service-role comparée à temps constant, garde cross-agency conservée, reste `--no-verify-jwt`).
+
+#### Copilote WhatsApp bilingue FR/EN (2 juin 2026)
+> Même branche. Le CRM étant FR/EN, le copilote (KYC compris) suit la langue de l'agent.
+
+- Le copilote **répond dans la langue du dernier message de l'agent** (FR/EN). Une ligne du system prompt localise tout le contenu généré par DeepSeek (conversation + résultats des outils `read`/`auto`, donc `run_kyc_screening` et `attach_kyc_document` gratuitement).
+- Module pur `_shared/whatsapp-i18n.ts` (`detectLang` + catalogue `t()` + builders) pour les messages **verbatim** (confirmations + contrôle) qui court-circuitent DeepSeek. Langue détectée du message → `ActionCtx.lang` → figée sur l'action en attente (`args.__lang`) → relue pour le résultat post-« oui ». `STAGE_LABELS_EN` ajouté.
+- Périmètre localisé : KYC (`open_kyc_case`), `update_pipeline`, `send_client_message`, tous les messages de contrôle. **Suite** (FR pour l'instant, peu fréquent) : `send_listings` / `record_offer`. Pour DE/IT plus tard : étendre `detectLang` + `t()` + `parseConfirmation`.
+
 #### Marketplace publique (38K biens) — 24 mars 2026
 - **38'514 biens** dans table `market_listings` (scrappés de RealAdvisor, 26 cantons suisses)
 - Page `/acheter` connectée aux vraies données Supabase (plus de mock)
