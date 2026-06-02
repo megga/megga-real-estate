@@ -1,6 +1,6 @@
 # KYC par WhatsApp — Assist optionnel (design)
 
-> **Statut :** spec prête. À reprendre dans une conversation fraîche → `writing-plans` puis exécution.
+> **Statut :** ✅ **Phase 1 livrée** (branche `claude/beautiful-almeida-0a395a`). Plan exécuté : [../plans/2026-06-02-whatsapp-kyc-assist.md](../plans/2026-06-02-whatsapp-kyc-assist.md). Phase 2 (collecte directe client) différée (gated mode test Meta).
 > **Pré-requis déjà livrés :** `read_document` (Gemini Vision, `_shared/vision.ts`), copilote WhatsApp C1→C5, moteur KYC existant.
 
 ## Règle d'or (non négociable)

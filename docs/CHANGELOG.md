@@ -6,6 +6,15 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### KYC par WhatsApp — assist agent (2 juin 2026)
+> Implémenté sur branche `claude/beautiful-almeida-0a395a` ; déploiement edge + migration via CI au merge.
+
+Trois outils copilote WhatsApp par-dessus le moteur KYC existant, sans jamais valider à la place du MLRO (règle d'or KYC non-bloquante préservée — un test source-guard vérifie qu'aucun chemin n'écrit `dossier_status='verified'`).
+- **`open_kyc_case`** (tier confirm) — l'agent ouvre un dossier depuis WhatsApp ; le type (`buyer_pp`…) est dérivé de `contacts.type` + `entity_type` ; le trigger `seed_kyc_lba_checks` crée les 5 checks.
+- **`attach_kyc_document`** (tier auto, déclencheur explicite) — re-télécharge la pièce envoyée, OCR structuré via `read_document` (Gemini, prompt KYC), upload bucket `kyc-magic-link`, crée la row `documents` (rétention 10 ans) + `kyc_magic_link_uploads` (`source='whatsapp'`), lie l'item de checklist via `document_id` **sans cocher `is_completed`** (réservé au MLRO).
+- **`run_kyc_screening`** (tier auto) — lance Dilisense via l'edge `kyc-screening`, renvoie PEP/sanctions/risque + « prêt à valider dans le CRM ».
+- **Module pur** `_shared/kyc-extract.ts` (prompt OCR + parser + dérivations, testé) ; **migration** `20260602140000` généralise `kyc_magic_link_uploads` (canal WhatsApp) ; **threading média** webhook→agent→`ActionCtx.inboundMedia` ; **auth service-à-service** sur `kyc-screening` (l'agent WhatsApp n'a pas de JWT — clé service-role comparée à temps constant, garde cross-agency conservée, reste `--no-verify-jwt`).
+
 #### Marketplace publique (38K biens) — 24 mars 2026
 - **38'514 biens** dans table `market_listings` (scrappés de RealAdvisor, 26 cantons suisses)
 - Page `/acheter` connectée aux vraies données Supabase (plus de mock)
