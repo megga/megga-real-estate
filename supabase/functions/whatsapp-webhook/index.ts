@@ -200,6 +200,10 @@ serve(async (req) => {
       body: msg.body,
       media_type: msg.mediaType,
       media_url: msg.mediaUrl,
+      media_id: msg.mediaId,
+      media_mime: msg.mediaMime,
+      // L1 : un entrant avec média à récupérer passe en file de traitement.
+      processing_status: msg.mediaId ? 'pending' : 'done',
       status: 'received',
       wa_timestamp: msg.timestamp,
       raw: msg.raw,

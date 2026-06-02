@@ -77,3 +77,36 @@ describe('whatsapp-gateway — outbound send', () => {
     expect(JSON.parse(req.body)).toEqual({ to: '41790000000', message: 'Hi' })
   })
 })
+
+describe('whatsapp-gateway — Meta média entrant', () => {
+  const meta = getProvider('meta')
+  const audioPayload = {
+    object: 'whatsapp_business_account',
+    entry: [{ changes: [{ field: 'messages', value: {
+      metadata: { display_phone_number: '41791112233', phone_number_id: '123' },
+      messages: [{
+        from: '41780001122', id: 'wamid.AUDIO1', timestamp: '1717000000',
+        type: 'audio', audio: { id: 'MEDIA_AUDIO_42', mime_type: 'audio/ogg; codecs=opus', voice: true },
+      }],
+    } }] }],
+  }
+
+  it('extrait mediaId + mediaMime pour un vocal', () => {
+    const m = meta.parseInbound(audioPayload) as NormalizedInboundMessage
+    expect(m.mediaType).toBe('audio')
+    expect(m.mediaId).toBe('MEDIA_AUDIO_42')
+    expect(m.mediaMime).toBe('audio/ogg; codecs=opus')
+  })
+
+  it('mediaId = null pour un texte', () => {
+    const textPayload = {
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ field: 'messages', value: {
+        metadata: { phone_number_id: '123' },
+        messages: [{ from: '41780001122', id: 'wamid.TXT1', timestamp: '1717000000', type: 'text', text: { body: 'bonjour' } }],
+      } }] }],
+    }
+    const m = meta.parseInbound(textPayload) as NormalizedInboundMessage
+    expect(m.mediaId).toBeNull()
+  })
+})

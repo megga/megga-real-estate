@@ -12,6 +12,8 @@ export interface NormalizedInboundMessage {
   body: string | null
   mediaType: NormalizedMediaType | null
   mediaUrl: string | null
+  mediaId: string | null
+  mediaMime: string | null
   timestamp: string | null
   raw: unknown
 }
@@ -98,6 +100,8 @@ class OpenWAProvider implements WhatsAppProvider {
       body: (data.body as string) || (data.caption as string) || null,
       mediaType,
       mediaUrl: (data.mediaUrl as string) ?? null,
+      mediaId: null,
+      mediaMime: null,
       timestamp: ts ? new Date(ts * 1000).toISOString() : null,
       raw: payload,
     }
@@ -154,7 +158,7 @@ class MetaProvider implements WhatsAppProvider {
     const metadata = value?.metadata as Record<string, unknown> | undefined
     const type = (message.type as string) || 'text'
     const text = message.text as { body?: string } | undefined
-    const mediaObj = message[type] as { caption?: string } | undefined
+    const mediaObj = message[type] as { id?: string; mime_type?: string; caption?: string } | undefined
     const tsRaw = message.timestamp as string | number | undefined
     const ts = tsRaw != null ? Number(tsRaw) : undefined
     return {
@@ -166,7 +170,9 @@ class MetaProvider implements WhatsAppProvider {
         : ((metadata?.phone_number_id as string) ?? null),
       body: text?.body ?? mediaObj?.caption ?? null,
       mediaType: META_TYPE_TO_MEDIA[type] ?? null,
-      mediaUrl: null, // média Meta = media_id → fetch séparé via Graph API (Phase 2)
+      mediaUrl: null, // bytes récupérés en différé via Graph API (whatsapp-media)
+      mediaId: mediaObj?.id ?? null,
+      mediaMime: mediaObj?.mime_type ?? null,
       timestamp: ts ? new Date(ts * 1000).toISOString() : null,
       raw: payload,
     }
