@@ -86,7 +86,9 @@ export async function verifyMagicLinkToken(token: string): Promise<MagicLinkVeri
   try {
     const key = await importKey(secret)
     const sigBytes = base64UrlDecode(sigB64)
-    const ok = await crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(payloadB64))
+    // Cast BufferSource : le typage Deno récent de Uint8Array<ArrayBufferLike> ne s'assigne
+    // pas directement au paramètre signature (même convention que whatsapp-actions, OCR).
+    const ok = await crypto.subtle.verify('HMAC', key, sigBytes as unknown as BufferSource, enc.encode(payloadB64))
     if (!ok) return { valid: false, reason: 'invalid_signature' }
 
     const payloadJson = dec.decode(base64UrlDecode(payloadB64))

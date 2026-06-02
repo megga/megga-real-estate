@@ -8,6 +8,8 @@ import {
   buildHistoryMessages,
   isValidStage,
   PIPELINE_STAGES,
+  deriveDealParty,
+  dealStageDefault,
 } from './whatsapp-agent-router'
 
 describe('buildHistoryMessages', () => {
@@ -70,12 +72,20 @@ describe('toolTier', () => {
     expect(toolTier('schedule_visit')).toBe('auto')
     expect(toolTier('create_reminder')).toBe('auto')
     expect(toolTier('qualify_lead')).toBe('auto')
+    expect(toolTier('create_deal')).toBe('auto')
+  })
+  it('search_listings et get_kyc_status sont read (lecture seule)', () => {
+    expect(toolTier('search_listings')).toBe('read')
+    expect(toolTier('get_kyc_status')).toBe('read')
   })
   it('classe les outils confirm (sensibles : pipeline + envois client + offre)', () => {
     expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')
     expect(toolTier('send_listings')).toBe('confirm')
     expect(toolTier('record_offer')).toBe('confirm')
+  })
+  it('send_kyc_link est confirm (envoi email au client ; KYC facultatif)', () => {
+    expect(toolTier('send_kyc_link')).toBe('confirm')
   })
   it('open_kyc_case est confirm (création de dossier LBA → validation agent)', () => {
     expect(toolTier('open_kyc_case')).toBe('confirm')
@@ -137,5 +147,33 @@ describe('isValidStage', () => {
     expect(isValidStage('visit_planned_legacy')).toBe(false)
     expect(isValidStage('')).toBe(false)
     expect(isValidStage('NEGOTIATION')).toBe(false)
+  })
+})
+
+describe('deriveDealParty', () => {
+  it('respecte le choix explicite de l’agent', () => {
+    expect(deriveDealParty('buyer', 'seller')).toBe('seller')
+    expect(deriveDealParty('seller', 'buyer')).toBe('buyer')
+  })
+  it('déduit du type de contact si pas de choix explicite', () => {
+    expect(deriveDealParty('seller')).toBe('seller')
+    expect(deriveDealParty('buyer')).toBe('buyer')
+    expect(deriveDealParty('lead')).toBe('buyer')
+    expect(deriveDealParty(null)).toBe('buyer')
+  })
+  it('ignore une valeur explicite invalide', () => {
+    expect(deriveDealParty('seller', 'n’importe quoi')).toBe('seller')
+    expect(deriveDealParty('buyer', '')).toBe('buyer')
+  })
+})
+
+describe('dealStageDefault', () => {
+  it('vendeur → new_lead (mandat), acheteur → active_search (recherche)', () => {
+    expect(dealStageDefault('seller')).toBe('new_lead')
+    expect(dealStageDefault('buyer')).toBe('active_search')
+  })
+  it('renvoie toujours une étape canonique valide', () => {
+    expect(isValidStage(dealStageDefault('seller'))).toBe(true)
+    expect(isValidStage(dealStageDefault('buyer'))).toBe(true)
   })
 })

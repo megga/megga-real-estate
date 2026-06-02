@@ -253,15 +253,21 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
-## 6bis · Agent WhatsApp (feature phare #2 — Phase 1) 📱
+## 6bis · Agent WhatsApp (feature phare #2 — copilote live) 📱
 
-Vision : l'agent est toujours sur WhatsApp → chaque message remonte dans le CRM (mieux qu'une app). Phase 1 = **miroir entrant lecture seule**.
+Vision : l'agent vit dans WhatsApp → chaque message remonte dans le CRM, et MEGGA **agit** pour lui depuis la conversation (vocal ET texte, FR/EN). Phases 1→4C + Lot 1 livrées et validées en prod. IA = **DeepSeek** exclusivement (coût).
 
-- **Archi** : abstraction `_shared/whatsapp-gateway.ts` (`WhatsAppProvider`). Phase 1 = **OpenWA** (proto local) ; Phase 4 = **Meta Cloud API**. Webhook signé **HMAC-SHA256** (`verifyHmac` timing-safe), provider détecté par header (`x-openwa-signature` / `x-hub-signature-256`).
-- **Inbound** (`whatsapp-webhook`) : message → vérif HMAC (401 sinon) → parse gateway → map `wa_from` → `contacts.phone` (9 derniers chiffres) → INSERT idempotent `whatsapp_messages` (`UNIQUE(provider, provider_message_id)`) → `activity_events` (best-effort) → 200.
-- **Données** : `whatsapp_messages` (provider, direction, wa_from/to, contact_id, agency_id, body, media_*, status, `raw` à purger Ph.4) ; `contact_messages` (form public `/contact`). RLS : un agent ne voit que son agence (`get_my_agency_id()`), non-mappés réservés super_admin (test `whatsapp-messages-rls.spec.ts`).
-- **CRM** : `useWhatsAppMessages(contactId)` → `CdWhatsAppCard` (bulles) dans `ContactDetailSugarV3Page` ; `PxWhatsAppButton` (lien `wa.me`) + page publique `/contact`.
-- **Roadmap** : Ph.2 outbound + **conseils IA façon Claude** + actions (« je veux visiter » → visite CRM) ; Ph.3 sync temps réel ; Ph.4 Meta Cloud API + purge `raw`. Secrets : `WHATSAPP_WEBHOOK_SECRET`, `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_PROVIDER`.
+- **Flux** : `whatsapp-webhook` (public, **HMAC-SHA256** `verifyHmac`, provider via header `x-openwa-signature`/`x-hub-signature-256`) ACK Meta immédiat puis traite en tâche de fond → expéditeur = **agent vérifié** (`whatsapp_agent_links`) → appelle le cerveau `whatsapp-agent` ; sinon **branche client** (mappe `wa_from`→`contacts.phone`, insert idempotent `whatsapp_messages`, capture). Vocal → Deepgram ; image/PDF → Gemini Vision (texte → `transcript`).
+- **Cerveau** (`whatsapp-agent`, service-role, **verify_jwt=false** : la plateforme rejette la clé legacy si activé → auth en code, Bearer comparé à temps constant ; agence re-dérivée du lien vérifié, jamais du body) : boucle function-calling DeepSeek, mémoire de fil 24 h, ancrage temporel Europe/Zurich.
+- **22 outils, 3 tiers** (`whatsapp-tools.ts` + `toolTier()` dans `whatsapp-agent-router.ts`, exécuteurs `whatsapp-actions.ts`) :
+  - **read** (exécuté direct) : `get_my_agenda`, `search_contacts`, `get_contact_brief`, `list_followups`, `get_matches`, `get_daily_brief`, `search_listings` (marché ~65k), `get_kyc_status`.
+  - **auto** (état CRM interne réversible) : `create_contact`, `add_note`, `schedule_visit`, `create_reminder`, `qualify_lead`, `create_deal` (ouvre une transaction → débloque offre/pipeline), `run_kyc_screening`, `attach_kyc_document`.
+  - **confirm** (« oui/non » ; stash `whatsapp_pending_actions`, exécution gagnant-unique dans le webhook) : `send_client_message`, `send_listings`, `record_offer`, `update_pipeline`, `open_kyc_case`, `send_kyc_link` (lien upload KYC au client par email/Resend). Outil inconnu → confirm (fail-safe).
+- **Garde-fous** : human-in-the-loop sur tout envoi client / argent / pipeline / KYC ; l'IA ne **valide** jamais un KYC (MLRO). **KYC facultatif, jamais bloquant**. Audit `activity_events` (`actor_kind='ai'`, `actor_id=NULL`, category ∈ {kyc,deal,contact,…}). Persona « employée modèle ».
+- **Bilingue FR/EN** : messages `confirm` (montrés verbatim) bilingues en dur ; résultats read/auto en FR, traduits par le modèle (règle système « réponds dans la langue de l'agent »).
+- **Données** : `whatsapp_messages` (+ `transcript`, `processing_status`), `whatsapp_agent_links` (appairage code 6 chiffres), `whatsapp_pending_actions`. RLS agence (`get_my_agency_id()`). CRM : `useWhatsAppMessages` → `CdWhatsAppCard`.
+- **Secrets** : `WHATSAPP_WEBHOOK_SECRET`, `META_APP_SECRET`/`META_WHATSAPP_TOKEN`/`META_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `DEEPSEEK_API_KEY`, `DEEPGRAM_API_KEY`, `GEMINI_API_KEY`, `MEGGA_MAGIC_LINK_HMAC_SECRET` (lien KYC).
+- **Reste** : débridage compte Meta (envoi vers un client quelconque hors allowlist test) ; rendu front (bulle transcript + carte « Compréhension MEGGA ») ; e-signature différée.
 
 ---
 

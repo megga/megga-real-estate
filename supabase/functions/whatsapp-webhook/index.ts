@@ -13,7 +13,7 @@ import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
-import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, detectLang, t, type WaLang } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
@@ -515,6 +515,10 @@ async function executePending(
   if (pending.tool === 'open_kyc_case') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return executeOpenKycCase(ctx, pending.args)
+  }
+  if (pending.tool === 'send_kyc_link') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executeSendKycLink(ctx, pending.args)
   }
   return t(lang, 'unknownAction')
 }

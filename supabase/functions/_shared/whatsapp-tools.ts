@@ -228,6 +228,57 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
   {
     type: 'function',
     function: {
+      name: 'create_deal',
+      description: "Ouvre un dossier (transaction) pour un contact, à une étape de départ. À utiliser quand l'agent veut suivre une affaire, ou quand enregistrer une offre / faire avancer le pipeline échoue faute de dossier. Appelle directement l'outil : il déduit acheteur/vendeur et signale si un dossier existe déjà. contact_id via search_contacts.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string' },
+          party: { type: 'string', enum: ['buyer', 'seller'], description: "Côté du dossier. Optionnel : déduit du type de contact (vendeur → seller, sinon buyer)." },
+          property_id: { type: 'string', description: "Bien concerné (optionnel, ex. mandat de vente ou bien visé)." },
+          stage: { type: 'string', enum: [...PIPELINE_STAGES], description: "Étape de départ (optionnel). Défaut : new_lead pour un vendeur, active_search pour un acheteur." },
+        },
+        required: ['contact_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_listings',
+      description: "Recherche des biens sur le marché (annonces) par critères. Pour « trouve un 3,5 pièces à Carouge en location sous 2500 », « des bureaux à Lausanne ». Renvoie des biens réels avec leur id (utilisable ensuite avec send_listings). N'invente jamais de bien.",
+      parameters: {
+        type: 'object',
+        properties: {
+          transaction_type: { type: 'string', enum: ['rent', 'buy'], description: "location (rent) ou achat (buy). Défaut rent (l'essentiel de l'inventaire)." },
+          property_type: { type: 'string', description: 'Type en français : appartement, maison, villa, terrain, commercial, bureau, parking, dépôt…' },
+          zones: { type: 'array', items: { type: 'string' }, description: 'Communes / secteurs (ex. ["Carouge","Lancy"]).' },
+          budget_max: { type: 'string', description: 'Budget max (loyer mensuel si location, prix si achat). Ex « 2500 », « 1.2M ».' },
+          rooms_min: { type: 'number', description: 'Nombre de pièces minimum.' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_kyc_status',
+      description: "État du dossier KYC d'un contact (statut, screening PEP/sanctions, pièces fournies/validées). Pour « où en est le KYC de Dubois ? ». Lecture seule. Le KYC est facultatif : si aucun dossier, ce n'est pas un blocage. contact_id via search_contacts.",
+      parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'send_kyc_link',
+      description: "Envoie au CLIENT, par email, un lien sécurisé pour déposer lui-même ses pièces KYC. Pour « envoie le lien KYC à Dubois ». Le KYC reste FACULTATIF : c'est une aide, jamais une étape obligatoire. Nécessite un dossier KYC déjà ouvert et un email sur le contact. Appelle directement l'outil. contact_id via search_contacts.",
+      parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'open_kyc_case',
       description: "Ouvre un dossier KYC (LBA) pour un contact. Le système retrouve le contact, déduit le type (acheteur/vendeur, personne physique/morale) et confirme avant de créer. Appelle directement l'outil sans rien vérifier avant. Exemples : « ouvre un KYC pour Dubois », « lance la conformité de Mme Vaucher en vigilance renforcée ». contact_id via search_contacts.",
       parameters: {
