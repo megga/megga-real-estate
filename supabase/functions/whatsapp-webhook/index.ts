@@ -9,6 +9,8 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, verifyHmac, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid } from '../_shared/whatsapp-agent-router.ts'
+import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
+import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -237,9 +239,30 @@ async function processAgentMessage(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
   agentLink: { profile_id: string; agency_id: string | null },
-  msg: { fromPhone: string; body: string | null; providerMessageId: string },
+  msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
 ): Promise<void> {
   let reply = "Désolé, je n'ai pas pu traiter ta demande pour le moment."
+
+  // C2 : voix sur le chemin agent — si l'agent envoie un vocal, on le transcrit AVANT
+  // de traiter (Deepgram), et on stocke le transcript sur le message (historique C1 + audit).
+  let userText = (msg.body ?? '').trim()
+  if (!userText && msg.mediaId && msg.mediaType === 'audio') {
+    try {
+      const { bytes, mime } = await fetchMetaMedia(msg.mediaId, {
+        metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
+        apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+      })
+      const t = await transcribe(bytes, mime, Deno.env.get('DEEPGRAM_API_KEY') ?? '')
+      userText = (t.transcript ?? '').trim()
+      if (userText) {
+        await admin.from('whatsapp_messages')
+          .update({ transcript: userText, transcript_lang: t.lang })
+          .eq('provider', provider.name).eq('provider_message_id', msg.providerMessageId)
+      }
+    } catch (err) {
+      console.error('whatsapp agent voice transcription failed:', (err as Error)?.name ?? 'error')
+    }
+  }
 
   const { data: pendingAction } = await admin
     .from('whatsapp_pending_actions')
@@ -248,7 +271,7 @@ async function processAgentMessage(
     .maybeSingle()
 
   if (pendingAction) {
-    const decision = parseConfirmation(msg.body)
+    const decision = parseConfirmation(userText)
     const valid = isPendingActionValid(pendingAction.expires_at)
     // F3 : consommation gagnant-unique. Deux « oui » concurrents lisent la même ligne ;
     // un seul DELETE renvoie une ligne → seul lui exécute/répond, l'autre s'arrête.
@@ -263,11 +286,11 @@ async function processAgentMessage(
       reply = 'La demande en attente a expiré. Redis-moi ce que tu veux faire.'
     } else {
       // F18 : message non lié alors qu'une action attendait → on l'écarte et on le DIT.
-      const brain = await callAgentBrain(agentLink, msg)
+      const brain = await callAgentBrain(agentLink, msg, userText)
       reply = `(J'ai mis de côté l'action en attente, non confirmée.)\n\n${brain}`
     }
   } else {
-    reply = await callAgentBrain(agentLink, msg)
+    reply = await callAgentBrain(agentLink, msg, userText)
   }
 
   // Envoi de la réponse à l'agent (fenêtre 24h ouverte) + log outbound + audit.
@@ -314,6 +337,7 @@ async function processAgentMessage(
 async function callAgentBrain(
   agentLink: { profile_id: string; agency_id: string | null },
   msg: { fromPhone: string; body: string | null; providerMessageId: string },
+  messageText: string,
 ): Promise<string> {
   try {
     const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
@@ -325,7 +349,7 @@ async function callAgentBrain(
       body: JSON.stringify({
         profileId: agentLink.profile_id,
         waNumber: msg.fromPhone,
-        message: msg.body ?? '',
+        message: messageText,
         currentMessageId: msg.providerMessageId,
       }),
       signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini
