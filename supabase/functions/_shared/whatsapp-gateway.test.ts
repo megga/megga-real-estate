@@ -129,6 +129,17 @@ describe('Meta buildSendDocumentRequest', () => {
       document: { id: 'MEDIA_42', filename: 'Rapport-KYC-2026-AB3F.pdf', caption: 'KYC-2026-AB3F' },
     })
   })
+
+  it('omet caption du body quand non fourni', () => {
+    const meta = getProvider('meta')
+    const req = meta.buildSendDocumentRequest!(
+      { toPhone: '41791112233', mediaId: 'M1', filename: 'r.pdf' },
+      { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' },
+    )
+    const body = JSON.parse(req.body)
+    expect('caption' in body.document).toBe(false)
+    expect(body.document).toEqual({ id: 'M1', filename: 'r.pdf' })
+  })
 })
 
 describe('buildMarkReadRequest (Meta)', () => {
