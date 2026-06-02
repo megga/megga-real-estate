@@ -78,7 +78,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'send_client_message',
-      description: "Envoie un message WhatsApp à un CLIENT (contact du CRM). Action sensible : sera confirmée par l'agent avant envoi.",
+      description: "Envoie un message WhatsApp à un CLIENT (contact du CRM). Pour répondre à un client ou le relancer. Appelle directement l'outil. contact_id via search_contacts.",
       parameters: {
         type: 'object',
         properties: {
@@ -159,7 +159,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'update_pipeline',
-      description: "Déplace le DOSSIER (transaction) d'un contact dans le pipeline commercial. Pour « passe Dubois en négociation », « le dossier Martin est signé ». Le contact doit déjà avoir un dossier. contact_id via search_contacts.",
+      description: "Déplace le dossier d'un contact dans le pipeline. Pour « passe Dubois en négociation », « le dossier Martin est signé ». Appelle directement l'outil sans rien vérifier avant : il retrouve le dossier du contact et signale lui-même s'il n'y en a pas. contact_id via search_contacts.",
       parameters: {
         type: 'object',
         properties: {
@@ -197,7 +197,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'send_listings',
-      description: "Envoie une sélection de VRAIS biens à un client par WhatsApp (action confirmée avant envoi). Pour « envoie à Sarah ses meilleures correspondances », « envoie ces biens à Dubois ». Sans listing_ids, envoie les meilleures correspondances du contact.",
+      description: "Envoie une sélection de biens à un client par WhatsApp. Pour « envoie à Sarah ses meilleures correspondances », « envoie ces biens à Dubois ». Sans listing_ids, prend automatiquement les meilleures correspondances du contact. Appelle directement l'outil.",
       parameters: {
         type: 'object',
         properties: {
@@ -212,7 +212,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'record_offer',
-      description: "Enregistre une offre dans le dossier d'un contact (action confirmée — le montant est relu avant validation). Pour « Marc a fait une offre de 850k », « offre de 2.1M sur le dossier Cologny ». Le contact doit avoir un dossier ouvert.",
+      description: "Enregistre une offre reçue dans le dossier d'un contact. Pour « Marc a fait une offre de 850k », « offre de 2.1M sur le dossier Cologny ». Appelle directement l'outil. contact_id via search_contacts.",
       parameters: {
         type: 'object',
         properties: {
