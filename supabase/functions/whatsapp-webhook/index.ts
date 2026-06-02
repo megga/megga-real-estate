@@ -13,7 +13,7 @@ import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
-import { execUpdatePipeline, executeRecordOffer, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -503,6 +503,10 @@ async function executePending(
       })
     } catch { /* non bloquant */ }
     return '✅ Sélection envoyée au client.'
+  }
+  if (pending.tool === 'open_kyc_case') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id }
+    return executeOpenKycCase(ctx, pending.args)
   }
   return "Type d'action inconnu, rien fait."
 }

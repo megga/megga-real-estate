@@ -16,7 +16,7 @@ import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execQualifyLead,
-  prepareSendListings, prepareRecordOffer,
+  prepareSendListings, prepareRecordOffer, prepareOpenKycCase,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 
@@ -230,7 +230,11 @@ async function stashPending(
   // (et on ne stocke rien), au lieu de promettre une action qui planterait au « oui ».
   let prompt = 'Je vais effectuer cette action. Tu confirmes ? (« oui » / « non »)'
   let storeArgs: Record<string, unknown> = args
-  if (tool === 'send_listings') {
+  if (tool === 'open_kyc_case') {
+    const p = await prepareOpenKycCase(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'send_listings') {
     const p = await prepareSendListings(ctx, args)
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload

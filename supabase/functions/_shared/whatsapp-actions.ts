@@ -16,6 +16,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount } from './whatsapp-lead.ts'
 import { PIPELINE_STAGES, isValidStage, STAGE_LABELS_FR, type PipelineStage } from './whatsapp-agent-router.ts'
+import { deriveKycType, type KycPersonType } from './kyc-extract.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -501,4 +502,56 @@ export async function executeRecordOffer(ctx: ActionCtx, payload: Args): Promise
   })
   if (error) return `Erreur enregistrement de l’offre: ${error.message}`
   return `Offre de ${fmtCHF(amount)} enregistrée sur le dossier (statut : en attente).`
+}
+
+// -- KYC par WhatsApp (Task 4) : open_kyc_case (tier confirm) -----------------
+
+const KYC_TYPE_LABELS: Record<KycPersonType, string> = {
+  buyer_pp: 'acheteur, personne physique',
+  buyer_pm: 'acheteur, personne morale',
+  seller_pp: 'vendeur, personne physique',
+  seller_pm: 'vendeur, personne morale',
+}
+
+/** Confirm-tier : valide le contact + dérive le typage, construit le prompt + payload figé. */
+export async function prepareOpenKycCase(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const contactId = s(a.contact_id)
+  if (!contactId) return { ok: false, error: 'Erreur: contact_id requis (via search_contacts).' }
+  const { data: contact } = await ctx.supabase
+    .from('contacts').select('id, first_name, last_name, type, entity_type')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (!contact) return { ok: false, error: 'Erreur: contact introuvable dans votre agence.' }
+
+  const vigilance = a.vigilance === 'renforced' ? 'renforced' : 'standard'
+  const entity = a.entity === 'pm' ? 'pm' : a.entity === 'pp' ? 'pp' : (contact.entity_type ?? 'pp')
+  const type = deriveKycType(contact.type, entity)
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || 'ce contact'
+  const vigLabel = vigilance === 'renforced' ? 'renforcée' : 'standard'
+
+  return {
+    ok: true,
+    prompt: `J'ouvre un dossier KYC pour ${name} (${KYC_TYPE_LABELS[type]}, vigilance ${vigLabel}). Tu confirmes ? (« oui » / « non »)`,
+    payload: { contact_id: contactId, type, vigilance },
+  }
+}
+
+/** Post-« oui » : INSERT kyc_cases (le trigger seed_kyc_lba_checks crée les 5 checks). */
+export async function executeOpenKycCase(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id), type = s(a.type), vigilance = s(a.vigilance) ?? 'standard'
+  if (!contactId || !type) return 'Action incomplète, dossier non créé.'
+  if (!(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'
+
+  const { error } = await ctx.supabase.from('kyc_cases').insert({
+    agency_id: ctx.agencyId,
+    contact_id: contactId,
+    type,
+    vigilance,
+    risk_level: vigilance === 'renforced' ? 'medium' : 'low',
+  })
+  if (error) return `Erreur ouverture KYC: ${error.message}`
+
+  await logTimeline(ctx, 'Dossier KYC ouvert', 'via WhatsApp', contactId)
+  return `Dossier KYC ouvert. Les pièces à fournir : identité, domicile, screening PEP, sanctions${vigilance === 'renforced' ? ', source des fonds' : ''}. Tu peux me transférer les documents.`
 }

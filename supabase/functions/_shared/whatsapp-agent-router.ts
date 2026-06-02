@@ -36,6 +36,9 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   send_client_message: 'confirm',
   send_listings: 'confirm',
   record_offer: 'confirm',
+  open_kyc_case: 'confirm',
+  attach_kyc_document: 'auto',
+  run_kyc_screening: 'auto',
 }
 
 export function toolTier(name: string): ToolTier {

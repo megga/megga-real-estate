@@ -77,6 +77,9 @@ describe('toolTier', () => {
     expect(toolTier('send_listings')).toBe('confirm')
     expect(toolTier('record_offer')).toBe('confirm')
   })
+  it('open_kyc_case est confirm (création de dossier LBA → validation agent)', () => {
+    expect(toolTier('open_kyc_case')).toBe('confirm')
+  })
   it('par défaut un outil inconnu est confirm (fail-safe)', () => {
     expect(toolTier('delete_everything')).toBe('confirm')
   })
