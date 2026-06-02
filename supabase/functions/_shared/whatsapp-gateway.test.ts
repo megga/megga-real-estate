@@ -110,3 +110,24 @@ describe('whatsapp-gateway — Meta média entrant', () => {
     expect(m.mediaId).toBeNull()
   })
 })
+
+describe('buildMarkReadRequest (Meta)', () => {
+  const meta = getProvider('meta')
+  const config = { metaToken: 'TK', metaPhoneNumberId: '123', metaApiVersion: 'v22.0' }
+
+  it('construit la requête accusé de lecture (coches bleues)', () => {
+    const req = meta.buildMarkReadRequest!('wamid.XYZ', config)
+    expect(req.url).toBe('https://graph.facebook.com/v22.0/123/messages')
+    expect(req.method).toBe('POST')
+    const body = JSON.parse(req.body)
+    expect(body).toMatchObject({ messaging_product: 'whatsapp', status: 'read', message_id: 'wamid.XYZ' })
+    expect(body.typing_indicator).toBeUndefined()
+  })
+  it('ajoute l’indicateur typing si demandé', () => {
+    const body = JSON.parse(meta.buildMarkReadRequest!('wamid.XYZ', config, { typing: true }).body)
+    expect(body.typing_indicator).toEqual({ type: 'text' })
+  })
+  it('OpenWA ne supporte pas le mark-read (méthode absente)', () => {
+    expect(getProvider('openwa').buildMarkReadRequest).toBeUndefined()
+  })
+})
