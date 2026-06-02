@@ -111,6 +111,26 @@ describe('whatsapp-gateway — Meta média entrant', () => {
   })
 })
 
+describe('Meta buildSendDocumentRequest', () => {
+  it('construit une requête document Meta valide', () => {
+    const meta = getProvider('meta')
+    expect(meta.buildSendDocumentRequest).toBeDefined()
+    const req = meta.buildSendDocumentRequest!(
+      { toPhone: '41791112233', mediaId: 'MEDIA_42', filename: 'Rapport-KYC-2026-AB3F.pdf', caption: 'KYC-2026-AB3F' },
+      { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' },
+    )
+    expect(req.url).toBe('https://graph.facebook.com/v22.0/PNID/messages')
+    expect(req.headers.Authorization).toBe('Bearer TOK')
+    const body = JSON.parse(req.body)
+    expect(body).toMatchObject({
+      messaging_product: 'whatsapp',
+      to: '41791112233',
+      type: 'document',
+      document: { id: 'MEDIA_42', filename: 'Rapport-KYC-2026-AB3F.pdf', caption: 'KYC-2026-AB3F' },
+    })
+  })
+})
+
 describe('buildMarkReadRequest (Meta)', () => {
   const meta = getProvider('meta')
   const config = { metaToken: 'TK', metaPhoneNumberId: '123', metaApiVersion: 'v22.0' }
