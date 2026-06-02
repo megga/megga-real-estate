@@ -15,8 +15,9 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount } from './whatsapp-lead.ts'
-import { PIPELINE_STAGES, isValidStage, STAGE_LABELS_FR, type PipelineStage } from './whatsapp-agent-router.ts'
+import { PIPELINE_STAGES, isValidStage, stageLabel, type PipelineStage } from './whatsapp-agent-router.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
+import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { readDocument } from './vision.ts'
 
@@ -25,6 +26,7 @@ export interface ActionCtx {
   profileId: string
   agencyId: string | null
   inboundMedia?: { mediaId: string; messageId: string } | null
+  lang?: WaLang
 }
 
 type Args = Record<string, unknown>
@@ -315,9 +317,9 @@ export async function execUpdatePipeline(ctx: ActionCtx, a: Args): Promise<strin
   if (!stage || !isValidStage(stage)) return `Erreur: étape invalide. Valeurs possibles : ${PIPELINE_STAGES.join(', ')}.`
   if (!(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'
   const deal = await resolveContactDeal(ctx, contactId)
-  if (!deal) return "Ce contact n’a pas encore de dossier dans le pipeline (aucune transaction). Le dossier doit d’abord être créé dans le CRM."
-  const label = STAGE_LABELS_FR[stage as PipelineStage] ?? stage
-  if (deal.stage === stage) return `Le dossier « ${deal.label} » est déjà à l’étape « ${label} ».`
+  if (!deal) return pipelineNoDeal(ctx.lang ?? 'fr')
+  const label = stageLabel(stage, ctx.lang ?? 'fr')
+  if (deal.stage === stage) return pipelineAlreadyAt(ctx.lang ?? 'fr', deal.label, label)
   const { error } = await ctx.supabase.from('transactions')
     .update({ stage }).eq('id', deal.id).eq('agency_id', ctx.agencyId)
   if (error) return `Erreur pipeline: ${error.message}`
@@ -329,7 +331,7 @@ export async function execUpdatePipeline(ctx: ActionCtx, a: Args): Promise<strin
     metadata: { via: 'whatsapp', profile_id: ctx.profileId, old_stage: deal.stage, new_stage: stage, contact_id: contactId },
   })
   if (logErr) console.error('pipeline audit log failed')
-  return `Dossier « ${deal.label} » déplacé en « ${label} ».`
+  return pipelineMoved(ctx.lang ?? 'fr', deal.label, label)
 }
 
 /** Qualifie un contact existant : critères structurés → search_criteria + matching auto.
@@ -509,13 +511,6 @@ export async function executeRecordOffer(ctx: ActionCtx, payload: Args): Promise
 
 // -- KYC par WhatsApp (Task 4) : open_kyc_case (tier confirm) -----------------
 
-const KYC_TYPE_LABELS: Record<KycPersonType, string> = {
-  buyer_pp: 'acheteur, personne physique',
-  buyer_pm: 'acheteur, personne morale',
-  seller_pp: 'vendeur, personne physique',
-  seller_pm: 'vendeur, personne morale',
-}
-
 /** Confirm-tier : valide le contact + dérive le typage, construit le prompt + payload figé. */
 export async function prepareOpenKycCase(ctx: ActionCtx, a: Args): Promise<Prepared> {
   if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
@@ -530,11 +525,10 @@ export async function prepareOpenKycCase(ctx: ActionCtx, a: Args): Promise<Prepa
   const entity = a.entity === 'pm' ? 'pm' : a.entity === 'pp' ? 'pp' : (contact.entity_type ?? 'pp')
   const type = deriveKycType(contact.type, entity)
   const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || 'ce contact'
-  const vigLabel = vigilance === 'renforced' ? 'renforcée' : 'standard'
 
   return {
     ok: true,
-    prompt: `J'ouvre un dossier KYC pour ${name} (${KYC_TYPE_LABELS[type]}, vigilance ${vigLabel}). Tu confirmes ? (« oui » / « non »)`,
+    prompt: confirmOpenKyc(ctx.lang ?? 'fr', name, type, vigilance),
     payload: { contact_id: contactId, type, vigilance },
   }
 }
@@ -556,7 +550,7 @@ export async function executeOpenKycCase(ctx: ActionCtx, a: Args): Promise<strin
   if (error) return `Erreur ouverture KYC: ${error.message}`
 
   await logTimeline(ctx, 'Dossier KYC ouvert', 'via WhatsApp', contactId)
-  return `Dossier KYC ouvert. Les pièces à fournir : identité, domicile, screening PEP, sanctions${vigilance === 'renforced' ? ', source des fonds' : ''}. Tu peux me transférer les documents.`
+  return openKycResult(ctx.lang ?? 'fr', vigilance)
 }
 
 // -- KYC par WhatsApp (Task 5) : run_kyc_screening (tier auto) -----------------

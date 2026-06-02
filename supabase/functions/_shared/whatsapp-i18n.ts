@@ -191,3 +191,19 @@ export function pipelineWhoDefault(lang: WaLang): string {
 export function pipelineWhoNamed(lang: WaLang, name: string): string {
   return lang === 'en' ? `${name}'s file` : `le dossier de ${name}`
 }
+
+/** update_pipeline — résultat post-« oui ». stageLabel déjà résolu dans la bonne langue. */
+export function pipelineMoved(lang: WaLang, dealLabel: string, stageLabel: string): string {
+  if (lang === 'en') return `File « ${dealLabel} » moved to « ${stageLabel} ».`
+  return `Dossier « ${dealLabel} » déplacé en « ${stageLabel} ».`
+}
+/** update_pipeline — déjà à cette étape. */
+export function pipelineAlreadyAt(lang: WaLang, dealLabel: string, stageLabel: string): string {
+  if (lang === 'en') return `File « ${dealLabel} » is already at « ${stageLabel} ».`
+  return `Le dossier « ${dealLabel} » est déjà à l’étape « ${stageLabel} ».`
+}
+/** update_pipeline — aucun dossier dans le pipeline pour ce contact. */
+export function pipelineNoDeal(lang: WaLang): string {
+  if (lang === 'en') return "This contact has no pipeline file yet (no transaction). The file must be created in the CRM first."
+  return "Ce contact n’a pas encore de dossier dans le pipeline (aucune transaction). Le dossier doit d’abord être créé dans le CRM."
+}

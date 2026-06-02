@@ -11,7 +11,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, buildHistoryMessages, STAGE_LABELS_FR, type WaHistoryRow, type PipelineStage } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, buildHistoryMessages, stageLabel, type WaHistoryRow } from '../_shared/whatsapp-agent-router.ts'
+import { detectLang, t, confirmSendClient, confirmUpdatePipeline, pipelineWhoDefault, pipelineWhoNamed } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
@@ -59,9 +60,10 @@ serve(async (req) => {
   try { body = await req.json() } catch { return json({ error: 'Bad JSON' }, 400) }
   const { profileId, waNumber = '', message, currentMessageId, inboundMedia } = body
   if (!profileId || !message) return json({ error: 'profileId and message required' }, 400)
+  const lang = detectLang(message)
 
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
-  if (!apiKey) return json({ reply: 'Service IA momentanément indisponible.' }, 200)
+  if (!apiKey) return json({ reply: t(lang, 'iaDown') }, 200)
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -76,7 +78,7 @@ serve(async (req) => {
     .maybeSingle()
   if (!link) return json({ error: 'Forbidden: no verified agent link' }, 403)
 
-  const ctx: ActionCtx = { supabase, profileId, agencyId: link.agency_id ?? null, inboundMedia: inboundMedia ?? null }
+  const ctx: ActionCtx = { supabase, profileId, agencyId: link.agency_id ?? null, inboundMedia: inboundMedia ?? null, lang }
 
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
@@ -95,7 +97,7 @@ serve(async (req) => {
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).` },
+    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.` },
     ...history,
     { role: 'user', content: message },
   ]
@@ -105,7 +107,7 @@ serve(async (req) => {
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     const resp = await callDeepSeek(apiKey, messages)
-    if (!resp) return json({ reply: "Désolé, je n'ai pas pu traiter ta demande." }, 200)
+    if (!resp) return json({ reply: t(lang, 'cantProcess') }, 200)
     const msg = resp.choices?.[0]?.message
     const toolCalls = msg?.tool_calls as Array<{ id?: string; function?: { name?: string; arguments?: string } }> | undefined
 
@@ -123,7 +125,7 @@ serve(async (req) => {
 
     for (const call of toolCalls) {
       if (toolCallsUsed >= MAX_TOOL_CALLS) {
-        return json({ reply: "Ta demande est trop large pour un seul message. Peux-tu la découper ?" }, 200)
+        return json({ reply: t(lang, 'tooLarge') }, 200)
       }
       toolCallsUsed++
       const name = call.function?.name ?? ''
@@ -135,12 +137,12 @@ serve(async (req) => {
         // On NE l'exécute pas : on VALIDE + on PRÉPARE, puis on demande confirmation.
         const stash = await stashPending(ctx, waNumber, name, args)
         if (stash.status === 'busy') {
-          return json({ reply: 'Tu as déjà une action en attente. Réponds « oui » pour la confirmer ou « non » pour l’annuler avant d’en lancer une autre.' }, 200)
+          return json({ reply: t(lang, 'busy') }, 200)
         }
         if (stash.status === 'error') {
-          return json({ reply: stash.error ?? 'Je ne peux pas préparer cette action pour le moment.' }, 200)
+          return json({ reply: stash.error ?? t(lang, 'prepFail') }, 200)
         }
-        return json({ reply: stash.prompt ?? 'Tu confirmes ? (« oui » / « non »)' }, 200)
+        return json({ reply: stash.prompt ?? t(lang, 'fallbackConfirm') }, 200)
       }
 
       // F4 : si un outil identique a déjà tourné ce tour, réutilise le résultat.
@@ -159,7 +161,7 @@ serve(async (req) => {
   const forced = await callDeepSeek(apiKey, messages, 'none')
   const forcedContent = forced?.choices?.[0]?.message?.content as string | undefined
   if (forcedContent) return json({ reply: forcedContent }, 200)
-  return json({ reply: "Je n'ai pas réussi à finaliser ta demande. Peux-tu la reformuler plus simplement ?" }, 200)
+  return json({ reply: t(lang, 'reformulate') }, 200)
 })
 
 function json(obj: unknown, code: number): Response {
@@ -231,7 +233,7 @@ async function stashPending(
   // Préparation par outil : prompt humain affiché à l'agent + payload figé stocké.
   // send_listings / record_offer valident et formatent ici → si échec, on le DIT
   // (et on ne stocke rien), au lieu de promettre une action qui planterait au « oui ».
-  let prompt = 'Je vais effectuer cette action. Tu confirmes ? (« oui » / « non »)'
+  let prompt = t(ctx.lang ?? 'fr', 'confirmGeneric')
   let storeArgs: Record<string, unknown> = args
   if (tool === 'open_kyc_case') {
     const p = await prepareOpenKycCase(ctx, args)
@@ -247,19 +249,19 @@ async function stashPending(
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'send_client_message') {
     const preview = String(args.body ?? '').slice(0, 60)
-    prompt = `Je vais envoyer au client le message « ${preview}${preview.length >= 60 ? '…' : ''} ». Tu confirmes ? (« oui » / « non »)`
+    prompt = confirmSendClient(ctx.lang ?? 'fr', preview, preview.length >= 60)
   } else if (tool === 'update_pipeline') {
     const stage = String(args.stage ?? '')
-    const label = STAGE_LABELS_FR[stage as PipelineStage] ?? stage
-    let who = 'le dossier'
+    const label = stageLabel(stage, ctx.lang ?? 'fr')
+    let who = pipelineWhoDefault(ctx.lang ?? 'fr')
     const cid = String(args.contact_id ?? '')
     if (cid) {
       const { data: c } = await ctx.supabase.from('contacts')
         .select('first_name, last_name').eq('id', cid).eq('agency_id', ctx.agencyId).maybeSingle()
       const name = c ? `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim() : ''
-      if (name) who = `le dossier de ${name}`
+      if (name) who = pipelineWhoNamed(ctx.lang ?? 'fr', name)
     }
-    prompt = `Je vais déplacer ${who} en « ${label} ». Tu confirmes ? (« oui » / « non »)`
+    prompt = confirmUpdatePipeline(ctx.lang ?? 'fr', who, label)
   }
 
   await ctx.supabase.from('whatsapp_pending_actions').upsert({
@@ -267,7 +269,7 @@ async function stashPending(
     agency_id: ctx.agencyId,
     wa_number: waNumber,
     tool,
-    args: storeArgs,
+    args: { ...storeArgs, __lang: ctx.lang ?? 'fr' },
     summary: prompt,
     expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
   }, { onConflict: 'profile_id' })
