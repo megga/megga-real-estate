@@ -9,6 +9,19 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | grep -q 'megga-memory\\.seed\\.json' && (cd \"$CLAUDE_PROJECT_DIR\" && npm run ruflo:seed) || true",
+            "async": true,
+            "statusMessage": "Ré-indexation du cerveau ruflo…"
+          }
+        ]
+      }
     ]
   },
   "env": {
