@@ -29,26 +29,29 @@ function json(o: unknown, c: number): Response {
   return new Response(JSON.stringify(o), { status: c, headers: { 'Content-Type': 'application/json' } })
 }
 
-// Décode le claim `role` (signature validée par la plateforme via verify_jwt=true).
-function isServiceRole(auth: string | null): boolean {
-  if (!auth?.startsWith('Bearer ')) return false
-  const parts = auth.slice(7).trim().split('.')
-  if (parts.length !== 3) return false
-  try {
-    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-    const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : ''
-    return (JSON.parse(atob(b64 + pad)) as { role?: string }).role === 'service_role'
-  } catch { return false }
+// Comparaison à temps constant (anti timing-attack sur le secret service-role).
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
 }
 
 serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
-  if (!isServiceRole(req.headers.get('Authorization'))) return json({ error: 'Forbidden' }, 403)
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  // Garde service-role : pg_cron envoie Bearer <service_role_key d'app_config>. verify_jwt=FALSE
+  // (clé legacy rejetée sinon) — on compare le token reçu à app_config (même source que le cron),
+  // comparaison à temps constant. Non forgeable sans la clé service-role.
+  {
+    const { data: cfg } = await admin.from('app_config').select('value').eq('key', 'service_role_key').maybeSingle()
+    const expectedKey = (cfg?.value as string | undefined) ?? ''
+    const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+    if (!expectedKey || !safeEqual(providedKey, expectedKey)) return json({ error: 'Forbidden' }, 403)
+  }
 
   const t0 = Date.now()
   const overBudget = () => Date.now() - t0 > BUDGET_MS
-
-  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
   const metaToken = Deno.env.get('META_WHATSAPP_TOKEN') ?? ''
   const apiVersion = Deno.env.get('META_API_VERSION') ?? 'v22.0'
   const metaPhoneNumberId = Deno.env.get('META_PHONE_NUMBER_ID') ?? ''

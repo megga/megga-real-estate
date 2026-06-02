@@ -404,13 +404,13 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
 
-# ── Edge functions : JWT vérifié (service-role only) ──────────────────────────
-# Ces fonctions ne sont appelées qu'en interne (webhook→agent, cron→process).
-# La plateforme valide la SIGNATURE du JWT avant exécution — leur garde de rôle
-# ne fait que décoder le claim. NE JAMAIS les déployer en --no-verify-jwt
-# (cf. allowlist JWT_PROTECTED dans .github/workflows/deploy.yml).
+# ── Edge functions internes (webhook→agent, cron→process) ─────────────────────
+# verify_jwt=FALSE : la plateforme rejette la clé service-role legacy si verify_jwt=true
+# (UNAUTHORIZED_LEGACY_JWT) → appels internes cassés. L'auth se fait DANS la fonction :
+# comparaison à temps constant du Bearer reçu à la clé service-role (secret partagé,
+# non forgeable). cf. .github/workflows/deploy.yml (JWT_PROTECTED).
 [functions.whatsapp-agent]
-verify_jwt = true
+verify_jwt = false
 
 [functions.whatsapp-process]
-verify_jwt = true
+verify_jwt = false

@@ -34,13 +34,14 @@ Règles:
 serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
-  // Garde service-role : whatsapp-agent n'est appelable QUE par un porteur de token
-  // service-role (le webhook). ⚠️ DÉPLOYER avec verify_jwt=TRUE (défaut) : la plateforme
-  // valide la SIGNATURE du JWT AVANT d'exécuter, donc on peut lire le claim `role` sans
-  // revérifier la signature. NE JAMAIS déployer cette fonction en --no-verify-jwt.
-  // Défense en profondeur : l'identité (agence) est re-dérivée en DB ci-dessous, donc
-  // même un appel forgé ne peut pas agir sans un whatsapp_agent_links vérifié.
-  if (!isServiceRole(req.headers.get('Authorization'))) {
+  // Garde service-role : whatsapp-agent n'est appelable QUE par le webhook, qui envoie la
+  // clé service-role en Bearer. verify_jwt=FALSE (la plateforme rejette la clé legacy si on
+  // l'active → UNAUTHORIZED_LEGACY_JWT) ; on compare donc le token reçu À NOTRE clé
+  // service-role (secret partagé, comparaison à temps constant). Non forgeable sans la clé.
+  // Défense en profondeur : l'agence est re-dérivée du lien vérifié ci-dessous.
+  const expectedKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!expectedKey || !safeEqual(providedKey, expectedKey)) {
     return json({ error: 'Forbidden' }, 403)
   }
 
@@ -127,21 +128,12 @@ function json(obj: unknown, code: number): Response {
   return new Response(JSON.stringify(obj), { status: code, headers: { 'Content-Type': 'application/json' } })
 }
 
-// Décode le claim `role` d'un Bearer JWT (signature validée par la plateforme via
-// verify_jwt=true). Retourne true seulement si role === 'service_role'.
-function isServiceRole(authHeader: string | null): boolean {
-  if (!authHeader?.startsWith('Bearer ')) return false
-  const token = authHeader.slice('Bearer '.length).trim()
-  const parts = token.split('.')
-  if (parts.length !== 3) return false
-  try {
-    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-    const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : ''
-    const payload = JSON.parse(atob(b64 + pad)) as { role?: string }
-    return payload.role === 'service_role'
-  } catch {
-    return false
-  }
+// Comparaison à temps constant (anti timing-attack sur le secret service-role).
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
 }
 
 async function callDeepSeek(apiKey: string, messages: Array<Record<string, unknown>>) {
