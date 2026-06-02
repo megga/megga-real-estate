@@ -268,4 +268,16 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'send_kyc_report',
+      description: "Génère le rapport KYC officiel (PDF) d'un contact et l'envoie en pièce jointe à l'agent lui-même sur WhatsApp. Pour « envoie-moi le rapport KYC de Dubois », « le PDF KYC de Mme Vaucher ». Appelle directement l'outil. Il faut un dossier KYC déjà ouvert. contact_id via search_contacts.",
+      parameters: {
+        type: 'object',
+        properties: { contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' } },
+        required: ['contact_id'],
+      },
+    },
+  },
 ]
