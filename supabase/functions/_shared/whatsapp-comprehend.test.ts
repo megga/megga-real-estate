@@ -29,8 +29,12 @@ describe('parseInsight', () => {
   })
   it('JSON invalide → défauts sûrs', () => {
     expect(parseInsight('{ pas du json')).toEqual({
-      summary: null, intent: null, entities: {}, commitments: [], sentiment: null, next_action: null,
+      summary: null, intent: null, entities: {}, commitments: [], sentiment: null, next_action: null, lead: null,
     })
+  })
+  it('extrait le lead tiers', () => {
+    const i = parseInsight(JSON.stringify({ lead: { is_third_party: true, first_name: 'Sarah', last_name: 'Williams' } }))
+    expect(i.lead).toEqual({ is_third_party: true, first_name: 'Sarah', last_name: 'Williams', phone: null, email: null })
   })
   it('rejette sentiment et next_action.type hors liste (anti-injection)', () => {
     const i = parseInsight(JSON.stringify({ sentiment: 'euphorique', next_action: { type: 'rm -rf', label: 'x' } }))

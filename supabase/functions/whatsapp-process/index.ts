@@ -11,8 +11,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.17'
 import { fetchMetaMedia, buildMediaKey } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
-import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage } from '../_shared/whatsapp-comprehend.ts'
+import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
+import { mapCriteria, computeMissing, isSearchable } from '../_shared/whatsapp-lead.ts'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BATCH = 10            // messages média réclamés / tick (chaque op peut être lente)
 const MAX_RETRIES = 3
@@ -129,6 +131,11 @@ serve(async (req) => {
           source_last_message_at: c.last_message_at, generated_at: new Date().toISOString(),
         }, { onConflict: 'contact_id' })
         insights++
+        // Phase 4B : MEGGA qualifie le lead en autonomie (crée/enrichit + matching).
+        if (insight.lead) {
+          try { await qualifyLead(admin, c.agency_id, c.contact_id, insight, digest) }
+          catch (e) { console.error('whatsapp lead qualify failed:', String((e as Error)?.message ?? 'error').slice(0, 120)) }
+        }
       } catch (e) {
         console.error('whatsapp insight failed:', String((e as Error)?.message ?? 'error').slice(0, 120))
       }
@@ -161,3 +168,111 @@ serve(async (req) => {
 
   return json({ ok: true, claimed: (jobs ?? []).length, done, failed, insights, notices }, 200)
 })
+
+// ── Phase 4B : qualification autonome du lead ───────────────────────────────
+// À partir de l'insight, MEGGA résout le contact (tiers → dédoublonne/crée ;
+// sinon l'expéditeur), le flague « à compléter », et — si les critères suffisent —
+// crée une client_searches qui déclenche le matching (trigger DB). Idempotent
+// (tag whatsapp_ai_qualified). Création/MAJ interne = autonome ; aucun envoi client.
+async function qualifyLead(
+  admin: SupabaseClient,
+  agencyId: string,
+  senderContactId: string,
+  insight: ConversationInsight,
+  digest: string,
+): Promise<void> {
+  const lead = insight.lead
+  if (!lead) return
+
+  // 1. Résoudre le contact du lead.
+  let leadContactId = senderContactId
+  let created = false
+  if (lead.is_third_party && (lead.first_name || lead.last_name)) {
+    let found: { id: string } | null = null
+    if (lead.phone) {
+      const tail = lead.phone.replace(/\D/g, '').slice(-9)
+      if (tail.length >= 6) {
+        const { data } = await admin.from('contacts').select('id').eq('agency_id', agencyId).ilike('phone', `%${tail}`).limit(1).maybeSingle()
+        found = (data as { id: string } | null) ?? null
+      }
+    }
+    if (!found) {
+      let q = admin.from('contacts').select('id').eq('agency_id', agencyId)
+      if (lead.first_name) q = q.ilike('first_name', lead.first_name)
+      if (lead.last_name) q = q.ilike('last_name', lead.last_name)
+      const { data } = await q.limit(1).maybeSingle()
+      found = (data as { id: string } | null) ?? null
+    }
+    if (found) {
+      leadContactId = found.id
+    } else {
+      // email NOT NULL sur contacts → placeholder déterministe si absent (à compléter).
+      const email = lead.email ??
+        `wa-lead-${`${lead.first_name ?? ''}${lead.last_name ?? ''}`.toLowerCase().replace(/[^a-z0-9]/g, '') || 'anon'}-${agencyId.slice(0, 8)}@whatsapp.megga.local`
+      const { data: newC, error } = await admin.from('contacts').insert({
+        agency_id: agencyId,
+        first_name: lead.first_name ?? 'Lead',
+        last_name: lead.last_name ?? 'WhatsApp',
+        email,
+        phone: lead.phone,
+        type: 'lead',
+        source: 'whatsapp_ai',
+        score: 'cold',
+      }).select('id').single()
+      if (error || !newC) return
+      leadContactId = (newC as { id: string }).id
+      created = true
+    }
+  }
+
+  // 2. Idempotence : déjà qualifié par MEGGA ?
+  const { data: cRow } = await admin.from('contacts').select('tags, phone, email').eq('id', leadContactId).maybeSingle()
+  const tags: string[] = Array.isArray(cRow?.tags) ? (cRow!.tags as string[]) : []
+  if (!created && tags.includes('whatsapp_ai_qualified')) return
+
+  // 3. Critères + champs manquants.
+  const criteria = mapCriteria(insight.intent, insight.entities, digest)
+  const missing = computeMissing(criteria, { phone: cRow?.phone ?? lead.phone, email: cRow?.email ?? lead.email })
+
+  // 4. MAJ contact : tags + critères structurés.
+  const newTags = Array.from(new Set([...tags, 'whatsapp_ai_qualified', ...(missing.length ? ['à_compléter'] : [])]))
+  await admin.from('contacts').update({ tags: newTags, search_criteria: criteria }).eq('id', leadContactId)
+
+  // 5. client_searches (→ matching auto via trigger) si critères suffisants et pas déjà active.
+  if (isSearchable(criteria)) {
+    const { data: existingSearch } = await admin.from('client_searches')
+      .select('id').eq('contact_id', leadContactId).eq('is_active', true).limit(1).maybeSingle()
+    if (!existingSearch) {
+      await admin.from('client_searches').insert({
+        agency_id: agencyId,
+        contact_id: leadContactId,
+        label: `WhatsApp — ${criteria.transaction_type === 'rent' ? 'location' : 'achat'}`,
+        criteria,
+        is_active: true,
+      })
+    }
+  }
+
+  // 6. Timeline (badge IA) : ce que MEGGA a fait + ce qui manque.
+  const critTxt = [
+    criteria.transaction_type === 'rent' ? 'location' : criteria.transaction_type === 'buy' ? 'achat' : null,
+    criteria.type,
+    (criteria.zones ?? []).join('/') || null,
+    criteria.budget_max ? `budget ${criteria.budget_max}` : null,
+    (criteria.features ?? []).join(', ') || null,
+  ].filter(Boolean).join(' · ')
+  const note = `Lead qualifié par MEGGA depuis WhatsApp.${critTxt ? ` ${critTxt}.` : ''}` +
+    (missing.length ? ` À compléter : ${missing.join(', ')}.` : '')
+  await admin.from('activity_events').insert({
+    agency_id: agencyId,
+    actor_id: null,
+    actor_kind: 'ai',
+    action: created ? 'Lead créé (WhatsApp)' : 'Lead qualifié (WhatsApp)',
+    entity_type: 'contact',
+    entity_id: leadContactId,
+    object_label: note.slice(0, 500),
+    category: 'contact',
+    severity: 'info',
+    metadata: { via: 'whatsapp', phase: '4b' },
+  })
+}

@@ -10,6 +10,15 @@ export interface ConversationInsight {
   commitments: string[]
   sentiment: 'positif' | 'neutre' | 'tendu' | null
   next_action: { type: string; label: string } | null
+  lead: LeadInfo | null
+}
+
+export interface LeadInfo {
+  is_third_party: boolean          // true si l'expéditeur DICTE à propos d'un tiers
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  email: string | null
 }
 
 export interface ThreadMessage {
@@ -43,9 +52,11 @@ Réponds UNIQUEMENT en JSON (en français) selon ce schéma :
   "entities": { "budget": "", "zones": [], "type": "", "pieces": "", "dates": [] },
   "commitments": ["engagement pris, ex: 'Agent: envoie les photos', 'Client: dispo samedi 14h'"],
   "sentiment": "positif | neutre | tendu",
-  "next_action": { "type": "planifier_visite|envoyer_biens|relancer|qualifier_lead|repondre|rien", "label": "action concrète proposée" }
+  "next_action": { "type": "planifier_visite|envoyer_biens|relancer|qualifier_lead|repondre|rien", "label": "action concrète proposée" },
+  "lead": { "is_third_party": true_ou_false, "first_name": "", "last_name": "", "phone": "", "email": "" }
 }
-N'invente rien : laisse un champ vide ou [] si l'info n'est pas dans le fil.`
+"lead" = la personne PROSPECT de la conversation. is_third_party=true si l'expéditeur DICTE à propos d'un tiers (« j'ai une cliente Sarah Williams… »), false s'il parle de lui-même. Mets "lead": null si aucun prospect identifiable.
+N'invente rien : laisse un champ vide, [] ou null si l'info n'est pas dans le fil.`
 
 /** Messages DeepSeek (system + fil). Pur. */
 export function buildMessages(digest: string): Array<{ role: string; content: string }> {
@@ -63,6 +74,15 @@ export function parseInsight(content: string | null | undefined): ConversationIn
   const sentiment = s(raw.sentiment)
   const na = raw.next_action as { type?: unknown; label?: unknown } | undefined
   const naType = s(na?.type)
+  const leadRaw = (raw.lead && typeof raw.lead === 'object' && !Array.isArray(raw.lead))
+    ? (raw.lead as Record<string, unknown>) : null
+  const lead = leadRaw ? {
+    is_third_party: leadRaw.is_third_party === true,
+    first_name: s(leadRaw.first_name),
+    last_name: s(leadRaw.last_name),
+    phone: s(leadRaw.phone),
+    email: s(leadRaw.email),
+  } : null
   return {
     summary: s(raw.summary),
     intent: s(raw.intent),
@@ -72,6 +92,7 @@ export function parseInsight(content: string | null | undefined): ConversationIn
       ? (raw.commitments as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 20) : [],
     sentiment: sentiment && SENTIMENTS.has(sentiment) ? (sentiment as ConversationInsight['sentiment']) : null,
     next_action: naType && NEXT_ACTION_TYPES.has(naType) ? { type: naType, label: s(na?.label) ?? '' } : null,
+    lead,
   }
 }
 
