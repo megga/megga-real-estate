@@ -132,16 +132,17 @@ export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
     .eq('agency_id', ctx.agencyId)
     .maybeSingle()
   if (!c) return 'Erreur: contact introuvable dans votre agence.'
-  const ok = await logTimeline(ctx, 'Note ajoutée', body, contactId)
-  if (!ok) return "Erreur: impossible d'enregistrer la note."
-  return 'Note ajoutée à la fiche.'
+  const eventId = await logTimeline(ctx, 'Note ajoutée', body, contactId)
+  if (!eventId) return "Erreur: impossible d'enregistrer la note."
+  const undoOk = await recordAutoUndo(ctx, 'add_note', { event_id: eventId })
+  return undoOk ? 'Note ajoutée à la fiche.' + undoHint(ctx.lang ?? 'fr') : 'Note ajoutée à la fiche.'
 }
 
 // Écrit une entrée dans la timeline du contact (activity_events).
 // La timeline lit par entity_id ; `action` = titre affiché, `object_label` = détail,
 // `actor_kind='ai'` => badge « IA ». category 'contact' => icône contact.
-async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, contactId: string | null): Promise<boolean> {
-  const { error } = await ctx.supabase.from('activity_events').insert({
+async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, contactId: string | null): Promise<string | null> {
+  const { data, error } = await ctx.supabase.from('activity_events').insert({
     agency_id: ctx.agencyId,
     // Contrainte activity_events_actor_kind_coherence : actor_id DOIT être NULL si
     // actor_kind != 'user'. Pour une action IA, l'agent déclencheur va en metadata.
@@ -154,9 +155,9 @@ async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, 
     category: 'contact',
     severity: 'info',
     metadata: { via: 'whatsapp', profile_id: ctx.profileId },
-  })
-  if (error) { console.error('activity_events insert failed'); return false }
-  return true
+  }).select('id').single()
+  if (error) { console.error('activity_events insert failed'); return null }
+  return data.id
 }
 
 // ── Phase 4C / C3 : outils LECTURE (scopés agence au SQL) ───────────────────
@@ -407,10 +408,12 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
   const contactId = s(a.contact_id)
   if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
   const { data } = await ctx.supabase
-    .from('contacts').select('id, phone, email, tags')
+    .from('contacts').select('id, phone, email, tags, search_criteria')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
-  const c = data as { id: string; phone: string | null; email: string | null; tags: string[] | null } | null
+  const c = data as { id: string; phone: string | null; email: string | null; tags: string[] | null; search_criteria: unknown } | null
   if (!c) return 'Erreur: contact introuvable dans votre agence.'
+  const oldTags = Array.isArray(c.tags) ? c.tags : []      // capté AVANT l'update
+  const oldCriteria = c.search_criteria ?? null             // capté AVANT l'update
 
   let zones: string[] | undefined
   if (Array.isArray(a.zones)) zones = (a.zones as unknown[]).filter((z): z is string => typeof z === 'string' && z.trim().length > 0)
@@ -420,23 +423,24 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
   const intent = txType === 'rent' ? 'recherche_location' : txType === 'buy' ? 'recherche_achat' : null
   const criteria = mapCriteria(intent, { type: s(a.property_type) ?? undefined, zones, budget: a.budget_max, pieces: a.rooms_min }, '')
 
-  const existingTags = Array.isArray(c.tags) ? c.tags : []
   const missing = computeMissing(criteria, { phone: c.phone, email: c.email })
-  const newTags = Array.from(new Set([...existingTags, 'whatsapp_ai_qualified', ...(missing.length ? ['à_compléter'] : [])]))
+  const newTags = Array.from(new Set([...oldTags, 'whatsapp_ai_qualified', ...(missing.length ? ['à_compléter'] : [])]))
   const { error: uErr } = await ctx.supabase.from('contacts')
     .update({ tags: newTags, search_criteria: criteria }).eq('id', contactId).eq('agency_id', ctx.agencyId)
   if (uErr) return `Erreur qualification: ${uErr.message}`
 
   let searchCreated = false
+  let createdSearchId: string | null = null
   if (isSearchable(criteria)) {
     const { data: existing } = await ctx.supabase.from('client_searches')
       .select('id').eq('contact_id', contactId).eq('is_active', true).limit(1).maybeSingle()
     if (!existing) {
-      await ctx.supabase.from('client_searches').insert({
+      const { data: cs } = await ctx.supabase.from('client_searches').insert({
         agency_id: ctx.agencyId, contact_id: contactId,
         label: `WhatsApp — ${criteria.transaction_type === 'rent' ? 'location' : 'achat'}`,
         criteria, is_active: true,
-      })
+      }).select('id').single()
+      createdSearchId = cs?.id ?? null
       searchCreated = true
     }
   }
@@ -452,6 +456,10 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
   if (searchCreated) parts.push('Recherche active créée → matching lancé.')
   else if (!isSearchable(criteria)) parts.push('Critères encore insuffisants pour lancer le matching.')
   if (missing.length) parts.push(`À compléter : ${missing.join(', ')}.`)
+  const undoOk = await recordAutoUndo(ctx, 'qualify_lead', {
+    contact_id: contactId, old_tags: oldTags, old_search_criteria: oldCriteria, created_search_id: createdSearchId,
+  })
+  if (undoOk) parts.push(undoHint(ctx.lang ?? 'fr').trim())
   return parts.join(' ')
 }
 
