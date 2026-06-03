@@ -253,6 +253,7 @@ async function processAgentMessage(
   // Coches bleues + « typing… » dès réception : l'agent voit que MEGGA a lu et prépare.
   await markRead(provider, msg.providerMessageId, true)
   let reply = "Désolé, je n'ai pas pu traiter ta demande pour le moment."
+  let replyIsError = false
 
   // C2 : voix sur le chemin agent — si l'agent envoie un vocal, on le transcrit AVANT
   // de traiter (Deepgram), et on stocke le transcript sur le message (historique C1 + audit).
@@ -326,10 +327,13 @@ async function processAgentMessage(
     } else {
       // F18 : message non lié alors qu'une action attendait → on l'écarte et on le DIT.
       const brain = await callAgentBrain(agentLink, msg, userText, lang)
-      reply = `${t(lang, 'setAside')}\n\n${brain}`
+      reply = `${t(lang, 'setAside')}\n\n${brain.reply}`
+      replyIsError = brain.isError
     }
   } else {
-    reply = await callAgentBrain(agentLink, msg, userText, detectLang(userText))
+    const brain = await callAgentBrain(agentLink, msg, userText, detectLang(userText))
+    reply = brain.reply
+    replyIsError = brain.isError
   }
 
   // Envoi de la réponse à l'agent (fenêtre 24h ouverte) + log outbound + audit.
@@ -358,6 +362,7 @@ async function processAgentMessage(
     agency_id: agentLink.agency_id,
     body: outText,
     status: 'received',
+    is_agent_error: replyIsError,
   }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
 
   try {
@@ -381,7 +386,7 @@ async function callAgentBrain(
   msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
   messageText: string,
   lang: WaLang,
-): Promise<string> {
+): Promise<{ reply: string; isError: boolean }> {
   try {
     const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
       method: 'POST',
@@ -402,10 +407,13 @@ async function callAgentBrain(
       signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini
     })
     const data = await r.json().catch(() => ({}))
-    return (data?.reply as string) || t(lang, 'cantProcess')
+    const reply = (data?.reply as string) || t(lang, 'cantProcess')
+    // isError si l'agent l'a flaggé OU s'il n'a renvoyé aucun reply (échec/HTTP KO) :
+    // dans les deux cas la réponse est dégradée → exclue de la mémoire C1 (anti-écho).
+    return { reply, isError: !!data?.isError || !data?.reply }
   } catch (err) {
     console.error('whatsapp-agent call failed:', (err as Error)?.name ?? 'error')
-    return t(lang, 'cantProcessNow')
+    return { reply: t(lang, 'cantProcessNow'), isError: true }
   }
 }
 
