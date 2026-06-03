@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react'
 import { CalIcon } from './CalIcon'
-import { CAL_EVENT_TYPES, CAL_PALETTE, type CalEvent } from './data'
+import { CAL_EVENT_TYPES, calLayout, eventTypeColors, useCalPalette, type CalEvent } from './data'
 import { fmtTime, sameDay } from './helpers'
 
 interface CalDayViewProps {
@@ -12,10 +12,11 @@ interface CalDayViewProps {
   now: Date
   selectedId: string | null
   onSelect: (id: string) => void
+  onEdit?: (id: string) => void
 }
 
-export function CalDayView({ events, currentDate, now, selectedId, onSelect }: CalDayViewProps) {
-  const SP = CAL_PALETTE
+export function CalDayView({ events, currentDate, now, selectedId, onSelect, onEdit }: CalDayViewProps) {
+  const SP = useCalPalette()
   const TYPES = CAL_EVENT_TYPES
 
   const dayEvents = useMemo(() => {
@@ -23,6 +24,9 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
       .filter(e => sameDay(e.start, currentDate))
       .sort((a, b) => a.start.getTime() - b.start.getTime())
   }, [events, currentDate])
+
+  // Chevauchement (#4) : colonnes côte-à-côte pour les events qui se recouvrent.
+  const dayLayout = calLayout(dayEvents)
 
   const HOUR_START = 7
   const HOUR_END = 21
@@ -101,7 +105,7 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
                       width: 8,
                       height: 8,
                       borderRadius: 2,
-                      background: t.dark ? t.bg : t.accent,
+                      background: ((c) => (c.dark ? c.bg : c.accent))(eventTypeColors(t, SP.isDark)),
                     }}
                   />
                   <span style={{ fontSize: 11, color: SP.muted, fontWeight: 600 }}>
@@ -173,7 +177,7 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
                     width: 12,
                     height: 12,
                     borderRadius: 999,
-                    background: '#E54D38',
+                    background: SP.nowColor,
                     boxShadow: '0 0 0 3px rgba(229,77,56,0.18)',
                   }}
                 />
@@ -184,7 +188,7 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
                     right: 8,
                     top: -1,
                     height: 2,
-                    background: '#E54D38',
+                    background: SP.nowColor,
                     borderRadius: 2,
                   }}
                 />
@@ -195,7 +199,7 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
                     top: -22,
                     fontSize: 10.5,
                     fontWeight: 800,
-                    color: '#E54D38',
+                    color: SP.nowColor,
                     letterSpacing: 0.6,
                     background: SP.card,
                     padding: '2px 8px',
@@ -210,24 +214,33 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
             {/* Events */}
             {dayEvents.map(e => {
               const t = TYPES[e.type]
+              const tc = eventTypeColors(t, SP.isDark)
               const top = eventTop(e.start)
               const h = eventHeight(e)
               const isSelected = e.id === selectedId
               const isPast = e.end < now && isToday
+              const slot = dayLayout.get(e.id) ?? { col: 0, cols: 1 }
+              const leftCalc = `calc(84px + (100% - 100px) * ${slot.col} / ${slot.cols})`
+              const widthCalc = `calc((100% - 100px) / ${slot.cols} - 4px)`
+              const cancelled = e.status === 'cancelled'
+              const statusMuted = e.status === 'done' || cancelled
+              const compact = h < 52
+              const roomy = h >= 78
               return (
                 <button
                   key={e.id}
                   onClick={() => onSelect(e.id)}
+                  onDoubleClick={() => onEdit?.(e.id)}
                   style={{
                     position: 'absolute',
-                    left: 84,
-                    right: 16,
+                    left: leftCalc,
+                    width: widthCalc,
                     top,
                     height: h,
                     borderRadius: 14,
                     border: 0,
-                    background: t.bg,
-                    color: t.ink,
+                    background: tc.bg,
+                    color: tc.ink,
                     padding: '10px 14px',
                     textAlign: 'left',
                     cursor: 'pointer',
@@ -236,9 +249,9 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
                     flexDirection: 'column',
                     justifyContent: 'center',
                     gap: 2,
-                    opacity: isPast ? 0.55 : 1,
+                    opacity: statusMuted ? 0.5 : isPast ? 0.55 : 1,
                     boxShadow: isSelected
-                      ? `0 0 0 2px ${SP.black}, 0 8px 20px rgba(11,12,14,0.16)`
+                      ? `0 0 0 2px ${SP.ring}, 0 8px 20px rgba(11,12,14,0.16)`
                       : '0 1px 3px rgba(11,12,14,0.06)',
                     transition: 'all .18s ease',
                     overflow: 'hidden',
@@ -250,36 +263,39 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
                     ev.currentTarget.style.transform = 'translateX(0)'
                   }}
                 >
+                  {!compact && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: 0.4,
+                        opacity: 0.75,
+                      }}
+                    >
+                      <span>
+                        {fmtTime(e.start)} – {fmtTime(e.end)}
+                      </span>
+                      <span style={{ opacity: 0.5 }}>·</span>
+                      <span style={{ textTransform: 'uppercase' }}>{t.label}</span>
+                    </div>
+                  )}
                   <div
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: 0.4,
-                      opacity: 0.75,
-                    }}
-                  >
-                    <span>
-                      {fmtTime(e.start)} – {fmtTime(e.end)}
-                    </span>
-                    <span style={{ opacity: 0.5 }}>·</span>
-                    <span style={{ textTransform: 'uppercase' }}>{t.label}</span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: h < 50 ? 13 : 14,
+                      fontSize: compact ? 12 : 14,
                       fontWeight: 700,
                       letterSpacing: -0.2,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
+                      textDecoration: cancelled ? 'line-through' : 'none',
                     }}
                   >
-                    {e.title}
+                    {compact ? `${fmtTime(e.start)}  ${e.title}` : e.title}
                   </div>
-                  {h >= 70 && e.location && (
+                  {roomy && e.location && (
                     <div
                       style={{
                         fontSize: 11.5,
@@ -293,7 +309,7 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect }: C
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      <CalIcon name="pin" size={11} stroke={t.ink} sw={2} />
+                      <CalIcon name="pin" size={11} stroke={tc.ink} sw={2} />
                       {e.location}
                     </div>
                   )}
@@ -331,7 +347,7 @@ interface CalNextHeroProps {
 }
 
 function CalNextHero({ event, now, isToday, onOpen }: CalNextHeroProps) {
-  const SP = CAL_PALETTE
+  const SP = useCalPalette()
   const t = CAL_EVENT_TYPES[event.type]
 
   const diffMin = Math.round((event.start.getTime() - now.getTime()) / 60000)
@@ -356,12 +372,12 @@ function CalNextHero({ event, now, isToday, onOpen }: CalNextHeroProps) {
         textAlign: 'left',
         border: 0,
         fontFamily: 'inherit',
-        background: SP.black,
-        color: '#fff',
+        background: SP.heroBg,
+        color: SP.heroInk,
         borderRadius: 24,
         padding: 22,
         cursor: 'pointer',
-        boxShadow: '0 16px 36px rgba(11,12,14,0.18)',
+        boxShadow: SP.heroShadow,
         display: 'flex',
         alignItems: 'center',
         gap: 22,
@@ -420,17 +436,6 @@ function CalNextHero({ event, now, isToday, onOpen }: CalNextHeroProps) {
             gap: 8,
           }}
         >
-          {(inProgress || (upcoming && diffMin <= 60)) && (
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: 999,
-                background: inProgress ? '#10B981' : '#FCD34D',
-                animation: 'calPulseDot 1.6s ease-in-out infinite',
-              }}
-            />
-          )}
           {headline}
           <span style={{ opacity: 0.5 }}>·</span>
           <span>{t.label}</span>

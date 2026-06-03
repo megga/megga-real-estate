@@ -2,15 +2,17 @@
 // 1:1 port from `crm-calendar-sugar-panels.jsx` (CalRightPanel + CalAction).
 
 import { CalIcon, type CalIconName } from './CalIcon'
-import { CAL_EVENT_TYPES, CAL_PALETTE, type CalEvent } from './data'
+import { CAL_EVENT_TYPES, eventTypeColors, useCalPalette, type CalEvent } from './data'
 import { fmtDate, fmtTime, generateBrief, shadeMix } from './helpers'
 
 interface CalRightPanelProps {
   event: CalEvent | null | undefined
+  onEdit?: (id: string) => void
+  onSetStatus?: (id: string, status: 'done' | 'cancelled') => void
 }
 
-export function CalRightPanel({ event }: CalRightPanelProps) {
-  const SP = CAL_PALETTE
+export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps) {
+  const SP = useCalPalette()
 
   if (!event) {
     return (
@@ -54,6 +56,7 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
   }
 
   const t = CAL_EVENT_TYPES[event.type]
+  const tc = eventTypeColors(t, SP.isDark)
 
   return (
     <aside
@@ -69,8 +72,8 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
       {/* Header */}
       <div
         style={{
-          background: t.bg,
-          color: t.ink,
+          background: SP.isDark ? tc.bg : shadeMix(tc.bg, -0.05),
+          color: tc.ink,
           borderRadius: 24,
           padding: 20,
           boxShadow: SP.shadow,
@@ -99,6 +102,25 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
         >
           {event.title}
         </div>
+        {event.status && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              marginBottom: 12,
+              padding: '3px 9px',
+              borderRadius: 999,
+              fontSize: 10.5,
+              fontWeight: 800,
+              letterSpacing: 0.4,
+              background: 'rgba(255,255,255,0.16)',
+              color: tc.ink,
+            }}
+          >
+            {event.status === 'done' ? 'Terminé' : 'Annulé'}
+          </div>
+        )}
         <div
           style={{
             display: 'flex',
@@ -108,7 +130,7 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
             fontWeight: 600,
           }}
         >
-          <CalIcon name="clock" size={13} stroke={t.ink} sw={2} />
+          <CalIcon name="clock" size={13} stroke={tc.ink} sw={2} />
           {fmtDate(event.start)} · {fmtTime(event.start)} – {fmtTime(event.end)}
         </div>
         {event.location && (
@@ -123,7 +145,7 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
               opacity: 0.85,
             }}
           >
-            <CalIcon name="pin" size={13} stroke={t.ink} sw={2} />
+            <CalIcon name="pin" size={13} stroke={tc.ink} sw={2} />
             <span>{event.location}</span>
           </div>
         )}
@@ -216,8 +238,8 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
                 width: 42,
                 height: 42,
                 borderRadius: 999,
-                background: SP.black,
-                color: '#fff',
+                background: SP.accent,
+                color: SP.onAccent,
                 display: 'grid',
                 placeItems: 'center',
                 fontSize: 13,
@@ -254,25 +276,6 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
                 {event.contact.name}
               </div>
             </div>
-            {event.contact.warm && (
-              <div
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 999,
-                  background: '#FFF3E1',
-                  color: '#7A4A14',
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: 0.4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3,
-                }}
-              >
-                <CalIcon name="flame" size={9} stroke="#A8631C" sw={2.4} />
-                {event.contact.warm}%
-              </div>
-            )}
           </div>
           {event.contact.phone && (
             <div
@@ -335,8 +338,8 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
       {/* AI brief */}
       <div
         style={{
-          background: SP.black,
-          color: '#fff',
+          background: SP.heroBg,
+          color: SP.heroInk,
           borderRadius: 18,
           padding: 16,
           boxShadow: SP.shadow,
@@ -351,7 +354,7 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
             opacity: 0.6,
           }}
         >
-          <CalIcon name="sparkle" size={11} stroke="#fff" sw={2.2} />
+          <CalIcon name="sparkle" size={11} stroke={SP.heroInk} sw={2.2} />
           <div
             style={{
               fontSize: 10,
@@ -380,8 +383,8 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
             padding: '0 14px',
             borderRadius: 999,
             border: 0,
-            background: 'rgba(255,255,255,0.12)',
-            color: '#fff',
+            background: SP.heroChipStrong,
+            color: SP.heroInk,
             fontSize: 11.5,
             fontWeight: 700,
             cursor: 'pointer',
@@ -391,7 +394,7 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
             gap: 6,
           }}
         >
-          <CalIcon name="mic" size={11} stroke="#fff" sw={2} />
+          <CalIcon name="mic" size={11} stroke={SP.heroInk} sw={2} />
           Écouter le brief vocal
         </button>
       </div>
@@ -404,10 +407,22 @@ export function CalRightPanel({ event }: CalRightPanelProps) {
           gap: 8,
         }}
       >
+        {onEdit && <CalAction icon="signature" label="Modifier" onClick={() => onEdit(event.id)} />}
         {event.contact?.phone && <CalAction icon="phone" label="Appeler" />}
         {event.location && <CalAction icon="car" label="Itinéraire" />}
-        <CalAction icon="check" label="Marquer fait" />
-        <CalAction icon="close" label="Annuler" danger />
+        <CalAction
+          icon="check"
+          label="Marquer fait"
+          active={event.status === 'done'}
+          onClick={() => onSetStatus?.(event.id, 'done')}
+        />
+        <CalAction
+          icon="close"
+          label="Annuler"
+          danger
+          active={event.status === 'cancelled'}
+          onClick={() => onSetStatus?.(event.id, 'cancelled')}
+        />
       </div>
     </aside>
   )
@@ -417,21 +432,26 @@ function CalAction({
   icon,
   label,
   danger,
+  active,
+  onClick,
 }: {
   icon: CalIconName
   label: string
   danger?: boolean
+  active?: boolean
+  onClick?: () => void
 }) {
-  const SP = CAL_PALETTE
+  const SP = useCalPalette()
   return (
     <button
+      onClick={onClick}
       style={{
         height: 40,
         borderRadius: 12,
         border: 0,
-        background: danger ? '#FFF' : SP.card,
-        color: danger ? '#B33A2A' : SP.ink,
-        boxShadow: SP.shadowSm,
+        background: active ? (danger ? SP.warnBg : SP.cardSubtle) : SP.card,
+        color: danger ? SP.dangerInk : SP.ink,
+        boxShadow: active ? 'none' : SP.shadowSm,
         fontFamily: 'inherit',
         fontSize: 12,
         fontWeight: 700,
@@ -445,7 +465,7 @@ function CalAction({
       onMouseEnter={e => (e.currentTarget.style.boxShadow = SP.shadow)}
       onMouseLeave={e => (e.currentTarget.style.boxShadow = SP.shadowSm)}
     >
-      <CalIcon name={icon} size={13} stroke={danger ? '#B33A2A' : SP.ink} sw={2} />
+      <CalIcon name={icon} size={13} stroke={danger ? SP.dangerInk : SP.ink} sw={2} />
       {label}
     </button>
   )

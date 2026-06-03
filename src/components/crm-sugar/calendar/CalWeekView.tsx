@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Calendar Week view
 // 1:1 port from `crm-calendar-sugar-week-month.jsx` (CalWeekView).
 
-import { CAL_EVENT_TYPES, CAL_PALETTE, type CalEvent } from './data'
+import { CAL_EVENT_TYPES, calLayout, eventTypeColors, useCalPalette, type CalEvent } from './data'
 import { CAL_DAYS, fmtTime, sameDay } from './helpers'
 
 interface CalWeekViewProps {
@@ -10,6 +10,7 @@ interface CalWeekViewProps {
   now: Date
   selectedId: string | null
   onSelect: (id: string) => void
+  onEdit?: (id: string) => void
   onDateChange: (d: Date) => void
 }
 
@@ -19,9 +20,10 @@ export function CalWeekView({
   now,
   selectedId,
   onSelect,
+  onEdit,
   onDateChange,
 }: CalWeekViewProps) {
-  const SP = CAL_PALETTE
+  const SP = useCalPalette()
   const TYPES = CAL_EVENT_TYPES
 
   const monday = new Date(currentDate)
@@ -36,8 +38,7 @@ export function CalWeekView({
 
   const HOUR_START = 7
   const HOUR_END = 21
-  const ROW_H = 48
-  const TOTAL_H = (HOUR_END - HOUR_START) * ROW_H
+  const HOURS = HOUR_END - HOUR_START
 
   return (
     <div
@@ -99,8 +100,8 @@ export function CalWeekView({
                   borderRadius: 999,
                   display: 'grid',
                   placeItems: 'center',
-                  background: isToday ? SP.black : isSelected ? SP.cardSubtle : 'transparent',
-                  color: isToday ? '#fff' : SP.ink,
+                  background: isToday ? SP.accent : isSelected ? SP.cardSubtle : 'transparent',
+                  color: isToday ? SP.onAccent : SP.ink,
                   fontSize: 14,
                   fontWeight: 700,
                 }}
@@ -112,23 +113,28 @@ export function CalWeekView({
         })}
       </div>
 
-      {/* Grid */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      {/* Grid — hauteur FLUIDE (#3) : la grille remplit toute la hauteur dispo
+          (cellules flex:1), events positionnés en %. Plancher 760px, scroll si
+          la fenêtre est trop courte. Chevauchement (#4) géré par jour via
+          calLayout (col/cols). Statut (#10) : opacité + titre barré. */}
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: '60px repeat(7, minmax(0, 1fr))',
+            gridTemplateRows: '1fr',
             position: 'relative',
-            height: TOTAL_H,
+            flex: 1,
+            minHeight: 760,
           }}
         >
           {/* Hour col */}
-          <div>
-            {Array.from({ length: HOUR_END - HOUR_START }).map((_, i) => (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {Array.from({ length: HOURS }).map((_, i) => (
               <div
                 key={i}
                 style={{
-                  height: ROW_H,
+                  flex: 1,
                   position: 'relative',
                   borderTop: `1px solid ${SP.line}`,
                 }}
@@ -151,6 +157,7 @@ export function CalWeekView({
           {/* Day columns */}
           {days.map((d, i) => {
             const dayEvents = events.filter(e => sameDay(e.start, d))
+            const layout = calLayout(dayEvents)
             const isToday = sameDay(d, now)
             return (
               <div
@@ -158,16 +165,18 @@ export function CalWeekView({
                 style={{
                   position: 'relative',
                   borderLeft: `1px solid ${SP.line}`,
-                  background: isToday ? 'rgba(11,12,14,0.015)' : 'transparent',
+                  background: isToday ? SP.todayCol : 'transparent',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
-                {Array.from({ length: HOUR_END - HOUR_START }).map((_, h) => (
+                {Array.from({ length: HOURS }).map((_, h) => (
                   <div
                     key={h}
-                    style={{ height: ROW_H, borderTop: `1px solid ${SP.line}` }}
+                    style={{ flex: 1, borderTop: `1px solid ${SP.line}` }}
                   />
                 ))}
-                {/* "now" line */}
+                {/* "now" line — positionnée en % */}
                 {isToday &&
                   (() => {
                     const nh = now.getHours() + now.getMinutes() / 60
@@ -178,9 +187,9 @@ export function CalWeekView({
                           position: 'absolute',
                           left: 0,
                           right: 0,
-                          top: (nh - HOUR_START) * ROW_H,
+                          top: `${((nh - HOUR_START) / HOURS) * 100}%`,
                           height: 2,
-                          background: '#E54D38',
+                          background: SP.nowColor,
                           zIndex: 5,
                         }}
                       >
@@ -192,41 +201,44 @@ export function CalWeekView({
                             width: 8,
                             height: 8,
                             borderRadius: 999,
-                            background: '#E54D38',
+                            background: SP.nowColor,
                           }}
                         />
                       </div>
                     )
                   })()}
                 {dayEvents.map(e => {
-                  const t = TYPES[e.type]
-                  const top =
-                    (e.start.getHours() + e.start.getMinutes() / 60 - HOUR_START) * ROW_H
-                  const h = Math.max(
-                    28,
-                    ((e.end.getTime() - e.start.getTime()) / 3600000) * ROW_H - 4,
-                  )
+                  const tc = eventTypeColors(TYPES[e.type], SP.isDark)
+                  const startH = e.start.getHours() + e.start.getMinutes() / 60
+                  const durH = (e.end.getTime() - e.start.getTime()) / 3600000
+                  const slot = layout.get(e.id) ?? { col: 0, cols: 1 }
+                  const widthPct = 100 / slot.cols
                   const isSelected = e.id === selectedId
+                  const cancelled = e.status === 'cancelled'
+                  const muted = cancelled || e.status === 'done'
                   return (
                     <button
                       key={e.id}
                       onClick={() => onSelect(e.id)}
+                      onDoubleClick={() => onEdit?.(e.id)}
                       style={{
                         position: 'absolute',
-                        left: 4,
-                        right: 4,
-                        top,
-                        height: h,
+                        top: `${((startH - HOUR_START) / HOURS) * 100}%`,
+                        height: `calc(${(durH / HOURS) * 100}% - 4px)`,
+                        minHeight: 34,
+                        left: `calc(${slot.col * widthPct}% + 2px)`,
+                        width: `calc(${widthPct}% - 4px)`,
                         borderRadius: 8,
                         border: 0,
-                        background: t.bg,
-                        color: t.ink,
+                        background: tc.bg,
+                        color: tc.ink,
                         padding: '5px 8px',
                         textAlign: 'left',
                         cursor: 'pointer',
                         fontFamily: 'inherit',
+                        opacity: muted ? 0.5 : 1,
                         boxShadow: isSelected
-                          ? `0 0 0 2px ${SP.black}`
+                          ? `0 0 0 2px ${SP.ring}`
                           : '0 1px 2px rgba(0,0,0,0.04)',
                         overflow: 'hidden',
                       }}
@@ -249,6 +261,7 @@ export function CalWeekView({
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
+                          textDecoration: cancelled ? 'line-through' : 'none',
                         }}
                       >
                         {e.title}

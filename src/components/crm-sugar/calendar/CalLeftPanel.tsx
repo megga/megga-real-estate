@@ -1,10 +1,10 @@
 // MEGGA CRM Sugar v2 — Calendar left panel (mini-month + filters + hot buyers + AI insights)
 // 1:1 port from `crm-calendar-sugar-panels.jsx` (CalLeftPanel + sub-cards).
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CalIcon } from './CalIcon'
 import {
-  CAL_EVENT_TYPES, CAL_PALETTE,
+  CAL_EVENT_TYPES, eventTypeColors, useCalPalette,
   type CalAIInsight, type CalEvent, type CalHotBuyer,
 } from './data'
 import { CAL_MONTHS, sameDay } from './helpers'
@@ -61,7 +61,7 @@ interface CalMiniMonthProps {
 }
 
 function CalMiniMonth({ currentDate, onDateChange, events }: CalMiniMonthProps) {
-  const SP = CAL_PALETTE
+  const SP = useCalPalette()
   const [viewMonth, setViewMonth] = useState(
     () => new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
   )
@@ -194,8 +194,8 @@ function CalMiniMonth({ currentDate, onDateChange, events }: CalMiniMonthProps) 
               style={{
                 aspectRatio: '1/1',
                 border: 0,
-                background: isSelected ? SP.black : 'transparent',
-                color: isSelected ? '#fff' : SP.ink,
+                background: isSelected ? SP.accent : 'transparent',
+                color: isSelected ? SP.onAccent : SP.ink,
                 fontSize: 12,
                 fontWeight: 600,
                 fontFamily: 'inherit',
@@ -243,7 +243,7 @@ interface CalTypeFiltersProps {
 }
 
 function CalTypeFilters({ filters, onFilters }: CalTypeFiltersProps) {
-  const SP = CAL_PALETTE
+  const SP = useCalPalette()
   const TYPES = CAL_EVENT_TYPES
   return (
     <div
@@ -294,7 +294,7 @@ function CalTypeFilters({ filters, onFilters }: CalTypeFiltersProps) {
                   width: 14,
                   height: 14,
                   borderRadius: 4,
-                  background: t.dark ? t.bg : t.accent,
+                  background: ((c) => (c.dark ? c.bg : c.accent))(eventTypeColors(t, SP.isDark)),
                 }}
               />
               <span style={{ fontSize: 12.5, fontWeight: 600 }}>{t.label}</span>
@@ -306,8 +306,79 @@ function CalTypeFilters({ filters, onFilters }: CalTypeFiltersProps) {
   )
 }
 
+// ── Mécanique commune des widgets « stack » iOS (#11/#12) ───────────────────
+// Une carte visible à la fois ; molette native {passive:false} qui cycle l'index
+// sans scroller la page (anti-rebond ~320ms) ; pagination verticale cliquable.
+function useCardStack(count: number) {
+  const [index, setIndex] = useState(0)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const lastWheel = useRef(0)
+
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el || count <= 1) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const now = Date.now()
+      if (now - lastWheel.current < 320) return
+      lastWheel.current = now
+      setIndex(prev => Math.max(0, Math.min(count - 1, prev + (e.deltaY > 0 ? 1 : -1))))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [count])
+
+  // Clamp dérivé au render (si la liste raccourcit) — évite un setState-in-effect.
+  return { index: Math.min(index, Math.max(0, count - 1)), setIndex, viewportRef }
+}
+
+function CalStackDots({
+  count,
+  active,
+  onPick,
+}: {
+  count: number
+  active: number
+  onPick: (i: number) => void
+}) {
+  const SP = useCalPalette()
+  if (count <= 1) return null
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      {Array.from({ length: count }).map((_, k) => (
+        <button
+          key={k}
+          onClick={() => onPick(k)}
+          aria-label={`Carte ${k + 1}`}
+          style={{
+            width: 6,
+            height: k === active ? 18 : 6,
+            borderRadius: 999,
+            border: 0,
+            padding: 0,
+            background: k === active ? SP.ink : SP.ghost,
+            cursor: 'pointer',
+            transition: 'all .25s ease',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 function CalHotBuyers({ buyers }: { buyers: CalHotBuyer[] }) {
-  const SP = CAL_PALETTE
+  const SP = useCalPalette()
+  const H = 116
+  const { index, setIndex, viewportRef } = useCardStack(buyers.length)
+  if (buyers.length === 0) return null
   return (
     <div
       style={{
@@ -342,8 +413,8 @@ function CalHotBuyers({ buyers }: { buyers: CalHotBuyer[] }) {
             marginLeft: 'auto',
             padding: '2px 7px',
             borderRadius: 999,
-            background: SP.black,
-            color: '#fff',
+            background: SP.accent,
+            color: SP.onAccent,
             fontSize: 9.5,
             fontWeight: 800,
             letterSpacing: 0.4,
@@ -352,89 +423,90 @@ function CalHotBuyers({ buyers }: { buyers: CalHotBuyer[] }) {
           AI
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {buyers.map(b => (
-          <button
-            key={b.id}
+      {/* Stack iOS : une carte à la fois, molette + pagination verticale. */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+        <div ref={viewportRef} style={{ flex: 1, overflow: 'hidden', height: H }}>
+          <div
             style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 10,
-              padding: 10,
-              border: 0,
-              borderRadius: 12,
-              background: SP.cardSubtle,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              textAlign: 'left',
-              transition: 'all .15s',
+              transform: `translateY(-${index * H}px)`,
+              transition: 'transform .42s cubic-bezier(.2,.8,.2,1)',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#EBEEF2')}
-            onMouseLeave={e => (e.currentTarget.style.background = SP.cardSubtle)}
           >
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 999,
-                background: SP.black,
-                color: '#fff',
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 10.5,
-                fontWeight: 800,
-                flexShrink: 0,
-              }}
-            >
-              {b.initials}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            {buyers.map(b => (
               <div
+                key={b.id}
                 style={{
+                  height: H,
+                  boxSizing: 'border-box',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                  marginBottom: 2,
+                  gap: 12,
+                  padding: 14,
+                  borderRadius: 12,
+                  background: SP.cardSubtle,
+                  textAlign: 'left',
                 }}
               >
-                <span
+                <div
                   style={{
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    color: SP.ink,
-                    letterSpacing: -0.1,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {b.name}
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
+                    width: 46,
+                    height: 46,
+                    borderRadius: 999,
+                    background: SP.accent,
+                    color: SP.onAccent,
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontSize: 15,
                     fontWeight: 800,
-                    color: SP.ink,
                     flexShrink: 0,
                   }}
                 >
-                  {b.warm}%
-                </span>
+                  {b.initials}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 6,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: SP.ink,
+                        letterSpacing: -0.2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {b.name}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: SP.muted,
+                      fontWeight: 500,
+                      lineHeight: 1.35,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {b.reason}
+                  </div>
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: 10.5,
-                  color: SP.muted,
-                  fontWeight: 500,
-                  lineHeight: 1.35,
-                }}
-              >
-                {b.reason}
-              </div>
-            </div>
-          </button>
-        ))}
+            ))}
+          </div>
+        </div>
+        <CalStackDots count={buyers.length} active={index} onPick={setIndex} />
       </div>
     </div>
   )
@@ -446,7 +518,9 @@ interface CalAIInsightsProps {
 }
 
 function CalAIInsights({ insights, onSelectEvent }: CalAIInsightsProps) {
-  const SP = CAL_PALETTE
+  const SP = useCalPalette()
+  const H = 150
+  const { index, setIndex, viewportRef } = useCardStack(insights?.length ?? 0)
   if (!insights || insights.length === 0) return null
   return (
     <div
@@ -478,75 +552,95 @@ function CalAIInsights({ insights, onSelectEvent }: CalAIInsightsProps) {
           MEGGA AI
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {insights.map(ins => {
-          const isWarn = ins.severity === 'warning'
-          return (
-            <div
-              key={ins.id}
-              style={{
-                padding: 11,
-                borderRadius: 12,
-                background: isWarn ? '#FBF1E6' : SP.cardSubtle,
-                border: isWarn ? '1px solid #F2D2A8' : 'none',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  marginBottom: 4,
-                }}
-              >
-                <CalIcon
-                  name={isWarn ? 'warn' : 'sparkle'}
-                  size={11}
-                  stroke={isWarn ? '#A8631C' : SP.ink}
-                  sw={2.2}
-                />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+        <div ref={viewportRef} style={{ flex: 1, overflow: 'hidden', height: H }}>
+          <div
+            style={{
+              transform: `translateY(-${index * H}px)`,
+              transition: 'transform .42s cubic-bezier(.2,.8,.2,1)',
+            }}
+          >
+            {insights.map(ins => {
+              const isWarn = ins.severity === 'warning'
+              return (
                 <div
+                  key={ins.id}
                   style={{
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: isWarn ? '#7A4A14' : SP.ink,
-                    letterSpacing: -0.1,
+                    height: H,
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: 12,
+                    borderRadius: 12,
+                    background: isWarn ? SP.warnBg : SP.cardSubtle,
+                    border: isWarn ? `1px solid ${SP.warnBorder}` : 'none',
                   }}
                 >
-                  {ins.title}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <CalIcon
+                      name={isWarn ? 'warn' : 'sparkle'}
+                      size={12}
+                      stroke={isWarn ? SP.warnIcon : SP.ink}
+                      sw={2.2}
+                    />
+                    <div
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: isWarn ? SP.warnInk : SP.ink,
+                        letterSpacing: -0.2,
+                      }}
+                    >
+                      {ins.title}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13.5,
+                      color: SP.inkSoft,
+                      fontWeight: 500,
+                      lineHeight: 1.4,
+                      marginBottom: 'auto',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {ins.detail}
+                  </div>
+                  <button
+                    onClick={() => ins.events && ins.events[0] && onSelectEvent(ins.events[0])}
+                    style={{
+                      alignSelf: 'flex-start',
+                      marginTop: 6,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: isWarn ? SP.warnInk : SP.ink,
+                      background: 'transparent',
+                      border: 0,
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: 3,
+                    }}
+                  >
+                    {ins.suggestion}
+                  </button>
                 </div>
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: SP.inkSoft,
-                  fontWeight: 500,
-                  lineHeight: 1.4,
-                  marginBottom: 6,
-                }}
-              >
-                {ins.detail}
-              </div>
-              <button
-                onClick={() => ins.events && ins.events[0] && onSelectEvent(ins.events[0])}
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: SP.ink,
-                  background: 'transparent',
-                  border: 0,
-                  padding: 0,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  textDecoration: 'underline',
-                  textUnderlineOffset: 3,
-                }}
-              >
-                {ins.suggestion}
-              </button>
-            </div>
-          )
-        })}
+              )
+            })}
+          </div>
+        </div>
+        <CalStackDots count={insights.length} active={index} onPick={setIndex} />
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Calendar Month view
 // 1:1 port from `crm-calendar-sugar-week-month.jsx` (CalMonthView).
 
-import { CAL_EVENT_TYPES, CAL_PALETTE, type CalEvent } from './data'
+import { CAL_EVENT_TYPES, eventTypeColors, useCalPalette, type CalEvent } from './data'
 import { fmtTime, sameDay } from './helpers'
 
 interface CalMonthViewProps {
@@ -12,7 +12,7 @@ interface CalMonthViewProps {
 }
 
 export function CalMonthView({ events, currentDate, now, onDateChange }: CalMonthViewProps) {
-  const SP = CAL_PALETTE
+  const SP = useCalPalette()
   const TYPES = CAL_EVENT_TYPES
 
   const first = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
@@ -121,8 +121,8 @@ export function CalMonthView({ events, currentDate, now, onDateChange }: CalMont
                     borderRadius: 999,
                     display: 'grid',
                     placeItems: 'center',
-                    background: isToday ? SP.black : 'transparent',
-                    color: isToday ? '#fff' : SP.ink,
+                    background: isToday ? SP.accent : 'transparent',
+                    color: isToday ? SP.onAccent : SP.ink,
                     fontSize: 11,
                     fontWeight: 700,
                   }}
@@ -139,21 +139,24 @@ export function CalMonthView({ events, currentDate, now, onDateChange }: CalMont
                 }}
               >
                 {dayEvents.slice(0, 3).map(e => {
-                  const t = TYPES[e.type]
+                  const tc = eventTypeColors(TYPES[e.type], SP.isDark)
+                  const muted = e.status === 'done' || e.status === 'cancelled'
                   return (
                     <div
                       key={e.id}
                       style={{
                         padding: '2px 6px',
                         borderRadius: 4,
-                        background: t.bg,
-                        color: t.ink,
+                        background: tc.bg,
+                        color: tc.ink,
                         fontSize: 10,
                         fontWeight: 700,
                         lineHeight: 1.3,
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
+                        opacity: muted ? 0.5 : 1,
+                        textDecoration: e.status === 'cancelled' ? 'line-through' : 'none',
                       }}
                     >
                       {fmtTime(e.start)} {e.title}
