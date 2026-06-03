@@ -591,6 +591,21 @@ export async function execRunKycScreening(ctx: ActionCtx, a: Args): Promise<stri
   const kc = await findOpenKycCase(ctx, contactId)
   if (!kc) return `Aucun dossier KYC ouvert pour ${name}. Tu veux que j'en ouvre un ?`
 
+  // Verrou anti-double-screening : claim atomique sur screening_started_at (PAS
+  // last_screening_at — l'edge kyc-screening renvoie 429 si last_screening_at < 60s,
+  // donc le réutiliser ici auto-bloquerait chaque screening). 0 ligne = déjà en cours.
+  const staleIso = new Date(Date.now() - 120_000).toISOString()
+  const { data: lock } = await ctx.supabase
+    .from('kyc_cases')
+    .update({ screening_status: 'running', screening_started_at: new Date().toISOString() })
+    .eq('id', kc.id)
+    .or(`screening_status.is.null,screening_status.eq.failed,screening_started_at.lt.${staleIso}`)
+    .select('id')
+    .maybeSingle()
+  if (!lock) {
+    return `Le screening de ${name} tourne déjà, je te donne le résultat dès qu'il est prêt.`
+  }
+
   const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/kyc-screening`
   let res: Response
   try {
@@ -608,14 +623,22 @@ export async function execRunKycScreening(ctx: ActionCtx, a: Args): Promise<stri
       signal: AbortSignal.timeout(50_000),
     })
   } catch (e) {
+    await ctx.supabase.from('kyc_cases').update({ screening_status: 'failed' }).eq('id', kc.id)
     const n = (e as Error)?.name
     if (n === 'TimeoutError' || n === 'AbortError') {
-      return 'Le screening prend plus de temps que prévu — il a peut-être abouti, vérifie le dossier dans le CRM dans un instant.'
+      // §2.4 : message DÉTERMINISTE — ne plus dire "il a peut-être abouti" (incitait à relancer = double crédit).
+      return 'Le screening tourne, je te donne le résultat dès qu\'il est prêt.'
     }
     return 'Le screening a échoué (réseau). Réessaie dans un instant.'
   }
-  if (res.status === 429) return 'Screening déjà lancé il y a quelques secondes — patiente un instant avant de relancer.'
-  if (!res.ok) return `Le screening n'a pas pu aboutir (code ${res.status}).`
+  if (res.status === 429) {
+    await ctx.supabase.from('kyc_cases').update({ screening_status: 'failed' }).eq('id', kc.id)
+    return 'Screening déjà lancé il y a quelques secondes — patiente un instant avant de relancer.'
+  }
+  if (!res.ok) {
+    await ctx.supabase.from('kyc_cases').update({ screening_status: 'failed' }).eq('id', kc.id)
+    return `Le screening n'a pas pu aboutir (code ${res.status}).`
+  }
   const r = (await res.json().catch(() => ({}))) as {
     pep_status?: string; sanctions_status?: string; risk_level?: string
   }
@@ -623,6 +646,7 @@ export async function execRunKycScreening(ctx: ActionCtx, a: Args): Promise<stri
   const sanc = r.sanctions_status === 'match' ? 'correspondance sanctions ⚠️' : 'pas de sanction'
   const riskFr: Record<string, string> = { low: 'faible', medium: 'moyen', high: 'élevé' }
   const risk = riskFr[r.risk_level ?? ''] ?? r.risk_level ?? '—'
+  await ctx.supabase.from('kyc_cases').update({ screening_status: 'done' }).eq('id', kc.id)
   return `Screening de ${name} : ${pep}, ${sanc}, risque ${risk}. Le dossier est prêt à valider dans le CRM (à toi de cocher les pièces et valider — je ne valide jamais à ta place).`
 }
 
