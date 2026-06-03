@@ -18,7 +18,7 @@
 //   </section>
 
 import { Link } from 'react-router-dom'
-import { PX, PxIcon, PxFigmaIcon } from '..'
+import { PX, MEIcon, PxFigmaIcon } from '..'
 
 // ─── MEGGA Logo (white pour fond dark) ────────────────────────────────
 function MeggaLogoLight() {
@@ -77,7 +77,7 @@ function PrimaryButtonLight({ to, label }: { to: string; label: string }) {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name="arrow-right" size={12} color={PX.neutral100} />
+        <MEIcon name="arrow-right" size={12} color={PX.neutral100} />
       </span>
     </Link>
   )
@@ -855,7 +855,7 @@ function BlogCardV3({ post }: { post: BlogPost }) {
               color: PX.neutral700,
               whiteSpace: 'nowrap',
             }}>Read more</span>
-            <PxIcon name="chevron-right" size={12} color={PX.neutral700} />
+            <MEIcon name="chevron-right" size={12} color={PX.neutral700} />
           </span>
         </div>
       </div>
@@ -891,7 +891,7 @@ function ButtonsRow() {
           cursor: 'pointer',
         }}
       >
-        <PxIcon name="chevron-left" size={16} color={PX.neutral700} />
+        <MEIcon name="chevron-left" size={16} color={PX.neutral700} />
       </button>
 
       {/* Center "1/6" */}
@@ -923,7 +923,7 @@ function ButtonsRow() {
           cursor: 'pointer',
         }}
       >
-        <PxIcon name="chevron-right" size={16} color={PX.neutral100} />
+        <MEIcon name="chevron-right" size={16} color={PX.neutral100} />
       </button>
     </div>
   )

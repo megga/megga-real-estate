@@ -8,7 +8,7 @@ import {
   type DarkTone, type StageId,
 } from '@/components/crm-sugar/tokens'
 import { crmBienById, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
-import CRMIcon from '@/components/crm-sugar/CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { SugarPipelineKycLock } from '@/components/crm-sugar-v3/pipeline/SugarPipelineKycLock'
 import { PipelineKycToast } from '@/components/crm-sugar-v3/pipeline/PipelineKycToast'
 import { KycOverrideModal } from '@/components/crm-sugar-v3/pipeline/KycOverrideModal'
@@ -327,7 +327,7 @@ export default function PipelineSugarV2Page() {
   return (
     <div style={{
       background: sp.pageBg, minHeight: '100vh',
-      fontFamily: 'Manrope, system-ui, sans-serif', color: sp.ink,
+      fontFamily: '"Inter Tight", system-ui, sans-serif', color: sp.ink,
     }}>
       <style>{SUGAR_KEYFRAMES}</style>
 
@@ -371,7 +371,7 @@ export default function PipelineSugarV2Page() {
                 display: 'flex', alignItems: 'center', gap: 8,
               }}
             >
-              <CRMIcon name="spark" size={14} stroke={sp.ink} />
+              <MEIcon name="sparkle" size={14} color={sp.ink} />
               Importer un lead
             </button>
             <button onClick={() => setNewDealOpen(true)} style={{
@@ -381,7 +381,7 @@ export default function PipelineSugarV2Page() {
               boxShadow: sp.focusShadow,
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              <CRMIcon name="plus" size={14} stroke={sp.pageBg} />
+              <MEIcon name="plus" size={14} color={sp.pageBg} />
               Nouveau deal
             </button>
           </div>
@@ -418,7 +418,7 @@ export default function PipelineSugarV2Page() {
               borderRadius: 999, boxShadow: sp.shadowSm,
               display: 'flex', alignItems: 'center', gap: 10,
             }}>
-              <CRMIcon name="search" size={14} stroke={sp.sub} />
+              <MEIcon name="search" size={14} color={sp.sub} />
               <input
                 value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Rechercher contact, bien, note…"

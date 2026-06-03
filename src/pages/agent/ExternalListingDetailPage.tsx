@@ -1,30 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  MapPin,
-  Ruler,
-  DoorOpen,
-  Building2,
-  Copy,
-  Check,
-  CalendarDays,
-  Bath,
-  Car,
-  Trees,
-  Phone,
-  User,
-  Download,
-  Send,
-  X,
-  Trash2,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-} from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useTranslation } from 'react-i18next'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import type { ExternalListing } from '@/hooks/useExternalMatching'
@@ -133,14 +109,14 @@ export default function ExternalListingDetailPage() {
   }
 
   const statsRaw = [
-    listing.rooms != null ? { label: t('external.rooms'), value: `${listing.rooms}`, icon: <DoorOpen className="w-4 h-4" /> } : null,
-    listing.surface_m2 != null ? { label: t('external.surface'), value: `${listing.surface_m2} m²`, icon: <Ruler className="w-4 h-4" /> } : null,
-    listing.bathrooms != null ? { label: t('external.bathrooms'), value: `${listing.bathrooms}`, icon: <Bath className="w-4 h-4" /> } : null,
-    listing.land_surface != null ? { label: t('external.land'), value: `${listing.land_surface} m²`, icon: <Trees className="w-4 h-4" /> } : null,
-    listing.parking != null ? { label: t('external.parking'), value: `${listing.parking}`, icon: <Car className="w-4 h-4" /> } : null,
-    typeLabel ? { label: t('filter_type'), value: detailTypeLabel || typeLabel, icon: <Building2 className="w-4 h-4" /> } : null,
-    listing.construction_year ? { label: t('external.construction'), value: `${listing.construction_year}`, icon: <CalendarDays className="w-4 h-4" /> } : null,
-    listing.renovation_year ? { label: t('external.renovation'), value: `${listing.renovation_year}`, icon: <CalendarDays className="w-4 h-4" /> } : null,
+    listing.rooms != null ? { label: t('external.rooms'), value: `${listing.rooms}`, icon: <MEIcon name="door" className="w-4 h-4" /> } : null,
+    listing.surface_m2 != null ? { label: t('external.surface'), value: `${listing.surface_m2} m²`, icon: <MEIcon name="ruler" className="w-4 h-4" /> } : null,
+    listing.bathrooms != null ? { label: t('external.bathrooms'), value: `${listing.bathrooms}`, icon: <MEIcon name="bath" className="w-4 h-4" /> } : null,
+    listing.land_surface != null ? { label: t('external.land'), value: `${listing.land_surface} m²`, icon: <MEIcon name="land" className="w-4 h-4" /> } : null,
+    listing.parking != null ? { label: t('external.parking'), value: `${listing.parking}`, icon: <MEIcon name="car" className="w-4 h-4" /> } : null,
+    typeLabel ? { label: t('filter_type'), value: detailTypeLabel || typeLabel, icon: <MEIcon name="building" className="w-4 h-4" /> } : null,
+    listing.construction_year ? { label: t('external.construction'), value: `${listing.construction_year}`, icon: <MEIcon name="calendar" className="w-4 h-4" /> } : null,
+    listing.renovation_year ? { label: t('external.renovation'), value: `${listing.renovation_year}`, icon: <MEIcon name="calendar" className="w-4 h-4" /> } : null,
   ]
   const stats = statsRaw.filter(Boolean) as { label: string; value: string; icon: React.ReactNode }[]
 
@@ -150,7 +126,7 @@ export default function ExternalListingDetailPage() {
         {/* Back + imported badge */}
         <div className="flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-            <ArrowLeft className="w-4 h-4" />
+            <MEIcon name="arrow-left" className="w-4 h-4" />
             {t('external.back')}
           </button>
           {imported && (
@@ -169,10 +145,10 @@ export default function ExternalListingDetailPage() {
             {photos.length > 1 && (
               <>
                 <button onClick={() => setPhotoIdx((i) => (i - 1 + photos.length) % photos.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-black/60 transition-colors">
-                  <ChevronLeft className="w-4 h-4 text-white" />
+                  <MEIcon name="chevron-left" className="w-4 h-4 text-white" />
                 </button>
                 <button onClick={() => setPhotoIdx((i) => (i + 1) % photos.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-black/60 transition-colors">
-                  <ChevronRight className="w-4 h-4 text-white" />
+                  <MEIcon name="chevron-right" className="w-4 h-4 text-white" />
                 </button>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                   {photos.slice(0, 12).map((_, i) => (
@@ -218,7 +194,7 @@ export default function ExternalListingDetailPage() {
                   </p>
                   {listing.title && <p className="text-sm text-theme-secondary mt-1 line-clamp-2">{listing.title}</p>}
                   <p className="text-xs text-theme-tertiary mt-1.5 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 shrink-0" />
+                    <MEIcon name="location" className="w-3 h-3 shrink-0" />
                     {locationStr || t('external.addressUnavailable')}
                   </p>
                 </div>
@@ -267,9 +243,9 @@ export default function ExternalListingDetailPage() {
                     priceComparison.diff_pct < -10 ? 'text-emerald-500' :
                     'text-theme-primary'
                   )}>
-                    {priceComparison.diff_pct > 5 ? <TrendingUp className="w-4 h-4" /> :
-                     priceComparison.diff_pct < -5 ? <TrendingDown className="w-4 h-4" /> :
-                     <Minus className="w-4 h-4" />}
+                    {priceComparison.diff_pct > 5 ? <MEIcon name="trending-up" className="w-4 h-4" /> :
+                     priceComparison.diff_pct < -5 ? <MEIcon name="trending-down" className="w-4 h-4" /> :
+                     <MEIcon name="minus" className="w-4 h-4" />}
                     {priceComparison.diff_pct > 0 ? '+' : ''}{priceComparison.diff_pct}%
                   </div>
                   <p className="text-xs text-theme-secondary">
@@ -382,7 +358,7 @@ export default function ExternalListingDetailPage() {
                         onClick={() => deleteNote(note.id)}
                         className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-theme-muted hover:text-red-500"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <MEIcon name="trash" className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
@@ -402,13 +378,13 @@ export default function ExternalListingDetailPage() {
                 )}
                 {listing.agency_phone && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-theme-secondary flex items-center gap-1"><Phone className="w-3 h-3" /> {t('external.phone')}</span>
+                    <span className="text-xs text-theme-secondary flex items-center gap-1"><MEIcon name="phone" className="w-3 h-3" /> {t('external.phone')}</span>
                     <span className="text-xs font-medium text-theme-primary">{listing.agency_phone}</span>
                   </div>
                 )}
                 {listing.visit_contact && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-theme-secondary flex items-center gap-1"><User className="w-3 h-3" /> {t('external.visitContact')}</span>
+                    <span className="text-xs text-theme-secondary flex items-center gap-1"><MEIcon name="user" className="w-3 h-3" /> {t('external.visitContact')}</span>
                     <span className="text-xs font-medium text-theme-primary">{listing.visit_contact}</span>
                   </div>
                 )}
@@ -444,7 +420,7 @@ export default function ExternalListingDetailPage() {
               {/* Email sent success toast */}
               {emailSentSuccess && (
                 <div className="rounded-lg border border-emerald-500/30 p-3 flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <MEIcon name="check" className="w-4 h-4 text-emerald-500 shrink-0" />
                   <p className="text-xs text-emerald-500">{t('external.emailSentSuccess')}</p>
                 </div>
               )}
@@ -455,14 +431,14 @@ export default function ExternalListingDetailPage() {
                   onClick={() => setShowSendForm(true)}
                   className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <MEIcon name="send" className="w-3.5 h-3.5" />
                   {t('external.sendByEmail')}
                 </button>
               ) : (
                 <div className="rounded-lg border border-theme-border p-3 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-medium text-theme-primary">{t('external.sendByEmail')}</p>
-                    <button onClick={() => setShowSendForm(false)}><X className="w-3.5 h-3.5 text-theme-muted" /></button>
+                    <button onClick={() => setShowSendForm(false)}><MEIcon name="close" className="w-3.5 h-3.5 text-theme-muted" /></button>
                   </div>
                   <input
                     type="email"
@@ -489,7 +465,7 @@ export default function ExternalListingDetailPage() {
                     {sendPropertyEmail.isPending ? (
                       <><div className="h-3.5 w-3.5 border-2 border-theme-border border-t-accent rounded-full animate-spin" /> {t('external.sending')}</>
                     ) : (
-                      <><Send className="w-3.5 h-3.5" /> {t('external.send')}</>
+                      <><MEIcon name="send" className="w-3.5 h-3.5" /> {t('external.send')}</>
                     )}
                   </button>
                 </div>
@@ -501,12 +477,12 @@ export default function ExternalListingDetailPage() {
                   onClick={markImported}
                   className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <MEIcon name="download" className="w-3.5 h-3.5" />
                   {t('external.importToPortfolio')}
                 </button>
               ) : (
                 <div className="w-full h-9 rounded-lg text-sm font-medium border border-emerald-500/30 text-emerald-500 flex items-center justify-center gap-1.5">
-                  <Check className="w-3.5 h-3.5" />
+                  <MEIcon name="check" className="w-3.5 h-3.5" />
                   {t('external.imported')}
                 </div>
               )}
@@ -519,7 +495,7 @@ export default function ExternalListingDetailPage() {
                 className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
               >
                 {t('external.viewOriginal')}
-                <ExternalLink className="w-3.5 h-3.5" />
+                <MEIcon name="external" className="w-3.5 h-3.5" />
               </a>
 
               {/* Copy link */}
@@ -527,7 +503,7 @@ export default function ExternalListingDetailPage() {
                 onClick={handleCopyLink}
                 className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
               >
-                {copied ? <><Check className="w-3.5 h-3.5 text-emerald-500" /> {t('external.copied')}</> : <><Copy className="w-3.5 h-3.5" /> {t('external.copyLink')}</>}
+                {copied ? <><MEIcon name="check" className="w-3.5 h-3.5 text-emerald-500" /> {t('external.copied')}</> : <><MEIcon name="copy" className="w-3.5 h-3.5" /> {t('external.copyLink')}</>}
               </button>
             </div>
 

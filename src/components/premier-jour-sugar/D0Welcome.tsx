@@ -5,7 +5,7 @@
 import { obPalette } from '@/components/onboarding-sugar/tokens'
 import { ObBlackPill } from '@/components/onboarding-sugar/primitives'
 import { ObThemeToggle } from '@/components/onboarding-sugar/OnboardingShell'
-import PxIcon from '@/components/propertyx/PxIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 
 export function D0Welcome({
   prenom,
@@ -119,7 +119,7 @@ export function D0Welcome({
           size="lg"
           autoFocus
           icon={
-            <PxIcon
+            <MEIcon
               name="arrow-right"
               size={16}
               color={dark ? '#0B0C0E' : '#FFFFFF'}

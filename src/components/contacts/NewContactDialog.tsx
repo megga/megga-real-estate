@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { Modal } from '@/components/ui/modal'
 import { useCreateContact } from '@/hooks/useContacts'
@@ -171,7 +171,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
               className="flex items-center gap-1 text-sm text-theme-tertiary hover:text-theme-primary transition-colors"
             >
               + Ajouter des détails
-              <ChevronRight className="w-3.5 h-3.5" />
+              <MEIcon name="chevron-right" className="w-3.5 h-3.5" />
             </button>
           ) : (
             <div className="space-y-4 pt-3 border-t border-theme-border-subtle">
@@ -222,7 +222,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary pointer-events-none" />
+                  <MEIcon name="chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary pointer-events-none" />
                 </div>
               </div>
 
@@ -261,7 +261,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
               (!isValid || createContact.isPending) && 'opacity-50 cursor-not-allowed'
             )}
           >
-            {createContact.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {createContact.isPending && <MEIcon name="spinner" className="h-3.5 w-3.5 animate-spin" />}
             Créer
           </button>
         </div>

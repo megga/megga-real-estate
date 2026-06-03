@@ -3,13 +3,13 @@
 // Purely informational — NEVER collect ID pieces here (KYC = buyer scope, not agent).
 import type { ReactNode } from 'react'
 import { obPalette } from './tokens'
-import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import SwissIdCardSkeleton from './SwissIdCardSkeleton'
 
 function ObKYCFeature({
   icon, title, sub, dark,
 }: {
-  icon: PxIconName
+  icon: MEIconName
   title: string
   sub: ReactNode
   dark?: boolean
@@ -36,7 +36,7 @@ function ObKYCFeature({
           marginTop: 2,
         }}
       >
-        <PxIcon name={icon} size={26} color={t.ink} strokeWidth={1.7} />
+        <MEIcon name={icon} size={26} color={t.ink} strokeWidth={1.7} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -65,7 +65,7 @@ function ObKYCFeature({
   )
 }
 
-const FEATURES: Array<{ icon: PxIconName; title: string; sub: string }> = [
+const FEATURES: Array<{ icon: MEIconName; title: string; sub: string }> = [
   {
     icon: 'pipeline',
     title: 'Cousu dans le pipeline.',

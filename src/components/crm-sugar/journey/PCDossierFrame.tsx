@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCDossierFrame + PCBigAvatar + RoundBtn).
 
 import { useState, type ReactNode } from 'react'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../tokens'
 import { PCBentoShape } from './PCBentoShape'
 import { PCColumn } from './PCColumn'
@@ -187,7 +187,7 @@ export function PCDossierFrame({
                   boxSizing: 'border-box',
                 }}
               >
-                <CRMIcon name="plus" size={16} stroke={sp.sub} />
+                <MEIcon name="plus" size={16} color={sp.sub} />
               </div>
               <div
                 style={{
@@ -215,13 +215,13 @@ export function PCDossierFrame({
         {/* Right actions */}
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
           <RoundBtn sp={sp} title="Ajouter une tâche">
-            <CRMIcon name="plus" size={16} stroke={sp.soft} />
+            <MEIcon name="plus" size={16} color={sp.soft} />
           </RoundBtn>
           <RoundBtn sp={sp} title="Partager au réseau">
-            <CRMIcon name="share" size={16} stroke={sp.soft} />
+            <MEIcon name="share" size={16} color={sp.soft} />
           </RoundBtn>
           <RoundBtn sp={sp} title="Planifier">
-            <CRMIcon name="cal" size={16} stroke={sp.soft} />
+            <MEIcon name="calendar" size={16} color={sp.soft} />
           </RoundBtn>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Building2, Users, Home, MessageSquare, Loader2 } from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useAdminSearch, type AdminSearchResult } from '@/hooks/useAdminSearch'
 
@@ -12,11 +12,11 @@ interface AdminSearchDialogProps {
   onClose: () => void
 }
 
-const TYPE_META: Record<AdminSearchResult['type'], { icon: React.ElementType; i18nKey: string }> = {
-  agency: { icon: Building2, i18nKey: 'search.type.agencies' },
-  user: { icon: Users, i18nKey: 'search.type.users' },
-  property: { icon: Home, i18nKey: 'search.type.properties' },
-  ticket: { icon: MessageSquare, i18nKey: 'search.type.tickets' },
+const TYPE_META: Record<AdminSearchResult['type'], { icon: MEIconName; i18nKey: string }> = {
+  agency: { icon: 'building', i18nKey: 'search.type.agencies' },
+  user: { icon: 'users', i18nKey: 'search.type.users' },
+  property: { icon: 'home', i18nKey: 'search.type.properties' },
+  ticket: { icon: 'message', i18nKey: 'search.type.tickets' },
 }
 
 export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogProps) {
@@ -73,9 +73,9 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 h-12 border-b border-theme-border">
           {loading ? (
-            <Loader2 className="h-4 w-4 text-theme-tertiary animate-spin flex-shrink-0" />
+            <MEIcon name="spinner" className="h-4 w-4 text-theme-tertiary animate-spin flex-shrink-0" />
           ) : (
-            <Search className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
+            <MEIcon name="search" className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
           )}
           <input
             ref={inputRef}
@@ -127,7 +127,7 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
                         'hover:bg-theme-hover transition-colors'
                       )}
                     >
-                      <Icon className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
+                      <MEIcon name={Icon as MEIconName} className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-theme-primary truncate">
                           {item.title}

@@ -5,7 +5,7 @@
 // Source : handoff-premier-jour/premier-jour/crm-day0-calibration.jsx → D0ZoneSearch
 import { useMemo, useRef, useState } from 'react'
 import { obPalette, type ObTheme } from '@/components/onboarding-sugar/tokens'
-import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { D0_ZONES, d0ZoneSubtitle, type D0Zone } from './data'
 
 const DEFAULT_PLACEHOLDER = 'Genève, Vaud, Suisse romande…'
@@ -17,7 +17,7 @@ const TYPE_ORDER: Record<D0Zone['type'], number> = {
   city: 3,
 }
 
-const iconFor = (z: D0Zone): PxIconName => {
+const iconFor = (z: D0Zone): MEIconName => {
   if (z.type === 'city') return 'building'
   if (z.type === 'region') return 'location'
   if (z.type === 'country') return 'globe'
@@ -119,7 +119,7 @@ export function D0ZoneSearch({
         }}
       >
         <div style={{ flexShrink: 0, paddingTop: 11 }}>
-          <PxIcon
+          <MEIcon
             name="search"
             size={26}
             color={focused ? t.ink : t.muted}
@@ -177,7 +177,7 @@ export function D0ZoneSearch({
                   flexShrink: 0,
                 }}
               >
-                <PxIcon name="close" size={10} color="currentColor" strokeWidth={2.4} />
+                <MEIcon name="close" size={10} color="currentColor" strokeWidth={2.4} />
               </button>
             </span>
           ))}
@@ -243,7 +243,7 @@ export function D0ZoneSearch({
                 transition: 'background .15s ease',
               }}
             >
-              <PxIcon name="close" size={14} color="currentColor" strokeWidth={2} />
+              <MEIcon name="close" size={14} color="currentColor" strokeWidth={2} />
             </button>
           </div>
         )}
@@ -309,7 +309,7 @@ function ZoneRow({
   t,
 }: {
   z: D0Zone
-  icon: PxIconName
+  icon: MEIconName
   onClick: () => void
   divider: boolean
   dark?: boolean
@@ -347,7 +347,7 @@ function ZoneRow({
           placeItems: 'center',
         }}
       >
-        <PxIcon name={icon} size={18} color="currentColor" strokeWidth={1.7} />
+        <MEIcon name={icon} size={18} color="currentColor" strokeWidth={1.7} />
       </div>
       <div
         style={{

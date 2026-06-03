@@ -6,7 +6,7 @@
 import { useState, type ReactNode } from 'react'
 import { obPalette } from './tokens'
 import type { Billing, OnboardingData, Plan, Setter } from './types'
-import PxIcon from '@/components/propertyx/PxIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 
 // ─── Toggle monthly / yearly ─────────────────────────────────────────
 
@@ -123,11 +123,11 @@ function ObBillingToggle({
 // ─── Plan card (Direction B — Polish hybrid PX) ──────────────────────
 // Cards comme containers visuels (chunking), mais nettoyées :
 // - 4 features max (vs 7 avant)
-// - PxIcon partout (no SVG inline)
+// - MEIcon partout (no SVG inline)
 // - Pas de star ⭐ "Recommandé" → eyebrow discret
 // - Prix 40px (vs 56px) — moins agressif
 // - Border 1px hybrid PX sur Free, Pro garde son surface ink
-// - Tick pastille typographique → micro PxIcon check
+// - Tick pastille typographique → micro MEIcon check
 
 function ObPlanCard({
   variant, selected, onSelect, billing, dark,
@@ -315,7 +315,7 @@ function ObPlanCard({
         )}
       </div>
 
-      {/* Features — 4 max avec tick pastille PxIcon */}
+      {/* Features — 4 max avec tick pastille MEIcon */}
       <ul
         style={{
           listStyle: 'none',
@@ -353,7 +353,7 @@ function ObPlanCard({
                 placeItems: 'center',
               }}
             >
-              <PxIcon
+              <MEIcon
                 name="check"
                 size={10}
                 strokeWidth={2.4}
@@ -404,7 +404,7 @@ function ObPlanCard({
       >
         {selected ? (
           <>
-            <PxIcon
+            <MEIcon
               name="check"
               size={14}
               strokeWidth={2.4}
@@ -417,7 +417,7 @@ function ObPlanCard({
         ) : (
           <>
             {isPro ? 'Choisir Pro' : 'Continuer en Découverte'}
-            <PxIcon
+            <MEIcon
               name="arrow-right"
               size={13}
               strokeWidth={1.9}

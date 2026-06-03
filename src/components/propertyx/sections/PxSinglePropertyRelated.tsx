@@ -15,7 +15,7 @@
 import type { CSSProperties, MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PX, PxFigmaIcon, PxIcon } from '..'
+import { PX, PxFigmaIcon, MEIcon } from '..'
 import { useRelatedListings } from '@/hooks/useRelatedListings'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
@@ -157,7 +157,7 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
               transition: 'background 0.18s ease',
             }}
           >
-            <PxIcon name="heart" size={16} color={favorite ? PX.neutral100 : PX.neutral700} />
+            <MEIcon name="heart" size={16} color={favorite ? PX.neutral100 : PX.neutral700} />
           </button>
         </div>
       </div>
@@ -229,7 +229,7 @@ function PropertyCard({ data }: { data: PropertyCardData }) {
           }}>
             {t('marketplaceProperty.related.viewItem')}
           </span>
-          <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+          <MEIcon name="chevron-right" size={16} color={PX.neutral700} />
         </Link>
       </div>
     </div>
@@ -352,7 +352,7 @@ export default function PxSinglePropertyRelated({ currentListing }: PxSingleProp
             }}>
               {isMobile ? t('marketplaceProperty.related.viewAllShort') : t('marketplaceProperty.related.viewAll')}
             </span>
-            <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+            <MEIcon name="chevron-right" size={16} color={PX.neutral700} />
           </Link>
         </div>
 

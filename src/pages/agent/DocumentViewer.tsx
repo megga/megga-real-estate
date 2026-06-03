@@ -1,11 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  ArrowLeft, Download, Printer, Share2, Trash2,
-  FileText, Clock, CheckCircle2, AlertCircle,
-  ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Maximize2,
-  MoreHorizontal, Send, Copy,
-} from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn, formatCHF } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useGeneratedDocuments, useGeneratedDocument, type GeneratedDocumentRow } from '@/hooks/useDocuments'
@@ -50,10 +45,10 @@ function mapRowToDocument(row: GeneratedDocumentRow): GeneratedDocument {
 }
 
 const STATUS_CONFIG = {
-  draft: { label: 'Brouillon', color: 'bg-theme-active text-theme-secondary', icon: FileText },
-  sent: { label: 'Envoyé', color: 'bg-accent/10 text-accent', icon: Send },
-  signed: { label: 'Signé', color: 'bg-emerald-50 text-emerald-600', icon: CheckCircle2 },
-  archived: { label: 'Archivé', color: 'bg-amber-50 text-amber-600', icon: AlertCircle },
+  draft: { label: 'Brouillon', color: 'bg-theme-active text-theme-secondary', icon: 'file' },
+  sent: { label: 'Envoyé', color: 'bg-accent/10 text-accent', icon: 'send' },
+  signed: { label: 'Signé', color: 'bg-emerald-50 text-emerald-600', icon: 'check-circle' },
+  archived: { label: 'Archivé', color: 'bg-amber-50 text-amber-600', icon: 'alert' },
 }
 
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
@@ -89,7 +84,7 @@ export default function DocumentViewer() {
             </p>
           </div>
           <Button onClick={() => navigate('/dashboard/templates/generate')} className="gap-2">
-            <FileText className="w-4 h-4" />
+            <MEIcon name="file" className="w-4 h-4" />
             Nouveau document
           </Button>
         </div>
@@ -103,7 +98,7 @@ export default function DocumentViewer() {
         <div className="space-y-2">
           {documents.map(item => {
             const statusConf = STATUS_CONFIG[item.status]
-            const StatusIcon = statusConf.icon
+            const StatusIcon = statusConf.icon as MEIconName
             return (
               <button
                 key={item.id}
@@ -112,7 +107,7 @@ export default function DocumentViewer() {
               >
                 {/* Icon */}
                 <div className="w-12 h-12 rounded-xl bg-theme-hover border border-theme-border-subtle flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-6 h-6 text-theme-tertiary group-hover:text-accent transition-colors" />
+                  <MEIcon name="file" className="w-6 h-6 text-theme-tertiary group-hover:text-accent transition-colors" />
                 </div>
 
                 {/* Info */}
@@ -122,13 +117,13 @@ export default function DocumentViewer() {
                       {item.templateName}
                     </h3>
                     <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
-                      <StatusIcon className="w-3 h-3" />
+                      <MEIcon name={StatusIcon} className="w-3 h-3" />
                       {statusConf.label}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-theme-tertiary">
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                      <MEIcon name="clock" className="w-3 h-3" />
                       {new Date(item.createdAt).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                     <span>{item.pages} page{item.pages > 1 ? 's' : ''}</span>
@@ -136,7 +131,7 @@ export default function DocumentViewer() {
                 </div>
 
                 {/* Arrow */}
-                <ChevronRight className="w-4 h-4 text-theme-tertiary group-hover:text-accent transition-colors flex-shrink-0" />
+                <MEIcon name="chevron-right" className="w-4 h-4 text-theme-tertiary group-hover:text-accent transition-colors flex-shrink-0" />
               </button>
             )
           })}
@@ -144,11 +139,11 @@ export default function DocumentViewer() {
 
         {!isLoadingList && documents.length === 0 && (
           <div className="text-center py-16">
-            <FileText className="w-12 h-12 text-theme-tertiary mx-auto mb-4" />
+            <MEIcon name="file" className="w-12 h-12 text-theme-tertiary mx-auto mb-4" />
             <p className="text-sm font-medium text-theme-muted">Aucun document généré</p>
             <p className="text-xs text-theme-tertiary mt-1">Créez votre premier document depuis les templates.</p>
             <Button onClick={() => navigate('/dashboard/templates')} className="mt-4 gap-2" variant="outline">
-              <FileText className="w-4 h-4" />
+              <MEIcon name="file" className="w-4 h-4" />
               Voir les templates
             </Button>
           </div>
@@ -160,7 +155,7 @@ export default function DocumentViewer() {
   // ─── DOCUMENT DETAIL VIEW ───────────────────────────────────────────────
 
   const statusConf = STATUS_CONFIG[doc.status]
-  const StatusIcon = statusConf.icon
+  const StatusIcon = statusConf.icon as MEIconName
 
   const fieldSections: Record<string, { label: string; value: string }[]> = {}
   for (const [key, value] of Object.entries(doc.fields)) {
@@ -223,13 +218,13 @@ export default function DocumentViewer() {
             onClick={() => navigate('/dashboard/documents/view')}
             className="w-9 h-9 rounded-lg border border-theme-border flex items-center justify-center hover:bg-theme-hover transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4 text-theme-muted" />
+            <MEIcon name="arrow-left" className="w-4 h-4 text-theme-muted" />
           </button>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold text-theme-primary">{doc.templateName}</h1>
               <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
-                <StatusIcon className="w-3 h-3" />
+                <MEIcon name={StatusIcon} className="w-3 h-3" />
                 {statusConf.label}
               </span>
             </div>
@@ -241,11 +236,11 @@ export default function DocumentViewer() {
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 hidden md:flex">
-            <Printer className="w-3.5 h-3.5" />
+            <MEIcon name="print" className="w-3.5 h-3.5" />
             Imprimer
           </Button>
           <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5">
-            <Download className="w-3.5 h-3.5" />
+            <MEIcon name="download" className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Télécharger</span>
           </Button>
           <div className="relative">
@@ -255,7 +250,7 @@ export default function DocumentViewer() {
               onClick={() => setShowActions(!showActions)}
               className="w-8 h-8 p-0"
             >
-              <MoreHorizontal className="w-4 h-4" />
+              <MEIcon name="more-horizontal" className="w-4 h-4" />
             </Button>
             {showActions && (
               <>
@@ -265,21 +260,21 @@ export default function DocumentViewer() {
                     onClick={() => { handleCopyLink(); setShowActions(false) }}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-theme-secondary hover:bg-theme-hover rounded-lg cursor-pointer"
                   >
-                    <Copy className="w-4 h-4 text-theme-tertiary" />
+                    <MEIcon name="copy" className="w-4 h-4 text-theme-tertiary" />
                     Copier le lien
                   </button>
                   <button
                     onClick={() => { setShowActions(false) }}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-theme-secondary hover:bg-theme-hover rounded-lg cursor-pointer"
                   >
-                    <Share2 className="w-4 h-4 text-theme-tertiary" />
+                    <MEIcon name="share" className="w-4 h-4 text-theme-tertiary" />
                     Envoyer par email
                   </button>
                   <button
                     onClick={() => { navigate(`/dashboard/templates/generate?template=${doc.templateId}`); setShowActions(false) }}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-theme-secondary hover:bg-theme-hover rounded-lg cursor-pointer"
                   >
-                    <FileText className="w-4 h-4 text-theme-tertiary" />
+                    <MEIcon name="file" className="w-4 h-4 text-theme-tertiary" />
                     Dupliquer
                   </button>
                   <div className="border-t border-theme-border-subtle my-1" />
@@ -287,7 +282,7 @@ export default function DocumentViewer() {
                     onClick={() => setShowActions(false)}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-500/10 rounded-lg cursor-pointer"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <MEIcon name="trash" className="w-4 h-4" />
                     Supprimer
                   </button>
                 </div>
@@ -308,14 +303,14 @@ export default function DocumentViewer() {
                 onClick={() => setZoom(z => Math.max(50, z - 10))}
                 className="w-7 h-7 rounded-lg hover:bg-theme-card flex items-center justify-center transition-colors cursor-pointer"
               >
-                <ZoomOut className="w-4 h-4 text-theme-muted" />
+                <MEIcon name="zoom-out" className="w-4 h-4 text-theme-muted" />
               </button>
               <span className="text-xs font-medium text-theme-muted w-10 text-center">{zoom}%</span>
               <button
                 onClick={() => setZoom(z => Math.min(200, z + 10))}
                 className="w-7 h-7 rounded-lg hover:bg-theme-card flex items-center justify-center transition-colors cursor-pointer"
               >
-                <ZoomIn className="w-4 h-4 text-theme-muted" />
+                <MEIcon name="zoom-in" className="w-4 h-4 text-theme-muted" />
               </button>
             </div>
 
@@ -325,7 +320,7 @@ export default function DocumentViewer() {
                 disabled={currentPage <= 1}
                 className="w-7 h-7 rounded-lg hover:bg-theme-card flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30"
               >
-                <ChevronLeft className="w-4 h-4 text-theme-muted" />
+                <MEIcon name="chevron-left" className="w-4 h-4 text-theme-muted" />
               </button>
               <span className="text-xs text-theme-muted">
                 {currentPage} / {doc.pages}
@@ -335,7 +330,7 @@ export default function DocumentViewer() {
                 disabled={currentPage >= doc.pages}
                 className="w-7 h-7 rounded-lg hover:bg-theme-card flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30"
               >
-                <ChevronRight className="w-4 h-4 text-theme-muted" />
+                <MEIcon name="chevron-right" className="w-4 h-4 text-theme-muted" />
               </button>
             </div>
 
@@ -343,7 +338,7 @@ export default function DocumentViewer() {
               onClick={() => setZoom(100)}
               className="w-7 h-7 rounded-lg hover:bg-theme-card flex items-center justify-center transition-colors cursor-pointer"
             >
-              <Maximize2 className="w-4 h-4 text-theme-muted" />
+              <MEIcon name="expand" className="w-4 h-4 text-theme-muted" />
             </button>
           </div>
 
@@ -423,7 +418,7 @@ export default function DocumentViewer() {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-theme-tertiary">Statut</span>
                 <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1', statusConf.color)}>
-                  <StatusIcon className="w-3 h-3" />
+                  <MEIcon name={StatusIcon} className="w-3 h-3" />
                   {statusConf.label}
                 </span>
               </div>
@@ -456,27 +451,27 @@ export default function DocumentViewer() {
                 onClick={handleDownload}
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-theme-secondary hover:bg-theme-hover rounded-lg cursor-pointer transition-colors"
               >
-                <Download className="w-4 h-4 text-theme-tertiary" />
+                <MEIcon name="download" className="w-4 h-4 text-theme-tertiary" />
                 Télécharger PDF
               </button>
               <button
                 onClick={handlePrint}
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-theme-secondary hover:bg-theme-hover rounded-lg cursor-pointer transition-colors"
               >
-                <Printer className="w-4 h-4 text-theme-tertiary" />
+                <MEIcon name="print" className="w-4 h-4 text-theme-tertiary" />
                 Imprimer
               </button>
               <button
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-theme-secondary hover:bg-theme-hover rounded-lg cursor-pointer transition-colors"
               >
-                <Send className="w-4 h-4 text-theme-tertiary" />
+                <MEIcon name="send" className="w-4 h-4 text-theme-tertiary" />
                 Envoyer par email
               </button>
               <button
                 onClick={handleCopyLink}
                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-sm text-theme-secondary hover:bg-theme-hover rounded-lg cursor-pointer transition-colors"
               >
-                <Copy className="w-4 h-4 text-theme-tertiary" />
+                <MEIcon name="copy" className="w-4 h-4 text-theme-tertiary" />
                 Copier le lien
               </button>
             </div>
@@ -489,7 +484,7 @@ export default function DocumentViewer() {
               {doc.status === 'signed' && (
                 <div className="flex items-start gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <MEIcon name="check-circle" className="w-3.5 h-3.5 text-emerald-600" />
                   </div>
                   <div>
                     <p className="text-xs font-medium text-theme-secondary">Document signé</p>
@@ -500,7 +495,7 @@ export default function DocumentViewer() {
               {(doc.status === 'sent' || doc.status === 'signed') && (
                 <div className="flex items-start gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Send className="w-3.5 h-3.5 text-accent" />
+                    <MEIcon name="send" className="w-3.5 h-3.5 text-accent" />
                   </div>
                   <div>
                     <p className="text-xs font-medium text-theme-secondary">Envoyé au client</p>
@@ -512,7 +507,7 @@ export default function DocumentViewer() {
               )}
               <div className="flex items-start gap-2.5">
                 <div className="w-6 h-6 rounded-full bg-theme-active flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <FileText className="w-3.5 h-3.5 text-theme-muted" />
+                  <MEIcon name="file" className="w-3.5 h-3.5 text-theme-muted" />
                 </div>
                 <div>
                   <p className="text-xs font-medium text-theme-secondary">Document créé</p>

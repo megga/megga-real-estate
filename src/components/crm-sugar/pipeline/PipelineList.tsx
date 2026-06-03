@@ -1,15 +1,15 @@
 // MEGGA CRM Sugar v2 — Pipeline list view (table).
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx — `SugarPipelineList`).
 
-import CRMIcon, { type CrmIconName } from '../CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { CRM_STAGES, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
 import { crmContactById, crmBienById, type CrmDeal } from '../mockData'
 
-function actionIcon(kind: string): CrmIconName {
+function actionIcon(kind: string): MEIconName {
   if (kind === 'call') return 'phone'
   if (kind === 'visit') return 'home'
-  if (kind === 'kyc') return 'kyc'
-  if (kind === 'match') return 'spark'
+  if (kind === 'kyc') return 'shield'
+  if (kind === 'match') return 'sparkle'
   return 'flag'
 }
 
@@ -92,7 +92,7 @@ export function PipelineList({ sp, deals, onOpenDeal }: PipelineListProps) {
                 width: 22, height: 22, borderRadius: 999, background: sp.cardSubBg,
                 display: 'grid', placeItems: 'center', flexShrink: 0,
               }}>
-                <CRMIcon name={actionIcon(deal.nextAction.kind)} size={10} stroke={sp.soft} />
+                <MEIcon name={actionIcon(deal.nextAction.kind)} size={10} color={sp.soft} />
               </div>
               <span style={{
                 fontSize: 12, color: sp.soft,

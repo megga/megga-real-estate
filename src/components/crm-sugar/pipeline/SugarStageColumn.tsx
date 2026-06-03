@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Pipeline stage column (kanban).
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx).
 
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { CRM_STAGES, crmInitials, type SugarPalette, type StageId } from '../tokens'
 import { crmContactById, type CrmDeal } from '../mockData'
 import { SugarDealCard } from './SugarDealCard'
@@ -85,7 +85,7 @@ export function SugarStageColumn({
           boxShadow: sp.shadowSm,
           display: 'grid', placeItems: 'center', cursor: 'pointer',
         }}>
-          <CRMIcon name="plus" size={11} stroke={sp.soft} />
+          <MEIcon name="plus" size={11} color={sp.soft} />
         </button>
       </div>
 

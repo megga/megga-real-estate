@@ -2,12 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
-import {
-  ArrowLeft, Check, Save, Send,
-  Upload, X, GripVertical, Loader2, ChevronDown, ShieldCheck,
-  Minus, Plus, MapPin, PenLine, Copy, Link2, FileText,
-  Building2, Home as HomeIcon, Castle, Store, Mountain, CarFront, Briefcase, Warehouse,
-} from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -308,15 +303,15 @@ const PROPERTY_TYPE_DESCRIPTIONS: Record<string, string> = {
   land: 'Terrain constructible',
 }
 
-const PROPERTY_TYPE_ICONS: Record<string, typeof Building2> = {
-  apartment: Building2,
-  house: HomeIcon,
-  villa: Castle,
-  commercial: Store,
-  office: Briefcase,
-  parking: CarFront,
-  storage: Warehouse,
-  land: Mountain,
+const PROPERTY_TYPE_ICONS: Record<string, MEIconName> = {
+  apartment: 'building',
+  house: 'home',
+  villa: 'villa',
+  commercial: 'store',
+  office: 'briefcase',
+  parking: 'parking',
+  storage: 'warehouse',
+  land: 'land',
 }
 
 const CONDITION_OPTIONS = [
@@ -379,7 +374,7 @@ function NumberStepper({
               : 'border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
           )}
         >
-          <Minus className="h-4 w-4" />
+          <MEIcon name="minus" className="h-4 w-4" />
         </button>
         <span className="text-lg font-semibold text-theme-primary w-12 text-center tabular-nums">
           {current % 1 === 0 ? current : current.toFixed(1)}
@@ -395,7 +390,7 @@ function NumberStepper({
               : 'border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
           )}
         >
-          <Plus className="h-4 w-4" />
+          <MEIcon name="plus" className="h-4 w-4" />
         </button>
       </div>
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
@@ -458,7 +453,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
         <FieldLabel htmlFor="type">Type de bien</FieldLabel>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {(Object.entries(PROPERTY_TYPE_LABELS) as [PropertyType, string][]).map(([value, label]) => {
-            const Icon = PROPERTY_TYPE_ICONS[value]
+            const iconName = PROPERTY_TYPE_ICONS[value]
             const isSelected = watch('type') === value
             return (
               <label
@@ -471,7 +466,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
                 )}
               >
                 <input type="radio" value={value} {...register('type')} className="sr-only" />
-                <Icon className={cn('h-7 w-7 mb-2', isSelected ? 'text-theme-primary' : 'text-theme-muted')} />
+                <MEIcon name={iconName} className={cn('h-7 w-7 mb-2', isSelected ? 'text-theme-primary' : 'text-theme-muted')} />
                 <span className="text-sm font-medium">{label}</span>
                 <span className={cn('text-xs mt-0.5', isSelected ? 'text-theme-secondary' : 'text-theme-muted')}>{PROPERTY_TYPE_DESCRIPTIONS[value]}</span>
               </label>
@@ -666,7 +661,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
                   <div className="h-8 w-8 rounded-full bg-theme-active flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <MapPin className="h-4 w-4 text-theme-primary" />
+                    <MEIcon name="location" className="h-4 w-4 text-theme-primary" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-theme-primary">{address}</p>
@@ -685,7 +680,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
                   onClick={handleClearAddress}
                   className="text-theme-muted hover:text-theme-primary p-1 transition-colors"
                 >
-                  <X className="h-4 w-4" />
+                  <MEIcon name="close" className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -792,7 +787,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
         {lat && lng ? (
           <div className="w-full h-full bg-theme-section flex items-center justify-center relative">
             <div className="text-center">
-              <MapPin className="h-6 w-6 text-theme-primary mx-auto mb-1" />
+              <MEIcon name="location" className="h-6 w-6 text-theme-primary mx-auto mb-1" />
               <p className="text-xs text-theme-secondary">{lat.toFixed(4)}, {lng.toFixed(4)}</p>
               <p className="text-xs text-theme-muted mt-0.5">Carte Mapbox (prochaine mise à jour)</p>
             </div>
@@ -800,7 +795,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <div className="text-center">
-              <MapPin className="h-8 w-8 text-theme-muted mx-auto mb-2" />
+              <MEIcon name="location" className="h-8 w-8 text-theme-muted mx-auto mb-2" />
               <p className="text-xs text-theme-muted">Sélectionnez une adresse pour voir la localisation</p>
             </div>
           </div>
@@ -989,7 +984,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
         <details className="rounded-xl border border-theme-border p-4 group">
           <summary className="text-sm font-medium text-theme-primary cursor-pointer select-none flex items-center justify-between">
             <span>Régie externe (optionnel — sinon l'agence publie sous son nom)</span>
-            <ChevronDown className="w-4 h-4 text-theme-secondary transition-transform group-open:rotate-180" />
+            <MEIcon name="chevron-down" className="w-4 h-4 text-theme-secondary transition-transform group-open:rotate-180" />
           </summary>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
             {[
@@ -1037,7 +1032,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
                         : 'border-theme-border text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
                     )}
                   >
-                    {features.includes(feature) && <Check className="h-3 w-3 inline mr-1.5" />}
+                    {features.includes(feature) && <MEIcon name="check" className="h-3 w-3 inline mr-1.5" />}
                     {feature}
                   </button>
                 ))}
@@ -1131,14 +1126,14 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity">
             <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-              <GripVertical className="h-5 w-5 text-white drop-shadow-md" />
+              <MEIcon name="grip" className="h-5 w-5 text-white drop-shadow-md" />
             </div>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onRemove() }}
               className="h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
             >
-              <X className="h-4 w-4" />
+              <MEIcon name="close" className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -1296,7 +1291,7 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
             : 'border-theme-border hover:border-theme-active hover:bg-theme-hover/50'
         )}
       >
-        <Upload className={cn('h-8 w-8 mx-auto mb-2', dragOver ? 'text-accent' : 'text-theme-muted')} />
+        <MEIcon name="upload" className={cn('h-8 w-8 mx-auto mb-2', dragOver ? 'text-accent' : 'text-theme-muted')} />
         <p className="text-sm font-medium text-theme-primary">
           Glissez vos photos ici ou cliquez pour parcourir
         </p>
@@ -1446,7 +1441,7 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
       <div className="rounded-xl border border-theme-border p-4 mt-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <MEIcon name="shield" className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
             <p className="text-sm font-medium text-theme-primary">Certification C2PA</p>
@@ -1465,7 +1460,7 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
             'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
             signed || signPhotos.isSuccess ? 'bg-emerald-50' : 'bg-theme-hover'
           )}>
-            <ShieldCheck className={cn(
+            <MEIcon name="shield" className={cn(
               'w-4 h-4',
               signed || signPhotos.isSuccess ? 'text-emerald-600' : 'text-theme-muted'
             )} />
@@ -1495,12 +1490,12 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
           >
             {signPhotos.isPending ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <MEIcon name="spinner" className="w-3.5 h-3.5 animate-spin" />
                 Certification...
               </>
             ) : (
               <>
-                <ShieldCheck className="w-3.5 h-3.5" />
+                <MEIcon name="shield" className="w-3.5 h-3.5" />
                 Certifier
               </>
             )}
@@ -1553,7 +1548,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
             <p className="text-xs text-theme-tertiary">Meublez vos pièces vides avec l'IA</p>
           </div>
         </div>
-        <ChevronDown className={cn('w-4 h-4 text-theme-muted transition-transform', isOpen && 'rotate-180')} />
+        <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-muted transition-transform', isOpen && 'rotate-180')} />
       </button>
 
       {isOpen && (
@@ -1629,7 +1624,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
               >
                 {isGenerating ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <MEIcon name="spinner" className="w-4 h-4 animate-spin" />
                     Génération en cours...
                   </>
                 ) : (
@@ -1804,28 +1799,28 @@ function MethodSelectionScreen({ hasProperties, onSelect }: {
   const methods = [
     {
       id: 'manual' as const,
-      icon: PenLine,
+      icon: 'edit',
       title: 'Saisie manuelle',
       desc: 'Remplir le formulaire étape par étape',
       available: true,
     },
     {
       id: 'duplicate' as const,
-      icon: Copy,
+      icon: 'copy',
       title: 'Dupliquer un bien existant',
       desc: hasProperties ? 'Copier les infos d\'un de vos biens' : 'Vous n\'avez aucun bien à dupliquer',
       available: hasProperties,
     },
     {
       id: 'url' as const,
-      icon: Link2,
+      icon: 'link',
       title: 'Depuis une URL',
       desc: 'Importer depuis Homegate, ImmoScout24...',
       available: true,
     },
     {
       id: 'pdf' as const,
-      icon: FileText,
+      icon: 'file',
       title: 'Depuis un PDF',
       desc: 'Extraire les infos d\'une fiche descriptive',
       available: true,
@@ -1851,7 +1846,7 @@ function MethodSelectionScreen({ hasProperties, onSelect }: {
             )}
           >
             <div className="flex items-start gap-3.5">
-              <m.icon className={cn(
+              <MEIcon name={m.icon as MEIconName} className={cn(
                 'w-5 h-5 mt-0.5 flex-shrink-0',
                 m.available ? 'text-theme-secondary group-hover:text-accent transition-colors' : 'text-theme-muted'
               )} />
@@ -1888,7 +1883,7 @@ function DuplicateSelector({ onSelect, onBack }: {
   return (
     <div className="min-h-[60vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" />
+        <MEIcon name="arrow-left" className="w-4 h-4" />
         Retour
       </button>
 
@@ -1905,7 +1900,7 @@ function DuplicateSelector({ onSelect, onBack }: {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-5 h-5 animate-spin text-theme-muted" />
+            <MEIcon name="spinner" className="w-5 h-5 animate-spin text-theme-muted" />
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-sm text-theme-muted text-center py-8">Aucun bien trouvé</p>
@@ -1921,7 +1916,7 @@ function DuplicateSelector({ onSelect, onBack }: {
                   <img src={p.photos[0]} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-14 h-14 rounded-lg bg-theme-hover flex items-center justify-center flex-shrink-0">
-                    <Building2 className="w-5 h-5 text-theme-muted" />
+                    <MEIcon name="building" className="w-5 h-5 text-theme-muted" />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
@@ -1968,7 +1963,7 @@ function UrlImportScreen({ onExtracted, onBack }: {
   return (
     <div className="min-h-[60vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" />
+        <MEIcon name="arrow-left" className="w-4 h-4" />
         Retour
       </button>
 
@@ -2022,7 +2017,7 @@ function UrlImportScreen({ onExtracted, onBack }: {
           </form>
         ) : (
           <div className="rounded-xl border border-theme-border p-8 text-center">
-            <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
+            <MEIcon name="spinner" className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
             <p className="text-sm font-medium text-theme-primary">Analyse de l'annonce en cours...</p>
             <p className="text-xs text-theme-muted mt-1 truncate max-w-xs mx-auto">{url}</p>
             <p className="text-xs text-theme-muted mt-3">MEGGA AI lit la page et extrait les informations du bien</p>
@@ -2055,7 +2050,7 @@ function PdfUploadScreen({ onExtracted, onBack }: {
   return (
     <div className="min-h-[60vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" />
+        <MEIcon name="arrow-left" className="w-4 h-4" />
         Retour
       </button>
 
@@ -2075,7 +2070,7 @@ function PdfUploadScreen({ onExtracted, onBack }: {
               dragOver ? 'border-accent/60 bg-accent/5' : 'border-theme-border hover:border-accent/30'
             )}
           >
-            <Upload className="w-8 h-8 text-theme-muted mx-auto mb-3" />
+            <MEIcon name="upload" className="w-8 h-8 text-theme-muted mx-auto mb-3" />
             <p className="text-sm font-medium text-theme-primary">Glissez votre PDF ici</p>
             <p className="text-xs text-theme-muted mt-1">ou cliquez pour sélectionner (max 20 Mo)</p>
             <input
@@ -2091,7 +2086,7 @@ function PdfUploadScreen({ onExtracted, onBack }: {
         {/* Extracting state */}
         {isExtracting && (
           <div className="rounded-xl border border-theme-border p-8 text-center">
-            <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
+            <MEIcon name="spinner" className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
             <p className="text-sm font-medium text-theme-primary">Analyse du document en cours...</p>
             <p className="text-xs text-theme-muted mt-1">{selectedFile?.name}</p>
             <p className="text-xs text-theme-muted mt-3">MEGGA AI lit le PDF et extrait les informations du bien</p>
@@ -2655,7 +2650,7 @@ export default function ListingFormPage() {
   if ((isEditMode || duplicateId) && propertyLoading) {
     return (
       <div className="max-w-3xl mx-auto flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-theme-muted" />
+        <MEIcon name="spinner" className="h-6 w-6 animate-spin text-theme-muted" />
       </div>
     )
   }
@@ -2669,7 +2664,7 @@ export default function ListingFormPage() {
             to="/dashboard/listings"
             className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover transition-colors"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <MEIcon name="arrow-left" className="h-5 w-5" />
           </Link>
         </div>
         <MethodSelectionScreen
@@ -2735,7 +2730,7 @@ export default function ListingFormPage() {
           to="/dashboard/listings"
           className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover transition-colors"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <MEIcon name="arrow-left" className="h-5 w-5" />
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-semibold text-theme-primary">
@@ -2748,13 +2743,13 @@ export default function ListingFormPage() {
         {/* Auto-save indicator */}
         {autoSaveStatus === 'saving' && (
           <span className="text-xs text-theme-muted flex items-center gap-1.5">
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <MEIcon name="spinner" className="h-3 w-3 animate-spin" />
             Sauvegarde...
           </span>
         )}
         {autoSaveStatus === 'saved' && (
           <span className="text-xs text-theme-secondary flex items-center gap-1.5">
-            <Check className="h-3 w-3" />
+            <MEIcon name="check" className="h-3 w-3" />
             Brouillon sauvegardé
           </span>
         )}
@@ -2820,11 +2815,11 @@ export default function ListingFormPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(1) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
-                    {completedSteps.includes(1) ? <Check className="w-3.5 h-3.5" /> : '1'}
+                    {completedSteps.includes(1) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '1'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">Infos générales</span>
                 </div>
-                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(1) && 'rotate-180')} />
+                <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(1) && 'rotate-180')} />
               </button>
               {openSections.has(1) && (
                 <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
@@ -2846,11 +2841,11 @@ export default function ListingFormPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(2) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
-                    {completedSteps.includes(2) ? <Check className="w-3.5 h-3.5" /> : '2'}
+                    {completedSteps.includes(2) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '2'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">Localisation</span>
                 </div>
-                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(2) && 'rotate-180')} />
+                <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(2) && 'rotate-180')} />
               </button>
               {openSections.has(2) && (
                 <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
@@ -2871,11 +2866,11 @@ export default function ListingFormPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(3) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
-                    {completedSteps.includes(3) ? <Check className="w-3.5 h-3.5" /> : '3'}
+                    {completedSteps.includes(3) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '3'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">Prix & détails</span>
                 </div>
-                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(3) && 'rotate-180')} />
+                <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(3) && 'rotate-180')} />
               </button>
               {openSections.has(3) && (
                 <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
@@ -2896,14 +2891,14 @@ export default function ListingFormPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(4) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
-                    {completedSteps.includes(4) ? <Check className="w-3.5 h-3.5" /> : '4'}
+                    {completedSteps.includes(4) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '4'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">Photos</span>
                   {(form.watch('photos')?.length || 0) + pendingFiles.length > 0 && (
                     <span className="text-xs text-theme-muted">{(form.watch('photos')?.length || 0) + pendingFiles.length} photos</span>
                   )}
                 </div>
-                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(4) && 'rotate-180')} />
+                <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(4) && 'rotate-180')} />
               </button>
               {openSections.has(4) && (
                 <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
@@ -2943,11 +2938,11 @@ export default function ListingFormPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(5) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
-                    {completedSteps.includes(5) ? <Check className="w-3.5 h-3.5" /> : '5'}
+                    {completedSteps.includes(5) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '5'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">Description & publication</span>
                 </div>
-                <ChevronDown className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(5) && 'rotate-180')} />
+                <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(5) && 'rotate-180')} />
               </button>
               {openSections.has(5) && (
                 <div className="rounded-xl border border-theme-border border-t-0 rounded-t-none p-6 animate-[fadeIn_0.2s_ease-out]">
@@ -2974,7 +2969,7 @@ export default function ListingFormPage() {
                 />
               ) : (
                 <div className="w-full aspect-[4/3] rounded-lg bg-theme-hover flex items-center justify-center mb-3">
-                  <Building2 className="w-8 h-8 text-theme-tertiary" />
+                  <MEIcon name="building" className="w-8 h-8 text-theme-tertiary" />
                 </div>
               )}
               <p className="text-base font-bold text-theme-primary truncate">
@@ -3023,7 +3018,7 @@ export default function ListingFormPage() {
                     className="flex items-center gap-2 w-full text-left text-xs text-theme-secondary hover:text-theme-primary transition-colors py-0.5"
                   >
                     <span className={cn('w-3 h-3 rounded-full border flex items-center justify-center', completedSteps.includes(s.num) ? 'bg-emerald-500 border-emerald-500' : 'border-theme-border')}>
-                      {completedSteps.includes(s.num) && <Check className="w-2 h-2 text-white" />}
+                      {completedSteps.includes(s.num) && <MEIcon name="check" className="w-2 h-2 text-white" />}
                     </span>
                     {s.label}
                   </button>
@@ -3038,7 +3033,7 @@ export default function ListingFormPage() {
               disabled={isSaving}
               className="w-full h-10 rounded-lg border border-theme-border text-sm text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2"
             >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isSaving ? <MEIcon name="spinner" className="h-4 w-4 animate-spin" /> : <MEIcon name="save" className="h-4 w-4" />}
               Sauver brouillon
             </button>
             <button
@@ -3047,7 +3042,7 @@ export default function ListingFormPage() {
               disabled={isSaving}
               className="w-full h-10 rounded-lg border border-theme-border text-sm font-medium text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2"
             >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isSaving ? <MEIcon name="spinner" className="h-4 w-4 animate-spin" /> : <MEIcon name="send" className="h-4 w-4" />}
               {isEditMode ? 'Enregistrer' : 'Publier'}
             </button>
           </div>
@@ -3063,7 +3058,7 @@ export default function ListingFormPage() {
             disabled={isSaving}
             className="h-10 px-4 rounded-lg border border-theme-border text-sm text-theme-secondary flex items-center gap-2"
           >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {isSaving ? <MEIcon name="spinner" className="h-4 w-4 animate-spin" /> : <MEIcon name="save" className="h-4 w-4" />}
             Brouillon
           </button>
           <button
@@ -3072,7 +3067,7 @@ export default function ListingFormPage() {
             disabled={isSaving}
             className="h-10 px-6 rounded-lg border border-theme-border text-sm font-medium text-theme-primary flex items-center gap-2"
           >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isSaving ? <MEIcon name="spinner" className="h-4 w-4 animate-spin" /> : <MEIcon name="send" className="h-4 w-4" />}
             {isEditMode ? 'Enregistrer' : 'Publier'}
           </button>
         </div>

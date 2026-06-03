@@ -1351,7 +1351,7 @@ export function DBRelanceSession({ open, onClose, onComplete }: DBRelanceSession
         animation: 'rlnFade .3s ease both',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         outline: 'none',
       }}
     >

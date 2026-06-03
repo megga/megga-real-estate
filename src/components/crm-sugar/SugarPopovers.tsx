@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-today-sugar-popovers.jsx).
 
 import { useState, Fragment, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
-import CRMIcon, { type CrmIconName } from './CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from './tokens'
 
 // ─── useSugarPopover hook ───────────────────────────────────────────────
@@ -65,7 +65,7 @@ export function SugarPopover({ anchorRect, sp, onClose, width = 320, children }:
           padding: 12,
           color: sp.ink,
           animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',
-          fontFamily: 'Manrope, system-ui, sans-serif',
+          fontFamily: '"Inter Tight", system-ui, sans-serif',
         }}
       >
         {children}
@@ -83,7 +83,7 @@ export function SugarToast({ message, sp }: { message: string | null; sp: SugarP
       zIndex: 1400,
       background: sp.ink, color: sp.pageBg,
       padding: '12px 18px', borderRadius: 999,
-      fontFamily: 'Manrope, system-ui, sans-serif', fontSize: 13, fontWeight: 600,
+      fontFamily: '"Inter Tight", system-ui, sans-serif', fontSize: 13, fontWeight: 600,
       boxShadow: sp.focusShadow,
       animation: 'sugar-toast 240ms cubic-bezier(.22,1,.36,1)',
       display: 'flex', alignItems: 'center', gap: 10,
@@ -92,7 +92,7 @@ export function SugarToast({ message, sp }: { message: string | null; sp: SugarP
         width: 18, height: 18, borderRadius: 999,
         background: 'rgba(255,255,255,0.18)', display: 'grid', placeItems: 'center',
       }}>
-        <CRMIcon name="check" size={10} stroke={sp.pageBg} />
+        <MEIcon name="check" size={10} color={sp.pageBg} />
       </span>
       {message}
     </div>
@@ -103,12 +103,12 @@ export function SugarToast({ message, sp }: { message: string | null; sp: SugarP
 export type QuickAddId = 'task' | 'visit' | 'contact' | 'deal' | 'note'
 
 export function SugarQuickAdd({ sp, onPick }: { sp: SugarPalette; onPick?: (id: QuickAddId) => void }) {
-  const items: { id: QuickAddId; icon: CrmIconName; label: string; sub: string }[] = [
+  const items: { id: QuickAddId; icon: MEIconName; label: string; sub: string }[] = [
     { id: 'task',    icon: 'check', label: 'Nouvelle tâche',   sub: 'Action rapide à planifier' },
     { id: 'visit',   icon: 'home',  label: 'Planifier visite', sub: 'Bien · acheteur · créneau' },
     { id: 'contact', icon: 'plus',  label: 'Nouveau contact',  sub: 'Lead, acheteur ou vendeur' },
     { id: 'deal',    icon: 'bolt',  label: 'Nouvelle offre',   sub: 'Démarrer un dossier' },
-    { id: 'note',    icon: 'docs',  label: 'Note interne',     sub: 'Mémo lié au jour' },
+    { id: 'note',    icon: 'file',  label: 'Note interne',     sub: 'Mémo lié au jour' },
   ]
   return (
     <div>
@@ -134,7 +134,7 @@ export function SugarQuickAdd({ sp, onPick }: { sp: SugarPalette; onPick?: (id: 
               width: 34, height: 34, borderRadius: 12, background: sp.cardSubBg,
               display: 'grid', placeItems: 'center', flexShrink: 0,
             }}>
-              <CRMIcon name={it.icon} size={14} stroke={sp.ink} />
+              <MEIcon name={it.icon} size={14} color={sp.ink} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, lineHeight: 1.2 }}>{it.label}</div>
@@ -172,7 +172,7 @@ export function SugarReschedule({ sp, currentLabel, onPick, onClose }: {
           width: 30, height: 30, borderRadius: 12, background: sp.cardSubBg,
           display: 'grid', placeItems: 'center',
         }}>
-          <CRMIcon name="cal" size={14} stroke={sp.ink} />
+          <MEIcon name="calendar" size={14} color={sp.ink} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>Replanifier</div>
@@ -201,7 +201,7 @@ export function SugarReschedule({ sp, currentLabel, onPick, onClose }: {
               <div style={{ fontSize: 12.5, fontWeight: 600, color: sp.ink }}>{s.label}</div>
               <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1 }}>{s.sub}</div>
             </div>
-            <CRMIcon name="cal" size={12} stroke={sp.soft} />
+            <MEIcon name="calendar" size={12} color={sp.soft} />
           </button>
         ))}
       </div>
@@ -240,8 +240,8 @@ export function SugarMiniCalendar({ sp }: { sp: SugarPalette; dark?: boolean }) 
       }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{month}</div>
         <div style={{ display: 'flex', gap: 4 }}>
-          <button style={miniNavBtn(sp)}><CRMIcon name="chevronL" size={11} stroke={sp.soft} /></button>
-          <button style={miniNavBtn(sp)}><CRMIcon name="chevronR" size={11} stroke={sp.soft} /></button>
+          <button style={miniNavBtn(sp)}><MEIcon name="chevron-left" size={11} color={sp.soft} /></button>
+          <button style={miniNavBtn(sp)}><MEIcon name="chevron-right" size={11} color={sp.soft} /></button>
         </div>
       </div>
       <div style={{
@@ -312,7 +312,7 @@ export function SugarMiniCalendar({ sp }: { sp: SugarPalette; dark?: boolean }) 
 export type RowMenuItemId = 'open' | 'reschedule' | 'priority' | 'assign' | 'complete' | 'delete'
 export interface RowMenuItem {
   id: RowMenuItemId
-  icon: CrmIconName
+  icon: MEIconName
   label: string
   sub: string
   tone?: 'good' | 'bad'
@@ -326,11 +326,11 @@ export function SugarRowMenu({ sp, label, onPick, onClose }: {
 }) {
   const items: RowMenuItem[] = [
     { id: 'open',       icon: 'eye',   label: 'Ouvrir la fiche',     sub: 'Voir le détail complet' },
-    { id: 'reschedule', icon: 'cal',   label: 'Replanifier',         sub: 'Choisir un nouveau créneau' },
-    { id: 'priority',   icon: 'spark', label: 'Marquer prioritaire', sub: 'Remonte en haut du parcours' },
+    { id: 'reschedule', icon: 'calendar',   label: 'Replanifier',         sub: 'Choisir un nouveau créneau' },
+    { id: 'priority',   icon: 'sparkle', label: 'Marquer prioritaire', sub: 'Remonte en haut du parcours' },
     { id: 'assign',     icon: 'plus',  label: 'Assigner à…',         sub: 'Déléguer à un collaborateur' },
     { id: 'complete',   icon: 'check', label: 'Marquer comme fait',  sub: 'Cloturer cette action', tone: 'good' },
-    { id: 'delete',     icon: 'x',     label: 'Supprimer',           sub: 'Retirer du parcours',   tone: 'bad' },
+    { id: 'delete',     icon: 'close',     label: 'Supprimer',           sub: 'Retirer du parcours',   tone: 'bad' },
   ]
   return (
     <div>
@@ -377,8 +377,8 @@ export function SugarRowMenu({ sp, label, onPick, onClose }: {
                   background: isBad ? 'rgba(229,57,53,0.10)' : isGood ? 'rgba(14,159,110,0.12)' : sp.cardSubBg,
                   display: 'grid', placeItems: 'center', flexShrink: 0,
                 }}>
-                  <CRMIcon name={it.icon} size={12}
-                    stroke={isBad ? '#E53935' : isGood ? '#0E9F6E' : sp.ink} />
+                  <MEIcon name={it.icon} size={12}
+                    color={isBad ? '#E53935' : isGood ? '#0E9F6E' : sp.ink} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: isBad ? '#E53935' : sp.ink }}>{it.label}</div>
@@ -433,7 +433,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
           display: 'grid', placeItems: 'center', flexShrink: 0,
           boxShadow: '0 4px 10px rgba(99,102,241,0.4)',
         }}>
-          <CRMIcon name="spark" size={14} stroke="#fff" />
+          <MEIcon name="sparkle" size={14} color="#fff" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>MEGGA AI · Demande de traitement</div>
@@ -485,7 +485,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(229,57,53,0.12)'; e.currentTarget.style.color = '#E53935' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = sp.sub }}
                 >
-                  <CRMIcon name="x" size={11} stroke="currentColor" />
+                  <MEIcon name="close" size={11} color="currentColor" />
                 </button>
                 <button
                   onClick={() => { setBusy(`accept-${l.id}`); setTimeout(() => { onAccept?.(l); setBusy(null) }, 320) }}
@@ -499,7 +499,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
                 >
-                  <CRMIcon name="check" size={11} stroke={sp.pageBg} />
+                  <MEIcon name="check" size={11} color={sp.pageBg} />
                 </button>
               </div>
             </div>
@@ -520,7 +520,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >
-          <CRMIcon name="spark" size={11} stroke={sp.pageBg} />
+          <MEIcon name="sparkle" size={11} color={sp.pageBg} />
           Tout qualifier avec l'IA
         </button>
         <button
@@ -564,7 +564,7 @@ export function SugarStatusMenu({ sp, currentStatus, onPick, onClose }: {
           width: 30, height: 30, borderRadius: 12, background: sp.cardSubBg,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
-          <CRMIcon name="spark" size={14} stroke={sp.ink} />
+          <MEIcon name="sparkle" size={14} color={sp.ink} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>Changer le statut</div>
@@ -599,7 +599,7 @@ export function SugarStatusMenu({ sp, currentStatus, onPick, onClose }: {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, color: sp.sub, marginTop: 1 }}>{it.sub}</div>
               </div>
-              {isCurrent && <CRMIcon name="check" size={11} stroke={sp.soft} />}
+              {isCurrent && <MEIcon name="check" size={11} color={sp.soft} />}
             </button>
           )
         })}
@@ -686,7 +686,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
           width: 32, height: 32, borderRadius: 12, background: `${cfg.accent}1F`,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
-          <CRMIcon name="dash" size={14} stroke={cfg.accent} />
+          <MEIcon name="dashboard" size={14} color={cfg.accent} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{cfg.title}</div>
@@ -735,7 +735,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
             fontFamily: 'inherit', fontWeight: 700, fontSize: 12,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
-          <CRMIcon name="eye" size={12} stroke={sp.pageBg} />
+          <MEIcon name="eye" size={12} color={sp.pageBg} />
           Ouvrir le pipeline complet
         </button>
       </div>

@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-contacts-sugar.jsx` (CtCriteria, CtMatches, CtActivity, CtComposer, CtDeals, CtSellerStats, CtKyc).
 
 import { Fragment, useState } from 'react'
-import CRMIcon, { type CrmIconName } from '../CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import {
   crmBienById,
   type CrmActivity,
@@ -266,8 +266,8 @@ export function CtActivity({
           },
         ]
 
-  const iconMap: Record<string, CrmIconName> = {
-    'ai-action': 'spark',
+  const iconMap: Record<string, MEIconName> = {
+    'ai-action': 'sparkle',
     'email-open': 'mail',
     visit: 'home',
     note: 'file',
@@ -275,9 +275,9 @@ export function CtActivity({
     call: 'phone',
     offer: 'flag',
     'lead-in': 'plus',
-    'match-sent': 'matching',
+    'match-sent': 'pipeline',
   }
-  const iconFor = (k: string): CrmIconName => iconMap[k] ?? 'msg'
+  const iconFor = (k: string): MEIconName => iconMap[k] ?? 'msg'
 
   const colorMap: Record<string, string> = {
     'ai-action': '#8B5CF6',
@@ -314,7 +314,7 @@ export function CtActivity({
               placeItems: 'center',
             }}
           >
-            <CRMIcon name={iconFor(a.kind)} size={12} stroke={colorFor(a.kind)} />
+            <MEIcon name={iconFor(a.kind)} size={12} color={colorFor(a.kind)} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12.5, color: sp.ink, lineHeight: 1.45 }}>{a.text}</div>
@@ -342,7 +342,7 @@ export function CtComposer({ sp, fill }: { sp: SugarPalette; dark: boolean; fill
   const [tab, setTab] = useState<ComposerTab>('note')
   const [val, setVal] = useState('')
 
-  const tabs: { k: ComposerTab; label: string; icon: CrmIconName }[] = [
+  const tabs: { k: ComposerTab; label: string; icon: MEIconName }[] = [
     { k: 'note', label: 'Note', icon: 'file' },
     { k: 'call', label: 'Appel', icon: 'phone' },
     { k: 'email', label: 'Email', icon: 'mail' },
@@ -385,10 +385,10 @@ export function CtComposer({ sp, fill }: { sp: SugarPalette; dark: boolean; fill
               gap: 5,
             }}
           >
-            <CRMIcon
+            <MEIcon
               name={tb.icon}
               size={11}
-              stroke={tab === tb.k ? sp.pageBg : sp.soft}
+              color={tab === tb.k ? sp.pageBg : sp.soft}
             />
             {tb.label}
           </button>
@@ -441,7 +441,7 @@ export function CtComposer({ sp, fill }: { sp: SugarPalette; dark: boolean; fill
             gap: 5,
           }}
         >
-          <CRMIcon name="spark" size={11} stroke={sp.sub} />
+          <MEIcon name="sparkle" size={11} color={sp.sub} />
           Suggérer avec MEGGA AI
         </button>
         <button
@@ -521,13 +521,13 @@ export function CtDeals({
         const b = d.bienId ? crmBienById(d.bienId) : null
         const riskColor =
           d.risk === 'at-risk' ? '#F59E0B' : d.risk === 'stalled' ? '#E53935' : '#0E9F6E'
-        const nextActionIcon: CrmIconName =
+        const nextActionIcon: MEIconName =
           d.nextAction.kind === 'call'
             ? 'phone'
             : d.nextAction.kind === 'visit'
               ? 'home'
               : d.nextAction.kind === 'kyc'
-                ? 'kyc'
+                ? 'shield'
                 : 'flag'
 
         return (
@@ -612,7 +612,7 @@ export function CtDeals({
                       gap: 8,
                     }}
                   >
-                    <CRMIcon name={nextActionIcon} size={11} stroke={sp.soft} />
+                    <MEIcon name={nextActionIcon} size={11} color={sp.soft} />
                     <span
                       style={{
                         flex: 1,
@@ -688,7 +688,7 @@ export function CtSellerStats({
                 placeItems: 'center',
               }}
             >
-              <CRMIcon name="bien" size={16} stroke={b.accent} />
+              <MEIcon name="building" size={16} color={b.accent} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
@@ -858,7 +858,7 @@ export function CtKyc({
             placeItems: 'center',
           }}
         >
-          <CRMIcon name="kyc" size={14} stroke={h.tone} />
+          <MEIcon name="shield" size={14} color={h.tone} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
@@ -936,7 +936,7 @@ export function CtKyc({
                     border: !done && !active ? `1px solid ${sp.cardBorder}` : 0,
                   }}
                 >
-                  {done && <CRMIcon name="check" size={8} stroke="#fff" />}
+                  {done && <MEIcon name="check" size={8} color="#fff" />}
                 </div>
                 <div
                   style={{
@@ -1080,7 +1080,7 @@ export function CtKyc({
           gap: 8,
         }}
       >
-        <CRMIcon name="kyc" size={12} stroke={status === 'verified' ? sp.ink : '#fff'} />
+        <MEIcon name="shield" size={12} color={status === 'verified' ? sp.ink : '#fff'} />
         {cta}
       </button>
     </CtCard>

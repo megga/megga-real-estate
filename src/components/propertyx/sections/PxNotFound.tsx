@@ -12,7 +12,7 @@
 //   </section>
 
 import { Link } from 'react-router-dom'
-import { PX, PxIcon } from '..'
+import { PX, MEIcon } from '..'
 
 // Logo MEGGA — SVG dans /public/megga-logo.svg, rendu en noir via filter.
 function MeggaLogo() {
@@ -72,7 +72,7 @@ function PrimaryButtonDark({ to, label }: { to: string; label: string }) {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name="arrow-right" size={12} color={PX.neutral700} />
+        <MEIcon name="arrow-right" size={12} color={PX.neutral700} />
       </span>
     </Link>
   )

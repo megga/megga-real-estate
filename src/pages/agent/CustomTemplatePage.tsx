@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useCustomTemplates } from '@/hooks/useCustomTemplates'
 
@@ -145,7 +145,7 @@ export default function CustomTemplatePage() {
             onClick={() => navigate('/dashboard/documents')}
             className="w-9 h-9 rounded-lg border border-theme-border flex items-center justify-center hover:bg-theme-hover transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 text-theme-muted" />
+            <MEIcon name="arrow-left" className="w-4 h-4 text-theme-muted" />
           </button>
           <div>
             <h1 className="text-xl font-semibold text-theme-primary">Nouveau template personnalisé</h1>
@@ -199,7 +199,7 @@ export default function CustomTemplatePage() {
           <div key={section.id} className="rounded-xl border border-theme-border overflow-hidden">
             {/* Section header */}
             <div className="flex items-center gap-2 px-4 py-3 bg-theme-section/30 border-b border-theme-border">
-              <GripVertical className="w-3.5 h-3.5 text-theme-tertiary shrink-0" />
+              <MEIcon name="grip" className="w-3.5 h-3.5 text-theme-tertiary shrink-0" />
               <span className="text-xs font-semibold text-theme-tertiary w-5">{sIdx + 1}.</span>
               <input
                 type="text"
@@ -213,11 +213,11 @@ export default function CustomTemplatePage() {
               />
               <span className="text-xs text-theme-tertiary">{section.fields.length} champ{section.fields.length > 1 ? 's' : ''}</span>
               <button onClick={() => toggleSection(section.id)} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-theme-hover transition-colors">
-                {section.collapsed ? <ChevronDown className="w-3.5 h-3.5 text-theme-muted" /> : <ChevronUp className="w-3.5 h-3.5 text-theme-muted" />}
+                {section.collapsed ? <MEIcon name="chevron-down" className="w-3.5 h-3.5 text-theme-muted" /> : <MEIcon name="chevron-up" className="w-3.5 h-3.5 text-theme-muted" />}
               </button>
               {sections.length > 1 && (
                 <button onClick={() => removeSection(section.id)} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-red-500/10 transition-colors">
-                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                  <MEIcon name="trash" className="w-3.5 h-3.5 text-red-500" />
                 </button>
               )}
             </div>
@@ -257,14 +257,14 @@ export default function CustomTemplatePage() {
                       </label>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <button onClick={() => moveField(section.id, field.id, 'up')} disabled={fIdx === 0} className="w-6 h-6 rounded flex items-center justify-center hover:bg-theme-hover disabled:opacity-30 transition-colors">
-                          <ChevronUp className="w-3 h-3 text-theme-muted" />
+                          <MEIcon name="chevron-up" className="w-3 h-3 text-theme-muted" />
                         </button>
                         <button onClick={() => moveField(section.id, field.id, 'down')} disabled={fIdx === section.fields.length - 1} className="w-6 h-6 rounded flex items-center justify-center hover:bg-theme-hover disabled:opacity-30 transition-colors">
-                          <ChevronDown className="w-3 h-3 text-theme-muted" />
+                          <MEIcon name="chevron-down" className="w-3 h-3 text-theme-muted" />
                         </button>
                         {section.fields.length > 1 && (
                           <button onClick={() => removeField(section.id, field.id)} className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-500/10 transition-colors">
-                            <Trash2 className="w-3 h-3 text-red-500" />
+                            <MEIcon name="trash" className="w-3 h-3 text-red-500" />
                           </button>
                         )}
                       </div>
@@ -293,7 +293,7 @@ export default function CustomTemplatePage() {
                   onClick={() => addField(section.id)}
                   className="w-full h-9 rounded-lg border border-dashed border-theme-border text-xs font-medium text-theme-tertiary hover:text-theme-secondary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Plus className="w-3 h-3" />
+                  <MEIcon name="plus" className="w-3 h-3" />
                   Ajouter un champ
                 </button>
               </div>
@@ -306,7 +306,7 @@ export default function CustomTemplatePage() {
           onClick={addSection}
           className="w-full h-10 rounded-xl border border-dashed border-theme-border text-sm font-medium text-theme-tertiary hover:text-theme-secondary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <MEIcon name="plus" className="w-3.5 h-3.5" />
           Ajouter une section
         </button>
       </div>

@@ -21,7 +21,7 @@
 
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PX, PxButton, PxIcon, PxLogo } from '..'
+import { PX, PxButton, MEIcon, PxLogo } from '..'
 import PxLanguageSwitcher from './PxLanguageSwitcher'
 
 interface PxNavProps {
@@ -96,7 +96,7 @@ function MoreDropdown() {
         }}
       >
         Plus
-        <PxIcon
+        <MEIcon
           name="chevron-down"
           size={16}
           color={PX.neutral700}

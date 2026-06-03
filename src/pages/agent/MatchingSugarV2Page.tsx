@@ -579,7 +579,7 @@ export default function MatchingSugarV2Page() {
       style={{
         background: sp.pageBg,
         minHeight: '100vh',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: sp.ink,
       }}
     >

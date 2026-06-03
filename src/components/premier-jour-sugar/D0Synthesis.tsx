@@ -9,7 +9,7 @@ import {
   ObGhostPill,
 } from '@/components/onboarding-sugar/primitives'
 import { ObThemeToggle } from '@/components/onboarding-sugar/OnboardingShell'
-import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import {
   D0_AUTONOMY,
   D0_QUESTIONS,
@@ -313,7 +313,7 @@ export function D0Synthesis({
             dark={dark}
             size="lg"
             icon={
-              <PxIcon
+              <MEIcon
                 name="arrow-left"
                 size={16}
                 color={t.inkSoft}
@@ -329,7 +329,7 @@ export function D0Synthesis({
             size="lg"
             autoFocus
             icon={
-              <PxIcon
+              <MEIcon
                 name="arrow-right"
                 size={18}
                 color={dark ? '#0B0C0E' : '#FFFFFF'}
@@ -458,7 +458,7 @@ function D0ProfileRow({
   delay = 0,
   t,
 }: {
-  icon: PxIconName
+  icon: MEIconName
   label: string
   value: string
   onEdit: () => void
@@ -490,7 +490,7 @@ function D0ProfileRow({
           placeItems: 'center',
         }}
       >
-        <PxIcon name={icon} size={20} color="currentColor" strokeWidth={1.7} />
+        <MEIcon name={icon} size={20} color="currentColor" strokeWidth={1.7} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -580,7 +580,7 @@ function D0CommitmentRow({
           animationFillMode: 'both',
         }}
       >
-        <PxIcon name="check" size={12} color="currentColor" strokeWidth={2.4} />
+        <MEIcon name="check" size={12} color="currentColor" strokeWidth={2.4} />
       </div>
       <p
         style={{

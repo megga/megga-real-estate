@@ -13,7 +13,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PX, PxIcon } from '..'
+import { PX, MEIcon } from '..'
 
 // ─── Logo Property X dark-on-light ───────────────────────────────────────
 const logoCache = { icon: null as string | null, text: null as string | null }
@@ -103,7 +103,7 @@ function CityPropertiesHeader() {
             <Link to="/about" style={navLinkStyle}>About</Link>
             <Link to="/services" style={{ ...navLinkStyle, gap: 6 }}>
               Pages
-              <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
+              <MEIcon name="chevron-down" size={16} color={PX.neutral700} />
             </Link>
             <Link to="/account" style={navLinkStyle}>Cart (0)</Link>
           </nav>
@@ -631,7 +631,7 @@ function Amenity({ icon, label }: { icon: 'surface' | 'bed' | 'bath'; label: str
   return (
     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
       <span style={{ width: 20, height: 20, display: 'grid', placeItems: 'center' }}>
-        <PxIcon name={icon} size={20} color={PX.neutral500} />
+        <MEIcon name={icon} size={20} color={PX.neutral500} />
       </span>
       <span style={{
         paddingTop: 2, fontFamily: PX.font.display, fontSize: 16, fontWeight: 500,

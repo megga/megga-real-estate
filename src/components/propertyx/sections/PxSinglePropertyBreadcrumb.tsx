@@ -10,7 +10,7 @@
 
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PX, PxIcon } from '..'
+import { PX, MEIcon } from '..'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
@@ -95,7 +95,7 @@ export default function PxSinglePropertyBreadcrumb({ listing }: Props) {
                 </span>
               )}
               {!isLast ? (
-                <PxIcon name="chevron-right" size={12} color={PX.neutral400} />
+                <MEIcon name="chevron-right" size={12} color={PX.neutral400} />
               ) : null}
             </li>
           )

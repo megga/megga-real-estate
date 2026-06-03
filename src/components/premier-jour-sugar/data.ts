@@ -4,7 +4,7 @@
 //
 // Source : handoff-premier-jour/premier-jour/crm-day0-tokens.jsx
 import type { ObIconName } from '@/components/onboarding-sugar/primitives'
-import type { PxIconName } from '@/components/propertyx/PxIcon'
+import type { MEIconName } from '@/components/propertyx/MEIcon'
 import type {
   Autonomy,
   D0Answers,
@@ -18,7 +18,7 @@ import type {
 
 export type D0Option<TId extends string> = {
   id: TId
-  icon: PxIconName
+  icon: MEIconName
   label: string
   hint: string
 }

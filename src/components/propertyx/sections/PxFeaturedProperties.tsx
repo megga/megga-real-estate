@@ -32,7 +32,7 @@
 //   </section>
 
 import { Link } from 'react-router-dom'
-import { PX, PxIcon, PxFigmaIcon, PxCircleButton, PxButton } from '..'
+import { PX, MEIcon, PxFigmaIcon, PxCircleButton, PxButton } from '..'
 import { useMarketListings } from '@/hooks/useMarketListings'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
@@ -373,7 +373,7 @@ export default function PxFeaturedProperties() {
               placeItems: 'center',
               cursor: 'pointer',
             }}>
-              <PxIcon name="chevron-left" size={16} color={PX.neutral100} />
+              <MEIcon name="chevron-left" size={16} color={PX.neutral100} />
             </button>
             {/* Cercle blanc (active) */}
             <button aria-label="Suivant" style={{
@@ -387,7 +387,7 @@ export default function PxFeaturedProperties() {
               cursor: 'pointer',
               boxShadow: PX.shadow.small,
             }}>
-              <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+              <MEIcon name="chevron-right" size={16} color={PX.neutral700} />
             </button>
           </div>
         </div>

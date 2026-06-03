@@ -9,7 +9,7 @@ import {
   useState, useEffect, useRef, type ReactNode, type CSSProperties,
   type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent,
 } from 'react'
-import CRMIcon, { type CrmIconName } from './CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { crmInitials, type SugarPalette } from './tokens'
 import { type CrmContact, crmContactById } from './mockData'
 
@@ -147,7 +147,7 @@ export function SugarTaskCard({
                 display: 'grid', placeItems: 'center',
                 transition: 'background 180ms ease',
               }}>
-              <CRMIcon name="check" size={11} stroke={isDone ? '#fff' : (focused ? sp.focusInk : '#0E9F6E')} />
+              <MEIcon name="check" size={11} color={isDone ? '#fff' : (focused ? sp.focusInk : '#0E9F6E')} />
             </button>
           )}
           <button
@@ -162,7 +162,7 @@ export function SugarTaskCard({
             onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)' }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
           >
-            <CRMIcon name="cal" size={11} stroke={focused ? sp.focusInk : sp.soft} />
+            <MEIcon name="calendar" size={11} color={focused ? sp.focusInk : sp.soft} />
           </button>
         </div>
       </div>
@@ -234,7 +234,7 @@ export function SugarMiniRow({
           width: 26, height: 26, borderRadius: 999, background: sp.cardSubBg,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
-          <CRMIcon name="plus" size={12} stroke={sp.soft} />
+          <MEIcon name="plus" size={12} color={sp.soft} />
         </div>
       )}
       {contact && (
@@ -278,7 +278,7 @@ export function SugarMiniRow({
           onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
         >
-          <CRMIcon name="cal" size={10} stroke={sp.soft} />
+          <MEIcon name="calendar" size={10} color={sp.soft} />
         </button>
       )}
     </div>
@@ -341,7 +341,7 @@ export function SugarMiniRowCreate({ suggestion, sp, dark = false, onCreate }: S
           width: 26, height: 26, borderRadius: 999, background: 'rgba(14,159,110,0.18)',
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
-          <CRMIcon name="check" size={12} stroke="#0E9F6E" />
+          <MEIcon name="check" size={12} color="#0E9F6E" />
         </div>
         <div style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: '#0E9F6E', lineHeight: 1.3 }}>
           Ajouté · {created}
@@ -363,7 +363,7 @@ export function SugarMiniRowCreate({ suggestion, sp, dark = false, onCreate }: S
         display: 'grid', placeItems: 'center', flexShrink: 0,
         transition: 'background 200ms ease',
       }}>
-        <CRMIcon name="plus" size={12} stroke={editing ? sp.pageBg : sp.soft} />
+        <MEIcon name="plus" size={12} color={editing ? sp.pageBg : sp.soft} />
       </div>
       {editing ? (
         <input
@@ -402,7 +402,7 @@ export function SugarMiniRowCreate({ suggestion, sp, dark = false, onCreate }: S
             fontFamily: 'inherit',
           }}
         >
-          <CRMIcon name="check" size={10} stroke={sp.pageBg} />
+          <MEIcon name="check" size={10} color={sp.pageBg} />
         </button>
       ) : (
         <span style={{
@@ -554,7 +554,7 @@ export function SugarKnowledgeTable({ sp, onOpenStatus, onOpenRow, flashToast }:
               onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.18)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
             >
-              <CRMIcon name="star" size={13} stroke={r.fav ? '#F59E0B' : sp.sub} fill={r.fav ? '#F59E0B' : 'none'} strokeWidth={1.4} />
+              <MEIcon name="star" size={13} color={r.fav ? '#F59E0B' : sp.sub} fill={r.fav ? '#F59E0B' : 'none'} strokeWidth={1.4} />
             </button>
             <span style={{ color: sp.ink, fontWeight: 500 }}>{r.subject}</span>
             <span>
@@ -671,7 +671,7 @@ interface FocusPriority {
   sub: string
   due: string
   cta: string
-  ctaIcon: CrmIconName
+  ctaIcon: MEIconName
 }
 
 function SugarFocusCard({ sp, index, priority: p, onContactClick }: {
@@ -752,7 +752,7 @@ function SugarFocusCard({ sp, index, priority: p, onContactClick }: {
           display: 'flex', alignItems: 'center', gap: 8,
           whiteSpace: 'nowrap',
         }}>
-          <CRMIcon name={p.ctaIcon} size={14} stroke={isPrimary ? sp.focusBg : sp.pageBg} />
+          <MEIcon name={p.ctaIcon} size={14} color={isPrimary ? sp.focusBg : sp.pageBg} />
           {p.cta}
         </button>
       </div>
@@ -794,7 +794,7 @@ export function SugarFocusView({ sp, contacts, onContactClick }: {
       sub: 'Acheteuse qualifiée · score 92 · CHF 850k',
       due: "Aujourd'hui",
       cta: 'Démarrer le KYC',
-      ctaIcon: 'kyc',
+      ctaIcon: 'shield',
     },
   ]
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { MapPinned, ChevronDown, Upload, Trash2, GripVertical } from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { FLOOR_PLAN_ROOMS, getRoomLabel } from '@/types/floorPlan'
@@ -161,14 +161,14 @@ export default function FloorPlanEditor({
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
-            <MapPinned className="w-4 h-4 text-accent" />
+            <MEIcon name="location" className="w-4 h-4 text-accent" />
           </div>
           <div className="text-left">
             <p className="text-sm font-semibold text-theme-primary">Plan interactif</p>
             <p className="text-xs text-theme-tertiary">Ajoutez un plan et associez vos photos par pièce</p>
           </div>
         </div>
-        <ChevronDown className={cn('w-4 h-4 text-theme-muted transition-transform', isOpen && 'rotate-180')} />
+        <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-muted transition-transform', isOpen && 'rotate-180')} />
       </button>
 
       {isOpen && (
@@ -180,7 +180,7 @@ export default function FloorPlanEditor({
               onDrop={handlePlanDrop}
               className="border-2 border-dashed border-theme-border rounded-lg p-8 text-center hover:border-accent/50 transition-colors"
             >
-              <Upload className="w-6 h-6 mx-auto text-theme-muted mb-2" />
+              <MEIcon name="upload" className="w-6 h-6 mx-auto text-theme-muted mb-2" />
               <p className="text-sm text-theme-secondary mb-1">
                 {isUploading ? 'Upload en cours...' : 'Glissez votre plan ici'}
               </p>
@@ -207,7 +207,7 @@ export default function FloorPlanEditor({
                   onClick={removePlan}
                   className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <MEIcon name="trash" className="w-3 h-3" />
                   Supprimer
                 </button>
               </div>
@@ -263,7 +263,7 @@ export default function FloorPlanEditor({
                         )}
                         aria-label={`Hotspot ${getRoomLabel(hs.roomKey)}`}
                       >
-                        <GripVertical className="w-2.5 h-2.5 text-white" />
+                        <MEIcon name="grip" className="w-2.5 h-2.5 text-white" />
                       </div>
                     </PopoverTrigger>
 

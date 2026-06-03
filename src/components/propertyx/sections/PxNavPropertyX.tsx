@@ -26,7 +26,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PX, PxIcon } from '..'
+import { PX, MEIcon } from '..'
 
 // Logo Property X officiel — assets SVG téléchargés depuis Figma (vector
 // icon + wordmark Property X) stockés dans /public/icons/figma/propertyx/.
@@ -174,7 +174,7 @@ export default function PxNavPropertyX() {
                 }}
               >
                 Pages
-                <PxIcon name="chevron-down" size={16} color={PX.neutral300} />
+                <MEIcon name="chevron-down" size={16} color={PX.neutral300} />
               </Link>
               {/* Cart link */}
               <Link
@@ -238,7 +238,7 @@ export default function PxNavPropertyX() {
               placeItems: 'center',
               flexShrink: 0,
             }}>
-              <PxIcon name="arrow-right" size={12} color={PX.neutral100} />
+              <MEIcon name="arrow-right" size={12} color={PX.neutral100} />
             </span>
           </Link>
         </div>

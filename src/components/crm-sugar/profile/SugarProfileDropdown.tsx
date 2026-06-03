@@ -5,11 +5,11 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { SugarPalette } from '../tokens'
-import CRMIcon, { type CrmIconName } from '../CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 
-// ─── Inline icons not in CRMIcon ──────────────────────────────────────
+// ─── Inline icons not in MEIcon ──────────────────────────────────────
 type InlineIconName = 'external' | 'shield' | 'card' | 'help' | 'logout' | 'check'
 
 function InlineIco({
@@ -33,7 +33,7 @@ function InlineIco({
 
 // ─── Menu row ─────────────────────────────────────────────────────────
 interface RowProps {
-  icon: CrmIconName | InlineIconName
+  icon: MEIconName | InlineIconName
   iconKind?: 'crm' | 'inline'
   label: string
   trail?: ReactNode
@@ -65,7 +65,7 @@ function Row({ icon, iconKind = 'crm', label, trail, onClick, sp }: RowProps) {
         transition: 'background 140ms ease',
       }}>
         {iconKind === 'crm'
-          ? <CRMIcon name={icon as CrmIconName} size={15} stroke={sp.ink} strokeWidth={1.7} />
+          ? <MEIcon name={icon as MEIconName} size={15} color={sp.ink} strokeWidth={1.7} />
           : <InlineIco name={icon as InlineIconName} size={15} stroke={sp.ink} strokeWidth={1.7} />
         }
       </div>
@@ -205,7 +205,7 @@ export default function SugarProfileDropdown({
         <Row sp={sp} iconKind="inline" icon="external"
           label="Voir notre fiche publique"
           onClick={wrap(onAgencyPublic)} />
-        <Row sp={sp} icon="cog" label="Préférences"
+        <Row sp={sp} icon="settings" label="Préférences"
           onClick={wrap(onSettings)} />
         <Row sp={sp} iconKind="inline" icon="shield"
           label="Sécurité & sessions"
@@ -215,7 +215,7 @@ export default function SugarProfileDropdown({
       <Sep sp={sp} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Row sp={sp} icon="kyc" label="Mon KYC agent"
+        <Row sp={sp} icon="shield" label="Mon KYC agent"
           trail={<VerifiedPill />}
           onClick={wrap(onKyc)} />
         <Row sp={sp} iconKind="inline" icon="card"

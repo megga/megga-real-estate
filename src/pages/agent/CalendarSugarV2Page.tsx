@@ -248,7 +248,7 @@ export default function CalendarSugarV2Page() {
         position: 'relative',
         minHeight: '100vh',
         background: sp.pageBg,
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: sp.ink,
       }}
     >

@@ -1,12 +1,13 @@
-// MEGGA Marketplace — Property X icon system.
+// MEGGA — MEIcon : système d'icônes maison unifié (ex-Property X + ex-MEIcon).
 //
-// Pattern Property X observé : icônes line-style, stroke 1.6-1.8, rounded
-// caps and joins, tailles 14/16/18/22. Les SVG paths ci-dessous sont des
-// implémentations originales suivant le même style visuel (line-rounded).
+// Icônes line-style, stroke 1.6-1.8, rounded caps/joins, viewBox 24, tailles
+// 14/16/18/22. Source unique des icônes du CRM + marketplace. Accepte `className`
+// (taille via w-/h-, couleur via text-* sur currentColor, animate-spin, marges).
 
-import type { ReactNode } from 'react'
+import type { ReactNode, CSSProperties } from 'react'
+import PxIconFont, { type PxIconFontName } from './PxIconFont'
 
-export type PxIconName =
+export type MEIconName =
   | 'search'
   | 'location'
   | 'chevron-down' | 'chevron-up' | 'chevron-left' | 'chevron-right'
@@ -24,8 +25,17 @@ export type PxIconName =
   | 'play' | 'pause' | 'refresh' | 'expand' | 'collapse'
   | 'thumb-up' | 'thumb-down' | 'message' | 'send' | 'briefcase'
   | 'pipeline' | 'camera' | 'target'
+  // — Extension CRM — déléguées à PxIconFont (FONT_FALLBACK), glyphes Property X existants
+  | 'file' | 'files' | 'save' | 'print' | 'link'
+  | 'check-circle' | 'zoom-in' | 'zoom-out' | 'ruler' | 'door'
+  | 'car' | 'store' | 'trending-up' | 'trending-down'
+  | 'more-horizontal' | 'grip' | 'spinner'
+  | 'dashboard' | 'chevron-up-down'
+  | 'villa' | 'land' | 'warehouse'
+  | 'moon' | 'sun' | 'layers' | 'bolt'
+  | 'broadcast' | 'flowchart' | 'megaphone' | 'magic-wand' | 'close-circle'
 
-const PATHS: Record<PxIconName, ReactNode> = {
+const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
   location: <><path d="M12 22s-7-7.5-7-13a7 7 0 0 1 14 0c0 5.5-7 13-7 13Z" /><circle cx="12" cy="9" r="2.5" /></>,
   'chevron-down': <path d="m6 9 6 6 6-6" />,
@@ -104,31 +114,56 @@ const PATHS: Record<PxIconName, ReactNode> = {
   target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></>,
 }
 
-interface PxIconProps {
-  name: PxIconName
+const FONT_FALLBACK: Partial<Record<MEIconName, PxIconFontName>> = {
+  file: 'file', files: 'files', save: 'save', print: 'print', link: 'link',
+  'check-circle': 'check-circle', 'zoom-in': 'zoom-in', 'zoom-out': 'zoom-out',
+  ruler: 'dimensions', door: 'door-open', car: 'car', store: 'bank',
+  'trending-up': 'chart', 'trending-down': 'chart',
+  'more-horizontal': 'options', grip: 'drag', spinner: 'spinner',
+  dashboard: 'dashboard', 'chevron-up-down': 'sort-asc',
+  villa: 'buildings', land: 'mountain', warehouse: 'archive',
+  moon: 'moon', sun: 'sun', layers: 'layers', bolt: 'lightning',
+  broadcast: 'broadcast', flowchart: 'flowchart', megaphone: 'megaphone',
+  'magic-wand': 'magic-wand', 'close-circle': 'close-circle',
+}
+
+interface MEIconProps {
+  name: MEIconName
   size?: number
   color?: string
   strokeWidth?: number
+  className?: string
+  style?: CSSProperties
+  fill?: string
 }
 
-export default function PxIcon({
+export default function MEIcon({
   name,
   size = 16,
   color = 'currentColor',
   strokeWidth = 1.7,
-}: PxIconProps) {
+  className,
+  style,
+  fill = 'none',
+}: MEIconProps) {
   const path = PATHS[name]
+  if (!path) {
+    const fontName = FONT_FALLBACK[name]
+    if (fontName) return <PxIconFont name={fontName} size={size} color={color} className={className} />
+    return null
+  }
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={fill}
       stroke={color}
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ display: 'inline-block', flexShrink: 0 }}>
+      className={className}
+      style={{ display: 'inline-block', flexShrink: 0, ...style }}>
       {path}
     </svg>
   )

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Send, Lock, Loader2, Star } from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useTicket, useUpdateTicket, useAddMessage, useCannedResponses } from '@/hooks/useTickets'
@@ -77,7 +77,7 @@ export default function SupportTicketDetailPage() {
     <PageTransition>
       <div className="px-2 py-2">
         <Link to="/dashboard/support" className="flex items-center gap-1 text-sm text-theme-secondary hover:text-theme-primary mb-4 transition-colors">
-          <ArrowLeft className="h-4 w-4" />
+          <MEIcon name="arrow-left" className="h-4 w-4" />
           Tickets
         </Link>
 
@@ -102,7 +102,7 @@ export default function SupportTicketDetailPage() {
                         : 'bg-theme-card border border-theme-border mr-8'
                   )}>
                     <div className="flex items-center gap-2 mb-1.5">
-                      {isNote && <Lock className="h-3 w-3 text-amber-600" />}
+                      {isNote && <MEIcon name="lock" className="h-3 w-3 text-amber-600" />}
                       <span className="text-xs font-medium text-theme-primary">{msg.author_name}</span>
                       <span className="text-xs text-theme-muted">{formatRelativeDate(msg.created_at)}</span>
                       {isNote && <span className="text-xs text-amber-600 font-medium">Note interne</span>}
@@ -136,7 +136,7 @@ export default function SupportTicketDetailPage() {
                     disabled={addMessage.isPending || !replyText.trim()}
                     className="h-8 px-3.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-1.5 disabled:opacity-50"
                   >
-                    {addMessage.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                    {addMessage.isPending ? <MEIcon name="spinner" className="h-3 w-3 animate-spin" /> : <MEIcon name="send" className="h-3 w-3" />}
                     Répondre au client
                   </button>
                   <button
@@ -144,7 +144,7 @@ export default function SupportTicketDetailPage() {
                     disabled={addMessage.isPending || !replyText.trim()}
                     className="h-8 px-3.5 rounded-lg text-xs font-medium text-theme-muted hover:text-theme-secondary transition-colors flex items-center gap-1.5 disabled:opacity-50"
                   >
-                    <Lock className="h-3 w-3" />
+                    <MEIcon name="lock" className="h-3 w-3" />
                     Note interne
                   </button>
                 </div>
@@ -230,7 +230,7 @@ export default function SupportTicketDetailPage() {
                 <label className="text-xs text-theme-muted capitalize mb-2 block">CSAT</label>
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map(n => (
-                    <Star key={n} className={cn('h-4 w-4', n <= ticket.csat_rating! ? 'text-amber-400 fill-amber-400' : 'text-gray-200')} />
+                    <MEIcon name="star" key={n} className={cn('h-4 w-4', n <= ticket.csat_rating! ? 'text-amber-400 fill-amber-400' : 'text-gray-200')} />
                   ))}
                   <span className="text-xs text-theme-muted ml-1">{ticket.csat_rating}/5</span>
                 </div>

@@ -13,7 +13,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PX, PxSocialIcon, PxIcon } from '..'
+import { PX, PxSocialIcon, MEIcon } from '..'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 
@@ -195,7 +195,7 @@ function LinkColumn({ col }: { col: typeof COL_MAIN }) {
 
 function ContactInfo({ icon, label, value }: { icon: 'mail' | 'phone' | 'briefcase' | 'message'; label: string; value: string }) {
   // Figma Small Icon/Vxx — chaque icône Figma a une "Element" interne ~16px dans
-  // un conteneur 24×24. PxIcon use stroke-1.7 et viewBox 24, ce qui matche bien.
+  // un conteneur 24×24. MEIcon use stroke-1.7 et viewBox 24, ce qui matche bien.
   return (
     <div style={{
       display: 'flex',
@@ -209,7 +209,7 @@ function ContactInfo({ icon, label, value }: { icon: 'mail' | 'phone' | 'briefca
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name={icon} size={20} color={PX.neutral100} strokeWidth={1.6} />
+        <MEIcon name={icon} size={20} color={PX.neutral100} strokeWidth={1.6} />
       </div>
       <div style={{
         paddingTop: 2,
@@ -460,7 +460,7 @@ export default function PxFooterPropertyX() {
                     display: 'grid',
                     placeItems: 'center',
                   }}>
-                    <PxIcon name="arrow-right" size={12} color={PX.neutral100} />
+                    <MEIcon name="arrow-right" size={12} color={PX.neutral100} />
                   </span>
                 </button>
               </form>

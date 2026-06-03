@@ -1,17 +1,17 @@
 // MEGGA CRM Sugar v2 — Contact detail side drawer
 // 1:1 port from the Claude Design bundle (crm-screen-today-sugar.jsx).
 
-import CRMIcon, { type CrmIconName } from './CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { crmInitials, type SugarPalette } from './tokens'
 import type { CrmContact } from './mockData'
 
 interface ActivityItem { kind: 'call' | 'email' | 'visit' | 'match'; label: string; when: string; dur: string }
 
-const ACT_ICONS: Record<ActivityItem['kind'], CrmIconName> = {
+const ACT_ICONS: Record<ActivityItem['kind'], MEIconName> = {
   call:  'phone',
   email: 'mail',
   visit: 'home',
-  match: 'matching',
+  match: 'pipeline',
 }
 
 interface SugarContactDetailProps {
@@ -121,7 +121,7 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
           onMouseEnter={e => { e.currentTarget.style.background = sp.cardBorder; e.currentTarget.style.transform = 'rotate(90deg)' }}
           onMouseLeave={e => { e.currentTarget.style.background = sp.cardSubBg; e.currentTarget.style.transform = 'rotate(0)' }}
           >
-            <CRMIcon name="x" size={14} stroke={sp.soft} />
+            <MEIcon name="close" size={14} color={sp.soft} />
           </button>
         </div>
 
@@ -165,7 +165,7 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
             {([
               { icon: 'phone', label: 'Appeler', color: '#0E9F6E' },
               { icon: 'mail',  label: 'Email',   color: '#0041D9' },
-              { icon: 'cal',   label: 'Planifier', color: '#F59E0B' },
+              { icon: 'calendar',   label: 'Planifier', color: '#F59E0B' },
               { icon: 'plus',  label: 'Note',   color: sp.ink },
             ] as const).map(a => (
               <button key={a.label} style={{
@@ -185,7 +185,7 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
                   width: 26, height: 26, borderRadius: 999,
                   background: `${a.color}14`, display: 'grid', placeItems: 'center',
                 }}>
-                  <CRMIcon name={a.icon} size={13} stroke={a.color} />
+                  <MEIcon name={a.icon} size={13} color={a.color} />
                 </div>
                 <span style={{ fontSize: 10, fontWeight: 700, color: sp.sub, letterSpacing: 0.2 }}>{a.label}</span>
               </button>
@@ -203,13 +203,13 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
             }}>
               <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${sp.cardBorder}` }}>
                 <div style={{ width: 30, height: 30, borderRadius: 999, background: sp.cardSubBg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                  <CRMIcon name="mail" size={13} stroke={sp.soft} />
+                  <MEIcon name="mail" size={13} color={sp.soft} />
                 </div>
                 <div style={{ flex: 1, fontSize: 13, color: sp.ink, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.email}</div>
               </div>
               <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 30, height: 30, borderRadius: 999, background: sp.cardSubBg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                  <CRMIcon name="phone" size={13} stroke={sp.soft} />
+                  <MEIcon name="phone" size={13} color={sp.soft} />
                 </div>
                 <div style={{ flex: 1, fontSize: 13, color: sp.ink, fontWeight: 500, fontFamily: 'JetBrains Mono, monospace' }}>{contact.phone}</div>
               </div>
@@ -228,7 +228,7 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
                   display: 'flex', alignItems: 'center', gap: 10,
                 }}>
                   <div style={{ width: 30, height: 30, borderRadius: 999, background: sp.cardSubBg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                    <CRMIcon name={ACT_ICONS[a.kind]} size={13} stroke={sp.soft} />
+                    <MEIcon name={ACT_ICONS[a.kind]} size={13} color={sp.soft} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: sp.ink, lineHeight: 1.3 }}>{a.label}</div>

@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (CtBento, CtCard, CtKv, CtChip, CtAiBubble).
 
 import type { CSSProperties, ReactNode } from 'react'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../tokens'
 
 interface CtBentoProps {
@@ -214,7 +214,7 @@ export function CtAiBubble({ title, body, cta, sp, dark }: CtAiBubbleProps) {
           placeItems: 'center',
         }}
       >
-        <CRMIcon name="spark" size={13} stroke="#fff" />
+        <MEIcon name="sparkle" size={13} color="#fff" />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, marginBottom: 2 }}>

@@ -2,18 +2,18 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useTranslation } from 'react-i18next'
-import { Bell, X, Building2, ShieldAlert, CreditCard, AlertTriangle, MessageSquare, Check } from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminNotifications } from '@/hooks/useAdminNotifications'
 
 // ─── Action type → icon + i18n key mapping ──────────────────────────────────────
 
-const ACTION_CONFIG: Record<string, { icon: React.ElementType; i18nKey: string }> = {
-  agency_created: { icon: Building2, i18nKey: 'notifications.action.newAgency' },
-  kyc_screening_match: { icon: ShieldAlert, i18nKey: 'notifications.action.pepAlert' },
-  subscription_cancelled: { icon: CreditCard, i18nKey: 'notifications.action.subscriptionCancelled' },
-  edge_function_error: { icon: AlertTriangle, i18nKey: 'notifications.action.systemError' },
-  ticket_created: { icon: MessageSquare, i18nKey: 'notifications.action.newTicket' },
+const ACTION_CONFIG: Record<string, { icon: MEIconName; i18nKey: string }> = {
+  agency_created: { icon: 'building', i18nKey: 'notifications.action.newAgency' },
+  kyc_screening_match: { icon: 'shield', i18nKey: 'notifications.action.pepAlert' },
+  subscription_cancelled: { icon: 'credit-card', i18nKey: 'notifications.action.subscriptionCancelled' },
+  edge_function_error: { icon: 'alert', i18nKey: 'notifications.action.systemError' },
+  ticket_created: { icon: 'message', i18nKey: 'notifications.action.newTicket' },
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ export default function AdminNotificationPanel() {
         aria-label="Notifications admin"
         className="relative w-full flex items-center justify-center h-9 rounded-lg text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
       >
-        <Bell className="w-[18px] h-[18px] stroke-[1.8]" />
+        <MEIcon name="bell" className="w-[18px] h-[18px] stroke-[1.8]" />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-xs font-semibold leading-none">
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -84,7 +84,7 @@ export default function AdminNotificationPanel() {
                   onClick={markAllAsRead}
                   className="flex items-center gap-1 text-xs text-theme-secondary hover:text-theme-primary transition-colors"
                 >
-                  <Check className="w-3.5 h-3.5" />
+                  <MEIcon name="check" className="w-3.5 h-3.5" />
                   {t('notifications.markAllRead')}
                 </button>
               )}
@@ -93,7 +93,7 @@ export default function AdminNotificationPanel() {
                 aria-label={t('notifications.close')}
                 className="p-1 rounded-md hover:bg-theme-hover transition-colors text-theme-tertiary hover:text-theme-primary"
               >
-                <X className="w-4 h-4" />
+                <MEIcon name="close" className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -106,13 +106,13 @@ export default function AdminNotificationPanel() {
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-theme-muted">
-                <Bell className="w-8 h-8 mb-2 opacity-40" />
+                <MEIcon name="bell" className="w-8 h-8 mb-2 opacity-40" />
                 <span className="text-sm">{t('notifications.empty')}</span>
               </div>
             ) : (
               notifications.map((notif) => {
                 const cfg = ACTION_CONFIG[notif.action]
-                const Icon = cfg?.icon ?? Bell
+                const Icon = cfg?.icon ?? 'bell'
                 const label = cfg ? t(cfg.i18nKey) : notif.action
                 return (
                   <button
@@ -125,7 +125,7 @@ export default function AdminNotificationPanel() {
                   >
                     {/* Icon */}
                     <div className="mt-0.5 shrink-0">
-                      <Icon className={cn('w-4 h-4', !notif.read ? 'text-admin-accent' : 'text-theme-tertiary')} />
+                      <MEIcon name={Icon as MEIconName} className={cn('w-4 h-4', !notif.read ? 'text-admin-accent' : 'text-theme-tertiary')} />
                     </div>
 
                     {/* Content */}

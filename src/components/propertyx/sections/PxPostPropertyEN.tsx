@@ -8,7 +8,7 @@
 // - Paragraphes Lorem ipsum (identique Figma)
 
 import { Link } from 'react-router-dom'
-import { PX, PxIcon } from '..'
+import { PX, MEIcon } from '..'
 
 interface PostCard {
   id: string
@@ -96,7 +96,7 @@ function PostCard({ c }: { c: PostCard }) {
         placeItems: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon name="plus" size={16} color={PX.neutral100} />
+        <MEIcon name="plus" size={16} color={PX.neutral100} />
       </span>
     </Link>
   )

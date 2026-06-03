@@ -2,7 +2,7 @@
 // Source : handoff-premier-jour/premier-jour/crm-day0-tokens.jsx
 import { useState, type ReactNode } from 'react'
 import { obPalette } from '@/components/onboarding-sugar/tokens'
-import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 
 // ─── Badge MEGGA AI animé — pulse subtil ─────────────────────────────
 
@@ -127,8 +127,8 @@ export function D0OptionCard({
   onClick: () => void
   dark?: boolean
   trailing?: ReactNode
-  /** Nom PxIcon — affiché en small top-left + ghost décoratif bottom-right. */
-  iconName?: PxIconName
+  /** Nom MEIcon — affiché en small top-left + ghost décoratif bottom-right. */
+  iconName?: MEIconName
 }) {
   const t = obPalette(dark)
   const [h, setH] = useState(false)
@@ -195,7 +195,7 @@ export function D0OptionCard({
               opacity: dark ? 0.11 : 0.07,
             }}
           >
-            <PxIcon name={iconName} size={180} strokeWidth={1.2} color={t.ink} />
+            <MEIcon name={iconName} size={180} strokeWidth={1.2} color={t.ink} />
           </div>
 
           {/* Layer 2 — version foncée révélée par clip-path animation
@@ -213,7 +213,7 @@ export function D0OptionCard({
               transition: 'clip-path .6s cubic-bezier(.2,.8,.2,1)',
             }}
           >
-            <PxIcon name={iconName} size={180} strokeWidth={1.2} color={t.ink} />
+            <MEIcon name={iconName} size={180} strokeWidth={1.2} color={t.ink} />
           </div>
         </div>
       )}

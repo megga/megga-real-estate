@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-contacts-sugar.jsx` (CtSegment, CtRow, CtListPane).
 
 import { useMemo, useState, type CSSProperties } from 'react'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { type CrmContact, type CrmDeal } from '../mockData'
 import { CRM_STAGES } from '../tokens'
 import { crmInitials } from '../tokens'
@@ -375,7 +375,7 @@ export function ContactsListPane({
               }}
               title="Importer un lead via MEGGA AI"
             >
-              <CRMIcon name="spark" size={13} stroke={sp.ink} />
+              <MEIcon name="sparkle" size={13} color={sp.ink} />
             </button>
           )}
           <button
@@ -395,7 +395,7 @@ export function ContactsListPane({
             }}
             title="Nouveau contact"
           >
-            <CRMIcon name="plus" size={13} stroke={sp.pageBg} />
+            <MEIcon name="plus" size={13} color={sp.pageBg} />
           </button>
         </div>
 
@@ -413,7 +413,7 @@ export function ContactsListPane({
             marginBottom: 12,
           }}
         >
-          <CRMIcon name="search" size={13} stroke={sp.sub} />
+          <MEIcon name="search" size={13} color={sp.sub} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -501,7 +501,7 @@ export function ContactsListPane({
             }}
           >
             Tri : {sort === 'activity' ? 'Activité' : sort === 'score' ? 'Score' : 'Nom'}
-            <CRMIcon name="chevronUD" size={10} stroke={sp.soft} />
+            <MEIcon name="chevron-up-down" size={10} color={sp.soft} />
           </button>
         </div>
       </div>
