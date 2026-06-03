@@ -163,14 +163,18 @@ describe.skipIf(!HAS_KEYS)("Palier 3b — rollbacks d'undo auto", () => {
     if (cErr) throw new Error(`seed qualify contact: ${cErr.message}`)
     qualifyContactId = contact.id
 
-    // Seed the client_searches row that qualify_lead created (criteria is NOT NULL)
+    // Seed the client_searches row that qualify_lead created (criteria is NOT NULL).
+    // is_active=false À DESSEIN : le trigger AFTER INSERT on_new_client_search ne fait son
+    // net.http_post vers matching-engine que si is_active=true, et get_app_config('supabase_url')
+    // est null en CI → violation NOT NULL sur http_request_queue. Le rollback teste le DELETE par
+    // id, identique quel que soit is_active.
     const { data: search, error: sErr } = await svc
       .from('client_searches')
       .insert({
         agency_id: setup.agencyAId,
         contact_id: qualifyContactId,
         criteria: postQualifySearchCriteria,
-        is_active: true,
+        is_active: false,
       })
       .select('id')
       .single()
