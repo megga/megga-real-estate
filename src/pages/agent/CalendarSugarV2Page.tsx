@@ -19,9 +19,12 @@ import { CalMonthView } from '@/components/crm-sugar/calendar/CalMonthView'
 import { CalAgendaView } from '@/components/crm-sugar/calendar/CalAgendaView'
 import { CalLeftPanel } from '@/components/crm-sugar/calendar/CalLeftPanel'
 import { CalRightPanel } from '@/components/crm-sugar/calendar/CalRightPanel'
-import { CAL_PALETTE } from '@/components/crm-sugar/calendar/data'
+import { CalEditPanel, type CalEditing } from '@/components/crm-sugar/calendar/CalEditPanel'
 import {
-  CAL_MONTHS, fmtDate, fmtTime, sameDay,
+  buildCalPalette, calBlankEvent, calParseNL, CalPaletteContext, type CalEvent,
+} from '@/components/crm-sugar/calendar/data'
+import {
+  CAL_MONTHS, fmtDate,
 } from '@/components/crm-sugar/calendar/helpers'
 import { useCalendarSugar } from '@/hooks/useCalendarSugar'
 import { useVisits } from '@/hooks/useVisits'
@@ -51,7 +54,7 @@ export default function CalendarSugarV2Page() {
 
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
-  const SP = CAL_PALETTE
+  const SP = buildCalPalette(dark, t)
 
   // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
   const { events, hotBuyers } = useCalendarSugar()
@@ -66,6 +69,15 @@ export default function CalendarSugarV2Page() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filters, setFilters] = useState<Record<string, boolean>>({})
   const [createOpen, setCreateOpen] = useState(false)
+
+  // Couche interactive (#6/#7/#9/#10) : surcouches locales appliquées AU RENDER
+  // par-dessus les events Supabase — édition/création (overrides) + statut.
+  // Pas d'effet de miroir (qui bouclait quand `events` change de référence
+  // à chaque render, ex. agent sans données → « Maximum update depth »).
+  const [overrides, setOverrides] = useState<Record<string, CalEvent>>({})
+  const [statuses, setStatuses] = useState<Record<string, 'done' | 'cancelled' | undefined>>({})
+  const [editing, setEditing] = useState<CalEditing | null>(null)
+  const [aiText, setAiText] = useState('')
 
   /**
    * Route selon event.meggaType :
@@ -113,11 +125,68 @@ export default function CalendarSugarV2Page() {
     }
   }
 
+  // Fusion render-time : events Supabase + overrides (édition/création) + statuts.
+  const displayEvents = useMemo<CalEvent[]>(() => {
+    const seen = new Set<string>()
+    const merged: CalEvent[] = events.map(e => {
+      seen.add(e.id)
+      return overrides[e.id] ?? e
+    })
+    for (const id of Object.keys(overrides)) {
+      if (!seen.has(id)) merged.push(overrides[id])
+    }
+    return merged.map(e => (e.id in statuses ? { ...e, status: statuses[e.id] } : e))
+  }, [events, overrides, statuses])
+
   const filtered = useMemo(
-    () => events.filter(e => filters[e.type] !== false),
-    [events, filters],
+    () => displayEvents.filter(e => filters[e.type] !== false),
+    [displayEvents, filters],
   )
   const selected = filtered.find(e => e.id === selectedId)
+
+  // ── Édition / création / statut / barre IA ──
+  const startEdit = (id: string) => {
+    const ev = displayEvents.find(e => e.id === id)
+    if (ev) setEditing({ mode: 'edit', draft: { ...ev } })
+  }
+  const startCreate = () => setEditing({ mode: 'create', draft: calBlankEvent(currentDate) })
+  const cancelEdit = () => setEditing(null)
+  const saveEdit = (draft: CalEvent) => {
+    const isNew = !displayEvents.some(e => e.id === draft.id)
+    setOverrides(prev => ({ ...prev, [draft.id]: draft }))
+    setSelectedId(draft.id)
+    setEditing(null)
+    // Persistance best-effort à la création (non-visites → reminder Supabase).
+    if (isNew) {
+      void handleCreateVisit({
+        id: draft.id,
+        title: draft.title,
+        start: draft.start,
+        end: draft.end,
+        meggaType:
+          draft.type === 'visite' ? 'visit'
+          : draft.type === 'notary' ? 'signing'
+          : draft.type === 'mandate' ? 'meeting'
+          : draft.type === 'publish' ? 'deadline'
+          : 'reminder',
+        contactId: null,
+        propertyId: null,
+        description: draft.notes ?? draft.location ?? null,
+        location: draft.location ?? null,
+      } as unknown as CalendarEvent)
+    }
+  }
+  const setStatus = (id: string, status: 'done' | 'cancelled') => {
+    setStatuses(prev => ({ ...prev, [id]: prev[id] === status ? undefined : status }))
+  }
+  const submitAI = () => {
+    const text = aiText.trim()
+    if (!text) return
+    const draft = calParseNL(text, currentDate)
+    setCurrentDate(new Date(draft.start))
+    setEditing({ mode: 'create', draft })
+    setAiText('')
+  }
 
   // Live clock simulé
   const [liveNow, setLiveNow] = useState<Date>(() => new Date())
@@ -165,6 +234,7 @@ export default function CalendarSugarV2Page() {
           now={liveNow}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          onEdit={startEdit}
         />
       )
     if (view === 'week')
@@ -175,6 +245,7 @@ export default function CalendarSugarV2Page() {
           now={liveNow}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          onEdit={startEdit}
           onDateChange={setCurrentDate}
         />
       )
@@ -193,6 +264,7 @@ export default function CalendarSugarV2Page() {
         now={liveNow}
         selectedId={selectedId}
         onSelect={setSelectedId}
+        onEdit={startEdit}
       />
     )
   }
@@ -238,11 +310,8 @@ export default function CalendarSugarV2Page() {
     }
   }
 
-  const remainingToday = filtered.filter(
-    e => sameDay(e.start, liveNow) && e.start > liveNow,
-  ).length
-
   return (
+    <CalPaletteContext.Provider value={SP}>
     <div
       style={{
         position: 'relative',
@@ -379,15 +448,15 @@ export default function CalendarSugarV2Page() {
             </div>
 
             <button
-              onClick={() => setCreateOpen(true)}
+              onClick={startCreate}
               disabled={isCreating}
               style={{
                 height: 38,
                 padding: '0 16px',
                 borderRadius: 999,
                 border: 0,
-                background: SP.black,
-                color: '#fff',
+                background: SP.accent,
+                color: SP.onAccent,
                 fontFamily: 'inherit',
                 fontSize: 13,
                 fontWeight: 700,
@@ -396,11 +465,11 @@ export default function CalendarSugarV2Page() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 7,
-                boxShadow: '0 6px 18px rgba(11,12,14,0.18)',
+                boxShadow: SP.shadow,
                 flexShrink: 0,
               }}
             >
-              <CalIcon name="plus" size={14} stroke="#fff" sw={2.4} />
+              <CalIcon name="plus" size={14} stroke={SP.onAccent} sw={2.4} />
               {isCreating ? 'Création…' : 'Nouvel événement'}
             </button>
           </div>
@@ -437,45 +506,75 @@ export default function CalendarSugarV2Page() {
               {renderView()}
             </div>
 
-            {!isAgendaOrMonth && <CalRightPanel event={selected} />}
+            {editing ? (
+              <CalEditPanel
+                key={editing.draft.id + editing.mode}
+                editing={editing}
+                onSave={saveEdit}
+                onCancel={cancelEdit}
+              />
+            ) : !isAgendaOrMonth ? (
+              <CalRightPanel event={selected} onEdit={startEdit} onSetStatus={setStatus} />
+            ) : null}
           </div>
 
-          {/* Footer — clock + RDV restants */}
+          {/* Footer — barre MEGGA AI (#9). La pastille « RDV restants » a été
+              retirée (#13) : langage naturel → création pré-remplie. */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              padding: '10px 16px',
+              padding: '8px 10px 8px 16px',
               borderRadius: 999,
               background: SP.card,
               boxShadow: SP.shadowSm,
-              alignSelf: 'flex-start',
               flexShrink: 0,
             }}
           >
-            <div
+            <CalIcon name="sparkle" size={15} stroke={SP.muted} sw={2} />
+            <input
+              value={aiText}
+              onChange={e => setAiText(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') submitAI()
+              }}
+              placeholder="Demandez à MEGGA AI — ex : « visite Marie demain 14h »"
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: 999,
-                background: '#10B981',
-                animation: 'calPulseDot 1.6s ease-in-out infinite',
+                flex: 1,
+                height: 32,
+                border: 0,
+                background: 'transparent',
+                color: SP.ink,
+                fontFamily: 'inherit',
+                fontSize: 13,
+                fontWeight: 500,
+                outline: 'none',
               }}
             />
-            <span
+            <button
+              onClick={submitAI}
+              aria-label={aiText.trim() ? 'Créer' : 'Dicter'}
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: SP.ink,
-                letterSpacing: 0.2,
+                width: 36,
+                height: 36,
+                borderRadius: 999,
+                border: 0,
+                cursor: 'pointer',
+                background: aiText.trim() ? SP.accent : SP.cardSubtle,
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+                transition: 'background .15s',
               }}
             >
-              {fmtTime(liveNow)}
-            </span>
-            <span style={{ fontSize: 11.5, color: SP.muted, fontWeight: 500 }}>
-              · {remainingToday} RDV restants aujourd'hui
-            </span>
+              <CalIcon
+                name={aiText.trim() ? 'arrowR' : 'mic'}
+                size={15}
+                stroke={aiText.trim() ? SP.onAccent : SP.inkSoft}
+                sw={2}
+              />
+            </button>
           </div>
         </main>
       </div>
@@ -487,5 +586,6 @@ export default function CalendarSugarV2Page() {
         onCreateEvent={handleCreateVisit}
       />
     </div>
+    </CalPaletteContext.Provider>
   )
 }

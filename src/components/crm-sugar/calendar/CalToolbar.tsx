@@ -2,7 +2,7 @@
 // 1:1 port from `crm-calendar-sugar-shell.jsx`.
 
 import type { ReactNode } from 'react'
-import { CAL_PALETTE } from './data'
+import { useCalPalette } from './data'
 
 interface CalCircleBtnProps {
   icon: ReactNode
@@ -12,6 +12,7 @@ interface CalCircleBtnProps {
 }
 
 export function CalCircleBtn({ icon, onClick, title, size = 40 }: CalCircleBtnProps) {
+  const SP = useCalPalette()
   return (
     <button
       onClick={onClick}
@@ -21,22 +22,22 @@ export function CalCircleBtn({ icon, onClick, title, size = 40 }: CalCircleBtnPr
         height: size,
         borderRadius: 999,
         border: 0,
-        background: CAL_PALETTE.cardSubtle,
-        color: CAL_PALETTE.inkSoft,
+        background: SP.cardSubtle,
+        color: SP.inkSoft,
         cursor: 'pointer',
         display: 'grid',
         placeItems: 'center',
         transition: 'all .18s ease',
         flexShrink: 0,
-        boxShadow: CAL_PALETTE.shadowSm,
+        boxShadow: SP.shadowSm,
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.background = CAL_PALETTE.card
-        e.currentTarget.style.boxShadow = CAL_PALETTE.shadow
+        e.currentTarget.style.background = SP.card
+        e.currentTarget.style.boxShadow = SP.shadow
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.background = CAL_PALETTE.cardSubtle
-        e.currentTarget.style.boxShadow = CAL_PALETTE.shadowSm
+        e.currentTarget.style.background = SP.cardSubtle
+        e.currentTarget.style.boxShadow = SP.shadowSm
       }}
     >
       {icon}
@@ -52,6 +53,7 @@ interface CalViewToggleProps {
 }
 
 export function CalViewToggle({ value, onChange }: CalViewToggleProps) {
+  const SP = useCalPalette()
   const opts: { id: CalViewId; label: string }[] = [
     { id: 'day', label: 'Jour' },
     { id: 'week', label: 'Semaine' },
@@ -64,8 +66,8 @@ export function CalViewToggle({ value, onChange }: CalViewToggleProps) {
         display: 'inline-flex',
         padding: 4,
         borderRadius: 999,
-        background: CAL_PALETTE.cardSubtle,
-        boxShadow: `inset 0 0 0 1px ${CAL_PALETTE.line}`,
+        background: SP.cardSubtle,
+        boxShadow: `inset 0 0 0 1px ${SP.line}`,
       }}
     >
       {opts.map(o => {
@@ -79,8 +81,8 @@ export function CalViewToggle({ value, onChange }: CalViewToggleProps) {
               padding: '0 16px',
               borderRadius: 999,
               border: 0,
-              background: active ? CAL_PALETTE.black : 'transparent',
-              color: active ? '#fff' : CAL_PALETTE.inkSoft,
+              background: active ? SP.accent : 'transparent',
+              color: active ? SP.onAccent : SP.inkSoft,
               fontSize: 13,
               fontWeight: 600,
               cursor: 'pointer',
