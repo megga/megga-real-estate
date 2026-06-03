@@ -377,6 +377,23 @@ export async function execUpdatePipelineWithUndo(ctx: ActionCtx, a: Args): Promi
   return pipelineAutoMoved(ctx.lang ?? 'fr', deal.label, label)
 }
 
+const AUTO_UNDO_SEC = 30
+
+/** L3b : enregistre de quoi DÉFAIRE une action auto réversible (fenêtre 30 s). Renvoie true
+ *  si l'undo est bien enregistré (→ on peut promettre /annuler honnêtement), false sinon. */
+export async function recordAutoUndo(
+  ctx: ActionCtx, tool: string, payloadUndo: Record<string, unknown>, seconds = AUTO_UNDO_SEC,
+): Promise<boolean> {
+  if (!ctx.agencyId) return false
+  const { error } = await ctx.supabase.from('whatsapp_recent_auto_actions').insert({
+    profile_id: ctx.profileId, agency_id: ctx.agencyId, tool,
+    payload_undo: payloadUndo,
+    undo_until: new Date(Date.now() + seconds * 1000).toISOString(),
+  })
+  if (error) { console.error('recordAutoUndo failed:', (error.message ?? 'error').slice(0, 120)); return false }
+  return true
+}
+
 /** Qualifie un contact existant : critères structurés → search_criteria + matching auto.
  *  Réutilise la logique pure 4B (mêmes normalisations zones/types que la qualif autonome). */
 export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> {

@@ -228,6 +228,23 @@ export function nothingToUndo(lang: WaLang): string {
   return lang === 'en' ? "Nothing to undo (the window has passed)." : "Rien à annuler (la fenêtre est passée)."
 }
 
+/** Suffixe « /annuler » à coller à un message d'action auto réversible (Palier 3b, 30 s). */
+export function undoHint(lang: WaLang, seconds = 30): string {
+  return lang === 'en'
+    ? ` · /annuler within ${seconds}s to undo.`
+    : ` · /annuler dans les ${seconds} s pour revenir en arrière.`
+}
+/** Nom de ce qui a été défait, par outil. */
+export function undoNoun(lang: WaLang, tool: string): string {
+  const fr: Record<string, string> = { create_contact: 'contact créé', add_note: 'note', schedule_visit: 'visite', create_reminder: 'rappel', qualify_lead: 'qualification' }
+  const en: Record<string, string> = { create_contact: 'created contact', add_note: 'note', schedule_visit: 'visit', create_reminder: 'reminder', qualify_lead: 'qualification' }
+  return (lang === 'en' ? en : fr)[tool] ?? 'action'
+}
+/** Confirmation d'un undo générique (outil auto). */
+export function undoneAuto(lang: WaLang, noun: string): string {
+  return lang === 'en' ? `Rolled back — ${noun} undone.` : `Annulé — ${noun} défait.`
+}
+
 /** ACK renvoyé à DeepSeek quand un outil lent part en file (le résultat suivra,
  *  livré à l’agent par le worker). `name` = nom humain du contact (jamais un id). */
 export function asyncAck(lang: WaLang, kind: 'screening' | 'report', name: string): string {
