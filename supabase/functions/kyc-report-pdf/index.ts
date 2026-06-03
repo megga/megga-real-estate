@@ -76,7 +76,9 @@ serve(async (req) => {
         method: 'POST',
         headers: { Authorization: `Bearer ${cfToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(buildCfPdfRequestBody({ url: renderUrl, basicUser: user, basicPass: pass })),
-        signal: AbortSignal.timeout(55000),
+        // 45s < 60s de l'appelant execSendKycReport : laisse une marge pour l'upload Meta +
+        // l'envoi du document, évite que l'appelant annonce un échec alors que le PDF est parti.
+        signal: AbortSignal.timeout(45_000),
       },
     )
     if (!cfRes.ok) {
