@@ -14,7 +14,7 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, type ActionCtx } from '../_shared/whatsapp-actions.ts'
-import { asWaLang, detectLang, t, type WaLang, undoneStage, nothingToUndo } from '../_shared/whatsapp-i18n.ts'
+import { asWaLang, detectLang, t, type WaLang, undoneStage, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -320,29 +320,14 @@ async function processAgentMessage(
         .update({ undone_at: new Date().toISOString() })
         .eq('id', last.id).is('undone_at', null).select('id')
       if (claimed && claimed.length > 0) {
-        let undoReply = nothingToUndo(lang)
-        if (last.tool === 'update_pipeline') {
-          const p = last.payload_undo as { transaction_id: string; old_stage: string }
-          const { error: rbErr } = await admin.from('transactions')
-            .update({ stage: p.old_stage })
-            .eq('id', p.transaction_id).eq('agency_id', agentLink.agency_id)
-          if (rbErr) {
-            // Promesse honnête : la consommation est déjà posée (undone_at), mais le rollback
-            // a échoué → ne PAS annoncer « Annulé ». L'action reste tracée pour le MLRO.
-            console.error('whatsapp undo rollback failed:', (rbErr.message ?? 'error').slice(0, 120))
-            await sendWhatsAppText(provider, msg.fromPhone, nothingToUndo(lang))
-            return
-          }
-          await admin.from('activity_events').insert({
-            agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
-            action: 'stage_change', entity_type: 'transaction', entity_id: p.transaction_id,
-            object_label: `undo → ${p.old_stage}`, category: 'deal', severity: 'info',
-            metadata: { via: 'whatsapp', mode: 'undo', profile_id: agentLink.profile_id, new_stage: p.old_stage },
-          })
-          undoReply = undoneStage(lang, stageLabel(p.old_stage, lang))
+        const undoReply = await rollbackAutoAction(admin, agentLink, last as UndoRow, lang)
+        if (undoReply) {
+          await sendWhatsAppText(provider, msg.fromPhone, undoReply)
+          return
         }
-        await sendWhatsAppText(provider, msg.fromPhone, undoReply)
-        return
+        // Rollback impossible OU outil sans branche : LIBÉRER le verrou pour ne pas brûler le
+        // slot (un /annuler honnête doit pouvoir re-tenter). On NE return PAS : flux normal.
+        await admin.from('whatsapp_recent_auto_actions').update({ undone_at: null }).eq('id', last.id)
       }
     }
     // Rien d'annulable : on NE return PAS — le message suit le flux normal (le cerveau répondra).
@@ -507,6 +492,77 @@ async function markRead(
   } catch (err) {
     console.error('whatsapp mark-read failed:', (err as Error)?.name ?? 'error')
   }
+}
+
+type UndoRow = { id: string; tool: string; payload_undo: unknown }
+
+/** Rejoue le payload_undo d'une action auto. Renvoie le texte de confirmation, ou null si
+ *  l'outil n'a pas de branche de rollback (→ le handler relâche le verrou, slot non brûlé).
+ *  N'est appelé QUE sur un undo déjà réclamé (gagnant-unique). */
+async function rollbackAutoAction(
+  admin: SupabaseClient, agentLink: { profile_id: string; agency_id: string | null }, row: UndoRow, lang: WaLang,
+): Promise<string | null> {
+  const agencyId = agentLink.agency_id
+  const p = (row.payload_undo ?? {}) as Record<string, unknown>
+  // category ∈ {kyc,deal,contact,bien,doc,auth,settings,ai}. 'deal' pour une transaction
+  // (cohérent P3), 'contact' pour les écritures liées contact.
+  const audit = async (category: string, entityType: string, entityId: string | null, label: string) => {
+    await admin.from('activity_events').insert({
+      agency_id: agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'wa_undo', entity_type: entityType, entity_id: entityId,
+      object_label: label.slice(0, 500), category, severity: 'info',
+      metadata: { via: 'whatsapp', mode: 'undo', profile_id: agentLink.profile_id, tool: row.tool },
+    })
+  }
+
+  if (row.tool === 'update_pipeline') {
+    const tx = String(p.transaction_id ?? ''), old = String(p.old_stage ?? '')
+    if (!tx || !old) return null
+    const { data: done, error } = await admin.from('transactions').update({ stage: old }).eq('id', tx).eq('agency_id', agencyId).select('id')
+    if (error) { console.error('undo update_pipeline failed:', error.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
+    await audit('deal', 'transaction', tx, `undo → ${old}`)  // 'deal' = cohérent avec le P3
+    return undoneStage(lang, stageLabel(old, lang))
+  }
+  if (row.tool === 'create_contact') {
+    const id = String(p.contact_id ?? ''); if (!id) return null
+    const { data: done, error } = await admin.from('contacts').delete().eq('id', id).eq('agency_id', agencyId).select('id')
+    if (error) { console.error('undo create_contact failed:', error.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
+    await audit('contact', 'contact', null, 'undo création contact')
+    return undoneAuto(lang, undoNoun(lang, row.tool))
+  }
+  if (row.tool === 'schedule_visit') {
+    const id = String(p.visit_id ?? ''); if (!id) return null
+    const { data: done, error } = await admin.from('visits').delete().eq('id', id).eq('agency_id', agencyId).select('id')
+    if (error) { console.error('undo schedule_visit failed:', error.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
+    await audit('contact', 'visit', id, 'undo visite')
+    return undoneAuto(lang, undoNoun(lang, row.tool))
+  }
+  if (row.tool === 'create_reminder') {
+    const id = String(p.reminder_id ?? ''); if (!id) return null
+    const { data: done, error } = await admin.from('reminders').delete().eq('id', id).eq('agency_id', agencyId).select('id')
+    if (error) { console.error('undo create_reminder failed:', error.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
+    return undoneAuto(lang, undoNoun(lang, row.tool))
+  }
+  if (row.tool === 'qualify_lead') {
+    const cid = String(p.contact_id ?? ''); if (!cid) return null
+    // Cohérence (tout ou rien) : supprimer d'abord la recherche créée, puis restaurer le contact.
+    if (p.created_search_id) {
+      const { error: dErr } = await admin.from('client_searches').delete().eq('id', String(p.created_search_id)).eq('agency_id', agencyId)
+      if (dErr) { console.error('undo qualify_lead (search) failed:', dErr.message.slice(0, 120)); return null }
+    }
+    const { data: done, error: uErr } = await admin.from('contacts')
+      .update({ tags: (p.old_tags ?? []) as unknown, search_criteria: p.old_search_criteria ?? null })
+      .eq('id', cid).eq('agency_id', agencyId).select('id')
+    if (uErr) { console.error('undo qualify_lead (contacts) failed:', uErr.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null
+    await audit('contact', 'contact', cid, 'undo qualification')
+    return undoneAuto(lang, undoNoun(lang, row.tool))
+  }
+  return null // outil sans branche → le handler relâchera le verrou
 }
 
 // Exécute une action confirmée (send_client_message, update_pipeline, record_offer,

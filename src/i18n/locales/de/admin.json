@@ -546,5 +546,17 @@
   "weeklyReport.sending": "Wird gesendet...",
   "weeklyReport.sent": "Gesendet",
   "weeklyReport.description": "Ein automatischer Bericht wird jeden Montag um 8 Uhr an die Super-Admins gesendet. Er fasst die KPIs der Woche zusammen: Agenturen, Benutzer, Transaktionen, KYC, Fehler.",
-  "weeklyReport.deployHint": "Deployen: supabase functions deploy weekly-report"
+  "weeklyReport.deployHint": "Deployen: supabase functions deploy weekly-report",
+
+  "autonomy.title": "Agenten-Autonomie",
+  "autonomy.subtitle": "{{count}} Vorschlag/Vorschläge — MEGGA beobachtet, Sie entscheiden",
+  "autonomy.error": "Vorschläge konnten nicht geladen werden.",
+  "autonomy.observeNote": "MEGGA beobachtet die Bestätigungen (Ja/Nein) jedes Agenten. Wenn ein Agent Pipeline-Verschiebungen immer genehmigt, schlägt sie hier vor, seine Autonomie zu erhöhen. Sie befördert niemanden von selbst — die Entscheidung bleibt menschlich. Die rechtliche Grundlage (Kundennachrichten, Angebote, KYC) wird nie zur Automatisierung vorgeschlagen.",
+  "autonomy.suggestResume": "Vorschlag: resume",
+  "autonomy.empty": "Noch keine Bestätigungen erfasst.",
+  "autonomy.col.agent": "Agent",
+  "autonomy.col.autonomy": "Autonomie",
+  "autonomy.col.tool": "Werkzeug",
+  "autonomy.col.yesno": "Ja / Nein",
+  "autonomy.col.suggestion": "Vorschlag"
 }

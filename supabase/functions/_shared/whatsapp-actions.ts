@@ -17,7 +17,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount } from './whatsapp-lead.ts'
 import { PIPELINE_STAGES, isValidStage, stageLabel, type PipelineStage } from './whatsapp-agent-router.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
-import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved } from './whatsapp-i18n.ts'
+import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 
@@ -115,7 +115,9 @@ export async function execCreateContact(ctx: ActionCtx, a: Args): Promise<string
     .single()
   if (error) return `Erreur création contact: ${error.message}`
   await logTimeline(ctx, 'Contact créé', `${data.first_name ?? ''} ${data.last_name ?? ''} (via WhatsApp)`.trim(), data.id)
-  return `Contact créé: ${data.first_name} ${data.last_name ?? ''} (id ${data.id}).`
+  const undoOk = await recordAutoUndo(ctx, 'create_contact', { contact_id: data.id })
+  const base = `Contact créé: ${data.first_name ?? ''} ${data.last_name ?? ''} (id ${data.id}).`
+  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
@@ -285,10 +287,12 @@ export async function execScheduleVisit(ctx: ActionCtx, a: Args): Promise<string
   }
   if (typeof a.duration_minutes === 'number' && a.duration_minutes > 0) row.duration_minutes = Math.min(a.duration_minutes, 480)
   if (visitType === 'video') row.video_platform = 'google_meet'
-  const { error } = await ctx.supabase.from('visits').insert(row)
+  const { data: visit, error } = await ctx.supabase.from('visits').insert(row).select('id').single()
   if (error) return `Erreur planification: ${error.message}`
   await logTimeline(ctx, 'Visite planifiée', `${propTitle} — ${frDateTime(iso)}`, contactId)
-  return `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
+  const undoOk = await recordAutoUndo(ctx, 'schedule_visit', { visit_id: visit.id })
+  const base = `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
+  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 /** Crée un rappel/tâche agent (table reminders). type=custom, trigger_rule=manual. */
@@ -300,14 +304,16 @@ export async function execCreateReminder(ctx: ActionCtx, a: Args): Promise<strin
   const contactId = s(a.contact_id)
   if (contactId && !(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'
   const iso = new Date(when).toISOString()
-  const { error } = await ctx.supabase.from('reminders').insert({
+  const { data: reminder, error } = await ctx.supabase.from('reminders').insert({
     agency_id: ctx.agencyId, contact_id: contactId,
     type: 'custom', trigger_rule: 'manual', status: 'pending', channel: 'task',
     trigger_at: iso, message_template: body.slice(0, 500),
-  })
+  }).select('id').single()
   if (error) return `Erreur rappel: ${error.message}`
   if (contactId) await logTimeline(ctx, 'Rappel créé', `${body.slice(0, 120)} (${frDateTime(iso)})`, contactId)
-  return `Rappel noté pour le ${frDateTime(iso)} : « ${body.slice(0, 120)} ».`
+  const undoOk = await recordAutoUndo(ctx, 'create_reminder', { reminder_id: reminder.id })
+  const base = `Rappel noté pour le ${frDateTime(iso)} : « ${body.slice(0, 120)} ».`
+  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 /** Déplace le dossier (transaction) d'un contact dans le pipeline. */
@@ -377,6 +383,23 @@ export async function execUpdatePipelineWithUndo(ctx: ActionCtx, a: Args): Promi
   return pipelineAutoMoved(ctx.lang ?? 'fr', deal.label, label)
 }
 
+const AUTO_UNDO_SEC = 30
+
+/** L3b : enregistre de quoi DÉFAIRE une action auto réversible (fenêtre 30 s). Renvoie true
+ *  si l'undo est bien enregistré (→ on peut promettre /annuler honnêtement), false sinon. */
+export async function recordAutoUndo(
+  ctx: ActionCtx, tool: string, payloadUndo: Record<string, unknown>, seconds = AUTO_UNDO_SEC,
+): Promise<boolean> {
+  if (!ctx.agencyId) return false
+  const { error } = await ctx.supabase.from('whatsapp_recent_auto_actions').insert({
+    profile_id: ctx.profileId, agency_id: ctx.agencyId, tool,
+    payload_undo: payloadUndo,
+    undo_until: new Date(Date.now() + seconds * 1000).toISOString(),
+  })
+  if (error) { console.error('recordAutoUndo failed:', (error.message ?? 'error').slice(0, 120)); return false }
+  return true
+}
+
 /** Qualifie un contact existant : critères structurés → search_criteria + matching auto.
  *  Réutilise la logique pure 4B (mêmes normalisations zones/types que la qualif autonome). */
 export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> {
@@ -384,10 +407,12 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
   const contactId = s(a.contact_id)
   if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
   const { data } = await ctx.supabase
-    .from('contacts').select('id, phone, email, tags')
+    .from('contacts').select('id, phone, email, tags, search_criteria')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
-  const c = data as { id: string; phone: string | null; email: string | null; tags: string[] | null } | null
+  const c = data as { id: string; phone: string | null; email: string | null; tags: string[] | null; search_criteria: unknown } | null
   if (!c) return 'Erreur: contact introuvable dans votre agence.'
+  const oldTags = Array.isArray(c.tags) ? c.tags : []      // capté AVANT l'update
+  const oldCriteria = c.search_criteria ?? null             // capté AVANT l'update
 
   let zones: string[] | undefined
   if (Array.isArray(a.zones)) zones = (a.zones as unknown[]).filter((z): z is string => typeof z === 'string' && z.trim().length > 0)
@@ -397,23 +422,24 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
   const intent = txType === 'rent' ? 'recherche_location' : txType === 'buy' ? 'recherche_achat' : null
   const criteria = mapCriteria(intent, { type: s(a.property_type) ?? undefined, zones, budget: a.budget_max, pieces: a.rooms_min }, '')
 
-  const existingTags = Array.isArray(c.tags) ? c.tags : []
   const missing = computeMissing(criteria, { phone: c.phone, email: c.email })
-  const newTags = Array.from(new Set([...existingTags, 'whatsapp_ai_qualified', ...(missing.length ? ['à_compléter'] : [])]))
+  const newTags = Array.from(new Set([...oldTags, 'whatsapp_ai_qualified', ...(missing.length ? ['à_compléter'] : [])]))
   const { error: uErr } = await ctx.supabase.from('contacts')
     .update({ tags: newTags, search_criteria: criteria }).eq('id', contactId).eq('agency_id', ctx.agencyId)
   if (uErr) return `Erreur qualification: ${uErr.message}`
 
   let searchCreated = false
+  let createdSearchId: string | null = null
   if (isSearchable(criteria)) {
     const { data: existing } = await ctx.supabase.from('client_searches')
       .select('id').eq('contact_id', contactId).eq('is_active', true).limit(1).maybeSingle()
     if (!existing) {
-      await ctx.supabase.from('client_searches').insert({
+      const { data: cs } = await ctx.supabase.from('client_searches').insert({
         agency_id: ctx.agencyId, contact_id: contactId,
         label: `WhatsApp — ${criteria.transaction_type === 'rent' ? 'location' : 'achat'}`,
         criteria, is_active: true,
-      })
+      }).select('id').single()
+      createdSearchId = cs?.id ?? null
       searchCreated = true
     }
   }
@@ -429,6 +455,10 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
   if (searchCreated) parts.push('Recherche active créée → matching lancé.')
   else if (!isSearchable(criteria)) parts.push('Critères encore insuffisants pour lancer le matching.')
   if (missing.length) parts.push(`À compléter : ${missing.join(', ')}.`)
+  const undoOk = await recordAutoUndo(ctx, 'qualify_lead', {
+    contact_id: contactId, old_tags: oldTags, old_search_criteria: oldCriteria, created_search_id: createdSearchId,
+  })
+  if (undoOk) parts.push(undoHint(ctx.lang ?? 'fr').trim())
   return parts.join(' ')
 }
 

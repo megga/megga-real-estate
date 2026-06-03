@@ -546,5 +546,17 @@
   "weeklyReport.sending": "Envoi...",
   "weeklyReport.sent": "Envoye",
   "weeklyReport.description": "Un rapport automatique est envoye chaque lundi a 8h aux super-admins. Il resume les KPIs de la semaine : agences, utilisateurs, transactions, KYC, erreurs.",
-  "weeklyReport.deployHint": "Deployer : supabase functions deploy weekly-report"
+  "weeklyReport.deployHint": "Deployer : supabase functions deploy weekly-report",
+
+  "autonomy.title": "Autonomie des agents",
+  "autonomy.subtitle": "{{count}} suggestion(s) — MEGGA observe, vous décidez",
+  "autonomy.error": "Impossible de charger les suggestions.",
+  "autonomy.observeNote": "MEGGA observe les confirmations (oui/non) de chaque agent. Quand un agent approuve toujours les déplacements de pipeline, elle suggère ici de monter son autonomie. Elle n'élève rien toute seule — la décision reste humaine. Le socle légal (envoi client, offres, KYC) n'est jamais proposé en automatique.",
+  "autonomy.suggestResume": "Suggérer : resume",
+  "autonomy.empty": "Aucune confirmation enregistrée pour l'instant.",
+  "autonomy.col.agent": "Agent",
+  "autonomy.col.autonomy": "Autonomie",
+  "autonomy.col.tool": "Outil",
+  "autonomy.col.yesno": "Oui / Non",
+  "autonomy.col.suggestion": "Suggestion"
 }

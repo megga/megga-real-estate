@@ -33,7 +33,8 @@
     "adminLive": "Live Feed",
     "adminPlans": "Plans & Quotas",
     "adminSecurity": "Audit securite",
-    "adminNps": "Satisfaction"
+    "adminNps": "Satisfaction",
+    "adminAutonomy": "Autonomie agents"
   },
   "sections": {
     "main": "Principal",
