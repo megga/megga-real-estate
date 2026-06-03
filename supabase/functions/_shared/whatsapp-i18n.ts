@@ -213,6 +213,21 @@ export function pipelineNoDeal(lang: WaLang): string {
   return "Ce contact n’a pas encore de dossier dans le pipeline (aucune transaction). Le dossier doit d’abord être créé dans le CRM."
 }
 
+/** Confirmation d'un déplacement pipeline AUTO + fenêtre d'undo. */
+export function pipelineAutoMoved(lang: WaLang, who: string, label: string): string {
+  return lang === 'en'
+    ? `Done — ${who} moved to ${label}. Reply /annuler within 60s to undo.`
+    : `C’est fait — ${who} passé en ${label}. Tape /annuler dans les 60 s pour revenir en arrière.`
+}
+/** Confirmation d'un undo réussi. */
+export function undoneStage(lang: WaLang, label: string): string {
+  return lang === 'en' ? `Rolled back — back to ${label}.` : `Annulé — c’est revenu en ${label}.`
+}
+/** Rien à annuler dans la fenêtre. */
+export function nothingToUndo(lang: WaLang): string {
+  return lang === 'en' ? "Nothing to undo (the window has passed)." : "Rien à annuler (la fenêtre est passée)."
+}
+
 /** ACK renvoyé à DeepSeek quand un outil lent part en file (le résultat suivra,
  *  livré à l’agent par le worker). `name` = nom humain du contact (jamais un id). */
 export function asyncAck(lang: WaLang, kind: 'screening' | 'report', name: string): string {

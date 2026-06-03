@@ -8,6 +8,8 @@ import {
   buildHistoryMessages,
   isValidStage,
   PIPELINE_STAGES,
+  canLeaveConfirm,
+  isUndoCommand,
 } from './whatsapp-agent-router'
 
 describe('buildHistoryMessages', () => {
@@ -161,5 +163,31 @@ describe('isValidStage', () => {
     expect(isValidStage('visit_planned_legacy')).toBe(false)
     expect(isValidStage('')).toBe(false)
     expect(isValidStage('NEGOTIATION')).toBe(false)
+  })
+})
+
+describe('canLeaveConfirm — invariant socle légal (Palier 3)', () => {
+  // Les 4 outils du socle légal sont testés explicitement ; update_pipeline est l'unique
+  // true par construction (=== ). Si un 5e outil confirm-tier est ajouté, l'ajouter ici.
+  it('SEUL update_pipeline peut quitter confirm', () => {
+    expect(canLeaveConfirm('update_pipeline')).toBe(true)
+  })
+  it('le socle légal ne quitte JAMAIS confirm', () => {
+    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case']) {
+      expect(canLeaveConfirm(t)).toBe(false)
+    }
+  })
+  it('un outil inconnu ne quitte pas confirm', () => {
+    expect(canLeaveConfirm('outil_inconnu')).toBe(false)
+  })
+})
+
+describe('isUndoCommand', () => {
+  it('reconnaît les annulations courtes', () => {
+    for (const t of ['/annuler', 'annuler', 'annule', 'undo', 'reviens', 'rétablis', 'retablis']) expect(isUndoCommand(t)).toBe(true)
+  })
+  it('ne matche pas une phrase normale', () => {
+    expect(isUndoCommand('déplace Dupont en négociation')).toBe(false)
+    expect(isUndoCommand('')).toBe(false)
   })
 })
