@@ -116,8 +116,8 @@ function buildActivationPhrases(answers: D0Answers): Phrase[] {
       sub: "J'apprends quels biens correspondent à quels acheteurs, à partir des réponses que vous venez de me donner.",
     },
     {
-      main: 'Indexation des zones que vous couvrez.',
-      sub: `${zonesText} ${zonesVerb}. Cartes, communes, prix médians et flux concurrentiels sont à jour.`,
+      main: 'Calibrage du matching sur vos zones.',
+      sub: `${zonesText} ${zonesVerb}. Vos suggestions et rapprochements acheteurs ↔ biens y seront priorisés.`,
     },
     {
       main: 'Synchronisation de vos templates de documents.',

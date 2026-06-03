@@ -14,11 +14,9 @@ import { StepKYC } from './StepKYC'
 import { StepAgence } from './StepAgence'
 import { StepProfilAgence } from './StepProfilAgence'
 import { StepProfilAgent } from './StepProfilAgent'
-import { StepForfait } from './StepForfait'
 import {
   saveAgencyProfile,
   saveAgentProfile,
-  savePlanOnAgency,
 } from './persistence'
 import { clearLocalState as clearDay0LocalState } from '@/components/premier-jour-sugar/persistence'
 import {
@@ -27,12 +25,14 @@ import {
   type OnboardingData,
 } from './types'
 
+// StepForfait retiré (juin 2026) : le pricing/forfait vit sur la page Tarifs
+// dédiée, pas dans l'onboarding. Les features qu'il vendait (« publications /
+// mois »…) étaient des limites marketplace, jamais appliquées dans le code.
 const STEPS = [
   { id: 'kyc', label: 'Conformité' },
   { id: 'agence', label: 'Agence' },
   { id: 'agency', label: 'Profil agence' },
   { id: 'profile', label: 'Profil' },
-  { id: 'forfait', label: 'Forfait' },
 ] as const
 
 type Phase = 'splash' | 'wizard'
@@ -234,7 +234,6 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
       const ap = data.agentProfile
       return !!(ap?.firstName?.trim() && ap?.lastName?.trim() && ap.role)
     }
-    if (step === 4) return !!data.plan
     return true
   }, [step, data])
 
@@ -319,9 +318,6 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
             logoUrl: ap.logo,
           })
         }
-        if (data.plan) {
-          await savePlanOnAgency(ownedAgencyId, data.plan, data.billing)
-        }
       }
 
       await refreshProfile()
@@ -372,7 +368,6 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
       return <StepProfilAgence data={data} set={set} dark={dark} />
     if (step === 3)
       return <StepProfilAgent data={data} set={set} dark={dark} />
-    if (step === 4) return <StepForfait data={data} set={set} dark={dark} />
     return null
   })()
 
