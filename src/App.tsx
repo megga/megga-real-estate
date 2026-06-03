@@ -145,7 +145,12 @@ const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
 const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
 const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
-const AccountPage = lazy(() => import('@/pages/public/AccountPage'))
+// Compte ACHETEUR DÉSACTIVÉ — focus 100% CRM (juin 2026). /account (favoris +
+// recherches sauvegardées) lisait market_listings ; c'était la dernière surface
+// acheteur vivante. Désormais market_listings ne sert plus que le Matching.
+// Route → /dashboard. Import conservé en commentaire pour réactivation (la page
+// + FavoritesSection restent dans le repo).
+// const AccountPage = lazy(() => import('@/pages/public/AccountPage'))
 
 // Lazy-loaded help center pages
 const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
@@ -391,16 +396,12 @@ function AnimatedRoutes() {
               <Route path="/visite/:id/feedback" element={<VisitFeedbackRedirect />} />
               <Route path="/agences" element={<Navigate to="/agencies" replace />} />
 
-              {/* Account — public-side dashboard (favorites, saved searches, messaging, profile) */}
-              <Route
-                path="/account"
-                element={
-                  <ProtectedRoute>
-                    <AccountPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/compte" element={<Navigate to="/account" replace />} />
+              {/* Compte ACHETEUR (favoris, recherches sauvegardées, messagerie) —
+                  DÉSACTIVÉ. Focus 100% CRM : market_listings ne sert plus que le
+                  Matching. /account + /compte → /dashboard (les agents ont déjà
+                  leur espace ; plus aucune surface acheteur). Réversible. */}
+              <Route path="/account" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/compte" element={<Navigate to="/dashboard" replace />} />
 
               {/* Help Center */}
               <Route path="/help" element={<HelpCenterPage />} />
