@@ -34,7 +34,8 @@
     "adminPlans": "Plane & Kontingente",
     "adminSecurity": "Sicherheitsaudit",
     "adminNps": "Zufriedenheit",
-    "adminAutonomy": "Agenten-Autonomie"
+    "adminAutonomy": "Agenten-Autonomie",
+    "adminLearning": "Gelernte Stile"
   },
   "sections": {
     "main": "Hauptmenü",
