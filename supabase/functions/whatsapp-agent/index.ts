@@ -11,12 +11,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, buildHistoryMessages, stageLabel, type WaHistoryRow } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, buildHistoryMessages, stageLabel, canLeaveConfirm, type WaHistoryRow } from '../_shared/whatsapp-agent-router.ts'
 import { detectLang, t, asyncAck, confirmSendClient, confirmUpdatePipeline, pipelineWhoDefault, pipelineWhoNamed } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
-  execScheduleVisit, execCreateReminder, execUpdatePipeline, execQualifyLead,
+  execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   type ActionCtx,
@@ -162,6 +162,17 @@ serve(async (req) => {
       }
 
       if (tier === 'confirm') {
+        // L3 : update_pipeline peut quitter confirm si l'agent a l'autonomie (réversible+audité).
+        // canLeaveConfirm garantit que le SOCLE LÉGAL (client/offre/KYC) n'entre JAMAIS ici.
+        if (canLeaveConfirm(name)) {
+          const { data: gate, error: gateErr } = await supabase.rpc('can_auto_send', { p_agent_id: profileId, p_action_type: 'pipeline_move' })
+          if (gateErr) console.error('can_auto_send failed:', (gateErr.message ?? 'error').slice(0, 120))
+          if (gate === true) {
+            const auto = await execUpdatePipelineWithUndo(ctx, args)
+            messages.push({ role: 'tool', tool_call_id: call.id, content: auto })
+            continue
+          }
+        }
         // On NE l'exécute pas : on VALIDE + on PRÉPARE, puis on demande confirmation.
         const stash = await stashPending(ctx, waNumber, name, args)
         if (stash.status === 'busy') {
