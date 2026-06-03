@@ -562,7 +562,11 @@ serve(async (req) => {
         sanctions_status: sanctionsStatus,
         sanctions_details: sanctionsDetails,
         last_screening_at: new Date().toISOString(),
-        contact_nationality: contact_nationality || null,
+        // NE JAMAIS persister la nationalité DÉFAUT-ÉE : `contact_nationality` vaut
+        // déjà `?? 'CH'` (fallback local pour le calcul de risque). L'écrire en base
+        // inventerait une nationalité suisse pour un contact dont elle est inconnue —
+        // ça corrompt le dossier LBA et le rapport. On réécrit l'ORIGINAL (null compris).
+        contact_nationality: preScreenCase.contact_nationality,
         risk_score: riskResult.score,
         risk_factors: riskResult.factors,
         risk_level: riskLevel,
