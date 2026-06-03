@@ -5,11 +5,31 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Manual trigger to re-deploy main on demand — recover a stuck or raced
+  # deploy without having to push an empty commit.
+  workflow_dispatch:
 
 # Opt into Node.js 24 for action runners to silence the deprecation
 # warnings and avoid the forced migration on June 2nd 2026.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# Serialize production deploys. Two pushes to main within seconds (e.g. two PRs
+# merged back-to-back) previously launched two concurrent
+# `wrangler pages deploy --branch=main` calls that raced: the older artifact
+# won and shipped a stale production build (2026-06-03 — the Microsoft-icon fix
+# in #551 was clobbered by the immediately-preceding #552 merge's deploy).
+# Queueing by group runs the newer commit's deploy AFTER the older one finishes,
+# so the latest commit always ends up live. We do NOT cancel in-progress:
+# migrations and function deploys must finish cleanly rather than be killed
+# mid-flight.
+#
+# Group is keyed on github.ref so ONLY same-ref runs serialize: every push to
+# main (+ workflow_dispatch on main) shares one queue and lines up, while each
+# PR / branch gets its own group and never blocks a production deploy.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
@@ -166,6 +186,9 @@ jobs:
 
       - name: Link Supabase project and deploy functions
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # Backstop : si tout le step se bloque (lien réseau, CLI figé), on le
+        # tue à 10 min au lieu de laisser le run pendre des heures.
+        timeout-minutes: 10
         # Tolère les échecs individuels : si une fonction plante (import
         # deno cassé, secret manquant, etc.), on log et on continue les
         # autres. Le step ne fail que si AUCUNE fonction n'a été déployée.
@@ -195,10 +218,14 @@ jobs:
             fn_name=$(basename "$fn_dir")
             if [ -f "$fn_dir/index.ts" ]; then
               echo "::group::Deploying $fn_name"
+              # `timeout 180` borne chaque déploiement : si une fonction se fige
+              # (observé 2026-06-03 — un deploy a bloqué tout le job 14 min avant
+              # annulation manuelle), rc=124 → comptée comme échec et la boucle
+              # passe à la suivante au lieu de pendre indéfiniment.
               if echo " $JWT_PROTECTED " | grep -q " $fn_name "; then
-                supabase functions deploy "$fn_name"
+                timeout 180 supabase functions deploy "$fn_name"
               else
-                supabase functions deploy "$fn_name" --no-verify-jwt
+                timeout 180 supabase functions deploy "$fn_name" --no-verify-jwt
               fi
               RC=$?
               echo "::endgroup::"
@@ -207,7 +234,11 @@ jobs:
               else
                 FAILED=$((FAILED + 1))
                 FAILED_FNS="$FAILED_FNS $fn_name"
-                echo "::warning::Deployment of $fn_name failed (rc=$RC) — continuing"
+                if [ $RC -eq 124 ]; then
+                  echo "::warning::Deployment of $fn_name timed out after 180s — continuing"
+                else
+                  echo "::warning::Deployment of $fn_name failed (rc=$RC) — continuing"
+                fi
               fi
             fi
           done
