@@ -17,7 +17,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount } from './whatsapp-lead.ts'
 import { PIPELINE_STAGES, isValidStage, stageLabel, type PipelineStage } from './whatsapp-agent-router.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
-import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved } from './whatsapp-i18n.ts'
+import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 
@@ -115,7 +115,9 @@ export async function execCreateContact(ctx: ActionCtx, a: Args): Promise<string
     .single()
   if (error) return `Erreur création contact: ${error.message}`
   await logTimeline(ctx, 'Contact créé', `${data.first_name ?? ''} ${data.last_name ?? ''} (via WhatsApp)`.trim(), data.id)
-  return `Contact créé: ${data.first_name} ${data.last_name ?? ''} (id ${data.id}).`
+  const undoOk = await recordAutoUndo(ctx, 'create_contact', { contact_id: data.id })
+  const base = `Contact créé: ${data.first_name ?? ''} ${data.last_name ?? ''} (id ${data.id}).`
+  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
@@ -285,10 +287,12 @@ export async function execScheduleVisit(ctx: ActionCtx, a: Args): Promise<string
   }
   if (typeof a.duration_minutes === 'number' && a.duration_minutes > 0) row.duration_minutes = Math.min(a.duration_minutes, 480)
   if (visitType === 'video') row.video_platform = 'google_meet'
-  const { error } = await ctx.supabase.from('visits').insert(row)
+  const { data: visit, error } = await ctx.supabase.from('visits').insert(row).select('id').single()
   if (error) return `Erreur planification: ${error.message}`
   await logTimeline(ctx, 'Visite planifiée', `${propTitle} — ${frDateTime(iso)}`, contactId)
-  return `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
+  const undoOk = await recordAutoUndo(ctx, 'schedule_visit', { visit_id: visit.id })
+  const base = `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
+  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 /** Crée un rappel/tâche agent (table reminders). type=custom, trigger_rule=manual. */
@@ -300,14 +304,16 @@ export async function execCreateReminder(ctx: ActionCtx, a: Args): Promise<strin
   const contactId = s(a.contact_id)
   if (contactId && !(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'
   const iso = new Date(when).toISOString()
-  const { error } = await ctx.supabase.from('reminders').insert({
+  const { data: reminder, error } = await ctx.supabase.from('reminders').insert({
     agency_id: ctx.agencyId, contact_id: contactId,
     type: 'custom', trigger_rule: 'manual', status: 'pending', channel: 'task',
     trigger_at: iso, message_template: body.slice(0, 500),
-  })
+  }).select('id').single()
   if (error) return `Erreur rappel: ${error.message}`
   if (contactId) await logTimeline(ctx, 'Rappel créé', `${body.slice(0, 120)} (${frDateTime(iso)})`, contactId)
-  return `Rappel noté pour le ${frDateTime(iso)} : « ${body.slice(0, 120)} ».`
+  const undoOk = await recordAutoUndo(ctx, 'create_reminder', { reminder_id: reminder.id })
+  const base = `Rappel noté pour le ${frDateTime(iso)} : « ${body.slice(0, 120)} ».`
+  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 /** Déplace le dossier (transaction) d'un contact dans le pipeline. */
