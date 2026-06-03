@@ -228,3 +228,16 @@ export function asyncAck(lang: WaLang, kind: 'screening' | 'report', name: strin
     ? `Je lance le screening${who}, je te donne le résultat dans ~15 s.`
     : `Je prépare le rapport KYC${who}, tu reçois le PDF dans ~15 s.`
 }
+
+/** Message d'échec livré à l'AGENT par le worker async quand un outil lent n'aboutit
+ *  pas après ses tentatives — pour ne JAMAIS le laisser sans réponse après l'ACK. */
+export function asyncFailed(lang: WaLang, kind: 'screening' | 'report'): string {
+  if (lang === 'en') {
+    return kind === 'screening'
+      ? "The screening couldn't be completed — try again, or check the case in the CRM."
+      : "The KYC report couldn't be generated — try again in a moment."
+  }
+  return kind === 'screening'
+    ? "Le screening n'a pas pu aboutir — réessaie, ou vérifie le dossier dans le CRM."
+    : "Le rapport KYC n'a pas pu être généré — réessaie dans un instant."
+}

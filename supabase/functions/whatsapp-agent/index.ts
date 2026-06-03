@@ -201,6 +201,12 @@ async function enqueueAsyncJob(
 ): Promise<string> {
   const contactId = typeof args.contact_id === 'string' ? args.contact_id : null
   const lang = ctx.lang ?? 'fr'
+  // Sans numéro d'agent, le worker ne pourra pas livrer le résultat → ne pas enfiler un job
+  // voué à l'échec ; dire tout de suite à l'agent que ça n'a pas pu partir.
+  if (!waNumber) {
+    console.warn('async enqueue skipped: no waNumber for profile', ctx.profileId)
+    return t(lang, 'cantProcessNow')
+  }
   const { error } = await ctx.supabase.from('whatsapp_async_jobs').insert({
     profile_id: ctx.profileId,
     agency_id: ctx.agencyId,
@@ -210,8 +216,12 @@ async function enqueueAsyncJob(
     contact_id: contactId,
     lang,
   })
+  // 23505 = job déjà en file (dédup voulue) → on continue vers l'ACK. Toute AUTRE erreur
+  // (ex. table absente si la migration n'a pas été appliquée) : dégrader FORT — l'agent est
+  // prévenu, pas d'ACK trompeur promettant un résultat qui n'arrivera jamais.
   if (error && error.code !== '23505') {
     console.error('enqueue async job failed:', (error.message ?? 'error').slice(0, 120))
+    return t(lang, 'cantProcessNow')
   }
   let name = ''
   if (contactId && ctx.agencyId) {

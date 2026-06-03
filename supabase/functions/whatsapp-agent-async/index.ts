@@ -12,7 +12,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { execRunKycScreening, execSendKycReport, type ActionCtx } from '../_shared/whatsapp-actions.ts'
-import { asWaLang } from '../_shared/whatsapp-i18n.ts'
+import { asWaLang, asyncFailed } from '../_shared/whatsapp-i18n.ts'
 
 // Jobs lourds (~50-60s chacun) : on en réclame UN par tick. Le cron tourne chaque minute,
 // donc un backlog se draine à 1/min — largement suffisant pour du KYC déclenché par l'agent,
@@ -30,6 +30,23 @@ function safeEqual(a: string, b: string): boolean {
   let diff = 0
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
   return diff === 0
+}
+
+// Livraison d'un texte à l'AGENT seul (jamais au client). Isolée : un échec d'envoi Meta
+// est loggé mais ne propage pas (le job est déjà marqué — pas de re-traitement = pas de
+// double screening/PDF). No-op si numéro ou secrets Meta absents.
+async function sendToAgent(
+  provider: ReturnType<typeof getProvider>, cfg: SendConfig,
+  toPhone: string, body: string, metaToken: string, metaPhoneNumberId: string,
+): Promise<void> {
+  if (!metaToken || !metaPhoneNumberId || !toPhone) return
+  try {
+    const sreq = provider.buildSendTextRequest({ toPhone, body }, cfg)
+    const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
+    if (!sres.ok) console.error('wa-agent-async agent send not ok:', sres.status)
+  } catch (e) {
+    console.error('wa-agent-async agent send failed:', (e as Error)?.name ?? 'error')
+  }
 }
 
 serve(async (req) => {
@@ -60,48 +77,52 @@ serve(async (req) => {
   for (const j of (jobs ?? []) as Array<Record<string, unknown>>) {
     if (overBudget()) break  // reste 'processing' → repris au tick suivant (>5 min)
     const id = j.id as string
+    const tool = j.tool as string
+    const agentPhone = j.wa_agent_phone as string
+    const lang = asWaLang(j.lang)
     try {
       const ctx: ActionCtx = {
         supabase: admin,
         profileId: j.profile_id as string,
         agencyId: (j.agency_id as string | null) ?? null,
         inboundMedia: null,
-        lang: asWaLang(j.lang),
-        agentPhone: j.wa_agent_phone as string,
+        lang,
+        agentPhone,
       }
       const args = (j.args as Record<string, unknown>) ?? {}
-      const tool = j.tool as string
-      const result = tool === 'run_kyc_screening'
-        ? await execRunKycScreening(ctx, args)
-        : await execSendKycReport(ctx, args)
+      let result: string
+      if (tool === 'run_kyc_screening') result = await execRunKycScreening(ctx, args)
+      else if (tool === 'send_kyc_report') result = await execSendKycReport(ctx, args)
+      else throw new Error(`unknown async tool: ${tool}`) // fail-loud (défense pour un 3e outil P2b)
 
-      // Livrer le résultat à l'AGENT seul (jamais au client). Fenêtre 24h ouverte.
-      // send_kyc_report : execSendKycReport a DÉJÀ envoyé le PDF (avec légende) à l'agent
-      // via kyc-report-pdf → pas de texte redondant ici. C'est aussi une garde anti-doublon :
-      // un échec d'envoi APRÈS le PDF ferait re-tourner le job (PDF en double, pas de verrou
-      // côté report). run_kyc_screening : ce texte EST la seule livraison → on l'envoie, mais
-      // en try/catch ISOLÉ pour qu'un échec Meta ne déclenche pas un retry du job entier
-      // (qui re-screenerait — le verrou P1 l'en empêcherait, mais on évite le bruit).
-      if (tool === 'run_kyc_screening' && metaToken && metaPhoneNumberId) {
-        try {
-          const sreq = provider.buildSendTextRequest({ toPhone: j.wa_agent_phone as string, body: result }, sendCfg)
-          const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-          if (!sres.ok) console.error('wa-agent-async agent send not ok:', sres.status)
-        } catch (e) {
-          console.error('wa-agent-async agent send failed:', (e as Error)?.name ?? 'error')
-        }
-      }
+      // Marquer 'done' AVANT la livraison : si le worker meurt après ce point, le job n'est
+      // PAS re-réclamé → pas de double screening (double crédit Dilisense) ni de double PDF.
+      // La fenêtre de re-exécution se réduit au seul UPDATE ci-dessous (qq ms).
       await admin.from('whatsapp_async_jobs').update({
         status: 'done', result_summary: result.slice(0, 500), last_error: null,
       }).eq('id', id)
+
+      // Livrer le résultat à l'AGENT seul (jamais au client). Les DEUX outils : ce texte est
+      // la livraison du screening ET PORTE le message d'échec du report (execSendKycReport
+      // renvoie une chaîne d'erreur sans throw) — sinon l'agent resterait sans réponse après
+      // l'ACK. Report en succès : kyc-report-pdf a déjà envoyé le PDF ; ce texte le confirme.
+      // Isolée (sendToAgent ne propage pas) : le job reste 'done', pas de re-traitement.
+      await sendToAgent(provider, sendCfg, agentPhone, result, metaToken, metaPhoneNumberId)
       done++
     } catch (e) {
       const rc = ((j.retry_count as number) ?? 0) + 1
+      const isFinal = rc >= MAX_RETRIES
       await admin.from('whatsapp_async_jobs').update({
-        status: rc >= MAX_RETRIES ? 'failed' : 'pending',
+        status: isFinal ? 'failed' : 'pending',
         retry_count: rc,
         last_error: String((e as Error)?.message ?? 'error').slice(0, 300),
       }).eq('id', id)
+      // Échec TERMINAL : prévenir l'agent (ne jamais le laisser sans réponse après l'ACK).
+      if (isFinal) {
+        await sendToAgent(provider, sendCfg, agentPhone,
+          asyncFailed(lang, tool === 'run_kyc_screening' ? 'screening' : 'report'),
+          metaToken, metaPhoneNumberId)
+      }
       failed++
     }
   }
