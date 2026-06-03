@@ -82,17 +82,24 @@ serve(async (req) => {
 
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
-  const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { data: histRows } = await supabase
-    .from('whatsapp_messages')
-    .select('direction, body, transcript')
-    .or(`wa_from.eq.${waNumber},wa_to.eq.${waNumber}`)
-    .eq('is_agent_error', false) // anti-écho : ne jamais relire une réponse d'échec (leçon 5)
-    .neq('provider_message_id', currentMessageId ?? '')
-    .gt('created_at', sinceIso)
-    .order('created_at', { ascending: false })
-    .limit(12)
-  const history = buildHistoryMessages((histRows ?? []) as WaHistoryRow[])
+  // Garde : si waNumber est vide, .or('wa_from.eq.,wa_to.eq.') ne matche RIEN → amnésie
+  // silencieuse. On court-circuite et on trace (PII-safe : profile id seul, jamais le numéro).
+  let history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  if (!waNumber) {
+    console.warn('C1 skipped: no waNumber for profile', profileId)
+  } else {
+    const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: histRows } = await supabase
+      .from('whatsapp_messages')
+      .select('direction, body, transcript')
+      .or(`wa_from.eq.${waNumber},wa_to.eq.${waNumber}`)
+      .eq('is_agent_error', false) // anti-écho : ne jamais relire une réponse d'échec (leçon 5)
+      .neq('provider_message_id', currentMessageId ?? '')
+      .gt('created_at', sinceIso)
+      .order('created_at', { ascending: false })
+      .limit(12)
+    history = buildHistoryMessages((histRows ?? []) as WaHistoryRow[])
+  }
 
   // Ancrage temporel : sans ça DeepSeek ne sait pas résoudre « demain », « vendredi 14h »
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
