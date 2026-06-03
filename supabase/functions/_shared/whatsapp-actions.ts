@@ -132,17 +132,16 @@ export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
     .eq('agency_id', ctx.agencyId)
     .maybeSingle()
   if (!c) return 'Erreur: contact introuvable dans votre agence.'
-  const eventId = await logTimeline(ctx, 'Note ajoutée', body, contactId)
-  if (!eventId) return "Erreur: impossible d'enregistrer la note."
-  const undoOk = await recordAutoUndo(ctx, 'add_note', { event_id: eventId })
-  return undoOk ? 'Note ajoutée à la fiche.' + undoHint(ctx.lang ?? 'fr') : 'Note ajoutée à la fiche.'
+  const ok = await logTimeline(ctx, 'Note ajoutée', body, contactId)
+  if (!ok) return "Erreur: impossible d'enregistrer la note."
+  return 'Note ajoutée à la fiche.'
 }
 
 // Écrit une entrée dans la timeline du contact (activity_events).
 // La timeline lit par entity_id ; `action` = titre affiché, `object_label` = détail,
 // `actor_kind='ai'` => badge « IA ». category 'contact' => icône contact.
-async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, contactId: string | null): Promise<string | null> {
-  const { data, error } = await ctx.supabase.from('activity_events').insert({
+async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, contactId: string | null): Promise<boolean> {
+  const { error } = await ctx.supabase.from('activity_events').insert({
     agency_id: ctx.agencyId,
     // Contrainte activity_events_actor_kind_coherence : actor_id DOIT être NULL si
     // actor_kind != 'user'. Pour une action IA, l'agent déclencheur va en metadata.
@@ -155,9 +154,9 @@ async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, 
     category: 'contact',
     severity: 'info',
     metadata: { via: 'whatsapp', profile_id: ctx.profileId },
-  }).select('id').single()
-  if (error) { console.error('activity_events insert failed'); return null }
-  return data.id
+  })
+  if (error) { console.error('activity_events insert failed'); return false }
+  return true
 }
 
 // ── Phase 4C / C3 : outils LECTURE (scopés agence au SQL) ───────────────────

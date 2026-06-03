@@ -236,8 +236,8 @@ export function undoHint(lang: WaLang, seconds = 30): string {
 }
 /** Nom de ce qui a été défait, par outil. */
 export function undoNoun(lang: WaLang, tool: string): string {
-  const fr: Record<string, string> = { create_contact: 'contact créé', add_note: 'note', schedule_visit: 'visite', create_reminder: 'rappel', qualify_lead: 'qualification' }
-  const en: Record<string, string> = { create_contact: 'created contact', add_note: 'note', schedule_visit: 'visit', create_reminder: 'reminder', qualify_lead: 'qualification' }
+  const fr: Record<string, string> = { create_contact: 'contact créé', schedule_visit: 'visite', create_reminder: 'rappel', qualify_lead: 'qualification' }
+  const en: Record<string, string> = { create_contact: 'created contact', schedule_visit: 'visit', create_reminder: 'reminder', qualify_lead: 'qualification' }
   return (lang === 'en' ? en : fr)[tool] ?? 'action'
 }
 /** Confirmation d'un undo générique (outil auto). */

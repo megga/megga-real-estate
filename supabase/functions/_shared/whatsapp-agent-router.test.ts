@@ -10,7 +10,6 @@ import {
   PIPELINE_STAGES,
   canLeaveConfirm,
   isUndoCommand,
-  isUndoableAutoTool,
 } from './whatsapp-agent-router'
 
 describe('buildHistoryMessages', () => {
@@ -193,13 +192,3 @@ describe('isUndoCommand', () => {
   })
 })
 
-describe('isUndoableAutoTool (Palier 3b)', () => {
-  it('reconnaît les 5 outils auto annulables', () => {
-    for (const t of ['create_contact', 'add_note', 'schedule_visit', 'create_reminder', 'qualify_lead'])
-      expect(isUndoableAutoTool(t)).toBe(true)
-  })
-  it('exclut update_pipeline (géré par canLeaveConfirm) et le socle légal', () => {
-    for (const t of ['update_pipeline', 'send_client_message', 'record_offer', 'open_kyc_case', 'inconnu'])
-      expect(isUndoableAutoTool(t)).toBe(false)
-  })
-})

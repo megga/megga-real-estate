@@ -14,7 +14,7 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, type ActionCtx } from '../_shared/whatsapp-actions.ts'
-import { asWaLang, detectLang, t, type WaLang, undoneStage, nothingToUndo, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
+import { asWaLang, detectLang, t, type WaLang, undoneStage, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -518,47 +518,47 @@ async function rollbackAutoAction(
   if (row.tool === 'update_pipeline') {
     const tx = String(p.transaction_id ?? ''), old = String(p.old_stage ?? '')
     if (!tx || !old) return null
-    const { error } = await admin.from('transactions').update({ stage: old }).eq('id', tx).eq('agency_id', agencyId)
+    const { data: done, error } = await admin.from('transactions').update({ stage: old }).eq('id', tx).eq('agency_id', agencyId).select('id')
     if (error) { console.error('undo update_pipeline failed:', error.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
     await audit('deal', 'transaction', tx, `undo → ${old}`)  // 'deal' = cohérent avec le P3
     return undoneStage(lang, stageLabel(old, lang))
   }
   if (row.tool === 'create_contact') {
     const id = String(p.contact_id ?? ''); if (!id) return null
-    const { error } = await admin.from('contacts').delete().eq('id', id).eq('agency_id', agencyId)
+    const { data: done, error } = await admin.from('contacts').delete().eq('id', id).eq('agency_id', agencyId).select('id')
     if (error) { console.error('undo create_contact failed:', error.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
     await audit('contact', 'contact', null, 'undo création contact')
-    return undoneAuto(lang, undoNoun(lang, row.tool))
-  }
-  if (row.tool === 'add_note') {
-    const id = String(p.event_id ?? ''); if (!id) return null
-    const { error } = await admin.from('activity_events').delete().eq('id', id).eq('agency_id', agencyId)
-    if (error) { console.error('undo add_note failed:', error.message.slice(0, 120)); return null }
     return undoneAuto(lang, undoNoun(lang, row.tool))
   }
   if (row.tool === 'schedule_visit') {
     const id = String(p.visit_id ?? ''); if (!id) return null
-    const { error } = await admin.from('visits').delete().eq('id', id).eq('agency_id', agencyId)
+    const { data: done, error } = await admin.from('visits').delete().eq('id', id).eq('agency_id', agencyId).select('id')
     if (error) { console.error('undo schedule_visit failed:', error.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
     await audit('contact', 'visit', id, 'undo visite')
     return undoneAuto(lang, undoNoun(lang, row.tool))
   }
   if (row.tool === 'create_reminder') {
     const id = String(p.reminder_id ?? ''); if (!id) return null
-    const { error } = await admin.from('reminders').delete().eq('id', id).eq('agency_id', agencyId)
+    const { data: done, error } = await admin.from('reminders').delete().eq('id', id).eq('agency_id', agencyId).select('id')
     if (error) { console.error('undo create_reminder failed:', error.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
     return undoneAuto(lang, undoNoun(lang, row.tool))
   }
   if (row.tool === 'qualify_lead') {
     const cid = String(p.contact_id ?? ''); if (!cid) return null
-    // Cohérence : restaurer tags + critères ET supprimer la recherche créée (tout ou rien).
-    const { error: uErr } = await admin.from('contacts')
-      .update({ tags: (p.old_tags ?? []) as unknown, search_criteria: p.old_search_criteria ?? null })
-      .eq('id', cid).eq('agency_id', agencyId)
-    if (uErr) { console.error('undo qualify_lead (contacts) failed:', uErr.message.slice(0, 120)); return null }
+    // Cohérence (tout ou rien) : supprimer d'abord la recherche créée, puis restaurer le contact.
     if (p.created_search_id) {
-      await admin.from('client_searches').delete().eq('id', String(p.created_search_id)).eq('agency_id', agencyId)
+      const { error: dErr } = await admin.from('client_searches').delete().eq('id', String(p.created_search_id)).eq('agency_id', agencyId)
+      if (dErr) { console.error('undo qualify_lead (search) failed:', dErr.message.slice(0, 120)); return null }
     }
+    const { data: done, error: uErr } = await admin.from('contacts')
+      .update({ tags: (p.old_tags ?? []) as unknown, search_criteria: p.old_search_criteria ?? null })
+      .eq('id', cid).eq('agency_id', agencyId).select('id')
+    if (uErr) { console.error('undo qualify_lead (contacts) failed:', uErr.message.slice(0, 120)); return null }
+    if (!done || done.length === 0) return null
     await audit('contact', 'contact', cid, 'undo qualification')
     return undoneAuto(lang, undoNoun(lang, row.tool))
   }

@@ -53,14 +53,6 @@ export function canLeaveConfirm(tool: string): boolean {
   return tool === 'update_pipeline'
 }
 
-// Outils 'auto' (exécutés direct) réversibles → éligibles à l'undo /annuler 30 s (Palier 3b).
-// update_pipeline N'EST PAS ici : il est 'confirm' élevé via canLeaveConfirm (undo 60 s, P3).
-// attach_kyc_document est aussi 'auto' mais NON réversible (média déjà poussé en R2) → pas ici.
-const UNDOABLE_AUTO_TOOLS = new Set(['create_contact', 'add_note', 'schedule_visit', 'create_reminder', 'qualify_lead'])
-export function isUndoableAutoTool(tool: string): boolean {
-  return UNDOABLE_AUTO_TOOLS.has(tool)
-}
-
 // NB: 'annule'/'annuler' figurent aussi dans le set NO de parseConfirmation — garder les deux cohérents.
 const UNDO_WORDS = new Set(['/annuler', 'annuler', 'annule', 'undo', 'reviens', 'rétablis', 'retablis'])
 /** Vrai si le message est une commande d'annulation courte (pour l'undo différé). */
