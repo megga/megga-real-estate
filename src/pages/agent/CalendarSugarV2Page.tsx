@@ -70,11 +70,12 @@ export default function CalendarSugarV2Page() {
   const [filters, setFilters] = useState<Record<string, boolean>>({})
   const [createOpen, setCreateOpen] = useState(false)
 
-  // Couche interactive (#6/#7/#9/#10) : copie locale mutable des events,
-  // ré-amorcée depuis Supabase. Édition/statut = optimiste en session ;
-  // la création est aussi persistée (reminder) via handleCreateVisit.
-  const [localEvents, setLocalEvents] = useState<CalEvent[]>([])
-  useEffect(() => { setLocalEvents(events) }, [events])
+  // Couche interactive (#6/#7/#9/#10) : surcouches locales appliquées AU RENDER
+  // par-dessus les events Supabase — édition/création (overrides) + statut.
+  // Pas d'effet de miroir (qui bouclait quand `events` change de référence
+  // à chaque render, ex. agent sans données → « Maximum update depth »).
+  const [overrides, setOverrides] = useState<Record<string, CalEvent>>({})
+  const [statuses, setStatuses] = useState<Record<string, 'done' | 'cancelled' | undefined>>({})
   const [editing, setEditing] = useState<CalEditing | null>(null)
   const [aiText, setAiText] = useState('')
 
@@ -124,22 +125,35 @@ export default function CalendarSugarV2Page() {
     }
   }
 
+  // Fusion render-time : events Supabase + overrides (édition/création) + statuts.
+  const displayEvents = useMemo<CalEvent[]>(() => {
+    const seen = new Set<string>()
+    const merged: CalEvent[] = events.map(e => {
+      seen.add(e.id)
+      return overrides[e.id] ?? e
+    })
+    for (const id of Object.keys(overrides)) {
+      if (!seen.has(id)) merged.push(overrides[id])
+    }
+    return merged.map(e => (e.id in statuses ? { ...e, status: statuses[e.id] } : e))
+  }, [events, overrides, statuses])
+
   const filtered = useMemo(
-    () => localEvents.filter(e => filters[e.type] !== false),
-    [localEvents, filters],
+    () => displayEvents.filter(e => filters[e.type] !== false),
+    [displayEvents, filters],
   )
   const selected = filtered.find(e => e.id === selectedId)
 
   // ── Édition / création / statut / barre IA ──
   const startEdit = (id: string) => {
-    const ev = localEvents.find(e => e.id === id)
+    const ev = displayEvents.find(e => e.id === id)
     if (ev) setEditing({ mode: 'edit', draft: { ...ev } })
   }
   const startCreate = () => setEditing({ mode: 'create', draft: calBlankEvent(currentDate) })
   const cancelEdit = () => setEditing(null)
   const saveEdit = (draft: CalEvent) => {
-    const isNew = !localEvents.some(e => e.id === draft.id)
-    setLocalEvents(prev => (isNew ? [...prev, draft] : prev.map(e => (e.id === draft.id ? draft : e))))
+    const isNew = !displayEvents.some(e => e.id === draft.id)
+    setOverrides(prev => ({ ...prev, [draft.id]: draft }))
     setSelectedId(draft.id)
     setEditing(null)
     // Persistance best-effort à la création (non-visites → reminder Supabase).
@@ -163,9 +177,7 @@ export default function CalendarSugarV2Page() {
     }
   }
   const setStatus = (id: string, status: 'done' | 'cancelled') => {
-    setLocalEvents(prev =>
-      prev.map(e => (e.id === id ? { ...e, status: e.status === status ? undefined : status } : e)),
-    )
+    setStatuses(prev => ({ ...prev, [id]: prev[id] === status ? undefined : status }))
   }
   const submitAI = () => {
     const text = aiText.trim()
