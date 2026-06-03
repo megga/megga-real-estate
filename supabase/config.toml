@@ -416,3 +416,6 @@ verify_jwt = false
 
 [functions.whatsapp-process]
 verify_jwt = false
+
+[functions.whatsapp-agent-async]
+verify_jwt = false

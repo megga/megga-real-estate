@@ -80,8 +80,8 @@ describe('toolTier', () => {
   it('open_kyc_case est confirm (création de dossier LBA → validation agent)', () => {
     expect(toolTier('open_kyc_case')).toBe('confirm')
   })
-  it('run_kyc_screening est auto (read-only externe, aucun contact client)', () => {
-    expect(toolTier('run_kyc_screening')).toBe('auto')
+  it('run_kyc_screening est slow_async (Palier 2 : ~50s Dilisense → hors boucle)', () => {
+    expect(toolTier('run_kyc_screening')).toBe('slow_async')
   })
   it('attach_kyc_document est auto (joint une pièce, aucun envoi client)', () => {
     expect(toolTier('attach_kyc_document')).toBe('auto')
@@ -92,8 +92,8 @@ describe('toolTier', () => {
 })
 
 describe('send_kyc_report tier', () => {
-  it('est auto (rapport à soi-même, aucun contact client)', () => {
-    expect(toolTier('send_kyc_report')).toBe('auto')
+  it('est slow_async (Palier 2 : ~60s render PDF + envoi → hors boucle)', () => {
+    expect(toolTier('send_kyc_report')).toBe('slow_async')
   })
 })
 
@@ -126,6 +126,24 @@ describe('isPendingActionValid', () => {
     const past = new Date(Date.now() - 60_000).toISOString()
     expect(isPendingActionValid(past)).toBe(false)
     expect(isPendingActionValid(null)).toBe(false)
+  })
+})
+
+describe('toolTier — tiers des outils KYC (Palier 2)', () => {
+  it('run_kyc_screening et send_kyc_report sont slow_async', () => {
+    expect(toolTier('run_kyc_screening')).toBe('slow_async')
+    expect(toolTier('send_kyc_report')).toBe('slow_async')
+  })
+  it('attach_kyc_document reste auto (synchrone, P2b)', () => {
+    expect(toolTier('attach_kyc_document')).toBe('auto')
+  })
+  it('le socle légal reste confirm (jamais slow_async/auto)', () => {
+    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case']) {
+      expect(toolTier(t)).toBe('confirm')
+    }
+  })
+  it('un outil inconnu reste confirm (fail-safe)', () => {
+    expect(toolTier('outil_inexistant')).toBe('confirm')
   })
 })
 

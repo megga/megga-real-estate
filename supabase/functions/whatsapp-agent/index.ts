@@ -12,7 +12,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
 import { toolTier, buildHistoryMessages, stageLabel, type WaHistoryRow } from '../_shared/whatsapp-agent-router.ts'
-import { detectLang, t, confirmSendClient, confirmUpdatePipeline, pipelineWhoDefault, pipelineWhoNamed } from '../_shared/whatsapp-i18n.ts'
+import { detectLang, t, asyncAck, confirmSendClient, confirmUpdatePipeline, pipelineWhoDefault, pipelineWhoNamed } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
@@ -61,6 +61,8 @@ serve(async (req) => {
   const { profileId, waNumber = '', message, currentMessageId, inboundMedia } = body
   if (!profileId || !message) return json({ error: 'profileId and message required' }, 400)
   const lang = detectLang(message)
+  const T0 = Date.now()
+  const overBudget = () => Date.now() - T0 > 45_000
 
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
   if (!apiKey) return json({ reply: t(lang, 'iaDown'), isError: true }, 200)
@@ -114,6 +116,7 @@ serve(async (req) => {
   const resultCache = new Map<string, string>() // F4 : dédup outils identiques d'un tour
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
+    if (overBudget()) return json({ reply: t(lang, 'complexRetry'), isError: true }, 200)
     const resp = await callDeepSeek(apiKey, messages)
     if (!resp) return json({ reply: t(lang, 'cantProcess'), isError: true }, 200)
     const msg = resp.choices?.[0]?.message
@@ -132,6 +135,7 @@ serve(async (req) => {
     messages.push(msg as Record<string, unknown>)
 
     for (const call of toolCalls) {
+      if (overBudget()) return json({ reply: t(lang, 'complexRetry'), isError: true }, 200)
       if (toolCallsUsed >= MAX_TOOL_CALLS) {
         return json({ reply: t(lang, 'tooLarge'), isError: true }, 200)
       }
@@ -140,6 +144,22 @@ serve(async (req) => {
       let args: Record<string, unknown> = {}
       try { args = JSON.parse(call.function?.arguments || '{}') } catch { /* args vide */ }
       const tier = toolTier(name)
+
+      if (tier === 'slow_async') {
+        // F4 (dédup multi-tours) : si DeepSeek rappelle le même outil lent au tour
+        // suivant (en relisant l'ACK comme un statut « en cours »), on réutilise l'ACK
+        // déjà produit au lieu de ré-enfiler — l'INSERT dupliqué serait de toute façon
+        // rejeté (23505), mais on évite carrément le second appel DB.
+        const key = `${name}:${JSON.stringify(args)}`
+        let ack = resultCache.get(key)
+        if (ack === undefined) {
+          ack = await enqueueAsyncJob(ctx, waNumber, name, args)
+          resultCache.set(key, ack)
+        }
+        // ACK comme résultat d'outil : DeepSeek conclut le tour avec une phrase humaine.
+        messages.push({ role: 'tool', tool_call_id: call.id, content: ack })
+        continue
+      }
 
       if (tier === 'confirm') {
         // On NE l'exécute pas : on VALIDE + on PRÉPARE, puis on demande confirmation.
@@ -171,6 +191,46 @@ serve(async (req) => {
   if (forcedContent) return json({ reply: forcedContent }, 200)
   return json({ reply: t(lang, 'reformulate'), isError: true }, 200)
 })
+
+// Enfile un job pour un outil lent (slow_async) et renvoie l'ACK à mettre comme
+// résultat d'outil. Dédup via l'index UNIQUE partiel (Task 1) : un INSERT en doublon
+// lève 23505, qu'on traite comme « déjà en file » (succès). On NE peut PAS utiliser
+// upsert/onConflict ici (ON CONFLICT n'infère pas un index partiel sur expression COALESCE).
+async function enqueueAsyncJob(
+  ctx: ActionCtx, waNumber: string, tool: string, args: Record<string, unknown>,
+): Promise<string> {
+  const contactId = typeof args.contact_id === 'string' ? args.contact_id : null
+  const lang = ctx.lang ?? 'fr'
+  // Sans numéro d'agent, le worker ne pourra pas livrer le résultat → ne pas enfiler un job
+  // voué à l'échec ; dire tout de suite à l'agent que ça n'a pas pu partir.
+  if (!waNumber) {
+    console.warn('async enqueue skipped: no waNumber for profile', ctx.profileId)
+    return t(lang, 'cantProcessNow')
+  }
+  const { error } = await ctx.supabase.from('whatsapp_async_jobs').insert({
+    profile_id: ctx.profileId,
+    agency_id: ctx.agencyId,
+    wa_agent_phone: waNumber,
+    tool,
+    args: { ...args, __lang: lang },
+    contact_id: contactId,
+    lang,
+  })
+  // 23505 = job déjà en file (dédup voulue) → on continue vers l'ACK. Toute AUTRE erreur
+  // (ex. table absente si la migration n'a pas été appliquée) : dégrader FORT — l'agent est
+  // prévenu, pas d'ACK trompeur promettant un résultat qui n'arrivera jamais.
+  if (error && error.code !== '23505') {
+    console.error('enqueue async job failed:', (error.message ?? 'error').slice(0, 120))
+    return t(lang, 'cantProcessNow')
+  }
+  let name = ''
+  if (contactId && ctx.agencyId) {
+    const { data: c } = await ctx.supabase.from('contacts')
+      .select('first_name, last_name').eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+    if (c) name = `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim()
+  }
+  return asyncAck(lang, tool === 'run_kyc_screening' ? 'screening' : 'report', name)
+}
 
 function json(obj: unknown, code: number): Response {
   return new Response(JSON.stringify(obj), { status: code, headers: { 'Content-Type': 'application/json' } })
