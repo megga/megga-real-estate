@@ -21,6 +21,7 @@ import {
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
+import { formatStyleBlock, type LearnedStyle } from '../_shared/agent-style.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -83,6 +84,11 @@ serve(async (req) => {
 
   const ctx: ActionCtx = { supabase, profileId, agencyId: link.agency_id ?? null, inboundMedia: inboundMedia ?? null, lang, agentPhone: waNumber }
 
+  // Apprentissage T1 : style appris de l'agent, injecté SEULEMENT si activé (human-in-the-loop).
+  const { data: prof } = await supabase.from('agent_ai_profiles')
+    .select('learned_style').eq('agent_id', profileId).maybeSingle()
+  const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
+
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
   // Garde : si waNumber est vide, .or('wa_from.eq.,wa_to.eq.') ne matche RIEN → amnésie
@@ -108,7 +114,7 @@ serve(async (req) => {
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.` },
+    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}` },
     ...history,
     { role: 'user', content: message },
   ]
