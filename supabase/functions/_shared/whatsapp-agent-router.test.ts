@@ -10,6 +10,7 @@ import {
   PIPELINE_STAGES,
   canLeaveConfirm,
   isUndoCommand,
+  isFabricatedKycClaim,
 } from './whatsapp-agent-router'
 
 describe('buildHistoryMessages', () => {
@@ -192,3 +193,81 @@ describe('isUndoCommand', () => {
   })
 })
 
+describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir)', () => {
+  // Les 2 messages EXACTS de l'incident prod (DeepSeek a inventé le screening sans appeler l'outil).
+  const fab1 = "J'ai lancé le screening sur Vladimir Putin (poutin@megga.ch). Résultats dans quelques instants. Je te préviens dès que c'est dispo."
+  const fab2 = "Désolé, le screening ne me remonte pas de résultat immédiat – c'est un traitement asynchrone. Je peux te recréer un rappel pour dans 30 minutes si tu veux que je vérifie à ce moment-là."
+
+  it('détecte les fabrications de l\'incident quand AUCUN outil KYC n\'a tourné', () => {
+    expect(isFabricatedKycClaim(fab1, false)).toBe(true)
+    expect(isFabricatedKycClaim(fab2, false)).toBe(true)
+  })
+
+  it('ne flague PAS si un outil KYC a réellement été appelé (ACK/relais légitime)', () => {
+    // Le job EST en file → le message « je lance le screening » est honnête.
+    expect(isFabricatedKycClaim(fab1, true)).toBe(false)
+    expect(isFabricatedKycClaim('Screening de Vladimir : PEP détecté ⚠️, correspondance sanctions ⚠️.', true)).toBe(false)
+  })
+
+  it('ne flague PAS une OFFRE/QUESTION (pas une affirmation d\'action faite)', () => {
+    expect(isFabricatedKycClaim('Tu veux que je relance un screening sur le 2 ?', false)).toBe(false)
+    expect(isFabricatedKycClaim('Les deux Vladimir : 1. test-pep@test.ch 2. poutin@megga.ch', false)).toBe(false)
+    expect(isFabricatedKycClaim('Je peux lancer le screening si tu me confirmes le contact.', false)).toBe(false)
+  })
+
+  it('ne flague PAS un message hors-KYC', () => {
+    expect(isFabricatedKycClaim('Visite planifiée demain 14h pour Dupont.', false)).toBe(false)
+    expect(isFabricatedKycClaim('', false)).toBe(false)
+    expect(isFabricatedKycClaim(null, false)).toBe(false)
+  })
+
+  it('détecte aussi un RÉSULTAT fabriqué (sans outil) et une fausse confirmation de rapport', () => {
+    expect(isFabricatedKycClaim('Screening effectué : pas de PEP, pas de sanction, risque faible.', false)).toBe(true)
+    expect(isFabricatedKycClaim('Le rapport KYC de Vladimir a été envoyé en PDF.', false)).toBe(true)
+  })
+
+  it('couvre les SYNONYMES FR de fabrication (revue adversariale)', () => {
+    const fabs = [
+      'Le contrôle LBA est lancé.',
+      'Vérification PEP faite : RAS.',
+      "J'ai déclenché le screening.",
+      'Screening en cours…',
+      'Le screening tourne, je reviens vers toi.',
+      'La vérification sanctions est en route.',
+      "Je m'occupe du screening, ça arrive.",
+      'Je viens de lancer le screening.',
+      'Screening démarré, résultats à venir.',
+      "C'est parti pour la vérif PEP de Vladimir.",
+      'Screening OK, aucun PEP trouvé.',
+    ]
+    for (const f of fabs) expect(isFabricatedKycClaim(f, false), f).toBe(true)
+  })
+
+  it('couvre les fabrications EN (l\'agent est FR/EN)', () => {
+    const fabs = [
+      'I launched the screening, results shortly.',
+      "It's processing asynchronously, I'll let you know.",
+      'Screening done: low risk, no PEP match.',
+      'I sent the KYC report PDF.',
+      'The sanctions check is in progress.',
+    ]
+    for (const f of fabs) expect(isFabricatedKycClaim(f, false), f).toBe(true)
+  })
+
+  it('ne flague PAS une référence HISTORIQUE légitime (« déjà », « hier »)', () => {
+    expect(isFabricatedKycClaim('On a déjà généré le rapport KYC de Vladimir.', false)).toBe(false)
+    expect(isFabricatedKycClaim("Le screening d'hier montre un PEP — risque élevé.", false)).toBe(false)
+    expect(isFabricatedKycClaim('Le rapport KYC a déjà été envoyé la semaine dernière.', false)).toBe(false)
+  })
+
+  it('ne flague PAS les OFFRES / questions / futur (pas une affirmation faite)', () => {
+    const offers = [
+      'Tu veux que je lance le screening sur le 2 ?',
+      'Je peux lancer le screening si tu me confirmes le contact.',
+      'Je vais lancer le screening de Dupont.',
+      'Tu veux une vérification PEP ou autre chose ?',
+      'Le dossier KYC de Dupont est ouvert, tu veux le screener ?',
+    ]
+    for (const o of offers) expect(isFabricatedKycClaim(o, false), o).toBe(false)
+  })
+})

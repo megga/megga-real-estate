@@ -84,6 +84,12 @@ const STR = {
     fr: "Ta demande est un peu chargée — je m'en occupe par étapes, redonne-moi un instant.",
     en: "Your request is a bit heavy — I'm handling it in steps, give me a moment.",
   },
+  // Garde anti-fabrication KYC : remplace une fausse affirmation d'action (DeepSeek a prétendu
+  // un screening/rapport lancé sans appeler l'outil). On NE confirme JAMAIS une action non faite.
+  kycNotRun: {
+    fr: "Petit raccroc de ma part : je n'ai pas réellement lancé cette action KYC. Redis-moi le contact (« screen Dupont » ou « envoie le rapport de Dupont ») et je l'exécute pour de bon.",
+    en: "My bad — I didn't actually run that KYC action. Tell me the contact again (« screen Dupont » / « send Dupont's report ») and I'll run it for real.",
+  },
   ok: { fr: 'OK.', en: 'OK.' },
   noAgencySend: {
     fr: "Ton compte n'a pas d'agence, envoi impossible.",
