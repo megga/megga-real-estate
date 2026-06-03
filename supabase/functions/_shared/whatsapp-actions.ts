@@ -17,7 +17,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount } from './whatsapp-lead.ts'
 import { PIPELINE_STAGES, isValidStage, stageLabel, type PipelineStage } from './whatsapp-agent-router.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
-import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal } from './whatsapp-i18n.ts'
+import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 
@@ -333,6 +333,48 @@ export async function execUpdatePipeline(ctx: ActionCtx, a: Args): Promise<strin
   })
   if (logErr) console.error('pipeline audit log failed')
   return pipelineMoved(ctx.lang ?? 'fr', deal.label, label)
+}
+
+const PIPELINE_UNDO_SEC = 60
+
+/** L3 : déplace le pipeline en AUTO et enregistre de quoi défaire (undo 60 s). Renvoie le
+ *  message « /annuler ». N'est appelé QUE quand canLeaveConfirm + can_auto_send l'autorisent. */
+export async function execUpdatePipelineWithUndo(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id), stage = s(a.stage)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  if (!stage || !isValidStage(stage)) return `Erreur: étape invalide. Valeurs possibles : ${PIPELINE_STAGES.join(', ')}.`
+  if (!(await contactInAgency(ctx, contactId))) return 'Erreur: contact introuvable dans votre agence.'
+  const deal = await resolveContactDeal(ctx, contactId)
+  if (!deal) return pipelineNoDeal(ctx.lang ?? 'fr')
+  const label = stageLabel(stage, ctx.lang ?? 'fr')
+  if (deal.stage === stage) return pipelineAlreadyAt(ctx.lang ?? 'fr', deal.label, label)
+
+  const oldStage = deal.stage // capté AVANT l'update pour le rollback
+  const { error } = await ctx.supabase.from('transactions')
+    .update({ stage }).eq('id', deal.id).eq('agency_id', ctx.agencyId)
+  if (error) return `Erreur pipeline: ${error.message}`
+
+  // Audit LBA (identique à execUpdatePipeline, métadonnée 'auto').
+  await ctx.supabase.from('activity_events').insert({
+    agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+    action: 'stage_change', entity_type: 'transaction', entity_id: deal.id,
+    object_label: `${oldStage} → ${stage}`, category: 'deal', severity: 'info',
+    metadata: { via: 'whatsapp', mode: 'auto', profile_id: ctx.profileId, old_stage: oldStage, new_stage: stage, contact_id: contactId },
+  })
+
+  // Enregistre l'undo (payload = quoi défaire + jusqu'à quand).
+  const { error: undoErr } = await ctx.supabase.from('whatsapp_recent_auto_actions').insert({
+    profile_id: ctx.profileId, agency_id: ctx.agencyId, tool: 'update_pipeline',
+    payload_undo: { transaction_id: deal.id, old_stage: oldStage },
+    undo_until: new Date(Date.now() + PIPELINE_UNDO_SEC * 1000).toISOString(),
+  })
+  // Promesse honnête : si l'undo n'a pas pu être enregistré, ne pas annoncer « /annuler ».
+  if (undoErr) {
+    console.error('pipeline undo record failed')
+    return pipelineMoved(ctx.lang ?? 'fr', deal.label, label)
+  }
+  return pipelineAutoMoved(ctx.lang ?? 'fr', deal.label, label)
 }
 
 /** Qualifie un contact existant : critères structurés → search_criteria + matching auto.
