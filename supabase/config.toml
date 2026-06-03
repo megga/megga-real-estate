@@ -419,3 +419,6 @@ verify_jwt = false
 
 [functions.whatsapp-agent-async]
 verify_jwt = false
+
+[functions.learn-agent-style]
+verify_jwt = false
