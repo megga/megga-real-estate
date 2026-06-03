@@ -4,7 +4,7 @@
 // — Fond gris très clair avec radial gradient vers bleu pâle en bas
 // — Cards blanches pures, ombres signature, coins 22-28px, AUCUNE bordure décorative
 // — Accent unique = NOIR PUR #0B0C0E (pas de bleu, pas de violet, pas de gradient)
-// — Typo Manrope avec tabular-nums sur tous les nombres
+// — Typo Inter Tight avec tabular-nums sur tous les nombres
 // — CHF avec apostrophes : CHF 1'250'000
 
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
@@ -49,7 +49,7 @@ export const SugarV3 = {
   errSoft: 'rgba(239,68,68,0.10)',
 
   // Police
-  font: 'Manrope, system-ui, sans-serif',
+  font: '"Inter Tight", system-ui, sans-serif',
 } as const
 
 export type SugarV3Palette = typeof SugarV3

@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import CRMIcon, { type CrmIconName } from '../CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { CRM_BIENS, CRM_MATCHES, type CrmContact } from '../mockData'
 import type { SugarPalette } from '../tokens'
 import { ctFmtCHF } from './helpers'
@@ -21,12 +21,12 @@ export interface RdvPayload {
   notes: string
 }
 
-const CT_RDV_TYPES: { id: RdvType; label: string; icon: CrmIconName; color: string }[] = [
+const CT_RDV_TYPES: { id: RdvType; label: string; icon: MEIconName; color: string }[] = [
   { id: 'visit', label: 'Visite', icon: 'home', color: '#0041D9' },
   { id: 'phone', label: 'Téléphone', icon: 'phone', color: '#06B6D4' },
-  { id: 'video', label: 'Visio', icon: 'msg', color: '#8B5CF6' },
+  { id: 'video', label: 'Visio', icon: 'message', color: '#8B5CF6' },
   { id: 'notary', label: 'Signature notaire', icon: 'check', color: '#0E9F6E' },
-  { id: 'other', label: 'Autre', icon: 'cal', color: '#7A8079' },
+  { id: 'other', label: 'Autre', icon: 'calendar', color: '#7A8079' },
 ]
 
 const CT_RDV_DURATIONS = [15, 30, 45, 60, 90, 120]
@@ -171,7 +171,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
               flexShrink: 0,
             }}
           >
-            <CRMIcon name="cal" size={16} stroke={sp.pageBg} />
+            <MEIcon name="calendar" size={16} color={sp.pageBg} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2
@@ -252,10 +252,10 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
                       fontWeight: 600,
                     }}
                   >
-                    <CRMIcon
+                    <MEIcon
                       name={rt.icon}
                       size={14}
-                      stroke={active ? sp.pageBg : rt.color}
+                      color={active ? sp.pageBg : rt.color}
                     />
                     {rt.label}
                   </button>
@@ -449,7 +449,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
                 gap: 6,
               }}
             >
-              <CRMIcon name="check" size={12} stroke={sp.pageBg} />
+              <MEIcon name="check" size={12} color={sp.pageBg} />
               Enregistrer
             </button>
           </div>

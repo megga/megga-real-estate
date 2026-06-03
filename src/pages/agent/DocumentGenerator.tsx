@@ -1,9 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  ChevronRight,
-  ArrowLeft, Sparkles, Loader2, Eye, Download, Check, Save,
-} from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { pdf } from '@react-pdf/renderer'
 import { cn, formatCHF } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -385,11 +382,11 @@ export default function DocumentGenerator() {
       <div>
         <div className="flex items-center gap-1.5 text-xs text-theme-tertiary mb-3">
           <button onClick={() => navigate('/dashboard/documents')} className="hover:text-theme-primary transition-colors">Documents</button>
-          <ChevronRight className="w-3 h-3" />
+          <MEIcon name="chevron-right" className="w-3 h-3" />
           {templateConfig ? (
             <>
               <span className="text-theme-secondary">{templateConfig.name}</span>
-              <ChevronRight className="w-3 h-3" />
+              <MEIcon name="chevron-right" className="w-3 h-3" />
               <span className="text-theme-primary">{stepLabels[step]}</span>
             </>
           ) : (
@@ -401,7 +398,7 @@ export default function DocumentGenerator() {
             onClick={() => step > 0 ? setStep(step - 1) : navigate('/dashboard/documents')}
             className="w-9 h-9 rounded-lg border border-theme-border flex items-center justify-center hover:bg-theme-hover transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 text-theme-muted" />
+            <MEIcon name="arrow-left" className="w-4 h-4 text-theme-muted" />
           </button>
           <div>
             <h1 className="text-xl font-semibold text-theme-primary">
@@ -473,7 +470,7 @@ export default function DocumentGenerator() {
               <p className="text-xs text-theme-tertiary mt-1.5 leading-relaxed">{t.description}</p>
               <div className="flex items-center gap-1 mt-3 text-xs text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                 Sélectionner
-                <ChevronRight className="w-3 h-3" />
+                <MEIcon name="chevron-right" className="w-3 h-3" />
               </div>
             </button>
           ))}
@@ -486,7 +483,7 @@ export default function DocumentGenerator() {
           {/* AI pre-fill banner with dropdowns */}
           <div className="rounded-xl border border-accent/15 bg-accent/5 p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4 h-4 text-accent shrink-0" />
+              <MEIcon name="sparkle" className="w-4 h-4 text-accent shrink-0" />
               <p className="text-sm font-medium text-theme-primary">Pré-remplissage intelligent</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -578,23 +575,23 @@ export default function DocumentGenerator() {
           {/* Actions */}
           <div className="flex items-center justify-between pt-2">
             <Button variant="outline" onClick={() => setStep(0)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <MEIcon name="arrow-left" className="w-4 h-4 mr-2" />
               Retour
             </Button>
             <div className="flex items-center gap-2">
               <Button variant="outline" className="gap-2 text-theme-tertiary">
-                <Save className="w-4 h-4" />
+                <MEIcon name="save" className="w-4 h-4" />
                 <span className="hidden sm:inline">Brouillon</span>
               </Button>
               <Button onClick={handleGenerate} disabled={generating}>
                 {generating ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <MEIcon name="spinner" className="w-4 h-4 mr-2 animate-spin" />
                     Génération...
                   </>
                 ) : (
                   <>
-                    <Eye className="w-4 h-4 mr-2" />
+                    <MEIcon name="eye" className="w-4 h-4 mr-2" />
                     Générer le document
                   </>
                 )}
@@ -696,16 +693,16 @@ export default function DocumentGenerator() {
           {/* Actions */}
           <div className="flex items-center justify-between">
             <Button variant="outline" onClick={() => setStep(1)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <MEIcon name="arrow-left" className="w-4 h-4 mr-2" />
               Modifier
             </Button>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={handleDownload} disabled={downloading} className="gap-2">
-                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {downloading ? <MEIcon name="spinner" className="w-4 h-4 animate-spin" /> : <MEIcon name="download" className="w-4 h-4" />}
                 {downloading ? 'Génération…' : 'Télécharger PDF'}
               </Button>
               <Button onClick={() => navigate('/dashboard/documents')} className="gap-2">
-                <Check className="w-4 h-4" />
+                <MEIcon name="check" className="w-4 h-4" />
                 Terminer
               </Button>
             </div>

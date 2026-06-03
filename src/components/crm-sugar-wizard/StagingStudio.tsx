@@ -174,7 +174,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 24,
       animation: 'sgFadeUp .25s ease both',
-      fontFamily: 'Manrope, system-ui, sans-serif',
+      fontFamily: '"Inter Tight", system-ui, sans-serif',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         width: '100%', maxWidth: 1480, height: '100%',

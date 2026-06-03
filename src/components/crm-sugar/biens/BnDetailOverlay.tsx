@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'motion/react'
-import CRMIcon, { type CrmIconName } from '../CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { crmContactById, type CrmBien } from '../mockData'
 import { crmInitials, type SugarPalette } from '../tokens'
 import { bnFmtCHF, bnFmtDate, bnRelative, bnStatus } from './helpers'
@@ -152,7 +152,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
             gap: 6,
           }}
         >
-          <CRMIcon name="file" size={12} stroke={sp.ink} />
+          <MEIcon name="file" size={12} color={sp.ink} />
           Modifier
         </button>
         <button
@@ -241,7 +241,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                   gap: 6,
                 }}
               >
-                <CRMIcon name="eye" size={12} stroke="#fff" />
+                <MEIcon name="eye" size={12} color="#fff" />
                 Voir les {bien.photoCount} photos
               </span>
             )}
@@ -678,7 +678,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                         gap: 6,
                       }}
                     >
-                      <CRMIcon name="phone" size={11} stroke={sp.pageBg} />
+                      <MEIcon name="phone" size={11} color={sp.pageBg} />
                       Appeler
                     </button>
                     <button
@@ -699,7 +699,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                         gap: 6,
                       }}
                     >
-                      <CRMIcon name="mail" size={11} stroke={sp.ink} />
+                      <MEIcon name="mail" size={11} color={sp.ink} />
                       Email
                     </button>
                   </div>
@@ -736,7 +736,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                 { l: 'Vues', v: bien.stats?.views || 0, icon: 'eye', c: '#0041D9' },
                 { l: 'Favoris', v: bien.stats?.favorites || 0, icon: 'star', c: '#F59E0B' },
                 { l: 'Demandes', v: bien.stats?.visitRequests || 0, icon: 'home', c: '#0E9F6E' },
-              ] as { l: string; v: number; icon: CrmIconName; c: string }[]
+              ] as { l: string; v: number; icon: MEIconName; c: string }[]
             ).map(k => (
               <div
                 key={k.l}
@@ -755,7 +755,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                     marginBottom: 10,
                   }}
                 >
-                  <CRMIcon name={k.icon} size={13} stroke={k.c} />
+                  <MEIcon name={k.icon} size={13} color={k.c} />
                   <span
                     style={{
                       fontSize: 11,

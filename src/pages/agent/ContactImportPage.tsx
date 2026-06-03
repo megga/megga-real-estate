@@ -1,9 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  Upload, FileSpreadsheet, FileText, MessageSquareText, Users,
-  ArrowLeft, Check, Loader2, AlertCircle, PenLine,
-} from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useCreateContact } from '@/hooks/useContacts'
 import { supabase } from '@/lib/supabase'
@@ -109,10 +106,10 @@ function autoMapColumn(header: string): string {
 
 function MethodSelectionScreen({ onSelect }: { onSelect: (m: ImportMethod) => void }) {
   const methods = [
-    { id: 'csv' as const, icon: FileSpreadsheet, title: 'CSV / Excel', desc: 'Importer depuis un fichier .csv ou .tsv', available: true },
-    { id: 'vcard' as const, icon: Users, title: 'vCard (.vcf)', desc: 'Depuis iPhone, Android, Outlook, Gmail', available: true },
-    { id: 'text' as const, icon: MessageSquareText, title: 'Texte libre (IA)', desc: 'Coller un email ou message, MEGGA AI extrait les infos', available: true },
-    { id: 'manual' as const, icon: PenLine, title: 'Saisie manuelle', desc: 'Ajouter un contact à la main', available: true },
+    { id: 'csv' as const, icon: 'files', title: 'CSV / Excel', desc: 'Importer depuis un fichier .csv ou .tsv', available: true },
+    { id: 'vcard' as const, icon: 'users', title: 'vCard (.vcf)', desc: 'Depuis iPhone, Android, Outlook, Gmail', available: true },
+    { id: 'text' as const, icon: 'message', title: 'Texte libre (IA)', desc: 'Coller un email ou message, MEGGA AI extrait les infos', available: true },
+    { id: 'manual' as const, icon: 'edit', title: 'Saisie manuelle', desc: 'Ajouter un contact à la main', available: true },
   ]
 
   return (
@@ -134,7 +131,7 @@ function MethodSelectionScreen({ onSelect }: { onSelect: (m: ImportMethod) => vo
               <Link to="/dashboard/contacts" className="absolute inset-0" />
             ) : null}
             <div className="flex items-start gap-3.5">
-              <m.icon className="w-5 h-5 mt-0.5 flex-shrink-0 text-theme-muted group-hover:text-theme-secondary transition-colors" />
+              <MEIcon name={m.icon as MEIconName} className="w-5 h-5 mt-0.5 flex-shrink-0 text-theme-muted group-hover:text-theme-secondary transition-colors" />
               <div>
                 <p className="text-sm font-medium text-theme-primary">{m.title}</p>
                 <p className="text-xs text-theme-muted mt-0.5 leading-relaxed">{m.desc}</p>
@@ -197,7 +194,7 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
   return (
     <div className="min-h-[50vh] flex flex-col items-center px-4 pt-8">
       <button onClick={step === 'map' ? () => setStep('upload') : onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Retour
+        <MEIcon name="arrow-left" className="w-4 h-4" /> Retour
       </button>
 
       <h1 className="text-xl font-semibold text-theme-primary mb-1">Importer depuis un CSV</h1>
@@ -218,7 +215,7 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
               dragOver ? 'border-accent/60 bg-accent/5' : 'border-theme-border hover:border-accent/30'
             )}
           >
-            <Upload className="w-8 h-8 text-theme-muted mx-auto mb-3" />
+            <MEIcon name="upload" className="w-8 h-8 text-theme-muted mx-auto mb-3" />
             <p className="text-sm font-medium text-theme-primary">Glissez votre fichier CSV ici</p>
             <p className="text-xs text-theme-muted mt-1">ou cliquez pour sélectionner (.csv, .tsv)</p>
             <input ref={fileRef} type="file" accept=".csv,.tsv,.txt" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = '' }} />
@@ -278,7 +275,7 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
   return (
     <div className="min-h-[50vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Retour
+        <MEIcon name="arrow-left" className="w-4 h-4" /> Retour
       </button>
 
       <h1 className="text-xl font-semibold text-theme-primary mb-1">Importer depuis vCard</h1>
@@ -299,7 +296,7 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
               dragOver ? 'border-accent/60 bg-accent/5' : 'border-theme-border hover:border-accent/30'
             )}
           >
-            <FileText className="w-8 h-8 text-theme-muted mx-auto mb-3" />
+            <MEIcon name="file" className="w-8 h-8 text-theme-muted mx-auto mb-3" />
             <p className="text-sm font-medium text-theme-primary">Glissez votre fichier .vcf ici</p>
             <p className="text-xs text-theme-muted mt-1">ou cliquez pour sélectionner</p>
             <input ref={fileRef} type="file" accept=".vcf,.vcard" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = '' }} />
@@ -377,7 +374,7 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
   return (
     <div className="min-h-[50vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Retour
+        <MEIcon name="arrow-left" className="w-4 h-4" /> Retour
       </button>
 
       <h1 className="text-xl font-semibold text-theme-primary mb-1">Extraction IA</h1>
@@ -396,7 +393,7 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
             />
             {error && (
               <div className="flex items-start gap-2 text-xs text-red-500 mt-2">
-                <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                <MEIcon name="alert" className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                 {error}
               </div>
             )}
@@ -411,7 +408,7 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
               )}
             >
               {isExtracting ? (
-                <span className="flex items-center justify-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> MEGGA AI analyse le texte...</span>
+                <span className="flex items-center justify-center gap-2"><MEIcon name="spinner" className="w-3.5 h-3.5 animate-spin" /> MEGGA AI analyse le texte...</span>
               ) : 'Extraire les contacts'}
             </button>
           </>
@@ -453,7 +450,7 @@ function ImportResultScreen({ result, onDone }: { result: ImportResult; onDone: 
   return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center px-4">
       <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4">
-        <Check className="w-7 h-7 text-emerald-500" />
+        <MEIcon name="check" className="w-7 h-7 text-emerald-500" />
       </div>
       <h1 className="text-xl font-semibold text-theme-primary">
         {result.imported} contact{result.imported > 1 ? 's' : ''} importé{result.imported > 1 ? 's' : ''}
@@ -523,7 +520,7 @@ export default function ContactImportPage() {
             to="/dashboard/contacts"
             className="p-2 rounded-lg text-theme-secondary hover:text-theme-primary hover:bg-theme-hover transition-colors"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <MEIcon name="arrow-left" className="h-5 w-5" />
           </Link>
           {method !== 'choose' && !result && (
             <div className="flex-1">
@@ -535,7 +532,7 @@ export default function ContactImportPage() {
         {/* Content */}
         {isImporting ? (
           <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-accent" />
+            <MEIcon name="spinner" className="w-6 h-6 animate-spin text-accent" />
             <p className="text-sm text-theme-primary">Import en cours...</p>
           </div>
         ) : result ? (

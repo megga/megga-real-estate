@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx).
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { CRM_STAGES, CRM_STAGE_ORDER, type SugarPalette, type StageId } from '../tokens'
 
 // ─── KPI Tile ──────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ export function SugarFilterPill({ sp, label, value, active, children }: FilterPi
         <span style={{
           fontSize: 12.5, color: active ? sp.pageBg : sp.ink, fontWeight: 700,
         }}>{value}</span>
-        <CRMIcon name="chevronD" size={11} stroke={active ? 'rgba(255,255,255,.65)' : sp.sub} />
+        <MEIcon name="chevron-down" size={11} color={active ? 'rgba(255,255,255,.65)' : sp.sub} />
       </button>
       {open && (
         <div style={{

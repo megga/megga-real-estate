@@ -18,7 +18,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PX, PxIcon, PxFigmaIcon } from '..'
+import { PX, MEIcon, PxFigmaIcon } from '..'
 
 // ─── Logo Property X dark-on-light ───────────────────────────────────────
 const logoCache = { icon: null as string | null, text: null as string | null }
@@ -72,7 +72,7 @@ function LocationHeader() {
             <Link to="/about" style={navLinkStyle}>About</Link>
             <Link to="/services" style={{ ...navLinkStyle, gap: 6 }}>
               Pages
-              <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
+              <MEIcon name="chevron-down" size={16} color={PX.neutral700} />
             </Link>
             <Link to="/account" style={navLinkStyle}>Cart (0)</Link>
           </nav>

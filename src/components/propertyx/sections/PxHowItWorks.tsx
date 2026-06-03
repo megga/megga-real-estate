@@ -8,7 +8,7 @@
 // 3 étapes (left 295.48, top 172.4), seul son contenu varie.
 
 import { useState } from 'react'
-import { PX, PxIcon, PxFigmaIcon } from '..'
+import { PX, MEIcon, PxFigmaIcon } from '..'
 
 type PopoverKind = 'search' | 'chat' | 'congrats'
 
@@ -534,7 +534,7 @@ export default function PxHowItWorks() {
                       }}>{s.body}</span>
                     )}
                   </div>
-                  <PxIcon name={isOpen ? 'minus' : 'plus'} size={20} color={PX.neutral700} />
+                  <MEIcon name={isOpen ? 'minus' : 'plus'} size={20} color={PX.neutral700} />
                 </div>
               </button>
             )

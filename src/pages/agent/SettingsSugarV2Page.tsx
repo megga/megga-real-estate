@@ -92,7 +92,7 @@ export default function SettingsSugarV2Page() {
       style={{
         minHeight: '100vh',
         background: SET_PALETTE.bgGradient,
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: SET_PALETTE.ink,
       }}
     >

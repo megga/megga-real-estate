@@ -1,7 +1,7 @@
 // MEGGA Marketplace — Property X icon font system.
 //
 // Le DS Property X distingue deux familles d'icônes :
-// - 📱 Icons     → line-style (stroke 1.6-1.8) → voir PxIcon.tsx
+// - 📱 Icons     → line-style (stroke 1.6-1.8) → voir MEIcon.tsx
 // - 📱 Icon font → filled (forme pleine)       → ce fichier
 //
 // Le Figma original utilise une police d'icônes (caractères glyphés) pour

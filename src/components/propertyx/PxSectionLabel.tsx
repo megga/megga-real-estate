@@ -9,12 +9,12 @@
 
 import type { ReactNode } from 'react'
 import { PX } from './tokens'
-import PxIcon, { type PxIconName } from './PxIcon'
+import MEIcon, { type MEIconName } from './MEIcon'
 
 interface PxSectionLabelProps {
   children: ReactNode
   /** Icône Lucide-like dans le cercle gauche. Default: `sparkle`. */
-  icon?: PxIconName
+  icon?: MEIconName
   /** Variante pour sections à fond noir/dark. */
   invert?: boolean
 }
@@ -63,7 +63,7 @@ export default function PxSectionLabel({
           flexShrink: 0,
         }}
       >
-        <PxIcon name={icon} size={12} color={iconColor} />
+        <MEIcon name={icon} size={12} color={iconColor} />
       </span>
       {children}
     </span>

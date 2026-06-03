@@ -3,7 +3,7 @@
 
 import { memo, useState, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import CRMIcon, { type CrmIconName } from '../CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { CRM_STAGES, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
 import { crmContactById, crmBienById, type CrmContact, type CrmDeal } from '../mockData'
 import { KycDealBadge } from '../kyc/KycNonBlocking'
@@ -40,11 +40,11 @@ interface DealCardProps {
   onDragEnd?: () => void
 }
 
-function nextActionIcon(kind: string): CrmIconName {
+function nextActionIcon(kind: string): MEIconName {
   if (kind === 'call') return 'phone'
   if (kind === 'visit') return 'home'
-  if (kind === 'kyc') return 'kyc'
-  if (kind === 'match') return 'spark'
+  if (kind === 'kyc') return 'shield'
+  if (kind === 'match') return 'sparkle'
   return 'flag'
 }
 
@@ -135,10 +135,10 @@ function SugarDealCardImpl({
             background: riskColor + '1F', color: riskColor,
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
-            <CRMIcon name="risk" size={10} stroke={riskColor} />
+            <MEIcon name="alert" size={10} color={riskColor} />
           </span>
         )}
-        {focused && <CRMIcon name="check" size={13} stroke={sp.focusInk} />}
+        {focused && <MEIcon name="check" size={13} color={sp.focusInk} />}
       </div>
 
       <div style={{
@@ -173,10 +173,10 @@ function SugarDealCardImpl({
             background: focused ? 'rgba(255,255,255,.18)' : sp.cardBg,
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
-            <CRMIcon
+            <MEIcon
               name={nextActionIcon(deal.nextAction.kind)}
               size={10}
-              stroke={focused ? sp.focusInk : sp.soft} />
+              color={focused ? sp.focusInk : sp.soft} />
           </div>
           <span style={{
             flex: 1, fontSize: 11, fontWeight: 600, color: ink,
@@ -280,7 +280,7 @@ function CardQuickActions({
         style={baseBtn()}
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}>
-        <CRMIcon name="phone" size={11} stroke={btnFg} />
+        <MEIcon name="phone" size={11} color={btnFg} />
       </button>
       <button title="Planifier une visite"
         onClick={e => {
@@ -292,7 +292,7 @@ function CardQuickActions({
         style={baseBtn()}
         onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}>
-        <CRMIcon name="home" size={11} stroke={btnFg} />
+        <MEIcon name="home" size={11} color={btnFg} />
       </button>
       <div style={{ position: 'relative' }}>
         <button title="Plus d'options"
@@ -315,7 +315,7 @@ function CardQuickActions({
             WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
             padding: 6, zIndex: 10, animation: 'qaFade .14s ease-out',
           }}>
-            <MenuItem sp={sp} icon="contacts" label="Réassigner" onClick={() => {
+            <MenuItem sp={sp} icon="users" label="Réassigner" onClick={() => {
               if (isMockId(dealId)) {
                 setMenuOpen(false)
                  
@@ -324,8 +324,8 @@ function CardQuickActions({
               }
               setReassignOpen(true)
             }} />
-            <MenuItem sp={sp} icon="docs" label="Archiver" onClick={() => { setMenuOpen(false); void archiveDeal() }} />
-            <MenuItem sp={sp} icon="risk" label="Marquer perdu" tone="danger" onClick={() => { setMenuOpen(false); void markLost() }} />
+            <MenuItem sp={sp} icon="file" label="Archiver" onClick={() => { setMenuOpen(false); void archiveDeal() }} />
+            <MenuItem sp={sp} icon="alert" label="Marquer perdu" tone="danger" onClick={() => { setMenuOpen(false); void markLost() }} />
           </div>
         )}
         {reassignOpen && (
@@ -454,7 +454,7 @@ function MenuItem({
   sp, icon, label, tone, onClick,
 }: {
   sp: SugarPalette
-  icon: CrmIconName
+  icon: MEIconName
   label: string
   tone?: 'danger'
   onClick: () => void
@@ -471,7 +471,7 @@ function MenuItem({
         display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 600,
         textAlign: 'left',
       }}>
-      <CRMIcon name={icon} size={12} stroke={danger ? '#A11C16' : sp.soft} />
+      <MEIcon name={icon} size={12} color={danger ? '#A11C16' : sp.soft} />
       {label}
     </button>
   )

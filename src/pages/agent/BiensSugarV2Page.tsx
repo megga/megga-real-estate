@@ -7,7 +7,7 @@ import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
 import type { CrmBien } from '@/components/crm-sugar/mockData'
-import CRMIcon from '@/components/crm-sugar/CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { useBnSubmissions } from '@/hooks/useBnSubmissions'
 import {
@@ -187,7 +187,7 @@ export default function BiensSugarV2Page() {
       style={{
         background: sp.pageBg,
         minHeight: '100vh',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: sp.ink,
       }}
     >
@@ -269,7 +269,7 @@ export default function BiensSugarV2Page() {
                 gap: 8,
               }}
             >
-              <CRMIcon name="download" size={13} stroke={sp.ink} />
+              <MEIcon name="download" size={13} color={sp.ink} />
               Exporter CSV
             </button>
             <button
@@ -291,7 +291,7 @@ export default function BiensSugarV2Page() {
                 gap: 8,
               }}
             >
-              <CRMIcon name="plus" size={13} stroke={sp.pageBg} />
+              <MEIcon name="plus" size={13} color={sp.pageBg} />
               Créer un bien
             </button>
           </div>
@@ -330,7 +330,7 @@ export default function BiensSugarV2Page() {
                   gap: 10,
                 }}
               >
-                <CRMIcon name="search" size={14} stroke={sp.sub} />
+                <MEIcon name="search" size={14} color={sp.sub} />
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -415,7 +415,7 @@ export default function BiensSugarV2Page() {
                     border: `1px solid ${sp.cardBorder}`,
                   }}
                 >
-                  <CRMIcon name="bien" size={22} stroke={sp.sub} />
+                  <MEIcon name="building" size={22} color={sp.sub} />
                 </div>
                 <div
                   style={{

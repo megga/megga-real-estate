@@ -23,7 +23,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PX, PxLogo, PxSocialIcon, PxIcon, PxFigmaIcon } from '..'
+import { PX, PxLogo, PxSocialIcon, MEIcon, PxFigmaIcon } from '..'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 
@@ -210,7 +210,7 @@ function ContactInfo({
         justifyContent: 'center',
         flexShrink: 0,
       }}>
-        <PxIcon
+        <MEIcon
           name={icon === 'briefcase' ? 'building' : icon === 'message' ? 'message' : icon}
           size={24}
           color={PX.neutral100}

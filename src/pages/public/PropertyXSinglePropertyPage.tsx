@@ -15,7 +15,7 @@
 
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PX, PxIcon } from '@/components/propertyx'
+import { PX, MEIcon } from '@/components/propertyx'
 import PxNav from '@/components/propertyx/sections/PxNav'
 import PxSinglePropertyBreadcrumb from '@/components/propertyx/sections/PxSinglePropertyBreadcrumb'
 import PxSinglePropertyHero from '@/components/propertyx/sections/PxSinglePropertyHero'
@@ -137,7 +137,7 @@ function NotFoundFallback() {
           display: 'grid',
           placeItems: 'center',
         }}>
-          <PxIcon name="search" size={28} color={PX.neutral500} />
+          <MEIcon name="search" size={28} color={PX.neutral500} />
         </div>
         <h1 style={{
           margin: 0,
@@ -183,7 +183,7 @@ function NotFoundFallback() {
             }}
           >
             <span style={{ paddingTop: 2 }}>{t('marketplaceProperty.breadcrumb.buy')}</span>
-            <PxIcon name="arrow-right" size={14} color={PX.neutral100} />
+            <MEIcon name="arrow-right" size={14} color={PX.neutral100} />
           </Link>
           <Link
             to="/louer"
@@ -207,7 +207,7 @@ function NotFoundFallback() {
             }}
           >
             <span style={{ paddingTop: 2 }}>{t('marketplaceProperty.breadcrumb.rent')}</span>
-            <PxIcon name="arrow-right" size={14} color={PX.neutral700} />
+            <MEIcon name="arrow-right" size={14} color={PX.neutral700} />
           </Link>
         </div>
       </div>

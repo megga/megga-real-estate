@@ -237,7 +237,7 @@ function ObjGraph({
               fontWeight="700"
               fill={DB_SP.muted}
               textAnchor="end"
-              fontFamily="Manrope"
+              fontFamily="Inter Tight"
             >
               {y === 0 ? '0' : dbFmtK(y)}
             </text>
@@ -281,7 +281,7 @@ function ObjGraph({
           fontWeight="800"
           fill={DB_SP.ink}
           textAnchor="end"
-          fontFamily="Manrope"
+          fontFamily="Inter Tight"
           letterSpacing="0.5"
         >
           OBJECTIF · {dbFmtTarget(d.target)}
@@ -304,7 +304,7 @@ function ObjGraph({
           fontSize="9.5"
           fontWeight="800"
           fill={DB_SP.ink}
-          fontFamily="Manrope"
+          fontFamily="Inter Tight"
           letterSpacing="0.6"
         >
           AUJOURD'HUI
@@ -362,7 +362,7 @@ function ObjGraph({
           fontWeight="800"
           fill={overshootPct >= 0 ? DB_SP.ok : DB_SP.warn}
           textAnchor="end"
-          fontFamily="Manrope"
+          fontFamily="Inter Tight"
         >
           {dbFmtCHF(endVal)}
         </text>
@@ -381,7 +381,7 @@ function ObjGraph({
               fontWeight={isToday ? 800 : 600}
               fill={isToday ? DB_SP.ink : DB_SP.muted}
               textAnchor="middle"
-              fontFamily="Manrope"
+              fontFamily="Inter Tight"
             >
               {l}
             </text>

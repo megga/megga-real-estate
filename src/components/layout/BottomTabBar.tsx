@@ -1,34 +1,31 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import {
-  Home, GitBranch, Users, Shuffle, MoreHorizontal,
-  LayoutDashboard, Building2, ShieldCheck, Calendar, FileText, Settings, X,
-} from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import Sheet from '@/components/ui/Sheet'
 
 interface TabItem {
-  icon: typeof Home
+  icon: MEIconName
   label: string
   path: string
 }
 
 const TABS: TabItem[] = [
-  { icon: Home, label: 'Accueil', path: '/dashboard' },
-  { icon: GitBranch, label: 'Pipeline', path: '/dashboard/pipeline' },
-  { icon: Users, label: 'Contacts', path: '/dashboard/contacts' },
-  { icon: Shuffle, label: 'Matching', path: '/dashboard/matching' },
+  { icon: 'home', label: 'Accueil', path: '/dashboard' },
+  { icon: 'flowchart', label: 'Pipeline', path: '/dashboard/pipeline' },
+  { icon: 'users', label: 'Contacts', path: '/dashboard/contacts' },
+  { icon: 'refresh', label: 'Matching', path: '/dashboard/matching' },
 ]
 
 const MORE_ITEMS: TabItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard/analytics' },
-  { icon: Building2, label: 'Mes biens', path: '/dashboard/listings' },
-  { icon: ShieldCheck, label: 'KYC', path: '/dashboard/kyc' },
-  { icon: Calendar, label: 'Calendrier', path: '/dashboard/calendar' },
-  { icon: FileText, label: 'Documents', path: '/dashboard/documents' },
-  { icon: Settings, label: 'Paramètres', path: '/dashboard/settings' },
+  { icon: 'dashboard', label: 'Dashboard', path: '/dashboard/analytics' },
+  { icon: 'building', label: 'Mes biens', path: '/dashboard/listings' },
+  { icon: 'shield', label: 'KYC', path: '/dashboard/kyc' },
+  { icon: 'calendar', label: 'Calendrier', path: '/dashboard/calendar' },
+  { icon: 'file', label: 'Documents', path: '/dashboard/documents' },
+  { icon: 'settings', label: 'Paramètres', path: '/dashboard/settings' },
 ]
 
 // iOS UITabBar physics: snappy spring for tap, indicator slides between tabs.
@@ -76,7 +73,7 @@ export default function BottomTabBar() {
                     transition={reducedMotion ? { duration: 0 } : INDICATOR_SPRING}
                   />
                 )}
-                <tab.icon className="h-5 w-5" />
+                <MEIcon name={tab.icon as MEIconName} className="h-5 w-5" />
                 <span className="text-xs">{tab.label}</span>
               </motion.button>
             )
@@ -99,7 +96,7 @@ export default function BottomTabBar() {
                 transition={reducedMotion ? { duration: 0 } : INDICATOR_SPRING}
               />
             )}
-            <MoreHorizontal className="h-5 w-5" />
+            <MEIcon name="more-horizontal" className="h-5 w-5" />
             <span className="text-xs">Plus</span>
           </motion.button>
         </div>
@@ -122,7 +119,7 @@ export default function BottomTabBar() {
             transition={TAP_SPRING}
             className="h-8 w-8 flex items-center justify-center rounded-lg text-theme-tertiary hover:text-theme-primary"
           >
-            <X className="h-4 w-4" />
+            <MEIcon name="close" className="h-4 w-4" />
           </motion.button>
         </div>
 
@@ -140,7 +137,7 @@ export default function BottomTabBar() {
                   active ? 'bg-theme-active text-theme-primary' : 'text-theme-secondary hover:bg-theme-hover'
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
+                <MEIcon name={item.icon as MEIconName} className="h-5 w-5 shrink-0" />
                 <span className="text-sm font-medium">{item.label}</span>
               </motion.button>
             )

@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-contacts-sugar.jsx` (CtEmptyDetail, CtDetail).
 
 import { useEffect, useState } from 'react'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { CRM_AI_SUGGESTIONS, type CrmContact } from '../mockData'
 import { useContactSugarRelations } from '@/hooks/useContactSugarRelations'
 import { crmInitials, type SugarPalette } from '../tokens'
@@ -44,7 +44,7 @@ function CtEmptyDetail({ sp }: { sp: SugarPalette }) {
             border: `1px solid ${sp.cardBorder}`,
           }}
         >
-          <CRMIcon name="contacts" size={22} stroke={sp.sub} />
+          <MEIcon name="users" size={22} color={sp.sub} />
         </div>
         <div
           style={{
@@ -281,7 +281,7 @@ export function ContactsDetailPane({
                 fontWeight: 700,
               }}
             >
-              <CRMIcon name="cal" size={13} stroke={dark ? '#0A0A0F' : sp.pageBg} />
+              <MEIcon name="calendar" size={13} color={dark ? '#0A0A0F' : sp.pageBg} />
               Planifier
             </button>
             <button

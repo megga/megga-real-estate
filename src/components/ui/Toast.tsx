@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { CheckCircle2, AlertCircle, Info, XCircle, X } from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 
@@ -124,11 +124,11 @@ export function ToastProvider({ children, max = 4, defaultDuration = 4000 }: Toa
 
 const TOAST_SPRING = { type: 'spring' as const, stiffness: 420, damping: 32, mass: 0.7 }
 
-const TYPE_STYLES: Record<ToastType, { icon: typeof CheckCircle2; ring: string; iconClass: string }> = {
-  success: { icon: CheckCircle2, ring: 'ring-emerald-500/30', iconClass: 'text-emerald-500' },
-  error:   { icon: XCircle,      ring: 'ring-red-500/30',     iconClass: 'text-red-500' },
-  info:    { icon: Info,         ring: 'ring-blue-500/30',    iconClass: 'text-blue-500' },
-  warn:    { icon: AlertCircle,  ring: 'ring-amber-500/30',   iconClass: 'text-amber-500' },
+const TYPE_STYLES: Record<ToastType, { icon: MEIconName; ring: string; iconClass: string }> = {
+  success: { icon: 'check-circle', ring: 'ring-emerald-500/30', iconClass: 'text-emerald-500' },
+  error:   { icon: 'close-circle',      ring: 'ring-red-500/30',     iconClass: 'text-red-500' },
+  info:    { icon: 'info',         ring: 'ring-blue-500/30',    iconClass: 'text-blue-500' },
+  warn:    { icon: 'alert',  ring: 'ring-amber-500/30',   iconClass: 'text-amber-500' },
 }
 
 function ToastViewport({ toasts, onDismiss }: { toasts: ToastEntry[]; onDismiss: (id: number) => void }) {
@@ -183,7 +183,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastEntry; onDismiss: (id: nu
         ring,
       )}
     >
-      <Icon className={cn('h-5 w-5 shrink-0 mt-0.5', iconClass)} aria-hidden="true" />
+      <MEIcon name={Icon as MEIconName} className={cn('h-5 w-5 shrink-0 mt-0.5', iconClass)} aria-hidden="true" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium leading-snug">{toast.message}</p>
         {toast.description && (
@@ -199,7 +199,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastEntry; onDismiss: (id: nu
         aria-label="Fermer"
         className="shrink-0 -mr-1 -mt-1 p-1 rounded text-theme-tertiary hover:text-theme-primary"
       >
-        <X className="h-3.5 w-3.5" />
+        <MEIcon name="close" className="h-3.5 w-3.5" />
       </button>
     </motion.div>
   )

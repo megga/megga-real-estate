@@ -27,7 +27,7 @@
 //   </section>
 
 import { Link } from 'react-router-dom'
-import { PX, PxIcon, PxFigmaIcon } from '..'
+import { PX, MEIcon, PxFigmaIcon } from '..'
 import { useMarketListings } from '@/hooks/useMarketListings'
 import type { ListingCardData } from '@/components/listings/ListingCard'
 
@@ -378,7 +378,7 @@ export default function PxAllProperties() {
                 color: PX.neutral700,
               }}>Parcourir tous les biens</span>
             </span>
-            <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+            <MEIcon name="chevron-right" size={16} color={PX.neutral700} />
           </Link>
         </div>
       </div>

@@ -10,7 +10,7 @@
 //     - Title 24 medium 1.25
 //     - Flex row : Date with calendar icon (V49) + "Read more" link with chevron right
 
-import { PX, PxFigmaIcon, PxIcon } from '..'
+import { PX, PxFigmaIcon, MEIcon } from '..'
 
 type BlogCategory = 'resources' | 'news' | 'articles'
 
@@ -156,7 +156,7 @@ function BlogCard({ data }: { data: BlogCardData }) {
             }}>
               Read more
             </span>
-            <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+            <MEIcon name="chevron-right" size={16} color={PX.neutral700} />
           </a>
         </div>
       </div>
@@ -218,7 +218,7 @@ export default function PxBlogPostRelated() {
           }}>
             Browse all articles
           </span>
-          <PxIcon name="chevron-right" size={16} color={PX.neutral700} />
+          <MEIcon name="chevron-right" size={16} color={PX.neutral700} />
         </a>
       </div>
 

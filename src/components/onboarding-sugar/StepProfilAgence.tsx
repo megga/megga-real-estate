@@ -11,7 +11,7 @@ import {
 } from './primitives'
 import { uploadAgencyLogo } from './persistence'
 import type { OnboardingData, Setter, AgenceProfile } from './types'
-import PxIcon, { type PxIconName } from '@/components/propertyx/PxIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { SWISS_CANTONS, CANTON_LABELS } from '@/hooks/useMarketFilters'
 
 // ─── Logo uploader (square) ──────────────────────────────────────────
@@ -76,7 +76,7 @@ function ObLogoUploader({
     >
       {!value && (
         <div style={{ display: 'grid', placeItems: 'center', gap: 10 }}>
-          <PxIcon name="upload" size={22} strokeWidth={1.7} color={t.ink} />
+          <MEIcon name="upload" size={22} strokeWidth={1.7} color={t.ink} />
           <div
             style={{
               fontSize: 10.5,
@@ -131,7 +131,7 @@ function ObLogoUploader({
             boxShadow: t.shadowSm,
           }}
         >
-          <PxIcon name="close" size={12} strokeWidth={1.8} color={t.inkSoft} />
+          <MEIcon name="close" size={12} strokeWidth={1.8} color={t.inkSoft} />
         </button>
       )}
       <input
@@ -156,7 +156,7 @@ function ObAgencyInheritedView({
   dark?: boolean
 }) {
   const t = obPalette(dark)
-  const tiles: Array<[PxIconName, string, string]> = [
+  const tiles: Array<[MEIconName, string, string]> = [
     ['building', 'Identité visuelle', "Configurée par l'équipe"],
     ['location', 'Adresse et contact', `${agCity}, ${agCanton}`],
     ['pipeline', 'Modèles partagés', '12 documents prêts à l’emploi'],
@@ -191,7 +191,7 @@ function ObAgencyInheritedView({
               boxShadow: '0 10px 22px rgba(11,12,14,0.20)',
             }}
           >
-            <PxIcon
+            <MEIcon
               name="check"
               size={26}
               strokeWidth={2.2}
@@ -262,7 +262,7 @@ function ObAgencyInheritedView({
                   marginTop: 1,
                 }}
               >
-                <PxIcon name={icon} size={22} strokeWidth={1.7} color={t.ink} />
+                <MEIcon name={icon} size={22} strokeWidth={1.7} color={t.ink} />
               </div>
               <div style={{ minWidth: 0 }}>
                 <div
