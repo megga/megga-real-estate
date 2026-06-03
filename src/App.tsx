@@ -17,7 +17,6 @@ import { AuthProvider } from '@/hooks/useAuth'
 
 // Shells/guards qui wrappent toutes les routes — doivent être disponibles
 // avant le premier render pour éviter un flash de chargement.
-import PasswordGate from '@/components/layout/PasswordGate'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import CookieBanner from '@/components/CookieBanner'
@@ -596,11 +595,10 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <PasswordGate>
-        <StaleBundleDetector />
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <ToastProvider>
+      <StaleBundleDetector />
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ToastProvider>
             {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
                 frosted-glass shimmer overlay, listens to languageChanged event. */}
             <LanguageChangeOverlay />
@@ -612,10 +610,9 @@ export default function App() {
               <FavoritesLoginPrompt />
             </Suspense>
             <CookieBanner />
-            </ToastProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </PasswordGate>
+          </ToastProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   )
 }
