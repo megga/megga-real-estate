@@ -14,7 +14,7 @@ export function isPairingCodeValid(expiresAt: string | null | undefined): boolea
   return Number.isFinite(t) && t > Date.now()
 }
 
-export type ToolTier = 'read' | 'auto' | 'confirm'
+export type ToolTier = 'read' | 'auto' | 'confirm' | 'slow_async'
 
 // Source de vérité du tier par outil. Inconnu => 'confirm' (fail-safe : jamais
 // d'exécution d'un outil non classé sans confirmation humaine).
@@ -37,9 +37,9 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   send_listings: 'confirm',
   record_offer: 'confirm',
   open_kyc_case: 'confirm',
-  attach_kyc_document: 'auto',
-  run_kyc_screening: 'auto',
-  send_kyc_report: 'auto',
+  attach_kyc_document: 'auto',          // reste synchrone (P2b : async + R2)
+  run_kyc_screening: 'slow_async',      // ~50s Dilisense → hors boucle (file + cron)
+  send_kyc_report: 'slow_async',        // ~60s render PDF + envoi → hors boucle
 }
 
 export function toolTier(name: string): ToolTier {

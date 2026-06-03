@@ -1,5 +1,5 @@
 // Catalogue des outils exposés à DeepSeek (function calling, schéma OpenAI).
-// Le tier (auto/confirm/read) vit dans whatsapp-agent-router.ts (toolTier()).
+// Le tier (read/auto/confirm/slow_async) vit dans whatsapp-agent-router.ts (toolTier()).
 // DeepSeek renvoie les arguments en CHAÎNE JSON à parser.
 import { PIPELINE_STAGES } from './whatsapp-agent-router.ts'
 
