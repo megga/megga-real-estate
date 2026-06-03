@@ -8,13 +8,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, verifyHmac, type SendConfig } from '../_shared/whatsapp-gateway.ts'
-import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid } from '../_shared/whatsapp-agent-router.ts'
+import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, type ActionCtx } from '../_shared/whatsapp-actions.ts'
-import { asWaLang, detectLang, t, type WaLang } from '../_shared/whatsapp-i18n.ts'
+import { asWaLang, detectLang, t, type WaLang, undoneStage, nothingToUndo } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -303,6 +303,51 @@ async function processAgentMessage(
     }
   }
 
+  // L3 — undo différé : « /annuler » dans la fenêtre rejoue le dernier payload_undo.
+  // Placé AVANT la gestion des pending (une action venant de partir en auto prime).
+  if (isUndoCommand(userText)) {
+    const { data: last } = await admin
+      .from('whatsapp_recent_auto_actions')
+      .select('id, tool, payload_undo, undo_until')
+      .eq('profile_id', agentLink.profile_id)
+      .is('undone_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1).maybeSingle()
+    const lang = detectLang(userText)
+    if (last && Date.parse(last.undo_until) > Date.now()) {
+      // Consommation gagnant-unique (anti double-undo) : on pose undone_at en filtrant NULL.
+      const { data: claimed } = await admin.from('whatsapp_recent_auto_actions')
+        .update({ undone_at: new Date().toISOString() })
+        .eq('id', last.id).is('undone_at', null).select('id')
+      if (claimed && claimed.length > 0) {
+        let undoReply = nothingToUndo(lang)
+        if (last.tool === 'update_pipeline') {
+          const p = last.payload_undo as { transaction_id: string; old_stage: string }
+          const { error: rbErr } = await admin.from('transactions')
+            .update({ stage: p.old_stage })
+            .eq('id', p.transaction_id).eq('agency_id', agentLink.agency_id)
+          if (rbErr) {
+            // Promesse honnête : la consommation est déjà posée (undone_at), mais le rollback
+            // a échoué → ne PAS annoncer « Annulé ». L'action reste tracée pour le MLRO.
+            console.error('whatsapp undo rollback failed:', (rbErr.message ?? 'error').slice(0, 120))
+            await sendWhatsAppText(provider, msg.fromPhone, nothingToUndo(lang))
+            return
+          }
+          await admin.from('activity_events').insert({
+            agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
+            action: 'stage_change', entity_type: 'transaction', entity_id: p.transaction_id,
+            object_label: `undo → ${p.old_stage}`, category: 'deal', severity: 'info',
+            metadata: { via: 'whatsapp', mode: 'undo', profile_id: agentLink.profile_id, new_stage: p.old_stage },
+          })
+          undoReply = undoneStage(lang, stageLabel(p.old_stage, lang))
+        }
+        await sendWhatsAppText(provider, msg.fromPhone, undoReply)
+        return
+      }
+    }
+    // Rien d'annulable : on NE return PAS — le message suit le flux normal (le cerveau répondra).
+  }
+
   const { data: pendingAction } = await admin
     .from('whatsapp_pending_actions')
     .select('id, tool, args, summary, expires_at')
@@ -319,8 +364,20 @@ async function processAgentMessage(
       .from('whatsapp_pending_actions').delete().eq('id', pendingAction.id).select('id')
     if (!claimed || claimed.length === 0) return // une autre invocation gère cette attente
     if (decision === 'yes' && valid) {
+      try {
+        await admin.from('whatsapp_confirmation_log').insert({
+          profile_id: agentLink.profile_id, agency_id: agentLink.agency_id,
+          tool: pendingAction.tool as string, outcome: 'yes',
+        })
+      } catch { /* journal non bloquant */ }
       reply = await executePending(admin, provider, agentLink, pendingAction, lang)
     } else if (decision === 'no') {
+      try {
+        await admin.from('whatsapp_confirmation_log').insert({
+          profile_id: agentLink.profile_id, agency_id: agentLink.agency_id,
+          tool: pendingAction.tool as string, outcome: 'no',
+        })
+      } catch { /* journal non bloquant */ }
       reply = t(lang, 'cancelled')
     } else if (!valid) {
       reply = t(lang, 'expired')
