@@ -46,6 +46,22 @@ export function toolTier(name: string): ToolTier {
   return TOOL_TIERS[name] ?? 'confirm'
 }
 
+// SEUL outil 'confirm' qui peut passer en auto (Palier 3) : update_pipeline — réversible
+// (undo) + audité, aucun flux client/argent. Le socle légal (send_client_message/send_listings/
+// record_offer/open_kyc_case) renvoie false ICI quel que soit l'agent → ne quitte JAMAIS confirm.
+export function canLeaveConfirm(tool: string): boolean {
+  return tool === 'update_pipeline'
+}
+
+// NB: 'annule'/'annuler' figurent aussi dans le set NO de parseConfirmation — garder les deux cohérents.
+const UNDO_WORDS = new Set(['/annuler', 'annuler', 'annule', 'undo', 'reviens', 'rétablis', 'retablis'])
+/** Vrai si le message est une commande d'annulation courte (pour l'undo différé). */
+export function isUndoCommand(body: string | null | undefined): boolean {
+  if (!body) return false
+  const norm = body.trim().toLowerCase().replace(/[!.…]+$/, '')
+  return UNDO_WORDS.has(norm)
+}
+
 // Les 14 colonnes canoniques du pipeline (= transactions.stage, hors valeurs legacy
 // lead/qualified/closed/visit_planned_legacy). Source unique partagée par le catalogue
 // d'outils (enum exposé à DeepSeek) et l'exécuteur update_pipeline (validation défensive).
