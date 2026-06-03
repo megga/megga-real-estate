@@ -56,9 +56,9 @@ describe.skipIf(!HAS_KEYS)('whatsapp autonomy gate — pipeline_move + undo mech
     const svc = serviceRoleClient()
 
     // Clean up undo rows (seeded by Test 2a + 2b) before cleanup() removes users/agencies.
-    if (undoRowId)   await svc.from('whatsapp_recent_auto_actions').delete().eq('id', undoRowId).catch(() => {})
-    if (undoRowId2b) await svc.from('whatsapp_recent_auto_actions').delete().eq('id', undoRowId2b).catch(() => {})
-    if (txnId)       await svc.from('transactions').delete().eq('id', txnId).catch(() => {})
+    if (undoRowId)   await svc.from('whatsapp_recent_auto_actions').delete().eq('id', undoRowId).then(() => {}, () => {})
+    if (undoRowId2b) await svc.from('whatsapp_recent_auto_actions').delete().eq('id', undoRowId2b).then(() => {}, () => {})
+    if (txnId)       await svc.from('transactions').delete().eq('id', txnId).then(() => {}, () => {})
 
     await setup.cleanup()
   })
