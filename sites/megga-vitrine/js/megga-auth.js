@@ -29,7 +29,8 @@
   }
 
   function loadSdk() {
-    return loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
+    // SDK auto-hébergé (pas de CDN tiers — robustesse + 0 dépendance externe).
+    return loadScript('/js/supabase.min.js',
       function () { return window.supabase && window.supabase.createClient; });
   }
 
