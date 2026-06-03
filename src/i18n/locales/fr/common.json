@@ -34,7 +34,8 @@
     "adminPlans": "Plans & Quotas",
     "adminSecurity": "Audit securite",
     "adminNps": "Satisfaction",
-    "adminAutonomy": "Autonomie agents"
+    "adminAutonomy": "Autonomie agents",
+    "adminLearning": "Styles appris"
   },
   "sections": {
     "main": "Principal",
