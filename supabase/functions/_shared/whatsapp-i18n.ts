@@ -80,6 +80,10 @@ const STR = {
     fr: "Je n'ai pas réussi à finaliser ta demande. Peux-tu la reformuler plus simplement ?",
     en: "I couldn't finalise your request. Can you rephrase it more simply?",
   },
+  complexRetry: {
+    fr: "Ta demande est un peu chargée — je m'en occupe par étapes, redonne-moi un instant.",
+    en: "Your request is a bit heavy — I'm handling it in steps, give me a moment.",
+  },
   ok: { fr: 'OK.', en: 'OK.' },
   noAgencySend: {
     fr: "Ton compte n'a pas d'agence, envoi impossible.",
@@ -207,4 +211,20 @@ export function pipelineAlreadyAt(lang: WaLang, dealLabel: string, stageLabel: s
 export function pipelineNoDeal(lang: WaLang): string {
   if (lang === 'en') return "This contact has no pipeline file yet (no transaction). The file must be created in the CRM first."
   return "Ce contact n’a pas encore de dossier dans le pipeline (aucune transaction). Le dossier doit d’abord être créé dans le CRM."
+}
+
+/** ACK renvoyé à DeepSeek quand un outil lent part en file (le résultat suivra,
+ *  livré à l’agent par le worker). `name` = nom humain du contact (jamais un id). */
+export function asyncAck(lang: WaLang, kind: 'screening' | 'report', name: string): string {
+  const n = name && name.trim() ? name.trim() : ''
+  if (lang === 'en') {
+    const who = n ? ` for ${n}` : ''
+    return kind === 'screening'
+      ? `I'm running the screening${who} — I'll send you the result in ~15s.`
+      : `I'm preparing the KYC report${who} — you'll get the PDF in ~15s.`
+  }
+  const who = n ? ` de ${n}` : ''
+  return kind === 'screening'
+    ? `Je lance le screening${who}, je te donne le résultat dans ~15 s.`
+    : `Je prépare le rapport KYC${who}, tu reçois le PDF dans ~15 s.`
 }
