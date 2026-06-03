@@ -63,7 +63,7 @@ serve(async (req) => {
   const lang = detectLang(message)
 
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
-  if (!apiKey) return json({ reply: t(lang, 'iaDown') }, 200)
+  if (!apiKey) return json({ reply: t(lang, 'iaDown'), isError: true }, 200)
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -82,16 +82,24 @@ serve(async (req) => {
 
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
-  const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { data: histRows } = await supabase
-    .from('whatsapp_messages')
-    .select('direction, body, transcript')
-    .or(`wa_from.eq.${waNumber},wa_to.eq.${waNumber}`)
-    .neq('provider_message_id', currentMessageId ?? '')
-    .gt('created_at', sinceIso)
-    .order('created_at', { ascending: false })
-    .limit(12)
-  const history = buildHistoryMessages((histRows ?? []) as WaHistoryRow[])
+  // Garde : si waNumber est vide, .or('wa_from.eq.,wa_to.eq.') ne matche RIEN → amnésie
+  // silencieuse. On court-circuite et on trace (PII-safe : profile id seul, jamais le numéro).
+  let history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  if (!waNumber) {
+    console.warn('C1 skipped: no waNumber for profile', profileId)
+  } else {
+    const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: histRows } = await supabase
+      .from('whatsapp_messages')
+      .select('direction, body, transcript')
+      .or(`wa_from.eq.${waNumber},wa_to.eq.${waNumber}`)
+      .eq('is_agent_error', false) // anti-écho : ne jamais relire une réponse d'échec (leçon 5)
+      .neq('provider_message_id', currentMessageId ?? '')
+      .gt('created_at', sinceIso)
+      .order('created_at', { ascending: false })
+      .limit(12)
+    history = buildHistoryMessages((histRows ?? []) as WaHistoryRow[])
+  }
 
   // Ancrage temporel : sans ça DeepSeek ne sait pas résoudre « demain », « vendredi 14h »
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
@@ -107,7 +115,7 @@ serve(async (req) => {
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     const resp = await callDeepSeek(apiKey, messages)
-    if (!resp) return json({ reply: t(lang, 'cantProcess') }, 200)
+    if (!resp) return json({ reply: t(lang, 'cantProcess'), isError: true }, 200)
     const msg = resp.choices?.[0]?.message
     const toolCalls = msg?.tool_calls as Array<{ id?: string; function?: { name?: string; arguments?: string } }> | undefined
 
@@ -125,7 +133,7 @@ serve(async (req) => {
 
     for (const call of toolCalls) {
       if (toolCallsUsed >= MAX_TOOL_CALLS) {
-        return json({ reply: t(lang, 'tooLarge') }, 200)
+        return json({ reply: t(lang, 'tooLarge'), isError: true }, 200)
       }
       toolCallsUsed++
       const name = call.function?.name ?? ''
@@ -137,10 +145,10 @@ serve(async (req) => {
         // On NE l'exécute pas : on VALIDE + on PRÉPARE, puis on demande confirmation.
         const stash = await stashPending(ctx, waNumber, name, args)
         if (stash.status === 'busy') {
-          return json({ reply: t(lang, 'busy') }, 200)
+          return json({ reply: t(lang, 'busy'), isError: true }, 200)
         }
         if (stash.status === 'error') {
-          return json({ reply: stash.error ?? t(lang, 'prepFail') }, 200)
+          return json({ reply: stash.error ?? t(lang, 'prepFail'), isError: true }, 200)
         }
         return json({ reply: stash.prompt ?? t(lang, 'fallbackConfirm') }, 200)
       }
@@ -161,7 +169,7 @@ serve(async (req) => {
   const forced = await callDeepSeek(apiKey, messages, 'none')
   const forcedContent = forced?.choices?.[0]?.message?.content as string | undefined
   if (forcedContent) return json({ reply: forcedContent }, 200)
-  return json({ reply: t(lang, 'reformulate') }, 200)
+  return json({ reply: t(lang, 'reformulate'), isError: true }, 200)
 })
 
 function json(obj: unknown, code: number): Response {
