@@ -1,14 +1,25 @@
-// MEGGA CRM Sugar v3 — Vue détail dossier (orchestrateur)
-// Port 1:1 de crm-screen-kyc-sugar.jsx lignes 587-646 (KycDossierDetail).
+// MEGGA CRM Sugar v3 — Vue détail dossier (orchestrateur, onglets)
+// Port du handoff Claude Design juin 2026 (crm-screen-kyc-sugar.jsx §KycDossierDetail).
 //
-// Structure : Hero + 5 KycCheckCard (grid 2x) + 2 cards (Docs + AuditTrail) + bottom actions
+// Structure à onglets (handoff §5) : header compact + navbar segmentée sticky
+//   Synthèse · Contrôles · Documents · Audit
+// Tout le câblage backend (screening Dilisense, garde LBA art. 9, décisions
+// compliance, source des fonds, upload, audit réel) est PRÉSERVÉ.
+//
+// Politique non-bloquante (CLAUDE.md) : aucun libellé n'implique un blocage du
+// pipeline. La SEULE garde restante est l'intégrité LBA art. 9 — on ne peut pas
+// auto-attester « vérifié » tant qu'un match sanctions/PEP n'est pas examiné
+// (chemin humain : Examiner → faux positif → débloque). Ce n'est pas du gating
+// pipeline : le deal avance indépendamment.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { SugarV3 } from '../tokens'
-import { KycBlackPill, KycGhostPill } from '../primitives'
 import { SgIcon } from '../icons'
-import { KycDossierHero } from './KycDossierHero'
+import { useKycPalette } from './kycPalette'
+import { KycBlackPill, KycGhostPill } from './kycPrimitives'
+import { KycDetailHeader } from './KycDetailHeader'
+import { KycSegTabs, type KycSegTab } from './KycSegTabs'
+import { KycSynthese } from './KycSynthese'
 import { KycCheckCard } from './KycCheckCard'
 import { KycDocsSection } from './KycDocsSection'
 import { KycAuditTrail } from './KycAuditTrail'
@@ -57,7 +68,7 @@ interface ScreeningDetails {
 const VERDICT_LABELS: Record<ScreeningDecisionVerdict, { label: string; hint: string; tone: 'ok' | 'err' | 'warn' | 'neutral' }> = {
   false_positive: {
     label: 'Faux positif',
-    hint: 'Examen humain : le match Dilisense ne correspond pas au client. Débloque la validation.',
+    hint: 'Examen humain : le match Dilisense ne correspond pas au client. Autorise la validation.',
     tone: 'ok',
   },
   true_match: {
@@ -81,11 +92,14 @@ interface Props {
   dossierId: string
   agentId: string
   onBack: () => void
+  /** Fond de page (sp.pageBg) — sert au fond de la navbar sticky. */
+  pageBg: string
 }
 
 const CHECK_KEYS: KycCheckCategory[] = ['id', 'address', 'pep', 'sanctions', 'funds']
 
-export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
+export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) {
+  const sp = useKycPalette()
   const { data: dossier, isLoading, isError, error, refetch } = useKycCase(dossierId)
   const { data: docs = [] } = useKycDocuments(dossierId)
   const { data: auditEvents = [] } = useKycAuditEvents(dossierId)
@@ -98,10 +112,9 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
   const { data: sanctionsDecision } = useLatestKycScreeningDecision(dossierId, 'sanctions')
   const { data: pepDecision } = useLatestKycScreeningDecision(dossierId, 'pep')
 
+  const [tab, setTab] = useState<'synthese' | 'controles' | 'documents' | 'audit'>('synthese')
+
   // nLPD art. 12 — log de l'accès consultation au dossier KYC (Roger #1).
-  // Une seule fois par mount + dossier, pas à chaque re-render.
-  // NB : logRead.mutate exclu des deps — l'objet mutation change à chaque render
-  // et causerait une boucle infinie (fix Sprint 3.1).
   const readLoggedRef = useRef<string | null>(null)
   const logReadMutate = logRead.mutate
   useEffect(() => {
@@ -114,6 +127,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dossier?.agency_id, dossierId, agentId])
+
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [examineTarget, setExamineTarget] = useState<ScreeningDecisionTarget | null>(null)
@@ -139,13 +153,11 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
     return map
   }, [dossier])
 
-  // screeningGuard remonté ICI (avant tout early-return) pour respecter
-  // rules-of-hooks. Tolère un dossier null/undefined pendant le chargement.
+  // Garde compliance remontée ICI (avant tout early-return) — rules-of-hooks.
   const screeningGuard = useMemo<ScreeningGuard>(() => {
     if (!dossier) return { status: 'missing' }
     const sanctions = dossier.sanctions_status
     const pep = dossier.pep_status
-    // Un match est BLOQUANT sauf si une décision false_positive l'a écarté
     if (sanctions === 'match' && sanctionsDecision?.decision !== 'false_positive') {
       return { status: 'match', kind: 'sanctions' }
     }
@@ -157,33 +169,28 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
       return { status: 'missing' }
     }
     return { status: 'ok' }
-  }, [
-    dossier,
-    sanctionsDecision?.decision,
-    pepDecision?.decision,
-  ])
+  }, [dossier, sanctionsDecision?.decision, pepDecision?.decision])
 
   if (isError && !isLoading) {
     return (
       <div
         role="alert"
         style={{
-          maxWidth: 1080,
+          maxWidth: 1000,
           margin: '60px auto',
           padding: '32px',
           textAlign: 'center',
-          background: SugarV3.card,
+          background: sp.card,
           borderRadius: 22,
-          boxShadow: SugarV3.shadow,
-          color: SugarV3.err,
+          border: `1px solid ${sp.cardBorder}`,
+          boxShadow: sp.shadow,
+          color: sp.err,
           fontSize: 14,
           fontWeight: 600,
         }}
       >
-        <div style={{ marginBottom: 8 }}>
-          Impossible de charger ce dossier KYC.
-        </div>
-        <div style={{ fontSize: 12, fontWeight: 500, color: SugarV3.muted, marginBottom: 18 }}>
+        <div style={{ marginBottom: 8 }}>Impossible de charger ce dossier KYC.</div>
+        <div style={{ fontSize: 12, fontWeight: 500, color: sp.muted, marginBottom: 18 }}>
           {(error as Error)?.message || 'Erreur réseau ou base de données.'}
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
@@ -196,23 +203,26 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
 
   if (isLoading || !dossier) {
     return (
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '60px 0', textAlign: 'center', color: SugarV3.muted, fontSize: 14, fontWeight: 500 }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '60px 0', textAlign: 'center', color: sp.muted, fontSize: 14, fontWeight: 500 }}>
         Chargement du dossier…
       </div>
     )
   }
 
-  // Progression LBA : ratio des contrôles REQUIS effectivement complétés.
-  // Les items is_required=false ne comptent ni au numérateur ni au dénominateur
-  // (sinon on gonfle artificiellement la progression — finding red-team V3-6).
-  const requiredChecks = Object.values(checksByCategory).filter(
-    (c): c is KycChecklistItem => c?.is_required === true
-  )
-  const completedRequiredCount = requiredChecks.filter((c) => c.is_completed).length
-  const pct =
-    requiredChecks.length > 0
-      ? (completedRequiredCount / requiredChecks.length) * 100
-      : 0
+  // Avancement des 5 contrôles LBA (fixes). Un check non requis compte comme fait.
+  const done = CHECK_KEYS.filter((k) => {
+    const it = checksByCategory[k]
+    return !!(it && (it.is_completed || it.is_required === false))
+  }).length
+  const total = CHECK_KEYS.length
+
+  // Dernier screening = date d'action la plus récente connue.
+  let lastScreeningAt: string | null = dossier.last_screening_at ?? null
+  Object.values(checksByCategory).forEach((c) => {
+    if (c?.completed_at && (!lastScreeningAt || new Date(c.completed_at) > new Date(lastScreeningAt))) {
+      lastScreeningAt = c.completed_at
+    }
+  })
 
   const handleMarkVerified = (category: KycCheckCategory) => {
     const item = checksByCategory[category]
@@ -221,17 +231,19 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
   }
 
   const isVerified = dossier.dossier_status === 'verified'
-
   const canMarkAll = !isVerified && screeningGuard.status === 'ok'
 
-  const blockedLabel = (() => {
+  // Libellé du POURQUOI le « tout marquer vérifié » est indisponible.
+  // Volontairement orienté ACTION et SANS langage de blocage pipeline :
+  // c'est l'intégrité de l'attestation KYC (LBA art. 9), pas un verrou de deal.
+  const markAllBlockedLabel = (() => {
     if (screeningGuard.status === 'match') {
       return screeningGuard.kind === 'sanctions'
-        ? 'Validation bloquée — match sanctions'
-        : 'Validation bloquée — match PEP'
+        ? 'Examinez d’abord le match sanctions'
+        : 'Examinez d’abord le match PEP'
     }
     if (screeningGuard.status === 'pending') return 'Screening en cours…'
-    if (screeningGuard.status === 'missing') return 'Screening requis avant validation'
+    if (screeningGuard.status === 'missing') return 'Lancez le screening avant de valider'
     return null
   })()
 
@@ -283,6 +295,11 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
           }),
       }
     )
+  }
+
+  const handleExport = () => {
+    // Sprint 4.4 — route print-friendly dans un nouvel onglet (Cmd+P → PDF).
+    window.open(`/dashboard/kyc/${dossierId}/export`, '_blank', 'noopener,noreferrer')
   }
 
   const handleSubmitDecision = (
@@ -361,257 +378,212 @@ export function KycDossierDetail({ dossierId, agentId, onBack }: Props) {
     )
   }
 
+  // ─── Encart compliance (match sanctions/PEP, faux positif écarté) ──────
+  // Rendu dans l'onglet Synthèse via le slot `alert`. Conservation de la
+  // logique LBA art. 9 — purement informatif sur l'état du screening.
+  let complianceAlert: React.ReactNode = null
+  if (screeningGuard.status === 'match') {
+    const target = screeningGuard.kind
+    const decision = target === 'sanctions' ? sanctionsDecision : pepDecision
+    const verdictInfo = decision ? VERDICT_LABELS[decision.decision] : null
+    complianceAlert = (
+      <div
+        role="alert"
+        style={{
+          padding: '14px 20px',
+          background: sp.errSoft,
+          borderRadius: 14,
+          border: `1px solid ${sp.err}33`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          flexWrap: 'wrap',
+        }}
+      >
+        <SgIcon name="shield" size={16} stroke={sp.errDarker} />
+        <div style={{ flex: 1, minWidth: 240, fontSize: 13, fontWeight: 600, color: sp.errDarker, lineHeight: 1.5 }}>
+          Match {target === 'sanctions' ? 'sanctions' : 'PEP'} détecté · examen requis (LBA art. 9).
+          {verdictInfo && (
+            <div style={{ marginTop: 4, fontSize: 12, fontWeight: 500, color: sp.errDark }}>
+              Dernière décision : <strong>{verdictInfo.label}</strong> ·{' '}
+              {new Date(decision!.decided_at).toLocaleDateString('fr-CH')}
+            </div>
+          )}
+        </div>
+        <KycBlackPill
+          size="md"
+          onClick={() => setExamineTarget(target)}
+          icon={<SgIcon name="eye" size={14} stroke={sp.onAccent} />}
+        >
+          {decision ? 'Réexaminer' : 'Examiner ce match'}
+        </KycBlackPill>
+      </div>
+    )
+  } else if (
+    screeningGuard.status === 'ok' &&
+    (sanctionsDecision?.decision === 'false_positive' || pepDecision?.decision === 'false_positive')
+  ) {
+    complianceAlert = (
+      <div
+        style={{
+          padding: '12px 18px',
+          background: sp.okSoft,
+          borderRadius: 14,
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: sp.okDark,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <SgIcon name="check" size={14} stroke={sp.okDark} />
+        Match Dilisense écarté par décision compliance (faux positif) · LBA art. 7 documenté.
+      </div>
+    )
+  }
+
+  const tabs: KycSegTab[] = [
+    { id: 'synthese', label: 'Synthèse' },
+    { id: 'controles', label: 'Contrôles', count: total },
+    { id: 'documents', label: 'Documents', count: docs.length },
+    { id: 'audit', label: 'Audit' },
+  ]
+
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-      <KycDossierHero
+    <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+      <KycDetailHeader
         dossier={dossier}
         contact={
           dossier.contact
             ? { first_name: dossier.contact.first_name, last_name: dossier.contact.last_name }
             : null
         }
-        pct={Math.round(pct)}
+        done={done}
+        total={total}
         onBack={onBack}
       />
 
-      {screeningGuard.status === 'match' && (() => {
-        const target = screeningGuard.kind
-        const decision = target === 'sanctions' ? sanctionsDecision : pepDecision
-        const verdictInfo = decision ? VERDICT_LABELS[decision.decision] : null
-        return (
-          <div
-            role="alert"
-            style={{
-              marginBottom: 16,
-              padding: '14px 20px',
-              background: SugarV3.errSoft,
-              borderRadius: 14,
-              border: `1px solid ${SugarV3.err}33`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              flexWrap: 'wrap',
-            }}
-          >
-            <SgIcon name="shield" size={16} stroke={SugarV3.errDarker} />
-            <div
-              style={{
-                flex: 1,
-                minWidth: 240,
-                fontSize: 13,
-                fontWeight: 600,
-                color: SugarV3.errDarker,
-                lineHeight: 1.5,
-              }}
-            >
-              Match {target === 'sanctions' ? 'sanctions' : 'PEP'} détecté ·
-              Validation bloquée (LBA art. 9).
-              {verdictInfo && (
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: SugarV3.errDark,
-                  }}
-                >
-                  Dernière décision : <strong>{verdictInfo.label}</strong> ·{' '}
-                  {new Date(decision!.decided_at).toLocaleDateString('fr-CH')}
-                </div>
-              )}
-            </div>
-            <KycBlackPill
-              size="md"
-              onClick={() => setExamineTarget(target)}
-              icon={<SgIcon name="eye" size={14} stroke="#fff" />}
-            >
-              {decision ? 'Réexaminer' : 'Examiner ce match'}
-            </KycBlackPill>
-          </div>
-        )
-      })()}
-
-      {screeningGuard.status === 'ok' && (sanctionsDecision?.decision === 'false_positive' || pepDecision?.decision === 'false_positive') && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: '12px 18px',
-            background: SugarV3.okSoft,
-            borderRadius: 14,
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: SugarV3.okDark,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <SgIcon name="check" size={14} stroke={SugarV3.okDark} />
-          Match Dilisense écarté par décision compliance (faux positif) · LBA art. 7 documenté.
-        </div>
-      )}
-
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          color: SugarV3.muted,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
-          marginBottom: 14,
-        }}
-      >
-        5 contrôles obligatoires (LBA art. 3-7)
-      </div>
-
-      <div
-        className="sg-grid-2"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 16,
-          marginBottom: 24,
-        }}
-      >
-        {CHECK_KEYS.map((k) => (
-          <KycCheckCard
-            key={k}
-            category={k}
-            check={checksByCategory[k]}
-            onMarkVerified={() => handleMarkVerified(k)}
-          />
-        ))}
-      </div>
-
-      <KycSourceOfFundsCard dossier={dossier} documents={docs} agentId={agentId} />
-
-      <div className="sg-grid-detail-bottom" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <KycDocsSection
-          docs={docs}
-          onUpload={() => setUploadOpen(true)}
-          onPreview={async (doc) => {
-            // Open the document in a new tab via a signed URL (60s ttl).
-            // KYC docs live in the kyc-documents bucket — created by
-            // migration 20260323_001_kyc_screening_fields.sql.
-            const { data, error: signErr } = await supabase.storage
-              .from('kyc-documents')
-              .createSignedUrl(doc.storage_path, 60)
-             
-            if (signErr) { window.alert(`Aperçu impossible : ${signErr.message}`); return }
-            window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
-          }}
-          onDownload={async (doc) => {
-            // Same signed URL but force download via the `download=true`
-            // option on Supabase Storage (sets Content-Disposition).
-            const { data, error: signErr } = await supabase.storage
-              .from('kyc-documents')
-              .createSignedUrl(doc.storage_path, 60, { download: doc.name ?? true })
-             
-            if (signErr) { window.alert(`Téléchargement impossible : ${signErr.message}`); return }
-            window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
-          }}
-        />
-        <KycAuditTrail
-          events={auditEvents ?? []}
-          onExportPdf={() => {
-            // LBA art. 7 deliverable — opens the audit-trail PDF export
-            // route already wired in App.tsx (#442).
-            window.open(`/dashboard/kyc/${dossierId}/export`, '_blank', 'noopener,noreferrer')
-          }}
-        />
-      </div>
-
+      {/* Feedback d'action (rescreen / upload / décision) — visible tout onglet */}
       {actionMessage && (
         <div
           role="status"
           aria-live="polite"
           style={{
-            marginTop: 16,
+            marginTop: 12,
             padding: '12px 18px',
             borderRadius: 14,
             fontSize: 13,
             fontWeight: 600,
-            background:
-              actionMessage.kind === 'ok' ? SugarV3.okSoft : SugarV3.errSoft,
-            color:
-              actionMessage.kind === 'ok' ? SugarV3.okDark : SugarV3.errDarker,
+            background: actionMessage.kind === 'ok' ? sp.okSoft : sp.errSoft,
+            color: actionMessage.kind === 'ok' ? sp.okDark : sp.errDarker,
           }}
         >
           {actionMessage.text}
         </div>
       )}
 
-      {/* Actions principales bas de page */}
+      {/* Navbar sticky — toujours accessible quel que soit le scroll */}
       <div
         style={{
-          marginTop: 32,
-          padding: '24px 32px',
-          background: SugarV3.card,
-          borderRadius: 22,
-          boxShadow: SugarV3.shadow,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          zIndex: 4,
+          background: pageBg,
+          padding: '16px 0 14px',
+          marginTop: 6,
         }}
       >
-        <div>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: SugarV3.ink }}>
-            {isVerified
-              ? 'Dossier vérifié — transaction autorisée'
-              : 'Compléter pour débloquer les étapes du pipeline'}
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: SugarV3.muted,
-              fontWeight: 500,
-              marginTop: 2,
-            }}
-          >
-            {isVerified
-              ? 'Un re-screening est conseillé dans les 12 mois.'
-              : "Le contact ne pourra pas passer en « Intérêt confirmé » tant que ce dossier n'est pas validé."}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <KycGhostPill
-            onClick={handleRescreen}
-            disabled={screen.isPending}
-            icon={<SgIcon name="refresh" size={14} stroke={SugarV3.inkSoft} />}
-          >
-            {screen.isPending ? 'Screening…' : 'Re-screener'}
-          </KycGhostPill>
-          {!isVerified ? (
-            <KycBlackPill
-              size="md"
-              onClick={requestMarkAll}
-              disabled={markAll.isPending || !canMarkAll}
-              title={blockedLabel ?? undefined}
-              icon={<SgIcon name="checkAll" size={14} stroke="#fff" />}
-            >
-              {markAll.isPending
-                ? 'Validation…'
-                : blockedLabel ?? 'Tout marquer vérifié'}
-            </KycBlackPill>
-          ) : (
-            <KycBlackPill
-              size="md"
-              onClick={() => {
-                // Sprint 4.4 — Ouvre la route print-friendly dans un nouvel onglet.
-                // L'agent peut Cmd+P (ou bouton "Imprimer" de la toolbar) pour
-                // générer le PDF natif via le navigateur.
-                window.open(
-                  `/dashboard/kyc/${dossierId}/export`,
-                  '_blank',
-                  'noopener,noreferrer'
-                )
+        <KycSegTabs tabs={tabs} active={tab} onChange={(id) => setTab(id as typeof tab)} />
+      </div>
+
+      {/* Panneau actif — ré-anime à chaque changement d'onglet */}
+      <div key={tab} style={{ animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both' }}>
+        {tab === 'synthese' && (
+          <KycSynthese
+            dossier={dossier as KycCaseWithChecklist}
+            checksByCategory={checksByCategory}
+            done={done}
+            total={total}
+            lastScreeningAt={lastScreeningAt}
+            isVerified={isVerified}
+            onRescreen={handleRescreen}
+            rescreening={screen.isPending}
+            onMarkAll={requestMarkAll}
+            markAllPending={markAll.isPending}
+            canMarkAll={canMarkAll}
+            markAllBlockedLabel={markAllBlockedLabel}
+            onExport={handleExport}
+            goControles={() => setTab('controles')}
+            alert={complianceAlert}
+          />
+        )}
+
+        {tab === 'controles' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: sp.muted,
+                letterSpacing: 1.2,
+                textTransform: 'uppercase',
               }}
-              icon={<SgIcon name="download" size={14} stroke="#fff" />}
             >
-              Exporter dossier complet
-            </KycBlackPill>
-          )}
-        </div>
+              5 contrôles obligatoires (LBA art. 3-7)
+            </div>
+            <div
+              className="sg-grid-2"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}
+            >
+              {CHECK_KEYS.map((k) => (
+                <KycCheckCard
+                  key={k}
+                  category={k}
+                  check={checksByCategory[k]}
+                  onMarkVerified={() => handleMarkVerified(k)}
+                />
+              ))}
+            </div>
+            <KycSourceOfFundsCard dossier={dossier} documents={docs} agentId={agentId} />
+          </div>
+        )}
+
+        {tab === 'documents' && (
+          <KycDocsSection
+            docs={docs}
+            onUpload={() => setUploadOpen(true)}
+            onPreview={async (doc) => {
+              const { data, error: signErr } = await supabase.storage
+                .from('kyc-documents')
+                .createSignedUrl(doc.storage_path, 60)
+              if (signErr) {
+                window.alert(`Aperçu impossible : ${signErr.message}`)
+                return
+              }
+              window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+            }}
+            onDownload={async (doc) => {
+              const { data, error: signErr } = await supabase.storage
+                .from('kyc-documents')
+                .createSignedUrl(doc.storage_path, 60, { download: doc.name ?? true })
+              if (signErr) {
+                window.alert(`Téléchargement impossible : ${signErr.message}`)
+                return
+              }
+              window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+            }}
+          />
+        )}
+
+        {tab === 'audit' && (
+          <KycAuditTrail
+            events={auditEvents ?? []}
+            onExportPdf={() => {
+              window.open(`/dashboard/kyc/${dossierId}/export`, '_blank', 'noopener,noreferrer')
+            }}
+          />
+        )}
       </div>
 
       {confirmOpen && (
@@ -657,6 +629,7 @@ interface ConfirmOverlayProps {
 }
 
 function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayProps) {
+  const sp = useKycPalette()
   return (
     <div
       role="dialog"
@@ -679,17 +652,18 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
         style={{
           maxWidth: 520,
           width: '100%',
-          background: SugarV3.card,
+          background: sp.card,
           borderRadius: 22,
           padding: '28px 30px',
-          boxShadow: SugarV3.shadowLg,
+          border: `1px solid ${sp.cardBorder}`,
+          boxShadow: sp.shadowLg,
         }}
       >
         <div
           style={{
             fontSize: 11,
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: sp.muted,
             letterSpacing: 1.2,
             textTransform: 'uppercase',
             marginBottom: 10,
@@ -702,7 +676,7 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
             margin: '0 0 12px',
             fontSize: 22,
             fontWeight: 700,
-            color: SugarV3.ink,
+            color: sp.ink,
             letterSpacing: -0.4,
             lineHeight: 1.25,
           }}
@@ -713,37 +687,36 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
           style={{
             margin: '0 0 18px',
             fontSize: 14,
-            color: SugarV3.inkSoft,
+            color: sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
           }}
         >
           Cette action coche les 5 contrôles obligatoires et passe le dossier en statut
-          « vérifié ». Elle autorise la suite du pipeline (offre, signature, encaissement)
-          et est tracée dans le journal d&apos;audit nLPD pendant 10 ans.
+          « vérifié ». Elle est tracée dans le journal d&apos;audit nLPD pendant 10 ans.
         </p>
         <div
           style={{
-            background: SugarV3.cardSubtle,
+            background: sp.cardSubtle,
             borderRadius: 14,
             padding: '14px 18px',
             marginBottom: 22,
             fontSize: 13,
-            color: SugarV3.inkSoft,
+            color: sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.6,
           }}
         >
           <div>
-            <strong style={{ color: SugarV3.ink }}>Sanctions :</strong>{' '}
+            <strong style={{ color: sp.ink }}>Sanctions :</strong>{' '}
             {dossier.sanctions_status === 'clear' ? '✓ Clear' : dossier.sanctions_status}
           </div>
           <div>
-            <strong style={{ color: SugarV3.ink }}>PEP :</strong>{' '}
+            <strong style={{ color: sp.ink }}>PEP :</strong>{' '}
             {dossier.pep_status === 'clear' ? '✓ Clear' : dossier.pep_status}
           </div>
           <div>
-            <strong style={{ color: SugarV3.ink }}>Vigilance :</strong>{' '}
+            <strong style={{ color: sp.ink }}>Vigilance :</strong>{' '}
             {dossier.vigilance === 'renforced' ? 'Renforcée (LBA art. 6)' : 'Standard (LBA art. 3-4)'}
           </div>
         </div>
@@ -752,7 +725,7 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
           <KycBlackPill
             size="md"
             onClick={onConfirm}
-            icon={<SgIcon name="checkAll" size={14} stroke="#fff" />}
+            icon={<SgIcon name="checkAll" size={14} stroke={sp.onAccent} />}
           >
             Confirmer la validation
           </KycBlackPill>
@@ -784,13 +757,11 @@ function validateFileForCategory(
   if (file.size === 0) {
     return { ok: false, reason: 'Fichier vide.' }
   }
-  // Path traversal défensif : pas de / ni ..
   if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
     return { ok: false, reason: 'Nom de fichier invalide.' }
   }
   const meta = DOC_CATEGORIES.find((c) => c.value === category)
   if (!meta) return { ok: false, reason: 'Catégorie inconnue.' }
-  // file.type peut être vide sur certains navigateurs — fallback sur l'extension.
   const mime = file.type || ''
   if (mime && !meta.mimes.includes(mime)) {
     return {
@@ -798,7 +769,6 @@ function validateFileForCategory(
       reason: `Type de fichier non autorisé pour cette catégorie (reçu : ${mime}).`,
     }
   }
-  // Fallback extension whitelist
   const allowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'webp']
   const ext = file.name.toLowerCase().split('.').pop() ?? ''
   if (!allowedExt.includes(ext)) {
@@ -817,6 +787,7 @@ interface UploadOverlayProps {
 }
 
 function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps) {
+  const sp = useKycPalette()
   const [category, setCategory] = useState<DocCategory>('identity')
   const [file, setFile] = useState<File | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -867,17 +838,18 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
         style={{
           maxWidth: 520,
           width: '100%',
-          background: SugarV3.card,
+          background: sp.card,
           borderRadius: 22,
           padding: '28px 30px',
-          boxShadow: SugarV3.shadowLg,
+          border: `1px solid ${sp.cardBorder}`,
+          boxShadow: sp.shadowLg,
         }}
       >
         <div
           style={{
             fontSize: 11,
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: sp.muted,
             letterSpacing: 1.2,
             textTransform: 'uppercase',
             marginBottom: 10,
@@ -890,22 +862,14 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
             margin: '0 0 18px',
             fontSize: 22,
             fontWeight: 700,
-            color: SugarV3.ink,
+            color: sp.ink,
             letterSpacing: -0.4,
           }}
         >
           Ajouter un document
         </h2>
 
-        <label
-          style={{
-            display: 'block',
-            fontSize: 12,
-            fontWeight: 600,
-            color: SugarV3.inkSoft,
-            marginBottom: 6,
-          }}
-        >
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.inkSoft, marginBottom: 6 }}>
           Catégorie LBA
         </label>
         <select
@@ -915,11 +879,11 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
             width: '100%',
             padding: '10px 12px',
             borderRadius: 12,
-            border: `1px solid ${SugarV3.cardSubtle}`,
-            background: SugarV3.cardSubtle,
+            border: `1px solid ${sp.cardSubtle}`,
+            background: sp.cardSubtle,
             fontFamily: 'inherit',
             fontSize: 14,
-            color: SugarV3.ink,
+            color: sp.ink,
             marginBottom: 18,
           }}
         >
@@ -930,15 +894,7 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
           ))}
         </select>
 
-        <label
-          style={{
-            display: 'block',
-            fontSize: 12,
-            fontWeight: 600,
-            color: SugarV3.inkSoft,
-            marginBottom: 6,
-          }}
-        >
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.inkSoft, marginBottom: 6 }}>
           Fichier (PDF, JPG, PNG, WEBP)
         </label>
         <input
@@ -949,10 +905,11 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
             width: '100%',
             padding: '10px 12px',
             borderRadius: 12,
-            border: `1px solid ${SugarV3.cardSubtle}`,
-            background: SugarV3.cardSubtle,
+            border: `1px solid ${sp.cardSubtle}`,
+            background: sp.cardSubtle,
             fontFamily: 'inherit',
             fontSize: 13,
+            color: sp.ink,
             marginBottom: validationError ? 8 : 22,
           }}
         />
@@ -961,11 +918,11 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
             role="alert"
             style={{
               padding: '10px 14px',
-              background: SugarV3.errSoft,
+              background: sp.errSoft,
               borderRadius: 12,
               fontSize: 12.5,
               fontWeight: 600,
-              color: SugarV3.errDarker,
+              color: sp.errDarker,
               marginBottom: 18,
             }}
           >
@@ -979,7 +936,7 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
             size="md"
             onClick={handleSubmit}
             disabled={!file || isPending || !!validationError}
-            icon={<SgIcon name="upload" size={14} stroke="#fff" />}
+            icon={<SgIcon name="upload" size={14} stroke={sp.onAccent} />}
           >
             {isPending ? 'Téléversement…' : 'Téléverser'}
           </KycBlackPill>
@@ -1006,6 +963,7 @@ function ExamineHitOverlay({
   onCancel,
   onSubmit,
 }: ExamineOverlayProps) {
+  const sp = useKycPalette()
   const [verdict, setVerdict] = useState<ScreeningDecisionVerdict>('false_positive')
   const [justification, setJustification] = useState('')
 
@@ -1037,17 +995,18 @@ function ExamineHitOverlay({
           width: '100%',
           maxHeight: '90vh',
           overflowY: 'auto',
-          background: SugarV3.card,
+          background: sp.card,
           borderRadius: 22,
           padding: '28px 30px',
-          boxShadow: SugarV3.shadowLg,
+          border: `1px solid ${sp.cardBorder}`,
+          boxShadow: sp.shadowLg,
         }}
       >
         <div
           style={{
             fontSize: 11,
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: sp.muted,
             letterSpacing: 1.2,
             textTransform: 'uppercase',
             marginBottom: 10,
@@ -1060,7 +1019,7 @@ function ExamineHitOverlay({
             margin: '0 0 6px',
             fontSize: 22,
             fontWeight: 700,
-            color: SugarV3.ink,
+            color: sp.ink,
             letterSpacing: -0.4,
           }}
         >
@@ -1070,7 +1029,7 @@ function ExamineHitOverlay({
           style={{
             margin: '0 0 18px',
             fontSize: 13,
-            color: SugarV3.inkSoft,
+            color: sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
           }}
@@ -1083,10 +1042,10 @@ function ExamineHitOverlay({
           <div
             style={{
               padding: '20px',
-              background: SugarV3.cardSubtle,
+              background: sp.cardSubtle,
               borderRadius: 14,
               fontSize: 13,
-              color: SugarV3.muted,
+              color: sp.muted,
               marginBottom: 22,
             }}
           >
@@ -1098,7 +1057,7 @@ function ExamineHitOverlay({
               marginBottom: 22,
               maxHeight: 220,
               overflowY: 'auto',
-              border: `1px solid ${SugarV3.cardSubtle}`,
+              border: `1px solid ${sp.cardSubtle}`,
               borderRadius: 14,
             }}
           >
@@ -1107,16 +1066,16 @@ function ExamineHitOverlay({
                 key={i}
                 style={{
                   padding: '12px 16px',
-                  borderTop: i === 0 ? 'none' : `1px solid ${SugarV3.cardSubtle}`,
+                  borderTop: i === 0 ? 'none' : `1px solid ${sp.cardSubtle}`,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 4,
                 }}
               >
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: SugarV3.ink }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>
                   {r.name ?? '—'}
                 </div>
-                <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500 }}>
+                <div style={{ fontSize: 11.5, color: sp.muted, fontWeight: 500 }}>
                   {r.source_type ?? '—'} · ID {r.source_id ?? '—'}
                 </div>
               </div>
@@ -1129,33 +1088,25 @@ function ExamineHitOverlay({
             style={{
               marginBottom: 18,
               padding: '12px 14px',
-              background: SugarV3.cardSubtle,
+              background: sp.cardSubtle,
               borderRadius: 12,
               fontSize: 12,
-              color: SugarV3.inkSoft,
+              color: sp.inkSoft,
               lineHeight: 1.55,
             }}
           >
-            <strong style={{ color: SugarV3.ink }}>Décision précédente :</strong>{' '}
+            <strong style={{ color: sp.ink }}>Décision précédente :</strong>{' '}
             {VERDICT_LABELS[previousDecision.decision].label} · {new Date(previousDecision.decided_at).toLocaleDateString('fr-CH')}
             <br />
-            <em style={{ color: SugarV3.muted, fontStyle: 'normal' }}>{previousDecision.justification}</em>
+            <em style={{ color: sp.muted, fontStyle: 'normal' }}>{previousDecision.justification}</em>
             <br />
-            <span style={{ color: SugarV3.muted, fontSize: 11 }}>
+            <span style={{ color: sp.muted, fontSize: 11 }}>
               Une nouvelle décision écrasera celle-ci (chaînage supersedes).
             </span>
           </div>
         )}
 
-        <label
-          style={{
-            display: 'block',
-            fontSize: 12,
-            fontWeight: 600,
-            color: SugarV3.inkSoft,
-            marginBottom: 8,
-          }}
-        >
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.inkSoft, marginBottom: 8 }}>
           Verdict
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
@@ -1174,8 +1125,8 @@ function ExamineHitOverlay({
                   textAlign: 'left',
                   padding: '12px 16px',
                   borderRadius: 14,
-                  background: selected ? SugarV3.black : SugarV3.cardSubtle,
-                  color: selected ? '#fff' : SugarV3.ink,
+                  background: selected ? sp.black : sp.cardSubtle,
+                  color: selected ? sp.onAccent : sp.ink,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 2,
@@ -1187,7 +1138,8 @@ function ExamineHitOverlay({
                   style={{
                     fontSize: 12,
                     fontWeight: 500,
-                    color: selected ? 'rgba(255,255,255,0.75)' : SugarV3.muted,
+                    color: selected ? sp.onAccent : sp.muted,
+                    opacity: selected ? 0.75 : 1,
                     lineHeight: 1.45,
                   }}
                 >
@@ -1198,15 +1150,7 @@ function ExamineHitOverlay({
           })}
         </div>
 
-        <label
-          style={{
-            display: 'block',
-            fontSize: 12,
-            fontWeight: 600,
-            color: SugarV3.inkSoft,
-            marginBottom: 6,
-          }}
-        >
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.inkSoft, marginBottom: 6 }}>
           Justification ({justification.trim().length}/30 caractères min)
         </label>
         <textarea
@@ -1218,11 +1162,11 @@ function ExamineHitOverlay({
             width: '100%',
             padding: '12px 14px',
             borderRadius: 12,
-            border: `1px solid ${SugarV3.cardSubtle}`,
-            background: SugarV3.cardSubtle,
+            border: `1px solid ${sp.cardSubtle}`,
+            background: sp.cardSubtle,
             fontFamily: 'inherit',
             fontSize: 13,
-            color: SugarV3.ink,
+            color: sp.ink,
             marginBottom: 22,
             resize: 'vertical',
             minHeight: 90,
@@ -1235,7 +1179,7 @@ function ExamineHitOverlay({
             size="md"
             onClick={() => canSubmit && onSubmit(verdict, justification)}
             disabled={!canSubmit}
-            icon={<SgIcon name="check" size={14} stroke="#fff" />}
+            icon={<SgIcon name="check" size={14} stroke={sp.onAccent} />}
           >
             {isPending ? 'Enregistrement…' : 'Enregistrer la décision'}
           </KycBlackPill>

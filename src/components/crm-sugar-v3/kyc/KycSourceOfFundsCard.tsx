@@ -4,8 +4,8 @@
 // comme red flag. Ici on documente, on associe une pièce, on logge.
 
 import { useState } from 'react'
-import { SugarV3 } from '../tokens'
-import { KycBlackPill, KycGhostPill } from '../primitives'
+import { KycBlackPill, KycGhostPill } from './kycPrimitives'
+import { useKycPalette } from './kycPalette'
 import { SgIcon } from '../icons'
 import { useUpdateKycSourceOfFunds } from '@/hooks/useKyc'
 import type {
@@ -33,6 +33,7 @@ const SOURCE_LABELS: Record<KycSourceOfFundsType, { label: string; hint: string;
 }
 
 export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
+  const sp = useKycPalette()
   const [editing, setEditing] = useState(false)
   const update = useUpdateKycSourceOfFunds()
   const [error, setError] = useState<string | null>(null)
@@ -74,13 +75,13 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
     <>
       <div
         style={{
-          background: SugarV3.card,
+          background: sp.card,
           borderRadius: 22,
           padding: '24px 28px',
-          boxShadow: SugarV3.shadow,
+          boxShadow: sp.shadow,
           marginBottom: 24,
           animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
-          border: isRedFlag ? `1px solid ${SugarV3.err}33` : undefined,
+          border: isRedFlag ? `1px solid ${sp.err}33` : `1px solid ${sp.cardBorder}`,
         }}
       >
         <div
@@ -96,7 +97,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: SugarV3.muted,
+                color: sp.muted,
                 letterSpacing: 1.2,
                 textTransform: 'uppercase',
                 marginBottom: 4,
@@ -109,7 +110,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
                 margin: 0,
                 fontSize: 20,
                 fontWeight: 700,
-                color: SugarV3.ink,
+                color: sp.ink,
                 letterSpacing: -0.3,
               }}
             >
@@ -118,7 +119,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
           </div>
           <KycGhostPill
             onClick={() => setEditing(true)}
-            icon={<SgIcon name="pencil" size={14} stroke={SugarV3.inkSoft} />}
+            icon={<SgIcon name="pencil" size={14} stroke={sp.inkSoft} />}
           >
             {currentType ? 'Modifier' : 'Documenter'}
           </KycGhostPill>
@@ -128,10 +129,10 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
           <div
             style={{
               padding: '14px 16px',
-              background: SugarV3.cardSubtle,
+              background: sp.cardSubtle,
               borderRadius: 14,
               fontSize: 13,
-              color: SugarV3.muted,
+              color: sp.muted,
               fontWeight: 500,
               lineHeight: 1.55,
             }}
@@ -145,7 +146,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
               display: 'grid',
               gap: 6,
               fontSize: 13.5,
-              color: SugarV3.ink,
+              color: sp.ink,
               fontWeight: 500,
               lineHeight: 1.55,
             }}
@@ -160,7 +161,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
                     fontWeight: 700,
                     letterSpacing: 0.4,
                     textTransform: 'uppercase',
-                    color: SugarV3.errDarker,
+                    color: sp.errDarker,
                   }}
                 >
                   Red flag LBA
@@ -168,13 +169,13 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
               )}
             </div>
             {dossier.source_of_funds_description && (
-              <div style={{ color: SugarV3.inkSoft, fontSize: 13 }}>
+              <div style={{ color: sp.inkSoft, fontSize: 13 }}>
                 {dossier.source_of_funds_description}
               </div>
             )}
-            <div style={{ color: SugarV3.muted, fontSize: 12 }}>
+            <div style={{ color: sp.muted, fontSize: 12 }}>
               {currentDoc ? (
-                <>Pièce liée : <strong style={{ color: SugarV3.ink }}>{currentDoc.name}</strong></>
+                <>Pièce liée : <strong style={{ color: sp.ink }}>{currentDoc.name}</strong></>
               ) : (
                 <em>Aucune pièce associée — à téléverser.</em>
               )}
@@ -188,11 +189,11 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
             style={{
               marginTop: 12,
               padding: '10px 14px',
-              background: SugarV3.errSoft,
+              background: sp.errSoft,
               borderRadius: 12,
               fontSize: 12.5,
               fontWeight: 600,
-              color: SugarV3.errDarker,
+              color: sp.errDarker,
             }}
           >
             {error}
@@ -232,6 +233,7 @@ function SourceOfFundsOverlay({
   onCancel,
   onSubmit,
 }: OverlayProps) {
+  const sp = useKycPalette()
   const [sourceType, setSourceType] = useState<KycSourceOfFundsType>(
     dossier.source_of_funds_type ?? 'salary'
   )
@@ -272,17 +274,18 @@ function SourceOfFundsOverlay({
           width: '100%',
           maxHeight: '90vh',
           overflowY: 'auto',
-          background: SugarV3.card,
+          background: sp.card,
           borderRadius: 22,
           padding: '28px 30px',
-          boxShadow: SugarV3.shadowLg,
+          border: `1px solid ${sp.cardBorder}`,
+          boxShadow: sp.shadowLg,
         }}
       >
         <div
           style={{
             fontSize: 11,
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: sp.muted,
             letterSpacing: 1.2,
             textTransform: 'uppercase',
             marginBottom: 10,
@@ -295,7 +298,7 @@ function SourceOfFundsOverlay({
             margin: '0 0 18px',
             fontSize: 22,
             fontWeight: 700,
-            color: SugarV3.ink,
+            color: sp.ink,
             letterSpacing: -0.4,
           }}
         >
@@ -307,7 +310,7 @@ function SourceOfFundsOverlay({
             display: 'block',
             fontSize: 12,
             fontWeight: 600,
-            color: SugarV3.inkSoft,
+            color: sp.inkSoft,
             marginBottom: 6,
           }}
         >
@@ -320,11 +323,11 @@ function SourceOfFundsOverlay({
             width: '100%',
             padding: '10px 12px',
             borderRadius: 12,
-            border: `1px solid ${SugarV3.cardSubtle}`,
-            background: SugarV3.cardSubtle,
+            border: `1px solid ${sp.cardSubtle}`,
+            background: sp.cardSubtle,
             fontFamily: 'inherit',
             fontSize: 14,
-            color: SugarV3.ink,
+            color: sp.ink,
             marginBottom: 6,
           }}
         >
@@ -338,7 +341,7 @@ function SourceOfFundsOverlay({
         <div
           style={{
             fontSize: 11.5,
-            color: SugarV3.muted,
+            color: sp.muted,
             fontWeight: 500,
             marginBottom: 18,
           }}
@@ -351,7 +354,7 @@ function SourceOfFundsOverlay({
             display: 'block',
             fontSize: 12,
             fontWeight: 600,
-            color: SugarV3.inkSoft,
+            color: sp.inkSoft,
             marginBottom: 6,
           }}
         >
@@ -370,11 +373,11 @@ function SourceOfFundsOverlay({
             width: '100%',
             padding: '12px 14px',
             borderRadius: 12,
-            border: `1px solid ${SugarV3.cardSubtle}`,
-            background: SugarV3.cardSubtle,
+            border: `1px solid ${sp.cardSubtle}`,
+            background: sp.cardSubtle,
             fontFamily: 'inherit',
             fontSize: 13,
-            color: SugarV3.ink,
+            color: sp.ink,
             marginBottom: 18,
             resize: 'vertical',
             minHeight: 90,
@@ -386,7 +389,7 @@ function SourceOfFundsOverlay({
             display: 'block',
             fontSize: 12,
             fontWeight: 600,
-            color: SugarV3.inkSoft,
+            color: sp.inkSoft,
             marginBottom: 6,
           }}
         >
@@ -399,11 +402,11 @@ function SourceOfFundsOverlay({
             width: '100%',
             padding: '10px 12px',
             borderRadius: 12,
-            border: `1px solid ${SugarV3.cardSubtle}`,
-            background: SugarV3.cardSubtle,
+            border: `1px solid ${sp.cardSubtle}`,
+            background: sp.cardSubtle,
             fontFamily: 'inherit',
             fontSize: 13,
-            color: SugarV3.ink,
+            color: sp.ink,
             marginBottom: 22,
           }}
         >
@@ -423,7 +426,7 @@ function SourceOfFundsOverlay({
               canSubmit && onSubmit(sourceType, description || null, docId || null)
             }
             disabled={!canSubmit}
-            icon={<SgIcon name="check" size={14} stroke="#fff" />}
+            icon={<SgIcon name="check" size={14} stroke={sp.onAccent} />}
           >
             {isPending ? 'Enregistrement…' : 'Enregistrer'}
           </KycBlackPill>

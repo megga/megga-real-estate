@@ -20,14 +20,17 @@ import {
 } from '@/components/crm-sugar/SugarShell'
 import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
-import { KycListView } from '@/components/crm-sugar-v3/kyc/KycListView'
+import { KycListView, type FilterKey } from '@/components/crm-sugar-v3/kyc/KycListView'
 import { KycDossierDetail } from '@/components/crm-sugar-v3/kyc/KycDossierDetail'
 import { KycWizardModal } from '@/components/crm-sugar-v3/kyc-wizard/KycWizardModal'
+import {
+  KycPaletteContext,
+  buildKycPalette,
+  KYC_KEYFRAMES,
+} from '@/components/crm-sugar-v3/kyc/kycPalette'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
 
 const DARK_TONE: DarkTone = 'meggaAi'
-
-type FilterKey = 'all' | 'blocking' | 'pending' | 'none' | 'verified' | 'risk'
 
 export default function KycSugarV3Page() {
   const navigate = useNavigate()
@@ -44,6 +47,8 @@ export default function KycSugarV3Page() {
   })
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
+  // Palette KYC dynamique (clair ↔ sombre immersif) — diffusée par Context.
+  const kycSp = useMemo(() => buildKycPalette(dark, sp, t), [dark, sp, t])
 
   const [filter, setFilter] = useState<FilterKey>('all')
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -128,68 +133,72 @@ export default function KycSugarV3Page() {
   const onCmd = () => {}
 
   return (
-    <div
-      data-screen-label="CRM KYC (sugar v3)"
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        background: SugarV3.bgGradient,
-        fontFamily: SugarV3.font,
-        color: SugarV3.ink,
-      }}
-    >
-      <style>{SUGAR_KEYFRAMES}</style>
-      <style>{SUGAR_V3_KEYFRAMES}</style>
+    <KycPaletteContext.Provider value={kycSp}>
+      <div
+        data-screen-label="CRM KYC (sugar v3)"
+        style={{
+          minHeight: '100vh',
+          width: '100%',
+          background: sp.pageBg,
+          fontFamily: SugarV3.font,
+          color: kycSp.ink,
+        }}
+      >
+        <style>{SUGAR_KEYFRAMES}</style>
+        <style>{SUGAR_V3_KEYFRAMES}</style>
+        <style>{KYC_KEYFRAMES}</style>
 
-      <SugarTopNav
-        active={'kyc' as SugarScreenId}
-        t={t}
-        sp={sp}
-        onNavigate={onNavigate}
-        onCmd={onCmd}
-      />
-
-      <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <SugarIconRail
-          active="kyc"
+        <SugarTopNav
+          active={'kyc' as SugarScreenId}
+          t={t}
+          sp={sp}
           onNavigate={onNavigate}
           onCmd={onCmd}
-          dark={dark}
-          setDark={setDark}
-          sp={sp}
         />
 
-        <main className="sg-main-padded" style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px 40px' }}>
-          {routeDossierId ? (
-            <KycDossierDetail
-              dossierId={routeDossierId}
-              agentId={profile?.id ?? ''}
-              onBack={() => navigate('/dashboard/kyc')}
-            />
-          ) : (
-            <KycListView
-              onOpen={(id) => navigate(`/dashboard/kyc/${id}`)}
-              onNewDossier={() => {
-                setWizardInitialContact(null)
-                setWizardOpen(true)
-              }}
-              filter={filter}
-              setFilter={setFilter}
-            />
-          )}
-        </main>
+        <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
+          <SugarIconRail
+            active="kyc"
+            onNavigate={onNavigate}
+            onCmd={onCmd}
+            dark={dark}
+            setDark={setDark}
+            sp={sp}
+          />
+
+          <main className="sg-main-padded" style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px 40px' }}>
+            {routeDossierId ? (
+              <KycDossierDetail
+                dossierId={routeDossierId}
+                agentId={profile?.id ?? ''}
+                onBack={() => navigate('/dashboard/kyc')}
+                pageBg={sp.pageBg}
+              />
+            ) : (
+              <KycListView
+                onOpen={(id) => navigate(`/dashboard/kyc/${id}`)}
+                onNewDossier={() => {
+                  setWizardInitialContact(null)
+                  setWizardOpen(true)
+                }}
+                filter={filter}
+                setFilter={setFilter}
+              />
+            )}
+          </main>
+        </div>
+
+        {/* Wizard KYC 3 étapes — portail z-9000 */}
+        {wizardOpen && (
+          <KycWizardModal
+            initialContactId={wizardInitialContact}
+            onClose={() => {
+              setWizardOpen(false)
+              setWizardInitialContact(null)
+            }}
+          />
+        )}
       </div>
-
-      {/* Wizard KYC 3 étapes — portail z-9000 */}
-      {wizardOpen && (
-        <KycWizardModal
-          initialContactId={wizardInitialContact}
-          onClose={() => {
-            setWizardOpen(false)
-            setWizardInitialContact(null)
-          }}
-        />
-      )}
-    </div>
+    </KycPaletteContext.Provider>
   )
 }
