@@ -530,10 +530,13 @@ interface AvatarProps {
   firstName: string
   lastName: string
   avatarBg?: string | null
+  /** Couleur des initiales. Défaut '#fff'. À passer (= onAccent) quand le fond
+   *  est l'accent thémé, sinon les initiales disparaissent en dark mode. */
+  color?: string
   size?: number
 }
 
-export function KycAvatar({ firstName, lastName, avatarBg, size = 56 }: AvatarProps) {
+export function KycAvatar({ firstName, lastName, avatarBg, color = '#fff', size = 56 }: AvatarProps) {
   const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
   const bg = avatarBg || SugarV3.black
   return (
@@ -543,7 +546,7 @@ export function KycAvatar({ firstName, lastName, avatarBg, size = 56 }: AvatarPr
         height: size,
         borderRadius: 999,
         background: bg,
-        color: '#fff',
+        color,
         display: 'grid',
         placeItems: 'center',
         fontSize: Math.max(11, size * 0.3),

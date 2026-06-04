@@ -1,8 +1,9 @@
 // MEGGA CRM Sugar v3 — Piste d'audit du dossier (mini timeline)
 // Port 1:1 de crm-screen-kyc-sugar.jsx lignes 499-584 (KycAuditTrail).
 
-import { SugarV3, fmtDateTime } from '../tokens'
-import { KycGhostPill } from '../primitives'
+import { fmtDateTime } from '../tokens'
+import { KycGhostPill } from './kycPrimitives'
+import { useKycPalette } from './kycPalette'
 import { SgIcon } from '../icons'
 import type { KycAuditEvent } from '@/types/kyc'
 
@@ -29,6 +30,7 @@ function resolveActor(e: KycAuditEvent): string {
 }
 
 export function KycAuditTrail({ events, onExportPdf }: Props) {
+  const sp = useKycPalette()
   const entries: TimelineEntry[] = events
     .map((e) => {
       const sev =
@@ -51,10 +53,11 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
   return (
     <div
       style={{
-        background: SugarV3.card,
+        background: sp.card,
         borderRadius: 22,
         padding: '26px 28px',
-        boxShadow: SugarV3.shadow,
+        border: `1px solid ${sp.cardBorder}`,
+        boxShadow: sp.shadow,
         animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
       }}
     >
@@ -63,7 +66,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
           style={{
             fontSize: 11,
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: sp.muted,
             letterSpacing: 1.2,
             textTransform: 'uppercase',
             marginBottom: 4,
@@ -76,7 +79,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
             margin: 0,
             fontSize: 20,
             fontWeight: 700,
-            color: SugarV3.ink,
+            color: sp.ink,
             letterSpacing: -0.3,
           }}
         >
@@ -89,9 +92,9 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
           style={{
             padding: '32px 20px',
             textAlign: 'center',
-            background: SugarV3.cardSubtle,
+            background: sp.cardSubtle,
             borderRadius: 16,
-            color: SugarV3.muted,
+            color: sp.muted,
             fontSize: 13,
             fontWeight: 500,
           }}
@@ -123,7 +126,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
                     width: 10,
                     height: 10,
                     borderRadius: 999,
-                    background: SugarV3.black,
+                    background: sp.black,
                     flexShrink: 0,
                     boxShadow: '0 0 0 4px rgba(11,12,14,0.06)',
                   }}
@@ -133,7 +136,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
                     style={{
                       width: 2,
                       flex: 1,
-                      background: SugarV3.cardSubtle,
+                      background: sp.cardSubtle,
                       marginTop: 4,
                     }}
                   />
@@ -144,7 +147,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
                   style={{
                     fontSize: 13.5,
                     fontWeight: 700,
-                    color: SugarV3.ink,
+                    color: sp.ink,
                     letterSpacing: -0.1,
                     marginBottom: 2,
                   }}
@@ -154,7 +157,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
                 <div
                   style={{
                     fontSize: 11.5,
-                    color: SugarV3.muted,
+                    color: sp.muted,
                     fontWeight: 500,
                   }}
                 >
@@ -164,7 +167,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
                   <div
                     style={{
                       fontSize: 12,
-                      color: SugarV3.inkSoft,
+                      color: sp.inkSoft,
                       fontWeight: 500,
                       marginTop: 6,
                       lineHeight: 1.5,
@@ -183,19 +186,19 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
         style={{
           marginTop: 24,
           paddingTop: 18,
-          borderTop: `1px solid ${SugarV3.cardSubtle}`,
+          borderTop: `1px solid ${sp.cardSubtle}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           fontSize: 12,
-          color: SugarV3.muted,
+          color: sp.muted,
           fontWeight: 500,
         }}
       >
         <span>Traçabilité conservée 10 ans (art. 7 LBA)</span>
         <KycGhostPill
           onClick={onExportPdf}
-          icon={<SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />}
+          icon={<SgIcon name="download" size={14} stroke={sp.inkSoft} />}
         >
           Exporter PDF horodaté
         </KycGhostPill>

@@ -1,14 +1,19 @@
 // MEGGA CRM Sugar v3 — Vue liste KYC (par défaut)
-// Port 1:1 de crm-screen-kyc-sugar.jsx lignes 649-755 (KycListView).
+// Port du handoff Claude Design juin 2026 (crm-screen-kyc-sugar.jsx §KycListView).
+//
+// Politique KYC NON-BLOQUANTE (CLAUDE.md, handoff §1 — PRIORITÉ conformité) :
+//  - chapô = rappel doux, jamais « bloque le pipeline »
+//  - PAS d'onglet « Bloquants pipeline » ni de filtre `blocking`
+//  - thème dynamique clair ↔ sombre (useKycPalette)
 
-import { SugarV3 } from '../tokens'
-import { KycBlackPill, KycGhostPill, KycStatCard } from '../primitives'
+import { useKycPalette } from './kycPalette'
+import { KycBlackPill, KycGhostPill, KycStatCard } from './kycPrimitives'
 import { SgIcon } from '../icons'
 import { KycDossierRow } from './KycDossierRow'
 import { useKycDossiers, type KycDossierRow as KycDossierRowData } from '@/hooks/useKycDossier'
 import type { KycDossierStatus } from '@/types/kyc'
 
-type FilterKey = 'all' | 'blocking' | 'pending' | 'none' | 'verified' | 'risk'
+export type FilterKey = 'all' | 'pending' | 'none' | 'verified' | 'risk'
 
 interface Props {
   onOpen: (id: string) => void
@@ -18,6 +23,7 @@ interface Props {
 }
 
 export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) {
+  const sp = useKycPalette()
   const { data: dossiers = [], isLoading, isError, error, refetch } = useKycDossiers()
 
   const stats = {
@@ -33,11 +39,9 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
 
   const filtered = dossiers.filter((d: KycDossierRowData) => {
     if (filter === 'all') return true
-    if (filter === 'blocking') return d.dossier_status !== 'verified'
     if (filter === 'verified') return d.dossier_status === 'verified'
     if (filter === 'pending') return d.dossier_status === 'pending'
-    if (filter === 'none')
-      return (d.dossier_status as KycDossierStatus) === 'none'
+    if (filter === 'none') return (d.dossier_status as KycDossierStatus) === 'none'
     if (filter === 'risk') return d.risk_level === 'high'
     return true
   })
@@ -63,7 +67,7 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
               margin: '0 0 12px',
               fontSize: 40,
               fontWeight: 700,
-              color: SugarV3.ink,
+              color: sp.ink,
               letterSpacing: -0.8,
               lineHeight: 1.05,
             }}
@@ -74,34 +78,34 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
             style={{
               margin: 0,
               fontSize: 15,
-              color: SugarV3.inkSoft,
+              color: sp.inkSoft,
               fontWeight: 500,
               lineHeight: 1.55,
               maxWidth: 580,
             }}
           >
             Toute transaction immobilière en Suisse exige une vérification documentée
-            de l'identité, du domicile et de l'origine des fonds. Un dossier
-            non-vérifié bloque automatiquement la progression dans le pipeline.
+            de l'identité, du domicile et de l'origine des fonds. Le KYC reste
+            recommandé avant la signature — un rappel doux, jamais bloquant.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <KycGhostPill
-            icon={<SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />}
+            icon={<SgIcon name="download" size={14} stroke={sp.inkSoft} />}
           >
             Exporter
           </KycGhostPill>
           <KycBlackPill
             size="lg"
             onClick={onNewDossier}
-            icon={<SgIcon name="plus" size={16} stroke="#fff" sw={2} />}
+            icon={<SgIcon name="plus" size={16} stroke={sp.onAccent} sw={2} />}
           >
             Nouveau dossier
           </KycBlackPill>
         </div>
       </div>
 
-      {/* STATS BENTO — 4 cards */}
+      {/* STATS BENTO — 4 cards (handoff §8 : sans pastilles) */}
       <div
         className="sg-grid-4"
         style={{
@@ -112,33 +116,21 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
           animation: 'sgFadeUp .55s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <KycStatCard
-          label="Vérifiés"
-          value={stats.verified}
-          accent={SugarV3.ok}
-          sub="Transactions autorisées"
-        />
+        <KycStatCard label="Vérifiés" value={stats.verified} sub="Transactions autorisées" />
         <KycStatCard
           label="En cours"
           value={stats.pending}
-          accent={SugarV3.warn}
           sub="Pièces manquantes ou screening en attente"
         />
-        <KycStatCard
-          label="À démarrer"
-          value={stats.none}
-          accent={SugarV3.muted}
-          sub="Aucun document collecté"
-        />
+        <KycStatCard label="À démarrer" value={stats.none} sub="Aucun document collecté" />
         <KycStatCard
           label="Vigilance"
           value={stats.risk}
-          accent={SugarV3.err}
           sub="Risque modéré ou élevé identifié"
         />
       </div>
 
-      {/* FILTRES */}
+      {/* FILTRES — sans « Bloquants pipeline » (KYC non-bloquant) */}
       <div
         style={{
           display: 'flex',
@@ -149,47 +141,19 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
           animation: 'sgFadeUp .6s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <KycGhostPill
-          active={filter === 'all'}
-          onClick={() => setFilter('all')}
-        >
+        <KycGhostPill active={filter === 'all'} onClick={() => setFilter('all')}>
           Tous · {dossiers.length}
         </KycGhostPill>
-        <KycGhostPill
-          active={filter === 'blocking'}
-          onClick={() => setFilter('blocking')}
-          icon={
-            <SgIcon
-              name="lock"
-              size={13}
-              stroke={filter === 'blocking' ? '#fff' : SugarV3.inkSoft}
-            />
-          }
-        >
-          Bloquants pipeline · {dossiers.filter((d) => d.dossier_status !== 'verified').length}
-        </KycGhostPill>
-        <KycGhostPill
-          active={filter === 'pending'}
-          onClick={() => setFilter('pending')}
-        >
+        <KycGhostPill active={filter === 'pending'} onClick={() => setFilter('pending')}>
           En cours · {stats.pending}
         </KycGhostPill>
-        <KycGhostPill
-          active={filter === 'none'}
-          onClick={() => setFilter('none')}
-        >
+        <KycGhostPill active={filter === 'none'} onClick={() => setFilter('none')}>
           À démarrer · {stats.none}
         </KycGhostPill>
-        <KycGhostPill
-          active={filter === 'verified'}
-          onClick={() => setFilter('verified')}
-        >
+        <KycGhostPill active={filter === 'verified'} onClick={() => setFilter('verified')}>
           Vérifiés · {stats.verified}
         </KycGhostPill>
-        <KycGhostPill
-          active={filter === 'risk'}
-          onClick={() => setFilter('risk')}
-        >
+        <KycGhostPill active={filter === 'risk'} onClick={() => setFilter('risk')}>
           Risque élevé · {stats.high}
         </KycGhostPill>
       </div>
@@ -208,10 +172,11 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
             role="alert"
             style={{
               padding: '20px 24px',
-              background: SugarV3.card,
+              background: sp.card,
               borderRadius: 22,
-              boxShadow: SugarV3.shadow,
-              color: SugarV3.err,
+              border: `1px solid ${sp.cardBorder}`,
+              boxShadow: sp.shadow,
+              color: sp.err,
               fontSize: 13.5,
               fontWeight: 600,
               display: 'flex',
@@ -220,23 +185,16 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
               flexWrap: 'wrap',
             }}
           >
-            <SgIcon name="alert" size={18} stroke={SugarV3.err} sw={2} />
+            <SgIcon name="alert" size={18} stroke={sp.err} sw={2} />
             <div style={{ flex: 1, minWidth: 200 }}>
               Impossible de charger les dossiers KYC.
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: SugarV3.muted,
-                  marginTop: 4,
-                }}
-              >
+              <div style={{ fontSize: 12, fontWeight: 500, color: sp.muted, marginTop: 4 }}>
                 {(error as Error)?.message || 'Erreur réseau ou base de données.'}
               </div>
             </div>
             <KycGhostPill
               onClick={() => refetch()}
-              icon={<SgIcon name="refresh" size={13} stroke={SugarV3.inkSoft} />}
+              icon={<SgIcon name="refresh" size={13} stroke={sp.inkSoft} />}
             >
               Réessayer
             </KycGhostPill>
@@ -247,10 +205,11 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
             style={{
               padding: '60px 32px',
               textAlign: 'center',
-              background: SugarV3.card,
+              background: sp.card,
               borderRadius: 22,
-              boxShadow: SugarV3.shadow,
-              color: SugarV3.muted,
+              border: `1px solid ${sp.cardBorder}`,
+              boxShadow: sp.shadow,
+              color: sp.muted,
               fontSize: 14,
               fontWeight: 500,
             }}
@@ -267,10 +226,11 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
             style={{
               padding: '60px 32px',
               textAlign: 'center',
-              background: SugarV3.card,
+              background: sp.card,
               borderRadius: 22,
-              boxShadow: SugarV3.shadow,
-              color: SugarV3.muted,
+              border: `1px solid ${sp.cardBorder}`,
+              boxShadow: sp.shadow,
+              color: sp.muted,
               fontSize: 14,
               fontWeight: 500,
             }}
@@ -280,15 +240,15 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
         )}
       </div>
 
-      {/* Compteur stale en bas si présent (cas spec stale) */}
+      {/* Compteur stale en bas si présent (cas spec stale — re-screener) */}
       {stats.stale > 0 && (
         <div
           style={{
             marginTop: 18,
             padding: '14px 20px',
-            background: SugarV3.warnSoft,
+            background: sp.warnSoft,
             borderRadius: 14,
-            color: SugarV3.warn,
+            color: sp.warn,
             fontSize: 12.5,
             fontWeight: 600,
             display: 'inline-flex',
@@ -296,7 +256,7 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
             gap: 10,
           }}
         >
-          <SgIcon name="alert" size={14} stroke={SugarV3.warn} sw={2} />
+          <SgIcon name="alert" size={14} stroke={sp.warn} sw={2} />
           {stats.stale} dossier{stats.stale > 1 ? 's' : ''} à re-screener (échéance dépassée).
         </div>
       )}

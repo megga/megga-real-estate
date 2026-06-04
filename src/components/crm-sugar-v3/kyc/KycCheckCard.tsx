@@ -1,9 +1,13 @@
 // MEGGA CRM Sugar v3 — Carte d'un contrôle LBA (5 cards de la vue détail)
-// Port 1:1 de crm-screen-kyc-sugar.jsx lignes 293-366 (KycCheckCard).
+// Port du handoff Claude Design (crm-screen-kyc-sugar.jsx §KycCheckCard) :
+//  - thème dynamique clair ↔ sombre (useKycPalette)
+//  - pilule de statut opaque (kycPrimitives)
+//  - tout ce qui est posé sur l'accent utilise sp.onAccent (lisible en sombre)
 
-import { SugarV3, KYC_CHECK_LABELS, KYC_CHECK_ICONS, fmtDateTime } from '../tokens'
-import { KycStatusPill } from '../primitives'
+import { KYC_CHECK_LABELS, KYC_CHECK_ICONS, fmtDateTime } from '../tokens'
 import { SgIcon } from '../icons'
+import { useKycPalette } from './kycPalette'
+import { KycStatusPill } from './kycPrimitives'
 import type { KycCheckCategory, KycChecklistItem, KycDossierStatus } from '@/types/kyc'
 
 interface Props {
@@ -15,6 +19,7 @@ interface Props {
 }
 
 export function KycCheckCard({ category, check, onMarkVerified, actorName }: Props) {
+  const sp = useKycPalette()
   const label = KYC_CHECK_LABELS[category]
   // is_completed (DB) → mappé sur 'verified' (UI). Un check non required + non completed = 'na'.
   const uiStatus: KycDossierStatus = check?.is_completed
@@ -28,10 +33,11 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
   return (
     <div
       style={{
-        background: SugarV3.card,
+        background: sp.card,
         borderRadius: 22,
         padding: '26px 28px',
-        boxShadow: SugarV3.shadow,
+        border: `1px solid ${sp.cardBorder}`,
+        boxShadow: sp.shadow,
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
@@ -45,8 +51,8 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
             width: 48,
             height: 48,
             borderRadius: 16,
-            background: verified ? SugarV3.black : SugarV3.cardSubtle,
-            color: verified ? '#fff' : SugarV3.black,
+            background: verified ? sp.black : sp.cardSubtle,
+            color: verified ? sp.onAccent : sp.black,
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
@@ -55,7 +61,7 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
           <SgIcon
             name={KYC_CHECK_ICONS[category] || 'shield'}
             size={22}
-            stroke={verified ? '#fff' : SugarV3.black}
+            stroke={verified ? sp.onAccent : sp.black}
           />
         </div>
 
@@ -73,7 +79,7 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
                 margin: 0,
                 fontSize: 16,
                 fontWeight: 700,
-                color: SugarV3.ink,
+                color: sp.ink,
                 letterSpacing: -0.2,
               }}
             >
@@ -85,7 +91,7 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
             style={{
               margin: 0,
               fontSize: 13,
-              color: SugarV3.inkSoft,
+              color: sp.inkSoft,
               fontWeight: 500,
               lineHeight: 1.55,
             }}
@@ -98,11 +104,11 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
       {check?.notes && (
         <div
           style={{
-            background: SugarV3.cardSubtle,
+            background: sp.cardSubtle,
             borderRadius: 14,
             padding: '12px 14px',
             fontSize: 12.5,
-            color: SugarV3.inkSoft,
+            color: sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.5,
           }}
@@ -117,15 +123,13 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
           alignItems: 'center',
           justifyContent: 'space-between',
           fontSize: 11.5,
-          color: SugarV3.muted,
+          color: sp.muted,
           fontWeight: 500,
           paddingTop: 4,
         }}
       >
         <span>
-          {check?.completed_at
-            ? fmtDateTime(check.completed_at)
-            : 'En attente'}
+          {check?.completed_at ? fmtDateTime(check.completed_at) : 'En attente'}
           {actorName && check?.completed_at && ' · ' + actorName}
         </span>
         {!verified && (
@@ -133,8 +137,8 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
             onClick={onMarkVerified}
             style={{
               border: 0,
-              background: SugarV3.black,
-              color: '#fff',
+              background: sp.black,
+              color: sp.onAccent,
               fontFamily: 'inherit',
               fontSize: 11.5,
               fontWeight: 700,
@@ -149,15 +153,15 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
               transition: 'all .18s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = SugarV3.blackHover
+              e.currentTarget.style.background = sp.blackHover
               e.currentTarget.style.transform = 'translateY(-1px)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = SugarV3.black
+              e.currentTarget.style.background = sp.black
               e.currentTarget.style.transform = 'translateY(0)'
             }}
           >
-            <SgIcon name="check" size={12} stroke="#fff" sw={2.2} />
+            <SgIcon name="check" size={12} stroke={sp.onAccent} sw={2.2} />
             Marquer vérifié
           </button>
         )}
