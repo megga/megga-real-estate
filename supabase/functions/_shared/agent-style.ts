@@ -1,3 +1,5 @@
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 /** Un vrai message destiné à un client, source de mimétisme de voix (few-shot). */
 export type VoiceSample = { body: string }
 
@@ -23,6 +25,26 @@ export function formatVoiceExamples(samples: VoiceSample[] | null | undefined, l
     ? `\n\nReal recent messages this agency sent to its clients — Mirror the TONE (vocabulary, length, sign-offs). NEVER reuse their content/data (names, prices, dates); write fresh for the current client.\n${list}`
     : `\n\nVrais messages récents que cette agence a envoyés à ses clients — Copie le TON (vocabulaire, longueur, formules). NE REPRENDS JAMAIS leur contenu/données (noms, prix, dates) ; rédige du neuf pour le client courant.\n${list}`
   return head.slice(0, VOICE_BLOCK_CHARS)
+}
+
+/** Récupère de vrais messages clients récents de l'agence (mimétisme de voix).
+ *  Agence-scopé au SQL (`whatsapp_messages` ne trace pas l'agent émetteur — limite v1).
+ *  Lecture seule ; dégrade à [] proprement (jamais d'exception qui casse la rédaction). */
+export async function fetchClientVoiceSamples(
+  supabase: SupabaseClient, agencyId: string | null, limit = 8,
+): Promise<VoiceSample[]> {
+  if (!agencyId) return []
+  const { data } = await supabase.from('whatsapp_messages')
+    .select('body')
+    .eq('agency_id', agencyId)
+    .eq('direction', 'outbound')
+    .not('contact_id', 'is', null)
+    .not('body', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  return ((data ?? []) as Array<{ body: string | null }>)
+    .map((r) => ({ body: (r.body ?? '').trim() }))
+    .filter((s) => s.body.length > 1)
 }
 
 export type LearnedStyle = {
