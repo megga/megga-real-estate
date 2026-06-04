@@ -182,11 +182,10 @@ export function openKycResult(lang: WaLang, vigilance: string): string {
   return `Dossier KYC ouvert. Tu peux me transférer les pièces que tu as quand tu veux — pièce d’identité, justificatif de domicile${renf ? ', source des fonds' : ''} — rien n’est obligatoire, c’est une aide facultative. Je peux aussi lancer le screening PEP/sanctions dès que tu me le dis.`
 }
 
-/** send_client_message — prompt de confirmation (aperçu 60 car.). */
-export function confirmSendClient(lang: WaLang, preview: string, truncated: boolean): string {
-  const ell = truncated ? '…' : ''
-  if (lang === 'en') return `I'll send the client the message « ${preview}${ell} ». ${confirmSuffix('en')}`
-  return `Je vais envoyer au client le message « ${preview}${ell} ». ${confirmSuffix('fr')}`
+/** send_client_message — prompt de confirmation WYSIWYG (corps complet + destinataire). */
+export function confirmSendClient(lang: WaLang, who: string, body: string): string {
+  if (lang === 'en') return `Here's what I'd send to ${who}:\n\n${body}\n\nSend it? ${confirmSuffix('en')}`
+  return `Voici ce que je propose d'envoyer à ${who} :\n\n${body}\n\nJ'envoie ? ${confirmSuffix('fr')}`
 }
 
 /** update_pipeline — prompt de confirmation. `who` = « le dossier de X » / « X's file ». */

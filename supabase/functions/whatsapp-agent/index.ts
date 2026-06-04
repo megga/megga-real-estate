@@ -347,8 +347,20 @@ async function stashPending(
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'send_client_message') {
-    const preview = String(args.body ?? '').slice(0, 60)
-    prompt = confirmSendClient(ctx.lang ?? 'fr', preview, preview.length >= 60)
+    const body = String(args.body ?? '')
+    const lang = ctx.lang ?? 'fr'
+    let who = lang === 'en' ? 'this client' : 'ce client'
+    const cid = String(args.contact_id ?? '')
+    if (cid) {
+      const { data: c } = await ctx.supabase.from('contacts')
+        .select('first_name, last_name').eq('id', cid).eq('agency_id', ctx.agencyId).maybeSingle()
+      if (c) {
+        const fullName = `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim()
+        // prénom seul si dispo — plus naturel dans un aperçu de message ; nom complet en repli
+        if (fullName) who = (c.first_name ?? '').trim() || fullName
+      }
+    }
+    prompt = confirmSendClient(lang, who, body)
   } else if (tool === 'update_pipeline') {
     const stage = String(args.stage ?? '')
     const label = stageLabel(stage, ctx.lang ?? 'fr')
