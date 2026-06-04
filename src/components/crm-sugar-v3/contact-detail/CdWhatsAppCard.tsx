@@ -50,10 +50,23 @@ export function CdWhatsAppCard({ contactId }: Props) {
                 : 'self-end bg-emerald-600 text-white'
             }`}
           >
-            {m.media_type && (
-              <span className="block text-xs opacity-70 mb-0.5">[{m.media_type}]</span>
+            {m.media_type === 'audio' ? (
+              <span className="block">
+                <span className="text-xs opacity-70">🎤 </span>
+                {m.transcript
+                  ? <span>{m.transcript}</span>
+                  : <span className="opacity-60 italic">
+                      {m.processing_status === 'pending' || m.processing_status === 'processing'
+                        ? 'transcription en cours…'
+                        : 'transcription indisponible'}
+                    </span>}
+              </span>
+            ) : (
+              <>
+                {m.media_type && <span className="block text-xs opacity-70 mb-0.5">[{m.media_type}]</span>}
+                {m.body || <span className="opacity-60 italic">(sans texte)</span>}
+              </>
             )}
-            {m.body || <span className="opacity-60 italic">(sans texte)</span>}
             <span className="block text-[10px] opacity-60 mt-1">
               {new Date(m.wa_timestamp || m.created_at).toLocaleString('fr-CH')}
             </span>
