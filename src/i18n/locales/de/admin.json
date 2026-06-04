@@ -301,10 +301,10 @@
   "monitoring.cronHealth.title": "Cron-Gesundheit",
   "monitoring.cronHealth.job": "Job",
   "monitoring.cronHealth.schedule": "Zeitplan",
-  "monitoring.cronHealth.lastRun": "Letzte Ausfuhrung",
+  "monitoring.cronHealth.lastRun": "Letzte Ausführung",
   "monitoring.cronHealth.status": "Status",
   "monitoring.cronHealth.ok": "OK",
-  "monitoring.cronHealth.stale": "Uberfällig",
+  "monitoring.cronHealth.stale": "Überfällig",
   "monitoring.cronHealth.never": "Nie",
   "monitoring.cronHealth.empty": "Kein Cron-Job erkannt (normal ausserhalb der Produktion).",
 
