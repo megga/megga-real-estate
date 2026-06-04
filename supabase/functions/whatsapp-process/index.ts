@@ -166,6 +166,33 @@ serve(async (req) => {
     }
   }
 
+  // L3 : purge des audios R2 transcrits (transcript NON VIDE) > 30 j (minimisation LPD).
+  // Best-effort, borné, FIFO. Un transcript vide = transcription ratée → on GARDE l'audio
+  // (re-tentable / vérifiable). Durcissement futur : exclure les objets en échec persistant
+  // (poison-pill) au-delà de N tentatives.
+  try {
+    const { data: stale } = await admin.from('whatsapp_messages')
+      .select('id, media_r2_key')
+      .eq('media_type', 'audio')
+      .not('media_r2_key', 'is', null)
+      .not('transcript', 'is', null)
+      .neq('transcript', '')
+      .order('created_at', { ascending: true })
+      .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .limit(20)
+    for (const m of (stale ?? []) as Array<{ id: string; media_r2_key: string }>) {
+      const key = m.media_r2_key
+      if (!key) continue
+      const del = await r2.fetch(`https://${r2Account}.r2.cloudflarestorage.com/${r2Bucket}/${key}`, { method: 'DELETE' })
+      // R2 DELETE → 204 (supprimé) ou 404 (déjà absent) → on vide la clé. Sinon on la garde (retry).
+      if (del.ok || del.status === 404) {
+        await admin.from('whatsapp_messages').update({ media_r2_key: null }).eq('id', m.id)
+      } else {
+        console.error('L3 purge R2 delete failed', del.status, key)
+      }
+    }
+  } catch (e) { console.error('L3 purge failed:', (e as Error)?.name ?? 'error') }
+
   return json({ ok: true, claimed: (jobs ?? []).length, done, failed, insights, notices }, 200)
 })
 

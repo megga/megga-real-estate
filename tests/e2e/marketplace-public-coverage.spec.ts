@@ -68,8 +68,17 @@ test.describe('Marketplace publique — parametric route coverage', () => {
   for (const route of PUBLIC_ROUTES) {
     test(`${route.label} loads cleanly`, async ({ page }) => {
       const collector = collectConsoleErrors(page)
-      await page.goto(route.path)
-      await page.waitForLoadState('networkidle')
+      await page.goto(route.path, { waitUntil: 'domcontentloaded' })
+      // Wait until React has rendered enough content — replaces the flaky
+      // `networkidle` wait that timed out on /agencies (Supabase realtime and
+      // parallel agency-directory fetches keep the network perpetually active).
+      // Public pages have no single shared shell element (PxNav vs
+      // HomeStickyHeader vs AuthBentoApp vs PortalGateway vs NotFoundPage),
+      // so we use the same condition that the assertion below verifies:
+      // the page has meaningful text content.
+      await page.waitForFunction(() => document.body.innerText.trim().length > 50, {
+        timeout: 15000,
+      })
 
       const bodyText = await page.locator('body').innerText()
       expect(

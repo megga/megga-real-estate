@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe, Home, Sparkles, DollarSign } from 'lucide-react'
+import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe, Home, Sparkles, DollarSign, Clock } from 'lucide-react'
 import { useAdminMonitoring } from '@/hooks/useAdminMonitoring'
 import { useDeepSeekBalance, useAIUsageSummary, useAIUsageTimeseries } from '@/hooks/useAIBilling'
+import { useCronHealth } from '@/hooks/useCronHealth'
+import { cronStale } from '@/lib/cronHealth'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { cn, formatRelativeDate } from '@/lib/utils'
@@ -32,6 +34,8 @@ export default function AdminMonitoringPage() {
     },
     staleTime: 60_000,
   })
+  const cronHealth = useCronHealth()
+
   const [errorSearch, setErrorSearch] = useState('')
   const [fnFilter, setFnFilter] = useState<FunctionFilter>('all')
   const [fnSearch, setFnSearch] = useState('')
@@ -212,6 +216,74 @@ export default function AdminMonitoringPage() {
           </span>
         </div>
       )}
+
+      {/* Cron health — status of pg_cron jobs */}
+      <div className="rounded-xl border border-theme-border p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock className="h-4 w-4 text-theme-secondary" />
+          <h2 className="text-sm font-semibold text-theme-primary">{t('admin:monitoring.cronHealth.title')}</h2>
+        </div>
+
+        {cronHealth.isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-9 bg-theme-hover rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : cronHealth.isError ? (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+            <p className="text-sm text-red-400">{t('admin:monitoring.cronHealth.errorDesc', { defaultValue: 'Impossible de charger la santé des crons.' })}</p>
+          </div>
+        ) : (cronHealth.data ?? []).length === 0 ? (
+          <p className="text-sm text-theme-muted">{t('admin:monitoring.cronHealth.empty')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-theme-border text-xs text-theme-secondary">
+                  <th className="text-left py-2 font-medium w-4"></th>
+                  <th className="text-left py-2 font-medium">{t('admin:monitoring.cronHealth.job')}</th>
+                  <th className="text-left py-2 font-medium">{t('admin:monitoring.cronHealth.schedule')}</th>
+                  <th className="text-right py-2 font-medium w-36">{t('admin:monitoring.cronHealth.lastRun')}</th>
+                  <th className="text-right py-2 font-medium w-24">{t('admin:monitoring.cronHealth.status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(cronHealth.data ?? []).map((row) => {
+                  const st = cronStale(row.schedule, row.last_start, row.last_status)
+                  const lastRunLabel = row.last_start
+                    ? formatRelativeDate(row.last_start)
+                    : t('admin:monitoring.cronHealth.never')
+                  return (
+                    <tr key={row.jobname} className="border-b border-theme-border/50 last:border-0 hover:bg-theme-hover/50 transition-colors">
+                      <td className="py-2.5">
+                        <span className={cn(
+                          'w-2 h-2 rounded-full inline-block',
+                          st.stale ? 'bg-red-500' : 'bg-emerald-500'
+                        )} />
+                      </td>
+                      <td className="py-2.5">
+                        <span className="font-mono text-sm text-theme-primary">{row.jobname}</span>
+                      </td>
+                      <td className="py-2.5 text-xs text-theme-muted font-mono">{row.schedule}</td>
+                      <td className="py-2.5 text-right text-xs text-theme-muted">{lastRunLabel}</td>
+                      <td className="py-2.5 text-right">
+                        <span className={cn(
+                          'text-xs font-medium',
+                          st.stale ? 'text-red-500' : 'text-emerald-600'
+                        )}>
+                          {st.stale ? t('admin:monitoring.cronHealth.stale') : t('admin:monitoring.cronHealth.ok')}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* AI billing — DeepSeek balance + Claude estimated cost */}
       <div className="rounded-xl border border-theme-border p-5 space-y-4">
