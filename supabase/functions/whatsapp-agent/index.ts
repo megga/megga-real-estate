@@ -22,6 +22,7 @@ import {
   prepareSendClientEmail,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   execSummarizeGroupThread, execCheckGroupLeak,
+  execDraftListingCopy,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
@@ -111,6 +112,11 @@ serve(async (req) => {
     ? `\n\nGroup behavior: when the agent asks for a message "for the group", draft a GROUP-SAFE version in their voice — never include data belonging to only one party (a party's max budget/floor, motivation, KYC). Offer to run check_group_leak before they post. Anything meant for ONE party must go to that party's 1:1 thread, never the shared group. You draft; the agent posts. Market figures only if grounded by a tool; otherwise stay general and "à titre indicatif".`
     : `\n\nComportement groupe : quand l'agent demande un message « pour le groupe », rédige une version SÛRE dans sa voix — n'inclus jamais une donnée propre à une seule partie (plafond/plancher, motivation, KYC d'une partie). Propose de lancer check_group_leak avant qu'il poste. Tout message destiné à UNE partie va dans son fil 1:1, jamais dans le groupe partagé. Tu rédiges ; l'agent poste. Chiffres marché seulement si un outil les fournit ; sinon reste général et « à titre indicatif ».`
 
+  // Descriptif d'annonce (v1) : le brain rédige le CONTENU d'une annonce pour l'agent ; rien n'est envoyé au client.
+  const listingBlock = lang === 'en'
+    ? `\n\nListing copy: when the agent asks you to write a property listing/ad (draft_listing_copy), ALWAYS ask whether they want the confidential version (no contact details, no exact address) or the public one (with the agency + agent) if they didn't say. Never invent data: only describe what the property record contains; a missing field is "to be confirmed", never made up; no market figures. You draft; the agent uses it. The confidential version never reveals the exact address.`
+    : `\n\nDescriptif d'annonce : quand l'agent te demande de rédiger l'annonce d'un bien (draft_listing_copy), DEMANDE toujours s'il veut la version confidentielle (sans coordonnées, sans adresse exacte) ou publique (avec l'agence + l'agent) s'il ne l'a pas dit. N'invente jamais de donnée : décris seulement ce que contient la fiche du bien ; un champ manquant = « à compléter », jamais inventé ; aucun chiffre marché. Tu rédiges ; l'agent l'utilise. La version confidentielle ne révèle jamais l'adresse exacte.`
+
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
   // Garde : si waNumber est vide, .or('wa_from.eq.,wa_to.eq.') ne matche RIEN → amnésie
@@ -136,7 +142,7 @@ serve(async (req) => {
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}${voiceBlock}${groupBlock}` },
+    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}${voiceBlock}${groupBlock}${listingBlock}` },
     ...history,
     { role: 'user', content: message },
   ]
@@ -327,6 +333,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'send_kyc_report': return execSendKycReport(ctx, args)
     case 'summarize_group_thread': return execSummarizeGroupThread(ctx, args)
     case 'check_group_leak': return execCheckGroupLeak(ctx, args)
+    case 'draft_listing_copy': return execDraftListingCopy(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }
