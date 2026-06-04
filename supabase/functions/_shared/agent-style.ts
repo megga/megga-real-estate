@@ -1,3 +1,30 @@
+/** Un vrai message destiné à un client, source de mimétisme de voix (few-shot). */
+export type VoiceSample = { body: string }
+
+const VOICE_MIN = 2            // en dessous, pas assez de signal → bloc vide (fallback style/brief)
+const VOICE_MAX = 4            // few-shot borné (coût + focus)
+const VOICE_SAMPLE_CHARS = 220 // borne par exemple
+const VOICE_BLOCK_CHARS = 900  // borne du bloc entier
+
+/** Bloc FEW-SHOT : montre de VRAIS messages clients pour copier le TON, JAMAIS le contenu.
+ *  Vide si < VOICE_MIN exemples. Auto-appliqué (pas de gate) : ne façonne qu'un brouillon validé. */
+export function formatVoiceExamples(samples: VoiceSample[] | null | undefined, lang: 'fr' | 'en' = 'fr'): string {
+  const cleaned = (samples ?? [])
+    .map((s) => (s?.body ?? '').trim())
+    .filter((b) => b.length > 1)
+    .map((b) => b.slice(0, VOICE_SAMPLE_CHARS))
+  const seen = new Set<string>()
+  const uniq: string[] = []
+  for (const b of cleaned) { const k = b.toLowerCase(); if (!seen.has(k)) { seen.add(k); uniq.push(b) } }
+  const picked = uniq.slice(0, VOICE_MAX)
+  if (picked.length < VOICE_MIN) return ''
+  const list = picked.map((b) => `- « ${b} »`).join('\n')
+  const head = lang === 'en'
+    ? `\n\nReal recent messages this agency sent to its clients — Mirror the TONE (vocabulary, length, sign-offs). NEVER reuse their content/data (names, prices, dates); write fresh for the current client.\n${list}`
+    : `\n\nVrais messages récents que cette agence a envoyés à ses clients — Copie le TON (vocabulaire, longueur, formules). NE REPRENDS JAMAIS leur contenu/données (noms, prix, dates) ; rédige du neuf pour le client courant.\n${list}`
+  return head.slice(0, VOICE_BLOCK_CHARS)
+}
+
 export type LearnedStyle = {
   language: 'fr' | 'en' | 'mixed'
   formality: 'tu' | 'vous' | 'direct'
