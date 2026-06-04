@@ -1,5 +1,5 @@
 // MEGGA — Page publique KYC Magic Link (côté client, sans compte MEGGA)
-// Sprint 4.7.C — Route /kyc/:token (HORS PasswordGate, HORS AgentLayout)
+// Sprint 4.7.C — Route /kyc/:token (route publique, HORS AgentLayout)
 //
 // Cette page orchestre le parcours client :
 //   - Vérifie le token HMAC via /functions/v1/magic-link-get

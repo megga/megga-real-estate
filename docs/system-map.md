@@ -89,7 +89,7 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|
-| **Marketplace SPA** (app.megga.ch) | `/buy` `/rent` · fiche `/propriete/:id` (alias `/listing/:id`) | `SearchPage` (filtres, favoris, Mapbox lazy, comparateur, scroll infini), `PropertyXSinglePropertyPage` (Property X). ⚠️ Le storefront **public** pré-lancement est le site **statique** megga.ch (`sites/property-preview`, cf §1 & §4bis), **pas** cette SPA. |
+| **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` conservés (imports commentés, réactivation Sprint 7). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
 | **Marketing public** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` `/help*` | pages secondaires + centre d'aide |
 | **Compte visiteur** | `/account` | favoris, recherches sauvegardées, messagerie acheteur |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
@@ -192,7 +192,20 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ## 4bis · Storefront public statique (megga.ch) 🌐
 
-> **C'est LA marketplace publique pré-lancement** (décision produit) — un site **Webflow Property X V3** statique dans [`sites/property-preview/`](../sites/property-preview/), distinct de la SPA React (app.megga.ch, §2). Overlay sur `dist/` au build via `scripts/overlay-storefront.mjs` (`MEGGA_BUILD_TARGET`).
+> ⚠️ **PIVOT juin 2026 — recentrage CRM-first.** megga.ch ne sert **plus** la marketplace : il sert
+> désormais la **vitrine SaaS** [`sites/megga-vitrine/`](../sites/megga-vitrine/) (landing → CRM `app.megga.ch`).
+> Tout l'ancien storefront marketplace Property X décrit ci-dessous est **conservé en sommeil** dans
+> [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/) (ex-`sites/property-preview/`),
+> **rien supprimé**, réactivable en repointant `scripts/overlay-storefront.mjs`. La table `market_listings`
+> (~34k biens) **reste active** : elle nourrit le CRM (matching, estimation, stats copilote). La doc
+> ci-dessous reste valable pour ce dossier en sommeil (phase ultérieure = Sprint 7).
+
+> **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
+> (25 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
+> auto-hébergés — 0 CDN). CTA → `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
+> `megga`/`preview` seul, pas de proxy Supabase). **Reste** : image hero encore CodeAI (à remplacer).
+
+> **Marketplace (en sommeil)** : un site **Webflow Property X V3** statique dans [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/), distinct de la SPA React (app.megga.ch, §2). Overlay sur `dist/` au build via `scripts/overlay-storefront.mjs` (`MEGGA_BUILD_TARGET`).
 
 - **Worker** (`_worker.js`, Cloudflare Pages advanced) : Basic Auth (`ai`/`ai`, gate pré-lancement) + proxy GET **`/api/listings`** → `market_listings` / **`/api/agencies`** → `agency_profiles` (anon key côté serveur, évite CORS navigateur) + endpoint **POST `/api/seller-lead`** → insère dans `seller_leads` (cf. « Publier une annonce »).
 - **Home** `index.html` : hero (recherche `megga-search.js` + CTA) + section « Annonces en vedette » (`featured-property-item---main`) branchée par `js/megga-home.js` — annonces récentes via `/api/listings`, photo/titre/prix injectés, lien vers la fiche ; force-visible IX2 + sweep du démo, panneaux hover masqués.
@@ -217,7 +230,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | Domaine | Functions |
 |---|---|
 | **IA / copilote** | `ai-copilot` (chat agent + actions, Claude) · `ai-search` (sémantique pgvector) · `dashboard-ai-hint` · `parse-search-query` (DeepSeek) · `support-chatbot` |
-| **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions + analyse Claude) · `delete-account` (nLPD art.32) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans) |
+| **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions + analyse Claude) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans) |
 | **Magic link KYC** | `magic-link-create/get/confirm/regenerate/send-email/upload` |
 | **Email (Resend)** | `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
 | **Paiements (Stripe)** | `stripe-checkout` · `stripe-portal` · `stripe-webhook` (signature) · `admin-stripe-metrics` (MRR/ARR/churn) |
@@ -243,7 +256,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 **C · Portail vendeur (token)** : agent crée `seller_portals` (token 6 mois) → vendeur `/portal/:token` (sans login) → **page unique « Votre vente »** (`VotreVentePage` + `components/seller-portal/votre-vente/`, Sugar Pure, lecture seule ; remplace l'ancien mini-CRM 8 pages) → RLS via token (READ property/transac, UPLOAD documents) → updates visibles côté CRM → expiry révoque. Décisions d'offre + paramètres : edge function `seller-portal-action` (token validé, `--no-verify-jwt`) → `offer_decision` journalise un `activity_event` (`actor_kind='system'`) **transmis à l'agent** (jamais de mutation directe `crm_offers`/`transactions`) ; `save/get_preferences` → table `seller_preferences`.
 
-**D · KYC (Dilisense)** : transaction reserved/negotiation → `kyc_cases` (vigilance standard/renforcée selon montant + source des fonds) → magic link upload (`kyc_magic_link_uploads`, OCR, sha256) → screening async Dilisense → `kyc_screening_decisions` (PEP/sanctions) → **revue humaine MLRO** → analyse qualitative Claude (assist, ne remplace pas). **Canal WhatsApp (Phase 1 livrée, cf. brain `kyc-whatsapp-spec`)** : l'agent ouvre/joint/screene depuis sa conversation via 3 outils copilote (`open_kyc_case`, `attach_kyc_document`, `run_kyc_screening`) ; même moteur, le MLRO valide toujours (jamais `is_completed`/`verified` côté IA).
+**D · KYC (Dilisense)** : transaction reserved/negotiation → `kyc_cases` (vigilance standard/renforcée selon montant + source des fonds) → magic link upload (`kyc_magic_link_uploads`, OCR, sha256) → screening async Dilisense → `kyc_screening_decisions` (PEP/sanctions) → **revue humaine MLRO** → analyse qualitative Claude (assist, ne remplace pas). **Canal WhatsApp (Phase 1 livrée, cf. brain `kyc-whatsapp-spec`)** : l'agent ouvre/joint/screene depuis sa conversation via 3 outils copilote (`open_kyc_case`, `attach_kyc_document`, `run_kyc_screening`) ; même moteur, le MLRO valide toujours (jamais `is_completed`/`verified` côté IA). **Rapport KYC en PDF par WhatsApp (livré, cf. brain `kyc-report-pdf-whatsapp`)** : `send_kyc_report` (tier auto) → edge `kyc-report-pdf` mint un token HMAC court → Cloudflare Browser Rendering (REST API, pas de Worker) rend la route publique `/kyc-report/:token` (même template `PdfPage1/2/3` que le CRM) → PDF officiel uploadé en média Meta éphémère et envoyé en document **qu'à l'agent** ; lecture seule (seul write = audit `kyc_report_sent`), aucune migration.
 
 **E · Matching & alertes** : `client_searches` (criteria JSONB) → `matching-engine` compare budget/zones/type vs `market_listings`+`properties` → `matches` (score+raisons) → envoi agent → alertes email (`market_alerts`/`search-alert` cron via Resend).
 
@@ -253,21 +266,15 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
-## 6bis · Agent WhatsApp (feature phare #2 — copilote live) 📱
+## 6bis · Agent WhatsApp (feature phare #2 — Phase 1) 📱
 
-Vision : l'agent vit dans WhatsApp → chaque message remonte dans le CRM, et MEGGA **agit** pour lui depuis la conversation (vocal ET texte, FR/EN). Phases 1→4C + Lot 1 livrées et validées en prod. IA = **DeepSeek** exclusivement (coût).
+Vision : l'agent est toujours sur WhatsApp → chaque message remonte dans le CRM (mieux qu'une app). Phase 1 = **miroir entrant lecture seule**.
 
-- **Flux** : `whatsapp-webhook` (public, **HMAC-SHA256** `verifyHmac`, provider via header `x-openwa-signature`/`x-hub-signature-256`) ACK Meta immédiat puis traite en tâche de fond → expéditeur = **agent vérifié** (`whatsapp_agent_links`) → appelle le cerveau `whatsapp-agent` ; sinon **branche client** (mappe `wa_from`→`contacts.phone`, insert idempotent `whatsapp_messages`, capture). Vocal → Deepgram ; image/PDF → Gemini Vision (texte → `transcript`).
-- **Cerveau** (`whatsapp-agent`, service-role, **verify_jwt=false** : la plateforme rejette la clé legacy si activé → auth en code, Bearer comparé à temps constant ; agence re-dérivée du lien vérifié, jamais du body) : boucle function-calling DeepSeek, mémoire de fil 24 h, ancrage temporel Europe/Zurich.
-- **22 outils, 3 tiers** (`whatsapp-tools.ts` + `toolTier()` dans `whatsapp-agent-router.ts`, exécuteurs `whatsapp-actions.ts`) :
-  - **read** (exécuté direct) : `get_my_agenda`, `search_contacts`, `get_contact_brief`, `list_followups`, `get_matches`, `get_daily_brief`, `search_listings` (marché ~65k), `get_kyc_status`.
-  - **auto** (état CRM interne réversible) : `create_contact`, `add_note`, `schedule_visit`, `create_reminder`, `qualify_lead`, `create_deal` (ouvre une transaction → débloque offre/pipeline), `run_kyc_screening`, `attach_kyc_document`.
-  - **confirm** (« oui/non » ; stash `whatsapp_pending_actions`, exécution gagnant-unique dans le webhook) : `send_client_message`, `send_listings`, `record_offer`, `update_pipeline`, `open_kyc_case`, `send_kyc_link` (lien upload KYC au client par email/Resend). Outil inconnu → confirm (fail-safe).
-- **Garde-fous** : human-in-the-loop sur tout envoi client / argent / pipeline / KYC ; l'IA ne **valide** jamais un KYC (MLRO). **KYC facultatif, jamais bloquant**. Audit `activity_events` (`actor_kind='ai'`, `actor_id=NULL`, category ∈ {kyc,deal,contact,…}). Persona « employée modèle ».
-- **Bilingue FR/EN** : messages `confirm` (montrés verbatim) bilingues en dur ; résultats read/auto en FR, traduits par le modèle (règle système « réponds dans la langue de l'agent »).
-- **Données** : `whatsapp_messages` (+ `transcript`, `processing_status`), `whatsapp_agent_links` (appairage code 6 chiffres), `whatsapp_pending_actions`. RLS agence (`get_my_agency_id()`). CRM : `useWhatsAppMessages` → `CdWhatsAppCard`.
-- **Secrets** : `WHATSAPP_WEBHOOK_SECRET`, `META_APP_SECRET`/`META_WHATSAPP_TOKEN`/`META_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `DEEPSEEK_API_KEY`, `DEEPGRAM_API_KEY`, `GEMINI_API_KEY`, `MEGGA_MAGIC_LINK_HMAC_SECRET` (lien KYC).
-- **Reste** : débridage compte Meta (envoi vers un client quelconque hors allowlist test) ; rendu front (bulle transcript + carte « Compréhension MEGGA ») ; e-signature différée.
+- **Archi** : abstraction `_shared/whatsapp-gateway.ts` (`WhatsAppProvider`). Phase 1 = **OpenWA** (proto local) ; Phase 4 = **Meta Cloud API**. Webhook signé **HMAC-SHA256** (`verifyHmac` timing-safe), provider détecté par header (`x-openwa-signature` / `x-hub-signature-256`).
+- **Inbound** (`whatsapp-webhook`) : message → vérif HMAC (401 sinon) → parse gateway → map `wa_from` → `contacts.phone` (9 derniers chiffres) → INSERT idempotent `whatsapp_messages` (`UNIQUE(provider, provider_message_id)`) → `activity_events` (best-effort) → 200.
+- **Données** : `whatsapp_messages` (provider, direction, wa_from/to, contact_id, agency_id, body, media_*, status, `raw` à purger Ph.4) ; `contact_messages` (form public `/contact`). RLS : un agent ne voit que son agence (`get_my_agency_id()`), non-mappés réservés super_admin (test `whatsapp-messages-rls.spec.ts`).
+- **CRM** : `useWhatsAppMessages(contactId)` → `CdWhatsAppCard` (bulles + transcript notes vocales) dans `ContactDetailSugarV3Page` ; `PxWhatsAppButton` (lien `wa.me`) + page publique `/contact`. **Compréhension MEGGA visible (4 juin 2026)** : `CdConversationInsight` affiche résumé/intention/sentiment/critères/engagements/prochaine action depuis `whatsapp_conversation_insights` (lecture seule, cadre assistance/estimation).
+- **Roadmap** : Ph.2 outbound + **conseils IA façon Claude** + actions (« je veux visiter » → visite CRM) ; Ph.3 sync temps réel ; Ph.4 Meta Cloud API + purge `raw`. Secrets : `WHATSAPP_WEBHOOK_SECRET`, `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_PROVIDER`.
 
 ---
 

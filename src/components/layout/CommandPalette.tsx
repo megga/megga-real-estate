@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Search, Sparkles, LayoutDashboard, Users, GitBranch, Shuffle,
-  Building2, Plus, Calendar, ShieldCheck, FileText,
-  Settings, Wand2,
-} from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useContacts } from '@/hooks/useContacts'
 
@@ -12,30 +8,30 @@ interface CommandItem {
   id: string
   label: string
   category: 'pages' | 'contacts' | 'biens' | 'actions'
-  icon: React.ElementType
+  icon: MEIconName
   href: string
   subtitle?: string
   shortcut?: string
 }
 
 const pageItems: CommandItem[] = [
-  { id: 'p-today', label: "Aujourd'hui", category: 'pages', icon: Sparkles, href: '/dashboard', shortcut: '' },
-  { id: 'p-dashboard', label: 'Dashboard', category: 'pages', icon: LayoutDashboard, href: '/dashboard/analytics' },
-  { id: 'p-contacts', label: 'Contacts', category: 'pages', icon: Users, href: '/dashboard/contacts' },
-  { id: 'p-pipeline', label: 'Pipeline', category: 'pages', icon: GitBranch, href: '/dashboard/pipeline' },
-  { id: 'p-matching', label: 'Matching', category: 'pages', icon: Shuffle, href: '/dashboard/matching' },
-  { id: 'p-listings', label: 'Mes biens', category: 'pages', icon: Building2, href: '/dashboard/listings' },
-  { id: 'p-calendar', label: 'Calendrier', category: 'pages', icon: Calendar, href: '/dashboard/calendar' },
-  { id: 'p-kyc', label: 'KYC', category: 'pages', icon: ShieldCheck, href: '/dashboard/kyc' },
-  { id: 'p-documents', label: 'Documents', category: 'pages', icon: FileText, href: '/dashboard/documents' },
-  { id: 'p-settings', label: 'Paramètres', category: 'pages', icon: Settings, href: '/dashboard/settings' },
+  { id: 'p-today', label: "Aujourd'hui", category: 'pages', icon: 'sparkle', href: '/dashboard', shortcut: '' },
+  { id: 'p-dashboard', label: 'Dashboard', category: 'pages', icon: 'dashboard', href: '/dashboard/analytics' },
+  { id: 'p-contacts', label: 'Contacts', category: 'pages', icon: 'users', href: '/dashboard/contacts' },
+  { id: 'p-pipeline', label: 'Pipeline', category: 'pages', icon: 'flowchart', href: '/dashboard/pipeline' },
+  { id: 'p-matching', label: 'Matching', category: 'pages', icon: 'refresh', href: '/dashboard/matching' },
+  { id: 'p-listings', label: 'Mes biens', category: 'pages', icon: 'building', href: '/dashboard/listings' },
+  { id: 'p-calendar', label: 'Calendrier', category: 'pages', icon: 'calendar', href: '/dashboard/calendar' },
+  { id: 'p-kyc', label: 'KYC', category: 'pages', icon: 'shield', href: '/dashboard/kyc' },
+  { id: 'p-documents', label: 'Documents', category: 'pages', icon: 'file', href: '/dashboard/documents' },
+  { id: 'p-settings', label: 'Paramètres', category: 'pages', icon: 'settings', href: '/dashboard/settings' },
 ]
 
 const actionItems: CommandItem[] = [
-  { id: 'a-import-lead', label: 'Importer un lead', category: 'actions', icon: Wand2, href: '/dashboard/import-lead?returnTo=/dashboard/pipeline', subtitle: 'MEGGA AI extrait le contact depuis un message libre' },
-  { id: 'a-contact', label: 'Créer un contact', category: 'actions', icon: Plus, href: '/dashboard/contacts', shortcut: '⌘⇧C' },
-  { id: 'a-listing', label: 'Nouveau bien', category: 'actions', icon: Plus, href: '/dashboard/listings/new' },
-  { id: 'a-deal', label: 'Nouvelle transaction', category: 'actions', icon: Plus, href: '/dashboard/pipeline' },
+  { id: 'a-import-lead', label: 'Importer un lead', category: 'actions', icon: 'magic-wand', href: '/dashboard/import-lead?returnTo=/dashboard/pipeline', subtitle: 'MEGGA AI extrait le contact depuis un message libre' },
+  { id: 'a-contact', label: 'Créer un contact', category: 'actions', icon: 'plus', href: '/dashboard/contacts', shortcut: '⌘⇧C' },
+  { id: 'a-listing', label: 'Nouveau bien', category: 'actions', icon: 'plus', href: '/dashboard/listings/new' },
+  { id: 'a-deal', label: 'Nouvelle transaction', category: 'actions', icon: 'plus', href: '/dashboard/pipeline' },
 ]
 
 const TYPE_LABELS: Record<string, string> = {
@@ -77,7 +73,7 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
       id: `c-${c.id}`,
       label: `${c.first_name} ${c.last_name}`,
       category: 'contacts' as const,
-      icon: Users,
+      icon: 'users',
       href: `/dashboard/contacts/${c.id}`,
       subtitle: TYPE_LABELS[c.type] || 'Contact',
     })),
@@ -193,7 +189,7 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 h-12 border-b border-theme-border-subtle">
-          <Search className="w-5 h-5 text-theme-tertiary flex-shrink-0" />
+          <MEIcon name="search" className="w-5 h-5 text-theme-tertiary flex-shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -247,10 +243,10 @@ export default function CommandPalette({ isOpen, onClose, onCreateContact }: Com
                         </div>
                       ) : item.category === 'actions' ? (
                         <div className="w-5 h-5 rounded-full bg-theme-active text-theme-muted flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-3.5 h-3.5" />
+                          <MEIcon name={Icon as MEIconName} className="w-3.5 h-3.5" />
                         </div>
                       ) : (
-                        <Icon className={cn('w-4 h-4 flex-shrink-0', isSelected ? 'text-accent' : 'text-theme-tertiary')} />
+                        <MEIcon name={Icon as MEIconName} className={cn('w-4 h-4 flex-shrink-0', isSelected ? 'text-accent' : 'text-theme-tertiary')} />
                       )}
 
                       <span className={cn('text-sm flex-1 truncate', isSelected ? 'text-accent' : 'text-theme-primary')}>

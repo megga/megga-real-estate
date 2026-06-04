@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import type { SugarPalette } from '../tokens'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { KIND_META, type SugarNotif } from './data'
 
 // ─── Atom : ligne de notif compacte (popover) ──────────────────────────
@@ -37,7 +37,7 @@ function NotifRow({ n, sp, onClick }: NotifRowProps) {
         display: 'grid', placeItems: 'center', flexShrink: 0,
         marginTop: 1,
       }}>
-        <CRMIcon name={meta.icon} size={14} stroke={sp.ink} />
+        <MEIcon name={meta.icon} size={14} color={sp.ink} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
@@ -112,7 +112,7 @@ export default function SugarNotificationsPopover({
             width: 30, height: 30, borderRadius: 12, background: sp.cardSubBg,
             display: 'grid', placeItems: 'center',
           }}>
-            <CRMIcon name="bell" size={14} stroke={sp.ink} />
+            <MEIcon name="bell" size={14} color={sp.ink} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: sp.ink, letterSpacing: '-0.01em' }}>
@@ -148,7 +148,7 @@ export default function SugarNotificationsPopover({
                 width: 48, height: 48, borderRadius: 999, background: sp.cardSubBg,
                 display: 'grid', placeItems: 'center', margin: '0 auto 10px',
               }}>
-                <CRMIcon name="bell" size={18} stroke={sp.sub} />
+                <MEIcon name="bell" size={18} color={sp.sub} />
               </div>
               Aucune notification pour l'instant.
             </div>
@@ -177,7 +177,7 @@ export default function SugarNotificationsPopover({
             }}
             onMouseEnter={e => { e.currentTarget.style.background = sp.cardSubBg }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-            <CRMIcon name="cal" size={13} stroke={sp.sub} />
+            <MEIcon name="calendar" size={13} color={sp.sub} />
             Pause 2 h
           </button>
           <div style={{ flex: 1 }} />

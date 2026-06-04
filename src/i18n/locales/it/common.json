@@ -33,7 +33,9 @@
     "adminLive": "Live Feed",
     "adminPlans": "Piani & Quote",
     "adminSecurity": "Audit sicurezza",
-    "adminNps": "Soddisfazione"
+    "adminNps": "Soddisfazione",
+    "adminAutonomy": "Autonomia agenti",
+    "adminLearning": "Stili appresi"
   },
   "sections": {
     "main": "Principale",

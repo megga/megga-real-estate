@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PX, PxIcon } from '..'
+import { PX, MEIcon } from '..'
 
 interface Lang {
   code: 'fr' | 'de' | 'en' | 'it'
@@ -98,7 +98,7 @@ export default function PxLanguageSwitcher() {
         onMouseLeave={e => { e.currentTarget.style.borderColor = PX.neutral300 }}
       >
         <span style={{ paddingTop: 1 }}>{activeLang.short}</span>
-        <PxIcon name="chevron-down" size={14} color={PX.neutral500} />
+        <MEIcon name="chevron-down" size={14} color={PX.neutral500} />
       </button>
 
       {open && (

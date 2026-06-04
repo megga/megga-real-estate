@@ -4,7 +4,7 @@
 //
 // Source : handoff-premier-jour/premier-jour/crm-day0-tokens.jsx
 import type { ObIconName } from '@/components/onboarding-sugar/primitives'
-import type { PxIconName } from '@/components/propertyx/PxIcon'
+import type { MEIconName } from '@/components/propertyx/MEIcon'
 import type {
   Autonomy,
   D0Answers,
@@ -18,7 +18,7 @@ import type {
 
 export type D0Option<TId extends string> = {
   id: TId
-  icon: PxIconName
+  icon: MEIconName
   label: string
   hint: string
 }
@@ -73,8 +73,8 @@ export const D0_QUESTIONS: D0Question[] = [
   {
     id: 'zone',
     eyebrow: '02 / 04',
-    title: 'Où travaillez-vous ?',
-    sub: 'Cherchez un canton, une ville ou une région. Plusieurs zones possibles.',
+    title: 'Vos zones de couverture',
+    sub: 'Pour le matching interne et vos suggestions. Cherchez un canton, une ville ou une région — plusieurs possibles.',
     kind: 'zone',
   },
   {
@@ -328,7 +328,7 @@ export const d0BuildCommitments = (answers: D0Answers): D0Commitment[] => {
 
   return [
     { id: 'dispo', text: `Je relance vos ${spec} ${dispo}.` },
-    { id: 'zone', text: `Je flag les leads hors ${zoneLabel} pour que vous gardiez le focus.` },
+    { id: 'zone', text: `Je priorise le matching sur ${zoneLabel} dans vos suggestions.` },
     { id: 'prio', text: prio },
     {
       id: 'ai',

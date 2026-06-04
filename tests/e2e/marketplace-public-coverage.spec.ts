@@ -25,7 +25,9 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   { path: '/estimates', label: 'Estimations' },
 
   // ── Marketplace ────────────────────────────────────────────────────────
-  { path: '/buy', label: 'Marketplace Acheter' },
+  // Pivot CRM-first (juin 2026) : marketplace PUBLIQUE désactivée — /buy /rent
+  // /propriete/:id /listing/:id redirigent vers la vitrine megga.ch (hors
+  // domaine de test). Redirection couverte par marketplace-disabled.spec.ts.
   { path: '/properties', label: 'Marketplace Properties' },
 
   // ── Info / about / legal ───────────────────────────────────────────────
@@ -55,8 +57,8 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   { path: '/publish-listing', label: 'Publier un bien' },
 
   // ── Routes paramétrées (mock IDs / slugs) ──────────────────────────────
-  { path: `/propriete/${MOCK_UUID}`, label: 'Propriete detail (mock)' },
-  { path: `/listing/${MOCK_UUID}`, label: 'Listing detail legacy (mock)' },
+  // /propriete/:id + /listing/:id désactivées (redirigent vers la vitrine) —
+  // voir marketplace-disabled.spec.ts.
   { path: `/agencies/${MOCK_SLUG}`, label: 'Agence profile (mock slug)' },
   { path: `/agents/${MOCK_SLUG}`, label: 'Agent profile (mock slug)' },
   { path: `/portal/${MOCK_TOKEN}`, label: 'Portail vendeur prod (mock token)' },

@@ -9,7 +9,7 @@ import {
   obInputStyle,
 } from './primitives'
 import { uploadAgentAvatar } from './persistence'
-import PxIcon from '@/components/propertyx/PxIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type {
   AgentProfile,
   AgentRole,
@@ -108,7 +108,7 @@ function ObAvatarUploader({
             boxShadow: `0 6px 14px rgba(11,12,14,0.25), 0 0 0 3px ${t.bg}`,
           }}
         >
-          <PxIcon name="camera" size={15} color={dark ? '#0B0C0E' : '#fff'} strokeWidth={1.8} />
+          <MEIcon name="camera" size={15} color={dark ? '#0B0C0E' : '#fff'} strokeWidth={1.8} />
         </div>
       )}
 
@@ -153,7 +153,7 @@ function ObAvatarUploader({
             placeItems: 'center',
           }}
         >
-          <PxIcon name="close" size={12} color={t.inkSoft} strokeWidth={1.8} />
+          <MEIcon name="close" size={12} color={t.inkSoft} strokeWidth={1.8} />
         </button>
       )}
 
@@ -223,7 +223,7 @@ function ObChipMulti<T extends string>({
                   flexShrink: 0,
                 }}
               >
-                <PxIcon
+                <MEIcon
                   name="check"
                   size={10}
                   color={dark ? '#ECEDF3' : '#fff'}

@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-biens-sugar.jsx` (BnSubmissionsBanner, BnSubmissionsDrawer).
 
 import { createPortal } from 'react-dom'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { crmContactById } from '../mockData'
 import type { SugarPalette } from '../tokens'
 import { BnPhoto } from './BnPhoto'
@@ -54,7 +54,7 @@ export function BnSubmissionsBanner({
           placeItems: 'center',
         }}
       >
-        <CRMIcon name="send" size={16} stroke="#fff" />
+        <MEIcon name="send" size={16} color="#fff" />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>

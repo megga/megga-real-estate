@@ -1,0 +1,24 @@
+
+# Vitrine multi-pages — Cloudflare Pages sert les .html par nom ; 404 natif sinon.
+
+# Redirections de courtoisie : anciens chemins (template) → nouvelles URL.
+/home-pages/home-v3       /                 301
+/home-pages/home-v3.html  /                 301
+/about-pages/about        /about            301
+/about-pages/about.html   /about            301
+/about-pages/pricing      /pricing          301
+/about-pages/pricing.html /pricing          301
+/about-pages/careers      /careers          301
+/about-pages/careers.html /careers          301
+/product-pages/integrations       /integrations  301
+/product-pages/integrations.html  /integrations  301
+/blog-pages/blog-v2       /blog             301
+/blog-pages/blog-v2.html  /blog             301
+/contact-pages/contact-v2       /contact     301
+/contact-pages/contact-v2.html  /contact     301
+/template-pages/changelog       /changelog   301
+/template-pages/changelog.html  /changelog   301
+/user-pages/sign-up       /signup           301
+/user-pages/sign-up.html  /signup           301
+/user-pages/sign-in       /login            301
+/user-pages/sign-in.html  /login            301

@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Notifications mock data + types.
 // 1:1 port from the Claude Design bundle (crm-notifications.jsx).
 
-import type { CrmIconName } from '../CRMIcon'
+import type { MEIconName } from '@/components/propertyx/MEIcon'
 
 export type NotifKind = 'kyc' | 'visite' | 'offre' | 'mandat' | 'ai' | 'doc' | 'team' | 'system'
 export type NotifPriority = 'high' | 'med' | 'low'
@@ -20,13 +20,13 @@ export interface SugarNotif {
   ctaTo: string
 }
 
-export const KIND_META: Record<NotifKind, { dot: string; icon: CrmIconName; label: string }> = {
-  kyc:    { dot: '#E53935', icon: 'kyc',   label: 'KYC' },
-  visite: { dot: '#0891B2', icon: 'cal',   label: 'Visite' },
+export const KIND_META: Record<NotifKind, { dot: string; icon: MEIconName; label: string }> = {
+  kyc:    { dot: '#E53935', icon: 'shield',   label: 'KYC' },
+  visite: { dot: '#0891B2', icon: 'calendar',   label: 'Visite' },
   offre:  { dot: '#C45A00', icon: 'bolt',  label: 'Offre' },
-  mandat: { dot: '#1E5BC6', icon: 'docs',  label: 'Mandat' },
-  ai:     { dot: '#0B0C0E', icon: 'spark', label: 'MEGGA AI' },
-  doc:    { dot: '#059669', icon: 'docs',  label: 'Document' },
+  mandat: { dot: '#1E5BC6', icon: 'file',  label: 'Mandat' },
+  ai:     { dot: '#0B0C0E', icon: 'sparkle', label: 'MEGGA AI' },
+  doc:    { dot: '#059669', icon: 'file',  label: 'Document' },
   team:   { dot: '#7A4FD8', icon: 'share', label: 'Équipe' },
   system: { dot: '#7A8088', icon: 'bell',  label: 'Système' },
 }

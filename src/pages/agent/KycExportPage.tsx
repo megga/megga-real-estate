@@ -144,7 +144,7 @@ export default function KycExportPage() {
           padding: '48px 24px',
           background: PDF.bg,
           minHeight: '100vh',
-          fontFamily: 'Manrope, system-ui, sans-serif',
+          fontFamily: '"Inter Tight", system-ui, sans-serif',
         }}
       >
         <PdfPage1 data={reportData} />
@@ -176,7 +176,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         boxShadow: '0 2px 8px rgba(15,23,42,0.04)',
       }}
     >
@@ -244,7 +244,7 @@ function ExportPlaceholder({ children }: { children: React.ReactNode }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: PDF.muted,
         fontSize: 14,
         fontWeight: 500,

@@ -80,6 +80,16 @@ const STR = {
     fr: "Je n'ai pas réussi à finaliser ta demande. Peux-tu la reformuler plus simplement ?",
     en: "I couldn't finalise your request. Can you rephrase it more simply?",
   },
+  complexRetry: {
+    fr: "Ta demande est un peu chargée — je m'en occupe par étapes, redonne-moi un instant.",
+    en: "Your request is a bit heavy — I'm handling it in steps, give me a moment.",
+  },
+  // Garde anti-fabrication KYC : remplace une fausse affirmation d'action (DeepSeek a prétendu
+  // un screening/rapport lancé sans appeler l'outil). On NE confirme JAMAIS une action non faite.
+  kycNotRun: {
+    fr: "Petit raccroc de ma part : je n'ai pas réellement lancé cette action KYC. Redis-moi le contact (« screen Dupont » ou « envoie le rapport de Dupont ») et je l'exécute pour de bon.",
+    en: "My bad — I didn't actually run that KYC action. Tell me the contact again (« screen Dupont » / « send Dupont's report ») and I'll run it for real.",
+  },
   ok: { fr: 'OK.', en: 'OK.' },
   noAgencySend: {
     fr: "Ton compte n'a pas d'agence, envoi impossible.",
@@ -167,9 +177,9 @@ export function confirmOpenKyc(lang: WaLang, name: string, type: KycPersonType, 
 export function openKycResult(lang: WaLang, vigilance: string): string {
   const renf = vigilance === 'renforced'
   if (lang === 'en') {
-    return `KYC file opened. Documents needed: ID, proof of address, PEP screening, sanctions${renf ? ', source of funds' : ''}. You can forward me the documents.`
+    return `KYC file opened. Whenever you like, you can forward me whatever documents you have — ID, proof of address${renf ? ', source of funds' : ''} — nothing is required, it's an optional assist. I can also run the PEP/sanctions screening whenever you want.`
   }
-  return `Dossier KYC ouvert. Les pièces à fournir : identité, domicile, screening PEP, sanctions${renf ? ', source des fonds' : ''}. Tu peux me transférer les documents.`
+  return `Dossier KYC ouvert. Tu peux me transférer les pièces que tu as quand tu veux — pièce d’identité, justificatif de domicile${renf ? ', source des fonds' : ''} — rien n’est obligatoire, c’est une aide facultative. Je peux aussi lancer le screening PEP/sanctions dès que tu me le dis.`
 }
 
 /** send_client_message — prompt de confirmation (aperçu 60 car.). */
@@ -207,4 +217,65 @@ export function pipelineAlreadyAt(lang: WaLang, dealLabel: string, stageLabel: s
 export function pipelineNoDeal(lang: WaLang): string {
   if (lang === 'en') return "This contact has no pipeline file yet (no transaction). The file must be created in the CRM first."
   return "Ce contact n’a pas encore de dossier dans le pipeline (aucune transaction). Le dossier doit d’abord être créé dans le CRM."
+}
+
+/** Confirmation d'un déplacement pipeline AUTO + fenêtre d'undo. */
+export function pipelineAutoMoved(lang: WaLang, who: string, label: string): string {
+  return lang === 'en'
+    ? `Done — ${who} moved to ${label}. Reply /annuler within 60s to undo.`
+    : `C’est fait — ${who} passé en ${label}. Tape /annuler dans les 60 s pour revenir en arrière.`
+}
+/** Confirmation d'un undo réussi. */
+export function undoneStage(lang: WaLang, label: string): string {
+  return lang === 'en' ? `Rolled back — back to ${label}.` : `Annulé — c’est revenu en ${label}.`
+}
+/** Rien à annuler dans la fenêtre. */
+export function nothingToUndo(lang: WaLang): string {
+  return lang === 'en' ? "Nothing to undo (the window has passed)." : "Rien à annuler (la fenêtre est passée)."
+}
+
+/** Suffixe « /annuler » à coller à un message d'action auto réversible (Palier 3b, 30 s). */
+export function undoHint(lang: WaLang, seconds = 30): string {
+  return lang === 'en'
+    ? ` · /annuler within ${seconds}s to undo.`
+    : ` · /annuler dans les ${seconds} s pour revenir en arrière.`
+}
+/** Nom de ce qui a été défait, par outil. */
+export function undoNoun(lang: WaLang, tool: string): string {
+  const fr: Record<string, string> = { create_contact: 'contact créé', schedule_visit: 'visite', create_reminder: 'rappel', qualify_lead: 'qualification' }
+  const en: Record<string, string> = { create_contact: 'created contact', schedule_visit: 'visit', create_reminder: 'reminder', qualify_lead: 'qualification' }
+  return (lang === 'en' ? en : fr)[tool] ?? 'action'
+}
+/** Confirmation d'un undo générique (outil auto). */
+export function undoneAuto(lang: WaLang, noun: string): string {
+  return lang === 'en' ? `Rolled back — ${noun} undone.` : `Annulé — ${noun} défait.`
+}
+
+/** ACK renvoyé à DeepSeek quand un outil lent part en file (le résultat suivra,
+ *  livré à l’agent par le worker). `name` = nom humain du contact (jamais un id). */
+export function asyncAck(lang: WaLang, kind: 'screening' | 'report', name: string): string {
+  const n = name && name.trim() ? name.trim() : ''
+  if (lang === 'en') {
+    const who = n ? ` for ${n}` : ''
+    return kind === 'screening'
+      ? `I'm running the screening${who} — I'll send you the result in ~15s.`
+      : `I'm preparing the KYC report${who} — you'll get the PDF in ~15s.`
+  }
+  const who = n ? ` de ${n}` : ''
+  return kind === 'screening'
+    ? `Je lance le screening${who}, je te donne le résultat dans ~15 s.`
+    : `Je prépare le rapport KYC${who}, tu reçois le PDF dans ~15 s.`
+}
+
+/** Message d'échec livré à l'AGENT par le worker async quand un outil lent n'aboutit
+ *  pas après ses tentatives — pour ne JAMAIS le laisser sans réponse après l'ACK. */
+export function asyncFailed(lang: WaLang, kind: 'screening' | 'report'): string {
+  if (lang === 'en') {
+    return kind === 'screening'
+      ? "The screening couldn't be completed — try again, or check the case in the CRM."
+      : "The KYC report couldn't be generated — try again in a moment."
+  }
+  return kind === 'screening'
+    ? "Le screening n'a pas pu aboutir — réessaie, ou vérifie le dossier dans le CRM."
+    : "Le rapport KYC n'a pas pu être généré — réessaie dans un instant."
 }

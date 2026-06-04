@@ -33,7 +33,9 @@
     "adminLive": "Live Feed",
     "adminPlans": "Plane & Kontingente",
     "adminSecurity": "Sicherheitsaudit",
-    "adminNps": "Zufriedenheit"
+    "adminNps": "Zufriedenheit",
+    "adminAutonomy": "Agenten-Autonomie",
+    "adminLearning": "Gelernte Stile"
   },
   "sections": {
     "main": "Hauptmenü",

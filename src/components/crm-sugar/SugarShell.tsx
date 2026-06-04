@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { CSSProperties, ReactNode, MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import CRMIcon, { type CrmIconName } from './CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { CrmTheme, SugarPalette } from './tokens'
 // CRM_AGENT mock retiré — l'avatar lit `useAuth().profile` (vrai utilisateur)
 import SugarNotificationsPopover from './notifications/SugarNotificationsPopover'
@@ -134,7 +134,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
         })}
       </nav>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SugarRoundIconBtn sp={sp} onClick={onCmd}><CRMIcon name="search" size={18} stroke={sp.soft} /></SugarRoundIconBtn>
+        <SugarRoundIconBtn sp={sp} onClick={onCmd}><MEIcon name="search" size={18} color={sp.soft} /></SugarRoundIconBtn>
         {/* Bouton Julien — Agent IA */}
         <button
           onClick={() => onNavigate && onNavigate('julien')}
@@ -168,7 +168,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
               WebkitBackdropFilter: 'blur(8px)',
               transition: 'background 160ms ease',
             }}>
-            <CRMIcon name="bell" size={18} stroke={notifOpen ? sp.pageBg : sp.soft} />
+            <MEIcon name="bell" size={18} color={notifOpen ? sp.pageBg : sp.soft} />
             {unreadCount > 0 && (
               <span style={{
                 position: 'absolute', top: 7, right: 7,
@@ -257,18 +257,18 @@ export function SugarIconRail({
   const activeStroke = sp.focusInk
   const dividerColor = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
 
-  type RailItem = { id: string; icon: CrmIconName; label: string; onClick?: () => void; dot?: boolean }
+  type RailItem = { id: string; icon: MEIconName; label: string; onClick?: () => void; dot?: boolean }
   const top: RailItem[] = [
     { id: 'search', icon: 'search', onClick: onCmd, label: 'Rechercher' },
     { id: 'add',    icon: 'plus',   label: 'Créer' },
   ]
   const modules: RailItem[] = [
-    { id: 'ai',        icon: 'spark', label: 'MEGGA AI' },
-    { id: 'dashboard', icon: 'dash',  label: 'Dashboard' },
+    { id: 'ai',        icon: 'sparkle', label: 'MEGGA AI' },
+    { id: 'dashboard', icon: 'dashboard',  label: 'Dashboard' },
     { id: 'biens-new', icon: 'plus',  label: 'Créer un bien' },
   ]
   const tools: RailItem[] = [
-    { id: 'kyc',    icon: 'kyc',   label: 'KYC' },
+    { id: 'kyc',    icon: 'shield',   label: 'KYC' },
     { id: 'reseau', icon: 'share', label: "Réseau d'agences" },
   ]
 
@@ -291,7 +291,7 @@ export function SugarIconRail({
         onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)' }}
         onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = idleBg }}
       >
-        <CRMIcon name={it.icon} size={22} stroke={isActive ? activeStroke : idleStroke} strokeWidth={1.7} />
+        <MEIcon name={it.icon} size={22} color={isActive ? activeStroke : idleStroke} strokeWidth={1.7} />
         {it.dot && <span style={{
           position: 'absolute', top: 8, right: 8, width: 9, height: 9, borderRadius: 999,
           background: '#E53935', border: `2px solid ${sp.pageBg}`,
@@ -324,7 +324,7 @@ export function SugarIconRail({
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
       }}>
-        <CRMIcon name="cog" size={22} stroke={idleStroke} strokeWidth={1.7} />
+        <MEIcon name="settings" size={22} color={idleStroke} strokeWidth={1.7} />
       </button>
 
       <button onClick={() => setDark(!dark)} title={dark ? 'Mode clair' : 'Mode sombre'} style={{
@@ -334,7 +334,7 @@ export function SugarIconRail({
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
       }}>
-        <CRMIcon name={dark ? 'sun' : 'moon'} size={22} stroke={idleStroke} strokeWidth={1.7} />
+        <MEIcon name={dark ? 'sun' : 'moon'} size={22} color={idleStroke} strokeWidth={1.7} />
       </button>
     </aside>
   )

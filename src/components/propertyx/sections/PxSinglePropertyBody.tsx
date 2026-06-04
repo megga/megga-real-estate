@@ -17,7 +17,7 @@
 import type { CSSProperties, FormEvent, MouseEvent } from 'react'
 import { useState, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PX, PxFigmaIcon, PxIcon } from '..'
+import { PX, PxFigmaIcon, MEIcon } from '..'
 import { formatCHF, formatRent } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -438,7 +438,7 @@ function ActionBar({ listing, layout = 'inline' }: { listing?: ListingCardData; 
         justifyContent: layout === 'inline' ? 'flex-end' : 'flex-start',
       }}>
         <button type="button" onClick={handleShare} aria-label={t('marketplaceProperty.actions.share')} style={buttonStyle}>
-          <PxIcon name="share" size={14} color={PX.neutral700} />
+          <MEIcon name="share" size={14} color={PX.neutral700} />
           <span style={{ paddingTop: 1 }}>
             {shareCopied ? t('marketplaceProperty.actions.shareCopied') : t('marketplaceProperty.actions.share')}
           </span>
@@ -457,14 +457,14 @@ function ActionBar({ listing, layout = 'inline' }: { listing?: ListingCardData; 
             opacity: listing ? 1 : 0.4,
           }}
         >
-          <PxIcon name="heart" size={14} color={favoriteOn ? PX.neutral100 : PX.neutral700} />
+          <MEIcon name="heart" size={14} color={favoriteOn ? PX.neutral100 : PX.neutral700} />
           <span style={{ paddingTop: 1 }}>
             {favoriteOn ? t('marketplaceProperty.favoriteRemove') : t('marketplaceProperty.favoriteAdd')}
           </span>
         </button>
         {listing ? (
           <button type="button" onClick={() => setReportOpen(true)} aria-label={t('marketplaceProperty.actions.report')} style={buttonStyle}>
-            <PxIcon name="flag" size={14} color={PX.neutral700} />
+            <MEIcon name="flag" size={14} color={PX.neutral700} />
             <span style={{ paddingTop: 1 }}>{t('marketplaceProperty.actions.report')}</span>
           </button>
         ) : null}

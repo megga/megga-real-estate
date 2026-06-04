@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import CRMIcon, { type CrmIconName } from '../CRMIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../tokens'
 
 export type NewContactType = 'buyer' | 'tenant' | 'seller' | 'landlord'
@@ -38,14 +38,14 @@ export interface NewContactPayload {
 const NC_TYPES: {
   id: NewContactType
   label: string
-  icon: CrmIconName
+  icon: MEIconName
   color: string
   desc: string
 }[] = [
   { id: 'buyer', label: 'Acheteur', icon: 'search', color: '#0041D9', desc: 'Recherche un bien à acheter' },
   { id: 'tenant', label: 'Locataire', icon: 'home', color: '#06B6D4', desc: 'Recherche une location' },
   { id: 'seller', label: 'Vendeur', icon: 'flag', color: '#B45309', desc: 'Met un bien en vente' },
-  { id: 'landlord', label: 'Propriétaire', icon: 'bien', color: '#0E9F6E', desc: 'Met un bien en location' },
+  { id: 'landlord', label: 'Propriétaire', icon: 'building', color: '#0E9F6E', desc: 'Met un bien en location' },
 ]
 
 const NC_CIVILITIES = [
@@ -316,7 +316,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
               flexShrink: 0,
             }}
           >
-            <CRMIcon name="contacts" size={16} stroke={primaryInk} />
+            <MEIcon name="users" size={16} color={primaryInk} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2
@@ -401,10 +401,10 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                       placeItems: 'center',
                     }}
                   >
-                    <CRMIcon
+                    <MEIcon
                       name={tt.icon}
                       size={14}
-                      stroke={active ? primaryInk : tt.color}
+                      color={active ? primaryInk : tt.color}
                     />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -982,7 +982,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                     gap: 8,
                   }}
                 >
-                  <CRMIcon name="plus" size={12} stroke={sp.soft} />
+                  <MEIcon name="plus" size={12} color={sp.soft} />
                   Ouvrir le wizard bien complet
                 </button>
 
@@ -1116,10 +1116,10 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 opacity: canSave && !isPending ? 1 : 0.7,
               }}
             >
-              <CRMIcon
+              <MEIcon
                 name="check"
                 size={12}
-                stroke={canSave && !isPending ? primaryInk : sp.sub}
+                color={canSave && !isPending ? primaryInk : sp.sub}
               />
               {isPending ? 'Création…' : 'Créer le contact'}
             </button>

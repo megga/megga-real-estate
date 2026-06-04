@@ -1,12 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import {
-  Sparkles, LayoutDashboard, Users, GitBranch, Shuffle, Building2, Plus,
-  Calendar, ShieldCheck, FileText, Zap, Settings, LogOut, X, Search,
-  Moon, Sun, PanelLeftClose, PanelLeftOpen, HelpCircle, Activity, Store, LifeBuoy, ChevronDown, Megaphone, Radio,
-  CreditCard, Shield, Star,
-} from 'lucide-react'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
@@ -19,31 +14,31 @@ import { useOpenTicketCount } from '@/hooks/useOpenTicketCount'
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
 interface NavSection { labelKey: string; items: NavItem[] }
-interface NavItem { labelKey: string; href: string; icon: React.ElementType; badge?: number; isCreateAction?: boolean }
+interface NavItem { labelKey: string; href: string; icon: MEIconName; badge?: number; isCreateAction?: boolean }
 
 // ─── NAV DATA ───────────────────────────────────────────────────────────────
 
 const NAV_SECTIONS: NavSection[] = [
   { labelKey: 'sections.main', items: [
-    { labelKey: 'nav.today', href: '/dashboard', icon: Sparkles },
-    { labelKey: 'nav.dashboard', href: '/dashboard/analytics', icon: LayoutDashboard },
+    { labelKey: 'nav.today', href: '/dashboard', icon: 'sparkle' },
+    { labelKey: 'nav.dashboard', href: '/dashboard/analytics', icon: 'dashboard' },
   ]},
   { labelKey: 'sections.crm', items: [
-    { labelKey: 'nav.contacts', href: '/dashboard/contacts', icon: Users },
-    { labelKey: 'nav.pipeline', href: '/dashboard/pipeline', icon: GitBranch },
-    { labelKey: 'nav.matching', href: '/dashboard/matching', icon: Shuffle },
+    { labelKey: 'nav.contacts', href: '/dashboard/contacts', icon: 'users' },
+    { labelKey: 'nav.pipeline', href: '/dashboard/pipeline', icon: 'flowchart' },
+    { labelKey: 'nav.matching', href: '/dashboard/matching', icon: 'refresh' },
   ]},
   { labelKey: 'sections.properties', items: [
-    { labelKey: 'nav.listings', href: '/dashboard/listings', icon: Building2 },
-    { labelKey: 'nav.createListing', href: '/dashboard/listings/new', icon: Plus, isCreateAction: true },
+    { labelKey: 'nav.listings', href: '/dashboard/listings', icon: 'building' },
+    { labelKey: 'nav.createListing', href: '/dashboard/listings/new', icon: 'plus', isCreateAction: true },
   ]},
   { labelKey: 'sections.communication', items: [
-    { labelKey: 'nav.calendar', href: '/dashboard/calendar', icon: Calendar },
-    { labelKey: 'nav.support', href: '/dashboard/support', icon: HelpCircle },
+    { labelKey: 'nav.calendar', href: '/dashboard/calendar', icon: 'calendar' },
+    { labelKey: 'nav.support', href: '/dashboard/support', icon: 'help' },
   ]},
   { labelKey: 'sections.compliance', items: [
-    { labelKey: 'nav.kyc', href: '/dashboard/kyc', icon: ShieldCheck },
-    { labelKey: 'nav.documents', href: '/dashboard/documents', icon: FileText },
+    { labelKey: 'nav.kyc', href: '/dashboard/kyc', icon: 'shield' },
+    { labelKey: 'nav.documents', href: '/dashboard/documents', icon: 'file' },
   ]},
 ]
 
@@ -140,10 +135,10 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
               aria-label="Réduire la sidebar"
               className="hidden lg:flex p-1.5 rounded-md hover:bg-theme-hover transition-colors"
             >
-              <PanelLeftClose className="h-4 w-4 text-theme-tertiary" />
+              <MEIcon name="collapse" className="h-4 w-4 text-theme-tertiary" />
             </button>
             <button onClick={onClose} aria-label="Fermer le menu" className="lg:hidden p-1.5 rounded-md hover:bg-theme-hover">
-              <X className="h-5 w-5 text-theme-muted" />
+              <MEIcon name="close" className="h-5 w-5 text-theme-muted" />
             </button>
           </div>
         )}
@@ -160,7 +155,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             aria-label="Rechercher"
             className="w-10 h-8 rounded-lg flex items-center justify-center hover:bg-theme-hover transition-colors text-theme-tertiary hover:text-theme-primary"
           >
-            <Search className="w-[18px] h-[18px] stroke-[1.8]" />
+            <MEIcon name="search" className="w-[18px] h-[18px] stroke-[1.8]" />
           </button>
           <CollapsedTooltip show={hoveredItem === 'search'}>{t('nav.search')}</CollapsedTooltip>
         </div>
@@ -170,7 +165,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             onClick={() => onOpenCommandPalette?.()}
             className="w-full h-8 bg-theme-input rounded-lg px-3 flex items-center gap-2 text-xs text-theme-muted hover:bg-theme-hover transition-colors"
           >
-            <Search className="w-3.5 h-3.5 text-theme-tertiary" />
+            <MEIcon name="search" className="w-3.5 h-3.5 text-theme-tertiary" />
             <span className="flex-1 text-left">{t('nav.search')}</span>
             <kbd className="text-xs bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
           </button>
@@ -187,7 +182,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             onClick={() => onQuickContact?.()}
             className="w-10 h-8 rounded-lg flex items-center justify-center hover:bg-theme-hover transition-colors text-theme-tertiary hover:text-theme-primary"
           >
-            <Plus className="w-[18px] h-[18px] stroke-[1.8]" />
+            <MEIcon name="plus" className="w-[18px] h-[18px] stroke-[1.8]" />
           </button>
           <CollapsedTooltip show={hoveredItem === 'quick-contact'}>Nouveau contact ⌘⇧C</CollapsedTooltip>
         </div>
@@ -197,7 +192,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             onClick={() => onQuickContact?.()}
             className="w-full h-8 rounded-lg px-3 flex items-center gap-2 text-xs text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <MEIcon name="plus" className="w-3.5 h-3.5" />
             <span className="flex-1 text-left">Nouveau contact</span>
             <kbd className="text-xs bg-theme-active text-theme-tertiary px-1.5 py-0.5 rounded font-mono">⌘⇧C</kbd>
           </button>
@@ -218,7 +213,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                   'w-full text-theme-secondary hover:text-theme-primary'
                 )}
               >
-                <ChevronDown className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8] rotate-90" />
+                <MEIcon name="chevron-down" className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8] rotate-90" />
                 <span className={fadeLabel(isCol)}>Retour agent</span>
               </button>
             </div>
@@ -239,7 +234,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                 onClick={() => setAdminSearchOpen(true)}
                 className={cn(navRow(isCol, false), 'w-full text-theme-secondary')}
               >
-                <Search className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
+                <MEIcon name="search" className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
                 <span className={fadeLabel(isCol)}>Rechercher...</span>
               </button>
             </div>
@@ -248,19 +243,21 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             {/* Admin items */}
             <div className="space-y-0.5">
               {[
-                { labelKey: 'nav.adminLive', href: '/dashboard/admin/live', icon: Radio },
-                { labelKey: 'nav.adminOverview', href: '/dashboard/admin', icon: LayoutDashboard },
-                { labelKey: 'nav.adminAgencies', href: '/dashboard/admin/agencies', icon: Building2 },
-                { labelKey: 'nav.adminUsers', href: '/dashboard/admin/users', icon: Users },
-                { labelKey: 'nav.adminMonitoring', href: '/dashboard/admin/monitoring', icon: Activity },
-                { labelKey: 'nav.adminMarketplace', href: '/dashboard/admin/marketplace', icon: Store },
-                { labelKey: 'nav.adminCompliance', href: '/dashboard/admin/compliance', icon: ShieldCheck },
-                { labelKey: 'nav.adminSupport', href: '/dashboard/admin/support', icon: LifeBuoy },
-                { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: Megaphone },
-                { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: Zap },
-                { labelKey: 'nav.adminPlans', href: '/dashboard/admin/plans', icon: CreditCard },
-                { labelKey: 'nav.adminSecurity', href: '/dashboard/admin/security', icon: Shield },
-                { labelKey: 'nav.adminNps', href: '/dashboard/admin/nps', icon: Star },
+                { labelKey: 'nav.adminLive', href: '/dashboard/admin/live', icon: 'broadcast' },
+                { labelKey: 'nav.adminOverview', href: '/dashboard/admin', icon: 'dashboard' },
+                { labelKey: 'nav.adminAgencies', href: '/dashboard/admin/agencies', icon: 'building' },
+                { labelKey: 'nav.adminUsers', href: '/dashboard/admin/users', icon: 'users' },
+                { labelKey: 'nav.adminMonitoring', href: '/dashboard/admin/monitoring', icon: 'broadcast' },
+                { labelKey: 'nav.adminMarketplace', href: '/dashboard/admin/marketplace', icon: 'store' },
+                { labelKey: 'nav.adminCompliance', href: '/dashboard/admin/compliance', icon: 'shield' },
+                { labelKey: 'nav.adminSupport', href: '/dashboard/admin/support', icon: 'help' },
+                { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: 'megaphone' },
+                { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: 'bolt' },
+                { labelKey: 'nav.adminPlans', href: '/dashboard/admin/plans', icon: 'credit-card' },
+                { labelKey: 'nav.adminSecurity', href: '/dashboard/admin/security', icon: 'shield' },
+                { labelKey: 'nav.adminNps', href: '/dashboard/admin/nps', icon: 'star' },
+                { labelKey: 'nav.adminAutonomy', href: '/dashboard/admin/autonomy', icon: 'sparkle' },
+                { labelKey: 'nav.adminLearning', href: '/dashboard/admin/learning', icon: 'sparkle' },
               ].map((item) => {
                 const isItemActive = location.pathname === item.href ||
                   (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))
@@ -278,7 +275,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                       )}
                     >
                       <div className="relative flex-shrink-0">
-                        <item.icon className={cn('h-[18px] w-[18px] stroke-[1.8]', isItemActive && 'text-admin-accent')} />
+                        <MEIcon name={item.icon as MEIconName} className={cn('h-[18px] w-[18px] stroke-[1.8]', isItemActive && 'text-admin-accent')} />
                         {item.href === '/dashboard/admin/support' && openTicketCount > 0 && (
                           <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
                         )}
@@ -319,7 +316,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                       'w-full text-admin-accent hover:!bg-admin-accent/8'
                     )}
                   >
-                    <ShieldCheck className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
+                    <MEIcon name="shield" className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
                     <span className={fadeLabel(isCol)}>Admin MEGGA</span>
                   </button>
                   <CollapsedTooltip show={isCol && hoveredItem === 'admin-switch'}>
@@ -355,7 +352,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                           className={navRow(isCol, active)}
                         >
                           <div className="relative flex-shrink-0">
-                            <item.icon className="w-[18px] h-[18px] stroke-[1.8]" />
+                            <MEIcon name={item.icon as MEIconName} className="w-[18px] h-[18px] stroke-[1.8]" />
                           </div>
                           <span className={fadeLabel(isCol)}>{label}</span>
                         </Link>
@@ -387,7 +384,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
               aria-label="Déplier la sidebar"
               className="mx-auto flex items-center justify-center w-10 h-9 rounded-lg text-theme-secondary hover:bg-theme-hover hover:text-theme-primary transition-colors cursor-pointer"
             >
-              <PanelLeftOpen className="w-[18px] h-[18px] stroke-[1.8]" />
+              <MEIcon name="expand" className="w-[18px] h-[18px] stroke-[1.8]" />
             </button>
             <CollapsedTooltip show={hoveredItem === 'expand'}>Déplier</CollapsedTooltip>
           </div>
@@ -418,9 +415,9 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             className={cn(navRow(isCol, false), 'w-full')}
           >
             {theme === 'light' ? (
-              <Moon className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
+              <MEIcon name="moon" className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
             ) : (
-              <Sun className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
+              <MEIcon name="sun" className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
             )}
             <span className={fadeLabel(isCol)}>
               {theme === 'light' ? t('nav.darkMode') : t('nav.lightMode')}
@@ -441,7 +438,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             onClick={onClose}
             className={navRow(isCol, location.pathname.startsWith('/dashboard/settings'))}
           >
-            <Settings className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
+            <MEIcon name="settings" className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
             <span className={fadeLabel(isCol)}>{t('nav.settings')}</span>
           </Link>
           <CollapsedTooltip show={isCol && hoveredItem === 'settings'}>
@@ -469,7 +466,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
               className="p-1.5 rounded-md hover:bg-theme-card text-theme-tertiary hover:text-danger transition-colors"
               title={t('nav.logout')}
             >
-              <LogOut className="h-4 w-4" />
+              <MEIcon name="logout" className="h-4 w-4" />
             </button>
           </div>
         </Link>

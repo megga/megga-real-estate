@@ -319,7 +319,7 @@ export default function JulienSugarV2Page() {
         background: dark
           ? 'radial-gradient(ellipse 100% 70% at 50% 0%, #15141A 0%, #0A0A0B 50%, #050506 100%)'
           : 'radial-gradient(ellipse 120% 90% at 50% 110%, #C8D5E0 0%, #DDE2E9 40%, #EAEDF3 100%)',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: s.ink,
         position: 'relative',
         overflow: 'hidden',
@@ -502,7 +502,7 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
                   border: dark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.8)',
                   boxShadow: dark ? '0 4px 16px rgba(0,0,0,.25)' : '0 4px 20px rgba(15,23,42,0.07)',
                   color: s.inkSoft, fontSize: 13, fontWeight: 600,
-                  fontFamily: 'Manrope, system-ui, sans-serif', cursor: 'pointer',
+                  fontFamily: '"Inter Tight", system-ui, sans-serif', cursor: 'pointer',
                   transition: 'all .18s',
                   animation: `capsule-in .35s ease ${i * 0.06}s both`,
                 }}
@@ -789,7 +789,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
           borderTop: `1px solid ${s.border}`,
           fontSize: 14.5, lineHeight: 1.75, color: s.ink,
           whiteSpace: 'pre-wrap',
-          fontFamily: 'Manrope, system-ui, sans-serif',
+          fontFamily: '"Inter Tight", system-ui, sans-serif',
         }}
       >
         {email.body}
@@ -847,7 +847,7 @@ function PromptBar({ onSend, loading, dark, s }: PromptBarProps) {
             placeholder="Comment puis-je vous aider ?" rows={1}
             style={{
               width: '100%', border: 0, background: 'transparent',
-              color: s.ink, fontSize: 15.5, fontFamily: 'Manrope, system-ui, sans-serif',
+              color: s.ink, fontSize: 15.5, fontFamily: '"Inter Tight", system-ui, sans-serif',
               resize: 'none', outline: 'none', lineHeight: 1.65,
               maxHeight: 200, overflowY: 'auto', padding: 0,
             }}

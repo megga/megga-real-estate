@@ -14,7 +14,7 @@ export function isPairingCodeValid(expiresAt: string | null | undefined): boolea
   return Number.isFinite(t) && t > Date.now()
 }
 
-export type ToolTier = 'read' | 'auto' | 'confirm'
+export type ToolTier = 'read' | 'auto' | 'confirm' | 'slow_async'
 
 // Source de vérité du tier par outil. Inconnu => 'confirm' (fail-safe : jamais
 // d'exécution d'un outil non classé sans confirmation humaine).
@@ -45,12 +45,76 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   send_listings: 'confirm',
   record_offer: 'confirm',
   open_kyc_case: 'confirm',
-  attach_kyc_document: 'auto',
-  run_kyc_screening: 'auto',
+  attach_kyc_document: 'auto',          // reste synchrone (P2b : async + R2)
+  run_kyc_screening: 'slow_async',      // ~50s Dilisense → hors boucle (file + cron)
+  send_kyc_report: 'slow_async',        // ~60s render PDF + envoi → hors boucle
 }
 
 export function toolTier(name: string): ToolTier {
   return TOOL_TIERS[name] ?? 'confirm'
+}
+
+// SEUL outil 'confirm' qui peut passer en auto (Palier 3) : update_pipeline — réversible
+// (undo) + audité, aucun flux client/argent. Le socle légal (send_client_message/send_listings/
+// record_offer/open_kyc_case) renvoie false ICI quel que soit l'agent → ne quitte JAMAIS confirm.
+export function canLeaveConfirm(tool: string): boolean {
+  return tool === 'update_pipeline'
+}
+
+// NB: 'annule'/'annuler' figurent aussi dans le set NO de parseConfirmation — garder les deux cohérents.
+const UNDO_WORDS = new Set(['/annuler', 'annuler', 'annule', 'undo', 'reviens', 'rétablis', 'retablis'])
+/** Vrai si le message est une commande d'annulation courte (pour l'undo différé). */
+export function isUndoCommand(body: string | null | undefined): boolean {
+  if (!body) return false
+  const norm = body.trim().toLowerCase().replace(/[!.…]+$/, '')
+  return UNDO_WORDS.has(norm)
+}
+
+// ── Garde anti-hallucination KYC (hotfix 3 juin 2026) ────────────────────────
+// Depuis le passage des outils KYC en async (Palier 2), la réponse immédiate à un screening
+// est une PROMESSE (« je lance, résultat plus tard ») que DeepSeek peut FABRIQUER en texte
+// sans appeler l'outil — il l'a fait en prod (incident Vladimir : « j'ai lancé le screening »
+// alors que rien n'avait tourné). C'est compliance-critique (fausse assurance LBA).
+// Cette fonction PURE détecte, dans une réponse en texte LIBRE de DeepSeek (= aucun outil KYC
+// appelé ce tour-ci), une affirmation qu'un screening / rapport KYC a été lancé / fait / est en
+// cours. Si oui, l'agent remplace la réponse par un message honnête (jamais de fausse action).
+// `kycToolCalled` = true ⇒ un outil KYC a réellement tourné ⇒ l'affirmation est légitime (pas de flag).
+export function isFabricatedKycClaim(reply: string | null | undefined, kycToolCalled: boolean): boolean {
+  if (kycToolCalled || !reply) return false
+  const r = reply.toLowerCase()
+
+  // (1) EXPOSER LE MÉCANISME ASYNC = fabrication, SANS gate KYC : les seuls outils async de l'agent
+  // sont les outils KYC, donc « traitement asynchrone » / « asynchronous » ne peut venir que de là.
+  if (/(traitement\s+asynchrone|asynchron)/.test(r)) return true
+
+  // (2) Hors de ce tell : exiger une mention KYC (scope) + écarter l'historique légitime
+  // (« on a déjà généré le rapport », « le screening d'hier… » = l'agent rappelle un fait passé).
+  if (!/(screening|\bscreen\b|kyc|sanctions?|\bpep\b|vérif|verif|\blba\b|contrôl|controle)/.test(r)) return false
+  if (/\b(déjà|deja|hier|avant-hier|la\s+semaine\s+(dernière|derniere|passée|passee)|le\s+mois\s+dernier|auparavant|already|yesterday|last\s+(week|month))\b/.test(r)) return false
+
+  // (3) Action présentée comme EN COURS / résultat À VENIR (la signature de l'incident Vladimir).
+  if (
+    /(en\s+cours|en\s+route|en\s+train\s+de|\btourne\b|\bin\s+progress\b|\bprocessing\b|\brunning\b|\bunderway\b)/.test(r) ||
+    /(résultats?\s+(dans|d['e ]?ici|sous|à\s+venir|bient[ôo]t|arrive)|results?\b[^.]{0,20}(shortly|soon|coming|in\s+a\s+(few|moment)))/.test(r) ||
+    /((je\s+te\s+(préviens|previens|reviens|tiens|donne|recontacte))|(je\s+reviens\s+vers)|(d[èe]s\s+que\s+c['e ]?est\s+(dispo|pr[êe]t|fait))|(i['\s]?(ll|will)\s+(let\s+you\s+know|get\s+back|keep\s+you)))/.test(r) ||
+    /(ne\s+(me\s+)?remonte\s+pas\b[^.]*résultat)|((ça|ca)\s+arrive)/.test(r)
+  ) return true
+
+  // (4) Offre / futur (« tu veux que je lance », « je vais », « je peux ») = légitime, pas une action FAITE.
+  if (/\b(je\s+vais|tu\s+veux|veux-tu|souhaites?-tu|si\s+tu|je\s+peux|dois-je|will\s+you|do\s+you\s+want|i\s+can|shall\s+i)\b/.test(r)) return false
+
+  // (5) Prétend avoir LANCÉ / FAIT l'action ou en donne un RÉSULTAT (sans appel d'outil) = fabrication.
+  return (
+    /\bj['e ]?ai\s+(re)?(lanc|déclench|declench|démarr|demarr|initi|envoy|génér|gener|effectu|réalis|realis|vérifi|verifi|fait)/.test(r) ||
+    /\bje\s+(viens\s+de|m['e ]?occupe)\b/.test(r) ||
+    /\b(est|a\s+ét[ée]|sont|ont\s+ét[ée])\s+(lanc[ée]|déclench[ée]|declench[ée]|démarr[ée]|demarr[ée]|initi[ée]|envoy[ée]|génér[ée]|gener[ée]|effectu[ée]|réalis[ée]|realis[ée]|vérifi[ée]|verifi[ée]|parti[es]?)/.test(r) ||
+    /\bfaite?\b/.test(r) ||
+    /c['e ]?est\s+parti/.test(r) ||
+    /\bi['\s]?(ve|m| have| am)?\s*(just\s+)?(launch|ran\b|run\b|start|sent|trigger|initiat|complet)/.test(r) ||
+    /(screening|kyc|sanctions?|pep|report|check)\s+(is\s+|has\s+been\s+|was\s+)?(started|launched|done|complete|completed|sent|triggered)/.test(r) ||
+    /(pas\s+de\s+pep|aucun\s+pep|pep\s+(détecté|detecte|trouvé|trouve|match)|correspondance\s+sanction|risque\s+(faible|moyen|élev[ée])|\bras\b)/.test(r) ||
+    /(no\s+pep\s+match|sanctions?\s+(clear|match)|(low|medium|high)\s+risk)/.test(r)
+  )
 }
 
 // Les 14 colonnes canoniques du pipeline (= transactions.stage, hors valeurs legacy

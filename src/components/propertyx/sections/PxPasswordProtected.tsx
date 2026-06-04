@@ -14,7 +14,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { PX, PxIcon } from '..'
+import { PX, MEIcon } from '..'
 
 // ─── Logo Property X (inline SVG, version noir/dark) ────────────────────
 // Charge les vrais assets Figma stockés dans /public/icons/figma/propertyx/.
@@ -108,7 +108,7 @@ function PasswordProtectedHeader() {
               style={{ ...navLinkStyle, gap: 6 }}
             >
               Pages
-              <PxIcon name="chevron-down" size={16} color={PX.neutral700} />
+              <MEIcon name="chevron-down" size={16} color={PX.neutral700} />
             </Link>
             <Link to="/account" style={navLinkStyle}>Cart (0)</Link>
           </nav>

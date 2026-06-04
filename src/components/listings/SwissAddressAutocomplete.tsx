@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { MapPin, Loader2, Search } from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useSwissAddress, type SwissAddressSuggestion } from '@/hooks/useSwissAddress'
 
@@ -108,7 +108,7 @@ export default function SwissAddressAutocomplete({
     <div ref={containerRef} className={cn('relative', className)}>
       {/* Input */}
       <div className="relative">
-        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-muted" />
+        <MEIcon name="location" className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-muted" />
         <input
           ref={inputRef}
           type="text"
@@ -129,9 +129,9 @@ export default function SwissAddressAutocomplete({
         />
         <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
           {isLoading ? (
-            <Loader2 className="h-4 w-4 text-theme-muted animate-spin" />
+            <MEIcon name="spinner" className="h-4 w-4 text-theme-muted animate-spin" />
           ) : (
-            <Search className="h-4 w-4 text-theme-muted" />
+            <MEIcon name="search" className="h-4 w-4 text-theme-muted" />
           )}
         </div>
       </div>
@@ -163,7 +163,7 @@ export default function SwissAddressAutocomplete({
                   i === activeIndex ? 'bg-theme-hover' : 'hover:bg-theme-hover'
                 )}
               >
-                <MapPin className="h-4 w-4 text-theme-muted mt-0.5 flex-shrink-0" />
+                <MEIcon name="location" className="h-4 w-4 text-theme-muted mt-0.5 flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-theme-primary truncate">
                     {s.street}

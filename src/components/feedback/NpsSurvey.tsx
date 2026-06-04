@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Star } from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
@@ -79,7 +79,7 @@ export default function NpsSurvey() {
               aria-label="Fermer"
               className="h-6 w-6 rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary hover:bg-theme-hover transition-colors"
             >
-              <X className="h-3.5 w-3.5" />
+              <MEIcon name="close" className="h-3.5 w-3.5" />
             </button>
           </div>
 
@@ -94,7 +94,7 @@ export default function NpsSurvey() {
                 aria-label={`${star} etoile${star > 1 ? 's' : ''}`}
                 className="p-1 transition-colors"
               >
-                <Star className={cn(
+                <MEIcon name="star" className={cn(
                   'h-7 w-7 transition-colors',
                   (hoveredStar !== null ? star <= hoveredStar : star <= (rating ?? 0))
                     ? 'fill-amber-400 text-amber-400'

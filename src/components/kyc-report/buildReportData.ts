@@ -1,6 +1,8 @@
 // MEGGA — Builder de view-model pour le rapport PDF KYC (Sprint 4.4)
 // Transforme les rows Supabase (kyc_cases + documents + activity_events) en
-// structure consommable par PdfPage1/2/3. ZÉRO mention IA / Sonnet : volontaire.
+// structure consommable par PdfPage1/2/3.
+// L'analyse de risque qualitative (dossier.ai_analysis) est incluse comme
+// ESTIMATION ASSISTÉE soumise à validation humaine — sans nommer le provider.
 
 import type {
   KycCase,
@@ -81,6 +83,16 @@ export interface PdfReportData {
   validated_at: string | null
   validated_by: string | null
   integrity_hash: string // SHA-256 calculé sur l'ensemble du dossier
+  /** Analyse de risque qualitative — estimation assistée, validation humaine requise.
+   *  null si ai_analysis absent du dossier (section masquée dans le PDF). */
+  risk_analysis: {
+    risk_label: string          // "Faible" | "Moyen" | "Élevé" | "Critique"
+    risk_sub: string            // "Risque moyen"
+    vigilance_label: string     // "Vigilance standard" | "Vigilance renforcée" | "Escalade MLRO recommandée"
+    justification: string
+    patterns: string[]
+    confidence_pct: number | null // 0–100, null si non renseigné
+  } | null
 }
 
 // ─── Mappings labels FR ────────────────────────────────────────────────
@@ -132,6 +144,12 @@ const RISK_LABEL_MAP: Record<string, string> = {
   medium: 'Moyen',
   high: 'Élevé',
   critical: 'Critique',
+}
+
+const AI_VIGILANCE_LABEL: Record<string, string> = {
+  standard: 'Vigilance standard',
+  renforced: 'Vigilance renforcée',
+  escalation_mlro: 'Escalade MLRO recommandée',
 }
 
 const DOC_CATEGORY_LABEL: Record<string, string> = {
@@ -266,6 +284,35 @@ function buildLbaChecks(
   })
 }
 
+// ─── Analyse de risque qualitative (estimation assistée) ───────────────
+
+function buildRiskAnalysis(
+  dossier: KycCase
+): PdfReportData['risk_analysis'] {
+  const ai = dossier.ai_analysis
+  if (!ai) return null
+
+  const risk = ai.qualitative_risk as string
+  const risk_label = RISK_LABEL_MAP[risk] ?? 'Faible'
+  const risk_sub = `Risque ${risk_label.toLowerCase()}`
+  const vigilance_label =
+    AI_VIGILANCE_LABEL[ai.vigilance_recommendation as string] ??
+    'Vigilance standard'
+  const confidence_pct =
+    typeof ai.confidence === 'number' && Number.isFinite(ai.confidence)
+      ? Math.round(ai.confidence * 100)
+      : null
+
+  return {
+    risk_label,
+    risk_sub,
+    vigilance_label,
+    justification: ai.justification,
+    patterns: ai.patterns_detected,
+    confidence_pct,
+  }
+}
+
 // ─── Helper public ─────────────────────────────────────────────────────
 
 export interface BuildReportInput {
@@ -355,5 +402,6 @@ export function buildPdfReportData(input: BuildReportInput): PdfReportData {
     validated_at: dossier.validated_at,
     validated_by: dossier.validated_by,
     integrity_hash: buildIntegrityHash(dossier, documents),
+    risk_analysis: buildRiskAnalysis(dossier),
   }
 }

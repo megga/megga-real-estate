@@ -19,7 +19,7 @@ import {
 } from '@/components/crm-sugar/tokens'
 import { useTodaySugarKpi } from '@/hooks/useTodaySugarKpi'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
-import CRMIcon from '@/components/crm-sugar/CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import {
   SugarTopNav, SugarIconRail, SugarFrame, SugarRoundIconBtn,
   SUGAR_KEYFRAMES, type SugarScreenId,
@@ -105,7 +105,7 @@ export default function TodaySugarPage() {
     <div style={{
       background: sp.pageBg,
       minHeight: '100vh',
-      fontFamily: 'Manrope, system-ui, sans-serif',
+      fontFamily: '"Inter Tight", system-ui, sans-serif',
       color: sp.ink,
     }}>
       <style>{SUGAR_KEYFRAMES}</style>
@@ -149,7 +149,7 @@ export default function TodaySugarPage() {
                   width: 64, height: 64, borderRadius: 999,
                   background: sp.cardSubBg, display: 'grid', placeItems: 'center',
                 }}>
-                  <CRMIcon name="plus" size={32} stroke={sp.soft} />
+                  <MEIcon name="plus" size={32} color={sp.soft} />
                 </div>
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: sp.ink, marginBottom: 4 }}>
@@ -193,7 +193,7 @@ export default function TodaySugarPage() {
               title="Pipeline du jour"
               actions={
                 <SugarRoundIconBtn sp={sp} onClick={() => navigate('/dashboard/pipeline')}>
-                  <CRMIcon name="arrowR" size={18} stroke={sp.soft} />
+                  <MEIcon name="arrow-right" size={18} color={sp.soft} />
                 </SugarRoundIconBtn>
               }
             >

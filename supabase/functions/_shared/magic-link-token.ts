@@ -11,6 +11,9 @@
 interface MagicLinkTokenPayload {
   id: string
   exp: number
+  /** Optionnel : profile id de l'agent demandeur (rapport KYC PDF par WhatsApp).
+   *  Survit au round-trip JSON ; non requis par les usages magic-link existants. */
+  p?: string
 }
 
 const enc = new TextEncoder()

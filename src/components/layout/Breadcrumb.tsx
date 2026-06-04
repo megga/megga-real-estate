@@ -1,5 +1,5 @@
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useContact } from '@/hooks/useContacts'
 
 interface BreadcrumbSegment {
@@ -76,7 +76,7 @@ export default function Breadcrumb() {
         const isLast = i === segments.length - 1
         return (
           <div key={segment.path} className="flex items-center gap-1.5">
-            {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-theme-tertiary flex-shrink-0" />}
+            {i > 0 && <MEIcon name="chevron-right" className="w-3.5 h-3.5 text-theme-tertiary flex-shrink-0" />}
             {segment.isContactId ? (
               <ContactBreadcrumb id={segment.label} path={segment.path} isLast={isLast} />
             ) : isLast ? (

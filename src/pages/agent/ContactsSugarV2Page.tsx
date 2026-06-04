@@ -12,7 +12,7 @@ import { useCreateContact } from '@/hooks/useContacts'
 import { useTransactions } from '@/hooks/useTransactions'
 import { transactionToCrmDeal } from '@/lib/sugarAdapters'
 import type { TransactionStage } from '@/lib/constants'
-import CRMIcon from '@/components/crm-sugar/CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -267,7 +267,7 @@ export default function ContactsSugarV2Page() {
       style={{
         background: sp.pageBg,
         minHeight: '100vh',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: sp.ink,
       }}
     >
@@ -307,7 +307,7 @@ export default function ContactsSugarV2Page() {
                 borderRadius: 14,
                 background: '#FFFFFF',
                 boxShadow: '0 4px 16px rgba(15,23,42,0.04)',
-                fontFamily: 'Manrope, system-ui, sans-serif',
+                fontFamily: '"Inter Tight", system-ui, sans-serif',
               }}
             >
               <span
@@ -408,7 +408,7 @@ export default function ContactsSugarV2Page() {
             animation: 'sugar-toast 280ms cubic-bezier(.22,1,.36,1)',
           }}
         >
-          <CRMIcon name="check" size={13} stroke={sp.pageBg} />
+          <MEIcon name="check" size={13} color={sp.pageBg} />
           {toast}
         </div>
       )}

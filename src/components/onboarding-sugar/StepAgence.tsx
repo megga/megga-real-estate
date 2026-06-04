@@ -13,7 +13,7 @@ import {
 } from './primitives'
 import { createAgency, joinAgency, searchAgencies } from './persistence'
 import type { ObAgency, OnboardingData, Setter } from './types'
-import PxIcon from '@/components/propertyx/PxIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { SWISS_CANTONS, CANTON_LABELS } from '@/hooks/useMarketFilters'
 
 // ─── Agency logo (initials + tint dot) ───────────────────────────────
@@ -134,7 +134,7 @@ function ObAgencyRow({
           transform: hovered ? 'translateX(2px)' : 'translateX(0)',
         }}
       >
-        <PxIcon name="chevron-right" size={16} />
+        <MEIcon name="chevron-right" size={16} />
       </span>
     </button>
   )
@@ -216,7 +216,7 @@ function ObAgencySearch({
           transition: 'box-shadow .25s cubic-bezier(.22,1,.36,1)',
         }}
       >
-        <PxIcon name="search" size={26} color={focused ? t.ink : t.muted} strokeWidth={1.8} />
+        <MEIcon name="search" size={26} color={focused ? t.ink : t.muted} strokeWidth={1.8} />
         <input
           ref={inputRef}
           value={query}
@@ -260,7 +260,7 @@ function ObAgencySearch({
               flexShrink: 0,
             }}
           >
-            <PxIcon name="close" size={14} />
+            <MEIcon name="close" size={14} />
           </button>
         )}
       </div>
@@ -349,7 +349,7 @@ function ObAgencySearch({
                 transition: 'box-shadow .15s ease',
               }}
             >
-              <PxIcon name="plus" size={18} />
+              <MEIcon name="plus" size={18} />
             </div>
             <div style={{ flex: 1 }}>
               <div
@@ -371,7 +371,7 @@ function ObAgencySearch({
                 transition: 'color .15s',
               }}
             >
-              <PxIcon name="chevron-right" size={16} />
+              <MEIcon name="chevron-right" size={16} />
             </span>
           </button>
         </div>
@@ -465,7 +465,7 @@ function ObAgencySelected({
                     placeItems: 'center',
                   }}
                 >
-                  <PxIcon name="close" size={18} />
+                  <MEIcon name="close" size={18} />
                 </button>
               )}
             </div>
@@ -518,7 +518,7 @@ function ObAgencySelected({
                       gap: 6,
                     }}
                   >
-                    <PxIcon
+                    <MEIcon
                       name="check"
                       size={12}
                       color={t.ok}
@@ -542,7 +542,7 @@ function ObAgencySelected({
                   onClick={onConfirm}
                   dark={dark}
                   icon={
-                    <PxIcon
+                    <MEIcon
                       name="arrow-right"
                       size={16}
                       color={dark ? '#0B0C0E' : '#fff'}
@@ -581,7 +581,7 @@ function ObAgencySelected({
                     placeItems: 'center',
                   }}
                 >
-                  <PxIcon name="info" size={20} />
+                  <MEIcon name="info" size={20} />
                 </div>
                 <div>
                   <div
@@ -621,7 +621,7 @@ function ObAgencySelected({
                   lineHeight: 1.5,
                 }}
               >
-                <PxIcon name="info" size={16} color={t.muted} />
+                <MEIcon name="info" size={16} color={t.muted} />
                 <span>
                   Vérifiez votre connexion et réessayez. Si le problème persiste,
                   choisissez une autre agence ou créez la vôtre.
@@ -682,7 +682,7 @@ function ObAgencySelected({
                   boxShadow: `0 10px 28px ${t.ok}40`,
                 }}
               >
-                <PxIcon
+                <MEIcon
                   name="check"
                   size={28}
                   strokeWidth={2.4}
@@ -845,7 +845,7 @@ function ObAgencyCreate({
               placeItems: 'center',
             }}
           >
-            <PxIcon name="close" size={18} />
+            <MEIcon name="close" size={18} />
           </button>
         </div>
 
@@ -909,7 +909,7 @@ function ObAgencyCreate({
             }}
           >
             <div style={{ color: t.warn, flexShrink: 0, marginTop: 1 }}>
-              <PxIcon name="alert" size={18} />
+              <MEIcon name="alert" size={18} />
             </div>
             <div style={{ flex: 1 }}>
               <div
@@ -984,7 +984,7 @@ function ObAgencyCreate({
             onClick={submitCreate}
             dark={dark}
             icon={
-              <PxIcon
+              <MEIcon
                 name="arrow-right"
                 size={16}
                 color={dark ? '#0B0C0E' : '#fff'}

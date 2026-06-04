@@ -42,6 +42,7 @@ supabase/.temp/
 # committed exports, NOT these DBs which are machine-specific and churn)
 .swarm/
 ruvector.db
+agentdb.rvf*
 .claude/memory.db
 *.db-shm
 *.db-wal

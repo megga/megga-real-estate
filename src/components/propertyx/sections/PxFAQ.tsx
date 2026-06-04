@@ -20,7 +20,7 @@
 //   </section>
 
 import { useState } from 'react'
-import { PX, PxIcon } from '..'
+import { PX, MEIcon } from '..'
 
 interface Question {
   id: string
@@ -162,7 +162,7 @@ function AccordionItem({
           boxShadow: open ? 'none' : PX.shadow.small,
         }}
       >
-        <PxIcon
+        <MEIcon
           name={open ? 'minus' : 'plus'}
           size={16}
           color={open ? PX.neutral100 : PX.neutral700}

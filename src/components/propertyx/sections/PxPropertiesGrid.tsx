@@ -26,7 +26,7 @@
 //     </Grid Wrapper>
 //   </section>
 
-import { PX, PxIcon, PxFigmaIcon } from '..'
+import { PX, MEIcon, PxFigmaIcon } from '..'
 
 interface PropertyItem {
   id: string
@@ -222,7 +222,7 @@ function PropertyCardV2({ p }: { p: PropertyItem }) {
               padding: 0,
             }}
           >
-            <PxIcon name="plus" size={16} color={PX.neutral700} />
+            <MEIcon name="plus" size={16} color={PX.neutral700} />
           </button>
         </div>
       </div>

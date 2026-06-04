@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react'
 import { CalIcon } from './CalIcon'
-import { CAL_EVENT_TYPES, CAL_PALETTE, type CalEvent } from './data'
+import { CAL_EVENT_TYPES, eventTypeColors, useCalPalette, type CalEvent } from './data'
 import { CAL_DAYS_FULL, CAL_MONTHS, fmtTime, sameDay } from './helpers'
 
 interface CalAgendaViewProps {
@@ -11,10 +11,11 @@ interface CalAgendaViewProps {
   now: Date
   selectedId: string | null
   onSelect: (id: string) => void
+  onEdit?: (id: string) => void
 }
 
-export function CalAgendaView({ events, now, selectedId, onSelect }: CalAgendaViewProps) {
-  const SP = CAL_PALETTE
+export function CalAgendaView({ events, now, selectedId, onSelect, onEdit }: CalAgendaViewProps) {
+  const SP = useCalPalette()
   const TYPES = CAL_EVENT_TYPES
 
   const grouped = useMemo(() => {
@@ -82,8 +83,8 @@ export function CalAgendaView({ events, now, selectedId, onSelect }: CalAgendaVi
                       fontWeight: 800,
                       padding: '2px 7px',
                       borderRadius: 999,
-                      background: SP.black,
-                      color: '#fff',
+                      background: SP.accent,
+                      color: SP.onAccent,
                       letterSpacing: 0.6,
                     }}
                   >
@@ -104,14 +105,18 @@ export function CalAgendaView({ events, now, selectedId, onSelect }: CalAgendaVi
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {list.map(e => {
                   const t = TYPES[e.type]
+                  const tc = eventTypeColors(t, SP.isDark)
+                  const muted = e.status === 'done' || e.status === 'cancelled'
                   const isSelected = e.id === selectedId
                   return (
                     <button
                       key={e.id}
                       onClick={() => onSelect(e.id)}
+                      onDoubleClick={() => onEdit?.(e.id)}
                       style={{
                         border: 0,
                         background: isSelected ? SP.cardSubtle : 'transparent',
+                        opacity: muted ? 0.5 : 1,
                         fontFamily: 'inherit',
                         cursor: 'pointer',
                         padding: '10px 14px',
@@ -141,7 +146,7 @@ export function CalAgendaView({ events, now, selectedId, onSelect }: CalAgendaVi
                           width: 4,
                           height: 32,
                           borderRadius: 4,
-                          background: t.dark ? t.bg : t.accent,
+                          background: tc.dark ? tc.bg : tc.accent,
                         }}
                       />
                       <div>
@@ -151,6 +156,7 @@ export function CalAgendaView({ events, now, selectedId, onSelect }: CalAgendaVi
                             fontWeight: 700,
                             color: SP.ink,
                             letterSpacing: -0.2,
+                            textDecoration: e.status === 'cancelled' ? 'line-through' : 'none',
                           }}
                         >
                           {e.title}

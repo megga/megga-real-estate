@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { crmContactById, type CrmBien } from '../mockData'
 import { crmInitials, type SugarPalette } from '../tokens'
 import { BnPhoto } from './BnPhoto'
@@ -237,7 +237,7 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
             placeItems: 'center',
           }}
         >
-          <CRMIcon name="file" size={13} stroke={sp.sub} />
+          <MEIcon name="file" size={13} color={sp.sub} />
         </button>
         <button
           onClick={e => e.stopPropagation()}

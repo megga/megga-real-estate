@@ -208,7 +208,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9000,
       background: SugarV2.bgGradient,
-      fontFamily: 'Manrope, system-ui, sans-serif', color: SugarV2.ink,
+      fontFamily: '"Inter Tight", system-ui, sans-serif', color: SugarV2.ink,
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
     }}>

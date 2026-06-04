@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Menu } from 'lucide-react'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import Sidebar from '@/components/layout/Sidebar'
@@ -58,7 +58,7 @@ function AgentLayoutInner() {
             onClick={() => setMobileOpen(true)}
             className="p-2 -ml-2 rounded-lg hover:bg-theme-hover"
           >
-            <Menu className="h-5 w-5 text-theme-secondary" />
+            <MEIcon name="menu" className="h-5 w-5 text-theme-secondary" />
           </button>
           <div className="ml-3 flex items-center gap-2">
             <div className="h-6 w-6 bg-theme-primary rounded flex items-center justify-center">

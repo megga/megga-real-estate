@@ -1,5 +1,5 @@
 // Catalogue des outils exposés à DeepSeek (function calling, schéma OpenAI).
-// Le tier (auto/confirm/read) vit dans whatsapp-agent-router.ts (toolTier()).
+// Le tier (read/auto/confirm/slow_async) vit dans whatsapp-agent-router.ts (toolTier()).
 // DeepSeek renvoie les arguments en CHAÎNE JSON à parser.
 import { PIPELINE_STAGES } from './whatsapp-agent-router.ts'
 
@@ -296,7 +296,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'run_kyc_screening',
-      description: "Lance le screening LBA (PEP + listes de sanctions) sur le dossier KYC d'un contact. Read-only côté client, aucun message envoyé. Appelle directement. Exemples : « screen Dubois », « vérifie les sanctions pour Mme Vaucher ». contact_id via search_contacts. Il faut un dossier KYC déjà ouvert (open_kyc_case).",
+      description: "Lance le screening LBA (PEP + listes de sanctions) sur le dossier KYC d'un contact. Read-only côté client, aucun message envoyé. APPELLE TOUJOURS cet outil pour lancer un screening — ne dis JAMAIS qu'il est lancé/en cours sans l'avoir appelé (le système confirme lui-même). Exemples : « screen Dubois », « vérifie les sanctions pour Mme Vaucher ». contact_id via search_contacts. Il faut un dossier KYC déjà ouvert (open_kyc_case).",
       parameters: {
         type: 'object',
         properties: { contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' } },
@@ -316,6 +316,18 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
           category: { type: 'string', enum: ['identity', 'address', 'funds'], description: "Type de pièce : identity (pièce d'identité), address (justif. domicile), funds (justif. fonds)." },
         },
         required: ['contact_id', 'category'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'send_kyc_report',
+      description: "Génère le rapport KYC officiel (PDF) d'un contact et l'envoie en pièce jointe à l'agent lui-même sur WhatsApp. Pour « envoie-moi le rapport KYC de Dubois », « le PDF KYC de Mme Vaucher ». APPELLE TOUJOURS cet outil pour envoyer un rapport — ne dis JAMAIS qu'il est parti/généré sans l'avoir appelé. Il faut un dossier KYC déjà ouvert. contact_id via search_contacts.",
+      parameters: {
+        type: 'object',
+        properties: { contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' } },
+        required: ['contact_id'],
       },
     },
   },

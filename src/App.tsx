@@ -17,7 +17,6 @@ import { AuthProvider } from '@/hooks/useAuth'
 
 // Shells/guards qui wrappent toutes les routes — doivent être disponibles
 // avant le premier render pour éviter un flash de chargement.
-import PasswordGate from '@/components/layout/PasswordGate'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import CookieBanner from '@/components/CookieBanner'
@@ -33,6 +32,8 @@ import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
 const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
+// Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
+const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
 // Auth — lazy car secondary path
 const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
@@ -70,13 +71,14 @@ const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
 
 // Legacy + secondary public pages
-const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
-// Marketplace property detail = the Property X art direction (PxSingleProperty*
-// sections), data-connected via useListingDetail. (The old split-format
-// ListingPage was retired.)
-const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
+// Marketplace publique DÉSACTIVÉE (pivot CRM-first juin 2026) — SearchPage,
+// RentPage et PropertyXSinglePropertyPage ne sont plus routés (→ vitrine megga.ch
+// via MarketplaceDisabledRedirect). Imports conservés en commentaire pour
+// réactivation au Sprint 7 (les pages + composants Px* restent dans le repo).
+// const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
+// const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
+// const RentPage = lazy(() => import('@/pages/public/RentPage'))
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
-const RentPage = lazy(() => import('@/pages/public/RentPage'))
 const SellPage = lazy(() => import('@/pages/public/SellPage'))
 const EstimatesPage = lazy(() => import('@/pages/public/EstimatesPage'))
 const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
@@ -143,7 +145,12 @@ const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
 const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
 const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
-const AccountPage = lazy(() => import('@/pages/public/AccountPage'))
+// Compte ACHETEUR DÉSACTIVÉ — focus 100% CRM (juin 2026). /account (favoris +
+// recherches sauvegardées) lisait market_listings ; c'était la dernière surface
+// acheteur vivante. Désormais market_listings ne sert plus que le Matching.
+// Route → /dashboard. Import conservé en commentaire pour réactivation (la page
+// + FavoritesSection restent dans le repo).
+// const AccountPage = lazy(() => import('@/pages/public/AccountPage'))
 
 // Lazy-loaded help center pages
 const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
@@ -181,6 +188,8 @@ const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
 const AdminLiveFeedPage = lazy(() => import('@/pages/admin/AdminLiveFeedPage'))
 const AdminSecurityAuditPage = lazy(() => import('@/pages/admin/AdminSecurityAuditPage'))
 const AdminNpsPage = lazy(() => import('@/pages/admin/AdminNpsPage'))
+const AdminAutonomyPage = lazy(() => import('@/pages/admin/AdminAutonomyPage'))
+const AdminLearningPage = lazy(() => import('@/pages/admin/AdminLearningPage'))
 
 // Admin guard
 import SuperAdminGuard from '@/components/admin/SuperAdminGuard'
@@ -288,11 +297,16 @@ function DashboardMarketRedirect() {
   const { externalId } = useParams()
   return <Navigate to={`/dashboard/market/${externalId}`} replace />
 }
-// Back-compat: the canonical marketplace detail URL is /propriete/:id. Old
-// /listing/:id links/bookmarks redirect there.
-function ListingIdRedirect() {
-  const { id } = useParams()
-  return <Navigate to={`/propriete/${id}`} replace />
+// Pivot CRM-first (juin 2026): la marketplace PUBLIQUE est désactivée. Les routes
+// d'affichage des annonces (/buy /rent /propriete/:id /search /listing/:id…)
+// redirigent vers la vitrine megga.ch. market_listings + le cron Flatfox + le
+// matching (edge matching-engine, include_market) restent INTACTS — seul
+// l'affichage public est coupé. Réversible : restaurer les <Route> d'origine.
+// Redirection externe (autre domaine) → window.location, pas <Navigate>.
+const VITRINE_URL = 'https://megga.ch'
+function MarketplaceDisabledRedirect() {
+  if (typeof window !== 'undefined') window.location.replace(VITRINE_URL)
+  return null
 }
 
 function AnimatedRoutes() {
@@ -307,17 +321,21 @@ function AnimatedRoutes() {
                   This React app is deployed separately on app.megga.ch, where
                   "/" lands on the dashboard (which bounces to login if needed). */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/search" element={<SearchPage />} />
+              {/* Marketplace publique DÉSACTIVÉE (pivot CRM-first juin 2026) →
+                  vitrine megga.ch. market_listings + cron Flatfox + matching
+                  (edge matching-engine) intacts ; l'écran marché INTERNE du CRM
+                  (/dashboard/market/:externalId) reste actif. */}
+              <Route path="/search" element={<MarketplaceDisabledRedirect />} />
               {/* Marketplace property detail — the Property X art direction
                   (PxSingleProperty* sections), data-connected via useListingDetail.
                   The whole marketplace (cards, preview modal/panel, favourites,
                   saved searches, "similar listings" carousels, lightbox share link,
                   SEO canonical) points at /propriete/:id. A bare /propriete (no id)
                   isn't a real property, so it redirects to the search. */}
-              <Route path="/propriete/:id" element={<PropertyXSinglePropertyPage />} />
-              <Route path="/propriete" element={<Navigate to="/buy" replace />} />
-              {/* Legacy /listing/:id → canonical /propriete/:id (back-compat). */}
-              <Route path="/listing/:id" element={<ListingIdRedirect />} />
+              <Route path="/propriete/:id" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/propriete" element={<MarketplaceDisabledRedirect />} />
+              {/* Legacy /listing/:id (back-compat) → vitrine (marketplace désactivée). */}
+              <Route path="/listing/:id" element={<MarketplaceDisabledRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
               <Route path="/login" element={<Navigate to="/auth/login" replace />} />
@@ -343,15 +361,16 @@ function AnimatedRoutes() {
               <Route path="/auth/mot-de-passe-oublie/redefinir" element={<Navigate to="/auth/forgot-password/reset" replace />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
-              <Route path="/search-legacy" element={<SearchPage />} />
-              <Route path="/rent-legacy" element={<RentPage />} />
-              {/* /buy + /rent — short aliases used by storefront CTAs. Both
-                  point at the SearchPage which already handles `?transaction=`
-                  filters. */}
-              <Route path="/buy" element={<SearchPage />} />
-              <Route path="/rent" element={<RentPage />} />
-              <Route path="/acheter" element={<Navigate to="/buy" replace />} />
-              <Route path="/louer" element={<Navigate to="/rent" replace />} />
+              {/* Sprint 4.7.D — Rendu PDF tokenisé (Cloudflare Browser Rendering → WhatsApp) */}
+              <Route path="/kyc-report/:token" element={<KycReportRenderPage />} />
+              {/* Marketplace publique désactivée → vitrine. (SearchPage/RentPage
+                  conservés en lazy import pour réactivation Sprint 7.) */}
+              <Route path="/search-legacy" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/rent-legacy" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/buy" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/rent" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/acheter" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/louer" element={<MarketplaceDisabledRedirect />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/sell" element={<SellPage />} />
@@ -379,16 +398,12 @@ function AnimatedRoutes() {
               <Route path="/visite/:id/feedback" element={<VisitFeedbackRedirect />} />
               <Route path="/agences" element={<Navigate to="/agencies" replace />} />
 
-              {/* Account — public-side dashboard (favorites, saved searches, messaging, profile) */}
-              <Route
-                path="/account"
-                element={
-                  <ProtectedRoute>
-                    <AccountPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/compte" element={<Navigate to="/account" replace />} />
+              {/* Compte ACHETEUR (favoris, recherches sauvegardées, messagerie) —
+                  DÉSACTIVÉ. Focus 100% CRM : market_listings ne sert plus que le
+                  Matching. /account + /compte → /dashboard (les agents ont déjà
+                  leur espace ; plus aucune surface acheteur). Réversible. */}
+              <Route path="/account" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/compte" element={<Navigate to="/dashboard" replace />} />
 
               {/* Help Center */}
               <Route path="/help" element={<HelpCenterPage />} />
@@ -571,6 +586,8 @@ function AnimatedRoutes() {
                 <Route path="admin/live" element={<SuperAdminGuard><AdminLiveFeedPage /></SuperAdminGuard>} />
                 <Route path="admin/security" element={<SuperAdminGuard><AdminSecurityAuditPage /></SuperAdminGuard>} />
                 <Route path="admin/nps" element={<SuperAdminGuard><AdminNpsPage /></SuperAdminGuard>} />
+                <Route path="admin/autonomy" element={<SuperAdminGuard><AdminAutonomyPage /></SuperAdminGuard>} />
+                <Route path="admin/learning" element={<SuperAdminGuard><AdminLearningPage /></SuperAdminGuard>} />
               </Route>
 
               {/* 404 */}
@@ -583,11 +600,10 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <PasswordGate>
-        <StaleBundleDetector />
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <ToastProvider>
+      <StaleBundleDetector />
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ToastProvider>
             {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
                 frosted-glass shimmer overlay, listens to languageChanged event. */}
             <LanguageChangeOverlay />
@@ -599,10 +615,9 @@ export default function App() {
               <FavoritesLoginPrompt />
             </Suspense>
             <CookieBanner />
-            </ToastProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </PasswordGate>
+          </ToastProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   )
 }

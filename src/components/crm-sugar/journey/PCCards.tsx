@@ -2,7 +2,7 @@
 // 1:1 port from `crm-screen-parcours-sugar.jsx`.
 
 import { useState } from 'react'
-import CRMIcon from '../CRMIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../tokens'
 import type { ParcoursAgent, ParcoursTask } from './journeyData'
 
@@ -123,7 +123,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
               placeItems: 'center',
             }}
           >
-            <CRMIcon name="cal" size={12} stroke={isActive ? sp.focusInk : sp.soft} />
+            <MEIcon name="calendar" size={12} color={isActive ? sp.focusInk : sp.soft} />
           </button>
         </div>
       </div>
@@ -246,7 +246,7 @@ export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
             flexShrink: 0,
           }}
         >
-          <CRMIcon name="plus" size={12} stroke={sp.soft} />
+          <MEIcon name="plus" size={12} color={sp.soft} />
         </div>
       )}
       <div
