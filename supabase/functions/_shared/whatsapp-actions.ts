@@ -1714,7 +1714,9 @@ export async function execDraftListingCopy(ctx: ActionCtx, a: Args): Promise<str
     push('Meublé', 'Furnished', p.is_furnished ? (lang === 'en' ? 'Yes' : 'Oui') : (lang === 'en' ? 'No' : 'Non'))
   }
   if (typeof p.availability_date === 'string' && p.availability_date.trim()) {
-    push('Disponibilité', 'Availability', p.availability_date.trim())
+    const av = p.availability_date.trim()
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(av)
+    push('Disponibilité', 'Availability', iso ? `${iso[3]}.${iso[2]}.${iso[1]}` : av)
   }
   if (typeof p.deposit_months === 'number') {
     push('Dépôt', 'Deposit', lang === 'en' ? `${p.deposit_months} months` : `${p.deposit_months} mois`)
@@ -1753,7 +1755,7 @@ export async function execDraftListingCopy(ctx: ActionCtx, a: Args): Promise<str
   const facts = factLines.join('\n')
   const txLabel = p.transaction_type === 'rent'
     ? (lang === 'en' ? 'for rent' : 'à louer')
-    : p.transaction_type === 'sale'
+    : p.transaction_type === 'buy'
       ? (lang === 'en' ? 'for sale' : 'à vendre')
       : ''
 
