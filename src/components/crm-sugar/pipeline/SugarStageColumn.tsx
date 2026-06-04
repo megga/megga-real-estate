@@ -102,7 +102,7 @@ export function SugarStageColumn({
             ? `1.5px dashed ${s.color}`
             : `1px dashed ${sp.cardBorder}`,
           borderRadius: 16,
-          background: dragOver && draggingId ? s.color + '08' : sp.frameBg,
+          background: dragOver && draggingId ? s.color + '08' : (dark ? 'rgba(255,255,255,.025)' : sp.frameBg),
           transition: 'all .15s',
         }}>{dragOver && draggingId ? `Déposer ici → ${s.label}` : 'Glisser un deal ici'}</div>
       )}
