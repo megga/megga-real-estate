@@ -360,4 +360,19 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'check_group_leak',
+      description: "Vérifie qu'un brouillon destiné à un GROUPE ne révèle pas une info confidentielle d'une partie à l'autre (ex : dévoiler le budget max de l'acheteur au vendeur). À utiliser avant de poster dans une salle de transaction. Renvoie une alerte si fuite, sinon un OK. NE poste rien.",
+      parameters: {
+        type: 'object',
+        properties: {
+          draft: { type: 'string', description: "Le brouillon que l'agent veut poster dans le groupe" },
+          parties: { type: 'string', description: "Les parties présentes dans le groupe (ex : « acheteur Dupont, vendeur Martin, notaire »)" },
+        },
+        required: ['draft', 'parties'],
+      },
+    },
+  },
 ]

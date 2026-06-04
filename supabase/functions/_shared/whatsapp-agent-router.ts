@@ -30,6 +30,10 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // summarize_group_thread : lecture seule, analyse un fil de groupe collé par l'agent —
   // rien n'est envoyé, résultat rendu uniquement à l'agent (digest privé).
   summarize_group_thread: 'read',
+  // check_group_leak : lecture seule, défensif, n'envoie rien — vérifie qu'un brouillon
+  // de message de groupe ne révèle pas une info confidentielle d'une partie à l'autre ;
+  // alerte l'agent dans son 1:1 (résultat agent-facing uniquement).
+  check_group_leak: 'read',
   create_contact: 'auto',
   add_note: 'auto',
   schedule_visit: 'auto',
