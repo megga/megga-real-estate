@@ -22,6 +22,7 @@ import {
   prepareSendClientEmail,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   execSummarizeGroupThread, execCheckGroupLeak,
+  execDraftListingCopy,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
@@ -327,6 +328,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'send_kyc_report': return execSendKycReport(ctx, args)
     case 'summarize_group_thread': return execSummarizeGroupThread(ctx, args)
     case 'check_group_leak': return execCheckGroupLeak(ctx, args)
+    case 'draft_listing_copy': return execDraftListingCopy(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }

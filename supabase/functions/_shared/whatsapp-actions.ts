@@ -1581,3 +1581,301 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
     ? "✅ No confidential information detected for the listed parties."
     : "✅ Rien de confidentiel détecté pour les parties indiquées."
 }
+
+// draft_listing_copy (read-tier, agent-facing) : l'agent demande de rédiger l'annonce d'un de
+// ses biens (mandats `properties`, scopés agence). MEGGA résout le bien, construit la GRILLE de
+// détails EN CODE (déterministe : colonnes + tags `features` → zéro chiffre inventé), fait
+// rédiger UNIQUEMENT le titre + la description bilingue FR/EN par DeepSeek (ancré sur les seules
+// données + voix de l'agence), puis assemble. 2 variantes : 'confidential' (sans adresse exacte
+// ni coordonnée) / 'public' (+ bloc agence + agent). Variante absente → DEMANDE (jamais deviner).
+// Accès DB scopé agence → garde hasAgency requise (contrairement aux lames groupe). Rien n'est
+// envoyé au client : le résultat revient à l'agent dans son 1:1. NE DOIT JAMAIS throw : runTool
+// n'a pas de try/catch → toute erreur renvoie une chaîne honnête. Garde objet sur le JSON DeepSeek.
+type PropertyRow = {
+  id: string
+  title: string | null; type: string | null; status: string | null
+  price: number | null; currency: string | null; transaction_type: string | null
+  rooms: number | null; bedrooms: number | null; bathrooms: number | null
+  surface_m2: number | null; address: string | null; city: string | null
+  canton: string | null; postal_code: string | null; year_built: number | null
+  floor: number | null; total_floors: number | null; charges_monthly: number | null
+  energy_class: string | null; energy_label: string | null; minergie_label: string | null
+  is_furnished: boolean | null; availability_date: string | null; deposit_months: number | null
+  mandate_type: string | null; features: unknown
+}
+
+const PROPERTY_FIELDS =
+  'id, title, type, status, price, currency, transaction_type, rooms, bedrooms, bathrooms, ' +
+  'surface_m2, address, city, canton, postal_code, year_built, floor, total_floors, ' +
+  'charges_monthly, energy_class, energy_label, minergie_label, is_furnished, ' +
+  'availability_date, deposit_months, mandate_type, features'
+
+/** Tags `features` reconnus → label bilingue de la grille (présence = OUI). Anti-fabrication :
+ *  on ne déduit un équipement QUE si le tag est explicitement présent dans la fiche. */
+const FEATURE_LABELS: Array<{ match: RegExp; fr: string; en: string }> = [
+  { match: /piscine|pool/i, fr: 'Piscine', en: 'Pool' },
+  { match: /terrasse|terrace/i, fr: 'Terrasse', en: 'Terrace' },
+  { match: /balcon|balcony/i, fr: 'Balcon', en: 'Balcony' },
+  { match: /parking|garage/i, fr: 'Parking / Garage', en: 'Parking / Garage' },
+  { match: /ascenseur|elevator|lift/i, fr: 'Ascenseur', en: 'Elevator' },
+  { match: /cave|cellar/i, fr: 'Cave', en: 'Cellar' },
+  { match: /jardin|garden/i, fr: 'Jardin', en: 'Garden' },
+  { match: /vue/i, fr: 'Vue dégagée', en: 'Open view' },
+  { match: /buanderie|laundry/i, fr: 'Buanderie', en: 'Laundry' },
+]
+
+export async function execDraftListingCopy(ctx: ActionCtx, a: Args): Promise<string> {
+  const lang = ctx.lang ?? 'fr'
+  // Accès DB scopé agence → garde requise (contrairement aux lames groupe purement textuelles).
+  if (!hasAgency(ctx)) return NO_AGENCY
+
+  const query = s(a.query)
+  if (!query) {
+    return lang === 'en'
+      ? 'Which property should I write the listing for?'
+      : 'Pour quel bien veux-tu que je rédige l’annonce ?'
+  }
+
+  // Variante : jamais deviner. Absente → on demande.
+  const variant = a.variant === 'public' ? 'public' : a.variant === 'confidential' ? 'confidential' : null
+  if (!variant) {
+    return lang === 'en'
+      ? 'Do you want the confidential version (no contact details, no exact address) or the public one (with the agency)?'
+      : 'Tu veux la version confidentielle (sans coordonnées ni adresse exacte) ou publique (avec l’agence) ?'
+  }
+
+  // Résolution du bien dans les mandats de l'agence (scopé agency_id, non supprimé).
+  // PostgREST .or() découpe sur la virgule et le pattern ilike utilise % → on échappe les deux
+  // dans la valeur pour éviter d'injecter un opérande ou de casser le filtre.
+  const term = query.slice(0, 80).replace(/[%,()]/g, ' ').trim()
+  if (!term) {
+    return lang === 'en'
+      ? 'Which property should I write the listing for?'
+      : 'Pour quel bien veux-tu que je rédige l’annonce ?'
+  }
+  const { data: rows, error } = await ctx.supabase.from('properties')
+    .select(PROPERTY_FIELDS)
+    .eq('agency_id', ctx.agencyId)
+    .is('deleted_at', null)
+    .or(`title.ilike.%${term}%,address.ilike.%${term}%`)
+    .limit(5)
+  if (error) {
+    console.error('draft_listing_copy properties query', error.code ?? 'unknown')
+    return lang === 'en'
+      ? "I couldn't look up that property — try again."
+      : 'Je n’ai pas réussi à retrouver ce bien, réessaie.'
+  }
+  const list = (rows ?? []) as unknown as PropertyRow[]
+  if (list.length === 0) {
+    return lang === 'en'
+      ? "I can't find that property in your mandates."
+      : 'Je ne trouve pas ce bien dans tes mandats.'
+  }
+  if (list.length >= 2) {
+    const choices = list
+      .map((p) => `- ${p.title ?? (lang === 'en' ? 'Untitled' : 'Sans titre')}${p.city ? ` (${p.city})` : ''}`)
+      .join('\n')
+    return (lang === 'en'
+      ? `I found several properties — which one?\n${choices}`
+      : `J’ai trouvé plusieurs biens — lequel ?\n${choices}`)
+  }
+  const p = list[0]
+
+  // Grille EN CODE (déterministe, anti-fabrication). Champ absent → omis (jamais inventé).
+  const details: Array<{ fr: string; en: string; value: string }> = []
+  const push = (fr: string, en: string, value: string | null | undefined) => {
+    const v = typeof value === 'string' ? value.trim() : ''
+    if (v) details.push({ fr, en, value: v })
+  }
+  const typeMap: Record<string, { fr: string; en: string }> = {
+    apartment: { fr: 'Appartement', en: 'Apartment' },
+    house: { fr: 'Maison', en: 'House' },
+    villa: { fr: 'Villa', en: 'Villa' },
+    commercial: { fr: 'Commercial', en: 'Commercial' },
+    office: { fr: 'Bureau', en: 'Office' },
+    parking: { fr: 'Parking', en: 'Parking' },
+    storage: { fr: 'Dépôt', en: 'Storage' },
+    land: { fr: 'Terrain', en: 'Land' },
+  }
+  const typeLabel = p.type ? (typeMap[p.type.toLowerCase()] ?? { fr: p.type, en: p.type }) : null
+  push('Type', 'Type', lang === 'en' ? typeLabel?.en : typeLabel?.fr)
+  if (typeof p.rooms === 'number') push('Pièces', 'Rooms', String(p.rooms))
+  if (typeof p.bedrooms === 'number') push('Chambres', 'Bedrooms', String(p.bedrooms))
+  if (typeof p.bathrooms === 'number') push('Salles de bain', 'Bathrooms', String(p.bathrooms))
+  if (typeof p.surface_m2 === 'number') push('Surface', 'Surface', `${Math.round(p.surface_m2)} m²`)
+  if (typeof p.floor === 'number') {
+    push('Étage', 'Floor', typeof p.total_floors === 'number' ? `${p.floor} / ${p.total_floors}` : String(p.floor))
+  }
+  if (typeof p.year_built === 'number') push('Année', 'Year built', String(p.year_built))
+  if (typeof p.charges_monthly === 'number') push('Charges', 'Charges', `${fmtCHF(p.charges_monthly)}/mois`)
+  const energy = (p.minergie_label || p.energy_label || p.energy_class || '').toString().trim()
+  if (energy) push('Énergie', 'Energy', energy)
+  if (typeof p.is_furnished === 'boolean') {
+    push('Meublé', 'Furnished', p.is_furnished ? (lang === 'en' ? 'Yes' : 'Oui') : (lang === 'en' ? 'No' : 'Non'))
+  }
+  if (typeof p.availability_date === 'string' && p.availability_date.trim()) {
+    push('Disponibilité', 'Availability', p.availability_date.trim())
+  }
+  if (typeof p.deposit_months === 'number') {
+    push('Dépôt', 'Deposit', lang === 'en' ? `${p.deposit_months} months` : `${p.deposit_months} mois`)
+  }
+  if (typeof p.price === 'number' && p.price > 0) {
+    const cur = (p.currency ?? 'CHF').toString().trim() || 'CHF'
+    const priceStr = cur.toUpperCase() === 'CHF'
+      ? (p.transaction_type === 'rent' ? `${fmtCHF(p.price)}/mois` : fmtCHF(p.price))
+      : `${cur} ${Math.round(p.price)}`
+    push('Prix', 'Price', priceStr)
+  }
+  // Tags features (présence = OUI). Borné, dédupliqué.
+  const tags: string[] = Array.isArray(p.features)
+    ? (p.features as unknown[]).filter((x): x is string => typeof x === 'string')
+    : []
+  const seen = new Set<string>()
+  for (const f of FEATURE_LABELS) {
+    if (tags.some((t) => f.match.test(t)) && !seen.has(f.fr)) {
+      seen.add(f.fr)
+      push(lang === 'en' ? f.en : f.fr, lang === 'en' ? f.en : f.fr, lang === 'en' ? 'Yes' : 'Oui')
+    }
+  }
+
+  // Référence dérivée de l'id (pas de migration) : 8 premiers caractères en MAJ.
+  const reference = p.id.replace(/-/g, '').slice(0, 8).toUpperCase()
+
+  // Localisation selon la variante : confidentielle = quartier/canton seulement (jamais l'adresse
+  // exacte) ; publique = ville + canton (l'adresse exacte reste hors de la copie marketing).
+  const cantonStr = (p.canton ?? '').toString().trim()
+  const cityStr = (p.city ?? '').toString().trim()
+  const locationPublic = [cityStr, cantonStr].filter(Boolean).join(', ')
+  const locationForCopy = variant === 'confidential' ? (cityStr || cantonStr || '') : (locationPublic || cityStr || cantonStr || '')
+
+  // Données factuelles passées à DeepSeek (UNIQUEMENT ce qui existe → pas de fabrication).
+  const factLines = details.map((d) => `${d.fr}: ${d.value}`)
+  const facts = factLines.join('\n')
+  const txLabel = p.transaction_type === 'rent'
+    ? (lang === 'en' ? 'for rent' : 'à louer')
+    : p.transaction_type === 'sale'
+      ? (lang === 'en' ? 'for sale' : 'à vendre')
+      : ''
+
+  // Rédaction DeepSeek : titre + description bilingue UNIQUEMENT (le reste est en code).
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
+  if (!apiKey) {
+    return lang === 'en'
+      ? "Listing drafting unavailable right now — try again later."
+      : 'Je ne peux pas rédiger l’annonce là, réessaie.'
+  }
+
+  const failMsg = lang === 'en'
+    ? "I couldn't draft the listing — try again."
+    : 'Je n’ai pas réussi à rédiger l’annonce, réessaie.'
+
+  // Voix de l'agence : style appris (self-gating) + few-shot de vrais messages clients.
+  const { data: prof } = await ctx.supabase.from('agent_ai_profiles')
+    .select('learned_style')
+    .eq('agent_id', ctx.profileId)
+    .maybeSingle()
+  const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
+  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId)
+  const voiceBlock = formatVoiceExamples(voiceSamples, lang === 'en' ? 'en' : 'fr')
+
+  const confidentialClause = variant === 'confidential'
+    ? "\n- VARIANTE CONFIDENTIELLE : ne mentionne JAMAIS l'adresse exacte ni de coordonnées ; situe le bien au quartier/canton seulement."
+    : ''
+  const systemPrompt = `Tu es un assistant immobilier suisse expert en rédaction d'annonces (contenu marketing pour l'agence, PAS un message à un client).
+Tu rédiges UNIQUEMENT le titre et la description bilingue d'une annonce, à partir des SEULES données fournies.
+
+RÈGLES ABSOLUES :
+- N'invente RIEN : n'évoque AUCUN élément absent des données ; aucun chiffre marché ; aucun superlatif mensonger.
+- Français et anglais soignés, sobres, registre immobilier suisse.
+- Pas d'identifiant brut ni de jargon technique.${confidentialClause}${styleBlock ? `\n\nTon ADDITIF de cette agence (nuance la chaleur/concision, sans déroger aux règles ci-dessus) :${styleBlock}` : ''}${voiceBlock}
+
+Réponds UNIQUEMENT en JSON strict : {"titre":"…","description_fr":"…","description_en":"…"}`
+
+  const userPrompt = `Rédige le contenu d'une annonce immobilière suisse à partir de ces données (n'utilise QUE celles-ci) :
+Type de transaction : ${txLabel || (lang === 'en' ? 'not specified' : 'non précisé')}
+Localisation : ${locationForCopy || (lang === 'en' ? 'not specified' : 'non précisée')}
+Détails :
+${facts || (lang === 'en' ? '(none)' : '(aucun)')}
+
+Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). Description élégante et sobre, 2 à 4 paragraphes, en français (description_fr) et en anglais (description_en).`
+
+  let parsed: Record<string, unknown> = {}
+  try {
+    const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 900,
+        temperature: 0.3,
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) {
+      console.error('DeepSeek draft listing HTTP', res.status)
+      return failMsg
+    }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const raw = data?.choices?.[0]?.message?.content ?? ''
+    // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`[]` passent et feraient
+    // throw les accès `parsed.titre` HORS du try/catch (→ 500). Garde de forme : fail CLOSED.
+    try {
+      const j = JSON.parse(raw)
+      if (!j || typeof j !== 'object' || Array.isArray(j)) return failMsg
+      parsed = j as Record<string, unknown>
+    } catch { return failMsg }
+  } catch (e) {
+    console.error('DeepSeek draft listing error:', (e as Error)?.name ?? 'unknown')
+    return failMsg
+  }
+
+  const titre = typeof parsed.titre === 'string' ? parsed.titre.trim() : ''
+  const descFr = typeof parsed.description_fr === 'string' ? parsed.description_fr.trim() : ''
+  const descEn = typeof parsed.description_en === 'string' ? parsed.description_en.trim() : ''
+  if (!titre && !descFr && !descEn) return failMsg
+
+  // Bloc contact (variante publique seulement) — construit EN CODE depuis l'agence + l'agent.
+  let contactBlock = ''
+  if (variant === 'public') {
+    const { data: agRow } = await ctx.supabase.from('agencies')
+      .select('name, phone, email, website, logo_url')
+      .eq('id', ctx.agencyId)
+      .maybeSingle()
+    const ag = agRow as { name: string | null; phone: string | null; email: string | null; website: string | null; logo_url: string | null } | null
+    const { data: agentRow } = await ctx.supabase.from('profiles')
+      .select('full_name')
+      .eq('id', ctx.profileId)
+      .maybeSingle()
+    const agentName = (agentRow as { full_name: string | null } | null)?.full_name?.trim() ?? ''
+    const contactLines: string[] = []
+    if (ag?.name?.trim()) contactLines.push(ag.name.trim())
+    if (agentName) contactLines.push(agentName)
+    if (ag?.phone?.trim()) contactLines.push(ag.phone.trim())
+    if (ag?.email?.trim()) contactLines.push(ag.email.trim())
+    if (ag?.website?.trim()) contactLines.push(ag.website.trim())
+    if (contactLines.length > 0) {
+      contactBlock = `\n\n*Contact*\n${contactLines.join('\n')}`
+    }
+  }
+
+  // Assemblage final EN CODE : titre + desc FR + desc EN + grille + (public) contact.
+  const out: string[] = []
+  if (titre) out.push(`*${titre}*`)
+  if (descFr) { out.push(''); out.push(descFr) }
+  if (descEn) { out.push(''); out.push(`— EN —`); out.push(descEn) }
+  if (details.length > 0) {
+    out.push('')
+    out.push(lang === 'en' ? '*Details*' : '*Détails*')
+    for (const d of details) out.push(`- ${lang === 'en' ? d.en : d.fr} : ${d.value}`)
+  }
+  out.push('')
+  out.push(`${lang === 'en' ? 'Reference' : 'Référence'} : ${reference}`)
+  let result = out.join('\n')
+  if (contactBlock) result += contactBlock
+  return result
+}
