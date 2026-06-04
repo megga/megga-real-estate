@@ -533,15 +533,17 @@ function listingAmount(l: { transaction_type: string | null; price: number | nul
 }
 
 /** Recherche d'annonces (market_listings). Perf-safe : eq(status)+eq(transaction_type) sur
- *  index, tri quality_score (indexé, pas de sort full table), pas de count, budget filtré
- *  en mémoire (colonne loyer ambiguë), résultat borné à 6. */
+ *  index, tri quality_score (indexé, pas de sort full table). Renvoie le total ESTIMÉ
+ *  (count: 'estimated', sans scan complet — conforme CLAUDE.md §7, jamais 'exact') reflétant
+ *  les filtres et ignorant le .limit, plus un échantillon de 6 biens. Budget filtré EN SQL
+ *  sur `price` (loyer réel des actifs rent ; rent/rent_chf sont NULL en base). */
 export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
   const txType = s(a.transaction_type) === 'buy' ? 'buy' : 'rent'
 
   let q = ctx.supabase
     .from('market_listings')
-    .select('id, title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, canton, source_url')
+    .select('id, title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, canton, source_url', { count: 'estimated' })
     .eq('status', 'active')
     .eq('transaction_type', txType)
 
@@ -550,6 +552,13 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
 
   const roomsMin = typeof a.rooms_min === 'number' ? a.rooms_min : parseFloat(String(a.rooms_min ?? ''))
   if (Number.isFinite(roomsMin) && roomsMin > 0) q = q.gte('rooms', roomsMin)
+
+  // Budget EN SQL sur `price` : pour les actifs rent, le loyer mensuel est stocké dans `price`
+  // (rent/rent_chf NULL en base) ; pour buy c'est le prix de vente. Filtre indexé, pas en mémoire.
+  const budget = parseAmount(a.budget_max)
+  // .gt('price', 0) : un budget exclut les biens « loyer sur demande » (price=0) — sinon ils
+  // gonfleraient le total et sortiraient avec un montant null (préserve l'ancienne sémantique amt>0).
+  if (budget && budget > 0) q = q.lte('price', budget).gt('price', 0)
 
   // Zones : OR d'ilike sur city/canton (matche n'importe laquelle). Neutralise les
   // caractères qui casseraient le filtre PostgREST .or(). Max 5 zones (anti-abus).
@@ -562,12 +571,9 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   }
 
   q = q.order('quality_score', { ascending: false, nullsFirst: false }).limit(24)
-  const { data, error } = await q
+  const { data, count, error } = await q
   if (error) return `Erreur recherche de biens: ${error.message}`
-  let rows = (data ?? []) as SearchListingRow[]
-
-  const budget = parseAmount(a.budget_max)
-  if (budget && budget > 0) rows = rows.filter((r) => { const amt = listingAmount(r); return amt > 0 && amt <= budget })
+  const rows = (data ?? []) as SearchListingRow[]
   if (!rows.length) return 'Aucun bien ne correspond à ces critères pour le moment.'
 
   const biens = rows.slice(0, 6).map((r) => ({
@@ -575,7 +581,9 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
     montant: listingAmount(r) || null, pieces: r.rooms,
     m2: r.surface_m2 ? Math.round(r.surface_m2) : null, ville: r.city, canton: r.canton, url: r.source_url,
   }))
-  return JSON.stringify({ count: biens.length, biens })
+  // total = count estimé (reflète les filtres, ignore le .limit) ; garde-fou : au moins l'échantillon affiché.
+  const total = (typeof count === 'number' && count >= biens.length) ? count : biens.length
+  return JSON.stringify({ total, shown: biens.length, biens })
 }
 
 /** État du dossier KYC d'un contact (lecture). KYC FACULTATIF : aucun dossier ≠ blocage. */
