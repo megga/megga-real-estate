@@ -87,6 +87,11 @@ describe('toolTier', () => {
     expect(toolTier('summarize_group_thread')).toBe('read')
     expect(toolTier('check_group_leak')).toBe('read')
   })
+  it("draft_listing_copy est read — brouillon d'annonce agent-facing, rien d'envoyé", () => {
+    // Rédige le contenu d'une annonce (titre + description + grille) pour un bien de
+    // l'agence ; résultat rendu à l'agent dans son 1:1, jamais envoyé au client.
+    expect(toolTier('draft_listing_copy')).toBe('read')
+  })
   it('classe les outils confirm (sensibles : pipeline + envois client + offre)', () => {
     expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')

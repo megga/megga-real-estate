@@ -375,4 +375,19 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'draft_listing_copy',
+      description: "Rédige le CONTENU d'une annonce immobilière (titre marketing + description bilingue FR/EN + grille de détails) pour un bien des mandats de l'agence, à partir de ses VRAIES données. Deux variantes : 'confidential' (sans coordonnées ni adresse exacte) ou 'public' (avec l'agence + l'agent). Si la variante n'est pas précisée, DEMANDE-la avant d'appeler. Pour « rédige l'annonce du 3 pièces de Champel », « fais le descriptif du bien X ». NE l'envoie pas au client — c'est pour l'agent.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien à mettre en annonce (cherché dans les mandats de l'agence)" },
+          variant: { type: 'string', enum: ['confidential', 'public'], description: "confidential = sans coordonnées ni adresse exacte ; public = avec l'agence et l'agent. Demander à l'agent si non précisé." },
+        },
+        required: ['query'],
+      },
+    },
+  },
 ]

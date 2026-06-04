@@ -34,6 +34,10 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // de message de groupe ne révèle pas une info confidentielle d'une partie à l'autre ;
   // alerte l'agent dans son 1:1 (résultat agent-facing uniquement).
   check_group_leak: 'read',
+  // draft_listing_copy : lecture seule, agent-facing — rédige un brouillon d'annonce
+  // (titre + description bilingue + grille) depuis les vraies données d'un bien de l'agence.
+  // Rien n'est envoyé au client ; le résultat revient à l'agent dans son 1:1, il l'utilise.
+  draft_listing_copy: 'read',
   create_contact: 'auto',
   add_note: 'auto',
   schedule_visit: 'auto',
