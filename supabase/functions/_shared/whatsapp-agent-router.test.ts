@@ -86,6 +86,7 @@ describe('toolTier', () => {
     expect(toolTier('send_client_message')).toBe('confirm')
     expect(toolTier('send_listings')).toBe('confirm')
     expect(toolTier('record_offer')).toBe('confirm')
+    expect(toolTier('send_client_email')).toBe('confirm')
   })
   it('send_kyc_link est confirm (envoi email au client ; KYC facultatif)', () => {
     expect(toolTier('send_kyc_link')).toBe('confirm')
@@ -151,7 +152,7 @@ describe('toolTier — tiers des outils KYC (Palier 2)', () => {
     expect(toolTier('attach_kyc_document')).toBe('auto')
   })
   it('le socle légal reste confirm (jamais slow_async/auto)', () => {
-    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case']) {
+    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case', 'send_client_email']) {
       expect(toolTier(t)).toBe('confirm')
     }
   })
@@ -206,13 +207,14 @@ describe('dealStageDefault', () => {
 })
 
 describe('canLeaveConfirm — invariant socle légal (Palier 3)', () => {
-  // Les 4 outils du socle légal sont testés explicitement ; update_pipeline est l'unique
-  // true par construction (=== ). Si un 5e outil confirm-tier est ajouté, l'ajouter ici.
+  // update_pipeline est l'unique true par construction (===). Socle légal (5 outils) : tous
+  // renvoient false. Si un 6e outil du socle est ajouté, l'ajouter ici ET dans
+  // tests/backend/whatsapp-assisted-outbound.spec.ts.
   it('SEUL update_pipeline peut quitter confirm', () => {
     expect(canLeaveConfirm('update_pipeline')).toBe(true)
   })
   it('le socle légal ne quitte JAMAIS confirm', () => {
-    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case']) {
+    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case', 'send_client_email']) {
       expect(canLeaveConfirm(t)).toBe(false)
     }
   })
