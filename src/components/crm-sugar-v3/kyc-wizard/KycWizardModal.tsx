@@ -1,24 +1,19 @@
 // MEGGA CRM Sugar v3 — Wizard KYC Modal (orchestrateur)
-// Port 1:1 de crm-kyc-wizard.jsx lignes 510-666 (CRMKycWizard).
-//
-// Structure :
-//  - Modal portail position:fixed inset-0 z-9000 bg gradient
-//  - Header : logo + label étape + KwStepper 3 cercles + bouton close
-//  - Main : Step0/1/2 ou StepSuccess (animation key={step})
-//  - Footer : Précédent + indicateur "n/3" + Continuer/Ouvrir le dossier
+// Refonte visuelle (handoff KYC §1) : dark mode via la palette KYC partagée
+// (useKycPalette — le wizard est monté dans le KycPaletteContext.Provider de la
+// page KYC), stepper segmenté, header stable, scroll-lock du fond, scrollbar
+// intégrée. AUCUNE logique métier modifiée (preset, finish, magic link, statuts).
 //
 // Deep-link : si `initialContactId` fourni → préset step=2 (Vigilance), source='existing'.
 
 import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
-import {
-  KycBlackPill,
-  KycCircleBtn,
-  KycGhostPill,
-  KycStepper,
-} from '../primitives'
+import { useKycPalette } from '../kyc/kycPalette'
+import { KycBlackPill, KycCircleBtn, KycGhostPill } from '../kyc/kycPrimitives'
+import { KwStepper } from './KwStepper'
 import { useAuth } from '@/hooks/useAuth'
 import { useCreateKycDossier } from '@/hooks/useKycDossier'
 import { useContacts } from '@/hooks/useContacts'
@@ -38,6 +33,7 @@ interface Props {
 
 export function KycWizardModal({ onClose, initialContactId }: Props) {
   const navigate = useNavigate()
+  const sp = useKycPalette()
   const { profile } = useAuth()
   const { contacts = [] } = useContacts()
   const createDossier = useCreateKycDossier()
@@ -48,8 +44,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
   const [createdId, setCreatedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   // Sprint 4.7.B — Modal magic link s'ouvre AU-DESSUS du wizard quand
-  // source === 'magic' et que le dossier vient d'être créé. À la fermeture
-  // (succès OU annulation), on bascule en done=true comme un flow normal.
+  // source === 'magic' et que le dossier vient d'être créé.
   const [magicModalOpen, setMagicModalOpen] = useState(false)
 
   const [data, setData] = useState<WizardData>({
@@ -71,6 +66,20 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  // §1.9 — verrou de scroll du fond : le wizard est plein écran ; on fige la
+  // page CRM derrière tant qu'il est monté (pas de double-scroll), puis on
+  // restaure à la fermeture.
+  useEffect(() => {
+    const prevBody = document.body.style.overflow
+    const prevHtml = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevBody
+      document.documentElement.style.overflow = prevHtml
+    }
+  }, [])
 
   const canNext = useMemo(() => {
     if (step === 0) return !!data.source
@@ -101,9 +110,6 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
         vigilance: data.vigilance,
       })
       setCreatedId(dossier.id)
-      // Sprint 4.7.B — si source='magic', on ouvre le modal Magic Link
-      // au lieu de basculer directement en done. Le modal gère lui-même
-      // la transition vers done (via onSuccess/onClose).
       if (data.source === 'magic') {
         setMagicModalOpen(true)
       } else {
@@ -114,7 +120,6 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
     }
   }
 
-  // Contact résolu pour le modal Magic Link (depuis le state contacts du hook)
   const magicContact = useMemo(() => {
     if (!data.contactId) return null
     return contacts.find((c) => c.id === data.contactId) ?? null
@@ -135,18 +140,26 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
     onClose()
   }
 
+  // Variables CSS de la scrollbar intégrée (.kw-scroll), héritées par <main>
+  // et la liste de contacts.
+  const scrollVars = {
+    '--kw-thumb': sp.scrollThumb,
+    '--kw-thumb-h': sp.scrollThumbHover,
+  } as CSSProperties
+
   return (
     <div
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 9000,
-        background: SugarV3.bgGradient,
+        background: sp.bgGradient,
         fontFamily: SugarV3.font,
-        color: SugarV3.ink,
+        color: sp.ink,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        ...scrollVars,
       }}
     >
       <style>{`
@@ -154,9 +167,14 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .kw-scroll { scrollbar-width: thin; scrollbar-color: var(--kw-thumb) transparent; overscroll-behavior: contain; }
+        .kw-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+        .kw-scroll::-webkit-scrollbar-track { background: transparent; margin: 10px 0; }
+        .kw-scroll::-webkit-scrollbar-thumb { background: var(--kw-thumb); border-radius: 999px; border: 4px solid transparent; background-clip: padding-box; }
+        .kw-scroll::-webkit-scrollbar-thumb:hover { background: var(--kw-thumb-h); background-clip: padding-box; }
       `}</style>
 
-      {/* HEADER */}
+      {/* HEADER — titre stable (§1.4), stepper segmenté au centre */}
       <header
         style={{
           flexShrink: 0,
@@ -168,14 +186,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
           zIndex: 10,
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-            flexShrink: 0,
-          }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
           <img
             src="/megga-logo.svg"
             alt="MEGGA"
@@ -184,48 +195,47 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
               width: 'auto',
               display: 'block',
               flexShrink: 0,
+              filter: sp.logoInvert ? 'invert(1) brightness(1.6)' : 'none',
             }}
             onError={(e) => {
               ;(e.currentTarget as HTMLImageElement).style.display = 'none'
             }}
           />
-          <div
-            style={{ width: 1, height: 28, background: 'rgba(11,12,14,0.10)' }}
-          />
+          <div style={{ width: 1, height: 28, background: sp.divider }} />
           <div>
             <div
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: SugarV3.muted,
+                color: sp.muted,
                 letterSpacing: 1,
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
               }}
             >
-              Nouveau dossier KYC
+              Conformité LBA
             </div>
             <div
               style={{
                 fontSize: 18,
                 fontWeight: 700,
-                color: SugarV3.ink,
+                color: sp.ink,
                 letterSpacing: -0.3,
               }}
             >
-              {done ? 'Confirmation' : WIZARD_STEPS[step]?.label ?? ''}
+              Nouveau dossier KYC
             </div>
           </div>
         </div>
 
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
           {!done && (
-            <KycStepper steps={WIZARD_STEPS} current={step} onJump={setStep} />
+            <KwStepper steps={WIZARD_STEPS} current={step} onJump={setStep} />
           )}
         </div>
 
         <KycCircleBtn
-          icon={<SgIcon name="close" size={18} stroke={SugarV3.ink} />}
+          icon={<SgIcon name="close" size={18} stroke={sp.ink} />}
           onClick={onClose}
           title="Fermer"
         />
@@ -234,10 +244,11 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
       {/* BODY */}
       <main
         key={done ? 'success' : step}
+        className="kw-scroll"
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: done ? '32px 32px 80px' : '40px 32px 140px',
+          padding: done ? '32px 32px 80px' : '160px 32px 140px',
         }}
       >
         {done ? (
@@ -256,8 +267,8 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
               maxWidth: 720,
               margin: '24px auto 0',
               padding: '12px 16px',
-              background: SugarV3.errSoft,
-              color: SugarV3.errDarker,
+              background: sp.errSoft,
+              color: sp.errDarker,
               borderRadius: 14,
               fontSize: 13,
               fontWeight: 600,
@@ -269,7 +280,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
         )}
       </main>
 
-      {/* FOOTER */}
+      {/* FOOTER — sans compteur « n/3 » (§1.6) */}
       {!done && (
         <footer
           style={{
@@ -283,8 +294,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
             justifyContent: 'space-between',
             gap: 16,
             zIndex: 20,
-            background:
-              'linear-gradient(180deg, transparent 0%, rgba(237,239,243,0.9) 60%, rgba(237,239,243,1) 100%)',
+            background: sp.footerFade,
             pointerEvents: 'none',
           }}
         >
@@ -292,34 +302,18 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
             {step > 0 && (
               <KycGhostPill
                 onClick={prev}
-                icon={<SgIcon name="arrowL" size={16} stroke={SugarV3.inkSoft} />}
+                icon={<SgIcon name="arrowL" size={16} stroke={sp.inkSoft} />}
               >
                 Précédent
               </KycGhostPill>
             )}
           </div>
-          <div
-            style={{
-              pointerEvents: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 13,
-                color: SugarV3.muted,
-                fontWeight: 500,
-              }}
-            >
-              {step + 1} / {WIZARD_STEPS.length}
-            </span>
+          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
             <KycBlackPill
               onClick={next}
               disabled={!canNext || createDossier.isPending}
               size="lg"
-              icon={<SgIcon name="arrowR" size={16} stroke="#fff" />}
+              icon={<SgIcon name="arrowR" size={16} stroke={sp.onAccent} />}
             >
               {createDossier.isPending
                 ? 'Création…'

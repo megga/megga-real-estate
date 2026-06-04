@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v3 — Wizard Step 1 : Démarrer (3 portes)
 // Port 1:1 de crm-kyc-wizard.jsx lignes 200-263 (KwStepStart).
 
-import { SugarV3 } from '../tokens'
+import { useKycPalette } from '../kyc/kycPalette'
 import { SgIcon } from '../icons'
 import { KwGateCard } from './KwGateCard'
 import type { WizardData } from './types'
@@ -12,6 +12,7 @@ interface Props {
 }
 
 export function KwStepStart({ data, set }: Props) {
+  const sp = useKycPalette()
   return (
     <div
       style={{
@@ -21,24 +22,12 @@ export function KwStepStart({ data, set }: Props) {
       }}
     >
       <div style={{ marginBottom: 48, maxWidth: 720 }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: SugarV3.muted,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            marginBottom: 14,
-          }}
-        >
-          Étape 1 sur 3 · Démarrer
-        </div>
         <h1
           style={{
             margin: '0 0 14px',
             fontSize: 38,
             fontWeight: 700,
-            color: SugarV3.ink,
+            color: sp.ink,
             letterSpacing: -0.8,
             lineHeight: 1.1,
           }}
@@ -49,7 +38,7 @@ export function KwStepStart({ data, set }: Props) {
           style={{
             margin: 0,
             fontSize: 15,
-            color: SugarV3.inkSoft,
+            color: sp.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
           }}
@@ -74,7 +63,7 @@ export function KwStepStart({ data, set }: Props) {
             <SgIcon
               name="user"
               size={26}
-              stroke={data.source === 'existing' ? '#fff' : SugarV3.black}
+              stroke={data.source === 'existing' ? sp.onAccent : sp.black}
             />
           }
           title="Lier à un contact existant"
@@ -87,7 +76,7 @@ export function KwStepStart({ data, set }: Props) {
             <SgIcon
               name="upload"
               size={26}
-              stroke={data.source === 'import' ? '#fff' : SugarV3.black}
+              stroke={data.source === 'import' ? sp.onAccent : sp.black}
             />
           }
           title="Importer un dossier externe (bientôt)"
@@ -103,52 +92,13 @@ export function KwStepStart({ data, set }: Props) {
             <SgIcon
               name="send"
               size={26}
-              stroke={data.source === 'magic' ? '#fff' : SugarV3.black}
+              stroke={data.source === 'magic' ? sp.onAccent : sp.black}
             />
           }
           title="Demander les pièces"
           sub="Lien magique envoyé au contact pour qu'il dépose lui-même ses justificatifs en toute sécurité."
           onClick={() => set({ source: 'magic' })}
         />
-      </div>
-
-      <div
-        style={{
-          marginTop: 56,
-          padding: '20px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          color: SugarV3.muted,
-          fontSize: 13,
-          fontWeight: 500,
-        }}
-      >
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 999,
-            background: SugarV3.cardSubtle,
-            display: 'grid',
-            placeItems: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <SgIcon name="shield" size={16} stroke={SugarV3.inkSoft} />
-        </div>
-        <div>
-          <div
-            style={{
-              color: SugarV3.ink,
-              fontWeight: 600,
-              marginBottom: 2,
-            }}
-          >
-            Cinq contrôles obligatoires
-          </div>
-          Identité · domicile · PEP · sanctions · source des fonds (LBA art. 3-7).
-        </div>
       </div>
     </div>
   )
