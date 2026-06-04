@@ -166,13 +166,18 @@ serve(async (req) => {
     }
   }
 
-  // L3 : purge des audios R2 transcrits > 30 j (minimisation LPD). Best-effort, borné.
+  // L3 : purge des audios R2 transcrits (transcript NON VIDE) > 30 j (minimisation LPD).
+  // Best-effort, borné, FIFO. Un transcript vide = transcription ratée → on GARDE l'audio
+  // (re-tentable / vérifiable). Durcissement futur : exclure les objets en échec persistant
+  // (poison-pill) au-delà de N tentatives.
   try {
     const { data: stale } = await admin.from('whatsapp_messages')
       .select('id, media_r2_key')
       .eq('media_type', 'audio')
       .not('media_r2_key', 'is', null)
       .not('transcript', 'is', null)
+      .neq('transcript', '')
+      .order('created_at', { ascending: true })
       .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .limit(20)
     for (const m of (stale ?? []) as Array<{ id: string; media_r2_key: string }>) {
