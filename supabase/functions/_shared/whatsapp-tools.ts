@@ -93,7 +93,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'get_contact_brief',
-      description: "Fiche synthétique d'un contact (infos, critères, 5 dernières actions). Pour « résume Dubois », « où en est X ». contact_id via search_contacts.",
+      description: "Fiche synthétique d'un contact (infos, critères, 5 dernières actions) + compréhension de la dernière conversation WhatsApp (résumé, intention, prochaine action suggérée). Pour « résume Dubois », « où en est X », « rédige une réponse pour X ». contact_id via search_contacts.",
       parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
     },
   },
@@ -328,6 +328,21 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
         type: 'object',
         properties: { contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' } },
         required: ['contact_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'send_client_email',
+      description: "Rédige un EMAIL à un client (contact du CRM) et l'envoie APRÈS validation de l'agent. MEGGA rédige le brouillon (sujet + corps) au ton de l'agent et selon la conversation ; l'agent valide ou corrige avant l'envoi.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'ID du contact destinataire' },
+          instruction: { type: 'string', description: "Ce que l'email doit dire (intention), en quelques mots" },
+        },
+        required: ['contact_id', 'instruction'],
       },
     },
   },

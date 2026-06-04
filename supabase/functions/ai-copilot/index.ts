@@ -3,6 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { formatStyleBlock, type LearnedStyle } from '../_shared/agent-style.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -281,7 +282,7 @@ serve(async (req: Request) => {
           if (u?.user) {
             const { data: aiProfile } = await sb
               .from('agent_ai_profiles')
-              .select('brief')
+              .select('brief, learned_style')
               .eq('agent_id', u.user.id)
               .maybeSingle()
             const addendum = (aiProfile?.brief as { system_addendum?: string } | null)
@@ -289,6 +290,8 @@ serve(async (req: Request) => {
             if (typeof addendum === 'string' && addendum.trim()) {
               systemPrompt += `\n\n--- Contexte de l'agent (calibrage Day 0) ---\n${addendum.trim()}`
             }
+            const styleBlock = formatStyleBlock((aiProfile?.learned_style as LearnedStyle | null) ?? null)
+            if (styleBlock) systemPrompt += styleBlock
           }
         }
       } catch (_) {
