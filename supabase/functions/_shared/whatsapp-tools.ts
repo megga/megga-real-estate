@@ -331,4 +331,19 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'send_client_email',
+      description: "Rédige un EMAIL à un client (contact du CRM) et l'envoie APRÈS validation de l'agent. MEGGA rédige le brouillon (sujet + corps) au ton de l'agent et selon la conversation ; l'agent valide ou corrige avant l'envoi.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'ID du contact destinataire' },
+          instruction: { type: 'string', description: "Ce que l'email doit dire (intention), en quelques mots" },
+        },
+        required: ['contact_id', 'instruction'],
+      },
+    },
+  },
 ]

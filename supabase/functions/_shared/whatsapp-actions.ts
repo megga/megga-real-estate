@@ -21,6 +21,7 @@ import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCat
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
+import { formatStyleBlock, type LearnedStyle } from './agent-style.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -1185,4 +1186,199 @@ export async function executeSendKycLink(ctx: ActionCtx, payload: Args): Promise
   return lang === 'en'
     ? `KYC link created but the email didn't go out (${reason ?? 'unknown'}). You can resend it from the CRM.`
     : `Lien KYC créé mais l'email n'est pas parti (${reason ?? 'inconnu'}). Tu peux le renvoyer depuis le CRM.`
+}
+
+// ── send_client_email (Task 3 — Sortie assistée) ─────────────────────────────
+// Modèle prepare → execute : DeepSeek rédige le brouillon (sujet + corps) au ton de
+// l'agent selon la compréhension du fil + l'instruction de l'agent. L'agent valide
+// (WYSIWYG) avant tout envoi. Tier confirm, jamais auto.
+
+/** Prépare le brouillon d'email via DeepSeek puis le soumet à la validation de l'agent. */
+export async function prepareSendClientEmail(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(a.contact_id)
+  const instruction = s(a.instruction)
+  if (!contactId) return { ok: false, error: lang === 'en' ? 'Which contact should receive the email?' : 'Pour quel contact veux-tu envoyer un email ?' }
+  if (!instruction) return { ok: false, error: lang === 'en' ? 'What should the email say?' : "Que doit dire l'email ?" }
+
+  // 1. Résoudre le contact (prénom, nom, email) — scopé agence.
+  const { data: cRow } = await ctx.supabase.from('contacts')
+    .select('first_name, last_name, email')
+    .eq('id', contactId)
+    .eq('agency_id', ctx.agencyId)
+    .maybeSingle()
+  const contact = cRow as { first_name: string | null; last_name: string | null; email: string | null } | null
+  if (!contact) return { ok: false, error: lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.' }
+  if (!contact.email) return { ok: false, error: lang === 'en' ? "This contact has no email address — email not sent." : "Ce contact n'a pas d'email — email non envoyé." }
+
+  // 2. Compréhension du fil WhatsApp (dégrade proprement à null si absent).
+  const { data: insightRow } = await ctx.supabase.from('whatsapp_conversation_insights')
+    .select('summary, intent, sentiment, next_action, commitments')
+    .eq('contact_id', contactId)
+    .eq('agency_id', ctx.agencyId)
+    .maybeSingle()
+  const insight = insightRow as {
+    summary: string | null; intent: string | null; sentiment: string | null
+    next_action: unknown; commitments: unknown
+  } | null
+
+  // 3. Style appris de l'agent (self-gating : vide si pas 'active').
+  const { data: prof } = await ctx.supabase.from('agent_ai_profiles')
+    .select('learned_style')
+    .eq('agent_id', ctx.profileId)
+    .maybeSingle()
+  const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
+
+  // 4. Appel DeepSeek (JSON mode) pour rédiger le brouillon.
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
+  if (!apiKey) return { ok: false, error: lang === 'en' ? "Email drafting unavailable right now — try again later." : "Je n'ai pas réussi à rédiger l'email, tu peux reformuler ?" }
+
+  const firstName = (contact.first_name ?? '').trim()
+  const lastName = (contact.last_name ?? '').trim()
+  const clientName = [firstName, lastName].filter(Boolean).join(' ') || 'le client'
+
+  // Résumé du fil pour le contexte DeepSeek.
+  const insightContext = insight
+    ? [
+        insight.summary ? `Résumé du fil : ${insight.summary}` : null,
+        insight.intent ? `Intention du client : ${insight.intent}` : null,
+        insight.next_action && typeof insight.next_action === 'object' && insight.next_action !== null
+          && typeof (insight.next_action as Record<string, unknown>).label === 'string'
+          ? `Prochaine action suggérée : ${(insight.next_action as Record<string, unknown>).label}` : null,
+        Array.isArray(insight.commitments) && (insight.commitments as unknown[]).length
+          ? `Engagements pris : ${(insight.commitments as string[]).slice(0, 5).join(' / ')}` : null,
+      ].filter(Boolean).join('\n')
+    : ''
+
+  const systemPrompt = `Tu es un assistant immobilier suisse expert en rédaction d'emails professionnels pour agents immobiliers.
+Tu rédiges un email POUR LE CLIENT de l'agent, au nom de l'agence.
+
+RÈGLES ABSOLUES (s'imposent à tout le reste) :
+- Vouvoiement strict (jamais de tutoiement avec le client).
+- Français soigné et sobre, adapté à l'immobilier suisse.
+- Aucune promesse non tenable, aucun chiffre ou donnée inventé.
+- Pas de jargon technique ni d'identifiant brut.
+- Email personnalisé selon l'instruction de l'agent et la compréhension du fil.
+- Longueur adaptée à l'objet : ni trop court ni trop long.${styleBlock ? `\n\nTon ADDITIF de cet agent (nuance uniquement la chaleur/concision/traits, sans jamais déroger au vouvoiement ni aux règles ci-dessus) :${styleBlock}` : ''}
+
+Réponds UNIQUEMENT en JSON strict : {"subject":"…","body":"…"}`
+
+  const userPrompt = `Rédige un email immobilier suisse au client "${clientName}".
+
+Instruction de l'agent : ${instruction}
+${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
+
+  let subject = ''
+  let body = ''
+  try {
+    const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 700,
+        temperature: 0.3,
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) {
+      console.error('DeepSeek draft email HTTP', res.status)
+      return { ok: false, error: lang === 'en' ? "I couldn't draft the email — try again or rephrase." : "Je n'ai pas réussi à rédiger l'email, tu peux reformuler ?" }
+    }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const raw = data?.choices?.[0]?.message?.content ?? ''
+    let parsed: Record<string, unknown> = {}
+    try { parsed = JSON.parse(raw) } catch { /* laisse subject/body vides */ }
+    subject = typeof parsed.subject === 'string' ? parsed.subject.trim() : ''
+    body = typeof parsed.body === 'string' ? parsed.body.trim() : ''
+  } catch (e) {
+    console.error('DeepSeek draft email error:', (e as Error)?.name ?? 'unknown')
+    return { ok: false, error: lang === 'en' ? "I couldn't draft the email — try again or rephrase." : "Je n'ai pas réussi à rédiger l'email, tu peux reformuler ?" }
+  }
+
+  // 5. Échec de rédaction si sujet ou corps vides.
+  if (!subject || !body) {
+    return { ok: false, error: lang === 'en' ? "I couldn't draft the email — try again or rephrase." : "Je n'ai pas réussi à rédiger l'email, tu peux reformuler ?" }
+  }
+
+  // 6. Payload WYSIWYG figé — ce que l'agent valide est exactement ce qui partira.
+  const who = firstName || (lang === 'en' ? 'this client' : 'ce client')
+  const payload = { contact_id: contactId, to: contact.email, subject, body }
+  const prompt = lang === 'en'
+    ? `Email to ${who} — Subject: ${subject}\n\n${body}\n\nShall I send it? ("yes" / "no")`
+    : `Email à ${who} — Objet : ${subject}\n\n${body}\n\nJ'envoie ? (« oui » / « non »)`
+  return { ok: true, prompt, payload }
+}
+
+/** Post-« oui » : envoie l'email figé via send-relance-email (Resend). */
+export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(payload.contact_id)
+  const to = s(payload.to)
+  const subject = s(payload.subject)
+  const body = s(payload.body)
+  if (!contactId || !to || !subject || !body) return lang === 'en' ? 'Incomplete action, email not sent.' : 'Action incomplète, email non envoyé.'
+
+  // Re-validation : contact toujours présent et email inchangé.
+  const { data: cRow } = await ctx.supabase.from('contacts')
+    .select('first_name, email')
+    .eq('id', contactId)
+    .eq('agency_id', ctx.agencyId)
+    .maybeSingle()
+  const contact = cRow as { first_name: string | null; email: string | null } | null
+  if (!contact) return lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.'
+  if (!contact.email) return lang === 'en' ? "This contact has no email — email not sent." : "Ce contact n'a pas d'email — email non envoyé."
+  const first = (contact.first_name ?? '').trim() || (lang === 'en' ? 'the contact' : 'le contact')
+
+  // Nom d'affichage de l'agent pour la signature.
+  const { data: agentRow } = await ctx.supabase.from('profiles')
+    .select('full_name')
+    .eq('id', ctx.profileId)
+    .maybeSingle()
+  const agentName = (agentRow as { full_name: string | null } | null)?.full_name?.trim() ?? undefined
+
+  // Envoi via send-relance-email (service-role).
+  let emailSent = false
+  let failReason: string | null = null
+  try {
+    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-relance-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({ to, subject, body, agentName, agencyId: ctx.agencyId, leadId: contactId }),
+      signal: AbortSignal.timeout(20_000),
+    })
+    if (res.ok) {
+      emailSent = true
+    } else {
+      const j = await res.json().catch(() => ({})) as { error?: string }
+      failReason = j.error ?? `HTTP ${res.status}`
+    }
+  } catch (e) {
+    failReason = (e as Error)?.name ?? 'network'
+  }
+
+  // Audit IA non bloquant.
+  await ctx.supabase.from('activity_events').insert({
+    agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+    action: 'whatsapp_ai_send_client_email', entity_type: 'contact', entity_id: contactId,
+    category: 'contact', severity: 'info',
+    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, email_sent: emailSent },
+  }).then(() => {}, () => {})
+
+  if (emailSent) {
+    return lang === 'en' ? `Email sent to ${first}.` : `Email envoyé à ${first}.`
+  }
+  return lang === 'en'
+    ? `The email didn't go out (${failReason ?? 'unknown'}). You can send it from the CRM.`
+    : `L'email n'est pas parti (${failReason ?? 'inconnu'}). Tu peux le renvoyer depuis le CRM.`
 }

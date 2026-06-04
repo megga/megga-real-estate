@@ -19,6 +19,7 @@ import {
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   execCreateDeal, execSearchListings, execGetKycStatus,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink,
+  prepareSendClientEmail,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
@@ -340,6 +341,10 @@ async function stashPending(
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'send_listings') {
     const p = await prepareSendListings(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'send_client_email') {
+    const p = await prepareSendClientEmail(ctx, args)
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'record_offer') {

@@ -38,6 +38,9 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // send_kyc_link : envoi d'un email au CLIENT (lien d'upload KYC) → confirm. Le KYC reste
   // facultatif : l'outil n'est qu'un assist, jamais une étape obligatoire.
   send_kyc_link: 'confirm',
+  // send_client_email : rédige + envoie un email au CLIENT → confirm. Socle légal : toute
+  // communication client sort sous validation humaine, jamais automatique.
+  send_client_email: 'confirm',
   // update_pipeline modifie l'étape pipeline → garde-fou absolu du cerveau
   // (ai-guardrails : « jamais sans action humaine ») ⇒ confirm (le « oui » de l'agent).
   update_pipeline: 'confirm',
