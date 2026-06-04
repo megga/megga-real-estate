@@ -77,7 +77,7 @@ export default function PipelineSugarV2Page() {
   // ── Source de vérité : Supabase via usePipelineSugar ────────────────
   // Le hook remplit le registry runtime ; crmContactById/crmBienById ci-dessous
   // renvoient automatiquement les contacts/biens Supabase.
-  const { deals: liveDeals, isLoading, updateStage } = usePipelineSugar()
+  const { deals: liveDeals, updateStage } = usePipelineSugar()
 
   // ── Optimistic overlay (drag-drop fluide) ────────────────────────────
   // React Query invalide après mutation → léger délai. On overlay le stage
@@ -259,18 +259,6 @@ export default function PipelineSugarV2Page() {
     () => localDeals.filter(d => d.risk !== 'healthy').length,
     [localDeals],
   )
-  const atRiskNames = useMemo(() => {
-    return localDeals
-      .filter(d => d.risk !== 'healthy')
-      .slice(0, 2)
-      .map(d => {
-        const c = crmContactById(d.contactId)
-        return c ? `${c.firstName} ${c.lastName}` : null
-      })
-      .filter((n): n is string => !!n)
-      .join(' · ')
-  }, [localDeals])
-
   // ── Conversion : signed / total des stages clôturés (signed + lost) ──
   // Source : pipeline live. Si pas de deals clôturés, on n'affiche pas de %.
   const closedDeals = useMemo(
@@ -283,9 +271,10 @@ export default function PipelineSugarV2Page() {
   )
   const conversionPct = closedDeals > 0 ? Math.round((signedDeals / closedDeals) * 100) : null
 
-  // ── Deals bloqués par KYC (handoff SugarPipelineKycLock) ────────────
-  // Sur stages sensibles uniquement : visit-done/interest-confirmed/offer/signed
-  const blockingDeals = useMemo(() => {
+  // ── Dossiers KYC à compléter (rappel doux, NON-bloquant) ────────────
+  // Suggestion sur stages sensibles : visit-done/interest-confirmed/offer/signed.
+  // KYC = nice to have, jamais un verrou — le deal avance quoi qu'il arrive.
+  const pendingKycDeals = useMemo(() => {
     const sensitive: StageId[] = ['visit-done', 'interest-confirmed', 'offer', 'signed']
     return localDeals
       .filter(d => sensitive.includes(d.stage))
@@ -352,10 +341,7 @@ export default function PipelineSugarV2Page() {
             <span style={{
               fontSize: 13, color: sp.sub, fontWeight: 500, marginBottom: 6,
             }}>
-              {isLoading
-                ? 'Chargement…'
-                : `${filteredDeals.length} deal${filteredDeals.length > 1 ? 's' : ''} · ${CRM_STAGE_ORDER.length} étapes`}
-              {!isLoading && activeFilters > 0 && ` · ${activeFilters} filtre${activeFilters > 1 ? 's' : ''}`}
+              {''}
             </span>
             <div style={{ flex: 1 }} />
             <SugarSegmentedView sp={sp} value={view} onChange={setView} />
@@ -386,9 +372,9 @@ export default function PipelineSugarV2Page() {
             </button>
           </div>
 
-          {/* Verrou KYC pipeline — bannière noire Sugar Pure (handoff §SugarPipelineKycLock) */}
+          {/* Rappel KYC pipeline (non-bloquant) — bannière noire Sugar Pure */}
           <SugarPipelineKycLock
-            blocking={blockingDeals}
+            pending={pendingKycDeals}
             onOpenKyc={() => navigate('/dashboard/kyc')}
           />
 
@@ -396,17 +382,17 @@ export default function PipelineSugarV2Page() {
           <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>
             <SugarKpiTile sp={sp} dark={dark} label="Pipeline actif"
               value={localDeals.length}
-              sub={`${localDeals.length} deal${localDeals.length > 1 ? 's' : ''} · ${CRM_STAGE_ORDER.length} étapes`} />
+              sub="" />
             <SugarKpiTile sp={sp} dark={dark} label="Valeur totale"
               value={`CHF ${(totalValue / 1e6).toFixed(2)}M`}
-              sub="cumul deals actifs" accent={t.primary} />
+              sub="" accent={t.primary} />
             <SugarKpiTile sp={sp} dark={dark} label="À risque"
               value={atRisk}
-              sub={atRiskNames || (atRisk === 0 ? 'Aucun deal à risque' : '—')}
+              sub=""
               accent="#F59E0B" />
             <SugarKpiTile sp={sp} dark={dark} label="Conversion"
               value={conversionPct !== null ? `${conversionPct}%` : '—'}
-              sub={closedDeals > 0 ? `${signedDeals}/${closedDeals} deals clôturés` : 'aucun deal clôturé'}
+              sub=""
               accent="#0E9F6E" />
           </div>
 
@@ -434,26 +420,26 @@ export default function PipelineSugarV2Page() {
                 }}>×</button>
               )}
             </div>
-            <SugarFilterPill sp={sp} label="Étape"
+            <SugarFilterPill sp={sp} dark={dark} label="Étape"
               value={filterStages.length === 0
                 ? 'Toutes'
                 : filterStages.length === 1
                   ? CRM_STAGES[filterStages[0]].label
                   : `${filterStages.length} étapes`}
               active={filterStages.length > 0}>
-              <SugarStageFilter sp={sp} value={filterStages} onChange={setFilterStages} />
+              <SugarStageFilter sp={sp} dark={dark} value={filterStages} onChange={setFilterStages} />
             </SugarFilterPill>
-            <SugarFilterPill sp={sp} label="Risque"
+            <SugarFilterPill sp={sp} dark={dark} label="Risque"
               value={filterRisk === 'all' ? 'Tous'
                 : filterRisk === 'healthy' ? 'Sain'
                 : filterRisk === 'at-risk' ? 'À risque' : 'Bloqué'}
               active={filterRisk !== 'all'}>
-              <SugarRiskFilter sp={sp} value={filterRisk} onChange={setFilterRisk} />
+              <SugarRiskFilter sp={sp} dark={dark} value={filterRisk} onChange={setFilterRisk} />
             </SugarFilterPill>
-            <SugarFilterPill sp={sp} label="Période"
+            <SugarFilterPill sp={sp} dark={dark} label="Période"
               value={filterPeriod === 0 ? 'Tous' : `${filterPeriod}j`}
               active={filterPeriod !== 30}>
-              <SugarPeriodFilter sp={sp} value={filterPeriod} onChange={setFilterPeriod} />
+              <SugarPeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
             </SugarFilterPill>
             {activeFilters > 0 && (
               <button onClick={resetFilters} style={{
