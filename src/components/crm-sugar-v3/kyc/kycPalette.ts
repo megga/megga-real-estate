@@ -55,6 +55,17 @@ export interface KycPalette {
   okDark: string
   errDark: string
   errDarker: string
+  // Wizard KYC (handoff refonte) — tokens posés SUR l'accent (s'inversent en
+  // sombre) + chrome (séparateurs, fondu footer, logo, scrollbar).
+  onAccentSoft: string
+  onAccentMid: string
+  onAccentFaint: string
+  divider: string
+  stepLine: string
+  footerFade: string
+  logoInvert: boolean
+  scrollThumb: string
+  scrollThumbHover: string
 }
 
 // Tons de risque — FIXES dans les 2 thèmes (le risque doit se repérer d'un
@@ -94,6 +105,16 @@ export const KYC_LIGHT: KycPalette = {
   okDark: '#0E9F6E',
   errDark: '#E53935',
   errDarker: '#B91C1C',
+  onAccentSoft: 'rgba(255,255,255,0.75)',
+  onAccentMid: 'rgba(255,255,255,0.18)',
+  onAccentFaint: 'rgba(255,255,255,0.10)',
+  divider: 'rgba(11,12,14,0.10)',
+  stepLine: 'rgba(11,12,14,0.08)',
+  footerFade:
+    'linear-gradient(180deg, transparent 0%, rgba(237,239,243,0.9) 60%, rgba(237,239,243,1) 100%)',
+  logoInvert: false,
+  scrollThumb: 'rgba(11,12,14,0.18)',
+  scrollThumbHover: 'rgba(11,12,14,0.32)',
 }
 
 /**
@@ -138,6 +159,15 @@ export function buildKycPalette(
     okDark: '#6EE7B7',
     errDark: '#F8B4B0',
     errDarker: '#FCA5A5',
+    onAccentSoft: 'rgba(11,12,14,0.62)',
+    onAccentMid: 'rgba(11,12,14,0.14)',
+    onAccentFaint: 'rgba(11,12,14,0.08)',
+    divider: 'rgba(255,255,255,0.12)',
+    stepLine: 'rgba(255,255,255,0.16)',
+    footerFade: `linear-gradient(180deg, transparent 0%, ${t.bg} 62%, ${t.bg} 100%)`,
+    logoInvert: true,
+    scrollThumb: 'rgba(255,255,255,0.22)',
+    scrollThumbHover: 'rgba(255,255,255,0.40)',
   }
 }
 

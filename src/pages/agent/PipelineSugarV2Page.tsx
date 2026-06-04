@@ -372,10 +372,11 @@ export default function PipelineSugarV2Page() {
             </button>
           </div>
 
-          {/* Rappel KYC pipeline (non-bloquant) — bannière noire Sugar Pure */}
+          {/* Rappel KYC pipeline (non-bloquant) — pilule discrète Sugar Pure */}
           <SugarPipelineKycLock
             pending={pendingKycDeals}
             onOpenKyc={() => navigate('/dashboard/kyc')}
+            sp={sp}
           />
 
           {/* KPI tiles — source : pipeline live (usePipelineSugar) */}
