@@ -556,7 +556,9 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   // Budget EN SQL sur `price` : pour les actifs rent, le loyer mensuel est stocké dans `price`
   // (rent/rent_chf NULL en base) ; pour buy c'est le prix de vente. Filtre indexé, pas en mémoire.
   const budget = parseAmount(a.budget_max)
-  if (budget && budget > 0) q = q.lte('price', budget)
+  // .gt('price', 0) : un budget exclut les biens « loyer sur demande » (price=0) — sinon ils
+  // gonfleraient le total et sortiraient avec un montant null (préserve l'ancienne sémantique amt>0).
+  if (budget && budget > 0) q = q.lte('price', budget).gt('price', 0)
 
   // Zones : OR d'ilike sur city/canton (matche n'importe laquelle). Neutralise les
   // caractères qui casseraient le filtre PostgREST .or(). Max 5 zones (anti-abus).
