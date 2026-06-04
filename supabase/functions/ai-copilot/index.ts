@@ -3,7 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { formatStyleBlock, type LearnedStyle } from '../_shared/agent-style.ts'
+import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -282,7 +282,7 @@ serve(async (req: Request) => {
           if (u?.user) {
             const { data: aiProfile } = await sb
               .from('agent_ai_profiles')
-              .select('brief, learned_style')
+              .select('brief, learned_style, agency_id')
               .eq('agent_id', u.user.id)
               .maybeSingle()
             const addendum = (aiProfile?.brief as { system_addendum?: string } | null)
@@ -292,6 +292,14 @@ serve(async (req: Request) => {
             }
             const styleBlock = formatStyleBlock((aiProfile?.learned_style as LearnedStyle | null) ?? null)
             if (styleBlock) systemPrompt += styleBlock
+            // Mimétisme de voix : vrais messages clients de l'agence (few-shot), pour les brouillons client.
+            const agencyId = (aiProfile as { agency_id?: string | null } | null)?.agency_id ?? null
+            const rawVoice = formatVoiceExamples(await fetchClientVoiceSamples(sb, agencyId), language === 'en' ? 'en' : 'fr')
+            if (rawVoice) {
+              systemPrompt += language === 'en'
+                ? `\n\nWhen you draft a CLIENT-FACING message (email/listing), mirror this tone; for internal analysis keep your usual style.${rawVoice}`
+                : `\n\nQuand tu rédiges un message DESTINÉ À UN CLIENT (email/annonce), copie ce ton ; pour l'analyse interne, garde ton style habituel.${rawVoice}`
+            }
           }
         }
       } catch (_) {

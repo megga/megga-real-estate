@@ -23,7 +23,7 @@ import {
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
-import { formatStyleBlock, type LearnedStyle } from '../_shared/agent-style.ts'
+import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -93,6 +93,18 @@ serve(async (req) => {
     .select('learned_style').eq('agent_id', profileId).maybeSingle()
   const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
 
+  // Mimétisme de voix (few-shot) : vrais messages clients de l'agence, pour les messages DESTINÉS À UN CLIENT.
+  // NB: fetché à chaque tour (le corps de send_client_message est composé inline) ; TODO lazy si le budget requêtes se tend.
+  const voiceLang = lang === 'en' ? 'en' : 'fr'
+  const voiceSamples = await fetchClientVoiceSamples(supabase, ctx.agencyId)
+  const rawVoice = formatVoiceExamples(voiceSamples, voiceLang)
+  // Cadrage : la voix ne s'applique QU'aux messages client (send_client_message), jamais au chat avec l'agent.
+  const voiceBlock = rawVoice
+    ? (voiceLang === 'en'
+        ? `\n\nWhen you draft a message FOR A CLIENT (send_client_message), mirror this tone; with the agent, keep your usual style.${rawVoice}`
+        : `\n\nQuand tu rédiges un message POUR UN CLIENT (send_client_message), copie ce ton ; avec l'agent, garde ton style habituel.${rawVoice}`)
+    : ''
+
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
   // Garde : si waNumber est vide, .or('wa_from.eq.,wa_to.eq.') ne matche RIEN → amnésie
@@ -118,7 +130,7 @@ serve(async (req) => {
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}` },
+    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}${voiceBlock}` },
     ...history,
     { role: 'user', content: message },
   ]
