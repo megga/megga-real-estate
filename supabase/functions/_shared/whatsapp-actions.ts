@@ -179,7 +179,10 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
   const { data: searches } = await ctx.supabase
     .from('client_searches').select('label, criteria')
     .eq('contact_id', contactId).eq('is_active', true).limit(3)
-  return JSON.stringify({ contact: c, recherches_actives: searches ?? [], timeline: timeline ?? [] })
+  const { data: insight } = await ctx.supabase.from('whatsapp_conversation_insights')
+    .select('summary, intent, sentiment, next_action, commitments, source_message_count, generated_at')
+    .eq('contact_id', c.id).eq('agency_id', ctx.agencyId).maybeSingle()
+  return JSON.stringify({ contact: c, recherches_actives: searches ?? [], timeline: timeline ?? [], comprehension: insight ?? null })
 }
 
 /** Leads à compléter / relancer (marqués par MEGGA). */
