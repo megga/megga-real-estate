@@ -270,18 +270,6 @@ function CardQuickActions({
       animation: 'qaFade .14s ease-out',
     }}>
       <style>{`@keyframes qaFade { from { opacity: 0; transform: translateY(-2px) } to { opacity: 1; transform: none } }`}</style>
-      <button title={contact.phone ? `Appeler ${contact.phone}` : 'Pas de numéro'}
-        onClick={e => {
-          stop(e)
-          if (contact.phone) window.location.href = `tel:${contact.phone.replace(/\s/g, '')}`
-           
-          else window.alert(`Pas de numéro renseigné pour ${contact.firstName} ${contact.lastName}`)
-        }}
-        style={baseBtn()}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)' }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}>
-        <MEIcon name="phone" size={11} color={btnFg} />
-      </button>
       <button title="Planifier une visite"
         onClick={e => {
           stop(e)
@@ -300,22 +288,19 @@ function CardQuickActions({
           style={baseBtn(menuOpen ? { background: sp.ink, color: sp.pageBg, borderColor: sp.ink } : {})}
           onMouseEnter={e => { if (!menuOpen) e.currentTarget.style.transform = 'scale(1.08)' }}
           onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.transform = 'none' }}>
-          <span style={{
-            fontSize: 14, lineHeight: 0, fontWeight: 800, letterSpacing: 0,
-            transform: 'translateY(-3px)', color: menuOpen ? sp.pageBg : btnFg,
-          }}>···</span>
+          <MEIcon name="more-horizontal" size={13} color={menuOpen ? sp.pageBg : btnFg} />
         </button>
         {menuOpen && (
           <div style={{
             position: 'absolute', top: 32, right: 0, minWidth: 180,
-            background: dark ? 'rgba(28,36,30,.92)' : 'rgba(255,255,255,.95)',
+            background: dark ? 'rgba(26,26,32,.96)' : 'rgba(255,255,255,.95)',
             border: `1px solid ${sp.cardBorder}`, borderRadius: 14,
             boxShadow: '0 10px 30px -10px rgba(14,20,16,.20), 0 2px 6px rgba(14,20,16,.06)',
             backdropFilter: 'blur(16px) saturate(1.4)',
             WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
             padding: 6, zIndex: 10, animation: 'qaFade .14s ease-out',
           }}>
-            <MenuItem sp={sp} icon="users" label="Réassigner" onClick={() => {
+            <MenuItem sp={sp} dark={dark} icon="users" label="Réassigner" onClick={() => {
               if (isMockId(dealId)) {
                 setMenuOpen(false)
                  
@@ -324,8 +309,8 @@ function CardQuickActions({
               }
               setReassignOpen(true)
             }} />
-            <MenuItem sp={sp} icon="file" label="Archiver" onClick={() => { setMenuOpen(false); void archiveDeal() }} />
-            <MenuItem sp={sp} icon="alert" label="Marquer perdu" tone="danger" onClick={() => { setMenuOpen(false); void markLost() }} />
+            <MenuItem sp={sp} dark={dark} icon="file" label="Archiver" onClick={() => { setMenuOpen(false); void archiveDeal() }} />
+            <MenuItem sp={sp} dark={dark} icon="alert" label="Marquer perdu" tone="danger" onClick={() => { setMenuOpen(false); void markLost() }} />
           </div>
         )}
         {reassignOpen && (
@@ -451,27 +436,29 @@ function ReassignPicker({
 }
 
 function MenuItem({
-  sp, icon, label, tone, onClick,
+  sp, icon, label, tone, onClick, dark,
 }: {
   sp: SugarPalette
   icon: MEIconName
   label: string
   tone?: 'danger'
   onClick: () => void
+  dark: boolean
 }) {
   const danger = tone === 'danger'
+  const dangerInk = dark ? '#F26B65' : '#A11C16'
   const [hov, setHov] = useState(false)
   return (
     <button onClick={onClick}
       onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
         width: '100%', padding: '8px 10px', borderRadius: 10, border: 0,
-        background: hov ? (danger ? '#FDECEA' : sp.cardSubBg) : 'transparent',
-        color: danger ? '#A11C16' : sp.ink, cursor: 'pointer', fontFamily: 'inherit',
+        background: hov ? (danger ? (dark ? 'rgba(242,107,101,0.14)' : '#FDECEA') : sp.cardSubBg) : 'transparent',
+        color: danger ? dangerInk : sp.ink, cursor: 'pointer', fontFamily: 'inherit',
         display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 600,
         textAlign: 'left',
       }}>
-      <MEIcon name={icon} size={12} color={danger ? '#A11C16' : sp.soft} />
+      <MEIcon name={icon} size={12} color={danger ? dangerInk : sp.soft} />
       {label}
     </button>
   )

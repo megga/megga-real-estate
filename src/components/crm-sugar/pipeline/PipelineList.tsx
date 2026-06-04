@@ -77,11 +77,12 @@ export function PipelineList({ sp, deals, onOpenDeal }: PipelineListProps) {
               {b ? b.title : <span style={{ color: sp.sub, fontStyle: 'italic' }}>Recherche active</span>}
             </div>
             <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 12px', borderRadius: 999, background: sp.cardSubBg,
-              fontSize: 11.5, color: sp.soft, fontWeight: 600, width: 'fit-content',
+              display: 'inline-flex', alignItems: 'center',
+              padding: '4px 12px', borderRadius: 999, background: stage.color,
+              fontSize: 11.5, color: '#FFFFFF', fontWeight: 700, width: 'fit-content',
+              whiteSpace: 'nowrap',
+              boxShadow: `inset 0 -1px 0 rgba(0,0,0,0.14)`,
             }}>
-              <span style={{ width: 7, height: 7, borderRadius: 999, background: stage.color }} />
               {stage.label}
             </span>
             <span style={{ fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
