@@ -78,15 +78,15 @@ export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme } = {
 
 // Stage colors (deal pipeline) — same across themes for recognition
 export const CRM_STAGES = {
-  'new-lead':           { label: 'Nouveau lead',      color: '#6B7280' },
-  'to-qualify':         { label: 'À qualifier',       color: '#F59E0B' },
-  'searching':          { label: 'Recherche active',  color: '#0041D9' },
-  'visit-scheduled':    { label: 'Visite planifiée',  color: '#6366F1' },
-  'visit-done':         { label: 'Visite effectuée',  color: '#06B6D4' },
-  'interest-confirmed': { label: 'Intérêt confirmé',  color: '#10B981' },
-  'offer':              { label: 'Offre déposée',     color: '#8B5CF6' },
-  'signed':             { label: 'Signé',             color: '#0E1410' },
-  'lost':               { label: 'Perdu',             color: '#E53935' },
+  'new-lead':           { label: 'Nouveau lead',      color: '#64748B' },
+  'to-qualify':         { label: 'À qualifier',       color: '#B7791F' },
+  'searching':          { label: 'Recherche active',  color: '#1E5BC6' },
+  'visit-scheduled':    { label: 'Visite planifiée',  color: '#0E7490' },
+  'visit-done':         { label: 'Visite effectuée',  color: '#0891B2' },
+  'interest-confirmed': { label: 'Intérêt confirmé',  color: '#059669' },
+  'offer':              { label: 'Offre déposée',     color: '#C45A00' },
+  'signed':             { label: 'Signé',             color: '#0B0C0E' },
+  'lost':               { label: 'Perdu',             color: '#8E1F3D' },
 } as const
 export type StageId = keyof typeof CRM_STAGES
 

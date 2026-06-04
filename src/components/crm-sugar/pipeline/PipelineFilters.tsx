@@ -78,8 +78,9 @@ interface FilterPillProps {
   value: string
   active: boolean
   children: ReactNode
+  dark: boolean
 }
-export function SugarFilterPill({ sp, label, value, active, children }: FilterPillProps) {
+export function SugarFilterPill({ sp, label, value, active, children, dark }: FilterPillProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -111,19 +112,22 @@ export function SugarFilterPill({ sp, label, value, active, children }: FilterPi
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-          background: 'rgba(255,255,255,.96)', border: `1px solid ${sp.cardBorder}`,
+          background: dark ? '#181B22' : 'rgba(255,255,255,.96)',
+          border: `1px solid ${dark ? 'rgba(255,255,255,.09)' : sp.cardBorder}`,
           borderRadius: 16,
-          boxShadow: '0 10px 30px -10px rgba(14,20,16,.18), 0 2px 8px rgba(14,20,16,.06)',
+          boxShadow: dark
+            ? '0 12px 34px -10px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.35)'
+            : '0 10px 30px -10px rgba(14,20,16,.18), 0 2px 8px rgba(14,20,16,.06)',
           backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
           padding: 10, zIndex: 50, minWidth: 220,
           animation: 'sfPop .16s cubic-bezier(.2,.7,.2,1)',
         }}>
           <style>{`@keyframes sfPop { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }`}</style>
           {children}
-          <div style={{ borderTop: `1px solid ${sp.cardBorder}`, marginTop: 8, paddingTop: 8 }}>
+          <div style={{ borderTop: `1px solid ${dark ? 'rgba(255,255,255,.09)' : sp.cardBorder}`, marginTop: 8, paddingTop: 8 }}>
             <button onClick={() => setOpen(false)} style={{
               width: '100%', padding: '8px 0', borderRadius: 10, border: 0, cursor: 'pointer',
-              background: sp.ink, color: '#fff', fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
+              background: sp.focusBg, color: sp.focusInk, fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
             }}>Appliquer</button>
           </div>
         </div>
@@ -134,8 +138,8 @@ export function SugarFilterPill({ sp, label, value, active, children }: FilterPi
 
 // ─── Stage filter ──────────────────────────────────────────────────────
 export function SugarStageFilter({
-  sp, value, onChange,
-}: { sp: SugarPalette; value: StageId[]; onChange: (v: StageId[]) => void }) {
+  sp, value, onChange, dark,
+}: { sp: SugarPalette; value: StageId[]; onChange: (v: StageId[]) => void; dark: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{
@@ -151,25 +155,25 @@ export function SugarStageFilter({
             style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px',
               borderRadius: 10, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-              background: sel ? '#F0F4FF' : 'transparent', textAlign: 'left',
+              background: sel ? (dark ? 'rgba(255,255,255,.08)' : '#F4F5F7') : 'transparent', textAlign: 'left',
             }}>
             <span style={{
               width: 16, height: 16, borderRadius: 4,
-              border: `2px solid ${sel ? '#0041D9' : '#CDD3DB'}`,
-              background: sel ? '#0041D9' : 'transparent',
+              border: `2px solid ${sel ? sp.focusBg : (dark ? 'rgba(255,255,255,.28)' : '#CDD3DB')}`,
+              background: sel ? sp.focusBg : 'transparent',
               display: 'grid', placeItems: 'center', flexShrink: 0,
             }}>
-              {sel && <svg width="9" height="9" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5 4-4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" fill="none"/></svg>}
+              {sel && <svg width="9" height="9" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5 4-4" stroke={sp.focusInk} strokeWidth="1.6" strokeLinecap="round" fill="none"/></svg>}
             </span>
             <span style={{ width: 8, height: 8, borderRadius: 999, background: info.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12.5, fontWeight: sel ? 700 : 500, color: '#0E1410' }}>{info.label}</span>
+            <span style={{ fontSize: 12.5, fontWeight: sel ? 700 : 500, color: sp.ink }}>{info.label}</span>
           </button>
         )
       })}
       {value.length > 0 && (
         <button onClick={() => onChange([])} style={{
           marginTop: 4, padding: '5px 8px', borderRadius: 8, border: 0, cursor: 'pointer',
-          background: 'transparent', color: '#7A8079',
+          background: 'transparent', color: sp.sub,
           fontSize: 11, fontWeight: 600, fontFamily: 'inherit', textAlign: 'left',
         }}>Tout déselectionner</button>
       )}
@@ -181,8 +185,8 @@ export function SugarStageFilter({
 export type RiskFilterValue = 'all' | 'healthy' | 'at-risk' | 'stalled'
 
 export function SugarRiskFilter({
-  sp, value, onChange,
-}: { sp: SugarPalette; value: RiskFilterValue; onChange: (v: RiskFilterValue) => void }) {
+  sp, value, onChange, dark,
+}: { sp: SugarPalette; value: RiskFilterValue; onChange: (v: RiskFilterValue) => void; dark: boolean }) {
   const opts: { k: RiskFilterValue; label: string; dot: string }[] = [
     { k: 'all',      label: 'Tous',      dot: sp.sub },
     { k: 'healthy',  label: 'Sain',      dot: '#0E9F6E' },
@@ -199,17 +203,18 @@ export function SugarRiskFilter({
         <button key={o.k} onClick={() => onChange(o.k)} style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px',
           borderRadius: 10, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-          background: value === o.k ? '#F0F4FF' : 'transparent', textAlign: 'left',
+          background: value === o.k ? (dark ? 'rgba(255,255,255,.08)' : '#F4F5F7') : 'transparent', textAlign: 'left',
         }}>
           <span style={{
             width: 16, height: 16, borderRadius: 999,
-            border: `2px solid ${value === o.k ? '#0041D9' : '#CDD3DB'}`,
+            border: `2px solid ${value === o.k ? sp.focusBg : (dark ? 'rgba(255,255,255,.28)' : '#CDD3DB')}`,
+            background: value === o.k ? sp.focusBg : 'transparent',
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
-            {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 999, background: '#0041D9' }} />}
+            {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 999, background: sp.focusInk }} />}
           </span>
           <span style={{ width: 8, height: 8, borderRadius: 999, background: o.dot, flexShrink: 0 }} />
-          <span style={{ fontSize: 12.5, fontWeight: value === o.k ? 700 : 500, color: '#0E1410' }}>{o.label}</span>
+          <span style={{ fontSize: 12.5, fontWeight: value === o.k ? 700 : 500, color: sp.ink }}>{o.label}</span>
         </button>
       ))}
     </div>
@@ -218,8 +223,8 @@ export function SugarRiskFilter({
 
 // ─── Period filter ─────────────────────────────────────────────────────
 export function SugarPeriodFilter({
-  sp, value, onChange,
-}: { sp: SugarPalette; value: number; onChange: (v: number) => void }) {
+  sp, value, onChange, dark,
+}: { sp: SugarPalette; value: number; onChange: (v: number) => void; dark: boolean }) {
   const opts = [
     { k: 7,  label: '7 derniers jours' },
     { k: 30, label: '30 derniers jours' },
@@ -237,16 +242,17 @@ export function SugarPeriodFilter({
         <button key={o.k} onClick={() => onChange(o.k)} style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px',
           borderRadius: 10, border: 0, cursor: 'pointer', fontFamily: 'inherit',
-          background: value === o.k ? '#F0F4FF' : 'transparent', textAlign: 'left',
+          background: value === o.k ? (dark ? 'rgba(255,255,255,.08)' : '#F4F5F7') : 'transparent', textAlign: 'left',
         }}>
           <span style={{
             width: 16, height: 16, borderRadius: 999,
-            border: `2px solid ${value === o.k ? '#0041D9' : '#CDD3DB'}`,
+            border: `2px solid ${value === o.k ? sp.focusBg : (dark ? 'rgba(255,255,255,.28)' : '#CDD3DB')}`,
+            background: value === o.k ? sp.focusBg : 'transparent',
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
-            {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 999, background: '#0041D9' }} />}
+            {value === o.k && <span style={{ width: 6, height: 6, borderRadius: 999, background: sp.focusInk }} />}
           </span>
-          <span style={{ fontSize: 12.5, fontWeight: value === o.k ? 700 : 500, color: '#0E1410' }}>{o.label}</span>
+          <span style={{ fontSize: 12.5, fontWeight: value === o.k ? 700 : 500, color: sp.ink }}>{o.label}</span>
         </button>
       ))}
     </div>

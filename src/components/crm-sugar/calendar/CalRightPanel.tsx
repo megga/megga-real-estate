@@ -3,7 +3,7 @@
 
 import { CalIcon, type CalIconName } from './CalIcon'
 import { CAL_EVENT_TYPES, eventTypeColors, useCalPalette, type CalEvent } from './data'
-import { fmtDate, fmtTime, generateBrief, shadeMix } from './helpers'
+import { fmtDate, fmtTime, shadeMix } from './helpers'
 
 interface CalRightPanelProps {
   event: CalEvent | null | undefined
@@ -49,7 +49,7 @@ export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps
           Sélectionnez un événement
         </div>
         <div style={{ fontSize: 11, color: SP.muted, lineHeight: 1.5, maxWidth: 200 }}>
-          Cliquez sur un RDV pour voir le détail, le brief AI et lancer les actions.
+          Cliquez sur un RDV pour voir le détail et lancer les actions.
         </div>
       </aside>
     )
@@ -334,70 +334,6 @@ export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps
           </div>
         </div>
       )}
-
-      {/* AI brief */}
-      <div
-        style={{
-          background: SP.heroBg,
-          color: SP.heroInk,
-          borderRadius: 18,
-          padding: 16,
-          boxShadow: SP.shadow,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            marginBottom: 8,
-            opacity: 0.6,
-          }}
-        >
-          <CalIcon name="sparkle" size={11} stroke={SP.heroInk} sw={2.2} />
-          <div
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-            }}
-          >
-            Brief MEGGA AI
-          </div>
-        </div>
-        <div
-          style={{
-            fontSize: 12.5,
-            lineHeight: 1.55,
-            fontWeight: 500,
-            opacity: 0.92,
-          }}
-        >
-          {generateBrief(event)}
-        </div>
-        <button
-          style={{
-            marginTop: 12,
-            height: 34,
-            padding: '0 14px',
-            borderRadius: 999,
-            border: 0,
-            background: SP.heroChipStrong,
-            color: SP.heroInk,
-            fontSize: 11.5,
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          <CalIcon name="mic" size={11} stroke={SP.heroInk} sw={2} />
-          Écouter le brief vocal
-        </button>
-      </div>
 
       {/* Actions */}
       <div

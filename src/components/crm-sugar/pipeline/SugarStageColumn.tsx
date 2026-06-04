@@ -42,51 +42,55 @@ export function SugarStageColumn({
         position: 'relative',
         transition: 'transform .15s',
       }}>
-      {/* Column header */}
+      {/* Column header — carte opaque, label en pilule pleine + ligne de décompte */}
       <div style={{
         background: dragOver && draggingId
           ? (dark ? 'rgba(255,255,255,.06)' : 'rgba(0,65,217,.06)')
-          : sp.frameBg,
+          : (dark ? '#1B1E25' : '#FFFFFF'),
         border: dragOver && draggingId
           ? `1.5px solid ${s.color}`
-          : `1px solid ${sp.frameBorder}`,
+          : (dark ? '1px solid #2C2F38' : '1px solid #E4E7EC'),
         borderRadius: 18, padding: '12px 14px',
         boxShadow: sp.shadow,
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex', flexDirection: 'column', gap: 8,
       }}>
-        <span style={{
-          width: 9, height: 9, borderRadius: 999, background: s.color, flexShrink: 0,
-          boxShadow: `0 0 0 3px ${s.color}1F`,
-        }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{s.label}</div>
+        {/* Ligne 1 — pilule d'étape + avatars empilés */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            padding: '4px 11px', borderRadius: 999,
+            background: s.color, color: '#FFFFFF',
+            boxShadow: `0 1px 2px ${s.color}59, inset 0 -1px 0 rgba(0,0,0,0.14)`,
+            fontSize: 12, fontWeight: 700, letterSpacing: -0.2,
+          }}>{s.label}</span>
+          <div style={{ display: 'flex', marginLeft: 'auto', flexShrink: 0 }}>
+            {avatars.map((c, i) => (
+              <div key={c.id} style={{
+                width: 24, height: 24, borderRadius: 999,
+                background: c.avatarBg || '#0041D9', color: '#fff',
+                fontSize: 9, fontWeight: 700,
+                display: 'grid', placeItems: 'center',
+                border: `2px solid ${sp.avatarBorder}`, marginLeft: i === 0 ? 0 : -8,
+                boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+              }}>{crmInitials(`${c.firstName} ${c.lastName}`)}</div>
+            ))}
+          </div>
+        </div>
+        {/* Ligne 2 — décompte + bouton d'ajout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
-            fontSize: 10.5, color: sp.sub, marginTop: 1, fontVariantNumeric: 'tabular-nums',
+            flex: 1, minWidth: 0, fontSize: 11, color: sp.sub, fontVariantNumeric: 'tabular-nums',
           }}>
             {deals.length} deal{deals.length > 1 ? 's' : ''}{stageVal > 0 && ` · CHF ${(stageVal / 1e6).toFixed(2)}M`}
           </div>
+          <button style={{
+            width: 26, height: 26, borderRadius: 999, border: 0, background: sp.cardBg,
+            boxShadow: sp.shadowSm, flexShrink: 0,
+            display: 'grid', placeItems: 'center', cursor: 'pointer',
+          }}>
+            <MEIcon name="plus" size={11} color={sp.soft} />
+          </button>
         </div>
-        <div style={{ display: 'flex' }}>
-          {avatars.map((c, i) => (
-            <div key={c.id} style={{
-              width: 24, height: 24, borderRadius: 999,
-              background: c.avatarBg || '#0041D9', color: '#fff',
-              fontSize: 9, fontWeight: 700,
-              display: 'grid', placeItems: 'center',
-              border: `2px solid ${sp.avatarBorder}`, marginLeft: i === 0 ? 0 : -8,
-              boxShadow: '0 1px 3px rgba(0,0,0,.2)',
-            }}>{crmInitials(`${c.firstName} ${c.lastName}`)}</div>
-          ))}
-        </div>
-        <button style={{
-          width: 26, height: 26, borderRadius: 999, border: 0, background: sp.cardBg,
-          boxShadow: sp.shadowSm,
-          display: 'grid', placeItems: 'center', cursor: 'pointer',
-        }}>
-          <MEIcon name="plus" size={11} color={sp.soft} />
-        </button>
       </div>
 
       {/* Cards */}

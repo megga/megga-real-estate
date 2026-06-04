@@ -1,29 +1,25 @@
-// MEGGA CRM Sugar v3 — Bannière verrou pipeline (top of pipeline)
-// Port 1:1 de crm-screen-pipeline-sugar.jsx lignes 349-409 (SugarPipelineKycLock).
+// MEGGA CRM Sugar v3 — Bannière KYC pipeline (top of pipeline)
 //
-// Architecture §5.5 : un deal ne peut pas passer en intérêt-confirmé si KYC ≠ verified.
-// Compte les deals "sensibles" (visit-done/interest-confirmed/offer/signed) sans KYC validé,
-// liste les 3 premiers noms, et propose d'ouvrir la liste des dossiers en un clic.
-// Caché si aucun deal bloqué.
+// KYC/LBA = nice to have, JAMAIS un verrou (règle métier mai 2026). Un deal
+// avance à toutes les étapes sans KYC validé. Cette bannière est un RAPPEL DOUX :
+// elle compte les dossiers KYC à compléter sur les étapes sensibles (suggestion,
+// pas blocage) et propose d'ouvrir la liste. Cachée si aucun dossier en attente.
 
-import { SgIcon } from '../icons'
+import MEIcon from '@/components/propertyx/MEIcon'
 
-interface BlockingDeal {
+interface PendingDeal {
   id: string
   contactFullName: string
 }
 
 interface Props {
-  /** Deals avec KYC non vérifié sur stage sensible. */
-  blocking: BlockingDeal[]
+  /** Deals avec KYC non vérifié sur stage sensible (rappel doux, non-bloquant). */
+  pending: PendingDeal[]
   onOpenKyc: () => void
 }
 
-export function SugarPipelineKycLock({ blocking, onOpenKyc }: Props) {
-  if (blocking.length === 0) return null
-
-  const sampleNames = blocking.slice(0, 3).map((d) => d.contactFullName)
-  const extra = blocking.length - sampleNames.length
+export function SugarPipelineKycLock({ pending, onOpenKyc }: Props) {
+  if (pending.length === 0) return null
 
   return (
     <div
@@ -31,7 +27,7 @@ export function SugarPipelineKycLock({ blocking, onOpenKyc }: Props) {
         background: '#0B0C0E',
         color: '#fff',
         borderRadius: 22,
-        padding: '18px 22px',
+        padding: '16px 22px',
         marginBottom: 18,
         boxShadow: '0 12px 32px rgba(11,12,14,0.18)',
         display: 'grid',
@@ -52,36 +48,35 @@ export function SugarPipelineKycLock({ blocking, onOpenKyc }: Props) {
           flexShrink: 0,
         }}
       >
-        <SgIcon name="lock" size={20} stroke="#fff" sw={1.8} />
+        <MEIcon name="shield" size={20} color="#fff" strokeWidth={1.8} />
       </div>
-      <div>
-        <div
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <span
           style={{
             fontSize: 14,
             fontWeight: 700,
             letterSpacing: -0.2,
-            marginBottom: 3,
+            whiteSpace: 'nowrap',
           }}
         >
-          {blocking.length} deal{blocking.length > 1 ? 's' : ''} bloqué
-          {blocking.length > 1 ? 's' : ''} par la conformité KYC · LBA
-        </div>
-        <div
+          {pending.length} dossier{pending.length > 1 ? 's' : ''} KYC à compléter
+        </span>
+        <span
           style={{
-            fontSize: 12.5,
-            color: 'rgba(255,255,255,0.7)',
-            fontWeight: 500,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: 0.4,
+            textTransform: 'uppercase',
+            padding: '3px 8px',
+            borderRadius: 999,
+            background: 'rgba(255,255,255,0.14)',
+            color: 'rgba(255,255,255,0.92)',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
-          {sampleNames.length > 0 && (
-            <>
-              {sampleNames.join(', ')}
-              {extra > 0 && ` +${extra}`} ·{' '}
-            </>
-          )}
-          ne pourront pas passer en <em>Intérêt confirmé</em> tant que leur
-          dossier n'est pas validé.
-        </div>
+          Optionnel
+        </span>
       </div>
       <button
         onClick={onOpenKyc}
@@ -104,7 +99,7 @@ export function SugarPipelineKycLock({ blocking, onOpenKyc }: Props) {
         }}
       >
         Voir les dossiers
-        <SgIcon name="arrowR" size={14} stroke="#0B0C0E" sw={2} />
+        <MEIcon name="arrow-right" size={14} color="#0B0C0E" strokeWidth={2} />
       </button>
     </div>
   )
