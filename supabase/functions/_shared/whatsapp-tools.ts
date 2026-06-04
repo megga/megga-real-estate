@@ -346,4 +346,18 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'summarize_group_thread',
+      description: "Résume un fil de conversation de GROUPE que l'agent colle ou transfère (plusieurs intervenants). Rends un digest court : décisions, questions ouvertes, qui attend quoi, point bloquant. Pour « résume ce groupe », « où on en est dans ce fil ». NE poste rien — c'est pour l'agent.",
+      parameters: {
+        type: 'object',
+        properties: {
+          thread: { type: 'string', description: "Le texte du fil de groupe collé/transféré par l'agent" },
+        },
+        required: ['thread'],
+      },
+    },
+  },
 ]

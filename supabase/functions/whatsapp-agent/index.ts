@@ -21,6 +21,7 @@ import {
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink,
   prepareSendClientEmail,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
+  execSummarizeGroupThread,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
@@ -319,6 +320,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'run_kyc_screening': return execRunKycScreening(ctx, args)
     case 'attach_kyc_document': return execAttachKycDocument(ctx, args)
     case 'send_kyc_report': return execSendKycReport(ctx, args)
+    case 'summarize_group_thread': return execSummarizeGroupThread(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }
