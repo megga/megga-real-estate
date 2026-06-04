@@ -25,11 +25,19 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   list_followups: 'read',
   get_matches: 'read',
   get_daily_brief: 'read',
+  search_listings: 'read',
+  get_kyc_status: 'read',
   create_contact: 'auto',
   add_note: 'auto',
   schedule_visit: 'auto',
   create_reminder: 'auto',
   qualify_lead: 'auto',
+  // create_deal : ouvre un dossier (transaction) à une étape de DÉPART. État CRM interne
+  // réversible (status annulable), aucun envoi/argent → auto, comme create_contact/qualify.
+  create_deal: 'auto',
+  // send_kyc_link : envoi d'un email au CLIENT (lien d'upload KYC) → confirm. Le KYC reste
+  // facultatif : l'outil n'est qu'un assist, jamais une étape obligatoire.
+  send_kyc_link: 'confirm',
   // update_pipeline modifie l'étape pipeline → garde-fou absolu du cerveau
   // (ai-guardrails : « jamais sans action humaine ») ⇒ confirm (le « oui » de l'agent).
   update_pipeline: 'confirm',
@@ -144,6 +152,22 @@ export const STAGE_LABELS_EN: Record<PipelineStage, string> = {
 export function stageLabel(stage: string, lang: 'fr' | 'en'): string {
   const map = lang === 'en' ? STAGE_LABELS_EN : STAGE_LABELS_FR
   return map[stage as PipelineStage] ?? stage
+}
+
+// ── Ouverture de dossier (create_deal) — logique pure ───────────────────────
+export type DealParty = 'buyer' | 'seller'
+
+/** Côté du dossier : choix explicite de l'agent sinon déduit du type de contact
+ *  (un vendeur → 'seller', tout le reste → 'buyer', défaut sûr le plus fréquent). */
+export function deriveDealParty(contactType: string | null | undefined, explicit?: string | null): DealParty {
+  if (explicit === 'buyer' || explicit === 'seller') return explicit
+  return contactType === 'seller' ? 'seller' : 'buyer'
+}
+
+/** Étape de départ d'un nouveau dossier : vendeur → mandat (new_lead),
+ *  acheteur → recherche active (active_search). */
+export function dealStageDefault(party: DealParty): PipelineStage {
+  return party === 'seller' ? 'new_lead' : 'active_search'
 }
 
 const YES = new Set(['oui', 'ok', 'okay', 'yes', 'y', 'vas-y', 'vasy', 'go', 'confirme', 'confirmer', 'valide', "d'accord", 'daccord', 'ouais', 'yep'])

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { detectTransactionType, parseAmount, mapCriteria, isSearchable, computeMissing, normalizeZone } from './whatsapp-lead'
+import { detectTransactionType, parseAmount, mapCriteria, isSearchable, computeMissing, normalizeZone, canonicalPropertyType } from './whatsapp-lead'
 
 describe('normalizeZone', () => {
   it('corrige les coquilles STT connues', () => {
@@ -66,5 +66,29 @@ describe('isSearchable', () => {
   })
   it('faux si transaction_type seul', () => {
     expect(isSearchable({ transaction_type: 'rent' })).toBe(false)
+  })
+})
+
+describe('canonicalPropertyType', () => {
+  it('mappe les types FR vers la valeur market_listings.type', () => {
+    expect(canonicalPropertyType('appartement')).toBe('apartment')
+    expect(canonicalPropertyType('Studio')).toBe('apartment')
+    expect(canonicalPropertyType('maison')).toBe('house')
+    expect(canonicalPropertyType('villa')).toBe('villa')
+    expect(canonicalPropertyType('bureau')).toBe('office')
+    expect(canonicalPropertyType('terrain')).toBe('land')
+    expect(canonicalPropertyType('parking')).toBe('parking')
+    expect(canonicalPropertyType('dépôt')).toBe('storage')
+  })
+  it('accepte une valeur déjà canonique', () => {
+    expect(canonicalPropertyType('apartment')).toBe('apartment')
+    expect(canonicalPropertyType('storage')).toBe('storage')
+  })
+  it('renvoie undefined pour inconnu, vide, ou un type absent du marché (immeuble→building)', () => {
+    expect(canonicalPropertyType('immeuble')).toBeUndefined() // building n'existe pas dans market_listings.type
+    expect(canonicalPropertyType('chalet')).toBeUndefined()
+    expect(canonicalPropertyType('')).toBeUndefined()
+    expect(canonicalPropertyType(null)).toBeUndefined()
+    expect(canonicalPropertyType(undefined)).toBeUndefined()
   })
 })

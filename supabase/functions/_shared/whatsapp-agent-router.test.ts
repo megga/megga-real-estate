@@ -8,6 +8,8 @@ import {
   buildHistoryMessages,
   isValidStage,
   PIPELINE_STAGES,
+  deriveDealParty,
+  dealStageDefault,
   canLeaveConfirm,
   isUndoCommand,
   isFabricatedKycClaim,
@@ -73,12 +75,20 @@ describe('toolTier', () => {
     expect(toolTier('schedule_visit')).toBe('auto')
     expect(toolTier('create_reminder')).toBe('auto')
     expect(toolTier('qualify_lead')).toBe('auto')
+    expect(toolTier('create_deal')).toBe('auto')
+  })
+  it('search_listings et get_kyc_status sont read (lecture seule)', () => {
+    expect(toolTier('search_listings')).toBe('read')
+    expect(toolTier('get_kyc_status')).toBe('read')
   })
   it('classe les outils confirm (sensibles : pipeline + envois client + offre)', () => {
     expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')
     expect(toolTier('send_listings')).toBe('confirm')
     expect(toolTier('record_offer')).toBe('confirm')
+  })
+  it('send_kyc_link est confirm (envoi email au client ; KYC facultatif)', () => {
+    expect(toolTier('send_kyc_link')).toBe('confirm')
   })
   it('open_kyc_case est confirm (création de dossier LBA → validation agent)', () => {
     expect(toolTier('open_kyc_case')).toBe('confirm')
@@ -113,7 +123,7 @@ describe('parseConfirmation', () => {
     expect(parseConfirmation('annule')).toBe('no')
     expect(parseConfirmation('stop')).toBe('no')
   })
-  it('renvoie none si ce n’est ni oui ni non', () => {
+  it("renvoie none si ce n'est ni oui ni non", () => {
     expect(parseConfirmation('crée un contact Marie')).toBe('none')
     expect(parseConfirmation('')).toBe('none')
     expect(parseConfirmation(null)).toBe('none')
@@ -167,6 +177,34 @@ describe('isValidStage', () => {
   })
 })
 
+describe('deriveDealParty', () => {
+  it("respecte le choix explicite de l'agent", () => {
+    expect(deriveDealParty('buyer', 'seller')).toBe('seller')
+    expect(deriveDealParty('seller', 'buyer')).toBe('buyer')
+  })
+  it('déduit du type de contact si pas de choix explicite', () => {
+    expect(deriveDealParty('seller')).toBe('seller')
+    expect(deriveDealParty('buyer')).toBe('buyer')
+    expect(deriveDealParty('lead')).toBe('buyer')
+    expect(deriveDealParty(null)).toBe('buyer')
+  })
+  it('ignore une valeur explicite invalide', () => {
+    expect(deriveDealParty('seller', "n'importe quoi")).toBe('seller')
+    expect(deriveDealParty('buyer', '')).toBe('buyer')
+  })
+})
+
+describe('dealStageDefault', () => {
+  it('vendeur → new_lead (mandat), acheteur → active_search (recherche)', () => {
+    expect(dealStageDefault('seller')).toBe('new_lead')
+    expect(dealStageDefault('buyer')).toBe('active_search')
+  })
+  it('renvoie toujours une étape canonique valide', () => {
+    expect(isValidStage(dealStageDefault('seller'))).toBe(true)
+    expect(isValidStage(dealStageDefault('buyer'))).toBe(true)
+  })
+})
+
 describe('canLeaveConfirm — invariant socle légal (Palier 3)', () => {
   // Les 4 outils du socle légal sont testés explicitement ; update_pipeline est l'unique
   // true par construction (=== ). Si un 5e outil confirm-tier est ajouté, l'ajouter ici.
@@ -198,7 +236,7 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
   const fab1 = "J'ai lancé le screening sur Vladimir Putin (poutin@megga.ch). Résultats dans quelques instants. Je te préviens dès que c'est dispo."
   const fab2 = "Désolé, le screening ne me remonte pas de résultat immédiat – c'est un traitement asynchrone. Je peux te recréer un rappel pour dans 30 minutes si tu veux que je vérifie à ce moment-là."
 
-  it('détecte les fabrications de l\'incident quand AUCUN outil KYC n\'a tourné', () => {
+  it("détecte les fabrications de l'incident quand AUCUN outil KYC n'a tourné", () => {
     expect(isFabricatedKycClaim(fab1, false)).toBe(true)
     expect(isFabricatedKycClaim(fab2, false)).toBe(true)
   })
@@ -209,7 +247,7 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
     expect(isFabricatedKycClaim('Screening de Vladimir : PEP détecté ⚠️, correspondance sanctions ⚠️.', true)).toBe(false)
   })
 
-  it('ne flague PAS une OFFRE/QUESTION (pas une affirmation d\'action faite)', () => {
+  it("ne flague PAS une OFFRE/QUESTION (pas une affirmation d'action faite)", () => {
     expect(isFabricatedKycClaim('Tu veux que je relance un screening sur le 2 ?', false)).toBe(false)
     expect(isFabricatedKycClaim('Les deux Vladimir : 1. test-pep@test.ch 2. poutin@megga.ch', false)).toBe(false)
     expect(isFabricatedKycClaim('Je peux lancer le screening si tu me confirmes le contact.', false)).toBe(false)
@@ -243,7 +281,7 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
     for (const f of fabs) expect(isFabricatedKycClaim(f, false), f).toBe(true)
   })
 
-  it('couvre les fabrications EN (l\'agent est FR/EN)', () => {
+  it("couvre les fabrications EN (l'agent est FR/EN)", () => {
     const fabs = [
       'I launched the screening, results shortly.',
       "It's processing asynchronously, I'll let you know.",

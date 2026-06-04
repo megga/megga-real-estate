@@ -16,10 +16,26 @@ export interface LeadCriteria {
 
 export interface LeadContactInfo { phone?: string | null; email?: string | null }
 
-const TYPE_FR_EN: Record<string, string> = {
+export const TYPE_FR_EN: Record<string, string> = {
   appartement: 'apartment', appart: 'apartment', studio: 'apartment', loft: 'apartment',
   maison: 'house', villa: 'villa', terrain: 'land', immeuble: 'building',
   commercial: 'commercial', bureau: 'office', local: 'commercial', parking: 'parking',
+  'garde-meuble': 'storage', 'garde meuble': 'storage', depot: 'storage', dépôt: 'storage', box: 'storage',
+}
+
+// Types canoniques réellement présents dans market_listings.type (les 8 catégories
+// du marché). 'building' n'y figure pas → on ne l'utilise jamais comme filtre.
+const MARKET_TYPES = new Set(['apartment', 'house', 'villa', 'land', 'commercial', 'office', 'parking', 'storage'])
+
+/** Type de bien (FR libre OU déjà canonique EN) → valeur `market_listings.type`, ou
+ *  undefined si on ne sait pas mapper (le filtre est alors simplement omis). */
+export function canonicalPropertyType(input: string | null | undefined): string | undefined {
+  const k = (input ?? '').toLowerCase().trim()
+  if (!k) return undefined
+  const mapped = TYPE_FR_EN[k]
+  if (mapped && MARKET_TYPES.has(mapped)) return mapped
+  if (MARKET_TYPES.has(k)) return k // déjà canonique
+  return undefined
 }
 
 const FEATURE_FR: Record<string, string> = {

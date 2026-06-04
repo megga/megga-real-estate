@@ -14,8 +14,9 @@
 //  - contact -> `contacts` (pas de created_by ; on met source='whatsapp_ai').
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { mapCriteria, isSearchable, computeMissing, parseAmount } from './whatsapp-lead.ts'
-import { PIPELINE_STAGES, isValidStage, stageLabel, type PipelineStage } from './whatsapp-agent-router.ts'
+import { mapCriteria, isSearchable, computeMissing, parseAmount, canonicalPropertyType, normalizeZone } from './whatsapp-lead.ts'
+import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault } from './whatsapp-agent-router.ts'
+import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
@@ -462,6 +463,157 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
   return parts.join(' ')
 }
 
+/** Ouvre un dossier (transaction) pour un contact, à une étape de départ.
+ *  Tier auto : état CRM interne réversible (status annulable). Débloque record_offer /
+ *  update_pipeline qui exigent un dossier. Dédup : refuse si un dossier ACTIF existe déjà. */
+export async function execCreateDeal(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  const { data: cRow } = await ctx.supabase
+    .from('contacts').select('id, first_name, last_name, type')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  const contact = cRow as { id: string; first_name: string | null; last_name: string | null; type: string | null } | null
+  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || 'ce contact'
+
+  // Dédup : un dossier ACTIF déjà ouvert pour ce contact (acheteur OU vendeur) ?
+  const { data: existing } = await ctx.supabase
+    .from('transactions').select('id, stage')
+    .eq('agency_id', ctx.agencyId).eq('status', 'active')
+    .or(`contact_buyer_id.eq.${contactId},contact_seller_id.eq.${contactId}`)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (existing) {
+    const st = stageLabel((existing as { stage: string }).stage, ctx.lang ?? 'fr')
+    return `${name} a déjà un dossier ouvert (${st}). Je n'en crée pas un second.`
+  }
+
+  const party = deriveDealParty(contact.type, s(a.party))
+  const wanted = s(a.stage)
+  const stage = wanted && isValidStage(wanted) ? wanted : dealStageDefault(party)
+
+  // property_id optionnel : si fourni, doit appartenir à l'agence (garde SQL).
+  let propertyId: string | null = null
+  const pid = s(a.property_id)
+  if (pid) {
+    const { data: prop } = await ctx.supabase
+      .from('properties').select('id').eq('id', pid).eq('agency_id', ctx.agencyId).maybeSingle()
+    if (!prop) return 'Erreur: bien introuvable dans votre agence.'
+    propertyId = pid
+  }
+
+  const row: Record<string, unknown> = {
+    agency_id: ctx.agencyId, assigned_to: ctx.profileId, stage, status: 'active',
+    [party === 'seller' ? 'contact_seller_id' : 'contact_buyer_id']: contactId,
+  }
+  if (propertyId) row.property_id = propertyId
+  const { error } = await ctx.supabase.from('transactions').insert(row)
+  if (error) return `Erreur ouverture du dossier: ${error.message}`
+
+  const label = stageLabel(stage, ctx.lang ?? 'fr')
+  const partyFr = party === 'seller' ? 'vendeur' : 'acheteur'
+  await logTimeline(ctx, 'Dossier ouvert', `${partyFr === 'vendeur' ? 'Vendeur' : 'Acheteur'} — ${label} (via WhatsApp)`, contactId)
+  return `Dossier ouvert pour ${name} (${partyFr}, étape ${label}). Tu peux maintenant enregistrer une offre ou faire avancer le pipeline.`
+}
+
+// ── search_listings (tier read) : recherche d'annonces sur le marché ─────────
+type SearchListingRow = {
+  id: string; title: string | null; transaction_type: string | null
+  price: number | null; rent: number | null; rent_chf: number | null
+  rooms: number | null; surface_m2: number | null; city: string | null; canton: string | null; source_url: string | null
+}
+
+/** Montant pertinent d'une annonce : loyer si location, prix sinon. */
+function listingAmount(l: { transaction_type: string | null; price: number | null; rent?: number | null; rent_chf?: number | null }): number {
+  return l.transaction_type === 'rent' ? (l.rent_chf ?? l.rent ?? l.price ?? 0) : (l.price ?? 0)
+}
+
+/** Recherche d'annonces (market_listings). Perf-safe : eq(status)+eq(transaction_type) sur
+ *  index, tri quality_score (indexé, pas de sort full table), pas de count, budget filtré
+ *  en mémoire (colonne loyer ambiguë), résultat borné à 6. */
+export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const txType = s(a.transaction_type) === 'buy' ? 'buy' : 'rent'
+
+  let q = ctx.supabase
+    .from('market_listings')
+    .select('id, title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, canton, source_url')
+    .eq('status', 'active')
+    .eq('transaction_type', txType)
+
+  const type = canonicalPropertyType(s(a.property_type))
+  if (type) q = q.eq('type', type)
+
+  const roomsMin = typeof a.rooms_min === 'number' ? a.rooms_min : parseFloat(String(a.rooms_min ?? ''))
+  if (Number.isFinite(roomsMin) && roomsMin > 0) q = q.gte('rooms', roomsMin)
+
+  // Zones : OR d'ilike sur city/canton (matche n'importe laquelle). Neutralise les
+  // caractères qui casseraient le filtre PostgREST .or(). Max 5 zones (anti-abus).
+  let zones: string[] = []
+  if (Array.isArray(a.zones)) zones = (a.zones as unknown[]).filter((z): z is string => typeof z === 'string' && z.trim().length > 0)
+  else if (typeof a.zones === 'string' && a.zones.trim()) zones = a.zones.split(',').map((z) => z.trim()).filter(Boolean)
+  const safeZones = zones.map((z) => normalizeZone(z).replace(/[,()%*]/g, ' ').trim()).filter(Boolean).slice(0, 5)
+  if (safeZones.length) {
+    q = q.or(safeZones.flatMap((z) => [`city.ilike.%${z}%`, `canton.ilike.%${z}%`]).join(','))
+  }
+
+  q = q.order('quality_score', { ascending: false, nullsFirst: false }).limit(24)
+  const { data, error } = await q
+  if (error) return `Erreur recherche de biens: ${error.message}`
+  let rows = (data ?? []) as SearchListingRow[]
+
+  const budget = parseAmount(a.budget_max)
+  if (budget && budget > 0) rows = rows.filter((r) => { const amt = listingAmount(r); return amt > 0 && amt <= budget })
+  if (!rows.length) return 'Aucun bien ne correspond à ces critères pour le moment.'
+
+  const biens = rows.slice(0, 6).map((r) => ({
+    id: r.id, titre: r.title, type: txType === 'rent' ? 'location' : 'achat',
+    montant: listingAmount(r) || null, pieces: r.rooms,
+    m2: r.surface_m2 ? Math.round(r.surface_m2) : null, ville: r.city, canton: r.canton, url: r.source_url,
+  }))
+  return JSON.stringify({ count: biens.length, biens })
+}
+
+/** État du dossier KYC d'un contact (lecture). KYC FACULTATIF : aucun dossier ≠ blocage. */
+export async function execGetKycStatus(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || 'ce contact'
+
+  const { data: kcRow } = await ctx.supabase
+    .from('kyc_cases')
+    .select('id, dossier_status, vigilance, risk_level, completion_pct, pep_status, sanctions_status, last_screening_at, validated_at')
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (!kcRow) return `Pas de dossier KYC pour ${name}. Le KYC est facultatif — dis-moi si tu veux en ouvrir un.`
+  const k = kcRow as {
+    id: string; dossier_status: string | null; vigilance: string | null; risk_level: string | null
+    completion_pct: number | null; pep_status: string | null; sanctions_status: string | null
+    last_screening_at: string | null; validated_at: string | null
+  }
+
+  const { data: items } = await ctx.supabase
+    .from('kyc_checklist_items').select('is_required, is_completed, document_id').eq('kyc_case_id', k.id)
+  const list = (items ?? []) as Array<{ is_required: boolean; is_completed: boolean; document_id: string | null }>
+  const pieces = {
+    requises: list.filter((i) => i.is_required).length,
+    fournies: list.filter((i) => i.document_id).length,
+    validees: list.filter((i) => i.is_completed).length,
+  }
+  return JSON.stringify({
+    contact: name,
+    statut_dossier: k.dossier_status, vigilance: k.vigilance, risque: k.risk_level,
+    avancement_pct: k.completion_pct,
+    screening: { pep: k.pep_status, sanctions: k.sanctions_status, dernier: k.last_screening_at },
+    validation: k.validated_at ? 'validé' : 'non validé (validation manuelle par le responsable conformité)',
+    pieces,
+    note: 'KYC facultatif ; la validation des pièces reste manuelle (jamais par l’IA).',
+  })
+}
+
 // ── Phase 4C / C5 : outils tier 🟡 confirm (envoi client + offre) ────────────
 // Modèle « prepare → execute » : on VALIDE et FORMATE avant de demander « oui »,
 // puis on exécute le payload figé après confirmation. WYSIWYG : l'agent valide
@@ -484,12 +636,15 @@ type ListingRow = {
   surface_m2: number | null; city: string | null; source_url?: string | null
 }
 
-function formatListing(l: ListingRow): string {
+function formatListing(l: ListingRow, lang: WaLang = 'fr'): string {
   const amount = l.transaction_type === 'rent' ? (l.rent_chf ?? l.rent ?? l.price ?? 0) : (l.price ?? 0)
-  const price = amount ? (l.transaction_type === 'rent' ? `${fmtCHF(amount)}/mois` : fmtCHF(amount)) : 'prix sur demande'
-  const facts = [l.rooms ? `${l.rooms} p.` : null, l.surface_m2 ? `${Math.round(l.surface_m2)} m²` : null, l.city]
+  const perMonth = lang === 'en' ? '/mo' : '/mois'
+  const onReq = lang === 'en' ? 'price on request' : 'prix sur demande'
+  const price = amount ? (l.transaction_type === 'rent' ? `${fmtCHF(amount)}${perMonth}` : fmtCHF(amount)) : onReq
+  const roomsU = lang === 'en' ? 'rm' : 'p.'
+  const facts = [l.rooms ? `${l.rooms} ${roomsU}` : null, l.surface_m2 ? `${Math.round(l.surface_m2)} m²` : null, l.city]
     .filter(Boolean).join(' · ')
-  let line = `• ${l.title ?? 'Bien'} — ${price}${facts ? ` (${facts})` : ''}`
+  let line = `• ${l.title ?? (lang === 'en' ? 'Property' : 'Bien')} — ${price}${facts ? ` (${facts})` : ''}`
   if (l.source_url) line += `\n  ${l.source_url}`
   return line
 }
@@ -498,13 +653,14 @@ function formatListing(l: ListingRow): string {
  *  Biens = listing_ids fournis, sinon top correspondances du contact. */
 export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prepared> {
   if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
   const contactId = s(a.contact_id)
-  if (!contactId) return { ok: false, error: 'Pour quel client veux-tu envoyer des biens ?' }
+  if (!contactId) return { ok: false, error: lang === 'en' ? 'Which client should I send listings to?' : 'Pour quel client veux-tu envoyer des biens ?' }
   const { data: cRow } = await ctx.supabase.from('contacts')
     .select('first_name, phone').eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
   const contact = cRow as { first_name: string | null; phone: string | null } | null
-  if (!contact) return { ok: false, error: 'Contact introuvable dans votre agence.' }
-  if (!contact.phone) return { ok: false, error: "Ce contact n'a pas de numéro WhatsApp, je ne peux pas lui écrire." }
+  if (!contact) return { ok: false, error: lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.' }
+  if (!contact.phone) return { ok: false, error: lang === 'en' ? "This contact has no WhatsApp number, I can't message them." : "Ce contact n'a pas de numéro WhatsApp, je ne peux pas lui écrire." }
 
   let ids: string[] = Array.isArray(a.listing_ids)
     ? (a.listing_ids as unknown[]).filter((x): x is string => typeof x === 'string')
@@ -518,52 +674,64 @@ export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prep
     ids = ((ms ?? []) as Array<{ market_listing_id: string | null; property_id: string | null }>)
       .map((m) => m.market_listing_id || m.property_id || '').filter((x) => UUID_RE.test(x))
   }
-  if (!ids.length) return { ok: false, error: "Aucun bien à envoyer (lance d'abord le matching, ou précise les biens)." }
+  if (!ids.length) return { ok: false, error: lang === 'en' ? 'No listing to send (run matching first, or specify the listings).' : "Aucun bien à envoyer (lance d'abord le matching, ou précise les biens)." }
 
   const lines: string[] = []
   for (const id of ids.slice(0, 5)) {
     const { data: ml } = await ctx.supabase.from('market_listings')
       .select('title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, source_url')
       .eq('id', id).maybeSingle()
-    if (ml) { lines.push(formatListing(ml as unknown as ListingRow)); continue }
+    if (ml) { lines.push(formatListing(ml as unknown as ListingRow, lang)); continue }
     const { data: pr } = await ctx.supabase.from('properties')
       .select('title, transaction_type, price, rooms, surface_m2, city')
       .eq('id', id).eq('agency_id', ctx.agencyId).maybeSingle()
-    if (pr) lines.push(formatListing(pr as unknown as ListingRow))
+    if (pr) lines.push(formatListing(pr as unknown as ListingRow, lang))
   }
-  if (!lines.length) return { ok: false, error: 'Les biens indiqués sont introuvables.' }
+  if (!lines.length) return { ok: false, error: lang === 'en' ? 'The specified listings were not found.' : 'Les biens indiqués sont introuvables.' }
 
-  const hi = contact.first_name ? `Bonjour ${contact.first_name},` : 'Bonjour,'
-  const text = `${hi}\n\nVoici une sélection qui pourrait vous intéresser :\n\n${lines.join('\n\n')}\n\nDites-moi si vous souhaitez visiter l'un de ces biens.`
-  const prompt = `Voici ce que je propose d'envoyer à ${contact.first_name ?? 'ce client'} :\n\n${text}\n\nJ'envoie ? (« oui » / « non »)`
+  // Message destiné au CLIENT (WYSIWYG) : rédigé dans la langue de travail de l'agent.
+  const hi = contact.first_name
+    ? (lang === 'en' ? `Hello ${contact.first_name},` : `Bonjour ${contact.first_name},`)
+    : (lang === 'en' ? 'Hello,' : 'Bonjour,')
+  const text = lang === 'en'
+    ? `${hi}\n\nHere is a selection that might interest you:\n\n${lines.join('\n\n')}\n\nLet me know if you'd like to visit any of these.`
+    : `${hi}\n\nVoici une sélection qui pourrait vous intéresser :\n\n${lines.join('\n\n')}\n\nDites-moi si vous souhaitez visiter l'un de ces biens.`
+  const who = contact.first_name ?? (lang === 'en' ? 'this client' : 'ce client')
+  const prompt = lang === 'en'
+    ? `Here's what I'd send to ${who}:\n\n${text}\n\nSend it? ("yes" / "no")`
+    : `Voici ce que je propose d'envoyer à ${who} :\n\n${text}\n\nJ'envoie ? (« oui » / « non »)`
   return { ok: true, prompt, payload: { contact_id: contactId, phone: contact.phone.replace(/\D/g, ''), text } }
 }
 
 /** Valide + prépare l'enregistrement d'une offre (crm_offers). Le montant est figé au « oui ». */
 export async function prepareRecordOffer(ctx: ActionCtx, a: Args): Promise<Prepared> {
   if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
   const contactId = s(a.contact_id)
-  if (!contactId) return { ok: false, error: 'Quel contact a fait l’offre ?' }
+  if (!contactId) return { ok: false, error: lang === 'en' ? 'Which contact made the offer?' : 'Quel contact a fait l’offre ?' }
   const contact = await contactInAgency(ctx, contactId)
-  if (!contact) return { ok: false, error: 'Contact introuvable dans votre agence.' }
+  if (!contact) return { ok: false, error: lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.' }
   const amount = parseAmount(a.amount)
-  if (!amount || amount <= 0) return { ok: false, error: 'Montant de l’offre manquant ou invalide.' }
+  if (!amount || amount <= 0) return { ok: false, error: lang === 'en' ? 'Offer amount missing or invalid.' : 'Montant de l’offre manquant ou invalide.' }
   const deal = await resolveContactDeal(ctx, contactId)
-  if (!deal) return { ok: false, error: 'Ce contact n’a pas de dossier ouvert. Crée d’abord le dossier pour y rattacher l’offre.' }
+  if (!deal) return { ok: false, error: lang === 'en' ? 'This contact has no open deal. Open a deal first to attach the offer.' : 'Ce contact n’a pas de dossier ouvert. Crée d’abord le dossier pour y rattacher l’offre.' }
   const fromParty = s(a.from_party) === 'seller' ? 'seller' : s(a.from_party) === 'buyer' ? 'buyer' : deal.party
   const days = typeof a.expires_in_days === 'number' && a.expires_in_days > 0 ? Math.min(a.expires_in_days, 365) : 30
   const expiresAt = new Date(Date.now() + days * 86_400_000).toISOString()
   const byLabel = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim() || 'Client'
-  const partyFr = fromParty === 'seller' ? 'vendeur' : 'acheteur'
-  const prompt = `Je note une offre de ${fmtCHF(amount)} de ${byLabel} (${partyFr}) sur le dossier « ${deal.label} ». Tu confirmes ? (« oui » / « non »)`
+  const partyLabel = fromParty === 'seller' ? (lang === 'en' ? 'seller' : 'vendeur') : (lang === 'en' ? 'buyer' : 'acheteur')
+  const prompt = lang === 'en'
+    ? `I'll record an offer of ${fmtCHF(amount)} from ${byLabel} (${partyLabel}) on the deal "${deal.label}". Confirm? ("yes" / "no")`
+    : `Je note une offre de ${fmtCHF(amount)} de ${byLabel} (${partyLabel}) sur le dossier « ${deal.label} ». Tu confirmes ? (« oui » / « non »)`
   return { ok: true, prompt, payload: { deal_id: deal.id, by_label: byLabel, from_party: fromParty, amount, expires_at: expiresAt, created_by: ctx.profileId } }
 }
 
 /** Insère l'offre confirmée dans crm_offers (audit auto via trigger DB). */
 export async function executeRecordOffer(ctx: ActionCtx, payload: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
   const amount = typeof payload.amount === 'number' ? payload.amount : parseAmount(payload.amount)
-  if (!amount || amount <= 0) return 'Montant invalide, offre non enregistrée.'
+  if (!amount || amount <= 0) return lang === 'en' ? 'Invalid amount, offer not recorded.' : 'Montant invalide, offre non enregistrée.'
   const { error } = await ctx.supabase.from('crm_offers').insert({
     agency_id: ctx.agencyId,
     deal_id: s(payload.deal_id),
@@ -578,8 +746,10 @@ export async function executeRecordOffer(ctx: ActionCtx, payload: Args): Promise
     status: 'pending',
     created_by: s(payload.created_by),
   })
-  if (error) return `Erreur enregistrement de l’offre: ${error.message}`
-  return `Offre de ${fmtCHF(amount)} enregistrée sur le dossier (statut : en attente).`
+  if (error) return (lang === 'en' ? 'Error recording the offer: ' : 'Erreur enregistrement de l’offre: ') + error.message
+  return lang === 'en'
+    ? `Offer of ${fmtCHF(amount)} recorded on the deal (status: pending).`
+    : `Offre de ${fmtCHF(amount)} enregistrée sur le dossier (statut : en attente).`
 }
 
 // -- KYC par WhatsApp (Task 4) : open_kyc_case (tier confirm) -----------------
@@ -896,4 +1066,120 @@ function summarizeKycOcr(f: Record<string, unknown>): string {
   if (get('montant')) parts.push(`${get('montant')} ${get('devise') ?? ''}`.trim())
   if (get('adresse')) parts.push(get('adresse')!)
   return parts.join(', ')
+}
+
+// ── send_kyc_link (tier confirm) : lien d'upload KYC envoyé au client par email ──
+// KYC FACULTATIF : un assist, jamais un blocage. magic-link-create exige un JWT agent
+// (indisponible en service-role) → on reproduit sa logique ici en réutilisant les
+// helpers de token signés partagés, puis on délègue l'email à magic-link-send-email
+// (qui, lui, accepte le service-role). Aucune case cochée, aucune validation : MLRO.
+
+/** Confirm-tier : valide (contact + email + dossier KYC ouvert), construit le prompt. */
+export async function prepareSendKycLink(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(a.contact_id)
+  if (!contactId) return { ok: false, error: lang === 'en' ? 'Which contact should I send the KYC link to?' : 'À quel contact veux-tu envoyer le lien KYC ?' }
+  const { data: cRow } = await ctx.supabase
+    .from('contacts').select('first_name, last_name, email').eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  const contact = cRow as { first_name: string | null; last_name: string | null; email: string | null } | null
+  if (!contact) return { ok: false, error: lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.' }
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || (lang === 'en' ? 'this contact' : 'ce contact')
+  if (!contact.email) {
+    return { ok: false, error: lang === 'en'
+      ? `${name} has no email — I can't send the KYC link (KYC is optional anyway). Add an email first.`
+      : `${name} n'a pas d'email — je ne peux pas envoyer le lien KYC (le KYC reste facultatif). Ajoute un email d'abord.` }
+  }
+  const kc = await findOpenKycCase(ctx, contactId)
+  if (!kc) {
+    return { ok: false, error: lang === 'en'
+      ? `No KYC file for ${name} yet. KYC is optional — open one first if you want to send the link.`
+      : `Pas de dossier KYC pour ${name}. Le KYC est facultatif — ouvre-en un d'abord si tu veux envoyer le lien.` }
+  }
+  if (kc.dossier_status === 'verified') {
+    return { ok: false, error: lang === 'en'
+      ? `${name}'s KYC is already verified — no need to send the link.`
+      : `Le KYC de ${name} est déjà vérifié — pas besoin d'envoyer le lien.` }
+  }
+  const prompt = lang === 'en'
+    ? `Send ${name} the secure link to upload their KYC documents by email (${contact.email})? It's optional. ("yes" / "no")`
+    : `J'envoie à ${name} le lien sécurisé pour déposer ses pièces KYC par email (${contact.email}) ? C'est facultatif. (« oui » / « non »)`
+  return { ok: true, prompt, payload: { contact_id: contactId, kyc_case_id: kc.id } }
+}
+
+/** Post-« oui » : crée le lien magique (insert + token signé) puis déclenche l'email. */
+export async function executeSendKycLink(ctx: ActionCtx, payload: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(payload.contact_id), kycCaseId = s(payload.kyc_case_id)
+  if (!contactId || !kycCaseId) return lang === 'en' ? 'Incomplete action, link not sent.' : 'Action incomplète, lien non envoyé.'
+
+  // Re-validation (l'état a pu changer entre la préparation et le « oui »).
+  const { data: cRow } = await ctx.supabase
+    .from('contacts').select('first_name, email').eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  const contact = cRow as { first_name: string | null; email: string | null } | null
+  if (!contact) return lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.'
+  if (!contact.email) return lang === 'en' ? "This contact has no email — link not sent." : "Ce contact n'a pas d'email — lien non envoyé."
+  const first = (contact.first_name ?? '').trim() || (lang === 'en' ? 'the contact' : 'le contact')
+  // Le dossier doit appartenir à l'agence ET au contact (anti-confusion).
+  const { data: kc } = await ctx.supabase
+    .from('kyc_cases').select('id').eq('id', kycCaseId).eq('agency_id', ctx.agencyId).eq('contact_id', contactId).maybeSingle()
+  if (!kc) return lang === 'en' ? 'KYC file not found for this contact.' : 'Dossier KYC introuvable pour ce contact.'
+
+  // 1. INSERT row + token placeholder, 2. token signé (inclut l'UUID), 3. UPDATE.
+  const exp = expiryFromDays(7)
+  const { data: inserted, error: insErr } = await ctx.supabase
+    .from('kyc_magic_links')
+    .insert({
+      token: crypto.randomUUID(), agency_id: ctx.agencyId, kyc_case_id: kycCaseId,
+      contact_id: contactId, mode: 'libre', channels: ['email'], expires_at: exp.iso, created_by: ctx.profileId,
+    })
+    .select('id').single()
+  if (insErr || !inserted) return `Erreur création du lien KYC: ${insErr?.message ?? 'inconnue'}`
+
+  let token: string
+  try {
+    token = await signMagicLinkToken({ id: inserted.id, exp: exp.unix })
+  } catch {
+    await ctx.supabase.from('kyc_magic_links').delete().eq('id', inserted.id)
+    return lang === 'en' ? 'KYC link service misconfigured — nothing sent.' : 'Service de lien KYC mal configuré — rien envoyé.'
+  }
+  const { error: updErr } = await ctx.supabase.from('kyc_magic_links').update({ token }).eq('id', inserted.id)
+  if (updErr) {
+    await ctx.supabase.from('kyc_magic_links').delete().eq('id', inserted.id)
+    return `Erreur finalisation du lien KYC: ${updErr.message}`
+  }
+
+  // 4. Envoi email (magic-link-send-email accepte le service-role).
+  let sent = false
+  let reason: string | null = null
+  try {
+    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/magic-link-send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+      body: JSON.stringify({ magic_link_id: inserted.id }),
+      signal: AbortSignal.timeout(20_000),
+    })
+    const j = (await res.json().catch(() => ({}))) as { sent?: boolean; reason?: string }
+    sent = !!j.sent
+    reason = j.reason ?? null
+  } catch (e) {
+    reason = (e as Error)?.name ?? 'network'
+  }
+
+  // 5. Audit IA (actor_kind='ai', actor_id NULL ; category 'kyc'). Non bloquant.
+  await ctx.supabase.from('activity_events').insert({
+    agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+    action: 'kyc_link_sent', entity_type: 'kyc_case', entity_id: kycCaseId, category: 'kyc', severity: 'info',
+    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, magic_link_id: inserted.id, email_sent: sent },
+  }).then(() => {}, () => {})
+
+  if (sent) {
+    return lang === 'en'
+      ? `KYC link sent to ${first} by email. They can upload their documents themselves — I'll let you know when it's done. (KYC stays optional.)`
+      : `Lien KYC envoyé à ${first} par email. Il pourra déposer ses pièces lui-même — je te préviendrai quand c'est fait. (Le KYC reste facultatif.)`
+  }
+  return lang === 'en'
+    ? `KYC link created but the email didn't go out (${reason ?? 'unknown'}). You can resend it from the CRM.`
+    : `Lien KYC créé mais l'email n'est pas parti (${reason ?? 'inconnu'}). Tu peux le renvoyer depuis le CRM.`
 }
