@@ -21,7 +21,7 @@ import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCat
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
-import { formatStyleBlock, type LearnedStyle } from './agent-style.ts'
+import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from './agent-style.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -1230,6 +1230,10 @@ export async function prepareSendClientEmail(ctx: ActionCtx, a: Args): Promise<P
     .maybeSingle()
   const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
 
+  // Mimétisme de voix : vrais messages clients récents de l'agence (few-shot). Vide si < 2.
+  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId)
+  const voiceBlock = formatVoiceExamples(voiceSamples, lang === 'en' ? 'en' : 'fr')
+
   // 4. Appel DeepSeek (JSON mode) pour rédiger le brouillon.
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
   if (!apiKey) return { ok: false, error: lang === 'en' ? "Email drafting unavailable right now — try again later." : "Je n'ai pas réussi à rédiger l'email, tu peux reformuler ?" }
@@ -1260,7 +1264,7 @@ RÈGLES ABSOLUES (s'imposent à tout le reste) :
 - Aucune promesse non tenable, aucun chiffre ou donnée inventé.
 - Pas de jargon technique ni d'identifiant brut.
 - Email personnalisé selon l'instruction de l'agent et la compréhension du fil.
-- Longueur adaptée à l'objet : ni trop court ni trop long.${styleBlock ? `\n\nTon ADDITIF de cet agent (nuance uniquement la chaleur/concision/traits, sans jamais déroger au vouvoiement ni aux règles ci-dessus) :${styleBlock}` : ''}
+- Longueur adaptée à l'objet : ni trop court ni trop long.${styleBlock ? `\n\nTon ADDITIF de cet agent (nuance uniquement la chaleur/concision/traits, sans jamais déroger au vouvoiement ni aux règles ci-dessus) :${styleBlock}` : ''}${voiceBlock}
 
 Réponds UNIQUEMENT en JSON strict : {"subject":"…","body":"…"}`
 
