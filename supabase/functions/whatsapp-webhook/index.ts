@@ -592,10 +592,21 @@ async function executePending(
       metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
     }
     const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: toWhatsAppText(text) }, sendConfig)
+    let outId: string | null = null
     try {
       const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
       if (!sres.ok) return t(lang, 'sendFail24h')
+      const sbody = await sres.json().catch(() => ({}))
+      outId = provider.parseSendResult(sres.status, sbody).providerMessageId
     } catch { return t(lang, 'sendFailNet') }
+    // Persiste le message client envoyé (fil + corpus de voix). Idempotent, non bloquant.
+    await admin.from('whatsapp_messages').upsert({
+      provider: provider.name,
+      provider_message_id: outId ?? `local-clientmsg-${contactId}-${Date.now()}`,
+      direction: 'outbound', wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
+      wa_to: String(contact.phone).replace(/\D/g, ''), contact_id: contactId,
+      agency_id: agentLink.agency_id, body: text, status: 'received', is_agent_error: false,
+    }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
     try {
       await admin.from('activity_events').insert({
         agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
@@ -623,6 +634,14 @@ async function executePending(
     if (!phone || !text) return t(lang, 'selectionIncomplete')
     const sent = await sendWhatsAppText(provider, phone, text)
     if (!sent) return t(lang, 'sendFail24h')
+    // Persiste le message client envoyé (fil + corpus de voix). Idempotent, non bloquant.
+    await admin.from('whatsapp_messages').upsert({
+      provider: provider.name,
+      provider_message_id: `local-listings-${String(pending.args.contact_id ?? '')}-${Date.now()}`,
+      direction: 'outbound', wa_from: Deno.env.get('META_PHONE_NUMBER_ID') ?? 'megga',
+      wa_to: phone, contact_id: String(pending.args.contact_id ?? '') || null,
+      agency_id: agentLink.agency_id, body: text, status: 'received', is_agent_error: false,
+    }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
     try {
       await admin.from('activity_events').insert({
         agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
