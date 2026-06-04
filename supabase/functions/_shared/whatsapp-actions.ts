@@ -1317,8 +1317,8 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
   const who = firstName || (lang === 'en' ? 'this client' : 'ce client')
   const payload = { contact_id: contactId, to: contact.email, subject, body }
   const prompt = lang === 'en'
-    ? `Email to ${who} — Subject: ${subject}\n\n${body}\n\nShall I send it? ("yes" / "no")`
-    : `Email à ${who} — Objet : ${subject}\n\n${body}\n\nJ'envoie ? (« oui » / « non »)`
+    ? `Email to ${who} — Subject: ${subject}\n\n${body}\n\nShall I send it? (« yes » / « no », or tell me what to change)`
+    : `Email à ${who} — Objet : ${subject}\n\n${body}\n\nJ'envoie ? (« oui » / « non », ou dis-moi quoi changer)`
   return { ok: true, prompt, payload }
 }
 

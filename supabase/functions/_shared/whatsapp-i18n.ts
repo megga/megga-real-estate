@@ -139,6 +139,16 @@ export function confirmSuffix(lang: WaLang): string {
   return lang === 'en' ? 'Confirm? (reply « yes » / « no »)' : 'Tu confirmes ? (« oui » / « non »)'
 }
 
+/** Suffixe pour les BROUILLONS CLIENT (message/email) : en plus de oui/non, invite l'agent à
+ *  corriger en texte libre (« non, plutôt… »). Rend découvrable le chemin set-aside→re-rédaction
+ *  existant (le cerveau retraite la correction). NE PAS utiliser pour les actions discrètes
+ *  (pipeline/KYC) où une « correction » en texte libre n'a pas de sens. */
+export function confirmSuffixCorrectable(lang: WaLang): string {
+  return lang === 'en'
+    ? 'Confirm? (« yes » / « no », or tell me what to change)'
+    : 'Tu confirmes ? (« oui » / « non », ou dis-moi quoi changer)'
+}
+
 // ── Libellés métier bilingues ───────────────────────────────────────────────
 export type KycPersonType = 'buyer_pp' | 'buyer_pm' | 'seller_pp' | 'seller_pm'
 const KYC_TYPE_LABELS: Record<WaLang, Record<KycPersonType, string>> = {
@@ -184,8 +194,8 @@ export function openKycResult(lang: WaLang, vigilance: string): string {
 
 /** send_client_message — prompt de confirmation WYSIWYG (corps complet + destinataire). */
 export function confirmSendClient(lang: WaLang, who: string, body: string): string {
-  if (lang === 'en') return `Here's what I'd send to ${who}:\n\n${body}\n\nSend it? ${confirmSuffix('en')}`
-  return `Voici ce que je propose d'envoyer à ${who} :\n\n${body}\n\nJ'envoie ? ${confirmSuffix('fr')}`
+  if (lang === 'en') return `Here's what I'd send to ${who}:\n\n${body}\n\nSend it? ${confirmSuffixCorrectable('en')}`
+  return `Voici ce que je propose d'envoyer à ${who} :\n\n${body}\n\nJ'envoie ? ${confirmSuffixCorrectable('fr')}`
 }
 
 /** update_pipeline — prompt de confirmation. `who` = « le dossier de X » / « X's file ». */

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  detectLang, asWaLang, t, confirmSuffix, kycTypeLabel, vigilanceLabel,
+  detectLang, asWaLang, t, confirmSuffix, confirmSuffixCorrectable, kycTypeLabel, vigilanceLabel,
   confirmOpenKyc, openKycResult, confirmUpdatePipeline, pipelineWhoNamed,
 } from './whatsapp-i18n'
 
@@ -45,6 +45,13 @@ describe('confirmSuffix', () => {
   it('suffixe FR/EN', () => {
     expect(confirmSuffix('fr')).toBe('Tu confirmes ? (« oui » / « non »)')
     expect(confirmSuffix('en')).toBe('Confirm? (reply « yes » / « no »)')
+  })
+})
+
+describe('confirmSuffixCorrectable', () => {
+  it('invite à corriger en plus de oui/non (FR/EN)', () => {
+    expect(confirmSuffixCorrectable('fr')).toBe('Tu confirmes ? (« oui » / « non », ou dis-moi quoi changer)')
+    expect(confirmSuffixCorrectable('en')).toBe('Confirm? (« yes » / « no », or tell me what to change)')
   })
 })
 
