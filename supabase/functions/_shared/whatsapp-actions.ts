@@ -1442,7 +1442,14 @@ export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise
     }
     const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
     const raw = data?.choices?.[0]?.message?.content ?? ''
-    try { parsed = JSON.parse(raw) } catch { return failMsg }
+    // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`123`/`[]` passent et
+    // feraient throw `typeof parsed.resume` HORS du try/catch (→ 500). Garde de forme :
+    // fail CLOSED au message honnête (le digest fail déjà à failMsg sur un contenu vide).
+    try {
+      const p = JSON.parse(raw)
+      if (!p || typeof p !== 'object' || Array.isArray(p)) return failMsg
+      parsed = p as Record<string, unknown>
+    } catch { return failMsg }
   } catch (e) {
     console.error('DeepSeek summarize group error:', (e as Error)?.name ?? 'unknown')
     return failMsg
@@ -1540,7 +1547,14 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
     }
     const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
     const raw = data?.choices?.[0]?.message?.content ?? ''
-    try { parsed = JSON.parse(raw) } catch { return failMsg }
+    // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`123`/`[]` passent et
+    // feraient throw `parsed.fuite` HORS du try/catch (→ 500). Garde de forme : fail CLOSED
+    // au message honnête (un détecteur de fuite ne doit JAMAIS dire ✅ sur un parse douteux).
+    try {
+      const p = JSON.parse(raw)
+      if (!p || typeof p !== 'object' || Array.isArray(p)) return failMsg
+      parsed = p as Record<string, unknown>
+    } catch { return failMsg }
   } catch (e) {
     console.error('DeepSeek check_group_leak error:', (e as Error)?.name ?? 'unknown')
     return failMsg
