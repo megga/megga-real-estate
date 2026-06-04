@@ -4,6 +4,29 @@
 
 > ⚠️ **GATE D'EXÉCUTION (cerveau megga-ai-agent-learning : « ne pas construire à l'aveugle ») :** ce plan empile une 3ᵉ couche d'apprentissage sur le mimétisme de voix (PR #577), qui n'a PAS encore tourné sur de vraies données. **Écrire le plan = OK maintenant. EXÉCUTER = seulement après un check réel** (texter MEGGA, faire rédiger + valider 2-3 vrais messages clients, vérifier que la voix se cale). Si la fondation tient → exécuter. Sinon → revoir avant d'empiler.
 
+## ⚠️ RÉVISION POST-REVUE ADVERSE (2026-06-04) — lire AVANT d'exécuter
+
+Trois revues adverses indépendantes (opus, angles : fiabilité LLM / socle-compliance / produit) ont attaqué ce plan. Verdict : **le reshaper + le re-prioriser**, et corriger **1 bug** + des **trous de sûreté** s'il est exécuté.
+
+**Reco révisée (l'ordre a changé) :**
+1. **Étape 0 — quasi gratuite, ZÉRO risque compliance, à faire d'abord :** changer le suffixe `confirmSuffix` (`whatsapp-i18n.ts`) de « oui / non » → « oui / non / ou dicte une correction », et laisser le chemin **F18 existant** (set-aside → le cerveau retraite) gérer. Aujourd'hui rien ne dit à l'agent qu'il PEUT corriger → c'est un problème de **découvrabilité**, pas de capacité. Une clé i18n, et ça devient mesurable.
+2. **Plus prioritaire que la ré-rédaction inline : le bouton « suggérer une réponse » web** (`CdWhatsAppCard`) — porte tout l'investissement voix là où l'agent travaille (le CRM), **zéro risque sur le flux confirm**, portée bien plus large.
+3. **Ré-rédaction inline (le cœur de ce plan) : seulement APRÈS le gate réel**, et seulement si l'Étape 0 montre que l'edit-in-place est la vraie friction.
+
+**BUG (sinon cassé pour `send_client_email`) :** `correctionContext = {tool, draft}` ne porte PAS `contact_id` — or le pending d'origine est DELETE, et les deux outils en ont besoin pour être ré-appelés ; de plus `send_client_email` prend une `instruction`, pas un brouillon. **Fix :** contrat `{ tool, draft, contactId, instruction?, lang }` (tout est dans `pendingAction.args`) + note tool-spécifique.
+
+**Trous de sûreté à boucher (si on exécute) :**
+- **Plancher déterministe (la prise n°1) :** après `callAgentBrain`, VÉRIFIER qu'un nouveau pending a bien été créé. Sinon (le cerveau a répondu en prose au lieu de ré-appeler l'outil) → **re-stasher le brouillon d'origine + préfixe « mis de côté »**. Sans ça : perte SILENCIEUSE du brouillon + fausse confirmation (« c'est envoyé ») = pire classe de bug. Transforme « dépend du LLM à 100 % » → « succès LLM = voie rapide ; échec = retombe sur le comportement sûr d'aujourd'hui ».
+- **Annulation explicite :** « non, laisse tomber » → `parseConfirmation` renvoie `none` → tomberait dans le chemin correction. **Fix :** garde déterministe (message commençant par un token NO = annulation) AVANT la branche correction.
+- **Consentement WYSIWYG / « oui » périmé :** DELETE-puis-re-stash ouvre une fenêtre où un « oui » réflexe valide un brouillon corrigé que l'agent n'a pas vu. **Fix :** un « oui » nu ne valide QUE le brouillon dont le prompt est le DERNIER message sortant de MEGGA (lier la confirmation au brouillon, pas à « le pending courant »).
+- **Anti-fabrication client :** la note amorce « envoyé » ; aucun garde type `isFabricatedKycClaim` côté client. **Fix :** durcir la note (« ne jamais dire/laisser entendre que c'est envoyé ») — le plancher déterministe couvre déjà le pire cas.
+
+**Le signal le plus précieux est jeté (à récupérer) :** le couple *(brouillon rejeté → correction)* est une **paire de préférence** (signal RLHF), présent en mémoire UNE seule fois (`pendingAction.args`). Le plan le jetait (« YAGNI »). **Fix :** le capter dans `activity_events` (metadata, sans migration). Sans lui, l'apport *learning* de Phase 2 au-dessus de « l'agent retape » est quasi nul (VM-6 capte déjà le message final). C'est l'argument n°1 pour, si on touche ce flux, le faire pour de bon.
+
+> **Les tâches ci-dessous décrivent la version INITIALE (non corrigée).** Si on exécute la ré-rédaction inline, intégrer d'abord le BUG + les trous + la capture du delta ci-dessus. Sinon, faire l'Étape 0 + le bouton web.
+
+---
+
 **Goal:** Quand l'agent, au lieu de répondre « oui »/« non » à un brouillon client en attente, **dicte une correction** (« non, plutôt mercredi », « dis-lui que c'est déjà vendu »), MEGGA **ré-rédige** le brouillon corrigé (au lieu de le jeter et de repartir de zéro), le re-soumet à validation, puis l'envoie au « oui ». La boucle d'apprentissage se ferme : le message corrigé validé alimente le corpus de voix (PR #577 / VM-6, déjà livré).
 
 **Architecture (réutilisation totale — rien de neuf à réinventer) :** aujourd'hui, dans le webhook, un message qui n'est ni « oui » ni « non » pendant une action en attente tombe dans la branche **F18** (« je mets de côté » + le cerveau traite ça comme une nouvelle demande → le brouillon est **perdu**). On change CE point UNIQUEMENT pour les brouillons **client** (`send_client_message` / `send_client_email`) : le webhook **ré-engage le cerveau** (`callAgentBrain`) en lui passant le **brouillon d'origine** comme contexte de correction. Le cerveau décide « correction vs nouvelle demande » et, si c'est une correction, **ré-appelle le MÊME outil** avec le brouillon corrigé → `stashPending` normal (le **style/voix** s'appliquent déjà, PR #567/#577 ; la **persona/vouvoiement** aussi) → **re-confirmation**. Au « oui », `executePending` envoie + VM-6 persiste → le corpus de voix apprend. **Aucune nouvelle fonction de rédaction, aucune duplication de stash, aucun nouveau store, aucune migration.**
