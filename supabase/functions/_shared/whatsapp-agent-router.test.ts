@@ -81,6 +81,12 @@ describe('toolTier', () => {
     expect(toolTier('search_listings')).toBe('read')
     expect(toolTier('get_kyc_status')).toBe('read')
   })
+  it("lames groupe read-tier — agent-facing, rien d'envoyé", () => {
+    // summarize_group_thread et check_group_leak : lecture + analyse pure,
+    // résultat rendu uniquement à l'agent dans son 1:1 — jamais envoyé au client.
+    expect(toolTier('summarize_group_thread')).toBe('read')
+    expect(toolTier('check_group_leak')).toBe('read')
+  })
   it('classe les outils confirm (sensibles : pipeline + envois client + offre)', () => {
     expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')
