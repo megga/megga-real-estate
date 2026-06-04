@@ -246,7 +246,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'search_listings',
-      description: "Recherche des biens sur le marché (annonces) par critères. Pour « trouve un 3,5 pièces à Carouge en location sous 2500 », « des bureaux à Lausanne ». Renvoie des biens réels avec leur id (utilisable ensuite avec send_listings). N'invente jamais de bien.",
+      description: "Recherche des biens sur le marché (annonces) par critères. Pour « trouve un 3,5 pièces à Carouge en location sous 2500 », « des bureaux à Lausanne », « combien d'appartements à Lausanne ». Interroge l'inventaire MARCHÉ réel (les annonces du marché, PAS le CRM de l'agence). Renvoie le NOMBRE TOTAL ESTIMÉ de biens correspondants (champ `total`) en plus d'un échantillon de biens réels (`biens`) avec leur id (utilisable ensuite avec send_listings) ; annonce ce total à l'agent. N'invente jamais de bien.",
       parameters: {
         type: 'object',
         properties: {
