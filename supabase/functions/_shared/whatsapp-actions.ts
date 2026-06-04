@@ -1282,7 +1282,9 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 700,
+        // marge confortable : un email client soigné (sujet+corps en JSON) ne doit pas
+        // être tronqué en plein milieu (sinon JSON.parse échoue → "reformule" inutile).
+        max_tokens: 1200,
         temperature: 0.3,
       }),
       signal: AbortSignal.timeout(15000),
