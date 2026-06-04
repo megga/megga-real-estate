@@ -21,6 +21,7 @@ import {
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink,
   prepareSendClientEmail,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
+  execSummarizeGroupThread, execCheckGroupLeak,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
@@ -105,6 +106,11 @@ serve(async (req) => {
         : `\n\nQuand tu rédiges un message POUR UN CLIENT (send_client_message), copie ce ton ; avec l'agent, garde ton style habituel.${rawVoice}`)
     : ''
 
+  // Comportement GROUPE (v1) : le brain aide l'agent À PROPOS d'un groupe ; il ne poste jamais lui-même.
+  const groupBlock = lang === 'en'
+    ? `\n\nGroup behavior: when the agent asks for a message "for the group", draft a GROUP-SAFE version in their voice — never include data belonging to only one party (a party's max budget/floor, motivation, KYC). Offer to run check_group_leak before they post. Anything meant for ONE party must go to that party's 1:1 thread, never the shared group. You draft; the agent posts. Market figures only if grounded by a tool; otherwise stay general and "à titre indicatif".`
+    : `\n\nComportement groupe : quand l'agent demande un message « pour le groupe », rédige une version SÛRE dans sa voix — n'inclus jamais une donnée propre à une seule partie (plafond/plancher, motivation, KYC d'une partie). Propose de lancer check_group_leak avant qu'il poste. Tout message destiné à UNE partie va dans son fil 1:1, jamais dans le groupe partagé. Tu rédiges ; l'agent poste. Chiffres marché seulement si un outil les fournit ; sinon reste général et « à titre indicatif ».`
+
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
   // Garde : si waNumber est vide, .or('wa_from.eq.,wa_to.eq.') ne matche RIEN → amnésie
@@ -130,7 +136,7 @@ serve(async (req) => {
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}${voiceBlock}` },
+    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}${voiceBlock}${groupBlock}` },
     ...history,
     { role: 'user', content: message },
   ]
@@ -319,6 +325,8 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'run_kyc_screening': return execRunKycScreening(ctx, args)
     case 'attach_kyc_document': return execAttachKycDocument(ctx, args)
     case 'send_kyc_report': return execSendKycReport(ctx, args)
+    case 'summarize_group_thread': return execSummarizeGroupThread(ctx, args)
+    case 'check_group_leak': return execCheckGroupLeak(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }

@@ -1388,3 +1388,196 @@ export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Pro
     ? `The email didn't go out (${failReason ?? 'unknown'}). You can send it from the CRM.`
     : `L'email n'est pas parti (${failReason ?? 'inconnu'}). Tu peux le renvoyer depuis le CRM.`
 }
+
+// summarize_group_thread (read-tier, agent-facing) : l'agent colle/transfère un bout de fil
+// de GROUPE ; MEGGA rend un digest privé (décisions, questions ouvertes, qui attend quoi,
+// point bloquant). NE poste rien — le résultat revient à l'agent dans son 1:1. Opère
+// uniquement sur le texte collé (aucun accès Supabase → pas de garde hasAgency).
+// NE DOIT JAMAIS throw : runTool n'a pas de try/catch → toute erreur renvoie une chaîne honnête.
+export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise<string> {
+  const lang = ctx.lang ?? 'fr'
+  const thread = s(a.thread)
+  if (!thread) {
+    return lang === 'en'
+      ? 'Paste the group thread and I’ll summarize it for you.'
+      : 'Colle-moi le fil du groupe et je te le résume.'
+  }
+
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
+  if (!apiKey) {
+    return lang === 'en'
+      ? "I can't summarize that right now — try again."
+      : 'Je ne peux pas résumer là, réessaie.'
+  }
+
+  const failMsg = lang === 'en'
+    ? "I couldn't summarize that thread — try again."
+    : 'Je n’ai pas réussi à résumer ce fil, réessaie.'
+
+  // Prompt : digest strict en JSON, attribution aux intervenants quand c'est clair, AUCUNE
+  // invention. Fil borné à ~4000 caractères (anti-explosion de tokens).
+  const prompt =
+    'Voici un fil de groupe (plusieurs intervenants). Résume en JSON ' +
+    '{"resume":"2-3 phrases","decisions":["…"],"en_attente":["qui attend quoi"],"bloquant":"le point qui bloque ou null"}. ' +
+    "Attribue les propos aux intervenants quand c'est clair. AUCUNE invention.\n\n" +
+    thread.slice(0, 4000)
+
+  let parsed: Record<string, unknown> = {}
+  try {
+    const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        max_tokens: 600,
+        temperature: 0.2,
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) {
+      console.error('DeepSeek summarize group HTTP', res.status)
+      return failMsg
+    }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const raw = data?.choices?.[0]?.message?.content ?? ''
+    // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`123`/`[]` passent et
+    // feraient throw `typeof parsed.resume` HORS du try/catch (→ 500). Garde de forme :
+    // fail CLOSED au message honnête (le digest fail déjà à failMsg sur un contenu vide).
+    try {
+      const p = JSON.parse(raw)
+      if (!p || typeof p !== 'object' || Array.isArray(p)) return failMsg
+      parsed = p as Record<string, unknown>
+    } catch { return failMsg }
+  } catch (e) {
+    console.error('DeepSeek summarize group error:', (e as Error)?.name ?? 'unknown')
+    return failMsg
+  }
+
+  // Mise en forme courte et lisible (FR/EN), gras WhatsApp = UNE étoile, listes en « - ».
+  const resume = typeof parsed.resume === 'string' ? parsed.resume.trim() : ''
+  const decisions = Array.isArray(parsed.decisions)
+    ? parsed.decisions.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    : []
+  const enAttente = Array.isArray(parsed.en_attente)
+    ? parsed.en_attente.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    : []
+  const bloquant = typeof parsed.bloquant === 'string' && parsed.bloquant.trim() && parsed.bloquant.trim().toLowerCase() !== 'null'
+    ? parsed.bloquant.trim()
+    : ''
+
+  // Rien d'exploitable → message honnête plutôt qu'un digest vide.
+  if (!resume && decisions.length === 0 && enAttente.length === 0 && !bloquant) {
+    return failMsg
+  }
+
+  const lines: string[] = []
+  if (resume) lines.push(resume)
+  if (decisions.length > 0) {
+    lines.push('')
+    lines.push(lang === 'en' ? '*Decisions*' : '*Décisions*')
+    for (const d of decisions) lines.push(`- ${d}`)
+  }
+  if (enAttente.length > 0) {
+    lines.push('')
+    lines.push(lang === 'en' ? '*Waiting on*' : '*En attente*')
+    for (const w of enAttente) lines.push(`- ${w}`)
+  }
+  if (bloquant) {
+    lines.push('')
+    lines.push(lang === 'en' ? `*Blocker* : ${bloquant}` : `*Point bloquant* : ${bloquant}`)
+  }
+  return lines.join('\n')
+}
+
+// check_group_leak (read-tier, défensif, agent-facing) : vérifie qu'un brouillon de message
+// de groupe ne révèle pas une info confidentielle d'une partie à l'autre (budget/plafond,
+// motivation, KYC, stratégie…). Opère uniquement sur le texte fourni (aucun accès Supabase
+// → pas de garde hasAgency). NE DOIT JAMAIS throw : runTool n'a pas de try/catch.
+// NE RE-IMPRIME JAMAIS le secret en clair — seule la raison générique de DeepSeek remonte.
+export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<string> {
+  const lang = ctx.lang ?? 'fr'
+  const draft = s(a.draft)
+  const parties = s(a.parties)
+
+  if (!draft || !parties) {
+    return lang === 'en'
+      ? "I need both the draft message and the list of parties in the group to check for leaks."
+      : "J'ai besoin du brouillon ET des parties présentes dans le groupe pour vérifier les fuites."
+  }
+
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
+  if (!apiKey) {
+    return lang === 'en'
+      ? "I can't check the draft right now — read it carefully before posting."
+      : "Je ne peux pas vérifier le brouillon maintenant — relis-le à la main avant de poster."
+  }
+
+  const failMsg = lang === 'en'
+    ? "I couldn't verify the draft — read it carefully before posting."
+    : "Je n'ai pas pu vérifier, relis à la main avant de poster."
+
+  const prompt =
+    "Tu es un garde-fou de confidentialité immobilière. " +
+    "Parties dans le groupe : " + parties.slice(0, 500) + ". " +
+    "Brouillon que l'agent veut poster À TOUT LE GROUPE : " + draft.slice(0, 2000) + ". " +
+    "Y a-t-il une info qui ne devrait PAS être vue par une des parties " +
+    "(budget/plafond/plancher d'une partie, sa motivation/urgence, son KYC, une stratégie) ? " +
+    'Réponds en JSON {"fuite":true|false,"raison":"courte, sans répéter le secret en clair","reformulation":"version sûre sans la fuite, ou null"}. ' +
+    "Dans le doute, fuite=true."
+
+  let parsed: Record<string, unknown> = {}
+  try {
+    const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        max_tokens: 400,
+        temperature: 0,
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) {
+      console.error('DeepSeek check_group_leak HTTP', res.status)
+      return failMsg
+    }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const raw = data?.choices?.[0]?.message?.content ?? ''
+    // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`123`/`[]` passent et
+    // feraient throw `parsed.fuite` HORS du try/catch (→ 500). Garde de forme : fail CLOSED
+    // au message honnête (un détecteur de fuite ne doit JAMAIS dire ✅ sur un parse douteux).
+    try {
+      const p = JSON.parse(raw)
+      if (!p || typeof p !== 'object' || Array.isArray(p)) return failMsg
+      parsed = p as Record<string, unknown>
+    } catch { return failMsg }
+  } catch (e) {
+    console.error('DeepSeek check_group_leak error:', (e as Error)?.name ?? 'unknown')
+    return failMsg
+  }
+
+  // Formatage de la réponse : on ne reprint JAMAIS le secret — seule la raison générique
+  // fournie par DeepSeek (qui est instruite à ne pas répéter le secret) remonte.
+  const fuite = Boolean(parsed.fuite)
+  const raison = typeof parsed.raison === 'string' ? parsed.raison.trim() : ''
+  const reformulation = typeof parsed.reformulation === 'string' && parsed.reformulation.trim() && parsed.reformulation.trim().toLowerCase() !== 'null'
+    ? parsed.reformulation.trim()
+    : ''
+
+  if (fuite) {
+    const parts: string[] = []
+    parts.push(raison ? `⚠️ ${lang === 'en' ? 'Warning' : 'Attention'} : ${raison}` : (lang === 'en' ? '⚠️ Potential confidentiality leak detected.' : '⚠️ Fuite de confidentialité potentielle détectée.'))
+    if (reformulation) {
+      parts.push(lang === 'en' ? `Safe version: ${reformulation}` : `Version sûre : ${reformulation}`)
+    }
+    return parts.join('\n')
+  }
+
+  return lang === 'en'
+    ? "✅ No confidential information detected for the listed parties."
+    : "✅ Rien de confidentiel détecté pour les parties indiquées."
+}
