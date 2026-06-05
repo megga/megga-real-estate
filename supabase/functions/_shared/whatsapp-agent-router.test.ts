@@ -92,6 +92,11 @@ describe('toolTier', () => {
     // l'agence ; résultat rendu à l'agent dans son 1:1, jamais envoyé au client.
     expect(toolTier('draft_listing_copy')).toBe('read')
   })
+  it("prepare_meeting est read — brief de préparation de RDV agent-facing, rien d'envoyé", () => {
+    // Agrège fiche + biens correspondants + visite à venir (vraies tables, scope agence)
+    // + 3 points à aborder ; résultat rendu à l'agent dans son 1:1, jamais envoyé au client.
+    expect(toolTier('prepare_meeting')).toBe('read')
+  })
   it('classe les outils confirm (sensibles : pipeline + envois client + offre)', () => {
     expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')
