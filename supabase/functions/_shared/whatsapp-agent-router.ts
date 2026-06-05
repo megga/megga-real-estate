@@ -38,6 +38,10 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // (titre + description bilingue + grille) depuis les vraies données d'un bien de l'agence.
   // Rien n'est envoyé au client ; le résultat revient à l'agent dans son 1:1, il l'utilise.
   draft_listing_copy: 'read',
+  // prepare_meeting : lecture seule, agent-facing — agrège la fiche, les biens correspondants
+  // et la visite à venir (vraies tables, scope agence) + 3 points à aborder ; rien n'est envoyé,
+  // le résultat (brief de préparation de RDV) revient à l'agent dans son 1:1.
+  prepare_meeting: 'read',
   create_contact: 'auto',
   add_note: 'auto',
   schedule_visit: 'auto',

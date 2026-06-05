@@ -390,4 +390,18 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'prepare_meeting',
+      description: "Prépare un rendez-vous / une visite avec un contact : rend une synthèse (qui c'est, où en est le dossier, biens qui correspondent, RDV à venir) + 3 points concrets à aborder. Pour « prépare mon RDV avec Dupont », « brief de visite pour Mme Vaucher ». NE poste rien — c'est pour l'agent. contact_id via search_contacts ; si l'agent ne donne qu'une heure, retrouve d'abord le contact via get_my_agenda.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'ID du contact concerné par le RDV (via search_contacts)' },
+        },
+        required: ['contact_id'],
+      },
+    },
+  },
 ]
