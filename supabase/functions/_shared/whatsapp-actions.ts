@@ -1889,3 +1889,264 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
   if (contactBlock) result += contactBlock
   return result
 }
+
+// prepare_meeting (read-tier, agent-facing) : pour UN contact, MEGGA rend une synthèse de
+// préparation de RDV — fiche + où on en est + biens correspondants + visite à venir + 3 points
+// concrets à aborder. Agrégation des MÊMES requêtes que execGetContactBrief (fiche + recherches
+// actives + timeline + compréhension), execGetMatches (biens) et execGetDailyBrief (table visits),
+// puis une petite couche DeepSeek pour les 3 points (ancrés UNIQUEMENT sur le contexte fourni).
+// Rien n'est envoyé : le résultat revient à l'agent dans son 1:1. Accès DB scopé agence → garde
+// hasAgency. NE DOIT JAMAIS throw : runTool n'a pas de try/catch → toute erreur renvoie une chaîne
+// honnête. DÉGRADATION PROPRE : si DeepSeek échoue, la partie factuelle (fiche+biens+visite) est
+// rendue quand même avec une note « points à aborder indisponibles ». Garde objet sur le JSON.
+
+/** Date+heure au format suisse DD.MM.YYYY HH:mm (Europe/Zurich), pour la synthèse de RDV. */
+function swissDateTime(iso: string): string {
+  const d = new Date(iso)
+  if (!Number.isFinite(d.getTime())) return iso
+  const parts = new Intl.DateTimeFormat('fr-CH', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+    timeZone: 'Europe/Zurich',
+  }).formatToParts(d)
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  return `${get('day')}.${get('month')}.${get('year')} ${get('hour')}:${get('minute')}`
+}
+
+export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<string> {
+  const lang = ctx.lang ?? 'fr'
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) {
+    return lang === 'en'
+      ? 'Which contact is the meeting with? (find them via search_contacts)'
+      : 'Avec quel contact est le rendez-vous ? (retrouve-le via search_contacts)'
+  }
+
+  // 1. Fiche contact (MÊMES champs que execGetContactBrief) — scopée agence au SQL.
+  const { data: cRow } = await ctx.supabase
+    .from('contacts')
+    .select('id, first_name, last_name, phone, email, type, score, tags, notes, search_criteria, last_interaction_at')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  const contact = cRow as {
+    id: string; first_name: string | null; last_name: string | null
+    phone: string | null; email: string | null; type: string | null
+    score: number | null; tags: string[] | null; notes: string | null
+    search_criteria: unknown; last_interaction_at: string | null
+  } | null
+  if (!contact) {
+    return lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.'
+  }
+  const fullName = [(contact.first_name ?? '').trim(), (contact.last_name ?? '').trim()].filter(Boolean).join(' ')
+    || (lang === 'en' ? 'this contact' : 'ce contact')
+
+  // 2. Compréhension du fil + timeline + recherches actives (mêmes requêtes que execGetContactBrief).
+  const { data: insightRow } = await ctx.supabase.from('whatsapp_conversation_insights')
+    .select('summary, intent, sentiment, next_action, commitments')
+    .eq('contact_id', contact.id).eq('agency_id', ctx.agencyId).maybeSingle()
+  const insight = insightRow as {
+    summary: string | null; intent: string | null; sentiment: string | null
+    next_action: unknown; commitments: unknown
+  } | null
+
+  const { data: timelineRows } = await ctx.supabase
+    .from('activity_events').select('action, object_label, created_at')
+    .eq('entity_type', 'contact').eq('entity_id', contactId)
+    .order('created_at', { ascending: false }).limit(5)
+  const timeline = (timelineRows ?? []) as Array<{ action: string | null; object_label: string | null; created_at: string | null }>
+
+  const { data: searchRows } = await ctx.supabase
+    .from('client_searches').select('label, criteria')
+    .eq('contact_id', contactId).eq('is_active', true).limit(3)
+  const searches = (searchRows ?? []) as Array<{ label: string | null; criteria: unknown }>
+
+  // 3. Biens correspondants (matches top 5) — mêmes requête/scope que execGetMatches, enrichis
+  //    best-effort des titres/prix via properties / market_listings (champ absent → omis).
+  const { data: matchRows } = await ctx.supabase
+    .from('matches').select('score, status, market_listing_id, property_id')
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId)
+    .order('score', { ascending: false }).limit(5)
+  const matches = (matchRows ?? []) as Array<{
+    score: number | null; status: string | null; market_listing_id: string | null; property_id: string | null
+  }>
+
+  type BienView = { titre: string | null; montant: number | null; ville: string | null; score: number | null }
+  const biens: BienView[] = []
+  for (const m of matches) {
+    let titre: string | null = null
+    let montant: number | null = null
+    let ville: string | null = null
+    if (m.property_id) {
+      const { data: pr } = await ctx.supabase.from('properties')
+        .select('title, price, currency, city')
+        .eq('id', m.property_id).eq('agency_id', ctx.agencyId).maybeSingle()
+      const p = pr as { title: string | null; price: number | null; currency: string | null; city: string | null } | null
+      if (p) { titre = p.title; montant = typeof p.price === 'number' ? p.price : null; ville = p.city }
+    }
+    if (!titre && m.market_listing_id) {
+      const { data: ml } = await ctx.supabase.from('market_listings')
+        .select('title, price, city')
+        .eq('id', m.market_listing_id).maybeSingle()
+      const l = ml as { title: string | null; price: number | null; city: string | null } | null
+      if (l) { titre = l.title; montant = typeof l.price === 'number' ? l.price : null; ville = l.city }
+    }
+    biens.push({ titre, montant: montant && montant > 0 ? montant : null, ville, score: typeof m.score === 'number' ? m.score : null })
+  }
+
+  // 4. Visite à venir : contact_id + agent_id + agency_id, scheduled_at >= now, status non annulé,
+  //    la plus proche (order asc limit 1). Titre du bien résolu best-effort.
+  const nowIso = new Date().toISOString()
+  const { data: visitRow } = await ctx.supabase
+    .from('visits').select('scheduled_at, status, visit_type, property_id')
+    .eq('agency_id', ctx.agencyId).eq('agent_id', ctx.profileId).eq('contact_id', contactId)
+    .gte('scheduled_at', nowIso).neq('status', 'cancelled')
+    .order('scheduled_at', { ascending: true }).limit(1).maybeSingle()
+  const visit = visitRow as { scheduled_at: string | null; status: string | null; visit_type: string | null; property_id: string | null } | null
+  let visitTitle: string | null = null
+  if (visit?.property_id) {
+    const { data: vp } = await ctx.supabase.from('properties')
+      .select('title').eq('id', visit.property_id).eq('agency_id', ctx.agencyId).maybeSingle()
+    visitTitle = (vp as { title: string | null } | null)?.title ?? null
+  }
+
+  // 5. « Où on en est » assemblé EN CODE depuis les vraies données.
+  const nextActionLabel = insight && insight.next_action && typeof insight.next_action === 'object' && insight.next_action !== null
+    && typeof (insight.next_action as Record<string, unknown>).label === 'string'
+    ? ((insight.next_action as Record<string, unknown>).label as string).trim()
+    : ''
+  const commitments = insight && Array.isArray(insight.commitments)
+    ? (insight.commitments as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    : []
+  const lastEvent = timeline[0]
+  const lastEventLabel = lastEvent
+    ? [lastEvent.action?.trim(), lastEvent.object_label?.trim()].filter(Boolean).join(' — ')
+    : ''
+  const searchLabels = searches.map((sr) => (sr.label ?? '').trim()).filter(Boolean)
+
+  // 6. DeepSeek (clone prepareSendClientEmail) : génère UNIQUEMENT {brief, points[3]} ancrés sur
+  //    le contexte fourni. Dégradation propre si échec — la partie factuelle ne dépend pas de lui.
+  let brief = ''
+  let points: string[] = []
+  let pointsUnavailable = false
+
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
+  if (!apiKey) {
+    pointsUnavailable = true
+  } else {
+    // Contexte borné assemblé pour DeepSeek (UNIQUEMENT des vraies données — pas de fabrication).
+    const ctxLines: string[] = []
+    ctxLines.push(`Contact : ${fullName}${contact.type ? ` (${contact.type})` : ''}${typeof contact.score === 'number' ? `, score ${contact.score}` : ''}`)
+    if (insight?.summary) ctxLines.push(`Résumé de la dernière conversation : ${insight.summary}`)
+    if (insight?.intent) ctxLines.push(`Intention : ${insight.intent}`)
+    if (insight?.sentiment) ctxLines.push(`Ressenti : ${insight.sentiment}`)
+    if (nextActionLabel) ctxLines.push(`Prochaine action suggérée : ${nextActionLabel}`)
+    if (commitments.length) ctxLines.push(`Engagements pris : ${commitments.slice(0, 5).join(' / ')}`)
+    if (lastEventLabel) ctxLines.push(`Dernière action au dossier : ${lastEventLabel}`)
+    if (searchLabels.length) ctxLines.push(`Recherches actives : ${searchLabels.join(' ; ')}`)
+    if (biens.length) {
+      const bienTxt = biens.map((b) => [b.titre, b.ville, b.montant ? fmtCHF(b.montant) : null].filter(Boolean).join(', ')).filter(Boolean)
+      if (bienTxt.length) ctxLines.push(`Biens en attente de présentation : ${bienTxt.join(' | ')}`)
+    }
+    if (visit?.scheduled_at) {
+      ctxLines.push(`Visite prévue : ${swissDateTime(visit.scheduled_at)}${visitTitle ? ` — ${visitTitle}` : ''}${visit.visit_type ? ` (${visit.visit_type})` : ''}`)
+    }
+    const context = ctxLines.join('\n').slice(0, 3000)
+
+    const prompt =
+      "Voici le contexte d'un rendez-vous immobilier (fiche client, compréhension de la dernière " +
+      'conversation, dossier, biens en attente, visite prévue). Rends en JSON ' +
+      '{"brief":"2-3 phrases de contexte","points":["…","…","…"]}. ' +
+      'Les 3 points = sujets CONCRETS à aborder pendant le RDV, ancrés UNIQUEMENT sur les données ' +
+      'fournies (où en est le dossier, biens à montrer, engagements pris, prochaine action). ' +
+      "N'invente RIEN (aucun chiffre, aucun bien, aucune donnée absente du contexte). Si peu de " +
+      'données, propose des points pertinents et génériques (confirmer les critères, planifier la suite).\n\n' +
+      context
+
+    let parsed: Record<string, unknown> = {}
+    try {
+      const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
+          max_tokens: 500,
+          temperature: 0.3,
+        }),
+        signal: AbortSignal.timeout(15000),
+      })
+      if (!res.ok) {
+        console.error('DeepSeek prepare_meeting HTTP', res.status)
+        pointsUnavailable = true
+      } else {
+        const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+        const raw = data?.choices?.[0]?.message?.content ?? ''
+        // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`[]` passent et feraient
+        // throw les accès `parsed.brief` HORS du try/catch (→ 500). Garde de forme : dégradation
+        // propre (on rend la partie factuelle avec une note plutôt qu'un message d'échec sec).
+        try {
+          const j = JSON.parse(raw)
+          if (!j || typeof j !== 'object' || Array.isArray(j)) { pointsUnavailable = true }
+          else { parsed = j as Record<string, unknown> }
+        } catch { pointsUnavailable = true }
+      }
+    } catch (e) {
+      console.error('DeepSeek prepare_meeting error:', (e as Error)?.name ?? 'unknown')
+      pointsUnavailable = true
+    }
+
+    if (!pointsUnavailable) {
+      brief = typeof parsed.brief === 'string' ? parsed.brief.trim() : ''
+      points = Array.isArray(parsed.points)
+        ? (parsed.points as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+            .map((x) => x.trim()).slice(0, 3)
+        : []
+      if (!brief && points.length === 0) pointsUnavailable = true
+    }
+  }
+
+  // 7. Assemblage final EN CODE (FR/EN). Dates au format suisse DD.MM.YYYY HH:mm.
+  const out: string[] = []
+  const header = `${lang === 'en' ? 'Meeting' : 'RDV'} — ${fullName}`
+  const tags: string[] = []
+  if (contact.type) tags.push(contact.type)
+  if (typeof contact.score === 'number') tags.push(`score ${contact.score}`)
+  out.push(`*${header}*${tags.length ? ` (${tags.join(', ')})` : ''}`)
+
+  if (visit?.scheduled_at) {
+    const vt = visit.visit_type ? ` (${visit.visit_type})` : ''
+    const vb = visitTitle ? ` — ${visitTitle}` : ''
+    out.push(`*${lang === 'en' ? 'Appointment' : 'Rendez-vous'}* : ${swissDateTime(visit.scheduled_at)}${vb}${vt}`)
+  }
+
+  if (brief || insight?.summary || nextActionLabel || lastEventLabel) {
+    out.push('')
+    out.push(lang === 'en' ? '*Where things stand*' : '*Où on en est*')
+    if (brief) out.push(brief)
+    else if (insight?.summary) out.push(insight.summary.trim())
+    if (nextActionLabel) out.push(`- ${lang === 'en' ? 'Next step' : 'Prochaine action'} : ${nextActionLabel}`)
+    if (lastEventLabel) out.push(`- ${lang === 'en' ? 'Last activity' : 'Dernière action'} : ${lastEventLabel}`)
+  }
+
+  if (biens.length) {
+    const bienLines = biens.map((b) => {
+      const label = b.titre ?? (lang === 'en' ? 'Property' : 'Bien')
+      const facts = [b.ville, b.montant ? fmtCHF(b.montant) : null].filter(Boolean).join(' · ')
+      return `- ${label}${facts ? ` — ${facts}` : ''}`
+    })
+    out.push('')
+    out.push(lang === 'en' ? '*Relevant properties*' : '*Biens pertinents*')
+    for (const bl of bienLines) out.push(bl)
+  }
+
+  out.push('')
+  out.push(lang === 'en' ? '*To discuss*' : '*À aborder*')
+  if (points.length > 0) {
+    points.forEach((p, i) => out.push(`${i + 1}. ${p}`))
+  } else {
+    out.push(lang === 'en' ? '(talking points unavailable — review the file above)' : '(points à aborder indisponibles — appuie-toi sur la synthèse ci-dessus)')
+  }
+
+  return out.join('\n')
+}
