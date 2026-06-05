@@ -42,6 +42,12 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // et la visite à venir (vraies tables, scope agence) + 3 points à aborder ; rien n'est envoyé,
   // le résultat (brief de préparation de RDV) revient à l'agent dans son 1:1.
   prepare_meeting: 'read',
+  // read_document : lecture seule d'une pièce entrante (photo/scan/PDF du message courant) →
+  // OCR Gemini + digest DeepSeek rendu À L'AGENT. Aucune écriture, aucun envoi → read.
+  read_document: 'read',
+  // file_document : même lecture, puis classe le digest en NOTE timeline sur un contact
+  // (état CRM interne, jamais d'envoi client). Écriture réversible/auditée → auto, comme add_note.
+  file_document: 'auto',
   create_contact: 'auto',
   add_note: 'auto',
   schedule_visit: 'auto',

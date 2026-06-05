@@ -258,6 +258,9 @@ async function processAgentMessage(
   // C2 : voix sur le chemin agent — si l'agent envoie un vocal, on le transcrit AVANT
   // de traiter (Deepgram), et on stocke le transcript sur le message (historique C1 + audit).
   let userText = (msg.body ?? '').trim()
+  // Texte du document entrant déjà extrait (OCR Gemini ci-dessous) — transmis tel quel à l'agent
+  // pour que les outils read_document / file_document le réutilisent sans re-fetch Meta ni 2e OCR.
+  let inboundDocText: string | null = null
   if (!userText && msg.mediaId && msg.mediaType === 'audio') {
     try {
       const { bytes, mime } = await fetchMetaMedia(msg.mediaId, {
@@ -291,6 +294,7 @@ async function processAgentMessage(
       })
       if (doc.ok && doc.text) {
         const extract = doc.text.trim().slice(0, 6000)
+        inboundDocText = extract // réutilisé par read_document / file_document (pas de 2e OCR)
         userText = userText
           ? `${userText}\n\n[Document reçu — contenu lu]:\n${extract}`
           : `[Document reçu — contenu lu]:\n${extract}`
@@ -368,12 +372,12 @@ async function processAgentMessage(
       reply = t(lang, 'expired')
     } else {
       // F18 : message non lié alors qu'une action attendait → on l'écarte et on le DIT.
-      const brain = await callAgentBrain(agentLink, msg, userText, lang)
+      const brain = await callAgentBrain(agentLink, msg, userText, lang, inboundDocText)
       reply = `${t(lang, 'setAside')}\n\n${brain.reply}`
       replyIsError = brain.isError
     }
   } else {
-    const brain = await callAgentBrain(agentLink, msg, userText, detectLang(userText))
+    const brain = await callAgentBrain(agentLink, msg, userText, detectLang(userText), inboundDocText)
     reply = brain.reply
     replyIsError = brain.isError
   }
@@ -428,6 +432,7 @@ async function callAgentBrain(
   msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
   messageText: string,
   lang: WaLang,
+  inboundDocText: string | null = null,
 ): Promise<{ reply: string; isError: boolean }> {
   try {
     const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
@@ -441,9 +446,11 @@ async function callAgentBrain(
         waNumber: msg.fromPhone,
         message: messageText,
         currentMessageId: msg.providerMessageId,
+        // ocrText : texte du document déjà lu par le webhook (réutilisé par read_document /
+        // file_document sans re-fetch Meta ni 2e OCR). null si la pièce n'a rien donné.
         inboundMedia:
           msg.mediaId && (msg.mediaType === 'image' || msg.mediaType === 'document')
-            ? { mediaId: msg.mediaId, messageId: msg.providerMessageId }
+            ? { mediaId: msg.mediaId, messageId: msg.providerMessageId, ocrText: inboundDocText }
             : null,
       }),
       signal: AbortSignal.timeout(90_000), // tâche de fond : large, mais jamais infini

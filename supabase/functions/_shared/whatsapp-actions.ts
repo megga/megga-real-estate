@@ -27,7 +27,9 @@ export interface ActionCtx {
   supabase: SupabaseClient
   profileId: string
   agencyId: string | null
-  inboundMedia?: { mediaId: string; messageId: string } | null
+  // ocrText : texte du document DÉJÀ extrait par le webhook (OCR Gemini fait à la réception).
+  // Présent quand l'agent envoie une image/PDF → évite un re-fetch Meta + un 2e OCR côté outil.
+  inboundMedia?: { mediaId: string; messageId: string; ocrText?: string | null } | null
   lang?: WaLang
   agentPhone?: string  // numéro WhatsApp de l'agent (pour lui renvoyer un document)
 }
@@ -2149,4 +2151,167 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
   }
 
   return out.join('\n')
+}
+
+// ── Lecture de documents entrants (doc-ingestion v1) ─────────────────────────
+// L'agent envoie une photo/scan/PDF dans le message COURANT et désigne ce qu'il veut
+// (« lis ce relevé », « range ce mandat dans la fiche de Dupont »). On RÉUTILISE l'OCR que le
+// webhook a DÉJÀ fait sur toute pièce entrante (transcript du message) — pas de re-fetch Meta ni
+// de 2e OCR Gemini dans le cas courant ; on ne re-lit la pièce (fetchMetaMedia + readDocument,
+// modèle attach_kyc_document) qu'en REPLI si le webhook n'a rien pu extraire. Puis on en tire une
+// lecture STRUCTURÉE et FIDÈLE via DeepSeek (décision Gregory 2 juin : vision = Gemini,
+// compréhension = DeepSeek). AUCUNE invention : info absente = omise, partiellement lisible =
+// « (à vérifier) ». Deux surfaces partagent cette extraction, sur des tiers distincts :
+//   - read_document (read)  : rend la lecture à l'agent. Aucune écriture, aucun envoi.
+//   - file_document (auto)  : classe la lecture en note timeline sur un contact. L'agent valide.
+// v1 : pas de stockage du binaire (info seulement), pas de classification fine, pas de signature.
+
+const MAX_DOC_BYTES = 15 * 1024 * 1024 // 15 Mo : borne raisonnable pour l'inline base64 Gemini
+
+interface InboundDocResult {
+  ok: boolean
+  digest: string
+  /** Message prêt à rendre à l'agent en cas d'échec (null si ok). */
+  failMessage: string | null
+}
+
+// Récupère + lit la pièce du message courant et rend un digest structuré (ou un message
+// d'échec déjà localisé). NE log JAMAIS le contenu (PII du document). Ne lève jamais.
+async function readInboundDocument(ctx: ActionCtx, focus: string | null): Promise<InboundDocResult> {
+  const lang = ctx.lang ?? 'fr'
+  const fail = (fr: string, en: string): InboundDocResult => ({ ok: false, digest: '', failMessage: lang === 'en' ? en : fr })
+
+  if (!ctx.inboundMedia) {
+    return fail(
+      'Je ne vois pas de document dans ce message. Envoie-moi la photo ou le PDF avec ta consigne (« lis ce relevé », « range ce mandat dans la fiche de Dupont »).',
+      "I don't see a document in this message. Send me the photo or PDF along with your request (\"read this statement\", \"file this mandate under Dupont\").",
+    )
+  }
+
+  // 1. Réutiliser l'OCR DÉJÀ fait par le webhook (passé dans ctx.inboundMedia.ocrText). Le webhook
+  //    lit toute image/PDF entrant AVANT d'appeler l'agent (whatsapp-webhook) → pas de re-fetch Meta
+  //    ni de 2e OCR Gemini dans le cas courant, et aucune requête DB (le texte voyage avec l'appel).
+  let ocrText = (ctx.inboundMedia.ocrText ?? '').trim()
+
+  // 2. REPLI : le webhook n'a rien pu extraire (OCR raté, texte absent) → on re-lit la pièce
+  //    ici (self-contained, modèle attach_kyc_document). Validation type+taille AVANT l'OCR.
+  if (!ocrText) {
+    let bytes: Uint8Array, mime: string | null
+    try {
+      const media = await fetchMetaMedia(ctx.inboundMedia.mediaId, {
+        metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
+        apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+      })
+      bytes = media.bytes; mime = media.mime
+    } catch {
+      return fail(
+        "Je n'ai pas pu récupérer le document (lien Meta expiré ?). Renvoie-le.",
+        "I couldn't fetch the document (Meta link expired?). Please resend it.",
+      )
+    }
+    if (!isReadableDocMime(mime)) {
+      return fail(
+        'Ce type de fichier ne se lit pas (PDF ou image uniquement).',
+        "I can't read this file type (PDF or image only).",
+      )
+    }
+    if (bytes.byteLength <= 0 || bytes.byteLength > MAX_DOC_BYTES) {
+      return fail(
+        'Le document est trop volumineux (max 15 Mo). Compresse-le ou prends-le en photo.',
+        'The document is too large (15 MB max). Compress it or take a photo.',
+      )
+    }
+    // OCR fidèle (Gemini Vision). On NE log JAMAIS le contenu (PII du document) — statut seulement.
+    const ocr = await readDocument(bytes, mime, Deno.env.get('GEMINI_API_KEY') ?? '')
+    if (!ocr.ok || !ocr.text.trim()) {
+      return fail(
+        "Je n'ai rien pu lire dans ce document (illisible ou vide).",
+        "I couldn't read anything in this document (illegible or empty).",
+      )
+    }
+    ocrText = ocr.text.trim()
+  }
+
+  // 3. Lecture STRUCTURÉE via DeepSeek (compréhension = DeepSeek). Fidèle, aucune invention.
+  //    Dégradation propre : sans clé ou si DeepSeek tombe, on rend un extrait OCR borné — fidèle,
+  //    juste non mis en forme (on ne perd jamais la lecture brute).
+  ocrText = ocrText.slice(0, 8000)
+  const rawFallback = ocrText.slice(0, 1500)
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
+  if (!apiKey) return { ok: true, digest: rawFallback, failMessage: null }
+
+  const focusLine = focus ? `\nCONSIGNE de l'agent (priorise ça) : ${focus.slice(0, 300)}` : ''
+  const prompt =
+    'Tu lis un document professionnel (souvent immobilier : mandat, relevé, courrier, attestation, pièce). ' +
+    'À partir du TEXTE OCR ci-dessous, rends une lecture FIDÈLE et COMPACTE en ' +
+    (lang === 'en' ? 'anglais' : 'français') + ' (quelques lignes, ~500 caractères max). Structure : ' +
+    'type de document ; personnes / parties ; montants et chiffres clés ; dates / échéances ; objet en une phrase. ' +
+    "N'invente RIEN : une info absente est OMISE ; une info partiellement lisible est suivie de « (à vérifier) ». " +
+    'Pas de préambule, pas de formule commerciale.' + focusLine + '\n\nTEXTE OCR :\n' + ocrText
+
+  try {
+    const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 600,
+        temperature: 0.2,
+      }),
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) {
+      console.error('DeepSeek read_document HTTP', res.status)
+      return { ok: true, digest: rawFallback, failMessage: null }
+    }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const digest = (data?.choices?.[0]?.message?.content ?? '').trim()
+    return { ok: true, digest: digest || rawFallback, failMessage: null }
+  } catch (e) {
+    console.error('DeepSeek read_document error:', (e as Error)?.name ?? 'unknown')
+    return { ok: true, digest: rawFallback, failMessage: null }
+  }
+}
+
+/** read_document (tier read) : lit la pièce du message courant et rend la lecture à l'agent.
+ *  N'accède à aucune table (média + OCR + DeepSeek) → pas de garde agence. Aucune écriture, aucun envoi. */
+export async function execReadDocument(ctx: ActionCtx, a: Args): Promise<string> {
+  const r = await readInboundDocument(ctx, s(a.focus))
+  return r.ok ? r.digest : r.failMessage!
+}
+
+/** file_document (tier auto) : lit la pièce ET classe la lecture en note timeline sur un contact.
+ *  Note seulement (pas de binaire en v1) ; l'agent valide ensuite dans le CRM. Jamais d'envoi client. */
+export async function execFileDocument(ctx: ActionCtx, a: Args): Promise<string> {
+  const lang = ctx.lang ?? 'fr'
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(a.contact_id)
+  if (!contactId) {
+    return lang === 'en'
+      ? 'Which contact should I file this document under? (find them via search_contacts)'
+      : 'Dans quelle fiche je classe ce document ? (retrouve le contact via search_contacts)'
+  }
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) {
+    return lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.'
+  }
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
+    || (lang === 'en' ? 'this contact' : 'ce contact')
+
+  const r = await readInboundDocument(ctx, s(a.focus))
+  if (!r.ok) return r.failMessage!
+
+  // Note timeline (activity_events, actor_kind='ai', via logTimeline — object_label borné 500).
+  const noteTitle = lang === 'en' ? 'Document read by MEGGA' : 'Document lu par MEGGA'
+  const ok = await logTimeline(ctx, noteTitle, r.digest, contactId)
+  if (!ok) {
+    return lang === 'en'
+      ? "I read the document but couldn't file the note — try again."
+      : "J'ai lu le document mais je n'ai pas pu enregistrer la note — réessaie."
+  }
+  // On rend la lecture COMPLÈTE à l'agent (la note stockée est bornée à 500). Validation humaine rappelée.
+  return lang === 'en'
+    ? `Filed under ${name}'s timeline.\n\n${r.digest}\n\n(AI read — please check it in the CRM.)`
+    : `Classé dans la fiche de ${name}.\n\n${r.digest}\n\n(Lecture IA — vérifie dans le CRM.)`
 }
