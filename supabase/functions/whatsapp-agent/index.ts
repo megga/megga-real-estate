@@ -9,9 +9,9 @@
 // - outil confirm : NON exécuté ; stocké dans whatsapp_pending_actions + demande « oui »
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, stageLabel, type WaHistoryRow } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, stageLabel, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
 import { detectLang, t, asyncAck, confirmSendClient, confirmUpdatePipeline, pipelineWhoDefault, pipelineWhoNamed } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
@@ -187,6 +187,9 @@ serve(async (req) => {
       let args: Record<string, unknown> = {}
       try { args = JSON.parse(call.function?.arguments || '{}') } catch { /* args vide */ }
       const tier = toolTier(name)
+      // Log d'usage PII-safe (fire-and-forget) : appelé sur chaque chemin terminal de la boucle.
+      const logTool = (outcome: ToolOutcome) =>
+        logToolUsage(supabase, { agency_id: ctx.agencyId, profile_id: profileId, tool: name, tier, outcome })
 
       if (tier === 'slow_async') {
         kycToolCalled = true
@@ -194,6 +197,7 @@ serve(async (req) => {
         // laisser DeepSeek le reformuler (il exposait l'async / inventait — incident Vladimir).
         // Le job est RÉELLEMENT en file → « je lance le screening » est honnête. La boucle conclut ici.
         const ack = await enqueueAsyncJob(ctx, waNumber, name, args)
+        logTool('async_queued')
         return json({ reply: ack }, 200)
       }
 
@@ -205,6 +209,7 @@ serve(async (req) => {
           if (gateErr) console.error('can_auto_send failed:', (gateErr.message ?? 'error').slice(0, 120))
           if (gate === true) {
             const auto = await execUpdatePipelineWithUndo(ctx, args)
+            logTool('executed')
             messages.push({ role: 'tool', tool_call_id: call.id, content: auto })
             continue
           }
@@ -212,11 +217,14 @@ serve(async (req) => {
         // On NE l'exécute pas : on VALIDE + on PRÉPARE, puis on demande confirmation.
         const stash = await stashPending(ctx, waNumber, name, args)
         if (stash.status === 'busy') {
+          logTool('busy')
           return json({ reply: t(lang, 'busy'), isError: true }, 200)
         }
         if (stash.status === 'error') {
+          logTool('error')
           return json({ reply: stash.error ?? t(lang, 'prepFail'), isError: true }, 200)
         }
+        logTool('confirm_pending')
         return json({ reply: stash.prompt ?? t(lang, 'fallbackConfirm') }, 200)
       }
 
@@ -228,6 +236,7 @@ serve(async (req) => {
         result = await runTool(ctx, name, args)
         resultCache.set(key, result)
       }
+      logTool('executed')
       messages.push({ role: 'tool', tool_call_id: call.id, content: result })
     }
   }
@@ -242,6 +251,30 @@ serve(async (req) => {
   }
   return json({ reply: t(lang, 'reformulate'), isError: true }, 200)
 })
+
+// Outcome d'un appel d'outil, selon le chemin pris dans la boucle. Aligné sur le CHECK de
+// whatsapp_tool_usage — typer le param ferme la porte aux fautes de frappe sur les 6 points d'appel.
+type ToolOutcome = 'executed' | 'confirm_pending' | 'async_queued' | 'busy' | 'error'
+
+// Observabilité PII-SAFE de l'usage des outils (cerveau megga/whatsapp-observability-backlog).
+// Fire-and-forget : JAMAIS await — l'UX du copilote ne dépend pas du log (garde dure).
+// On ne logge QUE tool / tier / outcome (+ agency_id / profile_id pour le scope RLS) :
+// JAMAIS les arguments d'outil ni le contenu du message.
+function logToolUsage(
+  supabase: SupabaseClient,
+  row: { agency_id: string | null; profile_id: string; tool: string; tier: ToolTier; outcome: ToolOutcome },
+) {
+  try {
+    supabase
+      .from('whatsapp_tool_usage')
+      .insert(row)
+      .then(({ error }) => {
+        if (error) console.error('[wa-agent] tool_usage log failed:', error.message)
+      })
+  } catch (err) {
+    console.error('[wa-agent] tool_usage log threw:', err)
+  }
+}
 
 // Enfile un job pour un outil lent (slow_async) et renvoie l'ACK à mettre comme
 // résultat d'outil. Dédup via l'index UNIQUE partiel (Task 1) : un INSERT en doublon
