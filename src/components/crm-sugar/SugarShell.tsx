@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { CSSProperties, ReactNode, MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
+import { AnimatedTopIcon } from './LiquidGlassRail'
 import type { CrmTheme, SugarPalette } from './tokens'
 // CRM_AGENT mock retiré — l'avatar lit `useAuth().profile` (vrai utilisateur)
 import SugarNotificationsPopover from './notifications/SugarNotificationsPopover'
@@ -134,7 +134,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
         })}
       </nav>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SugarRoundIconBtn sp={sp} onClick={onCmd}><MEIcon name="search" size={18} color={sp.soft} /></SugarRoundIconBtn>
+        <SugarRoundIconBtn sp={sp} onClick={onCmd}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
         {/* Bouton Julien — Agent IA */}
         <button
           onClick={() => onNavigate && onNavigate('julien')}
@@ -147,11 +147,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
             transition: 'all .2s ease',
           }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke={isJulien ? sp.pageBg : sp.soft}
-            strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-          </svg>
+          <AnimatedTopIcon name="sparkle" color={isJulien ? sp.pageBg : sp.soft} size={18} active={isJulien} />
         </button>
         <div ref={notifAnchorRef} style={{ position: 'relative' }}>
           <button
@@ -168,7 +164,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
               WebkitBackdropFilter: 'blur(8px)',
               transition: 'background 160ms ease',
             }}>
-            <MEIcon name="bell" size={18} color={notifOpen ? sp.pageBg : sp.soft} />
+            <AnimatedTopIcon name="bell" color={notifOpen ? sp.pageBg : sp.soft} size={18} />
             {unreadCount > 0 && (
               <span style={{
                 position: 'absolute', top: 7, right: 7,
@@ -237,108 +233,12 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
   )
 }
 
-// ─── Left icon rail (128px) ────────────────────────────────────────────
-// Logo GG → search/create → modules (AI, Dashboard, +Bien) → Messages → KYC/Auto → Settings → DarkToggle
-interface SugarIconRailProps {
-  active?: string
-  onNavigate?: (id: string) => void
-  dark: boolean
-  setDark: (v: boolean) => void
-  sp: SugarPalette
-  onCmd?: () => void
-  extraBottomBtn?: ReactNode
-}
-export function SugarIconRail({
-  active = 'today', onNavigate, dark, setDark, sp, onCmd, extraBottomBtn,
-}: SugarIconRailProps) {
-  const idleBg = dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'
-  const idleStroke = sp.soft
-  const activeBg = sp.ink
-  const activeStroke = sp.focusInk
-  const dividerColor = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'
-
-  type RailItem = { id: string; icon: MEIconName; label: string; onClick?: () => void; dot?: boolean }
-  const top: RailItem[] = [
-    { id: 'search', icon: 'search', onClick: onCmd, label: 'Rechercher' },
-    { id: 'add',    icon: 'plus',   label: 'Créer' },
-  ]
-  const modules: RailItem[] = [
-    { id: 'ai',        icon: 'sparkle', label: 'MEGGA AI' },
-    { id: 'dashboard', icon: 'dashboard',  label: 'Dashboard' },
-    { id: 'biens-new', icon: 'plus',  label: 'Créer un bien' },
-  ]
-  const tools: RailItem[] = [
-    { id: 'kyc',    icon: 'shield',   label: 'KYC' },
-    { id: 'reseau', icon: 'share', label: "Réseau d'agences" },
-  ]
-
-  const RailBtn = ({ it }: { it: RailItem }) => {
-    const isActive = it.id === active
-    return (
-      <button
-        title={it.label}
-        onClick={() => { if (it.onClick) it.onClick(); else if (onNavigate) onNavigate(it.id) }}
-        style={{
-          width: 52, height: 52, borderRadius: 16, border: 0,
-          background: isActive ? activeBg : idleBg,
-          boxShadow: isActive ? sp.focusShadow : 'none',
-          display: 'grid', placeItems: 'center', cursor: 'pointer',
-          position: 'relative',
-          transition: 'background 160ms ease, transform 160ms ease',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-        }}
-        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.07)' }}
-        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = idleBg }}
-      >
-        <MEIcon name={it.icon} size={22} color={isActive ? activeStroke : idleStroke} strokeWidth={1.7} />
-        {it.dot && <span style={{
-          position: 'absolute', top: 8, right: 8, width: 9, height: 9, borderRadius: 999,
-          background: '#E53935', border: `2px solid ${sp.pageBg}`,
-        }} />}
-      </button>
-    )
-  }
-
-  const dividerStyle = {
-    width: 28, height: 1, background: dividerColor, margin: '6px 0', borderRadius: 999,
-  } as const
-
-  return (
-    <aside style={{
-      width: 128, flexShrink: 0,
-      padding: '108px 0 20px',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-      background: 'transparent',
-    }}>
-      {top.map(it => <RailBtn key={it.id} it={it} />)}
-      {modules.map(it => <RailBtn key={it.id} it={it} />)}
-      {tools.map(it => <RailBtn key={it.id} it={it} />)}
-
-      {extraBottomBtn && <>{extraBottomBtn}<div style={dividerStyle} /></>}
-
-      <button title="Réglages" onClick={() => onNavigate && onNavigate('settings')} style={{
-        width: 52, height: 52, borderRadius: 16, border: 0,
-        background: idleBg,
-        display: 'grid', placeItems: 'center', cursor: 'pointer',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-      }}>
-        <MEIcon name="settings" size={22} color={idleStroke} strokeWidth={1.7} />
-      </button>
-
-      <button onClick={() => setDark(!dark)} title={dark ? 'Mode clair' : 'Mode sombre'} style={{
-        width: 52, height: 52, borderRadius: 16, border: 0,
-        background: idleBg,
-        display: 'grid', placeItems: 'center', cursor: 'pointer',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-      }}>
-        <MEIcon name={dark ? 'sun' : 'moon'} size={22} color={idleStroke} strokeWidth={1.7} />
-      </button>
-    </aside>
-  )
-}
+// ─── Left icon rail (128px) — « Liquid Glass » ─────────────────────────
+// Refonte design (capsule de verre réfractée + icônes self-draw Framer Motion
+// + morph soleil/lune). Implémentation déplacée dans LiquidGlassRail.tsx ;
+// re-export ici pour que les pages qui importent depuis SugarShell héritent
+// du nouveau rail sans changement.
+export { SugarIconRail, type SugarIconRailProps } from './LiquidGlassRail'
 
 // ─── Floating "frame" card ─────────────────────────────────────────────
 interface SugarFrameProps {

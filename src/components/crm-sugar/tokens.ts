@@ -154,6 +154,14 @@ export interface SugarPalette {
   iconRailBg: string
   dotBorder: string
   kbdBg: string
+  // Surfaces OPAQUES (popovers denses type dropdown profil). La couleur vient
+  // des tokens (pas du prop `dark`, souvent non transmis) → correcte en clair
+  // ET sombre. La surface s'élève nettement du fond + ombre/bordure renforcées.
+  solidBg: string
+  solidBgSub: string
+  solidBgSub2: string
+  solidBorder: string
+  solidShadow: string
 }
 
 export type DarkTone = 'marine' | 'meggaAi'
@@ -182,6 +190,11 @@ export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'ma
       iconRailBg:    'rgba(255,255,255,0.7)',
       dotBorder:     '#EEF1F5',
       kbdBg:         '#F5F7FA',
+      solidBg:       '#FFFFFF',
+      solidBgSub:    '#F1F4F8',
+      solidBgSub2:   '#E6EAF0',
+      solidBorder:   'rgba(15,23,42,0.10)',
+      solidShadow:   '0 1px 2px rgba(14,20,16,.05), 0 18px 48px -12px rgba(40,55,90,.30)',
     }
   }
   return {
@@ -206,5 +219,13 @@ export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'ma
     iconRailBg:    'rgba(255,255,255,0.04)',
     dotBorder:     t.surface,
     kbdBg:         t.surface2,
+    // Surface volontairement claire pour s'élever du fond quasi-noir : sur fond
+    // sombre l'ombre noire est invisible, le relief vient de la clarté + bordure
+    // lumineuse + liseré haut interne.
+    solidBg:       '#22242F',
+    solidBgSub:    '#2C2F3B',
+    solidBgSub2:   '#373B49',
+    solidBorder:   'rgba(255,255,255,0.14)',
+    solidShadow:   '0 24px 60px -12px rgba(0,0,0,.65), 0 8px 22px -10px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07)',
   }
 }
