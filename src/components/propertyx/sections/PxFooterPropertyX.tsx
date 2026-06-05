@@ -10,54 +10,16 @@
 //   Utility Pages, Contact us, sales/help sans titre)
 // - Logo Property X (inline SVG) + copyright "Property X | Designed by BRIX"
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PX, PxSocialIcon, MEIcon } from '..'
+import { PX, PxLogo, PxSocialIcon, MEIcon } from '..'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 
-// Logo Property X — vrais assets SVG Figma téléchargés dans
-// /public/icons/figma/propertyx/. Le footer utilise les tailles 23.167×23.167
-// pour l'icon et 107.062×26.074 pour le wordmark (Figma footer specs).
-const logoCache = { icon: null as string | null, text: null as string | null }
-
+// Logo MEGGA (wordmark officiel) — variante claire pour le footer dark.
 function PropertyXLogoLight() {
-  const [iconSvg, setIconSvg] = useState<string | null>(logoCache.icon)
-  const [textSvg, setTextSvg] = useState<string | null>(logoCache.text)
-
-  useEffect(() => {
-    if (!iconSvg) {
-      fetch('/icons/figma/propertyx/logo-icon.svg').then(r => r.text()).then(t => { logoCache.icon = t; setIconSvg(t) }).catch(() => {})
-    }
-    if (!textSvg) {
-      fetch('/icons/figma/propertyx/logo-text.svg').then(r => r.text()).then(t => { logoCache.text = t; setTextSvg(t) }).catch(() => {})
-    }
-  }, [iconSvg, textSvg])
-
-  return (
-    <span
-      role="img"
-      aria-label="Property X"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8.424,
-        color: PX.neutral100,
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{ display: 'inline-block', width: 23.167, height: 23.167, transform: 'scaleX(-1)' }}
-        dangerouslySetInnerHTML={iconSvg ? { __html: iconSvg } : undefined}
-      />
-      <span
-        aria-hidden="true"
-        style={{ display: 'inline-block', width: 107.062, height: 26.074 }}
-        dangerouslySetInnerHTML={textSvg ? { __html: textSvg } : undefined}
-      />
-    </span>
-  )
+  return <PxLogo variant="light" form="text" size="sm" to="/" />
 }
 
 // Colonnes fidèles Figma (textes EN) — node 9613:23660 footer

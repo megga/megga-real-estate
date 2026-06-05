@@ -24,54 +24,12 @@
 //     </Container>
 //   </section>
 
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PX, MEIcon } from '..'
+import { PX, MEIcon, PxLogo } from '..'
 
-// Logo Property X officiel — assets SVG téléchargés depuis Figma (vector
-// icon + wordmark Property X) stockés dans /public/icons/figma/propertyx/.
-// Le SVG icon Figma utilise un transform -scale-x-100 (flip horizontal),
-// on reproduit avec transform: scaleX(-1).
-const iconCache = { icon: null as string | null, text: null as string | null }
-
-function PropertyXLogo({ color = PX.neutral700 }: { color?: string }) {
-  const [iconSvg, setIconSvg] = useState<string | null>(iconCache.icon)
-  const [textSvg, setTextSvg] = useState<string | null>(iconCache.text)
-
-  useEffect(() => {
-    if (!iconSvg) {
-      fetch('/icons/figma/propertyx/logo-icon.svg').then(r => r.text()).then(t => { iconCache.icon = t; setIconSvg(t) }).catch(() => {})
-    }
-    if (!textSvg) {
-      fetch('/icons/figma/propertyx/logo-text.svg').then(r => r.text()).then(t => { iconCache.text = t; setTextSvg(t) }).catch(() => {})
-    }
-  }, [iconSvg, textSvg])
-
-  return (
-    <span
-      role="img"
-      aria-label="Property X"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-        color,
-      }}
-    >
-      {/* Icon 22×22 — vrai SVG Figma "Vector 1110 (Stroke)" avec flip horiz */}
-      <span
-        aria-hidden="true"
-        style={{ display: 'inline-block', width: 22, height: 22, transform: 'scaleX(-1)' }}
-        dangerouslySetInnerHTML={iconSvg ? { __html: iconSvg } : undefined}
-      />
-      {/* Wordmark "Property X" — vrai SVG Figma (101.669×24.76) */}
-      <span
-        aria-hidden="true"
-        style={{ display: 'inline-block', width: 101.669, height: 24.76 }}
-        dangerouslySetInnerHTML={textSvg ? { __html: textSvg } : undefined}
-      />
-    </span>
-  )
+// Logo MEGGA (wordmark officiel) — variante claire, nav en overlay sur le hero.
+function PropertyXLogo() {
+  return <PxLogo variant="light" form="text" size="sm" />
 }
 
 const NAV_LINKS = [
@@ -128,7 +86,7 @@ export default function PxNavPropertyX() {
             alignItems: 'center',
           }}>
             <Link to="/" style={{ display: 'inline-flex', textDecoration: 'none' }}>
-              <PropertyXLogo color={PX.neutral300} />
+              <PropertyXLogo />
             </Link>
             {/* Nav List : flex gap-16 items-center */}
             <nav style={{

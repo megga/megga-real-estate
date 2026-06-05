@@ -11,26 +11,13 @@
 //
 // Le footer dark est rendu séparément dans la page parente via PxFooterPropertyX.
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PX, MEIcon } from '..'
+import { PX, MEIcon, PxLogo } from '..'
 
-// ─── Logo Property X dark-on-light ───────────────────────────────────────
-const logoCache = { icon: null as string | null, text: null as string | null }
-
+// ─── Logo MEGGA (wordmark officiel), variante sombre sur fond clair ──────
 function PropertyXLogoDark() {
-  const [iconSvg, setIconSvg] = useState<string | null>(logoCache.icon)
-  const [textSvg, setTextSvg] = useState<string | null>(logoCache.text)
-  useEffect(() => {
-    if (!iconSvg) fetch('/icons/figma/propertyx/logo-icon.svg').then(r => r.text()).then(t => { logoCache.icon = t; setIconSvg(t) }).catch(() => {})
-    if (!textSvg) fetch('/icons/figma/propertyx/logo-text.svg').then(r => r.text()).then(t => { logoCache.text = t; setTextSvg(t) }).catch(() => {})
-  }, [iconSvg, textSvg])
-  return (
-    <span role="img" aria-label="Property X" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: PX.neutral700 }}>
-      <span aria-hidden="true" style={{ display: 'inline-block', width: 22, height: 22, transform: 'scaleX(-1)' }} dangerouslySetInnerHTML={iconSvg ? { __html: iconSvg } : undefined} />
-      <span aria-hidden="true" style={{ display: 'inline-block', width: 101.669, height: 24.76 }} dangerouslySetInnerHTML={textSvg ? { __html: textSvg } : undefined} />
-    </span>
-  )
+  return <PxLogo variant="dark" form="text" size="sm" />
 }
 
 // ─── Arrow right (Figma "Line Rounded/Arrow rigth", 12×12) ──────────────
