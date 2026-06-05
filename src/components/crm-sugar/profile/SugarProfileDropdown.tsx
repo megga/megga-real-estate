@@ -1,6 +1,12 @@
-// MEGGA CRM Sugar v2 — Profile dropdown anchored on the topbar avatar.
-// 1:1 port from the Claude Design bundle (crm-profile-dropdown-sugar.jsx).
-// Note: keyboard shortcut pills (kbd) intentionally omitted per user request.
+// MEGGA CRM Sugar v2 — Profile dropdown (concept « badge minimal »).
+// Refonte design (handoff dropdown_motion_v1) : en-tête identité + pastille de
+// plan, lignes épurées, surface OPAQUE issue des tokens `solid*` (correcte en
+// clair ET sombre, sans dépendre du prop `dark`).
+//
+// ⚠️ Bug « pastilles noires » : AUCUNE `transition: background` sur le bouton de
+// ligne ni sur le chip d'icône. Avec des nœuds DOM réutilisés entre clair↔sombre,
+// une transition de background-color reste bloquée à mi-course et peint la couleur
+// sombre périmée. Le fond doit s'appliquer immédiatement.
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
@@ -10,18 +16,18 @@ import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 
 // ─── Inline icons not in MEIcon ──────────────────────────────────────
-type InlineIconName = 'external' | 'shield' | 'card' | 'help' | 'logout' | 'check'
+type InlineIconName = 'shield' | 'card' | 'help' | 'logout' | 'chevron' | 'spark'
 
 function InlineIco({
   name, size = 18, stroke = 'currentColor', strokeWidth = 1.6,
 }: { name: InlineIconName; size?: number; stroke?: string; strokeWidth?: number }) {
   const paths: Record<InlineIconName, ReactNode> = {
-    external: <><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></>,
-    shield:   <><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/></>,
-    card:     <><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></>,
-    help:     <><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 2"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></>,
-    logout:   <><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 17l-5-5 5-5"/><path d="M15 12H5"/></>,
-    check:    <><path d="m5 13 4 4 10-12"/></>,
+    shield:  <><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/></>,
+    card:    <><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/></>,
+    help:    <><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 2"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></>,
+    logout:  <><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 17l-5-5 5-5"/><path d="M15 12H5"/></>,
+    chevron: <><path d="m9 6 6 6-6 6"/></>,
+    spark:   <><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></>,
   }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke}
@@ -31,7 +37,7 @@ function InlineIco({
   )
 }
 
-// ─── Menu row ─────────────────────────────────────────────────────────
+// ─── Menu row (chip + label + trailing) ───────────────────────────────
 interface RowProps {
   icon: MEIconName | InlineIconName
   iconKind?: 'crm' | 'inline'
@@ -39,10 +45,12 @@ interface RowProps {
   trail?: ReactNode
   onClick?: () => void
   sp: SugarPalette
+  danger?: boolean
 }
 
-function Row({ icon, iconKind = 'crm', label, trail, onClick, sp }: RowProps) {
+function Row({ icon, iconKind = 'crm', label, trail, onClick, sp, danger = false }: RowProps) {
   const [hover, setHover] = useState(false)
+  const tint = danger ? '#E5484D' : sp.ink
   return (
     <button
       type="button"
@@ -51,26 +59,25 @@ function Row({ icon, iconKind = 'crm', label, trail, onClick, sp }: RowProps) {
       onMouseLeave={() => setHover(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        width: '100%', padding: '10px 12px',
-        border: 0, background: hover ? sp.cardSubBg : 'transparent',
+        width: '100%', padding: '9px 10px',
+        border: 0, background: hover ? sp.solidBgSub : 'transparent',
         cursor: 'pointer', textAlign: 'left',
         borderRadius: 12, fontFamily: 'inherit',
-        color: sp.ink,
-        transition: 'background 140ms ease',
+        // ⚠️ pas de transition de fond (bug pastilles noires)
       }}>
       <div style={{
         width: 30, height: 30, borderRadius: 10,
-        background: hover ? sp.frameBg : sp.cardSubBg,
+        background: hover ? (danger ? 'rgba(229,72,77,0.12)' : sp.solidBgSub2) : sp.solidBgSub,
         display: 'grid', placeItems: 'center', flexShrink: 0,
-        transition: 'background 140ms ease',
+        // ⚠️ pas de transition de fond
       }}>
         {iconKind === 'crm'
-          ? <MEIcon name={icon as MEIconName} size={15} color={sp.ink} strokeWidth={1.7} />
-          : <InlineIco name={icon as InlineIconName} size={15} stroke={sp.ink} strokeWidth={1.7} />
+          ? <MEIcon name={icon as MEIconName} size={15} color={tint} strokeWidth={1.7} />
+          : <InlineIco name={icon as InlineIconName} size={15} stroke={tint} strokeWidth={1.7} />
         }
       </div>
       <span style={{
-        flex: 1, fontSize: 13.5, fontWeight: 600, color: sp.ink, letterSpacing: -0.1,
+        flex: 1, fontSize: 13.5, fontWeight: 600, color: tint, letterSpacing: -0.1,
       }}>{label}</span>
       {trail}
     </button>
@@ -82,61 +89,56 @@ function Sep({ sp }: { sp: SugarPalette }) {
   return (
     <div style={{
       height: 1, background: sp.frameBorder,
-      margin: '6px 4px', opacity: 0.55,
+      margin: '7px 4px', opacity: 0.5,
     }} />
   )
 }
 
-// ─── Verified pill ────────────────────────────────────────────────────
-function VerifiedPill() {
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '3px 8px 3px 6px', borderRadius: 999,
-      background: 'rgba(14,159,110,0.12)',
-      color: '#0E9F6E',
-      fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2,
-      textTransform: 'uppercase',
-    }}>
-      <InlineIco name="check" size={11} stroke="#0E9F6E" strokeWidth={2.2} />
-      Vérifié
-    </span>
-  )
-}
-
-// ─── Header card (identity) ───────────────────────────────────────────
+// ─── Header (identity + plan pill) ────────────────────────────────────
 interface ProfileHeaderProps {
   sp: SugarPalette
-  agent: { name: string; role: string; agency: string; initials: string }
+  name: string
+  initials: string
+  subtitle: string
+  planLabel: string | null
 }
 
-function ProfileHeader({ sp, agent }: ProfileHeaderProps) {
+function ProfileHeader({ sp, name, initials, subtitle, planLabel }: ProfileHeaderProps) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 14px',
-      background: sp.cardSubBg,
-      borderRadius: 14,
-      marginBottom: 8,
+      padding: '11px 12px 12px',
     }}>
       <div style={{
         width: 44, height: 44, borderRadius: 999,
-        background: '#0041D9', color: '#fff',
+        background: sp.ink, color: sp.solidBg,
         display: 'grid', placeItems: 'center',
         fontSize: 14.5, fontWeight: 800, letterSpacing: 0.3,
-        boxShadow: '0 2px 8px rgba(0,65,217,0.30)',
         flexShrink: 0,
-      }}>{agent.initials}</div>
+      }}>{initials}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{
+            fontSize: 14.5, fontWeight: 800, color: sp.ink, letterSpacing: -0.2,
+            lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{name}</span>
+          {planLabel && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              padding: '2px 7px 2px 5px', borderRadius: 999,
+              background: sp.ink, color: sp.solidBg,
+              fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+              flexShrink: 0, whiteSpace: 'nowrap',
+            }}>
+              <InlineIco name="spark" size={9} stroke={sp.solidBg} strokeWidth={2} />
+              {planLabel}
+            </span>
+          )}
+        </div>
         <div style={{
-          fontSize: 14, fontWeight: 800, color: sp.ink, letterSpacing: -0.2,
-          lineHeight: 1.25,
+          fontSize: 11.5, color: sp.sub, marginTop: 3,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{agent.name}</div>
-        <div style={{
-          fontSize: 11.5, color: sp.sub, marginTop: 2,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{agent.role} · {agent.agency}</div>
+        }}>{subtitle}</div>
       </div>
     </div>
   )
@@ -148,17 +150,19 @@ interface SugarProfileDropdownProps {
   dark: boolean
   onClose?: () => void
   onSettings?: () => void
-  onKyc?: () => void
-  onAgencyPublic?: () => void
   onHelp?: () => void
   onLogout?: () => void
+  // Conservés optionnels pour compat appelant (non utilisés par le concept
+  // « badge minimal » — KYC reste accessible via le rail/TopNav).
+  onKyc?: () => void
+  onAgencyPublic?: () => void
 }
 
 export default function SugarProfileDropdown({
-  sp, dark, onClose, onSettings, onKyc, onAgencyPublic, onHelp, onLogout,
+  sp, onClose, onSettings, onHelp, onLogout,
 }: SugarProfileDropdownProps) {
   const { profile, user } = useAuth()
-  const { agency: agencyData } = useAgencySettings()
+  const { agency: agencyData, plan } = useAgencySettings()
 
   const fullName = profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Agent'
   const initials = fullName
@@ -172,15 +176,8 @@ export default function SugarProfileDropdown({
     ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
     : 'Agent'
   const agencyName = agencyData?.name?.trim() || 'Agence non définie'
-
-  const agent = {
-    name: fullName,
-    role,
-    agency: agencyName,
-    initials,
-  }
-
-  const solidBg = dark ? '#1A1B1F' : '#FFFFFF'
+  const subtitle = user?.email?.trim() || `${role} · ${agencyName}`
+  const planLabel = plan ? plan.toUpperCase() : null
 
   const wrap = (fn?: () => void) => () => {
     if (fn) fn()
@@ -190,36 +187,26 @@ export default function SugarProfileDropdown({
   return (
     <div style={{
       position: 'absolute', top: 'calc(100% + 10px)', right: 0,
-      width: 300, padding: 12, zIndex: 9000,
-      background: solidBg,
-      border: `1px solid ${sp.frameBorder}`,
+      width: 304, padding: 12, zIndex: 9000,
+      background: sp.solidBg,
+      border: `1px solid ${sp.solidBorder}`,
       borderRadius: 20,
-      boxShadow: '0 24px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04)',
-      backdropFilter: 'blur(20px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+      boxShadow: sp.solidShadow,
       animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
-      <ProfileHeader sp={sp} agent={agent} />
+      <ProfileHeader sp={sp} name={fullName} initials={initials} subtitle={subtitle} planLabel={planLabel} />
+
+      <Sep sp={sp} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Row sp={sp} iconKind="inline" icon="external"
-          label="Voir notre fiche publique"
-          onClick={wrap(onAgencyPublic)} />
         <Row sp={sp} icon="settings" label="Préférences"
           onClick={wrap(onSettings)} />
         <Row sp={sp} iconKind="inline" icon="shield"
           label="Sécurité & sessions"
           onClick={wrap(onSettings)} />
-      </div>
-
-      <Sep sp={sp} />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Row sp={sp} icon="shield" label="Mon KYC agent"
-          trail={<VerifiedPill />}
-          onClick={wrap(onKyc)} />
         <Row sp={sp} iconKind="inline" icon="card"
           label="Facturation & abonnement"
+          trail={<InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
           onClick={wrap(onSettings)} />
         <Row sp={sp} iconKind="inline" icon="help"
           label="Centre d'aide"
@@ -229,6 +216,7 @@ export default function SugarProfileDropdown({
       <Sep sp={sp} />
 
       <Row sp={sp} iconKind="inline" icon="logout"
+        danger
         label="Se déconnecter"
         onClick={wrap(onLogout)} />
     </div>

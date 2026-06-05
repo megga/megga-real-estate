@@ -35,9 +35,12 @@ interface SugarPopoverProps {
   dark: boolean
   onClose: () => void
   width?: number
+  /** Surface OPAQUE (panneaux denses type dropdown profil) — verre Sugar sinon.
+   *  La couleur opaque vient des tokens (sp.solidBg…), correcte clair ET sombre. */
+  solid?: boolean
   children: ReactNode
 }
-export function SugarPopover({ anchorRect, sp, onClose, width = 320, children }: SugarPopoverProps) {
+export function SugarPopover({ anchorRect, sp, onClose, width = 320, solid = false, children }: SugarPopoverProps) {
   if (!anchorRect) return null
   const top = anchorRect.bottom + window.scrollY + 10
   const left = anchorRect.right + window.scrollX - width
@@ -56,12 +59,12 @@ export function SugarPopover({ anchorRect, sp, onClose, width = 320, children }:
           position: 'absolute',
           top, left, width,
           zIndex: 1301,
-          background: sp.frameBg,
-          border: `1px solid ${sp.frameBorder}`,
+          background: solid ? sp.solidBg : sp.frameBg,
+          border: `1px solid ${solid ? sp.solidBorder : sp.frameBorder}`,
           borderRadius: 20,
-          boxShadow: sp.shadowHover || sp.shadow,
-          backdropFilter: 'blur(20px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+          boxShadow: solid ? (sp.solidShadow || sp.shadowHover || sp.shadow) : (sp.shadowHover || sp.shadow),
+          backdropFilter: solid ? 'none' : 'blur(20px) saturate(140%)',
+          WebkitBackdropFilter: solid ? 'none' : 'blur(20px) saturate(140%)',
           padding: 12,
           color: sp.ink,
           animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',

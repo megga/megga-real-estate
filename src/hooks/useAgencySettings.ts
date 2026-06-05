@@ -10,6 +10,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
+export type AgencyPlan = 'starter' | 'pro' | 'agency' | 'enterprise'
+
 export interface AgencySettingsData {
   name: string
   address: string
@@ -41,10 +43,18 @@ interface AgencyRow {
   email: string | null
   website: string | null
   logo_url: string | null
+  plan: AgencyPlan | null
+}
+
+interface AgencyQueryResult {
+  settings: AgencySettingsData
+  plan: AgencyPlan | null
 }
 
 export interface UseAgencySettingsReturn {
   agency: AgencySettingsData
+  /** Plan d'abonnement de l'agence (lecture seule, non éditable via le form). */
+  plan: AgencyPlan | null
   isLoading: boolean
   isSaving: boolean
   hasBackend: boolean
@@ -60,23 +70,26 @@ export function useAgencySettings(): UseAgencySettingsReturn {
 
   const { data, isLoading } = useQuery({
     queryKey: ['agency-settings', agencyId],
-    queryFn: async (): Promise<AgencySettingsData> => {
-      if (!agencyId) return EMPTY_AGENCY
+    queryFn: async (): Promise<AgencyQueryResult> => {
+      if (!agencyId) return { settings: EMPTY_AGENCY, plan: null }
       const { data: row, error } = await supabase
         .from('agencies')
-        .select('name, address, city, canton, phone, email, website, logo_url')
+        .select('name, address, city, canton, phone, email, website, logo_url, plan')
         .eq('id', agencyId)
         .single<AgencyRow>()
       if (error) throw error
       return {
-        name: row?.name ?? '',
-        address: row?.address ?? '',
-        city: row?.city ?? '',
-        canton: row?.canton ?? '',
-        phone: row?.phone ?? '',
-        email: row?.email ?? '',
-        website: row?.website ?? '',
-        logoUrl: row?.logo_url ?? '',
+        settings: {
+          name: row?.name ?? '',
+          address: row?.address ?? '',
+          city: row?.city ?? '',
+          canton: row?.canton ?? '',
+          phone: row?.phone ?? '',
+          email: row?.email ?? '',
+          website: row?.website ?? '',
+          logoUrl: row?.logo_url ?? '',
+        },
+        plan: row?.plan ?? null,
       }
     },
     enabled: !!agencyId,
@@ -84,7 +97,7 @@ export function useAgencySettings(): UseAgencySettingsReturn {
   })
 
   useEffect(() => {
-    if (data) setLocal(data)
+    if (data) setLocal(data.settings)
   }, [data])
 
   const mutation = useMutation({
@@ -114,6 +127,7 @@ export function useAgencySettings(): UseAgencySettingsReturn {
 
   return {
     agency: local,
+    plan: data?.plan ?? null,
     isLoading,
     isSaving: mutation.isPending,
     hasBackend: !!agencyId,
