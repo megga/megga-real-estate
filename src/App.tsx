@@ -189,6 +189,7 @@ const AdminLiveFeedPage = lazy(() => import('@/pages/admin/AdminLiveFeedPage'))
 const AdminSecurityAuditPage = lazy(() => import('@/pages/admin/AdminSecurityAuditPage'))
 const AdminNpsPage = lazy(() => import('@/pages/admin/AdminNpsPage'))
 const AdminAutonomyPage = lazy(() => import('@/pages/admin/AdminAutonomyPage'))
+const AdminToolUsagePage = lazy(() => import('@/pages/admin/AdminToolUsagePage'))
 const AdminLearningPage = lazy(() => import('@/pages/admin/AdminLearningPage'))
 
 // Admin guard
@@ -587,6 +588,7 @@ function AnimatedRoutes() {
                 <Route path="admin/security" element={<SuperAdminGuard><AdminSecurityAuditPage /></SuperAdminGuard>} />
                 <Route path="admin/nps" element={<SuperAdminGuard><AdminNpsPage /></SuperAdminGuard>} />
                 <Route path="admin/autonomy" element={<SuperAdminGuard><AdminAutonomyPage /></SuperAdminGuard>} />
+                <Route path="admin/tool-usage" element={<SuperAdminGuard><AdminToolUsagePage /></SuperAdminGuard>} />
                 <Route path="admin/learning" element={<SuperAdminGuard><AdminLearningPage /></SuperAdminGuard>} />
               </Route>
 
