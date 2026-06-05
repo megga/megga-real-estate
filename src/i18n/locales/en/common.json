@@ -35,7 +35,8 @@
     "adminSecurity": "Security Audit",
     "adminNps": "Satisfaction",
     "adminAutonomy": "Agent autonomy",
-    "adminLearning": "Learned styles"
+    "adminLearning": "Learned styles",
+    "adminToolUsage": "Tool usage"
   },
   "sections": {
     "main": "Main",

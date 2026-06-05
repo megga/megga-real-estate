@@ -258,6 +258,7 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                 { labelKey: 'nav.adminNps', href: '/dashboard/admin/nps', icon: 'star' },
                 { labelKey: 'nav.adminAutonomy', href: '/dashboard/admin/autonomy', icon: 'sparkle' },
                 { labelKey: 'nav.adminLearning', href: '/dashboard/admin/learning', icon: 'sparkle' },
+                { labelKey: 'nav.adminToolUsage', href: '/dashboard/admin/tool-usage', icon: 'sparkle' },
               ].map((item) => {
                 const isItemActive = location.pathname === item.href ||
                   (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))

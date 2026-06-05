@@ -35,7 +35,8 @@
     "adminSecurity": "Sicherheitsaudit",
     "adminNps": "Zufriedenheit",
     "adminAutonomy": "Agenten-Autonomie",
-    "adminLearning": "Gelernte Stile"
+    "adminLearning": "Gelernte Stile",
+    "adminToolUsage": "Tool-Nutzung"
   },
   "sections": {
     "main": "Hauptmenü",

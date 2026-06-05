@@ -35,7 +35,8 @@
     "adminSecurity": "Audit sicurezza",
     "adminNps": "Soddisfazione",
     "adminAutonomy": "Autonomia agenti",
-    "adminLearning": "Stili appresi"
+    "adminLearning": "Stili appresi",
+    "adminToolUsage": "Utilizzo strumenti"
   },
   "sections": {
     "main": "Principale",
