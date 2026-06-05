@@ -404,4 +404,33 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'read_document',
+      description: "Lit le document que TU viens d'envoyer dans CE message (photo, scan ou PDF) et en rend une lecture fidèle et structurée (type, parties, montants, dates, objet). Pour « lis ce courrier », « qu'est-ce que dit ce relevé », « extrais ce mandat ». N'invente rien (info illisible = « à vérifier »). NE range rien, n'envoie rien — c'est pour toi. N'appelle cet outil QUE si un document est joint à ce message.",
+      parameters: {
+        type: 'object',
+        properties: {
+          focus: { type: 'string', description: "Optionnel : ce que tu veux en priorité (ex. « le montant et l'échéance », « les parties et la commission »)." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'file_document',
+      description: "Lit le document que TU viens d'envoyer dans CE message ET classe sa lecture dans la fiche d'un contact (sa timeline). Pour « ajoute ce relevé à la fiche de Dubois », « range ce mandat dans le dossier Martin ». N'invente rien ; c'est une lecture IA que tu valides ensuite dans le CRM (rien n'est envoyé au client). contact_id via search_contacts. N'appelle cet outil QUE si un document est joint à ce message.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'ID du contact dans la fiche duquel classer le document (via search_contacts).' },
+          focus: { type: 'string', description: "Optionnel : ce qu'il faut surtout retenir du document." },
+        },
+        required: ['contact_id'],
+      },
+    },
+  },
 ]

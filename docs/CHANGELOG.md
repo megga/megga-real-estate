@@ -6,6 +6,16 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Lecture de documents entrants — copilote WhatsApp (5 juin 2026)
+> Implémenté sur branche `claude/condescending-hopper-f8c9fd` (subagent-driven : implémentation + revue adversariale spec/qualité). Déploiement edge via CI au merge. Aucune migration. Sert les objectifs 1 (temps admin) et 4 (transparence).
+
+L'agent envoie une photo/scan/PDF dans le message WhatsApp et la désigne (« lis ce relevé », « range ce mandat dans la fiche de Dupont ») → MEGGA en rend une **lecture structurée fidèle** ou la **classe dans une fiche**. Au-delà du KYC : mandat, relevé, courrier, attestation, pièce.
+- **`read_document`** (tier read, `focus` optionnel) — rend la lecture à l'agent dans son 1:1. Aucune écriture, aucun envoi.
+- **`file_document`** (tier auto, `contact_id` requis) — classe le digest en **note timeline** (`activity_events`, `actor_kind='ai'`, via `logTimeline`) ; l'agent valide ensuite dans le CRM. Jamais d'envoi client.
+- **Extraction partagée** (`readInboundDocument`, `_shared/whatsapp-actions.ts`) : **réutilise l'OCR déjà fait par le webhook à la réception** (texte transmis via `ctx.inboundMedia.ocrText` — threading `whatsapp-webhook` `handleAgentMessage`→`callAgentBrain`→body→`ActionCtx`) → pas de re-fetch Meta ni de 2e OCR dans le cas courant ; **re-OCR `fetchMetaMedia`+Gemini seulement en repli** si le webhook n'a rien pu lire ; puis **digest structuré via DeepSeek** (vision/OCR = Gemini, compréhension = DeepSeek).
+- **Garde-fous** : pas de fabrication (prompt strict, illisible = « à vérifier ») ; human-in-the-loop (note seulement, jamais coche/envoi) ; scope agence au SQL (`contactInAgency`) ; no-throw (tous les `await` gardés, `runTool` sans try/catch) ; aucun log du contenu (PII). La pièce KYC d'un dossier reste sur `attach_kyc_document`, pas `file_document` (rappelé dans le prompt système).
+- **Périmètre v1** : info seulement (pas de stockage du binaire), type-agnostique (pas de classification fine), pas de signature. **Tests** : `tests/backend/whatsapp-doc-ingestion.spec.ts` (invariants tiers + catalogue + mur légal) + assertions tiers dans `whatsapp-agent-router.test.ts`.
+
 #### KYC par WhatsApp — assist agent (2 juin 2026)
 > Implémenté sur branche `claude/beautiful-almeida-0a395a` ; déploiement edge + migration via CI au merge.
 

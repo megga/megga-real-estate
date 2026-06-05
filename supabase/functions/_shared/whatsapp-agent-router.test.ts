@@ -97,6 +97,16 @@ describe('toolTier', () => {
     // + 3 points à aborder ; résultat rendu à l'agent dans son 1:1, jamais envoyé au client.
     expect(toolTier('prepare_meeting')).toBe('read')
   })
+  it("read_document est read — lit une pièce entrante et rend la lecture à l'agent, rien d'écrit/envoyé", () => {
+    // OCR Gemini + digest DeepSeek d'un document du message courant ; résultat rendu à l'agent,
+    // aucune écriture CRM, aucun envoi client → read.
+    expect(toolTier('read_document')).toBe('read')
+  })
+  it('file_document est auto — classe la lecture en note timeline, aucun envoi client', () => {
+    // Même lecture que read_document, puis écrit une NOTE sur la timeline du contact
+    // (état CRM interne réversible/audité, jamais d'envoi client) → auto, comme add_note.
+    expect(toolTier('file_document')).toBe('auto')
+  })
   it('classe les outils confirm (sensibles : pipeline + envois client + offre)', () => {
     expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')
