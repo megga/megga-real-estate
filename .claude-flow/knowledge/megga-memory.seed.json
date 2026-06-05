@@ -10,6 +10,12 @@
       "tags": "system,overview"
     },
     {
+      "key": "megga/whatsapp-doc-ingestion-backlog",
+      "namespace": "megga",
+      "value": "BACKLOG (a faire, session dediee) — LECTURE DE DOCUMENTS ENTRANTS dans le copilote WhatsApp agent : l'agent photographie/envoie un document (au-dela du KYC : mandat, releve, piece, courrier) + le designe ('extrais ce mandat', 'lis ce releve'), MEGGA en extrait l'info et la rend ou la range. BRIQUES A REUTILISER (deja en place) : (1) _shared/vision.ts (readDocument, isReadableDocMime) = OCR/extraction, deja utilise par attach_kyc_document ; (2) le webhook capture deja les medias entrants (media_id -> R2 + transcription via whatsapp-process) ; ctx.inboundMedia (ActionCtx) porte {mediaId, messageId} du message courant ; (3) attach_kyc_document (whatsapp-actions.ts) = MODELE d'executeur qui lit la piece entrante via fetchMetaMedia + readDocument. FLUX CIBLE : un nouvel outil/executeur recupere le media entrant (ctx.inboundMedia), OCR/structure via vision, puis selon l'intention rend un resume a l'agent OU range l'info (note timeline / champ). DECISIONS A TRANCHER A L'OUVERTURE : (a) quels TYPES de documents en priorite (1-2 pour le v1) ; (b) OU va l'info extraite (juste un resume rendu a l'agent = tier read ; ecrire une note sur le contact = tier auto ; jamais d'envoi client) ; (c) modele de vision (verifier ce que vision.ts utilise aujourd'hui ; inference texte = DeepSeek-only par decision cout). GARDE-FOUS : pas de fabrication (extraire, jamais inventer ; champ illisible = 'a verifier') ; human-in-the-loop (l'agent valide ce qui est range) ; tier read si on rend juste un resume, auto si on ecrit une note (jamais confirm/envoi). PERIMETRE v1 SUGGERE : extraire + resumer/ranger 1-2 types, sans classification fine ni signature. METHODE : subagent-driven (un sous-agent par tache + revue spec puis qualite), comme les lots WhatsApp precedents. PROMPT DE REPRISE : 'Continue le backlog doc-ingestion (cerveau megga/whatsapp-doc-ingestion-backlog) : lecture de documents entrants dans le copilote WhatsApp.'",
+      "tags": "whatsapp,backlog,documents,vision,ocr,roadmap,doc-ingestion"
+    },
+    {
       "key": "megga/objectives",
       "namespace": "megga",
       "value": "Les 5 objectifs strategiques (toute feature doit en servir au moins 1): 1) reduire le temps administratif, 2) reduire le risque LAB/KYC, 3) accelerer le closing, 4) augmenter la transparence client, 5) remplacer un outil fragmente.",
