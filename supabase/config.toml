@@ -422,3 +422,12 @@ verify_jwt = false
 
 [functions.learn-agent-style]
 verify_jwt = false
+
+# E-signature : sign-document s'authentifie en interne (requireAgentAuth) ;
+# esign-webhook est public, l'authenticité du callback = couple (sr, token) dans
+# l'URL, vérifié à temps constant.
+[functions.sign-document]
+verify_jwt = false
+
+[functions.esign-webhook]
+verify_jwt = false
