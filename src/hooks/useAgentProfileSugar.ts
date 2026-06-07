@@ -1,19 +1,27 @@
 // MEGGA CRM Sugar v2 — Source de vérité pour ProfileSection (Réglages).
 // Lit/écrit le profile agent à travers 3 tables :
-//   - `profiles`        : full_name, phone, email, avatar_url, agency_id
+//   - `profiles`        : full_name, phone, mobile_phone, agent_role, rcc,
+//                         email_signature, email_signature_html, signature_mode,
+//                         email, avatar_url, agency_id
 //   - `agencies`        : name (champ `agency` lecture seule côté ce form)
 //   - `agent_profiles`  : bio, languages, specialties (annuaire public)
 //
 // Mapping ProfileData ↔ DB :
 //   firstName/lastName : split de profiles.full_name (et stockés aussi sur agent_profiles)
 //   email              : profiles.email (read-only — passe par auth.users)
-//   phone / mobile     : profiles.phone (un seul champ DB, mobile non persisté)
+//   phone              : profiles.phone (ligne fixe)
+//   mobile             : profiles.mobile_phone
+//   title              : profiles.agent_role
+//   rcc                : profiles.rcc
 //   agency             : agencies.name via agency_id (read-only)
 //   bio                : agent_profiles.bio
 //   languages          : agent_profiles.languages
 //   specialties        : agent_profiles.specialties
-//   title, rcc, signature : non persistés en l'état du schéma — édités en
-//     local state, perdus au refresh (TODO migration colonnes profile-extended).
+//   signature          : profiles.email_signature (texte)
+//   signatureHtml      : profiles.email_signature_html
+//   signatureMode      : profiles.signature_mode ('text' | 'html')
+//   avatarUrl          : profiles.avatar_url (hydratation initiale — écriture
+//     gérée par useAvatar : upload bucket `avatars` + update avatar_url).
 
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -24,8 +32,23 @@ import {
   type ProfileData,
 } from '@/components/crm-sugar/settings/data'
 
-// Champs persistés actuellement (à étendre via migration ultérieure)
-const PERSISTED_FIELDS = ['firstName', 'lastName', 'phone', 'bio', 'languages', 'specialties'] as const
+// Champs persistés via save() — tout le formulaire est désormais sauvegardé.
+// `avatarUrl` est persisté séparément par useAvatar (upload Storage + avatar_url),
+// donc absent de cette liste qui couvre uniquement le payload de save().
+const PERSISTED_FIELDS = [
+  'firstName',
+  'lastName',
+  'title',
+  'phone',
+  'mobile',
+  'rcc',
+  'bio',
+  'languages',
+  'specialties',
+  'signature',
+  'signatureHtml',
+  'signatureMode',
+] as const
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const trimmed = (fullName ?? '').trim()
@@ -53,6 +76,12 @@ interface ProfileJoinRow {
   email: string
   full_name: string | null
   phone: string | null
+  mobile_phone: string | null
+  agent_role: string | null
+  rcc: string | null
+  email_signature: string | null
+  email_signature_html: string | null
+  signature_mode: string | null
   avatar_url: string | null
   agency_id: string | null
   agencies: { name: string | null } | { name: string | null }[] | null
@@ -83,7 +112,7 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
       if (!profileId) return null
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, phone, avatar_url, agency_id, agencies:agencies!agency_id(name), agent_profile:agent_profiles!profile_id(bio, languages, specialties)')
+        .select('id, email, full_name, phone, mobile_phone, agent_role, rcc, email_signature, email_signature_html, signature_mode, avatar_url, agency_id, agencies:agencies!agency_id(name), agent_profile:agent_profiles!profile_id(bio, languages, specialties)')
         .eq('id', profileId)
         .single()
       if (error) throw error
@@ -93,9 +122,7 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
     staleTime: 60_000,
   })
 
-  // Adapt row → ProfileData, avec fallback DEFAULT_PROFILE pour les champs non
-  // persistés (title, rcc, mobile, signature) — l'agent peut les éditer mais
-  // ils ne sont pas sauvegardés (TODO migration ultérieure).
+  // Adapt row → ProfileData. Tous les champs sont désormais hydratés depuis la DB.
   const fetched = useMemo<ProfileData | null>(() => {
     if (!row) return null
     const agency = unwrap(row.agencies)
@@ -104,16 +131,19 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
     return {
       firstName,
       lastName,
-      title: '',                       // non persisté
+      title: row.agent_role ?? '',
       agency: agency?.name ?? '',
       email: row.email,
       phone: row.phone ?? '',
-      mobile: '',                      // non persisté (un seul phone côté DB)
-      rcc: '',                         // non persisté
+      mobile: row.mobile_phone ?? '',
+      rcc: row.rcc ?? '',
       languages: agent?.languages ?? [],
       specialties: agent?.specialties ?? [],
       bio: agent?.bio ?? '',
-      signature: '',                   // non persisté
+      signature: row.email_signature ?? '',
+      signatureHtml: row.email_signature_html ?? '',
+      signatureMode: row.signature_mode === 'html' ? 'html' : 'text',
+      avatarUrl: row.avatar_url ?? null,
       initials: initialsOf(firstName, lastName),
       avatarBg: avatarBgFromId(row.id),
     }
@@ -128,6 +158,7 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
       firstName: '', lastName: '', title: '', agency: '',
       email: '', phone: '', mobile: '', rcc: '',
       languages: [], specialties: [], bio: '', signature: '',
+      signatureMode: 'text', signatureHtml: '', avatarUrl: null,
       initials: '?', avatarBg: '#7A8088',
     }
   }, [fetched])
@@ -136,11 +167,21 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
     mutationFn: async (next: ProfileData) => {
       if (!profileId) throw new Error('Profil non chargé')
 
-      // 1. profiles.full_name + phone
+      // 1. profiles : identité + contact + signature.
+      //    avatar_url N'EST PAS écrit ici — géré par useAvatar (upload Storage).
       const full_name = `${next.firstName} ${next.lastName}`.trim()
       const { error: pErr } = await supabase
         .from('profiles')
-        .update({ full_name, phone: next.phone || null })
+        .update({
+          full_name,
+          phone: next.phone || null,
+          mobile_phone: next.mobile || null,
+          agent_role: next.title || null,
+          rcc: next.rcc || null,
+          email_signature: next.signature || null,
+          email_signature_html: next.signatureHtml || null,
+          signature_mode: next.signatureMode || 'text',
+        })
         .eq('id', profileId)
       if (pErr) throw pErr
 

@@ -1,7 +1,7 @@
-// MEGGA CRM Sugar v2 — Settings Notifications section (Tier 3.k stub)
-// 1:1 port from `crm-screen-settings-step3.jsx` (SettingsNotificationsSection).
-// NB: la chaîne « WhatsApp » du proto est remplacée par « Messagerie interne »
-// pour respecter la règle CLAUDE.md (canal interne, pas WhatsApp public).
+// MEGGA CRM Sugar v2 — Settings Notifications section (maquette « Sugar Pure »).
+// Fidèle à `crm-screen-settings-step3.jsx` (SettingsNotificationsSection) :
+// SetCard padding 0, 4 canaux (email / sms / whatsapp / inapp), divider SET.line.
+// Câblage réel : profiles.preferences.notifications (JSON Supabase) via useNotifPreferences.
 
 import { useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
@@ -27,8 +27,8 @@ interface Channel {
 const CHANNELS: Channel[] = [
   { id: 'email', label: 'Email', icon: 'mail', desc: 'Notifications principales par email' },
   { id: 'sms', label: 'SMS', icon: 'sms', desc: 'Pour les urgences (offres, signatures)' },
-  { id: 'messages', label: 'Messagerie', icon: 'bell', desc: 'Messages clients reçus dans le CRM' },
-  { id: 'inapp', label: 'Dans le CRM', icon: 'app', desc: 'Cloche de notifications du CRM' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: 'bell', desc: 'Messages clients reçus sur votre numéro pro' },
+  { id: 'inapp', label: 'Dans le CRM', icon: 'bell', desc: 'Cloche de notifications du CRM' },
 ]
 
 export type NotifData = NotifPreferences
@@ -59,7 +59,6 @@ export function NotificationsSection() {
       setSaved(data)
       toast.success('Notifications enregistrées', { duration: 2400 })
     } catch (err) {
-       
       console.error('[NotificationsSection] save failed', err)
       toast.error('Erreur lors de l’enregistrement')
     }
@@ -143,7 +142,7 @@ export function NotificationsSection() {
         onSave={handleSave}
         onCancel={() => setData(saved)}
       />
-      {/* Toast handled by global useToast(). */}
+      {/* Toast piloté par le useToast() global. */}
     </>
   )
 }

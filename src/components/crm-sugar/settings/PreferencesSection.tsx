@@ -1,18 +1,16 @@
-// MEGGA CRM Sugar v2 — Settings Preferences section.
-// Persiste sur profiles.preferences.ui (JSON) via useUiPreferences — mirror du
-// pattern useNotifPreferences. Plus de setTimeout fake.
+// MEGGA CRM Sugar v2 — Settings Preferences section (maquette « Sugar Pure »).
+// Fidèle à `crm-screen-settings-step3.jsx` (SettingsPreferencesSection) : 4 cartes
+// empilées (Région & langue, Vues par défaut, Apparence, Édition & assistance).
+// PrefSelect (dropdown custom) + PrefRadio (cartes segmentées, actif = accent +
+// blackInk) locaux ; ToggleRow importé des atoms.
+// Câblage réel : profiles.preferences.ui (JSON Supabase) via useUiPreferences.
+// L'IA y est présentée comme « assistance » (suggestions), jamais automatique.
 
 import { useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
 import type { PrefsData } from './PreferencesSection.types'
-import {
-  SectionHeader,
-  SetCard,
-  SetIcon,
-  SetSwitch,
-  StickySaveBar,
-} from './atoms'
+import { SectionHeader, SetCard, SetIcon, ToggleRow, StickySaveBar } from './atoms'
 import { SET_PALETTE } from './data'
 
 export type { PrefsData }
@@ -31,6 +29,7 @@ interface PrefSelectProps {
   options: PrefSelectOption[]
 }
 
+// Dropdown custom Sugar — bouton stylé comme un SetInput, panneau flottant ancré.
 function PrefSelect({ label, value, onChange, options }: PrefSelectProps) {
   const [open, setOpen] = useState(false)
   const sel = options.find(o => o.id === value)
@@ -163,6 +162,8 @@ interface PrefRadioProps {
   options: PrefRadioOption[]
 }
 
+// Cartes segmentées — la carte active prend le fond accent (SET.black), avec
+// titre/sous-titre posés en SET.blackInk (jamais #fff codé en dur → marche en dark).
 function PrefRadio({ label, value, onChange, options }: PrefRadioProps) {
   return (
     <div>
@@ -196,7 +197,7 @@ function PrefRadio({ label, value, onChange, options }: PrefRadioProps) {
                 borderRadius: 14,
                 border: 0,
                 background: active ? SET.black : SET.cardSubtle,
-                color: active ? '#fff' : SET.ink,
+                color: active ? SET.blackInk : SET.ink,
                 cursor: 'pointer',
                 textAlign: 'left',
                 fontFamily: 'inherit',
@@ -211,7 +212,7 @@ function PrefRadio({ label, value, onChange, options }: PrefRadioProps) {
                     fontSize: 11.5,
                     fontWeight: 500,
                     marginTop: 3,
-                    color: active ? 'rgba(255,255,255,0.72)' : SET.muted,
+                    color: active ? `${SET.blackInk}B8` : SET.muted,
                   }}
                 >
                   {o.sub}
@@ -225,55 +226,11 @@ function PrefRadio({ label, value, onChange, options }: PrefRadioProps) {
   )
 }
 
-interface ToggleRowProps {
-  title: string
-  desc: string
-  value: boolean
-  onChange: (v: boolean) => void
-}
-
-function ToggleRow({ title, desc, value, onChange }: ToggleRowProps) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        padding: '14px 16px',
-        borderRadius: 14,
-        background: SET.cardSubtle,
-      }}
-    >
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: SET.ink }}>{title}</div>
-        <div
-          style={{
-            fontSize: 12.5,
-            color: SET.muted,
-            fontWeight: 500,
-            marginTop: 2,
-          }}
-        >
-          {desc}
-        </div>
-      </div>
-      <SetSwitch value={value} onChange={onChange} />
-    </div>
-  )
-}
-
-const SHORTCUTS: { keys: string[]; label: string }[] = [
-  { keys: ['⌘', 'K'], label: 'Recherche universelle' },
-  { keys: ['⌘', 'N'], label: 'Nouveau bien' },
-  { keys: ['⌘', 'I'], label: 'Inviter à une visite' },
-  { keys: ['⌘', 'J'], label: 'Ouvrir Julien IA' },
-  { keys: ['⌘', 'S'], label: 'Sauvegarder' },
-  { keys: ['⌘', '/'], label: 'Aide & raccourcis' },
-  { keys: ['⌘', '⇧', 'T'], label: "Aujourd'hui" },
-  { keys: ['⌘', '⇧', 'P'], label: 'Pipeline' },
-]
-
 export function PreferencesSection() {
+  // Source de vérité : profiles.preferences.ui (JSON Supabase).
+  // NB : timezone et firstDayOfWeek n'ont pas de contrôle UI dans la maquette ;
+  // ils restent dans PrefsData (valeurs par défaut / serveur) et sont persistés
+  // tels quels par `save` — on ne les écrase pas.
   const { preferences: serverPrefs, isSaving, hasBackend, save } = useUiPreferences()
   const [data, setData] = useState<PrefsData>(serverPrefs)
   const [saved, setSaved] = useState<PrefsData>(serverPrefs)
@@ -299,7 +256,6 @@ export function PreferencesSection() {
       setSaved(data)
       toast.success('Préférences enregistrées', { duration: 2400 })
     } catch (err) {
-       
       console.error('[PreferencesSection] save failed', err)
       toast.error('Erreur lors de l’enregistrement')
     }
@@ -322,6 +278,7 @@ export function PreferencesSection() {
           sub="Spécifique à votre compte, n'affecte pas les autres membres de l'équipe."
         />
 
+        {/* G1 — Région & langue */}
         <SetCard
           title="Région & langue"
           sub="Affecte la langue d'interface et les formats par défaut."
@@ -336,17 +293,6 @@ export function PreferencesSection() {
                 { id: 'en', label: 'English' },
                 { id: 'de', label: 'Deutsch' },
                 { id: 'it', label: 'Italiano' },
-              ]}
-            />
-            <PrefSelect
-              label="Fuseau horaire"
-              value={data.timezone}
-              onChange={v => set({ timezone: v })}
-              options={[
-                { id: 'Europe/Zurich', label: 'Zurich · GMT+1' },
-                { id: 'Europe/Geneva', label: 'Genève · GMT+1' },
-                { id: 'Europe/Paris', label: 'Paris · GMT+1' },
-                { id: 'Europe/London', label: 'Londres · GMT' },
               ]}
             />
             <PrefSelect
@@ -379,18 +325,10 @@ export function PreferencesSection() {
                 { id: 'yyyy-MM-dd', label: '2026-05-03 (ISO)' },
               ]}
             />
-            <PrefSelect
-              label="Premier jour de semaine"
-              value={data.firstDayOfWeek}
-              onChange={v => set({ firstDayOfWeek: v })}
-              options={[
-                { id: 'monday', label: 'Lundi' },
-                { id: 'sunday', label: 'Dimanche' },
-              ]}
-            />
           </div>
         </SetCard>
 
+        {/* G2 — Vues par défaut */}
         <SetCard
           title="Vues par défaut"
           sub="Sur quel écran arriver à l'ouverture du CRM, et avec quelle vue."
@@ -423,10 +361,8 @@ export function PreferencesSection() {
           </div>
         </SetCard>
 
-        <SetCard
-          title="Apparence"
-          sub="Adapte l'interface à votre confort de lecture."
-        >
+        {/* G3 — Apparence */}
+        <SetCard title="Apparence" sub="Adapte l'interface à votre confort de lecture.">
           <div style={{ display: 'grid', gap: 18 }}>
             <PrefRadio
               label="Thème"
@@ -450,22 +386,25 @@ export function PreferencesSection() {
           </div>
         </SetCard>
 
+        {/* G4 — Édition & assistance */}
         <SetCard
           title="Édition & assistance"
           sub="Contrôle de l'aide intelligente pendant la saisie."
         >
           <div style={{ display: 'grid', gap: 14 }}>
             <ToggleRow
-              title="Vérification orthographique"
+              label="Vérification orthographique"
               desc="Correcteur multilingue dans tous les champs longs."
               value={data.spellcheck}
               onChange={v => set({ spellcheck: v })}
+              emphasis
             />
             <ToggleRow
-              title="Sauvegarde automatique des brouillons"
+              label="Sauvegarde automatique des brouillons"
               desc="Vos saisies sont gardées en mémoire pendant 30 jours."
               value={data.autosave}
               onChange={v => set({ autosave: v })}
+              emphasis
             />
             <PrefRadio
               label="Niveau d'assistance Julien IA"
@@ -477,56 +416,6 @@ export function PreferencesSection() {
                 { id: 'proactif', label: 'Proactif', sub: 'Suggestions au fil de la saisie' },
               ]}
             />
-          </div>
-        </SetCard>
-
-        <SetCard
-          title="Raccourcis clavier"
-          sub="Les indispensables pour travailler vite. Personnalisables prochainement."
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {SHORTCUTS.map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 14px',
-                  borderRadius: 12,
-                  background: SET.cardSubtle,
-                }}
-              >
-                <span style={{ fontSize: 13, color: SET.inkSoft, fontWeight: 500 }}>
-                  {s.label}
-                </span>
-                <span style={{ display: 'inline-flex', gap: 4 }}>
-                  {s.keys.map((k, j) => (
-                    <kbd
-                      key={j}
-                      style={{
-                        height: 24,
-                        minWidth: 24,
-                        padding: '0 6px',
-                        borderRadius: 6,
-                        background: '#fff',
-                        boxShadow:
-                          '0 1px 2px rgba(15,23,42,0.10), inset 0 -1px 0 rgba(15,23,42,0.05)',
-                        fontFamily: 'ui-monospace, monospace',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: SET.ink,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {k}
-                    </kbd>
-                  ))}
-                </span>
-              </div>
-            ))}
           </div>
         </SetCard>
       </div>

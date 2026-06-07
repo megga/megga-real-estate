@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Settings atoms (icon, input, textarea, switch, buttons, card)
 // 1:1 port from `crm-screen-settings-sugar.jsx`.
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { SET_PALETTE, type SettingsIconName } from './data'
@@ -300,7 +300,7 @@ export function SetInput({
           height: 48,
           padding: '0 16px',
           borderRadius: 14,
-          background: focus ? '#fff' : SET.cardSubtle,
+          background: focus ? SET.inputFocusBg : SET.cardSubtle,
           boxShadow: focus
             ? `0 0 0 2px ${SET.black}, 0 4px 12px rgba(15,23,42,0.05)`
             : 'inset 0 0 0 1px rgba(15,23,42,0.04)',
@@ -408,7 +408,7 @@ export function SetTextarea({
         style={{
           padding: '12px 16px',
           borderRadius: 14,
-          background: focus ? '#fff' : SET.cardSubtle,
+          background: focus ? SET.inputFocusBg : SET.cardSubtle,
           boxShadow: focus
             ? `0 0 0 2px ${SET.black}, 0 4px 12px rgba(15,23,42,0.05)`
             : 'inset 0 0 0 1px rgba(15,23,42,0.04)',
@@ -478,7 +478,7 @@ export function SetBlackBtn({
         borderRadius: 999,
         border: 0,
         background: disabled || loading ? SET.ghost : hover ? SET.blackHover : SET.black,
-        color: '#fff',
+        color: SET.blackInk,
         fontFamily: 'inherit',
         fontSize: size === 'lg' ? 14.5 : size === 'sm' ? 12.5 : 13.5,
         fontWeight: 600,
@@ -502,8 +502,8 @@ export function SetBlackBtn({
             width: 14,
             height: 14,
             borderRadius: 999,
-            border: '2px solid rgba(255,255,255,0.3)',
-            borderTopColor: '#fff',
+            border: `2px solid ${SET.blackInk}4d`,
+            borderTopColor: SET.blackInk,
             animation: 'setSpin .7s linear infinite',
           }}
         />
@@ -841,7 +841,7 @@ export function SetSwitch({ value, onChange, size = 'md' }: SetSwitchProps) {
           width: t,
           height: t,
           borderRadius: 999,
-          background: '#fff',
+          background: value ? SET.blackInk : '#fff',
           boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
           transition: 'left .2s cubic-bezier(.2,.8,.2,1)',
         }}
@@ -945,7 +945,7 @@ export function StickySaveBar({ dirty, saving, onSave, onCancel }: StickySaveBar
       <SetBlackBtn
         onClick={onSave}
         loading={saving}
-        icon={!saving && <SetIcon name="check" size={14} stroke="#fff" sw={2.4} />}
+        icon={!saving && <SetIcon name="check" size={14} stroke={SET.blackInk} sw={2.4} />}
       >
         {saving ? 'Enregistrement…' : 'Enregistrer'}
       </SetBlackBtn>
@@ -969,7 +969,7 @@ export function Toast({ open, label }: ToastProps) {
         transform: 'translateX(-50%)',
         zIndex: 101,
         background: SET.black,
-        color: '#fff',
+        color: SET.blackInk,
         borderRadius: 999,
         padding: '12px 22px',
         display: 'flex',
@@ -991,7 +991,7 @@ export function Toast({ open, label }: ToastProps) {
           placeItems: 'center',
         }}
       >
-        <SetIcon name="check" size={12} stroke="#fff" sw={3} />
+        <SetIcon name="check" size={12} stroke={SET.blackInk} sw={3} />
       </span>
       {label}
     </div>
@@ -1060,3 +1060,197 @@ export function SetCard({ title, sub, action, children, padding = 28 }: SetCardP
     </div>
   )
 }
+
+// ─── useEaseNumber — count-up façon Framer Motion ───────────────────────────
+// Anime un nombre depuis sa valeur courante vers `target` (easeOutCubic ~1.1s),
+// via requestAnimationFrame. Respecte `prefers-reduced-motion` (saut direct).
+// Réanime depuis la valeur affichée quand `target` change (ex. score 78 → 100).
+export function useEaseNumber(target: number, duration = 1100): number {
+  const [anim, setAnim] = useState(0)
+  const animRef = useRef(0)
+  animRef.current = anim
+  const reducedMotion = useReducedMotion()
+  useEffect(() => {
+    if (reducedMotion) {
+      setAnim(target)
+      return
+    }
+    const from = animRef.current
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3)
+    let raf = 0
+    let start: number | null = null
+    const tick = (now: number) => {
+      if (start === null) start = now
+      const p = Math.min(1, (now - start) / duration)
+      setAnim(from + (target - from) * ease(p))
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration, reducedMotion])
+  return anim
+}
+
+interface SetRingProps {
+  /** Valeur 0–100. */
+  value: number
+  size?: number
+  /** Épaisseur de l'arc (11 par défaut ; 10 pour AgRing, 10 pour le hero sécurité). */
+  sw?: number
+  /** Affiche le pourcentage animé au centre (Agence / Sécurité). */
+  showPercent?: boolean
+  /**
+   * Force la couleur de l'arc. `{a,b}` = dégradé 2-stops, `string` = couleur pleine.
+   * Sinon : seuils MEGGA (orange < 50 · cyan < 100 · vert = 100).
+   */
+  tone?: { a: string; b: string } | string
+  /** Couleur de la piste de fond (défaut SET.line ; hero sombre → rgba blanc). */
+  trackColor?: string
+  /** Couleur du % central (défaut SET.ink ; hero sombre → #fff). */
+  centerColor?: string
+  /** Suffixe du nombre central (défaut « % » pour la complétude ; «  » pour un score /100). */
+  centerSuffix?: string
+  /** Affiche le ✓ central à 100 % (Profil / Agence). Désactivable pour le hero. */
+  checkAt100?: boolean
+}
+
+// Jauge vivante : l'arc se trace depuis 0 au montage et se colore selon le niveau
+// (ou la couleur imposée). Point lumineux en tête d'arc, ✓ central à 100 %.
+// Sert les 3 usages : Profil (ring seul), Agence (%), Sécurité (tone + % + track).
+export function SetRing({
+  value,
+  size = 92,
+  sw = 11,
+  showPercent = false,
+  tone,
+  trackColor,
+  centerColor,
+  centerSuffix = '%',
+  checkAt100 = true,
+}: SetRingProps) {
+  const anim = useEaseNumber(value)
+  const r = (size - sw) / 2 - 3
+  const c = 2 * Math.PI * r
+  const frac = Math.max(0, Math.min(1, anim / 100))
+  const off = c * (1 - frac)
+  const done = value >= 100 && anim >= 99.4
+  const grad =
+    typeof tone === 'string'
+      ? { a: tone, b: tone }
+      : tone
+        ? tone
+        : value >= 100
+          ? { a: '#10B981', b: '#059669' }
+          : value >= 50
+            ? { a: '#22B8CF', b: '#0891B2' }
+            : { a: '#F59E0B', b: '#C45A00' }
+  const gid = `setring-grad-${size}-${sw}`
+  const ang = -Math.PI / 2 + frac * 2 * Math.PI
+  const tipX = size / 2 + r * Math.cos(ang)
+  const tipY = size / 2 + r * Math.sin(ang)
+  const showCheck = done && checkAt100
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={grad.a} />
+            <stop offset="100%" stopColor={grad.b} />
+          </linearGradient>
+          <filter id={`${gid}-glow`} x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="2.4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={trackColor || SET.line}
+          strokeWidth={sw}
+          fill="none"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={`url(#${gid})`}
+          strokeWidth={sw}
+          fill="none"
+          strokeDasharray={c}
+          strokeDashoffset={off}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{ transition: 'stroke .4s ease' }}
+        />
+        {frac > 0.02 && frac < 0.999 && (
+          <circle cx={tipX} cy={tipY} r={sw / 2 + 1} fill={grad.b} filter={`url(#${gid}-glow)`} />
+        )}
+      </svg>
+      {showCheck && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'grid',
+            placeItems: 'center',
+            animation: 'setRingPop .35s cubic-bezier(.2,.8,.2,1) both',
+          }}
+        >
+          <svg width={size * 0.34} height={size * 0.34} viewBox="0 0 24 24" fill="none">
+            <path
+              d="M5 13l4 4L19 7"
+              stroke={grad.b}
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      )}
+      {showPercent && !showCheck && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'grid',
+            placeItems: 'center',
+            fontSize: size * 0.26,
+            fontWeight: 800,
+            color: centerColor || SET.ink,
+            fontVariantNumeric: 'tabular-nums',
+            fontFeatureSettings: '"tnum" 1',
+            letterSpacing: -0.5,
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'baseline' }}>
+            {Math.round(anim)}
+            {centerSuffix && (
+              <span style={{ fontSize: size * 0.15, marginLeft: 1 }}>{centerSuffix}</span>
+            )}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Keyframes partagées de l'écran Settings ────────────────────────────────
+// Montées une fois par la page racine (SettingsSugarV2Page). Si une section est
+// rendue isolément (test, story), inclure ce bloc sinon les `animation:` muettes.
+export const SETTINGS_KEYFRAMES = `
+@keyframes setFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes setSlideUp { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes setFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes setScaleIn { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes setSpin { to { transform: rotate(360deg); } }
+@keyframes setRingPop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes setRingSweep { from { stroke-dashoffset: var(--sweep-c, 600); } to { stroke-dashoffset: 0; } }
+@keyframes setLogoPop { 0% { opacity: 0; transform: scale(.6); } 60% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes setCheckPop { 0% { opacity: 0; transform: scale(.4); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes setCheckDraw { from { stroke-dashoffset: 48; } to { stroke-dashoffset: 0; } }
+@keyframes setPing { 0% { transform: scale(1); opacity: .9; } 80%, 100% { transform: scale(2.2); opacity: 0; } }
+`

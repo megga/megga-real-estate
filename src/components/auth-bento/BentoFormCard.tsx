@@ -33,6 +33,7 @@ export type AuthState =
   | 'reset'
   | 'resetsent'
   | 'setNewPassword'
+  | 'mfa'
 
 export type AuthHandlers = {
   onMagicLink?: (email: string) => Promise<void> | void
@@ -50,6 +51,10 @@ export type AuthHandlers = {
   onGoSignUp?: () => void
   onGoSignIn?: () => void
   onBackToSignIn?: () => void
+  /** Step-up 2FA au login (carte mfa) — vérifie le code TOTP. */
+  onMfaVerify?: (code: string) => Promise<{ ok: boolean }> | { ok: boolean }
+  /** Annule le step-up 2FA → déconnexion. */
+  onMfaCancel?: () => void
 }
 
 // Titles are sourced from i18n via `t('titles.<state>')` — see fr/auth.json.
@@ -263,6 +268,8 @@ function FormFields({
   const [setNewPasswordError, setSetNewPasswordError] = useState<string | null>(null)
   const [setNewPasswordDone, setSetNewPasswordDone] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
+  const [code, setCode] = useState('')
+  const [mfaError, setMfaError] = useState(false)
 
   // Cooldowns rate-limit côté UX (60s entre 2 envois).
   // Persistés via sessionStorage → survivent à la navigation
@@ -467,6 +474,81 @@ function FormFields({
             {t('footer.createAccount')}
           </FooterLink>
         </div>
+      </>
+    )
+  }
+
+  // ─── Agent — mfa (step-up 2FA au login) ──────────────────────────
+  // Réutilise les MÊMES primitives que les autres vues (BentoInput / BentoCTA /
+  // FooterLink). Un seul champ code, comme le champ mot de passe du login.
+  if (portail === 'agent' && etat === 'mfa') {
+    const submitCode = async () => {
+      if (submitting || code.length < 6) return
+      setSubmitting(true)
+      setMfaError(false)
+      try {
+        const res = await handlers.onMfaVerify?.(code)
+        if (res && !res.ok) {
+          setMfaError(true)
+          setShakeKey((k) => k + 1)
+          setCode('')
+        }
+      } catch {
+        setMfaError(true)
+        setShakeKey((k) => k + 1)
+        setCode('')
+      } finally {
+        setSubmitting(false)
+      }
+    }
+    return (
+      <>
+        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
+          {t('body.mfaIntro')}
+        </div>
+        <BentoInput
+          tokens={tokens}
+          type="text"
+          value={code}
+          onChange={(v) => {
+            setCode(v.replace(/\D/g, '').slice(0, 6))
+            if (mfaError) setMfaError(false)
+          }}
+          placeholder={t('fields.mfaCode')}
+          leftIcon={LockIcon}
+          autoFocus
+          error={mfaError}
+          shakeKey={shakeKey}
+        />
+        <BentoCTA
+          tokens={tokens}
+          label={t('ctas.mfaVerify')}
+          loadingLabel={t('ctas.mfaVerifyLoading')}
+          loading={submitting}
+          disabled={code.length < 6}
+          onClick={submitCode}
+        />
+        {mfaError && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: -10,
+              fontSize: 13,
+              fontWeight: 500,
+              color: ERROR_COLOR,
+              letterSpacing: tokens.letterSpacing,
+              fontFamily: tokens.font,
+            }}
+          >
+            {AlertIcon}
+            <span>{t('errors.mfaFailed')}</span>
+          </div>
+        )}
+        <FooterLink tokens={tokens} onClick={() => handlers.onMfaCancel?.()}>
+          {t('footer.mfaSignOut')}
+        </FooterLink>
       </>
     )
   }

@@ -21,10 +21,9 @@ import { NotificationsSection } from '@/components/crm-sugar/settings/Notificati
 import { PreferencesSection } from '@/components/crm-sugar/settings/PreferencesSection'
 import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
-import { WhatsAppPairingCard } from '@/components/crm-sugar/settings/WhatsAppPairingCard'
-import { PrivacySection } from '@/components/crm-sugar/settings/PrivacySection'
 import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
-import { SET_PALETTE, type SectionId } from '@/components/crm-sugar/settings/data'
+import { SET_PALETTE, applySetTheme, type SectionId } from '@/components/crm-sugar/settings/data'
+import { SETTINGS_KEYFRAMES } from '@/components/crm-sugar/settings/atoms'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -46,6 +45,11 @@ export default function SettingsSugarV2Page() {
 
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
+
+  // Applique la palette Sugar Pure (light/dark) sur l'objet partagé SET_PALETTE
+  // AVANT le rendu des sections — elles lisent SET_PALETTE.* au render et suivent
+  // donc le thème sans threading de props. Idempotent (Object.assign mêmes valeurs).
+  applySetTheme(dark)
 
   const [active, setActive] = useState<SectionId>('profile')
 
@@ -78,8 +82,7 @@ export default function SettingsSugarV2Page() {
     if (active === 'agency') return <AgencySection />
     if (active === 'notifications') return <NotificationsSection />
     if (active === 'preferences') return <PreferencesSection />
-    if (active === 'integrations') return (<><IntegrationsSection /><div className="mt-4"><WhatsAppPairingCard /></div></>)
-    if (active === 'privacy') return <PrivacySection />
+    if (active === 'integrations') return <IntegrationsSection />
     if (active === 'security') return <SecuritySection />
     if (active === 'billing') return <BillingSection />
     // 'team', 'brand' sont exclus du menu (data.ts) jusqu'à wire réel —
@@ -92,31 +95,14 @@ export default function SettingsSugarV2Page() {
       style={{
         minHeight: '100vh',
         background: SET_PALETTE.bgGradient,
-        fontFamily: '"Inter Tight", system-ui, sans-serif',
+        fontFamily: '"Manrope", ui-sans-serif, system-ui, sans-serif',
         color: SET_PALETTE.ink,
+        // Tous les nombres (IDE, TVA, montants, scores) en chasse tabulaire.
+        fontVariantNumeric: 'tabular-nums',
       }}
     >
       <style>{SUGAR_KEYFRAMES}</style>
-      <style>{`
-        @keyframes setFadeUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes setSlideUp {
-          from { opacity: 0; transform: translate(-50%, 16px); }
-          to   { opacity: 1; transform: translate(-50%, 0); }
-        }
-        @keyframes setFadeIn {
-          from { opacity: 0; } to { opacity: 1; }
-        }
-        @keyframes setScaleIn {
-          from { opacity: 0; transform: scale(.94); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        @keyframes setSpin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      <style>{SETTINGS_KEYFRAMES}</style>
 
       <SugarTopNav
         active={'settings' as SugarScreenId}
@@ -159,7 +145,16 @@ export default function SettingsSugarV2Page() {
               flex: 1,
             }}
           >
-            <div style={{ flex: 1, minWidth: 0 }}>{renderContent()}</div>
+            <div
+              key={`${active}-${dark ? 'd' : 'l'}`}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
+              }}
+            >
+              {renderContent()}
+            </div>
           </div>
         </main>
       </div>
