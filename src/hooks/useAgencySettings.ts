@@ -1,9 +1,7 @@
 // MEGGA CRM Sugar v2 — Source de vérité pour AgencySection.
 // Lit/écrit la ligne agencies du profil courant (agency_id du profile).
-// Champs persistés : name, address, city, canton, phone, email, website.
-// Les anciens champs locaux (legal, ide, foundedYear, country, aboutShort,
-// branding, network) ont été retirés de l'UI tant qu'il n'existe pas de
-// colonnes en DB — chip pour les réintroduire si besoin (agencies_extended).
+// Champs persistés : name, address, city, canton, phone, email, website, logo_url,
+// legal_name, ide, tva, founded_year, postal_code, country, about_short.
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -21,6 +19,14 @@ export interface AgencySettingsData {
   email: string
   website: string
   logoUrl: string
+  legal: string
+  ide: string
+  tva: string
+  /** Année de création — string côté form, parsée en int au save. */
+  foundedYear: string
+  postal: string
+  country: string
+  aboutShort: string
 }
 
 const EMPTY_AGENCY: AgencySettingsData = {
@@ -32,6 +38,13 @@ const EMPTY_AGENCY: AgencySettingsData = {
   email: '',
   website: '',
   logoUrl: '',
+  legal: '',
+  ide: '',
+  tva: '',
+  foundedYear: '',
+  postal: '',
+  country: '',
+  aboutShort: '',
 }
 
 interface AgencyRow {
@@ -43,6 +56,13 @@ interface AgencyRow {
   email: string | null
   website: string | null
   logo_url: string | null
+  legal_name: string | null
+  ide: string | null
+  tva: string | null
+  founded_year: number | null
+  postal_code: string | null
+  country: string | null
+  about_short: string | null
   plan: AgencyPlan | null
 }
 
@@ -74,7 +94,7 @@ export function useAgencySettings(): UseAgencySettingsReturn {
       if (!agencyId) return { settings: EMPTY_AGENCY, plan: null }
       const { data: row, error } = await supabase
         .from('agencies')
-        .select('name, address, city, canton, phone, email, website, logo_url, plan')
+        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, ide, tva, founded_year, postal_code, country, about_short, plan')
         .eq('id', agencyId)
         .single<AgencyRow>()
       if (error) throw error
@@ -88,6 +108,13 @@ export function useAgencySettings(): UseAgencySettingsReturn {
           email: row?.email ?? '',
           website: row?.website ?? '',
           logoUrl: row?.logo_url ?? '',
+          legal: row?.legal_name ?? '',
+          ide: row?.ide ?? '',
+          tva: row?.tva ?? '',
+          foundedYear: row?.founded_year != null ? String(row.founded_year) : '',
+          postal: row?.postal_code ?? '',
+          country: row?.country ?? '',
+          aboutShort: row?.about_short ?? '',
         },
         plan: row?.plan ?? null,
       }
@@ -105,6 +132,9 @@ export function useAgencySettings(): UseAgencySettingsReturn {
       if (!agencyId) throw new Error('Agence non chargée')
       // `name` est NOT NULL dans agencies → on garde la valeur courante si vide.
       if (!next.name.trim()) throw new Error('Le nom de l\'agence est requis')
+      // founded_year est un integer en DB : on parse, et NaN → null (jamais d'écriture invalide).
+      const parsedYear = next.foundedYear.trim() ? Number.parseInt(next.foundedYear, 10) : null
+      const foundedYear = parsedYear != null && Number.isNaN(parsedYear) ? null : parsedYear
       const { error } = await supabase
         .from('agencies')
         .update({
@@ -116,6 +146,13 @@ export function useAgencySettings(): UseAgencySettingsReturn {
           email: next.email || null,
           website: next.website || null,
           logo_url: next.logoUrl || null,
+          legal_name: next.legal || null,
+          ide: next.ide || null,
+          tva: next.tva || null,
+          founded_year: foundedYear,
+          postal_code: next.postal || null,
+          country: next.country || null,
+          about_short: next.aboutShort || null,
         })
         .eq('id', agencyId)
       if (error) throw error

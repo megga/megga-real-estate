@@ -9,7 +9,7 @@
 export type SectionId =
   | 'profile' | 'agency'
   | 'notifications' | 'integrations'
-  | 'billing' | 'security' | 'privacy' | 'preferences'
+  | 'billing' | 'security' | 'preferences'
 
 export interface SettingsSection {
   id: SectionId
@@ -45,15 +45,19 @@ export type SettingsIconName =
 // Team + Brand : composants supprimés en PR #455 (suivi via issues GitHub
 // #455 Brand + #456 Team — réintroduits quand agency_branding /
 // agency_members existent en DB).
+// Ordre canonique de la maquette « Sugar Pure » (7 sections) :
+// profile, agency, notifications, integrations, billing, security, preferences.
+// Bandeau pill → 5 premières en pilules, le reste (security, preferences) sous « Plus ».
+// (Confidentialité retirée — absente de la maquette Claude Design. Le câblage
+//  delete-account + export DSAR/nLPD reste dans PrivacySection.tsx, non monté.)
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },
   { id: 'agency', label: 'Mon agence', short: 'Agence', icon: 'building', group: 'moi' },
   { id: 'notifications', label: 'Notifications', short: 'Notifications', icon: 'bell', group: 'produit' },
-  { id: 'preferences', label: 'Préférences', short: 'Préférences', icon: 'sliders', group: 'compte' },
   { id: 'integrations', label: 'Intégrations', short: 'Intégrations', icon: 'plug', group: 'produit' },
-  { id: 'privacy', label: 'Confidentialité', short: 'Confidentialité', icon: 'shield', group: 'compte' },
-  { id: 'security', label: 'Sécurité', short: 'Sécurité', icon: 'lock', group: 'compte' },
   { id: 'billing', label: 'Facturation', short: 'Facturation', icon: 'card', group: 'compte' },
+  { id: 'security', label: 'Sécurité', short: 'Sécurité', icon: 'lock', group: 'compte' },
+  { id: 'preferences', label: 'Préférences', short: 'Préférences', icon: 'sliders', group: 'compte' },
 ]
 
 export const SETTINGS_GROUPS: { id: 'moi' | 'produit' | 'compte'; label: string }[] = [
@@ -77,6 +81,12 @@ export interface ProfileData {
   signature: string
   initials: string
   avatarBg: string
+  // Champs maquette « Sugar Pure ». Optionnels : la passe DB (différée) leur
+  // donnera de vraies colonnes ; en attendant ils vivent dans le formulaire et
+  // (signatureMode/avatarUrl) sur les colonnes existantes quand elles existent.
+  signatureMode?: 'text' | 'html'
+  signatureHtml?: string
+  avatarUrl?: string | null
 }
 
 export const DEFAULT_PROFILE: ProfileData = {
@@ -94,6 +104,9 @@ export const DEFAULT_PROFILE: ProfileData = {
   signature: 'Cordialement,\nGregory Lyonnet\nMEGGA Genève · +41 22 555 01 02',
   initials: 'GL',
   avatarBg: '#0041D9',
+  signatureMode: 'text',
+  signatureHtml: '',
+  avatarUrl: null,
 }
 
 export interface SettingsPalette {
@@ -101,8 +114,13 @@ export interface SettingsPalette {
   bgGradient: string
   card: string
   cardSubtle: string
+  /** Fond d'un champ quand il a le focus (blanc en light, sous-surface en dark). */
+  inputFocusBg: string
+  /** Accent unique : noir pur en light, off-white en dark. */
   black: string
   blackHover: string
+  /** Couleur du texte/icône POSÉ sur l'accent — jamais #fff codé en dur. */
+  blackInk: string
   ink: string
   inkSoft: string
   muted: string
@@ -111,20 +129,26 @@ export interface SettingsPalette {
   shadowSm: string
   shadow: string
   shadowLg: string
+  shadowHover: string
   ok: string
   warn: string
   err: string
   bad: string
 }
 
-export const SET_PALETTE: SettingsPalette = {
+// Palette « Sugar Pure ». RÈGLE D'ACCENT (non négociable) : l'accent est noir pur
+// #0B0C0E en light et off-white #ECEDF3 en dark ; le texte posé dessus utilise
+// TOUJOURS `blackInk` (#FFFFFF light / #14161C dark) pour rester lisible.
+export const SET_LIGHT: SettingsPalette = {
   bg: '#EDEFF3',
   bgGradient:
     'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
   card: '#FFFFFF',
   cardSubtle: '#F7F8FA',
+  inputFocusBg: '#FFFFFF',
   black: '#0B0C0E',
   blackHover: '#1F2024',
+  blackInk: '#FFFFFF',
   ink: '#0B0C0E',
   inkSoft: '#3A3D44',
   muted: '#7A8088',
@@ -133,10 +157,46 @@ export const SET_PALETTE: SettingsPalette = {
   shadowSm: '0 4px 16px rgba(15, 23, 42, 0.04)',
   shadow: '0 12px 40px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03)',
   shadowLg: '0 24px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04)',
+  shadowHover: '0 32px 70px rgba(15, 23, 42, 0.10), 0 6px 20px rgba(15, 23, 42, 0.05)',
   ok: '#10B981',
   warn: '#F59E0B',
   err: '#EF4444',
   bad: '#EF4444',
+}
+
+export const SET_DARK: SettingsPalette = {
+  bg: '#0A0A0F',
+  bgGradient:
+    'radial-gradient(ellipse 120% 80% at 50% 100%, #1A1C26 0%, #101019 48%, #0A0A0F 100%)',
+  card: '#16171F',
+  cardSubtle: '#1E1F2A',
+  inputFocusBg: '#1E1F2A',
+  black: '#ECEDF3',
+  blackHover: '#FFFFFF',
+  blackInk: '#14161C',
+  ink: '#ECEDF3',
+  inkSoft: '#B5B7C4',
+  muted: '#797D90',
+  ghost: '#3A3B47',
+  line: 'rgba(255,255,255,0.09)',
+  shadowSm: '0 1px 2px rgba(0,0,0,.4), 0 6px 18px -10px rgba(0,0,0,.6)',
+  shadow: '0 1px 2px rgba(0,0,0,.45), 0 12px 34px -12px rgba(0,0,0,.65)',
+  shadowLg: '0 1px 2px rgba(0,0,0,.5), 0 24px 60px -16px rgba(0,0,0,.72)',
+  shadowHover: '0 1px 2px rgba(0,0,0,.5), 0 32px 72px -18px rgba(0,0,0,.78)',
+  ok: '#34C796',
+  warn: '#F2B855',
+  err: '#F26B65',
+  bad: '#F26B65',
+}
+
+// Objet VIVANT : identité stable, valeurs mutables. atoms.tsx fait `const SET =
+// SET_PALETTE` une seule fois et lit `SET.*` au render ; applySetTheme(dark)
+// réécrit ces valeurs AVANT le rendu de la page → tout l'écran suit le thème
+// sans threading de props. (Pattern fidèle à la maquette `applySetTheme`.)
+export const SET_PALETTE: SettingsPalette = { ...SET_LIGHT }
+
+export function applySetTheme(dark: boolean): void {
+  Object.assign(SET_PALETTE, dark ? SET_DARK : SET_LIGHT)
 }
 
 export function profileCompletionScore(p: ProfileData): number {

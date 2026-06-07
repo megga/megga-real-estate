@@ -11,14 +11,14 @@ import { useAuth } from '@/hooks/useAuth'
 export interface NotifPreferences {
   email: boolean
   sms: boolean
-  messages: boolean
+  whatsapp: boolean
   inapp: boolean
 }
 
 const DEFAULT_NOTIFS: NotifPreferences = {
   email: true,
   sms: true,
-  messages: true,
+  whatsapp: true,
   inapp: true,
 }
 

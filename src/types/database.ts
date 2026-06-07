@@ -282,6 +282,13 @@ export type Database = {
           stripe_customer_id: string | null
           website: string | null
           yearly_target: number | null
+          about_short: string | null
+          country: string | null
+          founded_year: number | null
+          ide: string | null
+          legal_name: string | null
+          postal_code: string | null
+          tva: string | null
         }
         Insert: {
           address?: string | null
@@ -304,6 +311,13 @@ export type Database = {
           stripe_customer_id?: string | null
           website?: string | null
           yearly_target?: number | null
+          about_short?: string | null
+          country?: string | null
+          founded_year?: number | null
+          ide?: string | null
+          legal_name?: string | null
+          postal_code?: string | null
+          tva?: string | null
         }
         Update: {
           address?: string | null
@@ -326,6 +340,13 @@ export type Database = {
           stripe_customer_id?: string | null
           website?: string | null
           yearly_target?: number | null
+          about_short?: string | null
+          country?: string | null
+          founded_year?: number | null
+          ide?: string | null
+          legal_name?: string | null
+          postal_code?: string | null
+          tva?: string | null
         }
         Relationships: []
       }
@@ -3573,6 +3594,10 @@ export type Database = {
           preferences: Json | null
           role: string
           spoken_languages: string[] | null
+          email_signature_html: string | null
+          mobile_phone: string | null
+          rcc: string | null
+          signature_mode: string | null
         }
         Insert: {
           activation_checklist?: Json | null
@@ -3595,6 +3620,10 @@ export type Database = {
           preferences?: Json | null
           role?: string
           spoken_languages?: string[] | null
+          email_signature_html?: string | null
+          mobile_phone?: string | null
+          rcc?: string | null
+          signature_mode?: string | null
         }
         Update: {
           activation_checklist?: Json | null
@@ -3617,6 +3646,10 @@ export type Database = {
           preferences?: Json | null
           role?: string
           spoken_languages?: string[] | null
+          email_signature_html?: string | null
+          mobile_phone?: string | null
+          rcc?: string | null
+          signature_mode?: string | null
         }
         Relationships: []
       }
