@@ -71,14 +71,11 @@ const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
 
 // Legacy + secondary public pages
-// Marketplace publique DÉSACTIVÉE (pivot CRM-first juin 2026) — SearchPage,
-// RentPage et PropertyXSinglePropertyPage ne sont plus routés (→ vitrine megga.ch
-// via MarketplaceDisabledRedirect). Imports conservés en commentaire pour
-// réactivation au Sprint 7 (les pages + composants Px* restent dans le repo).
-// const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
-// const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
-// const RentPage = lazy(() => import('@/pages/public/RentPage'))
-const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
+// Property X marketplace (SearchPage, RentPage, PropertyXSinglePropertyPage,
+// AccountPage + home/search/account/listing/map components) REMOVED June 2026 —
+// archived out of the repo. The public storefront is the static site on megga.ch.
+// /search /rent /buy /acheter /louer /propriete /listing redirect there via
+// MarketplaceDisabledRedirect. market_listings + Flatfox cron + CRM Matching stay.
 const SellPage = lazy(() => import('@/pages/public/SellPage'))
 const EstimatesPage = lazy(() => import('@/pages/public/EstimatesPage'))
 const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
@@ -90,7 +87,6 @@ const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
 const AgentDirectoryPage = lazy(() => import('@/pages/public/AgentDirectoryPage'))
 const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
-const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
 // Lazy-loaded agent pages
@@ -145,12 +141,8 @@ const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
 const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
 const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
-// Compte ACHETEUR DÉSACTIVÉ — focus 100% CRM (juin 2026). /account (favoris +
-// recherches sauvegardées) lisait market_listings ; c'était la dernière surface
-// acheteur vivante. Désormais market_listings ne sert plus que le Matching.
-// Route → /dashboard. Import conservé en commentaire pour réactivation (la page
-// + FavoritesSection restent dans le repo).
-// const AccountPage = lazy(() => import('@/pages/public/AccountPage'))
+// Compte ACHETEUR — page + components REMOVED June 2026 (archived out of repo).
+// /account + /compte redirect to /dashboard. market_listings = Matching only.
 
 // Lazy-loaded help center pages
 const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
@@ -158,7 +150,6 @@ const HelpCategoryPage = lazy(() => import('@/pages/public/HelpCategoryPage'))
 const HelpArticlePage = lazy(() => import('@/pages/public/HelpArticlePage'))
 const HelpStartPage = lazy(() => import('@/pages/public/HelpStartPage'))
 const HelpContactPage = lazy(() => import('@/pages/public/HelpContactPage'))
-const ContactPage = lazy(() => import('@/pages/public/ContactPage'))
 const HelpStatusPage = lazy(() => import('@/pages/public/HelpStatusPage'))
 const HelpChangelogPage = lazy(() => import('@/pages/public/HelpChangelogPage'))
 const HelpShortcutsPage = lazy(() => import('@/pages/public/HelpShortcutsPage'))
@@ -309,6 +300,12 @@ function MarketplaceDisabledRedirect() {
   if (typeof window !== 'undefined') window.location.replace(VITRINE_URL)
   return null
 }
+// Property X marketing pages (About/Contact/Agencies) retirées June 2026 →
+// vitrine statique megga.ch. Redirige vers la page équivalente (ou la racine).
+function VitrineRedirect({ path = '' }: { path?: string }) {
+  if (typeof window !== 'undefined') window.location.replace(VITRINE_URL + path)
+  return null
+}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -372,8 +369,8 @@ function AnimatedRoutes() {
               <Route path="/rent" element={<MarketplaceDisabledRedirect />} />
               <Route path="/acheter" element={<MarketplaceDisabledRedirect />} />
               <Route path="/louer" element={<MarketplaceDisabledRedirect />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/about" element={<VitrineRedirect path="/about" />} />
+              <Route path="/contact" element={<VitrineRedirect path="/contact" />} />
               <Route path="/sell" element={<SellPage />} />
               <Route path="/estimates" element={<EstimatesPage />} />
               <Route path="/estimate" element={<EstimatesPage />} />
@@ -385,7 +382,7 @@ function AnimatedRoutes() {
               <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
               <Route path="/agents" element={<AgentDirectoryPage />} />
               <Route path="/agents/:slug" element={<AgentProfilePage />} />
-              <Route path="/agencies" element={<AgenciesPage />} />
+              <Route path="/agencies" element={<VitrineRedirect />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
               {/* Legacy FR routes — 301 redirects preserve bookmarks + external links. */}

@@ -1,18 +1,20 @@
-// MEGGA Marketplace — Page 404 Not Found (port fidèle Figma node 9552:21503).
-// Structure : PxNotFound (header + hero) + PxPostPropertyEN (cards Footer/V1)
-// + PxFooterPropertyX (dark footer).
-
-import PxNotFound from '@/components/propertyx/sections/PxNotFound'
-import PxPostPropertyEN from '@/components/propertyx/sections/PxPostPropertyEN'
-import PxFooterPropertyX from '@/components/propertyx/sections/PxFooterPropertyX'
-import { PX } from '@/components/propertyx/tokens'
+// MEGGA — Page 404 (CRM theme, sans dépendance Property X).
+import { Link } from 'react-router-dom'
 
 export default function NotFoundPage() {
   return (
-    <div style={{ background: PX.neutral200, minHeight: '100vh' }}>
-      <PxNotFound />
-      <PxPostPropertyEN />
-      <PxFooterPropertyX />
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-theme-page px-6 text-center">
+      <p className="text-sm font-medium text-theme-tertiary">Erreur 404</p>
+      <h1 className="text-2xl font-semibold text-theme-primary">Page introuvable</h1>
+      <p className="max-w-md text-theme-secondary">
+        La page que vous cherchez n'existe pas ou a été déplacée.
+      </p>
+      <Link
+        to="/dashboard"
+        className="mt-2 rounded-lg border border-theme-border px-4 py-2 text-sm text-theme-secondary transition-colors hover:bg-theme-hover"
+      >
+        Retour au tableau de bord
+      </Link>
     </div>
   )
 }
