@@ -10,6 +10,7 @@ import { useAgencyProperties } from '@/hooks/useProperties'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { PdfDocument, type PdfSection } from '@/components/documents/PdfDocument'
+import { SignatureLaunchModal } from '@/components/signature/SignatureLaunchModal'
 
 // Compute the SHA-256 hex digest of the blob. Used to populate
 // `documents.sha256_hash` so duplicate downloads can be detected and the
@@ -20,6 +21,18 @@ async function sha256Hex(blob: Blob): Promise<string> {
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
+}
+
+// Convertit un Blob PDF en base64 brut (chunké → pas de débordement de pile sur
+// les gros fichiers). Utilisé pour passer le PDF à l'edge signature.
+async function blobToBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  let binary = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  return btoa(binary)
 }
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -254,99 +267,89 @@ export default function DocumentGenerator() {
   const { user, profile } = useAuth()
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
+  const [preparingSign, setPreparingSign] = useState(false)
+  const [signOpen, setSignOpen] = useState(false)
+  const [signPayload, setSignPayload] = useState<{ pdfBase64: string; docId: string; title: string } | null>(null)
 
   // Real PDF generation via @react-pdf/renderer. Renders the template
   // values to a text-based PDF (selectable, accessible, ~30-80 KB for a
   // typical mandat), uploads to Storage under {agency_id}/{document_id}.pdf,
   // indexes via a documents row, then triggers the browser download.
+  // Génère le PDF + l'archive (documents row + Storage) et renvoie l'id + le
+  // blob. Partagé par le téléchargement ET l'envoi en signature.
+  async function generateAndStore(): Promise<{ docId: string; blob: Blob; fileName: string }> {
+    if (!templateConfig) throw new Error('Aucun template sélectionné')
+    if (!profile?.agency_id) throw new Error('Aucune agence rattachée — impossible de générer le document.')
+
+    // 1) Build the PDF payload from the form values, grouped by section.
+    const pdfSections: PdfSection[] = sectionEntries.map(([sectionName, fields]) => ({
+      name: sectionName,
+      fields: fields.map((field) => ({
+        label: field.label,
+        value: formData[field.name] ?? '',
+        long: field.type === 'textarea',
+      })),
+    }))
+
+    // 2) Render to Blob.
+    const blob = await pdf(
+      <PdfDocument
+        templateName={templateConfig.name}
+        description={templateConfig.description}
+        agencyName={profile.agency_id}
+        agentName={profile.full_name ?? user?.email ?? null}
+        generatedAt={new Date()}
+        sections={pdfSections}
+      />
+    ).toBlob()
+
+    const hash = await sha256Hex(blob)
+    const sizeBytes = blob.size
+    const fileName = `${templateConfig.name.replace(/[^a-zA-Z0-9-_]/g, '-')}.pdf`
+
+    // 3) Insert the documents row FIRST so we have an id for the path.
+    const { data: docRow, error: insertErr } = await supabase
+      .from('documents')
+      .insert({
+        agency_id: profile.agency_id,
+        name: fileName,
+        type: 'generated',
+        status: 'available',
+        size_bytes: sizeBytes,
+        sha256_hash: hash,
+        uploaded_by: user?.id ?? null,
+        storage_path: 'pending',
+        document_category: 'other',
+      })
+      .select('id')
+      .single()
+    if (insertErr || !docRow) throw new Error(insertErr?.message ?? 'documents insert failed')
+
+    // 4) Upload to Storage under {agency_id}/{document_id}.pdf.
+    const storagePath = `${profile.agency_id}/${docRow.id}.pdf`
+    const { error: uploadErr } = await supabase.storage
+      .from('documents')
+      .upload(storagePath, blob, { contentType: 'application/pdf', cacheControl: '3600', upsert: false })
+    if (uploadErr) {
+      await supabase.from('documents').delete().eq('id', docRow.id)
+      throw new Error(`upload: ${uploadErr.message}`)
+    }
+
+    // 5) Patch the storage_path on the row.
+    await supabase.from('documents').update({ storage_path: storagePath }).eq('id', docRow.id)
+
+    // 6) Track usage on custom templates.
+    if (selectedTemplate?.startsWith('custom-')) incrementUsage(selectedTemplate)
+
+    return { docId: docRow.id, blob, fileName }
+  }
+
   async function handleDownload() {
     if (!templateConfig || downloading) return
     setDownloadError(null)
-
-    if (!profile?.agency_id) {
-      setDownloadError('Aucune agence rattachée — impossible de générer le document.')
-      return
-    }
-
     setDownloading(true)
     try {
-      // 1) Build the PDF payload from the form values, grouped by section.
-      const pdfSections: PdfSection[] = sectionEntries.map(([sectionName, fields]) => ({
-        name: sectionName,
-        fields: fields.map((field) => ({
-          label: field.label,
-          value: formData[field.name] ?? '',
-          long: field.type === 'textarea',
-        })),
-      }))
-
-      // 2) Render to Blob.
-      const blob = await pdf(
-        <PdfDocument
-          templateName={templateConfig.name}
-          description={templateConfig.description}
-          agencyName={profile.agency_id}
-          agentName={profile.full_name ?? user?.email ?? null}
-          generatedAt={new Date()}
-          sections={pdfSections}
-        />
-      ).toBlob()
-
-      const hash = await sha256Hex(blob)
-      const sizeBytes = blob.size
-
-      // 3) Insert the documents row FIRST so we have an id for the path.
-      const fileName = `${templateConfig.name.replace(/[^a-zA-Z0-9-_]/g, '-')}.pdf`
-      const { data: docRow, error: insertErr } = await supabase
-        .from('documents')
-        .insert({
-          agency_id: profile.agency_id,
-          name: fileName,
-          type: 'generated',
-          status: 'available',
-          size_bytes: sizeBytes,
-          sha256_hash: hash,
-          uploaded_by: user?.id ?? null,
-          // Temporary placeholder — patched below with the real path.
-          storage_path: 'pending',
-          document_category: 'other',
-        })
-        .select('id')
-        .single()
-      if (insertErr || !docRow) {
-        throw new Error(insertErr?.message ?? 'documents insert failed')
-      }
-
-      // 4) Upload to Storage under {agency_id}/{document_id}.pdf — the
-      // path matches the RLS policy added in 20260527000000.
-      const storagePath = `${profile.agency_id}/${docRow.id}.pdf`
-      const { error: uploadErr } = await supabase.storage
-        .from('documents')
-        .upload(storagePath, blob, {
-          contentType: 'application/pdf',
-          cacheControl: '3600',
-          upsert: false,
-        })
-      if (uploadErr) {
-        // Roll back the documents row so we don't leave an orphan.
-        await supabase.from('documents').delete().eq('id', docRow.id)
-        throw new Error(`upload: ${uploadErr.message}`)
-      }
-
-      // 5) Patch the storage_path on the row.
-      await supabase
-        .from('documents')
-        .update({ storage_path: storagePath })
-        .eq('id', docRow.id)
-
-      // 6) Track usage on custom templates (carry-over from the previous
-      // implementation — was below the broken alert).
-      if (selectedTemplate?.startsWith('custom-')) {
-        incrementUsage(selectedTemplate)
-      }
-
-      // 7) Trigger the browser download from the rendered blob (no
-      // extra round-trip to Storage — agent gets the file immediately).
+      const { blob, fileName } = await generateAndStore()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -354,10 +357,27 @@ export default function DocumentGenerator() {
       a.click()
       URL.revokeObjectURL(url)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Erreur inconnue'
-      setDownloadError(message)
+      setDownloadError(e instanceof Error ? e.message : 'Erreur inconnue')
     } finally {
       setDownloading(false)
+    }
+  }
+
+  // Envoi en signature : génère + archive, puis ouvre la modale avec le PDF en
+  // base64 + le document_id (pour que le statut « signé » remonte sur le doc).
+  async function handleSendForSignature() {
+    if (!templateConfig || preparingSign || downloading) return
+    setDownloadError(null)
+    setPreparingSign(true)
+    try {
+      const { docId, blob, fileName } = await generateAndStore()
+      const pdfBase64 = await blobToBase64(blob)
+      setSignPayload({ pdfBase64, docId, title: fileName.replace(/\.pdf$/, '') })
+      setSignOpen(true)
+    } catch (e) {
+      setDownloadError(e instanceof Error ? e.message : 'Erreur inconnue')
+    } finally {
+      setPreparingSign(false)
     }
   }
 
@@ -372,6 +392,13 @@ export default function DocumentGenerator() {
   }, [templateConfig])
 
   const sectionEntries = Object.entries(sections)
+
+  // Signataire par défaut déduit du formulaire (mandat / offre / visite).
+  const signatureSigner = {
+    name: formData.seller_name || formData.buyer_name || formData.visitor_name || '',
+    email: formData.seller_email || formData.buyer_email || formData.visitor_email || '',
+    phone: formData.seller_phone || formData.buyer_phone || formData.visitor_phone || '',
+  }
 
   // Step labels
   const stepLabels = ['Template', 'Informations', 'Aperçu']
@@ -701,13 +728,36 @@ export default function DocumentGenerator() {
                 {downloading ? <MEIcon name="spinner" className="w-4 h-4 animate-spin" /> : <MEIcon name="download" className="w-4 h-4" />}
                 {downloading ? 'Génération…' : 'Télécharger PDF'}
               </Button>
-              <Button onClick={() => navigate('/dashboard/documents')} className="gap-2">
+              <Button onClick={handleSendForSignature} disabled={preparingSign || downloading} className="gap-2">
+                {preparingSign ? <MEIcon name="spinner" className="w-4 h-4 animate-spin" /> : <MEIcon name="send" className="w-4 h-4" />}
+                {preparingSign ? 'Préparation…' : 'Envoyer en signature'}
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/dashboard/documents')} className="gap-2">
                 <MEIcon name="check" className="w-4 h-4" />
                 Terminer
               </Button>
             </div>
           </div>
         </div>
+      )}
+
+      {signOpen && signPayload && (
+        <SignatureLaunchModal
+          open={signOpen}
+          onClose={() => setSignOpen(false)}
+          pdfBase64={signPayload.pdfBase64}
+          documentId={signPayload.docId}
+          defaultTitle={signPayload.title}
+          defaultSigners={[signatureSigner]}
+          contextType={
+            selectedTemplate?.includes('mandat')
+              ? 'mandate'
+              : selectedTemplate?.includes('offre')
+                ? 'offer'
+                : 'document'
+          }
+          contact={{ id: selectedContact || undefined, phone: signatureSigner.phone || undefined }}
+        />
       )}
     </div>
   )
