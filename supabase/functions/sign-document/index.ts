@@ -121,6 +121,17 @@ async function getActiveConnection(supabase: any, agencyId: string, provider?: s
   return data
 }
 
+// Anti-SSRF : la base_uri DocuSign est fetch cote serveur avec le token de
+// l'agence → on n'accepte que les hotes DocuSign officiels, en https.
+function isAllowedDocusignBase(raw: string): boolean {
+  try {
+    const u = new URL(raw)
+    return u.protocol === 'https:' && /(^|\.)docusign\.(net|com)$/.test(u.hostname)
+  } catch {
+    return false
+  }
+}
+
 async function handleConnect(ctx: AuthCtx, body: Record<string, unknown>) {
   const provider = String(body.provider ?? '')
   if (provider !== 'skribble' && provider !== 'docusign') return json({ error: 'provider invalide' }, 400)
@@ -142,6 +153,9 @@ async function handleConnect(ctx: AuthCtx, body: Record<string, unknown>) {
     if (!creds.access_token || !creds.account_id || !creds.base_uri) {
       return json({ error: 'access_token + account_id + base_uri requis' }, 400)
     }
+    if (!isAllowedDocusignBase(String(creds.base_uri))) {
+      return json({ error: 'base_uri DocuSign invalide (https://*.docusign.net|.com requis)' }, 400)
+    }
     secret = { access_token: creds.access_token, refresh_token: creds.refresh_token, account_id: creds.account_id, base_uri: creds.base_uri }
     displayName = String(creds.account_email || creds.account_id)
   }
@@ -155,18 +169,17 @@ async function handleConnect(ctx: AuthCtx, body: Record<string, unknown>) {
   const vaultId = await storeSecret(ctx.supabase, secret, `esign:${provider}:${ctx.agencyId}`)
   if (!vaultId) return json({ error: 'Stockage sécurisé du secret impossible' }, 500)
 
-  // Un seul provider actif par agence → désactive les autres, puis upsert celui-ci.
-  await ctx.supabase.from('esign_provider_connections').update({ is_active: false }).eq('agency_id', ctx.agencyId)
-
-  // Si une connexion existait pour ce provider, on supprime son ancien secret.
+  // Connexion existante de ce provider (pour nettoyer son ancien secret APRES coup).
   const { data: existing } = await ctx.supabase
     .from('esign_provider_connections')
     .select('id, vault_secret_id')
     .eq('agency_id', ctx.agencyId)
     .eq('provider', provider)
     .maybeSingle()
-  if (existing?.vault_secret_id) await deleteSecret(ctx.supabase, existing.vault_secret_id)
 
+  // 1) Upsert d'ABORD en is_active=false : ne touche a rien d'autre, ne peut pas
+  //    violer l'index "un seul actif". Si ca echoue → on supprime le nouveau
+  //    secret et on s'arrete SANS avoir casse l'etat existant.
   const row = {
     agency_id: ctx.agencyId,
     provider,
@@ -176,7 +189,7 @@ async function handleConnect(ctx: AuthCtx, body: Record<string, unknown>) {
     config,
     default_quality: quality,
     default_legislation: legislation,
-    is_active: true,
+    is_active: false,
     status: 'connected',
     last_error: null,
     connected_by: ctx.profileId,
@@ -192,10 +205,25 @@ async function handleConnect(ctx: AuthCtx, body: Record<string, unknown>) {
     return json({ error: error.message }, 500)
   }
 
+  // 2) Bascule de l'actif : desactive les AUTRES providers, PUIS active celui-ci
+  //    (ordre obligatoire pour l'index partiel "un seul actif par agence").
+  await ctx.supabase
+    .from('esign_provider_connections')
+    .update({ is_active: false })
+    .eq('agency_id', ctx.agencyId)
+    .neq('provider', provider)
+  await ctx.supabase.from('esign_provider_connections').update({ is_active: true }).eq('id', saved.id)
+  saved.is_active = true
+
+  // 3) Etat sain → on peut supprimer l'ancien secret de ce provider.
+  if (existing?.vault_secret_id && existing.vault_secret_id !== vaultId) {
+    await deleteSecret(ctx.supabase, existing.vault_secret_id)
+  }
+
   await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'agent',
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'user',
     action: 'signature.provider_connected', entity_type: 'esign_provider_connection', entity_id: saved.id,
-    category: 'signature', object_label: `${provider} connecté`, metadata: { provider, environment },
+    category: 'doc', object_label: `${provider} connecté`, metadata: { provider, environment },
     created_at: new Date().toISOString(),
   })
 
@@ -219,9 +247,9 @@ async function handleDisconnect(ctx: AuthCtx, body: Record<string, unknown>) {
     .eq('id', conn.id)
 
   await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'agent',
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'user',
     action: 'signature.provider_disconnected', entity_type: 'esign_provider_connection', entity_id: conn.id,
-    category: 'signature', object_label: `${provider} déconnecté`, metadata: { provider }, created_at: new Date().toISOString(),
+    category: 'doc', object_label: `${provider} déconnecté`, metadata: { provider }, created_at: new Date().toISOString(),
   })
   return json({ ok: true })
 }
@@ -244,6 +272,20 @@ async function handleCreate(ctx: AuthCtx, body: Record<string, unknown>) {
   if (!pdfBase64) return json({ error: 'pdf_base64 requis' }, 400)
   if (!title) return json({ error: 'title requis' }, 400)
   if (signersIn.length === 0) return json({ error: 'au moins un signataire requis' }, 400)
+
+  // Le document_id (optionnel) DOIT appartenir a l'agence : sinon un agent
+  // pourrait estampiller le document d'une AUTRE agence (le client service_role
+  // bypasse la RLS). On valide l'appartenance avant tout lien.
+  const documentId = body.document_id ? String(body.document_id) : null
+  if (documentId) {
+    const { data: ownDoc } = await ctx.supabase
+      .from('documents')
+      .select('id')
+      .eq('id', documentId)
+      .eq('agency_id', ctx.agencyId)
+      .maybeSingle()
+    if (!ownDoc) return json({ error: 'Document introuvable' }, 404)
+  }
 
   const conn = await getActiveConnection(ctx.supabase, ctx.agencyId, body.provider as string | undefined)
   if (!conn) return json({ error: 'Aucun fournisseur de signature connecté' }, 409)
@@ -274,7 +316,7 @@ async function handleCreate(ctx: AuthCtx, body: Record<string, unknown>) {
     .from('signature_requests')
     .insert({
       agency_id: ctx.agencyId,
-      document_id: (body.document_id as string) ?? null,
+      document_id: documentId,
       provider: conn.provider,
       webhook_token: webhookToken,
       title,
@@ -330,17 +372,18 @@ async function handleCreate(ctx: AuthCtx, body: Record<string, unknown>) {
     })
     .eq('id', sr.id)
 
-  if (body.document_id) {
+  if (documentId) {
     await ctx.supabase
       .from('documents')
       .update({ signature_request_id: sr.id, signature_status: 'pending' })
-      .eq('id', body.document_id)
+      .eq('id', documentId)
+      .eq('agency_id', ctx.agencyId)
   }
 
   await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'agent',
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'user',
     action: 'signature.created', entity_type: 'signature_request', entity_id: sr.id,
-    category: 'signature', object_label: title,
+    category: 'doc', object_label: title,
     metadata: { provider: conn.provider, quality, legislation, signers: signers.length },
     created_at: new Date().toISOString(),
   })
@@ -386,7 +429,7 @@ async function handleStatus(ctx: AuthCtx, body: Record<string, unknown>) {
 
   const out = await reconcileSignatureRequest({
     supabase: ctx.supabase, provider, creds, token: tokenRes.token,
-    sr: sr as SigRequestRow, statusResult, actor: { id: ctx.profileId, kind: 'agent' },
+    sr: sr as SigRequestRow, statusResult, actor: { id: ctx.profileId, kind: 'user' },
   })
   return json({ ok: true, status: out.status, finalized: out.finalized })
 }
@@ -419,9 +462,9 @@ async function handleCancel(ctx: AuthCtx, body: Record<string, unknown>) {
   await ctx.supabase.from('signature_requests').update({ status: 'withdrawn', completed_at: new Date().toISOString(), last_error: reason }).eq('id', sr.id)
   if (sr.document_id) await ctx.supabase.from('documents').update({ signature_status: 'withdrawn' }).eq('id', sr.document_id)
   await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'agent',
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'user',
     action: 'signature.withdrawn', entity_type: 'signature_request', entity_id: sr.id,
-    category: 'signature', object_label: reason, metadata: { provider: sr.provider }, created_at: new Date().toISOString(),
+    category: 'doc', object_label: reason, metadata: { provider: sr.provider }, created_at: new Date().toISOString(),
   })
   return json({ ok: true, status: 'withdrawn' })
 }

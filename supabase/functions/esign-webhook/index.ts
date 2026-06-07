@@ -83,7 +83,10 @@ serve(async (req) => {
   }
 
   // Déjà finalisé → ack idempotent.
-  if (sr.signed_document_path || ['signed', 'withdrawn', 'declined'].includes(sr.status)) {
+  // 'signed' SANS signed_document_path = download precedent echoue → on laisse
+  // re-traiter (le claim atomique dans reconcile re-tente). On ne court-circuite
+  // que si reellement archive, ou terminal non-signe.
+  if (sr.signed_document_path || ['withdrawn', 'declined'].includes(sr.status)) {
     return new Response('ok (already final)', { status: 200 })
   }
   if (!sr.provider_request_id) return new Response('ok (no provider id)', { status: 200 })

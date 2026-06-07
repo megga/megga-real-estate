@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { pdf } from '@react-pdf/renderer'
@@ -270,6 +270,8 @@ export default function DocumentGenerator() {
   const [preparingSign, setPreparingSign] = useState(false)
   const [signOpen, setSignOpen] = useState(false)
   const [signPayload, setSignPayload] = useState<{ pdfBase64: string; docId: string; title: string } | null>(null)
+  // Cache du dernier document généré (par contenu) → pas de doublon documents/Storage.
+  const generatedCache = useRef<{ key: string; docId: string; blob: Blob; fileName: string } | null>(null)
 
   // Real PDF generation via @react-pdf/renderer. Renders the template
   // values to a text-based PDF (selectable, accessible, ~30-80 KB for a
@@ -280,6 +282,15 @@ export default function DocumentGenerator() {
   async function generateAndStore(): Promise<{ docId: string; blob: Blob; fileName: string }> {
     if (!templateConfig) throw new Error('Aucun template sélectionné')
     if (!profile?.agency_id) throw new Error('Aucune agence rattachée — impossible de générer le document.')
+
+    // Cache par contenu (template + valeurs) : éviter de créer une nouvelle ligne
+    // documents + un nouvel objet Storage à chaque clic (Télécharger puis Envoyer,
+    // ou un retry) pour un contenu identique.
+    const cacheKey = JSON.stringify({ t: selectedTemplate, f: formData })
+    if (generatedCache.current?.key === cacheKey) {
+      const c = generatedCache.current
+      return { docId: c.docId, blob: c.blob, fileName: c.fileName }
+    }
 
     // 1) Build the PDF payload from the form values, grouped by section.
     const pdfSections: PdfSection[] = sectionEntries.map(([sectionName, fields]) => ({
@@ -341,6 +352,7 @@ export default function DocumentGenerator() {
     // 6) Track usage on custom templates.
     if (selectedTemplate?.startsWith('custom-')) incrementUsage(selectedTemplate)
 
+    generatedCache.current = { key: cacheKey, docId: docRow.id, blob, fileName }
     return { docId: docRow.id, blob, fileName }
   }
 
