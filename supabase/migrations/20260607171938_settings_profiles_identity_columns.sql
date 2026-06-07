@@ -8,6 +8,10 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS email_signature_html text;
 
 -- signature_mode ne peut valoir que 'text' ou 'html' (NULL toléré).
+-- DROP IF EXISTS d'abord → migration RÉ-APPLIABLE : la CI ré-applique les
+-- migrations datées du jour à chaque deploy, et `ADD CONSTRAINT` seul n'est pas
+-- idempotent (échoue si la contrainte existe déjà).
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_signature_mode_chk;
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_signature_mode_chk
   CHECK (signature_mode IS NULL OR signature_mode IN ('text','html'));
