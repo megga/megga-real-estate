@@ -6,11 +6,11 @@
 //   - Microsoft   → useOutlookCalendar (miroir, provider azure).
 //   - WhatsApp    → useWhatsAppPairing  (table whatsapp_agent_links + RPC). La carte
 //                   ouvre une modale Sugar contenant le WhatsAppPairingCard (état réel).
-//   - DocuSign /
-//     Skribble    → AUCUN backend (pas de table, pas d'OAuth app). État HONNÊTE :
-//                   bouton « Sur demande » non-connectant + hint « Activation
-//                   accompagnée par MEGGA ». La charte interdit de présenter une
-//                   intégration fictive comme réelle.
+//   - Skribble    → useEsignSignature (edge sign-document, table esign_provider_
+//                   connections, cle chiffree dans Vault). Connecter = modale
+//                   EsignConnectModal (cle API validee par login live). QES/AES CH.
+//   - DocuSign    → reste « Sur demande » : onboarding OAuth self-service a venir.
+//                   La charte interdit de presenter une integration fictive comme reelle.
 //
 // Catalogue limité aux 5 services décidés avec le client. Les anciennes cartes mock
 // (IAZI, RealAdvisor, SIX, Onfido, Veriff, Zapier) et le bandeau de fausses stats
@@ -24,6 +24,8 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
 import { WhatsAppPairingCard } from './WhatsAppPairingCard'
+import { useEsignSignature } from '@/hooks/useEsignSignature'
+import { EsignConnectModal } from './EsignConnectModal'
 
 const SET = SET_PALETTE
 
@@ -807,12 +809,15 @@ export function IntegrationsSection() {
   // État réel WhatsApp (lecture seule ici : verified → carte « Connecté »).
   const { status: waStatus } = useWhatsAppPairing()
   const waLinked = !!waStatus.data?.verified
+  // État réel Skribble (e-signature) via l'edge sign-document.
+  const esign = useEsignSignature()
 
   const [filter, setFilter] = useState<string>('all')
   const [details, setDetails] = useState<Integration | null>(null)
   const [confirmDisc, setConfirmDisc] = useState<Integration | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [waPair, setWaPair] = useState(false)
+  const [esignConnect, setEsignConnect] = useState(false)
 
   // Surcharge l'état connected/account depuis les hooks réels. DocuSign / Skribble
   // restent onRequest (pas de backend). Les autres restent connected:false.
@@ -832,9 +837,31 @@ export function IntegrationsSection() {
             account: waLinked ? waStatus.data?.wa_number ?? 'Numéro lié' : undefined,
           }
         }
+        // Skribble : connectable RÉEL (cle API -> edge sign-document). DocuSign
+        // reste « Sur demande » (onboarding OAuth self-service = phase ulterieure).
+        if (it.id === 'skribble') {
+          const conn = esign.connections.find(
+            (c) => c.provider === 'skribble' && c.status === 'connected',
+          )
+          return {
+            ...it,
+            connectable: true,
+            onRequest: false,
+            connected: !!conn,
+            account: conn?.display_name ?? undefined,
+          }
+        }
         return it
       }),
-    [google.isConnected, google.googleEmail, outlook.isConnected, outlook.outlookEmail, waLinked, waStatus.data?.wa_number],
+    [
+      google.isConnected,
+      google.googleEmail,
+      outlook.isConnected,
+      outlook.outlookEmail,
+      waLinked,
+      waStatus.data?.wa_number,
+      esign.connections,
+    ],
   )
 
   const categories = ['all', ...Array.from(new Set(items.map(i => i.category)))]
@@ -849,6 +876,7 @@ export function IntegrationsSection() {
     if (item.provider === 'google') google.connectGoogleCalendar()
     else if (item.provider === 'microsoft') outlook.connectOutlookCalendar()
     else if (item.provider === 'whatsapp') setWaPair(true)
+    else if (item.provider === 'skribble') setEsignConnect(true)
   }
 
   const disconnect = async (id: string) => {
@@ -858,6 +886,7 @@ export function IntegrationsSection() {
     try {
       if (item.provider === 'google') await google.disconnectGoogleCalendar()
       else if (item.provider === 'microsoft') await outlook.disconnectOutlookCalendar()
+      else if (item.provider === 'skribble') await esign.disconnect({ provider: 'skribble' })
       else return // pas de wire de déconnexion pour ce provider (WhatsApp unlink = chip future)
       setToast(`${item.name} déconnecté`)
       setTimeout(() => setToast(null), 2400)
@@ -969,6 +998,17 @@ export function IntegrationsSection() {
       )}
 
       {waPair && <WhatsAppPairModal onClose={() => setWaPair(false)} />}
+
+      {esignConnect && (
+        <EsignConnectModal
+          onClose={() => setEsignConnect(false)}
+          onConnected={() => {
+            setEsignConnect(false)
+            setToast('Skribble connecté')
+            setTimeout(() => setToast(null), 2400)
+          }}
+        />
+      )}
 
       {/* Confirm déconnexion */}
       {confirmDisc &&
