@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
-import HelpChatbot from '@/components/help/HelpChatbot'
 import { supabase } from '@/lib/supabase'
 import { getArticle } from '@/lib/helpArticles'
 import Footer from '@/components/layout/Footer'
@@ -262,11 +261,6 @@ export default function HelpCenterPage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Floating Chatbot ── */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <HelpChatbot />
       </div>
       </main>
 

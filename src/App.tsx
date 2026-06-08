@@ -52,6 +52,8 @@ const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
+// Intercom Messenger — support unique (boote globalement, anonyme puis identifié)
+const IntercomMessenger = lazy(() => import('@/components/IntercomMessenger'))
 
 // Secondary public pages conservées dans l'app CRM.
 // Marketplace publique + ancien site marketing (About, Contact, Sell, Estimates,
@@ -134,13 +136,6 @@ const HelpCompliancePage = lazy(() => import('@/pages/public/HelpCompliancePage'
 const HelpLimitsPage = lazy(() => import('@/pages/public/HelpLimitsPage'))
 const HelpResourcesPage = lazy(() => import('@/pages/public/HelpResourcesPage'))
 const GlossaryPage = lazy(() => import('@/pages/public/GlossaryPage'))
-const TicketStatusPage = lazy(() => import('@/pages/public/TicketStatusPage'))
-const TicketFeedbackPage = lazy(() => import('@/pages/public/TicketFeedbackPage'))
-
-// Lazy-loaded admin support pages
-const SupportPage = lazy(() => import('@/pages/agent/SupportPage'))
-const SupportTicketDetailPage = lazy(() => import('@/pages/agent/SupportTicketDetailPage'))
-
 // Lazy-loaded super-admin pages
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
 const AdminAgenciesPage = lazy(() => import('@/pages/admin/AdminAgenciesPage'))
@@ -149,7 +144,6 @@ const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
 const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
 const AdminMarketplacePage = lazy(() => import('@/pages/admin/AdminMarketplacePage'))
 const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
-const AdminSupportPage = lazy(() => import('@/pages/admin/AdminSupportPage'))
 const AdminChangelogPage = lazy(() => import('@/pages/admin/AdminChangelogPage'))
 const AdminFeatureFlagsPage = lazy(() => import('@/pages/admin/AdminFeatureFlagsPage'))
 const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
@@ -414,10 +408,6 @@ function AnimatedRoutes() {
               <Route path="/aide/:category" element={<HelpCategoryRedirect />} />
               <Route path="/aide/:category/:slug" element={<HelpArticleRedirect />} />
 
-              {/* Support tickets (public) */}
-              <Route path="/support/:ticketNumber" element={<TicketStatusPage />} />
-              <Route path="/support/:ticketNumber/feedback" element={<TicketFeedbackPage />} />
-
               {/* Seller portal — page unique « Votre vente » (dev/test, mock data). */}
               <Route path="/portal" element={<PortalDevWrapper />} />
               {/* Legacy FR portal routes → page unique */}
@@ -550,8 +540,6 @@ function AnimatedRoutes() {
                 <Route path="documents/generate" element={<DocumentGenerator />} />
                 <Route path="documents/templates/new" element={<CustomTemplatePage />} />
                 <Route path="documents/view" element={<DocumentViewer />} />
-                <Route path="support" element={<SupportPage />} />
-                <Route path="support/:id" element={<SupportTicketDetailPage />} />
 
                 {/* Super-Admin routes */}
                 <Route path="admin" element={<SuperAdminGuard><AdminDashboardPage /></SuperAdminGuard>} />
@@ -561,7 +549,6 @@ function AnimatedRoutes() {
                 <Route path="admin/monitoring" element={<SuperAdminGuard><AdminMonitoringPage /></SuperAdminGuard>} />
                 <Route path="admin/marketplace" element={<SuperAdminGuard><AdminMarketplacePage /></SuperAdminGuard>} />
                 <Route path="admin/compliance" element={<SuperAdminGuard><AdminCompliancePage /></SuperAdminGuard>} />
-                <Route path="admin/support" element={<SuperAdminGuard><AdminSupportPage /></SuperAdminGuard>} />
                 <Route path="admin/changelog" element={<SuperAdminGuard><AdminChangelogPage /></SuperAdminGuard>} />
                 <Route path="admin/feature-flags" element={<SuperAdminGuard><AdminFeatureFlagsPage /></SuperAdminGuard>} />
                 <Route path="admin/plans" element={<SuperAdminGuard><AdminPlansPage /></SuperAdminGuard>} />
@@ -596,6 +583,7 @@ export default function App() {
             {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
             <Suspense fallback={null}>
               <FavoritesLoginPrompt />
+              <IntercomMessenger />
             </Suspense>
             <CookieBanner />
           </ToastProvider>

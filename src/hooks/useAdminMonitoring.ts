@@ -35,7 +35,7 @@ interface ErrorLog {
 
 const EDGE_FUNCTION_NAMES = [
   'ai-copilot', 'ai-search', 'external-matching', 'send-email', 'send-property-email',
-  'send-reminder-email', 'send-team-invite', 'send-visit-email', 'support-chatbot',
+  'send-reminder-email', 'send-team-invite', 'send-visit-email',
   'extract-property-pdf', 'extract-property-url', 'kyc-screening', 'photo-labeler',
   'virtual-staging', 'public-staging', 'google-calendar-sync', 'outlook-calendar-sync',
   'stripe-checkout', 'stripe-portal', 'stripe-webhook', 'score-engine', 'search-alert',

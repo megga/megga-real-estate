@@ -44,7 +44,6 @@ const CRM_AGENT_ROUTES: RouteSpec[] = [
   { path: '/dashboard/documents/generate', label: 'Documents > Générer' },
   { path: '/dashboard/documents/templates/new', label: 'Documents > Nouveau template' },
   { path: '/dashboard/documents/view', label: 'Documents > Viewer' },
-  { path: '/dashboard/support', label: 'Support' },
   { path: '/dashboard/onboarding', label: 'Onboarding' },
   { path: '/dashboard/premier-jour', label: 'Premier jour' },
 ]

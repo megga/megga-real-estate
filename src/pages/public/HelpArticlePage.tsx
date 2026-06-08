@@ -4,7 +4,6 @@ import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import ArticleFeedback from '@/components/help/ArticleFeedback'
 import SupportIllustration from '@/components/illustrations/SupportIllustration'
-import HelpChatbot from '@/components/help/HelpChatbot'
 import { getArticle, getArticlesBySlugs } from '@/lib/helpArticles'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -259,10 +258,6 @@ export default function HelpArticlePage() {
             </Link>
           </div>
         </div>
-      </div>
-
-      <div className="fixed bottom-6 right-6 z-50">
-        <HelpChatbot />
       </div>
 
       <Footer />

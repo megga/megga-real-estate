@@ -9,7 +9,6 @@ import { useAvatar } from '@/hooks/useAvatar'
 import { usePreferences } from '@/hooks/usePreferences'
 import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
-import { useOpenTicketCount } from '@/hooks/useOpenTicketCount'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -34,7 +33,6 @@ const NAV_SECTIONS: NavSection[] = [
   ]},
   { labelKey: 'sections.communication', items: [
     { labelKey: 'nav.calendar', href: '/dashboard/calendar', icon: 'calendar' },
-    { labelKey: 'nav.support', href: '/dashboard/support', icon: 'help' },
   ]},
   { labelKey: 'sections.compliance', items: [
     { labelKey: 'nav.kyc', href: '/dashboard/kyc', icon: 'shield' },
@@ -99,7 +97,6 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const [adminMode, setAdminMode] = useState(isAdminRoute)
   const [adminSearchOpen, setAdminSearchOpen] = useState(false)
   const isMinimalSidebar = preferences.sidebarStyle === 'minimal'
-  const openTicketCount = useOpenTicketCount()
 
   function isActive(href: string) {
     if (href === '/dashboard') return location.pathname === '/dashboard'
@@ -250,7 +247,6 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                 { labelKey: 'nav.adminMonitoring', href: '/dashboard/admin/monitoring', icon: 'broadcast' },
                 { labelKey: 'nav.adminMarketplace', href: '/dashboard/admin/marketplace', icon: 'store' },
                 { labelKey: 'nav.adminCompliance', href: '/dashboard/admin/compliance', icon: 'shield' },
-                { labelKey: 'nav.adminSupport', href: '/dashboard/admin/support', icon: 'help' },
                 { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: 'megaphone' },
                 { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: 'bolt' },
                 { labelKey: 'nav.adminPlans', href: '/dashboard/admin/plans', icon: 'credit-card' },
@@ -277,15 +273,11 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
                     >
                       <div className="relative flex-shrink-0">
                         <MEIcon name={item.icon as MEIconName} className={cn('h-[18px] w-[18px] stroke-[1.8]', isItemActive && 'text-admin-accent')} />
-                        {item.href === '/dashboard/admin/support' && openTicketCount > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-red-500" />
-                        )}
                       </div>
                       <span className={fadeLabel(isCol)}>{label}</span>
                     </Link>
                     <CollapsedTooltip show={isCol && hoveredItem === item.href}>
                       {label}
-                      {item.href === '/dashboard/admin/support' && openTicketCount > 0 && <span className="ml-1.5 text-red-500">({openTicketCount})</span>}
                     </CollapsedTooltip>
                   </div>
                 )

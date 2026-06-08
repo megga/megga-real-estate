@@ -22,7 +22,6 @@ const ADMIN_ROUTES: RouteSpec[] = [
   { path: '/dashboard/admin/monitoring', label: 'Admin > Monitoring' },
   { path: '/dashboard/admin/marketplace', label: 'Admin > Marketplace' },
   { path: '/dashboard/admin/compliance', label: 'Admin > Compliance' },
-  { path: '/dashboard/admin/support', label: 'Admin > Support tickets' },
   { path: '/dashboard/admin/changelog', label: 'Admin > Changelog' },
   { path: '/dashboard/admin/feature-flags', label: 'Admin > Feature flags' },
   { path: '/dashboard/admin/plans', label: 'Admin > Plans / billing' },

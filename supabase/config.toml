@@ -431,3 +431,8 @@ verify_jwt = false
 
 [functions.esign-webhook]
 verify_jwt = false
+
+# Intercom : JWT Messenger Security. requireAgentAuth valide le Bearer du user DANS
+# la fonction ; le secret de signature (INTERCOM_MESSENGER_SECRET) reste côté Edge.
+[functions.intercom-identity]
+verify_jwt = false

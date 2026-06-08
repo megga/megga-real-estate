@@ -11,6 +11,7 @@ import SugarNotificationsPopover from './notifications/SugarNotificationsPopover
 import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import SugarProfileDropdown from './profile/SugarProfileDropdown'
 import { useAuth } from '@/hooks/useAuth'
+import { showIntercom, isIntercomEnabled } from '@/lib/intercom'
 
 // ─── Round icon button (44x44, glass) ──────────────────────────────────
 interface SugarRoundIconBtnProps {
@@ -223,7 +224,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
               onSettings={() => navigate('/dashboard/settings')}
               onKyc={() => navigate('/dashboard/kyc')}
               onAgencyPublic={() => window.open('/agencies', '_blank', 'noopener,noreferrer')}
-              onHelp={() => navigate('/help')}
+              onHelp={() => { if (isIntercomEnabled()) showIntercom(); else navigate('/help') }}
               onLogout={async () => { await signOut(); navigate('/login') }}
             />
           )}
