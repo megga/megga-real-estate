@@ -9,7 +9,7 @@
 // déjà en env). Pas de migration nécessaire — Phase 2 est full frontend.
 
 import { useCallback, useEffect, useState } from 'react'
-import { SWISS_CANTONS } from './useMarketFilters'
+import { SWISS_CANTONS } from '@/lib/swissCantons'
 
 const STORAGE_KEY = 'megga.location-preference'
 const DISMISS_SESSION_KEY = 'megga.location-onboarding-dismissed'
