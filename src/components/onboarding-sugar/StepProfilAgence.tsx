@@ -12,7 +12,7 @@ import {
 import { uploadAgencyLogo } from './persistence'
 import type { OnboardingData, Setter, AgenceProfile } from './types'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { SWISS_CANTONS, CANTON_LABELS } from '@/hooks/useMarketFilters'
+import { SWISS_CANTONS, CANTON_LABELS } from '@/lib/swissCantons'
 
 // ─── Logo uploader (square) ──────────────────────────────────────────
 
