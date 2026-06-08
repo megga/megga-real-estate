@@ -14,7 +14,7 @@ import {
 import { createAgency, joinAgency, searchAgencies } from './persistence'
 import type { ObAgency, OnboardingData, Setter } from './types'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { SWISS_CANTONS, CANTON_LABELS } from '@/hooks/useMarketFilters'
+import { SWISS_CANTONS, CANTON_LABELS } from '@/lib/swissCantons'
 
 // ─── Agency logo (initials + tint dot) ───────────────────────────────
 

@@ -28,10 +28,13 @@ export default function ProtectedRoute({ children, skipOnboardingCheck }: Protec
     return <SmartPageLoader />
   }
 
-  // 2. Non authentifié → connexion. (En bypass dev, user = MOCK_USER, donc on
-  //    n'est jamais redirigé à tort.)
+  // 2. Non authentifié → connexion sur la VITRINE (megga.ch/login, câblé
+  //    Supabase). Le modal de connexion interne (ancienne direction) a été
+  //    retiré ; le retour se fait via /auth/callback. (En bypass dev,
+  //    user = MOCK_USER, donc on n'est jamais redirigé à tort.)
   if (!user) {
-    return <Navigate to="/auth/login" replace />
+    if (typeof window !== 'undefined') window.location.replace('https://megga.ch/login')
+    return null
   }
 
   // 2b. Step-up 2FA : l'agent a un facteur TOTP vérifié mais la session est en

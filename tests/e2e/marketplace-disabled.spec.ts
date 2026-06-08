@@ -19,6 +19,21 @@ const DISABLED_ROUTES = [
   '/listing/00000000-0000-0000-0000-000000000000',
   '/acheter',
   '/louer',
+  // Ancien site marketing Property X extrait du repo (2026-06-08) — ces routes
+  // redirigent désormais aussi vers la vitrine megga.ch.
+  '/about',
+  '/contact',
+  '/sell',
+  '/estimates',
+  '/services',
+  '/agents',
+  '/agencies',
+  // Modèle de connexion déplacé sur la vitrine (megga.ch/login) — les écrans de
+  // login/inscription internes (ancienne direction) redirigent hors app.
+  '/login',
+  '/register',
+  '/auth/login',
+  '/auth/signup',
 ]
 
 test.describe('Marketplace publique désactivée → vitrine megga.ch', () => {

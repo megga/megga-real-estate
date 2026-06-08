@@ -35,30 +35,13 @@ const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
 // Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
 const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
-// Auth — lazy car secondary path
+// Auth — lazy car secondary path.
+// Le MODAL DE CONNEXION est désormais servi par la vitrine (megga.ch/login,
+// câblé Supabase). L'app ne garde que la TUYAUTERIE du flux : /auth/callback
+// (retour OAuth/e-mail) et /auth/forgot-password/reset (cible des e-mails de
+// réinitialisation envoyés par la vitrine). Les écrans de login/signup internes
+// (ancienne direction) redirigent vers la vitrine — voir VitrineLoginRedirect.
 const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
-// New auth bento (modal-style) — pages wrap AuthBentoApp.
-const AuthLoginPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthLoginPage })),
-)
-const AuthMagicSentPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthMagicSentPage })),
-)
-const AuthMagicErrorPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthMagicErrorPage })),
-)
-const AuthSignupPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthSignupPage })),
-)
-const AuthVerifyEmailPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthVerifyEmailPage })),
-)
-const AuthResetPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthResetPage })),
-)
-const AuthResetSentPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthResetSentPage })),
-)
 const AuthSetNewPasswordPage = lazy(() =>
   import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthSetNewPasswordPage })),
 )
@@ -70,27 +53,16 @@ const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
 
-// Legacy + secondary public pages
-// Marketplace publique DÉSACTIVÉE (pivot CRM-first juin 2026) — SearchPage,
-// RentPage et PropertyXSinglePropertyPage ne sont plus routés (→ vitrine megga.ch
-// via MarketplaceDisabledRedirect). Imports conservés en commentaire pour
-// réactivation au Sprint 7 (les pages + composants Px* restent dans le repo).
-// const SearchPage = lazy(() => import('@/pages/public/SearchPage'))
-// const PropertyXSinglePropertyPage = lazy(() => import('@/pages/public/PropertyXSinglePropertyPage'))
-// const RentPage = lazy(() => import('@/pages/public/RentPage'))
-const AboutPage = lazy(() => import('@/pages/public/AboutPage'))
-const SellPage = lazy(() => import('@/pages/public/SellPage'))
-const EstimatesPage = lazy(() => import('@/pages/public/EstimatesPage'))
-const ServicesPage = lazy(() => import('@/pages/public/ServicesPage'))
-const PublishPage = lazy(() => import('@/pages/public/PublishPage'))
+// Secondary public pages conservées dans l'app CRM.
+// Marketplace publique + ancien site marketing (About, Contact, Sell, Estimates,
+// Services, Publish, Privacy, Agents, Agencies, Blog) + direction Property X :
+// EXTRAITS du repo (2026-06-08) et archivés hors GitHub. Ces URLs redirigent
+// désormais vers la nouvelle vitrine (MarketplaceDisabledRedirect → megga.ch).
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
-const AgentDirectoryPage = lazy(() => import('@/pages/public/AgentDirectoryPage'))
-const AgentProfilePage = lazy(() => import('@/pages/public/AgentProfilePage'))
-const AgenciesPage = lazy(() => import('@/pages/public/AgenciesPage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 
 // Lazy-loaded agent pages
@@ -145,12 +117,9 @@ const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
 const PortalDevWrapper = lazy(() => import('@/pages/particulier/PortalDevWrapper'))
 const PortalGateway = lazy(() => import('@/pages/particulier/PortalGateway'))
 const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
-// Compte ACHETEUR DÉSACTIVÉ — focus 100% CRM (juin 2026). /account (favoris +
-// recherches sauvegardées) lisait market_listings ; c'était la dernière surface
-// acheteur vivante. Désormais market_listings ne sert plus que le Matching.
-// Route → /dashboard. Import conservé en commentaire pour réactivation (la page
-// + FavoritesSection restent dans le repo).
-// const AccountPage = lazy(() => import('@/pages/public/AccountPage'))
+// Compte ACHETEUR retiré (pivot CRM-first) — page + composants archivés hors
+// repo le 2026-06-08. /account → /dashboard. market_listings ne sert plus que
+// le Matching agent.
 
 // Lazy-loaded help center pages
 const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
@@ -158,7 +127,6 @@ const HelpCategoryPage = lazy(() => import('@/pages/public/HelpCategoryPage'))
 const HelpArticlePage = lazy(() => import('@/pages/public/HelpArticlePage'))
 const HelpStartPage = lazy(() => import('@/pages/public/HelpStartPage'))
 const HelpContactPage = lazy(() => import('@/pages/public/HelpContactPage'))
-const ContactPage = lazy(() => import('@/pages/public/ContactPage'))
 const HelpStatusPage = lazy(() => import('@/pages/public/HelpStatusPage'))
 const HelpChangelogPage = lazy(() => import('@/pages/public/HelpChangelogPage'))
 const HelpShortcutsPage = lazy(() => import('@/pages/public/HelpShortcutsPage'))
@@ -309,6 +277,14 @@ function MarketplaceDisabledRedirect() {
   if (typeof window !== 'undefined') window.location.replace(VITRINE_URL)
   return null
 }
+// Le modèle de connexion vit sur la vitrine (megga.ch/login, câblé Supabase).
+// Les écrans de login/signup internes (ancienne direction) y redirigent. La
+// tuyauterie (/auth/callback, /auth/forgot-password/reset) reste dans l'app.
+const VITRINE_LOGIN_URL = 'https://megga.ch/login'
+function VitrineLoginRedirect() {
+  if (typeof window !== 'undefined') window.location.replace(VITRINE_LOGIN_URL)
+  return null
+}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -339,26 +315,29 @@ function AnimatedRoutes() {
               <Route path="/listing/:id" element={<MarketplaceDisabledRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
-              <Route path="/login" element={<Navigate to="/auth/login" replace />} />
-              <Route path="/register" element={<Navigate to="/auth/signup" replace />} />
+              {/* Connexion = vitrine (megga.ch/login). Tous les écrans de login /
+                  inscription internes (ancienne direction) y redirigent. */}
+              <Route path="/login" element={<VitrineLoginRedirect />} />
+              <Route path="/register" element={<VitrineLoginRedirect />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              {/* New bento auth (modal-style, Property X strict, light + dark Pure Ink) */}
-              <Route path="/auth/login" element={<AuthLoginPage />} />
-              <Route path="/auth/login/link-sent" element={<AuthMagicSentPage />} />
-              <Route path="/auth/login/error" element={<AuthMagicErrorPage />} />
-              <Route path="/auth/signup" element={<AuthSignupPage />} />
-              <Route path="/auth/signup/verify-email" element={<AuthVerifyEmailPage />} />
-              <Route path="/auth/forgot-password" element={<AuthResetPage />} />
-              <Route path="/auth/forgot-password/sent" element={<AuthResetSentPage />} />
+              <Route path="/auth/login" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/login/link-sent" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/login/error" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/signup" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/signup/verify-email" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/forgot-password" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/forgot-password/sent" element={<VitrineLoginRedirect />} />
+              {/* TUYAUTERIE conservée : cible des e-mails de réinitialisation
+                  envoyés par la vitrine (megga-auth.js → /auth/forgot-password/reset). */}
               <Route path="/auth/forgot-password/reset" element={<AuthSetNewPasswordPage />} />
-              {/* Legacy FR auth routes — 301 redirects preserve existing magic links in emails. */}
-              <Route path="/auth/connexion" element={<Navigate to="/auth/login" replace />} />
-              <Route path="/auth/connexion/lien-envoye" element={<Navigate to="/auth/login/link-sent" replace />} />
-              <Route path="/auth/connexion/erreur" element={<Navigate to="/auth/login/error" replace />} />
-              <Route path="/auth/inscription" element={<Navigate to="/auth/signup" replace />} />
-              <Route path="/auth/inscription/email-verifier" element={<Navigate to="/auth/signup/verify-email" replace />} />
-              <Route path="/auth/mot-de-passe-oublie" element={<Navigate to="/auth/forgot-password" replace />} />
-              <Route path="/auth/mot-de-passe-oublie/envoye" element={<Navigate to="/auth/forgot-password/sent" replace />} />
+              {/* Legacy FR auth routes → vitrine (sauf redefinir = tuyauterie reset). */}
+              <Route path="/auth/connexion" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/connexion/lien-envoye" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/connexion/erreur" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/inscription" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/inscription/email-verifier" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/mot-de-passe-oublie" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/mot-de-passe-oublie/envoye" element={<VitrineLoginRedirect />} />
               <Route path="/auth/mot-de-passe-oublie/redefinir" element={<Navigate to="/auth/forgot-password/reset" replace />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
@@ -372,20 +351,22 @@ function AnimatedRoutes() {
               <Route path="/rent" element={<MarketplaceDisabledRedirect />} />
               <Route path="/acheter" element={<MarketplaceDisabledRedirect />} />
               <Route path="/louer" element={<MarketplaceDisabledRedirect />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/sell" element={<SellPage />} />
-              <Route path="/estimates" element={<EstimatesPage />} />
-              <Route path="/estimate" element={<EstimatesPage />} />
-              <Route path="/services" element={<ServicesPage />} />
-              <Route path="/publish" element={<PublishPage />} />
+              {/* Ancien site marketing (Property X) extrait et archivé hors GitHub
+                  (2026-06-08). Ces URLs redirigent vers la nouvelle vitrine. */}
+              <Route path="/about" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/contact" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/sell" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/estimates" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/estimate" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/services" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/publish" element={<MarketplaceDisabledRedirect />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/visit/:id/edit" element={<VisitManagePage />} />
               <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
-              <Route path="/agents" element={<AgentDirectoryPage />} />
-              <Route path="/agents/:slug" element={<AgentProfilePage />} />
-              <Route path="/agencies" element={<AgenciesPage />} />
+              <Route path="/agents" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/agents/:slug" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/agencies" element={<MarketplaceDisabledRedirect />} />
               <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
 
               {/* Legacy FR routes — 301 redirects preserve bookmarks + external links. */}
