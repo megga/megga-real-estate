@@ -28,6 +28,12 @@ const DISABLED_ROUTES = [
   '/services',
   '/agents',
   '/agencies',
+  // Modèle de connexion déplacé sur la vitrine (megga.ch/login) — les écrans de
+  // login/inscription internes (ancienne direction) redirigent hors app.
+  '/login',
+  '/register',
+  '/auth/login',
+  '/auth/signup',
 ]
 
 test.describe('Marketplace publique désactivée → vitrine megga.ch', () => {

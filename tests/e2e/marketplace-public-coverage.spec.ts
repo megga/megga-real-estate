@@ -33,9 +33,10 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   { path: '/help', label: 'Help center' },
   { path: '/help/glossary', label: 'Help > Glossaire' },
 
-  // ── Auth pages (en bypass auth, peuvent rediriger vers /dashboard) ─────
-  { path: '/login', label: 'Login' },
-  { path: '/register', label: 'Register' },
+  // ── Auth ───────────────────────────────────────────────────────────────
+  // Le modal de connexion vit sur la vitrine (megga.ch/login) : /login,
+  // /register, /auth/login… redirigent hors app → voir marketplace-disabled.
+  // /reset-password reste in-app (cible des e-mails de réinitialisation).
   { path: '/reset-password', label: 'Reset password' },
 
   // ── Routes paramétrées (mock IDs / slugs) ──────────────────────────────
