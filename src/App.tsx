@@ -77,6 +77,7 @@ const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLogin
 // désormais vers la nouvelle vitrine (MarketplaceDisabledRedirect → megga.ch).
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
+const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
@@ -366,7 +367,7 @@ function AnimatedRoutes() {
               <Route path="/services" element={<MarketplaceDisabledRedirect />} />
               <Route path="/publish" element={<MarketplaceDisabledRedirect />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/privacy" element={<MarketplaceDisabledRedirect />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/visit/:id/edit" element={<VisitManagePage />} />
               <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
               <Route path="/agents" element={<MarketplaceDisabledRedirect />} />
