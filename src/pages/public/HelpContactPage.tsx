@@ -33,10 +33,12 @@ export default function HelpContactPage() {
             {t('help.contactUs')}
           </button>
         ) : (
-          <Link to="/contact" className={ctaClass}>
+          // Fallback si Intercom est coupé : page contact de la vitrine (ContactPage
+          // interne supprimée au pivot CRM-first).
+          <a href="https://megga.ch/contact" className={ctaClass}>
             <MessageSquare className="h-4 w-4" />
             {t('help.contactUs')}
-          </Link>
+          </a>
         )}
 
         <div className="mt-6">
