@@ -69,6 +69,7 @@ IA         Claude (Sonnet/Haiku, côté agent) + DeepSeek V3 (côté public + fa
            via abstraction _shared/ai-provider.ts (tracking coût → ai_usage_logs)
 Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · Google AI (staging)
            Deepgram (STT) · Cloudflare R2 (photos) · Flatfox + RealAdvisor (sync marché)
+           Intercom (support unique : Messenger + Fin + Inbox + Help Center ; région US, flag nLPD)
 Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge auto-deploy
 ```
 
@@ -152,7 +153,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 16 namespaces : `common, dashboard, setti
 - **Favoris/alertes** : `market_favorites`, `market_alerts`, `saved_searches`, `newsletter_subscribers`.
 - **Audit & monitoring** : `activity_events` (immutable, `actor_kind` user/system/ai), `auth_events`, `ticket_events`, `platform_metrics`, `flatfox_sync_runs`.
 - **Admin** : `admin_feature_flags`, `admin_nps_responses`, `admin_notes`, `admin_changelog`.
-- **Support** : `support_tickets`, `ticket_messages`, `ticket_canned_responses`.
+- **Support** : `support_tickets`, `ticket_messages`, `ticket_canned_responses`, `chat_conversations`, `chat_messages` — ⚠️ **DORMANTES** depuis le passage à Intercom (support maison décommissionné ; tables conservées, réversibles ; `admin-monitoring` lit encore `open_tickets`→0). Cf. brain `intercom-support`.
 - **IA** : `ai_usage_logs`, `ai_balance_snapshots`, `ai_photo_labels`, `ai_generated_photos`, `translation_cache`.
 
 ### RLS (modèle agency-first)
@@ -229,7 +230,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 | Domaine | Functions |
 |---|---|
-| **IA / copilote** | `ai-copilot` (chat agent + actions, Claude) · `ai-search` (sémantique pgvector) · `dashboard-ai-hint` · `parse-search-query` (DeepSeek) · `support-chatbot` |
+| **IA / copilote** | `ai-copilot` (chat agent + actions, Claude) · `ai-search` (sémantique pgvector) · `dashboard-ai-hint` · `parse-search-query` (DeepSeek) |
 | **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions + analyse Claude) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans) |
 | **Magic link KYC** | `magic-link-create/get/confirm/regenerate/send-email/upload` |
 | **Email (Resend)** | `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
@@ -240,7 +241,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Matching / scoring** | `matching-engine` · `score-engine` (contact/property/marché) · `search-alert` (cron) |
 | **Documents / media** | `extract-lead` · `extract-property-pdf` · `extract-property-url` · `photo-labeler` (Vision) · `photo-processor` (R2) · `backfill-cf-images` · `c2pa-sign` / `c2pa-verify` |
 | **Media IA** | `public-staging` (Gemini, rate-limit IP) · `virtual-staging` (garde-fous LPD : Vision gate + quota plan) |
-| **Divers** | `translate-on-demand` (DeepSeek + cache) · `deepgram-token` / `speech-to-text` · `ticket-ai-reply` · `accept-team-invite` · `automation-engine` (cron) · `webhooks` |
+| **Divers** | `translate-on-demand` (DeepSeek + cache) · `deepgram-token` / `speech-to-text` · `intercom-identity` (JWT Messenger Security Intercom) · `accept-team-invite` · `automation-engine` (cron) · `webhooks` |
 
 **Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), + automation-engine / ai-billing-monitor / weekly-report / search-alert.
 
