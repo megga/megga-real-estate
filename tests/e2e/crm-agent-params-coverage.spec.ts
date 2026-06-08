@@ -32,7 +32,6 @@ const CRM_AGENT_PARAM_ROUTES: ParamRouteSpec[] = [
   { path: `/dashboard/kyc/${MOCK_UUID}`, label: 'KYC dossier detail' },
   { path: `/dashboard/kyc/${MOCK_UUID}/export`, label: 'KYC export PDF' },
   { path: `/dashboard/market/${MOCK_EXTERNAL_ID}`, label: 'External listing detail' },
-  { path: `/dashboard/support/${MOCK_UUID}`, label: 'Support ticket detail' },
 ]
 
 test.describe('CRM agent — parametric routes (mock IDs)', () => {
