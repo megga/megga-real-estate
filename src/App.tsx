@@ -35,30 +35,13 @@ const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
 // Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
 const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
-// Auth — lazy car secondary path
+// Auth — lazy car secondary path.
+// Le MODAL DE CONNEXION est désormais servi par la vitrine (megga.ch/login,
+// câblé Supabase). L'app ne garde que la TUYAUTERIE du flux : /auth/callback
+// (retour OAuth/e-mail) et /auth/forgot-password/reset (cible des e-mails de
+// réinitialisation envoyés par la vitrine). Les écrans de login/signup internes
+// (ancienne direction) redirigent vers la vitrine — voir VitrineLoginRedirect.
 const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
-// New auth bento (modal-style) — pages wrap AuthBentoApp.
-const AuthLoginPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthLoginPage })),
-)
-const AuthMagicSentPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthMagicSentPage })),
-)
-const AuthMagicErrorPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthMagicErrorPage })),
-)
-const AuthSignupPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthSignupPage })),
-)
-const AuthVerifyEmailPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthVerifyEmailPage })),
-)
-const AuthResetPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthResetPage })),
-)
-const AuthResetSentPage = lazy(() =>
-  import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthResetSentPage })),
-)
 const AuthSetNewPasswordPage = lazy(() =>
   import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthSetNewPasswordPage })),
 )
@@ -294,6 +277,14 @@ function MarketplaceDisabledRedirect() {
   if (typeof window !== 'undefined') window.location.replace(VITRINE_URL)
   return null
 }
+// Le modèle de connexion vit sur la vitrine (megga.ch/login, câblé Supabase).
+// Les écrans de login/signup internes (ancienne direction) y redirigent. La
+// tuyauterie (/auth/callback, /auth/forgot-password/reset) reste dans l'app.
+const VITRINE_LOGIN_URL = 'https://megga.ch/login'
+function VitrineLoginRedirect() {
+  if (typeof window !== 'undefined') window.location.replace(VITRINE_LOGIN_URL)
+  return null
+}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -324,26 +315,29 @@ function AnimatedRoutes() {
               <Route path="/listing/:id" element={<MarketplaceDisabledRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
-              <Route path="/login" element={<Navigate to="/auth/login" replace />} />
-              <Route path="/register" element={<Navigate to="/auth/signup" replace />} />
+              {/* Connexion = vitrine (megga.ch/login). Tous les écrans de login /
+                  inscription internes (ancienne direction) y redirigent. */}
+              <Route path="/login" element={<VitrineLoginRedirect />} />
+              <Route path="/register" element={<VitrineLoginRedirect />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              {/* New bento auth (modal-style, Property X strict, light + dark Pure Ink) */}
-              <Route path="/auth/login" element={<AuthLoginPage />} />
-              <Route path="/auth/login/link-sent" element={<AuthMagicSentPage />} />
-              <Route path="/auth/login/error" element={<AuthMagicErrorPage />} />
-              <Route path="/auth/signup" element={<AuthSignupPage />} />
-              <Route path="/auth/signup/verify-email" element={<AuthVerifyEmailPage />} />
-              <Route path="/auth/forgot-password" element={<AuthResetPage />} />
-              <Route path="/auth/forgot-password/sent" element={<AuthResetSentPage />} />
+              <Route path="/auth/login" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/login/link-sent" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/login/error" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/signup" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/signup/verify-email" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/forgot-password" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/forgot-password/sent" element={<VitrineLoginRedirect />} />
+              {/* TUYAUTERIE conservée : cible des e-mails de réinitialisation
+                  envoyés par la vitrine (megga-auth.js → /auth/forgot-password/reset). */}
               <Route path="/auth/forgot-password/reset" element={<AuthSetNewPasswordPage />} />
-              {/* Legacy FR auth routes — 301 redirects preserve existing magic links in emails. */}
-              <Route path="/auth/connexion" element={<Navigate to="/auth/login" replace />} />
-              <Route path="/auth/connexion/lien-envoye" element={<Navigate to="/auth/login/link-sent" replace />} />
-              <Route path="/auth/connexion/erreur" element={<Navigate to="/auth/login/error" replace />} />
-              <Route path="/auth/inscription" element={<Navigate to="/auth/signup" replace />} />
-              <Route path="/auth/inscription/email-verifier" element={<Navigate to="/auth/signup/verify-email" replace />} />
-              <Route path="/auth/mot-de-passe-oublie" element={<Navigate to="/auth/forgot-password" replace />} />
-              <Route path="/auth/mot-de-passe-oublie/envoye" element={<Navigate to="/auth/forgot-password/sent" replace />} />
+              {/* Legacy FR auth routes → vitrine (sauf redefinir = tuyauterie reset). */}
+              <Route path="/auth/connexion" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/connexion/lien-envoye" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/connexion/erreur" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/inscription" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/inscription/email-verifier" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/mot-de-passe-oublie" element={<VitrineLoginRedirect />} />
+              <Route path="/auth/mot-de-passe-oublie/envoye" element={<VitrineLoginRedirect />} />
               <Route path="/auth/mot-de-passe-oublie/redefinir" element={<Navigate to="/auth/forgot-password/reset" replace />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
