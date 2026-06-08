@@ -5,7 +5,6 @@ import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import HelpSearchBar from '@/components/help/HelpSearchBar'
 import SupportIllustration from '@/components/illustrations/SupportIllustration'
-import HelpChatbot from '@/components/help/HelpChatbot'
 import { ALL_ARTICLES } from '@/lib/helpArticles'
 
 // ── Build section map across ALL categories ─────────────────────────────
@@ -139,10 +138,6 @@ export default function HelpResourcesPage() {
             </Link>
           </div>
         </div>
-      </div>
-
-      <div className="fixed bottom-6 right-6 z-50">
-        <HelpChatbot />
       </div>
 
       <Footer />
