@@ -69,7 +69,7 @@ IA         Claude (Sonnet/Haiku, côté agent) + DeepSeek V3 (côté public + fa
            via abstraction _shared/ai-provider.ts (tracking coût → ai_usage_logs)
 Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · Google AI (staging)
            Deepgram (STT) · Cloudflare R2 (photos) · Flatfox + RealAdvisor (sync marché)
-           Intercom (support unique : Messenger + Fin + Inbox + Help Center ; région US, flag nLPD)
+           Intercom (support unique : Messenger + Fin IA LIVE + Inbox + Help Center public ; région US, flag nLPD)
 Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge auto-deploy
 ```
 
