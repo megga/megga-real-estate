@@ -4669,6 +4669,7 @@ export type Database = {
           ip: string | null
           last_seen_at: string
           os: string | null
+          session_id: string | null
           trusted: boolean
           user_agent: string | null
           user_id: string
@@ -4683,6 +4684,7 @@ export type Database = {
           ip?: string | null
           last_seen_at?: string
           os?: string | null
+          session_id?: string | null
           trusted?: boolean
           user_agent?: string | null
           user_id: string
@@ -4697,6 +4699,7 @@ export type Database = {
           ip?: string | null
           last_seen_at?: string
           os?: string | null
+          session_id?: string | null
           trusted?: boolean
           user_agent?: string | null
           user_id?: string

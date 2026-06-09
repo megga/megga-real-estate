@@ -436,3 +436,8 @@ verify_jwt = false
 # la fonction ; le secret de signature (INTERCOM_MESSENGER_SECRET) reste côté Edge.
 [functions.intercom-identity]
 verify_jwt = false
+
+# Révocation de session : appelée par le front avec le JWT user ; vérif interne via
+# admin.getUser, puis RPC service_role revoke_user_session (invalide auth.sessions).
+[functions.revoke-device-session]
+verify_jwt = false
