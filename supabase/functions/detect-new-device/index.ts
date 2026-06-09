@@ -27,6 +27,24 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+// ─── Session id (claim du JWT user, best-effort) ─────────────────────────
+
+// Lie l'appareil à sa session GoTrue pour la révocation réelle (cf.
+// revoke-device-session). Null-safe : si le claim est absent, on dégrade vers
+// le comportement historique (suivi seulement, pas de kill de session).
+function sessionIdFromJwt(jwt: string): string | null {
+  try {
+    const part = jwt.split('.')[1]
+    if (!part) return null
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64.padEnd(Math.ceil(b64.length / 4) * 4, '=')
+    const payload = JSON.parse(atob(padded)) as { session_id?: unknown }
+    return typeof payload.session_id === 'string' ? payload.session_id : null
+  } catch {
+    return null
+  }
+}
+
 // ─── Fingerprint ─────────────────────────────────────────────────────────
 
 async function sha256(input: string): Promise<string> {
@@ -158,6 +176,8 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await admin.auth.getUser(token)
     if (authError || !user) return json({ error: 'unauthorized' }, 401)
 
+    const sessionId = sessionIdFromJwt(token)
+
     const ua = req.headers.get('User-Agent') ?? ''
     const acceptLang = req.headers.get('Accept-Language') ?? ''
     const ipFwd = req.headers.get('x-forwarded-for') ?? ''
@@ -185,7 +205,7 @@ serve(async (req) => {
     if (existing) {
       await admin
         .from('user_devices')
-        .update({ last_seen_at: new Date().toISOString(), ip })
+        .update({ last_seen_at: new Date().toISOString(), ip, session_id: sessionId })
         .eq('id', existing.id)
       return json({ ok: true, isNew: false })
     }
@@ -203,6 +223,7 @@ serve(async (req) => {
       country,
       city,
       trusted: true,
+      session_id: sessionId,
     })
 
     // Skip email on the very first device (user just created the account)

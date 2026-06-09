@@ -7,10 +7,10 @@
 //   - « Appareil courant » : sans empreinte stable côté client, on marque comme
 //     courant la ligne la plus récente (last_seen_at max). C'est une heuristique
 //     d'affichage, pas une garantie cryptographique.
-//   - « Déconnecter » supprime la LIGNE user_devices (révocation du suivi), ce
-//     qui n'invalide PAS le JWT de la session distante. La révocation réelle de
-//     session demandera une Edge Function service_role (auth.admin.signOut) —
-//     hors périmètre de cette passe.
+//   - « Déconnecter » invalide la vraie session GoTrue distante via l'edge
+//     function revoke-device-session (RPC service_role revoke_user_session sur
+//     auth.sessions), puis retire la ligne. Limite Supabase assumée : coupe le
+//     REFRESH ; l'access token déjà émis reste valide jusqu'à son exp (~1h).
 
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -31,7 +31,7 @@ export interface UserDevice {
 interface UserDevicesState {
   devices: UserDevice[]
   isLoading: boolean
-  /** Supprime la ligne (RLS DELETE self). Voir limite JWT ci-dessus. */
+  /** Révoque la vraie session (edge revoke-device-session) puis retire la ligne. */
   revoke: (id: string) => Promise<void>
   /** Id de l'appareil considéré comme « courant » (last_seen_at max). */
   currentId: string | null
@@ -83,10 +83,15 @@ export function useUserDevices(): UserDevicesState {
     // Optimiste : on retire la ligne de l'UI, puis on confirme côté DB.
     setDevices(prev => prev.filter(d => d.id !== id))
     try {
-      const { error: delErr } = await supabase.from('user_devices').delete().eq('id', id)
-      if (delErr) throw delErr
+      // Révocation RÉELLE : l'edge function invalide la session GoTrue (coupe le
+      // refresh) puis retire la ligne. Remplace l'ancien delete direct qui ne
+      // coupait que le suivi. cf. supabase/functions/revoke-device-session.
+      const { error: fnErr } = await supabase.functions.invoke('revoke-device-session', {
+        body: { device_id: id },
+      })
+      if (fnErr) throw fnErr
     } catch (err) {
-      // Rollback en rechargeant la vérité serveur si la suppression échoue.
+      // Rollback en rechargeant la vérité serveur si la révocation échoue.
       setError(err instanceof Error ? err.message : 'Échec de la révocation')
       await load()
     }
