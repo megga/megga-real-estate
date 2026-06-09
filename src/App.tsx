@@ -102,6 +102,7 @@ const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
 const NetworkSugarV2Page = lazy(() => import('@/pages/agent/NetworkSugarV2Page'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
+const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
 const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
@@ -420,6 +421,7 @@ function AnimatedRoutes() {
               <Route path="/portail/profil" element={<Navigate to="/portal" replace />} />
 
               {/* Dev showcase routes (no auth) */}
+              <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
               <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
               <Route path="/dev/mfa" element={<MfaShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
