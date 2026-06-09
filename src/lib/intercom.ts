@@ -32,7 +32,8 @@ export interface IntercomBootArgs {
   created_at?: number
   /** JWT « Messenger Security » (HS256) émis par l'edge `intercom-identity`. */
   intercom_user_jwt?: string
-  company?: { company_id: string; name?: string }
+  /** company_id + name + attributs custom d'entreprise (ex. stripe_customer_id pour Fin Actions). */
+  company?: { company_id: string; name?: string; [key: string]: unknown }
   [key: string]: unknown
 }
 
