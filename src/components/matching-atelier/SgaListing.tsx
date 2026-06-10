@@ -2,17 +2,18 @@
 // pilules specs, description, mini-carte placeholder). Port hi-fi du handoff.
 
 import SgaIcon, { type SgaIconName } from './SgaIcon'
-import { SgaPhoto } from './SgaPrimitives'
+import SgaMiniMap from './SgaMiniMap'
 import { sgaFmtCHF } from './format'
 import type { AtelierListing } from './types'
 
 interface SgaListingProps {
   L: AtelierListing
+  dark: boolean
   onOpenPhoto: (index: number) => void
   onOpenListing: () => void
 }
 
-export default function SgaListing({ L, onOpenPhoto, onOpenListing }: SgaListingProps) {
+export default function SgaListing({ L, dark, onOpenPhoto, onOpenListing }: SgaListingProps) {
   const G = L.gallery
   const specs: Array<{ i: SgaIconName; t: string }> = []
   if (L.rooms != null) specs.push({ i: 'home', t: `${L.rooms} pièces` })
@@ -92,11 +93,13 @@ export default function SgaListing({ L, onOpenPhoto, onOpenListing }: SgaListing
 
         {L.desc && <div className="sga-desc">{L.desc}</div>}
 
-        <SgaPhoto
+        <SgaMiniMap
+          lat={L.lat}
+          lng={L.lng}
+          address={L.addr}
+          label={`quartier ${L.quartier || L.canton}`}
+          dark={dark}
           className="sga-map"
-          label={`mini-carte · quartier ${L.quartier || L.canton}`}
-          icon="location"
-          iconSize={20}
           style={{ flex: 1 }}
         />
       </div>

@@ -225,7 +225,13 @@
   background:var(--cardsub); font-size:13px; font-weight:600; color:var(--ink-soft); white-space:nowrap; }
 .sga-spec svg{ width:15px; height:15px; color:var(--ink-muted); flex-shrink:0; }
 .sga-desc{ font-size:13.5px; line-height:1.6; color:var(--ink-muted); }
-.sga-map{ position:relative; border-radius:var(--r-lg); overflow:hidden; flex:1; min-height:140px; }
+.sga-map{ position:relative; border-radius:var(--r-lg); overflow:hidden; flex:1; min-height:140px; background:var(--surface-2); }
+
+/* mini-carte Mapbox (image statique) — remplit le conteneur, coins du parent */
+.sga-map-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.sga-map-credit{ position:absolute; right:7px; bottom:6px; z-index:1; padding:2px 7px; border-radius:var(--r-pill);
+  background:rgba(11,12,14,.55); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  color:rgba(255,255,255,.82); font-size:9.5px; font-weight:600; letter-spacing:.01em; white-space:nowrap; pointer-events:none; }
 
 /* ── Col 3 · pourquoi ça matche ─────────────────────────────────────── */
 .sga-why-head{ padding:20px 22px 0; display:flex; align-items:center; gap:13px; }

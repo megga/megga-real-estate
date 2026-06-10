@@ -62,6 +62,8 @@ interface RawPropertyRow {
   city: string | null
   canton: string | null
   postal_code: string | null
+  lat: number | string | null
+  lng: number | string | null
   photos: string[] | null
   features: unknown
   floor: number | null
@@ -155,6 +157,8 @@ export function mapMarketListing(row: RawMarketRow): AtelierListing {
     title: row.title ?? 'Annonce',
     addr: [row.address, [row.postal_code, row.city].filter(Boolean).join(' ')].filter(Boolean).join(', '),
     canton: row.canton ?? '',
+    lat: num(row.lat),
+    lng: num(row.lng),
     price,
     priceWas: was && was > price ? was : null,
     pricePerM2: num(row.price_per_m2),
@@ -196,6 +200,8 @@ export function mapProperty(row: RawPropertyRow): AtelierListing {
     title: row.title ?? 'Bien',
     addr: [row.address, [row.postal_code, row.city].filter(Boolean).join(' ')].filter(Boolean).join(', '),
     canton: row.canton ?? '',
+    lat: num(row.lat),
+    lng: num(row.lng),
     price: num(row.price) ?? 0,
     priceWas: null,
     pricePerM2: num(row.price) && num(row.surface_m2) ? Math.round((num(row.price)! / num(row.surface_m2)!) * 100) / 100 : null,

@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import SgaIcon from './SgaIcon'
 import { sgaDateLong, sgaDateShort, sgaFmtCHF } from './format'
-import { SgaPhoto } from './SgaPrimitives'
+import SgaMiniMap from './SgaMiniMap'
 import type { AtelierBuyer, AtelierListing } from './types'
 
 /* ── collage photo éditorial (1 hero + 2 tuiles, labels de pièce) ──────── */
@@ -219,12 +219,13 @@ interface SgaAnnonceVueProps {
   L: AtelierListing
   buyer: AtelierBuyer | null
   keysOff: boolean
+  dark: boolean
   onClose: () => void
   onPropose: (() => void) | null
   onOpenPhoto: (i: number) => void
 }
 
-export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, onOpenPhoto }: SgaAnnonceVueProps) {
+export default function SgaAnnonceVue({ L, buyer, keysOff, dark, onClose, onPropose, onOpenPhoto }: SgaAnnonceVueProps) {
   const [closing, setClosing] = useState(false)
   const [copied, setCopied] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -302,7 +303,7 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, o
                 </SgvSection>
               )}
               <SgvSection title="Localisation">
-                <SgaPhoto className="sgv-map" label={`mini-carte · ${L.addr}`} icon="location" iconSize={20} />
+                <SgaMiniMap lat={L.lat} lng={L.lng} address={L.addr} label={L.addr} dark={dark} className="sgv-map" />
               </SgvSection>
             </div>
             <div className="col side">
