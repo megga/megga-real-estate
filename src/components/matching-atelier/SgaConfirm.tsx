@@ -1,0 +1,96 @@
+// Atelier Matching — confirmation d'envoi / de relance (modal Sugar minimale)
+// puis écran succès auto-fermant (~1,25 s). Enter = confirmer · Esc = annuler
+// (verrouillés pendant l'animation de succès). Human-in-the-loop : rien ne
+// part sans cette validation explicite de l'agent.
+
+import { useEffect, useRef, useState } from 'react'
+import SgaIcon from './SgaIcon'
+import { sgaFmtCHF, sgaInitials } from './format'
+import type { AtelierBuyer, AtelierListing } from './types'
+
+interface SgaConfirmProps {
+  b: AtelierBuyer
+  L: AtelierListing
+  relance?: boolean
+  onClose: () => void
+  onConfirm: () => void
+}
+
+export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaConfirmProps) {
+  const [done, setDone] = useState(false)
+  const doneRef = useRef(false)
+
+  const fire = () => {
+    if (doneRef.current) return
+    doneRef.current = true
+    setDone(true)
+    setTimeout(() => onConfirm(), 1250)
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (doneRef.current) { e.preventDefault(); e.stopPropagation(); return }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose() }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); fire() }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [onClose]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="sga-overlay" onClick={e => { if (!doneRef.current && e.target === e.currentTarget) onClose() }}>
+      <div
+        className="sga-modal"
+        style={{ width: 440, maxWidth: '92vw' }}
+        role="dialog"
+        aria-label={relance ? 'Relancer' : 'Transmettre le dossier'}
+      >
+        {done ? (
+          <div className="sga-success">
+            <div className="sga-success-badge">
+              <SgaIcon d="check" size={30} />
+            </div>
+            <div className="t4 semi" style={{ color: 'var(--ink)' }}>
+              {relance ? 'Relance envoyée' : 'Dossier transmis'}
+            </div>
+            <p className="t2 muted" style={{ margin: 0, lineHeight: 1.5, maxWidth: 320 }}>
+              {relance
+                ? `${b.first} ${b.last} a reçu un rappel · consigné dans son dossier client.`
+                : `Déposé dans le dossier client de ${b.first} ${b.last} · notification envoyée.`}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="sga-modal-h">
+              <div className="av" style={{ width: 44, height: 44, background: b.av, fontSize: 15 }}>
+                {sgaInitials(b.first, b.last)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="t4 semi" style={{ color: 'var(--ink)' }}>
+                  {relance ? `Relancer ${b.first} ${b.last} ?` : 'Transmettre le dossier ?'}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '4px 24px 20px' }}>
+              <div className="t2 semi" style={{ color: 'var(--ink)', marginBottom: 6 }}>
+                {L.title} · <span className="nums">{sgaFmtCHF(L.price)}</span>
+              </div>
+              <p className="t2 muted" style={{ margin: 0, lineHeight: 1.55 }}>
+                {relance
+                  ? `Une relance douce sera déposée dans le dossier client de ${b.first}, avec le bien en rappel. Le tout est consigné automatiquement dans sa fiche.`
+                  : `Le dossier complet du bien sera déposé dans le dossier client de ${b.first}, avec notification. Le tout est consigné automatiquement dans sa fiche.`}
+              </p>
+            </div>
+            <div className="sga-modal-foot">
+              <div style={{ flex: 1 }} />
+              <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
+              <button className="btn btn-primary" onClick={fire} autoFocus>
+                {relance ? 'Relancer' : 'Transmettre'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

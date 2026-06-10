@@ -101,7 +101,7 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 **CRM agent** (layout `AgentSugarLayout`, dark CRM) — pages principales :
 `dashboard` (TodaySugar, KPI) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
 `listings` (+ `/:id`, `/new` wizard, `/:id/edit`) · `transactions/:id` (stepper 8 étapes + bannière KYC + offres) ·
-`matching` · `journey` · `calendar` (Google/Outlook) · `documents` (+ generate/templates) ·
+`matching` (**Atelier triptyque plein écran**, juin 2026 — legacy `matching/v2`, démo QA `/dev/matching-atelier`) · `journey` · `calendar` (Google/Outlook) · `documents` (+ generate/templates) ·
 `kyc` (+ `/:dossierId`, `/export` PDF) · `network` · `audit` (journal nLPD) · `analytics` · `settings`.
 
 **Onboarding** : `/dashboard/onboarding` (wizard) → `/dashboard/premier-jour` (calibrage IA one-shot).
@@ -259,7 +259,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 **D · KYC (Dilisense)** : transaction reserved/negotiation → `kyc_cases` (vigilance standard/renforcée selon montant + source des fonds) → magic link upload (`kyc_magic_link_uploads`, OCR, sha256) → screening async Dilisense → `kyc_screening_decisions` (PEP/sanctions) → **revue humaine MLRO** → analyse qualitative Claude (assist, ne remplace pas). **Canal WhatsApp (Phase 1 livrée, cf. brain `kyc-whatsapp-spec`)** : l'agent ouvre/joint/screene depuis sa conversation via 3 outils copilote (`open_kyc_case`, `attach_kyc_document`, `run_kyc_screening`) ; même moteur, le MLRO valide toujours (jamais `is_completed`/`verified` côté IA). **Rapport KYC en PDF par WhatsApp (livré, cf. brain `kyc-report-pdf-whatsapp`)** : `send_kyc_report` (tier auto) → edge `kyc-report-pdf` mint un token HMAC court → Cloudflare Browser Rendering (REST API, pas de Worker) rend la route publique `/kyc-report/:token` (même template `PdfPage1/2/3` que le CRM) → PDF officiel uploadé en média Meta éphémère et envoyé en document **qu'à l'agent** ; lecture seule (seul write = audit `kyc_report_sent`), aucune migration.
 
-**E · Matching & alertes** : `client_searches` (criteria JSONB) → `matching-engine` compare budget/zones/type vs `market_listings`+`properties` → `matches` (score+raisons) → envoi agent → alertes email (`market_alerts`/`search-alert` cron via Resend).
+**E · Matching & alertes** : `client_searches` (criteria JSONB) → `matching-engine` compare budget/zones/type vs `market_listings`+`properties` → `matches` (score+raisons, dédup dure par couple contact×bien) → **Atelier Matching** (triptyque plein écran, gestes `E/X/P/R/V`) : Envoyer = deal `new_lead` (créé/rattaché, `transactions.market_listing_id` si bien de veille) + timeline contact (`dossier_envoye`) + reminder +5 j (→ Aujourd'hui, dédup avec `automation-engine`) + `send-property-email` ; Relancer = `sent_at` reset + reminder repoussé + `send-relance-email` ; Plus tard = `snoozed_until`+7 j + reminder custom à échéance ; Écarter = `ignored` (jamais re-proposé) ; Visite = bascule `/dashboard/visits/new` (bien interne). Écritures différées 4,5 s (undo toast avant toute écriture). Alertes email publiques (`market_alerts`/`search-alert` cron via Resend) inchangées.
 
 **F · Audit trail** : tout changement (transaction/KYC/offre/property) → triggers `SECURITY DEFINER` → `activity_events` immutable (actor_id+kind, severity, category, metadata) → timeline contact + audit super-admin + export PDF signé (chaîne de hash).
 

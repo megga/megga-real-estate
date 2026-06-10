@@ -6,6 +6,17 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Atelier Matching — triptyque plein écran (10 juin 2026)
+> Refonte complète de l'écran Matching d'après le handoff Claude Design (`design_handoff_matching_atelier`). Branche `claude/kind-ritchie-d7078d`. Migration `20260610_001_atelier_matching_loop` appliquée par la CI au merge. Sert les objectifs 1 (temps admin) et 3 (closing).
+
+Générateur de leads interne : transforme un match (annonce ↔ acheteur) en action. Triptyque Sugar Pure plein écran (scope CSS `.sga`, Manrope, accent noir, ombres sans bordures, clair + sombre) : file d'acheteurs scorés + parking « Reportés » · annonce pivot (photos, specs, modal « Annonce complète », galerie lightbox) · pourquoi ça matche (score géant, critères groupés Atouts/Points d'attention, carte MEGGA AI déterministe) + zone de triage.
+- **Gestes (contrat COUTURES)** : Envoyer (E) = match `sent` + deal `new_lead` créé/rattaché + timeline `dossier_envoye` + reminder +5 j (visible dans Aujourd'hui, dédupliqué avec `automation-engine`) + e-mail Resend · Relancer (R) · Plus tard (P, `snoozed_until` +7 j) · Écarter (X, `ignored` définitif) · Visite (V → flux `/visits/new`). Raccourcis clavier J/K/E/X/P/R/V, Backspace = annuler.
+- **Undo Gmail-style** : toutes les écritures sont différées 4,5 s — « Annuler » pendant le toast = rien n'a jamais été écrit (flush au démontage / « Voir le deal → »).
+- **Deux sens** : par annonce (pivot par défaut = plus actionnable, deep-link `?annonce=p:<id>|m:<id>`) et par acheteur (`?contact=<id>` ou lien « +N biens matchent ce profil »).
+- **Migration** : `matches.property_id` nullable + CHECK cible (les matches marché échouaient silencieusement depuis l'origine — 0 match marché en base) · `matches.snoozed_until` · index uniques (contact, bien) · `transactions.market_listing_id` · **policy INSERT `activity_events` agence** (avant : super-admin seulement → consignations timeline côté client silencieusement perdues).
+- **KYC jamais bloquant** (rappel doux + bouton Démarrer → `/dashboard/kyc?openContactId=`) ; IA = synthèse `composeAiHint` composée des signaux réels du moteur (aucun appel API, aucune invention).
+- Démo QA sans session : `/dev/matching-atelier` (mocks du handoff, zéro écriture). Legacy conservé sur `/dashboard/matching/v2` (à supprimer en phase finale, comme KYC v2).
+
 #### Lecture de documents entrants — copilote WhatsApp (5 juin 2026)
 > Implémenté sur branche `claude/condescending-hopper-f8c9fd` (subagent-driven : implémentation + revue adversariale spec/qualité). Déploiement edge via CI au merge. Aucune migration. Sert les objectifs 1 (temps admin) et 4 (transparence).
 
