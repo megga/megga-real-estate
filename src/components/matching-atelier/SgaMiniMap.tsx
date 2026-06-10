@@ -5,17 +5,22 @@
 // chaque sélection d'acheteur. Suit le thème (light-v11 / dark-v11), pin à
 // l'accent (noir clair / blanc sombre).
 //
-// Coordonnées : lat/lng de la row si présentes (toutes les market_listings),
+// Coordonnées : lat/lng de la row si exploitables (toutes les market_listings),
 // sinon géocodage de l'adresse à la volée (biens internes sans coords —
 // même API que le wizard Step2Address). Placeholder rayé en dernier recours
 // (pas de token, pas d'adresse résoluble) — jamais de carte fausse.
+// Logique d'URL et validation des coords : ./mapUrl (pur, testé).
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import SgaIcon from './SgaIcon'
+import { buildStaticMapUrl, validCoords } from './mapUrl'
 
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN as string | undefined) || ''
 
-// Dédup process-wide des géocodages (clé = adresse). null = échec mémorisé.
+// Dédup process-wide des géocodages (clé = adresse). null = échec mémorisé
+// (les erreurs transitoires ne re-tentent pas avant rechargement — compromis
+// assumé pour une mini-carte). Les abandons (unmount / changement d'adresse)
+// ne polluent PAS le cache.
 const geocodeCache = new Map<string, [number, number] | null>()
 
 async function geocode(address: string, signal: AbortSignal): Promise<[number, number] | null> {
@@ -27,25 +32,15 @@ async function geocode(address: string, signal: AbortSignal): Promise<[number, n
     const res = await fetch(url, { signal })
     if (!res.ok) throw new Error(`geocode ${res.status}`)
     const json = (await res.json()) as { features?: Array<{ center?: [number, number] }> }
-    const center = json.features?.[0]?.center ?? null // [lng, lat]
-    geocodeCache.set(address, center)
-    return center
+    const c = json.features?.[0]?.center // [lng, lat]
+    const coords = c ? validCoords(c[1], c[0]) : null
+    geocodeCache.set(address, coords)
+    return coords
   } catch (e) {
     if ((e as Error).name === 'AbortError') return null
     geocodeCache.set(address, null)
     return null
   }
-}
-
-function staticUrl(lng: number, lat: number, dark: boolean): string {
-  const style = dark ? 'dark-v11' : 'light-v11'
-  const pin = dark ? 'f4f6f8' : '0b0c0e'
-  // @2x pour la netteté ; 500x320 logique → 1000x640 réel (sous le plafond Mapbox)
-  return (
-    `https://api.mapbox.com/styles/v1/mapbox/${style}/static/` +
-    `pin-s+${pin}(${lng},${lat})/${lng},${lat},13,0/500x320@2x` +
-    `?access_token=${MAPBOX_TOKEN}&attribution=false&logo=false`
-  )
 }
 
 interface SgaMiniMapProps {
@@ -56,21 +51,20 @@ interface SgaMiniMapProps {
   label: string
   dark: boolean
   className?: string
-  style?: React.CSSProperties
+  style?: CSSProperties
 }
 
 export default function SgaMiniMap({ lat, lng, address, label, dark, className, style }: SgaMiniMapProps) {
-  // Coords résolues : props directes, sinon géocodage de l'adresse.
-  const [resolved, setResolved] = useState<[number, number] | null>(
-    lat != null && lng != null ? [lng, lat] : null,
-  )
+  // Coords résolues : row directe (si exploitable), sinon géocodage de l'adresse.
+  const [resolved, setResolved] = useState<[number, number] | null>(() => validCoords(lat, lng))
   const [imgFailed, setImgFailed] = useState(false)
   const addrRef = useRef(address)
 
   useEffect(() => {
     setImgFailed(false)
-    if (lat != null && lng != null) {
-      setResolved([lng, lat])
+    const direct = validCoords(lat, lng)
+    if (direct) {
+      setResolved(direct)
       return
     }
     setResolved(null)
@@ -84,15 +78,15 @@ export default function SgaMiniMap({ lat, lng, address, label, dark, className, 
     return () => ctrl.abort()
   }, [lat, lng, address])
 
-  const showMap = MAPBOX_TOKEN && resolved && !imgFailed
+  const showMap = Boolean(MAPBOX_TOKEN) && resolved != null && !imgFailed
 
   return (
     <div className={className} style={style}>
-      {showMap ? (
+      {showMap && resolved ? (
         <>
           <img
             className="sga-map-img"
-            src={staticUrl(resolved[0], resolved[1], dark)}
+            src={buildStaticMapUrl(resolved[0], resolved[1], dark, MAPBOX_TOKEN)}
             alt={`Carte — ${address}`}
             loading="lazy"
             draggable={false}
