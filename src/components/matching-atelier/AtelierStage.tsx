@@ -281,7 +281,6 @@ export default function AtelierStage({
 
             <SgaListing
               L={pivot.listing}
-              dark={dark}
               onOpenPhoto={i => setGallery({ index: i })}
               onOpenListing={() => setAnnonce(true)}
             />
@@ -335,7 +334,6 @@ export default function AtelierStage({
         <SgaAnnonceVue
           L={pivot.listing}
           keysOff={!!gallery}
-          dark={dark}
           buyer={selected}
           onClose={() => setAnnonce(false)}
           onPropose={selected ? () => { setAnnonce(false); requestSend(selected.matchId) } : null}

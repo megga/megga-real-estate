@@ -8,12 +8,11 @@ import type { AtelierListing } from './types'
 
 interface SgaListingProps {
   L: AtelierListing
-  dark: boolean
   onOpenPhoto: (index: number) => void
   onOpenListing: () => void
 }
 
-export default function SgaListing({ L, dark, onOpenPhoto, onOpenListing }: SgaListingProps) {
+export default function SgaListing({ L, onOpenPhoto, onOpenListing }: SgaListingProps) {
   const G = L.gallery
   const specs: Array<{ i: SgaIconName; t: string }> = []
   if (L.rooms != null) specs.push({ i: 'home', t: `${L.rooms} pièces` })
@@ -98,7 +97,6 @@ export default function SgaListing({ L, dark, onOpenPhoto, onOpenListing }: SgaL
           lng={L.lng}
           address={L.addr}
           label={`quartier ${L.quartier || L.canton}`}
-          dark={dark}
           className="sga-map"
           style={{ flex: 1 }}
         />

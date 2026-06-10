@@ -49,12 +49,11 @@ interface SgaMiniMapProps {
   address: string
   /** repli du placeholder (« mini-carte · quartier X ») */
   label: string
-  dark: boolean
   className?: string
   style?: CSSProperties
 }
 
-export default function SgaMiniMap({ lat, lng, address, label, dark, className, style }: SgaMiniMapProps) {
+export default function SgaMiniMap({ lat, lng, address, label, className, style }: SgaMiniMapProps) {
   // Coords résolues : row directe (si exploitable), sinon géocodage de l'adresse.
   const [resolved, setResolved] = useState<[number, number] | null>(() => validCoords(lat, lng))
   const [imgFailed, setImgFailed] = useState(false)
@@ -86,7 +85,7 @@ export default function SgaMiniMap({ lat, lng, address, label, dark, className, 
         <>
           <img
             className="sga-map-img"
-            src={buildStaticMapUrl(resolved[0], resolved[1], dark, MAPBOX_TOKEN)}
+            src={buildStaticMapUrl(resolved[0], resolved[1], MAPBOX_TOKEN)}
             alt={`Carte — ${address}`}
             loading="lazy"
             draggable={false}
