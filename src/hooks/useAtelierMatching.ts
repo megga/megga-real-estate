@@ -23,7 +23,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { mapKycStatus } from '@/lib/sugarAdapters'
-import type { Json, TablesInsert, TablesUpdate } from '@/types/database'
+import type { Json, TablesInsert } from '@/types/database'
 import type { SearchCriteria } from '@/types/contact'
 import type { KycCase } from '@/types/kyc'
 import { composeAiHint } from '@/components/matching-atelier/composeAiHint'
@@ -477,7 +477,7 @@ export async function execSendDossier(
       await supabase.from('transactions').update({ property_id: listing.id }).eq('id', dealId)
     }
   } else {
-    const insert: Record<string, unknown> = {
+    const insert: TablesInsert<'transactions'> = {
       agency_id: ctx.agencyId,
       contact_buyer_id: buyer.id,
       assigned_to: ctx.userId,
@@ -486,11 +486,9 @@ export async function execSendDossier(
     }
     if (listing.kind === 'property') insert.property_id = listing.id
     else insert.market_listing_id = listing.id
-    // market_listing_id : migration 20260610_001 — cast à retirer quand les
-    // types Supabase seront régénérés après application en prod
     const { data: created, error: dErr } = await supabase
       .from('transactions')
-      .insert(insert as unknown as TablesInsert<'transactions'>)
+      .insert(insert)
       .select('id')
       .single()
     if (dErr) throw dErr
@@ -629,10 +627,9 @@ export async function execRelance(
 /** « Plus tard » (P) — snooze +7 j sur le match, retour visible dans Aujourd'hui */
 export async function execSnooze(ctx: GesteContext, buyer: AtelierBuyer): Promise<void> {
   const until = inDays(7)
-  // snoozed_until : migration 20260610_001 — cast à retirer après régénération des types
   const { error } = await supabase
     .from('matches')
-    .update({ snoozed_until: until } as unknown as TablesUpdate<'matches'>)
+    .update({ snoozed_until: until })
     .eq('id', buyer.matchId)
   if (error) throw error
 
@@ -663,7 +660,7 @@ export async function execDismiss(buyer: AtelierBuyer): Promise<void> {
 export async function execWake(matchId: string): Promise<void> {
   const { error } = await supabase
     .from('matches')
-    .update({ snoozed_until: null } as unknown as TablesUpdate<'matches'>)
+    .update({ snoozed_until: null })
     .eq('id', matchId)
   if (error) throw error
   await supabase
