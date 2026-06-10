@@ -87,6 +87,7 @@ const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugar
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
 const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
 const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
+const MatchingAtelierPage = lazy(() => import('@/pages/agent/MatchingAtelierPage'))
 const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
 const DocumentsSugarV2Page = lazy(() => import('@/pages/agent/DocumentsSugarV2Page'))
@@ -107,6 +108,7 @@ const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage')
 const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const D0ConfiguringDemoPage = lazy(() => import('@/pages/dev/D0ConfiguringDemoPage'))
+const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const D0ActivationDemoPage = lazy(() => import('@/pages/dev/D0ActivationDemoPage'))
 const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
 const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
@@ -423,6 +425,8 @@ function AnimatedRoutes() {
               {/* Dev showcase routes (no auth) */}
               <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
               <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
+              {/* Atelier Matching — démo QA visuelle (mocks handoff, zéro écriture) */}
+              <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
               <Route path="/dev/mfa" element={<MfaShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/configuring" element={<D0ConfiguringDemoPage />} />
@@ -500,7 +504,11 @@ function AnimatedRoutes() {
                 <Route path="visites/:id" element={<DashboardVisitRedirect />} />
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
-                <Route path="matching" element={<MatchingSugarV2Page />} />
+                {/* Atelier Matching — triptyque plein écran (handoff juin 2026).
+                    Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id> */}
+                <Route path="matching" element={<MatchingAtelierPage />} />
+                {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
+                <Route path="matching/v2" element={<MatchingSugarV2Page />} />
                 <Route path="journey" element={<JourneySugarV2Page />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
