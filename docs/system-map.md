@@ -38,6 +38,13 @@ avoir livré une feature ou changé l'architecture :
 **Interroger :** `npx ruflo memory search -q "comment fonctionne le gate KYC" -n megga`
 **Lister :** `npx ruflo memory list -n megga` · **Recharger :** `npm run ruflo:seed`
 
+> ⚠️ **Écritures directes** (`ruflo memory store`/`import` hors script) : préfixer
+> `CLAUDE_FLOW_DISABLE_BRIDGE=1`, sinon ruflo (3.10.x) annonce un succès mais ne persiste rien —
+> son bridge AgentDB garde les lignes dans un SQLite en mémoire que le CLI quitte sans flusher.
+> Le script `npm run ruflo:seed` pose ce flag lui-même et vérifie le rappel par une sonde de
+> recherche après import (le « Vectors: 0 » affiché par l'import est un compteur factice upstream).
+> La lecture (`search`/`list`) n'a pas besoin du flag.
+
 > ⚠️ **Fiabilité** : les entrées reflètent le code à leur date d'écriture. En cas de doute, le **code
 > fait foi** — re-vérifier puis corriger le seed. Plusieurs entrées portent des `NUANCE`/`ATTENTION`
 > issues d'un audit factuel ; les garder à jour.
