@@ -20,16 +20,16 @@ export function validCoords(lat: number | null | undefined, lng: number | null |
 }
 
 /**
- * URL Mapbox Static Images — pin à l'accent, style selon le thème.
- * `token` injecté (pas de lecture d'env ici → testable).
+ * URL Mapbox Static Images. Style `streets-v12` (couleur) dans les deux thèmes
+ * — la carte est du contenu, comme les photos d'annonce qui restent en couleur
+ * en mode sombre ; pin noir #0B0C0E (accent, lisible sur le fond clair de
+ * streets). `token` injecté (pas de lecture d'env ici → testable).
  */
-export function buildStaticMapUrl(lng: number, lat: number, dark: boolean, token: string): string {
-  const style = dark ? 'dark-v11' : 'light-v11'
-  const pin = dark ? 'f4f6f8' : '0b0c0e'
+export function buildStaticMapUrl(lng: number, lat: number, token: string): string {
   // @2x pour la netteté ; 500x320 logique → 1000x640 réel (sous le plafond Mapbox)
   return (
-    `https://api.mapbox.com/styles/v1/mapbox/${style}/static/` +
-    `pin-s+${pin}(${lng},${lat})/${lng},${lat},13,0/500x320@2x` +
+    `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/` +
+    `pin-s+0b0c0e(${lng},${lat})/${lng},${lat},14,0/500x320@2x` +
     `?access_token=${token}&attribution=false&logo=false`
   )
 }

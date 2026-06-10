@@ -219,13 +219,12 @@ interface SgaAnnonceVueProps {
   L: AtelierListing
   buyer: AtelierBuyer | null
   keysOff: boolean
-  dark: boolean
   onClose: () => void
   onPropose: (() => void) | null
   onOpenPhoto: (i: number) => void
 }
 
-export default function SgaAnnonceVue({ L, buyer, keysOff, dark, onClose, onPropose, onOpenPhoto }: SgaAnnonceVueProps) {
+export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, onOpenPhoto }: SgaAnnonceVueProps) {
   const [closing, setClosing] = useState(false)
   const [copied, setCopied] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -303,7 +302,7 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, dark, onClose, onProp
                 </SgvSection>
               )}
               <SgvSection title="Localisation">
-                <SgaMiniMap lat={L.lat} lng={L.lng} address={L.addr} label={L.addr} dark={dark} className="sgv-map" />
+                <SgaMiniMap lat={L.lat} lng={L.lng} address={L.addr} label={L.addr} className="sgv-map" />
               </SgvSection>
             </div>
             <div className="col side">

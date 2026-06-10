@@ -1,8 +1,8 @@
 // Unit test — helpers purs de la mini-carte Mapbox de l'Atelier Matching.
-// Verrou anti-régression sur deux invariants faciles à casser par accident :
+// Verrou anti-régression sur les invariants faciles à casser par accident :
 //   - l'ORDRE lng/lat (Mapbox veut lng,lat ; la DB stocke lat + lng séparés —
 //     une inversion donne une carte plausible mais fausse, sans erreur)
-//   - le style/pin selon le thème (light-v11 noir / dark-v11 blanc)
+//   - le style streets-v12 (couleur) + pin noir d'accent
 // + la garde « null island » (0,0) qui évite une carte du golfe de Guinée
 //   quand une colonne géo n'est pas remplie (revue adversariale, 10 juin 2026).
 
@@ -47,23 +47,17 @@ describe('buildStaticMapUrl', () => {
   const lng = 6.1397
   const lat = 46.1817
 
-  it('thème clair → light-v11 + pin noir, ordre lng,lat, zoom 13 @2x, token injecté', () => {
-    const u = buildStaticMapUrl(lng, lat, false, 'pk.test-token')
-    expect(u).toContain('/styles/v1/mapbox/light-v11/static/')
+  it('style streets-v12 (couleur) + pin noir, ordre lng,lat, zoom 14 @2x, token injecté', () => {
+    const u = buildStaticMapUrl(lng, lat, 'pk.test-token')
+    expect(u).toContain('/styles/v1/mapbox/streets-v12/static/')
     expect(u).toContain(`pin-s+0b0c0e(${lng},${lat})`)
-    expect(u).toContain(`/${lng},${lat},13,0/500x320@2x`)
+    expect(u).toContain(`/${lng},${lat},14,0/500x320@2x`)
     expect(u).toContain('access_token=pk.test-token')
     expect(u).toContain('attribution=false&logo=false')
   })
 
-  it('thème sombre → dark-v11 + pin blanc', () => {
-    const u = buildStaticMapUrl(lng, lat, true, 'pk.test-token')
-    expect(u).toContain('/styles/v1/mapbox/dark-v11/static/')
-    expect(u).toContain(`pin-s+f4f6f8(${lng},${lat})`)
-  })
-
   it("place le pin et le centre dans l'ordre lng,lat (pas lat,lng)", () => {
-    const u = buildStaticMapUrl(lng, lat, false, 't')
+    const u = buildStaticMapUrl(lng, lat, 't')
     // lng (6.x) doit précéder lat (46.x) dans le marqueur ET le centre
     expect(u.indexOf(`${lng}`)).toBeLessThan(u.indexOf(`${lat}`))
   })
