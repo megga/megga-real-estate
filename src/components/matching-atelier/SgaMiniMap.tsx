@@ -2,8 +2,8 @@
 //
 // Carte STATIQUE (Mapbox Static Images API) : une image, pas d'instance GL —
 // non-interactive comme l'exige l'esprit « mini-carte », et zéro re-render à
-// chaque sélection d'acheteur. Suit le thème (light-v11 / dark-v11), pin à
-// l'accent (noir clair / blanc sombre).
+// chaque sélection d'acheteur. Style streets-v12 (couleur) dans les deux
+// thèmes — la carte est du contenu, comme les photos ; pin noir d'accent.
 //
 // Coordonnées : lat/lng de la row si exploitables (toutes les market_listings),
 // sinon géocodage de l'adresse à la volée (biens internes sans coords —
