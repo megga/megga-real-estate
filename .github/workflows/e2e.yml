@@ -47,8 +47,9 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - name: Run unit tests (Vitest)
-        run: npm run test:unit
+      # Unit tests (Vitest) run in their own dedicated workflow now:
+      # .github/workflows/unit-tests.yml — faster, isolated, no Playwright
+      # browser install in the way. Don't re-add them here.
 
       - name: Run E2E suite (agent role)
         run: npm run test:e2e

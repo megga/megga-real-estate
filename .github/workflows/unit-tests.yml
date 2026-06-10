@@ -1,0 +1,48 @@
+name: Unit Tests (Vitest)
+
+# Fast, isolated frontend unit suite (`vitest run`, jsdom).
+# Pure tests — no Supabase, no Docker, no Playwright browsers — so this is the
+# quickest signal on a PR and the right place to catch a broken unit test
+# (e.g. tests/unit/atelier-map-url.spec.ts, which locks the lng/lat order of
+# the Mapbox mini-map, or utils.spec.ts).
+#
+# Scope is defined by vitest.config.ts: tests/unit/** plus the handful of
+# Node-safe supabase/functions/_shared/*.test.ts modules (whatsapp-*, vision,
+# kyc-extract, magic-link-token, …). Currently 18 files / 173 tests, ~2s.
+#
+# Separate from backend.yml (RLS + Edge Functions, needs a local Supabase) and
+# e2e.yml (Playwright) — different concerns, different failure modes.
+#
+# Local equivalent: npm run test:unit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  unit:
+    name: Vitest unit (jsdom)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        # No --coverage: keep this step fast (it is the PR's quickest check).
+        run: npm run test:unit
