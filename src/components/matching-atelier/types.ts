@@ -32,6 +32,8 @@ export interface AtelierListing {
   title: string
   addr: string
   canton: string
+  lat: number | null
+  lng: number | null
   price: number
   priceWas: number | null
   pricePerM2: number | null
