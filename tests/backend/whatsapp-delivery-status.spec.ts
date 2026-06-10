@@ -1,6 +1,6 @@
 // Statuts de livraison WhatsApp (sprint « outbound fiable ») — live contre le Supabase local.
 //
-//  Test 1 — la contrainte status accepte sent/delivered/read (migration 20260610_002).
+//  Test 1 — la contrainte status accepte sent/delivered/read (migration 20260610130000).
 //  Test 2 — progression monotone via .in(allowedPriorStatuses) : un event en retard
 //           (delivered après read) ne matche aucune ligne → pas de rétrogradation.
 //  Test 3 — failed pose delivery_error + status_updated_at, et failed après read = no-op.
