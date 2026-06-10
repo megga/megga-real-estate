@@ -120,7 +120,7 @@ serve(async (req) => {
       contact_id: contactId,
       agency_id: profile.agency_id,
       body: text,
-      status: 'received', // sortant accepté par le provider ; statut delivery via webhook plus tard
+      status: 'received', // accepté provider ; progression sent/delivered/read/failed via events `statuses` (webhook)
       raw: respBody as Record<string, unknown>,
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
   if (insErr) {

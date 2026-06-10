@@ -7,6 +7,21 @@ import { useWhatsAppMessages, useSendWhatsAppMessage } from '@/hooks/useWhatsApp
 
 interface Props { contactId: string }
 
+// Coches de livraison d'un sortant (events `statuses` Meta ingérés par le webhook).
+// received/sent = ✓ (parti), delivered = ✓✓, read = ✓✓ bleu, failed = non délivré.
+function DeliveryStatus({ status, error }: { status: string; error: string | null }) {
+  if (status === 'failed') {
+    return (
+      <span className="font-medium text-red-200" title={error ?? 'Échec de livraison'}>
+        ⚠ non délivré
+      </span>
+    )
+  }
+  if (status === 'read') return <span className="text-sky-300" title="Lu">✓✓</span>
+  if (status === 'delivered') return <span className="opacity-60" title="Délivré">✓✓</span>
+  return <span className="opacity-60" title="Envoyé">✓</span>
+}
+
 export function CdWhatsAppCard({ contactId }: Props) {
   const { t } = useTranslation('contacts')
   const { data: messages = [], isLoading } = useWhatsAppMessages(contactId)
@@ -69,8 +84,9 @@ export function CdWhatsAppCard({ contactId }: Props) {
                 {m.body || <span className="opacity-60 italic">{t('cd.waNoText')}</span>}
               </>
             )}
-            <span className="block text-[10px] opacity-60 mt-1">
-              {new Date(m.wa_timestamp || m.created_at).toLocaleString('fr-CH')}
+            <span className={`flex items-center gap-1 text-[10px] mt-1 ${m.direction === 'outbound' ? 'justify-end' : ''}`}>
+              <span className="opacity-60">{new Date(m.wa_timestamp || m.created_at).toLocaleString('fr-CH')}</span>
+              {m.direction === 'outbound' && <DeliveryStatus status={m.status} error={m.delivery_error} />}
             </span>
           </div>
         ))}

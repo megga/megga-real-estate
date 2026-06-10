@@ -1,7 +1,7 @@
-// Couche d'abstraction provider WhatsApp. Le code applicatif (edge function,
-// futur envoi) parle à cette interface, jamais directement à OpenWA ni Meta.
-// Phase 1 : entrant seulement (parseInbound + verifyHmac). L'envoi (send) sera
-// ajouté en Phase 2.
+// Couche d'abstraction provider WhatsApp. Le code applicatif (edge functions)
+// parle à cette interface, jamais directement à OpenWA ni Meta.
+// Couvre : entrant (parseInbound), envoi (buildSend*), accusés de lecture, et
+// statuts de livraison des sortants (parseStatusUpdates — events `statuses` Meta).
 // N'utilise que la Web Crypto API → testable Vitest (Node) ET exécutable Deno.
 
 export interface NormalizedInboundMessage {
@@ -57,6 +57,16 @@ export interface SendResult {
   error?: string
 }
 
+// Statut de livraison normalisé d'un message SORTANT (events `statuses` du webhook).
+export interface StatusUpdate {
+  providerMessageId: string
+  status: 'sent' | 'delivered' | 'read' | 'failed'
+  timestamp: string | null
+  recipientPhone: string | null
+  errorCode: number | null
+  errorDetail: string | null
+}
+
 export interface WhatsAppProvider {
   readonly name: 'openwa' | 'meta'
   parseInbound(payload: unknown): NormalizedInboundMessage | null
@@ -67,10 +77,26 @@ export interface WhatsAppProvider {
   buildMarkReadRequest?(messageId: string, config: SendConfig, opts?: { typing?: boolean }): SendHttpRequest
   // Envoi d'un document (PDF) déjà uploadé en média. Optionnel : Meta uniquement.
   buildSendDocumentRequest?(msg: OutboundDocumentMessage, config: SendConfig): SendHttpRequest
+  // Events `statuses` (sent/delivered/read/failed) d'un webhook. Optionnel : Meta
+  // uniquement (le proto OpenWA n'en émet pas). Renvoie [] si le payload n'en a aucun.
+  parseStatusUpdates?(payload: unknown): StatusUpdate[]
 }
 
 export function normalizePhone(jid: string): string {
   return (jid || '').split('@')[0].replace(/\D/g, '')
+}
+
+// Progression monotone des statuts d'un sortant : received < sent < delivered < read.
+// `failed` est terminal et n'écrase jamais `read` (un message lu a forcément été livré).
+// L'UPDATE filtre sur ces statuts antérieurs : un event en retard ou rejoué ne matche
+// aucune ligne → no-op idempotent (pas de rétrogradation possible).
+export function allowedPriorStatuses(next: StatusUpdate['status']): string[] {
+  switch (next) {
+    case 'sent': return ['received']
+    case 'delivered': return ['received', 'sent']
+    case 'read': return ['received', 'sent', 'delivered']
+    case 'failed': return ['received', 'sent', 'delivered']
+  }
 }
 
 const OPENWA_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
@@ -188,6 +214,41 @@ class MetaProvider implements WhatsAppProvider {
       timestamp: ts ? new Date(ts * 1000).toISOString() : null,
       raw: payload,
     }
+  }
+
+  // Events `statuses` (sent/delivered/read/failed) — émis par Meta pour CHAQUE message
+  // sortant. Parcourt toutes les entries/changes (Meta peut batcher), ignore les statuts
+  // hors contrat. L'erreur (failed) remonte code + détail (ex. 131047 = fenêtre 24h).
+  parseStatusUpdates(payload: unknown): StatusUpdate[] {
+    const p = payload as Record<string, unknown>
+    if (!p || p.object !== 'whatsapp_business_account') return []
+    const out: StatusUpdate[] = []
+    for (const entry of (p.entry as Record<string, unknown>[] | undefined) ?? []) {
+      for (const change of (entry.changes as Record<string, unknown>[] | undefined) ?? []) {
+        if (change.field !== 'messages') continue
+        const value = change.value as Record<string, unknown> | undefined
+        for (const s of (value?.statuses as Record<string, unknown>[] | undefined) ?? []) {
+          const id = s.id as string | undefined
+          const status = s.status as string | undefined
+          if (!id || !status || !['sent', 'delivered', 'read', 'failed'].includes(status)) continue
+          const tsRaw = s.timestamp as string | number | undefined
+          const ts = tsRaw != null ? Number(tsRaw) : undefined
+          const err = (s.errors as Array<Record<string, unknown>> | undefined)?.[0]
+          const errData = err?.error_data as Record<string, unknown> | undefined
+          out.push({
+            providerMessageId: id,
+            status: status as StatusUpdate['status'],
+            timestamp: ts ? new Date(ts * 1000).toISOString() : null,
+            recipientPhone: s.recipient_id ? normalizePhone(String(s.recipient_id)) : null,
+            errorCode: typeof err?.code === 'number' ? err.code : null,
+            errorDetail: err
+              ? (String(errData?.details ?? err.title ?? err.message ?? '').slice(0, 200) || null)
+              : null,
+          })
+        }
+      }
+    }
+    return out
   }
 
   buildSendTextRequest(msg: OutboundTextMessage, config: SendConfig): SendHttpRequest {
