@@ -79,13 +79,17 @@ describe.skipIf(!HAS_KEYS)('Atelier Matching — boucle complète', () => {
     if (sErr) throw new Error(`signin: ${sErr.message}`)
 
     // ── Bien interne actif + acheteur + annonce de veille marché ──
+    // status 'draft' à dessein : un bien 'active' est PUBLIC (marketplace) et
+    // polluerait les suites RLS globales (rls.spec / rls-isolation-properties
+    // assertent « anon/autres agences ne voient aucune row »). La boucle testée
+    // ici ne dépend pas du statut du bien (FK uniquement).
     const { data: prop, error: prErr } = await service
       .from('properties')
       .insert({
         agency_id: agencyId,
         title: `Atelier QA — 5 pièces Carouge ${STAMP}`,
         type: 'apartment',
-        status: 'active',
+        status: 'draft',
         price: 1100000,
         rooms: 5,
         surface_m2: 120,
