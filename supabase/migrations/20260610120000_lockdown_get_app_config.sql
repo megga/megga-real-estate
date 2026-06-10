@@ -1,0 +1,20 @@
+-- Lockdown get_app_config : retire EXECUTE à anon / authenticated / PUBLIC.
+--
+-- Incident 2026-06-10. get_app_config(text) est SECURITY DEFINER (proprio postgres)
+-- et était GRANT EXECUTE à anon (cf. baseline + _archived/20260506_003 qui l'avait
+-- explicitement laissée « publique »). Sans allowlist de clés, tout détenteur de la
+-- clé anon (publique, bundlée) pouvait lire app_config.service_role_key via
+--   POST /rest/v1/rpc/get_app_config {"config_key":"service_role_key"}
+-- → divulgation de la clé service-role, RLS entièrement contournée. Même classe de
+-- fuite que la rotation post-incident documentée dans src/lib/supabase.ts. Latent tant
+-- que la valeur stockée est périmée, mais ré-armé dès qu'on y remet une clé valide.
+--
+-- Seuls appelants légitimes : les wrappers cron SECURITY DEFINER (daily_matching_scan,
+-- hourly_automation_scan, run_search_alerts, *whatsapp*, learn_agent_style…) qui
+-- s'exécutent en tant que postgres (proprio → EXECUTE implicite), déclenchés par
+-- pg_cron (rôle postgres). Le front n'appelle JAMAIS cette fonction (vérifié :
+-- 0 occurrence dans src/). service_role conserve son grant explicite.
+-- → révoquer anon/authenticated/PUBLIC ne casse aucun chemin légitime.
+--
+-- Idempotent (REVOKE est sûr à rejouer).
+REVOKE EXECUTE ON FUNCTION public.get_app_config(text) FROM anon, authenticated, PUBLIC;

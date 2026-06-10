@@ -441,3 +441,10 @@ verify_jwt = false
 # admin.getUser, puis RPC service_role revoke_user_session (invalide auth.sessions).
 [functions.revoke-device-session]
 verify_jwt = false
+
+# Self-heal clé service-role : recopie l'env edge (source de vérité plateforme) vers
+# app_config.service_role_key, lue par les wrappers pg_cron (incident 2026-06-10 :
+# copie manuelle périmée après rotation → 401 sur tous les crons internes).
+# Auth interne : header x-sync-token vs app_config.service_key_sync_token (hors-git).
+[functions.sync-service-key]
+verify_jwt = false
