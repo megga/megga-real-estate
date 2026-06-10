@@ -2884,12 +2884,13 @@ export type Database = {
           created_at: string | null
           id: string
           market_listing_id: string | null
-          property_id: string
+          property_id: string | null
           reasons: Json | null
           response_at: string | null
           score: number
           sent_at: string | null
           sent_via: string | null
+          snoozed_until: string | null
           source: string
           status: string
         }
@@ -2900,12 +2901,13 @@ export type Database = {
           created_at?: string | null
           id?: string
           market_listing_id?: string | null
-          property_id: string
+          property_id?: string | null
           reasons?: Json | null
           response_at?: string | null
           score: number
           sent_at?: string | null
           sent_via?: string | null
+          snoozed_until?: string | null
           source?: string
           status?: string
         }
@@ -2916,12 +2918,13 @@ export type Database = {
           created_at?: string | null
           id?: string
           market_listing_id?: string | null
-          property_id?: string
+          property_id?: string | null
           reasons?: Json | null
           response_at?: string | null
           score?: number
           sent_at?: string | null
           sent_via?: string | null
+          snoozed_until?: string | null
           source?: string
           status?: string
         }
@@ -4559,6 +4562,7 @@ export type Database = {
           created_at: string
           id: string
           mandate_type: Database["public"]["Enums"]["mandate_type"] | null
+          market_listing_id: string | null
           notes: string | null
           price_final: number | null
           price_offered: number | null
@@ -4575,6 +4579,7 @@ export type Database = {
           created_at?: string
           id?: string
           mandate_type?: Database["public"]["Enums"]["mandate_type"] | null
+          market_listing_id?: string | null
           notes?: string | null
           price_final?: number | null
           price_offered?: number | null
@@ -4591,6 +4596,7 @@ export type Database = {
           created_at?: string
           id?: string
           mandate_type?: Database["public"]["Enums"]["mandate_type"] | null
+          market_listing_id?: string | null
           notes?: string | null
           price_final?: number | null
           price_offered?: number | null
@@ -4626,6 +4632,13 @@ export type Database = {
             columns: ["contact_seller_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_market_listing_id_fkey"
+            columns: ["market_listing_id"]
+            isOneToOne: false
+            referencedRelation: "market_listings"
             referencedColumns: ["id"]
           },
           {
