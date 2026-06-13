@@ -20,6 +20,8 @@ on:
           - migrate
           - migrate-collections
           - delete-demo
+          - news-audit
+          - news-publish
 
 jobs:
   run:
@@ -35,7 +37,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Run intercom-content (${{ inputs.mode }})
+      # Les modes news-* ciblent le script News ; les autres le script content.
+      - name: Run intercom tooling (${{ inputs.mode }})
         env:
           INTERCOM_ACCESS_TOKEN: ${{ secrets.INTERCOM_ACCESS_TOKEN }}
-        run: node scripts/intercom-content.mjs ${{ inputs.mode }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          if [[ "$MODE" == news-* ]]; then
+            node scripts/intercom-news.mjs "$MODE"
+          else
+            node scripts/intercom-content.mjs "$MODE"
+          fi
