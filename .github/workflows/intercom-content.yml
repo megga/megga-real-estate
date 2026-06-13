@@ -18,6 +18,7 @@ on:
           - audit
           - migrate-dry
           - migrate
+          - delete-demo
 
 jobs:
   run:

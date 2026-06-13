@@ -116,22 +116,167 @@ async function audit() {
   )
 }
 
+// ───────────────────────── Migration FR ─────────────────────────
+//
+// Stratégie ADDITIVE : on crée une locale "fr" publiée sans jamais toucher l'existant.
+//   - Article avec un brouillon FR déjà rédigé → on le PUBLIE tel quel (pas d'écrasement).
+//   - Article sans FR → on COPIE le contenu EN (qui est déjà en français) vers une
+//     traduction FR publiée.
+// Sécurité : on relit l'article complet et on reconstruit TOUTES les locales existantes
+// avant d'ajouter le FR. Que l'API merge ou remplace, le contenu EN ne peut pas être perdu.
+// L'article démo Intercom n'est PAS touché par migrate (mode "delete-demo" séparé).
+
+const DEMO_ARTICLE_IDS = new Set(['15408130']) // "Your first public article" (sample Intercom)
+
+// Ne garde que les champs ÉCRIVABLES d'un contenu de locale (drop nulls / read-only).
+function writableLocale(content, overrides = {}) {
+  const out = { type: 'article_content' }
+  for (const k of ['title', 'description', 'body', 'author_id', 'state']) {
+    const v = overrides[k] !== undefined ? overrides[k] : content?.[k]
+    if (v !== undefined && v !== null) out[k] = v
+  }
+  return out
+}
+
+// Reconstruit translated_content en préservant chaque locale existante + applique fr.
+function buildNewTranslatedContent(full, frContent) {
+  const tc = full.translated_content || {}
+  const out = {}
+  for (const [loc, content] of Object.entries(tc)) {
+    if (loc === 'type' || !content || typeof content !== 'object') continue
+    out[loc] = writableLocale(content)
+  }
+  out.fr = frContent
+  return out
+}
+
+async function buildArticlePlans() {
+  const articles = await listAll('/articles')
+  const plans = []
+  for (const a of articles) {
+    if (DEMO_ARTICLE_IDS.has(String(a.id))) continue
+    const full = await api(`/articles/${a.id}`) // GET complet (body entier)
+    const tc = full.translated_content || {}
+    const en = tc.en
+    const fr = tc.fr
+    const localesBefore = Object.keys(tc).filter((k) => k !== 'type' && tc[k])
+
+    let action, source, bodyLen, frContent
+    if (fr && fr.body && fr.body.trim()) {
+      if (fr.state === 'published') {
+        action = 'fr-already-published'
+        source = 'FR déjà publié'
+        bodyLen = fr.body.length
+      } else {
+        action = 'publish-existing-fr'
+        source = 'brouillon FR existant → publier'
+        bodyLen = fr.body.length
+        frContent = writableLocale(fr, { state: 'published' })
+      }
+    } else if (en && en.body && en.body.trim()) {
+      action = 'copy-en-to-fr'
+      source = 'copie EN → FR (publié)'
+      bodyLen = en.body.length
+      frContent = writableLocale(en, {
+        state: 'published',
+        author_id: en.author_id ?? full.author_id,
+      })
+    } else {
+      action = 'skip-no-source'
+      source = 'aucune source exploitable'
+      bodyLen = 0
+    }
+
+    plans.push({ id: String(a.id), title: full.title, localesBefore, action, source, bodyLen, full, frContent })
+  }
+  return plans
+}
+
+function printPlans(plans) {
+  const counts = {}
+  for (const p of plans) {
+    counts[p.action] = (counts[p.action] || 0) + 1
+    console.log(`• [${p.id}] ${p.title}`)
+    console.log(`    locales actuelles : ${p.localesBefore.join(', ') || '—'}`)
+    console.log(`    action : ${p.action}  (${p.source}, ${p.bodyLen} car.)`)
+  }
+  console.log('\n──────── Plan ────────')
+  console.log(JSON.stringify(counts, null, 0))
+}
+
+async function migrateDry() {
+  console.log(`→ DRY-RUN migration FR (lecture seule, ${BASE}, API ${API_VERSION})\n`)
+  const plans = await buildArticlePlans()
+  printPlans(plans)
+  console.log(
+    '\nAucune écriture effectuée. Lance le mode "migrate" (scope Write content data) pour appliquer.\n' +
+      'Hors périmètre de migrate (à finir au dashboard) : noms FR des 4 collections,\n' +
+      'langue par défaut du Help Center = français, et suppression de l\'article démo (mode delete-demo).',
+  )
+}
+
+async function migrate() {
+  console.log(`→ MIGRATE FR (écritures réelles, ${BASE}, API ${API_VERSION})\n`)
+  const plans = await buildArticlePlans()
+  let done = 0
+  let skipped = 0
+  let failed = 0
+  for (const p of plans) {
+    if (p.action === 'fr-already-published' || p.action === 'skip-no-source') {
+      console.log(`= [${p.id}] ${p.title} — ${p.source} (rien à faire)`) ; skipped++
+      continue
+    }
+    const newTc = buildNewTranslatedContent(p.full, p.frContent)
+    // Garde-fou : on ne PUT que si toutes les locales d'origine sont préservées.
+    const ok = p.localesBefore.every((loc) => newTc[loc] && (loc === 'fr' || newTc[loc].body))
+    if (!ok) {
+      console.error(`✗ [${p.id}] ${p.title} — garde-fou: locale d'origine manquante après reconstruction, SKIP`)
+      failed++
+      continue
+    }
+    try {
+      await api(`/articles/${p.id}`, { method: 'PUT', body: JSON.stringify({ translated_content: newTc }) })
+      console.log(`✓ [${p.id}] ${p.title} — ${p.action}`)
+      done++
+    } catch (err) {
+      console.error(`✗ [${p.id}] ${p.title} — ${err.message}`)
+      failed++
+    }
+  }
+  console.log(`\n──────── Résultat ────────\nÉcrits: ${done} | inchangés: ${skipped} | échecs: ${failed}`)
+  if (failed) process.exitCode = 1
+}
+
+async function deleteDemo() {
+  console.log(`→ DELETE article(s) démo (${BASE}, API ${API_VERSION})\n`)
+  for (const id of DEMO_ARTICLE_IDS) {
+    try {
+      const full = await api(`/articles/${id}`)
+      await api(`/articles/${id}`, { method: 'DELETE' })
+      console.log(`✓ supprimé [${id}] ${full.title}`)
+    } catch (err) {
+      console.error(`✗ [${id}] ${err.message}`)
+      process.exitCode = 1
+    }
+  }
+}
+
 async function main() {
   switch (mode) {
     case 'audit':
       await audit()
       break
-    case 'migrate':
     case 'migrate-dry':
-      console.error(
-        `✗ mode "${mode}" pas encore implémenté.\n` +
-          '  On lance d\'abord "audit" pour voir la structure réelle des articles,\n' +
-          '  puis on conçoit la migration sur des données réelles (pas à l\'aveugle).',
-      )
-      process.exit(2)
+      await migrateDry()
+      break
+    case 'migrate':
+      await migrate()
+      break
+    case 'delete-demo':
+      await deleteDemo()
       break
     default:
-      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | migrate-dry | migrate`)
+      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | migrate-dry | migrate | delete-demo`)
       process.exit(2)
   }
 }
