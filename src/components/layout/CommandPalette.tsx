@@ -23,7 +23,6 @@ const pageItems: CommandItem[] = [
   { id: 'p-listings', label: 'Mes biens', category: 'pages', icon: 'building', href: '/dashboard/listings' },
   { id: 'p-calendar', label: 'Calendrier', category: 'pages', icon: 'calendar', href: '/dashboard/calendar' },
   { id: 'p-kyc', label: 'KYC', category: 'pages', icon: 'shield', href: '/dashboard/kyc' },
-  { id: 'p-documents', label: 'Documents', category: 'pages', icon: 'file', href: '/dashboard/documents' },
   { id: 'p-settings', label: 'Paramètres', category: 'pages', icon: 'settings', href: '/dashboard/settings' },
 ]
 

@@ -72,7 +72,7 @@ export const SUGAR_NOTIFS: SugarNotif[] = [
     title: 'Le compromis Vionnet est prêt à signer',
     body: 'Le notaire a déposé la version finale, signature électronique disponible',
     time: 'Hier · 14:08', group: 'yesterday',
-    cta: 'Ouvrir le document', ctaTo: 'docs',
+    cta: 'Ouvrir le document', ctaTo: 'pipeline',
   },
   {
     id: 'n7', kind: 'team', priority: 'low', read: true,

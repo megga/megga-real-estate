@@ -17,7 +17,6 @@ const routeLabels: Record<string, string> = {
   messages: 'Messages',
   calendar: 'Calendrier',
   kyc: 'KYC',
-  documents: 'Documents',
   automation: 'Automatisation',
   settings: 'Paramètres',
   new: 'Nouveau',

@@ -61,7 +61,7 @@ export const D0_QUESTIONS: D0Question[] = [
     id: 'specialite',
     eyebrow: '01 / 04',
     title: 'Sur quoi vous concentrez-vous principalement ?',
-    sub: 'Pour adapter votre pipeline, vos templates de documents et les suggestions IA.',
+    sub: 'Pour adapter votre pipeline et les suggestions IA.',
     kind: 'cards',
     options: [
       { id: 'vente', icon: 'home', label: 'Vente résidentielle', hint: 'Maisons, appartements en propriété' },
@@ -118,7 +118,6 @@ export const D0_PRIORITY_ROUTES: Record<string, string> = {
   // Les intégrations email sont dans Settings (section Integrations). Deep-link
   // direct à ajouter quand SettingsSugarV2Page supportera ?section=integrations.
   mail: '/dashboard/settings',
-  templates: '/dashboard/documents/templates/new',
 }
 
 // Quels id de cartes priorité correspondent aussi à un item de la checklist
@@ -128,7 +127,6 @@ export const D0_PRIORITY_TO_CHECKLIST: Record<string, string> = {
   import: 'import',
   agenda: 'agenda',
   mail: 'mail',
-  templates: 'templates',
   // 'matching' n'a pas d'équivalent checklist — c'est une activation auto
   // côté serveur, pas une étape manuelle.
 }
@@ -169,7 +167,6 @@ export const D0_PRIORITY_MAP: Record<Priorite, D0PriorityBlock> = {
     cards: [
       { id: 'import', icon: 'user', title: 'Importer vos contacts', sub: "Tout l'historique au même endroit" },
       { id: 'mail', icon: 'mail', title: 'Connecter votre boîte mail', sub: 'Je suis vos échanges automatiquement' },
-      { id: 'templates', icon: 'info', title: 'Configurer vos templates', sub: 'Vos relances en un clic, à votre voix' },
     ],
   },
 }
@@ -290,7 +287,6 @@ export const D0_CHECKLIST: D0ChecklistItem[] = [
   { id: 'import', icon: 'user', label: 'Importer vos contacts', est: '2 min', done: false },
   { id: 'agenda', icon: 'clock', label: 'Connecter votre agenda', est: '1 min', done: false },
   { id: 'mail', icon: 'mail', label: 'Connecter votre boîte mail', est: '1 min', done: false },
-  { id: 'templates', icon: 'info', label: 'Configurer vos templates', est: '3 min', done: false },
 ]
 
 // ─── Engagements IA (synthèse) selon les réponses ────────────────────

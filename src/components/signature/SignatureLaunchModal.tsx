@@ -1,6 +1,6 @@
 // SignatureLaunchModal — lance une demande de signature qualifiée sur un PDF
-// (Phase 2/3 e-signature). Réutilisable : DocumentGenerator (générer & signer),
-// liste documents, dossier… Le PDF est fourni en base64 par l'appelant.
+// (Phase 2/3 e-signature). Réutilisable : liste documents, dossier…
+// Le PDF est fourni en base64 par l'appelant.
 //
 // Livraison du lien au signataire :
 //   - Email  : le provider (Skribble) notifie le signataire (notify=true).

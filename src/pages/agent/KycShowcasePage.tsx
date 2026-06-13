@@ -42,7 +42,6 @@ export default function KycShowcasePage() {
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': navigate('/dashboard/calendar'); break
-      case 'docs': navigate('/dashboard/documents'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'reseau': navigate('/dashboard/network'); break
       case 'ai':

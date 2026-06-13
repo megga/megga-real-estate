@@ -345,7 +345,6 @@ export function PreferencesSection() {
                 { id: 'contacts', label: 'Contacts' },
                 { id: 'biens', label: 'Mes biens' },
                 { id: 'calendar', label: 'Calendrier' },
-                { id: 'docs', label: 'Documents' },
               ]}
             />
             <PrefSelect

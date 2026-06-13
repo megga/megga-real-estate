@@ -28,7 +28,6 @@ const CRM_AGENT_ROUTES: RouteSpec[] = [
   { path: '/dashboard/matching', label: 'Matching' },
   { path: '/dashboard/journey', label: 'Parcours équipe' },
   { path: '/dashboard/calendar', label: 'Calendrier' },
-  { path: '/dashboard/documents', label: 'Documents' },
   { path: '/dashboard/settings', label: 'Paramètres' },
   { path: '/dashboard/kyc', label: 'KYC' },
   { path: '/dashboard/network', label: 'Réseau agences' },
@@ -41,9 +40,6 @@ const CRM_AGENT_ROUTES: RouteSpec[] = [
   { path: '/dashboard/listings/new', label: 'Listings > Nouveau bien' },
   { path: '/dashboard/import-lead', label: 'Import lead IA' },
   { path: '/dashboard/visits/nouveau', label: 'Visites > Nouvelle' },
-  { path: '/dashboard/documents/generate', label: 'Documents > Générer' },
-  { path: '/dashboard/documents/templates/new', label: 'Documents > Nouveau template' },
-  { path: '/dashboard/documents/view', label: 'Documents > Viewer' },
   { path: '/dashboard/onboarding', label: 'Onboarding' },
   { path: '/dashboard/premier-jour', label: 'Premier jour' },
 ]

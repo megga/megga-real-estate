@@ -3,7 +3,8 @@
 // Refonte du rail vertical gauche (outils transverses, jamais la navigation
 // pages — celle-ci reste à la TopNav). Recréation fidèle du handoff design
 // « Liquid Glass — Icon Rail » :
-//   • capsule en verre liquide réfracté (filtre SVG #sugarGlass + backdrop-filter)
+//   • capsule en verre harmonisée sur les tokens des cards Sugar (frameBg /
+//     frameBorder / shadow) + léger backdrop-filter (même matériau que le reste)
 //   • icônes line-art qui se redessinent (self-draw Framer Motion) à l'activation
 //     ET à chaque survol — pop spring + tracé manuscrit décalé par sous-tracé
 //   • bascule de thème par morph soleil ↔ lune
@@ -22,28 +23,6 @@ import { useNavigate } from 'react-router-dom'
 import { motion, type Transition } from 'motion/react'
 import type { SugarPalette } from './tokens'
 import { DBRelanceSession } from '@/components/crm-sugar-v3/dashboard/DBRelanceSession'
-
-// ─── Filtre de réfraction « liquid glass » (injecté une seule fois) ────────
-// Une turbulence fractale floutée pilote un displacement map → l'arrière-plan
-// vu à travers la capsule ondule légèrement, comme de l'eau.
-function useSugarGlassFilter() {
-  useEffect(() => {
-    if (document.getElementById('sugarGlass')) return
-    const ns = 'http://www.w3.org/2000/svg'
-    const svg = document.createElementNS(ns, 'svg')
-    svg.setAttribute('width', '0')
-    svg.setAttribute('height', '0')
-    svg.setAttribute('aria-hidden', 'true')
-    svg.style.position = 'absolute'
-    svg.innerHTML = `
-      <filter id="sugarGlass" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
-        <feTurbulence type="fractalNoise" baseFrequency="0.009 0.012" numOctaves="2" seed="7" result="noise" />
-        <feGaussianBlur in="noise" stdDeviation="1.4" result="softNoise" />
-        <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="48" xChannelSelector="R" yChannelSelector="G" />
-      </filter>`
-    document.body.appendChild(svg)
-  }, [])
-}
 
 // ─── Tracés SVG des icônes du rail (glyphes officiels MEGGA, viewBox 24) ───
 // On embarque les tracés ici plutôt que via <MEIcon> : MEIcon délègue dashboard
@@ -292,7 +271,6 @@ export interface SugarIconRailProps {
 export function SugarIconRail({
   active = 'today', onNavigate, dark, setDark, sp, onCmd, extraBottomBtn,
 }: SugarIconRailProps) {
-  useSugarGlassFilter()
   const navigate = useNavigate()
   const [relanceOpen, setRelanceOpen] = useState(false)
 
@@ -306,20 +284,14 @@ export function SugarIconRail({
   const hoverIcon = dark ? 'rgba(255,255,255,0.92)' : 'rgba(11,12,14,0.85)'
   const activeIcon = dark ? '#FFFFFF' : '#0B0C0E'
 
-  // Verre teinté + reflets internes — varie selon le thème (valeurs finales hifi).
-  const capsule: CSSProperties = dark
-    ? {
-        background: 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.22)',
-        boxShadow:
-          'inset 0 1.5px 1px rgba(255,255,255,0.55), inset 0 -2px 6px rgba(255,255,255,0.10), inset 0 0 22px rgba(255,255,255,0.04), 0 22px 60px rgba(0,0,0,0.45), 0 4px 14px rgba(0,0,0,0.30)',
-      }
-    : {
-        background: 'rgba(255,255,255,0.5)',
-        border: '1px solid rgba(255,255,255,0.75)',
-        boxShadow:
-          'inset 0 1.5px 1px rgba(255,255,255,0.9), inset 0 -2px 6px rgba(255,255,255,0.4), 0 22px 60px rgba(40,50,90,0.18), 0 4px 14px rgba(40,50,90,0.12)',
-      }
+  // Capsule harmonisée — mêmes tokens que les cards/frames Sugar (frameBg /
+  // frameBorder / shadow) pour que le rail soit du MÊME matériau que le reste de
+  // l'UI. On garde uniquement un fin reflet supérieur pour le caractère verre.
+  const capsule: CSSProperties = {
+    background: sp.frameBg,
+    border: `1px solid ${sp.frameBorder}`,
+    boxShadow: `inset 0 1px 0.5px ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.35)'}, ${sp.shadow}`,
+  }
 
   // Outils transverses (la TopNav gère les PAGES — aucun doublon ici).
   const items: RailItem[] = [
@@ -370,9 +342,10 @@ export function SugarIconRail({
         <div style={{
           position: 'sticky', top: 16, overflow: 'visible',
           borderRadius: 34,
-          // Réfraction (Chromium) + fallback Safari (blur seul — Safari ignore url()).
-          backdropFilter: 'url(#sugarGlass) blur(3px) saturate(1.7) brightness(1.06)',
-          WebkitBackdropFilter: 'blur(14px) saturate(1.7) brightness(1.06)',
+          // Backdrop tonifié, aligné sur les cards Sugar (blur 8px) — sans boost
+          // de luminosité ni filtre SVG de réfraction.
+          backdropFilter: 'blur(8px) saturate(1.15)',
+          WebkitBackdropFilter: 'blur(8px) saturate(1.15)',
           padding: '14px 10px',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
           animation: 'sugar-fade-up 480ms cubic-bezier(.22,1,.36,1) both',

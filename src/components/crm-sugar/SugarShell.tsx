@@ -41,7 +41,7 @@ export function SugarRoundIconBtn({ children, dot, onClick, sp }: SugarRoundIcon
 // ─── Top navigation (logo + horizontal tabs + actions) ─────────────────
 export type SugarScreenId =
   | 'today' | 'pipeline' | 'matching' | 'parcours' | 'contacts'
-  | 'biens' | 'calendar' | 'docs' | 'julien'
+  | 'biens' | 'calendar' | 'julien'
 
 interface SugarTopNavProps {
   active?: SugarScreenId
@@ -104,7 +104,6 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
     { id: 'contacts',  label: 'Contacts' },
     { id: 'biens',     label: 'Mes biens' },
     { id: 'calendar',  label: 'Calendrier' },
-    { id: 'docs',      label: 'Documents' },
   ]
   const isJulien = active === 'julien'
 
