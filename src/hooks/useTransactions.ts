@@ -24,7 +24,7 @@ import {
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { trackIntercomEvent } from '@/lib/intercom'
+import { trackIntercomEvent, INTERCOM_EVENTS } from '@/lib/intercom'
 import type { Transaction, TransactionStatus, MandateType } from '@/types/transaction'
 import type { TransactionStage } from '@/lib/constants'
 import type { TablesUpdate } from '@/types/database'
@@ -90,7 +90,7 @@ export function useCreateTransaction() {
         input as unknown as Parameters<typeof insert.mutateAsync>[0][number],
       ])
       // Signal produit → Intercom : moment de valeur "affaire créée" (Series, ciblage).
-      trackIntercomEvent('deal_created')
+      trackIntercomEvent(INTERCOM_EVENTS.DEAL_CREATED)
       return Array.isArray(rows) ? rows[0] : rows
     },
     isPending: insert.isPending,

@@ -23,6 +23,19 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/purity': 'warn',
       'react-hooks/preserve-manual-memoization': 'warn',
+      // Frontière LPD : le SDK Intercom ne s'importe QUE dans src/lib/intercom.ts
+      // (point de passage unique → no-op guard + allowlist anti-fuite). Ailleurs = erreur.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@intercom/messenger-js-sdk',
+              message: 'Importer Intercom UNIQUEMENT via src/lib/intercom.ts (frontière LPD + no-op guard).',
+            },
+          ],
+        },
+      ],
       // Convention TS standard : un préfixe `_` marque l'arg/var intentionnel-
       // lement non utilisé (e.g. callback signature, deps array contractuelle).
       // On accepte le pattern au lieu de râler dessus.
@@ -39,5 +52,10 @@ export default defineConfig([
         },
       ],
     },
+  },
+  {
+    // Exception : le wrapper EST le point de passage autorisé vers le SDK Intercom.
+    files: ['src/lib/intercom.ts'],
+    rules: { 'no-restricted-imports': 'off' },
   },
 ])

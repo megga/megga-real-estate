@@ -24,8 +24,18 @@ import {
   showArticle as sdkShowArticle,
   trackEvent as sdkTrackEvent,
 } from '@intercom/messenger-js-sdk'
+import { sanitizeIntercomArgs } from './intercom-allowlist'
 
 const APP_ID = import.meta.env.VITE_INTERCOM_APP_ID as string | undefined
+
+/** Filtre LPD : ne laisse passer que les clés allowlistées + alerte en dev si on en bloque. */
+function guardArgs(args: IntercomBootArgs): Record<string, unknown> {
+  const { sanitized, dropped } = sanitizeIntercomArgs(args)
+  if (dropped.length && import.meta.env.DEV) {
+    console.error('[intercom] clés bloquées (hors allowlist LPD, frontière agents-only) :', dropped)
+  }
+  return sanitized
+}
 
 export interface IntercomBootArgs {
   user_id?: string
@@ -48,13 +58,13 @@ let booted = false
  */
 export function bootIntercom(args: IntercomBootArgs = {}) {
   if (!APP_ID || typeof window === 'undefined') return
-  Intercom({ app_id: APP_ID, region: 'us', ...args } as Parameters<typeof Intercom>[0])
+  Intercom({ app_id: APP_ID, region: 'us', ...guardArgs(args) } as Parameters<typeof Intercom>[0])
   booted = true
 }
 
 export function updateIntercom(args: IntercomBootArgs = {}) {
   if (!APP_ID || !booted) return
-  sdkUpdate(args as Parameters<typeof sdkUpdate>[0])
+  sdkUpdate(guardArgs(args) as Parameters<typeof sdkUpdate>[0])
 }
 
 /** Ferme la session courante (utilisé au logout + avant un re-boot identifié). */
@@ -92,8 +102,25 @@ export function showIntercomArticle(articleId: string) {
   sdkShowArticle(articleId)
 }
 
-/** Envoie un event produit → alimente Fin / Series / Outbound. */
-export function trackIntercomEvent(event: string, metadata?: Record<string, unknown>) {
+/** Registre central des events produit MEGGA → Intercom (Fin / Series / Outbound / ciblage).
+ *  Tout nouvel event passe par ici : évite les typos et garde le ciblage cohérent.
+ *  ⚠️ Un event custom ne devient ciblable dans Intercom qu'après réception d'un VRAI user en prod. */
+export const INTERCOM_EVENTS = {
+  ONBOARDING_COMPLETED: 'onboarding_completed',
+  PROFILE_COMPLETED: 'profile_completed',
+  LEAD_IMPORTED: 'lead_imported',
+  FIRST_CONTACTS_IMPORTED: 'first_contacts_imported',
+  FIRST_PROPERTY_CREATED: 'first_property_created',
+  FIRST_KYC_CASE_OPENED: 'first_kyc_case_opened',
+  FIRST_MATCH_SENT: 'first_match_sent',
+  DEAL_CREATED: 'deal_created',
+} as const
+
+export type IntercomEventName = (typeof INTERCOM_EVENTS)[keyof typeof INTERCOM_EVENTS]
+
+/** Envoie un event produit → alimente Fin / Series / Outbound.
+ *  ⚠️ LPD : ne JAMAIS mettre de PII client dans `metadata` — uniquement un signal d'activation agent. */
+export function trackIntercomEvent(event: IntercomEventName, metadata?: Record<string, unknown>) {
   if (!APP_ID || !booted) return
   sdkTrackEvent(event, metadata)
 }
