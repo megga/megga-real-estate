@@ -292,8 +292,6 @@ export default function CalendarSugarV2Page() {
         navigate('/dashboard/journey'); break
       case 'calendar':
         break
-      case 'docs':
-        navigate('/dashboard/documents'); break
       case 'kyc':
         navigate('/dashboard/kyc'); break
       case 'reseau':

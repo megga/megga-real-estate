@@ -284,7 +284,6 @@ export default function JulienSugarV2Page() {
     if (ref.includes('/dashboard/contacts')) return 'contacts'
     if (ref.includes('/dashboard/matching')) return 'matching'
     if (ref.includes('/dashboard/calendar')) return 'calendar'
-    if (ref.includes('/dashboard/documents')) return 'docs'
     if (ref.includes('/dashboard') && !ref.includes('/dashboard/')) return 'today'
     return null
   })
@@ -300,7 +299,6 @@ export default function JulienSugarV2Page() {
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': navigate('/dashboard/calendar'); break
-      case 'docs': navigate('/dashboard/documents'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'reseau': navigate('/dashboard/network'); break
       case 'dashboard': navigate('/dashboard/analytics'); break

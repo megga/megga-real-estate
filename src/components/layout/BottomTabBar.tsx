@@ -24,7 +24,6 @@ const MORE_ITEMS: TabItem[] = [
   { icon: 'building', label: 'Mes biens', path: '/dashboard/listings' },
   { icon: 'shield', label: 'KYC', path: '/dashboard/kyc' },
   { icon: 'calendar', label: 'Calendrier', path: '/dashboard/calendar' },
-  { icon: 'file', label: 'Documents', path: '/dashboard/documents' },
   { icon: 'settings', label: 'Paramètres', path: '/dashboard/settings' },
 ]
 

@@ -163,8 +163,6 @@ export default function BiensSugarV2Page() {
         navigate('/dashboard/listings/new'); break
       case 'calendar':
         navigate('/dashboard/calendar'); break
-      case 'docs':
-        navigate('/dashboard/documents'); break
       case 'kyc':
         navigate('/dashboard/kyc'); break
       case 'reseau':

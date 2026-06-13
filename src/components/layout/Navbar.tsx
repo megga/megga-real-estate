@@ -462,7 +462,6 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-3">Ressources</p>
                       <div className="space-y-px">
                         {([
-                          { label: 'Documents', href: '/dashboard/documents', desc: 'Mandats, bons de visite', count: '12' },
                           { label: 'Calendrier', href: '/dashboard/calendar', desc: 'Visites, rendez-vous', count: '3' },
                           { label: 'Centre d\'aide', href: '/help', desc: 'Guides et tutoriels', count: null },
                           { label: 'Paramètres', href: '/dashboard/settings', desc: 'Profil, équipe, abonnement', count: null },

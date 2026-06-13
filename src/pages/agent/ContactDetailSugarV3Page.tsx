@@ -97,7 +97,6 @@ export default function ContactDetailSugarV3Page() {
       case 'contacts': navigate('/dashboard/contacts'); break
       case 'biens': navigate('/dashboard/listings'); break
       case 'calendar': navigate('/dashboard/calendar'); break
-      case 'docs': navigate('/dashboard/documents'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'reseau': navigate('/dashboard/network'); break
       case 'audit': navigate('/dashboard/audit'); break

@@ -57,9 +57,6 @@ export default function DashboardSugarV4Page() {
       case 'calendar':
         navigate('/dashboard/calendar')
         break
-      case 'docs':
-        navigate('/dashboard/documents')
-        break
       case 'matching':
         navigate('/dashboard/matching')
         break

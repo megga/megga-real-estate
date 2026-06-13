@@ -90,7 +90,6 @@ const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page
 const MatchingAtelierPage = lazy(() => import('@/pages/agent/MatchingAtelierPage'))
 const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
-const DocumentsSugarV2Page = lazy(() => import('@/pages/agent/DocumentsSugarV2Page'))
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
@@ -110,9 +109,6 @@ const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const D0ConfiguringDemoPage = lazy(() => import('@/pages/dev/D0ConfiguringDemoPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const D0ActivationDemoPage = lazy(() => import('@/pages/dev/D0ActivationDemoPage'))
-const DocumentGenerator = lazy(() => import('@/pages/agent/DocumentGenerator'))
-const DocumentViewer = lazy(() => import('@/pages/agent/DocumentViewer'))
-const CustomTemplatePage = lazy(() => import('@/pages/agent/CustomTemplatePage'))
 const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
 const OnboardingWizardPage = lazy(() => import('@/pages/agent/OnboardingWizardPage'))
 const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
@@ -512,7 +508,6 @@ function AnimatedRoutes() {
                 <Route path="journey" element={<JourneySugarV2Page />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
-                <Route path="documents" element={<DocumentsSugarV2Page />} />
                 <Route path="settings" element={<SettingsSugarV2Page />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
                 <Route path="kyc" element={<KycSugarV3Page />} />
@@ -547,9 +542,6 @@ function AnimatedRoutes() {
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
                 <Route path="listings/new" element={<WizardSugarV2Page />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
-                <Route path="documents/generate" element={<DocumentGenerator />} />
-                <Route path="documents/templates/new" element={<CustomTemplatePage />} />
-                <Route path="documents/view" element={<DocumentViewer />} />
 
                 {/* Super-Admin routes */}
                 <Route path="admin" element={<SuperAdminGuard><AdminDashboardPage /></SuperAdminGuard>} />

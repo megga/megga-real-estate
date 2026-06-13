@@ -207,7 +207,6 @@ function D0Sidebar({ dark, t }: { dark?: boolean; t: ObTheme }) {
     { id: 'contacts', icon: 'user', label: 'Contacts', muted: true },
     { id: 'biens', icon: 'home', label: 'Mes biens', muted: true },
     { id: 'kyc', icon: 'shield', label: 'KYC', muted: true },
-    { id: 'docs', icon: 'info', label: 'Documents', muted: true },
   ]
   return (
     <aside
