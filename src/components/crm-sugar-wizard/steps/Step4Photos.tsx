@@ -3,7 +3,7 @@
 // 3 modes : ordinateur (dropzone), téléphone (QR géant), drive (connectors).
 
 import { useState, useRef, useMemo, type ReactNode } from 'react'
-import { SugarV2, shade, type WizardData, type WizardPhoto } from '../tokens'
+import { SugarV2, shade, sgOn, sgAcc, type WizardData, type WizardPhoto } from '../tokens'
 import StagingStudio, { type SavedVariant } from '../StagingStudio'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
@@ -134,14 +134,14 @@ export function Step4Photos({ data, set }: StepProps) {
             <button key={m.v} onClick={() => setMode(m.v)} style={{
               height: 38, padding: '0 18px', borderRadius: 999, border: 0,
               background: sel ? SugarV2.black : 'transparent',
-              color: sel ? '#fff' : SugarV2.inkSoft,
+              color: sel ? sgOn() : SugarV2.inkSoft,
               fontFamily: 'inherit', fontSize: 13, fontWeight: 600, letterSpacing: 0.1,
               cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              boxShadow: sel ? '0 6px 14px rgba(11,12,14,0.22)' : 'none',
+              boxShadow: sel ? '0 6px 14px rgba(0,0,0,0.22)' : 'none',
               transition: 'all .2s ease',
             }}>
-              <PhotoIcon name={m.icon} size={16} stroke={sel ? '#fff' : SugarV2.inkSoft} />
+              <PhotoIcon name={m.icon} size={16} stroke={sel ? sgOn() : SugarV2.inkSoft} />
               {m.label}
             </button>
           )
@@ -168,17 +168,17 @@ export function Step4Photos({ data, set }: StepProps) {
           <div style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
             background: dragOver
-              ? 'radial-gradient(circle at 50% 50%, rgba(11,12,14,0.04) 0%, transparent 60%)'
+              ? 'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.04) 0%, transparent 60%)'
               : 'transparent',
             transition: 'background .3s',
           }} />
           <div style={{
             width: 88, height: 88, borderRadius: 28,
             background: dragOver ? SugarV2.black : SugarV2.cardSubtle,
-            color: dragOver ? '#fff' : SugarV2.black,
+            color: dragOver ? sgOn() : SugarV2.black,
             display: 'grid', placeItems: 'center',
             transition: 'all .25s ease',
-            boxShadow: dragOver ? '0 16px 36px rgba(11,12,14,0.25)' : 'none',
+            boxShadow: dragOver ? '0 16px 36px rgba(0,0,0,0.25)' : 'none',
             transform: dragOver ? 'scale(1.05)' : 'scale(1)',
           }}>
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
@@ -291,13 +291,13 @@ export function Step4Photos({ data, set }: StepProps) {
                     <div style={{
                       position: 'absolute', top: 10, left: 10,
                       padding: '5px 11px', borderRadius: 999,
-                      background: SugarV2.black, color: '#fff',
+                      background: SugarV2.black, color: sgOn(),
                       fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
                       textTransform: 'uppercase',
-                      boxShadow: '0 6px 16px rgba(11,12,14,0.30)',
+                      boxShadow: '0 6px 16px rgba(0,0,0,0.30)',
                       display: 'inline-flex', alignItems: 'center', gap: 5,
                     }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill={sgOn()}>
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
                       </svg>
                       Couverture
@@ -307,7 +307,7 @@ export function Step4Photos({ data, set }: StepProps) {
                     <div style={{
                       position: 'absolute', top: 10, left: 10,
                       width: 24, height: 24, borderRadius: 999,
-                      background: 'rgba(255,255,255,0.92)', color: SugarV2.ink,
+                      background: sgAcc(0.92), color: SugarV2.ink,
                       fontSize: 11, fontWeight: 700,
                       display: 'grid', placeItems: 'center',
                       boxShadow: '0 4px 10px rgba(0,0,0,0.12)',
@@ -317,7 +317,7 @@ export function Step4Photos({ data, set }: StepProps) {
                   <div style={{
                     position: 'absolute', inset: 0,
                     background: isHover
-                      ? 'linear-gradient(180deg, transparent 40%, rgba(11,12,14,0.55) 100%)'
+                      ? 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.55) 100%)'
                       : 'transparent',
                     opacity: isHover ? 1 : 0,
                     transition: 'opacity .2s ease',
@@ -330,7 +330,7 @@ export function Step4Photos({ data, set }: StepProps) {
                         title="Meubler virtuellement (Nano Banana 2)"
                         style={{
                           width: 32, height: 32, borderRadius: 999, border: 0,
-                          background: SugarV2.black, color: '#fff',
+                          background: SugarV2.black, color: sgOn(),
                           cursor: 'pointer', display: 'grid', placeItems: 'center',
                           boxShadow: '0 6px 14px rgba(0,0,0,0.30)',
                         }}>
@@ -345,7 +345,7 @@ export function Step4Photos({ data, set }: StepProps) {
                         title="Définir comme couverture"
                         style={{
                           width: 32, height: 32, borderRadius: 999, border: 0,
-                          background: 'rgba(255,255,255,0.95)', color: SugarV2.ink,
+                          background: sgAcc(0.95), color: SugarV2.ink,
                           cursor: 'pointer', display: 'grid', placeItems: 'center',
                           boxShadow: '0 6px 14px rgba(0,0,0,0.20)',
                         }}>
@@ -358,7 +358,7 @@ export function Step4Photos({ data, set }: StepProps) {
                       title="Supprimer"
                       style={{
                         width: 32, height: 32, borderRadius: 999, border: 0,
-                        background: 'rgba(255,255,255,0.95)', color: SugarV2.err,
+                        background: sgAcc(0.95), color: SugarV2.err,
                         cursor: 'pointer', display: 'grid', placeItems: 'center',
                         boxShadow: '0 6px 14px rgba(0,0,0,0.20)',
                       }}>
@@ -371,7 +371,7 @@ export function Step4Photos({ data, set }: StepProps) {
                   <div style={{
                     position: 'absolute', bottom: 10, left: 10,
                     padding: '4px 10px', borderRadius: 999,
-                    background: 'rgba(255,255,255,0.92)',
+                    background: sgAcc(0.92),
                     fontSize: 10.5, fontWeight: 600, color: SugarV2.ink,
                     letterSpacing: 0.2,
                     opacity: isHover ? 0 : 1,
@@ -389,7 +389,7 @@ export function Step4Photos({ data, set }: StepProps) {
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
                 fontSize: 13, fontWeight: 600,
                 transition: 'all .2s ease',
-                boxShadow: 'inset 0 0 0 2px rgba(11,12,14,0.06)',
+                boxShadow: 'inset 0 0 0 2px rgba(0,0,0,0.06)',
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = SugarV2.card
@@ -399,7 +399,7 @@ export function Step4Photos({ data, set }: StepProps) {
               onMouseLeave={e => {
                 e.currentTarget.style.background = SugarV2.cardSubtle
                 e.currentTarget.style.color = SugarV2.muted
-                e.currentTarget.style.boxShadow = 'inset 0 0 0 2px rgba(11,12,14,0.06)'
+                e.currentTarget.style.boxShadow = 'inset 0 0 0 2px rgba(0,0,0,0.06)'
               }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 5v14M5 12h14"/>
@@ -571,11 +571,11 @@ function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
           style={{
             height: 42, padding: '0 18px', borderRadius: 999, border: 0,
             background: phase === 'waiting' ? SugarV2.black : SugarV2.cardSubtle,
-            color: phase === 'waiting' ? '#fff' : SugarV2.muted,
+            color: phase === 'waiting' ? sgOn() : SugarV2.muted,
             fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
             cursor: phase === 'waiting' ? 'pointer' : 'not-allowed',
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            boxShadow: phase === 'waiting' ? '0 6px 16px rgba(11,12,14,0.18)' : 'none',
+            boxShadow: phase === 'waiting' ? '0 6px 16px rgba(0,0,0,0.18)' : 'none',
             transition: 'all .2s ease',
           }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -718,7 +718,7 @@ function FakePhoto({ p }: { p: WizardPhoto }) {
       <div style={{
         position: 'absolute', inset: 0,
         display: 'grid', placeItems: 'center',
-        color: 'rgba(11,12,14,0.18)',
+        color: 'rgba(0,0,0,0.18)',
       }}>
         {p.kind === 'interior' && (
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
@@ -765,7 +765,7 @@ function FakeQR({ pulse }: { pulse: boolean }) {
   return (
     <div style={{
       width: 200, height: 200, padding: 12, borderRadius: 18,
-      background: '#fff',
+      background: sgOn(),
       boxShadow: pulse
         ? '0 0 0 6px rgba(16,185,129,0.30), 0 12px 30px rgba(0,0,0,0.08)'
         : '0 12px 30px rgba(0,0,0,0.08)',

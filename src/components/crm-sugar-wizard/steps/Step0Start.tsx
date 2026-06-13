@@ -225,10 +225,10 @@ function SubmissionsCard({
 
   return (
     <div style={{
-      background: isSelected ? SugarV2.black : SugarV2.card, color: isSelected ? '#fff' : SugarV2.ink,
+      background: isSelected ? SugarV2.black : SugarV2.card, color: isSelected ? SugarV2.onBlack : SugarV2.ink,
       borderRadius: 28, padding: 22,
       boxShadow: isSelected
-        ? '0 24px 60px rgba(11,12,14,0.30), 0 4px 16px rgba(11,12,14,0.15)'
+        ? SugarV2.shadowLg
         : SugarV2.shadow,
       flex: 1, display: 'flex', flexDirection: 'column', gap: 14,
       transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
@@ -238,10 +238,10 @@ function SubmissionsCard({
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '6px 6px 0' }}>
         <div style={{
           width: 52, height: 52, borderRadius: 14,
-          background: isSelected ? 'rgba(255,255,255,0.10)' : SugarV2.cardSubtle,
+          background: isSelected ? SugarV2.onAcc10 : SugarV2.cardSubtle,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
-          <SgIcon name="inbox" size={26} stroke={isSelected ? '#fff' : SugarV2.black} />
+          <SgIcon name="inbox" size={26} stroke={isSelected ? SugarV2.onBlack : SugarV2.black} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.3, marginBottom: 2 }}>
@@ -249,7 +249,7 @@ function SubmissionsCard({
           </div>
           <div style={{
             fontSize: 12.5, fontWeight: 500, lineHeight: 1.45,
-            color: isSelected ? 'rgba(255,255,255,0.7)' : SugarV2.inkSoft,
+            color: isSelected ? SugarV2.onAcc70 : SugarV2.inkSoft,
           }}>
             {subs.length} particuliers ont soumis leur bien. Sélectionnez-en un pour pré-remplir.
           </div>
@@ -277,13 +277,13 @@ function SubmissionsCard({
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 14px', borderRadius: 14, border: 0,
                 background: sel
-                  ? (isSelected ? 'rgba(255,255,255,0.16)' : SugarV2.black)
+                  ? (isSelected ? SugarV2.onAcc16 : SugarV2.black)
                   : (hover === sub.id
-                      ? (isSelected ? 'rgba(255,255,255,0.08)' : SugarV2.cardSubtle)
-                      : (isSelected ? 'rgba(255,255,255,0.04)' : 'transparent')),
+                      ? (isSelected ? SugarV2.onAcc08 : SugarV2.cardSubtle)
+                      : (isSelected ? SugarV2.onAcc04 : 'transparent')),
                 color: sel
-                  ? '#fff'
-                  : (isSelected ? '#fff' : SugarV2.ink),
+                  ? SugarV2.onBlack
+                  : (isSelected ? SugarV2.onBlack : SugarV2.ink),
                 fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer',
                 transition: 'all .18s ease',
               }}>
@@ -303,15 +303,15 @@ function SubmissionsCard({
                 <div style={{
                   fontSize: 11, fontWeight: 500,
                   color: sel
-                    ? (isSelected ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.75)')
-                    : (isSelected ? 'rgba(255,255,255,0.55)' : SugarV2.muted),
+                    ? (isSelected ? SugarV2.onAcc80 : SugarV2.onAcc75)
+                    : (isSelected ? SugarV2.onAcc55 : SugarV2.muted),
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
                   {sub.title}
                 </div>
               </div>
               {sel && (
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>✓</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: SugarV2.onBlack }}>✓</span>
               )}
             </button>
           )

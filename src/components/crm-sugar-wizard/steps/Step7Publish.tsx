@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step7.jsx).
 
 import { useState, useMemo, type ReactNode } from 'react'
-import { SugarV2, fmtCHF, shade, type WizardData } from '../tokens'
+import { SugarV2, sgOn, sgAcc, fmtCHF, shade, type WizardData } from '../tokens'
 import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
 
 interface StepProps {
@@ -76,9 +76,9 @@ export function Step7Publish({ data, set }: StepProps) {
             </div>
             <div style={{
               flex: 1, height: 26, borderRadius: 8,
-              background: '#fff', display: 'flex', alignItems: 'center', gap: 8,
+              background: sgOn(), display: 'flex', alignItems: 'center', gap: 8,
               padding: '0 12px', fontSize: 11, color: SugarV2.muted, fontWeight: 500,
-              boxShadow: 'inset 0 0 0 1px rgba(11,12,14,0.04)',
+              boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.04)',
             }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2"/>
@@ -101,7 +101,7 @@ export function Step7Publish({ data, set }: StepProps) {
               </div>
             )}
             {cover && (
-              <div style={{ color: 'rgba(11,12,14,0.20)' }}>
+              <div style={{ color: 'rgba(0,0,0,0.20)' }}>
                 <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
                   <path d="M3 21V11l9-7 9 7v10"/><path d="M9 21v-7h6v7"/>
                 </svg>
@@ -115,22 +115,22 @@ export function Step7Publish({ data, set }: StepProps) {
               {data.options?.featured && (
                 <span style={{
                   padding: '5px 11px', borderRadius: 999,
-                  background: SugarV2.black, color: '#fff',
+                  background: SugarV2.black, color: sgOn(),
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-                  boxShadow: '0 4px 10px rgba(11,12,14,0.30)',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.30)',
                 }}>★ En vedette</span>
               )}
               {data.options?.videoTour && (
                 <span style={{
                   padding: '5px 11px', borderRadius: 999,
-                  background: 'rgba(255,255,255,0.95)', color: SugarV2.ink,
+                  background: sgAcc(0.95), color: SugarV2.ink,
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
                 }}>▶ Visite vidéo</span>
               )}
               {data.options?.virtualStagingUser && (
                 <span style={{
                   padding: '5px 11px', borderRadius: 999,
-                  background: 'rgba(255,255,255,0.95)', color: SugarV2.ink,
+                  background: sgAcc(0.95), color: SugarV2.ink,
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
                 }}>Staging</span>
               )}
@@ -140,7 +140,7 @@ export function Step7Publish({ data, set }: StepProps) {
               <div style={{
                 position: 'absolute', bottom: 14, right: 14,
                 padding: '5px 11px', borderRadius: 999,
-                background: 'rgba(11,12,14,0.65)', color: '#fff',
+                background: 'rgba(0,0,0,0.65)', color: sgOn(),
                 fontSize: 10.5, fontWeight: 600, letterSpacing: 0.3,
                 backdropFilter: 'blur(6px)',
               }}>1 / {photos.length}</div>
@@ -203,7 +203,7 @@ export function Step7Publish({ data, set }: StepProps) {
             }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 999,
-                background: SugarV2.black, color: '#fff',
+                background: SugarV2.black, color: sgOn(),
                 display: 'grid', placeItems: 'center',
                 fontSize: 12, fontWeight: 700,
               }}>{owner ? `${owner.firstName?.[0] || ''}${owner.lastName?.[0] || ''}`.toUpperCase() : 'GL'}</div>
@@ -217,7 +217,7 @@ export function Step7Publish({ data, set }: StepProps) {
               </div>
               <button style={{
                 height: 32, padding: '0 14px', borderRadius: 999, border: 0,
-                background: SugarV2.black, color: '#fff',
+                background: SugarV2.black, color: sgOn(),
                 fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, cursor: 'default',
               }}>Contacter</button>
             </div>
@@ -267,9 +267,9 @@ export function Step7Publish({ data, set }: StepProps) {
                   style={{
                     width: '100%', boxSizing: 'border-box',
                     height: 40, padding: '0 12px', borderRadius: 10,
-                    border: 0, outline: 'none', background: '#fff',
+                    border: 0, outline: 'none', background: sgOn(),
                     fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: SugarV2.ink,
-                    boxShadow: 'inset 0 0 0 1px rgba(11,12,14,0.04)',
+                    boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.04)',
                   }} />
               </div>
             )}
@@ -353,27 +353,27 @@ function PubChoice({
       display: 'flex', alignItems: 'center', gap: 14,
       padding: '14px 16px', borderRadius: 16, border: 0,
       background: sel ? SugarV2.black : SugarV2.cardSubtle,
-      color: sel ? '#fff' : SugarV2.ink,
+      color: sel ? sgOn() : SugarV2.ink,
       fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer',
-      boxShadow: sel ? '0 10px 24px rgba(11,12,14,0.20)' : 'none',
+      boxShadow: sel ? '0 10px 24px rgba(0,0,0,0.20)' : 'none',
       transition: 'all .2s ease',
     }}>
       <div style={{
         width: 36, height: 36, borderRadius: 10,
-        background: sel ? 'rgba(255,255,255,0.14)' : SugarV2.card,
-        color: sel ? '#fff' : SugarV2.ink,
+        background: sel ? sgAcc(0.14) : SugarV2.card,
+        color: sel ? sgOn() : SugarV2.ink,
         display: 'grid', placeItems: 'center', flexShrink: 0,
       }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, marginBottom: 1 }}>{title}</div>
         <div style={{
           fontSize: 11.5, fontWeight: 500,
-          color: sel ? 'rgba(255,255,255,0.70)' : SugarV2.muted,
+          color: sel ? sgAcc(0.70) : SugarV2.muted,
         }}>{sub}</div>
       </div>
       <div style={{
         width: 18, height: 18, borderRadius: 999,
-        background: sel ? '#fff' : 'transparent',
+        background: sel ? sgOn() : 'transparent',
         boxShadow: sel ? 'none' : `inset 0 0 0 2px ${SugarV2.ghost}`,
         display: 'grid', placeItems: 'center', flexShrink: 0,
       }}>

@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step8.jsx).
 
 import { useState, useEffect, useMemo, type ReactNode, type CSSProperties } from 'react'
-import { SugarV2, fmtCHF, shade, type WizardData } from '../tokens'
+import { SugarV2, sgOn, fmtCHF, shade, type WizardData } from '../tokens'
 
 interface SuccessProps {
   data: WizardData
@@ -65,7 +65,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         <div style={{
           position: 'absolute', left: '50%', top: 0, transform: 'translate(-50%, -10%)',
           width: 280, height: 280, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(11,12,14,0.05) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(0,0,0,0.05) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
 
@@ -73,12 +73,12 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           position: 'relative', display: 'inline-block', marginBottom: 26,
         }}>
           <svg width="92" height="92" viewBox="0 0 100 100" style={{
-            filter: 'drop-shadow(0 12px 30px rgba(11,12,14,0.18))',
+            filter: 'drop-shadow(0 12px 30px rgba(0,0,0,0.18))',
           }}>
             <circle cx="50" cy="50" r="46" fill={SugarV2.black} />
-            <circle cx="50" cy="50" r="46" fill="none" stroke="#fff"
+            <circle cx="50" cy="50" r="46" fill="none" stroke={sgOn()}
               strokeWidth="2.5" strokeOpacity="0.10" />
-            <path d="M30 52 L44 65 L70 38" fill="none" stroke="#fff"
+            <path d="M30 52 L44 65 L70 38" fill="none" stroke={sgOn()}
               strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"
               strokeDasharray="60"
               strokeDashoffset={phase === 'entering' ? 60 : 0}
@@ -132,7 +132,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
             ? `repeating-linear-gradient(135deg, ${cover.tone || '#D4DDE3'} 0 12px, ${shade(cover.tone || '#D4DDE3', -0.04)} 12px 24px)`
             : SugarV2.cardSubtle,
           display: 'grid', placeItems: 'center',
-          color: 'rgba(11,12,14,0.20)',
+          color: 'rgba(0,0,0,0.20)',
         }}>
           {cover ? (
             <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -177,15 +177,15 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         {mode === 'now' && (
           <a href="#" onClick={e => e.preventDefault()} style={{
             height: 44, padding: '0 18px', borderRadius: 999,
-            background: SugarV2.black, color: '#fff',
+            background: SugarV2.black, color: sgOn(),
             fontSize: 13, fontWeight: 700, letterSpacing: 0.1,
             cursor: 'pointer', textDecoration: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            boxShadow: '0 8px 20px rgba(11,12,14,0.22)',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.22)',
             transition: 'all .2s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 26px rgba(11,12,14,0.30)' }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(11,12,14,0.22)' }}>
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 26px rgba(0,0,0,0.30)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.22)' }}>
             Voir l'annonce
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7 17 17 7M7 7h10v10"/>
@@ -363,7 +363,7 @@ function NextCard({
         {tag && (
           <span style={{
             padding: '3px 9px', borderRadius: 999,
-            background: SugarV2.black, color: '#fff',
+            background: SugarV2.black, color: sgOn(),
             fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
           }}>{tag}</span>
         )}

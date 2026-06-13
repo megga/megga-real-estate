@@ -1,13 +1,14 @@
 // MEGGA CRM Sugar v2 Wizard — Shell.
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx — `CRMWizardSugarV2`).
 
-import { useState } from 'react'
+import { useState, useEffect, type CSSProperties } from 'react'
 import {
-  SugarV2, EMPTY_WIZARD, SG_STEPS, SG_KEYFRAMES, type WizardData,
+  SugarV2, setSugarV2Dark, EMPTY_WIZARD, SG_STEPS, SG_KEYFRAMES, type WizardData,
 } from './tokens'
 import {
-  SgIcon, SgCircleBtn, SgBlackPill, SgGhostPill, SgStepper,
+  SgIcon, SgCircleBtn, SgBlackPill, SgGhostPill,
 } from './primitives'
+import { useTheme } from '@/hooks/useTheme'
 import { Step0Start } from './steps/Step0Start'
 import { Step1Vendor } from './steps/Step1Vendor'
 import { Step1Mandate } from './steps/Step1Mandate'
@@ -34,6 +35,17 @@ interface WizardShellProps {
 }
 
 export default function WizardShell({ onClose }: WizardShellProps) {
+  // Le wizard suit le mode clair/sombre du CRM. On bascule le thème actif lu par
+  // le Proxy SugarV2 AU RENDER (avant que les step files lisent leurs couleurs),
+  // exactement comme le prototype Sugar (window.__setSugarV2Dark).
+  const { theme } = useTheme()
+  const dark = theme === 'dark'
+  // Épingle le thème du wizard sur celui de l'app. Quand l'override est levé (cleanup),
+  // le Proxy retombe sur `data-theme` — donc aucun render concurrent ne lit du périmé.
+  setSugarV2Dark(dark)
+  // À la fermeture, on rend la main au thème de l'app (null = suivre `data-theme`).
+  useEffect(() => () => { setSugarV2Dark(null) }, [])
+
   const [step, setStep] = useState(0)
   const [subStep, setSubStep] = useState(0)        // 0 = Vendeur, 1 = Mandat
   const [published, setPublished] = useState(false)
@@ -207,11 +219,15 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9000,
-      background: SugarV2.bgGradient,
+      // En dark on pose le wizard sur le noir plat #0A0A0F (= bg du CRM), pas le
+      // radial Sugar — il colle ainsi au fond exact de l'app. En clair, radial.
+      background: dark ? SugarV2.bg : SugarV2.bgGradient,
       fontFamily: '"Inter Tight", system-ui, sans-serif', color: SugarV2.ink,
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
-    }}>
+      // Accent suivi par le thumb du slider natif (.sg-range) — voir SG_KEYFRAMES.
+      '--sg-accent': SugarV2.black,
+    } as CSSProperties}>
       <style>{SG_KEYFRAMES}</style>
 
       {/* TOP BAR */}
@@ -229,7 +245,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
             <path fill={SugarV2.ink} d="M511.94,0c43.2,4.34,82.78,21.02,114.61,50.52,6.43,5.96,12.05,11.43,17.39,19.2l-56.72,84.95c-7.57-14.34-16.16-25.96-27.71-36.03-33.9-29.56-83.44-31.58-119.35-4.39-12.97,9.71-22.64,21.92-30.74,35.77l-101.14-.14c10.87-40.77,32.85-75.32,63.12-102.25C402.99,19.45,441.75,4.18,482.95.02h29-.01Z"/>
           </svg>
           <div style={{
-            width: 1, height: 28, background: 'rgba(11,12,14,0.10)',
+            width: 1, height: 28, background: SugarV2.line,
           }} />
           <div>
             <div style={{
@@ -242,9 +258,9 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           </div>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-          {!published && <SgStepper steps={SG_STEPS} current={step} onJump={setStep} />}
-        </div>
+        {/* Stepper retiré du header (demande utilisateur) — navigation via
+            Précédent / Continuer + compteur « N / 8 » en bas. */}
+        <div style={{ flex: 1 }} />
 
         <SgCircleBtn
           icon={<SgIcon name="close" size={18} stroke={SugarV2.ink} />}
@@ -282,7 +298,9 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         padding: '24px 32px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         gap: 16, zIndex: 20,
-        background: 'linear-gradient(180deg, transparent 0%, rgba(237,239,243,0.9) 60%, rgba(237,239,243,1) 100%)',
+        background: dark
+          ? `linear-gradient(180deg, transparent 0%, ${SugarV2.bg} 72%)`
+          : SugarV2.footerFade,
         pointerEvents: 'none',
       }}>
         <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -300,7 +318,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           </span>
           {step < SG_STEPS.length - 1 ? (
             <SgBlackPill onClick={next} disabled={!canNext}
-              icon={<SgIcon name="arrowR" size={16} stroke="#fff" />}>
+              icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
               Continuer
             </SgBlackPill>
           ) : (
@@ -321,8 +339,9 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         <div role="alert" style={{
           position: 'absolute', bottom: 92, left: 32, right: 32, zIndex: 21,
           padding: '10px 14px', borderRadius: 12,
-          background: '#FEF2F2', color: '#B91C1C',
-          border: '1px solid #FCA5A5',
+          background: dark ? 'rgba(242,107,101,0.12)' : '#FEF2F2',
+          color: SugarV2.err,
+          border: `1px solid ${dark ? 'rgba(242,107,101,0.35)' : '#FCA5A5'}`,
           fontSize: 12.5, fontWeight: 600,
         }}>
           Échec de la publication : {publishError}

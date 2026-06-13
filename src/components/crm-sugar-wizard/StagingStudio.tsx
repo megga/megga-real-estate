@@ -6,7 +6,7 @@
 // Chaque variante est signée C2PA et S'AJOUTE comme variante (l'original reste).
 
 import { useState, useEffect, type ReactNode } from 'react'
-import { SugarV2, shade, type WizardPhoto } from './tokens'
+import { SugarV2, shade, sgOn, type WizardPhoto } from './tokens'
 
 interface StyleVariant {
   id: string
@@ -169,7 +169,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(11,12,14,0.78)',
+      background: 'rgba(0,0,0,0.78)',
       backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 24,
@@ -192,12 +192,12 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
           gridArea: 'head',
           padding: '18px 26px',
           display: 'flex', alignItems: 'center', gap: 16,
-          borderBottom: '1px solid rgba(11,12,14,0.06)',
+          borderBottom: `1px solid ${SugarV2.line}`,
           background: SugarV2.card,
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: SugarV2.black, color: '#fff',
+            background: SugarV2.black, color: sgOn(),
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -237,7 +237,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
             display: 'grid', placeItems: 'center',
             transition: 'background .15s ease',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#E0E2E6' }}
+          onMouseEnter={e => { e.currentTarget.style.background = SugarV2.isDark ? '#2B2D40' : '#E0E2E6' }}
           onMouseLeave={e => { e.currentTarget.style.background = SugarV2.cardSubtle }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
               stroke={SugarV2.ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -282,7 +282,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
               <div style={{
                 position: 'absolute', top: 14, left: 14,
                 padding: '6px 12px', borderRadius: 999,
-                background: 'rgba(255,255,255,0.92)', color: SugarV2.ink,
+                background: 'rgba(255,255,255,0.92)', color: '#0B0C0E',
                 fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
               }}>Original — vide</div>
             </div>
@@ -314,12 +314,12 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                 }}>
                   <div style={{
                     padding: '6px 12px', borderRadius: 999,
-                    background: SugarV2.black, color: '#fff',
+                    background: '#0B0C0E', color: '#fff',
                     fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
                   }}>Meublé · {active.label}</div>
                   <div style={{
                     padding: '6px 12px', borderRadius: 999,
-                    background: 'rgba(255,255,255,0.95)', color: SugarV2.ink,
+                    background: 'rgba(255,255,255,0.95)', color: '#0B0C0E',
                     fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
                     fontFamily: 'ui-monospace, Menlo, monospace',
                   }}>seed {active.seed}</div>
@@ -341,7 +341,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                   width: 44, height: 44, borderRadius: 999,
                   background: '#fff',
                   boxShadow: '0 6px 20px rgba(0,0,0,0.30)',
-                  display: 'grid', placeItems: 'center', color: SugarV2.ink,
+                  display: 'grid', placeItems: 'center', color: '#0B0C0E',
                 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -356,7 +356,8 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
               <div style={{
                 position: 'absolute', inset: 0,
                 display: 'grid', placeItems: 'center',
-                background: 'rgba(237,239,243,0.55)', backdropFilter: 'blur(2px)',
+                background: SugarV2.isDark ? 'rgba(8,8,12,0.55)' : 'rgba(237,239,243,0.55)',
+                backdropFilter: 'blur(2px)',
               }}>
                 <div style={{
                   background: SugarV2.card, borderRadius: 20, padding: 28,
@@ -364,7 +365,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                 }}>
                   <div style={{
                     width: 56, height: 56, borderRadius: 16,
-                    background: SugarV2.black, color: '#fff',
+                    background: SugarV2.black, color: sgOn(),
                     margin: '0 auto 14px',
                     display: 'grid', placeItems: 'center',
                   }}>
@@ -454,7 +455,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                       {phase === 'generating' && (
                         <div style={{
                           width: 18, height: 18, borderRadius: 999,
-                          border: '2px solid rgba(11,12,14,0.10)',
+                          border: `2px solid ${SugarV2.line}`,
                           borderTopColor: SugarV2.ink,
                           animation: 'sgSpin 0.8s linear infinite',
                         }} />
@@ -472,7 +473,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                       background: `repeating-linear-gradient(135deg, ${v.tone} 0 8px, ${shade(v.tone, -0.05)} 8px 16px)`,
                       cursor: 'pointer', padding: 0, position: 'relative',
                       outline: sel ? `3px solid ${SugarV2.black}` : 'none', outlineOffset: -3,
-                      boxShadow: sel ? '0 12px 24px rgba(11,12,14,0.20)' : 'none',
+                      boxShadow: sel ? '0 12px 24px rgba(0,0,0,0.20)' : 'none',
                       transition: 'all .15s ease',
                       overflow: 'hidden',
                     }}>
@@ -480,7 +481,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                     <div onClick={e => { e.stopPropagation(); togglePick(v.id) }} style={{
                       position: 'absolute', top: 8, left: 8,
                       width: 22, height: 22, borderRadius: 999,
-                      background: isPicked ? SugarV2.black : 'rgba(255,255,255,0.92)',
+                      background: isPicked ? '#0B0C0E' : 'rgba(255,255,255,0.92)',
                       display: 'grid', placeItems: 'center',
                       boxShadow: '0 2px 6px rgba(0,0,0,0.20)',
                     }}>
@@ -495,7 +496,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                     <div style={{
                       position: 'absolute', bottom: 6, left: 6, right: 6,
                       padding: '4px 8px', borderRadius: 8,
-                      background: 'rgba(255,255,255,0.92)', color: SugarV2.ink,
+                      background: 'rgba(255,255,255,0.92)', color: '#0B0C0E',
                       fontSize: 10, fontWeight: 700, letterSpacing: 0.2,
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     }}>
@@ -516,7 +517,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
         <aside style={{
           gridArea: 'studio',
           background: SugarV2.card,
-          borderLeft: '1px solid rgba(11,12,14,0.06)',
+          borderLeft: `1px solid ${SugarV2.line}`,
           display: 'flex', flexDirection: 'column', minHeight: 0,
         }}>
           <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
@@ -529,7 +530,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                     <button key={r} onClick={() => setRoomType(r)} style={{
                       height: 32, padding: '0 13px', borderRadius: 999, border: 0,
                       background: sel ? SugarV2.black : SugarV2.cardSubtle,
-                      color: sel ? '#fff' : SugarV2.ink,
+                      color: sel ? sgOn() : SugarV2.ink,
                       fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
                       cursor: 'pointer', textTransform: 'capitalize',
                       transition: 'all .15s ease',
@@ -621,7 +622,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                           cursor: 'pointer', textAlign: 'left',
                           transition: 'background .15s ease',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#E0E2E6' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = SugarV2.isDark ? '#2B2D40' : '#E0E2E6' }}
                         onMouseLeave={e => { e.currentTarget.style.background = SugarV2.cardSubtle }}>
                           {q}
                         </button>
@@ -637,7 +638,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
               width: '100%', padding: '12px 0', border: 0, background: 'transparent',
               fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: SugarV2.muted,
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-              borderTop: '1px solid rgba(11,12,14,0.06)', marginBottom: 4,
+              borderTop: `1px solid ${SugarV2.line}`, marginBottom: 4,
               letterSpacing: 0.6, textTransform: 'uppercase',
             }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -681,22 +682,22 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
           {/* CTA footer */}
           <div style={{
             padding: '16px 24px',
-            borderTop: '1px solid rgba(11,12,14,0.06)',
+            borderTop: `1px solid ${SugarV2.line}`,
             background: SugarV2.card,
             display: 'flex', flexDirection: 'column', gap: 10,
           }}>
             {phase === 'idle' && (
               <button onClick={generate} style={{
                 height: 50, borderRadius: 999, border: 0,
-                background: SugarV2.black, color: '#fff',
+                background: SugarV2.black, color: sgOn(),
                 fontFamily: 'inherit', fontSize: 14, fontWeight: 700, letterSpacing: 0.1,
                 cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                boxShadow: '0 10px 24px rgba(11,12,14,0.22)',
+                boxShadow: '0 10px 24px rgba(0,0,0,0.22)',
                 transition: 'all .2s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(11,12,14,0.30)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(11,12,14,0.22)' }}>
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(0,0,0,0.30)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 24px rgba(0,0,0,0.22)' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m12 3 1.9 5.8L20 11l-5.8 1.9L12 19l-1.9-5.8L4 11l5.8-2L12 3Z"/>
@@ -715,7 +716,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
               }}>
                 <span style={{
                   width: 14, height: 14, borderRadius: 999,
-                  border: '2px solid rgba(11,12,14,0.10)',
+                  border: `2px solid ${SugarV2.line}`,
                   borderTopColor: SugarV2.ink,
                   animation: 'sgSpin 0.8s linear infinite', display: 'inline-block',
                 }} />
@@ -745,11 +746,11 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                     style={{
                       flex: 1, height: 44, borderRadius: 999, border: 0,
                       background: pickedCount === 0 ? SugarV2.cardSubtle : SugarV2.black,
-                      color: pickedCount === 0 ? SugarV2.muted : '#fff',
+                      color: pickedCount === 0 ? SugarV2.muted : sgOn(),
                       fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
                       cursor: pickedCount === 0 ? 'not-allowed' : 'pointer',
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                      boxShadow: pickedCount > 0 ? '0 8px 20px rgba(11,12,14,0.22)' : 'none',
+                      boxShadow: pickedCount > 0 ? '0 8px 20px rgba(0,0,0,0.22)' : 'none',
                       transition: 'all .15s ease',
                     }}>
                     {pickedCount === 0
@@ -757,7 +758,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                       : `Ajouter ${pickedCount} variante${pickedCount > 1 ? 's' : ''} signée${pickedCount > 1 ? 's' : ''}`}
                     {pickedCount > 0 && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        stroke={sgOn()} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                       </svg>
                     )}

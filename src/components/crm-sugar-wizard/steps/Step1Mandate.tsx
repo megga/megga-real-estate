@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `SgStepMandate`).
 
 import { useState } from 'react'
-import { SugarV2, type WizardData } from '../tokens'
+import { SugarV2, sgOn, sgAcc, type WizardData } from '../tokens'
 import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
@@ -140,7 +140,7 @@ export function Step1Mandate({ data, set }: StepProps) {
             <div style={{
               width: 26, height: 26, borderRadius: 999,
               background: linkedOwner.avatarBg || '#3B82F6',
-              color: '#fff', display: 'grid', placeItems: 'center',
+              color: sgOn(), display: 'grid', placeItems: 'center',
               fontSize: 10, fontWeight: 700, flexShrink: 0,
             }}>{(linkedOwner.firstName?.[0] || '') + (linkedOwner.lastName?.[0] || '')}</div>
             <span style={{ fontSize: 12, fontWeight: 600, color: SugarV2.ink }}>
@@ -165,9 +165,9 @@ export function Step1Mandate({ data, set }: StepProps) {
             if (f) handleFile(f)
           }}
           style={{
-            background: dragOver ? '#fff' : SugarV2.card,
+            background: dragOver ? sgOn() : SugarV2.card,
             borderRadius: 24, padding: '28px 32px',
-            boxShadow: dragOver ? `0 0 0 2px ${SugarV2.black}, 0 24px 60px rgba(11,12,14,0.18)` : SugarV2.shadow,
+            boxShadow: dragOver ? `0 0 0 2px ${SugarV2.black}, 0 24px 60px rgba(0,0,0,0.18)` : SugarV2.shadow,
             marginBottom: 28,
             display: 'flex', alignItems: 'center', gap: 22,
             transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
@@ -191,7 +191,7 @@ export function Step1Mandate({ data, set }: StepProps) {
               </span>
               <span style={{
                 padding: '3px 9px', borderRadius: 999,
-                background: SugarV2.black, color: '#fff',
+                background: SugarV2.black, color: sgOn(),
                 fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5,
                 textTransform: 'uppercase',
               }}>MEGGA AI</span>
@@ -202,13 +202,13 @@ export function Step1Mandate({ data, set }: StepProps) {
           </div>
           <button onClick={e => { e.stopPropagation(); triggerFilePicker() }} style={{
             height: 46, padding: '0 22px', borderRadius: 999,
-            background: SugarV2.black, color: '#fff',
+            background: SugarV2.black, color: sgOn(),
             display: 'inline-flex', alignItems: 'center', gap: 8,
             fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
             border: 0,
-            boxShadow: '0 6px 16px rgba(11,12,14,0.18)', flexShrink: 0,
+            boxShadow: '0 6px 16px rgba(0,0,0,0.18)', flexShrink: 0,
           }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
             </svg>
             Choisir le PDF
@@ -226,12 +226,12 @@ export function Step1Mandate({ data, set }: StepProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 22 }}>
             <div style={{
               width: 44, height: 44, borderRadius: 12,
-              background: SugarV2.black, color: '#fff',
+              background: SugarV2.black, color: sgOn(),
               display: 'grid', placeItems: 'center',
-              boxShadow: '0 8px 22px rgba(11,12,14,0.25)',
+              boxShadow: '0 8px 22px rgba(0,0,0,0.25)',
               animation: 'sgPulse 1.4s ease-in-out infinite',
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="1.8" strokeLinecap="round">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
               </svg>
             </div>
@@ -300,7 +300,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                 </span>
                 <span style={{
                   padding: '3px 9px', borderRadius: 999,
-                  background: SugarV2.black, color: '#fff',
+                  background: SugarV2.black, color: sgOn(),
                   fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5,
                   textTransform: 'uppercase',
                 }}>MEGGA AI</span>
@@ -382,11 +382,11 @@ export function Step1Mandate({ data, set }: StepProps) {
                     position: 'relative',
                     padding: '26px 22px', borderRadius: 24,
                     background: sel ? SugarV2.black : SugarV2.card,
-                    color: sel ? '#fff' : SugarV2.ink,
+                    color: sel ? sgOn() : SugarV2.ink,
                     border: 0, fontFamily: 'inherit', textAlign: 'left',
                     cursor: 'pointer',
                     boxShadow: sel
-                      ? '0 20px 48px rgba(11,12,14,0.30), 0 4px 16px rgba(11,12,14,0.15)'
+                      ? '0 20px 48px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.15)'
                       : SugarV2.shadow,
                     transform: sel ? 'translateY(-2px)' : 'translateY(0)',
                     transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
@@ -396,8 +396,8 @@ export function Step1Mandate({ data, set }: StepProps) {
                     <span style={{
                       position: 'absolute', top: 16, right: 16,
                       padding: '4px 10px', borderRadius: 999,
-                      background: sel ? 'rgba(255,255,255,0.15)' : SugarV2.cardSubtle,
-                      color: sel ? '#fff' : SugarV2.inkSoft,
+                      background: sel ? sgAcc(0.15) : SugarV2.cardSubtle,
+                      color: sel ? sgOn() : SugarV2.inkSoft,
                       fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5,
                       textTransform: 'uppercase',
                     }}>{t.hint}</span>
@@ -405,15 +405,15 @@ export function Step1Mandate({ data, set }: StepProps) {
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: -0.3 }}>{t.title}</h3>
                   <p style={{
                     margin: 0, fontSize: 13, fontWeight: 500, lineHeight: 1.5,
-                    color: sel ? 'rgba(255,255,255,0.75)' : SugarV2.inkSoft,
+                    color: sel ? sgAcc(0.75) : SugarV2.inkSoft,
                   }}>{t.sub}</p>
                   <div style={{
                     marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     fontSize: 12, fontWeight: 600,
-                    color: sel ? 'rgba(255,255,255,0.6)' : SugarV2.muted,
+                    color: sel ? sgAcc(0.6) : SugarV2.muted,
                   }}>
                     <span>Commission proposée</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: sel ? '#fff' : SugarV2.ink }}>{t.defaultCom}%</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: sel ? sgOn() : SugarV2.ink }}>{t.defaultCom}%</span>
                   </div>
                 </button>
               )
@@ -449,9 +449,9 @@ export function Step1Mandate({ data, set }: StepProps) {
                       <button key={d} onClick={() => setM({ duration: d })} style={{
                         height: 40, padding: '0 16px', borderRadius: 999, border: 0,
                         background: m.duration === d ? SugarV2.black : SugarV2.cardSubtle,
-                        color: m.duration === d ? '#fff' : SugarV2.inkSoft,
+                        color: m.duration === d ? sgOn() : SugarV2.inkSoft,
                         fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                        boxShadow: m.duration === d ? '0 4px 12px rgba(11,12,14,0.18)' : 'none',
+                        boxShadow: m.duration === d ? '0 4px 12px rgba(0,0,0,0.18)' : 'none',
                         transition: 'all .18s ease',
                       }}>{d} mois</button>
                     ))}
@@ -494,7 +494,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                       <button key={o.v} onClick={() => setM({ fees: o.v })} style={{
                         height: 40, padding: '0 14px', borderRadius: 12, border: 0,
                         background: m.fees === o.v ? SugarV2.black : SugarV2.cardSubtle,
-                        color: m.fees === o.v ? '#fff' : SugarV2.inkSoft,
+                        color: m.fees === o.v ? sgOn() : SugarV2.inkSoft,
                         fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
                         textAlign: 'left',
                         transition: 'all .15s',
@@ -548,7 +548,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                 <button onClick={() => setM({ signed: !m.signed })} style={{
                   height: 32, padding: '0 14px', borderRadius: 999, border: 0,
                   background: m.signed ? SugarV2.cardSubtle : SugarV2.black,
-                  color: m.signed ? SugarV2.inkSoft : '#fff',
+                  color: m.signed ? SugarV2.inkSoft : sgOn(),
                   fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 }}>
                   {m.signed ? 'Marquer comme non signé' : 'Marquer comme signé'}

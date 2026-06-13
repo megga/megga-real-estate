@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `SgStepVendor`).
 
 import { useState } from 'react'
-import { SugarV2, type WizardData } from '../tokens'
+import { SugarV2, sgOn, type WizardData } from '../tokens'
 import { SgAvatar, SgKycChip, SgInput } from '../primitives'
 import { CRM_CONTACTS, type CrmContact } from '@/components/crm-sugar/mockData'
 
@@ -121,10 +121,10 @@ export function Step1Vendor({ data, set }: StepProps) {
             {q.length > 0 && (
               <button onClick={startCreate} style={{
                 height: 44, padding: '0 18px', borderRadius: 999, border: 0,
-                background: SugarV2.black, color: '#fff',
+                background: SugarV2.black, color: sgOn(),
                 fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 6,
-                boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
+                boxShadow: '0 6px 16px rgba(0,0,0,0.18)',
               }}>+ Nouveau</button>
             )}
           </div>
@@ -150,7 +150,7 @@ export function Step1Vendor({ data, set }: StepProps) {
                 </div>
                 <button onClick={startCreate} style={{
                   height: 42, padding: '0 22px', borderRadius: 999, border: 0,
-                  background: SugarV2.black, color: '#fff',
+                  background: SugarV2.black, color: sgOn(),
                   fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 }}>+ Créer « {q} »</button>
               </div>
@@ -244,10 +244,10 @@ export function Step1Vendor({ data, set }: StepProps) {
               style={{
                 height: 40, padding: '0 22px', borderRadius: 999, border: 0,
                 background: (!newContact.firstName || !newContact.lastName) ? SugarV2.ghost : SugarV2.black,
-                color: '#fff', fontFamily: 'inherit',
+                color: sgOn(), fontFamily: 'inherit',
                 fontSize: 13, fontWeight: 600,
                 cursor: (!newContact.firstName || !newContact.lastName) ? 'not-allowed' : 'pointer',
-                boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
+                boxShadow: '0 6px 16px rgba(0,0,0,0.18)',
               }}>Créer le contact</button>
           </div>
         </div>
