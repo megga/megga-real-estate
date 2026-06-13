@@ -18,6 +18,7 @@ on:
           - audit
           - migrate-dry
           - migrate
+          - migrate-collections
           - delete-demo
 
 jobs:

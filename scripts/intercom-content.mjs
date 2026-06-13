@@ -247,6 +247,53 @@ async function migrate() {
   if (failed) process.exitCode = 1
 }
 
+// Noms FR des collections (le Help Center FR liste les collections : sans traduction
+// FR, /fr reste vide même si les articles ont leur version FR). IDs issus de l'audit.
+const COLLECTION_FR = {
+  '19659046': { name: 'Intégrations', description: 'Connecter et gérer les outils tiers.' },
+  '19659047': { name: 'Démarrer', description: 'Tout ce qu’il faut pour bien commencer.' },
+  '19659048': { name: 'Général', description: 'Informations utiles sur les sujets courants.' },
+  '19659049': { name: 'Facturation', description: 'Gérer les paiements et l’abonnement.' },
+}
+
+async function migrateCollections() {
+  console.log(`→ MIGRATE collections FR (${BASE}, API ${API_VERSION})\n`)
+  const collections = await listAll('/help_center/collections')
+  let done = 0
+  let failed = 0
+  for (const c of collections) {
+    const fr = COLLECTION_FR[String(c.id)]
+    if (!fr) {
+      console.log(`= [${c.id}] ${c.name} — pas de mapping FR, skip`)
+      continue
+    }
+    const tc = c.translated_content || {}
+    console.log(`  [${c.id}] ${c.name} — locales actuelles: ${Object.keys(tc).filter((k) => k !== 'type' && tc[k]).join(', ') || '(top-level uniquement)'}`)
+    // Reconstruit en préservant les locales existantes ; synthétise EN depuis le
+    // top-level si translated_content est vide. Nom par défaut (top-level) non touché.
+    const out = {}
+    for (const [loc, content] of Object.entries(tc)) {
+      if (loc === 'type' || !content || typeof content !== 'object') continue
+      out[loc] = { type: content.type || 'group_content', name: content.name, description: content.description ?? '' }
+    }
+    if (!out.en) out.en = { type: 'group_content', name: c.name, description: c.description ?? '' }
+    out.fr = { type: 'group_content', name: fr.name, description: fr.description }
+    try {
+      await api(`/help_center/collections/${c.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: c.name, translated_content: out }),
+      })
+      console.log(`✓ [${c.id}] ${c.name} → fr: ${fr.name}`)
+      done++
+    } catch (err) {
+      console.error(`✗ [${c.id}] ${err.message}`)
+      failed++
+    }
+  }
+  console.log(`\n──────── Résultat ────────\nÉcrits: ${done} | échecs: ${failed}`)
+  if (failed) process.exitCode = 1
+}
+
 async function deleteDemo() {
   console.log(`→ DELETE article(s) démo (${BASE}, API ${API_VERSION})\n`)
   for (const id of DEMO_ARTICLE_IDS) {
@@ -271,6 +318,9 @@ async function main() {
       break
     case 'migrate':
       await migrate()
+      break
+    case 'migrate-collections':
+      await migrateCollections()
       break
     case 'delete-demo':
       await deleteDemo()
