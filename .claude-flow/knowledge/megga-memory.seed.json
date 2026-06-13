@@ -60,8 +60,20 @@
     {
       "key": "megga/crm-pages",
       "namespace": "megga",
-      "value": "CRM agent (layout AgentSugarLayout, dark): dashboard (TodaySugar KPI), pipeline (deals par stage), contacts (+detail), listings (+detail/new wizard/edit), transactions/:id (stepper 8 etapes + banniere KYC + offres), matching, journey, calendar (Google/Outlook), documents (+generate/templates), kyc (+:dossierId/export PDF), network, audit (journal nLPD), analytics, settings. Onboarding: /dashboard/onboarding -> /dashboard/premier-jour.",
+      "value": "CRM agent (layout AgentSugarLayout, dark): dashboard (TodaySugar KPI), pipeline (deals par stage), contacts (+detail), listings (+detail/new wizard/edit), transactions/:id (stepper 8 etapes + banniere KYC + offres), matching, journey, calendar (Google/Outlook), kyc (+:dossierId/export PDF), network, audit (journal nLPD), analytics, settings. Onboarding: /dashboard/onboarding -> /dashboard/premier-jour.",
       "tags": "frontend,crm"
+    },
+    {
+      "key": "megga/documents-screen-removed",
+      "namespace": "megga",
+      "value": "ECRAN « Documents » AUTONOME RETIRE (juin 2026, decision produit, handoff CRM.zip session 14 juin). Supprimes: pages DocumentsSugarV2Page + DocumentGenerator + DocumentViewer + CustomTemplatePage (src/pages/agent/), tout le dossier src/components/crm-sugar/documents/ (DocLeft/Living/Right Column, DocStudioModal, DocViews, NewDocModal, TemplateEditorModal, atoms, data), src/components/documents/PdfDocument.tsx, hooks useDocuments/useDocumentsSugar/useCustomTemplates/useDocumentMeta, les 4 i18n locales/*/documents.json (namespace 'documents' retire de src/i18n/index.ts -> 15 namespaces). Routes /dashboard/documents* retirees de App.tsx. Entree 'Documents' retiree de TOUTES les surfaces de nav: Sidebar, Navbar (Ressources), BottomTabBar, CommandPalette, Breadcrumb, et l'onglet SugarTopNav (SugarShell, + 'docs' retire du type SugarScreenId -> tous les case 'docs' des ~18 pages agent retires). Onboarding premier-jour: carte/checklist 'Configurer vos templates' + route D0_PRIORITY_ROUTES.templates retirees. Aperçu sidebar Day0 (D0Today) + option 'Documents' du selecteur Ecran d'accueil (Preferences) retires. e2e crm-agent-coverage.spec: 4 routes documents retirees. GARDE (NE PAS confondre/supprimer): (1) tout le KYC — onglet « Documents » du dossier (KycDocsSection), flux upload/magic-link, scoring complétude (kycUtils id:'docs'), (2) la TABLE + bucket Storage `documents` + RLS + tests backend documents-*.spec.ts (partages KYC/PDF), (3) edge functions sign-document/kyc-report-pdf/audit-pdf-export/extract-property-pdf, (4) la generation de CONTENU d'annonce IA (megga/doc-generation, outil WhatsApp draft_listing_copy) = independante, (5) suggestions copilote Julien « checklist compromis / clause / modele de mandat » (gardees a la demande) + notif demo « compromis pret a signer » (ctaTo retargete 'docs'->'pipeline'). Verif: tsc -b 0, build OK, grep /dashboard/documents = 0 dans src/+e2e. Voir megga/crm-rail-harmonise (meme session).",
+      "tags": "frontend,crm,documents,removal,sidebar,kyc"
+    },
+    {
+      "key": "megga/crm-rail-harmonise",
+      "namespace": "megga",
+      "value": "Rail d'icones latéral CRM HARMONISE (juin 2026, meme session que la suppression Documents). Fichier src/components/crm-sugar/LiquidGlassRail.tsx (SugarIconRail — outils transverses gauche, partage par TOUS les ecrans CRM via SugarShell). Probleme: la capsule « liquid glass » etait codee en dur (fond rgba(255,255,255,0.5) clair / 0.07 sombre, bordure blanche epaisse, triple inset highlight, backdrop-filter url(#sugarGlass)+saturate(1.7)+brightness(1.06)) -> le rail ressortait comme un materiau plus clair/brillant que le reste, seul element qui jurait. Correctif: la capsule consomme desormais EXACTEMENT les memes tokens que les cards/frames Sugar (SugarFrame): background sp.frameBg, border 1px sp.frameBorder, boxShadow = fin reflet superieur (inset 0 1px 0.5px rgba(255,255,255,0.15 dark/0.35 light)) + sp.shadow. Backdrop = blur(8px) saturate(1.15) (aligne SugarFrame blur(8px), sans boost brightness ni filtre SVG). Le hook useSugarGlassFilter() + le filtre SVG #sugarGlass (turbulence/displacement) sont SUPPRIMES (devenus inutiles). Le rail se fond maintenant dans le meme materiau que le reste de l'UI, clair comme sombre. Regle pour tout futur ajout au rail: utiliser sp.frameBg/frameBorder/shadow, jamais de blanc translucide hardcode.",
+      "tags": "frontend,crm,sidebar,design,rail"
     },
     {
       "key": "megga/super-admin",
@@ -324,7 +336,7 @@
     {
       "key": "megga/i18n-namespaces",
       "namespace": "megga",
-      "value": "i18n (react-i18next, src/i18n/): FR defaut eager, DE/EN/IT lazy (import() au switch). 16 namespaces: common dashboard settings contacts pipeline listings kyc messages calendar matching documents admin directory compte comingSoon auth. Detection localStorage -> browser. Switch = LanguageChangeOverlay shimmer 350ms. Garder les 4 langues synchro (skill i18n-sync).",
+      "value": "i18n (react-i18next, src/i18n/): FR defaut eager, DE/EN/IT lazy (import() au switch). 15 namespaces: common dashboard settings contacts pipeline listings kyc messages calendar matching admin directory compte comingSoon auth. Detection localStorage -> browser. Switch = LanguageChangeOverlay shimmer 350ms. Garder les 4 langues synchro (skill i18n-sync).",
       "tags": "frontend,i18n"
     },
     {
@@ -384,13 +396,13 @@
     {
       "key": "megga/pages-inventory-app",
       "namespace": "megga",
-      "value": "Pages CRM agent (~36): TodaySugarPage (Action Board), DashboardSugarV4Page, PipelineSugarV2Page (Kanban 14 colonnes), ContactsSugarV2Page + ContactDetailSugarV3Page, BiensSugarV2Page + BienDetailSugarV3Page, ListingFormPage (wizard + annonce IA), MatchingSugarV2Page, DealDetailSugarV3Page, Offer/Visit ModalSugarV3Page, VisitDetailSugarV3Page, Kyc List/Detail/SugarV3 + KycExportPage, DocumentsSugarV2Page + DocumentGenerator/Viewer + CustomTemplatePage, CalendarSugarV2Page, Journey/Network SugarV2Page, SettingsSugarV2Page, ImportLeadSugarV3Page, ContactImportPage, AuditSugarPage, Support(+Detail). Portail vendeur ~11 (MyFile/Visits/Offers/Documents/Messages/Profile + Analytics). Admin 14, dev 4. NB: ~104 ecrans reels (vs 42 du MVP spec).",
+      "value": "Pages CRM agent (~36): TodaySugarPage (Action Board), DashboardSugarV4Page, PipelineSugarV2Page (Kanban 14 colonnes), ContactsSugarV2Page + ContactDetailSugarV3Page, BiensSugarV2Page + BienDetailSugarV3Page, ListingFormPage (wizard + annonce IA), MatchingSugarV2Page, DealDetailSugarV3Page, Offer/Visit ModalSugarV3Page, VisitDetailSugarV3Page, Kyc List/Detail/SugarV3 + KycExportPage, CalendarSugarV2Page, Journey/Network SugarV2Page, SettingsSugarV2Page, ImportLeadSugarV3Page, ContactImportPage, AuditSugarPage, Support(+Detail). Portail vendeur ~11 (MyFile/Visits/Offers/Documents/Messages/Profile + Analytics). Admin 14, dev 4. NB: ~104 ecrans reels (vs 42 du MVP spec).",
       "tags": "frontend,pages,agent,admin"
     },
     {
       "key": "megga/component-families",
       "namespace": "megga",
-      "value": "Familles de composants (~400 au total): propertyx/ (~89 atoms Px* + sections + tokens.ts), crm-sugar/ (~83: shell + sous-domaines biens/calendar/contacts/documents/journey/kyc/matching/network/pipeline/settings), crm-sugar-v3/ (~53 refonte pixel-pres: contact-detail/ dashboard/ kyc/ kyc-wizard/ pipeline/ audit/), listing(s)/ (fiche Px single property + ListingCard grid + ListingLightbox + BeforeAfterSlider staging), search/ (~16), calendar/ (~14), matching/ (MatchScoreCard 100pts), kyc/ + kyc-magic-link/ + kyc-report/, ui/ (Radix+shadcn+Motion), layout/, ai-copilot/, map/ (Mapbox + HexagonMap choropleth), skeletons/, illustrations/.",
+      "value": "Familles de composants (~400 au total): propertyx/ (~89 atoms Px* + sections + tokens.ts), crm-sugar/ (~83: shell + sous-domaines biens/calendar/contacts/journey/kyc/matching/network/pipeline/settings), crm-sugar-v3/ (~53 refonte pixel-pres: contact-detail/ dashboard/ kyc/ kyc-wizard/ pipeline/ audit/), listing(s)/ (fiche Px single property + ListingCard grid + ListingLightbox + BeforeAfterSlider staging), search/ (~16), calendar/ (~14), matching/ (MatchScoreCard 100pts), kyc/ + kyc-magic-link/ + kyc-report/, ui/ (Radix+shadcn+Motion), layout/, ai-copilot/, map/ (Mapbox + HexagonMap choropleth), skeletons/, illustrations/.",
       "tags": "frontend,components,inventory"
     },
     {

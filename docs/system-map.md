@@ -108,8 +108,9 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 **CRM agent** (layout `AgentSugarLayout`, dark CRM) — pages principales :
 `dashboard` (TodaySugar, KPI) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
 `listings` (+ `/:id`, `/new` wizard, `/:id/edit`) · `transactions/:id` (stepper 8 étapes + bannière KYC + offres) ·
-`matching` (**Atelier triptyque plein écran**, juin 2026 — legacy `matching/v2`, démo QA `/dev/matching-atelier`) · `journey` · `calendar` (Google/Outlook) · `documents` (+ generate/templates) ·
+`matching` (**Atelier triptyque plein écran**, juin 2026 — legacy `matching/v2`, démo QA `/dev/matching-atelier`) · `journey` · `calendar` (Google/Outlook) ·
 `kyc` (+ `/:dossierId`, `/export` PDF) · `network` · `audit` (journal nLPD) · `analytics` · `settings`.
+> ⚠️ L'écran **Documents** autonome (`/dashboard/documents` + générateur/viewer/templates) a été **retiré** (juin 2026, décision produit). Le KYC garde son onglet « Documents » + le flux d'upload/magic-link + la table/bucket `documents`. La génération de contenu d'annonce IA (`megga/doc-generation`) est indépendante et conservée.
 
 **Onboarding** : `/dashboard/onboarding` (wizard) → `/dashboard/premier-jour` (calibrage IA one-shot).
 Flux `PremierJourShell` : `welcome → q0..q3 → synthesis → configuring → today`. La phase `configuring`
@@ -141,7 +142,7 @@ Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`
 `supabase.ts` (client typé, anon key) · `utils.ts` (`formatCHF` → `CHF 720'000`, `formatDate` DD.MM.YYYY, `cn`) · `constants.ts` (CANTONS, types, stages) · `sugarAdapters.ts` (Supabase → vues CRM) · logique métier (`estimation`, `matching`, `kycUtils`, `cantonalTaxRates`, `plans`) · export (`auditPdfExport`, `exportCsv`) · `figma-catalog.ts` (mapping Figma→React) · intégrations (`mapboxClient`, `captcha`, `sentry`, `posthog`).
 
 ### i18n
-FR (défaut, eager) + DE/EN/IT (lazy). 16 namespaces : `common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, documents, admin, directory, compte, comingSoon, auth`. Switch = overlay shimmer 350ms.
+FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, directory, compte, comingSoon, auth`. Switch = overlay shimmer 350ms.
 
 ---
 
