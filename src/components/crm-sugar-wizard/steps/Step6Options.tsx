@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step6.jsx).
 
 import { useState, type ReactNode } from 'react'
-import { SugarV2, shade, type WizardData } from '../tokens'
+import { SugarV2, shade, sgOn, sgAcc, type WizardData } from '../tokens'
 import { SgSwitch } from '../primitives'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
@@ -77,7 +77,7 @@ export function Step6Options({ data, set }: StepProps) {
           }}>
             <div style={{
               position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
-              color: 'rgba(11,12,14,0.25)',
+              color: 'rgba(0,0,0,0.25)',
             }}>
               <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
                 <path d="M3 21V11l9-7 9 7v10"/><path d="M9 21v-7h6v7"/>
@@ -86,7 +86,7 @@ export function Step6Options({ data, set }: StepProps) {
             <div style={{
               position: 'absolute', top: 16, left: 16,
               padding: '5px 11px', borderRadius: 999,
-              background: 'rgba(255,255,255,0.92)', color: SugarV2.ink,
+              background: sgAcc(0.92), color: SugarV2.ink,
               fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
             }}>Avant — vide</div>
           </div>
@@ -98,7 +98,7 @@ export function Step6Options({ data, set }: StepProps) {
           }}>
             <div style={{
               position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
-              color: 'rgba(11,12,14,0.40)',
+              color: 'rgba(0,0,0,0.40)',
             }}>
               <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.9">
                 <rect x="3" y="13" width="18" height="6" rx="2"/>
@@ -110,14 +110,14 @@ export function Step6Options({ data, set }: StepProps) {
             <div style={{
               position: 'absolute', top: 16, right: 16,
               padding: '5px 11px', borderRadius: 999,
-              background: SugarV2.black, color: '#fff',
+              background: SugarV2.black, color: sgOn(),
               fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
             }}>Après — meublé virtuellement</div>
           </div>
 
           <div style={{
             position: 'absolute', top: 0, bottom: 0, left: `${sliderPos}%`,
-            width: 2, background: '#fff',
+            width: 2, background: sgOn(),
             boxShadow: '0 0 24px rgba(0,0,0,0.4)',
             pointerEvents: 'none',
           }}>
@@ -125,7 +125,7 @@ export function Step6Options({ data, set }: StepProps) {
               position: 'absolute', top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
               width: 44, height: 44, borderRadius: 999,
-              background: '#fff',
+              background: sgOn(),
               boxShadow: '0 6px 20px rgba(0,0,0,0.30)',
               display: 'grid', placeItems: 'center',
               color: SugarV2.ink, fontSize: 14, fontWeight: 700,
@@ -140,7 +140,7 @@ export function Step6Options({ data, set }: StepProps) {
             position: 'absolute', bottom: 14, left: '50%',
             transform: 'translateX(-50%)',
             padding: '5px 11px', borderRadius: 999,
-            background: 'rgba(11,12,14,0.65)', color: '#fff',
+            background: 'rgba(0,0,0,0.65)', color: sgOn(),
             fontSize: 10, fontWeight: 600, letterSpacing: 0.4,
             backdropFilter: 'blur(6px)',
           }}>Glissez pour comparer</div>
@@ -164,7 +164,7 @@ export function Step6Options({ data, set }: StepProps) {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '16px 18px', borderRadius: 16,
             background: stagingUserOn ? SugarV2.black : SugarV2.cardSubtle,
-            color: stagingUserOn ? '#fff' : SugarV2.ink,
+            color: stagingUserOn ? sgOn() : SugarV2.ink,
             transition: 'all .25s ease',
           }}>
             <div>
@@ -173,7 +173,7 @@ export function Step6Options({ data, set }: StepProps) {
               </div>
               <div style={{
                 fontSize: 11.5, fontWeight: 500,
-                color: stagingUserOn ? 'rgba(255,255,255,0.70)' : SugarV2.muted,
+                color: stagingUserOn ? sgAcc(0.70) : SugarV2.muted,
               }}>
                 49 CHF — facturé une fois à la publication
               </div>
@@ -186,7 +186,7 @@ export function Step6Options({ data, set }: StepProps) {
 
           <div style={{
             marginTop: 16, paddingTop: 16,
-            borderTop: '1px solid rgba(11,12,14,0.06)',
+            borderTop: '1px solid rgba(0,0,0,0.06)',
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
             <div style={{
@@ -237,7 +237,7 @@ export function Step6Options({ data, set }: StepProps) {
           {stagingAgent.length > 0 && (
             <div style={{
               padding: '6px 12px', borderRadius: 999,
-              background: SugarV2.black, color: '#fff',
+              background: SugarV2.black, color: sgOn(),
               fontSize: 11.5, fontWeight: 700, letterSpacing: 0.2,
               flexShrink: 0,
             }}>
@@ -254,7 +254,7 @@ export function Step6Options({ data, set }: StepProps) {
                 position: 'relative', padding: 0, borderRadius: 18, border: 0,
                 background: SugarV2.cardSubtle, fontFamily: 'inherit', cursor: 'pointer',
                 overflow: 'hidden',
-                boxShadow: sel ? '0 12px 30px rgba(11,12,14,0.18)' : 'none',
+                boxShadow: sel ? '0 12px 30px rgba(0,0,0,0.18)' : 'none',
                 outline: sel ? `3px solid ${SugarV2.black}` : 'none', outlineOffset: -3,
                 transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
                 transform: sel ? 'translateY(-2px)' : 'translateY(0)',
@@ -292,7 +292,7 @@ export function Step6Options({ data, set }: StepProps) {
                     transition: 'all .15s ease',
                   }}>
                     {sel && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M20 6 9 17l-5-5"/>
                       </svg>
                     )}
@@ -355,7 +355,7 @@ export function Step6Options({ data, set }: StepProps) {
         <div style={{
           width: 44, height: 44, borderRadius: 12,
           background: total > 0 ? SugarV2.black : SugarV2.cardSubtle,
-          color: total > 0 ? '#fff' : SugarV2.muted,
+          color: total > 0 ? sgOn() : SugarV2.muted,
           display: 'grid', placeItems: 'center', flexShrink: 0,
           transition: 'all .25s ease',
         }}>
@@ -402,9 +402,9 @@ function OptionCard({
   return (
     <div style={{
       background: checked ? SugarV2.black : SugarV2.card,
-      color: checked ? '#fff' : SugarV2.ink,
+      color: checked ? sgOn() : SugarV2.ink,
       borderRadius: 24, padding: 24,
-      boxShadow: checked ? '0 20px 48px rgba(11,12,14,0.28)' : SugarV2.shadow,
+      boxShadow: checked ? '0 20px 48px rgba(0,0,0,0.28)' : SugarV2.shadow,
       transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
       transform: checked ? 'translateY(-2px)' : 'translateY(0)',
       display: 'flex', flexDirection: 'column', gap: 16,
@@ -412,8 +412,8 @@ function OptionCard({
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{
           width: 44, height: 44, borderRadius: 12,
-          background: checked ? 'rgba(255,255,255,0.12)' : SugarV2.cardSubtle,
-          color: checked ? '#fff' : SugarV2.ink,
+          background: checked ? sgAcc(0.12) : SugarV2.cardSubtle,
+          color: checked ? sgOn() : SugarV2.ink,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>{icon}</div>
         <SgSwitch checked={checked} onChange={onToggle} dark={checked} />
@@ -422,7 +422,7 @@ function OptionCard({
       <div>
         <div style={{
           fontSize: 10.5, fontWeight: 700,
-          color: checked ? 'rgba(255,255,255,0.65)' : SugarV2.muted,
+          color: checked ? sgAcc(0.65) : SugarV2.muted,
           letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
         }}>{tag}</div>
         <h3 style={{ margin: '0 0 6px', fontSize: 19, fontWeight: 700, letterSpacing: -0.3, lineHeight: 1.2 }}>
@@ -430,13 +430,13 @@ function OptionCard({
         </h3>
         <p style={{
           margin: 0, fontSize: 13.5, fontWeight: 500, lineHeight: 1.55,
-          color: checked ? 'rgba(255,255,255,0.75)' : SugarV2.inkSoft,
+          color: checked ? sgAcc(0.75) : SugarV2.inkSoft,
         }}>{subtitle}</p>
       </div>
 
       <div style={{
         marginTop: 'auto', paddingTop: 14,
-        borderTop: `1px solid ${checked ? 'rgba(255,255,255,0.10)' : 'rgba(11,12,14,0.05)'}`,
+        borderTop: `1px solid ${checked ? sgAcc(0.10) : 'rgba(0,0,0,0.05)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
       }}>
         <div style={{ display: 'flex', gap: 18 }}>
@@ -444,7 +444,7 @@ function OptionCard({
             <div key={i}>
               <div style={{
                 fontSize: 9.5, fontWeight: 700,
-                color: checked ? 'rgba(255,255,255,0.55)' : SugarV2.muted,
+                color: checked ? sgAcc(0.55) : SugarV2.muted,
                 letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2,
               }}>{s.label}</div>
               <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: -0.2 }}>{s.value}</div>

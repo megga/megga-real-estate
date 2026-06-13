@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step5.jsx).
 
 import { useState, useRef } from 'react'
-import { SugarV2, fmtCHF, type WizardData } from '../tokens'
+import { SugarV2, sgOn, fmtCHF, type WizardData } from '../tokens'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
@@ -108,10 +108,10 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 <button key={t.v} onClick={() => setTx(t.v)} style={{
                   height: 38, padding: '0 24px', borderRadius: 999, border: 0,
                   background: sel ? SugarV2.black : 'transparent',
-                  color: sel ? '#fff' : SugarV2.inkSoft,
+                  color: sel ? sgOn() : SugarV2.inkSoft,
                   fontFamily: 'inherit', fontSize: 13, fontWeight: 700, letterSpacing: 0.1,
                   cursor: 'pointer',
-                  boxShadow: sel ? '0 6px 14px rgba(11,12,14,0.22)' : 'none',
+                  boxShadow: sel ? '0 6px 14px rgba(0,0,0,0.22)' : 'none',
                   transition: 'all .2s ease',
                 }}>{t.l}</button>
               )
@@ -163,7 +163,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 placeholder="350"
                 style={{
                   width: 110, height: 32,
-                  border: 0, outline: 'none', background: '#fff',
+                  border: 0, outline: 'none', background: sgOn(),
                   borderRadius: 8, padding: '0 10px',
                   fontFamily: 'inherit',
                   fontSize: 16, fontWeight: 700, color: SugarV2.ink,
@@ -183,9 +183,9 @@ export function Step5PriceDesc({ data, set }: StepProps) {
           }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12,
-              background: SugarV2.black, color: '#fff',
+              background: SugarV2.black, color: sgOn(),
               display: 'grid', placeItems: 'center', flexShrink: 0,
-              boxShadow: '0 6px 14px rgba(11,12,14,0.22)',
+              boxShadow: '0 6px 14px rgba(0,0,0,0.22)',
             }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12c0-5 4-9 9-9s9 4 9 9"/><path d="M21 12c0 5-4 9-9 9s-9-4-9-9"/><path d="M12 7v5l3 2"/>
@@ -245,9 +245,9 @@ export function Step5PriceDesc({ data, set }: StepProps) {
       }}>
         <div style={{
           width: 38, height: 38, borderRadius: 12,
-          background: SugarV2.black, color: '#fff',
+          background: SugarV2.black, color: sgOn(),
           display: 'grid', placeItems: 'center', flexShrink: 0,
-          boxShadow: '0 6px 14px rgba(11,12,14,0.22)',
+          boxShadow: '0 6px 14px rgba(0,0,0,0.22)',
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="m12 3 2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2 8 12.7 4 8.8l5.5-.8L12 3Z"/>
@@ -291,11 +291,11 @@ export function Step5PriceDesc({ data, set }: StepProps) {
           disabled={aiPhase === 'thinking' || aiPhase === 'streaming'}
           style={{
             height: 40, padding: '0 18px', borderRadius: 999, border: 0,
-            background: SugarV2.black, color: '#fff',
+            background: SugarV2.black, color: sgOn(),
             fontFamily: 'inherit', fontSize: 13, fontWeight: 700, letterSpacing: 0.1,
             cursor: (aiPhase === 'thinking' || aiPhase === 'streaming') ? 'wait' : 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            boxShadow: '0 6px 16px rgba(11,12,14,0.20)',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.20)',
             opacity: (aiPhase === 'thinking' || aiPhase === 'streaming') ? 0.85 : 1,
           }}>
           {aiPhase === 'thinking' || aiPhase === 'streaming' ? (
@@ -303,7 +303,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
               <span style={{
                 width: 14, height: 14, borderRadius: 999,
                 border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: '#fff',
+                borderTopColor: sgOn(),
                 animation: 'sgSpin .8s linear infinite', display: 'inline-block',
               }} />
               {aiPhase === 'thinking' ? 'Réflexion…' : 'Rédaction…'}
@@ -359,7 +359,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '3px 9px', borderRadius: 999,
-                background: 'rgba(11,12,14,0.06)', color: SugarV2.ink,
+                background: 'rgba(0,0,0,0.06)', color: SugarV2.ink,
                 fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
               }}>
                 <span style={{ width: 5, height: 5, borderRadius: 999, background: SugarV2.black }} />
@@ -430,7 +430,7 @@ function PriceBar({ value, low, high }: { value: number; low: number; high: numb
           position: 'absolute', top: -5, left: `${pct}%`,
           width: 20, height: 20, borderRadius: 999,
           background: SugarV2.black, transform: 'translateX(-50%)',
-          boxShadow: '0 4px 12px rgba(11,12,14,0.40), 0 0 0 4px #fff',
+          boxShadow: `0 4px 12px rgba(0,0,0,0.40), 0 0 0 4px ${SugarV2.card}`,
         }} />
       </div>
     </div>

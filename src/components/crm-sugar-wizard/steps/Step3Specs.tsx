@@ -3,7 +3,7 @@
 // Type, surface, pièces, année, DPE, équipements.
 
 import { type ReactNode } from 'react'
-import { SugarV2, type WizardData } from '../tokens'
+import { SugarV2, sgOn, type WizardData } from '../tokens'
 import { SgSection } from '../primitives'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
@@ -81,14 +81,14 @@ export function Step3Specs({ data, set }: StepProps) {
               <button key={t.v} onClick={() => set({ type: t.v })} style={{
                 padding: '22px 16px', borderRadius: 18, border: 0,
                 background: sel ? SugarV2.black : SugarV2.card,
-                color: sel ? '#fff' : SugarV2.ink,
-                boxShadow: sel ? '0 14px 36px rgba(11,12,14,0.30)' : SugarV2.shadowSm,
+                color: sel ? sgOn() : SugarV2.ink,
+                boxShadow: sel ? '0 14px 36px rgba(0,0,0,0.30)' : SugarV2.shadowSm,
                 fontFamily: 'inherit', cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
                 transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
                 transform: sel ? 'translateY(-3px)' : 'translateY(0)',
               }}>
-                {t.icon(sel ? '#fff' : SugarV2.ink)}
+                {t.icon(sel ? sgOn() : SugarV2.ink)}
                 <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>{t.label}</span>
               </button>
             )
@@ -151,7 +151,7 @@ export function Step3Specs({ data, set }: StepProps) {
               <button key={d.v} onClick={() => set({ energy: d.v })} style={{
                 padding: '18px 8px 14px', borderRadius: 14, border: 0,
                 background: sel ? d.color : SugarV2.card,
-                color: sel ? '#fff' : SugarV2.ink,
+                color: sel ? sgOn() : SugarV2.ink,
                 boxShadow: sel ? `0 12px 28px ${d.color}55` : SugarV2.shadowSm,
                 fontFamily: 'inherit', cursor: 'pointer',
                 fontSize: 22, fontWeight: 700, letterSpacing: -0.5,
@@ -189,8 +189,8 @@ export function Step3Specs({ data, set }: StepProps) {
               <button key={f.v} onClick={() => toggleFeature(f.v)} style={{
                 padding: '14px 16px', borderRadius: 14, border: 0,
                 background: sel ? SugarV2.black : SugarV2.card,
-                color: sel ? '#fff' : SugarV2.ink,
-                boxShadow: sel ? '0 10px 24px rgba(11,12,14,0.20)' : SugarV2.shadowSm,
+                color: sel ? sgOn() : SugarV2.ink,
+                boxShadow: sel ? '0 10px 24px rgba(0,0,0,0.20)' : SugarV2.shadowSm,
                 fontFamily: 'inherit', cursor: 'pointer',
                 fontSize: 13, fontWeight: 600, letterSpacing: -0.2,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
@@ -199,7 +199,7 @@ export function Step3Specs({ data, set }: StepProps) {
               }}>
                 <span>{f.label}</span>
                 {sel && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6 9 17l-5-5"/>
                   </svg>
                 )}

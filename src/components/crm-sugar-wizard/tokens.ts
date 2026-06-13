@@ -1,12 +1,23 @@
 // MEGGA CRM Sugar v2 Wizard — Design tokens (palette unique, distinct from Today).
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx).
 //
-// — Fond gris très clair avec radial gradient vers bleu pâle en bas
-// — Cards blanches pures, ombres 40px/5%, coins 24px, AUCUNE bordure
-// — Accent unique = NOIR PUR (pas de bleu, pas de violet, pas de gradient)
-// — Typo : noir #0B0C0E franc, jamais de gris pour les titres
+// Deux thèmes (light + dark). `SugarV2` n'est PAS un objet figé : c'est un Proxy
+// qui lit le thème actif (`__sgActive`) au moment de l'accès. Le shell réassigne
+// le thème via `setSugarV2Dark(dark)` au tout début de son render, et comme tous
+// les step files lisent `SugarV2.foo` AU RENDER, ils suivent automatiquement le
+// thème — zéro threading de prop vers chacun.
+//
+// Pourquoi un Proxy et pas un simple `let` réassigné ? Identité stable : un import
+// `{ SugarV2 }` garde la même référence quel que soit le thème actif, donc aucune
+// capture (`const SP = SugarV2`) ne se retrouve figée sur l'ancien objet.
+//
+// Light : fond gris radial → bleu pâle, cards blanches, ombres douces, accent NOIR pur.
+// Dark  : fond plat #0A0A0F (= bg du CRM), surfaces #15151F, accent NEAR-WHITE #ECEDF3.
+//   ⚠ Inversion clé : en dark l'accent `black` devient near-white, donc tout ce qui
+//   est « posé sur l'accent » (texte d'un CTA, ✓ d'une case) passe en `onBlack` sombre.
+//   Ne jamais hardcoder `#fff` sur l'accent → utiliser `sgOn()` / `onBlack`.
 
-export const SugarV2 = {
+const SUGARV2_LIGHT = {
   // Fond — radial doux du clair vers bleu-gris pâle
   bg: '#EDEFF3',
   bgGradient: 'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
@@ -20,6 +31,7 @@ export const SugarV2 = {
   // Accent unique
   black: '#0B0C0E',
   blackHover: '#1F2024',
+  onBlack: '#FFFFFF',           // texte / icône POSÉ SUR l'accent
 
   // Texte
   ink: '#0B0C0E',
@@ -27,11 +39,18 @@ export const SugarV2 = {
   muted: '#7A8088',
   ghost: '#B5BAC2',
 
+  // Hairline / divider structurel
+  line: 'rgba(11,12,14,0.08)',
+
   // Ombres signature Sugar
   shadowSm: '0 4px 16px rgba(15, 23, 42, 0.04)',
   shadow:   '0 12px 40px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03)',
   shadowLg: '0 24px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04)',
   shadowHover: '0 32px 70px rgba(15, 23, 42, 0.10), 0 6px 20px rgba(15, 23, 42, 0.05)',
+  pillShadow: '0 6px 16px rgba(11,12,14,0.18)',
+  pillShadowHover: '0 12px 30px rgba(11,12,14,0.25)',
+  ringSoft: 'rgba(11,12,14,0.06)',
+  footerFade: 'linear-gradient(180deg, transparent 0%, rgba(237,239,243,0.9) 60%, rgba(237,239,243,1) 100%)',
 
   // États (utilitaires uniquement, jamais décoratifs)
   ok:   '#10B981',
@@ -43,9 +62,115 @@ export const SugarV2 = {
   pop2: '#EF4444',
   pop3: '#FBBF24',
   pop4: '#10B981',
-} as const
 
-export type SugarV2Palette = typeof SugarV2
+  // Voiles translucides POSÉS SUR l'accent (light : l'accent est noir → voile blanc)
+  onAcc04: 'rgba(255,255,255,0.04)', onAcc08: 'rgba(255,255,255,0.08)', onAcc10: 'rgba(255,255,255,0.10)',
+  onAcc12: 'rgba(255,255,255,0.12)', onAcc15: 'rgba(255,255,255,0.15)', onAcc16: 'rgba(255,255,255,0.16)',
+  onAcc18: 'rgba(255,255,255,0.18)', onAcc30: 'rgba(255,255,255,0.30)', onAcc40: 'rgba(255,255,255,0.40)',
+  onAcc55: 'rgba(255,255,255,0.55)', onAcc65: 'rgba(255,255,255,0.65)', onAcc70: 'rgba(255,255,255,0.70)',
+  onAcc75: 'rgba(255,255,255,0.75)', onAcc80: 'rgba(255,255,255,0.80)',
+
+  isDark: false,
+}
+
+export type SugarV2Palette = typeof SUGARV2_LIGHT
+
+const SUGARV2_DARK: SugarV2Palette = {
+  bg: '#0A0A0F',
+  bgGradient: 'radial-gradient(ellipse 130% 95% at 50% -12%, #1B1C28 0%, #10111B 48%, #08080C 100%)',
+
+  card: '#15151F',
+  cardSubtle: '#212233',
+  rail: '#15151F',
+  railHover: '#1C1D29',
+
+  black: '#ECEDF3',             // accent → near-white en dark
+  blackHover: '#FFFFFF',
+  onBlack: '#0A0A0F',           // texte / icône SUR l'accent near-white → sombre
+
+  ink: '#ECEDF3',
+  inkSoft: '#B7B9C6',
+  muted: '#7C8094',
+  ghost: '#3A3B4A',
+
+  line: 'rgba(255,255,255,0.09)',
+
+  // Ombres noires profondes + liseré supérieur clair (relief en dark)
+  shadowSm: '0 1px 2px rgba(0,0,0,.45), 0 6px 18px -10px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05)',
+  shadow:   '0 1px 2px rgba(0,0,0,.5), 0 16px 40px -16px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06)',
+  shadowLg: '0 30px 70px -18px rgba(0,0,0,.75), 0 8px 24px -12px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07)',
+  shadowHover: '0 36px 84px -18px rgba(0,0,0,.8), 0 10px 28px -12px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.08)',
+  pillShadow: '0 8px 20px -6px rgba(0,0,0,0.6)',
+  pillShadowHover: '0 14px 34px -8px rgba(0,0,0,0.72)',
+  ringSoft: 'rgba(255,255,255,0.10)',
+  footerFade: 'linear-gradient(180deg, transparent 0%, rgba(10,10,15,0.82) 55%, rgba(8,8,12,1) 100%)',
+
+  ok:   '#34C796',
+  warn: '#F2B855',
+  err:  '#F26B65',
+
+  pop1: '#6F8CFF', pop2: '#F26B65', pop3: '#F2B855', pop4: '#34C796',
+
+  // Voiles translucides SUR l'accent (dark : l'accent est near-white → voile sombre)
+  onAcc04: 'rgba(11,12,14,0.05)', onAcc08: 'rgba(11,12,14,0.08)', onAcc10: 'rgba(11,12,14,0.10)',
+  onAcc12: 'rgba(11,12,14,0.12)', onAcc15: 'rgba(11,12,14,0.16)', onAcc16: 'rgba(11,12,14,0.16)',
+  onAcc18: 'rgba(11,12,14,0.18)', onAcc30: 'rgba(11,12,14,0.32)', onAcc40: 'rgba(11,12,14,0.42)',
+  onAcc55: 'rgba(11,12,14,0.55)', onAcc65: 'rgba(11,12,14,0.62)', onAcc70: 'rgba(11,12,14,0.66)',
+  onAcc75: 'rgba(11,12,14,0.72)', onAcc80: 'rgba(11,12,14,0.78)',
+
+  isDark: true,
+}
+
+// Override explicite du thème (null = suivre le thème de l'app via `data-theme`).
+let __forceDark: boolean | null = null
+
+/**
+ * Pilote le thème du wizard : `true`/`false` force dark/light, `null` rend la main
+ * au thème de l'app. Le shell l'appelle au render pour coller à `useTheme()`, et son
+ * cleanup repasse à `null`.
+ *
+ * IMPORTANT — pourquoi on lit `data-theme` quand l'override est `null` : sous React 18
+ * (StrictMode / rendu concurrent), un enfant peut se re-render INDÉPENDAMMENT du shell.
+ * S'il lisait un global muté au render du parent, il pourrait tomber sur une valeur
+ * périmée (header en dark, corps en light). En résolvant depuis `document.documentElement
+ * [data-theme]` — la source de vérité posée par `ThemeProvider` — chaque lecture de
+ * `SugarV2.*` est correcte quel que soit le timing de render. Le Proxy garde une identité
+ * stable (aucune capture `const SP = SugarV2` ne se fige).
+ */
+export function setSugarV2Dark(dark: boolean | null): void {
+  __forceDark = dark
+}
+
+function sgIsDarkActive(): boolean {
+  if (__forceDark !== null) return __forceDark
+  if (typeof document !== 'undefined') {
+    return document.documentElement.getAttribute('data-theme') === 'dark'
+  }
+  return false
+}
+
+function sgActive(): SugarV2Palette {
+  return sgIsDarkActive() ? SUGARV2_DARK : SUGARV2_LIGHT
+}
+
+// `SugarV2` = Proxy à identité stable qui résout le thème actif à chaque lecture.
+export const SugarV2: SugarV2Palette = new Proxy({} as SugarV2Palette, {
+  get: (_t, k) => (sgActive() as Record<PropertyKey, unknown>)[k],
+  has: (_t, k) => k in SUGARV2_LIGHT,
+  ownKeys: () => Reflect.ownKeys(SUGARV2_LIGHT),
+  getOwnPropertyDescriptor: (_t, k) => ({
+    enumerable: true,
+    configurable: true,
+    value: (sgActive() as Record<PropertyKey, unknown>)[k],
+  }),
+})
+
+// ─── Helpers thème-aware pour les littéraux qui étaient codés en dur ───────
+// `sgOn()`  : couleur d'un texte / icône POSÉ SUR l'accent (jamais `#fff` en dur).
+// `sgAcc(a)`: voile translucide POSÉ SUR l'accent (blanc en light, sombre en dark).
+export const sgOn = (): string => sgActive().onBlack
+export const sgAcc = (a: number): string =>
+  sgActive().isDark ? `rgba(11,12,14,${a})` : `rgba(255,255,255,${a})`
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 export function fmtCHF(n: number | string | null | undefined): string {
@@ -222,14 +347,14 @@ export const SG_KEYFRAMES = `
   .sg-range::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 24px; height: 24px; border-radius: 999px;
-    background: #0B0C0E; cursor: pointer;
-    box-shadow: 0 4px 12px rgba(11,12,14,0.3);
+    background: var(--sg-accent, #0B0C0E); cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     transition: transform .15s ease;
   }
   .sg-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
   .sg-range::-moz-range-thumb {
     width: 24px; height: 24px; border-radius: 999px;
-    background: #0B0C0E; cursor: pointer; border: 0;
-    box-shadow: 0 4px 12px rgba(11,12,14,0.3);
+    background: var(--sg-accent, #0B0C0E); cursor: pointer; border: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
 `

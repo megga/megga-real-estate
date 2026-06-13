@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx + step1.jsx + step3.jsx).
 
 import { useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
-import { SugarV2 } from './tokens'
+import { SugarV2, sgOn, sgAcc } from './tokens'
 
 // ─── Icons (line-style, Sugar) ──────────────────────────────────────────
 export type SgIconName =
@@ -88,12 +88,12 @@ export function SgBlackPill({
         height: h, padding: size === 'lg' ? '0 28px' : '0 20px',
         borderRadius: 999, border: 0,
         background: disabled ? SugarV2.ghost : (hover ? SugarV2.blackHover : SugarV2.black),
-        color: '#fff',
+        color: SugarV2.onBlack,
         fontFamily: 'inherit', fontSize: size === 'lg' ? 14.5 : 13, fontWeight: 600,
         letterSpacing: 0.1,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: 10,
-        boxShadow: disabled ? 'none' : (hover ? '0 12px 30px rgba(11,12,14,0.25)' : '0 6px 16px rgba(11,12,14,0.18)'),
+        boxShadow: disabled ? 'none' : (hover ? SugarV2.pillShadowHover : SugarV2.pillShadow),
         transition: 'all .18s ease',
         transform: hover && !disabled ? 'translateY(-1px)' : 'translateY(0)',
       }}>
@@ -146,12 +146,12 @@ export function SgStepper({
               style={{
                 width: 32, height: 32, borderRadius: 999, border: 0,
                 background: active ? SugarV2.black : (done ? SugarV2.inkSoft : SugarV2.card),
-                color: (active || done) ? '#fff' : SugarV2.muted,
+                color: (active || done) ? SugarV2.onBlack : SugarV2.muted,
                 fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
                 cursor: reachable ? 'pointer' : 'default',
                 display: 'grid', placeItems: 'center',
                 boxShadow: active
-                  ? '0 6px 16px rgba(11,12,14,0.25), 0 0 0 4px rgba(11,12,14,0.06)'
+                  ? `${SugarV2.pillShadow}, 0 0 0 4px ${SugarV2.ringSoft}`
                   : SugarV2.shadowSm,
                 transition: 'all .2s ease',
                 flexShrink: 0,
@@ -161,7 +161,7 @@ export function SgStepper({
             {i < steps.length - 1 && (
               <span style={{
                 width: 28, height: 2, flexShrink: 0,
-                background: i < current ? SugarV2.inkSoft : 'rgba(11,12,14,0.08)',
+                background: i < current ? SugarV2.inkSoft : SugarV2.line,
                 transition: 'background .3s ease',
               }} />
             )}
@@ -206,7 +206,7 @@ export function SgGateCard({
         <span style={{
           position: 'absolute', top: 18, right: 18,
           padding: '5px 11px', borderRadius: 999,
-          background: SugarV2.black, color: '#fff',
+          background: SugarV2.black, color: SugarV2.onBlack,
           fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
           textTransform: 'uppercase',
         }}>Recommandé</span>
@@ -273,11 +273,11 @@ export function SgInput({
           width: '100%', boxSizing: 'border-box',
           height: 48, padding: '0 16px', borderRadius: 14,
           border: 0, outline: 'none', fontFamily: 'inherit',
-          background: focus ? '#fff' : SugarV2.cardSubtle,
+          background: focus ? SugarV2.card : SugarV2.cardSubtle,
           color: SugarV2.ink, fontSize: 15, fontWeight: 500,
           boxShadow: focus
-            ? `0 0 0 2px ${SugarV2.black}, 0 4px 12px rgba(15,23,42,0.05)`
-            : 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+            ? `0 0 0 2px ${SugarV2.black}, 0 4px 12px rgba(0,0,0,0.05)`
+            : `inset 0 0 0 1px ${SugarV2.line}`,
           transition: 'all .18s ease',
         }} />
     </label>
@@ -292,8 +292,8 @@ export function SgSwitch({
     <button onClick={onChange} style={{
       width: 48, height: 28, borderRadius: 999, border: 0,
       background: checked
-        ? (dark ? '#fff' : SugarV2.black)
-        : (dark ? 'rgba(255,255,255,0.20)' : SugarV2.cardSubtle),
+        ? (dark ? sgOn() : SugarV2.black)
+        : (dark ? sgAcc(0.20) : SugarV2.cardSubtle),
       cursor: 'pointer', padding: 0, position: 'relative',
       transition: 'background .2s ease',
       flexShrink: 0,
@@ -301,7 +301,7 @@ export function SgSwitch({
       <span style={{
         position: 'absolute', top: 3, left: checked ? 23 : 3,
         width: 22, height: 22, borderRadius: 999,
-        background: checked ? (dark ? SugarV2.black : '#fff') : '#fff',
+        background: checked ? (dark ? SugarV2.black : sgOn()) : sgOn(),
         boxShadow: '0 2px 6px rgba(0,0,0,0.20)',
         transition: 'left .2s cubic-bezier(.2,.8,.2,1)',
       }} />

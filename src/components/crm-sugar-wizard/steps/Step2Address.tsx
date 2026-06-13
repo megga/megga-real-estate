@@ -3,7 +3,7 @@
 // Mapbox Light + geocoding live, autocomplete, accordion "Affiner".
 
 import { useState, useEffect, useRef } from 'react'
-import { SugarV2, cantonShortFromName, type WizardData } from '../tokens'
+import { SugarV2, sgOn, sgAcc, cantonShortFromName, type WizardData } from '../tokens'
 import { SgInput } from '../primitives'
 import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
 
@@ -156,7 +156,7 @@ export function Step2Address({ data, set }: StepProps) {
             <div style={{
               width: 26, height: 26, borderRadius: 999,
               background: linkedOwner.avatarBg || '#3B82F6',
-              color: '#fff', display: 'grid', placeItems: 'center',
+              color: sgOn(), display: 'grid', placeItems: 'center',
               fontSize: 10, fontWeight: 700, flexShrink: 0,
             }}>{(linkedOwner.firstName?.[0] || '') + (linkedOwner.lastName?.[0] || '')}</div>
             <span style={{ fontSize: 12, fontWeight: 600, color: SugarV2.ink }}>
@@ -279,7 +279,7 @@ export function Step2Address({ data, set }: StepProps) {
                 </span>
                 <span style={{
                   padding: '3px 9px', borderRadius: 999,
-                  background: SugarV2.black, color: '#fff',
+                  background: SugarV2.black, color: sgOn(),
                   fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5,
                   textTransform: 'uppercase',
                 }}>MEGGA AI</span>
@@ -415,7 +415,7 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
     el.style.cssText = `
       width: 22px; height: 22px; border-radius: 999px;
       background: #0B0C0E; border: 4px solid #fff;
-      box-shadow: 0 8px 24px rgba(11,12,14,0.4);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
       animation: sgPinPulse 2s ease-in-out infinite;
     `
     markerRef.current = new window.mapboxgl.Marker(el).setLngLat(coords).addTo(mapRef.current) as unknown as typeof markerRef.current
@@ -431,13 +431,15 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
         <div style={{
           position: 'absolute', inset: 0,
           display: 'grid', placeItems: 'center',
-          background: 'linear-gradient(180deg, rgba(237,239,243,0) 0%, rgba(237,239,243,0.6) 100%)',
+          background: SugarV2.isDark
+            ? 'linear-gradient(180deg, rgba(8,8,12,0) 0%, rgba(8,8,12,0.7) 100%)'
+            : 'linear-gradient(180deg, rgba(237,239,243,0) 0%, rgba(237,239,243,0.6) 100%)',
           pointerEvents: 'none',
         }}>
           <div style={{
-            background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)',
+            background: sgAcc(0.85), backdropFilter: 'blur(8px)',
             padding: '10px 16px', borderRadius: 999,
-            boxShadow: '0 4px 12px rgba(11,12,14,0.08)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             fontSize: 12, fontWeight: 600, color: SugarV2.muted,
             letterSpacing: 0.4, textTransform: 'uppercase',
           }}>Tapez une adresse pour voir la carte</div>
@@ -448,25 +450,31 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
 }
 
 function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean }) {
+  const grid1 = SugarV2.isDark ? 'rgba(255,255,255,0.07)' : '#c5cdd9'
+  const grid2 = SugarV2.isDark ? 'rgba(255,255,255,0.04)' : '#dbe1ea'
   return (
     <div style={{
       position: 'absolute', inset: 0,
-      background: `
-        radial-gradient(circle at 30% 40%, rgba(11,12,14,0.04) 0%, transparent 50%),
-        radial-gradient(circle at 70% 60%, rgba(11,12,14,0.04) 0%, transparent 50%),
+      background: SugarV2.isDark ? `
+        radial-gradient(circle at 30% 40%, rgba(255,255,255,0.03) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.03) 0%, transparent 50%),
+        linear-gradient(135deg, #15161F 0%, #0E0F16 100%)
+      ` : `
+        radial-gradient(circle at 30% 40%, rgba(0,0,0,0.04) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(0,0,0,0.04) 0%, transparent 50%),
         linear-gradient(135deg, #f0f3f8 0%, #e6ebf3 100%)
       `,
       overflow: 'hidden',
     }}>
       <svg width="100%" height="100%" viewBox="0 0 800 380" preserveAspectRatio="none"
         style={{ position: 'absolute', inset: 0, opacity: 0.5 }}>
-        <line x1="0" y1="120" x2="800" y2="100" stroke="#c5cdd9" strokeWidth="2"/>
-        <line x1="0" y1="220" x2="800" y2="240" stroke="#c5cdd9" strokeWidth="2"/>
-        <line x1="120" y1="0" x2="100" y2="380" stroke="#c5cdd9" strokeWidth="2"/>
-        <line x1="350" y1="0" x2="380" y2="380" stroke="#c5cdd9" strokeWidth="2"/>
-        <line x1="620" y1="0" x2="640" y2="380" stroke="#c5cdd9" strokeWidth="2"/>
-        <line x1="0" y1="60" x2="800" y2="50" stroke="#dbe1ea" strokeWidth="1.5"/>
-        <line x1="0" y1="320" x2="800" y2="310" stroke="#dbe1ea" strokeWidth="1.5"/>
+        <line x1="0" y1="120" x2="800" y2="100" stroke={grid1} strokeWidth="2"/>
+        <line x1="0" y1="220" x2="800" y2="240" stroke={grid1} strokeWidth="2"/>
+        <line x1="120" y1="0" x2="100" y2="380" stroke={grid1} strokeWidth="2"/>
+        <line x1="350" y1="0" x2="380" y2="380" stroke={grid1} strokeWidth="2"/>
+        <line x1="620" y1="0" x2="640" y2="380" stroke={grid1} strokeWidth="2"/>
+        <line x1="0" y1="60" x2="800" y2="50" stroke={grid2} strokeWidth="1.5"/>
+        <line x1="0" y1="320" x2="800" y2="310" stroke={grid2} strokeWidth="1.5"/>
       </svg>
 
       {confirmed && (
@@ -477,7 +485,7 @@ function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean
           <div style={{
             width: 22, height: 22, borderRadius: 999,
             background: '#0B0C0E', border: '4px solid #fff',
-            boxShadow: '0 8px 24px rgba(11,12,14,0.4)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             animation: 'sgPinPulse 2s ease-in-out infinite',
           }} />
         </div>
@@ -487,9 +495,9 @@ function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean
         <div style={{
           position: 'absolute', bottom: 14, left: 14,
           padding: '7px 12px', borderRadius: 10,
-          background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
+          background: sgAcc(0.9), backdropFilter: 'blur(6px)',
           fontSize: 11, fontWeight: 500, color: SugarV2.muted,
-          boxShadow: '0 2px 8px rgba(11,12,14,0.06)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}>
           ⚠ Carte indisponible — token Mapbox à configurer
         </div>
