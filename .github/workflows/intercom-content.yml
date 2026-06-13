@@ -1,0 +1,39 @@
+name: Intercom content (audit Help Center articles)
+
+# Consomme le secret INTERCOM_ACCESS_TOKEN (write-only côté GitHub : personne ne le
+# relit, il est juste injecté ici). Déclenché à la main → on lit le résultat dans les
+# logs du run. Sert à auditer l'état des articles Help Center (locale EN vs FR vide).
+#   gh workflow run intercom-content.yml -f mode=audit --ref <branche-ou-main>
+# Le script n'a aucune dépendance npm (fetch natif Node 22) → pas de `npm ci`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Mode du script'
+        required: true
+        default: 'audit'
+        type: choice
+        options:
+          - audit
+          - migrate-dry
+          - migrate
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run intercom-content (${{ inputs.mode }})
+        env:
+          INTERCOM_ACCESS_TOKEN: ${{ secrets.INTERCOM_ACCESS_TOKEN }}
+        run: node scripts/intercom-content.mjs ${{ inputs.mode }}
