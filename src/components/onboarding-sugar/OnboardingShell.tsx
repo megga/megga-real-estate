@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
-import { trackIntercomEvent } from '@/lib/intercom'
+import { trackIntercomEvent, INTERCOM_EVENTS } from '@/lib/intercom'
 import { OB_GLOBAL_CSS, obPalette } from './tokens'
 import { ObBlackPill, ObGhostPill, ObIcon } from './primitives'
 import { OnboardingSplash } from './OnboardingSplash'
@@ -355,7 +355,7 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
       await refreshProfile()
       // Signal produit → Intercom : alimente Fin + déclenche les Series / le ciblage
       // Outbound (ex. nudge onboarding). No-op si Intercom n'est pas configuré.
-      trackIntercomEvent('onboarding_completed')
+      trackIntercomEvent(INTERCOM_EVENTS.ONBOARDING_COMPLETED)
     } finally {
       setSaving(false)
       // Sortie de l'onboarding → sas Premier jour (calibrage IA + Today fantôme).

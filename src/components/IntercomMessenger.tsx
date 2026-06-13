@@ -34,7 +34,12 @@ export default function IntercomMessenger() {
     if (!isIntercomEnabled() || loading) return
 
     const identified = !!(user && profile && !impersonating)
-    const identityKey = identified ? `user:${user!.id}` : 'anon'
+    // La clé inclut les attributs de ciblage : si role/canton/onboarding/nom changent
+    // en cours de session, on re-boote avec les valeurs fraîches (sinon le ciblage
+    // Intercom se base sur des attributs périmés). Changements rares → coût négligeable.
+    const identityKey = identified
+      ? `user:${user!.id}:${profile!.role ?? ''}:${profile!.canton ?? ''}:${profile!.onboarding_completed ?? ''}:${profile!.full_name ?? ''}`
+      : 'anon'
     if (bootedFor.current === identityKey) return
 
     let cancelled = false

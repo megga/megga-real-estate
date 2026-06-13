@@ -1,6 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { trackIntercomEvent, INTERCOM_EVENTS, type IntercomEventName } from '@/lib/intercom'
+
+// Jalon d'activation → event Intercom (ciblage / Series / Fin). Émis UNE seule fois,
+// quand un step passe à « complété » (la persistance onboarding_checklist sert de garde
+// anti-doublon). Signal seul : aucune PII client (frontière LPD).
+const STEP_EVENT: Record<string, IntercomEventName> = {
+  profile: INTERCOM_EVENTS.PROFILE_COMPLETED,
+  contacts: INTERCOM_EVENTS.FIRST_CONTACTS_IMPORTED,
+  property: INTERCOM_EVENTS.FIRST_PROPERTY_CREATED,
+  kyc: INTERCOM_EVENTS.FIRST_KYC_CASE_OPENED,
+  match: INTERCOM_EVENTS.FIRST_MATCH_SENT,
+}
 
 export interface OnboardingStep {
   key: string
@@ -65,6 +77,9 @@ export function useOnboardingProgress() {
             completed: true,
             completed_at: new Date().toISOString(),
           }, { onConflict: 'user_id,step_key' })
+          // Jalon franchi pour la 1re fois → signale l'activation à Intercom (no-op si désactivé).
+          const evt = STEP_EVENT[def.key]
+          if (evt) trackIntercomEvent(evt)
           results.push({ ...def, completed: true, completedAt: new Date().toISOString() })
         } else {
           results.push({

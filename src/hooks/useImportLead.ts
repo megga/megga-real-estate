@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { trackIntercomEvent } from '@/lib/intercom'
+import { trackIntercomEvent, INTERCOM_EVENTS } from '@/lib/intercom'
 import type { ContactType } from '@/types/contact'
 import type { ExtractedLead, LeadIntent, LeadNextAction } from '@/hooks/useExtractLead'
 import type { TablesInsert } from '@/types/database'
@@ -194,7 +194,7 @@ export function useImportLead() {
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       // Signal produit → Intercom : lead importé (activation, Series, ciblage).
-      trackIntercomEvent('lead_imported')
+      trackIntercomEvent(INTERCOM_EVENTS.LEAD_IMPORTED)
     },
   })
 }
