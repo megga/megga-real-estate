@@ -53,7 +53,7 @@
 **Client :** Gregory Lyonnet, agent immobilier à Genève
 **Développeur :** Julien (frontend — Claude Code gère le backend)
 
-**Vision :** Compliance-First Transaction OS — CRM transactionnel verticalisé + pipeline LAB/KYC + portail vendeur + copilote IA métier + marketplace publique.
+**Vision :** Compliance-First Transaction OS — CRM transactionnel verticalisé + pipeline LAB/KYC + portail vendeur + copilote IA métier. La marketplace publique est désactivée depuis le pivot CRM-first (juin 2026) ; son backend Flatfox reste branché pour le matching CRM (voir §8).
 
 **5 objectifs (Document Maître) :** Toute fonctionnalité doit servir au moins 1 :
 1. Réduire le temps administratif
@@ -82,15 +82,16 @@ i18n :         react-i18next (FR/DE/EN/IT)
 
 Backend :      Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1)
                PostgreSQL 15+ / Edge Functions (Deno) / Auth / Storage / Realtime / pgvector / pg_cron
-IA :           Claude API (Sonnet 4) via Edge Functions
+IA :           DeepSeek (deepseek-chat) par défaut via Edge Functions — décision coût
+               Claude (Sonnet 4) sur surfaces ciblées : dashboard-ai-hint, extract-lead, kyc-screening
 Email :        Resend (megga.ch DKIM/SPF)
 Payments :     Stripe
 Hosting :      Cloudflare Pages
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
-Marketplace :  33'000+ biens Flatfox (rent) synchés via pg_cron quotidien (04:00 UTC)
-               8 types : apartment, house, villa, commercial, office, parking, storage, land
-               Source Flatfox CDN pour les photos (cdn.flatfox.ch)
+Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
+               Backend conservé : market_listings ~34k Flatfox + flatfox-sync (pg_cron 04:00 UTC)
+               sert uniquement le matching CRM, aucun affichage public dans cette app
 ```
 
 ### Commandes
@@ -263,20 +264,20 @@ Fichiers concernés : `useAdminNotifications.ts`, `useAdminLiveFeed.ts`, `useMes
 
 ---
 
-## 8. ÉTAT D'IMPLÉMENTATION (mise à jour : 16 avril 2026)
+## 8. ÉTAT D'IMPLÉMENTATION (mise à jour : 14 juin 2026 — pivot CRM-first)
 
 ### Vue d'ensemble
 
-MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
+MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages). **Pivot CRM-first (juin 2026)** : `app.megga.ch` = CRM agent seul ; la vitrine et la marketplace publique vivent hors de cette app.
 
-**Marketplace publique :**
-- `/acheter` + `/louer` : carte Mapbox 3D, comparateur, favoris, alertes email, filtres 8 types
-- 33'122 biens Flatfox actifs (rent, 26 cantons, 8 types) — sync quotidien pg_cron
-- Photos réelles CDN Flatfox (plus de placeholders)
+**Marketplace publique : DÉSACTIVÉE (pivot CRM-first) :**
+- `/acheter` + `/louer` (+ `/buy` `/rent` `/propriete`) → `MarketplaceDisabledRedirect` vers la vitrine `megga.ch`
+- Backend conservé intact : `market_listings` (~34k Flatfox), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
+- Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
 **CRM agent :** 11/14 pages connectées Supabase — Contacts, Pipeline 14 colonnes, Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard.
 
-**MEGGA AI :** Edge Function ai-copilot (Claude Sonnet 4), streaming, score engine.
+**MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. Inférence = DeepSeek par défaut (coût) ; Claude réservé à dashboard-ai-hint / extract-lead et kyc-screening.
 
 **Portail vendeur :** `/portail/:token` (6 pages), dev route `/portail` (PortalDevWrapper + mock data).
 
@@ -302,6 +303,9 @@ CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 - **Anon key** : hardcodée dans `src/lib/supabase.ts` (sécurité via RLS, pas par obscurité)
 
 ### Prochaines priorités
+
+> ⚠ Liste pré-pivot (avril 2026), conservée pour mémoire. Depuis le pivot CRM-first (juin 2026), les points marketplace publique (`/louer`, « Mes lieux », carte des prix) sont gelés ; le focus actuel est le CRM agent.
+
 1. **Audit perf /louer** — Lighthouse, lazy images, virtualisation liste, Supercluster en worker
 2. **"Mes lieux" multi-POI** — travail+école+sport sur la carte, trajet vers chaque bien
 3. **Carte des prix temporelle** — overlay prix/m² avec slider 12 mois

@@ -6,7 +6,7 @@
     {
       "key": "megga/overview",
       "namespace": "megga",
-      "value": "MEGGA Real Estate: SaaS immobilier suisse AI-native, compliance-first. Marketplace publique (33k+ biens Flatfox location) + CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin. Stack React/Vite sur Cloudflare Pages + Supabase (Postgres, 57 edge functions, RLS, pg_cron). L'IA est compliance-enabling, jamais compliance-replacing.",
+      "value": "MEGGA Real Estate: SaaS immobilier suisse AI-native, compliance-first. PIVOT juin 2026 = recentrage CRM-first: app.megga.ch sert le CRM transactionnel agent (pipeline LAB/KYC + portail vendeur + copilote IA MEGGA + super-admin). La marketplace publique est DESACTIVEE — les routes /acheter /louer redirigent vers la vitrine megga.ch (MarketplaceDisabledRedirect); le backend marketplace (market_listings ~34k Flatfox, flatfox-sync, matching) est CONSERVE intact pour le matching CRM, pas pour un affichage public. Stack React/Vite sur Cloudflare Pages + Supabase (Postgres, 67 edge functions, RLS, pg_cron). L'IA est compliance-enabling, jamais compliance-replacing; inference = DeepSeek par defaut (cout), Claude sur surfaces ciblees.",
       "tags": "system,overview"
     },
     {
@@ -42,19 +42,19 @@
     {
       "key": "megga/stack-backend",
       "namespace": "megga",
-      "value": "Backend: Supabase Pro (ref eayczugyrvmtqnnmvjod, eu-west-1). Postgres 15, Auth, Storage, Realtime, pgvector, pg_cron, pg_net. 57 Edge Functions Deno dans supabase/functions/. CI/CD: push main -> GitHub Actions -> Cloudflare Pages + Supabase edge auto-deploy.",
+      "value": "Backend: Supabase Pro (ref eayczugyrvmtqnnmvjod, eu-west-1). Postgres 15, Auth, Storage, Realtime, pgvector, pg_cron, pg_net. 67 Edge Functions Deno dans supabase/functions/. CI/CD: push main -> GitHub Actions -> Cloudflare Pages + Supabase edge auto-deploy.",
       "tags": "stack,backend,supabase"
     },
     {
       "key": "megga/ai-architecture",
       "namespace": "megga",
-      "value": "Abstraction IA dans _shared/ai-provider.ts. Modeles (CLAUDE_MODELS): sonnet=claude-sonnet-4-20250514, haiku=claude-haiku-4-5-20251001, DEEPSEEK=deepseek-chat. callPublicAI = DeepSeek SEUL (public marketplace/support, cost control decision 2026-04-17, AUCUN fallback Claude -> erreur si down). callAgentAI = Claude primaire + fallback DeepSeek si Claude echoue. callClaude/callDeepSeek = directs sans fallback. computeCost (via table PRICING) correct -> ai_usage_logs. NB: ai-copilot et kyc-screening font leur propre appel Anthropic direct (hors ai-provider). pii-redaction.ts utilisee sur le texte libre public (extract-lead) mais PAS par ai-copilot (contexte CRM brut). Photo-vision via Claude Vision.",
+      "value": "Abstraction IA dans _shared/ai-provider.ts. Modeles (CLAUDE_MODELS): sonnet=claude-sonnet-4-20250514, haiku=claude-haiku-4-5-20251001; DeepSeek=deepseek-chat. 3 fonctions exportees (il n'existe PAS de wrapper 'callAgentAI' — verifie, 0 occurrence): callClaude et callDeepSeek (appels directs, sans fallback) + callPublicAI = DeepSeek SEUL (public marketplace/support, cost control 2026-04-17, AUCUN fallback Claude -> erreur si down). Usage reel: callClaude -> dashboard-ai-hint + extract-lead; callDeepSeek -> day0-activation-setup, translate-on-demand, whatsapp-agent; callPublicAI -> ai-search + parse-search-query. computeCost (table PRICING) -> ai_usage_logs. HORS ai-provider (appels HTTP directs): ai-copilot = DeepSeek (deepseek-chat via api.deepseek.com — decision cout, MEGGA AI tourne sur DeepSeek, PAS Claude); kyc-screening = Anthropic direct (api.anthropic.com, claude-sonnet-4-6). pii-redaction.ts sur texte libre public (extract-lead), PAS sur ai-copilot (contexte CRM brut). Photo-vision via Claude Vision.",
       "tags": "ai,architecture"
     },
     {
       "key": "megga/audiences-routing",
       "namespace": "megga",
-      "value": "5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace SPA app.megga.ch (/buy /rent SearchPage; fiche /propriete/:id -> PropertyXSinglePropertyPage Property X, alias /listing/:id) -- NB le storefront PUBLIC pre-launch = site STATIQUE megga.ch (cf storefront-static), pas la SPA. Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token = page unique « Votre vente » Sugar Pure lecture seule; + /portal dev mock). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
+      "value": "[MAJ pivot juin 2026 : l'audience marketplace publique est DESACTIVEE (routes /acheter /louer /buy /rent -> MarketplaceDisabledRedirect vers megga.ch) ; les audiences agent CRM, super-admin et portail vendeur restent actives.] 5 audiences gardees par PasswordGate -> StaleBundleDetector -> ProtectedRoute/SuperAdminGuard. Marketplace SPA app.megga.ch (/buy /rent SearchPage; fiche /propriete/:id -> PropertyXSinglePropertyPage Property X, alias /listing/:id) -- NB le storefront PUBLIC pre-launch = site STATIQUE megga.ch (cf storefront-static), pas la SPA. Compte visiteur (/account). KYC self-service (/kyc/:token). Portail vendeur (/portal/:token = page unique « Votre vente » Sugar Pure lecture seule; + /portal dev mock). CRM agent (/dashboard/*). Super-admin (/dashboard/admin/*).",
       "tags": "frontend,routing,audiences"
     },
     {
@@ -72,7 +72,7 @@
     {
       "key": "megga/db-domains",
       "namespace": "megga",
-      "value": "Tables par domaine: tenant (agencies, profiles, agency_profiles, agent_profiles, team_invitations); contacts (contacts, seller_leads, contact_scores); biens (properties, listings, market_listings ~33k, external_listings); pipeline (transactions, crm_offers+history, visits, client_searches, matches); KYC (kyc_cases, kyc_checklist_items, kyc_magic_links+uploads, kyc_screening_decisions, documents); portail (seller_portals, seller_preferences, vendor_dossiers); billing (subscriptions); messaging (message_threads, messages, email_messages_cache); audit (activity_events, auth_events, platform_metrics, flatfox_sync_runs). Detail: docs/schema.md.",
+      "value": "Tables par domaine: tenant (agencies, profiles, agency_profiles, agent_profiles, team_invitations); contacts (contacts, seller_leads, contact_scores); biens (properties, listings, market_listings ~33k, external_listings); pipeline (transactions, crm_offers [historique via parent_offer_id + audit activity_events, pas de table crm_offers_history], visits, client_searches, matches); KYC (kyc_cases, kyc_checklist_items, kyc_magic_links+uploads, kyc_screening_decisions, documents); portail (seller_portals, seller_preferences, vendor_dossiers); billing (subscriptions); messaging (message_threads, messages, email_messages_cache); audit (activity_events, auth_events, platform_metrics, flatfox_sync_runs). Detail: docs/schema.md.",
       "tags": "database,schema"
     },
     {
@@ -102,7 +102,7 @@
     {
       "key": "megga/edge-fn-ai",
       "namespace": "megga",
-      "value": "Edge functions IA: ai-copilot (chat agent + actions structurees, Claude), ai-search (semantique pgvector), dashboard-ai-hint, parse-search-query (DeepSeek, public), support-chatbot. Plus extraction: extract-lead, extract-property-pdf, extract-property-url, photo-labeler (Vision). Secrets: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY.",
+      "value": "Edge functions IA: ai-copilot (chat agent + actions structurees, DeepSeek deepseek-chat via api.deepseek.com direct), ai-search (semantique pgvector), dashboard-ai-hint (Claude), parse-search-query (DeepSeek, public). Plus extraction: extract-lead (Claude), extract-property-pdf, extract-property-url, photo-labeler (Vision). support-chatbot DECOMMISSIONNEE (remplacee par Intercom Fin, absente du repo). Secrets: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY.",
       "tags": "edge-functions,ai"
     },
     {
@@ -120,7 +120,7 @@
     {
       "key": "megga/edge-fn-media-misc",
       "namespace": "megga",
-      "value": "Media: photo-processor (R2), backfill-cf-images, c2pa-sign/verify (Content Credentials), public-staging (Gemini, rate-limit IP), virtual-staging (garde-fous LPD: Vision gate confidence>=85% + quota plan). Divers: translate-on-demand (DeepSeek + cache), deepgram-token/speech-to-text, ticket-ai-reply, automation-engine (cron), matching-engine, score-engine, search-alert, calendars Google/Outlook.",
+      "value": "Media: photo-processor (R2), backfill-cf-images, c2pa-sign/verify (Content Credentials), public-staging (Gemini, rate-limit IP), virtual-staging (garde-fous LPD: Vision gate confidence>=85% + quota plan). Divers: translate-on-demand (DeepSeek + cache), deepgram-token/speech-to-text, automation-engine (cron), matching-engine, score-engine, search-alert, calendars Google/Outlook.",
       "tags": "edge-functions,media"
     },
     {
@@ -252,8 +252,8 @@
     {
       "key": "megga/hooks-marketplace-admin",
       "namespace": "megga",
-      "value": "Hooks marketplace/dashboard/admin: useMarketListings (debounce/pool), useMapPoints (lazy), useSmartSearchParser (NL->filtres), useFavorites, useSavedSearches, useMarketStats; useTodaySugarKpi, useDashboardCockpit/Funnel/Objectif, useDashboardAiHint; useCopilot, useExtractLead, useTranslatedDescription; admin useAdminUsers/Agencies/Monitoring/Compliance/Moderation, useAuditLog, useAdminLiveFeed, useSecurityAudit. a11y/ui: useFocusTrap, useReducedMotion, useMediaQuery, useSwipeNavigation, usePageMeta.",
-      "tags": "frontend,hooks,marketplace,admin"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Hooks marketplace/dashboard/admin: useMarketListings (debounce/pool), useMapPoints (lazy), useSmartSearchParser (NL->filtres), useFavorites, useSavedSearches, useMarketStats; useTodaySugarKpi, useDashboardCockpit/Funnel/Objectif, useDashboardAiHint; useCopilot, useExtractLead, useTranslatedDescription; admin useAdminUsers/Agencies/Monitoring/Compliance/Moderation, useAuditLog, useAdminLiveFeed, useSecurityAudit. a11y/ui: useFocusTrap, useReducedMotion, useMediaQuery, useSwipeNavigation, usePageMeta.",
+      "tags": "frontend,hooks,marketplace,admin,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/lib-modules",
@@ -300,7 +300,7 @@
     {
       "key": "megga/edge-ai-provider",
       "namespace": "megga",
-      "value": "_shared/ai-provider.ts: abstraction multi-IA. Modeles CLAUDE_MODELS: sonnet=claude-sonnet-4-20250514, haiku=claude-haiku-4-5-20251001; deepseek-chat. Fonctions: callClaude/callDeepSeek (directs, sans fallback); callPublicAI = DeepSeek SEUL (marketplace/support public, AUCUN fallback Claude - decision 2026-04-17, erreur si down); callAgentAI = Claude primaire + fallback DeepSeek sur echec Claude. computeCost (PRICING) correct -> ai_usage_logs. Balance DeepSeek via ai-billing-monitor (cron). photo-vision.ts = Claude Vision. pii-redaction.ts (AVS/IBAN/passeport) sur texte libre public (extract-lead), PAS par ai-copilot. INCONSISTANCE modeles: la plupart des fn = claude-sonnet-4-20250514, MAIS kyc-screening = claude-sonnet-4-6 et dashboard-ai-hint = claude-sonnet-4-5-20250929.",
+      "value": "_shared/ai-provider.ts: abstraction multi-IA. Modeles CLAUDE_MODELS: sonnet=claude-sonnet-4-20250514, haiku=claude-haiku-4-5-20251001; deepseek-chat. 3 fonctions: callClaude/callDeepSeek (directs, sans fallback) et callPublicAI = DeepSeek SEUL (marketplace/support public, AUCUN fallback Claude - decision 2026-04-17, erreur si down). Il n'existe PAS de wrapper 'callAgentAI' (verifie: 0 occurrence) — les surfaces qui veulent Claude appellent callClaude directement (dashboard-ai-hint, extract-lead) ou Anthropic en direct hors provider (kyc-screening). ai-copilot tourne sur DeepSeek (deepseek-chat, appel direct). computeCost (PRICING) -> ai_usage_logs. Balance DeepSeek via ai-billing-monitor (cron). photo-vision.ts = Claude Vision. pii-redaction.ts (AVS/IBAN/passeport) sur texte libre public (extract-lead), PAS par ai-copilot. INCONSISTANCE versions modeles: la plupart des appels Claude = claude-sonnet-4-20250514, MAIS kyc-screening = claude-sonnet-4-6 et dashboard-ai-hint = claude-sonnet-4-5-20250929.",
       "tags": "edge-functions,ai,architecture"
     },
     {
@@ -378,8 +378,8 @@
     {
       "key": "megga/pages-inventory-public",
       "namespace": "megga",
-      "value": "Pages publiques/marketing (~39): HomePage, SearchPage (/buy /rent), ListingPage, SellPage, EstimatesPage, ServicesPage, PublishPage, AgenciesPage, AgentDirectoryPage, AgentProfilePage, ContactPage, GlossaryPage, PrivacyPage, BlogV2Page; aide HelpCenter/Category/Article/Start/Contact/Status/Changelog/Shortcuts/Compliance/Limits/Resources; auth AuthBentoPage (login/signup/reset/magic-link/verify), AuthCallbackPage, AcceptInvitePage, ResetPasswordPage; KycPublicPage; VisitManage/Feedback, TicketStatus/Feedback; NotFoundPage.",
-      "tags": "frontend,pages,public"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Pages publiques/marketing (~39): HomePage, SearchPage (/buy /rent), ListingPage, SellPage, EstimatesPage, ServicesPage, PublishPage, AgenciesPage, AgentDirectoryPage, AgentProfilePage, ContactPage, GlossaryPage, PrivacyPage, BlogV2Page; aide HelpCenter/Category/Article/Start/Contact/Status/Changelog/Shortcuts/Compliance/Limits/Resources; auth AuthBentoPage (login/signup/reset/magic-link/verify), AuthCallbackPage, AcceptInvitePage, ResetPasswordPage; KycPublicPage; VisitManage/Feedback, TicketStatus/Feedback; NotFoundPage.",
+      "tags": "frontend,pages,public,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/pages-inventory-app",
@@ -522,7 +522,7 @@
     {
       "key": "megga/offers-model",
       "namespace": "megga",
-      "value": "Offres: crm_offers (deal_id, parent_offer_id NULL=racine sinon contre-offre, kind offer/counter, from_party buyer/seller, by_id/by_label, amount CHF, conditions JSONB {financing/sale/diagnostic/occupancy toggles + texte 'autres'}, deposit, closing_date, expires_at, status pending/accepted/rejected/expired/withdrawn, attachments). crm_offers_history immutable (preuve LBA 10 ans). Cron crm-offers-expire-hourly (0 * * * *, expire_crm_offers_now) -> expire les pending echus. Trigger audit_crm_offer_event (SECURITY DEFINER) loggue creation/contre-offre/acceptee/refusee/expiree.",
+      "value": "Offres: crm_offers (deal_id, parent_offer_id NULL=racine sinon contre-offre, kind offer/counter, from_party buyer/seller, by_id/by_label, amount CHF, conditions JSONB {financing/sale/diagnostic/occupancy toggles + texte 'autres'}, deposit, closing_date, expires_at, status pending/accepted/rejected/expired/withdrawn, attachments). Historique/preuve LBA via la chaine parent_offer_id (offre racine -> contre-offres) + trigger audit_crm_offer_event -> activity_events (PAS de table crm_offers_history, elle n'existe pas). Cron crm-offers-expire-hourly (0 * * * *, expire_crm_offers_now) -> expire les pending echus. Trigger audit_crm_offer_event (SECURITY DEFINER) loggue creation/contre-offre/acceptee/refusee/expiree.",
       "tags": "transactions,offers,database"
     },
     {
@@ -576,26 +576,26 @@
     {
       "key": "megga/ai-three-surfaces",
       "namespace": "megga",
-      "value": "3 surfaces IA distinctes. 1) ai-copilot (agent, DeepSeek deepseek-chat, 9 actions, compliance-critical). 2) dashboard-ai-hint (cockpit agent, Claude Sonnet 4.5 = claude-sonnet-4-5-20250929 max 400 tokens, 1 suggestion actionnable basee sur les KPIs, fallback heuristique KYC>gap budget>momentum, cache 1h cote client). 3) support-chatbot (help center PUBLIC, DeepSeek V3 SEUL via callPublicAI - AUCUN fallback Claude, erreur si DeepSeek down; RAG: top-k articles injectes anti-hallucination, sortie texte + SUGGESTED articles + ESCALATE flag, 150 mots max, sans auth).",
+      "value": "Surfaces IA distinctes. 1) ai-copilot (agent, DeepSeek deepseek-chat, 9 actions, compliance-critical). 2) dashboard-ai-hint (cockpit agent, Claude Sonnet 4.5 = claude-sonnet-4-5-20250929 max 400 tokens, 1 suggestion actionnable basee sur les KPIs, fallback heuristique KYC>gap budget>momentum, cache 1h cote client). 3) [DECOMMISSIONNEE juin 2026] support-chatbot (ancien help center public, DeepSeek V3 via callPublicAI) RETIREE du repo, remplacee par Intercom Fin (cf. intercom-support). Surface IA publique restante = parse-search-query + ai-search (callPublicAI = DeepSeek SEUL, AUCUN fallback Claude, erreur si down).",
       "tags": "ai,surfaces,architecture"
     },
     {
       "key": "megga/copilot-models-pii",
       "namespace": "megga",
-      "value": "Copilote modeles & PII. Strategie: ai-copilot appelle directement l'API DeepSeek (modele deepseek-chat, sans fallback, hors ai-provider ; migre de Claude->DeepSeek, brain corrige juin 2026); le pattern callAgentAI offre Claude -> fallback DeepSeek; public-side callPublicAI = DeepSeek SEUL, AUCUN fallback Claude (decision 2026-04-17, erreur si down; public = listings anonymes, pas de PII user). Pricing USD/1M (constantes PRICING): DeepSeek 0.27/1.10 (~16x moins cher), Sonnet 3/15, Haiku 1/5; computeCost est correct MAIS ai-copilot loggue dans activity_events (tokens, SANS cout calcule), donc hors ai_usage_logs. Data residency: A REVOIR (ai-copilot envoie le contexte CRM BRUT a DeepSeek depuis la migration -> l'ancienne couverture Anthropic EU DPA ne couvre plus cette surface ; flag compliance LPD a trancher cote humain). NUANCE: ai-copilot injecte le contexte CRM BRUT (PAS de pii-redaction, contrairement a extract-lead) -> repose sur le DPA, pas la redaction.",
+      "value": "Copilote modeles & PII. Strategie: ai-copilot appelle directement l'API DeepSeek (modele deepseek-chat, sans fallback, hors ai-provider ; migre de Claude->DeepSeek, brain corrige juin 2026); il n'existe PAS de wrapper callAgentAI (les surfaces Claude appellent callClaude directement: dashboard-ai-hint, extract-lead); public-side callPublicAI = DeepSeek SEUL, AUCUN fallback Claude (decision 2026-04-17, erreur si down; public = listings anonymes, pas de PII user). Pricing USD/1M (constantes PRICING): DeepSeek 0.27/1.10 (~16x moins cher), Sonnet 3/15, Haiku 1/5; computeCost est correct MAIS ai-copilot loggue dans activity_events (tokens, SANS cout calcule), donc hors ai_usage_logs. Data residency: A REVOIR (ai-copilot envoie le contexte CRM BRUT a DeepSeek depuis la migration -> l'ancienne couverture Anthropic EU DPA ne couvre plus cette surface ; flag compliance LPD a trancher cote humain). NUANCE: ai-copilot injecte le contexte CRM BRUT (PAS de pii-redaction, contrairement a extract-lead) -> repose sur le DPA, pas la redaction.",
       "tags": "ai,copilot,models,pii,compliance"
     },
     {
       "key": "megga/copilot-agent-planned",
       "namespace": "megga",
-      "value": "PLANIFIE: ai-copilot-agent (backlog decide 2026-04-18, go si >=5 agents payants). Difference: le copilote actuel = actions predefinies sur l'entite courante; l'AGENT = requetes libres multi-entites avec TOOL-CALLING + raisonnement portefeuille global. 6 tools v1 (read-only, security-definer filtres agency_id): query_contacts, query_pipeline, query_kyc, match_contacts_to_listing, suggest_priorities_today, get_market_stats. Edge ai-copilot-agent Claude Sonnet 4 + streaming SSE (vs stateless actuel). UX: bulle flottante Radix sticky bottom-right + cards action + deep-links + Cmd+K. Couts: 10 agents CHF200/mois, 50 CHF1k, 200 CHF4k. ~10-12 jours. Exemples: 'contacts score>70 sans contact depuis 14j', 'priorites du jour', 'prix median 4p Carouge'.",
+      "value": "PLANIFIE: ai-copilot-agent (backlog decide 2026-04-18, go si >=5 agents payants). Difference: le copilote actuel = actions predefinies sur l'entite courante; l'AGENT = requetes libres multi-entites avec TOOL-CALLING + raisonnement portefeuille global. 6 tools v1 (read-only, security-definer filtres agency_id): query_contacts, query_pipeline, query_kyc, match_contacts_to_listing, suggest_priorities_today, get_market_stats. Edge ai-copilot-agent (modele a confirmer : DeepSeek deepseek-chat par defaut selon la regle cout ; ce plan d'avril 2026 citait Claude Sonnet 4 avant la decision DeepSeek) + streaming SSE (vs stateless actuel). UX: bulle flottante Radix sticky bottom-right + cards action + deep-links + Cmd+K. Couts: 10 agents CHF200/mois, 50 CHF1k, 200 CHF4k. ~10-12 jours. Exemples: 'contacts score>70 sans contact depuis 14j', 'priorites du jour', 'prix median 4p Carouge'.",
       "tags": "ai,copilot,planned,roadmap"
     },
     {
       "key": "megga/search-page",
       "namespace": "megga",
-      "value": "Marketplace SearchPage (/buy et /rent, deux contextes): URL = SOURCE DE VERITE des filtres (parseFiltersFromParams au mount, filtersToParams ecrit l'URL a chaque changement -> deep-links partageables). Layout 3 colonnes: liste de cards VIRTUALISEE (react-virtual, 1 col mobile / 2 cols sm+, ~400px/row, overscan 3) + MapView lazy (Mapbox ~470KB, prefetch parallele au mount ~300ms gagnees) + sidebar toggle (MarketAccountRail 5 vues: search/favorites/saved/alerts/calculator/contact). Pagination useInfiniteQuery 50 items/page: SCROLL INFINI (useEffect surveille la derniere ligne virtualisee -> auto fetchNextPage, garde isFetchingNextPage) + bouton 'Charger plus' (search.loadMore) en fallback. NB marche buy quasi vide (~12 biens, Flatfox=rent-only) donc pas de pagination cote /buy. Comparateur max 3 biens (URL ?compare + localStorage).",
-      "tags": "marketplace,search,frontend"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Marketplace SearchPage (/buy et /rent, deux contextes): URL = SOURCE DE VERITE des filtres (parseFiltersFromParams au mount, filtersToParams ecrit l'URL a chaque changement -> deep-links partageables). Layout 3 colonnes: liste de cards VIRTUALISEE (react-virtual, 1 col mobile / 2 cols sm+, ~400px/row, overscan 3) + MapView lazy (Mapbox ~470KB, prefetch parallele au mount ~300ms gagnees) + sidebar toggle (MarketAccountRail 5 vues: search/favorites/saved/alerts/calculator/contact). Pagination useInfiniteQuery 50 items/page: SCROLL INFINI (useEffect surveille la derniere ligne virtualisee -> auto fetchNextPage, garde isFetchingNextPage) + bouton 'Charger plus' (search.loadMore) en fallback. NB marche buy quasi vide (~12 biens, Flatfox=rent-only) donc pas de pagination cote /buy. Comparateur max 3 biens (URL ?compare + localStorage).",
+      "tags": "marketplace,search,frontend,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/storefront-static",
@@ -606,56 +606,56 @@
     {
       "key": "megga/search-filters",
       "namespace": "megga",
-      "value": "Filtres marketplace. 8 types (apartment/house/villa/commercial/office/parking/storage/land, multi-select), contexte buy/rent (rent ajoute Meuble + Dispo immediate, retire 'recommended'). Principaux (FilterPill): lieu (city ILIKE OU canton eq, exclusifs), prix min/max (CHF buy ou /mois rent + presets), pieces >=, surface min. Avances (modal 'Plus de filtres'): bathrooms >=, annee (UI-only non appliquee backend), classe energie CECB A-G/minergie, 12 features (Balcon/Parking/Garage/Jardin/Ascenseur/Vue lac/Vue pano/Cheminee/Clim/Cave/Terrasse/Piscine). Tri: relevance/recommended/price_asc/price_desc/newest/surface_desc/best_deals. toServerFilters mappe les features -> 11 colonnes booleennes (has_balcony, has_parking, has_garage, has_elevator, is_furnished, has_fireplace, has_nice_view, has_swimming_pool, is_minergie, pets_allowed, is_new_building).",
-      "tags": "marketplace,search,filters"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Filtres marketplace. 8 types (apartment/house/villa/commercial/office/parking/storage/land, multi-select), contexte buy/rent (rent ajoute Meuble + Dispo immediate, retire 'recommended'). Principaux (FilterPill): lieu (city ILIKE OU canton eq, exclusifs), prix min/max (CHF buy ou /mois rent + presets), pieces >=, surface min. Avances (modal 'Plus de filtres'): bathrooms >=, annee (UI-only non appliquee backend), classe energie CECB A-G/minergie, 12 features (Balcon/Parking/Garage/Jardin/Ascenseur/Vue lac/Vue pano/Cheminee/Clim/Cave/Terrasse/Piscine). Tri: relevance/recommended/price_asc/price_desc/newest/surface_desc/best_deals. toServerFilters mappe les features -> 11 colonnes booleennes (has_balcony, has_parking, has_garage, has_elevator, is_furnished, has_fireplace, has_nice_view, has_swimming_pool, is_minergie, pets_allowed, is_new_building).",
+      "tags": "marketplace,search,filters,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/search-query-perf",
       "namespace": "megga",
-      "value": "useMarketListings (requete + perf 33k rows). select('*').eq('status','active').eq('transaction_type', ctx).gte('quality_score',50) + filtres (canton eq, city ilike echappe, price gte/lte, rooms gte, type in, features eq true) .order(sort).limit(50).offset. REGLES: .eq('status') PAS .in (partial index idx_ml_rent_active_created); JAMAIS count:'exact' (totalCount approx depuis page[0]); seuls created_at (index) et relevance_score (idx_ml_relevance pour 'recommended') sont triables; colonnes lourdes (photos[], description) PAS fetchees en liste. useMapPoints = RPC SEPARE lightweight {id, lat, lng, price, type, rooms} pour la carte. Listings masques filtres cote client (useHiddenListings).",
-      "tags": "marketplace,search,performance,critical"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] useMarketListings (requete + perf 33k rows). select('*').eq('status','active').eq('transaction_type', ctx).gte('quality_score',50) + filtres (canton eq, city ilike echappe, price gte/lte, rooms gte, type in, features eq true) .order(sort).limit(50).offset. REGLES: .eq('status') PAS .in (partial index idx_ml_rent_active_created); JAMAIS count:'exact' (totalCount approx depuis page[0]); seuls created_at (index) et relevance_score (idx_ml_relevance pour 'recommended') sont triables; colonnes lourdes (photos[], description) PAS fetchees en liste. useMapPoints = RPC SEPARE lightweight {id, lat, lng, price, type, rooms} pour la carte. Listings masques filtres cote client (useHiddenListings).",
+      "tags": "marketplace,search,performance,critical,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/search-smart",
       "namespace": "megga",
-      "value": "Recherche intelligente marketplace. Heuristique client isLikelyNaturalLanguage (>=3 mots OU chiffres OU keywords prix/features) -> si oui, edge parse-search-query (DeepSeek V3, sans fallback Claude) qui retourne JSON {canton, city, types[], min/maxPrice, min/maxRooms, surface, features[], confidence high/medium/low} avec whitelist cantons/types/features; sinon ou erreur -> regex client parseNaturalLanguageQuery (fallback gracieux). Chip 'Compris: Geneve · 4+ pieces · < 1.2M' (sparkle IA). Feature flag VITE_SMART_SEARCH_ENABLED. A distinguer de ai-search (conversationnel pgvector + Claude, multi-tours, max 10 tours).",
-      "tags": "marketplace,search,ai,smart-input"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Recherche intelligente marketplace. Heuristique client isLikelyNaturalLanguage (>=3 mots OU chiffres OU keywords prix/features) -> si oui, edge parse-search-query (DeepSeek V3, sans fallback Claude) qui retourne JSON {canton, city, types[], min/maxPrice, min/maxRooms, surface, features[], confidence high/medium/low} avec whitelist cantons/types/features; sinon ou erreur -> regex client parseNaturalLanguageQuery (fallback gracieux). Chip 'Compris: Geneve · 4+ pieces · < 1.2M' (sparkle IA). Feature flag VITE_SMART_SEARCH_ENABLED. A distinguer de ai-search (conversationnel pgvector + Claude, multi-tours, max 10 tours).",
+      "tags": "marketplace,search,ai,smart-input,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/search-favorites",
       "namespace": "megga",
-      "value": "Favoris marketplace (useFavorites): etat singleton global + localStorage 'megga-favorites' (anon, zero friction) + table market_favorites (user_id, listing_id, unique) si connecte. mergeOnLogin idempotent (push local->DB, pull remote->local). Prompt de login au 3e favori (si non dismiss). FavoritesPanel: filtre par favoriteIds, group by ville si >=5, rows compactes (thumb + prix + adresse + remove). RLS: market_favorites user voit ses lignes; market_listings anon read WHERE status='active'.",
-      "tags": "marketplace,favorites,frontend"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Favoris marketplace (useFavorites): etat singleton global + localStorage 'megga-favorites' (anon, zero friction) + table market_favorites (user_id, listing_id, unique) si connecte. mergeOnLogin idempotent (push local->DB, pull remote->local). Prompt de login au 3e favori (si non dismiss). FavoritesPanel: filtre par favoriteIds, group by ville si >=5, rows compactes (thumb + prix + adresse + remove). RLS: market_favorites user voit ses lignes; market_listings anon read WHERE status='active'.",
+      "tags": "marketplace,favorites,frontend,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/search-saved-alerts",
       "namespace": "megga",
-      "value": "Recherches sauvegardees + alertes. useSavedSearches: localStorage (anon, migre au login) / Supabase saved_searches (connecte, staleTime 5min), MAX 10. SavedSearch {name, filters JSONB (context/types/prix/pieces/city/canton/energyLabel/lifestyleTags), alertEnabled, alertFrequency instant/daily/weekly, email, last_alerted_at, resultsCount}. Edge search-alert (cron): pour chaque saved_search alert_enabled, shouldProcess selon frequence (instant 30min/daily 24h/weekly 7j), requete miroir de applyFilters + first_seen_at > last_alerted_at (nouveautes uniquement), top 20, email HTML Resend (5 cards visibles + '+N autres'), update last_alerted_at. SavedSearchesPanel + AlertsPanel (badges frequence).",
-      "tags": "marketplace,alerts,saved-searches"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Recherches sauvegardees + alertes. useSavedSearches: localStorage (anon, migre au login) / Supabase saved_searches (connecte, staleTime 5min), MAX 10. SavedSearch {name, filters JSONB (context/types/prix/pieces/city/canton/energyLabel/lifestyleTags), alertEnabled, alertFrequency instant/daily/weekly, email, last_alerted_at, resultsCount}. Edge search-alert (cron): pour chaque saved_search alert_enabled, shouldProcess selon frequence (instant 30min/daily 24h/weekly 7j), requete miroir de applyFilters + first_seen_at > last_alerted_at (nouveautes uniquement), top 20, email HTML Resend (5 cards visibles + '+N autres'), update last_alerted_at. SavedSearchesPanel + AlertsPanel (badges frequence).",
+      "tags": "marketplace,alerts,saved-searches,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/map-mapbox",
       "namespace": "megga",
-      "value": "Marketplace carte (MapView ~2000 lignes, react-map-gl). Token VITE_MAPBOX_TOKEN (fallback gracieux si absent). 3 styles (Light/Satellite/Dark, toggle fade). Init Geneve {lng 6.1432, lat 46.2044, zoom 11.5}. Layers GeoJSON natifs (symbol+circle). Price pills = sprite Canvas 112x48 @2x (blanc/ink defaut, ink/blanc au hover). Popup hover compact 260px, popup click 300px style Zillow (carousel photos + favori + badge C2PA). Mode dessin polygone freehand -> filtre point-in-polygon (zoneFilterIds). Reverse geocoding Mapbox (debounce 350ms). src/lib/mapboxClient.ts = Geocoding + Matrix API.",
-      "tags": "marketplace,map,mapbox,frontend"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Marketplace carte (MapView ~2000 lignes, react-map-gl). Token VITE_MAPBOX_TOKEN (fallback gracieux si absent). 3 styles (Light/Satellite/Dark, toggle fade). Init Geneve {lng 6.1432, lat 46.2044, zoom 11.5}. Layers GeoJSON natifs (symbol+circle). Price pills = sprite Canvas 112x48 @2x (blanc/ink defaut, ink/blanc au hover). Popup hover compact 260px, popup click 300px style Zillow (carousel photos + favori + badge C2PA). Mode dessin polygone freehand -> filtre point-in-polygon (zoneFilterIds). Reverse geocoding Mapbox (debounce 350ms). src/lib/mapboxClient.ts = Geocoding + Matrix API.",
+      "tags": "marketplace,map,mapbox,frontend,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/map-clustering-perf",
       "namespace": "megga",
-      "value": "Marketplace carte — clustering & perf 33k points. Utilise le clustering NATIF Mapbox (GeoJSON source + symbol layers, GPU) — PAS Supercluster.js (que CLAUDE.md liste seulement comme idee future d'optim). Hover via setFeatureState (efficace), throttle 80ms sur queryRenderedFeatures. useMapPoints = requete SEPAREE lightweight {id, lat, lng, price, type, rooms}. Cache sessionStorage 10min (cle megga:map-points:filtres) -> pins instantanes (hydrate initialData + refresh background, pas de spinner). Lookup listingsMap O(1).",
-      "tags": "marketplace,map,performance,clustering"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Marketplace carte — clustering & perf 33k points. Utilise le clustering NATIF Mapbox (GeoJSON source + symbol layers, GPU) — PAS Supercluster.js (que CLAUDE.md liste seulement comme idee future d'optim). Hover via setFeatureState (efficace), throttle 80ms sur queryRenderedFeatures. useMapPoints = requete SEPAREE lightweight {id, lat, lng, price, type, rooms}. Cache sessionStorage 10min (cle megga:map-points:filtres) -> pins instantanes (hydrate initialData + refresh background, pas de spinner). Lookup listingsMap O(1).",
+      "tags": "marketplace,map,performance,clustering,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/map-choropleth",
       "namespace": "megga",
-      "value": "Marketplace carte — choropleth prix/m2. Hook usePriceHexagons({bbox, zoom, transactionType}) -> RPC SQL get_price_hexagons (PAS Mapbox): taille hex dynamique par zoom (4000m si z<9 ... 250m si z>=13), retourne GeoJSON polygones {median_price_m2, listing_count, p25, p75}, anti-outlier p_min_count=3. Echelle couleur interpolee par transaction_type: rent 15->45 CHF/m2/mois, vente 4000->20000 CHF/m2 (vert->rouge, opacity 0.5). Toggle via toggleHeatmap (MapViewHandle imperative ref), cache 60s. Medians cantonaux: useCantonalMedians (vue cantonal_price_medians, cache 24h).",
-      "tags": "marketplace,map,choropleth,prices"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Marketplace carte — choropleth prix/m2. Hook usePriceHexagons({bbox, zoom, transactionType}) -> RPC SQL get_price_hexagons (PAS Mapbox): taille hex dynamique par zoom (4000m si z<9 ... 250m si z>=13), retourne GeoJSON polygones {median_price_m2, listing_count, p25, p75}, anti-outlier p_min_count=3. Echelle couleur interpolee par transaction_type: rent 15->45 CHF/m2/mois, vente 4000->20000 CHF/m2 (vert->rouge, opacity 0.5). Toggle via toggleHeatmap (MapViewHandle imperative ref), cache 60s. Medians cantonaux: useCantonalMedians (vue cantonal_price_medians, cache 24h).",
+      "tags": "marketplace,map,choropleth,prices,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/listing-card",
       "namespace": "megga",
-      "value": "Marketplace cards. ListingCard: lien Link to=/propriete/:id (fiche bien; id prefixe market-/internal-; routes renommees FR->EN avec 301 #504), carousel photos snap-x lazy (rend +-1 position), bouton favori (etat local sync useFavorites), badges is_hot (Hot price), video_url, C2PA verified (pill emerald + shield), icones type (pieces/chambres/m2), tag Meuble (rent). Images via pickPhoto/pickSrcSet (photos_cf R2: srcset thumb 400w/detail 1200w/hero 1600w; fallback icone Building2 si 0 photo). Comparateur CompareDrawer: modal 2-3 colonnes, 8+ lignes (prix/prix-m2/surface/pieces/jours en ligne, meilleure valeur surlignee emerald), max 3 biens (URL ?compare + localStorage).",
-      "tags": "marketplace,listings,cards,frontend"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : marketplace publique DESACTIVEE, routes /acheter /louer /buy /rent /propriete -> vitrine megga.ch (MarketplaceDisabledRedirect dans App.tsx). Decrit l'ancien comportement public (non route aujourd'hui), conserve pour une eventuelle reactivation Phase 2.] Marketplace cards. ListingCard: lien Link to=/propriete/:id (fiche bien; id prefixe market-/internal-; routes renommees FR->EN avec 301 #504), carousel photos snap-x lazy (rend +-1 position), bouton favori (etat local sync useFavorites), badges is_hot (Hot price), video_url, C2PA verified (pill emerald + shield), icones type (pieces/chambres/m2), tag Meuble (rent). Images via pickPhoto/pickSrcSet (photos_cf R2: srcset thumb 400w/detail 1200w/hero 1600w; fallback icone Building2 si 0 photo). Comparateur CompareDrawer: modal 2-3 colonnes, 8+ lignes (prix/prix-m2/surface/pieces/jours en ligne, meilleure valeur surlignee emerald), max 3 biens (URL ?compare + localStorage).",
+      "tags": "marketplace,listings,cards,frontend,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/listing-detail",
@@ -702,7 +702,7 @@
     {
       "key": "megga/intercom-proactive",
       "namespace": "megga",
-      "value": "Couche proactive Intercom (Outbound / Messages sortants) — demarree 2026-06-09 (avant : ~0% utilise). 2 quick wins LIVE : (1) Actualites/News 'Une aide instantanee, directement dans MEGGA' dans le flux Users Newsfeed (annonce l'assistant in-app) ; (2) Banniere 'Terminez votre configuration MEGGA pour debloquer toutes les fonctionnalites', ciblee Users + Signed up < 30 jours (proxy nouveaux agents, en attendant onboarding_completed). NE PAS DUPLIQUER ce que MEGGA a deja en interne : Onboarding (wizard onboarding-sugar/ + checklist crm-sugar-v3 OnboardingChecklist + admin OnboardingTracker = LOGIQUE PRODUIT, les Product Tours Intercom ne peuvent pas le remplacer) et NPS (NpsSurvey.tsx 4 langues + AdminNpsPage) RESTENT cote MEGGA. Trous Intercom a exploiter = News, Series (cycle de vie : bienvenue/jalons/relance — RIEN encore), messages cibles. PIEGE MAJEUR confirme : un attribut/evenement CUSTOM (onboarding_completed, role, canton, deal_created...) ne devient CIBLABLE dans Intercom qu'une fois TRANSMIS par de VRAIS utilisateurs en prod (sinon 'No results found' dans le selecteur d'audience) ; a vide seuls les attributs standard (Signed up, Last seen, Email...) sont dispo. FONDATION EVENEMENTS (code, livre 2026-06-09, build OK) : trackIntercomEvent('onboarding_completed') dans OnboardingShell.tsx (enterCrm, apres update profiles + refreshProfile) ; trackIntercomEvent('deal_created') dans useTransactions.useCreateTransaction (apres insert) ; trackIntercomEvent('lead_imported') dans useImportLead (onSuccess). SUIVI : plan_changed = a cabler cote BACKEND (webhook Stripe -> API REST Intercom ; le SDK JS messenger n'existe pas la) ; kyc_handled = choisir le bon moment (nuance validation humaine) ; definir les Custom Data Attributes dans Intercom Settings>Donnees pour les rendre ciblables avant l'arrivee des users. Attributs deja envoyes au boot (src/components/IntercomMessenger.tsx) : role, canton, onboarding_completed, agency_id (company), created_at. Helper : trackIntercomEvent / updateIntercom dans src/lib/intercom.ts (no-op si pas d'App ID).",
+      "value": "Couche proactive Intercom (Outbound / Messages sortants) — demarree 2026-06-09 (avant : ~0% utilise). 2 quick wins LIVE : (1) Actualites/News 'Une aide instantanee, directement dans MEGGA' dans le flux Users Newsfeed (annonce l'assistant in-app) ; (2) Banniere 'Terminez votre configuration MEGGA pour debloquer toutes les fonctionnalites', ciblee Users + Signed up < 30 jours (proxy nouveaux agents, en attendant onboarding_completed). NE PAS DUPLIQUER ce que MEGGA a deja en interne : Onboarding (wizard onboarding-sugar/ + checklist crm-sugar-v3 OnboardingChecklist + admin OnboardingTracker = LOGIQUE PRODUIT, les Product Tours Intercom ne peuvent pas le remplacer) et NPS (NpsSurvey.tsx 4 langues + AdminNpsPage) RESTENT cote MEGGA. NEWS = Phase 1 LIVREE (juin 2026): wrapper showSpace/showNews/showArticle dans src/lib/intercom.ts; script scripts/intercom-news.mjs (modes news-audit + news-publish, token GitHub-only); seed N1-N4 (brouillons) sur le Users Newsfeed; workflow d'audit dispatchable. Trous restants a exploiter = Series (cycle de vie bienvenue/jalons/relance — RIEN encore) et messages cibles. PIEGE MAJEUR confirme : un attribut/evenement CUSTOM (onboarding_completed, role, canton, deal_created...) ne devient CIBLABLE dans Intercom qu'une fois TRANSMIS par de VRAIS utilisateurs en prod (sinon 'No results found' dans le selecteur d'audience) ; a vide seuls les attributs standard (Signed up, Last seen, Email...) sont dispo. FONDATION EVENEMENTS (code, livre 2026-06-09, build OK) : trackIntercomEvent('onboarding_completed') dans OnboardingShell.tsx (enterCrm, apres update profiles + refreshProfile) ; trackIntercomEvent('deal_created') dans useTransactions.useCreateTransaction (apres insert) ; trackIntercomEvent('lead_imported') dans useImportLead (onSuccess). SUIVI : plan_changed = a cabler cote BACKEND (webhook Stripe -> API REST Intercom ; le SDK JS messenger n'existe pas la) ; kyc_handled = choisir le bon moment (nuance validation humaine) ; definir les Custom Data Attributes dans Intercom Settings>Donnees pour les rendre ciblables avant l'arrivee des users. Attributs deja envoyes au boot (src/components/IntercomMessenger.tsx) : role, canton, onboarding_completed, agency_id (company), created_at. Helper : trackIntercomEvent / updateIntercom dans src/lib/intercom.ts (no-op si pas d'App ID).",
       "tags": "intercom,proactive,outbound,news,series,events,tracking,fin"
     },
     {
@@ -738,7 +738,7 @@
     {
       "key": "megga/brain-self",
       "namespace": "megga",
-      "value": "META — le cerveau MEGGA: ce systeme de connaissance = docs/system-map.md (carte lisible) + .claude-flow/knowledge/megga-memory.seed.json (~114 entrees, namespace 'megga'). Durable (committe dans git), local (embeddings ONNX, recherche HNSW), 0 API / 0 token. AUTO: hook .claude/hooks/session-start.sh recharge le seed a chaque session (npm run ruflo:seed; couper avec RUFLO_NO_AUTOSEED=1); CLAUDE.md (lu d'office) demande de consulter le cerveau avant de coder. MANUEL (routine d'apprentissage, le cerveau n'enregistre PAS les conversations seul, sinon bruit): apres une feature -> cartographier le code reel, VERIFIER les faits contre le code, editer le seed (cle megga/<sujet>, valeur dense, tags) + system-map.md, npm run ruflo:seed, commit/push. Interroger: npx ruflo memory search -q '<sujet>' -n megga. En cas de doute, le CODE fait foi.",
+      "value": "META — le cerveau MEGGA: ce systeme de connaissance = docs/system-map.md (carte lisible) + .claude-flow/knowledge/megga-memory.seed.json (144 entrees, namespace 'megga'). Durable (committe dans git), local (embeddings ONNX, recherche HNSW), 0 API / 0 token. AUTO: hook .claude/hooks/session-start.sh recharge le seed a chaque session (npm run ruflo:seed; couper avec RUFLO_NO_AUTOSEED=1); CLAUDE.md (lu d'office) demande de consulter le cerveau avant de coder. MANUEL (routine d'apprentissage, le cerveau n'enregistre PAS les conversations seul, sinon bruit): apres une feature -> cartographier le code reel, VERIFIER les faits contre le code, editer le seed (cle megga/<sujet>, valeur dense, tags) + system-map.md, npm run ruflo:seed, commit/push. Interroger: npx ruflo memory search -q '<sujet>' -n megga. En cas de doute, le CODE fait foi.",
       "tags": "meta,brain,maintenance"
     },
     {
@@ -847,24 +847,13 @@
       "key": "megga/seller-votre-vente",
       "namespace": "megga",
       "value": "Espace vendeur = page unique « Votre vente » (src/pages/particulier/VotreVentePage.tsx + src/components/seller-portal/votre-vente/). Remplace l'ancien mini-CRM 8 pages (supprime). Acces par lien personnel token (seller_portals, sans compte auth), lecture seule. Grammaire Sugar Pure (tokens SELLER_SP light/dark alignes SugarV3/DB_SP, Manrope, accent noir #0B0C0E, couleur en data-viz only). Blocs: header+parametres, carte bien+lightbox galerie, parcours arc 6 etapes (Mandat signe->En ligne->Visites->Offres->Negociation->Signe), 3 donuts (visites/offres/jours), offres + modal decision (accepter/contre-offrir/refuser -> transmis a l'agent, human-in-the-loop), timeline, carte agent WhatsApp/tel/email sticky, dark mode. Donnees: useSellerPortalData -> toVenteVM (viewModel.ts). Backend (Phase 2 FAIT): edge function seller-portal-action (deployee --no-verify-jwt, token seller_portals valide) -> action offer_decision = enregistre activity_event (actor_kind='system', category='deal') + TRANSMIS a l'agent, JAMAIS de mutation directe crm_offers/transactions (human-in-the-loop, lien fuite = blast radius minimal) ; save/get_preferences = table seller_preferences (RLS lecture agence get_my_agency_id, ecriture service_role). Frontend cable via api.ts (supabase.functions.invoke), token passe par PortalGateway -> VotreVentePage (modals envoi async). Handoff: docs/handoff/espace-vendeur/.",
-      "tags": [
-        "frontend",
-        "seller-portal",
-        "vendeur",
-        "sugar-pure"
-      ]
+      "tags": "frontend,seller-portal,vendeur,sugar-pure"
     },
     {
       "key": "megga/agent-notifications",
       "namespace": "megga",
       "value": "Centre de notifications agent (cloche topbar -> SugarNotificationsPopover dans SugarShell) = REEL (remplace l'ancien mock SUGAR_NOTIFS). Hook src/hooks/useAgentNotifications.ts : lit activity_events NON-utilisateur (.neq actor_kind 'user' -> index partiel idx_activity_events_actor_kind), RLS scope agence (policy events_select = agency_id=get_my_agency_id()), realtime via useId() (pattern useAdminLiveFeed, sinon crash re-mount). Map activity_event -> SugarNotif (kind via action/category, priority via severity, group today/yesterday/older, time relatif, title=object_label||fallback). Etat NON-LU = last-seen ts + set d'ids en localStorage (activity_events immuable nLPD) ; markRead/markAllRead. Deep-link clic non cable (ctaTo vide = TODO). La decision vendeur (seller_offer_decision, actor_kind='system') y remonte + dans la timeline contact (CdTimelineCard, ACTION_LABELS['seller_offer_decision']='Décision du vendeur').",
-      "tags": [
-        "frontend",
-        "notifications",
-        "agent",
-        "activity_events",
-        "realtime"
-      ]
+      "tags": "frontend,notifications,agent,activity_events,realtime"
     },
     {
       "key": "megga/vitrine-crm-first",
