@@ -17,7 +17,7 @@
 ## 🧠 Le cerveau : comment ça marche & comment le maintenir
 
 Ce document **+** [`.claude-flow/knowledge/megga-memory.seed.json`](../.claude-flow/knowledge/megga-memory.seed.json)
-(≈113 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
+(147 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
 **local** (embeddings ONNX, recherche HNSW) et **gratuit** (0 appel API).
 
 **Ce qui est automatique :**
@@ -53,9 +53,10 @@ avoir livré une feature ou changé l'architecture :
 
 ## 0. En une phrase
 
-SaaS immobilier suisse **AI-native, compliance-first** : marketplace publique (33k+ biens
-Flatfox) + CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA +
-super-admin. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 57 edge functions,
+SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
+CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin.
+Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~34k
+`market_listings`) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 67 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
 humaine obligatoire).
 
@@ -71,7 +72,7 @@ fragmenté.
 Frontend   React 18 / TS / Vite / Tailwind · React Router v6 · React Query (+ supabase-cache-helpers)
            i18n react-i18next (FR/DE/EN/IT) · Mapbox GL (lazy) · Recharts · Sentry · PostHog
 Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 15, Auth, Storage,
-           Realtime, pgvector, pg_cron, pg_net · 57 Edge Functions (Deno)
+           Realtime, pgvector, pg_cron, pg_net · 67 Edge Functions (Deno)
 IA         Claude (Sonnet/Haiku, côté agent) + DeepSeek V3 (côté public + fallback)
            via abstraction _shared/ai-provider.ts (tracking coût → ai_usage_logs)
 Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · Google AI (staging)
@@ -127,6 +128,7 @@ l'état succès qu'une fois le provisioning résolu (durée d'affichage min 14s,
 
 ### Composants (`src/components/`)
 - `propertyx/` — atoms Design System Property X (`Px*` : Button, Badge, Icon, Input, Avatar, Logo… — **source de vérité**, ne pas recréer) + `sections/`.
+- `megga-x/` — **MEGGA X**, 2ᵉ design system (port 1:1 Webflow de la vitrine), scopé `.megga-x` parallèle à Sugar : `MeggaX` + 12 wrappers `Mx*`, CSS générée `src/styles/megga-x.generated.css`, route dev `/design-system/megga-x`. Règle **zéro-invention** ; résidus de marques Webflow encore présents dans la CSS/fontes. Cf. `megga/design-megga-x`.
 - `ui/` — primitives headless + Motion (modal, dialog, Sheet, Toast, Shimmer, popover, tabs…).
 - `layout/` — `ProtectedRoute`, `PasswordGate`, `StaleBundleDetector`, `AgentLayout`, `AgentSugarLayout`.
 - `crm-sugar/` + `crm-sugar-v3/` — shell CRM, contact detail, KYC (pixel-près), tokens dark.
@@ -154,7 +156,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, setti
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`.
 - **Contacts & leads** : `contacts`, `seller_leads`, `contact_scores`.
 - **Biens** : `properties` (internes), `listings` (publiées), `market_listings` (~33k Flatfox), `external_listings` (legacy).
-- **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` + `crm_offers_history` (offres/contre-offres, audit), `visits`, `client_searches`, `matches`.
+- **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` (offres/contre-offres ; historique via `parent_offer_id` + audit `activity_events`, pas de table `crm_offers_history`), `visits`, `client_searches`, `matches`.
 - **KYC / compliance** : `kyc_cases`, `kyc_checklist_items`, `kyc_magic_links` + `kyc_magic_link_uploads`, `kyc_screening_decisions`, `documents` (sha256, retention).
 - **Portail vendeur** : `seller_portals` (token 6 mois), `vendor_dossiers`.
 - **Billing** : `subscriptions` (Stripe).
@@ -231,15 +233,15 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
-## 5. Edge functions (57) — catalogue par domaine
+## 5. Edge functions (67) — catalogue par domaine
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
 
-**`_shared/`** : `ai-provider.ts` (Claude/DeepSeek + fallback + coût) · `magic-link-token.ts` (HMAC-SHA256) · `photo-vision.ts` (Claude Vision) · `pii-redaction.ts` (scrub AVS/IBAN/passeport avant IA) · `require-agent-auth.ts`.
+**`_shared/`** : `ai-provider.ts` (`callClaude` / `callDeepSeek` / `callPublicAI`=DeepSeek seul — pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `photo-vision.ts` (Claude Vision) · `pii-redaction.ts` (scrub AVS/IBAN/passeport avant IA) · `require-agent-auth.ts`.
 
 | Domaine | Functions |
 |---|---|
-| **IA / copilote** | `ai-copilot` (chat agent + actions, Claude) · `ai-search` (sémantique pgvector) · `dashboard-ai-hint` · `parse-search-query` (DeepSeek) |
+| **IA / copilote** | `ai-copilot` (chat agent + actions, **DeepSeek** deepseek-chat) · `ai-search` (sémantique pgvector) · `dashboard-ai-hint` (Claude) · `parse-search-query` (DeepSeek) |
 | **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions + analyse Claude) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans) |
 | **Magic link KYC** | `magic-link-create/get/confirm/regenerate/send-email/upload` |
 | **Email (Resend)** | `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
@@ -253,6 +255,10 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Divers** | `translate-on-demand` (DeepSeek + cache) · `deepgram-token` / `speech-to-text` · `intercom-identity` (JWT Messenger Security Intercom) · `accept-team-invite` · `automation-engine` (cron) · `webhooks` |
 
 **Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), + automation-engine / ai-billing-monitor / weekly-report / search-alert.
+
+**Auth cron→edge (service-key)** : les crons s'authentifient via `Bearer app_config.service_role_key`, qui DOIT égaler l'env edge `SUPABASE_SERVICE_ROLE_KEY` (format `sb_secret_…`, **jamais** le JWT legacy du dashboard). Edge `sync-service-key` (`--no-verify-jwt`, garde `x-sync-token`) recopie env→table ; resync **manuel** (cron horaire + wrapper SQL pas encore en prod). Symptôme d'une clé périmée : crons en 401, 0 match. `get_app_config` non exposée à anon. Cf. `megga/service-key-self-heal`.
+
+**Révocation de session** (Réglages > Sécurité) : `revoke-device-session` (`--no-verify-jwt`) → RPC `revoke_user_session` (SECURITY DEFINER, DELETE `auth.sessions`) coupe le refresh distant ; `user_devices.session_id` lié par `detect-new-device`. L'access token déjà émis reste valide jusqu'à son exp (~1h). Cf. `megga/settings-session-revocation`.
 
 **Secrets par service** : `ANTHROPIC_API_KEY` (8 fn IA) · `DEEPSEEK_API_KEY` · `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` · `RESEND_API_KEY` · `DILISENSE_API_KEY` · `GOOGLE_AI_API_KEY` · `DEEPGRAM_API_KEY` · `GOOGLE_/MICROSOFT_CLIENT_*` · R2 (`CF_ACCOUNT_ID`, `R2_*`).
 
