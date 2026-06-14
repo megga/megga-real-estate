@@ -14,6 +14,8 @@
 // .env.local en exécution locale). Workspace Intercom = région US → api.intercom.io.
 // Scope requis pour l'audit : "Read content data". (Write content data pour migrate.)
 
+import { readFileSync } from 'node:fs'
+
 const TOKEN = process.env.INTERCOM_ACCESS_TOKEN
 const BASE = process.env.INTERCOM_API_BASE || 'https://api.intercom.io'
 const API_VERSION = process.env.INTERCOM_API_VERSION || '2.11'
@@ -308,10 +310,70 @@ async function deleteDemo() {
   }
 }
 
+// ───────────────────────── Publication d'articles (MT1) ─────────────────────────
+// Crée de NOUVEAUX articles Help Center à partir de scripts/intercom-articles-content.json
+// (rédigés grounded dans le code). Par défaut en BROUILLON (revue + passage live au dashboard).
+// Contenu FR : texte dans la locale par défaut + traduction `fr` (miroir des 7 articles existants).
+// Dédup par titre → re-run sûr. ARTICLE_STATE=published pour publier direct.
+
+const AUTHOR_ID = Number(process.env.INTERCOM_AUTHOR_ID || 10788807) // Julien Gauthier
+const ARTICLE_STATE = (process.env.ARTICLE_STATE || 'draft').toLowerCase()
+
+async function articlesPublish() {
+  console.log(`→ Articles publish (état=${ARTICLE_STATE}, author=${AUTHOR_ID}, ${BASE})\n`)
+  const items = JSON.parse(readFileSync(new URL('./intercom-articles-content.json', import.meta.url), 'utf8'))
+
+  const existing = await listAll('/articles')
+  const existingTitles = new Set(existing.map((a) => a.title))
+
+  let done = 0
+  let skipped = 0
+  let failed = 0
+  for (const a of items) {
+    if (existingTitles.has(a.title)) {
+      console.log(`= déjà présent : « ${a.title} » (skip)`)
+      skipped++
+      continue
+    }
+    const localeContent = {
+      type: 'article_content',
+      title: a.title,
+      description: a.summary,
+      body: a.body_html,
+      author_id: AUTHOR_ID,
+      state: ARTICLE_STATE,
+    }
+    const payload = {
+      title: a.title,
+      description: a.summary,
+      body: a.body_html,
+      author_id: AUTHOR_ID,
+      state: ARTICLE_STATE,
+      parent_id: Number(a.collection_id),
+      parent_type: 'collection',
+      translated_content: { fr: localeContent },
+    }
+    try {
+      const res = await api('/articles', { method: 'POST', body: JSON.stringify(payload) })
+      console.log(`✓ créé [${res?.id ?? '?'}] « ${a.title} » → ${ARTICLE_STATE} (collection ${a.collection_id})`)
+      done++
+    } catch (err) {
+      console.error(`✗ « ${a.title} » — ${err.message}`)
+      failed++
+    }
+  }
+  console.log(`\n──────── Résultat ────────\nCréés (${ARTICLE_STATE}) : ${done} | déjà présents : ${skipped} | échecs : ${failed}`)
+  console.log('Revue + passage « live » : dashboard Intercom → Help Center → Articles.')
+  if (failed) process.exitCode = 1
+}
+
 async function main() {
   switch (mode) {
     case 'audit':
       await audit()
+      break
+    case 'articles-publish':
+      await articlesPublish()
       break
     case 'migrate-dry':
       await migrateDry()
@@ -326,7 +388,7 @@ async function main() {
       await deleteDemo()
       break
     default:
-      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | migrate-dry | migrate | delete-demo`)
+      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | articles-publish | migrate-dry | migrate | migrate-collections | delete-demo`)
       process.exit(2)
   }
 }
