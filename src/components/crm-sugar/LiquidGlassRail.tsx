@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, type Transition } from 'motion/react'
 import type { SugarPalette } from './tokens'
 import { DBRelanceSession } from '@/components/crm-sugar-v3/dashboard/DBRelanceSession'
+import { openSugarSearch } from './search/openSearch'
 
 // ─── Tracés SVG des icônes du rail (glyphes officiels MEGGA, viewBox 24) ───
 // On embarque les tracés ici plutôt que via <MEIcon> : MEIcon délègue dashboard
@@ -295,7 +296,7 @@ export function SugarIconRail({
 
   // Outils transverses (la TopNav gère les PAGES — aucun doublon ici).
   const items: RailItem[] = [
-    { id: 'search', icon: 'search', label: 'Rechercher', action: () => onCmd?.() },
+    { id: 'search', icon: 'search', label: 'Rechercher', action: () => openSugarSearch() },
     { id: 'add', icon: 'plus', label: 'Créer', action: () => onCmd?.() },
     { id: 'relances', icon: 'phone', label: 'Relances du jour', action: () => setRelanceOpen(true) },
     { id: 'import', icon: 'download', label: 'Importer des leads', action: () => navigate('/dashboard/import-lead') },

@@ -3,6 +3,7 @@ import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import NpsSurvey from '@/components/feedback/NpsSurvey'
+import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
 
 /**
  * AgentSugarLayout — barebones wrapper for Sugar v2 CRM pages.
@@ -24,6 +25,7 @@ export default function AgentSugarLayout() {
       <CopilotContextProvider>
         <ImpersonateBanner />
         <Outlet />
+        <CrmSugarSearchHost />
         <NpsSurvey />
       </CopilotContextProvider>
     </ThemeProvider>

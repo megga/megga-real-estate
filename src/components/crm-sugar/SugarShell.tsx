@@ -12,6 +12,7 @@ import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import SugarProfileDropdown from './profile/SugarProfileDropdown'
 import { useAuth } from '@/hooks/useAuth'
 import { showIntercomSpace, isIntercomEnabled } from '@/lib/intercom'
+import { openSugarSearch } from './search/openSearch'
 
 // ─── Round icon button (44x44, glass) ──────────────────────────────────
 interface SugarRoundIconBtnProps {
@@ -51,7 +52,7 @@ interface SugarTopNavProps {
   onCmd?: () => void
   dark?: boolean
 }
-export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark = false }: SugarTopNavProps) {
+export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false }: SugarTopNavProps) {
   const navigate = useNavigate()
   const { signOut, profile, user } = useAuth()
   // Calcule initiales/affichage depuis le vrai profil. Fallback "??" pour
@@ -134,11 +135,11 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, onCmd, dark =
         })}
       </nav>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SugarRoundIconBtn sp={sp} onClick={onCmd}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
-        {/* Bouton Julien — Agent IA */}
+        <SugarRoundIconBtn sp={sp} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
+        {/* Bouton Megga — Agent IA (route interne inchangée : 'julien') */}
         <button
           onClick={() => onNavigate && onNavigate('julien')}
-          title="Julien — Agent IA"
+          title="Megga — Agent IA"
           style={{
             width: 44, height: 44, borderRadius: 999, border: 0,
             background: isJulien ? sp.ink : sp.iconBtnBg,
