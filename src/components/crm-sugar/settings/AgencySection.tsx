@@ -15,6 +15,8 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useAgencySettings, type AgencySettingsData } from '@/hooks/useAgencySettings'
+import { useAgencyTargets } from '@/hooks/useAgencyTargets'
+import { formatCHF } from '@/lib/utils'
 import {
   ConfirmModal,
   SetBlackBtn,
@@ -159,8 +161,15 @@ function agScore(f: AgencyForm): number {
 // ─── Glyphes absents du set d'icônes gelé (SetIcon) ────────────────────────
 // SetIcon ne connaît pas phone / mapPin / badge / search / file. On les rend
 // localement à l'identique du handoff (line, currentColor) sans toucher l'atome.
-type LocalGlyph = 'phone' | 'mapPin' | 'badge' | 'search' | 'file'
+type LocalGlyph = 'phone' | 'mapPin' | 'badge' | 'search' | 'file' | 'target'
 const LOCAL_PATHS: Record<LocalGlyph, ReactNode> = {
+  target: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1.5" />
+    </>
+  ),
   phone: (
     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z" />
   ),
@@ -432,6 +441,63 @@ function AgGroup({
       </div>
       {children}
     </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  OBJECTIFS COMMERCIAUX — saisie annuelle unique, dérivés /12 /4 affichés
+// ═══════════════════════════════════════════════════════════════════════════
+// Source de vérité : agencies.{monthly,quarterly,yearly}_target. L'écriture passe
+// par le RPC analytics_set_target (UPDATE + audit activity_events atomiques), qui
+// dérive le trimestriel /4 et le mensuel /12. On ne saisit QUE l'annuel : 3 champs
+// libres se désynchronisent (chiffre muet contradictoire, banni).
+function CommercialTargetsGroup() {
+  const { targets, isLoading, saveYearly, isSaving } = useAgencyTargets()
+  const toast = useToast()
+  const [yearly, setYearly] = useState<string>('')
+
+  // Re-sync depuis le serveur quand la donnée arrive / change.
+  useEffect(() => {
+    setYearly(targets.yearly > 0 ? String(Math.round(targets.yearly)) : '')
+  }, [targets.yearly])
+
+  const parsed = Math.max(0, Math.round(Number(yearly) || 0))
+  const dirty = parsed !== Math.round(targets.yearly)
+
+  const handleSave = async () => {
+    try {
+      await saveYearly(parsed)
+      toast.success('Objectif commercial enregistré', { duration: 2400 })
+    } catch (err) {
+      console.error('[CommercialTargetsGroup] save failed', err)
+      toast.error('Erreur lors de l’enregistrement de l’objectif')
+    }
+  }
+
+  return (
+    <AgGroup glyph="target" title="Objectifs commerciaux">
+      <div style={{ display: 'grid', gap: 14 }}>
+        <SetInput
+          label="Objectif annuel (commissions, CHF)"
+          type="number"
+          value={yearly}
+          onChange={setYearly}
+          placeholder="1200000"
+          prefix="CHF"
+          disabled={isLoading}
+        />
+        <div style={{ fontSize: 12, fontWeight: 500, color: SET.muted, lineHeight: 1.5 }}>
+          {parsed > 0
+            ? `Réparti automatiquement : ${formatCHF(Math.round(parsed / 12))}/mois · ${formatCHF(Math.round(parsed / 4))}/trimestre`
+            : 'Aucun objectif défini — le Dashboard masque le rythme et la projection tant qu’aucune cible n’est saisie.'}
+        </div>
+        <div>
+          <SetBlackBtn onClick={handleSave} disabled={!dirty || isLoading} loading={isSaving} size="sm">
+            Enregistrer l’objectif
+          </SetBlackBtn>
+        </div>
+      </div>
+    </AgGroup>
   )
 }
 
@@ -1332,6 +1398,7 @@ export function AgencySection() {
                 <SetInput label="Site web" value={form.web} onChange={v => set({ web: v })} prefix="https://" />
               </div>
             </AgGroup>
+            <CommercialTargetsGroup />
             <AgGroup setIcon="globe" title="Présentation publique">
               <SetTextarea
                 value={form.aboutShort}

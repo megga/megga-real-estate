@@ -101,81 +101,22 @@ export const axShort = (n: number): string => {
   if (a >= 1e3) return Math.round(n / 1e3) + 'k'
   return String(Math.round(n))
 }
-export const axCHFShort = (n: number): string => 'CHF ' + axShort(n)
-
 // ── Générateur de séries temporelles ─────────────────────────────────────────
 export interface AxSeries { real: number[]; proj: number[]; goal: number[]; yMax: number; n: number; elapsed: number }
 
-export function axBuildSeries(
-  { n, elapsed, realizedNow, projectedEnd, target }:
-  { n: number; elapsed: number; realizedNow: number; projectedEnd: number; target: number },
-): AxSeries {
-  const real: number[] = []
-  for (let i = 0; i <= elapsed; i++) {
-    const t = elapsed === 0 ? 1 : i / elapsed
-    const wob = Math.sin(i * 1.27) * realizedNow * 0.011
-    real.push(Math.max(0, Math.round(realizedNow * t + wob)))
-  }
-  real[0] = 0; real[elapsed] = realizedNow
-  const proj: number[] = []
-  for (let i = elapsed; i < n; i++) {
-    const t = (n - 1 - elapsed) === 0 ? 1 : (i - elapsed) / (n - 1 - elapsed)
-    proj.push(Math.round(realizedNow + (projectedEnd - realizedNow) * t))
-  }
-  const goal: number[] = []
-  for (let i = 0; i < n; i++) goal.push(Math.round(target * (i / (n - 1))))
-  const yMax = Math.max(target, projectedEnd) * 1.06
-  return { real, proj, goal, yMax, n, elapsed }
-}
-
-const axSpark = (seed: number, trend = 1): number[] => {
-  const a: number[] = []
-  for (let i = 0; i < 8; i++) a.push(50 + Math.sin(i * 0.9 + seed) * 14 + i * trend * 3.2)
-  return a
-}
+// (axBuildSeries — générateur de série décoratif — retiré : les séries sont
+//  désormais construites en live par buildSeriesLive dans buildAxData.ts.)
 
 // ── Deals « ce qui se signe bientôt » ────────────────────────────────────────
+// gmv/when/days = champs décoratifs de la maquette ; en live ils sont vides
+// (masqués si vides). comm/prob/stage sont alimentés depuis les contributeurs.
 export interface AxDeal { prop: string; loc: string; gmv: number; comm: number; prob: number; stage: string; when: string; days: number }
 
-export const AX_DEALS: AxDeal[] = [
-  { prop: 'Appartement', loc: 'Champel', gmv: 1850000, comm: 46250, prob: 90, stage: 'Compromis', when: '≈ 22 juin', days: 8 },
-  { prop: 'Villa', loc: 'Cologny', gmv: 3200000, comm: 80000, prob: 65, stage: 'Offre', when: '≈ 5 juil', days: 21 },
-  { prop: 'Loft', loc: 'Pâquis', gmv: 1150000, comm: 28750, prob: 55, stage: 'Offre', when: '≈ 12 juil', days: 28 },
-  { prop: 'Maison', loc: 'Carouge', gmv: 1420000, comm: 35500, prob: 40, stage: 'Visite', when: 'fin juil', days: 40 },
-]
-
 // ── Dossiers derrière chaque bucket de composition (cible du drill) ──────────
+// Le drill-down par bucket est différé V1 (records=null → « détails indisponibles »).
 export interface AxRecord { prop: string; loc: string; gmv: number; comm: number; prob: number; state: string }
 export interface AxBucket { label: string; hint: string; items: AxRecord[] }
 export type AxBucketId = 'secured' | 'probable' | 'possible'
-
-export const AX_RECORDS: Record<AxBucketId, AxBucket> = {
-  secured: {
-    label: 'Sécurisé', hint: 'Actes signés + compromis fermes',
-    items: [
-      { prop: 'Penthouse', loc: 'Eaux-Vives', gmv: 2880000, comm: 72000, prob: 100, state: 'Signé' },
-      { prop: 'Villa', loc: 'Vandœuvres', gmv: 3800000, comm: 95000, prob: 85, state: 'Compromis' },
-      { prop: 'Appartement', loc: 'Champel', gmv: 1850000, comm: 46250, prob: 90, state: 'Compromis' },
-      { prop: 'Duplex', loc: 'Plainpalais', gmv: 1660000, comm: 41500, prob: 100, state: 'Signé' },
-    ],
-  },
-  probable: {
-    label: 'Probable', hint: 'Offres déposées en cours de négociation',
-    items: [
-      { prop: 'Villa', loc: 'Cologny', gmv: 3200000, comm: 80000, prob: 65, state: 'Offre' },
-      { prop: 'Maison', loc: 'Genthod', gmv: 2080000, comm: 52000, prob: 60, state: 'Offre' },
-      { prop: 'Loft', loc: 'Pâquis', gmv: 1150000, comm: 28750, prob: 55, state: 'Offre' },
-    ],
-  },
-  possible: {
-    label: 'Possible', hint: 'Mandats actifs & visites en cours',
-    items: [
-      { prop: 'Maison', loc: 'Carouge', gmv: 1420000, comm: 35500, prob: 40, state: 'Visite' },
-      { prop: 'Terrain', loc: 'Bernex', gmv: 1320000, comm: 33000, prob: 25, state: 'Mandat' },
-      { prop: 'Appartement', loc: 'Servette', gmv: 1040000, comm: 26000, prob: 30, state: 'Mandat' },
-    ],
-  },
-}
 
 // ── Modèle de période ────────────────────────────────────────────────────────
 export type AxPeriodId = 'month' | 'quarter' | 'year'
@@ -200,84 +141,15 @@ export interface AxPeriodData {
   composition: AxCompositionItem[]
   kpis: AxKpi[]
   sources: AxSource[]
-}
-
-export const AX_DATA: Record<AxPeriodId, AxPeriodData> = {
-  year: {
-    key: 'year', label: 'Année 2026', scopeLabel: 'Vue personnelle · Julien Berset',
-    period: 'cette année', granularity: 'Cumul mensuel', pointWord: 'Mois',
-    target: 1200000, realizedNow: 470000, projectedEnd: 1075000, paceFrac: 5.5 / 12,
-    series: axBuildSeries({ n: 12, elapsed: 5, realizedNow: 470000, projectedEnd: 1075000, target: 1200000 }),
-    axisLabels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
-    composition: [
-      { k: 'secured', label: 'Sécurisé', hint: 'Actes + compromis', v: 620000 },
-      { k: 'probable', label: 'Probable', hint: 'Offres en cours', v: 305000 },
-      { k: 'possible', label: 'Possible', hint: 'Mandats & visites', v: 150000 },
-    ],
-    kpis: [
-      { label: 'Volume transacté', value: 'CHF 23.4M', delta: +6, spark: axSpark(1, 1.0) },
-      { label: 'Transactions', value: '14', delta: +2, spark: axSpark(2, 0.8), abs: true },
-      { label: 'Commission moy.', value: "CHF 33'600", delta: +4, spark: axSpark(3, 0.4) },
-      { label: 'Taux conversion', value: '19 %', delta: +1, pts: true, spark: axSpark(4, 0.6) },
-    ],
-    sources: [
-      { label: 'Réseau & recommandations', sub: 'Bouche-à-oreille, anciens clients', deals: 5, comm: 408000, pct: 38, delta: +5 },
-      { label: 'Portails', sub: 'Homegate · ImmoScout24', deals: 4, comm: 290000, pct: 27, delta: -3 },
-      { label: 'Site MEGGA', sub: 'Formulaires & estimations', deals: 3, comm: 193000, pct: 18, delta: +8 },
-      { label: 'Clients repeat', sub: 'Revente / 2e mandat', deals: 1, comm: 118000, pct: 11, delta: +2 },
-      { label: 'Prospection directe', sub: 'Démarchage, pige', deals: 1, comm: 64000, pct: 6, delta: -1 },
-    ],
-  },
-  quarter: {
-    key: 'quarter', label: 'T2 2026', scopeLabel: 'Vue personnelle · Julien Berset',
-    period: 'ce trimestre', granularity: 'Cumul hebdomadaire', pointWord: 'Semaine',
-    target: 525000, realizedNow: 410000, projectedEnd: 500000, paceFrac: 10.5 / 13,
-    series: axBuildSeries({ n: 13, elapsed: 10, realizedNow: 410000, projectedEnd: 500000, target: 525000 }),
-    axisLabels: ['', 'Avr', '', '', 'Mai', '', '', '', 'Juin', '', '', '', ''],
-    composition: [
-      { k: 'secured', label: 'Sécurisé', hint: 'Actes + compromis', v: 330000 },
-      { k: 'probable', label: 'Probable', hint: 'Offres en cours', v: 110000 },
-      { k: 'possible', label: 'Possible', hint: 'Mandats & visites', v: 60000 },
-    ],
-    kpis: [
-      { label: 'Volume transacté', value: 'CHF 8.1M', delta: +9, spark: axSpark(5, 1.1) },
-      { label: 'Transactions', value: '6', delta: +1, spark: axSpark(6, 0.7), abs: true },
-      { label: 'Commission moy.', value: "CHF 34'200", delta: +3, spark: axSpark(7, 0.5) },
-      { label: 'Taux conversion', value: '20 %', delta: +2, pts: true, spark: axSpark(8, 0.9) },
-    ],
-    sources: [
-      { label: 'Réseau & recommandations', sub: 'Bouche-à-oreille, anciens clients', deals: 3, comm: 185000, pct: 37, delta: +4 },
-      { label: 'Portails', sub: 'Homegate · ImmoScout24', deals: 2, comm: 140000, pct: 28, delta: -2 },
-      { label: 'Site MEGGA', sub: 'Formulaires & estimations', deals: 1, comm: 90000, pct: 18, delta: +6 },
-      { label: 'Clients repeat', sub: 'Revente / 2e mandat', deals: 1, comm: 55000, pct: 11, delta: +1 },
-      { label: 'Prospection directe', sub: 'Démarchage, pige', deals: 0, comm: 30000, pct: 6, delta: 0 },
-    ],
-  },
-  month: {
-    key: 'month', label: 'Juin 2026', scopeLabel: 'Vue personnelle · Julien Berset',
-    period: 'ce mois', granularity: 'Cumul journalier', pointWord: 'Jour',
-    target: 175000, realizedNow: 72000, projectedEnd: 154000, paceFrac: 13.5 / 30,
-    series: axBuildSeries({ n: 30, elapsed: 13, realizedNow: 72000, projectedEnd: 154000, target: 175000 }),
-    axisLabels: (() => { const a = Array(30).fill(''); a[0] = '1'; a[7] = '8'; a[14] = '15'; a[21] = '22'; a[29] = '30'; return a })(),
-    composition: [
-      { k: 'secured', label: 'Sécurisé', hint: 'Actes + compromis', v: 96000 },
-      { k: 'probable', label: 'Probable', hint: 'Offres en cours', v: 38000 },
-      { k: 'possible', label: 'Possible', hint: 'Mandats & visites', v: 20000 },
-    ],
-    kpis: [
-      { label: 'Volume transacté', value: 'CHF 2.6M', delta: -4, spark: axSpark(9, -0.4) },
-      { label: 'Transactions', value: '2', delta: 0, spark: axSpark(10, 0.2), abs: true },
-      { label: 'Commission moy.', value: "CHF 36'000", delta: +5, spark: axSpark(11, 0.6) },
-      { label: 'Taux conversion', value: '18 %', delta: -1, pts: true, spark: axSpark(12, -0.3) },
-    ],
-    sources: [
-      { label: 'Réseau & recommandations', sub: 'Bouche-à-oreille, anciens clients', deals: 1, comm: 58000, pct: 38, delta: +3 },
-      { label: 'Portails', sub: 'Homegate · ImmoScout24', deals: 1, comm: 42000, pct: 27, delta: -4 },
-      { label: 'Site MEGGA', sub: 'Formulaires & estimations', deals: 0, comm: 28000, pct: 18, delta: +5 },
-      { label: 'Clients repeat', sub: 'Revente / 2e mandat', deals: 0, comm: 16000, pct: 10, delta: +1 },
-      { label: 'Prospection directe', sub: 'Démarchage, pige', deals: 0, comm: 10000, pct: 7, delta: -2 },
-    ],
-  },
+  // ── Extensions live (couche d'honnêteté A+C), optionnelles ────────────────
+  /** L'agence a-t-elle saisi un objectif ? (false → CTA Réglages, masque pace-bar) */
+  targetIsSet?: boolean
+  /** Compteurs de fallback commission (taux 3% par défaut / prix manquant) */
+  commissionFlags?: { nDefaultPct: number; nMissingPrice: number }
+  /** Deals « ce qui se signe bientôt » (live, en prop au lieu de fixture) */
+  closing?: AxDeal[]
+  /** Dossiers par bucket pour le Drawer ; null = drill-down dégradé V1 */
+  records?: Record<AxBucketId, AxBucket> | null
 }
 
 // ── Pace helper → objet verdict ──────────────────────────────────────────────
@@ -290,20 +162,3 @@ export const axPace = (d: AxPeriodData): AxPaceVerdict => {
   return { paceNow, diff, ahead, projPct }
 }
 
-// ── Objectif : source unique = objectif annuel ───────────────────────────────
-export const AX_DEFAULT_ANNUAL_TARGET = 1200000
-
-export const axTargetFor = (period: AxPeriodId, annual: number): number =>
-  period === 'year' ? annual : period === 'quarter' ? Math.round(annual / 4) : Math.round(annual / 12)
-
-export const axAnnualFromPeriod = (period: AxPeriodId, periodValue: number): number =>
-  period === 'year' ? periodValue : period === 'quarter' ? periodValue * 4 : periodValue * 12
-
-// Copie des données de période avec target override + ligne d'objectif/yMax recalculés.
-export const axApplyTarget = (base: AxPeriodData, target: number): AxPeriodData => {
-  const n = base.series.n
-  const goal: number[] = []
-  for (let i = 0; i < n; i++) goal.push(Math.round(target * (i / (n - 1))))
-  const yMax = Math.max(target, base.projectedEnd) * 1.06
-  return { ...base, target, series: { ...base.series, goal, yMax } }
-}

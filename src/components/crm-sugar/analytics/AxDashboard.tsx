@@ -11,9 +11,9 @@ import { useState, useEffect, useRef, useCallback, type CSSProperties, type Reac
 import { createPortal } from 'react-dom'
 import { AnimatedTopIcon } from '@/components/crm-sugar/LiquidGlassRail'
 import { TrajectoryChart, Sparkline } from './TrajectoryChart'
+import { useAxDashboardData } from '@/hooks/useAxDashboardData'
 import {
-  useAX, axCHF, axPace, axApplyTarget, axTargetFor, AX_DATA, AX_DEALS, AX_RECORDS,
-  AX_DEFAULT_ANNUAL_TARGET, type AxTheme, type AxPeriodId, type AxPeriodData,
+  useAX, axCHF, axPace, type AxTheme, type AxPeriodId, type AxPeriodData,
   type AxDeal, type AxBucketId, type AxRecord, type AxKpi, type AxCompositionItem, type AxSource,
 } from './tokens'
 
@@ -144,40 +144,89 @@ function AxPaceBar({ d }: { d: AxPeriodData }) {
 // ── Hero ─────────────────────────────────────────────────────────────────────
 function AxHero({ d, onGoSettings }: { d: AxPeriodData; onGoSettings: (() => void) | null }) {
   const A = useAX()
+  const targetIsSet = d.targetIsSet ?? d.target > 0
   const pace = axPace(d)
   const num = useCountUp(d.projectedEnd)
   const verdict = pace.ahead ? A.pillAhead : A.pillBehind
   return (
     <div style={{ background: A.card, borderRadius: 26, padding: '30px 34px', boxShadow: A.shadowLg, display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.95fr)', gap: 30, alignItems: 'center' }}>
       <div>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.3, textTransform: 'uppercase', color: A.muted }}>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.3, textTransform: 'uppercase', color: A.muted, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
           Commission projetée · {d.label}
+          {/* estimation : projection pondérée par probabilité de réalisation */}
+          <span title="Estimation pondérée par probabilité de réalisation" style={{ display: 'inline-flex' }}>
+            <AxIcon name="spark" size={12} stroke={A.muted} sw={1.6} />
+          </span>
         </div>
         <div style={{ marginTop: 12, fontSize: 52, fontWeight: 800, letterSpacing: -2, color: A.ink, lineHeight: 0.96, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
           {axCHF(num)}
         </div>
-        <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 12, fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-            <AxIcon name={pace.ahead ? 'up' : 'down'} size={11} stroke="#fff" sw={2.6} />
-            {pace.ahead ? 'En avance' : 'En retard'} {axCHF(Math.abs(pace.diff))} vs rythme
-          </span>
-        </div>
-        <p style={{ margin: '16px 0 0', fontSize: 14.5, color: A.inkSoft, fontWeight: 500, lineHeight: 1.5, maxWidth: 440 }}>
-          À ce rythme, tu finis {d.period} à <strong style={{ color: A.ink, fontWeight: 800 }}>{axCHF(d.projectedEnd)}</strong><br />soit <strong style={{ color: A.ink, fontWeight: 800 }}>{pace.projPct} %</strong> de ton objectif.
-        </p>
+        {targetIsSet ? (
+          <>
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 12, fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                <AxIcon name={pace.ahead ? 'up' : 'down'} size={11} stroke="#fff" sw={2.6} />
+                {pace.ahead ? 'En avance' : 'En retard'} {axCHF(Math.abs(pace.diff))} vs rythme
+              </span>
+            </div>
+            <p style={{ margin: '16px 0 0', fontSize: 14.5, color: A.inkSoft, fontWeight: 500, lineHeight: 1.5, maxWidth: 440 }}>
+              À ce rythme, tu finis {d.period} à <strong style={{ color: A.ink, fontWeight: 800 }}>{axCHF(d.projectedEnd)}</strong><br />soit <strong style={{ color: A.ink, fontWeight: 800 }}>{pace.projPct} %</strong> de ton objectif.
+            </p>
+          </>
+        ) : (
+          <p style={{ margin: '16px 0 0', fontSize: 14.5, color: A.inkSoft, fontWeight: 500, lineHeight: 1.5, maxWidth: 440 }}>
+            Aucun objectif commercial n'est défini pour {d.period}.{' '}
+            {onGoSettings ? (
+              <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                Le fixer dans Réglages
+              </button>
+            ) : (
+              <strong style={{ color: A.ink, fontWeight: 800 }}>Le fixer dans Réglages › Agence.</strong>
+            )}
+          </p>
+        )}
       </div>
       <div>
-        <AxPaceBar d={d} />
-        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: A.muted }}>
-          <AxIcon name="lock" size={12} stroke={A.muted} />
-          <span>Objectif fixé par l'agence</span>
-          {onGoSettings && (
-            <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
-              Modifier dans Réglages
-            </button>
-          )}
-        </div>
+        {targetIsSet ? (
+          <>
+            <AxPaceBar d={d} />
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: A.muted }}>
+              <AxIcon name="lock" size={12} stroke={A.muted} />
+              <span>Objectif fixé par l'agence</span>
+              {onGoSettings && (
+                <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                  Modifier dans Réglages
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 96, borderRadius: 16, background: A.cardSubtle, boxShadow: `inset 0 0 0 1px ${A.hairline}`, padding: '20px 22px', textAlign: 'center' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: A.muted }}>
+              <AxIcon name="target" size={16} stroke={A.muted} />
+              <span>Objectif non défini · le fixer dans Réglages</span>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+// ── Bandeau d'honnêteté commission (fallback taux 3% / prix manquant) ────────
+function AxFallbackBanner({ d }: { d: AxPeriodData }) {
+  const A = useAX()
+  const flags = d.commissionFlags
+  if (!flags || (flags.nDefaultPct === 0 && flags.nMissingPrice === 0)) return null
+  const parts: string[] = []
+  if (flags.nDefaultPct > 0) parts.push(`${flags.nDefaultPct} bien${flags.nDefaultPct > 1 ? 's' : ''} au taux 3 % par défaut`)
+  if (flags.nMissingPrice > 0) parts.push(`${flags.nMissingPrice} sans prix`)
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: A.cardSubtle, borderRadius: 14, padding: '12px 16px', boxShadow: `inset 0 0 0 1px ${A.hairline}` }}>
+      <AxIcon name="spark" size={14} stroke={A.muted} sw={1.6} />
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: A.inkSoft }}>
+        Commission estimée : {parts.join(' · ')}. Renseigne le taux de mandat sur tes biens pour affiner.
+      </span>
     </div>
   )
 }
@@ -197,8 +246,9 @@ function AxKpiTile({ k }: { k: AxKpi }) {
         <AxDelta v={k.delta} pts={k.pts} abs={k.abs} />
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 23, fontWeight: 800, color: A.ink, letterSpacing: -0.7, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{k.value}</span>
-        <Sparkline data={k.spark} up={k.delta >= 0} />
+        <span style={{ fontSize: k.value.length > 14 ? 15 : 23, fontWeight: 800, color: A.ink, letterSpacing: -0.7, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.value}</span>
+        {/* Sparkline rendue seulement si la série live a ≥2 points (sinon Sparkline crashe). */}
+        {k.spark.length >= 2 && <Sparkline data={k.spark} up={k.delta >= 0} />}
       </div>
     </div>
   )
@@ -223,12 +273,14 @@ function AxDealRow({ dl, onDrill }: { dl: AxDeal; onDrill: (x: Drill) => void })
       gridTemplateColumns: '1.5fr 1fr 0.9fr auto', gap: 14, alignItems: 'center', transition: 'background .14s ease',
     }}>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dl.prop} · {dl.loc}</div>
-        <div style={{ fontSize: 11.5, fontWeight: 600, color: A.muted, marginTop: 2 }}>{axCHF(dl.gmv)} · {dl.when}</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dl.loc ? `${dl.prop} · ${dl.loc}` : dl.prop}</div>
+        {(dl.gmv > 0 || dl.when) && (
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: A.muted, marginTop: 2 }}>{[dl.gmv > 0 ? axCHF(dl.gmv) : null, dl.when || null].filter(Boolean).join(' · ')}</div>
+        )}
       </div>
       <div>
-        <div style={{ fontSize: 14.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{axCHF(dl.comm)}</div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, marginTop: 2 }}>commission</div>
+        <div style={{ fontSize: 14.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{dl.comm > 0 ? axCHF(dl.comm) : 'CHF —'}</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, marginTop: 2 }}>{dl.comm > 0 ? 'commission' : 'prix manquant'}</div>
       </div>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -246,16 +298,22 @@ function AxDealRow({ dl, onDrill }: { dl: AxDeal; onDrill: (x: Drill) => void })
   )
 }
 
-function AxClosing({ onDrill }: { onDrill: (x: Drill) => void }) {
+function AxClosing({ deals, onDrill }: { deals: AxDeal[]; onDrill: (x: Drill) => void }) {
   const A = useAX()
   return (
     <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>Ce qui se signe bientôt</h3>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {AX_DEALS.map((dl, i) => <AxDealRow key={i} dl={dl} onDrill={onDrill} />)}
-      </div>
+      {deals.length === 0 ? (
+        <div style={{ padding: '28px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
+          Aucun deal en cours
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {deals.map((dl, i) => <AxDealRow key={i} dl={dl} onDrill={onDrill} />)}
+        </div>
+      )}
     </div>
   )
 }
@@ -276,7 +334,7 @@ function AxCompRow({ c, total, color, onDrill }: { c: AxCompositionItem; total: 
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(c.v)}</div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, fontVariantNumeric: 'tabular-nums' }}>{Math.round((c.v / total) * 100)} %</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, fontVariantNumeric: 'tabular-nums' }}>{total > 0 ? Math.round((c.v / total) * 100) : 0} %</div>
       </div>
       <span style={{ display: 'inline-flex', opacity: h ? 0.9 : 0.2, transition: 'opacity .14s ease' }}>
         <AxIcon name="arrow" size={15} stroke={A.ink} />
@@ -291,16 +349,29 @@ function AxComposition({ d, onDrill }: { d: AxPeriodData; onDrill: (x: Drill) =>
   const colOf: Record<AxBucketId, string> = { secured: A.secured, probable: A.probable, possible: A.possible }
   return (
     <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
-      <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>De quoi est fait le projeté</h3>
+      <h3 style={{ margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 7, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>
+        De quoi est fait le projeté
+        <span title="Estimation pondérée par probabilité de réalisation" style={{ display: 'inline-flex' }}>
+          <AxIcon name="spark" size={12} stroke={A.muted} sw={1.6} />
+        </span>
+      </h3>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: A.muted, marginBottom: 16 }}>{axCHF(total)} au total</div>
-      <div style={{ display: 'flex', height: 16, borderRadius: 999, overflow: 'hidden', gap: 2, marginBottom: 18 }}>
-        {d.composition.map((c, i) => (
-          <div key={i} title={c.label} style={{ width: `${(c.v / total) * 100}%`, background: colOf[c.k], transition: 'width .7s cubic-bezier(.2,.8,.2,1)' }} />
-        ))}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {d.composition.map((c, i) => <AxCompRow key={i} c={c} total={total} color={colOf[c.k]} onDrill={onDrill} />)}
-      </div>
+      {total === 0 ? (
+        <div style={{ padding: '22px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
+          Aucune commission projetée sur la période
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', height: 16, borderRadius: 999, overflow: 'hidden', gap: 2, marginBottom: 18 }}>
+            {d.composition.map((c, i) => (
+              <div key={i} title={c.label} style={{ width: `${(c.v / total) * 100}%`, background: colOf[c.k], transition: 'width .7s cubic-bezier(.2,.8,.2,1)' }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {d.composition.map((c, i) => <AxCompRow key={i} c={c} total={total} color={colOf[c.k]} onDrill={onDrill} />)}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -355,10 +426,10 @@ function AxSourceRow({ s, rank }: { s: AxSource; rank: number }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(s.comm)}</div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, whiteSpace: 'nowrap' }}>{s.deals} deal{s.deals > 1 ? 's' : ''}</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{s.deals}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, whiteSpace: 'nowrap' }}>lead{s.deals > 1 ? 's' : ''}</div>
         </div>
-        <AxDelta v={s.delta} pts />
+        <AxDelta v={s.delta} />
       </div>
     </div>
   )
@@ -372,8 +443,9 @@ function AxSources({ d }: { d: AxPeriodData }) {
     <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>Sources des deals</h3>
-          <div style={{ fontSize: 12, fontWeight: 600, color: A.muted, marginTop: 3 }}>D'où vient ton chiffre · {d.label}</div>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>Sources des leads</h3>
+          {/* commission par canal non stockée en DB → on affiche le volume de leads */}
+          <div style={{ fontSize: 12, fontWeight: 600, color: A.muted, marginTop: 3 }}>D'où viennent tes contacts · périmètre agence · {d.label}</div>
         </div>
         {top && (
           <span style={{ fontSize: 12.5, fontWeight: 600, color: A.inkSoft }}>
@@ -381,9 +453,15 @@ function AxSources({ d }: { d: AxPeriodData }) {
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {srcs.map((s, i) => <AxSourceRow key={i} s={s} rank={i} />)}
-      </div>
+      {srcs.length === 0 ? (
+        <div style={{ padding: '24px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
+          Aucune source sur la période
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {srcs.map((s, i) => <AxSourceRow key={i} s={s} rank={i} />)}
+        </div>
+      )}
     </div>
   )
 }
@@ -420,7 +498,17 @@ function AxRecRow({ r }: { r: AxRecord }) {
   )
 }
 
-function AxDrawer({ drill, onClose }: { drill: Drill; onClose: () => void }) {
+const AX_BUCKET_META: Record<AxBucketId, { label: string; hint: string }> = {
+  secured: { label: 'Sécurisé', hint: 'Actes signés + compromis fermes' },
+  probable: { label: 'Probable', hint: 'Offres déposées en cours de négociation' },
+  possible: { label: 'Possible', hint: 'Mandats actifs & visites en cours' },
+}
+
+function AxDrawer({ drill, records: recordsByBucket, onClose }: {
+  drill: Drill
+  records: Record<AxBucketId, { label: string; hint: string; items: AxRecord[] }> | null | undefined
+  onClose: () => void
+}) {
   const A = useAX()
   const [closing, setClosing] = useState(false)
   const close = useCallback(() => { setClosing(true); window.setTimeout(onClose, 240) }, [onClose])
@@ -433,25 +521,32 @@ function AxDrawer({ drill, onClose }: { drill: Drill; onClose: () => void }) {
   let eyebrow: string
   let title: string
   let records: AxRecord[]
+  let hint: string
   let total: number
   let count: number | null
   const isDeal = drill.type === 'deal'
   if (drill.type === 'bucket') {
-    const b = AX_RECORDS[drill.bucket]
-    eyebrow = 'Composition · ' + b.label
-    title = b.label
-    records = b.items
-    total = b.items.reduce((s, x) => s + x.comm, 0)
-    count = b.items.length
+    const meta = AX_BUCKET_META[drill.bucket]
+    const b = recordsByBucket?.[drill.bucket] ?? null
+    eyebrow = 'Composition · ' + (b?.label ?? meta.label)
+    title = b?.label ?? meta.label
+    records = b?.items ?? []
+    hint = b?.hint ?? meta.hint
+    total = records.reduce((s, x) => s + x.comm, 0)
+    count = records.length
   } else {
     const dl = drill.deal
     eyebrow = 'Deal · ' + dl.stage
-    title = dl.prop + ' ' + dl.loc
-    records = AX_RECORDS.probable.items.concat(AX_RECORDS.secured.items, AX_RECORDS.possible.items)
-      .filter(r => r.loc !== dl.loc).slice(0, 3)
+    title = dl.loc ? `${dl.prop} ${dl.loc}` : dl.prop
+    records = []
+    hint = 'Autres deals comparables'
     total = dl.comm
     count = null
   }
+
+  // Drill-down par dossier différé V1 : si aucun record n'est fourni, on dégrade
+  // honnêtement (« détails indisponibles ») plutôt que d'afficher une fixture.
+  const detailsUnavailable = records.length === 0
 
   const overlay = (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 2000, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: 24, boxSizing: 'border-box' }}>
@@ -467,8 +562,8 @@ function AxDrawer({ drill, onClose }: { drill: Drill; onClose: () => void }) {
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.1, textTransform: 'uppercase', color: A.muted }}>{eyebrow}</div>
             <h3 style={{ margin: '8px 0 0', fontSize: 24, fontWeight: 800, letterSpacing: -0.7, color: A.ink, lineHeight: 1.1 }}>{title}</h3>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{axCHF(total)}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: A.muted }}>{isDeal ? 'commission' : `${count} dossiers · commission`}</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{total > 0 ? axCHF(total) : 'CHF —'}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: A.muted }}>{isDeal ? 'commission' : `${count ?? 0} dossier${(count ?? 0) > 1 ? 's' : ''} · commission`}</span>
             </div>
           </div>
           <button onClick={close} title="Fermer" style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: A.cardSubtle, cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
@@ -480,9 +575,9 @@ function AxDrawer({ drill, onClose }: { drill: Drill; onClose: () => void }) {
           <div style={{ padding: '0 26px 6px' }}>
             <div style={{ background: A.cardSubtle, borderRadius: 16, padding: '16px 18px', display: 'flex', flexWrap: 'wrap', gap: 18 }}>
               {[
-                { l: 'Volume (GMV)', v: axCHF(drill.deal.gmv) },
+                { l: 'Commission', v: drill.deal.comm > 0 ? axCHF(drill.deal.comm) : 'CHF —' },
                 { l: 'Probabilité', v: drill.deal.prob + ' %' },
-                { l: 'Échéance', v: drill.deal.when },
+                { l: 'Étape', v: drill.deal.stage },
               ].map((x, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: A.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>{x.l}</div>
@@ -494,10 +589,17 @@ function AxDrawer({ drill, onClose }: { drill: Drill; onClose: () => void }) {
         )}
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 18px 18px' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: A.muted, padding: '8px 8px 4px' }}>
-            {drill.type === 'bucket' ? AX_RECORDS[drill.bucket].hint : 'Autres deals comparables'}
-          </div>
-          {records.map((r, i) => <AxRecRow key={i} r={r} />)}
+          {detailsUnavailable ? (
+            <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted, lineHeight: 1.5 }}>
+              Détails indisponibles<br />
+              <span style={{ fontSize: 12, fontWeight: 500, color: A.muted }}>Le détail par dossier arrive bientôt — ouvre le Pipeline filtré pour le suivi.</span>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 600, color: A.muted, padding: '8px 8px 4px' }}>{hint}</div>
+              {records.map((r, i) => <AxRecRow key={i} r={r} />)}
+            </>
+          )}
         </div>
 
         <div style={{ padding: '16px 26px 22px', borderTop: `1px solid ${A.hairline}` }}>
@@ -654,37 +756,14 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
   const [period, setPeriod] = useState<AxPeriodId>('year')
   const [chartKey, setChartKey] = useState(0)
   const [spin, setSpin] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const loadTimer = useRef<number | null>(null)
   const [drill, setDrill] = useState<Drill | null>(null)
-  const [annualTarget, setAnnualTarget] = useState<number>(() => {
-    try {
-      const v = parseInt(localStorage.getItem('megga-analytics-target') || '', 10)
-      return v > 0 ? v : AX_DEFAULT_ANNUAL_TARGET
-    } catch { return AX_DEFAULT_ANNUAL_TARGET }
-  })
   const spinRef = useRef<HTMLSpanElement>(null)
 
+  // Données live via les 3 RPC d'agrégation (scope figé 'me' en V1 — la page est
+  // le cockpit de l'agent ; toggle scope = backlog quand l'agence devient multi-agents).
+  const { data: d, isLoading } = useAxDashboardData(period, 'me')
+
   useEffect(() => { axEnsureKeyframes() }, [])
-
-  // L'objectif est fixé dans Réglages › Agence — on reste synchro.
-  useEffect(() => {
-    const onTarget = (e?: Event) => {
-      const detail = (e as CustomEvent | undefined)?.detail
-      const v = parseInt((detail as string) ?? localStorage.getItem('megga-analytics-target') ?? '', 10)
-      if (v > 0) { setAnnualTarget(v); setChartKey(k => k + 1) }
-    }
-    const onStorage = (e: StorageEvent) => { if (e.key === 'megga-analytics-target') onTarget() }
-    window.addEventListener('megga-target-changed', onTarget as EventListener)
-    window.addEventListener('storage', onStorage)
-    return () => {
-      window.removeEventListener('megga-target-changed', onTarget as EventListener)
-      window.removeEventListener('storage', onStorage)
-    }
-  }, [])
-
-  const base = AX_DATA[period]
-  const d = axApplyTarget(base, axTargetFor(period, annualTarget))
 
   const refresh = () => {
     if (spin) return
@@ -696,9 +775,6 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
   const onPeriod = (p: AxPeriodId) => {
     if (p === period) return
     setPeriod(p); setChartKey(k => k + 1)
-    setLoading(true)
-    if (loadTimer.current) window.clearTimeout(loadTimer.current)
-    loadTimer.current = window.setTimeout(() => setLoading(false), 620)
   }
 
   return (
@@ -722,24 +798,25 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
       </div>
 
       {/* content */}
-      {loading ? (
+      {isLoading || !d ? (
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0' }}>
           <AxSkeleton />
         </div>
       ) : (
         <div key={period} style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0', display: 'flex', flexDirection: 'column', gap: 18, animation: 'axRise .45s cubic-bezier(.2,.8,.2,1) both' }}>
           <AxHero d={d} onGoSettings={onNavigate ? () => onNavigate('settings') : null} />
+          <AxFallbackBanner d={d} />
           <AxChartCard d={d} chartKey={chartKey} />
           <AxKpiStrip d={d} />
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 18, alignItems: 'start' }}>
-            <AxClosing onDrill={setDrill} />
+            <AxClosing deals={d.closing ?? []} onDrill={setDrill} />
             <AxComposition d={d} onDrill={setDrill} />
           </div>
           <AxSources d={d} />
         </div>
       )}
 
-      {drill && <AxDrawer drill={drill} onClose={() => setDrill(null)} />}
+      {drill && <AxDrawer drill={drill} records={d?.records ?? null} onClose={() => setDrill(null)} />}
     </div>
   )
 }
