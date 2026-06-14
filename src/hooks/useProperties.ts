@@ -78,6 +78,7 @@ export function useAgencyProperties() {
 export interface CreatePropertyInput {
   title: string
   description?: string
+  private_notes?: string | null
   type: string
   status: PropertyStatus
   price: number

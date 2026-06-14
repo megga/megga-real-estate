@@ -26,7 +26,22 @@ export function useBiensSugar(): UseBiensSugarReturn {
   const { data: rawProperties = [], isLoading } = useAgencyProperties()
 
   const biens = useMemo<CrmBien[]>(
-    () => rawProperties.map(p => propertyToCrmBien(p as Property, null)),
+    () =>
+      rawProperties.map(p => {
+        const b = propertyToCrmBien(p as Property, null)
+        // Vues / favoris réels via la jointure listings(views_count, favorites_count).
+        const l = (
+          p as { listing?: Array<{ views_count?: number; favorites_count?: number }> }
+        ).listing?.[0]
+        if (l) {
+          b.stats = {
+            ...b.stats,
+            views: l.views_count ?? b.stats.views,
+            favorites: l.favorites_count ?? b.stats.favorites,
+          }
+        }
+        return b
+      }),
     [rawProperties],
   )
 

@@ -320,6 +320,7 @@ export function propertyToCrmBien(p: Property, ownerContactId: string | null): C
     stats: { views: 0, favorites: 0, visitRequests: 0 },
     photoCount: p.photos?.length ?? 0,
     signedPhotoCount: p.photos?.length ?? 0,
+    coverPhoto: p.photos?.[0] ?? null,
     accent: pickAvatarBg(p.id),
   }
 }

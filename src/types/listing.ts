@@ -6,6 +6,8 @@ export interface Property {
   agency_id: string
   title: string
   description: string
+  /** Notes internes équipe — jamais publiées (migration 20260614120000). */
+  private_notes?: string | null
   type: PropertyType
   status: PropertyStatus
   price: number
