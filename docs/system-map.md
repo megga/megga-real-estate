@@ -72,7 +72,7 @@ fragmenté.
 Frontend   React 18 / TS / Vite / Tailwind · React Router v6 · React Query (+ supabase-cache-helpers)
            i18n react-i18next (FR/DE/EN/IT) · Mapbox GL (lazy) · Recharts · Sentry · PostHog
 Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 15, Auth, Storage,
-           Realtime, pgvector, pg_cron, pg_net · 57 Edge Functions (Deno)
+           Realtime, pgvector, pg_cron, pg_net · 67 Edge Functions (Deno)
 IA         Claude (Sonnet/Haiku, côté agent) + DeepSeek V3 (côté public + fallback)
            via abstraction _shared/ai-provider.ts (tracking coût → ai_usage_logs)
 Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · Google AI (staging)

@@ -126,8 +126,8 @@
     {
       "key": "megga/flow-marketplace",
       "namespace": "megga",
-      "value": "FLUX A (sync -> marketplace): pg_cron 04:00 -> flatfox-sync -> UPSERT market_listings (photos->R2, quality/relevance) -> RLS anon status='active' -> /rent via useMarketListings (partial index) -> /listing/:id -> marketplace_inquiries -> creation contact.",
-      "tags": "flow,marketplace"
+      "value": "FLUX A — BACKEND (toujours actif, au service du matching CRM): pg_cron 04:00 -> flatfox-sync -> UPSERT market_listings (photos -> R2, quality/relevance score) -> RLS anon status='active'. [EN SOMMEIL — pivot CRM-first juin 2026] L'affichage PUBLIC qui suivait (/rent via useMarketListings -> /listing/:id -> marketplace_inquiries -> creation contact) est DESACTIVE : /rent et /listing/:id redirigent vers la vitrine megga.ch (MarketplaceDisabledRedirect, src/App.tsx). Seule la moitie backend (sync -> market_listings -> R2) survit, consommee par matching-engine. Requetes typiques: flux de sync flatfox, comment les biens arrivent en base, /rent est-il encore actif, pipeline marketplace backend vs affichage.",
+      "tags": "flow,marketplace,en-sommeil-partiel,pivot-crm-first"
     },
     {
       "key": "megga/flow-pipeline",
@@ -660,8 +660,8 @@
     {
       "key": "megga/listing-detail",
       "namespace": "megga",
-      "value": "Fiche bien = PropertyXSinglePropertyPage (route /propriete/:id; alias back-compat /listing/:id -> redirect; /propriete sans id -> redirige vers /buy). Direction artistique Property X. Compose PxNav, PxSinglePropertyBreadcrumb, PxSinglePropertyHero (photos/photos_cf + ListingLightbox), PxSinglePropertyBody (titre/prix/desc/amenities + ReportListingDialog), PxSinglePropertyMap, PxSinglePropertyEnergy (si energy_label), PxSinglePropertyMortgage (si context=buy), PxSinglePropertyCTA, PxSinglePropertyRelated (useRelatedListings), PxSinglePropertyMobileBar, PxSinglePropertySeo, PxFooterPropertyX. Data: useListingDetail(id) -> transformToCardData depuis market_listings (prefixe market-) ou properties (internal-). Etats LoadingSkeleton (shimmer) / NotFoundFallback (CTA acheter+louer). HISTORIQUE: route /propriete supprimee avec la page en #470 (storefront statique) laissant les liens morts -> 404, restauree mai 2026; l'ancienne ListingPage (format split, blocs Bien*) + ~29 composants morts supprimes.",
-      "tags": "marketplace,listings,detail,frontend"
+      "value": "[EN SOMMEIL — pivot CRM-first juin 2026 : la fiche bien PUBLIQUE est DESACTIVEE. /propriete/:id et /listing/:id redirigent vers la vitrine megga.ch (MarketplaceDisabledRedirect, src/App.tsx) ; PropertyXSinglePropertyPage n'est plus routee. La seule fiche detail VIVANTE est ExternalListingDetailPage sur /dashboard/market/:externalId (cote CRM agent).] Fiche bien = PropertyXSinglePropertyPage (route /propriete/:id; alias back-compat /listing/:id -> redirect; /propriete sans id -> redirige vers /buy). Direction artistique Property X. Compose PxNav, PxSinglePropertyBreadcrumb, PxSinglePropertyHero (photos/photos_cf + ListingLightbox), PxSinglePropertyBody (titre/prix/desc/amenities + ReportListingDialog), PxSinglePropertyMap, PxSinglePropertyEnergy (si energy_label), PxSinglePropertyMortgage (si context=buy), PxSinglePropertyCTA, PxSinglePropertyRelated (useRelatedListings), PxSinglePropertyMobileBar, PxSinglePropertySeo, PxFooterPropertyX. Data: useListingDetail(id) -> transformToCardData depuis market_listings (prefixe market-) ou properties (internal-). Etats LoadingSkeleton (shimmer) / NotFoundFallback (CTA acheter+louer). HISTORIQUE: route /propriete supprimee avec la page en #470 (storefront statique) laissant les liens morts -> 404, restauree mai 2026; l'ancienne ListingPage (format split, blocs Bien*) + ~29 composants morts supprimes.",
+      "tags": "marketplace,listings,detail,frontend,en-sommeil,pivot-crm-first"
     },
     {
       "key": "megga/listing-images",
