@@ -5,7 +5,7 @@
 -- (ajustable sans redéploiement) et on horodate la version du barème sur chaque
 -- match, comme point d'accroche pour la future boucle d'apprentissage.
 --
--- NB : cette migration DOIT précéder 20260614120100 (les RPC d'insertion
+-- NB : cette migration DOIT précéder 20260614130100 (les RPC d'insertion
 -- référencent matches.score_version).
 
 ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS score_version integer;
