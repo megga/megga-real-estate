@@ -21,7 +21,7 @@ import { CalLeftPanel } from '@/components/crm-sugar/calendar/CalLeftPanel'
 import { CalRightPanel } from '@/components/crm-sugar/calendar/CalRightPanel'
 import { CalEditPanel, type CalEditing } from '@/components/crm-sugar/calendar/CalEditPanel'
 import {
-  buildCalPalette, calBlankEvent, calParseNL, CalPaletteContext, type CalEvent,
+  buildCalPalette, calBlankEvent, CalPaletteContext, type CalEvent,
 } from '@/components/crm-sugar/calendar/data'
 import {
   CAL_MONTHS, fmtDate,
@@ -77,7 +77,6 @@ export default function CalendarSugarV2Page() {
   const [overrides, setOverrides] = useState<Record<string, CalEvent>>({})
   const [statuses, setStatuses] = useState<Record<string, 'done' | 'cancelled' | undefined>>({})
   const [editing, setEditing] = useState<CalEditing | null>(null)
-  const [aiText, setAiText] = useState('')
 
   /**
    * Route selon event.meggaType :
@@ -144,7 +143,7 @@ export default function CalendarSugarV2Page() {
   )
   const selected = filtered.find(e => e.id === selectedId)
 
-  // ── Édition / création / statut / barre IA ──
+  // ── Édition / création / statut ──
   const startEdit = (id: string) => {
     const ev = displayEvents.find(e => e.id === id)
     if (ev) setEditing({ mode: 'edit', draft: { ...ev } })
@@ -178,14 +177,6 @@ export default function CalendarSugarV2Page() {
   }
   const setStatus = (id: string, status: 'done' | 'cancelled') => {
     setStatuses(prev => ({ ...prev, [id]: prev[id] === status ? undefined : status }))
-  }
-  const submitAI = () => {
-    const text = aiText.trim()
-    if (!text) return
-    const draft = calParseNL(text, currentDate)
-    setCurrentDate(new Date(draft.start))
-    setEditing({ mode: 'create', draft })
-    setAiText('')
   }
 
   // Live clock simulé
@@ -514,65 +505,6 @@ export default function CalendarSugarV2Page() {
             ) : !isAgendaOrMonth ? (
               <CalRightPanel event={selected} onEdit={startEdit} onSetStatus={setStatus} />
             ) : null}
-          </div>
-
-          {/* Footer — barre MEGGA AI (#9). La pastille « RDV restants » a été
-              retirée (#13) : langage naturel → création pré-remplie. */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '8px 10px 8px 16px',
-              borderRadius: 999,
-              background: SP.card,
-              boxShadow: SP.shadowSm,
-              flexShrink: 0,
-            }}
-          >
-            <CalIcon name="sparkle" size={15} stroke={SP.muted} sw={2} />
-            <input
-              value={aiText}
-              onChange={e => setAiText(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') submitAI()
-              }}
-              placeholder="Demandez à MEGGA AI — ex : « visite Marie demain 14h »"
-              style={{
-                flex: 1,
-                height: 32,
-                border: 0,
-                background: 'transparent',
-                color: SP.ink,
-                fontFamily: 'inherit',
-                fontSize: 13,
-                fontWeight: 500,
-                outline: 'none',
-              }}
-            />
-            <button
-              onClick={submitAI}
-              aria-label={aiText.trim() ? 'Créer' : 'Dicter'}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 999,
-                border: 0,
-                cursor: 'pointer',
-                background: aiText.trim() ? SP.accent : SP.cardSubtle,
-                display: 'grid',
-                placeItems: 'center',
-                flexShrink: 0,
-                transition: 'background .15s',
-              }}
-            >
-              <CalIcon
-                name={aiText.trim() ? 'arrowR' : 'mic'}
-                size={15}
-                stroke={aiText.trim() ? SP.onAccent : SP.inkSoft}
-                sw={2}
-              />
-            </button>
           </div>
         </main>
       </div>
