@@ -62,7 +62,8 @@ export function TrajectoryChart({ d }: { d: AxPeriodData }) {
       onTouchMove={onMove}
       onTouchEnd={onLeave}
     >
-      <svg viewBox={`0 0 ${AX_VB_W} ${AX_VB_H}`} width="100%" height="auto" style={{ display: 'block' }}>
+      {/* height via CSS (`height="auto"` n'est pas une longueur SVG valide → erreur console) */}
+      <svg viewBox={`0 0 ${AX_VB_W} ${AX_VB_H}`} width="100%" style={{ display: 'block', width: '100%', height: 'auto' }}>
         {/* gridlines + y labels */}
         {gy.map((v, i) => (
           <g key={i}>
