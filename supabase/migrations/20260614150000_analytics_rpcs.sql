@@ -166,21 +166,21 @@ BEGIN
   conv AS (
     -- Conversion = signed / (signed + lost) sur la fenêtre. NULL si dénom 0.
     SELECT
-      COUNT(*) FILTER (WHERE stage = 'signed')::int AS n_sg,
-      COUNT(*) FILTER (WHERE stage = 'lost')::int   AS n_lost
+      COUNT(*) FILTER (WHERE stage IN ('signed','closed'))::int AS n_sg,
+      COUNT(*) FILTER (WHERE stage = 'lost')::int               AS n_lost
     FROM transactions
     WHERE agency_id = v_agency
-      AND stage IN ('signed','lost')
+      AND stage IN ('signed','closed','lost')
       AND updated_at >= v_from AND updated_at < v_to
       AND (NOT v_scope OR assigned_to = v_me)
   ),
   conv_prev AS (
     SELECT
-      COUNT(*) FILTER (WHERE stage = 'signed')::int AS n_sg,
-      COUNT(*) FILTER (WHERE stage = 'lost')::int   AS n_lost
+      COUNT(*) FILTER (WHERE stage IN ('signed','closed'))::int AS n_sg,
+      COUNT(*) FILTER (WHERE stage = 'lost')::int               AS n_lost
     FROM transactions
     WHERE agency_id = v_agency
-      AND stage IN ('signed','lost')
+      AND stage IN ('signed','closed','lost')
       AND updated_at >= v_pfrom AND updated_at < v_pto
       AND (NOT v_scope OR assigned_to = v_me)
   ),
@@ -198,7 +198,7 @@ BEGIN
     SELECT COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400)), 0)::int AS v
     FROM transactions
     WHERE agency_id = v_agency
-      AND stage = 'signed'
+      AND stage IN ('signed','closed')   -- « gagné » = catégorie signed (signed + closed)
       AND updated_at >= v_from AND updated_at < v_to
       AND (NOT v_scope OR assigned_to = v_me)
   ),
@@ -522,7 +522,7 @@ BEGIN
       FROM transactions t
       LEFT JOIN properties p ON p.id = t.property_id
       WHERE t.agency_id = v_agency
-        AND t.stage = 'signed'
+        AND t.stage IN ('signed','closed')   -- realized = catégorie signed (signed + closed)
         AND t.updated_at >= v_from AND t.updated_at < v_to
         AND (NOT v_scope OR t.assigned_to = v_me)
         AND (
