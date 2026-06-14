@@ -78,6 +78,8 @@ export interface CrmBien {
   stats: { views: number; favorites: number; visitRequests: number }
   photoCount: number
   signedPhotoCount: number
+  /** URL de la photo de couverture (1re photo réelle) — galerie Mes biens. */
+  coverPhoto?: string | null
   accent: string
 }
 

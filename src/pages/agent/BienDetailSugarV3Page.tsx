@@ -1,48 +1,45 @@
-// MEGGA CRM Sprint 2 — Fiche Bien Sugar Pure
-// Port pixel-près de crm-screen-bien-detail-sugar.jsx (handoff Sprint 2).
+// MEGGA CRM — Fiche bien « Vitrine » (Concept A)
+// Port du handoff Claude Design (crm-screen-bien-vitrine.jsx), câblé sur le
+// vrai backend. La PHOTO ouvre : galerie immersive + lightbox, puis identité
+// (prix/statut), ruban de specs, puis description / caractéristiques /
+// acheteurs / perf / mandat / diffusion. Dark mode (palette Vx). Grammaire
+// Sugar Pure. Route : /dashboard/listings/:id
 //
-// Sections :
-//   1. Header retour + ref + actions (édition / visite / publier)
-//   2. Hero — photo + titre + prix + KPIs (vues/favoris/demandes)
-//   3. Grid 2 colonnes :
-//      - Main   : Caractéristiques · Description (public/privée) · Deals liés
-//      - Sidebar: Mandat · Publication · Historique
-// + Mode édition inline (12+ champs), toast confirmation 5s, AuditEvent.
-//
-// Route : /dashboard/listings/:id
+// Données RÉELLES préservées : useProperty / usePropertyStats /
+// useUpdateProperty (+ transition draft→active) / useLogAudit (audit nLPD) /
+// useTransactions (deals) / useContacts. Visuels illustratifs (sparkline perf,
+// « +18% ») = reproduits de la maquette ; le contenu (desc, features, deals,
+// mandat, photos) vient de la base.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode, type CSSProperties } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { SugarV3, SUGAR_V3_KEYFRAMES, fmtDateShort } from '@/components/crm-sugar-v3/tokens'
-import { SgIcon } from '@/components/crm-sugar-v3/icons'
+import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
 import {
-  SgBlackPill,
-  SgGhostPill,
-  SgCircleBtn,
-} from '@/components/crm-sugar-v3/primitives'
+  SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
+} from '@/components/crm-sugar/SugarShell'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import {
-  BdEyebrow,
-  BdCard,
-  BdEditInput,
-  BdStatusChip,
-  BdPhoto,
-  BdC2paAlert,
-  bdFormatPrice,
-  bdPricePerM2,
-  bdFmtCHF,
-  BD_STAGE_LABEL,
-} from '@/components/crm-sugar-v3/bien-detail/BdShared'
+  vxPalette, VxIcon, vxFmtCHF, vxFmtNum, vxCompact,
+  VxGallery, VxLightbox, VxStatusPill, VxMetaPill, VxCard, VxSectionHead,
+  VxSpark, VxAvatar, VxEditInput, type VxIconName, type VxPalette,
+} from '@/components/crm-sugar-v3/vitrine/vitrineKit'
+import { fmtDateShort } from '@/components/crm-sugar-v3/tokens'
+import { BD_STAGE_LABEL } from '@/components/crm-sugar-v3/bien-detail/BdShared'
 import {
-  useProperty,
-  useUpdateProperty,
-  type CreatePropertyInput,
+  useProperty, useUpdateProperty, type CreatePropertyInput,
 } from '@/hooks/useProperties'
 import { usePropertyStats } from '@/hooks/usePropertyStats'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useContacts } from '@/hooks/useContacts'
 import { useLogAudit } from '@/hooks/useAuditLog'
+import { useMatching } from '@/hooks/useMatching'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
 
+const DARK_TONE: DarkTone = 'meggaAi'
+
+// ─── Brouillon d'édition (inchangé — câblage réel) ────────────────────────
 interface BienEditDraft {
   title: string
   address: string
@@ -55,6 +52,7 @@ interface BienEditDraft {
   year_built: number | string
   energy_class: string
   description: string
+  private_notes: string
   mandate_type: string
   mandate_commission_pct: number | string
   mandate_expires_at: string
@@ -73,6 +71,7 @@ function buildDraft(b: Property | null | undefined): BienEditDraft {
     year_built: b?.year_built ?? '',
     energy_class: b?.energy_class ?? '',
     description: b?.description ?? '',
+    private_notes: b?.private_notes ?? '',
     mandate_type: b?.mandate_type ?? 'exclusive',
     mandate_commission_pct: b?.mandate_commission_pct ?? 3.0,
     mandate_expires_at: b?.mandate_expires_at ?? '',
@@ -84,176 +83,508 @@ function asNum(v: number | string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+interface Toast {
+  title: string
+  lines: string[]
+}
+interface NextVisit {
+  dateISO: string
+  time: string
+  contactId: string | null
+}
+
+// ─── Boutons (port BvBlackBtn / BvGhostBtn / BvCircleBtn) ──────────────────
+function BvBlackBtn({
+  children, onClick, icon, size = 'md', sp,
+}: {
+  children: ReactNode
+  onClick?: () => void
+  icon?: VxIconName
+  size?: 'md' | 'lg'
+  sp: VxPalette
+}) {
+  const [h, setH] = useState(false)
+  const ht = size === 'lg' ? 48 : 42
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        height: ht,
+        padding: size === 'lg' ? '0 24px' : '0 18px',
+        borderRadius: 999,
+        border: 0,
+        background: h ? sp.blackHover : sp.black,
+        color: sp.onAccent,
+        fontFamily: 'inherit',
+        fontWeight: 700,
+        fontSize: size === 'lg' ? 14 : 13,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 9,
+        boxShadow: h ? '0 10px 26px -8px rgba(11,12,14,.4)' : '0 6px 16px -8px rgba(11,12,14,.3)',
+        transform: h ? 'translateY(-1px)' : 'none',
+        transition: 'all .18s ease',
+      }}
+    >
+      {icon && <VxIcon name={icon} size={14} stroke={sp.onAccent} sw={2} />}
+      {children}
+    </button>
+  )
+}
+
+function BvGhostBtn({
+  children, onClick, icon, sp, title,
+}: {
+  children: ReactNode
+  onClick?: () => void
+  icon?: VxIconName
+  sp: VxPalette
+  title?: string
+}) {
+  const [h, setH] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        height: 42,
+        padding: '0 16px',
+        borderRadius: 999,
+        fontFamily: 'inherit',
+        background: h ? sp.card : sp.cardSub,
+        color: sp.inkSoft,
+        border: '1px solid ' + sp.hairline,
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        boxShadow: h ? sp.shadowSm : 'none',
+        transition: 'all .16s ease',
+      }}
+    >
+      {icon && <VxIcon name={icon} size={14} stroke={sp.inkSoft} sw={1.9} />}
+      {children}
+    </button>
+  )
+}
+
+function BvCircleBtn({
+  icon, onClick, title, sp, active,
+}: {
+  icon: VxIconName
+  onClick?: () => void
+  title?: string
+  sp: VxPalette
+  active?: boolean
+}) {
+  const [h, setH] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        width: 42,
+        height: 42,
+        borderRadius: 999,
+        border: active ? 0 : '1px solid ' + sp.hairline,
+        background: active ? sp.black : h ? sp.card : sp.cardSub,
+        cursor: 'pointer',
+        color: active ? sp.onAccent : sp.inkSoft,
+        display: 'grid',
+        placeItems: 'center',
+        boxShadow: h && !active ? sp.shadowSm : 'none',
+        transition: 'all .16s ease',
+      }}
+    >
+      <VxIcon name={icon} size={17} stroke={active ? sp.onAccent : sp.inkSoft} sw={1.9} />
+    </button>
+  )
+}
+
+// ─── Cellule de spec (ruban) — icône réelle MEIcon ────────────────────────
+function BvSpec({ icon, label, value, sp }: { icon: MEIconName; label: string; value: ReactNode; sp: VxPalette }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+      <div style={{ width: 40, height: 40, borderRadius: 12, background: sp.cardSub, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <MEIcon name={icon} size={19} color={sp.ink} strokeWidth={1.7} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: sp.ink, letterSpacing: -0.4, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{value}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: sp.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 5, whiteSpace: 'nowrap' }}>{label}</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Stat de performance ──────────────────────────────────────────────────
+function BvStat({ icon, label, value, sp }: { icon: VxIconName; label: string; value: string; sp: VxPalette }) {
+  return (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: sp.muted, marginBottom: 7 }}>
+        <VxIcon name={icon} size={13} stroke={sp.muted} sw={1.8} />
+        <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</span>
+      </div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: sp.ink, letterSpacing: -0.7, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+    </div>
+  )
+}
+
+// ─── Ligne de diffusion (portail) ─────────────────────────────────────────
+function BvPortal({ name, online, sp, dark }: { name: string; online: boolean; sp: VxPalette; dark: boolean }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', borderRadius: 13, background: sp.cardSub }}>
+      <div style={{ width: 30, height: 30, borderRadius: 8, background: dark ? 'rgba(255,255,255,.08)' : '#fff', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: sp.ink, boxShadow: sp.shadowSm }}>{name[0]}</div>
+      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: sp.ink }}>{name}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: online ? sp.ok : sp.muted, whiteSpace: 'nowrap' }}>
+        <span style={{ width: 6, height: 6, borderRadius: 9, background: online ? sp.ok : sp.muted }} />
+        {online ? 'En ligne' : 'Hors ligne'}
+      </span>
+    </div>
+  )
+}
+
+// ─── Événement timeline ───────────────────────────────────────────────────
+const BV_HIST_ICON: Record<string, VxIconName> = {
+  created: 'pencil',
+  published: 'globe',
+  updated: 'trend',
+}
+function BvEvent({ ev, last, sp }: { ev: { at: string; text: string; kind: string }; last: boolean; sp: VxPalette }) {
+  return (
+    <div style={{ display: 'flex', gap: 13 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: 30, height: 30, borderRadius: 999, background: sp.cardSub, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          <VxIcon name={BV_HIST_ICON[ev.kind] || 'dot'} size={14} stroke={sp.inkSoft} sw={1.8} />
+        </div>
+        {!last && <div style={{ width: 2, flex: 1, background: sp.hairline, marginTop: 2, minHeight: 14 }} />}
+      </div>
+      <div style={{ paddingBottom: last ? 0 : 18, minWidth: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: sp.muted, letterSpacing: 0.2, fontVariantNumeric: 'tabular-nums' }}>{fmtDateShort(ev.at)}</div>
+        <div style={{ fontSize: 13, color: sp.inkSoft, marginTop: 3, lineHeight: 1.5 }}>{ev.text}</div>
+      </div>
+    </div>
+  )
+}
+
+interface VisitContact {
+  id: string
+  firstName: string
+  lastName: string
+}
+
+// ─── Modal « Planifier une visite » ───────────────────────────────────────
+function BvVisitModal({
+  open, onClose, title, sp, dark, contacts, onConfirm,
+}: {
+  open: boolean
+  onClose: () => void
+  title: string
+  sp: VxPalette
+  dark: boolean
+  contacts: VisitContact[]
+  onConfirm: (date: Date, time: string, contact: VisitContact | null) => void
+}) {
+  const [day, setDay] = useState(0)
+  const [time, setTime] = useState('14:00')
+  const [who, setWho] = useState<string | null>(contacts[0]?.id ?? null)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+  if (!open) return null
+  const days: Date[] = []
+  for (let i = 1; i <= 5; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() + i)
+    days.push(d)
+  }
+  const times = ['10:00', '11:30', '14:00', '15:30', '17:00']
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 180, background: 'rgba(15,23,42,.42)', backdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'vxFade .18s ease-out' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 460, maxWidth: '100%', background: dark ? '#22242F' : '#fff', borderRadius: 26, boxShadow: '0 40px 100px rgba(15,23,42,.4)', padding: 28, animation: 'vxScaleIn .22s cubic-bezier(.2,.8,.2,1)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 1, textTransform: 'uppercase' }}>Planifier une visite</div>
+            <h3 style={{ margin: '6px 0 0', fontSize: 21, fontWeight: 800, color: sp.ink, letterSpacing: -0.5 }}>{title}</h3>
+          </div>
+          <div style={{ flex: 1 }} />
+          <BvCircleBtn icon="close" onClick={onClose} sp={sp} />
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>Jour</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+          {days.map((d, i) => {
+            const on = i === day
+            return (
+              <button key={i} onClick={() => setDay(i)} style={{ flex: 1, minWidth: 56, padding: '9px 6px', borderRadius: 13, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: on ? sp.black : sp.cardSub, color: on ? sp.onAccent : sp.inkSoft, textAlign: 'center' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', opacity: 0.7 }}>{d.toLocaleDateString('fr-CH', { weekday: 'short' })}</div>
+                <div style={{ fontSize: 17, fontWeight: 800, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{d.getDate()}</div>
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>Heure</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+          {times.map(tm => {
+            const on = tm === time
+            return (
+              <button key={tm} onClick={() => setTime(tm)} style={{ padding: '8px 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', background: on ? sp.black : sp.cardSub, color: on ? sp.onAccent : sp.inkSoft }}>{tm}</button>
+            )
+          })}
+        </div>
+        {contacts.length > 0 && (
+          <>
+            <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>Visiteur</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
+              {contacts.map(c => {
+                const on = c.id === who
+                return (
+                  <button key={c.id} onClick={() => setWho(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', background: sp.cardSub, border: 0, textAlign: 'left', boxShadow: on ? '0 0 0 2px ' + sp.ink + ' inset' : 'none' }}>
+                    <VxAvatar name={c.firstName + ' ' + c.lastName} size={32} dark={dark} />
+                    <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: sp.ink }}>{c.firstName} {c.lastName}</span>
+                    {on && <VxIcon name="check" size={16} stroke={sp.ink} sw={2.2} />}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+        <BvBlackBtn sp={sp} size="lg" onClick={() => { onConfirm(days[day], time, contacts.find(c => c.id === who) ?? null); onClose() }}>
+          <span style={{ flex: 1 }}>Confirmer la visite</span>
+        </BvBlackBtn>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//   ÉCRAN — Fiche bien Vitrine
+// ═══════════════════════════════════════════════════════════════════════════
 export default function BienDetailSugarV3Page() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+
+  // Dark mode (partagé avec la galerie via la même clé localStorage)
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const saved = window.localStorage.getItem('megga.sugar.dark')
+    if (saved === '1') return true
+    if (saved === '0') return false
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+  }, [dark])
+  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const navSp = crmSugarPalette(t, dark, DARK_TONE)
+  const sp = vxPalette(dark)
+
+  // ── Données réelles ──
   const { data: bien, isLoading, isError, error } = useProperty(id)
   const { stats } = usePropertyStats(id)
-  const { mutate: updateProperty, isPending: isSaving } = useUpdateProperty()
+  const { mutate: updateProperty } = useUpdateProperty()
   const { mutate: logAudit } = useLogAudit()
-
   const { data: transactions } = useTransactions()
   const dealsForBien = useMemo(
-    () => (transactions ?? []).filter((t) => t.property_id === id),
+    () => (transactions ?? []).filter(tx => tx.property_id === id),
     [transactions, id],
   )
-
   const { contacts: contactsAll } = useContacts()
   const contactsById = useMemo(() => {
     const m = new Map<string, { id: string; first_name: string; last_name: string }>()
-    ;(contactsAll ?? []).forEach((c) => {
-      m.set(c.id, {
-        id: c.id,
-        first_name: c.first_name ?? '',
-        last_name: c.last_name ?? '',
-      })
+    ;(contactsAll ?? []).forEach(c => {
+      m.set(c.id, { id: c.id, first_name: c.first_name ?? '', last_name: c.last_name ?? '' })
     })
     return m
   }, [contactsAll])
 
+  // Matches IA (suggestions d'acheteurs) — moteur réel, filtré sur ce bien.
+  const { matches: allMatches } = useMatching()
+  // Statut KYC des acheteurs en deal sur ce bien (rappel non-bloquant).
+  const buyerIds = useMemo(
+    () => Array.from(new Set(dealsForBien.map(d => d.contact_buyer_id).filter((x): x is string => !!x))),
+    [dealsForBien],
+  )
+  const { data: buyerKyc = [] } = useQuery({
+    queryKey: ['vitrine-buyer-kyc', buyerIds],
+    queryFn: async (): Promise<{ contact_id: string; dossier_status: string | null }[]> => {
+      if (buyerIds.length === 0) return []
+      const { data, error } = await supabase
+        .from('kyc_cases')
+        .select('contact_id, dossier_status, created_at')
+        .in('contact_id', buyerIds)
+        .in('type', ['buyer_pp', 'buyer_pm'])
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as { contact_id: string; dossier_status: string | null }[]
+    },
+    enabled: buyerIds.length > 0,
+  })
+
+  // ── État UI ──
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<BienEditDraft>(() => buildDraft(bien))
-  // Note: a "Notes privées" tab was previously rendered alongside the
-  // public description, but the data lived only in component state (no
-  // load from DB, no save) — every edit was lost on unmount. Removed
-  // until a real `properties.private_notes` column + persistence layer
-  // is built (separate chip).
-  const [toast, setToast] = useState<{ title: string; actions: string[] } | null>(
-    null,
-  )
+  const [toast, setToast] = useState<Toast | null>(null)
+  const [lb, setLb] = useState<{ open: boolean; i: number }>({ open: false, i: 0 })
+  const [descTab, setDescTab] = useState<'public' | 'private'>('public')
+  const [visitOpen, setVisitOpen] = useState(false)
+  const [nextVisit, setNextVisit] = useState<NextVisit | null>(null)
 
-  // Re-init draft when bien arrives ou change (hors édition)
-  useEffect(() => {
-    if (!editing) setDraft(buildDraft(bien))
-  }, [bien, editing])
-
-  // Auto-dismiss du toast — cleanup obligatoire pour éviter setState on unmount
+  useEffect(() => { if (!editing) setDraft(buildDraft(bien)) }, [bien, editing])
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(null), 5000)
-    return () => clearTimeout(t)
+    const tm = setTimeout(() => setToast(null), 5000)
+    return () => clearTimeout(tm)
   }, [toast])
+  useLayoutEffect(() => { window.scrollTo(0, 0) }, [id])
+  // Prochaine visite (aide de planification locale, par bien)
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('megga_vitrine_nextvisit_' + id)
+      setNextVisit(raw ? (JSON.parse(raw) as NextVisit) : null)
+    } catch {
+      setNextVisit(null)
+    }
+  }, [id])
+  const saveNextVisit = (nv: NextVisit | null) => {
+    setNextVisit(nv)
+    try {
+      if (nv) window.localStorage.setItem('megga_vitrine_nextvisit_' + id, JSON.stringify(nv))
+      else window.localStorage.removeItem('megga_vitrine_nextvisit_' + id)
+    } catch {
+      /* ignore */
+    }
+  }
 
+  const onCmd = () => {}
+  const onNavigate = (screen: SugarScreenId | string) => {
+    switch (screen) {
+      case 'today': navigate('/dashboard'); break
+      case 'pipeline': navigate('/dashboard/pipeline'); break
+      case 'matching': navigate('/dashboard/matching'); break
+      case 'contacts': navigate('/dashboard/contacts'); break
+      case 'biens': navigate('/dashboard/listings'); break
+      case 'biens-new': navigate('/dashboard/listings/new'); break
+      case 'calendar': navigate('/dashboard/calendar'); break
+      case 'docs': navigate('/dashboard/documents'); break
+      case 'kyc': navigate('/dashboard/kyc'); break
+      case 'reseau': navigate('/dashboard/network'); break
+      case 'ai':
+      case 'julien': navigate('/dashboard/julien'); break
+      case 'chat':
+      case 'dashboard': navigate('/dashboard/analytics'); break
+      case 'settings': navigate('/dashboard/settings'); break
+      default:
+    }
+  }
+
+  // ── États transitoires (avant les returns conditionnels : aucun hook après) ──
+  const fullBg = dark ? sp.bg : sp.bgGradient
   if (isLoading) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: SugarV3.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: SugarV3.muted,
-          fontFamily: SugarV3.font,
-        }}
-      >
-        Chargement du bien…
-      </div>
-    )
+    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.muted, fontFamily: "'Inter Tight', system-ui, sans-serif" }}>Chargement du bien…</div>
   }
   if (isError) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: SugarV3.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: SugarV3.err,
-          fontFamily: SugarV3.font,
-          padding: 40,
-          textAlign: 'center',
-        }}
-      >
-        Erreur de chargement du bien : {error?.message ?? 'inconnue'}
-      </div>
-    )
+    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.warn, fontFamily: "'Inter Tight', system-ui, sans-serif", padding: 40, textAlign: 'center' }}>Erreur de chargement du bien : {error?.message ?? 'inconnue'}</div>
   }
   if (!bien) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: SugarV3.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: SugarV3.muted,
-          fontFamily: SugarV3.font,
-        }}
-      >
-        Bien introuvable.
-      </div>
-    )
+    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.muted, fontFamily: "'Inter Tight', system-ui, sans-serif" }}>Bien introuvable.</div>
   }
 
+  // ── Dérivés réels ──
+  const ref = bien.id.slice(0, 12).toUpperCase()
   const isRent = bien.transaction_type === 'rent'
-  const priceLabel = bdFormatPrice(bien.price, isRent)
-  const ppm2 = bdPricePerM2(bien.price, bien.surface_m2)
+  const price = bien.price
+  const photos = bien.photos ?? []
+  const photoCount = photos.length
+  const ppm2 = bien.price && bien.surface_m2 ? Math.round(bien.price / bien.surface_m2) : null
+  const mandatExp = bien.mandate_expires_at ? new Date(bien.mandate_expires_at) : null
+  const daysToExp = mandatExp ? Math.round((mandatExp.getTime() - Date.now()) / 86_400_000) : null
+  const features = bien.features ?? []
+  const publishedTo = bien.published_at ? ['MEGGA'] : []
   const publicDesc =
     bien.description ||
-    `Bien de ${bien.rooms} pièces (${bien.surface_m2} m²) situé ${bien.address}. ` +
-      `Construit en ${bien.year_built || '—'}, classe énergétique ${
-        bien.energy_class || 'non renseignée'
-      }.`
+    `Bien de ${bien.rooms || '—'} pièces (${bien.surface_m2 || '—'} m²) situé ${bien.address || ''}. ` +
+      `Construit en ${bien.year_built || '—'}, classe énergétique ${bien.energy_class || 'non renseignée'}.`
 
-  // Pas de date hardcodée : on calcule "dans X jours" depuis maintenant.
-  const mandatExp = bien.mandate_expires_at ? new Date(bien.mandate_expires_at) : null
-  const daysToExp = mandatExp
-    ? Math.round((mandatExp.getTime() - Date.now()) / 86_400_000)
-    : null
+  // Vendeur (owner) : dérivé du contact_seller_id d'un deal, si présent.
+  const sellerId = dealsForBien.map(d => d.contact_seller_id).find(Boolean) ?? null
+  const owner = sellerId ? contactsById.get(sellerId) ?? null : null
 
-  // ─── Édition ──────────────────────────────────────────────────────────
+  // Candidats visite = acheteurs des deals sur ce bien.
+  const visitContacts: VisitContact[] = Array.from(
+    new Map(
+      dealsForBien
+        .map(d => (d.contact_buyer_id ? contactsById.get(d.contact_buyer_id) : null))
+        .filter((c): c is { id: string; first_name: string; last_name: string } => !!c)
+        .map(c => [c.id, { id: c.id, firstName: c.first_name, lastName: c.last_name }] as const),
+    ).values(),
+  )
+
+  // Historique réel (créé / publié / modifié) — pas de mock.
+  const history: { at: string; text: string; kind: string }[] = [
+    { at: bien.created_at, text: 'Bien créé dans le CRM', kind: 'created' },
+    bien.published_at ? { at: bien.published_at, text: 'Annonce publiée', kind: 'published' } : null,
+    bien.updated_at && bien.updated_at !== bien.created_at ? { at: bien.updated_at, text: 'Annonce mise à jour', kind: 'updated' } : null,
+  ].filter((e): e is { at: string; text: string; kind: string } => !!e)
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+
+  // Suggestions d'acheteurs (matches IA) pour ce bien, hors deals existants.
+  const bienMatches = allMatches.filter(
+    m => m.propertyId === bien.id && m.status === 'suggested' && !dealsForBien.some(d => d.contact_buyer_id === m.contactId),
+  )
+  // KYC acheteurs : rappel doux (non-bloquant) si un acheteur en deal n'est pas vérifié.
+  const kycByContact = new Map<string, string | null>()
+  for (const k of buyerKyc) if (!kycByContact.has(k.contact_id)) kycByContact.set(k.contact_id, k.dossier_status)
+  const needsKyc = dealsForBien.some(
+    d => d.contact_buyer_id && (kycByContact.get(d.contact_buyer_id) ?? 'none') !== 'verified',
+  )
+
   const setField = <K extends keyof BienEditDraft>(k: K, v: BienEditDraft[K]) =>
-    setDraft((d) => ({ ...d, [k]: v }))
-  const startEditing = () => {
-    setDraft(buildDraft(bien))
-    setEditing(true)
-  }
-  const cancelEditing = () => {
-    setDraft(buildDraft(bien))
-    setEditing(false)
-  }
+    setDraft(d => ({ ...d, [k]: v }))
+  const cancelEditing = () => { setDraft(buildDraft(bien)); setEditing(false) }
+  const flash = (title: string, lines: string[]) => setToast({ title, lines })
+
+  // Save réel (update + transition draft→active + audit nLPD) — préservé.
   const saveAndPublish = () => {
     const wasDraft = bien.status === 'draft'
-
     const patch: { id: string } & Partial<CreatePropertyInput> & { status?: string; published_at?: string } = {
       id: bien.id,
       title: draft.title,
       address: draft.address,
       description: draft.description,
+      private_notes: draft.private_notes,
     }
-    const price = asNum(draft.price)
-    if (price != null) patch.price = price
-    const charges = asNum(draft.charges_monthly)
-    if (charges != null) patch.charges_monthly = charges
-    const area = asNum(draft.surface_m2)
-    if (area != null) patch.surface_m2 = area
-    const rooms = asNum(draft.rooms)
-    if (rooms != null) patch.rooms = rooms
-    const beds = asNum(draft.bedrooms)
-    if (beds != null) patch.bedrooms = beds
-    const baths = asNum(draft.bathrooms)
-    if (baths != null) patch.bathrooms = baths
-    const year = asNum(draft.year_built)
-    if (year != null) patch.year_built = year
+    const p = asNum(draft.price); if (p != null) patch.price = p
+    const charges = asNum(draft.charges_monthly); if (charges != null) patch.charges_monthly = charges
+    const area = asNum(draft.surface_m2); if (area != null) patch.surface_m2 = area
+    const rooms = asNum(draft.rooms); if (rooms != null) patch.rooms = rooms
+    const beds = asNum(draft.bedrooms); if (beds != null) patch.bedrooms = beds
+    const baths = asNum(draft.bathrooms); if (baths != null) patch.bathrooms = baths
+    const year = asNum(draft.year_built); if (year != null) patch.year_built = year
     if (draft.energy_class) patch.energy_class = draft.energy_class
     if (draft.mandate_type) patch.mandate_type = draft.mandate_type
-    const commission = asNum(draft.mandate_commission_pct)
-    if (commission != null) patch.mandate_commission_pct = commission
+    const commission = asNum(draft.mandate_commission_pct); if (commission != null) patch.mandate_commission_pct = commission
     if (draft.mandate_expires_at) patch.mandate_expires_at = draft.mandate_expires_at
-
-    // Real publish transition: when the bien is still in draft, flip to
-    // active + stamp published_at. Without this, the "Publier le bien"
-    // button was a silent no-op for the most important state change on
-    // a listing.
     if (wasDraft) {
       patch.status = 'active'
       patch.published_at = new Date().toISOString()
     }
-
     updateProperty(patch, {
       onSuccess: () => {
-        // AuditEvent nLPD (category=bien, severity=info). Action name
-        // reflects the actual transition.
         logAudit({
           category: 'bien',
           severity: 'info',
@@ -262,20 +593,16 @@ export default function BienDetailSugarV3Page() {
           entityId: bien.id,
           objectLabel: draft.title || bien.title,
           metadata: {
-            price: price ?? bien.price,
+            price: p ?? bien.price,
             mandate_type: draft.mandate_type,
             surface_m2: area ?? bien.surface_m2,
             ...(wasDraft ? { transition: 'draft → active' } : {}),
           },
         })
         setEditing(false)
-        // Toast reflects ONLY what really happened: DB update + audit row.
-        // "Notification envoyée au vendeur" was a lie (no Resend call);
-        // "Re-publiée sur les portails actifs" was a lie (no portal
-        // sync wiring). Both removed.
         setToast({
           title: wasDraft ? 'Annonce publiée' : 'Annonce mise à jour',
-          actions: [
+          lines: [
             wasDraft ? 'Statut passé en actif' : null,
             "Entrée ajoutée au journal d'audit nLPD",
           ].filter((x): x is string => !!x),
@@ -284,1187 +611,360 @@ export default function BienDetailSugarV3Page() {
     })
   }
 
+  const rootVars = {
+    '--vx-card': sp.card,
+    '--vx-hairline': sp.hairline,
+    '--vx-shadow': sp.shadow,
+    '--vx-shadow-hov': sp.shadowHov,
+  } as CSSProperties
+
+  const mandatRows = [
+    { l: 'Commission', v: bien.mandate_commission_pct ? bien.mandate_commission_pct + ' %' : '—' },
+    { l: 'Signé le', v: bien.mandate_signed_at ? fmtDateShort(bien.mandate_signed_at) : '—' },
+    {
+      l: 'Expire le',
+      v: bien.mandate_expires_at ? fmtDateShort(bien.mandate_expires_at) : '—',
+      note: daysToExp != null ? (daysToExp > 0 ? `dans ${daysToExp} j` : `${Math.abs(daysToExp)} j de retard`) : null,
+      warn: daysToExp != null && daysToExp <= 30,
+    },
+  ]
+
   return (
-    <div
-      data-screen-label="Fiche Bien (Sugar v3)"
-      style={{
-        width: '100%',
-        minHeight: '100vh',
-        background: SugarV3.bgGradient,
-        color: SugarV3.ink,
-        fontFamily: SugarV3.font,
-      }}
-    >
-      <style>{SUGAR_V3_KEYFRAMES}</style>
+    <div data-screen-label="Fiche bien · Vitrine" style={{ minHeight: '100vh', background: fullBg, color: sp.ink, fontFamily: "'Inter Tight', system-ui, sans-serif", fontVariantNumeric: 'tabular-nums', ...rootVars }}>
+      <style>{SUGAR_KEYFRAMES}</style>
       <style>{`
-        @keyframes vdPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        @keyframes bdToastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes vxFadeUp { from { transform:translateY(16px); opacity:0; } to { transform:none; opacity:1; } }
+        @keyframes vxFade { from {opacity:0;} to {opacity:1;} }
+        @keyframes vxScaleIn { from {opacity:0; transform:scale(.96);} to {opacity:1; transform:scale(1);} }
+        .vx-tile { transition: transform .4s cubic-bezier(.2,.8,.2,1); }
+        .vx-desc-text { font-size:14.5px; line-height:1.75; color:${sp.inkSoft}; font-weight:400; }
+        @media (max-width: 1080px){ .vx-body { grid-template-columns:1fr !important; } .vx-hero-gallery { height:340px !important; } }
+        @media (prefers-reduced-motion: reduce){ [style*="vxFadeUp"]{ animation:none !important; opacity:1 !important; transform:none !important; } }
       `}</style>
 
-      <main style={{ padding: '28px 40px 80px', minWidth: 0 }}>
-        {/* Header */}
-        <header
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            marginBottom: 32,
-            flexWrap: 'wrap',
-          }}
-        >
-          <SgGhostPill
-            icon={<SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />}
-            onClick={() => navigate('/dashboard/listings')}
-          >
-            Mes biens
-          </SgGhostPill>
-          <span
-            style={{
-              fontFamily: 'JetBrains Mono, monospace',
-              fontSize: 12,
-              color: SugarV3.muted,
-              letterSpacing: 0.3,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {bien.id.slice(0, 8).toUpperCase()}
-          </span>
-          <div style={{ flex: 1 }} />
-          {editing && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '6px 14px',
-                borderRadius: 999,
-                background: SugarV3.ink,
-                color: '#fff',
-                fontSize: 11.5,
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-                textTransform: 'uppercase',
-                letterSpacing: 0.4,
-              }}
-            >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 999,
-                  background: SugarV3.warn,
-                  animation: 'vdPulse 1.5s ease-in-out infinite',
-                }}
-              />
-              Édition en cours
-            </span>
-          )}
-          <SgCircleBtn
-            icon={
-              <SgIcon
-                name={editing ? 'close' : 'pencil'}
-                size={editing ? 18 : 17}
-                stroke={SugarV3.inkSoft}
-              />
-            }
-            title={editing ? 'Annuler les modifications' : 'Modifier'}
-            onClick={editing ? cancelEditing : startEditing}
-          />
-          <SgCircleBtn
-            icon={<SgIcon name="cal" size={17} stroke={SugarV3.inkSoft} />}
-            title="Planifier une visite"
-            onClick={() => navigate(`/dashboard/visits/nouveau?bienId=${bien.id}`)}
-          />
-          <SgBlackPill
-            icon={
-              <SgIcon
-                name={editing ? 'check' : 'arrowUp'}
-                size={14}
-                stroke="#fff"
-                sw={editing ? 2.5 : 1.6}
-              />
-            }
-            disabled={editing && isSaving}
-            onClick={editing ? saveAndPublish : startEditing}
-          >
-            {editing
-              ? 'Enregistrer & publier'
-              : bien.status === 'draft'
-                ? 'Publier le bien'
-                : 'Mettre à jour'}
-          </SgBlackPill>
-        </header>
+      <SugarTopNav active="biens" t={t} sp={navSp} onNavigate={onNavigate} onCmd={onCmd} />
+      <div style={{ display: 'flex' }}>
+        <SugarIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={navSp} />
 
-        {/* Sprint 3 — Alerte unique où C2PA redevient visible : photos non certifiées. */}
-        <BdC2paAlert
-          hasPhotos={!!(bien.photos && bien.photos.length > 0)}
-          isVerified={!!bien.c2pa_verified}
-        />
-
-        {/* HERO */}
-        <BdCard padding={0} style={{ marginBottom: 24, overflow: 'hidden' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1.15fr 1fr',
-              minHeight: 460,
-            }}
-          >
-            <div style={{ position: 'relative' }}>
-              <BdPhoto
-                photos={bien.photos}
-                fallbackId={bien.id}
-                c2paVerified={bien.c2pa_verified}
-                photoCount={bien.photos?.length}
-              />
-              {/* "Voir les N photos" button removed — had no onClick,
-                  pure decoration. Real lightbox/gallery view is a
-                  separate chip; agents currently access the full set
-                  via the inline gallery on /listings/:id/edit. */}
-            </div>
-            <div
-              style={{
-                padding: '44px 40px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-              }}
-            >
-              <BdEyebrow>
-                {bien.canton} · {isRent ? 'Location' : 'Vente'} · {bien.type}
-              </BdEyebrow>
-              <h1
-                style={{
-                  margin: '14px 0 10px',
-                  fontSize: 36,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.8,
-                  lineHeight: 1.15,
-                }}
-              >
-                {editing ? (
-                  <BdEditInput
-                    value={draft.title}
-                    onChange={(v) => setField('title', v)}
-                    block
-                    style={{
-                      fontSize: 36,
-                      fontWeight: 700,
-                      letterSpacing: -0.8,
-                    }}
-                  />
-                ) : (
-                  bien.title
-                )}
-              </h1>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  color: SugarV3.muted,
-                  fontSize: 14,
-                  fontWeight: 500,
-                }}
-              >
-                <SgIcon name="pin" size={14} stroke={SugarV3.muted} />
-                {editing ? (
-                  <BdEditInput
-                    value={draft.address}
-                    onChange={(v) => setField('address', v)}
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      color: SugarV3.ink,
-                      width: 320,
-                    }}
-                  />
-                ) : (
-                  `${bien.address}, ${bien.city}`
-                )}
-              </div>
-
-              {/* Prix */}
-              <div style={{ marginTop: 28 }}>
-                <div
-                  style={{
-                    fontSize: 42,
-                    fontWeight: 700,
-                    color: SugarV3.ink,
-                    letterSpacing: -1,
-                    lineHeight: 1,
-                    fontVariantNumeric: 'tabular-nums',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {editing ? (
-                    <BdEditInput
-                      type="number"
-                      prefix="CHF"
-                      value={draft.price}
-                      onChange={(v) => setField('price', v)}
-                      style={{
-                        fontSize: 36,
-                        fontWeight: 700,
-                        letterSpacing: -1,
-                        width: 220,
-                      }}
-                    />
-                  ) : (
-                    priceLabel
-                  )}
-                </div>
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 13,
-                    color: SugarV3.muted,
-                    fontWeight: 500,
-                    fontVariantNumeric: 'tabular-nums',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  {!editing && ppm2 && <span>{ppm2}</span>}
-                  {!editing && ppm2 && bien.charges_monthly ? <span>·</span> : null}
-                  {editing ? (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                      }}
-                    >
-                      Charges :
-                      <BdEditInput
-                        type="number"
-                        prefix="CHF"
-                        value={draft.charges_monthly}
-                        onChange={(v) => setField('charges_monthly', v)}
-                        style={{ fontSize: 13, width: 90 }}
-                      />
-                      {isRent && <span>/mois</span>}
-                    </span>
-                  ) : (
-                    bien.charges_monthly && (
-                      <span>
-                        + CHF {bien.charges_monthly} charges
-                        {isRent ? '/mois' : ''}
-                      </span>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {/* Pills statut */}
-              <div
-                style={{
-                  marginTop: 24,
-                  display: 'flex',
-                  gap: 8,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <BdStatusChip status={bien.status} />
-                {bien.mandate_type && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '6px 14px',
-                      borderRadius: 999,
-                      background: SugarV3.cardSubtle,
-                      color: SugarV3.inkSoft,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <SgIcon
-                      name="shield"
-                      size={11}
-                      stroke={SugarV3.inkSoft}
-                      sw={2}
-                    />
-                    Mandat {bien.mandate_type}
-                  </span>
-                )}
-              </div>
-
-              {/* KPIs */}
-              <div
-                style={{
-                  marginTop: 32,
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 10,
-                }}
-              >
-                {[
-                  { l: 'Vues', v: stats.views, icon: 'eye' as const },
-                  { l: 'Favoris', v: stats.favorites, icon: 'heart' as const },
-                  { l: 'Demandes', v: stats.visitRequests, icon: 'cal' as const },
-                ].map((k) => (
-                  <div
-                    key={k.l}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: 16,
-                      background: SugarV3.cardSubtle,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        color: SugarV3.muted,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      <SgIcon
-                        name={k.icon}
-                        size={11}
-                        stroke={SugarV3.muted}
-                        sw={1.8}
-                      />
-                      {k.l}
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 6,
-                        fontSize: 22,
-                        fontWeight: 700,
-                        color: SugarV3.ink,
-                        letterSpacing: -0.4,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {k.v}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </BdCard>
-
-        {/* GRID 2 COLONNES */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1.55fr 1fr',
-            gap: 24,
-          }}
-        >
-          {/* COLONNE PRINCIPALE */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 24,
-              minWidth: 0,
-            }}
-          >
-            {/* Caractéristiques */}
-            <BdCard>
-              <BdEyebrow>Caractéristiques</BdEyebrow>
-              <h2
-                style={{
-                  margin: '10px 0 22px',
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.4,
-                }}
-              >
-                Tout savoir sur le bien
-              </h2>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 14,
-                }}
-              >
-                {(
-                  [
-                    {
-                      l: 'Surface habitable',
-                      k: 'surface_m2',
-                      icon: 'ruler',
-                      suffix: 'm²',
-                      text: false,
-                      value: bien.surface_m2,
-                    },
-                    { l: 'Pièces', k: 'rooms', icon: 'home', value: bien.rooms },
-                    {
-                      l: 'Chambres',
-                      k: 'bedrooms',
-                      icon: 'bed',
-                      value: bien.bedrooms,
-                    },
-                    {
-                      l: 'Salles de bain',
-                      k: 'bathrooms',
-                      icon: 'bath',
-                      value: bien.bathrooms,
-                    },
-                    {
-                      l: 'Année construction',
-                      k: 'year_built',
-                      icon: 'cal',
-                      value: bien.year_built ?? '—',
-                    },
-                    {
-                      l: 'Classe énergétique',
-                      k: 'energy_class',
-                      icon: 'flame',
-                      text: true,
-                      value: bien.energy_class ?? '—',
-                    },
-                  ] as Array<{
-                    l: string
-                    k: keyof BienEditDraft
-                    icon: string
-                    suffix?: string
-                    text?: boolean
-                    value: string | number | undefined
-                  }>
-                ).map((s) => (
-                  <div
-                    key={s.l}
-                    style={{
-                      padding: 18,
-                      borderRadius: 18,
-                      background: SugarV3.cardSubtle,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        color: SugarV3.muted,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      <SgIcon
-                        name={s.icon}
-                        size={12}
-                        stroke={SugarV3.muted}
-                        sw={1.8}
-                      />
-                      {s.l}
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontSize: 20,
-                        fontWeight: 700,
-                        color: SugarV3.ink,
-                        letterSpacing: -0.3,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {editing ? (
-                        <BdEditInput
-                          type={s.text ? 'text' : 'number'}
-                          value={draft[s.k] as string | number}
-                          onChange={(v) => setField(s.k, v)}
-                          suffix={s.suffix}
-                          style={{
-                            fontSize: 20,
-                            fontWeight: 700,
-                            letterSpacing: -0.3,
-                            width: 80,
-                          }}
-                        />
-                      ) : s.k === 'surface_m2' ? (
-                        `${bien.surface_m2} m²`
-                      ) : (
-                        s.value
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </BdCard>
-
-            {/* Description */}
-            <BdCard>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 6,
-                }}
-              >
-                <BdEyebrow>Description</BdEyebrow>
-                {/* Public/Private toggle removed — the "Privée" branch
-                    was non-persisted (see state cleanup above). */}
-              </div>
-              <h2
-                style={{
-                  margin: '8px 0 18px',
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.4,
-                }}
-              >
-                Annonce visible par les acheteurs
-              </h2>
-
-              <div>
-                  {editing ? (
-                    <textarea
-                      value={draft.description}
-                      onChange={(e) =>
-                        setField('description', e.target.value)
-                      }
-                      rows={5}
-                      style={{
-                        width: '100%',
-                        padding: 16,
-                        borderRadius: 14,
-                        background: SugarV3.cardSubtle,
-                        border: 0,
-                        fontFamily: 'inherit',
-                        fontSize: 14.5,
-                        color: SugarV3.ink,
-                        lineHeight: 1.7,
-                        resize: 'vertical',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        fontWeight: 400,
-                        boxShadow: `inset 0 0 0 2px ${SugarV3.ink}`,
-                      }}
-                    />
-                  ) : (
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: 14.5,
-                        color: SugarV3.inkSoft,
-                        lineHeight: 1.7,
-                        fontWeight: 400,
-                      }}
-                    >
-                      {publicDesc}
-                    </p>
-                  )}
-
-                  {/* "Suggestion MEGGA AI" block removed — the text was a
-                      static template (canton ternary) and the "Générer"
-                      button had no onClick. Real AI-generated description
-                      variants need the ai-copilot Edge Function with
-                      property context — tracked as a separate chip. */}
-              </div>
-            </BdCard>
-
-            {/* Deals liés */}
-            {dealsForBien.length > 0 && (
-              <BdCard>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    <BdEyebrow>
-                      Pipeline · {dealsForBien.length} deal
-                      {dealsForBien.length > 1 ? 's' : ''} sur ce bien
-                    </BdEyebrow>
-                    <h2
-                      style={{
-                        margin: '10px 0 0',
-                        fontSize: 22,
-                        fontWeight: 700,
-                        color: SugarV3.ink,
-                        letterSpacing: -0.4,
-                      }}
-                    >
-                      Acheteurs en cours
-                    </h2>
-                  </div>
-                  <SgGhostPill
-                    icon={
-                      <SgIcon
-                        name="arrowR"
-                        size={14}
-                        stroke={SugarV3.inkSoft}
-                      />
-                    }
-                    onClick={() => navigate('/dashboard/pipeline')}
-                  >
-                    Pipeline
-                  </SgGhostPill>
-                </div>
-                <div
-                  style={{
-                    marginTop: 22,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                  }}
-                >
-                  {dealsForBien.map((d) => {
-                    const buyerContact =
-                      d.contact_buyer_id ? contactsById.get(d.contact_buyer_id) : null
-                    const initials = buyerContact
-                      ? `${buyerContact.first_name[0] ?? ''}${buyerContact.last_name[0] ?? ''}`.toUpperCase()
-                      : '?'
-                    return (
-                      <button
-                        key={d.id}
-                        onClick={() =>
-                          navigate(`/dashboard/transactions/${d.id}`)
-                        }
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '14px 18px',
-                          background: SugarV3.cardSubtle,
-                          border: 0,
-                          borderRadius: 18,
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 14,
-                          transition: 'all .15s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = SugarV3.card
-                          e.currentTarget.style.boxShadow = SugarV3.shadow
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = SugarV3.cardSubtle
-                          e.currentTarget.style.boxShadow = 'none'
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 999,
-                            background: SugarV3.ink,
-                            color: '#fff',
-                            display: 'grid',
-                            placeItems: 'center',
-                            fontWeight: 700,
-                            fontSize: 13,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {initials}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 700,
-                              color: SugarV3.ink,
-                              marginBottom: 2,
-                            }}
-                          >
-                            {buyerContact
-                              ? `${buyerContact.first_name} ${buyerContact.last_name}`
-                              : 'Acheteur'}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: SugarV3.muted,
-                              fontWeight: 500,
-                            }}
-                          >
-                            {BD_STAGE_LABEL[d.stage] ?? d.stage}
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 16,
-                            fontWeight: 700,
-                            color: SugarV3.ink,
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          {bdFmtCHF(d.price_offered ?? d.price_final)}
-                        </div>
-                        <SgIcon
-                          name="arrowR"
-                          size={16}
-                          stroke={SugarV3.muted}
-                        />
-                      </button>
-                    )
-                  })}
-                </div>
-              </BdCard>
+        <main style={{ flex: 1, padding: '40px 40px 90px', minWidth: 0, maxWidth: 1300 }}>
+          {/* Header */}
+          <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+            <BvGhostBtn icon="arrowL" sp={sp} onClick={() => onNavigate('biens')}>Mes biens</BvGhostBtn>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: sp.muted, letterSpacing: 0.3 }}>{ref}</span>
+            <div style={{ flex: 1 }} />
+            {editing && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 13px', borderRadius: 999, background: sp.black, color: sp.onAccent, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: 9, background: sp.warn, animation: 'vxFade 1s ease-in-out infinite alternate' }} />
+                Édition
+              </span>
             )}
+            <BvCircleBtn icon={editing ? 'close' : 'pencil'} sp={sp} title={editing ? 'Annuler' : "Modifier l'annonce"} onClick={() => { if (editing) cancelEditing(); else setEditing(true) }} />
+            {!editing && <BvGhostBtn sp={sp} onClick={() => setVisitOpen(true)}>Planifier une visite</BvGhostBtn>}
+            <BvBlackBtn sp={sp} onClick={editing ? saveAndPublish : () => flash('Diffusion', [publishedTo.length ? 'Annonce en ligne sur ' + publishedTo.join(', ') : 'Bien non encore publié'])}>
+              {editing ? 'Enregistrer & publier' : bien.published_at ? 'Gérer la diffusion' : 'Publier le bien'}
+            </BvBlackBtn>
+          </header>
+
+          {/* HERO : galerie + identité + ruban specs */}
+          <div style={{ background: sp.card, border: '1px solid ' + sp.hairline, borderRadius: 24, overflow: 'hidden', boxShadow: sp.shadow, marginBottom: 22, animation: 'vxFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
+            <div style={{ position: 'relative' }} className="vx-hero-gallery">
+              <VxGallery photos={photos} count={photoCount} dark={dark} onOpen={i => setLb({ open: true, i })} />
+              <button onClick={() => setLb({ open: true, i: 0 })} title={`Voir les ${photoCount} photos`} style={{ position: 'absolute', right: 16, bottom: 16, width: 46, height: 46, borderRadius: 999, border: 0, cursor: 'pointer', background: 'rgba(255,255,255,.94)', color: '#15171C', display: 'grid', placeItems: 'center', boxShadow: '0 6px 18px -6px rgba(0,0,0,.4)' }}>
+                <MEIcon name="gallery" size={20} color="#15171C" strokeWidth={1.8} />
+              </button>
+            </div>
+
+            {/* identité */}
+            <div style={{ padding: '26px 30px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 260 }}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                    <VxStatusPill status={bien.status} dark={dark} />
+                    {bien.c2pa_verified && <VxMetaPill icon="shieldCheck" dark={dark}>Provenance vérifiée · C2PA</VxMetaPill>}
+                  </div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 1, textTransform: 'uppercase' }}>
+                    {[bien.canton, isRent ? 'Location' : 'Vente', bien.type].filter(Boolean).join(' · ')}
+                  </div>
+                  <h1 style={{ margin: '9px 0 8px', fontSize: 34, fontWeight: 800, color: sp.ink, letterSpacing: -0.9, lineHeight: 1.1 }}>
+                    {editing ? <VxEditInput dark={dark} value={draft.title} onChange={v => setField('title', v)} block style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.9 }} /> : bien.title}
+                  </h1>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: sp.muted, fontSize: 14, fontWeight: 500 }}>
+                    <VxIcon name="map" size={15} stroke={sp.muted} sw={1.8} />
+                    {editing ? <VxEditInput dark={dark} value={draft.address} onChange={v => setField('address', v)} style={{ fontSize: 14, width: 300, color: sp.ink }} /> : bien.address}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>{isRent ? 'Loyer' : 'Prix de vente'}</div>
+                  <div style={{ fontSize: 40, fontWeight: 800, color: sp.ink, letterSpacing: -1.4, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                    {editing ? <VxEditInput dark={dark} type="number" prefix="CHF" value={draft.price} onChange={v => setField('price', v)} style={{ fontSize: 30, fontWeight: 800, width: 190, letterSpacing: -1 }} /> : vxFmtCHF(price)}
+                    {isRent && <span style={{ fontSize: 15, color: sp.muted, fontWeight: 600 }}>/mois</span>}
+                  </div>
+                  {bien.charges_monthly ? (
+                    <div style={{ marginTop: 7, fontSize: 13, color: sp.muted, fontWeight: 500 }}>+ CHF {bien.charges_monthly} charges{isRent ? '/mois' : ''}</div>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* ruban specs */}
+              <div style={{ marginTop: 24, paddingTop: 22, paddingBottom: 24, borderTop: '1px solid ' + sp.hairline, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 18 }}>
+                <BvSpec icon="surface" label="Surface" value={(bien.surface_m2 ?? '—') + ' m²'} sp={sp} />
+                <BvSpec icon="home" label="Pièces" value={bien.rooms ?? '—'} sp={sp} />
+                <BvSpec icon="bed" label="Chambres" value={bien.bedrooms ?? '—'} sp={sp} />
+                <BvSpec icon="bath" label="SdB" value={bien.bathrooms ?? '—'} sp={sp} />
+                <BvSpec icon="calendar" label="Année" value={bien.year_built ?? '—'} sp={sp} />
+                <BvSpec icon="bolt" label="DPE" value={bien.energy_class ?? '—'} sp={sp} />
+                <BvSpec icon="trending-up" label="CHF/m²" value={ppm2 ? vxCompact(ppm2) : '—'} sp={sp} />
+              </div>
+            </div>
           </div>
 
-          {/* SIDEBAR */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 24,
-              minWidth: 0,
-            }}
-          >
-            {/* Mandat */}
-            <BdCard padding={24}>
-              <BdEyebrow>Mandat</BdEyebrow>
-              {editing ? (
-                <div
-                  style={{
-                    marginTop: 10,
-                    marginBottom: 16,
-                    display: 'flex',
-                    gap: 6,
-                    padding: 4,
-                    background: SugarV3.cardSubtle,
-                    borderRadius: 999,
-                  }}
-                >
-                  {[
-                    { v: 'exclusive', l: 'Exclusif' },
-                    { v: 'simple', l: 'Simple' },
-                    { v: 'semi_exclusive', l: 'Co-mandat' },
-                  ].map((o) => {
-                    const a = draft.mandate_type === o.v
-                    return (
-                      <button
-                        key={o.v}
-                        onClick={() => setField('mandate_type', o.v)}
-                        style={{
-                          flex: 1,
-                          height: 32,
-                          borderRadius: 999,
-                          border: 0,
-                          background: a ? SugarV3.card : 'transparent',
-                          color: a ? SugarV3.ink : SugarV3.muted,
-                          fontFamily: 'inherit',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          boxShadow: a ? SugarV3.shadowSm : 'none',
-                        }}
-                      >
-                        {o.l}
-                      </button>
-                    )
-                  })}
-                </div>
-              ) : (
-                <h3
-                  style={{
-                    margin: '10px 0 16px',
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: SugarV3.ink,
-                    letterSpacing: -0.3,
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  Mandat {bien.mandate_type ?? '—'}
-                </h3>
-              )}
-              <div
-                style={{
-                  marginTop: 16,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-              >
-                {(
-                  [
-                    {
-                      l: 'Commission',
-                      edit: editing ? (
-                        <BdEditInput
-                          type="number"
-                          value={draft.mandate_commission_pct}
-                          onChange={(v) => setField('mandate_commission_pct', v)}
-                          suffix="%"
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            width: 60,
-                            textAlign: 'right',
-                          }}
-                        />
-                      ) : null,
-                      v: bien.mandate_commission_pct
-                        ? `${bien.mandate_commission_pct} %`
-                        : '—',
-                    },
-                    {
-                      l: 'Signé le',
-                      edit: null,
-                      v: bien.mandate_signed_at
-                        ? fmtDateShort(bien.mandate_signed_at)
-                        : '—',
-                    },
-                    {
-                      l: 'Expire le',
-                      edit: editing ? (
-                        <BdEditInput
-                          type="date"
-                          value={draft.mandate_expires_at}
-                          onChange={(v) => setField('mandate_expires_at', v)}
-                          style={{ fontSize: 13, fontWeight: 600, width: 150 }}
-                        />
-                      ) : null,
-                      v: bien.mandate_expires_at
-                        ? `${fmtDateShort(bien.mandate_expires_at)}${
-                            daysToExp != null
-                              ? ` · ${
-                                  daysToExp > 0
-                                    ? `dans ${daysToExp}j`
-                                    : `${Math.abs(daysToExp)}j de retard`
-                                }`
-                              : ''
-                          }`
-                        : '—',
-                      warn:
-                        daysToExp != null && daysToExp <= 30 && daysToExp >= 0,
-                      err: daysToExp != null && daysToExp < 0,
-                    },
-                  ] as const
-                ).map((row) => (
-                  <div
-                    key={row.l}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: 12,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: SugarV3.muted,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {row.l}
+          {/* BODY : 2 colonnes */}
+          <div className="vx-body" style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: 22, alignItems: 'start' }}>
+            {/* COLONNE PRINCIPALE */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 22, minWidth: 0 }}>
+              {/* Description */}
+              <VxCard index={0}>
+                <VxSectionHead
+                  dark={dark}
+                  eyebrow="Description"
+                  title={descTab === 'public' ? 'Annonce visible par les acheteurs' : 'Notes équipe MEGGA'}
+                  right={
+                    <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: sp.cardSub }}>
+                      {([{ id: 'public', l: 'Publique', icon: 'globe' }, { id: 'private', l: 'Privée', icon: 'lock' }] as const).map(o => {
+                        const a = descTab === o.id
+                        return (
+                          <button key={o.id} onClick={() => setDescTab(o.id)} style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: a ? sp.card : 'transparent', color: a ? sp.ink : sp.muted, fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: a ? sp.shadowSm : 'none', transition: 'all .15s' }}>
+                            <VxIcon name={o.icon} size={11} stroke={a ? sp.ink : sp.muted} sw={1.9} />{o.l}
+                          </button>
+                        )
+                      })}
                     </div>
-                    {row.edit ?? (
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color:
-                            'err' in row && row.err
-                              ? SugarV3.err
-                              : 'warn' in row && row.warn
-                                ? SugarV3.warn
-                                : SugarV3.ink,
-                          textAlign: 'right',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
-                        {row.v}
+                  }
+                />
+                {descTab === 'public' ? (
+                  editing ? (
+                    <textarea value={draft.description} onChange={e => setField('description', e.target.value)} rows={6} placeholder={publicDesc} style={{ width: '100%', padding: 15, borderRadius: 14, background: sp.cardSub, border: 0, fontFamily: 'inherit', fontSize: 14.5, color: sp.ink, lineHeight: 1.7, resize: 'vertical', outline: 'none', boxSizing: 'border-box', boxShadow: 'inset 0 0 0 2px ' + sp.ink }} />
+                  ) : (
+                    <p className="vx-desc-text" style={{ margin: 0 }}>{publicDesc}</p>
+                  )
+                ) : editing ? (
+                  <textarea value={draft.private_notes} onChange={e => setField('private_notes', e.target.value)} rows={5} placeholder="Notes internes (jamais publiées) : disponibilités du vendeur, marge de négociation, préférences acheteurs…" style={{ width: '100%', padding: 15, borderRadius: 14, background: sp.cardSub, border: 0, fontFamily: 'inherit', fontSize: 14.5, color: sp.ink, lineHeight: 1.7, resize: 'vertical', outline: 'none', boxSizing: 'border-box', boxShadow: 'inset 0 0 0 2px ' + sp.ink }} />
+                ) : bien.private_notes ? (
+                  <>
+                    <p className="vx-desc-text" style={{ margin: 0 }}>{bien.private_notes}</p>
+                    <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: sp.cardSub, color: sp.muted, fontSize: 11, fontWeight: 600 }}>
+                      <VxIcon name="lock" size={11} stroke={sp.muted} sw={2} /> Visible uniquement par l'équipe MEGGA · jamais publié
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 14, background: sp.cardSub, color: sp.muted, fontSize: 12.5, fontWeight: 600 }}>
+                    <VxIcon name="lock" size={13} stroke={sp.muted} sw={1.9} /> Aucune note d'équipe — passe en édition (✎) pour en ajouter. Visible MEGGA seulement.
+                  </div>
+                )}
+              </VxCard>
+
+              {/* Caractéristiques */}
+              <VxCard index={1}>
+                <VxSectionHead dark={dark} eyebrow="Caractéristiques" title="Le détail du bien" />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+                  {[
+                    { l: 'Type de bien', v: bien.type ? bien.type.charAt(0).toUpperCase() + bien.type.slice(1) : '—' },
+                    { l: 'Transaction', v: isRent ? 'Location' : 'Vente' },
+                    { l: 'Surface habitable', v: (bien.surface_m2 ?? '—') + ' m²' },
+                    { l: 'Pièces', v: bien.rooms ?? '—' },
+                    { l: 'Chambres', v: bien.bedrooms ?? '—' },
+                    { l: 'Salles de bain', v: bien.bathrooms ?? '—' },
+                    { l: 'Année', v: bien.year_built ?? '—' },
+                    { l: 'Classe énergétique', v: bien.energy_class ? 'DPE ' + bien.energy_class : '—' },
+                    { l: 'Charges', v: bien.charges_monthly ? 'CHF ' + bien.charges_monthly + (isRent ? '/mois' : '') : '—' },
+                  ].map(s => (
+                    <div key={s.l} style={{ padding: 15, borderRadius: 15, background: sp.cardSub }}>
+                      <div style={{ fontSize: 11, color: sp.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3 }}>{s.l}</div>
+                      <div style={{ marginTop: 7, fontSize: 16, fontWeight: 700, color: sp.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+                {features.length > 0 && (
+                  <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {features.map(f => (
+                      <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 13px', borderRadius: 999, background: sp.cardSub, color: sp.inkSoft, fontSize: 12.5, fontWeight: 600 }}>
+                        <VxIcon name="check" size={12} stroke={sp.ok} sw={2.4} />{f}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </VxCard>
+
+              {/* Acheteurs en cours */}
+              {(dealsForBien.length > 0 || bienMatches.length > 0) && (
+                <VxCard index={2}>
+                  <VxSectionHead
+                    dark={dark}
+                    eyebrow={`Pipeline acheteur${dealsForBien.length > 1 ? 's' : ''} sur ce bien`}
+                    title="Acheteurs en cours"
+                    right={<BvGhostBtn sp={sp} icon="arrowR" onClick={() => onNavigate('pipeline')}>Pipeline</BvGhostBtn>}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {dealsForBien.map(d => {
+                      const c = d.contact_buyer_id ? contactsById.get(d.contact_buyer_id) : null
+                      const offer = d.price_offered ?? d.price_final
+                      return (
+                        <div key={d.id} onClick={() => navigate(`/dashboard/transactions/${d.id}`)} style={{ padding: '14px 16px', background: sp.cardSub, borderRadius: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 13 }}>
+                          {c && <VxAvatar name={c.first_name + ' ' + c.last_name} size={40} dark={dark} />}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: sp.ink }}>{c ? c.first_name + ' ' + c.last_name : 'Acheteur'}</div>
+                            <div style={{ fontSize: 12, color: sp.muted, fontWeight: 500, marginTop: 1 }}>
+                              {BD_STAGE_LABEL[d.stage] ?? d.stage}{offer ? ` · offre ${vxFmtCHF(offer)}` : ''}
+                            </div>
+                          </div>
+                          <VxIcon name="chevR" size={16} stroke={sp.muted} sw={1.8} />
+                        </div>
+                      )
+                    })}
+                    {bienMatches.map(m => (
+                      <div key={m.id} style={{ padding: '12px 16px', borderRadius: 16, border: '1px dashed ' + sp.hairline, display: 'flex', alignItems: 'center', gap: 13 }}>
+                        <VxAvatar name={m.contactName} size={36} dark={dark} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>{m.contactName}</div>
+                          <div style={{ fontSize: 12, color: sp.muted, fontWeight: 500, marginTop: 1 }}>Match MEGGA AI · {m.score}% d'affinité</div>
+                        </div>
+                        <BvGhostBtn sp={sp} icon="send" onClick={() => onNavigate('matching')}>Proposer</BvGhostBtn>
+                      </div>
+                    ))}
+                  </div>
+                  {needsKyc && (
+                    <div style={{ marginTop: 14, padding: '13px 15px', borderRadius: 16, background: sp.cardSub, display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 999, background: dark ? 'rgba(255,255,255,.08)' : '#fff', display: 'grid', placeItems: 'center', flexShrink: 0, boxShadow: sp.shadowSm }}>
+                        <VxIcon name="shield" size={14} stroke={sp.muted} sw={1.8} />
+                      </span>
+                      <div style={{ flex: 1, fontSize: 12.5, color: sp.inkSoft, lineHeight: 1.5 }}>
+                        <b style={{ color: sp.ink }}>KYC à compléter</b> pour un acheteur — optionnel à ce stade, requis avant signature.
+                      </div>
+                      <BvGhostBtn sp={sp} onClick={() => onNavigate('kyc')}>Lancer</BvGhostBtn>
+                    </div>
+                  )}
+                </VxCard>
+              )}
+            </div>
+
+            {/* SIDEBAR */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 22, minWidth: 0 }}>
+              {/* Prochaine visite */}
+              {nextVisit && (() => {
+                const vd = new Date(nextVisit.dateISO)
+                const vc = nextVisit.contactId ? contactsById.get(nextVisit.contactId) : null
+                return (
+                  <VxCard index={0} padding={22}>
+                    <VxSectionHead dark={dark} eyebrow="Prochaine visite" />
+                    <div style={{ fontSize: 21, fontWeight: 800, color: sp.ink, letterSpacing: -0.5, textTransform: 'capitalize', lineHeight: 1.15 }}>
+                      {vd.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: sp.inkSoft, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{nextVisit.time}</div>
+                    {vc && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 14, padding: 12, borderRadius: 14, background: sp.cardSub }}>
+                        <VxAvatar name={vc.first_name + ' ' + vc.last_name} size={36} dark={dark} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>{vc.first_name} {vc.last_name}</div>
+                          <div style={{ fontSize: 11.5, color: sp.muted, fontWeight: 500 }}>Visiteur</div>
+                        </div>
                       </div>
                     )}
-                  </div>
-                ))}
-              </div>
-            </BdCard>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                      <BvGhostBtn sp={sp} icon="cal" onClick={() => setVisitOpen(true)}>Déplacer</BvGhostBtn>
+                      <BvGhostBtn sp={sp} onClick={() => { saveNextVisit(null); flash('Visite annulée', ['Retirée de votre planning']) }}>Annuler</BvGhostBtn>
+                    </div>
+                  </VxCard>
+                )
+              })()}
 
-            {/* Publication */}
-            <BdCard padding={24}>
-              <BdEyebrow>Publication</BdEyebrow>
-              <h3
-                style={{
-                  margin: '10px 0 16px',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.3,
-                }}
-              >
-                {bien.published_at ? 'Diffusé' : 'Non publié'}
-              </h3>
-              {bien.published_at ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                  }}
-                >
-                  {['Homegate', 'ImmoScout'].map((p) => (
-                    <div
-                      key={p}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 14px',
-                        borderRadius: 14,
-                        background: SugarV3.cardSubtle,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: SugarV3.ink,
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: 999,
-                            background: SugarV3.ok,
-                          }}
-                        />
-                        {p}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: SugarV3.muted,
-                          fontWeight: 600,
-                        }}
-                      >
-                        actif
-                      </div>
+              {/* Performance */}
+              <VxCard index={1} padding={22}>
+                <VxSectionHead dark={dark} eyebrow="Performance · 30 jours" />
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <BvStat icon="eye" label="Vues" value={vxFmtNum(stats.views)} sp={sp} />
+                  <BvStat icon="heart" label="Favoris" value={vxFmtNum(stats.favorites)} sp={sp} />
+                  <BvStat icon="cal" label="Demandes" value={vxFmtNum(stats.visitRequests)} sp={sp} />
+                </div>
+                <div style={{ marginTop: 16 }}><VxSpark points={[210, 260, 240, 320, 360, 410, 480]} color={sp.ok} /></div>
+                <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: sp.ok }}>
+                  <VxIcon name="trend" size={13} stroke={sp.ok} sw={2} /> +18 % vs. mois précédent
+                </div>
+              </VxCard>
+
+              {/* Mandat */}
+              <VxCard index={2} padding={22}>
+                <VxSectionHead dark={dark} eyebrow="Mandat" />
+                <h3 style={{ margin: '-8px 0 16px', fontSize: 18, fontWeight: 800, color: sp.ink, letterSpacing: -0.4, textTransform: 'capitalize' }}>Mandat {bien.mandate_type || '—'}</h3>
+                {owner && (
+                  <button onClick={() => navigate(`/dashboard/contacts/${owner.id}`)} style={{ width: '100%', textAlign: 'left', padding: 13, background: sp.cardSub, border: 0, borderRadius: 15, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                    <VxAvatar name={owner.first_name + ' ' + owner.last_name} size={40} dark={dark} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>{owner.first_name} {owner.last_name}</div>
+                      <div style={{ fontSize: 11.5, color: sp.muted, fontWeight: 500 }}>Vendeur · voir la fiche</div>
+                    </div>
+                    <VxIcon name="chevR" size={16} stroke={sp.muted} sw={1.8} />
+                  </button>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                  {mandatRows.map(r => (
+                    <div key={r.l} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                      <span style={{ fontSize: 13, color: sp.muted, fontWeight: 500, whiteSpace: 'nowrap' }}>{r.l}</span>
+                      <span style={{ fontSize: 13.5, color: sp.ink, fontWeight: 700, fontVariantNumeric: 'tabular-nums', display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
+                        {r.v}
+                        {r.note && <span style={{ fontSize: 11, fontWeight: 700, color: r.warn ? sp.warn : sp.muted, padding: '2px 8px', borderRadius: 999, background: r.warn ? sp.warnBg : sp.cardSub }}>{r.note}</span>}
+                      </span>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 16,
-                    background: SugarV3.cardSubtle,
-                    fontSize: 12.5,
-                    color: SugarV3.muted,
-                    fontWeight: 500,
-                  }}
-                >
-                  Ce bien n'est pas encore publié.
-                </div>
-              )}
-            </BdCard>
+              </VxCard>
 
-            {/* Historique */}
-            <BdCard padding={24}>
-              <BdEyebrow>Historique</BdEyebrow>
-              <h3
-                style={{
-                  margin: '10px 0 18px',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.3,
-                }}
-              >
-                Évènements récents
-              </h3>
-              <div style={{ position: 'relative', paddingLeft: 18 }}>
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 6,
-                    top: 6,
-                    bottom: 6,
-                    width: 2,
-                    background: SugarV3.cardSubtle,
-                    borderRadius: 999,
-                  }}
-                />
-                {[
-                  { at: bien.created_at, text: 'Bien créé dans le CRM' },
-                  bien.published_at
-                    ? { at: bien.published_at, text: 'Annonce publiée' }
-                    : null,
-                  bien.updated_at && bien.updated_at !== bien.created_at
-                    ? { at: bien.updated_at, text: 'Annonce mise à jour' }
-                    : null,
-                ]
-                  .filter(
-                    (e): e is { at: string; text: string } => e !== null,
-                  )
-                  .map((e, i, arr) => (
-                    <div
-                      key={i}
-                      style={{
-                        position: 'relative',
-                        marginBottom: i === arr.length - 1 ? 0 : 16,
-                      }}
-                    >
-                      <span
-                        style={{
-                          position: 'absolute',
-                          left: -18,
-                          top: 4,
-                          width: 14,
-                          height: 14,
-                          borderRadius: 999,
-                          background: SugarV3.ink,
-                          border: `3px solid ${SugarV3.card}`,
-                          boxShadow: SugarV3.shadowSm,
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: SugarV3.muted,
-                          fontWeight: 600,
-                          marginBottom: 2,
-                        }}
-                      >
-                        {fmtDateShort(e.at)}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          color: SugarV3.inkSoft,
-                          lineHeight: 1.5,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {e.text}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </BdCard>
+              {/* Diffusion */}
+              <VxCard index={3} padding={22}>
+                <VxSectionHead dark={dark} eyebrow="Diffusion" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(publishedTo.length ? publishedTo : ['Non publié']).map(p => <BvPortal key={p} name={p} online={!!publishedTo.length} sp={sp} dark={dark} />)}
+                </div>
+              </VxCard>
+
+              {/* Historique */}
+              <VxCard index={4} padding={22}>
+                <VxSectionHead dark={dark} eyebrow="Historique" />
+                <div>
+                  {history.map((ev, i) => <BvEvent key={i} ev={ev} last={i === history.length - 1} sp={sp} />)}
+                </div>
+              </VxCard>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
 
-      {/* TOAST */}
+      {/* Lightbox */}
+      {photoCount > 0 && (
+        <VxLightbox open={lb.open} index={lb.i} photos={photos} count={photoCount} onClose={() => setLb({ open: false, i: lb.i })} onIndex={i => setLb({ open: true, i })} />
+      )}
+
+      {/* Modal visite */}
+      <BvVisitModal
+        open={visitOpen}
+        onClose={() => setVisitOpen(false)}
+        title={bien.title}
+        sp={sp}
+        dark={dark}
+        contacts={visitContacts}
+        onConfirm={(d, tm, contact) => {
+          saveNextVisit({ dateISO: d.toISOString(), time: tm, contactId: contact ? contact.id : null })
+          flash('Visite planifiée', [`${d.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' })} à ${tm}`, 'Ajoutée à votre planning local'])
+        }}
+      />
+
+      {/* Toast */}
       {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 32,
-            right: 32,
-            zIndex: 300,
-            width: 380,
-            maxWidth: 'calc(100vw - 64px)',
-            padding: 22,
-            borderRadius: 20,
-            background: SugarV3.ink,
-            color: '#fff',
-            boxShadow:
-              '0 24px 60px rgba(11,12,14,0.30), 0 8px 24px rgba(11,12,14,0.20)',
-            animation: 'bdToastIn .35s cubic-bezier(.2,.8,.2,1) both',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 14,
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 999,
-                background: SugarV3.ok,
-                color: '#fff',
-                display: 'grid',
-                placeItems: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <SgIcon name="check" size={18} stroke="#fff" sw={2.5} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 700,
-                  marginBottom: 8,
-                }}
-              >
-                {toast.title}
-              </div>
-              <ul
-                style={{
-                  margin: 0,
-                  padding: 0,
-                  listStyle: 'none',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                }}
-              >
-                {toast.actions.map((a, i) => (
-                  <li
-                    key={i}
-                    style={{
-                      fontSize: 12.5,
-                      color: 'rgba(255,255,255,0.75)',
-                      lineHeight: 1.45,
-                      fontWeight: 500,
-                      display: 'flex',
-                      gap: 8,
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: SugarV3.ok,
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      ✓
-                    </span>
-                    {a}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <button
-              onClick={() => setToast(null)}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 999,
-                border: 0,
-                background: 'rgba(255,255,255,0.10)',
-                color: '#fff',
-                cursor: 'pointer',
-                display: 'grid',
-                placeItems: 'center',
-                fontFamily: 'inherit',
-                flexShrink: 0,
-              }}
-            >
-              <SgIcon name="close" size={13} stroke="#fff" sw={2} />
-            </button>
+        <div style={{ position: 'fixed', bottom: 26, left: '50%', transform: 'translateX(-50%)', zIndex: 220, background: dark ? '#22242F' : '#0B0C0E', color: '#fff', borderRadius: 18, padding: '16px 20px', boxShadow: '0 24px 60px rgba(15,23,42,.4)', maxWidth: 440, animation: 'vxFadeUp .3s cubic-bezier(.2,.8,.2,1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: toast.lines.length ? 8 : 0 }}>
+            <span style={{ width: 24, height: 24, borderRadius: 999, background: 'rgba(255,255,255,.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><VxIcon name="check" size={14} stroke="#fff" sw={2.4} /></span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>{toast.title}</span>
           </div>
+          {toast.lines.map((l, i) => <div key={i} style={{ fontSize: 12.5, color: 'rgba(255,255,255,.7)', paddingLeft: 34, lineHeight: 1.5 }}>{l}</div>)}
         </div>
       )}
     </div>
