@@ -1,30 +1,44 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import {
+  calculateScoreV2,
+  inferTransactionType,
+  normalizeZones,
+  parseScoringConfig,
+  DEFAULT_SCORING_CONFIG,
+  type ScoringConfig,
+  type ScoreResult,
+} from '../_shared/matching-normalize.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface MatchReasons {
-  budget: { match: boolean; score: number; detail: string }
-  zone: { match: boolean; score: number; detail: string }
-  type: { match: boolean; score: number; detail: string }
-  rooms: { match: boolean; score: number; detail: string }
-  features: { match: boolean; score: number; detail: string }
-}
-
-interface ScoreResult {
-  total: number
-  reasons: MatchReasons
-}
-
 interface RequestBody {
   mode: 'match-property' | 'match-contact' | 'scan-all'
   property_id?: string
   contact_id?: string
-  include_market?: boolean // Also match against market_listings
+  include_market?: boolean // Aussi matcher contre market_listings (veille marché)
+}
+
+// Ligne de match prête à insérer (commune interne/marché).
+interface MatchRow {
+  agency_id: string
+  contact_id: string
+  property_id?: string
+  market_listing_id?: string
+  client_search_id: string | null
+  score: number
+  reasons: ScoreResult['reasons']
+  score_version: number
+}
+
+const numOrNull = (v: unknown): number | null => {
+  if (v == null || v === '') return null
+  const n = typeof v === 'string' ? Number(v) : (v as number)
+  return Number.isFinite(n) ? n : null
 }
 
 serve(async (req) => {
@@ -33,10 +47,7 @@ serve(async (req) => {
   }
 
   try {
-    // ── Auth check — service_role bypass for pg_cron, else require agent JWT ──
-    // pg_cron and other trusted callers send the service_role JWT directly.
-    // For those callers we accept an `agency_id` in the body. For end-user
-    // callers we derive agency_id from the JWT to prevent cross-tenant writes.
+    // ── Auth — service_role bypass pour pg_cron, sinon JWT agent ──
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
     const token = authHeader.toLowerCase().startsWith('bearer ')
       ? authHeader.slice('bearer '.length).trim()
@@ -51,10 +62,7 @@ serve(async (req) => {
     let agency_id: string
 
     if (isServiceRole) {
-      supabase = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        serviceRoleKey,
-      )
+      supabase = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey)
       if (!body.agency_id) {
         return new Response(
           JSON.stringify({ error: 'agency_id required for service-role calls' }),
@@ -66,182 +74,156 @@ serve(async (req) => {
       const auth = await requireAgentAuth(req, corsHeaders)
       if (auth instanceof Response) return auth
       supabase = auth.supabase
-      // Trust the JWT-derived agency_id; ignore any `agency_id` in the body.
-      agency_id = auth.profile.agency_id
+      agency_id = auth.profile.agency_id // JWT-derived, on ignore body.agency_id
+    }
+
+    // ── Barème de scoring (externalisé, ajustable sans redéploiement) ──
+    let cfg: ScoringConfig = DEFAULT_SCORING_CONFIG
+    try {
+      const { data: cfgVal } = await supabase.rpc('get_app_config', { config_key: 'matching_scoring_v2' })
+      cfg = parseScoringConfig(typeof cfgVal === 'string' ? cfgVal : null)
+    } catch (_) {
+      cfg = DEFAULT_SCORING_CONFIG // jamais de crash sur une config absente/cassée
     }
 
     let newMatches = 0
     let newMarketMatches = 0
 
-    // ── Helper: insert internal match + log activity event ──
-    async function insertMatchWithAudit(
-      matchContactId: string,
-      matchPropertyId: string,
-      searchId: string,
-      score: ScoreResult
-    ): Promise<boolean> {
-      const { data: existing } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('contact_id', matchContactId)
-        .eq('property_id', matchPropertyId)
-        .maybeSingle()
-
-      if (existing) return false
-
-      const { data: inserted } = await supabase
-        .from('matches')
-        .insert({
-          agency_id,
-          contact_id: matchContactId,
-          property_id: matchPropertyId,
-          client_search_id: searchId,
-          score: score.total,
-          reasons: score.reasons,
-          status: 'suggested',
-          source: 'internal',
-        })
-        .select('id')
-        .single()
-
-      // Audit trail — toute action IA loggée avec actor_id = 'ai'
-      if (inserted) {
-        await supabase.from('activity_events').insert({
-          agency_id,
-          actor_id: null,
-          actor_kind: 'ai',
-          action: 'match_suggested',
-          entity_type: 'match',
-          entity_id: inserted.id,
-          metadata: {
-            contact_id: matchContactId,
-            property_id: matchPropertyId,
-            score: score.total,
-            mode,
-            source: 'internal',
-          },
-        })
+    // ── Insertion batch dé-dupliquée + audit sur les lignes RÉELLEMENT créées ──
+    async function flush(rows: MatchRow[], rpc: 'insert_market_matches' | 'insert_internal_matches', source: 'market' | 'internal'): Promise<number> {
+      if (rows.length === 0) return 0
+      const { data: created, error } = await supabase.rpc(rpc, { p_rows: rows })
+      if (error) throw error
+      const createdRows = (created ?? []) as { id: string; contact_id: string; property_id: string | null; market_listing_id: string | null; score: number }[]
+      if (createdRows.length > 0) {
+        const { error: auditErr } = await supabase.from('activity_events').insert(
+          createdRows.map((m) => ({
+            agency_id,
+            actor_id: null,
+            actor_kind: 'ai',
+            action: 'match_suggested',
+            entity_type: 'match',
+            entity_id: m.id,
+            metadata: {
+              contact_id: m.contact_id,
+              property_id: m.property_id,
+              market_listing_id: m.market_listing_id,
+              score: m.score,
+              mode,
+              source,
+              score_version: cfg.version,
+            },
+          })),
+        )
+        // Audit obligatoire (actor_kind='ai', cf CLAUDE.md) — un échec RLS ne doit pas passer inaperçu
+        if (auditErr) console.error('[matching-engine] activity_events insert failed:', auditErr.message)
       }
-
-      return true
+      return createdRows.length
     }
 
-    // ── Helper: insert market match + log activity event ──
-    async function insertMarketMatchWithAudit(
-      matchContactId: string,
-      marketListingId: string,
-      searchId: string,
-      score: ScoreResult
-    ): Promise<boolean> {
-      const { data: existing } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('contact_id', matchContactId)
-        .eq('market_listing_id', marketListingId)
-        .maybeSingle()
-
-      if (existing) return false
-
-      const { data: inserted } = await supabase
-        .from('matches')
-        .insert({
-          agency_id,
-          contact_id: matchContactId,
-          market_listing_id: marketListingId,
-          client_search_id: searchId,
-          score: score.total,
-          reasons: score.reasons,
-          status: 'suggested',
-          source: 'market',
-        })
-        .select('id')
-        .single()
-
-      if (inserted) {
-        await supabase.from('activity_events').insert({
-          agency_id,
-          actor_id: null,
-          actor_kind: 'ai',
-          action: 'match_suggested',
-          entity_type: 'match',
-          entity_id: inserted.id,
-          metadata: {
-            contact_id: matchContactId,
-            market_listing_id: marketListingId,
-            score: score.total,
-            mode,
-            source: 'market',
-          },
-        })
-      }
-
-      return true
-    }
-
-    // ── Helper: match searches against market listings ──
-    async function matchSearchesAgainstMarket(
+    // ── Matchs internes (properties de l'agence). Filtre DUR transaction_type. ──
+    function buildInternalRows(
       searches: Record<string, unknown>[],
-      resolveContactId: (search: Record<string, unknown>) => string
-    ): Promise<void> {
-      if (!include_market) return
-
-      // Fetch active market listings (GE + VD for now)
-      const { data: marketListings } = await supabase
-        .from('market_listings')
-        .select('*')
-        .eq('status', 'active')
-        .limit(5000)
-
-      if (!marketListings || marketListings.length === 0) return
-
+      properties: Record<string, unknown>[],
+      resolveContactId: (s: Record<string, unknown>) => string,
+    ): MatchRow[] {
+      const rows: MatchRow[] = []
       for (const search of searches) {
+        const criteria = search.criteria as Record<string, unknown> | null
+        if (!criteria) continue
+        const tx = inferTransactionType(criteria)
         const cId = resolveContactId(search)
-        for (const ml of marketListings) {
-          // market_listings uses same fields as properties
-          const score = calculateScore(ml, search)
-          if (score.total >= 60) {
-            const created = await insertMarketMatchWithAudit(cId, ml.id, search.id as string, score)
-            if (created) newMarketMatches++
+        for (const property of properties) {
+          const pTx = property.transaction_type as string | null
+          if (pTx && pTx !== tx) continue // un loyer n'est jamais une vente
+          const score = calculateScoreV2(property, criteria, cfg)
+          if (score.total >= cfg.threshold) {
+            rows.push({
+              agency_id,
+              contact_id: cId,
+              property_id: property.id as string,
+              client_search_id: (search.id as string) ?? null,
+              score: score.total,
+              reasons: score.reasons,
+              score_version: cfg.version,
+            })
           }
         }
       }
+      return rows
     }
 
-    if (mode === 'match-property' && property_id) {
-      // ── Nouveau bien → scanner tous les acheteurs ──
+    // ── Matchs marché (market_listings) via pré-filtre SQL DUR puis scoring soft ──
+    async function matchSearchesAgainstMarket(
+      searches: Record<string, unknown>[],
+      resolveContactId: (s: Record<string, unknown>) => string,
+    ): Promise<void> {
+      if (!include_market) return
+      const rows: MatchRow[] = []
+      for (const search of searches) {
+        const criteria = search.criteria as Record<string, unknown> | null
+        if (!criteria) continue
+        const cId = resolveContactId(search)
+        const tx = inferTransactionType(criteria)
+        const { cantons } = normalizeZones(criteria.zones)
 
+        const { data: candidates, error } = await supabase.rpc('match_candidate_listings', {
+          p_tx: tx,
+          p_budget_min: numOrNull(criteria.budget_min),
+          p_budget_max: numOrNull(criteria.budget_max),
+          p_cantons: cantons.length > 0 ? cantons : null,
+          p_types: null, // le type reste un axe SOFT (scoring), pas un filtre dur
+          p_limit: 400,
+        })
+        if (error) throw error
+
+        for (const ml of (candidates ?? []) as Record<string, unknown>[]) {
+          const score = calculateScoreV2(ml, criteria, cfg)
+          if (score.total >= cfg.threshold) {
+            rows.push({
+              agency_id,
+              contact_id: cId,
+              market_listing_id: ml.id as string,
+              client_search_id: (search.id as string) ?? null,
+              score: score.total,
+              reasons: score.reasons,
+              score_version: cfg.version,
+            })
+          }
+        }
+      }
+      newMarketMatches += await flush(rows, 'insert_market_matches', 'market')
+    }
+
+    // colonnes lues par le scoring (jamais description/photos — règles perf §7)
+    const PROP_COLS = 'id, transaction_type, price, type, canton, city, rooms, surface_m2, features'
+
+    if (mode === 'match-property' && property_id) {
+      // ── Nouveau bien interne → scanner tous les acheteurs (interne uniquement) ──
       const { data: property, error: propError } = await supabase
         .from('properties')
-        .select('*')
+        .select(PROP_COLS)
         .eq('id', property_id)
+        .eq('agency_id', agency_id) // défense en profondeur : ne score que le bien de l'agence
         .single()
-
       if (propError || !property) throw new Error(`Property not found: ${property_id}`)
 
       const { data: searches, error: searchError } = await supabase
         .from('client_searches')
-        .select('*, contact:contacts(*)')
+        .select('id, contact_id, criteria')
         .eq('agency_id', agency_id)
         .eq('is_active', true)
-
       if (searchError) throw searchError
 
-      for (const search of searches || []) {
-        const score = calculateScore(property, search)
-        if (score.total >= 60) {
-          const created = await insertMatchWithAudit(search.contact_id, property_id, search.id, score)
-          if (created) newMatches++
-        }
-      }
+      const rows = buildInternalRows(searches || [], [property], (s) => s.contact_id as string)
+      newMatches += await flush(rows, 'insert_internal_matches', 'internal')
     } else if (mode === 'match-contact' && contact_id) {
-      // ── Nouvel acheteur → scanner tous les biens actifs ──
-
+      // ── Acheteur (modifié) → scanner les biens internes + la veille marché ──
       const { data: searches, error: searchError } = await supabase
         .from('client_searches')
-        .select('*')
+        .select('id, contact_id, criteria')
         .eq('contact_id', contact_id)
         .eq('is_active', true)
-
       if (searchError) throw searchError
       if (!searches || searches.length === 0) {
         return new Response(JSON.stringify({ newMatches: 0, message: 'No active searches' }), {
@@ -251,59 +233,38 @@ serve(async (req) => {
 
       const { data: properties, error: propError } = await supabase
         .from('properties')
-        .select('*')
+        .select(PROP_COLS)
         .eq('agency_id', agency_id)
         .eq('status', 'active')
-
       if (propError) throw propError
 
-      for (const search of searches) {
-        for (const property of properties || []) {
-          const score = calculateScore(property, search)
-          if (score.total >= 60) {
-            const created = await insertMatchWithAudit(contact_id, property.id, search.id, score)
-            if (created) newMatches++
-          }
-        }
-      }
+      const rows = buildInternalRows(searches, properties || [], () => contact_id!)
+      newMatches += await flush(rows, 'insert_internal_matches', 'internal')
 
-      // Also match against market listings
       await matchSearchesAgainstMarket(searches, () => contact_id!)
     } else if (mode === 'scan-all') {
-      // ── Scan complet (appelé par pg_cron) ──
-
+      // ── Scan complet (pg_cron) ──
       const { data: searches } = await supabase
         .from('client_searches')
-        .select('*, contact:contacts(*)')
+        .select('id, contact_id, criteria')
         .eq('agency_id', agency_id)
         .eq('is_active', true)
 
       const { data: properties } = await supabase
         .from('properties')
-        .select('*')
+        .select(PROP_COLS)
         .eq('agency_id', agency_id)
         .eq('status', 'active')
 
-      for (const search of searches || []) {
-        for (const property of properties || []) {
-          const score = calculateScore(property, search)
-          if (score.total >= 60) {
-            const created = await insertMatchWithAudit(search.contact_id, property.id, search.id, score)
-            if (created) newMatches++
-          }
-        }
-      }
+      const rows = buildInternalRows(searches || [], properties || [], (s) => s.contact_id as string)
+      newMatches += await flush(rows, 'insert_internal_matches', 'internal')
 
-      // Also match against market listings
-      await matchSearchesAgainstMarket(
-        searches || [],
-        (search) => search.contact_id as string
-      )
+      await matchSearchesAgainstMarket(searches || [], (s) => s.contact_id as string)
     } else {
       throw new Error(`Invalid mode: ${mode}. Expected 'match-property', 'match-contact', or 'scan-all'`)
     }
 
-    return new Response(JSON.stringify({ newMatches, newMarketMatches, mode }), {
+    return new Response(JSON.stringify({ newMatches, newMarketMatches, mode, scoreVersion: cfg.version }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
@@ -314,131 +275,3 @@ serve(async (req) => {
     })
   }
 })
-
-// ── Scoring Engine (adapted from src/lib/matching.ts) ──────────────────────
-
-function calculateScore(
-  property: Record<string, unknown>,
-  search: Record<string, unknown>
-): ScoreResult {
-  const criteria = search.criteria as Record<string, unknown> | null
-  if (!criteria) return { total: 0, reasons: emptyReasons() }
-
-  const price = (property.price as number) || 0
-  const budgetMin = (criteria.budget_min as number) || 0
-  const budgetMax = (criteria.budget_max as number) || Infinity
-  const propertyType = (property.type as string) || ''
-  const searchType = (criteria.type as string) || ''
-  const propertyCity = ((property.city as string) || '').toLowerCase()
-  const propertyCanton = ((property.canton as string) || '').toLowerCase()
-  const searchZones = (criteria.zones as string[]) || []
-  const propertyRooms = (property.rooms as number) || 0
-  const searchRoomsMin = (criteria.rooms_min as number) || 0
-  const searchRoomsMax = (criteria.rooms_max as number) || 99
-  const propertySurface = (property.surface_m2 as number) || 0
-  const searchSurfaceMin = (criteria.surface_min as number) || 0
-  const propertyFeatures = (property.features as string[]) || []
-  const searchFeatures = (criteria.features as string[]) || []
-
-  // ── Budget (30 pts) ──
-  let budgetScore = 0
-  let budgetDetail = ''
-  if (price >= budgetMin && price <= budgetMax) {
-    budgetScore = 30
-    budgetDetail = 'Dans le budget'
-  } else if (price > budgetMax && price <= budgetMax * 1.15) {
-    budgetScore = Math.round(30 * (1 - (price / budgetMax - 1) / 0.15))
-    budgetDetail = `${Math.round((price / budgetMax - 1) * 100)}% au-dessus`
-  } else if (price < budgetMin && price >= budgetMin * 0.7) {
-    budgetScore = 20
-    budgetDetail = 'Sous le budget minimum'
-  } else {
-    budgetDetail = 'Hors budget'
-  }
-
-  // ── Zone (25 pts) ──
-  let zoneScore = 0
-  let zoneDetail = ''
-  const normalizedZones = searchZones.map((z: string) => z.toLowerCase())
-  if (normalizedZones.some((z: string) => propertyCity.includes(z) || z.includes(propertyCity))) {
-    zoneScore = 25
-    zoneDetail = `${property.city} correspond`
-  } else if (normalizedZones.some((z: string) => propertyCanton.includes(z) || z.includes(propertyCanton))) {
-    zoneScore = 15
-    zoneDetail = `Canton ${property.canton} correspond`
-  } else {
-    zoneDetail = 'Zone non correspondante'
-  }
-
-  // ── Type (15 pts) ──
-  let typeScore = 0
-  let typeDetail = ''
-  if (propertyType === searchType || !searchType) {
-    typeScore = 15
-    typeDetail = propertyType || 'Tout type'
-  } else if (
-    (propertyType === 'villa' && searchType === 'house') ||
-    (propertyType === 'house' && searchType === 'villa')
-  ) {
-    typeScore = 10
-    typeDetail = 'Type similaire'
-  } else {
-    typeDetail = `${propertyType} ≠ ${searchType}`
-  }
-
-  // ── Pièces / Surface (15 pts) ──
-  let roomsScore = 0
-  const roomsDetails: string[] = []
-  if (propertyRooms >= searchRoomsMin && propertyRooms <= searchRoomsMax) {
-    roomsScore += 8
-    roomsDetails.push(`${propertyRooms} pièces`)
-  } else if (propertyRooms === searchRoomsMin - 1) {
-    roomsScore += 4
-    roomsDetails.push(`${propertyRooms} pièces (−1)`)
-  }
-  if (propertySurface >= searchSurfaceMin) {
-    roomsScore += 7
-    roomsDetails.push(`${propertySurface} m²`)
-  } else if (propertySurface >= searchSurfaceMin * 0.9) {
-    roomsScore += 4
-    roomsDetails.push(`${propertySurface} m² (proche)`)
-  }
-  const roomsDetail = roomsDetails.join(', ') || 'Critères non remplis'
-
-  // ── Features (15 pts) ──
-  let featuresScore = 0
-  let featuresDetail = ''
-  if (searchFeatures.length > 0) {
-    const found = searchFeatures.filter((f: string) =>
-      propertyFeatures.some((pf: string) => pf.toLowerCase().includes(f.toLowerCase()))
-    )
-    featuresScore = Math.min(15, Math.round((found.length / searchFeatures.length) * 15))
-    featuresDetail = found.length > 0 ? `${found.length}/${searchFeatures.length} critères` : 'Aucun match'
-  } else {
-    featuresScore = 10
-    featuresDetail = 'Pas de critères spécifiques'
-  }
-
-  const total = budgetScore + zoneScore + typeScore + roomsScore + featuresScore
-
-  return {
-    total,
-    reasons: {
-      budget: { match: budgetScore >= 20, score: budgetScore, detail: budgetDetail },
-      zone: { match: zoneScore >= 15, score: zoneScore, detail: zoneDetail },
-      type: { match: typeScore >= 10, score: typeScore, detail: typeDetail },
-      rooms: { match: roomsScore >= 8, score: roomsScore, detail: roomsDetail },
-      features: { match: featuresScore >= 8, score: featuresScore, detail: featuresDetail },
-    },
-  }
-}
-
-function emptyReasons(): MatchReasons {
-  return {
-    budget: { match: false, score: 0, detail: '' },
-    zone: { match: false, score: 0, detail: '' },
-    type: { match: false, score: 0, detail: '' },
-    rooms: { match: false, score: 0, detail: '' },
-    features: { match: false, score: 0, detail: '' },
-  }
-}
