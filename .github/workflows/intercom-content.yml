@@ -17,6 +17,7 @@ on:
         options:
           - audit
           - articles-publish
+          - attributes-declare
           - migrate-dry
           - migrate
           - migrate-collections
