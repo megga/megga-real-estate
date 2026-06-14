@@ -16,6 +16,7 @@ on:
         type: choice
         options:
           - audit
+          - articles-publish
           - migrate-dry
           - migrate
           - migrate-collections
