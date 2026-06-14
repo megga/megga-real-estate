@@ -9,7 +9,7 @@
  * This script re-loads the seed into ruflo's local memory so semantic recall
  * works again. 100% local (WASM SQLite + local ONNX embeddings) — no API, no tokens.
  *
- * CLAUDE_FLOW_DISABLE_BRIDGE=1 — obligatoire pour PERSISTER (juin 2026, ruflo 3.10.40) :
+ * CLAUDE_FLOW_DISABLE_BRIDGE=1 — obligatoire pour PERSISTER (juin 2026, ruflo 3.10.x) :
  * sans lui, le bridge AgentDB intercepte les écritures vers un wrapper sql.js WASM
  * qui ne flush sur disque qu'au close()… que le CLI ruflo n'appelle jamais
  * (process.exit(0) dès la fin de la commande, fix #1641). Résultat : « Entries: 143 »
@@ -18,18 +18,25 @@
  * qui exporte le fichier après CHAQUE write. La LECTURE (search/list) marche avec
  * ou sans le flag : les deux chemins relisent .swarm/memory.db depuis le disque.
  *
+ * VERSION ÉPINGLÉE : on n'utilise PAS ruflo@latest. Le fix de persistance ci-dessus
+ * dépend du comportement actuel du bridge ; une montée de version peut le re-casser
+ * silencieusement. On épingle une version connue-bonne et on bumpe consciemment.
+ *
  * NB : le « Vectors: 0 » affiché par `memory import` est un compteur codé en dur
- * dans le handler upstream — il ne dit RIEN de l'état réel. D'où la sonde de
- * rappel ci-dessous : elle interroge la mémoire après import et échoue bruyamment
- * si la recherche ne retourne rien (plus jamais de seed "réussi" dans le vide).
+ * dans le handler upstream — il ne dit RIEN de l'état réel. D'où les sondes
+ * ci-dessous : (1) COMPTAGE (seed.entries.length == nb importé, détecte un import
+ * partiel) puis (2) RAPPEL multi-domaines. Plus jamais de seed "réussi" dans le vide.
  *
  * Usage:  npm run ruflo:seed   (or: node scripts/ruflo-seed-memory.mjs)
  * To extend the brain: edit the seed JSON (keep it in sync with docs/system-map.md), re-run.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+
+// Version connue-bonne (search ~250ms, persistance OK avec le flag). Bumper consciemment.
+const RUFLO = 'ruflo@3.10.46';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const seed = resolve(root, '.claude-flow/knowledge/megga-memory.seed.json');
@@ -37,12 +44,34 @@ const db = resolve(root, '.swarm/memory.db');
 
 const env = { ...process.env, CLAUDE_FLOW_DISABLE_BRIDGE: '1' };
 const run = (args) =>
-  execFileSync('npx', ['--yes', 'ruflo@latest', ...args], { cwd: root, env, stdio: 'inherit' });
+  execFileSync('npx', ['--yes', RUFLO, ...args], { cwd: root, env, stdio: 'inherit' });
 const capture = (args) =>
-  execFileSync('npx', ['--yes', 'ruflo@latest', ...args], { cwd: root, env, encoding: 'utf-8' });
+  execFileSync('npx', ['--yes', RUFLO, ...args], { cwd: root, env, encoding: 'utf-8' });
 
 if (!existsSync(seed)) {
   console.error(`[ruflo-seed] missing seed file: ${seed}`);
+  process.exit(1);
+}
+
+// Validation du seed AVANT import : attrape un JSON cassé / mal formé / clé dupliquée
+// / tags en tableau (qui casse un parseur split(',')) avant de polluer la base.
+let expectedCount;
+try {
+  const data = JSON.parse(readFileSync(seed, 'utf-8'));
+  if (!data || !Array.isArray(data.entries)) throw new Error('le seed doit contenir un tableau "entries"');
+  const keys = new Set();
+  data.entries.forEach((e, i) => {
+    if (!e || typeof e.key !== 'string' || !e.key) throw new Error(`entrée #${i} : "key" manquante`);
+    if (typeof e.value !== 'string' || !e.value) throw new Error(`entrée ${e.key} : "value" manquante`);
+    if (e.tags !== undefined && typeof e.tags !== 'string')
+      throw new Error(`entrée ${e.key} : "tags" doit être une chaîne CSV, pas un ${Array.isArray(e.tags) ? 'tableau' : typeof e.tags}`);
+    if (keys.has(e.key)) throw new Error(`clé dupliquée : ${e.key}`);
+    keys.add(e.key);
+  });
+  expectedCount = data.entries.length;
+  console.log(`[ruflo-seed] seed validé : ${expectedCount} entrées, clés uniques, tags CSV.`);
+} catch (err) {
+  console.error('[ruflo-seed] seed INVALIDE :', err?.message ?? err);
   process.exit(1);
 }
 
@@ -54,16 +83,32 @@ try {
   console.log('[ruflo-seed] importing MEGGA system knowledge into ruflo memory…');
   run(['memory', 'import', '-i', seed]);
 
-  // Sonde de rappel : la seule preuve que le seed a fonctionné est qu'une
-  // recherche retourne des entrées megga/*. (Ignore le « Vectors: 0 » du CLI.)
-  console.log('[ruflo-seed] verifying recall (search probe)…');
-  const probe = capture(['memory', 'search', '-q', 'pipeline flatfox', '-n', 'megga', '-l', '3']);
-  if (!probe.includes('megga/')) {
-    console.error('[ruflo-seed] FAILED: import reported success but the search probe found nothing.');
-    console.error('[ruflo-seed] probe output was:\n' + probe);
+  // Sonde 1 — COMPTAGE : détecte un import partiel (ex 50/144 passait l'ancienne
+  // sonde mono-requête). `memory list` affiche « Showing N of TOTAL entries ».
+  const list = capture(['memory', 'list', '-n', 'megga']);
+  const matched = list.match(/of\s+(\d+)\s+entries/);
+  const actualCount = matched ? Number(matched[1]) : NaN;
+  if (!Number.isFinite(actualCount)) {
+    console.error('[ruflo-seed] FAILED : impossible de lire le nombre d’entrées importées.\n' + list);
     process.exit(1);
   }
-  console.log('[ruflo-seed] recall OK. Try: npx ruflo memory search -q "matching gestes triage" -n megga');
+  if (actualCount !== expectedCount) {
+    console.error(`[ruflo-seed] FAILED : import partiel — ${actualCount} entrées en base vs ${expectedCount} attendues.`);
+    process.exit(1);
+  }
+  console.log(`[ruflo-seed] comptage OK : ${actualCount}/${expectedCount} entrées importées.`);
+
+  // Sonde 2 — RAPPEL multi-domaines : prouve que la recherche marche sur plusieurs
+  // domaines, pas juste flatfox (ignore le « Vectors: 0 » du CLI).
+  console.log('[ruflo-seed] verifying recall (multi-domain search probe)…');
+  for (const q of ['pipeline flatfox', 'kyc compliance', 'agent whatsapp']) {
+    const out = capture(['memory', 'search', '-q', q, '-n', 'megga', '-l', '3']);
+    if (!out.includes('megga/')) {
+      console.error(`[ruflo-seed] FAILED : la sonde « ${q} » n'a rien retourné.\n` + out);
+      process.exit(1);
+    }
+  }
+  console.log('[ruflo-seed] recall OK (3 domaines). Try: npx ruflo memory search -q "matching gestes triage" -n megga');
 } catch (err) {
   console.error('[ruflo-seed] failed:', err?.message ?? err);
   process.exit(1);
