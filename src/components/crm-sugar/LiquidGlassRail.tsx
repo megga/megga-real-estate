@@ -54,6 +54,12 @@ const RAIL_ICONS: Record<string, RailIconDef> = {
     { tag: 'path', d: 'm5 12 7 7 7-7' },
     { tag: 'path', d: 'M4 21h16' },
   ] },
+  refresh: { line: true, kids: [
+    { tag: 'path', d: 'M3 12a9 9 0 0 1 15-6.7L21 8' },
+    { tag: 'path', d: 'M21 3v5h-5' },
+    { tag: 'path', d: 'M21 12a9 9 0 0 1-15 6.7L3 16' },
+    { tag: 'path', d: 'M3 21v-5h5' },
+  ] },
   shield: { line: true, kids: [
     { tag: 'path', d: 'M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z' },
     { tag: 'path', d: 'm9 12 2 2 4-4' },
@@ -105,8 +111,8 @@ const SUB_STYLE: CSSProperties = { transformBox: 'fill-box', transformOrigin: 'c
 // `nonce` est piloté par l'appelant. 0 ⇒ état final figé. >0 ⇒ l'icône joue/rejoue
 // son entrée ; chaque incrément la relance. `tempo` ralentit l'ensemble (1.7 =
 // réglage canonique du design, plus fluide). `size` = taille du SVG (rail 23, TopNav ~19).
-interface AnimatedRailIconProps { name: string; nonce: number; tempo?: number; size?: number }
-function AnimatedRailIcon({ name, nonce, tempo = 1, size = 23 }: AnimatedRailIconProps) {
+interface AnimatedRailIconProps { name: string; nonce: number; tempo?: number; size?: number; signature?: Signature }
+function AnimatedRailIcon({ name, nonce, tempo = 1, size = 23, signature }: AnimatedRailIconProps) {
   const def = RAIL_ICONS[name] ?? RAIL_ICONS.search
   const isLine = def.line
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -131,7 +137,7 @@ function AnimatedRailIcon({ name, nonce, tempo = 1, size = 23 }: AnimatedRailIco
     return () => window.clearTimeout(id)
   }, [nonce, play, tempo])
 
-  const sig = SIGNATURES[name] ?? { scale: 0.6 }
+  const sig = signature ?? SIGNATURES[name] ?? { scale: 0.6 }
 
   return (
     <motion.div
@@ -185,15 +191,15 @@ function AnimatedRailIcon({ name, nonce, tempo = 1, size = 23 }: AnimatedRailIco
 // son propre hover/nonce et rejoue le self-draw à chaque survol. `active` ⇒
 // l'icône se dessine dès le montage (ex. ✦ Julien sur sa page). Couleur via `color`.
 export function AnimatedTopIcon({
-  name, color, size = 19, tempo = 1.7, active = false,
-}: { name: string; color: string; size?: number; tempo?: number; active?: boolean }) {
+  name, color, size = 19, tempo = 1.7, active = false, signature,
+}: { name: string; color: string; size?: number; tempo?: number; active?: boolean; signature?: Signature }) {
   const [animN, setAnimN] = useState(active ? 1 : 0)
   return (
     <span
       onMouseEnter={() => setAnimN((n) => n + 1)}
       style={{ display: 'grid', placeItems: 'center', color, lineHeight: 0 }}
     >
-      <AnimatedRailIcon name={name} nonce={animN} size={size} tempo={tempo} />
+      <AnimatedRailIcon name={name} nonce={animN} size={size} tempo={tempo} signature={signature} />
     </span>
   )
 }
