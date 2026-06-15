@@ -6,13 +6,24 @@
 // détail (modale éditoriale), lightbox galerie, overlay « tout le catalogue ».
 // Quick wins : état « Proposé » persistant, filtres quantifiés, tri.
 
-import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { TK } from './tk'
 import { RXIcon, Av, Orbs } from './kit'
 import { PHOTO } from './data'
+import { useMatching, type MatchResult } from '@/hooks/useMatching'
 
-const CATA_CRIT = ['Budget', 'Zone', 'Surface', 'Souhaits', 'KYC']
+// Critères = les 5 VRAIES raisons du moteur de matching (pas de KYC fabriqué).
+const CATA_CRIT = ['Budget', 'Zone', 'Type', 'Pièces', 'Souhaits']
+
+interface CatAnnonceur { type: string; name: string; agent?: string; role?: string; phone?: string; initials: string; mandat?: string }
+interface CatDetailData {
+  addr: string; beds: number; baths: number | null; year: number; floor: string | number; charges: number; drop: number
+  annonceur: CatAnnonceur
+  features: string[]
+  desc: string
+  gallery?: string[]
+}
 
 interface CatItem {
   id: number
@@ -30,9 +41,89 @@ interface CatItem {
   days: number
   c: string
   why: string
+  // Détail réel attaché (match live) — sinon catDetail retombe sur CAT_META (démo).
+  detail?: CatDetailData
 }
 
-const CATA: CatItem[] = [
+// ─── Adaptateurs match réel → item de catalogue ─────────────────────────
+const CAT_AV = ['#5b6cff', '#E08A45', '#39B7C9', '#34C796', '#9b7cf0', '#8B5CF6', '#2370ff', '#74d184', '#d8923f', '#c0566b']
+function hashInt(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+function catInitials(name: string): string {
+  const p = name.trim().split(/\s+/)
+  return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '··'
+}
+function fmtApos(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")
+}
+function tagOf(status: MatchResult['status']): string {
+  switch (status) {
+    case 'sent': return 'Dossier envoyé'
+    case 'visit_planned': return 'Visite prévue'
+    case 'interested': return 'Intéressé'
+    default: return 'Nouveau'
+  }
+}
+function catOf(status: MatchResult['status']): string {
+  return status === 'suggested' ? 'nouveau' : 'relance'
+}
+function criteriaBits(r: MatchResult['reasons']): string {
+  return [r.budget, r.zone, r.type, r.rooms, r.features].map((x) => (x?.match ? '1' : '0')).join('')
+}
+function topWhy(r: MatchResult['reasons']): string {
+  const matched = Object.values(r).filter((x) => x?.match && x.detail).sort((a, b) => b.score - a.score)
+  return matched[0]?.detail || 'Nouveau match — premier contact à initier.'
+}
+function featuresArr(f: Record<string, string> | null | undefined): string[] {
+  if (!f) return []
+  return Object.values(f).filter((v): v is string => typeof v === 'string' && v.length > 0).slice(0, 8)
+}
+function matchToCatItem(m: MatchResult, idx: number): CatItem {
+  const L = m.listing
+  const isVilla = /villa|maison/i.test(L.type || '')
+  const place = L.city || L.canton || 'Bien'
+  return {
+    id: hashInt(m.id) || idx + 1,
+    photo: L.photos?.[0] || PHOTO.champel,
+    place,
+    price: fmtApos(L.price),
+    pn: L.price,
+    specs: isVilla ? `Villa · ${L.surface_m2} m²` : `${L.rooms} p · ${L.surface_m2} m²`,
+    buyer: m.contactName,
+    bi: catInitials(m.contactName),
+    av: CAT_AV[hashInt(m.contactId) % CAT_AV.length],
+    score: m.score,
+    tag: tagOf(m.status),
+    cat: catOf(m.status),
+    days: L.days_on_market ?? 0,
+    c: criteriaBits(m.reasons),
+    why: topWhy(m.reasons),
+    detail: {
+      addr: [L.address, [L.postal_code, L.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || place,
+      beds: L.bedrooms ?? 0,
+      baths: null, // non exposé par le matching — pas de valeur inventée
+      year: L.year_built ?? 0,
+      floor: L.floor != null ? `${L.floor}e` : '—',
+      charges: L.charges_monthly ?? 0,
+      drop: 0, // pas d'historique de prix exposé — pas de prix barré inventé
+      annonceur: {
+        type: m.source === 'market' ? 'Veille marché' : 'Mandat interne',
+        name: L.agency_name || L.source_portal || (m.source === 'market' ? 'Annonceur externe' : 'Votre agence'),
+        agent: L.source_portal ? `via ${L.source_portal}` : undefined,
+        role: m.source === 'market' ? 'Source' : undefined,
+        initials: catInitials(L.agency_name || L.source_portal || 'AN'),
+      },
+      features: featuresArr(L.features),
+      desc: L.description || '',
+      gallery: L.photos && L.photos.length > 0 ? L.photos : undefined,
+    },
+  }
+}
+
+const SEED_CATA: CatItem[] = [
   { id: 1, photo: PHOTO.carouge, place: 'Carouge', price: "890'000", pn: 890000, specs: '3.5 p · 78 m²', buyer: 'Marie Bertrand', bi: 'MB', av: '#5b6cff', score: 94, tag: 'A visité', cat: 'relance', days: 6, c: '11111', why: "A visité il y a 6 j. Signal d'achat fort, aucune offre concurrente détectée." },
   { id: 2, photo: PHOTO.champel, place: 'Champel', price: "1'400'000", pn: 1400000, specs: '4.5 p · 112 m²', buyer: 'Nadia Khan', bi: 'NK', av: '#d8923f', score: 91, tag: 'Nouveau', cat: 'nouveau', days: 0, c: '11110', why: 'Sensible à la performance énergétique A — argument clé sur ce bien.' },
   { id: 3, photo: PHOTO.cologny, place: 'Cologny', price: "3'850'000", pn: 3850000, specs: 'Villa · 245 m²', buyer: 'Antoine Picard', bi: 'AP', av: '#34C796', score: 90, tag: 'Offre en cours', cat: 'relance', days: 2, c: '11111', why: 'Offre déposée — suivi signature, relance prioritaire aujourd\'hui.' },
@@ -110,7 +201,7 @@ const CAT_INTERIORS = [
 
 interface CatMeta {
   addr: string; beds: number; baths: number; year: number; floor: string; charges: number; drop: number
-  annonceur: { type: string; name: string; agent: string; role: string; phone: string; initials: string; mandat: string }
+  annonceur: CatAnnonceur
   features: string[]
   desc: string
 }
@@ -135,14 +226,20 @@ const CAT_META: Record<string, CatMeta> = {
 }
 
 function catDetail(m: CatItem) {
-  const meta = CAT_META[m.place] || CAT_META.Carouge
   const roomsRaw = m.specs.split('·')[0].trim()
   const surfaceM = (m.specs.match(/(\d+)\s*m²/) || [])[1]
   const surface = surfaceM ? parseInt(surfaceM, 10) : null
   const title = (/villa/i.test(roomsRaw) ? 'Villa' : roomsRaw.replace(/\bp\b/, 'pièces').replace('.', ',')) + ' — ' + m.place
-  const priceWas = meta.drop ? m.pn + meta.drop : null
   const ppm2 = surface ? Math.round(m.pn / surface) : null
-  return { ...meta, title, roomsRaw, surface, ppm2, priceWas, gallery: [m.photo, ...CAT_INTERIORS] }
+  // Détail réel (match live) si attaché, sinon CAT_META (démo). Les images
+  // intérieures décoratives ne complètent que si l'annonce a < 2 photos réelles.
+  const base: CatMeta = m.detail
+    ? { addr: m.detail.addr, beds: m.detail.beds, baths: m.detail.baths ?? 0, year: m.detail.year, floor: m.detail.floor as string, charges: m.detail.charges, drop: m.detail.drop, annonceur: m.detail.annonceur, features: m.detail.features, desc: m.detail.desc }
+    : (CAT_META[m.place] || CAT_META.Carouge)
+  const realGallery = m.detail?.gallery
+  const gallery = realGallery && realGallery.length >= 2 ? realGallery : [m.photo, ...CAT_INTERIORS]
+  const priceWas = base.drop ? m.pn + base.drop : null
+  return { ...base, baths: m.detail ? m.detail.baths : base.baths, title, roomsRaw, surface, ppm2, priceWas, gallery }
 }
 
 // Icônes propriété — délègue à MEIcon quand un équivalent existe (CATD_ME) ;
@@ -389,7 +486,7 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
                   <CatSpecCell icon="rooms" label="Pièces" value={D.roomsRaw.replace(/\bp\b/, 'pièces').replace('.', ',')} />
                   {D.surface && <CatSpecCell icon="area" label="Surface" value={`${D.surface} m²`} />}
                   <CatSpecCell icon="bed" label="Chambres" value={D.beds} />
-                  <CatSpecCell icon="bath" label="Salles d'eau" value={D.baths} />
+                  <CatSpecCell icon="bath" label="Salles d'eau" value={D.baths ?? '—'} />
                   <CatSpecCell icon="year" label="Année" value={D.year} />
                   <CatSpecCell icon="floor" label="Étage" value={D.floor === '—' ? 'Villa' : D.floor} />
                 </div>
@@ -493,15 +590,24 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
                   </div>
                 </div>
                 <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${TK.border}`, display: 'flex', flexDirection: 'column', gap: 11 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                    <CatDIcon name="pin" size={15} color={TK.sub} />
-                    <span style={{ flex: 1, fontSize: 13, color: TK.ink, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{D.annonceur.agent}</span>
-                    <span style={{ fontSize: 12, color: TK.sub, fontWeight: 500, flexShrink: 0 }}>{D.annonceur.role}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                    <RXIcon name="phone" size={15} sw={1.7} color={TK.sub} />
-                    <span style={{ flex: 1, fontSize: 13, color: TK.ink, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{D.annonceur.phone}</span>
-                  </div>
+                  {D.annonceur.agent && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                      <CatDIcon name="pin" size={15} color={TK.sub} />
+                      <span style={{ flex: 1, fontSize: 13, color: TK.ink, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{D.annonceur.agent}</span>
+                      {D.annonceur.role && <span style={{ fontSize: 12, color: TK.sub, fontWeight: 500, flexShrink: 0 }}>{D.annonceur.role}</span>}
+                    </div>
+                  )}
+                  {D.annonceur.phone ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                      <RXIcon name="phone" size={15} sw={1.7} color={TK.sub} />
+                      <span style={{ flex: 1, fontSize: 13, color: TK.ink, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{D.annonceur.phone}</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                      <RXIcon name="spark" size={15} sw={1.7} color={TK.sub} />
+                      <span style={{ flex: 1, fontSize: 13, color: TK.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{D.annonceur.type}{D.annonceur.mandat ? ` · ${D.annonceur.mandat}` : ''}</span>
+                    </div>
+                  )}
                 </div>
               </CatRailCard>
 
@@ -676,9 +782,17 @@ export function PageCatalogue() {
   const togglePropose = (id: number) => setProposed((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const lightMode = TK.frameSolid === '#FFFFFF'
 
+  // Matches réels de l'agence (score desc) → items de catalogue ; fallback démo
+  // (seed) si aucun match ou session non authentifiée.
+  const { matches, isLoading } = useMatching()
+  const catalogue = useMemo<CatItem[]>(
+    () => (!isLoading && matches.length > 0 ? matches.map(matchToCatItem) : SEED_CATA),
+    [matches, isLoading],
+  )
+
   const f = CATA_FILTERS.find((x) => x.key === filter) || CATA_FILTERS[0]
   const sort = CATA_SORTS[sortI]
-  const list = CATA.filter(f.test).slice().sort(sort.cmp)
+  const list = catalogue.filter(f.test).slice().sort(sort.cmp)
   const featured = list[0]
   // mur fixe : 1 featured + 4 cases. Si >5, la dernière case devient « +N autres ».
   const restAll = list.slice(1)
@@ -711,7 +825,7 @@ export function PageCatalogue() {
             <div style={{ display: 'flex', gap: 8 }}>
               {CATA_FILTERS.map((c) => {
                 const on = c.key === filter
-                const n = CATA.filter(c.test).length
+                const n = catalogue.filter(c.test).length
                 return (
                   <button key={c.key} onClick={() => setFilter(c.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 15px', borderRadius: 999, border: 0, cursor: 'pointer',
                     fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
