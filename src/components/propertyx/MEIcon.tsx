@@ -34,6 +34,7 @@ export type MEIconName =
   | 'villa' | 'land' | 'warehouse'
   | 'moon' | 'sun' | 'layers' | 'bolt'
   | 'broadcast' | 'flowchart' | 'megaphone' | 'magic-wand' | 'close-circle'
+  | 'flame' | 'banknote'
 
 const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
@@ -112,6 +113,10 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   pipeline: <><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2" /><path d="M7 6h6a2 2 0 0 1 2 2v2" /><path d="M7 18h6a2 2 0 0 0 2-2v-2" /></>,
   camera: <><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" /><circle cx="12" cy="13" r="3.2" /></>,
   target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></>,
+  // flame / banknote — glyphes MEGGA officiels (ex-crm-meicon), ajoutés pour la
+  // refonte « Aujourd'hui » (carte OFFRE du focus + intention chaude du catalogue).
+  flame: <path d="M12 3c2 3 5 4 5 8a5 5 0 0 1-10 0c0-1.5.6-2.7 1.5-3.5C8.7 8.5 10 7 12 3Z" />,
+  banknote: <><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="2.6" /><path d="M6 9.5v.01M18 14.5v.01" /></>,
 }
 
 const FONT_FALLBACK: Partial<Record<MEIconName, PxIconFontName>> = {
