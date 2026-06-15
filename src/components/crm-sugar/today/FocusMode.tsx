@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, type CSSProperties } from 'react'
 import { motion } from 'motion/react'
 import { TK } from './tk'
 import { RXIcon } from './kit'
-import { FOCUS_QUEUE, focusTy, type FocusItem, type FocusTypeDef } from './focusQueue'
+import { focusTy, type FocusItem, type FocusTypeDef } from './focusQueue'
 import { useTodayNav } from './TodayNavContext'
 import { AnimatedTopIcon } from '@/components/crm-sugar/LiquidGlassRail'
 
@@ -132,10 +132,10 @@ function FmGlassBtn({ meName, onClick, title }: { meName: string; onClick: () =>
 }
 
 // ─── Mode Focus ─────────────────────────────────────────────────────────
-export function FocusMode({ onClose }: { onClose: () => void }) {
+export function FocusMode({ onClose, baseQueue }: { onClose: () => void; baseQueue: FocusItem[] }) {
   const FM = fmPalette()
   const { goToPage } = useTodayNav()
-  const [queue, setQueue] = useState<FocusItem[]>(FOCUS_QUEUE)
+  const [queue, setQueue] = useState<FocusItem[]>(baseQueue)
   const [idx, setIdx] = useState(0)
   const [calling, setCalling] = useState(false)
   const [secs, setSecs] = useState(0)
@@ -174,7 +174,7 @@ export function FocusMode({ onClose }: { onClose: () => void }) {
   const done = () => { const willFinish = idx + 1 >= total; swap(() => { setIdx((i) => i + 1); if (willFinish) setElapsedMs(Date.now() - startTs) }) }
   const snooze = () => { setSnoozeCount((c) => c + 1); swap(() => setQueue((q) => { const n = [...q]; const [it] = n.splice(idx, 1); n.push(it); return n })) }
   const jump = (absIdx: number) => swap(() => setIdx(absIdx))
-  const reset = () => swap(() => { setQueue(FOCUS_QUEUE); setIdx(0); setStartTs(Date.now()); setSnoozeCount(0); setElapsedMs(null) })
+  const reset = () => swap(() => { setQueue(baseQueue); setIdx(0); setStartTs(Date.now()); setSnoozeCount(0); setElapsedMs(null) })
   // Pont focus → catalogue : lance le glissement du pager vers le mur de matchs
   // (page 1), puis fait fondre l'overlay.
   const goCatalogue = () => { goToPage(1); close() }

@@ -9,6 +9,8 @@ import { useState } from 'react'
 import { TK, type TkToneName } from './tk'
 import { RXIcon, Tile, TileHead, MoreLink, Orbs } from './kit'
 import { DATA, type EnsuiteItemData } from './data'
+import { FOCUS_QUEUE, type FocusItem } from './focusQueue'
+import { useFocusQueue } from './useFocusQueue'
 import { FocusColumn } from './FocusColumn'
 import { AgendaTile } from './AgendaTile'
 import { RelancesTile } from './RelancesTile'
@@ -52,12 +54,22 @@ function EnsuiteItem({ e }: { e: EnsuiteItemData }) {
   )
 }
 
-function EnsuiteRow() {
+// Dérive la rangée « Ensuite » des priorités qui suivent la première (la file
+// Focus sans son sommet). Tag mappé pour la pastille de tonalité.
+const ENSUITE_TAG: Record<string, string> = { OFFRE: 'Offre', MANDAT: 'Mandat', KYC: 'KYC', RELANCE: 'Relance' }
+function deriveEnsuite(items: FocusItem[]): EnsuiteItemData[] {
+  return items.slice(1, 4).map((it) => ({
+    initials: it.initials, av: it.av, label: it.contact, time: it.time, tag: ENSUITE_TAG[it.kind] || 'Relance',
+  }))
+}
+
+function EnsuiteRow({ items }: { items: EnsuiteItemData[] }) {
+  if (items.length === 0) return null
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 9 }}>
       <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: TK.sub, flexShrink: 0 }}>Ensuite</span>
       <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 0 }}>
-        {DATA.ensuite.map((e, i) => (
+        {items.map((e, i) => (
           <EnsuiteItem key={i} e={e} />
         ))}
       </div>
@@ -96,6 +108,13 @@ export function PageAujourdhui() {
   const pipelineTotal = !isLoading && deals.length > 0
     ? `CHF ${(deals.filter((d) => d.stage !== 'lost').reduce((s, d) => s + (d.value || 0), 0) / 1e6).toFixed(1)}M`
     : DATA.pipelineTotal
+
+  // File de priorités réelle (deals à risque + reminders du jour), partagée
+  // colonne Focus / Mode Focus / rangée Ensuite. Fallback seed si rien de live.
+  const { items: focusItems, isLive: focusLive } = useFocusQueue()
+  const baseQueue: FocusItem[] = focusLive ? focusItems : FOCUS_QUEUE
+  const ensuite: EnsuiteItemData[] = focusLive ? deriveEnsuite(focusItems) : DATA.ensuite
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: TK.bgGrad,
       fontFamily: 'Manrope, system-ui, sans-serif', color: TK.ink, padding: '34px 28px 34px', boxSizing: 'border-box',
@@ -117,8 +136,8 @@ export function PageAujourdhui() {
 
           {/* COLONNE FOCUS — dominante */}
           <div style={{ width: '34%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <FocusColumn />
-            <EnsuiteRow />
+            <FocusColumn key={baseQueue.map((q) => q.id).join(',') || 'empty'} baseQueue={baseQueue} />
+            <EnsuiteRow items={ensuite} />
           </div>
 
           {/* DROITE — bento 2×2 */}
@@ -148,7 +167,7 @@ export function PageAujourdhui() {
           </div>
         </div>
       </div>
-      {focusMode && <FocusMode onClose={() => setFocusMode(false)} />}
+      {focusMode && <FocusMode baseQueue={baseQueue} onClose={() => setFocusMode(false)} />}
       {relanceOpen && <RelanceSession onClose={() => setRelanceOpen(false)} />}
     </div>
   )

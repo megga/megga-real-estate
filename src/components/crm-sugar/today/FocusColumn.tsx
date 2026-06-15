@@ -8,7 +8,7 @@
 import { useState, useEffect, type CSSProperties } from 'react'
 import { TK } from './tk'
 import { RXIcon } from './kit'
-import { FOCUS_QUEUE, focusTy, type FocusItem, type FocusTypeDef } from './focusQueue'
+import { focusTy, type FocusItem, type FocusTypeDef } from './focusQueue'
 
 // ─── Cellule statistique du récap de fin de file (colonne cockpit) ───────
 function FcStat({ value, label }: { value: number; label: string }) {
@@ -20,8 +20,8 @@ function FcStat({ value, label }: { value: number; label: string }) {
   )
 }
 
-export function FocusColumn() {
-  const [queue, setQueue] = useState<FocusItem[]>(FOCUS_QUEUE)
+export function FocusColumn({ baseQueue }: { baseQueue: FocusItem[] }) {
+  const [queue, setQueue] = useState<FocusItem[]>(baseQueue)
   const [idx, setIdx] = useState(0)
   const [calling, setCalling] = useState(false)
   const [secs, setSecs] = useState(0)
@@ -30,6 +30,10 @@ export function FocusColumn() {
   const [startTs, setStartTs] = useState(() => Date.now()) // début de session
   const [snoozeCount, setSnoozeCount] = useState(0) // reports de la session
   const [elapsedMs, setElapsedMs] = useState<number | null>(null) // figé à la clôture
+
+  // NB : la resync sur changement de file source (démo↔live / refetch) se fait
+  // par REMONTAGE via la prop `key` côté PageAujourdhui (pattern React idiomatique
+  // « reset state on prop change »), pas par un effet setState.
 
   const total = queue.length
   const allDone = idx >= total
@@ -68,7 +72,7 @@ export function FocusColumn() {
     setSnoozeCount((c) => c + 1)
     swap(() => setQueue((q) => { const n = [...q]; const [it] = n.splice(idx, 1); n.push(it); return n })) // repoussé en fin de file
   }
-  const reset = () => swap(() => { setQueue(FOCUS_QUEUE); setIdx(0); setStartTs(Date.now()); setSnoozeCount(0); setElapsedMs(null) })
+  const reset = () => swap(() => { setQueue(baseQueue); setIdx(0); setStartTs(Date.now()); setSnoozeCount(0); setElapsedMs(null) })
   const onPrimary = () => {
     if (ty && ty.live) { if (calling) done(); else { setSecs(0); setCalling(true) } } // appel : démarrer → terminer (=fait)
     else done() // autres : action = traité
