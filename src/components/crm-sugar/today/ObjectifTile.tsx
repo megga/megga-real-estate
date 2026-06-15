@@ -1,14 +1,18 @@
-// MEGGA CRM — Refonte « Aujourd'hui » · Tuile « Objectif » (port fidèle)
+// MEGGA CRM — Refonte « Aujourd'hui » · Tuile « Objectif » (câblée)
 // ----------------------------------------------------------------------------
-// Port 1:1 de `today-proto-objectif.jsx`. Demi-jauge 180° (speedometer) :
-// piste + remplissage projeté + secteur manquant + repère rythme + aiguille.
-// Rendu comme CORPS de tuile (TileHead géré par la page).
+// Visuel porté 1:1 de `today-proto-objectif.jsx` (demi-jauge speedometer) ;
+// données CÂBLÉES sur le Cockpit Commission live (mêmes 3 RPC analytics que la
+// page Analytics, scope agent 'me' / période 'year'). Mirror du compute prouvé
+// dans AxDashboard : projeté/réalisé/cible + projPct (axPace).
+// Honnêteté : si l'agence n'a pas saisi d'objectif → état « non défini » (pas de
+// fausse jauge). Fallback démo (prototype) quand aucune donnée live (session non
+// authentifiée / agence absente).
 
 import { TK } from './tk'
 import { DATA, fmtCHF } from './data'
+import { useAxDashboardData } from '@/hooks/useAxDashboardData'
+import { axPace } from '@/components/crm-sugar/analytics/tokens'
 
-const OBJ = DATA.objectif
-const OBJ_PROJ = OBJ.pct // 90
 const objPol = (cx: number, cy: number, r: number, deg: number): [number, number] => {
   const a = (deg * Math.PI) / 180
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)]
@@ -21,23 +25,37 @@ const objArc = (cx: number, cy: number, r: number, s: number, e: number): string
 }
 
 export function ObjectifTile() {
+  const { data: d } = useAxDashboardData('year', 'me')
+  const seed = DATA.objectif
+  const live = !!d
+  const targetIsSet = d ? (d.targetIsSet ?? d.target > 0) : true // le seed a toujours un objectif
+  const noTarget = live && !targetIsSet
+
+  const objectif = live ? d!.target : seed.objectif
+  const realise = live ? d!.realizedNow : seed.realise
+  const projete = live ? d!.projectedEnd : seed.projete
+  // % projeté de l'objectif (jauge). 0 si pas d'objectif saisi (pas de fausse aiguille).
+  const pct = noTarget ? 0 : live ? axPace(d!).projPct : seed.pct
+  const pctClamped = Math.max(0, Math.min(100, pct))
+
   const W = 216, cx = 108, cy = 112, r = 86
   const a0 = 180
   const ang = (fr: number) => a0 + (fr / 100) * 180 // 180°→360° via le haut
-  const [nx, ny] = objPol(cx, cy, r - 13, ang(OBJ_PROJ))
+  const [nx, ny] = objPol(cx, cy, r - 13, ang(pctClamped))
   const ticks = [0, 25, 50, 75, 100]
   const [mx1, my1] = objPol(cx, cy, r + 8, ang(100))
   const [mx2, my2] = objPol(cx, cy, r - 8, ang(100))
+
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
         <svg width={W} height={124} viewBox={`0 0 ${W} 124`} style={{ display: 'block' }}>
           {/* piste */}
           <path d={objArc(cx, cy, r, a0, 360)} fill="none" stroke={TK.cardHi} strokeWidth="13" strokeLinecap="round" />
-          {/* secteur manquant (projeté → cible) en warn discret */}
-          <path d={objArc(cx, cy, r, ang(OBJ_PROJ), 360)} fill="none" stroke="#E08A4566" strokeWidth="13" strokeLinecap="round" />
+          {/* secteur manquant (projeté → cible) en warn discret — masqué si pas d'objectif */}
+          {!noTarget && <path d={objArc(cx, cy, r, ang(pctClamped), 360)} fill="none" stroke="#E08A4566" strokeWidth="13" strokeLinecap="round" />}
           {/* remplissage projeté */}
-          <path d={objArc(cx, cy, r, a0, ang(OBJ_PROJ))} fill="none" stroke="#424bfb" strokeWidth="13" strokeLinecap="round" />
+          {!noTarget && <path d={objArc(cx, cy, r, a0, ang(pctClamped))} fill="none" stroke="#424bfb" strokeWidth="13" strokeLinecap="round" />}
           {/* graduations */}
           {ticks.map((t) => {
             const [x1, y1] = objPol(cx, cy, r - 20, ang(t))
@@ -45,20 +63,30 @@ export function ObjectifTile() {
             return <line key={t} x1={x1} y1={y1} x2={x2} y2={y2} stroke={TK.sub} strokeWidth="1.4" />
           })}
           {/* repère rythme (cible) */}
-          <line x1={mx1} y1={my1} x2={mx2} y2={my2} stroke="#F2B855" strokeWidth="2.5" strokeLinecap="round" />
+          {!noTarget && <line x1={mx1} y1={my1} x2={mx2} y2={my2} stroke="#F2B855" strokeWidth="2.5" strokeLinecap="round" />}
           {/* aiguille */}
           <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={TK.ink} strokeWidth="3.2" strokeLinecap="round" />
           <circle cx={cx} cy={cy} r="6.5" fill={TK.ink} />
           <circle cx={cx} cy={cy} r="2.6" fill={TK.frameHi} />
         </svg>
         <div style={{ textAlign: 'center', marginTop: 4 }}>
-          <div style={{ fontSize: 23, fontWeight: 800, color: TK.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtCHF(OBJ.projete)}</div>
+          {noTarget ? (
+            <>
+              <div style={{ fontSize: 23, fontWeight: 800, color: TK.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtCHF(realise)}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: TK.sub, marginTop: 2 }}>réalisé · objectif non défini</div>
+            </>
+          ) : (
+            <div style={{ fontSize: 23, fontWeight: 800, color: TK.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtCHF(projete)}</div>
+          )}
         </div>
       </div>
-      {/* pied : réalisé / retard / cible */}
+      {/* pied : réalisé / cible */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: 12, borderTop: `1px solid ${TK.border}` }}>
-        <div><div style={{ fontSize: 13.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums' }}>{fmtCHF(OBJ.realise).replace('CHF ', '')}</div><div style={{ fontSize: 10, color: TK.sub }}>réalisé</div></div>
-        <div style={{ textAlign: 'right' }}><div style={{ fontSize: 13.5, fontWeight: 800, color: TK.inkDim, fontVariantNumeric: 'tabular-nums' }}>{fmtCHF(OBJ.objectif).replace('CHF ', '')}</div><div style={{ fontSize: 10, color: TK.sub }}>cible</div></div>
+        <div><div style={{ fontSize: 13.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums' }}>{fmtCHF(realise).replace('CHF ', '')}</div><div style={{ fontSize: 10, color: TK.sub }}>réalisé</div></div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: TK.inkDim, fontVariantNumeric: 'tabular-nums' }}>{noTarget ? '—' : fmtCHF(objectif).replace('CHF ', '')}</div>
+          <div style={{ fontSize: 10, color: TK.sub }}>cible</div>
+        </div>
       </div>
     </div>
   )

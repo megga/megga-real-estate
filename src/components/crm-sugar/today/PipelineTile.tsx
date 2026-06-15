@@ -1,27 +1,84 @@
-// MEGGA CRM — Refonte « Aujourd'hui » · Tuile « Pipeline » (port fidèle)
+// MEGGA CRM — Refonte « Aujourd'hui » · Tuile « Pipeline » (câblée)
 // ----------------------------------------------------------------------------
-// Port 1:1 de `today-proto-pipeline.jsx`. Entonnoir horizontal : largeur ∝
-// valeur du stage, count inline, pastille risque sur le stage concerné, deal à
-// risque en pied. Rendu comme CORPS de tuile (TileHead géré par la page).
+// Visuel porté 1:1 de `today-proto-pipeline.jsx` (entonnoir + deal à risque) ;
+// données CÂBLÉES sur les vraies transactions (usePipelineSugar). Les 9 stages
+// CRM sont repliés sur les 4 buckets du prototype :
+//   recherche = new-lead + to-qualify + searching
+//   visite    = visit-scheduled + visit-done
+//   offre     = interest-confirmed + offer
+//   compromis = signed            (lost exclu)
+// Carte « à risque » : 1er deal `risk: 'at-risk'` (sinon 'stalled'), noms
+// résolus via le registry rempli par usePipelineSugar — masquée si aucun deal à
+// risque (on ne fabrique pas). Fallback démo (prototype) si aucune transaction.
 
 import { useState } from 'react'
 import { TK, TK_STAGE } from './tk'
 import { Av } from './kit'
-import { DATA } from './data'
+import { DATA, fmtCHF } from './data'
+import { usePipelineSugar } from '@/hooks/usePipelineSugar'
+import { crmContactById, crmBienById } from '@/components/crm-sugar/mockData'
+import type { StageId } from '@/components/crm-sugar/tokens'
 
-const PIPE = DATA.pipeline
-const PIPE_RISK = DATA.dealRisk
-const pipeMaxV = Math.max(...PIPE.map((p) => p.value))
+const STAGE_BUCKET: Record<StageId, string> = {
+  'new-lead': 'recherche', 'to-qualify': 'recherche', 'searching': 'recherche',
+  'visit-scheduled': 'visite', 'visit-done': 'visite',
+  'interest-confirmed': 'offre', 'offer': 'offre',
+  'signed': 'compromis', 'lost': '',
+}
+const BUCKET_ORDER = ['recherche', 'visite', 'offre', 'compromis']
+
+interface Bucket { key: string; count: number; value: number }
+interface RiskView { initials: string; av: string; bien: string; why: string; value: string }
+
+function computeBuckets(deals: { stage: StageId; value: number }[]): Bucket[] {
+  const acc: Record<string, { count: number; value: number }> = {
+    recherche: { count: 0, value: 0 }, visite: { count: 0, value: 0 },
+    offre: { count: 0, value: 0 }, compromis: { count: 0, value: 0 },
+  }
+  for (const d of deals) {
+    const b = STAGE_BUCKET[d.stage]
+    if (!b) continue
+    acc[b].count += 1
+    acc[b].value += d.value || 0
+  }
+  return BUCKET_ORDER.map((key) => ({ key, count: acc[key].count, value: acc[key].value }))
+}
 
 export function PipelineTile() {
   const [hover, setHover] = useState<number | null>(null)
+  const { deals, isLoading } = usePipelineSugar()
+  const live = !isLoading && deals.length > 0
+
+  const buckets: Bucket[] = live ? computeBuckets(deals) : DATA.pipeline
+  const maxV = Math.max(...buckets.map((p) => p.value), 1)
+
+  // Deal à risque réel (sinon démo). Masqué en live s'il n'y en a aucun.
+  let risk: RiskView | null = null
+  if (live) {
+    const rd = deals.find((d) => d.risk === 'at-risk') || deals.find((d) => d.risk === 'stalled')
+    if (rd) {
+      const c = crmContactById(rd.contactId)
+      const b = rd.bienId ? crmBienById(rd.bienId) : undefined
+      risk = {
+        initials: c ? `${c.firstName[0] || ''}${c.lastName[0] || ''}`.toUpperCase() : '—',
+        av: c?.avatarBg || '#6F8CFF',
+        bien: b?.title || (c ? `${c.firstName} ${c.lastName}`.trim() : 'Deal'),
+        why: rd.nextAction?.note || (rd.risk === 'stalled' ? 'Deal au point mort' : 'Échéance dépassée'),
+        value: fmtCHF(rd.value),
+      }
+    }
+  } else {
+    const d = DATA.dealRisk
+    risk = { initials: d.initials, av: d.av, bien: d.bien, why: d.why, value: d.value }
+  }
+
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       {/* entonnoir */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, minHeight: 0 }}>
-        {PIPE.map((p, i) => {
+        {buckets.map((p, i) => {
           const st = TK_STAGE[p.key]
-          const w = Math.round((p.value / pipeMaxV) * 100)
+          const w = Math.round((p.value / maxV) * 100)
           const hov = hover === i
           return (
             <div key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
@@ -42,20 +99,22 @@ export function PipelineTile() {
           )
         })}
       </div>
-      {/* deal à risque */}
-      <div style={{ marginTop: 'auto', paddingTop: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', borderRadius: 13,
-          background: 'rgba(126,28,54,0.16)', border: '1px solid rgba(242,107,101,0.32)' }}>
-          <Av initials={PIPE_RISK.initials} av={PIPE_RISK.av} size={32} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 800, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{PIPE_RISK.bien}</span>
+      {/* deal à risque — masqué si aucun en live */}
+      {risk && (
+        <div style={{ marginTop: 'auto', paddingTop: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', borderRadius: 13,
+            background: 'rgba(126,28,54,0.16)', border: '1px solid rgba(242,107,101,0.32)' }}>
+            <Av initials={risk.initials} av={risk.av} size={32} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{risk.bien}</span>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#F0A8AC', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{risk.why}</div>
             </div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#F0A8AC', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{PIPE_RISK.why}</div>
+            <span style={{ fontSize: 12.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{risk.value}</span>
           </div>
-          <span style={{ fontSize: 12.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{PIPE_RISK.value}</span>
         </div>
-      </div>
+      )}
     </div>
   )
 }

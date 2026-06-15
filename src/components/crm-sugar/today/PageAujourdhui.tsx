@@ -17,6 +17,7 @@ import { ObjectifTile } from './ObjectifTile'
 import { FocusMode } from './FocusMode'
 import { RelanceSession } from './RelanceSession'
 import { useTodayNav } from './TodayNavContext'
+import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 
 // ─── « Ensuite » — file d'attente compacte ──────────────────────────────
 const ENSUITE_TONE: Record<string, TkToneName> = { Mandat: 'info', KYC: 'warn', Compromis: 'ok', Offre: 'warn', Visite: 'info' }
@@ -88,6 +89,13 @@ export function PageAujourdhui() {
   const { navigate } = useTodayNav()
   const [focusMode, setFocusMode] = useState(false)
   const [relanceOpen, setRelanceOpen] = useState(false)
+
+  // Total pipeline d'en-tête — vrai cumul des deals actifs (hors 'lost'),
+  // fallback démo si aucune transaction. (usePipelineSugar dédupe avec la tuile.)
+  const { deals, isLoading } = usePipelineSugar()
+  const pipelineTotal = !isLoading && deals.length > 0
+    ? `CHF ${(deals.filter((d) => d.stage !== 'lost').reduce((s, d) => s + (d.value || 0), 0) / 1e6).toFixed(1)}M`
+    : DATA.pipelineTotal
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: TK.bgGrad,
       fontFamily: 'Manrope, system-ui, sans-serif', color: TK.ink, padding: '34px 28px 34px', boxSizing: 'border-box',
@@ -129,7 +137,7 @@ export function PageAujourdhui() {
             <div style={{ flex: 0.94, display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: 14, minHeight: 0 }}>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
                 <TileHead icon="trend" title="Pipeline"
-                  action={<span style={{ fontSize: 13.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums' }}>{DATA.pipelineTotal}</span>} />
+                  action={<span style={{ fontSize: 13.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums' }}>{pipelineTotal}</span>} />
                 <PipelineTile />
               </Tile>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
