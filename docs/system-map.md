@@ -107,11 +107,18 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 | **Super-admin** | `/dashboard/admin/*` | 14 pages (accent violet), `SuperAdminGuard` |
 
 **CRM agent** (layout `AgentSugarLayout`, dark CRM) — pages principales :
-`dashboard` (TodaySugar, KPI) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
+`dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
 `listings` (+ `/:id`, `/new` wizard, `/:id/edit`) · `transactions/:id` (stepper 8 étapes + bannière KYC + offres) ·
 `matching` (**Atelier triptyque plein écran**, juin 2026 — legacy `matching/v2`, démo QA `/dev/matching-atelier`) · `journey` · `calendar` (Google/Outlook) ·
 `kyc` (+ `/:dossierId`, `/export` PDF) · `network` · `audit` (journal nLPD) · `analytics` (**Cockpit Commission** live — 3 RPC agrégées `SECURITY DEFINER`, objectif persisté dans Réglages › Agence ; cf `megga/analytics-cockpit-commission`) · `settings`.
 > ⚠️ L'écran **Documents** autonome (`/dashboard/documents` + générateur/viewer/templates) a été **retiré** (juin 2026, décision produit). Le KYC garde son onglet « Documents » + le flux d'upload/magic-link + la table/bucket `documents`. La génération de contenu d'annonce IA (`megga/doc-generation`) est indépendante et conservée.
+
+**🟦 Cockpit « Aujourd'hui »** (`/dashboard` index, refonte juin 2026, **PR #638**). N'est plus l'écran KPI simple : c'est un cockpit en **2 pages avec pager molette vertical** (code dans `src/components/crm-sugar/today/`, entrée `src/pages/agent/TodaySugarPage.tsx`). Page 0 = cockpit (**colonne Focus** dynamique = file de priorités + rangée Ensuite + bento 2×2 **Agenda / Relances IA / Pipeline / Objectif**), page 1 = **Catalogue de matchs** (mur + fiche détail + lightbox + galerie). Overlays **Mode Focus** + **Session de relance**. Tokens `TK` dark/light (`today/tk.ts`, mutés par `applyTK`), atomes `today/kit.tsx`, fallback démo `today/data.ts` (honnête, et **aucune écriture sur données démo**). **Câblage Supabase** (tuile ← source) :
+> - **Focus + Ensuite** ← `useFocusQueue` (agrège deals `at-risk`/`stalled` + reminders du jour échus, tri urgence→échéance) — **point d'agrégation où brancher un algo de priorité**.
+> - **Relances** ← `useRelanceLeads` + brouillon **DeepSeek** à la demande (`ai-copilot` action `draft_email`). **Objectif** ← `useAxDashboardData('year','me')` + `axPace` (mirror d'`AxDashboard`). **Pipeline** ← `usePipelineSugar` (9 stages CRM → 4 buckets). **Agenda** ← `useCalendarSugar`. **Catalogue** ← `useMatching` (critères = les 5 `reasons` du moteur).
+> - **Écritures réelles** : Focus Fait/Replanifier → `markAsDone`/`snooze` (reminders) · envoi relance → edge `send-relance-email` (garde-fou `!live`) · « dossier » catalogue → `sendMatch` (`status='sent'`, sans email).
+>
+> Cerveau : `megga/today-cockpit`, `megga/today-data-wiring`, `megga/today-write-gestures`.
 
 **Onboarding** : `/dashboard/onboarding` (wizard) → `/dashboard/premier-jour` (calibrage IA one-shot).
 Flux `PremierJourShell` : `welcome → q0..q3 → synthesis → configuring → today`. La phase `configuring`

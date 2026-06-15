@@ -60,8 +60,26 @@
     {
       "key": "megga/crm-pages",
       "namespace": "megga",
-      "value": "CRM agent (layout AgentSugarLayout, dark): dashboard (TodaySugar KPI), pipeline (deals par stage), contacts (+detail), listings (+detail/new wizard/edit), transactions/:id (stepper 8 etapes + banniere KYC + offres), matching, journey, calendar (Google/Outlook), kyc (+:dossierId/export PDF), network, audit (journal nLPD), analytics, settings. Onboarding: /dashboard/onboarding -> /dashboard/premier-jour.",
+      "value": "CRM agent (layout AgentSugarLayout, dark): dashboard (cockpit « Aujourd'hui » refonte juin 2026, pager 2 pages — cf megga/today-cockpit), pipeline (deals par stage), contacts (+detail), listings (+detail/new wizard/edit), transactions/:id (stepper 8 etapes + banniere KYC + offres), matching, journey, calendar (Google/Outlook), kyc (+:dossierId/export PDF), network, audit (journal nLPD), analytics, settings. Onboarding: /dashboard/onboarding -> /dashboard/premier-jour.",
       "tags": "frontend,crm"
+    },
+    {
+      "key": "megga/today-cockpit",
+      "namespace": "megga",
+      "value": "Page « Aujourd'hui » (/dashboard index, refonte juin 2026 — remplace l'ancien TodaySugar KPI). Tout dans src/components/crm-sugar/today/ ; entrée src/pages/agent/TodaySugarPage.tsx = chrome SugarTopNav+SugarIconRail + PAGER molette vertical 2 pages (tween rAF) : page 0 PageAujourdhui (cockpit : colonne Focus dynamique + rangée Ensuite + bento 2×2 Agenda/Relances IA/Pipeline/Objectif), page 1 PageCatalogue (mur de matchs + fiche détail + lightbox + galerie). Overlays : FocusMode (plein écran), RelanceSession (createPortal+fixed). Tokens TK dark/light (today/tk.ts, mutés par applyTK), atomes today/kit.tsx (RXIcon→propertyx/MEIcon). Fallback démo : today/data.ts. Câblage data : cf megga/today-data-wiring ; écritures réelles : cf megga/today-write-gestures.",
+      "tags": "frontend,today,cockpit,crm,pager,refonte"
+    },
+    {
+      "key": "megga/today-data-wiring",
+      "namespace": "megga",
+      "value": "Câblage Supabase du cockpit « Aujourd'hui » (src/components/crm-sugar/today/, juin 2026), tuile→source : Relances=useRelanceLeads + brouillon DeepSeek à la demande (edge ai-copilot, action draft_email) ; Objectif=useAxDashboardData('year','me')+axPace (mirror AxDashboard, cf megga/analytics-objectif) ; Pipeline=usePipelineSugar.deals (9 stages CRM→4 buckets recherche/visite/offre/compromis ; carte risque=deal.risk 'at-risk'/'stalled') ; Agenda=useCalendarSugar (visites+reminders du jour) ; Catalogue=useMatching (critères=les 5 reasons du moteur). POINT D'AGRÉGATION pour brancher un algo de priorité = src/components/crm-sugar/today/useFocusQueue.ts : agrège deals à risque + reminders du jour échus, tri urgence→échéance, alimente colonne Focus/Mode Focus/Ensuite. Fallback seed partout si pas de live. Écritures : cf megga/today-write-gestures.",
+      "tags": "frontend,today,wiring,hooks,supabase,focus,matching,pipeline,objectif,agenda,algo"
+    },
+    {
+      "key": "megga/today-write-gestures",
+      "namespace": "megga",
+      "value": "Gestes d'écriture réels du cockpit « Aujourd'hui » (src/components/crm-sugar/today/, juin 2026 — option B UI-first puis writes) : colonne Focus Fait/Replanifier → markAsDone/snooze des reminders (useReminders ; item deal = no-op, pas de mutation deal dédiée) ; Session de relance « Envoyer depuis MEGGA » → edge send-relance-email (Resend) ; Catalogue « Mettre dans le dossier » → sendMatch (match status='sent', AUCUN email). GARDE-FOU clé : aucune écriture/envoi réel sur données seed/démo — l'envoi relance se garde sur !live (pas demoMode, insuffisant car isLoading peut ne pas se résoudre) ; sendMatch gardé aux vrais matchId. cf megga/today-cockpit, megga/today-data-wiring.",
+      "tags": "frontend,today,writes,reminders,relance,matching,guardrail,algo"
     },
     {
       "key": "megga/documents-screen-removed",
@@ -402,7 +420,7 @@
     {
       "key": "megga/component-families",
       "namespace": "megga",
-      "value": "Familles de composants (~400 au total): propertyx/ (~89 atoms Px* + sections + tokens.ts), crm-sugar/ (~83: shell + sous-domaines biens/calendar/contacts/journey/kyc/matching/network/pipeline/settings), crm-sugar-v3/ (~53 refonte pixel-pres: contact-detail/ dashboard/ kyc/ kyc-wizard/ pipeline/ audit/), listing(s)/ (fiche Px single property + ListingCard grid + ListingLightbox + BeforeAfterSlider staging), search/ (~16), calendar/ (~14), matching/ (MatchScoreCard 100pts), kyc/ + kyc-magic-link/ + kyc-report/, ui/ (Radix+shadcn+Motion), layout/, ai-copilot/, map/ (Mapbox + HexagonMap choropleth), skeletons/, illustrations/.",
+      "value": "Familles de composants (~400 au total): propertyx/ (~89 atoms Px* + sections + tokens.ts), crm-sugar/ (~83: shell + sous-domaines biens/calendar/contacts/journey/kyc/matching/network/pipeline/settings/today), crm-sugar-v3/ (~53 refonte pixel-pres: contact-detail/ dashboard/ kyc/ kyc-wizard/ pipeline/ audit/), listing(s)/ (fiche Px single property + ListingCard grid + ListingLightbox + BeforeAfterSlider staging), search/ (~16), calendar/ (~14), matching/ (MatchScoreCard 100pts), kyc/ + kyc-magic-link/ + kyc-report/, ui/ (Radix+shadcn+Motion), layout/, ai-copilot/, map/ (Mapbox + HexagonMap choropleth), skeletons/, illustrations/.",
       "tags": "frontend,components,inventory"
     },
     {
