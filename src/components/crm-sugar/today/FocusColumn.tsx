@@ -20,7 +20,11 @@ function FcStat({ value, label }: { value: number; label: string }) {
   )
 }
 
-export function FocusColumn({ baseQueue }: { baseQueue: FocusItem[] }) {
+export function FocusColumn({ baseQueue, onDone, onSnooze }: {
+  baseQueue: FocusItem[]
+  onDone?: (item: FocusItem) => void
+  onSnooze?: (item: FocusItem) => void
+}) {
   const [queue, setQueue] = useState<FocusItem[]>(baseQueue)
   const [idx, setIdx] = useState(0)
   const [calling, setCalling] = useState(false)
@@ -59,6 +63,8 @@ export function FocusColumn({ baseQueue }: { baseQueue: FocusItem[] }) {
   }
   // complétion : simple fondu de sortie → bascule vers la priorité suivante (sans burst)
   const done = () => {
+    const cur = queue[idx]
+    if (cur) onDone?.(cur) // écriture réelle (clôt le reminder) si applicable
     const willFinish = idx + 1 >= total
     setCalling(false)
     setVis(false)
@@ -69,6 +75,8 @@ export function FocusColumn({ baseQueue }: { baseQueue: FocusItem[] }) {
     }, 320)
   }
   const snooze = () => {
+    const cur = queue[idx]
+    if (cur) onSnooze?.(cur) // écriture réelle (reporte le reminder) si applicable
     setSnoozeCount((c) => c + 1)
     swap(() => setQueue((q) => { const n = [...q]; const [it] = n.splice(idx, 1); n.push(it); return n })) // repoussé en fin de file
   }

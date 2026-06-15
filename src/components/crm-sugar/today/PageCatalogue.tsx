@@ -43,6 +43,8 @@ interface CatItem {
   why: string
   // Détail réel attaché (match live) — sinon catDetail retombe sur CAT_META (démo).
   detail?: CatDetailData
+  // Vrai id du match (pour « Mettre dans le dossier » → sendMatch). Absent = seed.
+  matchId?: string
 }
 
 // ─── Adaptateurs match réel → item de catalogue ─────────────────────────
@@ -87,6 +89,7 @@ function matchToCatItem(m: MatchResult, idx: number): CatItem {
   const place = L.city || L.canton || 'Bien'
   return {
     id: hashInt(m.id) || idx + 1,
+    matchId: m.id,
     photo: L.photos?.[0] || PHOTO.champel,
     place,
     price: fmtApos(L.price),
@@ -403,7 +406,7 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
   )
 }
 
-function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; proposed: boolean; onPropose: (id: number) => void; onClose: () => void }) {
+function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; proposed: boolean; onPropose: (m: CatItem) => void; onClose: () => void }) {
   const [active, setActive] = useState(0)
   const [galOpen, setGalOpen] = useState(false)
   const D = catDetail(m)
@@ -617,7 +620,7 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
 
         {/* ── footer sticky ── action principale alignée à droite ── */}
         <div style={{ padding: '14px 24px 18px', borderTop: `1px solid ${TK.border}`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 11, flexShrink: 0, background: TK.frameSolid }}>
-          <button onClick={() => onPropose(m.id)} style={{ height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer',
+          <button onClick={() => onPropose(m)} style={{ height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer',
             background: proposed ? '#15643F' : '#424bfb',
             color: '#FFFFFF',
             fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap',
@@ -779,12 +782,25 @@ export function PageCatalogue() {
   const [shown] = useState(true)
   const [showAll, setShowAll] = useState(false)
 
-  const togglePropose = (id: number) => setProposed((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const lightMode = TK.frameSolid === '#FFFFFF'
 
   // Matches réels de l'agence (score desc) → items de catalogue ; fallback démo
   // (seed) si aucun match ou session non authentifiée.
-  const { matches, isLoading } = useMatching()
+  const { matches, isLoading, sendMatch } = useMatching()
+  // Matches déjà marqués « proposés » en base (évite un double envoi sur re-toggle).
+  const sentRef = useRef<Set<string>>(new Set())
+
+  // « Mettre dans le dossier » : toggle visuel + écriture réelle la 1re fois —
+  // sendMatch marque le match `status='sent'` (proposé). AUCUN email n'est envoyé
+  // (état CRM seulement). Item seed (pas de matchId) → toggle local uniquement.
+  const togglePropose = (m: CatItem) => {
+    const adding = !proposed.has(m.id)
+    setProposed((prev) => { const n = new Set(prev); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n })
+    if (adding && m.matchId && !sentRef.current.has(m.matchId)) {
+      sentRef.current.add(m.matchId)
+      sendMatch(m.matchId, 'email')
+    }
+  }
   const catalogue = useMemo<CatItem[]>(
     () => (!isLoading && matches.length > 0 ? matches.map(matchToCatItem) : SEED_CATA),
     [matches, isLoading],

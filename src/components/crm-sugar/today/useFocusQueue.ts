@@ -15,7 +15,7 @@
 // Fallback : si aucun item réel (ou session non authentifiée), le composant
 // retombe sur le seed FOCUS_QUEUE pour garder la démo utilisable.
 
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useReminders } from '@/hooks/useReminders'
 import { crmContactById, crmBienById } from '@/components/crm-sugar/mockData'
@@ -72,11 +72,19 @@ function reminderType(t: string): { type: string; kind: string } {
 export interface UseFocusQueueResult {
   items: FocusItem[]
   isLive: boolean
+  /** Geste « Fait » → clôt le reminder en base (no-op pour un item deal). */
+  completeItem: (item: FocusItem) => void
+  /** Geste « Replanifier » → reporte le reminder en base (no-op pour un deal). */
+  snoozeItem: (item: FocusItem) => void
 }
+
+// Préfixe d'id → vrai id du reminder (les items deal n'ont pas d'écriture ici).
+const reminderIdOf = (item: FocusItem): string | null =>
+  item.id.startsWith('rem-') ? item.id.slice(4) : null
 
 export function useFocusQueue(): UseFocusQueueResult {
   const { deals, isLoading: dealsLoading } = usePipelineSugar()
-  const { reminders, isLoading: remLoading } = useReminders()
+  const { reminders, isLoading: remLoading, markAsDone, snooze } = useReminders()
 
   const items = useMemo<QueueItem[]>(() => {
     const out: QueueItem[] = []
@@ -145,5 +153,19 @@ export function useFocusQueue(): UseFocusQueueResult {
   }, [deals, reminders])
 
   const isLive = !dealsLoading && !remLoading && items.length > 0
-  return { items, isLive }
+
+  // Écritures réelles (option B → réelles maintenant) : Fait clôt le reminder,
+  // Replanifier le reporte. Item deal → pas d'écriture (UI-only) tant qu'il n'y
+  // a pas de mutation deal dédiée. Fire-and-forget : le refetch reminders
+  // rafraîchit la file au prochain montage, sans casser la session en cours.
+  const completeItem = useCallback((item: FocusItem) => {
+    const id = reminderIdOf(item)
+    if (id) markAsDone(id)
+  }, [markAsDone])
+  const snoozeItem = useCallback((item: FocusItem) => {
+    const id = reminderIdOf(item)
+    if (id) void snooze(id)
+  }, [snooze])
+
+  return { items, isLive, completeItem, snoozeItem }
 }

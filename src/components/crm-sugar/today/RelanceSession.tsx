@@ -214,6 +214,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const [counts, setCounts] = useState({ sent: 0, skipped: 0, discarded: 0 })
   const [undo, setUndo] = useState<{ index: number; name: string } | null>(null) // filet de sécurité « Pas intéressé »
   const [genError, setGenError] = useState(false) // échec de génération IA (sans repli démo)
+  const [sendError, setSendError] = useState(false) // échec d'envoi MEGGA
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { profile } = useAuth()
@@ -279,7 +280,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const ask = () => { void generate() }
   const regen = () => { setCopied(false); setSent(false); setSending(false); setAsked(false); void generate() }
 
-  const reset = () => { setAsked(false); setGen(false); setGenError(false); setCopied(false); setSending(false); setSent(false); setSubject(''); setDraft('') }
+  const reset = () => { setAsked(false); setGen(false); setGenError(false); setSendError(false); setCopied(false); setSending(false); setSent(false); setSubject(''); setDraft('') }
   // outcome : "sent" (relancé) · "skipped" (passé, representé plus tard) · "discarded" (pas intéressé, sorti de la boucle)
   const advance = (outcome: 'sent' | 'skipped' | 'discarded') => {
     if (undoTimer.current) clearTimeout(undoTimer.current)
@@ -310,7 +311,33 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current) }, [])
 
   // Envoi direct via la boîte connectée MEGGA : trace la relance dans la fiche.
-  const sendMEGGA = () => { if (sending || sent) return; setSending(true); setTimeout(() => { setSending(false); setSent(true) }, 1000) }
+  // Envoi réel via la boîte connectée MEGGA (edge send-relance-email · Resend).
+  // GARDE-FOU : en mode démo (leads fictifs) on SIMULE — rien n'est envoyé à de
+  // vrais destinataires. Human-in-the-loop : c'est l'agent qui déclenche.
+  const sendMEGGA = async () => {
+    if (sending || sent) return
+    setSendError(false)
+    setSending(true)
+    // GARDE-FOU robuste : on n'envoie POUR DE VRAI que sur de vrais leads chargés
+    // (`live`). Sinon (leads seed / requête non résolue / pas d'email) on SIMULE —
+    // jamais d'envoi à un destinataire fictif. (demoMode seul est insuffisant : si
+    // la requête ne se résout pas, isEmpty reste false alors que les leads sont seed.)
+    if (!live || !lead.email) {
+      setTimeout(() => { setSending(false); setSent(true) }, 800)
+      return
+    }
+    try {
+      const { error } = await supabase.functions.invoke('send-relance-email', {
+        body: { to: lead.email, subject, body: draft, leadId: lead.id, agentName },
+      })
+      if (error) throw error
+      setSent(true)
+    } catch {
+      setSendError(true)
+    } finally {
+      setSending(false)
+    }
+  }
 
   const copy = () => {
     try { if (navigator.clipboard) navigator.clipboard.writeText(draft) } catch { /* clipboard indispo */ }
@@ -489,6 +516,9 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
                       <div style={{ flex: 1 }} />
                       <RSBtn variant="ghost" onClick={sendMEGGA}>{sending ? 'Envoi…' : 'ou envoyer depuis MEGGA'}</RSBtn>
                     </div>
+                  )}
+                  {sendError && (
+                    <div style={{ fontSize: 12.5, color: '#F26B65', fontWeight: 700 }}>L'envoi a échoué — réessayez ou copiez le message.</div>
                   )}
                 </div>
               </>

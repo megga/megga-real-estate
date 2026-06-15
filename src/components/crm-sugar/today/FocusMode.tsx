@@ -132,7 +132,12 @@ function FmGlassBtn({ meName, onClick, title }: { meName: string; onClick: () =>
 }
 
 // ─── Mode Focus ─────────────────────────────────────────────────────────
-export function FocusMode({ onClose, baseQueue }: { onClose: () => void; baseQueue: FocusItem[] }) {
+export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
+  onClose: () => void
+  baseQueue: FocusItem[]
+  onDone?: (item: FocusItem) => void
+  onSnooze?: (item: FocusItem) => void
+}) {
   const FM = fmPalette()
   const { goToPage } = useTodayNav()
   const [queue, setQueue] = useState<FocusItem[]>(baseQueue)
@@ -171,8 +176,8 @@ export function FocusMode({ onClose, baseQueue }: { onClose: () => void; baseQue
     setCalling(false); setVis(false)
     setTimeout(() => { mutate(); requestAnimationFrame(() => requestAnimationFrame(() => setVis(true))) }, 300)
   }
-  const done = () => { const willFinish = idx + 1 >= total; swap(() => { setIdx((i) => i + 1); if (willFinish) setElapsedMs(Date.now() - startTs) }) }
-  const snooze = () => { setSnoozeCount((c) => c + 1); swap(() => setQueue((q) => { const n = [...q]; const [it] = n.splice(idx, 1); n.push(it); return n })) }
+  const done = () => { const cur = queue[idx]; if (cur) onDone?.(cur); const willFinish = idx + 1 >= total; swap(() => { setIdx((i) => i + 1); if (willFinish) setElapsedMs(Date.now() - startTs) }) }
+  const snooze = () => { const cur = queue[idx]; if (cur) onSnooze?.(cur); setSnoozeCount((c) => c + 1); swap(() => setQueue((q) => { const n = [...q]; const [it] = n.splice(idx, 1); n.push(it); return n })) }
   const jump = (absIdx: number) => swap(() => setIdx(absIdx))
   const reset = () => swap(() => { setQueue(baseQueue); setIdx(0); setStartTs(Date.now()); setSnoozeCount(0); setElapsedMs(null) })
   // Pont focus → catalogue : lance le glissement du pager vers le mur de matchs

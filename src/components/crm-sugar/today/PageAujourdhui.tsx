@@ -111,7 +111,7 @@ export function PageAujourdhui() {
 
   // File de priorités réelle (deals à risque + reminders du jour), partagée
   // colonne Focus / Mode Focus / rangée Ensuite. Fallback seed si rien de live.
-  const { items: focusItems, isLive: focusLive } = useFocusQueue()
+  const { items: focusItems, isLive: focusLive, completeItem, snoozeItem } = useFocusQueue()
   const baseQueue: FocusItem[] = focusLive ? focusItems : FOCUS_QUEUE
   const ensuite: EnsuiteItemData[] = focusLive ? deriveEnsuite(focusItems) : DATA.ensuite
 
@@ -136,7 +136,7 @@ export function PageAujourdhui() {
 
           {/* COLONNE FOCUS — dominante */}
           <div style={{ width: '34%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <FocusColumn key={baseQueue.map((q) => q.id).join(',') || 'empty'} baseQueue={baseQueue} />
+            <FocusColumn key={focusLive ? 'live' : 'seed'} baseQueue={baseQueue} onDone={completeItem} onSnooze={snoozeItem} />
             <EnsuiteRow items={ensuite} />
           </div>
 
@@ -167,7 +167,7 @@ export function PageAujourdhui() {
           </div>
         </div>
       </div>
-      {focusMode && <FocusMode baseQueue={baseQueue} onClose={() => setFocusMode(false)} />}
+      {focusMode && <FocusMode baseQueue={baseQueue} onClose={() => setFocusMode(false)} onDone={completeItem} onSnooze={snoozeItem} />}
       {relanceOpen && <RelanceSession onClose={() => setRelanceOpen(false)} />}
     </div>
   )
