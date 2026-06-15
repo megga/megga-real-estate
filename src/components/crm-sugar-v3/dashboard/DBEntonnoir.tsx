@@ -2,15 +2,14 @@
 // Port pixel-près de sprint-4/crm-dashboard-entonnoir.jsx.
 //
 // Funnel 5 paliers + bottleneck IA + sources de leads + forecast 60/90j.
-// Le bottleneck déclenche le modal `DBRelanceSession`.
+// Le bottleneck déclenche l'overlay `RelanceSession` (refonte « Aujourd'hui »).
 
 import { useMemo, useState } from 'react'
 import { DB_SP, dbFmtCHF } from './tokens'
 import { DbIcon } from './icons'
 import type { DashboardData, ScenarioKey, SourceItem, ForecastHorizon } from './data'
 import { OV_SCENARIOS_FACTORS } from './data'
-import { DBRelanceSession, type RelanceSessionResult } from './DBRelanceSession'
-import { hasActiveRelanceSession } from './relanceData'
+import { RelanceSession } from '@/components/crm-sugar/today/RelanceSession'
 
 // ─── Mini delta pill (réutilisée funnel + sources) ─────────────────────
 // Pilule premium fond solide foncé (vert/bordeaux selon le signe).
@@ -313,11 +312,6 @@ function EntonnoirFunnel({ data }: { data: DashboardData }) {
 // ─── Bottleneck IA card ────────────────────────────────────────────────
 function EntonnoirBottleneck() {
   const [sessionOpen, setSessionOpen] = useState(false)
-  const [sessionDone, setSessionDone] = useState<RelanceSessionResult | null>(null)
-  // Initial state via lazy initializer (lit localStorage 1x au mount). Le
-  // status est re-calculé explicitement à la fermeture du modal — pas via
-  // useEffect sur sessionOpen (anti-pattern React 19 setState-in-effect).
-  const [hasPaused, setHasPaused] = useState(() => hasActiveRelanceSession())
 
   return (
     <>
@@ -349,44 +343,6 @@ function EntonnoirBottleneck() {
           >
             MEGGA AI · Bottleneck
           </span>
-          {sessionDone && (
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: 999,
-                background: DB_SP.pill.ok.bg,
-                color: DB_SP.pill.ok.fg,
-                boxShadow: DB_SP.pill.ok.shadow,
-                fontSize: 9.5,
-                fontWeight: 800,
-                letterSpacing: 0.6,
-                textTransform: 'uppercase',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-              }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: DB_SP.pill.ok.dot }} />
-              Session terminée
-            </span>
-          )}
-          {hasPaused && !sessionDone && (
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: 999,
-                background: DB_SP.pill.warn.bg,
-                color: DB_SP.pill.warn.fg,
-                boxShadow: DB_SP.pill.warn.shadow,
-                fontSize: 9.5,
-                fontWeight: 800,
-                letterSpacing: 0.6,
-                textTransform: 'uppercase',
-              }}
-            >
-              En pause
-            </span>
-          )}
         </div>
 
         <h3
@@ -432,33 +388,18 @@ function EntonnoirBottleneck() {
               color: 'rgba(255,255,255,0.55)',
             }}
           >
-            {sessionDone ? 'Bilan de la session' : 'Session de relance préparée'}
+            Session de relance préparée
           </span>
-          {sessionDone ? (
-            <span
-              style={{
-                fontSize: 14.5,
-                fontWeight: 700,
-                letterSpacing: -0.2,
-                lineHeight: 1.4,
-              }}
-            >
-              {sessionDone.counts.sent || 0} emails envoyés ·{' '}
-              {sessionDone.counts.called || 0} appels programmés ·{' '}
-              {sessionDone.counts.postponed || 0} reportés.
-            </span>
-          ) : (
-            <span
-              style={{
-                fontSize: 14.5,
-                fontWeight: 700,
-                letterSpacing: -0.2,
-                lineHeight: 1.4,
-              }}
-            >
-              47 leads dormants · brouillons personnalisés par MEGGA AI · estimé 35 min.
-            </span>
-          )}
+          <span
+            style={{
+              fontSize: 14.5,
+              fontWeight: 700,
+              letterSpacing: -0.2,
+              lineHeight: 1.4,
+            }}
+          >
+            47 leads dormants · brouillons personnalisés par MEGGA AI · estimé 35 min.
+          </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
             <div>
               <div
@@ -535,28 +476,12 @@ function EntonnoirBottleneck() {
             transition: 'all .2s ease',
           }}
         >
-          {sessionDone
-            ? 'Revoir la session'
-            : hasPaused
-              ? 'Reprendre ma session'
-              : 'Commencer la session'}
+          Commencer la session
           <DbIcon name="arrow" size={13} stroke={DB_SP.black} sw={2.2} />
         </button>
       </div>
 
-      <DBRelanceSession
-        open={sessionOpen}
-        onClose={() => {
-          setSessionOpen(false)
-          // Re-lit localStorage à la fermeture (pause) : si l'agent a traité
-          // au moins 1 lead et fermé, hasActiveRelanceSession() retourne true.
-          setHasPaused(hasActiveRelanceSession())
-        }}
-        onComplete={(result) => {
-          setSessionDone(result)
-          setHasPaused(false)
-        }}
-      />
+      {sessionOpen && <RelanceSession onClose={() => setSessionOpen(false)} />}
     </>
   )
 }

@@ -48,8 +48,12 @@ test.describe('CRM agent — parametric route coverage', () => {
   for (const route of CRM_AGENT_ROUTES) {
     test(`${route.label} (${route.path}) loads cleanly`, async ({ page }) => {
       const collector = collectConsoleErrors(page)
-      await page.goto(route.path)
-      await page.waitForLoadState('networkidle')
+      await page.goto(route.path, { waitUntil: 'domcontentloaded' })
+      // `networkidle` n'est pas atteignable sur les pages data-heavy (ex. le
+      // cockpit « Aujourd'hui » : nombreuses requêtes Supabase + modules Vite dev
+      // gardent le réseau actif). On attend que React ait rendu du contenu —
+      // même condition que l'assertion ci-dessous.
+      await page.waitForFunction(() => document.body.innerText.trim().length > 50, { timeout: 20000 })
 
       // 1. Page rendered something (no white screen / suspended forever)
       const bodyText = await page.locator('body').innerText()

@@ -11,7 +11,7 @@
 //   • filet anti-throttle (état final garanti même rAF gelé)
 //
 // Câblage réel (le proto utilisait des globales window.* — remplacées ici) :
-//   search / add → onCmd (palette ⌘K)   ·   relances → modal DBRelanceSession
+//   search / add → onCmd (palette ⌘K)   ·   relances → overlay RelanceSession
 //   import → /dashboard/import-lead       ·   kyc/dashboard/settings → onNavigate
 //   __dark → setDark
 //
@@ -22,7 +22,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, type Transition } from 'motion/react'
 import type { SugarPalette } from './tokens'
-import { DBRelanceSession } from '@/components/crm-sugar-v3/dashboard/DBRelanceSession'
+import { RelanceSession } from '@/components/crm-sugar/today/RelanceSession'
 import { openSugarSearch } from './search/openSearch'
 
 // ─── Tracés SVG des icônes du rail (glyphes officiels MEGGA, viewBox 24) ───
@@ -48,6 +48,15 @@ const RAIL_ICONS: Record<string, RailIconDef> = {
   ] },
   phone: { line: true, kids: [
     { tag: 'path', d: 'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z' },
+  ] },
+  // check / calendar — ajoutés pour le self-draw des boutons glassy du Mode
+  // Focus (refonte « Aujourd'hui »). Glyphes MEIcon officiels.
+  check: { line: true, kids: [
+    { tag: 'path', d: 'm5 12 5 5L20 7' },
+  ] },
+  calendar: { line: true, kids: [
+    { tag: 'rect', x: 3, y: 5, width: 18, height: 16, rx: 2 },
+    { tag: 'path', d: 'M3 9h18M8 3v4M16 3v4' },
   ] },
   download: { line: true, kids: [
     { tag: 'path', d: 'M12 3v14' },
@@ -368,10 +377,10 @@ export function SugarIconRail({
       </aside>
 
       {/* Session de relance — déclenchée par l'outil « Relances du jour ».
-          Montée à la demande seulement : DBRelanceSession exécute ses hooks de
-          données dès le montage, on évite donc une requête sur chaque page CRM. */}
+          Recâblée (refonte « Aujourd'hui », juin 2026) vers la NOUVELLE
+          RelanceSession plein cadre. Montée à la demande seulement. */}
       {relanceOpen && (
-        <DBRelanceSession open onClose={() => setRelanceOpen(false)} />
+        <RelanceSession onClose={() => setRelanceOpen(false)} />
       )}
     </>
   )

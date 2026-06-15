@@ -22,8 +22,12 @@ import { test, expect } from '@playwright/test'
 // entièrement refondue et affiche des dates relatives (« il y a 2 j ») qui
 // dérivent dans le temps → impropre au diff pixel. Couverture fonctionnelle
 // assurée par seller-portal.spec.ts.
+//
+// `/dashboard` (cockpit « Aujourd'hui ») retiré pour la même raison (refonte
+// juin 2026) : page entièrement refondue, contenu dynamique (temps relatifs
+// « dans X min », file de priorités, données live) → impropre au diff pixel.
+// Couverture fonctionnelle assurée par agent-dashboard.spec.ts.
 const PAGES_TO_SNAPSHOT = [
-  { path: '/dashboard', name: 'dashboard-agent' },
   { path: '/dashboard/pipeline', name: 'dashboard-pipeline' },
 ] as const
 
