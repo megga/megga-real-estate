@@ -1,5 +1,4 @@
 import type { ContactMemoryData } from '@/hooks/useContactMemory'
-import type { ContactScore } from '@/hooks/useScoreEngine'
 import { formatCHF } from '@/lib/utils'
 
 /**
@@ -140,24 +139,6 @@ export function buildContactContext(memory: ContactMemoryData): Record<string, u
 /**
  * Build a text summary of the contact context for display purposes.
  */
-/**
- * Enrich context with Score Engine data.
- */
-export function enrichWithScores(context: Record<string, unknown>, score: ContactScore | null): Record<string, unknown> {
-  if (!score) return context
-
-  const lines: string[] = []
-  lines.push(`Score comportemental : ${score.buyer_score}/100`)
-  lines.push(`Réactivité : ${score.reactivity_score}/100 | Engagement : ${score.engagement_score}/100 (${score.engagement_trend})`)
-  lines.push(`Cohérence budget : ${score.budget_coherence_score}/100`)
-  lines.push(`Probabilité de conversion : ${score.conversion_probability}%`)
-  if (score.estimated_real_budget) lines.push(`Budget réel estimé : ${formatCHF(score.estimated_real_budget)}`)
-  if (score.rejection_patterns.length > 0) lines.push(`Objections détectées : ${score.rejection_patterns.join(', ')}`)
-
-  context.score_engine = lines.join('\n')
-  return context
-}
-
 export function getContextSummary(memory: ContactMemoryData): string {
   const { contact, interactions, matchesSent, visits, transactions } = memory
   if (!contact) return ''

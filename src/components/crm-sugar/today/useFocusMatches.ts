@@ -22,6 +22,7 @@ interface FocusMatchRow {
   contact_name: string | null
   kind: 'internal' | 'market'
   score: number
+  lead_score: number | null
   reasons_match_count: number | null
   reason_keys: string[] | null
   property_title: string | null
@@ -38,6 +39,8 @@ export interface FocusMatch {
   contactName: string | null
   signalKind: 'match-internal' | 'match-market'
   score: number
+  /** Score de contact 0-100 (lead scoring backend) ; null si non encore calculé. */
+  leadScore: number | null
   reasonsMatchCount: number
   reasonKeys: string[]
   propertyTitle: string | null
@@ -66,6 +69,7 @@ export function useFocusMatches(limit = 30): { matches: FocusMatch[]; isLoading:
         contactName: r.contact_name,
         signalKind: r.kind === 'internal' ? 'match-internal' : 'match-market',
         score: r.score,
+        leadScore: r.lead_score,
         reasonsMatchCount: r.reasons_match_count ?? 0,
         reasonKeys: r.reason_keys ?? [],
         propertyTitle: r.property_title,
