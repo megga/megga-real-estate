@@ -38,7 +38,7 @@ const EDGE_FUNCTION_NAMES = [
   'send-reminder-email', 'send-team-invite', 'send-visit-email',
   'extract-property-pdf', 'extract-property-url', 'kyc-screening', 'photo-labeler',
   'virtual-staging', 'public-staging', 'google-calendar-sync', 'outlook-calendar-sync',
-  'stripe-checkout', 'stripe-portal', 'stripe-webhook', 'score-engine', 'search-alert',
+  'stripe-checkout', 'stripe-portal', 'stripe-webhook', 'search-alert',
   'market-scraper', 'market-scraper-batch', 'automation-engine', 'accept-team-invite',
   'webhooks', 'admin-monitoring', 'ai-billing-monitor', 'translate-on-demand',
 ]
