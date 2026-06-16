@@ -15,6 +15,9 @@ import {
   normalizeSellerLead,
   normalizeKyc,
   normalizeLeadCooling,
+  normalizeOfferExpiring,
+  normalizeVisit,
+  classifyVisit,
   isClosingProximate,
   hasKycGap,
   FOCUS_DEFAULTS,
@@ -27,6 +30,8 @@ import type { ContactTransaction } from '@/hooks/useTransactions'
 
 const NOW = Date.parse('2026-06-16T12:00:00')
 const daysAgo = (n: number) => new Date(NOW - n * 86_400_000).toISOString()
+const daysFromNow = (n: number) => new Date(NOW + n * 86_400_000).toISOString()
+const hoursFromNow = (n: number) => new Date(NOW + n * 3_600_000).toISOString()
 
 const match = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
   signalKind: 'match-market', matchScore: 85, reasonsMatchCount: 3, reasonKeys: ['budget', 'zone'], ...over,
@@ -46,6 +51,12 @@ const kyc = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
 })
 const cooling = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
   signalKind: 'lead-cooling', coolingQuality: 65, coolingDormDays: 999, coolingHasDate: false, ...over,
+})
+const offerExpiring = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
+  signalKind: 'offer-expiring', offerExpiresAt: daysFromNow(1), offerAmount: 900_000, offerStatus: 'pending', ...over,
+})
+const visit = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
+  signalKind: 'visit', visitScheduledAt: hoursFromNow(2), visitStatus: 'planned', visitDebriefMissing: true, ...over,
 })
 
 const rankable = (over: Partial<FocusRankable> = {}): FocusRankable => ({
@@ -119,7 +130,7 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
     const out1 = finalizeQueue([a, b]).map((i) => i.id)
     const out2 = finalizeQueue([b, a]).map((i) => i.id)
     expect(out1).toEqual(out2)
-    // reminder (famille 0) avant match (famille 3) à score/tier égal
+    // reminder (famille 0) avant match-market (famille 7) à score/tier égal
     expect(out1[0]).toBe('a')
   })
 
@@ -338,6 +349,129 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
     expect(out.filter((i) => i.signalKind === 'lead-cooling').map((i) => i.score)).toEqual([40, 35, 30])
     // le cap cooling ne touche pas les autres familles
     expect(out.filter((i) => i.signalKind !== 'lead-cooling')).toHaveLength(2)
+  })
+
+  // ─── Focus radar v3 — familles offer-expiring + visit ───────────────────
+  it('R14 — offer-expiring : tier ≤2j (ou dépassée) → now, fenêtre → next, au-delà → rest', () => {
+    expect(assignTier(offerExpiring({ offerExpiresAt: daysFromNow(1) }), NOW)).toBe('now')
+    expect(assignTier(offerExpiring({ offerExpiresAt: daysFromNow(2) }), NOW)).toBe('now')
+    expect(assignTier(offerExpiring({ offerExpiresAt: daysAgo(1) }), NOW)).toBe('now') // dépassée (latence cron)
+    expect(assignTier(offerExpiring({ offerExpiresAt: daysFromNow(5) }), NOW)).toBe('next')
+    expect(assignTier(offerExpiring({ offerExpiresAt: daysFromNow(7) }), NOW)).toBe('next')
+    expect(assignTier(offerExpiring({ offerExpiresAt: daysFromNow(20) }), NOW)).toBe('rest')
+    const s = scoreItem(offerExpiring(), NOW)
+    expect(s).toBeGreaterThanOrEqual(0); expect(s).toBeLessThanOrEqual(100)
+  })
+
+  it('R15 — normalizeOfferExpiring : proximité domine, montant départage, borné', () => {
+    // échéance plus proche → signal ↑ (montant égal)
+    expect(normalizeOfferExpiring({ offerExpiresAt: daysFromNow(1), offerAmount: 900_000 }, NOW))
+      .toBeGreaterThan(normalizeOfferExpiring({ offerExpiresAt: daysFromNow(5), offerAmount: 900_000 }, NOW))
+    // montant ↑ → signal ↑ (échéance égale)
+    expect(normalizeOfferExpiring({ offerExpiresAt: daysFromNow(2), offerAmount: 2_000_000 }, NOW))
+      .toBeGreaterThan(normalizeOfferExpiring({ offerExpiresAt: daysFromNow(2), offerAmount: 200_000 }, NOW))
+    for (const i of [normalizeOfferExpiring({ offerExpiresAt: daysAgo(3), offerAmount: 9_000_000 }, NOW), normalizeOfferExpiring({}, NOW)]) {
+      expect(i).toBeGreaterThanOrEqual(0); expect(i).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('R16 — offer-expiring reason : FR (aujourd\'hui / dans N j / dépassée), sans UUID', () => {
+    expect(buildReason(offerExpiring({ offerExpiresAt: hoursFromNow(3) }), NOW)).toContain("expire aujourd'hui")
+    expect(buildReason(offerExpiring({ offerExpiresAt: daysFromNow(3) }), NOW)).toContain('expire dans 3 j')
+    expect(buildReason(offerExpiring({ offerExpiresAt: daysAgo(2) }), NOW)).toContain('délai dépassé')
+    expect(buildReason(offerExpiring(), NOW)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+  })
+
+  it('R17 — classifyVisit : today / debrief / no-show / none (déterministe)', () => {
+    expect(classifyVisit({ visitScheduledAt: hoursFromNow(2), visitStatus: 'planned' }, NOW)).toBe('today')
+    expect(classifyVisit({ visitScheduledAt: hoursFromNow(2), visitStatus: 'confirmed' }, NOW)).toBe('today')
+    // planifiée plus tôt AUJOURD'HUI (déjà passée) → debrief (à clôturer), pas 'today'
+    expect(classifyVisit({ visitScheduledAt: hoursFromNow(-3), visitStatus: 'planned' }, NOW)).toBe('debrief')
+    expect(classifyVisit({ visitScheduledAt: daysAgo(2), visitStatus: 'done', visitDebriefMissing: true }, NOW)).toBe('debrief')
+    expect(classifyVisit({ visitScheduledAt: daysAgo(1), visitStatus: 'planned' }, NOW)).toBe('debrief')
+    expect(classifyVisit({ visitScheduledAt: daysAgo(1), visitStatus: 'no_show' }, NOW)).toBe('no-show')
+    expect(classifyVisit({ visitScheduledAt: daysAgo(2), visitStatus: 'done', visitDebriefMissing: false }, NOW)).toBe('none')
+    expect(classifyVisit({ visitScheduledAt: daysAgo(2), visitStatus: 'cancelled' }, NOW)).toBe('none')
+    expect(classifyVisit({ visitScheduledAt: daysFromNow(3), visitStatus: 'planned' }, NOW)).toBe('none')
+  })
+
+  it('R18 — visit : tier (today→now, debrief/no-show→next, none→rest) + normalize monotone/borné', () => {
+    expect(assignTier(visit({ visitScheduledAt: hoursFromNow(2), visitStatus: 'planned' }), NOW)).toBe('now')
+    expect(assignTier(visit({ visitScheduledAt: daysAgo(2), visitStatus: 'done', visitDebriefMissing: true }), NOW)).toBe('next')
+    expect(assignTier(visit({ visitScheduledAt: daysAgo(1), visitStatus: 'no_show' }), NOW)).toBe('next')
+    expect(assignTier(visit({ visitScheduledAt: daysFromNow(3), visitStatus: 'planned' }), NOW)).toBe('rest')
+    // today (imminent) > débrief récent
+    expect(normalizeVisit({ visitScheduledAt: hoursFromNow(1), visitStatus: 'planned' }, NOW))
+      .toBeGreaterThan(normalizeVisit({ visitScheduledAt: daysAgo(1), visitStatus: 'done', visitDebriefMissing: true }, NOW))
+    // débrief plus ancien → plus urgent
+    expect(normalizeVisit({ visitScheduledAt: daysAgo(5), visitStatus: 'done', visitDebriefMissing: true }, NOW))
+      .toBeGreaterThan(normalizeVisit({ visitScheduledAt: daysAgo(1), visitStatus: 'done', visitDebriefMissing: true }, NOW))
+    for (const i of [normalizeVisit(visit(), NOW), normalizeVisit({ visitStatus: 'cancelled' }, NOW)]) {
+      expect(i).toBeGreaterThanOrEqual(0); expect(i).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('R19 — visit reason : FR honnête (préparer / débrief / clôturer / relancer), sans UUID', () => {
+    expect(buildReason(visit({ visitScheduledAt: hoursFromNow(2), visitStatus: 'planned' }), NOW)).toContain('à préparer')
+    expect(buildReason(visit({ visitScheduledAt: daysAgo(2), visitStatus: 'done', visitDebriefMissing: true }), NOW)).toContain('débrief à saisir')
+    expect(buildReason(visit({ visitScheduledAt: daysAgo(2), visitStatus: 'planned' }), NOW)).toContain('à clôturer')
+    expect(buildReason(visit({ visitScheduledAt: daysAgo(1), visitStatus: 'no_show' }), NOW)).toContain('à relancer')
+    expect(buildReason(visit(), NOW)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+  })
+
+  it('R20 — parseFocusConfig : merge défensif des nouveaux poids/seuils/caps (offer/visit)', () => {
+    const cfg = parseFocusConfig({ weights: { offer_expiring: 0.5 }, thresholds: { visit_debrief_saturation_days: 9 }, caps: { visit_returned: 7 } })
+    expect(cfg.weights.offer_expiring).toBe(0.5)
+    expect(cfg.weights.visit).toBe(FOCUS_DEFAULTS.weights.visit) // non fourni → défaut
+    expect(cfg.thresholds.visit_debrief_saturation_days).toBe(9)
+    expect(cfg.thresholds.offer_expiring_window_days).toBe(FOCUS_DEFAULTS.thresholds.offer_expiring_window_days)
+    expect(cfg.caps.visit_returned).toBe(7)
+    expect(cfg.caps.offer_expiring_returned).toBe(FOCUS_DEFAULTS.caps.offer_expiring_returned)
+    // valeur invalide → défaut (jamais NaN)
+    expect(parseFocusConfig({ weights: { visit: 'x' } }).weights.visit).toBe(FOCUS_DEFAULTS.weights.visit)
+  })
+
+  it('R21 — displayScore [0..100] pour offre + visite', () => {
+    for (const i of [offerExpiring(), offerExpiring({ offerExpiresAt: daysAgo(1), offerAmount: 5_000_000 }), visit(), visit({ visitScheduledAt: daysAgo(3), visitStatus: 'done', visitDebriefMissing: true })]) {
+      const ds = toDisplayScore(scoreItem(i, NOW))
+      expect(ds).toBeGreaterThanOrEqual(0); expect(ds).toBeLessThanOrEqual(100)
+    }
+  })
+
+  it('R22 — caps offer_expiring_returned=5 / visit_returned=3 ; autres familles intactes', () => {
+    const offers = [60, 55, 50, 45, 40, 35].map((s, k) =>
+      rankable({ id: `off${k}`, contactId: `o${k}`, score: s, tier: 'next', signalKind: 'offer-expiring' }),
+    )
+    const visits = [50, 45, 40, 35].map((s, k) =>
+      rankable({ id: `vis${k}`, contactId: `v${k}`, score: s, tier: 'next', signalKind: 'visit' }),
+    )
+    const rem = rankable({ id: 'rem', contactId: 'r', score: 70, tier: 'now', signalKind: 'reminder' })
+    const out = finalizeQueue([...offers, ...visits, rem])
+    // offre : 5 gardées (meilleures), 1 retirée
+    expect(out.filter((i) => i.signalKind === 'offer-expiring')).toHaveLength(5)
+    expect(out.filter((i) => i.signalKind === 'offer-expiring').map((i) => i.score)).toEqual([60, 55, 50, 45, 40])
+    // visite : 3 gardées (meilleures), 1 retirée
+    expect(out.filter((i) => i.signalKind === 'visit')).toHaveLength(3)
+    expect(out.filter((i) => i.signalKind === 'visit').map((i) => i.score)).toEqual([50, 45, 40])
+    // les caps de famille ne touchent pas le reminder
+    expect(out.filter((i) => i.signalKind === 'reminder')).toHaveLength(1)
+  })
+
+  it('R23 — cap visite : une visite du jour (now) survit à des débriefs saturés (next)', () => {
+    // invariant : 'today' (plancher 0.7) > 'debrief' (plafond 0.65), donc le cap
+    // par score (visit_returned=3) ne peut PAS évincer la visite du jour datée.
+    const mk = (input: FocusScoreInput, id: string, cid: string): FocusRankable => ({
+      id, contactId: cid, signalKind: 'visit', score: scoreItem(input, NOW), tier: assignTier(input, NOW),
+    })
+    const debriefs = [0, 1, 2].map((k) =>
+      mk(visit({ visitScheduledAt: daysAgo(5), visitStatus: 'done', visitDebriefMissing: true }), `dbf${k}`, `cd${k}`),
+    )
+    const todayVisit = mk(visit({ visitScheduledAt: hoursFromNow(6), visitStatus: 'planned' }), 'today', 'ct')
+    const out = finalizeQueue([...debriefs, todayVisit])
+    const visits = out.filter((i) => i.signalKind === 'visit')
+    expect(visits).toHaveLength(3) // visit_returned=3
+    expect(visits.map((i) => i.id)).toContain('today') // l'obligation datée survit
+    expect(todayVisit.score).toBeGreaterThan(debriefs[0].score)
   })
 
   it('U13 — selectFocusQueue : seed démo gated (jamais de fallback fictif en prod)', () => {

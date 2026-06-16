@@ -192,6 +192,75 @@ export function useVisits() {
   }
 }
 
+// ── Focus radar v3 : visites pour la file Focus (signal columns bruts) ──────
+//
+// useVisits() mappe en CalendarEvent (lossy : pas de rapport / feedback_sent /
+// status brut), inadapté pour détecter « débrief à saisir ». Ce hook lean lit
+// les colonnes de signal directement, agence-scopé par RLS (get_user_agency_id).
+// Exclut les annulées. Borné (limit) : la file Focus est une « liste courte ».
+
+export interface FocusVisitRow {
+  id: string
+  scheduledAt: string
+  status: VisitStatus
+  /** rapport (débrief agent) ET feedback_agent absents → pas encore débriefée. */
+  debriefMissing: boolean
+  contactId: string
+  contactName: string
+  propertyTitle: string | null
+  propertyCity: string | null
+}
+
+export function useFocusVisits(limit = 100) {
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id
+  return useRqQuery({
+    queryKey: ['focus-visits', agencyId, limit],
+    enabled: !!agencyId,
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<FocusVisitRow[]> => {
+      if (!agencyId) return []
+      // FENÊTRE actionnable bornée [aujourd'hui - 21 j … fin de journée] : les
+      // sous-signaux Focus (préparer aujourd'hui / débriefer une visite récente /
+      // no-show) vivent tous autour de « maintenant ». Sans ce plancher, un tri
+      // ascendant + limit remonterait les visites les PLUS ANCIENNES (vieux 'done'
+      // déjà débriefés) et noierait les visites du jour hors fenêtre. Le plafond
+      // « fin de journée » exclut les visites futures (non surfacées de toute façon).
+      const now = Date.now()
+      const floorIso = new Date(now - 21 * 24 * 60 * 60 * 1000).toISOString()
+      const ceil = new Date(now)
+      ceil.setHours(23, 59, 59, 999)
+      const ceilIso = ceil.toISOString()
+      const { data, error } = await supabase
+        .from('visits')
+        .select('id, scheduled_at, status, rapport, feedback_agent, contact_id, contact:contacts(first_name, last_name), property:properties(title, city)')
+        .eq('agency_id', agencyId)
+        .neq('status', 'cancelled')
+        .gte('scheduled_at', floorIso)
+        .lte('scheduled_at', ceilIso)
+        .order('scheduled_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+      return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) => {
+        const contact = unwrapJoin(row.contact as { first_name: string; last_name: string } | { first_name: string; last_name: string }[] | null)
+        const property = unwrapJoin(row.property as { title: string; city: string } | { title: string; city: string }[] | null)
+        const feedbackAgent = (row.feedback_agent as string | null) ?? null
+        const debriefMissing = row.rapport == null && (feedbackAgent == null || feedbackAgent.trim() === '')
+        return {
+          id: row.id as string,
+          scheduledAt: row.scheduled_at as string,
+          status: row.status as VisitStatus,
+          debriefMissing,
+          contactId: row.contact_id as string,
+          contactName: contact ? `${contact.first_name} ${contact.last_name}`.trim() : '',
+          propertyTitle: property?.title ?? null,
+          propertyCity: property?.city ?? null,
+        }
+      })
+    },
+  })
+}
+
 // ── Public visit booking (no auth required) ─────────────────────────────────
 
 export interface VisitBookingInput {
