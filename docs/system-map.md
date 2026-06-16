@@ -17,7 +17,7 @@
 ## 🧠 Le cerveau : comment ça marche & comment le maintenir
 
 Ce document **+** [`.claude-flow/knowledge/megga-memory.seed.json`](../.claude-flow/knowledge/megga-memory.seed.json)
-(147 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
+(155 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
 **local** (embeddings ONNX, recherche HNSW) et **gratuit** (0 appel API).
 
 **Ce qui est automatique :**
@@ -37,6 +37,11 @@ avoir livré une feature ou changé l'architecture :
 
 **Interroger :** `npx ruflo memory search -q "comment fonctionne le gate KYC" -n megga`
 **Lister :** `npx ruflo memory list -n megga` · **Recharger :** `npm run ruflo:seed`
+
+> 🛠️ **Construire/refondre un algorithme** (matching, analytics, Focus…) : suivre la **méthode des 3 vagues**
+> (comprendre → concevoir → implémenter+revue+tests live → entretenir le cerveau), orchestrée via le tool
+> `Workflow`. Détail dans le nœud cerveau `megga/methode-algo-vagues`. La qualité vient de la discipline de
+> vérification (ancrage code/DB + revue adversariale + tests backend live en CI), pas du nombre de vagues.
 
 > ⚠️ **Écritures directes** (`ruflo memory store`/`import` hors script) : préfixer
 > `CLAUDE_FLOW_DISABLE_BRIDGE=1`, sinon ruflo (3.10.x) annonce un succès mais ne persiste rien —
