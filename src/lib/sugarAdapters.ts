@@ -210,7 +210,9 @@ export function stageIdToTransactionStage(s: StageId): TransactionStage {
 // aussi `probability`, `nextAction`, `risk`, `bienId`, `value`. Mapping :
 //   - value : price_final ?? price_offered ?? property.price ?? 0
 //   - probability : dérivée du stage (heuristique simple)
-//   - risk : 'healthy' par défaut (pas de champ risk en DB)
+//   - risk : dérivé du status DB (pas de colonne risk dédiée). Enum réel
+//     transactions.status = {active,on_hold,cancelled,completed} :
+//     on_hold → at-risk, cancelled → stalled, sinon healthy.
 //   - nextAction : placeholder (à brancher quand `tasks` table existe)
 //   - bienId : transaction.property?.id (peut être null)
 const STAGE_PROBABILITY: Record<StageId, number> = {
@@ -235,7 +237,7 @@ export function transactionToCrmDeal(
     probability: STAGE_PROBABILITY[stage] ?? 0,
     ownerAgentId: '',
     nextAction: { kind: 'note', dueAt: t.updated_at, note: 'Prochaine étape à définir' },
-    risk: t.status === 'paused' ? 'at-risk' :
+    risk: t.status === 'on_hold' ? 'at-risk' :
           t.status === 'cancelled' ? 'stalled' : 'healthy',
     updatedAt: t.updated_at,
   }

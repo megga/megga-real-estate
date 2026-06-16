@@ -36,6 +36,8 @@ export interface Reminder {
    * attached to a contact directly without a deal). Consumed by the
    * Pipeline DealDetailDrawer to find the active next-action per deal. */
   transactionId: string | null
+  /** Property attached to this reminder (null when contact-only). */
+  propertyId: string | null
   type: ReminderType
   status: ReminderStatus
   title: string
@@ -158,6 +160,7 @@ function rowToReminder(row: ReminderRow): Reminder {
     contactName,
     contactId: row.contact_id,
     transactionId: row.transaction_id,
+    propertyId: row.property_id,
     type: row.type as ReminderType,
     status: row.status as ReminderStatus,
     title,

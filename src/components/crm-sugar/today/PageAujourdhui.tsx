@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { TK, type TkToneName } from './tk'
 import { RXIcon, Tile, TileHead, MoreLink, Orbs } from './kit'
 import { DATA, type EnsuiteItemData } from './data'
-import { FOCUS_QUEUE, type FocusItem } from './focusQueue'
+import { selectFocusQueue, type FocusItem } from './focusQueue'
 import { useFocusQueue } from './useFocusQueue'
 import { FocusColumn } from './FocusColumn'
 import { AgendaTile } from './AgendaTile'
@@ -22,7 +22,7 @@ import { useTodayNav } from './TodayNavContext'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 
 // ─── « Ensuite » — file d'attente compacte ──────────────────────────────
-const ENSUITE_TONE: Record<string, TkToneName> = { Mandat: 'info', KYC: 'warn', Compromis: 'ok', Offre: 'warn', Visite: 'info' }
+const ENSUITE_TONE: Record<string, TkToneName> = { Mandat: 'info', KYC: 'warn', Compromis: 'ok', Offre: 'warn', Visite: 'info', Match: 'info', Relance: 'neutral' }
 
 function EnsuiteItem({ e }: { e: EnsuiteItemData }) {
   const p = TK[ENSUITE_TONE[e.tag] || 'neutral'] || TK.neutral
@@ -56,10 +56,12 @@ function EnsuiteItem({ e }: { e: EnsuiteItemData }) {
 
 // Dérive la rangée « Ensuite » des priorités qui suivent la première (la file
 // Focus sans son sommet). Tag mappé pour la pastille de tonalité.
-const ENSUITE_TAG: Record<string, string> = { OFFRE: 'Offre', MANDAT: 'Mandat', KYC: 'KYC', RELANCE: 'Relance' }
+const ENSUITE_TAG: Record<string, string> = { OFFRE: 'Offre', MANDAT: 'Mandat', KYC: 'KYC', RELANCE: 'Relance', MATCH: 'Match' }
+// « Ensuite » = aperçu des items du tier « next » (le tier « now » est en tête
+// de la colonne Focus, le tier « rest » reste masqué).
 function deriveEnsuite(items: FocusItem[]): EnsuiteItemData[] {
-  return items.slice(1, 4).map((it) => ({
-    initials: it.initials, av: it.av, label: it.contact, time: it.time, tag: ENSUITE_TAG[it.kind] || 'Relance',
+  return items.filter((it) => it.tier === 'next').slice(0, 3).map((it) => ({
+    initials: it.initials, av: it.av, label: it.contact, time: it.time, tag: ENSUITE_TAG[it.category] || 'Relance',
   }))
 }
 
@@ -97,7 +99,7 @@ function FocusPill({ onClick }: { onClick: () => void }) {
 }
 
 // ─── PAGE AUJOURD'HUI ───────────────────────────────────────────────────
-export function PageAujourdhui() {
+export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
   const { navigate } = useTodayNav()
   const [focusMode, setFocusMode] = useState(false)
   const [relanceOpen, setRelanceOpen] = useState(false)
@@ -109,11 +111,13 @@ export function PageAujourdhui() {
     ? `CHF ${(deals.filter((d) => d.stage !== 'lost').reduce((s, d) => s + (d.value || 0), 0) / 1e6).toFixed(1)}M`
     : DATA.pipelineTotal
 
-  // File de priorités réelle (deals à risque + reminders du jour), partagée
-  // colonne Focus / Mode Focus / rangée Ensuite. Fallback seed si rien de live.
-  const { items: focusItems, isLive: focusLive, completeItem, snoozeItem } = useFocusQueue()
-  const baseQueue: FocusItem[] = focusLive ? focusItems : FOCUS_QUEUE
-  const ensuite: EnsuiteItemData[] = focusLive ? deriveEnsuite(focusItems) : DATA.ensuite
+  // File de priorités réelle (matches forts + reminders + deals), scorée et
+  // tierisée, partagée colonne Focus / Mode Focus / rangée Ensuite. Empty-state
+  // HONNÊTE en prod : pas de seed fictif quand l'agent n'a rien (le seed démo
+  // n'est servi que derrière le flag `demo`).
+  const { items: focusItems, isLive: focusLive, isLoading: focusLoading, completeItem, snoozeItem } = useFocusQueue()
+  const baseQueue: FocusItem[] = selectFocusQueue({ live: focusLive, items: focusItems, isDemo: demo })
+  const ensuite: EnsuiteItemData[] = focusLive ? deriveEnsuite(focusItems) : (demo ? DATA.ensuite : [])
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: TK.bgGrad,
@@ -136,7 +140,7 @@ export function PageAujourdhui() {
 
           {/* COLONNE FOCUS — dominante */}
           <div style={{ width: '34%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <FocusColumn key={focusLive ? 'live' : 'seed'} baseQueue={baseQueue} onDone={completeItem} onSnooze={snoozeItem} />
+            <FocusColumn key={focusLive ? 'live' : 'seed'} baseQueue={baseQueue} isLoading={focusLoading && !demo} onDone={completeItem} onSnooze={snoozeItem} />
             <EnsuiteRow items={ensuite} />
           </div>
 

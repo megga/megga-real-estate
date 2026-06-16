@@ -20,10 +20,11 @@ function FcStat({ value, label }: { value: number; label: string }) {
   )
 }
 
-export function FocusColumn({ baseQueue, onDone, onSnooze }: {
+export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: {
   baseQueue: FocusItem[]
   onDone?: (item: FocusItem) => void
   onSnooze?: (item: FocusItem) => void
+  isLoading?: boolean
 }) {
   const [queue, setQueue] = useState<FocusItem[]>(baseQueue)
   const [idx, setIdx] = useState(0)
@@ -91,6 +92,18 @@ export function FocusColumn({ baseQueue, onDone, onSnooze }: {
     transform: on ? 'none' : 'translateY(14px)',
     transition: `opacity .5s ease ${i * 60}ms, transform .55s cubic-bezier(.22,1,.36,1) ${i * 60}ms`,
   })
+
+  // ── ÉTAT « chargement » — évite le faux « File traitée » pendant le fetch ──
+  if (isLoading && total === 0) {
+    return (
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', borderRadius: 22, overflow: 'hidden',
+        boxShadow: TK.shadowLg, border: `1px solid ${TK.borderHi}`,
+        background: `radial-gradient(120% 90% at 50% 0%, ${TK.frameHi} 0%, ${TK.bg} 70%)`,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 28 }}>
+        <div style={{ fontSize: 13, color: TK.sub }}>Chargement de tes priorités…</div>
+      </div>
+    )
+  }
 
   // ── ÉTAT « file vide » ─────────────────────────────────────────────
   if (allDone) {
@@ -166,18 +179,26 @@ export function FocusColumn({ baseQueue, onDone, onSnooze }: {
 
         {/* BAS — situation courante */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, ...rise(1) }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', ...rise(1) }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 11px', borderRadius: 999,
               background: 'rgba(8,8,12,.5)', backdropFilter: 'blur(10px)', border: `1px solid ${TK.borderHi}`,
               fontSize: 11, fontWeight: 800, letterSpacing: 0.3, color: '#fff', whiteSpace: 'nowrap' }}>
-              <RXIcon name={tyy.icon} size={12} sw={2.1} color={tyy.badge} />{item.kind}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
-              color: item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.72)' }}>
-              <RXIcon name="clock" size={12} color={item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.6)'} />{item.time}</span>
+              <RXIcon name={tyy.icon} size={12} sw={2.1} color={tyy.badge} />{item.category}</span>
+            {item.time && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
+                color: item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.72)' }}>
+                <RXIcon name="clock" size={12} color={item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.6)'} />{item.time}</span>
+            )}
+            {/* Score = estimation (jamais « garanti »/« automatique ») */}
+            <span title="Priorité estimée" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', color: 'rgba(255,255,255,.62)' }}>
+              <RXIcon name="spark" size={12} color="#9b7cf0" />estimation · {item.score}</span>
           </div>
 
           <h2 style={{ margin: '12px 0 0', fontSize: 29, fontWeight: 800, letterSpacing: -0.9, color: '#fff', lineHeight: 1.02, ...rise(2) }}>{item.contact}</h2>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,.82)', marginTop: 6, lineHeight: 1.4, ...rise(3) }}>{item.sub}</div>
+          {/* « pourquoi #1 » — raison déterministe, présentée comme estimation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,.66)', marginTop: 6, ...rise(3) }}>
+            <RXIcon name="spark" size={12} color="#9b7cf0" /><span>{item.reason}</span></div>
 
           {/* prix + actions adaptatives */}
           <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${TK.borderHi}`, ...rise(4) }}>
