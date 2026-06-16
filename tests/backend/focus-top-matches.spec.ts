@@ -243,7 +243,9 @@ describe.skipIf(!HAS_KEYS)('focus_top_matches — RPC matches Focus (live + isol
     const rows = await callA()
     const r = rows.find((x) => x.contact_id === cInt)!
     expect(r.contact_name).toMatch(/^Focus Int-/)
-    expect(r.contact_name).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+    // pas un UUID brut (regex UUID complète 8-4-4-4-12 ; pas le motif lâche qui
+    // matcherait le stamp Date.now()-random fait de chiffres + tiret).
+    expect(r.contact_name).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)
   })
 
   it('L11 — reasons : count + clés dérivés du jsonb (budget+zone match, type non)', async () => {
