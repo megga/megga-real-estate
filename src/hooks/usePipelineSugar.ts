@@ -40,6 +40,9 @@ export interface UsePipelineSugarReturn {
    *  sans dépendre du registry runtime global (fragile au démontage). */
   contactsById: Map<string, CrmContact>
   biensById: Map<string, CrmBien>
+  /** KYC acheteur le plus récent par contact (signal Focus KYC×closing,
+   *  NON-BLOQUANT). dossier_status/risk_level/expires_at portés tels quels. */
+  kycByContact: Map<string, KycCase>
 }
 
 export function usePipelineSugar(): UsePipelineSugarReturn {
@@ -192,5 +195,6 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
     updateStage,
     contactsById,
     biensById,
+    kycByContact,
   }
 }

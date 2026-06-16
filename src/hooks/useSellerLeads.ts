@@ -27,9 +27,9 @@ export interface SellerLeadRow {
   created_at: string
 }
 
-export function useSellerLeads(status?: string) {
+export function useSellerLeads(status?: string, limit?: number) {
   return useQuery({
-    queryKey: ['seller-leads', status],
+    queryKey: ['seller-leads', status, limit],
     queryFn: async () => {
       let query = supabase
         .from('seller_leads')
@@ -37,6 +37,10 @@ export function useSellerLeads(status?: string) {
         .order('created_at', { ascending: false })
 
       if (status) query = query.eq('status', status)
+      // Garde-fou borné (optionnel) : l'entonnoir public (policy anon insert) peut
+      // faire croître la table → un consommateur « liste courte » comme le cockpit
+      // Focus passe une limite. Les vues admin restent non bornées (limit absent).
+      if (limit) query = query.limit(limit)
 
       const { data, error } = await query
       if (error) throw error
