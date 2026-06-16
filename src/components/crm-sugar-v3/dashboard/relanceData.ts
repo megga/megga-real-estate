@@ -37,6 +37,10 @@ export interface RelanceLead {
   budget: string
   kyc: KycStatus
   dormSince: number
+  /** True if last_interaction_at was set (real recency). Distinct du sentinel
+   * dormSince=999 (NULL) : permet un libellé honnête « jamais recontacté » vs
+   * « se refroidit depuis N j » sans collision avec un contact dormant ~999 j. */
+  engaged?: boolean
   reason: string
   quote: string | null
   history: Array<{ d: string; t: string; icon: IconName }>

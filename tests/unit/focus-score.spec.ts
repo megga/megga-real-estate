@@ -14,6 +14,7 @@ import {
   toDisplayScore,
   normalizeSellerLead,
   normalizeKyc,
+  normalizeLeadCooling,
   isClosingProximate,
   hasKycGap,
   FOCUS_DEFAULTS,
@@ -42,6 +43,9 @@ const sellerLead = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
 })
 const kyc = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
   signalKind: 'kyc', stageProb: 85, dealStage: 'offer', dealValue: 1_000_000, kycDossierStatus: 'pending', ...over,
+})
+const cooling = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
+  signalKind: 'lead-cooling', coolingQuality: 65, coolingDormDays: 999, coolingHasDate: false, ...over,
 })
 
 const rankable = (over: Partial<FocusRankable> = {}): FocusRankable => ({
@@ -289,6 +293,51 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
     expect(out.filter((i) => i.signalKind === 'seller-lead' && i.tier === 'next')).toHaveLength(1)
     // l'ordre de tri (score ↓) est conservé : le tier ne réordonne pas la file
     expect(out.map((i) => i.id).slice(0, 3)).toEqual(['sl1', 'sl2', 'sl3'])
+  })
+
+  // ─── Focus radar v2 — famille lead-cooling (leads qui refroidissent) ─────
+  it('R10 — lead-cooling : toujours « next » (signal de fond, jamais « now »)', () => {
+    expect(assignTier(cooling({ coolingQuality: 85, coolingDormDays: 999 }), NOW)).toBe('next')
+    expect(assignTier(cooling({ coolingQuality: 35, coolingDormDays: 0 }), NOW)).toBe('next')
+    const s = scoreItem(cooling(), NOW)
+    expect(s).toBeGreaterThanOrEqual(0); expect(s).toBeLessThanOrEqual(100)
+  })
+
+  it('R11 — normalizeLeadCooling : monotone (qualité + dormance), borné, sous un match', () => {
+    expect(normalizeLeadCooling({ coolingQuality: 85, coolingDormDays: 999 })).toBeGreaterThan(normalizeLeadCooling({ coolingQuality: 35, coolingDormDays: 999 }))
+    expect(normalizeLeadCooling({ coolingQuality: 65, coolingDormDays: 60 })).toBeGreaterThan(normalizeLeadCooling({ coolingQuality: 65, coolingDormDays: 0 }))
+    // défaut qualité 50 quand absent
+    expect(normalizeLeadCooling({})).toBe(normalizeLeadCooling({ coolingQuality: 50, coolingDormDays: 0 }))
+    for (const i of [normalizeLeadCooling({ coolingQuality: 100, coolingDormDays: 9999 }), normalizeLeadCooling({})]) {
+      expect(i).toBeGreaterThanOrEqual(0); expect(i).toBeLessThanOrEqual(1)
+    }
+    // poids 0.25 < match 0.40 : un lead dormant ne vole JAMAIS la vedette à un match
+    expect(scoreItem(cooling({ coolingQuality: 85, coolingDormDays: 999 }), NOW)).toBeLessThan(scoreItem(match({ matchScore: 80 }), NOW))
+  })
+
+  it('R12 — cooling reason : honnête (jamais recontacté vs daté), tags qualité, sans UUID', () => {
+    const never = buildReason(cooling({ coolingHasDate: false, coolingQuality: 85 }), NOW)
+    expect(never).toContain('jamais recontacté')
+    expect(never).toContain('lead chaud')
+    const dated = buildReason(cooling({ coolingHasDate: true, coolingDormDays: 42, coolingQuality: 35 }), NOW)
+    expect(dated).toContain('sans contact depuis 42 j')
+    expect(dated).toContain('lead froid')
+    expect(never).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+  })
+
+  it('R13 — cap cooling_returned=3 : 5 cooling → 3 gardés (meilleurs), autres familles intactes', () => {
+    const coolings = [40, 35, 30, 25, 20].map((s, k) =>
+      rankable({ id: `cool${k}`, contactId: `c${k}`, score: s, tier: 'next', signalKind: 'lead-cooling' }),
+    )
+    const others = [
+      rankable({ id: 'rem', contactId: 'r', score: 50, tier: 'now', signalKind: 'reminder' }),
+      rankable({ id: 'match', contactId: 'm', score: 36, tier: 'now', signalKind: 'match-market' }),
+    ]
+    const out = finalizeQueue([...coolings, ...others])
+    expect(out.filter((i) => i.signalKind === 'lead-cooling')).toHaveLength(3)
+    expect(out.filter((i) => i.signalKind === 'lead-cooling').map((i) => i.score)).toEqual([40, 35, 30])
+    // le cap cooling ne touche pas les autres familles
+    expect(out.filter((i) => i.signalKind !== 'lead-cooling')).toHaveLength(2)
   })
 
   it('U13 — selectFocusQueue : seed démo gated (jamais de fallback fictif en prod)', () => {

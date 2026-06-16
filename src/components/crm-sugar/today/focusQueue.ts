@@ -81,6 +81,8 @@ export const FOCUS_TYPE: Record<string, FocusTypeDef> = {
   match: { icon: 'phone', badge: '#6F8CFF', live: true, label: (n) => `Appeler ${n.split(' ')[0]}` },
   // Focus radar v1 — nouveau mandat vendeur 'new' à réclamer (argent qui attend).
   seller: { icon: 'flame', badge: '#34C796', live: false, label: (n) => `Contacter ${n.split(' ')[0]}` },
+  // Focus radar v2 — lead qui refroidit / jamais recontacté (relance de fond).
+  cooling: { icon: 'clock', badge: '#6F8CFF', live: false, label: (n) => `Relancer ${n.split(' ')[0]}` },
 }
 
 export const focusTy = (t: string): FocusTypeDef => FOCUS_TYPE[t] || FOCUS_TYPE.call

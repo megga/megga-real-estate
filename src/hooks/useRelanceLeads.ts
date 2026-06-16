@@ -67,6 +67,8 @@ function contactToLead(c: {
     budget: '—',
     kyc,
     dormSince: dorm,
+    // Nullabilité réelle (≠ sentinel dormSince=999) — libellé honnête côté Focus.
+    engaged: c.last_interaction_at != null,
     reason:
       c.last_interaction_at
         ? `Dernier contact il y a ${dorm} jours — sans réponse depuis.`
