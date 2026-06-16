@@ -153,10 +153,15 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
       style={{ flex: 1, minHeight: 0, position: 'relative', borderRadius: 22, overflow: 'hidden',
         boxShadow: TK.shadowLg, border: `1px solid ${TK.borderHi}`, transition: 'opacity .45s ease' }}
     >
-      {/* PHOTO + traitements (crossfade au changement de situation) */}
-      <img key={item.id} src={item.bien.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
-        objectFit: 'cover', opacity: vis ? 1 : 0,
-        transition: 'opacity .42s ease' }} />
+      {/* PHOTO réelle ou fond neutre honnête (items sans bien / sans visuel) */}
+      {item.bien.photo ? (
+        <img key={item.id} src={item.bien.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+          objectFit: 'cover', opacity: vis ? 1 : 0,
+          transition: 'opacity .42s ease' }} />
+      ) : (
+        <div key={item.id} style={{ position: 'absolute', inset: 0, opacity: vis ? 1 : 0, transition: 'opacity .42s ease',
+          background: `radial-gradient(120% 90% at 50% 0%, ${TK.frameHi} 0%, ${TK.bg} 72%)` }} />
+      )}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,12,.5) 0%, rgba(8,8,12,.04) 34%, rgba(8,8,12,.94) 100%)' }} />
       <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(150deg, ${TK.primary}1f 0%, transparent 45%, rgba(120,80,200,.14) 100%)`, mixBlendMode: 'soft-light' }} />
       <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 120px 24px rgba(8,8,12,.6)', pointerEvents: 'none' }} />
@@ -191,7 +196,7 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
             )}
             {/* Score = estimation (jamais « garanti »/« automatique ») */}
             <span title="Priorité estimée" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', color: 'rgba(255,255,255,.62)' }}>
-              <RXIcon name="spark" size={12} color="#9b7cf0" />estimation · {item.score}</span>
+              <RXIcon name="spark" size={12} color="#9b7cf0" />estimation · {item.displayScore}</span>
           </div>
 
           <h2 style={{ margin: '12px 0 0', fontSize: 29, fontWeight: 800, letterSpacing: -0.9, color: '#fff', lineHeight: 1.02, ...rise(2) }}>{item.contact}</h2>

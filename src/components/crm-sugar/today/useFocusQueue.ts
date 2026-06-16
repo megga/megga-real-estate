@@ -20,13 +20,15 @@ import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useReminders } from '@/hooks/useReminders'
 import type { StageId } from '@/components/crm-sugar/tokens'
 import type { FocusItem } from './focusQueue'
-import { PHOTO, fmtCHF } from './data'
+import { fmtCHF } from './data'
 import { useFocusMatches, snoozeMatch } from './useFocusMatches'
+import { useFocusConfig } from './useFocusConfig'
 import {
   scoreItem,
   assignTier,
   buildReason,
   finalizeQueue,
+  toDisplayScore,
   type FocusScoreInput,
   type FocusRankable,
 } from './focusScore'
@@ -34,8 +36,6 @@ import {
 // Item interne = FocusItem + clés de tri (FocusRankable.due) consommées par
 // finalizeQueue ; `due` n'est PAS exposé à l'UI.
 type QueueItem = FocusItem & FocusRankable
-
-const PLACEHOLDER_PHOTO = PHOTO.champel
 
 function initialsOf(name: string): string {
   const p = name.trim().split(/\s+/)
@@ -81,6 +81,7 @@ export function useFocusQueue(): UseFocusQueueResult {
   const { deals, contactsById, biensById, isLoading: dealsLoading } = usePipelineSugar()
   const { reminders, isLoading: remLoading, markAsDone, snooze } = useReminders()
   const { matches, isLoading: matchesLoading } = useFocusMatches()
+  const cfg = useFocusConfig()
 
   const items = useMemo<QueueItem[]>(() => {
     // Snapshot du temps courant : la file est FIGÉE à l'instant du calcul et
@@ -103,7 +104,8 @@ export function useFocusQueue(): UseFocusQueueResult {
         dealStage: d.stage,
         dealValue: d.value,
       }
-      const tier = assignTier(input, now)
+      const score = scoreItem(input, now, cfg)
+      const tier = assignTier(input, now, cfg)
       const contact = c ? `${c.firstName} ${c.lastName}`.trim() : 'Contact'
       out.push({
         id: `deal-${d.id}`,
@@ -117,11 +119,12 @@ export function useFocusQueue(): UseFocusQueueResult {
         time: fmtTime(d.nextAction?.dueAt),
         eta: '',
         sub: b?.title ? `${b.title} — à faire avancer.` : 'Deal à faire avancer.',
-        reason: buildReason(input, now),
-        score: scoreItem(input, now),
+        reason: buildReason(input, now, cfg),
+        score,
+        displayScore: toDisplayScore(score, cfg),
         tier,
         urgent: tier === 'now',
-        bien: { photo: b?.coverPhoto || PLACEHOLDER_PHOTO, price: fmtCHF(d.value), title: b?.title || undefined },
+        bien: { photo: b?.coverPhoto || '', price: fmtCHF(d.value), title: b?.title || undefined },
         due: d.nextAction?.dueAt ? new Date(d.nextAction.dueAt).getTime() : new Date(d.updatedAt).getTime(),
       })
     }
@@ -136,7 +139,8 @@ export function useFocusQueue(): UseFocusQueueResult {
         reminderType: r.type,
         reminderTime: fmtTime(r.triggerAt),
       }
-      const tier = assignTier(input, now)
+      const score = scoreItem(input, now, cfg)
+      const tier = assignTier(input, now, cfg)
       out.push({
         id: `rem-${r.id}`,
         type,
@@ -149,11 +153,12 @@ export function useFocusQueue(): UseFocusQueueResult {
         time: fmtTime(r.triggerAt),
         eta: '',
         sub: r.description || r.title || (category === 'KYC' ? "Vérification d'identité à compléter." : 'À relancer.'),
-        reason: buildReason(input, now),
-        score: scoreItem(input, now),
+        reason: buildReason(input, now, cfg),
+        score,
+        displayScore: toDisplayScore(score, cfg),
         tier,
         urgent: tier === 'now',
-        bien: { photo: PLACEHOLDER_PHOTO, price: '—', title: r.propertyTitle },
+        bien: { photo: '', price: '—', title: r.propertyTitle },
         due: r.triggerAt ? new Date(r.triggerAt).getTime() : undefined,
       })
     }
@@ -167,7 +172,8 @@ export function useFocusQueue(): UseFocusQueueResult {
         reasonKeys: m.reasonKeys,
         kyc: m.kyc,
       }
-      const tier = assignTier(input, now)
+      const score = scoreItem(input, now, cfg)
+      const tier = assignTier(input, now, cfg)
       const contact = m.contactName || 'Contact'
       out.push({
         id: `match-${m.matchId}`,
@@ -183,13 +189,14 @@ export function useFocusQueue(): UseFocusQueueResult {
         sub: m.propertyTitle
           ? `${m.propertyTitle}${m.city ? ` · ${m.city}` : ''}`
           : 'Bien proposé — à présenter.',
-        reason: buildReason(input, now),
-        score: scoreItem(input, now),
+        reason: buildReason(input, now, cfg),
+        score,
+        displayScore: toDisplayScore(score, cfg),
         scoreBrut: m.score,
         tier,
         urgent: tier === 'now',
         bien: {
-          photo: m.propertyPhoto || PLACEHOLDER_PHOTO,
+          photo: m.propertyPhoto || '',
           price: m.propertyPrice != null ? fmtCHF(m.propertyPrice) : '—',
           title: m.propertyTitle || undefined,
         },
@@ -197,8 +204,8 @@ export function useFocusQueue(): UseFocusQueueResult {
       })
     }
 
-    return finalizeQueue(out)
-  }, [deals, contactsById, biensById, reminders, matches])
+    return finalizeQueue(out, cfg)
+  }, [deals, contactsById, biensById, reminders, matches, cfg])
 
   const isLoading = dealsLoading || remLoading || matchesLoading
   const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0

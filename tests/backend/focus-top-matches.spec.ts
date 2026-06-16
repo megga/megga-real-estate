@@ -287,4 +287,14 @@ describe.skipIf(!HAS_KEYS)('focus_top_matches — RPC matches Focus (live + isol
     expect(rows).toHaveLength(4)
     expect(rows.every((r) => typeof r.score === 'number')).toBe(true)
   })
+
+  it('L14 — get_today_focus_config : un agent authentifié lit le barème today_focus_v1', async () => {
+    const { data, error } = await setup.clientA.rpc('get_today_focus_config', {})
+    expect(error).toBeNull()
+    const cfg = data as { weights?: Record<string, number>; thresholds?: Record<string, number>; caps?: Record<string, number> }
+    expect(cfg).toBeTruthy()
+    expect(typeof cfg.weights?.match).toBe('number')
+    expect(typeof cfg.thresholds?.match_gate).toBe('number')
+    expect(typeof cfg.caps?.per_contact).toBe('number')
+  })
 })

@@ -28,8 +28,10 @@ export interface FocusItem {
   sub: string
   /** Raison lisible « pourquoi #1 » — déterministe, affichée comme estimation. */
   reason: string
-  /** Score de priorité 0..100 (estimation). */
+  /** Score de priorité brut (interne, comparable entre familles pour le tri). */
   score: number
+  /** Score d'affichage 0..100 normalisé (estimation montrée à l'agent). */
+  displayScore: number
   /** Score brut du match [70..100] (pour la raison). */
   scoreBrut?: number
   tier: FocusTier
@@ -42,22 +44,22 @@ export interface FocusItem {
 // pour un agent réel à 0 item : on n'affiche plus de personas fictifs.
 export const FOCUS_QUEUE_DEMO: FocusItem[] = [
   { id: 'marie', type: 'call', signalKind: 'reminder', contact: 'Marie Bertrand', contactId: 'marie', initials: 'MB', av: '#5b6cff',
-    category: 'RELANCE', time: '10:00', eta: 'dans 7 min', score: 52, tier: 'now',
+    category: 'RELANCE', time: '10:00', eta: 'dans 7 min', score: 52, displayScore: 91, tier: 'now',
     reason: 'Relance prévue aujourd\'hui (10:00)',
     sub: 'Suite visite Carouge — opportunité tiède à confirmer',
     bien: { photo: PHOTO.carouge, price: "CHF 890'000" } },
   { id: 'elodie', type: 'kyc', signalKind: 'reminder', contact: 'Élodie Schmidt', contactId: 'elodie', initials: 'ÉS', av: '#39B7C9',
-    category: 'KYC', time: '11:00', eta: "à compléter aujourd'hui", score: 48, tier: 'now',
+    category: 'KYC', time: '11:00', eta: "à compléter aujourd'hui", score: 48, displayScore: 84, tier: 'now',
     reason: 'KYC à compléter — vérification requise',
     sub: "Vérification d'identité requise avant de déposer l'offre",
     bien: { photo: PHOTO.champel, price: "CHF 1'250'000" } },
   { id: 'antoine', type: 'offer', signalKind: 'deal', contact: 'Antoine Picard', contactId: 'antoine', initials: 'AP', av: '#34C796',
-    category: 'OFFRE', time: '14:00', eta: 'délai dépassé · 2 j', urgent: true, score: 40, tier: 'now',
+    category: 'OFFRE', time: '14:00', eta: 'délai dépassé · 2 j', urgent: true, score: 40, displayScore: 70, tier: 'now',
     reason: 'Offre à suivre — closing proche',
     sub: 'Suivi offre Villa Cologny — relancer avant expiration',
     bien: { photo: PHOTO.eauxvives, price: "CHF 1'850'000" } },
   { id: 'julien', type: 'sign', signalKind: 'deal', contact: 'Julien Aebischer', contactId: 'julien', initials: 'JA', av: '#E08A45',
-    category: 'MANDAT', time: '11:30', eta: 'signature à préparer', score: 28, tier: 'next',
+    category: 'MANDAT', time: '11:30', eta: 'signature à préparer', score: 28, displayScore: 49, tier: 'next',
     reason: 'Mandat à préparer — relire les clauses',
     sub: 'Mandat exclusif prêt — relire les clauses avant signature',
     bien: { photo: PHOTO.cologny, price: "CHF 2'400'000" } },

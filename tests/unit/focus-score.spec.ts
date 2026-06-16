@@ -10,6 +10,9 @@ import {
   buildReason,
   finalizeQueue,
   kycBonus,
+  parseFocusConfig,
+  toDisplayScore,
+  FOCUS_DEFAULTS,
   type FocusScoreInput,
   type FocusRankable,
 } from '@/components/crm-sugar/today/focusScore'
@@ -146,6 +149,35 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
     // tri par score décroissant, stable
     const scores = out.map((i) => i.score)
     expect([...scores].sort((a, b) => b - a)).toEqual(scores)
+  })
+
+  it('U14 — parseFocusConfig : merge défensif sur les défauts (partiel/invalide/string)', () => {
+    // objet partiel → seules les clés fournies écrasent, le reste = défauts
+    const partial = parseFocusConfig({ thresholds: { match_now: 90 }, caps: { per_contact: 1 } })
+    expect(partial.thresholds.match_now).toBe(90)
+    expect(partial.thresholds.match_gate).toBe(FOCUS_DEFAULTS.thresholds.match_gate)
+    expect(partial.caps.per_contact).toBe(1)
+    expect(partial.weights).toEqual(FOCUS_DEFAULTS.weights)
+    // valeurs invalides → fallback défaut (jamais NaN/undefined)
+    const bad = parseFocusConfig({ weights: { reminder: 'x', match: null, deal: undefined } })
+    expect(bad.weights).toEqual(FOCUS_DEFAULTS.weights)
+    // string JSON acceptée ; null/garbage → défauts complets
+    expect(parseFocusConfig('{"version":9}').version).toBe(9)
+    expect(parseFocusConfig('not json')).toEqual(FOCUS_DEFAULTS)
+    expect(parseFocusConfig(null)).toEqual(FOCUS_DEFAULTS)
+  })
+
+  it('U15 — toDisplayScore : normalise 0..100, monotone, échelle lisible', () => {
+    // un reminder échu fort (poids 0.45) → score d'affichage élevé mais < 100
+    // (sans bonus KYC, qui ne s'applique pas aux reminders) ; un deal reste plus bas.
+    const remStrong = scoreItem(reminder({ reminderTriggerAt: daysAgo(5), reminderType: 'missing_document' }), NOW)
+    const dealWeak = scoreItem(deal({ stageProb: 30, dealRisk: 'healthy', dealValue: 100_000 }), NOW)
+    expect(toDisplayScore(remStrong)).toBeGreaterThanOrEqual(70)
+    expect(toDisplayScore(remStrong)).toBeGreaterThan(toDisplayScore(dealWeak))
+    // monotone : plus de score brut → plus d'affichage ; bornes 0..100
+    expect(toDisplayScore(40)).toBeGreaterThan(toDisplayScore(20))
+    expect(toDisplayScore(0)).toBe(0)
+    expect(toDisplayScore(999)).toBe(100)
   })
 
   it('U13 — selectFocusQueue : seed démo gated (jamais de fallback fictif en prod)', () => {
