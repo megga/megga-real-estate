@@ -43,6 +43,7 @@ describe.skipIf(!HAS_KEYS)('calculate_contact_scores — score de contact v1 (li
   const contactIds: string[] = []
   const propIds: string[] = []
   const mlIds: string[] = []
+  let urlCfg: { had: boolean; value: string | null } = { had: false, value: null }
 
   // contacts notables (agence A sauf cB)
   let cHot = ''           // hot buyer, budget buy plausible, 0 match  → 78, blend hot raw 75
@@ -136,6 +137,19 @@ describe.skipIf(!HAS_KEYS)('calculate_contact_scores — score de contact v1 (li
     setup = await setupTwoAgencies()
     svc = serviceRoleClient()
 
+    // Le trigger AFTER INSERT on_new_client_search appelle net.http_post(url :=
+    // get_app_config('supabase_url') || …) quand is_active=true ; en CI supabase_url
+    // est NULL → url NULL → violation NOT NULL sur http_request_queue. On pose une
+    // URL factice NON-RÉSOLVABLE le temps du seed : l'INSERT passe (url non-null) mais
+    // l'appel net async vers matching-engine ÉCHOUE (DNS) → aucun match parasite créé
+    // pour cHot (qui a une recherche). On restaure en fin de suite. (backend tests =
+    // série, fileParallelism:false → pas de course sur app_config.)
+    {
+      const { data: row } = await svc.from('app_config').select('value').eq('key', 'supabase_url').maybeSingle()
+      urlCfg = { had: row !== null, value: (row?.value as string | null) ?? null }
+      await svc.from('app_config').upsert({ key: 'supabase_url', value: 'http://invalid.local' }, { onConflict: 'key' })
+    }
+
     // bien interne (pour les matches internal + les transactions)
     const { data: prop, error: pErr } = await svc.from('properties').insert({
       agency_id: setup.agencyAId, title: `Score QA bien ${setup.stamp}`,
@@ -199,6 +213,9 @@ describe.skipIf(!HAS_KEYS)('calculate_contact_scores — score de contact v1 (li
     if (propIds.length) await svc.from('properties').delete().in('id', propIds)
     if (contactIds.length) await svc.from('contacts').delete().in('id', contactIds)
     if (mlIds.length) await svc.from('market_listings').delete().in('id', mlIds)
+    // restaure supabase_url tel qu'avant le seed
+    if (urlCfg.had) await svc.from('app_config').update({ value: urlCfg.value }).eq('key', 'supabase_url')
+    else await svc.from('app_config').delete().eq('key', 'supabase_url')
     await setup.cleanup()
   })
 

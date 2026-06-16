@@ -91,8 +91,12 @@ BEGIN
   capped AS (
     -- Cap DUR per_contact (concentration 94% sur 1 contact en base), PUIS top-N
     -- par score MÉLANGÉ (fit × sérieux) — c'est ici que le biais se casse.
-    SELECT * FROM gated WHERE rn_contact <= v_percontact
-    ORDER BY (score * (v_floor + (1 - v_floor) * COALESCE(lead_score, 50) / 100)) DESC, score DESC, id
+    -- Réfs QUALIFIÉES (g.*) dans l'EXPRESSION du ORDER BY : `score`/`lead_score` sont
+    -- aussi des paramètres OUT de la fonction → un nom nu dans une expression est
+    -- ambigu variable/colonne (42702). Un nom nu en ORDER BY simple (cf 120000) ne
+    -- l'était pas car résolu comme colonne de sortie — l'expression, elle, l'est.
+    SELECT * FROM gated g WHERE g.rn_contact <= v_percontact
+    ORDER BY (g.score * (v_floor + (1 - v_floor) * COALESCE(g.lead_score, 50) / 100)) DESC, g.score DESC, g.id
     LIMIT v_limit
   )
   SELECT
