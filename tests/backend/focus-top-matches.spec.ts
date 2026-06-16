@@ -126,7 +126,7 @@ describe.skipIf(!HAS_KEYS)('focus_top_matches — RPC matches Focus (live + isol
     const cResp = await mkContact(setup.agencyAId, 'Resp')
     const cSno = await mkContact(setup.agencyAId, 'Snooze')
     const cLow = await mkContact(setup.agencyAId, 'Low')
-    const cAcc = await mkContact(setup.agencyAId, 'Accepted')
+    const cSent = await mkContact(setup.agencyAId, 'Sent')
     cB = await mkContact(setup.agencyBId, 'AgencyB')
 
     // cBig : 5 matches éligibles (>=70) sur 5 listings distincts (contrainte
@@ -143,7 +143,7 @@ describe.skipIf(!HAS_KEYS)('focus_top_matches — RPC matches Focus (live + isol
     await mkMatch({ agencyId: setup.agencyAId, contactId: cResp, score: 99, source: 'market', marketListingId: mlShared, responseAt: new Date().toISOString() })
     await mkMatch({ agencyId: setup.agencyAId, contactId: cSno, score: 99, source: 'market', marketListingId: mlShared, snoozedUntil: new Date(Date.now() + 86_400_000).toISOString() })
     await mkMatch({ agencyId: setup.agencyAId, contactId: cLow, score: 65, source: 'market', marketListingId: mlShared })
-    await mkMatch({ agencyId: setup.agencyAId, contactId: cAcc, score: 96, source: 'market', marketListingId: mlShared, status: 'accepted' })
+    await mkMatch({ agencyId: setup.agencyAId, contactId: cSent, score: 96, source: 'market', marketListingId: mlShared, status: 'sent' })
     // Agence B : 1 match score 100 — jamais visible par A.
     await mkMatch({ agencyId: setup.agencyBId, contactId: cB, score: 100, source: 'market', marketListingId: mlShared })
   })
@@ -184,9 +184,9 @@ describe.skipIf(!HAS_KEYS)('focus_top_matches — RPC matches Focus (live + isol
   it('L2/L3/L4/L8 — filtres durs : status/response_at/snooze/gate excluent les bons matches', async () => {
     const rows = await callA()
     const ids = new Set(rows.map((r) => r.contact_id))
-    // cResp (répondu), cSno (snoozé), cLow (<gate), cAcc (accepted) absents.
-    // Aucun n'est dans contactIds visibles (on vérifie via leur score signature absente).
-    expect(rows.some((r) => r.score === 96)).toBe(false) // cAcc accepted
+    // cResp (répondu), cSno (snoozé), cLow (<gate), cSent (status 'sent') absents.
+    // On vérifie via leur score signature absente.
+    expect(rows.some((r) => r.score === 96)).toBe(false) // cSent (status != 'suggested')
     expect(rows.some((r) => r.score === 65)).toBe(false) // cLow sous le gate
     // cResp & cSno avaient 99 : aucun 99 ne doit apparaître.
     expect(rows.some((r) => r.score === 99)).toBe(false)
