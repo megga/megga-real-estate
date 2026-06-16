@@ -22,7 +22,7 @@ import { useTodayNav } from './TodayNavContext'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 
 // ─── « Ensuite » — file d'attente compacte ──────────────────────────────
-const ENSUITE_TONE: Record<string, TkToneName> = { Mandat: 'info', KYC: 'warn', Compromis: 'ok', Offre: 'warn', Visite: 'info', Match: 'info', Relance: 'neutral' }
+const ENSUITE_TONE: Record<string, TkToneName> = { Mandat: 'info', Vendeur: 'ok', KYC: 'warn', Compromis: 'ok', Offre: 'warn', Visite: 'info', Match: 'info', Relance: 'neutral' }
 
 function EnsuiteItem({ e }: { e: EnsuiteItemData }) {
   const p = TK[ENSUITE_TONE[e.tag] || 'neutral'] || TK.neutral
@@ -56,7 +56,7 @@ function EnsuiteItem({ e }: { e: EnsuiteItemData }) {
 
 // Dérive la rangée « Ensuite » des priorités qui suivent la première (la file
 // Focus sans son sommet). Tag mappé pour la pastille de tonalité.
-const ENSUITE_TAG: Record<string, string> = { OFFRE: 'Offre', MANDAT: 'Mandat', KYC: 'KYC', RELANCE: 'Relance', MATCH: 'Match' }
+const ENSUITE_TAG: Record<string, string> = { OFFRE: 'Offre', MANDAT: 'Mandat', VENDEUR: 'Vendeur', KYC: 'KYC', RELANCE: 'Relance', MATCH: 'Match' }
 // « Ensuite » = aperçu des items du tier « next » (le tier « now » est en tête
 // de la colonne Focus, le tier « rest » reste masqué).
 function deriveEnsuite(items: FocusItem[]): EnsuiteItemData[] {

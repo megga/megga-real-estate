@@ -18,6 +18,7 @@
 import { useMemo, useCallback } from 'react'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useReminders } from '@/hooks/useReminders'
+import { useSellerLeads } from '@/hooks/useSellerLeads'
 import type { StageId } from '@/components/crm-sugar/tokens'
 import type { FocusItem } from './focusQueue'
 import { fmtCHF } from './data'
@@ -29,6 +30,8 @@ import {
   buildReason,
   finalizeQueue,
   toDisplayScore,
+  isClosingProximate,
+  hasKycGap,
   type FocusScoreInput,
   type FocusRankable,
 } from './focusScore'
@@ -78,9 +81,13 @@ export interface UseFocusQueueResult {
 }
 
 export function useFocusQueue(): UseFocusQueueResult {
-  const { deals, contactsById, biensById, isLoading: dealsLoading } = usePipelineSugar()
+  const { deals, contactsById, biensById, kycByContact, isLoading: dealsLoading } = usePipelineSugar()
   const { reminders, isLoading: remLoading, markAsDone, snooze } = useReminders()
   const { matches, isLoading: matchesLoading } = useFocusMatches()
+  // RADAR : nouveaux mandats vendeurs 'new' à réclamer (argent qui attend).
+  // Limite bornée : la file Focus est une « liste courte » et l'entonnoir public
+  // (anon insert) peut faire grossir seller_leads — on ne charge que le haut.
+  const { data: sellerLeads = [], isLoading: sellerLoading } = useSellerLeads('new', 50)
   const cfg = useFocusConfig()
 
   const items = useMemo<QueueItem[]>(() => {
@@ -96,6 +103,49 @@ export function useFocusQueue(): UseFocusQueueResult {
       if (d.stage === 'lost') continue
       const c = contactsById.get(d.contactId)
       const b = d.bienId ? biensById.get(d.bienId) : undefined
+      const contact = c ? `${c.firstName} ${c.lastName}`.trim() : 'Contact'
+      const kyc = kycByContact.get(d.contactId)
+
+      // 1b. RADAR KYC×closing : deal proche du closing dont le dossier KYC
+      // (acheteur, déjà ouvert) n'est pas vérifié → item 'kyc' À LA PLACE du
+      // deal (compléter la vérif = la prochaine action). NON-BLOQUANT : aucune
+      // étape n'est gelée, on surface seulement. On exige un dossier EXISTANT
+      // (pas de faux « démarrer le KYC » sur un deal côté vendeur sans acheteur).
+      if (isClosingProximate(d.stage) && kyc && hasKycGap(kyc.dossier_status)) {
+        const input: FocusScoreInput = {
+          signalKind: 'kyc',
+          stageProb: d.probability,
+          dealStage: d.stage,
+          dealValue: d.value,
+          kycDossierStatus: kyc.dossier_status,
+        }
+        const score = scoreItem(input, now, cfg)
+        const tier = assignTier(input, now, cfg)
+        out.push({
+          id: `kyc-${d.id}`,
+          type: 'kyc',
+          signalKind: 'kyc',
+          contact,
+          contactId: d.contactId,
+          initials: c ? initialsOf(contact) : '··',
+          av: c?.avatarBg || '#39B7C9',
+          category: 'KYC',
+          time: '',
+          eta: '',
+          sub: b?.title
+            ? `${b.title} — dossier KYC à finaliser avant le closing.`
+            : 'Dossier KYC à finaliser avant le closing.',
+          reason: buildReason(input, now, cfg),
+          score,
+          displayScore: toDisplayScore(score, cfg),
+          tier,
+          urgent: tier === 'now',
+          bien: { photo: b?.coverPhoto || '', price: fmtCHF(d.value), title: b?.title || undefined },
+          due: new Date(d.updatedAt).getTime(),
+        })
+        continue
+      }
+
       const { type, category } = dealType(d.stage)
       const input: FocusScoreInput = {
         signalKind: 'deal',
@@ -106,7 +156,6 @@ export function useFocusQueue(): UseFocusQueueResult {
       }
       const score = scoreItem(input, now, cfg)
       const tier = assignTier(input, now, cfg)
-      const contact = c ? `${c.firstName} ${c.lastName}`.trim() : 'Contact'
       out.push({
         id: `deal-${d.id}`,
         type,
@@ -204,18 +253,60 @@ export function useFocusQueue(): UseFocusQueueResult {
       })
     }
 
-    return finalizeQueue(out, cfg)
-  }, [deals, contactsById, biensById, reminders, matches, cfg])
+    // 4. Seller-leads 'new' (RADAR) — nouveaux mandats à réclamer. Auto-suffisants
+    // (le lead 'new' n'a souvent ni contact_id ni property_id) : on lit
+    // property_data / estimation / contact_name. NB : un lead non assigné est
+    // visible par toutes les agences (pool d'entrée partagé, RLS by design).
+    for (const lead of sellerLeads) {
+      if (!lead.contact_name) continue // pas d'identité exploitable → on ignore
+      const pd = lead.property_data
+      const city = pd?.city || null
+      const est = lead.estimation_median != null ? fmtCHF(lead.estimation_median) : null
+      const input: FocusScoreInput = {
+        signalKind: 'seller-lead',
+        sellerEstimation: lead.estimation_median,
+        sellerMotivation: lead.motivation,
+        sellerCity: city,
+        sellerCreatedAt: lead.created_at,
+      }
+      const score = scoreItem(input, now, cfg)
+      const tier = assignTier(input, now, cfg)
+      out.push({
+        id: `seller-${lead.id}`,
+        type: 'seller',
+        signalKind: 'seller-lead',
+        contact: lead.contact_name,
+        contactId: lead.contact_id || lead.id,
+        initials: initialsOf(lead.contact_name),
+        av: avFromId(lead.id),
+        category: 'VENDEUR',
+        time: '',
+        eta: '',
+        sub: [pd?.address || city, est ? `estimation ${est}` : null].filter(Boolean).join(' · ')
+          || 'Nouveau mandat vendeur à qualifier.',
+        reason: buildReason(input, now, cfg),
+        score,
+        displayScore: toDisplayScore(score, cfg),
+        tier,
+        urgent: tier === 'now',
+        bien: { photo: pd?.photos?.[0] || '', price: est || '—', title: pd?.address || undefined },
+        due: lead.created_at ? new Date(lead.created_at).getTime() : undefined,
+      })
+    }
 
-  const isLoading = dealsLoading || remLoading || matchesLoading
-  const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0
+    return finalizeQueue(out, cfg)
+  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, cfg])
+
+  const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading
+  const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0
   const isLive = !isLoading && hasData
 
   // Gestes réels (HITL) : Fait clôt le reminder ; Replanifier reporte le
   // reminder OU snooze le match (+3 j). Fait sur un match = UI-only en v1 (ne PAS
   // écrire matches.status/sent_at — ça fausserait le pipeline matching/analytics).
-  // Item deal = UI-only (pas de mutation deal dédiée). Fire-and-forget : le
-  // refetch rafraîchit la file au prochain montage.
+  // Items deal / kyc (kyc-…) / seller-lead (seller-…) = UI-only en v1 : aucune
+  // mutation (réclamer un lead exige le flux d'acceptation complet ; le KYC reste
+  // non-bloquant). Fire-and-forget : le refetch rafraîchit la file au remontage.
   const completeItem = useCallback((item: FocusItem) => {
     if (item.id.startsWith('rem-')) markAsDone(item.id.slice(4))
   }, [markAsDone])

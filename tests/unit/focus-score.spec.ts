@@ -12,6 +12,10 @@ import {
   kycBonus,
   parseFocusConfig,
   toDisplayScore,
+  normalizeSellerLead,
+  normalizeKyc,
+  isClosingProximate,
+  hasKycGap,
   FOCUS_DEFAULTS,
   type FocusScoreInput,
   type FocusRankable,
@@ -31,6 +35,13 @@ const reminder = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
 })
 const deal = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
   signalKind: 'deal', stageProb: 85, dealRisk: 'healthy', dealStage: 'offer', dealValue: 1_000_000, ...over,
+})
+const sellerLead = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
+  signalKind: 'seller-lead', sellerEstimation: 1_200_000, sellerMotivation: 'immediate',
+  sellerCity: 'Genève', sellerCreatedAt: daysAgo(20), ...over,
+})
+const kyc = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
+  signalKind: 'kyc', stageProb: 85, dealStage: 'offer', dealValue: 1_000_000, kycDossierStatus: 'pending', ...over,
 })
 
 const rankable = (over: Partial<FocusRankable> = {}): FocusRankable => ({
@@ -178,6 +189,106 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
     expect(toDisplayScore(40)).toBeGreaterThan(toDisplayScore(20))
     expect(toDisplayScore(0)).toBe(0)
     expect(toDisplayScore(999)).toBe(100)
+  })
+
+  // ─── Focus radar v1 — familles seller-lead + kyc ────────────────────────
+  it('R1 — seller-lead : un mandat « new » part toujours en « now » (argent qui attend)', () => {
+    expect(assignTier(sellerLead(), NOW)).toBe('now')
+    // même un lead minimal (pas d'estimation, frais, sans motivation) reste « now »
+    expect(assignTier(sellerLead({ sellerEstimation: null, sellerMotivation: null, sellerCreatedAt: daysAgo(0) }), NOW)).toBe('now')
+    const s = scoreItem(sellerLead(), NOW)
+    expect(s).toBeGreaterThanOrEqual(0); expect(s).toBeLessThanOrEqual(100)
+  })
+
+  it('R2 — normalizeSellerLead : plancher 0.45, monotone (valeur / ancienneté / motivation), borné', () => {
+    const base = normalizeSellerLead({ sellerEstimation: null, sellerMotivation: null, sellerCreatedAt: daysAgo(0) }, NOW)
+    expect(base).toBeGreaterThanOrEqual(0.45) // plancher : tout nouveau mandat compte
+    // valeur ↑ → signal ↑
+    expect(normalizeSellerLead({ sellerEstimation: 2_000_000 }, NOW)).toBeGreaterThan(normalizeSellerLead({ sellerEstimation: 200_000 }, NOW))
+    // ancienneté non-réclamée ↑ → signal ↑ (un lead qui dort devient plus urgent)
+    expect(normalizeSellerLead({ sellerCreatedAt: daysAgo(30) }, NOW)).toBeGreaterThan(normalizeSellerLead({ sellerCreatedAt: daysAgo(0) }, NOW))
+    // motivation « immediate » = bonus
+    expect(normalizeSellerLead({ sellerMotivation: 'immediate' }, NOW)).toBeGreaterThan(normalizeSellerLead({ sellerMotivation: 'curious' }, NOW))
+    // borné [0..1]
+    for (const i of [base, normalizeSellerLead(sellerLead(), NOW)]) { expect(i).toBeGreaterThanOrEqual(0); expect(i).toBeLessThanOrEqual(1) }
+  })
+
+  it('R3 — seller-lead : reason FR (ville + ancienneté), sans UUID', () => {
+    const r = buildReason(sellerLead({ sellerCity: 'Lausanne', sellerCreatedAt: daysAgo(20) }), NOW)
+    expect(r).toContain('Nouveau lead vendeur')
+    expect(r).toContain('Lausanne')
+    expect(r).toContain('en attente depuis 20 j')
+    expect(r).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+    // lead frais (< 7 j) : pas de mention d'attente
+    expect(buildReason(sellerLead({ sellerCreatedAt: daysAgo(2) }), NOW)).not.toContain('en attente')
+  })
+
+  it('R4 — routage deal→kyc : helpers isClosingProximate / hasKycGap', () => {
+    for (const s of ['interest-confirmed', 'offer', 'signed']) expect(isClosingProximate(s)).toBe(true)
+    for (const s of ['new-lead', 'to-qualify', 'searching', 'visit-scheduled', 'visit-done', 'lost', null, undefined]) expect(isClosingProximate(s)).toBe(false)
+    // gap = dossier ouvert mais non vérifié
+    for (const d of ['pending', 'stale', 'failed', 'none']) expect(hasKycGap(d)).toBe(true)
+    expect(hasKycGap('verified')).toBe(false)
+    expect(hasKycGap(null)).toBe(false) // pas de dossier → pas de faux « gap »
+    expect(hasKycGap(undefined)).toBe(false)
+  })
+
+  it('R5 — kyc : tier offer/signed → now, intérêt confirmé → next ; NON-BLOQUANT', () => {
+    expect(assignTier(kyc({ dealStage: 'offer' }), NOW)).toBe('now')
+    expect(assignTier(kyc({ dealStage: 'signed' }), NOW)).toBe('now')
+    expect(assignTier(kyc({ dealStage: 'interest-confirmed', stageProb: 75 }), NOW)).toBe('next')
+    // le signal KYC ne dépend PAS du bonus input.kyc (c'est une famille à part) ;
+    // il surface une vérification, il ne gèle jamais une étape (jamais « rest »).
+    expect(['now', 'next']).toContain(assignTier(kyc(), NOW))
+  })
+
+  it('R6 — normalizeKyc : sévérité failed > stale > none > pending ; monotone proximité/valeur ; borné', () => {
+    const sev = (s: string) => normalizeKyc(kyc({ kycDossierStatus: s }), FOCUS_DEFAULTS)
+    expect(sev('failed')).toBeGreaterThan(sev('stale'))
+    expect(sev('stale')).toBeGreaterThan(sev('none'))
+    expect(sev('none')).toBeGreaterThan(sev('pending'))
+    // proximité du closing ↑ → signal ↑
+    expect(normalizeKyc(kyc({ stageProb: 100 }))).toBeGreaterThan(normalizeKyc(kyc({ stageProb: 75 })))
+    // valeur ↑ → signal ↑
+    expect(normalizeKyc(kyc({ dealValue: 3_000_000 }))).toBeGreaterThan(normalizeKyc(kyc({ dealValue: 300_000 })))
+    for (const s of ['failed', 'stale', 'none', 'pending']) { const v = sev(s); expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1) }
+  })
+
+  it('R7 — parseFocusConfig : merge défensif des nouveaux poids/seuils (kyc, seller_lead)', () => {
+    const cfg = parseFocusConfig({ weights: { kyc: 0.5 }, thresholds: { seller_lead_stale_saturation_days: 7 } })
+    expect(cfg.weights.kyc).toBe(0.5)
+    expect(cfg.weights.seller_lead).toBe(FOCUS_DEFAULTS.weights.seller_lead) // non fourni → défaut
+    expect(cfg.thresholds.seller_lead_stale_saturation_days).toBe(7)
+    expect(cfg.bonuses.seller_lead_value_ref).toBe(FOCUS_DEFAULTS.bonuses.seller_lead_value_ref)
+    // valeur invalide → défaut (jamais NaN)
+    expect(parseFocusConfig({ weights: { kyc: 'x' } }).weights.kyc).toBe(FOCUS_DEFAULTS.weights.kyc)
+  })
+
+  it('R8 — displayScore [0..100] pour les 2 nouvelles familles', () => {
+    for (const i of [sellerLead(), sellerLead({ sellerEstimation: null }), kyc(), kyc({ dealStage: 'signed', stageProb: 100, kycDossierStatus: 'failed' })]) {
+      const ds = toDisplayScore(scoreItem(i, NOW))
+      expect(ds).toBeGreaterThanOrEqual(0); expect(ds).toBeLessThanOrEqual(100)
+    }
+  })
+
+  it('R9 — cap « now » : un rappel échu garde sa place « Maintenant » face à des seller-leads spéculatifs', () => {
+    // 3 seller-leads (score 20, now) + 1 rappel échu (score 15, now), cap now=3.
+    // Sans réservation, le tri par score reléguerait le rappel (4ᵉ) en « next ».
+    const items: FocusRankable[] = [
+      rankable({ id: 'sl1', contactId: 'a', signalKind: 'seller-lead', score: 20, tier: 'now' }),
+      rankable({ id: 'sl2', contactId: 'b', signalKind: 'seller-lead', score: 20, tier: 'now' }),
+      rankable({ id: 'sl3', contactId: 'c', signalKind: 'seller-lead', score: 20, tier: 'now' }),
+      rankable({ id: 'rem', contactId: 'd', signalKind: 'reminder', score: 15, tier: 'now' }),
+    ]
+    const out = finalizeQueue(items)
+    const byId = (id: string) => out.find((i) => i.id === id)!
+    // l'obligation datée (rappel échu) garde « now » malgré un score plus bas
+    expect(byId('rem').tier).toBe('now')
+    // cap respecté : exactement 3 « now », donc un seller-lead bascule en « next » (jamais perdu)
+    expect(out.filter((i) => i.tier === 'now')).toHaveLength(3)
+    expect(out.filter((i) => i.signalKind === 'seller-lead' && i.tier === 'next')).toHaveLength(1)
+    // l'ordre de tri (score ↓) est conservé : le tier ne réordonne pas la file
+    expect(out.map((i) => i.id).slice(0, 3)).toEqual(['sl1', 'sl2', 'sl3'])
   })
 
   it('U13 — selectFocusQueue : seed démo gated (jamais de fallback fictif en prod)', () => {

@@ -16,7 +16,12 @@
 // et chaque geste reste validé par l'agent (HITL). Le KYC n'est qu'un bonus :
 // son absence ou sa présence ne crée, ne masque ni ne rétrograde jamais un item.
 
-export type FocusSignalKind = 'reminder' | 'deal' | 'match-internal' | 'match-market'
+// Familles de signal. Focus radar v1 ajoute deux signaux PASSIFS (radar) :
+//   'seller-lead' = nouveau mandat vendeur à réclamer (argent qui attend) ;
+//   'kyc'         = deal proche du closing dont le dossier KYC n'est pas vérifié
+//                   (nudge NON-BLOQUANT, jamais un gate).
+export type FocusSignalKind =
+  | 'reminder' | 'deal' | 'kyc' | 'seller-lead' | 'match-internal' | 'match-market'
 export type FocusTier = 'now' | 'next' | 'rest'
 export type DealRisk = 'healthy' | 'at-risk' | 'stalled'
 
@@ -44,10 +49,18 @@ export interface FocusScoreInput {
   dealRisk?: DealRisk
   dealStage?: string
   dealValue?: number
+  // famille kyc (deal proche du closing + dossier non vérifié). Réutilise
+  // stageProb / dealStage / dealValue ; ajoute le statut du dossier.
+  kycDossierStatus?: string | null   // 'pending' | 'stale' | 'failed' | 'none'
+  // famille seller-lead (nouveau mandat vendeur 'new', auto-suffisant)
+  sellerEstimation?: number | null
+  sellerMotivation?: string | null
+  sellerCity?: string | null
+  sellerCreatedAt?: string | null
 }
 
 export interface FocusConfig {
-  weights: { reminder: number; match: number; deal: number }
+  weights: { reminder: number; match: number; deal: number; kyc: number; seller_lead: number }
   thresholds: {
     match_gate: number
     match_now: number
@@ -55,6 +68,7 @@ export interface FocusConfig {
     reminder_overdue_saturation_days: number
     deal_next_stage_prob: number
     kyc_expiry_window_days: number
+    seller_lead_stale_saturation_days: number
   }
   bonuses: {
     match_internal: number
@@ -65,6 +79,8 @@ export interface FocusConfig {
     deal_tension_stalled: number
     kyc_max: number
     deal_value_ref: number
+    seller_lead_motivation_immediate: number
+    seller_lead_value_ref: number
   }
   caps: { now_total: number; per_contact: number; matches_returned: number }
   version: number
@@ -72,7 +88,7 @@ export interface FocusConfig {
 
 // Miroir EXACT de app_config.today_focus_v1 (cf migration 20260616120000).
 export const FOCUS_DEFAULTS: FocusConfig = {
-  weights: { reminder: 0.45, match: 0.40, deal: 0.15 },
+  weights: { reminder: 0.45, match: 0.40, deal: 0.15, kyc: 0.42, seller_lead: 0.45 },
   thresholds: {
     match_gate: 70,
     match_now: 80,
@@ -80,6 +96,7 @@ export const FOCUS_DEFAULTS: FocusConfig = {
     reminder_overdue_saturation_days: 3,
     deal_next_stage_prob: 0.6,
     kyc_expiry_window_days: 14,
+    seller_lead_stale_saturation_days: 14,
   },
   bonuses: {
     match_internal: 0.08,
@@ -90,6 +107,8 @@ export const FOCUS_DEFAULTS: FocusConfig = {
     deal_tension_stalled: 0.1,
     kyc_max: 0.12,
     deal_value_ref: 3_000_000,
+    seller_lead_motivation_immediate: 0.15,
+    seller_lead_value_ref: 3_000_000,
   },
   caps: { now_total: 3, per_contact: 2, matches_returned: 40 },
   version: 1,
@@ -122,6 +141,8 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       reminder: numOr(w.reminder, d.weights.reminder),
       match: numOr(w.match, d.weights.match),
       deal: numOr(w.deal, d.weights.deal),
+      kyc: numOr(w.kyc, d.weights.kyc),
+      seller_lead: numOr(w.seller_lead, d.weights.seller_lead),
     },
     thresholds: {
       match_gate: numOr(t.match_gate, d.thresholds.match_gate),
@@ -130,6 +151,7 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       reminder_overdue_saturation_days: numOr(t.reminder_overdue_saturation_days, d.thresholds.reminder_overdue_saturation_days),
       deal_next_stage_prob: numOr(t.deal_next_stage_prob, d.thresholds.deal_next_stage_prob),
       kyc_expiry_window_days: numOr(t.kyc_expiry_window_days, d.thresholds.kyc_expiry_window_days),
+      seller_lead_stale_saturation_days: numOr(t.seller_lead_stale_saturation_days, d.thresholds.seller_lead_stale_saturation_days),
     },
     bonuses: {
       match_internal: numOr(b.match_internal, d.bonuses.match_internal),
@@ -140,6 +162,8 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       deal_tension_stalled: numOr(b.deal_tension_stalled, d.bonuses.deal_tension_stalled),
       kyc_max: numOr(b.kyc_max, d.bonuses.kyc_max),
       deal_value_ref: numOr(b.deal_value_ref, d.bonuses.deal_value_ref),
+      seller_lead_motivation_immediate: numOr(b.seller_lead_motivation_immediate, d.bonuses.seller_lead_motivation_immediate),
+      seller_lead_value_ref: numOr(b.seller_lead_value_ref, d.bonuses.seller_lead_value_ref),
     },
     caps: {
       now_total: numOr(c.now_total, d.caps.now_total),
@@ -157,7 +181,10 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
 // atteignable (poids de famille le plus fort + bonus KYC) → 0..100 lisible.
 // Transformation monotone : ne change jamais l'ordre, juste l'échelle montrée.
 export function focusScoreMaxFraction(cfg: FocusConfig = FOCUS_DEFAULTS): number {
-  return Math.max(cfg.weights.reminder, cfg.weights.match, cfg.weights.deal) + cfg.bonuses.kyc_max
+  return Math.max(
+    cfg.weights.reminder, cfg.weights.match, cfg.weights.deal,
+    cfg.weights.kyc, cfg.weights.seller_lead,
+  ) + cfg.bonuses.kyc_max
 }
 
 export function toDisplayScore(rawScore: number, cfg: FocusConfig = FOCUS_DEFAULTS): number {
@@ -239,6 +266,61 @@ export function normalizeDeal(
   return clamp01(0.5 * sStage + 0.3 * sTension + 0.2 * sValue)
 }
 
+/** Âge en jours d'une date ISO (0 si à venir / invalide). */
+function ageInDays(iso: string | null | undefined, now: number): number {
+  if (!iso) return 0
+  const tt = Date.parse(iso)
+  if (Number.isNaN(tt)) return 0
+  return Math.max(0, Math.floor((now - tt) / DAY))
+}
+
+// ── 1.5 seller-lead → signal [0..1] (nouveau mandat 'new' = argent qui attend) ─
+// Valeur potentielle du mandat (estimation, log) + ancienneté non-réclamée (un
+// lead qui dort se dégrade : plus vieux = plus urgent à réclamer) + bonus
+// motivation « immédiate ». Plancher 0.45 : tout nouveau mandat compte.
+export function normalizeSellerLead(
+  input: Pick<FocusScoreInput, 'sellerEstimation' | 'sellerMotivation' | 'sellerCreatedAt'>,
+  now: number,
+  cfg: FocusConfig = FOCUS_DEFAULTS,
+): number {
+  const ref = cfg.bonuses.seller_lead_value_ref
+  const v = input.sellerEstimation ?? 0
+  const sValue = v <= 0 ? 0 : clamp01(Math.log(v + 1) / Math.log(ref + 1))
+  const sStale = clamp01(ageInDays(input.sellerCreatedAt, now) / cfg.thresholds.seller_lead_stale_saturation_days)
+  const motiv = input.sellerMotivation === 'immediate' ? cfg.bonuses.seller_lead_motivation_immediate : 0
+  return clamp01(0.45 + 0.3 * sValue + 0.25 * sStale + motiv)
+}
+
+// ── 1.6 kyc → signal [0..1] (deal proche du closing, dossier non vérifié) ─────
+// NON-BLOQUANT : ce signal NE remplace une priorité que pour SURFACER une
+// vérification à finaliser ; il ne gèle jamais le pipeline. Proximité du closing
+// (stageProb) + sévérité du dossier (failed > stale > none > pending) + valeur.
+export function normalizeKyc(
+  input: Pick<FocusScoreInput, 'stageProb' | 'kycDossierStatus' | 'dealValue'>,
+  cfg: FocusConfig = FOCUS_DEFAULTS,
+): number {
+  const sStage = clamp01((input.stageProb ?? 0) / 100)
+  const sev =
+    input.kycDossierStatus === 'failed' ? 1.0
+    : input.kycDossierStatus === 'stale' ? 0.7
+    : input.kycDossierStatus === 'none' ? 0.6
+    : 0.5 // 'pending' ou tout autre statut non-vérifié
+  const ref = cfg.bonuses.deal_value_ref
+  const v = input.dealValue ?? 0
+  const sValue = v <= 0 ? 0 : clamp01(Math.log(v + 1) / Math.log(ref + 1))
+  return clamp01(0.5 * sStage + 0.3 * sev + 0.2 * sValue)
+}
+
+// ── Routage deal → kyc : un deal proche du closing dont le dossier KYC n'est
+// pas vérifié devient un item 'kyc' (compléter la vérification = la prochaine
+// action), sinon il reste un item 'deal'. Purs + testables.
+export function isClosingProximate(stage: string | null | undefined): boolean {
+  return stage === 'interest-confirmed' || stage === 'offer' || stage === 'signed'
+}
+export function hasKycGap(dossierStatus: string | null | undefined): boolean {
+  return dossierStatus != null && dossierStatus !== 'verified'
+}
+
 // ── 1.4 KYC → bonus additif NON-BLOQUANT ───────────────────────────────────
 export function kycBonus(kyc: FocusKyc | null | undefined, cfg: FocusConfig = FOCUS_DEFAULTS): number {
   if (!kyc || !kyc.riskHigh || kyc.daysToExpiry == null) return 0
@@ -256,6 +338,12 @@ export function scoreItem(input: FocusScoreInput, now: number, cfg: FocusConfig 
   } else if (input.signalKind === 'deal') {
     signal = normalizeDeal(input, cfg)
     family = cfg.weights.deal
+  } else if (input.signalKind === 'kyc') {
+    signal = normalizeKyc(input, cfg)
+    family = cfg.weights.kyc
+  } else if (input.signalKind === 'seller-lead') {
+    signal = normalizeSellerLead(input, now, cfg)
+    family = cfg.weights.seller_lead
   } else {
     signal = normalizeMatch(input, cfg)
     family = cfg.weights.match
@@ -269,6 +357,13 @@ export function assignTier(input: FocusScoreInput, now: number, cfg: FocusConfig
   const isMatch = input.signalKind === 'match-internal' || input.signalKind === 'match-market'
   const brut = input.matchScore ?? 0
   // — Maintenant —
+  // Nouveau mandat vendeur 'new' = argent qui attend → à réclamer aujourd'hui
+  // (le cap dur « now » s'applique ensuite ; rien n'est jamais perdu).
+  if (input.signalKind === 'seller-lead') return 'now'
+  // Signal KYC×closing : déjà gaté (closing-proximate + dossier non vérifié) en
+  // amont ; offer/signed = maintenant, intérêt confirmé = ensuite. RESTE un
+  // simple surfaçage — non-bloquant, jamais un gate sur le pipeline.
+  if (input.signalKind === 'kyc') return (input.dealStage === 'offer' || input.dealStage === 'signed') ? 'now' : 'next'
   if (input.signalKind === 'reminder' && reminderOverdueDays(input.reminderTriggerAt, now) >= 1) return 'now'
   if (isMatch && brut >= T.match_now) return 'now'
   if (input.signalKind === 'deal' && (input.dealRisk === 'at-risk' || input.dealRisk === 'stalled')) return 'now'
@@ -303,6 +398,18 @@ export function buildReason(input: FocusScoreInput, now: number, cfg: FocusConfi
     } else {
       base = input.reminderTime ? `Relance prévue aujourd'hui (${input.reminderTime})` : "Relance prévue aujourd'hui"
     }
+  } else if (input.signalKind === 'seller-lead') {
+    base = input.sellerCity ? `Nouveau lead vendeur — ${input.sellerCity}` : 'Nouveau lead vendeur à réclamer'
+    const age = ageInDays(input.sellerCreatedAt, now)
+    if (age >= 7) base += ` · en attente depuis ${age} j`
+  } else if (input.signalKind === 'kyc') {
+    // Toujours formulé comme une finalisation OPTIONNELLE (non-bloquant).
+    const tail =
+      input.kycDossierStatus === 'failed' ? ' · dossier à corriger'
+      : input.kycDossierStatus === 'stale' ? ' · dossier à re-vérifier'
+      : input.kycDossierStatus === 'none' ? ' · dossier non démarré'
+      : ' · dossier en cours'
+    base = 'Closing proche — KYC du dossier à finaliser' + tail
   } else if (input.signalKind === 'match-internal' || input.signalKind === 'match-market') {
     const brut = input.matchScore ?? 0
     const top = (input.reasonKeys ?? [])
@@ -338,11 +445,16 @@ export interface FocusRankable {
   due?: number
 }
 
+// Tie-break déterministe à score+tier égaux (cosmétique : le score domine).
+// Temporellement urgent d'abord (reminder), puis compliance de closing (kyc),
+// deal, nouveau mandat, matches.
 const FAMILY_ORDER: Record<FocusSignalKind, number> = {
   reminder: 0,
-  deal: 1,
-  'match-internal': 2,
-  'match-market': 3,
+  kyc: 1,
+  deal: 2,
+  'seller-lead': 3,
+  'match-internal': 4,
+  'match-market': 5,
 }
 const TIER_ORDER: Record<FocusTier, number> = { now: 0, next: 1, rest: 2 }
 
@@ -365,13 +477,27 @@ export function finalizeQueue<T extends FocusRankable>(items: T[], cfg: FocusCon
     (a.due ?? Number.POSITIVE_INFINITY) - (b.due ?? Number.POSITIVE_INFINITY) ||
     (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   )
-  // Cap dur « Maintenant » : les items « now » au-delà du cap rétrogradent en « next ».
-  let nowCount = 0
-  for (const it of capped) {
-    if (it.tier === 'now') {
-      if (nowCount >= cfg.caps.now_total) it.tier = 'next'
-      else nowCount++
-    }
+  // Cap dur « Maintenant » : au plus cfg.caps.now_total items « now ».
+  // PRIORITÉ DES SLOTS : un reminder en retard est une obligation DATÉE (un
+  // engagement client échu) — il garde sa place « Maintenant » avant les signaux
+  // RADAR plus spéculatifs (seller-lead / kyc / deal), même à score plus bas.
+  // 1ʳᵉ passe : les reminders « now » (= échus, cf assignTier) réservent les
+  // slots dans l'ordre de tri ; 2ᵉ passe : le budget restant va aux autres
+  // « now ». Les « now » au-delà du cap rétrogradent en « next » (jamais perdus).
+  const nowItems = capped.filter((it) => it.tier === 'now')
+  const keepNow = new Set<string>()
+  let budget = cfg.caps.now_total
+  for (const it of nowItems) {
+    if (budget <= 0) break
+    if (it.signalKind === 'reminder') { keepNow.add(it.id); budget-- }
+  }
+  for (const it of nowItems) {
+    if (budget <= 0) break
+    if (keepNow.has(it.id)) continue
+    keepNow.add(it.id); budget--
+  }
+  for (const it of nowItems) {
+    if (!keepNow.has(it.id)) it.tier = 'next'
   }
   return capped
 }
