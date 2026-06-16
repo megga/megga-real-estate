@@ -83,6 +83,9 @@ export const FOCUS_TYPE: Record<string, FocusTypeDef> = {
   seller: { icon: 'flame', badge: '#34C796', live: false, label: (n) => `Contacter ${n.split(' ')[0]}` },
   // Focus radar v2 — lead qui refroidit / jamais recontacté (relance de fond).
   cooling: { icon: 'clock', badge: '#6F8CFF', live: false, label: (n) => `Relancer ${n.split(' ')[0]}` },
+  // Focus radar v3 — visite à préparer (jour) / débrief en attente / no-show.
+  // (Les offres qui expirent réutilisent le type 'offer' ci-dessus.)
+  visit: { icon: 'cal', badge: '#9b7cf0', live: false, label: () => 'Voir la visite' },
 }
 
 export const focusTy = (t: string): FocusTypeDef => FOCUS_TYPE[t] || FOCUS_TYPE.call

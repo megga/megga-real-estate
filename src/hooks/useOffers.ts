@@ -54,6 +54,60 @@ export function useOffersCountByDeal(dealId: string | undefined) {
   })
 }
 
+// ─── Read : offres 'pending' proches de l'échéance (Focus radar v3) ──────
+//
+// Liste agence-wide des offres en attente, triées par échéance la plus proche.
+// RLS scope déjà l'agence (policy agency_id IN profiles de auth.uid()) ; le
+// `.eq('agency_id', …)` explicite est redondant mais conventionnel et frappe
+// l'index. `.eq('status','pending')` (pas `.in`) frappe l'index partiel
+// idx_crm_offers_status_expires (status, expires_at WHERE status='pending') →
+// pas de tri en mémoire. Le cron crm-offers-expire-hourly bascule pending→expired,
+// donc 'pending' exclut déjà les offres expirées. Pas de count:'exact'.
+// SELECT explicite des seules colonnes utiles (CLAUDE.md §7) : on évite les jsonb
+// lourds (conditions, attachments) inutiles pour la file. amount (bigint) → number.
+
+/** Projection lean d'une offre pour la file Focus (pas le type Offer complet). */
+export interface ExpiringOffer {
+  id: string
+  expires_at: string
+  amount: number
+  status: OfferStatus
+  by_label: string
+  by_id: string | null
+}
+
+export function useExpiringOffers(limit = 50) {
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id
+  return useQuery({
+    queryKey: ['expiring-offers', agencyId, limit],
+    enabled: !!agencyId,
+    staleTime: 60_000,
+    queryFn: async (): Promise<ExpiringOffer[]> => {
+      if (!agencyId) return []
+      const { data, error } = await supabase
+        .from('crm_offers')
+        .select('id, expires_at, amount, status, by_label, by_id')
+        .eq('agency_id', agencyId)
+        .eq('status', 'pending')
+        .order('expires_at', { ascending: true })
+        .limit(limit)
+      if (error) throw error
+      return (data ?? []).map((r) => {
+        const row = r as { id: string; expires_at: string; amount: number | string; status: OfferStatus; by_label: string; by_id: string | null }
+        return {
+          id: row.id,
+          expires_at: row.expires_at,
+          amount: typeof row.amount === 'string' ? parseInt(row.amount, 10) : row.amount,
+          status: row.status,
+          by_label: row.by_label,
+          by_id: row.by_id,
+        }
+      })
+    },
+  })
+}
+
 // ─── Write : créer une offre ou contre-offre ────────────────────────────
 
 export interface CreateOfferInput {

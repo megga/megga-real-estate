@@ -23,8 +23,13 @@
 // Focus radar v2 ajoute :
 //   'lead-cooling' = lead qui refroidit / jamais recontacté (recency) — signal
 //                    de fond, cappé + dédupliqué, jamais « now ».
+// Focus radar v3 ajoute deux signaux d'ÉVÉNEMENT datés :
+//   'offer-expiring' = offre formelle 'pending' proche de son échéance
+//                      (argent + délai) — réponse attendue ;
+//   'visit'          = visite du jour à préparer / débrief en attente / no-show.
 export type FocusSignalKind =
-  | 'reminder' | 'deal' | 'kyc' | 'seller-lead' | 'lead-cooling' | 'match-internal' | 'match-market'
+  | 'reminder' | 'deal' | 'kyc' | 'seller-lead' | 'lead-cooling'
+  | 'offer-expiring' | 'visit' | 'match-internal' | 'match-market'
 export type FocusTier = 'now' | 'next' | 'rest'
 export type DealRisk = 'healthy' | 'at-risk' | 'stalled'
 
@@ -64,10 +69,18 @@ export interface FocusScoreInput {
   coolingQuality?: number        // score qualité 0..100 (hot 85 / warm 65 / cold 35)
   coolingDormDays?: number       // jours depuis le dernier contact (999 = jamais)
   coolingHasDate?: boolean       // false si last_interaction_at IS NULL (jamais recontacté)
+  // famille offer-expiring (offre formelle 'pending' proche de son échéance)
+  offerExpiresAt?: string | null // expires_at de l'offre (ISO)
+  offerAmount?: number           // montant CHF (proxy d'enjeu)
+  offerStatus?: string | null    // garde-fou : seule 'pending' est surfacée en amont
+  // famille visit (visite du jour à préparer / débrief en attente / no-show)
+  visitScheduledAt?: string | null // scheduled_at de la visite (ISO)
+  visitStatus?: string | null      // planned|confirmed|done|cancelled|no_show
+  visitDebriefMissing?: boolean    // rapport ET feedback_agent absents (pas encore débriefée)
 }
 
 export interface FocusConfig {
-  weights: { reminder: number; match: number; deal: number; kyc: number; seller_lead: number; lead_cooling: number }
+  weights: { reminder: number; match: number; deal: number; kyc: number; seller_lead: number; lead_cooling: number; offer_expiring: number; visit: number }
   thresholds: {
     match_gate: number
     match_now: number
@@ -77,6 +90,9 @@ export interface FocusConfig {
     kyc_expiry_window_days: number
     seller_lead_stale_saturation_days: number
     lead_cooling_saturation_days: number
+    offer_expiring_window_days: number
+    offer_expiring_now_days: number
+    visit_debrief_saturation_days: number
   }
   bonuses: {
     match_internal: number
@@ -90,13 +106,13 @@ export interface FocusConfig {
     seller_lead_motivation_immediate: number
     seller_lead_value_ref: number
   }
-  caps: { now_total: number; per_contact: number; matches_returned: number; cooling_returned: number }
+  caps: { now_total: number; per_contact: number; matches_returned: number; cooling_returned: number; offer_expiring_returned: number; visit_returned: number }
   version: number
 }
 
 // Miroir EXACT de app_config.today_focus_v1 (cf migration 20260616120000).
 export const FOCUS_DEFAULTS: FocusConfig = {
-  weights: { reminder: 0.45, match: 0.40, deal: 0.15, kyc: 0.42, seller_lead: 0.45, lead_cooling: 0.25 },
+  weights: { reminder: 0.45, match: 0.40, deal: 0.15, kyc: 0.42, seller_lead: 0.45, lead_cooling: 0.25, offer_expiring: 0.45, visit: 0.40 },
   thresholds: {
     match_gate: 70,
     match_now: 80,
@@ -106,6 +122,9 @@ export const FOCUS_DEFAULTS: FocusConfig = {
     kyc_expiry_window_days: 14,
     seller_lead_stale_saturation_days: 14,
     lead_cooling_saturation_days: 60,
+    offer_expiring_window_days: 7,
+    offer_expiring_now_days: 2,
+    visit_debrief_saturation_days: 5,
   },
   bonuses: {
     match_internal: 0.08,
@@ -119,7 +138,7 @@ export const FOCUS_DEFAULTS: FocusConfig = {
     seller_lead_motivation_immediate: 0.15,
     seller_lead_value_ref: 3_000_000,
   },
-  caps: { now_total: 3, per_contact: 2, matches_returned: 40, cooling_returned: 3 },
+  caps: { now_total: 3, per_contact: 2, matches_returned: 40, cooling_returned: 3, offer_expiring_returned: 5, visit_returned: 3 },
   version: 1,
 }
 
@@ -153,6 +172,8 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       kyc: numOr(w.kyc, d.weights.kyc),
       seller_lead: numOr(w.seller_lead, d.weights.seller_lead),
       lead_cooling: numOr(w.lead_cooling, d.weights.lead_cooling),
+      offer_expiring: numOr(w.offer_expiring, d.weights.offer_expiring),
+      visit: numOr(w.visit, d.weights.visit),
     },
     thresholds: {
       match_gate: numOr(t.match_gate, d.thresholds.match_gate),
@@ -163,6 +184,9 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       kyc_expiry_window_days: numOr(t.kyc_expiry_window_days, d.thresholds.kyc_expiry_window_days),
       seller_lead_stale_saturation_days: numOr(t.seller_lead_stale_saturation_days, d.thresholds.seller_lead_stale_saturation_days),
       lead_cooling_saturation_days: numOr(t.lead_cooling_saturation_days, d.thresholds.lead_cooling_saturation_days),
+      offer_expiring_window_days: numOr(t.offer_expiring_window_days, d.thresholds.offer_expiring_window_days),
+      offer_expiring_now_days: numOr(t.offer_expiring_now_days, d.thresholds.offer_expiring_now_days),
+      visit_debrief_saturation_days: numOr(t.visit_debrief_saturation_days, d.thresholds.visit_debrief_saturation_days),
     },
     bonuses: {
       match_internal: numOr(b.match_internal, d.bonuses.match_internal),
@@ -181,6 +205,8 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       per_contact: numOr(c.per_contact, d.caps.per_contact),
       matches_returned: numOr(c.matches_returned, d.caps.matches_returned),
       cooling_returned: numOr(c.cooling_returned, d.caps.cooling_returned),
+      offer_expiring_returned: numOr(c.offer_expiring_returned, d.caps.offer_expiring_returned),
+      visit_returned: numOr(c.visit_returned, d.caps.visit_returned),
     },
     version: numOr(o.version, d.version),
   }
@@ -196,6 +222,7 @@ export function focusScoreMaxFraction(cfg: FocusConfig = FOCUS_DEFAULTS): number
   return Math.max(
     cfg.weights.reminder, cfg.weights.match, cfg.weights.deal,
     cfg.weights.kyc, cfg.weights.seller_lead, cfg.weights.lead_cooling,
+    cfg.weights.offer_expiring, cfg.weights.visit,
   ) + cfg.bonuses.kyc_max
 }
 
@@ -218,6 +245,13 @@ function endOfDay(now: number): number {
   const d = new Date(now)
   d.setHours(23, 59, 59, 999)
   return d.getTime()
+}
+
+/** Deux timestamps tombent-ils le même jour calendaire local ? */
+function isSameDay(a: number, b: number): boolean {
+  const da = new Date(a)
+  const db = new Date(b)
+  return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate()
 }
 
 /** Reminder dû aujourd'hui (pas en retard, pas au-delà de la journée). */
@@ -339,6 +373,82 @@ export function normalizeLeadCooling(
   return clamp01(0.55 * q + 0.45 * dorm)
 }
 
+// ── 1.8 offer-expiring → signal [0..1] (offre 'pending' proche de l'échéance) ─
+// Signal d'ÉVÉNEMENT daté : proximité de l'échéance (plus c'est proche / dépassé,
+// plus c'est chaud, saturée par offer_expiring_window_days) + enjeu (montant, log).
+// La proximité DOMINE (l'échéance EST le signal) ; le montant départage.
+export function normalizeOfferExpiring(
+  input: Pick<FocusScoreInput, 'offerExpiresAt' | 'offerAmount'>,
+  now: number,
+  cfg: FocusConfig = FOCUS_DEFAULTS,
+): number {
+  const tt = input.offerExpiresAt ? Date.parse(input.offerExpiresAt) : NaN
+  let proximity: number
+  if (Number.isNaN(tt)) proximity = 0.5
+  else {
+    const daysLeft = (tt - now) / DAY
+    proximity = daysLeft <= 0 ? 1 : clamp01(1 - daysLeft / cfg.thresholds.offer_expiring_window_days)
+  }
+  const ref = cfg.bonuses.deal_value_ref
+  const v = input.offerAmount ?? 0
+  const sValue = v <= 0 ? 0 : clamp01(Math.log(v + 1) / Math.log(ref + 1))
+  return clamp01(0.6 * proximity + 0.4 * sValue)
+}
+
+// ── 1.9 visit → sous-signal + signal [0..1] ──────────────────────────────────
+// Trois sous-signaux d'agenda, routés par classifyVisit (déterministe) :
+//   'today'    = visite planifiée/confirmée AUJOURD'HUI → à préparer ;
+//   'debrief'  = visite passée non résolue (faite sans débrief OU planifiée
+//                échue) → à débriefer / clôturer ;
+//   'no-show'  = visite non honorée → à relancer.
+// Une visite future au-delà d'aujourd'hui, annulée, ou déjà débriefée = 'none'
+// (aucun signal — l'item n'est PAS construit côté useFocusQueue).
+export type VisitSubSignal = 'today' | 'debrief' | 'no-show' | 'none'
+
+export function classifyVisit(
+  input: Pick<FocusScoreInput, 'visitScheduledAt' | 'visitStatus' | 'visitDebriefMissing'>,
+  now: number,
+): VisitSubSignal {
+  const st = input.visitStatus
+  if (st === 'no_show') return 'no-show'
+  if (st === 'cancelled') return 'none'
+  if (st === 'done') return input.visitDebriefMissing ? 'debrief' : 'none'
+  // planned | confirmed | statut inconnu
+  const tt = input.visitScheduledAt ? Date.parse(input.visitScheduledAt) : NaN
+  if (Number.isNaN(tt)) return 'none'
+  // À VENIR aujourd'hui → à préparer ; DÉJÀ PASSÉE (plus tôt aujourd'hui OU les
+  // jours précédents) sans clôture → à débriefer ; future au-delà → aucun signal.
+  if (tt >= now && isSameDay(tt, now)) return 'today'
+  if (tt < now) return 'debrief'
+  return 'none'
+}
+
+export function normalizeVisit(
+  input: Pick<FocusScoreInput, 'visitScheduledAt' | 'visitStatus' | 'visitDebriefMissing'>,
+  now: number,
+  cfg: FocusConfig = FOCUS_DEFAULTS,
+): number {
+  const sub = classifyVisit(input, now)
+  const tt = input.visitScheduledAt ? Date.parse(input.visitScheduledAt) : NaN
+  // INVARIANT intra-famille : 'today' (obligation datée, tier 'now') domine
+  // TOUJOURS 'debrief'/'no-show' (tier 'next') → plancher 'today' (0.7) > plafond
+  // 'debrief' (0.65). Sans ça, un débrief saturé pourrait évincer une visite du
+  // jour sous le cap par-famille (tri par score).
+  if (sub === 'today') {
+    // proximité de l'heure : plus c'est imminent (avant/après), plus c'est chaud.
+    let prox = 0.5
+    if (!Number.isNaN(tt)) prox = clamp01(1 - Math.abs(tt - now) / (12 * 3.6e6))
+    return clamp01(0.7 + 0.3 * prox)
+  }
+  if (sub === 'debrief') {
+    const days = Number.isNaN(tt) ? 0 : Math.max(0, (now - tt) / DAY)
+    const overdue = clamp01(days / cfg.thresholds.visit_debrief_saturation_days)
+    return clamp01(0.4 + 0.25 * overdue)
+  }
+  if (sub === 'no-show') return 0.5
+  return 0
+}
+
 // ── Routage deal → kyc : un deal proche du closing dont le dossier KYC n'est
 // pas vérifié devient un item 'kyc' (compléter la vérification = la prochaine
 // action), sinon il reste un item 'deal'. Purs + testables.
@@ -375,6 +485,12 @@ export function scoreItem(input: FocusScoreInput, now: number, cfg: FocusConfig 
   } else if (input.signalKind === 'lead-cooling') {
     signal = normalizeLeadCooling(input, cfg)
     family = cfg.weights.lead_cooling
+  } else if (input.signalKind === 'offer-expiring') {
+    signal = normalizeOfferExpiring(input, now, cfg)
+    family = cfg.weights.offer_expiring
+  } else if (input.signalKind === 'visit') {
+    signal = normalizeVisit(input, now, cfg)
+    family = cfg.weights.visit
   } else {
     signal = normalizeMatch(input, cfg)
     family = cfg.weights.match
@@ -398,6 +514,26 @@ export function assignTier(input: FocusScoreInput, now: number, cfg: FocusConfig
   // Lead qui refroidit = signal de FOND : « à relancer bientôt », JAMAIS « now »
   // (ce n'est pas une obligation datée). Plafonné à « Ensuite ».
   if (input.signalKind === 'lead-cooling') return 'next'
+  // Offre 'pending' : échéance ≤ now_days (ou dépassée) = obligation imminente →
+  // « now » ; dans la fenêtre = « next » ; au-delà = bruit (« rest »).
+  if (input.signalKind === 'offer-expiring') {
+    const tt = input.offerExpiresAt ? Date.parse(input.offerExpiresAt) : NaN
+    if (Number.isNaN(tt)) return 'next'
+    // floor : aligne le tier sur le nombre de jours AFFICHÉ par buildReason
+    // (sinon « expire dans 2 j » pourrait tomber sous « Ensuite »).
+    const daysLeft = Math.floor((tt - now) / DAY)
+    if (daysLeft <= T.offer_expiring_now_days) return 'now'
+    if (daysLeft <= T.offer_expiring_window_days) return 'next'
+    return 'rest'
+  }
+  // Visite : aujourd'hui = à préparer maintenant ; débrief/no-show = ensuite ;
+  // future au-delà d'aujourd'hui ou déjà débriefée = « rest » (non construite).
+  if (input.signalKind === 'visit') {
+    const sub = classifyVisit(input, now)
+    if (sub === 'today') return 'now'
+    if (sub === 'none') return 'rest'
+    return 'next'
+  }
   if (input.signalKind === 'reminder' && reminderOverdueDays(input.reminderTriggerAt, now) >= 1) return 'now'
   if (isMatch && brut >= T.match_now) return 'now'
   if (input.signalKind === 'deal' && (input.dealRisk === 'at-risk' || input.dealRisk === 'stalled')) return 'now'
@@ -452,6 +588,23 @@ export function buildReason(input: FocusScoreInput, now: number, cfg: FocusConfi
       : 'Lead jamais recontacté depuis sa création'
     if ((input.coolingQuality ?? 0) >= 85) base += ' · lead chaud à ne pas perdre'
     else if ((input.coolingQuality ?? 0) <= 35) base += ' · lead froid'
+  } else if (input.signalKind === 'offer-expiring') {
+    const tt = input.offerExpiresAt ? Date.parse(input.offerExpiresAt) : NaN
+    if (Number.isNaN(tt)) {
+      base = 'Offre en attente — échéance à vérifier'
+    } else {
+      const days = Math.floor((tt - now) / DAY)
+      base = days < 0 ? 'Offre en attente — délai dépassé, à clôturer'
+        : days === 0 ? "Offre en attente — expire aujourd'hui"
+        : `Offre en attente — expire dans ${days} j`
+    }
+  } else if (input.signalKind === 'visit') {
+    const sub = classifyVisit(input, now)
+    base = sub === 'today' ? "Visite prévue aujourd'hui — à préparer"
+      : sub === 'no-show' ? 'Visite non honorée — à relancer'
+      : sub === 'debrief'
+        ? (input.visitStatus === 'done' ? 'Visite passée — débrief à saisir' : 'Visite passée — à clôturer')
+        : 'Visite à suivre'
   } else if (input.signalKind === 'match-internal' || input.signalKind === 'match-market') {
     const brut = input.matchScore ?? 0
     const top = (input.reasonKeys ?? [])
@@ -492,12 +645,14 @@ export interface FocusRankable {
 // deal, nouveau mandat, matches.
 const FAMILY_ORDER: Record<FocusSignalKind, number> = {
   reminder: 0,
-  kyc: 1,
-  deal: 2,
-  'seller-lead': 3,
-  'match-internal': 4,
-  'match-market': 5,
-  'lead-cooling': 6,
+  'offer-expiring': 1,
+  kyc: 2,
+  deal: 3,
+  'seller-lead': 4,
+  visit: 5,
+  'match-internal': 6,
+  'match-market': 7,
+  'lead-cooling': 8,
 }
 const TIER_ORDER: Record<FocusTier, number> = { now: 0, next: 1, rest: 2 }
 
@@ -520,15 +675,30 @@ export function finalizeQueue<T extends FocusRankable>(items: T[], cfg: FocusCon
     (a.due ?? Number.POSITIVE_INFINITY) - (b.due ?? Number.POSITIVE_INFINITY) ||
     (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   )
-  // Cap par famille des signaux de FOND : on ne garde que les N « lead-cooling »
-  // les plus prioritaires (déjà triés par score) pour ne pas noyer la file — un
-  // agent peut avoir des dizaines de leads dormants. L'excédent est retiré (pas
-  // juste masqué) : ce sont les leads les MOINS prioritaires de cette famille.
+  // Caps par famille des signaux de FOND / d'événement volumineux : on ne garde
+  // que les N plus prioritaires de chaque famille (déjà triés par score) pour ne
+  // pas noyer la file — un agent peut avoir des dizaines de leads dormants, ou
+  // une journée chargée de visites. L'excédent est retiré (pas juste masqué) :
+  // ce sont les items les MOINS prioritaires de chaque famille.
   let coolingKept = 0
+  let offerKept = 0
+  let visitKept = 0
   const ranked = capped.filter((it) => {
-    if (it.signalKind !== 'lead-cooling') return true
-    if (coolingKept >= cfg.caps.cooling_returned) return false
-    coolingKept++
+    if (it.signalKind === 'lead-cooling') {
+      if (coolingKept >= cfg.caps.cooling_returned) return false
+      coolingKept++
+      return true
+    }
+    if (it.signalKind === 'offer-expiring') {
+      if (offerKept >= cfg.caps.offer_expiring_returned) return false
+      offerKept++
+      return true
+    }
+    if (it.signalKind === 'visit') {
+      if (visitKept >= cfg.caps.visit_returned) return false
+      visitKept++
+      return true
+    }
     return true
   })
   // Cap dur « Maintenant » : au plus cfg.caps.now_total items « now ».

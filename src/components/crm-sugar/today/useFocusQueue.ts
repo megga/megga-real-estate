@@ -20,6 +20,8 @@ import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useReminders } from '@/hooks/useReminders'
 import { useSellerLeads } from '@/hooks/useSellerLeads'
 import { useRelanceLeads } from '@/hooks/useRelanceLeads'
+import { useExpiringOffers } from '@/hooks/useOffers'
+import { useFocusVisits } from '@/hooks/useVisits'
 import type { StageId } from '@/components/crm-sugar/tokens'
 import type { FocusItem } from './focusQueue'
 import { fmtCHF } from './data'
@@ -33,6 +35,7 @@ import {
   toDisplayScore,
   isClosingProximate,
   hasKycGap,
+  classifyVisit,
   type FocusScoreInput,
   type FocusRankable,
 } from './focusScore'
@@ -92,6 +95,9 @@ export function useFocusQueue(): UseFocusQueueResult {
   // RADAR v2 : leads qui refroidissent (recency). useRelanceLeads calcule déjà
   // les contacts dormants (last_interaction_at > 14j OU NULL), qualité + dormance.
   const { leads: coolingLeads, isLoading: coolingLoading } = useRelanceLeads()
+  // RADAR v3 : offres 'pending' proches de l'échéance + visites de l'agenda.
+  const { data: expiringOffers = [], isLoading: offersLoading } = useExpiringOffers(50)
+  const { data: focusVisits = [], isLoading: visitsLoading } = useFocusVisits(100)
   const cfg = useFocusConfig()
 
   const items = useMemo<QueueItem[]>(() => {
@@ -298,6 +304,81 @@ export function useFocusQueue(): UseFocusQueueResult {
       })
     }
 
+    // 4b. Offres 'pending' proches de l'échéance (RADAR v3) — événement daté.
+    // Argent en jeu + délai : on surface l'offre dont la réponse expire bientôt.
+    // crm_offers n'a PAS de contact_id → contact = by_label, contactId = by_id
+    // (sinon l'id de l'offre). PAS de dédup : une offre qui expire est une action
+    // propre, même si le contact a déjà un autre signal. Le tier 'rest' (offre
+    // lointaine) est plié côté UI ; le cap offer_expiring_returned borne le reste.
+    for (const o of expiringOffers) {
+      const input: FocusScoreInput = {
+        signalKind: 'offer-expiring',
+        offerExpiresAt: o.expires_at,
+        offerAmount: o.amount,
+        offerStatus: o.status,
+      }
+      const score = scoreItem(input, now, cfg)
+      const tier = assignTier(input, now, cfg)
+      const contact = o.by_label || 'Offre'
+      out.push({
+        id: `offer-${o.id}`,
+        type: 'offer',
+        signalKind: 'offer-expiring',
+        contact,
+        contactId: o.by_id || o.id,
+        initials: initialsOf(contact),
+        av: avFromId(o.id),
+        category: 'OFFRE',
+        time: '',
+        eta: '',
+        sub: `Offre ${fmtCHF(o.amount)} en attente — réponse à suivre.`,
+        reason: buildReason(input, now, cfg),
+        score,
+        displayScore: toDisplayScore(score, cfg),
+        tier,
+        urgent: tier === 'now',
+        bien: { photo: '', price: fmtCHF(o.amount), title: undefined },
+        due: o.expires_at ? new Date(o.expires_at).getTime() : undefined,
+      })
+    }
+
+    // 4c. Visites de l'agenda (RADAR v3) — à préparer (aujourd'hui) / débrief en
+    // attente / no-show. classifyVisit route le sous-signal ; on NE construit PAS
+    // les visites sans signal ('none' : future au-delà d'aujourd'hui, annulée,
+    // déjà débriefée). Cappé (visit_returned) pour une journée chargée.
+    for (const v of focusVisits) {
+      const input: FocusScoreInput = {
+        signalKind: 'visit',
+        visitScheduledAt: v.scheduledAt,
+        visitStatus: v.status,
+        visitDebriefMissing: v.debriefMissing,
+      }
+      if (classifyVisit(input, now) === 'none') continue
+      const score = scoreItem(input, now, cfg)
+      const tier = assignTier(input, now, cfg)
+      const contact = v.contactName || 'Contact'
+      out.push({
+        id: `visit-${v.id}`,
+        type: 'visit',
+        signalKind: 'visit',
+        contact,
+        contactId: v.contactId,
+        initials: initialsOf(contact),
+        av: avFromId(v.id),
+        category: 'VISITE',
+        time: fmtTime(v.scheduledAt),
+        eta: '',
+        sub: [v.propertyTitle, v.propertyCity].filter(Boolean).join(' · ') || 'Visite à suivre.',
+        reason: buildReason(input, now, cfg),
+        score,
+        displayScore: toDisplayScore(score, cfg),
+        tier,
+        urgent: tier === 'now',
+        bien: { photo: '', price: '—', title: v.propertyTitle || undefined },
+        due: v.scheduledAt ? new Date(v.scheduledAt).getTime() : undefined,
+      })
+    }
+
     // 5. Leads qui refroidissent (RADAR v2) — signal de FOND. DÉDUP : on ne
     // surface QUE les contacts sans autre signal plus fort déjà dans la file
     // (la famille cooling = les leads OUBLIÉS, pas ceux qui ont déjà un match /
@@ -343,18 +424,19 @@ export function useFocusQueue(): UseFocusQueueResult {
     }
 
     return finalizeQueue(out, cfg)
-  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, coolingLeads, cfg])
+  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, coolingLeads, expiringOffers, focusVisits, cfg])
 
-  const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading || coolingLoading
-  const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0 || coolingLeads.length > 0
+  const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading || coolingLoading || offersLoading || visitsLoading
+  const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0 || coolingLeads.length > 0 || expiringOffers.length > 0 || focusVisits.length > 0
   const isLive = !isLoading && hasData
 
   // Gestes réels (HITL) : Fait clôt le reminder ; Replanifier reporte le
   // reminder OU snooze le match (+3 j). Fait sur un match = UI-only en v1 (ne PAS
   // écrire matches.status/sent_at — ça fausserait le pipeline matching/analytics).
-  // Items deal / kyc (kyc-…) / seller-lead (seller-…) / lead-cooling (cooling-…)
-  // = UI-only (réclamer un lead exige le flux d'acceptation complet ; le KYC reste
-  // non-bloquant). Fire-and-forget : le refetch rafraîchit la file au remontage.
+  // Items deal / kyc (kyc-…) / seller-lead (seller-…) / lead-cooling (cooling-…) /
+  // offre (offer-…) / visite (visit-…) = UI-only (réclamer un lead exige le flux
+  // d'acceptation complet ; le KYC reste non-bloquant ; l'offre se traite dans la
+  // fiche, la visite dans l'agenda). Fire-and-forget : le refetch rafraîchit la file.
   const completeItem = useCallback((item: FocusItem) => {
     if (item.id.startsWith('rem-')) markAsDone(item.id.slice(4))
   }, [markAsDone])
