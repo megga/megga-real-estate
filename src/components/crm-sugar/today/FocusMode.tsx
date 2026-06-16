@@ -97,7 +97,7 @@ function FmCapsule({ item, onClick, delay, fm }: { item: FocusItem; onClick: () 
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: fm.n200, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.contact}</span>
-        <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: fm.n400, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.kind} · {item.time}</span>
+        <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: fm.n400, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.category}{item.time ? ` · ${item.time}` : ''}</span>
       </span>
       <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center',
         background: fm.capArrowBg, opacity: h ? 1 : 0, transform: h ? 'translateX(0)' : 'translateX(-6px)',
@@ -283,14 +283,20 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 999,
                   background: FM_GLASS, backdropFilter: 'blur(12px)', border: `1px solid ${FM_ONPHOTO}`,
                   fontSize: 12, fontWeight: 800, letterSpacing: 0.4, color: '#fff' }}>
-                  <RXIcon name={tyy.icon} size={14} sw={2.1} color={tyy.badge} />{item.kind}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600,
-                  color: item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.74)' }}>
-                  <RXIcon name="clock" size={13} color={item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.6)'} />{item.time}</span>
+                  <RXIcon name={tyy.icon} size={14} sw={2.1} color={tyy.badge} />{item.category}</span>
+                {item.time && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600,
+                    color: item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.74)' }}>
+                    <RXIcon name="clock" size={13} color={item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.6)'} />{item.time}</span>
+                )}
+                <span title="Priorité estimée" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.68)' }}>
+                  <RXIcon name="spark" size={13} color="#9b7cf0" />estimation · {item.score}</span>
               </div>
 
               <h1 style={{ margin: 0, fontSize: 46, fontWeight: 800, letterSpacing: -1.4, lineHeight: 1.02, color: '#fff' }}>{item.contact}</h1>
               <div style={{ fontSize: 16, color: 'rgba(255,255,255,.84)', marginTop: 10, maxWidth: 520, lineHeight: 1.45 }}>{item.sub}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, color: 'rgba(255,255,255,.7)', marginTop: 8, maxWidth: 520, lineHeight: 1.4 }}>
+                <RXIcon name="spark" size={13} color="#9b7cf0" /><span>{item.reason}</span></div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 28, paddingTop: 24, borderTop: `1px solid ${FM_ONPHOTO}` }}>
                 <span style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: -0.6, whiteSpace: 'nowrap' }}>{item.bien.price}</span>

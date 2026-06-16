@@ -28,12 +28,18 @@ import {
   registerLiveBien,
   resetLiveOverrides,
   type CrmDeal,
+  type CrmContact,
+  type CrmBien,
 } from '@/components/crm-sugar/mockData'
 
 export interface UsePipelineSugarReturn {
   deals: CrmDeal[]
   isLoading: boolean
   updateStage: ReturnType<typeof useUpdateTransactionStage>
+  /** Index contact/bien résolus (Supabase) — items Focus auto-suffisants
+   *  sans dépendre du registry runtime global (fragile au démontage). */
+  contactsById: Map<string, CrmContact>
+  biensById: Map<string, CrmBien>
 }
 
 export function usePipelineSugar(): UsePipelineSugarReturn {
@@ -165,11 +171,26 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
     return () => { resetLiveOverrides() }
   }, [])
 
+  // 13. Index par id pour des items auto-suffisants (Focus, etc.) sans passer
+  // par le registry runtime global (rempli/vidé par d'autres pages = fragile).
+  const contactsById = useMemo(() => {
+    const m = new Map<string, CrmContact>()
+    for (const c of crmContacts) m.set(c.id, c)
+    return m
+  }, [crmContacts])
+  const biensById = useMemo(() => {
+    const m = new Map<string, CrmBien>()
+    for (const b of crmBiens) m.set(b.id, b)
+    return m
+  }, [crmBiens])
+
   const updateStage = useUpdateTransactionStage()
 
   return {
     deals,
     isLoading: txLoading || contactsLoading || kycLoading || propsLoading,
     updateStage,
+    contactsById,
+    biensById,
   }
 }
