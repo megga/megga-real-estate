@@ -274,7 +274,11 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
           {/* PRIORITÉ COURANTE — carte immersive (identique dans les 2 thèmes) */}
           <div style={{ flex: 1, minWidth: 0, position: 'relative', borderRadius: 28, overflow: 'hidden',
             border: `1px solid ${FM_ONPHOTO}`, boxShadow: '0 40px 90px -40px rgba(0,0,0,.9)' }}>
-            <img key={item.id} src={item.bien.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            {item.bien.photo ? (
+              <img key={item.id} src={item.bien.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div key={item.id} style={{ position: 'absolute', inset: 0, background: 'radial-gradient(120% 90% at 50% 0%, #20222a 0%, #0a0b0f 72%)' }} />
+            )}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,12,.46) 0%, rgba(8,8,12,.05) 32%, rgba(8,8,12,.95) 100%)' }} />
             <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 160px 40px rgba(8,8,12,.55)', pointerEvents: 'none' }} />
 
@@ -290,7 +294,7 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
                     <RXIcon name="clock" size={13} color={item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.6)'} />{item.time}</span>
                 )}
                 <span title="Priorité estimée" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.68)' }}>
-                  <RXIcon name="spark" size={13} color="#9b7cf0" />estimation · {item.score}</span>
+                  <RXIcon name="spark" size={13} color="#9b7cf0" />estimation · {item.displayScore}</span>
               </div>
 
               <h1 style={{ margin: 0, fontSize: 46, fontWeight: 800, letterSpacing: -1.4, lineHeight: 1.02, color: '#fff' }}>{item.contact}</h1>

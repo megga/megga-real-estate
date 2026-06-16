@@ -98,6 +98,74 @@ export const FOCUS_DEFAULTS: FocusConfig = {
 const DAY = 86_400_000
 const clamp01 = (x: number): number => Math.min(1, Math.max(0, x))
 
+// ── Config tunable (app_config.today_focus_v1) — parse DÉFENSIF ──────────────
+// Le RPC get_today_focus_config() renvoie le JSON (objet jsonb) ; on le fusionne
+// sur FOCUS_DEFAULTS champ par champ : une clé manquante/invalide retombe sur le
+// défaut, jamais d'exception (un barème cassé en DB ne casse pas la file).
+const numOr = (v: unknown, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? v : fallback
+
+export function parseFocusConfig(raw: unknown): FocusConfig {
+  let src: unknown = raw
+  if (typeof raw === 'string') {
+    try { src = JSON.parse(raw) } catch { src = null }
+  }
+  if (!src || typeof src !== 'object') return FOCUS_DEFAULTS
+  const o = src as Record<string, unknown>
+  const d = FOCUS_DEFAULTS
+  const w = (o.weights ?? {}) as Record<string, unknown>
+  const t = (o.thresholds ?? {}) as Record<string, unknown>
+  const b = (o.bonuses ?? {}) as Record<string, unknown>
+  const c = (o.caps ?? {}) as Record<string, unknown>
+  return {
+    weights: {
+      reminder: numOr(w.reminder, d.weights.reminder),
+      match: numOr(w.match, d.weights.match),
+      deal: numOr(w.deal, d.weights.deal),
+    },
+    thresholds: {
+      match_gate: numOr(t.match_gate, d.thresholds.match_gate),
+      match_now: numOr(t.match_now, d.thresholds.match_now),
+      match_next: numOr(t.match_next, d.thresholds.match_next),
+      reminder_overdue_saturation_days: numOr(t.reminder_overdue_saturation_days, d.thresholds.reminder_overdue_saturation_days),
+      deal_next_stage_prob: numOr(t.deal_next_stage_prob, d.thresholds.deal_next_stage_prob),
+      kyc_expiry_window_days: numOr(t.kyc_expiry_window_days, d.thresholds.kyc_expiry_window_days),
+    },
+    bonuses: {
+      match_internal: numOr(b.match_internal, d.bonuses.match_internal),
+      match_quality: numOr(b.match_quality, d.bonuses.match_quality),
+      reminder_kyc: numOr(b.reminder_kyc, d.bonuses.reminder_kyc),
+      reminder_offer: numOr(b.reminder_offer, d.bonuses.reminder_offer),
+      deal_tension_at_risk: numOr(b.deal_tension_at_risk, d.bonuses.deal_tension_at_risk),
+      deal_tension_stalled: numOr(b.deal_tension_stalled, d.bonuses.deal_tension_stalled),
+      kyc_max: numOr(b.kyc_max, d.bonuses.kyc_max),
+      deal_value_ref: numOr(b.deal_value_ref, d.bonuses.deal_value_ref),
+    },
+    caps: {
+      now_total: numOr(c.now_total, d.caps.now_total),
+      per_contact: numOr(c.per_contact, d.caps.per_contact),
+      matches_returned: numOr(c.matches_returned, d.caps.matches_returned),
+    },
+    version: numOr(o.version, d.version),
+  }
+}
+
+// ── Score d'affichage [0..100] ──────────────────────────────────────────────
+// Le score brut (scoreItem) est volontairement borné par le poids de famille
+// (≈57 max pour un reminder, ≈27 pour un deal) afin de rester comparable entre
+// familles pour le TRI. Pour l'AFFICHAGE on le normalise sur le max théorique
+// atteignable (poids de famille le plus fort + bonus KYC) → 0..100 lisible.
+// Transformation monotone : ne change jamais l'ordre, juste l'échelle montrée.
+export function focusScoreMaxFraction(cfg: FocusConfig = FOCUS_DEFAULTS): number {
+  return Math.max(cfg.weights.reminder, cfg.weights.match, cfg.weights.deal) + cfg.bonuses.kyc_max
+}
+
+export function toDisplayScore(rawScore: number, cfg: FocusConfig = FOCUS_DEFAULTS): number {
+  const max = focusScoreMaxFraction(cfg)
+  if (max <= 0) return Math.max(0, Math.min(100, Math.round(rawScore)))
+  return Math.max(0, Math.min(100, Math.round(rawScore / max)))
+}
+
 /** Jours de retard d'un reminder (0 si à venir / date invalide). */
 export function reminderOverdueDays(triggerAt: string | null | undefined, now: number): number {
   if (!triggerAt) return 0
