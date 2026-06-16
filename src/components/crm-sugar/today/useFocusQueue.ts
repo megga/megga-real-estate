@@ -19,6 +19,7 @@ import { useMemo, useCallback } from 'react'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useReminders } from '@/hooks/useReminders'
 import { useSellerLeads } from '@/hooks/useSellerLeads'
+import { useRelanceLeads } from '@/hooks/useRelanceLeads'
 import type { StageId } from '@/components/crm-sugar/tokens'
 import type { FocusItem } from './focusQueue'
 import { fmtCHF } from './data'
@@ -88,6 +89,9 @@ export function useFocusQueue(): UseFocusQueueResult {
   // Limite bornée : la file Focus est une « liste courte » et l'entonnoir public
   // (anon insert) peut faire grossir seller_leads — on ne charge que le haut.
   const { data: sellerLeads = [], isLoading: sellerLoading } = useSellerLeads('new', 50)
+  // RADAR v2 : leads qui refroidissent (recency). useRelanceLeads calcule déjà
+  // les contacts dormants (last_interaction_at > 14j OU NULL), qualité + dormance.
+  const { leads: coolingLeads, isLoading: coolingLoading } = useRelanceLeads()
   const cfg = useFocusConfig()
 
   const items = useMemo<QueueItem[]>(() => {
@@ -294,18 +298,62 @@ export function useFocusQueue(): UseFocusQueueResult {
       })
     }
 
-    return finalizeQueue(out, cfg)
-  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, cfg])
+    // 5. Leads qui refroidissent (RADAR v2) — signal de FOND. DÉDUP : on ne
+    // surface QUE les contacts sans autre signal plus fort déjà dans la file
+    // (la famille cooling = les leads OUBLIÉS, pas ceux qui ont déjà un match /
+    // rappel / deal / KYC en cours). Le cap dur (cooling_returned) + le tier
+    // 'next' (jamais 'now') vivent dans focusScore (finalizeQueue / assignTier).
+    const alreadyInQueue = new Set(out.map((it) => it.contactId))
+    for (const lead of coolingLeads) {
+      const cid = lead.contactId ?? lead.id
+      if (alreadyInQueue.has(cid)) continue
+      // Libellé honnête « jamais recontacté » vs « se refroidit » : on lit la
+      // nullabilité réelle (lead.engaged), PAS le sentinel dormSince=999 (qui
+      // collisionnerait avec un contact dormant ~999 j → faux « jamais recontacté »).
+      const hasDate = lead.engaged === true
+      const input: FocusScoreInput = {
+        signalKind: 'lead-cooling',
+        coolingQuality: lead.score,
+        coolingDormDays: lead.dormSince,
+        coolingHasDate: hasDate,
+      }
+      const score = scoreItem(input, now, cfg)
+      const tier = assignTier(input, now, cfg)
+      const contact = `${lead.first} ${lead.last}`.trim() || 'Contact'
+      out.push({
+        id: `cooling-${lead.id}`,
+        type: 'cooling',
+        signalKind: 'lead-cooling',
+        contact,
+        contactId: cid,
+        initials: initialsOf(contact),
+        av: lead.avatarBg || avFromId(lead.id),
+        category: 'RELANCE',
+        time: '',
+        eta: '',
+        sub: lead.reason,
+        reason: buildReason(input, now, cfg),
+        score,
+        displayScore: toDisplayScore(score, cfg),
+        tier,
+        urgent: tier === 'now',
+        bien: { photo: '', price: '—', title: undefined },
+        due: undefined,
+      })
+    }
 
-  const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading
-  const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0
+    return finalizeQueue(out, cfg)
+  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, coolingLeads, cfg])
+
+  const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading || coolingLoading
+  const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0 || coolingLeads.length > 0
   const isLive = !isLoading && hasData
 
   // Gestes réels (HITL) : Fait clôt le reminder ; Replanifier reporte le
   // reminder OU snooze le match (+3 j). Fait sur un match = UI-only en v1 (ne PAS
   // écrire matches.status/sent_at — ça fausserait le pipeline matching/analytics).
-  // Items deal / kyc (kyc-…) / seller-lead (seller-…) = UI-only en v1 : aucune
-  // mutation (réclamer un lead exige le flux d'acceptation complet ; le KYC reste
+  // Items deal / kyc (kyc-…) / seller-lead (seller-…) / lead-cooling (cooling-…)
+  // = UI-only (réclamer un lead exige le flux d'acceptation complet ; le KYC reste
   // non-bloquant). Fire-and-forget : le refetch rafraîchit la file au remontage.
   const completeItem = useCallback((item: FocusItem) => {
     if (item.id.startsWith('rem-')) markAsDone(item.id.slice(4))

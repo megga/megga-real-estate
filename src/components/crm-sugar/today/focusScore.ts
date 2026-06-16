@@ -20,8 +20,11 @@
 //   'seller-lead' = nouveau mandat vendeur à réclamer (argent qui attend) ;
 //   'kyc'         = deal proche du closing dont le dossier KYC n'est pas vérifié
 //                   (nudge NON-BLOQUANT, jamais un gate).
+// Focus radar v2 ajoute :
+//   'lead-cooling' = lead qui refroidit / jamais recontacté (recency) — signal
+//                    de fond, cappé + dédupliqué, jamais « now ».
 export type FocusSignalKind =
-  | 'reminder' | 'deal' | 'kyc' | 'seller-lead' | 'match-internal' | 'match-market'
+  | 'reminder' | 'deal' | 'kyc' | 'seller-lead' | 'lead-cooling' | 'match-internal' | 'match-market'
 export type FocusTier = 'now' | 'next' | 'rest'
 export type DealRisk = 'healthy' | 'at-risk' | 'stalled'
 
@@ -57,10 +60,14 @@ export interface FocusScoreInput {
   sellerMotivation?: string | null
   sellerCity?: string | null
   sellerCreatedAt?: string | null
+  // famille lead-cooling (lead dormant : qualité hot/warm/cold + dormance)
+  coolingQuality?: number        // score qualité 0..100 (hot 85 / warm 65 / cold 35)
+  coolingDormDays?: number       // jours depuis le dernier contact (999 = jamais)
+  coolingHasDate?: boolean       // false si last_interaction_at IS NULL (jamais recontacté)
 }
 
 export interface FocusConfig {
-  weights: { reminder: number; match: number; deal: number; kyc: number; seller_lead: number }
+  weights: { reminder: number; match: number; deal: number; kyc: number; seller_lead: number; lead_cooling: number }
   thresholds: {
     match_gate: number
     match_now: number
@@ -69,6 +76,7 @@ export interface FocusConfig {
     deal_next_stage_prob: number
     kyc_expiry_window_days: number
     seller_lead_stale_saturation_days: number
+    lead_cooling_saturation_days: number
   }
   bonuses: {
     match_internal: number
@@ -82,13 +90,13 @@ export interface FocusConfig {
     seller_lead_motivation_immediate: number
     seller_lead_value_ref: number
   }
-  caps: { now_total: number; per_contact: number; matches_returned: number }
+  caps: { now_total: number; per_contact: number; matches_returned: number; cooling_returned: number }
   version: number
 }
 
 // Miroir EXACT de app_config.today_focus_v1 (cf migration 20260616120000).
 export const FOCUS_DEFAULTS: FocusConfig = {
-  weights: { reminder: 0.45, match: 0.40, deal: 0.15, kyc: 0.42, seller_lead: 0.45 },
+  weights: { reminder: 0.45, match: 0.40, deal: 0.15, kyc: 0.42, seller_lead: 0.45, lead_cooling: 0.25 },
   thresholds: {
     match_gate: 70,
     match_now: 80,
@@ -97,6 +105,7 @@ export const FOCUS_DEFAULTS: FocusConfig = {
     deal_next_stage_prob: 0.6,
     kyc_expiry_window_days: 14,
     seller_lead_stale_saturation_days: 14,
+    lead_cooling_saturation_days: 60,
   },
   bonuses: {
     match_internal: 0.08,
@@ -110,7 +119,7 @@ export const FOCUS_DEFAULTS: FocusConfig = {
     seller_lead_motivation_immediate: 0.15,
     seller_lead_value_ref: 3_000_000,
   },
-  caps: { now_total: 3, per_contact: 2, matches_returned: 40 },
+  caps: { now_total: 3, per_contact: 2, matches_returned: 40, cooling_returned: 3 },
   version: 1,
 }
 
@@ -143,6 +152,7 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       deal: numOr(w.deal, d.weights.deal),
       kyc: numOr(w.kyc, d.weights.kyc),
       seller_lead: numOr(w.seller_lead, d.weights.seller_lead),
+      lead_cooling: numOr(w.lead_cooling, d.weights.lead_cooling),
     },
     thresholds: {
       match_gate: numOr(t.match_gate, d.thresholds.match_gate),
@@ -152,6 +162,7 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       deal_next_stage_prob: numOr(t.deal_next_stage_prob, d.thresholds.deal_next_stage_prob),
       kyc_expiry_window_days: numOr(t.kyc_expiry_window_days, d.thresholds.kyc_expiry_window_days),
       seller_lead_stale_saturation_days: numOr(t.seller_lead_stale_saturation_days, d.thresholds.seller_lead_stale_saturation_days),
+      lead_cooling_saturation_days: numOr(t.lead_cooling_saturation_days, d.thresholds.lead_cooling_saturation_days),
     },
     bonuses: {
       match_internal: numOr(b.match_internal, d.bonuses.match_internal),
@@ -169,6 +180,7 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       now_total: numOr(c.now_total, d.caps.now_total),
       per_contact: numOr(c.per_contact, d.caps.per_contact),
       matches_returned: numOr(c.matches_returned, d.caps.matches_returned),
+      cooling_returned: numOr(c.cooling_returned, d.caps.cooling_returned),
     },
     version: numOr(o.version, d.version),
   }
@@ -183,7 +195,7 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
 export function focusScoreMaxFraction(cfg: FocusConfig = FOCUS_DEFAULTS): number {
   return Math.max(
     cfg.weights.reminder, cfg.weights.match, cfg.weights.deal,
-    cfg.weights.kyc, cfg.weights.seller_lead,
+    cfg.weights.kyc, cfg.weights.seller_lead, cfg.weights.lead_cooling,
   ) + cfg.bonuses.kyc_max
 }
 
@@ -311,6 +323,22 @@ export function normalizeKyc(
   return clamp01(0.5 * sStage + 0.3 * sev + 0.2 * sValue)
 }
 
+// ── 1.7 lead-cooling → signal [0..1] (lead dormant : qualité × dormance) ──────
+// Signal de FOND, le plus doux de la file : un lead négligé (jamais recontacté
+// ou sans contact depuis longtemps) mérite une relance, sans jamais voler la
+// vedette à un match/rappel/closing. qualité (hot/warm/cold) + dormance saturée.
+// NB données réelles juin 2026 : last_interaction_at = NULL partout → dormance
+// uniforme (saturée) → c'est la qualité qui départage aujourd'hui (libellé honnête
+// « jamais recontacté » géré dans buildReason via coolingHasDate).
+export function normalizeLeadCooling(
+  input: Pick<FocusScoreInput, 'coolingQuality' | 'coolingDormDays'>,
+  cfg: FocusConfig = FOCUS_DEFAULTS,
+): number {
+  const q = clamp01((input.coolingQuality ?? 50) / 100)
+  const dorm = clamp01((input.coolingDormDays ?? 0) / cfg.thresholds.lead_cooling_saturation_days)
+  return clamp01(0.55 * q + 0.45 * dorm)
+}
+
 // ── Routage deal → kyc : un deal proche du closing dont le dossier KYC n'est
 // pas vérifié devient un item 'kyc' (compléter la vérification = la prochaine
 // action), sinon il reste un item 'deal'. Purs + testables.
@@ -344,6 +372,9 @@ export function scoreItem(input: FocusScoreInput, now: number, cfg: FocusConfig 
   } else if (input.signalKind === 'seller-lead') {
     signal = normalizeSellerLead(input, now, cfg)
     family = cfg.weights.seller_lead
+  } else if (input.signalKind === 'lead-cooling') {
+    signal = normalizeLeadCooling(input, cfg)
+    family = cfg.weights.lead_cooling
   } else {
     signal = normalizeMatch(input, cfg)
     family = cfg.weights.match
@@ -364,6 +395,9 @@ export function assignTier(input: FocusScoreInput, now: number, cfg: FocusConfig
   // amont ; offer/signed = maintenant, intérêt confirmé = ensuite. RESTE un
   // simple surfaçage — non-bloquant, jamais un gate sur le pipeline.
   if (input.signalKind === 'kyc') return (input.dealStage === 'offer' || input.dealStage === 'signed') ? 'now' : 'next'
+  // Lead qui refroidit = signal de FOND : « à relancer bientôt », JAMAIS « now »
+  // (ce n'est pas une obligation datée). Plafonné à « Ensuite ».
+  if (input.signalKind === 'lead-cooling') return 'next'
   if (input.signalKind === 'reminder' && reminderOverdueDays(input.reminderTriggerAt, now) >= 1) return 'now'
   if (isMatch && brut >= T.match_now) return 'now'
   if (input.signalKind === 'deal' && (input.dealRisk === 'at-risk' || input.dealRisk === 'stalled')) return 'now'
@@ -410,6 +444,14 @@ export function buildReason(input: FocusScoreInput, now: number, cfg: FocusConfi
       : input.kycDossierStatus === 'none' ? ' · dossier non démarré'
       : ' · dossier en cours'
     base = 'Closing proche — KYC du dossier à finaliser' + tail
+  } else if (input.signalKind === 'lead-cooling') {
+    // Libellé HONNÊTE : NULL recency (coolingHasDate=false) → « jamais recontacté »
+    // (≠ vraie décroissance). Sinon on date la dormance.
+    base = input.coolingHasDate
+      ? `Lead qui refroidit — sans contact depuis ${input.coolingDormDays ?? 0} j`
+      : 'Lead jamais recontacté depuis sa création'
+    if ((input.coolingQuality ?? 0) >= 85) base += ' · lead chaud à ne pas perdre'
+    else if ((input.coolingQuality ?? 0) <= 35) base += ' · lead froid'
   } else if (input.signalKind === 'match-internal' || input.signalKind === 'match-market') {
     const brut = input.matchScore ?? 0
     const top = (input.reasonKeys ?? [])
@@ -455,6 +497,7 @@ const FAMILY_ORDER: Record<FocusSignalKind, number> = {
   'seller-lead': 3,
   'match-internal': 4,
   'match-market': 5,
+  'lead-cooling': 6,
 }
 const TIER_ORDER: Record<FocusTier, number> = { now: 0, next: 1, rest: 2 }
 
@@ -477,6 +520,17 @@ export function finalizeQueue<T extends FocusRankable>(items: T[], cfg: FocusCon
     (a.due ?? Number.POSITIVE_INFINITY) - (b.due ?? Number.POSITIVE_INFINITY) ||
     (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   )
+  // Cap par famille des signaux de FOND : on ne garde que les N « lead-cooling »
+  // les plus prioritaires (déjà triés par score) pour ne pas noyer la file — un
+  // agent peut avoir des dizaines de leads dormants. L'excédent est retiré (pas
+  // juste masqué) : ce sont les leads les MOINS prioritaires de cette famille.
+  let coolingKept = 0
+  const ranked = capped.filter((it) => {
+    if (it.signalKind !== 'lead-cooling') return true
+    if (coolingKept >= cfg.caps.cooling_returned) return false
+    coolingKept++
+    return true
+  })
   // Cap dur « Maintenant » : au plus cfg.caps.now_total items « now ».
   // PRIORITÉ DES SLOTS : un reminder en retard est une obligation DATÉE (un
   // engagement client échu) — il garde sa place « Maintenant » avant les signaux
@@ -484,7 +538,7 @@ export function finalizeQueue<T extends FocusRankable>(items: T[], cfg: FocusCon
   // 1ʳᵉ passe : les reminders « now » (= échus, cf assignTier) réservent les
   // slots dans l'ordre de tri ; 2ᵉ passe : le budget restant va aux autres
   // « now ». Les « now » au-delà du cap rétrogradent en « next » (jamais perdus).
-  const nowItems = capped.filter((it) => it.tier === 'now')
+  const nowItems = ranked.filter((it) => it.tier === 'now')
   const keepNow = new Set<string>()
   let budget = cfg.caps.now_total
   for (const it of nowItems) {
@@ -499,5 +553,5 @@ export function finalizeQueue<T extends FocusRankable>(items: T[], cfg: FocusCon
   for (const it of nowItems) {
     if (!keepNow.has(it.id)) it.tier = 'next'
   }
-  return capped
+  return ranked
 }
