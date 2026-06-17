@@ -65,7 +65,10 @@ serve(async (req: Request) => {
   // Supabase gateway before we get here.
   const bearerToken = authHeader.replace(/^Bearer\s+/i, '')
   const role = decodeJwtRole(bearerToken)
-  const isServiceRole = role === 'service_role'
+  // Accept the current sb_secret_ service key (string-equality) in addition to
+  // the legacy service_role JWT, so pg_cron via get_app_config authenticates.
+  const isServiceRole =
+    role === 'service_role' || (SERVICE_ROLE_KEY !== '' && bearerToken === SERVICE_ROLE_KEY)
   let isSuperAdmin = false
   if (!isServiceRole && authHeader.startsWith('Bearer ')) {
     const userClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {

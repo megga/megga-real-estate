@@ -30,8 +30,13 @@ serve(async (req) => {
       jwtRole = payload.role ?? ''
     } catch { /* invalid JWT → will fail below */ }
 
-    // service_role = trusted internal call (pg_cron, other Edge Functions)
-    if (jwtRole !== 'service_role') {
+    // service_role = trusted internal call (pg_cron, other Edge Functions).
+    // Accept BOTH the legacy service_role JWT (role claim) and the current
+    // sb_secret_ service key (string-equality with the runtime env), so crons
+    // sending get_app_config('service_role_key') authenticate.
+    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const isServiceKey = svcKey !== '' && token === svcKey
+    if (jwtRole !== 'service_role' && !isServiceKey) {
       // Interactive call from dashboard — verify the user is super_admin
       const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
       if (authError || !user) throw new Error('Unauthorized')
