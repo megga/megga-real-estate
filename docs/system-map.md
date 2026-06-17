@@ -261,7 +261,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (cron) |
 | **Calendrier** | `google-calendar-sync` · `outlook-calendar-sync` (OAuth) |
 | **Marketplace / scraping** | `flatfox-sync` (cron) · `market-scraper(-batch)` · `external-matching` |
-| **Matching / scoring** | `matching-engine` · `search-alert` (cron) — _score de contact = RPC `calculate_contact_scores` + cron nocturne ; score de bien = RPC `calculate_property_scores` + cron nocturne (santé/chaleur d'un bien interne, 4 axes, PR #654) ; l'edge `score-engine` a été supprimée (PR #652) ; cf `megga/contact-score`, `megga/property-score`_ |
+| **Matching / scoring** | `matching-engine` · `search-alert` (cron) — _score de contact = RPC `calculate_contact_scores` + cron nocturne ; score de bien = RPC `calculate_property_scores` + cron nocturne (santé/chaleur d'un bien interne, 4 axes, PR #654), surfacé dans Focus (famille « bien à pousser », #656) + galerie Mes biens (pastille estimation, #657) ; l'edge `score-engine` a été supprimée (PR #652) ; cf `megga/contact-score`, `megga/property-score`_ |
 | **Documents / media** | `extract-lead` · `extract-property-pdf` · `extract-property-url` · `photo-labeler` (Vision) · `photo-processor` (R2) · `backfill-cf-images` · `c2pa-sign` / `c2pa-verify` |
 | **Media IA** | `public-staging` (Gemini, rate-limit IP) · `virtual-staging` (garde-fous LPD : Vision gate + quota plan) |
 | **Divers** | `translate-on-demand` (DeepSeek + cache) · `deepgram-token` / `speech-to-text` · `intercom-identity` (JWT Messenger Security Intercom) · `accept-team-invite` · `automation-engine` (cron) · `webhooks` |
