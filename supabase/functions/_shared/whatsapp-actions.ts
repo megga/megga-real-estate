@@ -15,7 +15,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount, canonicalPropertyType, normalizeZone } from './whatsapp-lead.ts'
-import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault } from './whatsapp-agent-router.ts'
+import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
@@ -43,13 +43,32 @@ function hasAgency(ctx: ActionCtx): boolean {
   return typeof ctx.agencyId === 'string' && ctx.agencyId.length > 0
 }
 
+// Embed PostgREST d'une visite : noms de contact + bien RÉSOLUS (FK visits_contact_id_fkey /
+// visits_property_id_fkey). On ne renvoie JAMAIS d'UUID brut ni buyer_name (souvent NULL →
+// le modèle inventait le client/le bien). Anti-fabrication : ce qui n'est pas résolu = null assumé.
+type VisitEmbedRow = {
+  scheduled_at: string | null; status: string | null
+  contacts: { first_name: string | null; last_name: string | null } | Array<{ first_name: string | null; last_name: string | null }> | null
+  properties: { title: string | null; address: string | null; city: string | null } | Array<{ title: string | null; address: string | null; city: string | null }> | null
+}
+function formatAgendaVisit(v: VisitEmbedRow): { quand: string | null; statut: string | null; client: string | null; bien: string | null } {
+  // L'embed PostgREST est typé tableau à la compilation mais renvoie un objet (relation to-one).
+  const c = Array.isArray(v.contacts) ? (v.contacts[0] ?? null) : v.contacts
+  const p = Array.isArray(v.properties) ? (v.properties[0] ?? null) : v.properties
+  const client = c ? (`${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim() || null) : null
+  const bien = p ? (p.title || [p.address, p.city].filter(Boolean).join(', ') || null) : null
+  return { quand: v.scheduled_at, statut: v.status, client, bien }
+}
+const VISIT_EMBED_SELECT =
+  'scheduled_at, status, contacts!visits_contact_id_fkey(first_name, last_name), properties!visits_property_id_fkey(title, address, city)'
+
 export async function execGetMyAgenda(ctx: ActionCtx, a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
   const from = s(a.from), to = s(a.to)
   if (!from || !to) return 'Erreur: dates from/to requises.'
   const { data, error } = await ctx.supabase
     .from('visits')
-    .select('scheduled_at, status, contact_id, property_id, buyer_name')
+    .select(VISIT_EMBED_SELECT)
     .eq('agency_id', ctx.agencyId)
     .eq('agent_id', ctx.profileId)
     .gte('scheduled_at', from)
@@ -58,7 +77,7 @@ export async function execGetMyAgenda(ctx: ActionCtx, a: Args): Promise<string> 
     .limit(20)
   if (error) return `Erreur agenda: ${error.message}`
   if (!data?.length) return 'Aucun rendez-vous sur cette période.'
-  return JSON.stringify(data)
+  return JSON.stringify((data as unknown as VisitEmbedRow[]).map(formatAgendaVisit))
 }
 
 export async function execSearchContacts(ctx: ActionCtx, a: Args): Promise<string> {
@@ -131,14 +150,18 @@ export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
   // Garde-fou agence AU NIVEAU SQL : on ne charge la ligne que si elle appartient
   // à l'agence de l'agent. Pas de match (y compris agency_id NULL) => introuvable.
   const { data: c } = await ctx.supabase
-    .from('contacts').select('id')
+    .from('contacts').select('id, first_name')
     .eq('id', contactId)
     .eq('agency_id', ctx.agencyId)
     .maybeSingle()
   if (!c) return 'Erreur: contact introuvable dans votre agence.'
   const ok = await logTimeline(ctx, 'Note ajoutée', body, contactId)
   if (!ok) return "Erreur: impossible d'enregistrer la note."
-  return 'Note ajoutée à la fiche.'
+  // Écho du contact + extrait du body : le modèle a les faits exacts sous la main et n'a plus
+  // à deviner le destinataire ni reformuler/inventer le contenu noté (anti-fabrication).
+  const who = (c.first_name ?? '').trim() || 'ce contact'
+  const extrait = body.length > 80 ? `${body.slice(0, 80)}…` : body
+  return `Note ajoutée à la fiche de ${who} : « ${extrait} ».`
 }
 
 // Écrit une entrée dans la timeline du contact (activity_events).
@@ -202,6 +225,38 @@ export async function execListFollowups(ctx: ActionCtx, _a: Args): Promise<strin
   return JSON.stringify(data)
 }
 
+// Résout titre/montant/ville/pièces d'une liste de matches en 2 requêtes BATCH (pas de N+1),
+// via le projecteur PUR projectMatchListing (champ absent → omis, jamais inventé). Property
+// prioritaire sur market_listing. Partagé par execGetMatches ET execPrepareMeeting.
+async function resolveMatchListings(ctx: ActionCtx, matches: MatchListingInput[]): Promise<ResolvedMatchView[]> {
+  const propIds = [...new Set(matches.map((m) => m.property_id).filter((x): x is string => !!x))]
+  const mlIds = [...new Set(matches.map((m) => m.market_listing_id).filter((x): x is string => !!x))]
+
+  type PropRow = { id: string; title: string | null; price: number | null; city: string | null; rooms: number | null }
+  type MlRow = { id: string; title: string | null; transaction_type: string | null; price: number | null; rent: number | null; rent_chf: number | null; city: string | null; rooms: number | null }
+  const propMap = new Map<string, PropRow>()
+  const mlMap = new Map<string, MlRow>()
+
+  if (propIds.length) {
+    const { data } = await ctx.supabase.from('properties')
+      .select('id, title, price, city, rooms').in('id', propIds).eq('agency_id', ctx.agencyId)
+    for (const p of (data ?? []) as PropRow[]) propMap.set(p.id, p)
+  }
+  if (mlIds.length) {
+    const { data } = await ctx.supabase.from('market_listings')
+      .select('id, title, transaction_type, price, rent, rent_chf, city, rooms').in('id', mlIds)
+    for (const l of (data ?? []) as MlRow[]) mlMap.set(l.id, l)
+  }
+
+  return matches.map((m) =>
+    projectMatchListing(
+      m,
+      m.property_id ? propMap.get(m.property_id) ?? null : null,
+      m.market_listing_id ? mlMap.get(m.market_listing_id) ?? null : null,
+    ),
+  )
+}
+
 /** Biens correspondant à un contact (moteur de matching). */
 export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
@@ -213,7 +268,11 @@ export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
     .order('score', { ascending: false }).limit(5)
   if (error) return `Erreur: ${error.message}`
   if (!data?.length) return 'Aucun bien correspondant (recherche peut-être pas encore lancée).'
-  return JSON.stringify(data)
+  // Enrichi (titre/montant/ville/pièces réels) : l'id reste l'UUID du bien (clé pour send_listings),
+  // mais il n'est plus SEUL — accompagné des vraies données, le modèle n'a plus à inventer un bien.
+  // Un bien non résolu ne porte que id/score/statut (jamais de titre/ville inventés).
+  const biens = await resolveMatchListings(ctx, data as MatchListingInput[])
+  return JSON.stringify({ biens })
 }
 
 /** Briefing du jour : visites du jour de l'agent + nombre de leads à compléter. */
@@ -222,14 +281,17 @@ export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<strin
   const start = new Date(); start.setUTCHours(0, 0, 0, 0)
   const end = new Date(); end.setUTCHours(23, 59, 59, 999)
   const { data: visits } = await ctx.supabase
-    .from('visits').select('scheduled_at, status, buyer_name, contact_id')
+    .from('visits').select(VISIT_EMBED_SELECT)
     .eq('agency_id', ctx.agencyId).eq('agent_id', ctx.profileId)
     .gte('scheduled_at', start.toISOString()).lte('scheduled_at', end.toISOString())
     .order('scheduled_at', { ascending: true }).limit(20)
   const { data: followups } = await ctx.supabase
     .from('contacts').select('id, first_name, last_name')
     .eq('agency_id', ctx.agencyId).contains('tags', ['à_compléter']).limit(10)
-  return JSON.stringify({ visites_du_jour: visits ?? [], leads_a_completer: followups ?? [] })
+  return JSON.stringify({
+    visites_du_jour: ((visits ?? []) as unknown as VisitEmbedRow[]).map(formatAgendaVisit),
+    leads_a_completer: followups ?? [],
+  })
 }
 
 // ── Phase 4C / C4 : outils ACTION (tier 🟢 auto — état CRM interne, réversible) ─
@@ -614,7 +676,13 @@ export async function execGetKycStatus(ctx: ActionCtx, a: Args): Promise<string>
     contact: name,
     statut_dossier: k.dossier_status, vigilance: k.vigilance, risque: k.risk_level,
     avancement_pct: k.completion_pct,
-    screening: { pep: k.pep_status, sanctions: k.sanctions_status, dernier: k.last_screening_at },
+    // Libellés HUMAINS, jamais l'enum brut : 'not_checked' devient « non vérifié », distinct de
+    // 'clear' (« rien à signaler ») → le modèle ne peut plus confondre absence de contrôle et RAS (LBA).
+    screening: {
+      pep: kycScreenLabel(k.pep_status, k.last_screening_at),
+      sanctions: kycScreenLabel(k.sanctions_status, k.last_screening_at),
+      dernier: kycDateShort(k.last_screening_at) || 'aucun',
+    },
     validation: k.validated_at ? 'validé' : 'non validé (validation manuelle par le responsable conformité)',
     pieces,
     note: 'KYC facultatif ; la validation des pièces reste manuelle (jamais par l’IA).',
@@ -1963,32 +2031,14 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     .from('matches').select('score, status, market_listing_id, property_id')
     .eq('contact_id', contactId).eq('agency_id', ctx.agencyId)
     .order('score', { ascending: false }).limit(5)
-  const matches = (matchRows ?? []) as Array<{
-    score: number | null; status: string | null; market_listing_id: string | null; property_id: string | null
-  }>
+  const matches = (matchRows ?? []) as MatchListingInput[]
 
+  // Résolution BATCH partagée (2 requêtes, pas N+1 ; champ absent → omis). On reprojette sur la
+  // shape BienView attendue en aval (titre/montant/ville/score nullables).
   type BienView = { titre: string | null; montant: number | null; ville: string | null; score: number | null }
-  const biens: BienView[] = []
-  for (const m of matches) {
-    let titre: string | null = null
-    let montant: number | null = null
-    let ville: string | null = null
-    if (m.property_id) {
-      const { data: pr } = await ctx.supabase.from('properties')
-        .select('title, price, currency, city')
-        .eq('id', m.property_id).eq('agency_id', ctx.agencyId).maybeSingle()
-      const p = pr as { title: string | null; price: number | null; currency: string | null; city: string | null } | null
-      if (p) { titre = p.title; montant = typeof p.price === 'number' ? p.price : null; ville = p.city }
-    }
-    if (!titre && m.market_listing_id) {
-      const { data: ml } = await ctx.supabase.from('market_listings')
-        .select('title, price, city')
-        .eq('id', m.market_listing_id).maybeSingle()
-      const l = ml as { title: string | null; price: number | null; city: string | null } | null
-      if (l) { titre = l.title; montant = typeof l.price === 'number' ? l.price : null; ville = l.city }
-    }
-    biens.push({ titre, montant: montant && montant > 0 ? montant : null, ville, score: typeof m.score === 'number' ? m.score : null })
-  }
+  const biens: BienView[] = (await resolveMatchListings(ctx, matches)).map((b) => ({
+    titre: b.titre ?? null, montant: b.montant ?? null, ville: b.ville ?? null, score: b.score ?? null,
+  }))
 
   // 4. Visite à venir : contact_id + agent_id + agency_id, scheduled_at >= now, status non annulé,
   //    la plus proche (order asc limit 1). Titre du bien résolu best-effort.

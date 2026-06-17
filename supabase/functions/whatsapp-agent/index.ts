@@ -120,6 +120,20 @@ serve(async (req) => {
     ? `\n\nListing copy: when the agent asks you to write a property listing/ad (draft_listing_copy), ALWAYS ask whether they want the confidential version (no contact details, no exact address) or the public one (with the agency + agent) if they didn't say. Never invent data: only describe what the property record contains; a missing field is "to be confirmed", never made up; no market figures. You draft; the agent uses it. The confidential version never reveals the exact address.`
     : `\n\nDescriptif d'annonce : quand l'agent te demande de rédiger l'annonce d'un bien (draft_listing_copy), DEMANDE toujours s'il veut la version confidentielle (sans coordonnées, sans adresse exacte) ou publique (avec l'agence + l'agent) s'il ne l'a pas dit. N'invente jamais de donnée : décris seulement ce que contient la fiche du bien ; un champ manquant = « à compléter », jamais inventé ; aucun chiffre marché. Tu rédiges ; l'agent l'utilise. La version confidentielle ne révèle jamais l'adresse exacte.`
 
+  // Garde anti-fabrication (transverse, inconditionnelle) : ne JAMAIS habiller le résultat d'un
+  // outil d'une affirmation qu'il ne porte pas. Spécialise la règle générale l.44 par outil à risque
+  // (les retours d'outils restent la source de vérité). search_listings est volontairement OMIS (déjà
+  // couvert plus haut). Bloc compact ajouté 1× au system message — PAS aux descriptions d'outils.
+  const antiFabBlock = `\n\nAnti-fabrication — restitue les résultats d'outils SANS rien ajouter qui n'y figure :
+- qualify_lead lance le matching mais ne RENVOIE aucun bien : n'annonce jamais de correspondances ni de nombre de biens trouvés tant que tu n'as pas appelé get_matches.
+- schedule_visit et create_reminder enregistrent en interne : ils n'envoient RIEN au client (ni invitation, ni email, ni lien). Ne prétends jamais avoir prévenu, confirmé ou relancé le client.
+- create_deal ouvre SEULEMENT le dossier : n'annonce ni offre, ni visite, ni match qui n'ont pas été réellement exécutés par un outil.
+- get_contact_brief : le score est une estimation interne — présente-le comme tel ou tais-le. Si la compréhension de la dernière conversation est absente, dis-le, n'en invente pas.
+- read_document / file_document : rends le digest TEL QUEL. Ne durcis pas un montant ni une date, ne retire jamais un « (à vérifier) », n'ajoute aucun chiffre qui n'y est pas.
+- summarize_group_thread / check_group_leak : c'est une lecture du texte que l'agent a collé. N'affirme une décision ou un montant que si la phrase exacte y figure ; rends le verdict de fuite tel quel — n'autorise ni n'interdis le post à la place de l'agent.
+- search_contacts : si plusieurs contacts correspondent, liste les noms et demande lequel — ne devine pas avant d'agir.
+- attach_kyc_document : ne dis jamais qu'une pièce est validée ni le dossier complet (la validation n'est pas faite par l'IA) ; ne restitue que les champs réellement lus.`
+
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
   // Garde : si waNumber est vide, .or('wa_from.eq.,wa_to.eq.') ne matche RIEN → amnésie
@@ -145,13 +159,14 @@ serve(async (req) => {
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}${voiceBlock}${groupBlock}${listingBlock}` },
+    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}${voiceBlock}${groupBlock}${listingBlock}${antiFabBlock}` },
     ...history,
     { role: 'user', content: message },
   ]
 
   let toolCallsUsed = 0
-  let kycToolCalled = false // anti-fabrication : un outil KYC a-t-il RÉELLEMENT tourné ce tour ?
+  let kycToolCalled = false // anti-fabrication : une ACTION KYC (screening/rapport/attache) a-t-elle RÉELLEMENT tourné ?
+  let kycStatusRead = false // get_kyc_status (LECTURE) a tourné → légitime la narration d'ÉTAT, jamais une revendication d'ACTION
   const resultCache = new Map<string, string>() // F4 : dédup outils identiques d'un tour
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -165,7 +180,7 @@ serve(async (req) => {
       const content = (msg?.content as string) || 'OK.'
       // GARDE ANTI-FABRICATION KYC : DeepSeek prétend un screening/rapport lancé/fait sans avoir
       // appelé l'outil → on NE relaie JAMAIS la fausse action, on renvoie une correction honnête.
-      if (isFabricatedKycClaim(content, kycToolCalled)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
+      if (isFabricatedKycClaim(content, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
       return json({ reply: content }, 200)
     }
 
@@ -228,7 +243,13 @@ serve(async (req) => {
         return json({ reply: stash.prompt ?? t(lang, 'fallbackConfirm') }, 200)
       }
 
-      if (name === 'attach_kyc_document') kycToolCalled = true // outil KYC synchrone (anti-fabrication)
+      // attach_kyc_document = ACTION KYC synchrone (attache une pièce) → arme kycToolCalled (toute
+      // narration KYC légitime). get_kyc_status = pure LECTURE → arme kycStatusRead SEULEMENT : cela
+      // légitime la narration d'état/résultat (« risque faible », « screening en cours ») sans désarmer
+      // la garde contre une fausse revendication d'ACTION (« j'ai lancé le screening ») au même tour ou
+      // au suivant. On est APRÈS le return slow_async (l.201) → run_kyc_screening n'arme rien ici.
+      if (name === 'attach_kyc_document') kycToolCalled = true
+      if (name === 'get_kyc_status') kycStatusRead = true
       // F4 : si un outil identique a déjà tourné ce tour, réutilise le résultat.
       const key = `${name}:${JSON.stringify(args)}`
       let result = resultCache.get(key)
@@ -246,7 +267,7 @@ serve(async (req) => {
   const forced = await callDeepSeek(apiKey, messages, 'none')
   const forcedContent = forced?.choices?.[0]?.message?.content as string | undefined
   if (forcedContent) {
-    if (isFabricatedKycClaim(forcedContent, kycToolCalled)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
+    if (isFabricatedKycClaim(forcedContent, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
     return json({ reply: forcedContent }, 200)
   }
   return json({ reply: t(lang, 'reformulate'), isError: true }, 200)

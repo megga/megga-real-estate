@@ -13,6 +13,9 @@ import {
   canLeaveConfirm,
   isUndoCommand,
   isFabricatedKycClaim,
+  kycScreenLabel,
+  kycDateShort,
+  projectMatchListing,
 } from './whatsapp-agent-router'
 
 describe('buildHistoryMessages', () => {
@@ -335,5 +338,100 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
       'Le dossier KYC de Dupont est ouvert, tu veux le screener ?',
     ]
     for (const o of offers) expect(isFabricatedKycClaim(o, false), o).toBe(false)
+  })
+
+  // ── get_kyc_status (lecture) arme kycStatusRead : légitime la NARRATION d'ÉTAT/RÉSULTAT d'un statut
+  // réellement lu (le vrai faux positif = un statut 'pending' rendu « screening en cours », ou un
+  // « risque faible » de risk_level), SANS désarmer la garde contre une revendication d'ACTION. ─────
+  it('kycStatusRead légitime la narration d\'ÉTAT/RÉSULTAT d\'un statut réellement lu', () => {
+    // Sans lecture (kycStatusRead=false) → fabrication de résultat ; avec lecture → narration légitime.
+    expect(isFabricatedKycClaim('Le screening de Dupont est en cours.', false, false)).toBe(true)
+    expect(isFabricatedKycClaim('Le screening de Dupont est en cours.', false, true)).toBe(false)
+    expect(isFabricatedKycClaim('Dupont : risque faible, pas de PEP côté sanctions.', false, false)).toBe(true)
+    expect(isFabricatedKycClaim('Dupont : risque faible, pas de PEP côté sanctions.', false, true)).toBe(false)
+  })
+
+  it('kycStatusRead ne légitime PAS une revendication d\'ACTION (lire ≠ lancer) — garde Vladimir intacte', () => {
+    // Cœur du correctif L2 : lire un statut ne doit jamais couvrir une fausse ACTION (lancement/envoi/
+    // promesse de résultat à venir), même au même tour. Sinon régression Vladimir par effet de bord.
+    expect(isFabricatedKycClaim("J'ai lancé le screening de Dupont.", false, true)).toBe(true)
+    expect(isFabricatedKycClaim("Screening en cours, je te préviens dès que j'ai les résultats.", false, true)).toBe(true)
+    expect(isFabricatedKycClaim('Le rapport KYC est parti.', false, true)).toBe(true)
+  })
+
+  it('kycToolCalled=true (action KYC réellement exécutée) court-circuite tout', () => {
+    expect(isFabricatedKycClaim("J'ai lancé le screening de Dupont.", true)).toBe(false)
+    expect(isFabricatedKycClaim('Le screening est en cours.', true)).toBe(false)
+  })
+})
+
+describe('kycDateShort — date courte Europe/Zurich (anti-fuite ISO brute)', () => {
+  it('formate une ISO valide en DD.MM', () => {
+    expect(kycDateShort('2026-06-15T10:00:00Z')).toBe('15.06')
+  })
+  it('renvoie \'\' pour null / vide / invalide', () => {
+    expect(kycDateShort(null)).toBe('')
+    expect(kycDateShort(undefined)).toBe('')
+    expect(kycDateShort('pas une date')).toBe('')
+  })
+})
+
+describe('kycScreenLabel — anti-confusion not_checked vs clear (LBA)', () => {
+  it('not_checked ≠ clear : une absence de contrôle n\'est JAMAIS narrée « RAS »', () => {
+    const notChecked = kycScreenLabel('not_checked', null)
+    const clear = kycScreenLabel('clear', '2026-06-15T10:00:00Z')
+    expect(notChecked).toBe('non vérifié (aucun screening lancé)')
+    expect(clear).toContain('rien à signaler')
+    expect(clear).toContain('15.06')
+    expect(notChecked).not.toBe(clear)
+  })
+  it('clear sans date → mention clôturé sans date inventée', () => {
+    expect(kycScreenLabel('clear', null)).toBe('rien à signaler (screening clôturé)')
+  })
+  it('match et pending ont des libellés explicites', () => {
+    expect(kycScreenLabel('match', null)).toBe('correspondance détectée ⚠')
+    expect(kycScreenLabel('pending', null)).toBe('screening en cours')
+  })
+  it('NULL / valeur inconnue retombe sur « non vérifié » (jamais RAS)', () => {
+    expect(kycScreenLabel(null, null)).toBe('non vérifié (aucun screening lancé)')
+    expect(kycScreenLabel('weird', null)).toBe('non vérifié (aucun screening lancé)')
+  })
+})
+
+describe('projectMatchListing — enrichi sans fabrication (champ absent OMIS)', () => {
+  it('property résolue → titre/montant/ville/pièces réels', () => {
+    const out = projectMatchListing(
+      { score: 87, status: 'sent', property_id: 'p1', market_listing_id: null },
+      { title: 'Appartement Eaux-Vives', price: 1850000, city: 'Genève', rooms: 4 },
+      null,
+    )
+    expect(out).toEqual({ id: 'p1', score: 87, statut: 'sent', titre: 'Appartement Eaux-Vives', montant: 1850000, ville: 'Genève', pieces: 4 })
+  })
+  it('market_listing en location → montant via rent_chf ?? rent ?? price', () => {
+    const out = projectMatchListing(
+      { score: 70, status: null, property_id: null, market_listing_id: 'm1' },
+      null,
+      { title: 'Loc Lancy', transaction_type: 'rent', price: 0, rent: 2400, rent_chf: null, city: 'Lancy', rooms: 3 },
+    )
+    expect(out).toEqual({ id: 'm1', score: 70, titre: 'Loc Lancy', montant: 2400, ville: 'Lancy', pieces: 3 })
+    expect(out).not.toHaveProperty('statut') // status null → omis
+  })
+  it('ni property ni market_listing résolus → AUCUN titre inventé (que id/score/statut)', () => {
+    const out = projectMatchListing(
+      { score: 50, status: 'suggested', property_id: 'p2', market_listing_id: null },
+      null,
+      null,
+    )
+    expect(out).toEqual({ id: 'p2', score: 50, statut: 'suggested' })
+    expect(out).not.toHaveProperty('titre')
+    expect(out).not.toHaveProperty('montant')
+  })
+  it('champ null/<=0 OMIS (jamais de clé vide à halluciner)', () => {
+    const out = projectMatchListing(
+      { score: 60, status: 'sent', property_id: 'p3', market_listing_id: null },
+      { title: null, price: 0, city: null, rooms: 0 },
+      null,
+    )
+    expect(out).toEqual({ id: 'p3', score: 60, statut: 'sent' }) // tout le reste omis
   })
 })
