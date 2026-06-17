@@ -16,6 +16,7 @@ import {
   kycScreenLabel,
   kycDateShort,
   projectMatchListing,
+  stripExactAddress,
 } from './whatsapp-agent-router'
 
 describe('buildHistoryMessages', () => {
@@ -433,5 +434,36 @@ describe('projectMatchListing — enrichi sans fabrication (champ absent OMIS)',
       null,
     )
     expect(out).toEqual({ id: 'p3', score: 60, statut: 'sent' }) // tout le reste omis
+  })
+})
+
+describe('stripExactAddress — garde anti-fuite adresse (annonce confidentielle)', () => {
+  it('masque le numéro quand rue distinctive + numéro co-apparaissent', () => {
+    const out = stripExactAddress('Bien proche de la Rue de Carouge 12, lumineux.', 'Rue de Carouge 12')
+    expect(out).not.toMatch(/\b12\b/)
+    expect(out).toContain('—')
+    expect(out).toContain('Carouge') // on ne touche pas au nom de rue, juste au numéro
+  })
+  it('ne masque PAS un numéro sans le nom de rue dans la phrase (pas de faux positif)', () => {
+    const out = stripExactAddress('À 12 minutes du centre, calme.', 'Rue de Carouge 12')
+    expect(out).toBe('À 12 minutes du centre, calme.')
+  })
+  it('accents/casse insensibles (Crêtes ≡ cretes)', () => {
+    const out = stripExactAddress('Au chemin des Crêtes 8, récemment rénové.', 'Chemin des Crêtes 8')
+    expect(out).not.toMatch(/\b8\b/)
+    expect(out).toContain('—')
+  })
+  it('adresse sans numéro → aucun strip (le nom de rue seul est trop commun)', () => {
+    const t = 'Idéalement situé Rue de Carouge, quartier prisé.'
+    expect(stripExactAddress(t, 'Rue de Carouge')).toBe(t)
+  })
+  it('nom de rue < 4 lettres → conservateur, aucun strip', () => {
+    const t = 'Proche du Lac 15, vue dégagée.'
+    expect(stripExactAddress(t, 'Quai du Lac 15')).toBe(t) // 'lac' (3) exclu, 'quai' générique → rien à matcher
+  })
+  it('entrées vides / null → texte inchangé', () => {
+    expect(stripExactAddress('', 'Rue de Carouge 12')).toBe('')
+    expect(stripExactAddress('un texte', null)).toBe('un texte')
+    expect(stripExactAddress('un texte', undefined)).toBe('un texte')
   })
 })
