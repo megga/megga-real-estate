@@ -167,7 +167,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, setti
 ### Tables par domaine
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`.
 - **Contacts & leads** : `contacts`, `seller_leads`, `contact_scores`.
-- **Biens** : `properties` (internes), `listings` (publiées), `market_listings` (~33k Flatfox), `external_listings` (legacy).
+- **Biens** : `properties` (internes), `property_scores` (score de bien santé/chaleur, RPC `calculate_property_scores`), `listings` (publiées), `market_listings` (~33k Flatfox), `external_listings` (legacy).
 - **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` (offres/contre-offres ; historique via `parent_offer_id` + audit `activity_events`, pas de table `crm_offers_history`), `visits`, `client_searches`, `matches`.
 - **KYC / compliance** : `kyc_cases`, `kyc_checklist_items`, `kyc_magic_links` + `kyc_magic_link_uploads`, `kyc_screening_decisions`, `documents` (sha256, retention).
 - **Portail vendeur** : `seller_portals` (token 6 mois), `vendor_dossiers`.
@@ -261,12 +261,12 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (cron) |
 | **Calendrier** | `google-calendar-sync` · `outlook-calendar-sync` (OAuth) |
 | **Marketplace / scraping** | `flatfox-sync` (cron) · `market-scraper(-batch)` · `external-matching` |
-| **Matching / scoring** | `matching-engine` · `search-alert` (cron) — _score de contact = RPC `calculate_contact_scores` + cron nocturne (l'edge `score-engine` a été supprimée, PR #652) ; cf [score de contact](#) → `megga/contact-score`_ |
+| **Matching / scoring** | `matching-engine` · `search-alert` (cron) — _score de contact = RPC `calculate_contact_scores` + cron nocturne ; score de bien = RPC `calculate_property_scores` + cron nocturne (santé/chaleur d'un bien interne, 4 axes, PR #654) ; l'edge `score-engine` a été supprimée (PR #652) ; cf `megga/contact-score`, `megga/property-score`_ |
 | **Documents / media** | `extract-lead` · `extract-property-pdf` · `extract-property-url` · `photo-labeler` (Vision) · `photo-processor` (R2) · `backfill-cf-images` · `c2pa-sign` / `c2pa-verify` |
 | **Media IA** | `public-staging` (Gemini, rate-limit IP) · `virtual-staging` (garde-fous LPD : Vision gate + quota plan) |
 | **Divers** | `translate-on-demand` (DeepSeek + cache) · `deepgram-token` / `speech-to-text` · `intercom-identity` (JWT Messenger Security Intercom) · `accept-team-invite` · `automation-engine` (cron) · `webhooks` |
 
-**Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), `contact-score-nightly` (03:00 UTC, `calculate_contact_scores`), + automation-engine / ai-billing-monitor / weekly-report / search-alert.
+**Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), `contact-score-nightly` (03:00 UTC, `calculate_contact_scores`), `property-score-nightly` (03:50 UTC, `calculate_property_scores`), + automation-engine / ai-billing-monitor / weekly-report / search-alert.
 
 **Auth cron→edge (service-key)** : les crons s'authentifient via `Bearer app_config.service_role_key`, qui DOIT égaler l'env edge `SUPABASE_SERVICE_ROLE_KEY` (format `sb_secret_…`, **jamais** le JWT legacy du dashboard). Edge `sync-service-key` (`--no-verify-jwt`, garde `x-sync-token`) recopie env→table ; resync **manuel** (cron horaire + wrapper SQL pas encore en prod). Symptôme d'une clé périmée : crons en 401, 0 match. `get_app_config` non exposée à anon. Cf. `megga/service-key-self-heal`.
 
