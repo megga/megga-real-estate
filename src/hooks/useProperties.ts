@@ -5,7 +5,6 @@
 //   - useAgencyProperties (list read)
 //   - useCreateProperty
 //   - useDeleteProperty (soft-delete via UPDATE deleted_at)
-//   - useUpdatePropertyStatus
 //
 // What stayed on classic React Query (with reason):
 //   - useUpdateProperty: optimistic locking adds `.eq('updated_at', expected)`
@@ -204,26 +203,6 @@ export function useDeleteProperty() {
         id,
         deleted_at: new Date().toISOString(),
       } as unknown as Parameters<typeof update.mutateAsync>[0])
-    },
-    isPending: update.isPending,
-  }
-}
-
-// ── Update property status ──
-
-export function useUpdatePropertyStatus() {
-  const update = useUpdateMutation(supabase.from('properties'), ['id'])
-  return {
-    mutateAsync: async ({ id, status }: { id: string; status: PropertyStatus }) => {
-      const updates: Record<string, unknown> = {
-        id,
-        status,
-        updated_at: new Date().toISOString(),
-      }
-      if (status === 'active') {
-        updates.published_at = new Date().toISOString()
-      }
-      await update.mutateAsync(updates as unknown as Parameters<typeof update.mutateAsync>[0])
     },
     isPending: update.isPending,
   }

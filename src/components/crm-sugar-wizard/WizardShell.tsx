@@ -138,7 +138,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         postal_code: data.postCode,
         photos: data.photos.map(p => (typeof p === 'string' ? p : '')).filter(Boolean),
         features: data.features,
-        published_at: status === 'active' ? new Date().toISOString() : undefined,
+        // published_at posé par le trigger DB set_property_published_at (1er passage en 'active')
       })
 
       // 3) Link the vendor — properties has no contact_seller_id column;

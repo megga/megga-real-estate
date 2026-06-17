@@ -97,10 +97,12 @@ export function useCreateTransaction() {
   }
 }
 
-// Kept on raw useMutation: fetches old stage, updates transaction, then
-// writes an activity_event. The side-effect write to a different table
-// means Cache Helpers' auto-invalidation wouldn't cover the activity log
-// caches; explicit invalidate keeps the contract.
+// Kept on raw useMutation: updates the transaction stage; the stage_change /
+// status_change audit events are now written by the DB trigger
+// trg_transaction_lifecycle (single source of truth, path-independent). The
+// hook only adds the contextual 'deal_lost' event (agent-entered reason). The
+// side-effect write to a different table means Cache Helpers' auto-invalidation
+// wouldn't cover the activity-log caches; explicit invalidate keeps the contract.
 export function useUpdateTransactionStage() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -110,13 +112,6 @@ export function useUpdateTransactionStage() {
       notes?: string
       lostReason?: string
     }) => {
-      // Fetch old stage for activity_event metadata
-      const { data: old } = await supabase
-        .from('transactions')
-        .select('stage, agency_id, contact_buyer_id, contact_seller_id')
-        .eq('id', id)
-        .single()
-
       const updatePayload: Record<string, unknown> = { stage }
       if (notes !== undefined) updatePayload.notes = notes
 
@@ -128,20 +123,21 @@ export function useUpdateTransactionStage() {
         .single()
       if (error) throw error
 
-      // Log activity_event for stage change
-      const { data: { user } } = await supabase.auth.getUser()
-      if (old) {
+      // stage_change/status_change captured by the DB trigger. Here we add ONLY
+      // the context the database can't derive: the agent-entered loss reason.
+      if (lostReason && data) {
+        const row = data as { agency_id: string; contact_buyer_id: string | null; contact_seller_id: string | null }
+        const { data: { user } } = await supabase.auth.getUser()
         await supabase.from('activity_events').insert({
-          agency_id: old.agency_id,
+          agency_id: row.agency_id,
           actor_id: user?.id ?? null,
-          action: 'stage_change',
+          action: 'deal_lost',
           entity_type: 'transaction',
           entity_id: id,
+          category: 'deal',
           metadata: {
-            old_stage: old.stage,
-            new_stage: stage,
-            ...(lostReason ? { lost_reason: lostReason } : {}),
-            contact_id: old.contact_buyer_id || old.contact_seller_id,
+            lost_reason: lostReason,
+            contact_id: row.contact_buyer_id || row.contact_seller_id,
           },
         })
       }

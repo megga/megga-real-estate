@@ -525,9 +525,14 @@ async function rollbackAutoAction(
   if (row.tool === 'update_pipeline') {
     const tx = String(p.transaction_id ?? ''), old = String(p.old_stage ?? '')
     if (!tx || !old) return null
-    const { data: done, error } = await admin.from('transactions').update({ stage: old }).eq('id', tx).eq('agency_id', agencyId).select('id')
+    // Revert via la RPC d'attribution (GUC 'ai' + via='whatsapp') pour que le
+    // stage_change émis par le trigger trg_transaction_lifecycle garde l'attribution
+    // MEGGA AI, cohérente avec l'aller. RETURNS integer = nb de lignes affectées.
+    const { data: moved, error } = await admin.rpc('wa_move_transaction_stage', {
+      p_transaction_id: tx, p_stage: old, p_agency_id: agencyId, p_profile_id: agentLink.profile_id,
+    })
     if (error) { console.error('undo update_pipeline failed:', error.message.slice(0, 120)); return null }
-    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
+    if (!moved || moved === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
     await audit('deal', 'transaction', tx, `undo → ${old}`)  // 'deal' = cohérent avec le P3
     return undoneStage(lang, stageLabel(old, lang))
   }

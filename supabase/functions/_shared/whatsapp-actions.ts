@@ -334,17 +334,14 @@ export async function execUpdatePipeline(ctx: ActionCtx, a: Args): Promise<strin
   if (!deal) return pipelineNoDeal(ctx.lang ?? 'fr')
   const label = stageLabel(stage, ctx.lang ?? 'fr')
   if (deal.stage === stage) return pipelineAlreadyAt(ctx.lang ?? 'fr', deal.label, label)
-  const { error } = await ctx.supabase.from('transactions')
-    .update({ stage }).eq('id', deal.id).eq('agency_id', ctx.agencyId)
-  if (error) return `Erreur pipeline: ${error.message}`
-  // Audit non bloquant (LBA) : trace le changement d'étape (category 'deal', actor IA).
-  const { error: logErr } = await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
-    action: 'stage_change', entity_type: 'transaction', entity_id: deal.id,
-    object_label: `${deal.stage} → ${stage}`, category: 'deal', severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId, old_stage: deal.stage, new_stage: stage, contact_id: contactId },
+  // Mouvement via la RPC qui pose le GUC d'attribution (actor 'ai' + via='whatsapp')
+  // dans la MÊME transaction que l'UPDATE → le trigger DB trg_transaction_lifecycle
+  // émet l'event 'stage_change' en préservant l'attribution MEGGA AI (source unique,
+  // plus de double écriture). Audit non bloquant (LBA).
+  const { error } = await ctx.supabase.rpc('wa_move_transaction_stage', {
+    p_transaction_id: deal.id, p_stage: stage, p_agency_id: ctx.agencyId, p_profile_id: ctx.profileId ?? null,
   })
-  if (logErr) console.error('pipeline audit log failed')
+  if (error) return `Erreur pipeline: ${error.message}`
   return pipelineMoved(ctx.lang ?? 'fr', deal.label, label)
 }
 
@@ -364,17 +361,13 @@ export async function execUpdatePipelineWithUndo(ctx: ActionCtx, a: Args): Promi
   if (deal.stage === stage) return pipelineAlreadyAt(ctx.lang ?? 'fr', deal.label, label)
 
   const oldStage = deal.stage // capté AVANT l'update pour le rollback
-  const { error } = await ctx.supabase.from('transactions')
-    .update({ stage }).eq('id', deal.id).eq('agency_id', ctx.agencyId)
-  if (error) return `Erreur pipeline: ${error.message}`
-
-  // Audit LBA (identique à execUpdatePipeline, métadonnée 'auto').
-  await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
-    action: 'stage_change', entity_type: 'transaction', entity_id: deal.id,
-    object_label: `${oldStage} → ${stage}`, category: 'deal', severity: 'info',
-    metadata: { via: 'whatsapp', mode: 'auto', profile_id: ctx.profileId, old_stage: oldStage, new_stage: stage, contact_id: contactId },
+  // Mouvement via la RPC (GUC actor 'ai' + via='whatsapp') → le trigger DB émet
+  // 'stage_change' en préservant l'attribution MEGGA AI (source unique). Le
+  // caractère 'auto' (L3 réversible) reste tracé par whatsapp_recent_auto_actions ci-dessous.
+  const { error } = await ctx.supabase.rpc('wa_move_transaction_stage', {
+    p_transaction_id: deal.id, p_stage: stage, p_agency_id: ctx.agencyId, p_profile_id: ctx.profileId ?? null,
   })
+  if (error) return `Erreur pipeline: ${error.message}`
 
   // Enregistre l'undo (payload = quoi défaire + jusqu'à quand).
   const { error: undoErr } = await ctx.supabase.from('whatsapp_recent_auto_actions').insert({

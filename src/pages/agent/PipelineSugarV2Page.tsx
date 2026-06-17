@@ -115,7 +115,7 @@ export default function PipelineSugarV2Page() {
       next.set(dealId, targetStage)
       return next
     })
-    // Mutation Supabase (transactions.stage + activity_events 'stage_change')
+    // Mutation Supabase (transactions.stage ; l'event 'stage_change' est émis par le trigger DB trg_transaction_lifecycle)
     updateStage.mutate(
       { id: dealId, stage: stageIdToTransactionStage(targetStage) },
       {
