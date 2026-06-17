@@ -21,6 +21,7 @@ import {
   MKycChip,
   MStatusDot,
 } from './MatchingPills'
+import type { MatchReaction } from '@/types/matching'
 
 interface ScheduledVisit {
   buyerId: string
@@ -216,8 +217,80 @@ export function MCriteriaPill({
   )
 }
 
+// ─── Contrôle de réaction du client sur un bien envoyé ───────────────────
+// Le geste PRODUCTEUR de statut de réaction : l'agent enregistre la réponse du
+// client à un dossier envoyé. Chaque choix pose matches.response_at (trigger DB)
+// → débloque la réactivité (lead-cooling, score de contact). HITL : c'est
+// l'agent qui marque, jamais une IA en autonomie. Rendu hors des zones
+// cliquables (pas de <button> imbriqué). visit_planned = producteur différé
+// (futur câblage sur « Planifier une visite »).
+interface MBienReactionProps {
+  matchId: string
+  onReact: (matchId: string, reaction: MatchReaction) => void
+  subColor: string
+  chipBg: string
+  chipFg: string
+  divider: string
+}
+
+function MBienReaction({ matchId, onReact, subColor, chipBg, chipFg, divider }: MBienReactionProps) {
+  const btn = (label: string, reaction: MatchReaction, dot: string) => (
+    <button
+      onClick={() => onReact(matchId, reaction)}
+      style={{
+        height: 28,
+        padding: '0 12px',
+        borderRadius: 999,
+        border: 0,
+        background: chipBg,
+        color: chipFg,
+        fontFamily: 'inherit',
+        fontSize: 11.5,
+        fontWeight: 700,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ width: 7, height: 7, borderRadius: 999, background: dot, flexShrink: 0 }} />
+      {label}
+    </button>
+  )
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 8,
+        paddingTop: 10,
+        marginTop: 2,
+        borderTop: `1px solid ${divider}`,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 800,
+          color: subColor,
+          letterSpacing: 0.6,
+          textTransform: 'uppercase',
+          marginRight: 2,
+        }}
+      >
+        Réponse du client
+      </span>
+      {btn('Intéressé', 'interested', '#10B981')}
+      {btn('Pas intéressé', 'rejected', '#EF4444')}
+    </div>
+  )
+}
+
 // ─── Hero card pour le top match — fond ink (s'inverse en dark) ──────────
-type BienStatus = 'scheduled' | 'sent' | 'liked' | 'viewed' | null
+type BienStatus = 'scheduled' | 'sent' | 'liked' | 'viewed' | 'rejected' | null
 
 interface MBienHeroProps {
   match: CrmMatch
@@ -226,6 +299,7 @@ interface MBienHeroProps {
   bienStatus: BienStatus
   reasons: string[] | undefined
   onOpen?: (bienId: string) => void
+  onReact?: (matchId: string, reaction: MatchReaction) => void
 }
 
 export function MBienHero({
@@ -235,6 +309,7 @@ export function MBienHero({
   bienStatus,
   reasons,
   onOpen,
+  onReact,
 }: MBienHeroProps) {
   const b = crmBienById(match.bienId)
   const [hov, setHov] = useState(false)
@@ -428,6 +503,16 @@ export function MBienHero({
           ))}
         </div>
       )}
+      {bienStatus === 'sent' && match.id && onReact && (
+        <MBienReaction
+          matchId={match.id}
+          onReact={onReact}
+          subColor={heroSub}
+          chipBg={heroChipBg}
+          chipFg={heroText}
+          divider={heroChipBg}
+        />
+      )}
     </div>
   )
 }
@@ -440,6 +525,7 @@ interface MBienMiniRowProps {
   bienStatus: BienStatus
   reasons: string[] | undefined
   onOpen?: (bienId: string) => void
+  onReact?: (matchId: string, reaction: MatchReaction) => void
 }
 
 export function MBienMiniRow({
@@ -448,6 +534,7 @@ export function MBienMiniRow({
   bienStatus,
   reasons,
   onOpen,
+  onReact,
 }: MBienMiniRowProps) {
   const b = crmBienById(match.bienId)
   const [expanded, setExpanded] = useState(false)
@@ -617,6 +704,18 @@ export function MBienMiniRow({
           ))}
         </div>
       )}
+      {bienStatus === 'sent' && match.id && onReact && (
+        <div style={{ padding: '0 12px 12px' }}>
+          <MBienReaction
+            matchId={match.id}
+            onReact={onReact}
+            subColor={sp.sub}
+            chipBg={sp.cardBg}
+            chipFg={sp.ink}
+            divider={sp.cardBorder}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -636,6 +735,7 @@ interface FocusPanelProps {
   onSchedule: () => void
   onStartKyc: (buyer: CrmContact) => void
   onOpenBien: (bienId: string) => void
+  onReact: (matchId: string, reaction: MatchReaction) => void
 }
 
 export function FocusPanel({
@@ -652,6 +752,7 @@ export function FocusPanel({
   onSchedule,
   onStartKyc,
   onOpenBien,
+  onReact,
 }: FocusPanelProps) {
   const { buyer, matches, topScore } = group
   const tab = tabOfGroup(group)
@@ -660,15 +761,18 @@ export function FocusPanel({
   const needsKyc =
     (kycStatus === 'none' || kycStatus === 'stale') && tab !== 'archived'
 
-  // Statut bien : visite planifiée > envoyé (local) > engagement (m.status).
+  // Statut bien : visite planifiée > réaction réelle du client (DB) > envoyé.
+  // La réaction réelle (liked/rejected) prime sur le miroir optimiste 'sent' en
+  // mémoire — sinon une réponse fraîchement marquée resterait masquée derrière
+  // le « Envoyé » optimiste de la session.
   const bienStatusFor = (m: CrmMatch): BienStatus => {
     if (
       scheduledVisits.some(v => v.buyerId === buyer.id && v.bienId === m.bienId)
     )
       return 'scheduled'
-    if (sentMatchIds.has(matchKey(m))) return 'sent'
     if (m.status === 'liked' || m.status === 'viewed') return m.status
-    if (m.status === 'sent') return 'sent'
+    if (m.status === 'rejected') return 'rejected'
+    if (sentMatchIds.has(matchKey(m)) || m.status === 'sent') return 'sent'
     return null
   }
 
@@ -976,6 +1080,7 @@ export function FocusPanel({
             bienStatus={bienStatusFor(matches[0])}
             reasons={matches[0].reasons}
             onOpen={onOpenBien}
+            onReact={onReact}
           />
           <div
             style={{
@@ -994,6 +1099,7 @@ export function FocusPanel({
                 bienStatus={bienStatusFor(m)}
                 reasons={m.reasons}
                 onOpen={onOpenBien}
+                onReact={onReact}
               />
             ))}
           </div>
