@@ -386,7 +386,7 @@ async function handleStatus(ctx: AuthCtx, body: Record<string, unknown>) {
 
   const out = await reconcileSignatureRequest({
     supabase: ctx.supabase, provider, creds, token: tokenRes.token,
-    sr: sr as SigRequestRow, statusResult, actor: { id: ctx.profileId, kind: 'agent' },
+    sr: sr as SigRequestRow, statusResult, actor: { id: ctx.profileId, kind: 'user' },
   })
   return json({ ok: true, status: out.status, finalized: out.finalized })
 }

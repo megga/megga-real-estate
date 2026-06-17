@@ -31,7 +31,7 @@ export interface ReconcileArgs {
   token: string | undefined
   sr: SigRequestRow
   statusResult: StatusResult
-  actor?: { id?: string | null; kind: 'agent' | 'system' | 'ai' }
+  actor?: { id?: string | null; kind: 'user' | 'system' | 'ai' }
 }
 
 const TERMINAL = new Set(['signed', 'declined', 'withdrawn', 'expired', 'error'])
@@ -122,7 +122,7 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
     action: `signature.${newStatus}`,
     entity_type: 'signature_request',
     entity_id: sr.id,
-    category: 'signature',
+    category: 'doc',
     object_label: `Signature ${sr.provider}`,
     metadata: { provider: sr.provider, status: newStatus, finalized },
     created_at: nowIso,
