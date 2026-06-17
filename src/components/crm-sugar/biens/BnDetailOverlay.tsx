@@ -8,6 +8,7 @@ import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { crmContactById, type CrmBien } from '../mockData'
 import { crmInitials, type SugarPalette } from '../tokens'
 import { bnFmtCHF, bnFmtDate, bnRelative, bnStatus } from './helpers'
+import { BnScoreBadge } from './BnScoreBadge'
 import { BnPhoto } from './BnPhoto'
 
 // Types pour matches + history affichés dans les onglets "Demandes" et
@@ -325,6 +326,11 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
             >
               {bien.addr} · {bien.canton}
             </div>
+            {bien.health && (
+              <div style={{ marginTop: 14 }}>
+                <BnScoreBadge health={bien.health} sp={sp} size="md" />
+              </div>
+            )}
             <div
               style={{
                 fontSize: 40,
