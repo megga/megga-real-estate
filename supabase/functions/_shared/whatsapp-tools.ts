@@ -125,7 +125,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'schedule_visit',
-      description: "Planifie une visite d'un BIEN pour un contact. Requiert le contact ET le bien. Pour « organise une visite du bien X avec Dubois mardi 14h ». contact_id via search_contacts, property_id via get_matches (ou demande à l'agent quel bien).",
+      description: "Planifie une visite d'un BIEN pour un contact, EN INTERNE seulement : enregistre la visite dans le CRM, n'envoie RIEN au client (ni invitation, ni email, ni lien) et ne le prévient pas. Requiert le contact ET le bien. Pour « organise une visite du bien X avec Dubois mardi 14h ». contact_id via search_contacts, property_id via get_matches (ou demande à l'agent quel bien).",
       parameters: {
         type: 'object',
         properties: {

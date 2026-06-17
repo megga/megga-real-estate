@@ -103,7 +103,17 @@ export function isUndoCommand(body: string | null | undefined): boolean {
 // appelé ce tour-ci), une affirmation qu'un screening / rapport KYC a été lancé / fait / est en
 // cours. Si oui, l'agent remplace la réponse par un message honnête (jamais de fausse action).
 // `kycToolCalled` = true ⇒ un outil KYC a réellement tourné ⇒ l'affirmation est légitime (pas de flag).
-export function isFabricatedKycClaim(reply: string | null | undefined, kycToolCalled: boolean): boolean {
+// kycStatusRead (défaut false) : un outil de LECTURE de statut (get_kyc_status) a tourné ce tour.
+// Distinction compliance clé : lire un statut ≠ lancer une action. Une lecture légitime la NARRATION
+// D'ÉTAT/RÉSULTAT (« risque faible », « screening en cours », « correspondance ») mais JAMAIS une
+// revendication d'ACTION (« j'ai lancé le screening », « résultats à venir ») — sinon le modèle
+// pourrait lire un statut puis prétendre avoir lancé une action jamais exécutée (régression Vladimir).
+// kycToolCalled (action KYC réellement exécutée : screening/rapport/attache) court-circuite tout.
+export function isFabricatedKycClaim(
+  reply: string | null | undefined,
+  kycToolCalled: boolean,
+  kycStatusRead = false,
+): boolean {
   if (kycToolCalled || !reply) return false
   const r = reply.toLowerCase()
 
@@ -116,9 +126,10 @@ export function isFabricatedKycClaim(reply: string | null | undefined, kycToolCa
   if (!/(screening|\bscreen\b|kyc|sanctions?|\bpep\b|vérif|verif|\blba\b|contrôl|controle)/.test(r)) return false
   if (/\b(déjà|deja|hier|avant-hier|la\s+semaine\s+(dernière|derniere|passée|passee)|le\s+mois\s+dernier|auparavant|already|yesterday|last\s+(week|month))\b/.test(r)) return false
 
-  // (3) Action présentée comme EN COURS / résultat À VENIR (la signature de l'incident Vladimir).
+  // (3) PROMESSE de résultat À VENIR / délivrance future = revendication d'une action async lancée.
+  // Une lecture de statut donne le résultat MAINTENANT, elle ne promet rien pour plus tard → JAMAIS
+  // légitimée par kycStatusRead.
   if (
-    /(en\s+cours|en\s+route|en\s+train\s+de|\btourne\b|\bin\s+progress\b|\bprocessing\b|\brunning\b|\bunderway\b)/.test(r) ||
     /(résultats?\s+(dans|d['e ]?ici|sous|à\s+venir|bient[ôo]t|arrive)|results?\b[^.]{0,20}(shortly|soon|coming|in\s+a\s+(few|moment)))/.test(r) ||
     /((je\s+te\s+(préviens|previens|reviens|tiens|donne|recontacte))|(je\s+reviens\s+vers)|(d[èe]s\s+que\s+c['e ]?est\s+(dispo|pr[êe]t|fait))|(i['\s]?(ll|will)\s+(let\s+you\s+know|get\s+back|keep\s+you)))/.test(r) ||
     /(ne\s+(me\s+)?remonte\s+pas\b[^.]*résultat)|((ça|ca)\s+arrive)/.test(r)
@@ -127,18 +138,95 @@ export function isFabricatedKycClaim(reply: string | null | undefined, kycToolCa
   // (4) Offre / futur (« tu veux que je lance », « je vais », « je peux ») = légitime, pas une action FAITE.
   if (/\b(je\s+vais|tu\s+veux|veux-tu|souhaites?-tu|si\s+tu|je\s+peux|dois-je|will\s+you|do\s+you\s+want|i\s+can|shall\s+i)\b/.test(r)) return false
 
-  // (5) Prétend avoir LANCÉ / FAIT l'action ou en donne un RÉSULTAT (sans appel d'outil) = fabrication.
-  return (
+  // (5) Prétend avoir LANCÉ / FAIT l'action (lire ≠ lancer) → fabrication même après une simple lecture.
+  if (
     /\bj['e ]?ai\s+(re)?(lanc|déclench|declench|démarr|demarr|initi|envoy|génér|gener|effectu|réalis|realis|vérifi|verifi|fait)/.test(r) ||
     /\bje\s+(viens\s+de|m['e ]?occupe)\b/.test(r) ||
     /\b(est|a\s+ét[ée]|sont|ont\s+ét[ée])\s+(lanc[ée]|déclench[ée]|declench[ée]|démarr[ée]|demarr[ée]|initi[ée]|envoy[ée]|génér[ée]|gener[ée]|effectu[ée]|réalis[ée]|realis[ée]|vérifi[ée]|verifi[ée]|parti[es]?)/.test(r) ||
     /\bfaite?\b/.test(r) ||
     /c['e ]?est\s+parti/.test(r) ||
     /\bi['\s]?(ve|m| have| am)?\s*(just\s+)?(launch|ran\b|run\b|start|sent|trigger|initiat|complet)/.test(r) ||
-    /(screening|kyc|sanctions?|pep|report|check)\s+(is\s+|has\s+been\s+|was\s+)?(started|launched|done|complete|completed|sent|triggered)/.test(r) ||
+    /(screening|kyc|sanctions?|pep|report|check)\s+(is\s+|has\s+been\s+|was\s+)?(started|launched|done|complete|completed|sent|triggered)/.test(r)
+  ) return true
+
+  // (6) ÉTAT / RÉSULTAT de statut (en cours, pas de PEP, correspondance, risque…). C'est EXACTEMENT ce
+  // qu'une lecture réelle de get_kyc_status produit → légitime SI un statut a été lu ce tour
+  // (kycStatusRead) ; sinon (aucune lecture), c'est une fabrication de résultat.
+  const stateOrResult =
+    /(en\s+cours|en\s+route|en\s+train\s+de|\btourne\b|\bin\s+progress\b|\bprocessing\b|\brunning\b|\bunderway\b)/.test(r) ||
     /(pas\s+de\s+pep|aucun\s+pep|pep\s+(détecté|detecte|trouvé|trouve|match)|correspondance\s+sanction|risque\s+(faible|moyen|élev[ée])|\bras\b)/.test(r) ||
     /(no\s+pep\s+match|sanctions?\s+(clear|match)|(low|medium|high)\s+risk)/.test(r)
-  )
+  if (stateOrResult) return !kycStatusRead
+  return false
+}
+
+// ── Anti-fabrication : helpers PURS (testables hors Deno/Supabase) ──────────
+// Vivent ici (module pur déjà allowlisté en unit) et NON dans whatsapp-actions.ts
+// (imports https:/Deno non résolus par le loader unit).
+
+/** Date seule DD.MM (Europe/Zurich) pour « screené le … ». '' si pas de date / invalide. */
+export function kycDateShort(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (!Number.isFinite(d.getTime())) return ''
+  const p = new Intl.DateTimeFormat('fr-CH', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Zurich' }).formatToParts(d)
+  const get = (t: string) => p.find((x) => x.type === t)?.value ?? ''
+  return `${get('day')}.${get('month')}`
+}
+
+/** Libellé HUMAIN d'un statut PEP/sanctions KYC. Ne JAMAIS renvoyer l'enum brut au modèle :
+ *  'not_checked' narré « pas de PEP / RAS » confond ABSENCE de contrôle et CLEAR (faute LBA).
+ *  Source = CHECK kyc_cases_{pep,sanctions}_status : clear|match|pending|not_checked.
+ *  NULL/inconnu = traité comme « non vérifié » (jamais « RAS »), c'est le cœur compliance. */
+export function kycScreenLabel(status: string | null | undefined, screenedAtIso: string | null | undefined): string {
+  switch (status) {
+    case 'clear': {
+      const d = kycDateShort(screenedAtIso)
+      return d ? `rien à signaler (screené le ${d})` : 'rien à signaler (screening clôturé)'
+    }
+    case 'match':   return 'correspondance détectée ⚠'
+    case 'pending': return 'screening en cours'
+    default:        return 'non vérifié (aucun screening lancé)'
+  }
+}
+
+// Projection PURE d'un match + ses lignes résolues → objet enrichi pour le modèle.
+// Champ absent/null/<=0 OMIS (jamais null ni inventé) : le modèle ne voit aucune clé vide
+// à halluciner. Property prioritaire sur market_listing (mandat propre > annonce externe).
+export interface MatchListingInput {
+  score: number | null; status: string | null
+  property_id: string | null; market_listing_id: string | null
+}
+export interface ResolvedPropertyRow { title: string | null; price: number | null; city: string | null; rooms: number | null }
+export interface ResolvedMarketRow {
+  title: string | null; transaction_type: string | null
+  price: number | null; rent: number | null; rent_chf: number | null; city: string | null; rooms: number | null
+}
+export interface ResolvedMatchView {
+  id: string; titre?: string; montant?: number; ville?: string; pieces?: number; score?: number; statut?: string
+}
+
+export function projectMatchListing(
+  m: MatchListingInput,
+  prop: ResolvedPropertyRow | null | undefined,
+  ml: ResolvedMarketRow | null | undefined,
+): ResolvedMatchView {
+  const out: ResolvedMatchView = { id: (m.property_id || m.market_listing_id || '') }
+  if (typeof m.score === 'number') out.score = m.score
+  if (m.status) out.statut = m.status
+  if (prop) {
+    if (prop.title) out.titre = prop.title
+    if (typeof prop.price === 'number' && prop.price > 0) out.montant = prop.price
+    if (prop.city) out.ville = prop.city
+    if (typeof prop.rooms === 'number' && prop.rooms > 0) out.pieces = prop.rooms
+  } else if (ml) {
+    if (ml.title) out.titre = ml.title
+    const amt = ml.transaction_type === 'rent' ? (ml.rent_chf ?? ml.rent ?? ml.price ?? 0) : (ml.price ?? 0)
+    if (typeof amt === 'number' && amt > 0) out.montant = amt
+    if (ml.city) out.ville = ml.city
+    if (typeof ml.rooms === 'number' && ml.rooms > 0) out.pieces = ml.rooms
+  }
+  return out
 }
 
 // Les 14 colonnes canoniques du pipeline (= transactions.stage, hors valeurs legacy
