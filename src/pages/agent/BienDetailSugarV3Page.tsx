@@ -581,7 +581,7 @@ export default function BienDetailSugarV3Page() {
     if (draft.mandate_expires_at) patch.mandate_expires_at = draft.mandate_expires_at
     if (wasDraft) {
       patch.status = 'active'
-      patch.published_at = new Date().toISOString()
+      // published_at posé par le trigger DB set_property_published_at (1er passage en 'active')
     }
     updateProperty(patch, {
       onSuccess: () => {

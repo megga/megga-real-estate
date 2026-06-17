@@ -2469,7 +2469,8 @@ export default function ListingFormPage() {
       contact_layout: values.contact_layout ?? 'right',
       neighborhood_variant: values.neighborhood_variant ?? 'map',
       partner_agency: values.partner_agency ?? null,
-      published_at: status === 'active' ? new Date().toISOString() : undefined,
+      // published_at est posé par le trigger DB set_property_published_at au
+      // 1er passage en 'active' (source unique, immuable ensuite) — ne pas le poser ici.
     }
   }
 
