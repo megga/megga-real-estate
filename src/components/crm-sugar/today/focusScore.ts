@@ -27,9 +27,14 @@
 //   'offer-expiring' = offre formelle 'pending' proche de son échéance
 //                      (argent + délai) — réponse attendue ;
 //   'visit'          = visite du jour à préparer / débrief en attente / no-show.
+// Focus radar v4 ajoute un signal PASSIF de portfolio :
+//   'property-push' = bien INTERNE le mieux placé pour être travaillé aujourd'hui,
+//                     à partir du SCORE DE BIEN backend (property_scores.overall_score,
+//                     cf calculate_property_scores). Signal de FOND, cappé, jamais
+//                     « now » (ce n'est pas une obligation datée).
 export type FocusSignalKind =
   | 'reminder' | 'deal' | 'kyc' | 'seller-lead' | 'lead-cooling'
-  | 'offer-expiring' | 'visit' | 'match-internal' | 'match-market'
+  | 'offer-expiring' | 'visit' | 'match-internal' | 'match-market' | 'property-push'
 export type FocusTier = 'now' | 'next' | 'rest'
 export type DealRisk = 'healthy' | 'at-risk' | 'stalled'
 
@@ -77,10 +82,17 @@ export interface FocusScoreInput {
   visitScheduledAt?: string | null // scheduled_at de la visite (ISO)
   visitStatus?: string | null      // planned|confirmed|done|cancelled|no_show
   visitDebriefMissing?: boolean    // rapport ET feedback_agent absents (pas encore débriefée)
+  // famille property-push (bien à pousser : score de bien backend + sous-scores)
+  propertyOverall?: number          // overall_score 0-100 (santé/chaleur du bien) — LE signal
+  propertyLabel?: string | null     // 'chaud' | 'a_animer' | 'en_veille'
+  propertyCompleteness?: number     // completeness_score 0-100 (complétude de fiche)
+  propertyInterest?: number         // interest_score 0-100 (acheteurs croisés, borné)
+  propertyPipeline?: number         // pipeline_score 0-100 (avancement deal lié)
+  propertyDataCompleteness?: number // data_completeness 0-1 (richesse réelle des signaux)
 }
 
 export interface FocusConfig {
-  weights: { reminder: number; match: number; deal: number; kyc: number; seller_lead: number; lead_cooling: number; offer_expiring: number; visit: number }
+  weights: { reminder: number; match: number; deal: number; kyc: number; seller_lead: number; lead_cooling: number; offer_expiring: number; visit: number; property_push: number }
   thresholds: {
     match_gate: number
     match_now: number
@@ -106,13 +118,13 @@ export interface FocusConfig {
     seller_lead_motivation_immediate: number
     seller_lead_value_ref: number
   }
-  caps: { now_total: number; per_contact: number; matches_returned: number; cooling_returned: number; offer_expiring_returned: number; visit_returned: number }
+  caps: { now_total: number; per_contact: number; matches_returned: number; cooling_returned: number; offer_expiring_returned: number; visit_returned: number; property_returned: number }
   version: number
 }
 
 // Miroir EXACT de app_config.today_focus_v1 (cf migration 20260616120000).
 export const FOCUS_DEFAULTS: FocusConfig = {
-  weights: { reminder: 0.45, match: 0.40, deal: 0.15, kyc: 0.42, seller_lead: 0.45, lead_cooling: 0.25, offer_expiring: 0.45, visit: 0.40 },
+  weights: { reminder: 0.45, match: 0.40, deal: 0.15, kyc: 0.42, seller_lead: 0.45, lead_cooling: 0.25, offer_expiring: 0.45, visit: 0.40, property_push: 0.30 },
   thresholds: {
     match_gate: 70,
     match_now: 80,
@@ -138,7 +150,7 @@ export const FOCUS_DEFAULTS: FocusConfig = {
     seller_lead_motivation_immediate: 0.15,
     seller_lead_value_ref: 3_000_000,
   },
-  caps: { now_total: 3, per_contact: 2, matches_returned: 40, cooling_returned: 3, offer_expiring_returned: 5, visit_returned: 3 },
+  caps: { now_total: 3, per_contact: 2, matches_returned: 40, cooling_returned: 3, offer_expiring_returned: 5, visit_returned: 3, property_returned: 3 },
   version: 1,
 }
 
@@ -174,6 +186,7 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       lead_cooling: numOr(w.lead_cooling, d.weights.lead_cooling),
       offer_expiring: numOr(w.offer_expiring, d.weights.offer_expiring),
       visit: numOr(w.visit, d.weights.visit),
+      property_push: numOr(w.property_push, d.weights.property_push),
     },
     thresholds: {
       match_gate: numOr(t.match_gate, d.thresholds.match_gate),
@@ -207,6 +220,7 @@ export function parseFocusConfig(raw: unknown): FocusConfig {
       cooling_returned: numOr(c.cooling_returned, d.caps.cooling_returned),
       offer_expiring_returned: numOr(c.offer_expiring_returned, d.caps.offer_expiring_returned),
       visit_returned: numOr(c.visit_returned, d.caps.visit_returned),
+      property_returned: numOr(c.property_returned, d.caps.property_returned),
     },
     version: numOr(o.version, d.version),
   }
@@ -222,7 +236,7 @@ export function focusScoreMaxFraction(cfg: FocusConfig = FOCUS_DEFAULTS): number
   return Math.max(
     cfg.weights.reminder, cfg.weights.match, cfg.weights.deal,
     cfg.weights.kyc, cfg.weights.seller_lead, cfg.weights.lead_cooling,
-    cfg.weights.offer_expiring, cfg.weights.visit,
+    cfg.weights.offer_expiring, cfg.weights.visit, cfg.weights.property_push,
   ) + cfg.bonuses.kyc_max
 }
 
@@ -449,6 +463,16 @@ export function normalizeVisit(
   return 0
 }
 
+// ── 1.10 property-push → signal [0..1] (bien à pousser : santé/chaleur du bien) ─
+// Signal de FOND (radar portfolio) : on surface les biens INTERNES les mieux placés
+// pour être travaillés aujourd'hui, à partir du SCORE DE BIEN backend déjà persisté
+// (property_scores.overall_score, cf calculate_property_scores). Le score EST le
+// signal — on le normalise tel quel [0..1]. Jamais 'now' (pas une obligation datée) ;
+// cappé ; geste honnête tiré du sous-score le plus faible (cf buildReason).
+export function normalizeProperty(input: Pick<FocusScoreInput, 'propertyOverall'>): number {
+  return clamp01((input.propertyOverall ?? 0) / 100)
+}
+
 // ── Routage deal → kyc : un deal proche du closing dont le dossier KYC n'est
 // pas vérifié devient un item 'kyc' (compléter la vérification = la prochaine
 // action), sinon il reste un item 'deal'. Purs + testables.
@@ -491,6 +515,9 @@ export function scoreItem(input: FocusScoreInput, now: number, cfg: FocusConfig 
   } else if (input.signalKind === 'visit') {
     signal = normalizeVisit(input, now, cfg)
     family = cfg.weights.visit
+  } else if (input.signalKind === 'property-push') {
+    signal = normalizeProperty(input)
+    family = cfg.weights.property_push
   } else {
     signal = normalizeMatch(input, cfg)
     family = cfg.weights.match
@@ -514,6 +541,10 @@ export function assignTier(input: FocusScoreInput, now: number, cfg: FocusConfig
   // Lead qui refroidit = signal de FOND : « à relancer bientôt », JAMAIS « now »
   // (ce n'est pas une obligation datée). Plafonné à « Ensuite ».
   if (input.signalKind === 'lead-cooling') return 'next'
+  // Bien à pousser = signal de FOND (portfolio), JAMAIS « now » : on surface les biens
+  // qui méritent un geste (overall ≥ 45 = 'chaud'/'a_animer'), et on relègue les
+  // 'en_veille' (overall < 45) en « rest » (non construits côté file).
+  if (input.signalKind === 'property-push') return (input.propertyOverall ?? 0) >= 45 ? 'next' : 'rest'
   // Offre 'pending' : échéance ≤ now_days (ou dépassée) = obligation imminente →
   // « now » ; dans la fenêtre = « next » ; au-delà = bruit (« rest »).
   if (input.signalKind === 'offer-expiring') {
@@ -605,6 +636,20 @@ export function buildReason(input: FocusScoreInput, now: number, cfg: FocusConfi
       : sub === 'debrief'
         ? (input.visitStatus === 'done' ? 'Visite passée — débrief à saisir' : 'Visite passée — à clôturer')
         : 'Visite à suivre'
+  } else if (input.signalKind === 'property-push') {
+    // Libellé d'ATTENTION (estimation) + geste HONNÊTE tiré du levier le plus faible
+    // (ce qui ferait réellement monter le score ET avancer la vente). Jamais un
+    // palmarès trompeur : on dit ce qui manque, pas « ce bien est chaud ».
+    base = input.propertyLabel === 'chaud' ? 'Bien à pousser — bien positionné'
+      : input.propertyLabel === 'en_veille' ? 'Bien en veille — à animer ou archiver'
+      : 'Bien à animer'
+    const comp = input.propertyCompleteness ?? 100
+    const pipe = input.propertyPipeline ?? 0
+    const inter = input.propertyInterest ?? 0
+    if (comp < 60) base += ' · fiche à compléter'
+    else if (pipe <= 25 && inter > 35) base += ' · acheteurs croisés, à mettre en avant'
+    else if (pipe <= 25) base += ' · pas encore lié à un deal'
+    if ((input.propertyDataCompleteness ?? 1) <= 0.34) base += ' · estimation (données limitées)'
   } else if (input.signalKind === 'match-internal' || input.signalKind === 'match-market') {
     const brut = input.matchScore ?? 0
     const top = (input.reasonKeys ?? [])
@@ -653,6 +698,7 @@ const FAMILY_ORDER: Record<FocusSignalKind, number> = {
   'match-internal': 6,
   'match-market': 7,
   'lead-cooling': 8,
+  'property-push': 9,
 }
 const TIER_ORDER: Record<FocusTier, number> = { now: 0, next: 1, rest: 2 }
 
@@ -683,10 +729,16 @@ export function finalizeQueue<T extends FocusRankable>(items: T[], cfg: FocusCon
   let coolingKept = 0
   let offerKept = 0
   let visitKept = 0
+  let propertyKept = 0
   const ranked = capped.filter((it) => {
     if (it.signalKind === 'lead-cooling') {
       if (coolingKept >= cfg.caps.cooling_returned) return false
       coolingKept++
+      return true
+    }
+    if (it.signalKind === 'property-push') {
+      if (propertyKept >= cfg.caps.property_returned) return false
+      propertyKept++
       return true
     }
     if (it.signalKind === 'offer-expiring') {

@@ -26,6 +26,7 @@ import type { StageId } from '@/components/crm-sugar/tokens'
 import type { FocusItem } from './focusQueue'
 import { fmtCHF } from './data'
 import { useFocusMatches, snoozeMatch } from './useFocusMatches'
+import { useFocusProperties } from './useFocusProperties'
 import { useFocusConfig } from './useFocusConfig'
 import {
   scoreItem,
@@ -98,6 +99,8 @@ export function useFocusQueue(): UseFocusQueueResult {
   // RADAR v3 : offres 'pending' proches de l'échéance + visites de l'agenda.
   const { data: expiringOffers = [], isLoading: offersLoading } = useExpiringOffers(50)
   const { data: focusVisits = [], isLoading: visitsLoading } = useFocusVisits(100)
+  // RADAR v4 : biens internes à pousser (score de bien backend, RLS agence).
+  const { properties: focusProperties, isLoading: propsLoading } = useFocusProperties(12)
   const cfg = useFocusConfig()
 
   const items = useMemo<QueueItem[]>(() => {
@@ -423,11 +426,54 @@ export function useFocusQueue(): UseFocusQueueResult {
       })
     }
 
-    return finalizeQueue(out, cfg)
-  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, coolingLeads, expiringOffers, focusVisits, cfg])
+    // 6. Biens à pousser (RADAR v4 — score de bien). Signal de FOND portfolio :
+    // les biens internes les mieux placés (overall_score backend) avec un geste
+    // HONNÊTE tiré du levier le plus faible. UI-only ; jamais 'now' ; cappé
+    // (property_returned). assignTier relègue les 'en_veille' (overall < 45) en
+    // 'rest' → on ne les construit pas (pas de bruit dans la file live).
+    for (const p of focusProperties) {
+      const input: FocusScoreInput = {
+        signalKind: 'property-push',
+        propertyOverall: p.overall,
+        propertyLabel: p.label,
+        propertyCompleteness: p.completeness ?? undefined,
+        propertyInterest: p.interest ?? undefined,
+        propertyPipeline: p.pipeline ?? undefined,
+        propertyDataCompleteness: p.dataCompleteness ?? undefined,
+      }
+      const tier = assignTier(input, now, cfg)
+      if (tier === 'rest') continue
+      const score = scoreItem(input, now, cfg)
+      const title = p.title || 'Bien sans titre'
+      out.push({
+        id: `bien-${p.propertyId}`,
+        type: 'bien',
+        signalKind: 'property-push',
+        contact: title,
+        // clé synthétique property-keyée : pas de contact (≠ familles contact) ; ne
+        // collisionne pas avec un contactId et n'est pas touchée par le cap match.
+        contactId: `property:${p.propertyId}`,
+        initials: initialsOf(title),
+        av: avFromId(p.propertyId),
+        category: 'BIEN',
+        time: '',
+        eta: '',
+        sub: [p.title, p.city].filter(Boolean).join(' · ') || 'Bien interne à travailler.',
+        reason: buildReason(input, now, cfg),
+        score,
+        displayScore: toDisplayScore(score, cfg),
+        tier,
+        urgent: false,
+        bien: { photo: p.photo || '', price: p.price != null ? fmtCHF(p.price) : '—', title: p.title || undefined },
+        due: undefined,
+      })
+    }
 
-  const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading || coolingLoading || offersLoading || visitsLoading
-  const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0 || coolingLeads.length > 0 || expiringOffers.length > 0 || focusVisits.length > 0
+    return finalizeQueue(out, cfg)
+  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, coolingLeads, expiringOffers, focusVisits, focusProperties, cfg])
+
+  const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading || coolingLoading || offersLoading || visitsLoading || propsLoading
+  const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0 || coolingLeads.length > 0 || expiringOffers.length > 0 || focusVisits.length > 0 || focusProperties.length > 0
   const isLive = !isLoading && hasData
 
   // Gestes réels (HITL) : Fait clôt le reminder ; Replanifier reporte le

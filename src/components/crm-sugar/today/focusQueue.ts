@@ -86,6 +86,8 @@ export const FOCUS_TYPE: Record<string, FocusTypeDef> = {
   // Focus radar v3 — visite à préparer (jour) / débrief en attente / no-show.
   // (Les offres qui expirent réutilisent le type 'offer' ci-dessus.)
   visit: { icon: 'cal', badge: '#9b7cf0', live: false, label: () => 'Voir la visite' },
+  // Focus radar v4 — bien interne à pousser (score de bien backend). UI-only.
+  bien: { icon: 'building', badge: '#5b6cff', live: false, label: () => 'Voir le bien' },
 }
 
 export const focusTy = (t: string): FocusTypeDef => FOCUS_TYPE[t] || FOCUS_TYPE.call
