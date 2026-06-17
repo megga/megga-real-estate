@@ -20,6 +20,8 @@ import { FocusMode } from './FocusMode'
 import { RelanceSession } from './RelanceSession'
 import { useTodayNav } from './TodayNavContext'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
+import { useAuth } from '@/hooks/useAuth'
+import { formatTodayHeader } from '@/lib/utils'
 
 // ─── « Ensuite » — file d'attente compacte ──────────────────────────────
 const ENSUITE_TONE: Record<string, TkToneName> = { Mandat: 'info', Vendeur: 'ok', KYC: 'warn', Compromis: 'ok', Offre: 'warn', Visite: 'info', Match: 'info', Relance: 'neutral' }
@@ -101,6 +103,12 @@ function FocusPill({ onClick }: { onClick: () => void }) {
 // ─── PAGE AUJOURD'HUI ───────────────────────────────────────────────────
 export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
   const { navigate } = useTodayNav()
+  const { profile } = useAuth()
+  // En-tête réel : prénom de l'agent connecté + date du jour (FR), au lieu du
+  // « Gregory / Dimanche 14 juin » figé du seed démo (cassait la crédibilité).
+  const headerFirstName = profile?.full_name?.trim().split(/\s+/)[0] ?? ''
+  const headerGreeting = headerFirstName ? `Bonjour ${headerFirstName}` : 'Bonjour'
+  const headerDate = formatTodayHeader()
   const [focusMode, setFocusMode] = useState(false)
   const [relanceOpen, setRelanceOpen] = useState(false)
 
@@ -130,8 +138,8 @@ export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
         {/* EN-TÊTE pleine largeur — aligne les deux colonnes en dessous */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: TK.sub, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{DATA.date}</div>
-            <h1 style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 800, letterSpacing: -0.8, color: TK.ink, lineHeight: 1.1 }}>Bonjour {DATA.agent.name}</h1>
+            <div style={{ fontSize: 11, fontWeight: 700, color: TK.sub, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{headerDate}</div>
+            <h1 style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 800, letterSpacing: -0.8, color: TK.ink, lineHeight: 1.1 }}>{headerGreeting}</h1>
           </div>
           <FocusPill onClick={() => setFocusMode(true)} />
         </div>
