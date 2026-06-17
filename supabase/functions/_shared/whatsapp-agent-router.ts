@@ -229,6 +229,28 @@ export function projectMatchListing(
   return out
 }
 
+// Garde DÉTERMINISTE anti-fuite d'adresse pour l'annonce confidentielle (pattern d). La consigne
+// « ne révèle pas l'adresse exacte » donnée au modèle est MOLLE ; ici on masque EN CODE le NUMÉRO
+// de rue réel (connu en base) s'il co-apparaît avec un mot distinctif de la rue dans une phrase.
+// Conservateur : sans numéro dans l'adresse, ou nom de rue < 4 lettres (« Rue », « Lac »… trop
+// communs), on ne touche à rien — pas de faux positif. Ne fait que MASQUER (→ '—'), jamais ajouter.
+export function stripExactAddress(text: string, address: string | null | undefined): string {
+  const addr = (address ?? '').trim()
+  if (!addr || !text) return text
+  const num = /\b\d{1,4}[a-zA-Z]?\b/.exec(addr)?.[0]
+  if (!num) return text // pas de numéro = pas de token discriminant → on ne strip pas
+  const norm = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  const generics = new Set(['rue', 'route', 'avenue', 'chemin', 'place', 'quai', 'impasse', 'allee', 'boulevard', 'street', 'road'])
+  const streetWords = norm(addr).replace(/\d/g, ' ').split(/[^a-z]+/).filter((w) => w.length >= 4 && !generics.has(w))
+  if (streetWords.length === 0) return text
+  const numRe = new RegExp(`\\b${num.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
+  return text.split(/(?<=[.!?\n])/).map((seg) => {
+    const nseg = norm(seg)
+    const leaks = streetWords.some((w) => nseg.includes(w)) && numRe.test(seg)
+    return leaks ? seg.replace(numRe, '—') : seg
+  }).join('')
+}
+
 // Les 14 colonnes canoniques du pipeline (= transactions.stage, hors valeurs legacy
 // lead/qualified/closed/visit_planned_legacy). Source unique partagée par le catalogue
 // d'outils (enum exposé à DeepSeek) et l'exécuteur update_pipeline (validation défensive).

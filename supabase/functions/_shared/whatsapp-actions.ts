@@ -15,7 +15,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount, canonicalPropertyType, normalizeZone } from './whatsapp-lead.ts'
-import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
+import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, stripExactAddress, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
@@ -1546,6 +1546,8 @@ export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise
   }
 
   const lines: string[] = []
+  // Cadre déterministe : c'est une lecture du fil que l'agent a collé, à relire — pas un fait CRM établi.
+  lines.push(lang === 'en' ? '_Summary of the thread you pasted — worth a re-read:_' : "_Synthèse du fil que tu m'as collé, à relire :_")
   if (resume) lines.push(resume)
   if (decisions.length > 0) {
     lines.push('')
@@ -1650,9 +1652,11 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
     return parts.join('\n')
   }
 
+  // Vérif assistée, JAMAIS une garantie : le verdict « pas de fuite » est un jugement IA non
+  // vérifiable (faux négatif possible). On ne vend pas une coche verte catégorique → l'agent relit.
   return lang === 'en'
-    ? "✅ No confidential information detected for the listed parties."
-    : "✅ Rien de confidentiel détecté pour les parties indiquées."
+    ? "Nothing obvious flagged for the listed parties — still re-read the draft before posting (assisted check, not a guarantee)."
+    : "Rien d'évident repéré pour les parties indiquées — relis quand même le brouillon avant de poster (vérif assistée, pas une garantie)."
 }
 
 // draft_listing_copy (read-tier, agent-facing) : l'agent demande de rédiger l'annonce d'un de
@@ -1909,10 +1913,16 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
     return failMsg
   }
 
-  const titre = typeof parsed.titre === 'string' ? parsed.titre.trim() : ''
-  const descFr = typeof parsed.description_fr === 'string' ? parsed.description_fr.trim() : ''
-  const descEn = typeof parsed.description_en === 'string' ? parsed.description_en.trim() : ''
+  let titre = typeof parsed.titre === 'string' ? parsed.titre.trim() : ''
+  let descFr = typeof parsed.description_fr === 'string' ? parsed.description_fr.trim() : ''
+  let descEn = typeof parsed.description_en === 'string' ? parsed.description_en.trim() : ''
   if (!titre && !descFr && !descEn) return failMsg
+  // Variante confidentielle : filet déterministe par-dessus la consigne molle (confidentialClause).
+  if (variant === 'confidential') {
+    titre = stripExactAddress(titre, p.address)
+    descFr = stripExactAddress(descFr, p.address)
+    descEn = stripExactAddress(descEn, p.address)
+  }
 
   // Bloc contact (variante publique seulement) — construit EN CODE depuis l'agence + l'agent.
   let contactBlock = ''
@@ -2103,10 +2113,12 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
       "Voici le contexte d'un rendez-vous immobilier (fiche client, compréhension de la dernière " +
       'conversation, dossier, biens en attente, visite prévue). Rends en JSON ' +
       '{"brief":"2-3 phrases de contexte","points":["…","…","…"]}. ' +
-      'Les 3 points = sujets CONCRETS à aborder pendant le RDV, ancrés UNIQUEMENT sur les données ' +
-      'fournies (où en est le dossier, biens à montrer, engagements pris, prochaine action). ' +
+      'Les 3 points = sujets CONCRETS à aborder pendant le RDV, formulés en QUESTIONS ou actions à ' +
+      "faire (« confirmer… », « demander… », « proposer… »), JAMAIS comme des faits acquis ni des " +
+      "engagements déjà pris ; ancrés UNIQUEMENT sur les données fournies. N'attribue AUCUNE promesse " +
+      "au client ou à l'agent qui ne figure pas littéralement dans « Engagements pris ». " +
       "N'invente RIEN (aucun chiffre, aucun bien, aucune donnée absente du contexte). Si peu de " +
-      'données, propose des points pertinents et génériques (confirmer les critères, planifier la suite).\n\n' +
+      'données, propose des points génériques formulés en questions (confirmer les critères, planifier la suite).\n\n' +
       context
 
     let parsed: Record<string, unknown> = {}
@@ -2188,7 +2200,9 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
   }
 
   out.push('')
-  out.push(lang === 'en' ? '*To discuss*' : '*À aborder*')
+  // Cadre DÉTERMINISTE : les points sont des pistes IA à valider, jamais du dossier vérifié — émis
+  // quoi que rende DeepSeek, pour que l'agent ne les lise pas comme des faits/engagements acquis.
+  out.push(lang === 'en' ? '*To discuss* _(suggested topics — validate against the file)_' : '*À aborder* _(pistes à valider — vérifie au dossier)_')
   if (points.length > 0) {
     points.forEach((p, i) => out.push(`${i + 1}. ${p}`))
   } else {
@@ -2355,8 +2369,15 @@ export async function execFileDocument(ctx: ActionCtx, a: Args): Promise<string>
       ? "I read the document but couldn't file the note — try again."
       : "J'ai lu le document mais je n'ai pas pu enregistrer la note — réessaie."
   }
-  // On rend la lecture COMPLÈTE à l'agent (la note stockée est bornée à 500). Validation humaine rappelée.
+  // On rend la lecture COMPLÈTE à l'agent, mais la note persistée par logTimeline est bornée à 500c.
+  // Quand le digest dépasse, on NOMME la troncature en CODE (plus d'écart silencieux entre ce que
+  // l'agent voit comme « classé » et ce qui est réellement en base). Validation humaine rappelée.
+  const truncNote = r.digest.length > 500
+    ? (lang === 'en'
+        ? ' (CRM note shortened to its first 500 characters — re-read the full version in the file.)'
+        : ' (Note CRM résumée aux 500 premiers caractères — relis la version complète dans la fiche.)')
+    : ''
   return lang === 'en'
-    ? `Filed under ${name}'s timeline.\n\n${r.digest}\n\n(AI read — please check it in the CRM.)`
-    : `Classé dans la fiche de ${name}.\n\n${r.digest}\n\n(Lecture IA — vérifie dans le CRM.)`
+    ? `Filed under ${name}'s timeline.\n\n${r.digest}\n\n(AI read — please check it in the CRM.)${truncNote}`
+    : `Classé dans la fiche de ${name}.\n\n${r.digest}\n\n(Lecture IA — vérifie dans le CRM.)${truncNote}`
 }
