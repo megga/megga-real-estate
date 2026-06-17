@@ -196,18 +196,21 @@ BEGIN
     RAISE EXCEPTION 'first_name_and_last_name_required' USING ERRCODE = '23502';
   END IF;
 
+  -- NB : budget_announced / search_zones NE SONT PAS des colonnes de contacts
+  -- (ni en prod ni dans les migrations — le budget vit dans les notes / client_searches).
+  -- La fonction baseline les insérait à tort → 42703 latent à CHAQUE appel (corrigé ici).
+  -- Les params p_budget_announced / p_search_zones restent acceptés pour la compat de
+  -- signature avec useImportLead (le budget est déjà repris dans p_notes côté appelant).
   INSERT INTO contacts (
     agency_id, user_id,
     first_name, last_name, email, phone,
     type, source, score, tags, notes,
-    budget_announced, search_zones,
     import_raw_text, import_raw_text_received_at
   )
   VALUES (
     v_agency_id, v_user_id,
     p_first_name, p_last_name, NULLIF(p_email, ''), NULLIF(p_phone, ''),
     p_type, p_source, p_score, p_tags, p_notes,
-    p_budget_announced, p_search_zones,
     NULLIF(p_import_raw_text, ''),
     CASE WHEN p_import_raw_text IS NOT NULL AND p_import_raw_text <> '' THEN NOW() ELSE NULL END
   )
