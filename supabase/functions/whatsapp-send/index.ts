@@ -133,11 +133,11 @@ serve(async (req) => {
     await supabase.from('activity_events').insert({
       agency_id: profile.agency_id,
       actor_id: profile.id,
-      actor_kind: 'agent',
+      actor_kind: 'user',
       action: 'whatsapp_message_sent',
       entity_type: contactId ? 'contact' : 'whatsapp_message',
       entity_id: contactId,
-      category: 'messaging',
+      category: 'contact',
     })
   } catch { /* non bloquant */ }
 
