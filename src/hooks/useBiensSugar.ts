@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo } from 'react'
 import { useAgencyProperties } from '@/hooks/useProperties'
+import { usePropertyScores } from '@/hooks/usePropertyScores'
 import type { Property } from '@/types/listing'
 import { propertyToCrmBien } from '@/lib/sugarAdapters'
 import {
@@ -24,6 +25,8 @@ export function useBiensSugar(): UseBiensSugarReturn {
   // useAgencyProperties renvoie un sur-ensemble de Property (joint avec
   // listings(views_count, favorites_count) — pas utile pour CrmBien).
   const { data: rawProperties = [], isLoading } = useAgencyProperties()
+  // Score de bien (estimation) attaché par id ; absence = pas encore calculé → null.
+  const { scores } = usePropertyScores()
 
   const biens = useMemo<CrmBien[]>(
     () =>
@@ -40,9 +43,10 @@ export function useBiensSugar(): UseBiensSugarReturn {
             favorites: l.favorites_count ?? b.stats.favorites,
           }
         }
+        b.health = scores.get(b.id) ?? null
         return b
       }),
-    [rawProperties],
+    [rawProperties, scores],
   )
 
   // Registry runtime : permet aux autres composants Sugar qui appellent

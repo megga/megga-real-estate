@@ -8,6 +8,7 @@ import { crmContactById, type CrmBien } from '../mockData'
 import { crmInitials, type SugarPalette } from '../tokens'
 import { BnPhoto } from './BnPhoto'
 import { BnSpec } from './BnFilterDropdown'
+import { BnScoreBadge } from './BnScoreBadge'
 import { bnFmtCHF, bnStatus } from './helpers'
 
 interface BnRowProps {
@@ -112,6 +113,11 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
         >
           {bien.addr}
         </div>
+        {bien.health && (
+          <div style={{ marginBottom: 8 }}>
+            <BnScoreBadge health={bien.health} sp={sp} size="sm" />
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
           <BnSpec value={bien.area} label="m²" sp={sp} />
           <BnSpec value={bien.rooms} label="pièces" sp={sp} />
