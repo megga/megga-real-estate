@@ -40,10 +40,10 @@ export interface CrmSubmission {
   features: string[]
   accent: string
   autoChecks: {
-    addressMatch: 'ok' | 'warn' | 'error'
-    photosCount: 'ok' | 'warn' | 'error'
-    duplicates: 'ok' | 'warn' | 'error'
-    cantonalRegistry: 'ok' | 'warn' | 'error'
+    addressMatch: 'ok' | 'warn' | 'error' | 'pending'
+    photosCount: 'ok' | 'warn' | 'error' | 'pending'
+    duplicates: 'ok' | 'warn' | 'error' | 'pending'
+    cantonalRegistry: 'ok' | 'warn' | 'error' | 'pending'
   }
 }
 
