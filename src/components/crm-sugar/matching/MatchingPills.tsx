@@ -122,14 +122,15 @@ export function MStatusDot({ status }: MStatusDotProps) {
 }
 
 // Pastille d'état d'un bien dans le focus :
-// visite planifiée > envoyé > engagement.
-type BienStatus = 'scheduled' | 'sent' | 'liked' | 'viewed'
+// visite planifiée > réaction client (aimé / pas intéressé) > envoyé.
+type BienStatus = 'scheduled' | 'sent' | 'liked' | 'viewed' | 'rejected'
 
 const BIEN_STATUS_MAP: Record<BienStatus, { tone: PillTone; label: string }> = {
   scheduled: { tone: 'ok', label: 'Visite planifiée' },
   sent: { tone: 'info', label: 'Envoyé' },
   liked: { tone: 'ok', label: 'Aimé' },
   viewed: { tone: 'info', label: 'Vu' },
+  rejected: { tone: 'danger', label: 'Pas intéressé' },
 }
 
 interface MBienStatusPillProps {

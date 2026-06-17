@@ -27,6 +27,7 @@ import type { Json, TablesInsert } from '@/types/database'
 import type { Contact, SearchCriteria } from '@/types/contact'
 import type { KycCase } from '@/types/kyc'
 import { contactToCrm, listingToBien } from '@/lib/sugarAdapters'
+import type { MatchReaction } from '@/types/matching'
 import {
   registerLiveBien,
   registerLiveContact,
@@ -74,6 +75,7 @@ export interface UseMatchingSugarReturn {
   groups: MatchGroup[]
   isLoading: boolean
   sendMatch: (matchId: string, channel: 'email' | 'whatsapp' | 'both') => void
+  markReaction: (matchId: string, reaction: MatchReaction) => void
   scheduleVisit: (input: ScheduleVisitInput) => Promise<void>
   runMatching: () => void
   isRunning: boolean
@@ -96,7 +98,7 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
   // 1. Matches via le hook existant.
   // On ne réexporte pas `runMatching` (mode 'match-contact', requiert un contactId) :
   // notre `runMatching()` ci-dessous fait un scan agency-wide via invoke direct.
-  const { matches, isLoading: matchesLoading, sendMatch, isRunning } = useMatching()
+  const { matches, isLoading: matchesLoading, sendMatch, markReaction, isRunning } = useMatching()
 
   // 2. Contacts impliqués (acheteurs des matches)
   const buyerIds = useMemo(
@@ -294,6 +296,7 @@ export function useMatchingSugar(): UseMatchingSugarReturn {
     groups,
     isLoading: matchesLoading || contactsLoading || kycLoading,
     sendMatch,
+    markReaction,
     scheduleVisit: (input: ScheduleVisitInput) => scheduleVisitMutation.mutateAsync(input),
     runMatching: () => {
       // Trigger un scan global plutôt que par contact (l'agent veut tout rafraîchir)

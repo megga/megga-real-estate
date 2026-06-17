@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLogAudit } from '@/hooks/useAuditLog'
 import { useMatchingSugar } from '@/hooks/useMatchingSugar'
 import type { SearchCriteria } from '@/types/contact'
+import type { MatchReaction } from '@/types/matching'
 import { crmBienById } from '@/components/crm-sugar/mockData'
 import {
   CRM_TOKENS,
@@ -282,7 +283,7 @@ function formatRelativeSync(iso: string | null): string {
 export default function MatchingSugarV2Page() {
   const navigate = useNavigate()
   const logAudit = useLogAudit()
-  const { groups, isLoading, sendMatch, scheduleVisit, runMatching, isRunning, updateCriteria } =
+  const { groups, isLoading, sendMatch, markReaction, scheduleVisit, runMatching, isRunning, updateCriteria } =
     useMatchingSugar()
 
   const [dark, setDark] = useState<boolean>(() => {
@@ -492,6 +493,21 @@ export default function MatchingSugarV2Page() {
         metadata: { channel, matchIds, count: matchIds.length, system_dispatch: false },
       })
     }
+  }
+
+  // Producteur de statut de réaction : l'agent enregistre la réponse du client à
+  // un dossier envoyé. La mutation pose le statut ; le trigger DB
+  // (set_match_response_at) pose response_at + trace l'audit 'match_reaction'.
+  // Pas de logAudit ici → la trace vient du trigger (source unique), avec la
+  // bonne attribution (auth.uid() = l'agent).
+  const handleReact = (matchId: string, reaction: MatchReaction) => {
+    markReaction(matchId, reaction)
+    const label =
+      reaction === 'interested' ? 'intéressé'
+      : reaction === 'visit_planned' ? 'visite à planifier'
+      : 'pas intéressé'
+    setToast(`Réaction du client enregistrée : ${label}.`)
+    setTimeout(() => setToast(null), 3000)
   }
 
   const handleScheduled = ({
@@ -793,6 +809,7 @@ export default function MatchingSugarV2Page() {
                   })
                   navigate(`/dashboard/listings/${bienId}`)
                 }}
+                onReact={handleReact}
               />
             ) : (
               <div

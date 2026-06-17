@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import type { MatchReaction } from '@/types/matching'
 
 // ── Supabase match shape ────────────────────────────────────────────────────
 
@@ -266,6 +267,24 @@ export function useMatching(contactId?: string) {
     },
   })
 
+  // ── Réaction du client à un dossier envoyé (interested / visit_planned /
+  // rejected). On ne pose PAS response_at ici : le trigger DB
+  // (set_match_response_at) en est la source unique. Invalide les DEUX
+  // queryKeys car la page Atelier lit ['atelier-matches'] et useMatching ['matches'].
+  const reactionMutation = useMutation({
+    mutationFn: async ({ matchId, reaction }: { matchId: string; reaction: MatchReaction }) => {
+      const { error } = await supabase
+        .from('matches')
+        .update({ status: reaction })
+        .eq('id', matchId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+      queryClient.invalidateQueries({ queryKey: ['atelier-matches'] })
+    },
+  })
+
   // ── Trigger matching via Edge Function ──
   const runMatchingMutation = useMutation({
     mutationFn: async (targetContactId: string) => {
@@ -299,6 +318,8 @@ export function useMatching(contactId?: string) {
     sendMatch: (matchId: string, channel: 'email' | 'whatsapp' | 'both') =>
       sendMatchMutation.mutate({ matchId, channel }),
     ignoreMatch: (matchId: string) => ignoreMatchMutation.mutate(matchId),
+    markReaction: (matchId: string, reaction: MatchReaction) =>
+      reactionMutation.mutate({ matchId, reaction }),
     runMatching: (targetContactId: string) => runMatchingMutation.mutate(targetContactId),
     isRunning: runMatchingMutation.isPending,
   }
