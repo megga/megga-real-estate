@@ -33,6 +33,8 @@ export function useImpersonate() {
     // appears on AdminSecurityAuditPage. Fire-and-forget (don't block UI).
     supabase.from('activity_events').insert({
       actor_id: user?.id ?? null,
+      actor_kind: 'user',
+      category: 'auth',
       action: 'impersonate_start',
       entity_type: 'profile',
       entity_id: target.id,
@@ -42,7 +44,10 @@ export function useImpersonate() {
         target_role: target.role,
         target_agency: target.agency_name,
       },
-    }).then(() => { /* fire-and-forget */ })
+    }).then(({ error }) => {
+      // Fire-and-forget but surface failures — audit trail must not fail silently.
+      if (error) console.error('[useImpersonate] audit (start) write failed:', error.message)
+    })
   }, [user?.id])
 
   const stopImpersonate = useCallback(() => {
@@ -53,6 +58,8 @@ export function useImpersonate() {
     if (prev) {
       supabase.from('activity_events').insert({
         actor_id: user?.id ?? null,
+        actor_kind: 'user',
+        category: 'auth',
         action: 'impersonate_stop',
         entity_type: 'profile',
         entity_id: prev.id,
@@ -60,7 +67,10 @@ export function useImpersonate() {
           target_name: prev.full_name,
           target_email: prev.email,
         },
-      }).then(() => { /* fire-and-forget */ })
+      }).then(({ error }) => {
+        // Fire-and-forget but surface failures — audit trail must not fail silently.
+        if (error) console.error('[useImpersonate] audit (stop) write failed:', error.message)
+      })
     }
   }, [user?.id, impersonating])
 

@@ -156,8 +156,10 @@ async function fetchExternalListings(criteria: ExternalSearchCriteria): Promise<
           source_logo_url: l.source_logo_url,
         }))
 
-        // Fire and forget — don't block on cache write
-        supabase.from('external_listings').insert(rows).then(() => {})
+        // Fire and forget — don't block on cache write, but surface failures.
+        supabase.from('external_listings').insert(rows).then(({ error }) => {
+          if (error) console.error('[useExternalMatching] cache write failed:', error.message)
+        })
       }
     } catch {
       // Cache write failed (no auth) — silently ignore

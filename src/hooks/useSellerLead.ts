@@ -145,11 +145,15 @@ export function useSellerLead() {
 
       if (leadErr) throw leadErr
 
-      // 4. Create activity_event (audit trail)
+      // 4. Create activity_event (audit trail).
+      // NB: ce hook (funnel /vendre, source='website') n'est plus référencé ; en contexte
+      // anonyme l'INSERT activity_events est rejeté par RLS (cf. trg_notify_new_seller_lead,
+      // qui couvre source='marketplace'). Garde d'erreur explicite, non bloquante.
       await supabase.from('activity_events').insert({
         action: 'seller_lead_created',
         entity_type: 'seller_lead',
         entity_id: lead.id,
+        category: 'deal',
         metadata: {
           contact_id: contact.id,
           property_id: property.id,
@@ -157,7 +161,9 @@ export function useSellerLead() {
           motivation: input.motivation,
           source: 'website',
         },
-      }).then(() => {})
+      }).then(({ error }) => {
+        if (error) console.error('[useSellerLead] activity_event write failed:', error.message)
+      })
 
       // 5. Create daily_action for agent notification
       // agency_id/agent_id set by RLS/trigger from seller_leads.assigned_agency_id.
@@ -170,7 +176,9 @@ export function useSellerLead() {
         entity_id: contact.id,
         action_type: 'call',
         is_completed: false,
-      } as unknown as TablesInsert<'daily_actions'>).then(() => {})
+      } as unknown as TablesInsert<'daily_actions'>).then(({ error }) => {
+        if (error) console.error('[useSellerLead] daily_action write failed:', error.message)
+      })
 
       // 6. Send confirmation email to seller (fire & forget)
       try {
