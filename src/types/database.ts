@@ -5017,6 +5017,7 @@ export type Database = {
           p_last_name: string
           p_notes?: string
           p_phone?: string
+          p_property_id?: string
           p_score?: string
           p_search_zones?: string[]
           p_source?: string
