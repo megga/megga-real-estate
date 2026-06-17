@@ -17,6 +17,7 @@ import {
   normalizeLeadCooling,
   normalizeOfferExpiring,
   normalizeVisit,
+  normalizeProperty,
   classifyVisit,
   isClosingProximate,
   hasKycGap,
@@ -57,6 +58,10 @@ const offerExpiring = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => 
 })
 const visit = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
   signalKind: 'visit', visitScheduledAt: hoursFromNow(2), visitStatus: 'planned', visitDebriefMissing: true, ...over,
+})
+const propertyPush = (over: Partial<FocusScoreInput> = {}): FocusScoreInput => ({
+  signalKind: 'property-push', propertyOverall: 59, propertyLabel: 'a_animer',
+  propertyCompleteness: 63, propertyInterest: 74, propertyPipeline: 25, propertyDataCompleteness: 0.5, ...over,
 })
 
 const rankable = (over: Partial<FocusRankable> = {}): FocusRankable => ({
@@ -472,6 +477,74 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
     expect(visits).toHaveLength(3) // visit_returned=3
     expect(visits.map((i) => i.id)).toContain('today') // l'obligation datée survit
     expect(todayVisit.score).toBeGreaterThan(debriefs[0].score)
+  })
+
+  // ─── Focus radar v4 — famille property-push (bien à pousser) ────────────
+  it('P1 — property-push : JAMAIS « now » ; surface (next) si overall ≥ 45, sinon « rest »', () => {
+    expect(assignTier(propertyPush({ propertyOverall: 80 }), NOW)).toBe('next')
+    expect(assignTier(propertyPush({ propertyOverall: 45 }), NOW)).toBe('next')
+    expect(assignTier(propertyPush({ propertyOverall: 44 }), NOW)).toBe('rest')
+    expect(assignTier(propertyPush({ propertyOverall: 100 }), NOW)).toBe('next') // jamais 'now'
+    const s = scoreItem(propertyPush(), NOW)
+    expect(s).toBeGreaterThanOrEqual(0); expect(s).toBeLessThanOrEqual(100)
+  })
+
+  it('P2 — normalizeProperty : monotone (overall), borné [0..1], défaut 0', () => {
+    expect(normalizeProperty({ propertyOverall: 80 })).toBeGreaterThan(normalizeProperty({ propertyOverall: 40 }))
+    expect(normalizeProperty({ propertyOverall: 100 })).toBe(1)
+    expect(normalizeProperty({ propertyOverall: 0 })).toBe(0)
+    expect(normalizeProperty({})).toBe(0) // absent → 0 (pas de NaN)
+    expect(normalizeProperty({ propertyOverall: 200 })).toBe(1) // borné
+    // poids 0.30 < match 0.40 : un bien à pousser ne vole JAMAIS la vedette à un match
+    expect(scoreItem(propertyPush({ propertyOverall: 100 }), NOW)).toBeLessThan(scoreItem(match({ matchScore: 80 }), NOW))
+  })
+
+  it('P3 — property reason : geste HONNÊTE tiré du levier le plus faible, sans UUID', () => {
+    // fiche incomplète → « fiche à compléter »
+    expect(buildReason(propertyPush({ propertyCompleteness: 50 }), NOW)).toContain('fiche à compléter')
+    // fiche ok + acheteurs croisés (interest > 35) sans deal → « à mettre en avant »
+    expect(buildReason(propertyPush({ propertyCompleteness: 63, propertyInterest: 74, propertyPipeline: 25 }), NOW))
+      .toContain('à mettre en avant')
+    // fiche ok, pas d'intérêt, pas de deal → « pas encore lié à un deal »
+    expect(buildReason(propertyPush({ propertyCompleteness: 70, propertyInterest: 30, propertyPipeline: 25 }), NOW))
+      .toContain('pas encore lié à un deal')
+    // label en_veille → libellé dédié
+    expect(buildReason(propertyPush({ propertyLabel: 'en_veille', propertyOverall: 40 }), NOW)).toContain('en veille')
+    // données limitées explicites quand data_completeness faible
+    expect(buildReason(propertyPush({ propertyDataCompleteness: 0.2 }), NOW)).toContain('données limitées')
+    expect(buildReason(propertyPush(), NOW)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+  })
+
+  it('P4 — displayScore [0..100] pour la famille bien-à-pousser', () => {
+    for (const i of [propertyPush(), propertyPush({ propertyOverall: 0 }), propertyPush({ propertyOverall: 100 })]) {
+      const ds = toDisplayScore(scoreItem(i, NOW))
+      expect(ds).toBeGreaterThanOrEqual(0); expect(ds).toBeLessThanOrEqual(100)
+    }
+  })
+
+  it('P5 — parseFocusConfig : merge défensif du poids/cap property (property_push / property_returned)', () => {
+    const cfg = parseFocusConfig({ weights: { property_push: 0.5 }, caps: { property_returned: 6 } })
+    expect(cfg.weights.property_push).toBe(0.5)
+    expect(cfg.caps.property_returned).toBe(6)
+    // non fourni → défaut
+    expect(parseFocusConfig({}).weights.property_push).toBe(FOCUS_DEFAULTS.weights.property_push)
+    expect(parseFocusConfig({}).caps.property_returned).toBe(FOCUS_DEFAULTS.caps.property_returned)
+    // invalide → défaut (jamais NaN)
+    expect(parseFocusConfig({ weights: { property_push: 'x' } }).weights.property_push).toBe(FOCUS_DEFAULTS.weights.property_push)
+  })
+
+  it('P6 — cap property_returned=3 : 5 biens → 3 gardés (meilleurs), autres familles intactes', () => {
+    const biens = [40, 35, 30, 25, 20].map((s, k) =>
+      rankable({ id: `bien${k}`, contactId: `property:${k}`, score: s, tier: 'next', signalKind: 'property-push' }),
+    )
+    const others = [
+      rankable({ id: 'rem', contactId: 'r', score: 60, tier: 'now', signalKind: 'reminder' }),
+      rankable({ id: 'match', contactId: 'm', score: 38, tier: 'now', signalKind: 'match-market' }),
+    ]
+    const out = finalizeQueue([...biens, ...others])
+    expect(out.filter((i) => i.signalKind === 'property-push')).toHaveLength(3)
+    expect(out.filter((i) => i.signalKind === 'property-push').map((i) => i.score)).toEqual([40, 35, 30])
+    expect(out.filter((i) => i.signalKind !== 'property-push')).toHaveLength(2)
   })
 
   it('U13 — selectFocusQueue : seed démo gated (jamais de fallback fictif en prod)', () => {
