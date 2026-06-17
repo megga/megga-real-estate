@@ -193,9 +193,9 @@ async function handleConnect(ctx: AuthCtx, body: Record<string, unknown>) {
   }
 
   await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'agent',
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'user',
     action: 'signature.provider_connected', entity_type: 'esign_provider_connection', entity_id: saved.id,
-    category: 'signature', object_label: `${provider} connecté`, metadata: { provider, environment },
+    category: 'settings', object_label: `${provider} connecté`, metadata: { provider, environment },
     created_at: new Date().toISOString(),
   })
 
@@ -219,9 +219,9 @@ async function handleDisconnect(ctx: AuthCtx, body: Record<string, unknown>) {
     .eq('id', conn.id)
 
   await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'agent',
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'user',
     action: 'signature.provider_disconnected', entity_type: 'esign_provider_connection', entity_id: conn.id,
-    category: 'signature', object_label: `${provider} déconnecté`, metadata: { provider }, created_at: new Date().toISOString(),
+    category: 'settings', object_label: `${provider} déconnecté`, metadata: { provider }, created_at: new Date().toISOString(),
   })
   return json({ ok: true })
 }
@@ -338,9 +338,9 @@ async function handleCreate(ctx: AuthCtx, body: Record<string, unknown>) {
   }
 
   await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'agent',
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'user',
     action: 'signature.created', entity_type: 'signature_request', entity_id: sr.id,
-    category: 'signature', object_label: title,
+    category: 'doc', object_label: title,
     metadata: { provider: conn.provider, quality, legislation, signers: signers.length },
     created_at: new Date().toISOString(),
   })
@@ -419,9 +419,9 @@ async function handleCancel(ctx: AuthCtx, body: Record<string, unknown>) {
   await ctx.supabase.from('signature_requests').update({ status: 'withdrawn', completed_at: new Date().toISOString(), last_error: reason }).eq('id', sr.id)
   if (sr.document_id) await ctx.supabase.from('documents').update({ signature_status: 'withdrawn' }).eq('id', sr.document_id)
   await ctx.supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'agent',
+    agency_id: ctx.agencyId, actor_id: ctx.profileId, actor_kind: 'user',
     action: 'signature.withdrawn', entity_type: 'signature_request', entity_id: sr.id,
-    category: 'signature', object_label: reason, metadata: { provider: sr.provider }, created_at: new Date().toISOString(),
+    category: 'doc', object_label: reason, metadata: { provider: sr.provider }, created_at: new Date().toISOString(),
   })
   return json({ ok: true, status: 'withdrawn' })
 }
