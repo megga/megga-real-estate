@@ -193,6 +193,9 @@ FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, setti
 ### Vues
 `cantonal_price_medians` (median prix/m² par canton×type — badge « bon prix », refresh post-sync).
 
+### Instrumentation comportementale (triggers, juin 2026 · #659/#660)
+Plomberie qui capture les signaux temporels (fondation de la couche v2 ; cerveau `megga/instrumentation-comportementale`). Triggers DB `SECURITY DEFINER`, append-only, idempotents, scoped agence, 0 PII : `transactions` → events `stage_change`/`status_change` (attribution agent / MEGGA AI via GUC + RPC `wa_move_transaction_stage`) ; `properties` → `published_at` (1re publication, immuable ; lu par `calculate_property_scores`) ; `visits` → `completed_at` sur `done` ; `activity_events`+`whatsapp_messages` → `contacts.last_interaction_at` (recency tout-touch, hors deal mort) ; `contacts(phone)` → back-link `whatsapp_messages.contact_id` (RPC `resolve_contact_by_phone`, `normalize_phone`, exactly-1 + exclusions agent/JID). App/edge : `create_lead_with_optional_deal` rattache `property_id` ; `send_listings` pose `matches.sent_at`. Les signaux s'accumulent à l'usage → débloquent vélocité/sous-scores/recalibrage.
+
 ---
 
 ## 4. Pipeline marketplace (Flatfox / market_listings) ⚙️
