@@ -707,7 +707,9 @@ export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prep
   const prompt = lang === 'en'
     ? `Here's what I'd send to ${who}:\n\n${text}\n\nSend it? ("yes" / "no")`
     : `Voici ce que je propose d'envoyer à ${who} :\n\n${text}\n\nJ'envoie ? (« oui » / « non »)`
-  return { ok: true, prompt, payload: { contact_id: contactId, phone: contact.phone.replace(/\D/g, ''), text } }
+  // listing_ids figés dans le payload → permettent, à l'envoi confirmé, de marquer
+  // les matches correspondants comme 'sent' (capture de sent_at, instrumentation).
+  return { ok: true, prompt, payload: { contact_id: contactId, phone: contact.phone.replace(/\D/g, ''), text, listing_ids: ids.slice(0, 5) } }
 }
 
 /** Valide + prépare l'enregistrement d'une offre (crm_offers). Le montant est figé au « oui ». */

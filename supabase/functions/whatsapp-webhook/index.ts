@@ -169,19 +169,21 @@ serve(async (req) => {
   }
   // ── fin routage agent — sinon, branche client ci-dessous ──
 
-  // 3. Mapping best-effort : numéro → contact (et son agence)
+  // 3. Résolution numéro → contact via RPC (normalize_phone = 9 derniers chiffres,
+  //    robuste au format national/E.164 ; n'identifie QUE si le numéro désigne UN
+  //    SEUL contact, sinon laisse orphelin). Le trigger trg_backlink_whatsapp
+  //    rétro-liera de toute façon à la création/maj du contact.
   let contactId: string | null = null
   let agencyId: string | null = null
   try {
-    const tail = msg.fromPhone.slice(-9)
-    const { data: contact } = await admin
-      .from('contacts')
-      .select('id, agency_id')
-      .ilike('phone', `%${tail}`)
-      .limit(1)
+    const { data: resolved } = await admin
+      .rpc('resolve_contact_by_phone', { p_phone: msg.fromPhone })
       .maybeSingle()
-    if (contact) { contactId = contact.id; agencyId = contact.agency_id }
-  } catch { /* mapping best-effort, non bloquant */ }
+    if (resolved) {
+      const r = resolved as { id: string; agency_id: string }
+      contactId = r.id; agencyId = r.agency_id
+    }
+  } catch { /* résolution best-effort, non bloquant */ }
 
   // Repli : numéro inconnu => rattacher à une agence par défaut si configurée,
   // sinon log (le message reste en base mais sans agence = invisible en CRM).
@@ -661,6 +663,25 @@ async function executePending(
         entity_id: String(pending.args.contact_id ?? '') || null, category: 'contact',
         severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
       })
+    } catch { /* non bloquant */ }
+    // Capture sent_at : un vrai dossier vient de partir → marquer les matches
+    // correspondants 'sent' (réactivité aval ; les matches marché portent
+    // market_listing_id, les internes property_id → on couvre les deux).
+    try {
+      // Garde UUID (défense en profondeur) : les ids sont interpolés dans le filtre
+      // PostgREST .or() → on n'accepte que des UUID, jamais une valeur qui pourrait
+      // corrompre l'expression (virgule/parenthèse), quelle que soit la provenance.
+      const sentIds = Array.isArray(pending.args.listing_ids)
+        ? (pending.args.listing_ids as unknown[]).filter((x): x is string => typeof x === 'string' && /^[0-9a-f-]{36}$/i.test(x))
+        : []
+      const sentContactId = String(pending.args.contact_id ?? '')
+      if (sentIds.length && sentContactId) {
+        const inList = `(${sentIds.join(',')})`
+        await admin.from('matches')
+          .update({ status: 'sent', sent_via: 'whatsapp', sent_at: new Date().toISOString() })
+          .eq('agency_id', agentLink.agency_id).eq('contact_id', sentContactId).eq('status', 'suggested')
+          .or(`property_id.in.${inList},market_listing_id.in.${inList}`)
+      }
     } catch { /* non bloquant */ }
     return t(lang, 'listingsSent')
   }
