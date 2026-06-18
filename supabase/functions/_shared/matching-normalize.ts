@@ -1,7 +1,8 @@
 // Matching — fonctions PURES (zéro I/O, zéro dépendance Deno).
 //
 // Réutilisé par l'edge function matching-engine (Deno) ET par les tests vitest
-// (Node). Donc : aucun import (ni std Deno, ni supabase), aucune API runtime.
+// (Node). Donc : un seul import (rent-reference, module pur du même dossier),
+// aucun std Deno ni supabase, aucune API runtime.
 // Tout est déterministe et testable hors base — conforme « estimation » + LPD
 // (aucune PII vers un LLM, c'est de l'arithmétique).
 //
@@ -12,6 +13,9 @@
 // Le SEUL filtre dur non-récupérable est transaction_type (un loyer n'est
 // jamais une vente). inferTransactionType() le résout même quand la recherche
 // ne le précise pas (3 recherches sur 4 en prod).
+
+import { buildRentReasonSuffix } from './rent-reference.ts'
+import type { RentPosition } from './rent-reference.ts'
 
 // ─── Cantons suisses ───────────────────────────────────────────────────────
 export const SWISS_CANTONS: ReadonlySet<string> = new Set([
@@ -129,18 +133,18 @@ function typeFamily(t: string): string {
 
 // ─── Config de scoring (poids/seuil), surchargée par app_config ─────────────
 export interface ScoringConfig {
-  weights: { price: number; zone: number; type: number; rooms: number; surface: number; features: number }
+  weights: { price: number; zone: number; type: number; rooms: number; surface: number; features: number; pricePosition: number }
   threshold: number
   priceOverTolerance: number // 0.15 = 0 pt à +15% au-dessus du budget max
   surfaceDeficitTolerance: number // 0.20 = 0 pt à -20% sous la surface min
   version: number
 }
 export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
-  weights: { price: 32, zone: 24, type: 12, rooms: 12, surface: 10, features: 10 }, // = 100
+  weights: { price: 32, zone: 24, type: 12, rooms: 12, surface: 10, features: 10, pricePosition: 7 }, // 100 = barème redistribué ; 7 = BONUS additif (hors redistribution)
   threshold: 55,
   priceOverTolerance: 0.15,
   surfaceDeficitTolerance: 0.20,
-  version: 2,
+  version: 3,
 }
 export function parseScoringConfig(text: string | null | undefined): ScoringConfig {
   if (!text) return DEFAULT_SCORING_CONFIG
@@ -175,6 +179,7 @@ export function calculateScoreV2(
   listing: Record<string, unknown>,
   criteria: Record<string, unknown> | null | undefined,
   cfg: ScoringConfig = DEFAULT_SCORING_CONFIG,
+  rentRef: RentPosition | null = null, // précalculé par l'edge, zéro I/O ici
 ): ScoreResult {
   if (!criteria) return { total: 0, reasons: emptyReasons() }
   const W = cfg.weights
@@ -228,7 +233,14 @@ export function calculateScoreV2(
   const surfaceP = pts(surface, W.surface)
   const featP = pts(features, W.features)
 
-  const total = clamp(Math.round(priceP + zoneP + typeP + roomsP + surfaceP + featP), 0, 100)
+  // ─── PRIX vs MARCHÉ (BONUS additif, hors redistribution) ─────────────────
+  // pricePosition n'entre PAS dans axes[]/totalWeight (sinon +7% sur 100% des
+  // candidats inactifs — régression prouvée). Bonus qui s'ajoute au sous-total
+  // 6 axes UNIQUEMENT quand rentRef est présent ; rentRef.frac est déjà calculé
+  // par rentPosition() avec la même courbe → réutilisé tel quel. clamp borne à 100.
+  const pricePosP = rentRef ? clamp(rentRef.frac, 0, 1) * W.pricePosition : 0
+
+  const total = clamp(Math.round(priceP + zoneP + typeP + roomsP + surfaceP + featP + pricePosP), 0, 100)
 
   // reason « rooms » = pièces + surface fusionnés (libellé Atelier « Pièces & surface »)
   const roomsSurfP = roomsP + surfaceP
@@ -238,16 +250,19 @@ export function calculateScoreV2(
   const roomsFrac = roomsSurfActive ? roomsActiveAxes.reduce((s, a) => s + a.frac, 0) / roomsActiveAxes.length : 0
   const roomsDetail = [rooms.detail, surface.detail].filter(Boolean).join(' · ') || 'Aucun critère'
 
-  return {
-    total,
-    reasons: {
-      budget: axisReason(price, priceP),
-      zone: axisReason(zone, zoneP),
-      type: axisReason(type, typeP),
-      rooms: { match: roomsSurfActive && roomsFrac >= 0.5, score: Math.round(roomsSurfP), detail: roomsDetail },
-      features: axisReason(features, featP),
-    },
+  const reasons: MatchReasons = {
+    budget: axisReason(price, priceP),
+    zone: axisReason(zone, zoneP),
+    type: axisReason(type, typeP),
+    rooms: { match: roomsSurfActive && roomsFrac >= 0.5, score: Math.round(roomsSurfP), detail: roomsDetail },
+    features: axisReason(features, featP),
   }
+  // Position marché : appendée au détail BUDGET (jamais une 6ᵉ clé — contrat figé).
+  if (rentRef) {
+    const suffix = buildRentReasonSuffix(rentRef)
+    if (suffix) reasons.budget = { ...reasons.budget, detail: `${reasons.budget.detail}${suffix}` }
+  }
+  return { total, reasons }
 }
 
 // ─── Axes (chacun renvoie {active, frac 0-1, detail}) ───────────────────────
