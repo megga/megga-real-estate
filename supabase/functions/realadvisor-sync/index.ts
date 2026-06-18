@@ -540,6 +540,10 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       const lock = await createRunRow(supabase, offerType, body.trigger_source)
       if (lock.blocked) { console.warn('[chunk] aborting: another run active'); return }
       runId = lock.id ?? undefined
+      // L'INSERT du run EST le verrou singleton : sans id (insert qui a throw, ou
+      // pas de ligne retournée) on n'a NI verrou NI tracking → on abandonne plutôt
+      // que de tourner non verrouillé et invisible au monitoring.
+      if (!runId) { console.error('[chunk] aborting: run lock not acquired (no run id)'); return }
       startPage = 1
       console.log(`[chunk] first invocation: offer=${offerType} total=${totalExpected} runId=${runId}`)
     }
