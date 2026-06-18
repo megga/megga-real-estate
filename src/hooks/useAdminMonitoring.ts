@@ -34,10 +34,10 @@ interface ErrorLog {
 }
 
 const EDGE_FUNCTION_NAMES = [
-  'ai-copilot', 'ai-search', 'external-matching', 'send-email', 'send-property-email',
+  'ai-copilot', 'external-matching', 'send-email', 'send-property-email',
   'send-reminder-email', 'send-team-invite', 'send-visit-email',
   'extract-property-pdf', 'extract-property-url', 'kyc-screening', 'photo-labeler',
-  'virtual-staging', 'public-staging', 'google-calendar-sync', 'outlook-calendar-sync',
+  'virtual-staging', 'google-calendar-sync', 'outlook-calendar-sync',
   'stripe-checkout', 'stripe-portal', 'stripe-webhook', 'search-alert',
   'market-scraper', 'market-scraper-batch', 'automation-engine', 'accept-team-invite',
   'webhooks', 'admin-monitoring', 'ai-billing-monitor', 'translate-on-demand',
