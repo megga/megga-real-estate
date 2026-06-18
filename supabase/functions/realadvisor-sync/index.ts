@@ -3,17 +3,20 @@
 // Sync RealAdvisor.ch → market_listings — surface INDÉPENDANTE (ne touche ni
 // flatfox-sync ni market-scraper ; sa propre table realadvisor_sync_runs).
 //
-// Source : endpoint public anonyme `https://realadvisor.ch/api/listings`
-//   - pas d'auth, pas de clé ; réponse JSON, 36 résultats/page (limit ignoré)
-//   - pagination `page=N` (1-based), tri par défaut `created_at_desc`
-//   - `total_count` dans chaque réponse → itération déterministe
+// Source : endpoint public anonyme `https://realadvisor.ch/api/listings`.
 //   Décision business/conformité : go explicite de Gregory (accès assumé). Le
 //   robots.txt de RealAdvisor n'autorise pas /api/ ; on reste donc poli (pacing,
-//   backoff, un seul run à la fois) et on n'active aucun cron sans décision.
+//   backoff, un seul run à la fois) et AUCUN cron n'est posé sans décision.
 //
-// Architecture : identique à flatfox-sync (self-invoking chunks, verrou
-// singleton, budget de temps, sweep) mais pagination AVANT — RealAdvisor honore
-// `page` + `sort`, donc page=1..N du plus récent au plus ancien.
+// ⚠️ CAP D'API : /api/listings plafonne TOUTE requête à ~750-900 résultats
+// (pagination morte au-delà de ~page 22). Une simple pagination 1..N ne verrait
+// donc que les ~900 premiers biens sur ~42 716. Pour TOUT avoir, on PARTITIONNE
+// l'espace de recherche en "slices" assez petits pour passer sous le cap :
+//   canton (les 26 cantons couvrent 100% : Σ counts = total_count exact)
+//   × tranche de prix (salePrice/grossRentMonthly) pour les cantons denses.
+// Chaque slice est paginé entièrement ; on balaye la work-list de slices,
+// résumable par `slice_index` entre invocations (archi self-invoke + budget de
+// temps + verrou singleton, comme flatfox-sync).
 //
 // Tolérance edge function Pro : ~150s/invocation → on rend la main à 100s.
 
@@ -23,18 +26,20 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // ─── Config ──────────────────────────────────────────────────────
 
 const RA_BASE = 'https://realadvisor.ch'
-const PAGE_SIZE = 36           // fixe côté RealAdvisor
-const CHUNK_PAGES = 8          // pages par bloc entre deux updates de tracking
-const PACE_MS = 1500           // délai poli entre pages (anti bot-management Cloudflare)
+const PAGE_SIZE = 36
+const PACE_MS = 1200
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
-// Concurrence structurelle = 1 : une invocation boucle des blocs en SÉRIE
-// jusqu'à TIME_BUDGET_MS, puis fait UN seul self-invoke. Jamais de fan-out.
 const TIME_BUDGET_MS = 100_000
-// ~42k biens / 36 ≈ 1187 pages ; ~50 pages/invocation ≈ 24 relais. 80 = marge.
-const MAX_HANDOFFS = 80
+const MAX_HANDOFFS = 200
 const STALE_RUN_MS = 10 * 60 * 1000
+
+// Le cap réel observé flotte vers ~750-900. On pagine jusqu'à MAX_PAGES_PER_SLICE
+// (la fenêtre atteignable) ; un slice dont total_count dépasse SLICE_CAP et qu'on
+// n'a pas pu épuiser est marqué "capped" (résidu connu, loggé).
+const MAX_PAGES_PER_SLICE = 28
+const SLICE_CAP = 700
 
 const MAX_PHOTOS = 60
 const MAX_DESCRIPTION_CHARS = 8000
@@ -43,7 +48,6 @@ const BACKOFF_ON = new Set([429, 500, 502, 503, 504])
 const BACKOFF_RETRIES = 4
 const BACKOFF_BASE_MS = 2000
 
-// Sweep : ne marque 'removed' que si on a revu ≥ 80% des biens attendus.
 const SAFETY_MIN_RATIO = 0.8
 
 const corsHeaders = {
@@ -51,15 +55,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// 26 cantons (slugs RealAdvisor validés : Σ counts = total_count exact).
+const CANTONS = [
+  'canton-geneve', 'canton-vaud', 'canton-valais', 'canton-fribourg', 'canton-neuchatel',
+  'canton-jura', 'canton-berne', 'canton-zurich', 'canton-lucerne', 'canton-zoug',
+  'canton-schwyz', 'canton-tessin', 'canton-grisons', 'canton-bale-ville', 'canton-bale-campagne',
+  'canton-argovie', 'canton-soleure', 'canton-thurgovie', 'canton-schaffhouse', 'canton-saint-gall',
+  'canton-appenzell-rhodes-exterieures', 'canton-appenzell-rhodes-interieures', 'canton-glaris',
+  'canton-nidwald', 'canton-obwald', 'canton-uri',
+]
+
 // ─── Types ───────────────────────────────────────────────────────
 
+interface Slice { canton: string; gte?: number; lte?: number }
+
 interface SyncRequest {
-  offer_type?: 'buy' | 'rent'      // défaut : 'buy' (RealAdvisor = surtout vente)
-  place_slugs?: string[]           // ex ['canton-geneve'] ; vide/absent = toute la Suisse
-  lang?: 'fr' | 'de' | 'en' | 'it'
-  property_type?: string           // compositePropertyType_eq (HOUSE_APPT par défaut)
-  max_pages?: number               // borne (run de test) ; absent = tout le catalogue
-  page?: number                    // curseur de reprise (1-based)
+  offer_type?: 'buy' | 'rent'
+  cantons?: string[]               // override (run de test scopé) ; absent = les 26
+  slice_index?: number             // curseur de reprise dans la work-list
   sync_start_at?: string
   mode?: 'chunk' | 'sweep'
   total_expected?: number
@@ -75,11 +88,10 @@ interface SyncStats {
   skipped: number
   errors: number
   pages: number
-  chunks: number
+  slices: number
+  capped: number
 }
 
-// Sous-ensemble du hit RealAdvisor qu'on projette en colonnes. Le hit COMPLET
-// est conservé dans market_listings.source_payload (totalité garantie).
 interface RawHit {
   id: number | string
   portal?: string | null
@@ -127,15 +139,13 @@ interface RealAdvisorPage {
   listings: RawHit[]
 }
 
-// ─── Type mapping (RealAdvisor → market_listings.type) ────────────
+// ─── Type mapping ────────────────────────────────────────────────
 
 const TYPE_MAP: Record<string, string> = {
   APPT: 'apartment', HOUSE_APPT: 'house', HOUSE: 'house',
   ROOM: 'apartment', PARK: 'parking', BUILDING: 'commercial',
   COMMERCIAL: 'commercial', GASTRO: 'commercial', PROP: 'land', OTHER: 'apartment',
 }
-
-// ─── NPA → canton (réutilisé de flatfox-sync, ~95% de précision) ──
 
 const NPA_RANGES: Array<[number, number, string]> = [
   [1000, 1099, 'VD'], [1100, 1199, 'VD'], [1200, 1299, 'GE'], [1300, 1399, 'VD'],
@@ -157,7 +167,6 @@ const NPA_RANGES: Array<[number, number, string]> = [
   [9800, 9899, 'GR'], [9900, 9999, 'SG'],
 ]
 
-// Repli sur le nom de canton renvoyé par RealAdvisor (`state`) si le NPA échoue.
 const STATE_MAP: Record<string, string> = {
   'Genève': 'GE', 'Geneva': 'GE', 'Genf': 'GE',
   'Vaud': 'VD', 'Waadt': 'VD',
@@ -188,7 +197,7 @@ function npaToCanton(postcode: unknown, state: unknown): string | null {
   return s || null
 }
 
-// ─── Photos : URL CDN RealAdvisor (imgproxy base64url) ────────────
+// ─── Photos / description / features ──────────────────────────────
 
 function buildImageUrl(image: { file_name?: string; bucket_name?: string }): string | null {
   if (!image?.file_name) return null
@@ -214,15 +223,12 @@ function cleanDescription(raw: unknown): string | null {
     : null
 }
 
-// bullet_points = { fr:[], de:[], en:[], it:[] } : on préfère FR.
 function extractFeatures(bp: unknown): string[] {
   if (!bp || typeof bp !== 'object') return []
   const o = bp as Record<string, unknown>
   const arr = o.fr ?? o.en ?? o.de ?? o.it
   return Array.isArray(arr) ? arr.filter((x: unknown): x is string => typeof x === 'string') : []
 }
-
-// ─── Quality score (vente : prix/m² ; location : loyer/m²) ────────
 
 function computeQualityScore(row: Record<string, unknown>, offerType: string): { quality_score: number; quality_flags: string[] } {
   const flags: string[] = []
@@ -258,8 +264,6 @@ function computeQualityScore(row: Record<string, unknown>, offerType: string): {
   return { quality_score: Math.max(0, Math.min(100, score)), quality_flags: flags }
 }
 
-// ─── Mapping hit → row market_listings ────────────────────────────
-
 function listingPath(offerType: string): string {
   return offerType === 'rent' ? 'louer' : 'acheter'
 }
@@ -267,10 +271,12 @@ function listingPath(offerType: string): string {
 function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, unknown> | null {
   if (h.id === undefined || h.id === null || h.id === '') return null
   const sourceId = String(h.id)
+  // On garde TOUT, même les "prix sur demande" (price=0, convention flatfox pour
+  // les sans-prix) — un bien sans prix a quand même photos/description. Seul un
+  // id manquant fait skipper (cf garde ci-dessus).
   const price = offerType === 'rent'
     ? (Number(h.gross_rent_monthly) || 0)
     : (Number(h.sale_price) || 0)
-  if (price <= 0) return null
 
   const rawType = h.property_main_type || h.property_type || 'APPT'
   const photos = buildPhotos(h.images)
@@ -319,7 +325,7 @@ function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, un
     first_seen_at: h.created_at || nowIso,
     last_seen_at: nowIso,
     status: 'active',
-    source_payload: h, // TOTALITÉ : hit brut conservé
+    source_payload: h,
   }
   if (parking != null && parking > 0) row.has_parking = true
   const { quality_score, quality_flags } = computeQualityScore(row, offerType)
@@ -328,16 +334,46 @@ function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, un
   return row
 }
 
-// ─── Fetch RealAdvisor /api/listings (avec backoff) ───────────────
+// ─── Work-list : partition canton × tranche de prix ───────────────
 
-function buildSearchParams(cfg: SyncRequest, page: number): URLSearchParams {
-  const sp = new URLSearchParams()
-  sp.set('offerType_eq', cfg.offer_type || 'buy')
-  if (cfg.property_type) sp.set('compositePropertyType_eq', cfg.property_type)
-  if (Array.isArray(cfg.place_slugs) && cfg.place_slugs.length > 0) {
-    const lang = cfg.lang || 'fr'
-    sp.set('placeSlugs', JSON.stringify(cfg.place_slugs.map((slug) => ({ slug, lang }))))
+// Bandes de prix géométriques (déterministes) + une bande basse [1, lo] et une
+// bande haute ouverte [hi, ∞]. Assez fines pour que chaque (canton × bande)
+// passe sous le cap, même dans les cantons denses.
+function priceBands(offerType: string): Array<{ gte?: number; lte?: number }> {
+  const lo = offerType === 'rent' ? 500 : 50_000
+  const hi = offerType === 'rent' ? 20_000 : 20_000_000
+  const n = offerType === 'rent' ? 22 : 30
+  const r = Math.pow(hi / lo, 1 / n)
+  const edges: number[] = []
+  let e = lo
+  for (let i = 0; i <= n; i++) { edges.push(Math.round(e)); e *= r }
+  const bands: Array<{ gte?: number; lte?: number }> = [{ gte: 1, lte: lo - 1 }]
+  for (let i = 0; i < edges.length - 1; i++) bands.push({ gte: edges[i], lte: edges[i + 1] - 1 })
+  bands.push({ gte: hi })
+  return bands
+}
+
+function buildWorklist(offerType: string, cantons?: string[]): Slice[] {
+  const cs = (cantons && cantons.length > 0) ? cantons : CANTONS
+  const bands = priceBands(offerType)
+  const slices: Slice[] = []
+  for (const c of cs) {
+    // Slice non filtré : capte les biens SANS prix (sortis des bandes) + les plus récents.
+    slices.push({ canton: c })
+    for (const b of bands) slices.push({ canton: c, gte: b.gte, lte: b.lte })
   }
+  return slices
+}
+
+// ─── Fetch /api/listings (avec backoff) ───────────────────────────
+
+function buildSearchParams(offerType: string, slice: Slice, page: number): URLSearchParams {
+  const sp = new URLSearchParams()
+  sp.set('offerType_eq', offerType)
+  sp.set('placeSlugs', JSON.stringify([{ slug: slice.canton, lang: 'fr' }]))
+  const pf = offerType === 'rent' ? 'grossRentMonthly' : 'salePrice'
+  if (slice.gte != null) sp.set(`${pf}_gte`, String(slice.gte))
+  if (slice.lte != null) sp.set(`${pf}_lte`, String(slice.lte))
   sp.set('sort', 'created_at_desc')
   sp.set('page', String(page))
   return sp
@@ -347,8 +383,8 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-async function fetchPage(cfg: SyncRequest, page: number): Promise<RealAdvisorPage> {
-  const url = `${RA_BASE}/api/listings?${buildSearchParams(cfg, page).toString()}`
+async function fetchPage(offerType: string, slice: Slice, page: number): Promise<RealAdvisorPage> {
+  const url = `${RA_BASE}/api/listings?${buildSearchParams(offerType, slice, page).toString()}`
   let attempt = 0
   while (true) {
     const res = await fetch(url, {
@@ -359,18 +395,15 @@ async function fetchPage(cfg: SyncRequest, page: number): Promise<RealAdvisorPag
       const body = await res.json()
       return { total_count: body.total_count ?? 0, listings: body.listings ?? [] }
     }
-    // Vider le body pour fermer proprement la connexion avant un éventuel retry.
     await res.text().catch(() => {})
     if (BACKOFF_ON.has(res.status) && attempt < BACKOFF_RETRIES) {
       await sleep(BACKOFF_BASE_MS * 2 ** attempt)
       attempt += 1
       continue
     }
-    throw new Error(`realadvisor /api/listings page ${page} → ${res.status}`)
+    throw new Error(`realadvisor /api/listings (${slice.canton} ${slice.gte ?? ''}-${slice.lte ?? ''} p${page}) → ${res.status}`)
   }
 }
-
-// ─── Upserts par batch (sous le timeout gateway ~60s) ─────────────
 
 const UPSERT_BATCH = 25
 
@@ -392,6 +425,39 @@ async function upsertRows(supabase: any, rows: Record<string, unknown>[]): Promi
     }
   }
   return { upserted, errors }
+}
+
+// Traite un slice ENTIER : pagine jusqu'à épuisement ou cap. Retourne capped=true
+// si le slice avait plus de biens que ce que le cap d'API a laissé voir.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function processSlice(supabase: any, offerType: string, slice: Slice, nowIso: string, stats: SyncStats): Promise<void> {
+  let total = 0
+  let seen = 0
+  for (let page = 1; page <= MAX_PAGES_PER_SLICE; page++) {
+    if (page > 1) await sleep(PACE_MS)
+    const res = await fetchPage(offerType, slice, page)
+    if (page === 1) total = res.total_count
+    const listings = res.listings || []
+    if (listings.length === 0) break
+    seen += listings.length
+    stats.fetched += listings.length
+    stats.pages++
+    const rows: Record<string, unknown>[] = []
+    for (const hit of listings) {
+      const row = mapHit(hit, offerType, nowIso)
+      if (row === null) { stats.skipped++; continue }
+      rows.push(row)
+    }
+    const { upserted, errors } = await upsertRows(supabase, rows)
+    stats.upserted += upserted
+    stats.errors += errors
+    if (listings.length < PAGE_SIZE) break
+  }
+  stats.slices++
+  if (total > SLICE_CAP && seen < total) {
+    stats.capped++
+    console.warn(`[capped] ${slice.canton} ${slice.gte ?? ''}-${slice.lte ?? ''}: total=${total} vu=${seen} (résidu au-dessus du cap d'API)`)
+  }
 }
 
 // ─── Tracking realadvisor_sync_runs ───────────────────────────────
@@ -438,7 +504,7 @@ async function updateRunChunk(supabase: any, runId: string | undefined, stats: S
       total_upserted: stats.upserted,
       total_errors: stats.errors,
       pages_fetched: stats.pages,
-      chunks_completed: stats.chunks,
+      chunks_completed: stats.slices,
       last_chunk_at: new Date().toISOString(),
     }).eq('id', runId)
   } catch (err) { console.error('[run chunk] exception:', err) }
@@ -458,8 +524,6 @@ async function finalizeRun(supabase: any, runId: string | undefined, final: { st
   } catch (err) { console.error('[run finalize] exception:', err) }
 }
 
-// ─── Self-invoke (attend l'ack 202 du prochain isolate) ───────────
-
 async function selfInvoke(body: SyncRequest): Promise<void> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -474,6 +538,19 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
   } catch (err) { console.error('self-invoke failed:', err) }
 }
 
+// Total attendu = total_count brut de l'offer_type (1 sonde), pour le ratio de sécurité du sweep.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchOfferTotal(offerType: string): Promise<number> {
+  try {
+    const res = await fetch(`${RA_BASE}/api/listings?offerType_eq=${offerType}`, {
+      headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+    })
+    if (!res.ok) { await res.text().catch(() => {}); return 0 }
+    const body = await res.json()
+    return body.total_count ?? 0
+  } catch { return 0 }
+}
+
 // ─── Sweep : marque 'removed' les biens non revus dans ce sync ────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -486,7 +563,7 @@ async function runSweep(supabase: any, offerType: string, syncStartAt: string, t
   const ratio = totalExpected > 0 ? totalSeen / totalExpected : 0
   console.log(`[sweep] seen=${totalSeen} expected=${totalExpected} ratio=${Math.round(ratio * 100)}%`)
   if (ratio < SAFETY_MIN_RATIO) {
-    console.warn(`⚠️ sweep skipped: only ${Math.round(ratio * 100)}% seen (< ${Math.round(SAFETY_MIN_RATIO * 100)}%)`)
+    console.warn(`sweep skipped: only ${Math.round(ratio * 100)}% seen (< ${Math.round(SAFETY_MIN_RATIO * 100)}%)`)
     return { removed: 0, skipped_safety: true }
   }
   const { data, error } = await supabase
@@ -499,7 +576,7 @@ async function runSweep(supabase: any, offerType: string, syncStartAt: string, t
   return { removed: Array.isArray(data) ? data.length : 0, skipped_safety: false }
 }
 
-// ─── Worker sériel avec budget de temps ───────────────────────────
+// ─── Worker sériel : balaye la work-list de slices ────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
@@ -507,19 +584,17 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
   let runId: string | undefined = body.run_id
   const handoffCount = body.handoff_count ?? 0
   const offerType = body.offer_type || 'buy'
+  const isScoped = Array.isArray(body.cantons) && body.cantons.length > 0
   try {
     const syncStartAt = body.sync_start_at ?? new Date().toISOString()
     const mode = body.mode ?? 'chunk'
-    const stats: SyncStats = body.stats ?? { fetched: 0, upserted: 0, skipped: 0, errors: 0, pages: 0, chunks: 0 }
+    const stats: SyncStats = body.stats ?? { fetched: 0, upserted: 0, skipped: 0, errors: 0, pages: 0, slices: 0, capped: 0 }
     let totalExpected = body.total_expected ?? 0
 
     if (mode === 'sweep') {
       const sweep = await runSweep(supabase, offerType, syncStartAt, totalExpected)
       console.log(`[sweep done] removed=${sweep.removed} skipped=${sweep.skipped_safety}`)
-      await finalizeRun(supabase, runId, {
-        status: sweep.skipped_safety ? 'safety_skipped' : 'completed',
-        totalSeen: stats.fetched, removed: sweep.removed,
-      })
+      await finalizeRun(supabase, runId, { status: sweep.skipped_safety ? 'safety_skipped' : 'completed', totalSeen: stats.fetched, removed: sweep.removed })
       return
     }
 
@@ -530,88 +605,45 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
     }
 
     const nowIso = new Date().toISOString()
+    const worklist = buildWorklist(offerType, body.cantons)
 
-    // Première invocation : peek total_count + reap + acquisition du verrou.
-    let startPage = body.page
-    if (startPage === undefined) {
-      const peek = await fetchPage(body, 1)
-      totalExpected = peek.total_count || 0
+    // Première invocation : total attendu + reap + verrou.
+    let sliceIdx = body.slice_index
+    if (sliceIdx === undefined) {
+      totalExpected = await fetchOfferTotal(offerType)
       await reapStaleRuns(supabase)
       const lock = await createRunRow(supabase, offerType, body.trigger_source)
       if (lock.blocked) { console.warn('[chunk] aborting: another run active'); return }
       runId = lock.id ?? undefined
-      // L'INSERT du run EST le verrou singleton : sans id (insert qui a throw, ou
-      // pas de ligne retournée) on n'a NI verrou NI tracking → on abandonne plutôt
-      // que de tourner non verrouillé et invisible au monitoring.
       if (!runId) { console.error('[chunk] aborting: run lock not acquired (no run id)'); return }
-      startPage = 1
-      console.log(`[chunk] first invocation: offer=${offerType} total=${totalExpected} runId=${runId}`)
+      sliceIdx = 0
+      console.log(`[chunk] first invocation: offer=${offerType} slices=${worklist.length} total=${totalExpected} runId=${runId}`)
     }
 
-    // Traite un bloc de CHUNK_PAGES pages. Retourne true si le dataset est épuisé.
-    const processBlock = async (firstPage: number): Promise<boolean> => {
-      let done = false
-      for (let i = 0; i < CHUNK_PAGES; i++) {
-        const page = firstPage + i
-        if (i > 0) await sleep(PACE_MS)
-        const res = await fetchPage(body, page)
-        if (totalExpected === 0 && res.total_count) totalExpected = res.total_count
-        const listings = res.listings || []
-        if (listings.length === 0) { done = true; break }
-        stats.fetched += listings.length
-        stats.pages++
-        const rows: Record<string, unknown>[] = []
-        for (const hit of listings) {
-          const row = mapHit(hit, offerType, nowIso)
-          if (row === null) { stats.skipped++; continue }
-          rows.push(row)
-        }
-        const { upserted, errors } = await upsertRows(supabase, rows)
-        stats.upserted += upserted
-        stats.errors += errors
-        // Dernière page atteinte (page partielle, couverture du total, ou borne de test).
-        if (listings.length < PAGE_SIZE || (totalExpected > 0 && page * PAGE_SIZE >= totalExpected)) {
-          done = true; break
-        }
-        if (body.max_pages && stats.pages >= body.max_pages) { done = true; break }
-      }
-      stats.chunks++
-      return done
-    }
-
-    let page = startPage
-    while (true) {
-      const done = await processBlock(page)
+    while (sliceIdx < worklist.length) {
+      await processSlice(supabase, offerType, worklist[sliceIdx], nowIso, stats)
+      sliceIdx++
       await updateRunChunk(supabase, runId, stats, totalExpected)
-      const nextPage = page + CHUNK_PAGES
-      console.log(`[chunk] pages ${page}..${nextPage - 1} done — upserted=${stats.upserted}/${totalExpected} elapsed=${Math.round((Date.now() - startedAtMs) / 1000)}s`)
+      if (Date.now() - startedAtMs > TIME_BUDGET_MS && sliceIdx < worklist.length) {
+        console.log(`[chunk] budget atteint — handoff slice ${sliceIdx}/${worklist.length} (upserted=${stats.upserted})`)
+        await selfInvoke({ ...body, slice_index: sliceIdx, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, handoff_count: handoffCount + 1 })
+        return
+      }
+      if (sliceIdx < worklist.length) await sleep(PACE_MS)
+    }
 
-      if (done) {
-        // Un run scopé (placeSlugs) ou borné (max_pages) n'a pas vu tout le
-        // catalogue → sweeper marquerait à tort 'removed' les biens hors scope.
-        // On ne sweep que sur un run complet.
-        const scoped = (Array.isArray(body.place_slugs) && body.place_slugs.length > 0) || !!body.max_pages
-        if (scoped) {
-          await finalizeRun(supabase, runId, { status: 'completed', totalSeen: stats.fetched, removed: 0 })
-        } else {
-          await selfInvoke({ mode: 'sweep', offer_type: offerType, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source })
-        }
-        return
-      }
-      if (Date.now() - startedAtMs > TIME_BUDGET_MS) {
-        await selfInvoke({ ...body, page: nextPage, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, handoff_count: handoffCount + 1 })
-        return
-      }
-      await sleep(PACE_MS)
-      page = nextPage
+    // Work-list épuisée. Sweep seulement pour un run COMPLET (pas scopé).
+    console.log(`[chunk] worklist done — upserted=${stats.upserted} slices=${stats.slices} capped=${stats.capped}`)
+    if (isScoped) {
+      await finalizeRun(supabase, runId, { status: 'completed', totalSeen: stats.fetched, removed: 0 })
+    } else {
+      await selfInvoke({ mode: 'sweep', offer_type: offerType, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source })
     }
   } catch (err) {
     console.error('realadvisor-sync background error:', err)
     await finalizeRun(supabase, runId, { status: 'failed', errorMessage: String(err).slice(0, 500) })
   }
 }
-
-// ─── Handler ──────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -627,7 +659,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, accepted: true, offer_type: body.offer_type || 'buy', mode: body.mode ?? 'chunk', page: body.page ?? 1 }),
+      JSON.stringify({ ok: true, accepted: true, offer_type: body.offer_type || 'buy', mode: body.mode ?? 'chunk', slice_index: body.slice_index ?? 0 }),
       { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
