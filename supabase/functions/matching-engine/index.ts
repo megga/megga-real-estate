@@ -10,6 +10,13 @@ import {
   type ScoringConfig,
   type ScoreResult,
 } from '../_shared/matching-normalize.ts'
+import {
+  buildRentStatsIndex,
+  rentPosition,
+  type RentStatsIndex,
+  type RentStatsRow,
+  type RentSubject,
+} from '../_shared/rent-reference.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,6 +91,23 @@ serve(async (req) => {
       cfg = parseScoringConfig(typeof cfgVal === 'string' ? cfgVal : null)
     } catch (_) {
       cfg = DEFAULT_SCORING_CONFIG // jamais de crash sur une config absente/cassée
+    }
+
+    // ── Référence loyer marché (signal déterministe, lookup en mémoire) ──
+    // Chargé UNE fois ; jamais de GROUP BY live. Absence/erreur ⇒ index vide ⇒
+    // rentPosition()=null ⇒ bonus pricePosP=0 ⇒ barème 100 pts inchangé
+    // (dégradation silencieuse). v1 plafonné L1 : canton_surf seul car la RPC
+    // match_candidate_listings ne renvoie PAS postal_code (finesse city/NPA =
+    // choix de scope v1, voir docs/estimation-loyer-vague2-concevoir.md §8.8).
+    let rentIndex: RentStatsIndex = buildRentStatsIndex([])
+    const { data: statsRows, error: statsErr } = await supabase
+      .from('market_rent_stats')
+      .select('*')
+      .eq('level', 'canton_surf')
+    if (statsErr) {
+      console.error('[matching-engine] market_rent_stats load failed, axis inactive:', statsErr.message)
+    } else {
+      rentIndex = buildRentStatsIndex((statsRows ?? []) as RentStatsRow[])
     }
 
     let newMatches = 0
@@ -178,7 +202,17 @@ serve(async (req) => {
         if (error) throw error
 
         for (const ml of (candidates ?? []) as Record<string, unknown>[]) {
-          const score = calculateScoreV2(ml, criteria, cfg)
+          // Sujet pour la référence loyer : loyer canonique = COALESCE(current_price, price).
+          // Gate tx==='rent' → jamais de raison loyer sur une vente. Résolution L1
+          // (canton) car la RPC ne renvoie pas postal_code. rentRef null ⇒ bonus 0.
+          const subject: RentSubject = {
+            canton: (ml.canton as string | null) ?? null,
+            type: (ml.type as string | null) ?? null,
+            surface_m2: numOrNull(ml.surface_m2),
+            loyer: numOrNull(ml.current_price) ?? numOrNull(ml.price),
+          }
+          const rentRef = tx === 'rent' ? rentPosition(subject, rentIndex) : null
+          const score = calculateScoreV2(ml, criteria, cfg, rentRef)
           if (score.total >= cfg.threshold) {
             rows.push({
               agency_id,
