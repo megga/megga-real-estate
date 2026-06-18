@@ -160,6 +160,32 @@ export default function NetworkSugarV2Page() {
             gap: 18,
           }}
         >
+          {/* Bandeau « en construction » — module Réseau non encore livré (données d'exemple). */}
+          <div
+            role="status"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '14px 18px',
+              borderRadius: 16,
+              background: dark ? 'rgba(217,138,43,0.12)' : 'rgba(217,138,43,0.10)',
+              border: `1px solid ${dark ? 'rgba(217,138,43,0.35)' : 'rgba(217,138,43,0.28)'}`,
+              color: '#B45309',
+            }}
+          >
+            <span style={{ fontSize: 18, lineHeight: 1 }} aria-hidden>🚧</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: -0.1 }}>
+                Réseau d'agences — en construction
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 500, opacity: 0.9, marginTop: 1 }}>
+                Aperçu non fonctionnel : les données affichées sont des exemples. Le partage de biens
+                inter-agences (RLS, demandes, modèles PDF) arrive dans une prochaine version.
+              </div>
+            </div>
+          </div>
+
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
             <div style={{ flex: 1 }}>
