@@ -443,21 +443,25 @@ async function upsertRows(supabase: any, rows: Record<string, unknown>[]): Promi
 async function processSlice(supabase: any, offerType: string, slice: Slice, nowIso: string, stats: SyncStats): Promise<void> {
   let total = 0
   let seen = 0
-  for (let page = 1; page <= MAX_PAGES_PER_SLICE; page++) {
+  let page = 1
+  while (page <= MAX_PAGES_PER_SLICE) {
     if (page > 1) await sleep(PACE_MS)
-    let res = await fetchPage(offerType, slice, page)
-    if (page === 1) total = res.total_count
-    let listings = res.listings || []
-    // Page vide ALORS QU'on attend encore des résultats (slice sous le cap, pas
-    // encore tout vu) = throttle/transient, PAS la vraie fin → backoff + retry,
-    // au lieu de tronquer le slice. (Le slice non filtré d'un gros canton a
-    // total > SLICE_CAP : on n'y retry pas, sa fenêtre est légitimement plafonnée.)
-    let emptyRetry = 0
-    while (listings.length === 0 && seen < total && total <= SLICE_CAP && emptyRetry < 4) {
-      await sleep(BACKOFF_BASE_MS * 2 ** emptyRetry)
-      res = await fetchPage(offerType, slice, page)
+    // Sous throttle, RA renvoie des pages VIDES ou TRONQUÉES (< 36) même quand il
+    // reste des résultats — on ne peut donc PAS prendre "page courte = dernière".
+    // On retry tant qu'on attend encore des résultats ; la vraie fin d'un slice
+    // sous cap = seen >= total (signal fiable).
+    let listings: RawHit[] = []
+    for (let attempt = 0; attempt <= BACKOFF_RETRIES; attempt++) {
+      if (attempt > 0) await sleep(BACKOFF_BASE_MS * 2 ** (attempt - 1))
+      const res = await fetchPage(offerType, slice, page)
+      if (page === 1 && total === 0) total = res.total_count
       listings = res.listings || []
-      emptyRetry++
+      const subCap = total > 0 && total <= SLICE_CAP
+      const moreExpected = subCap && (seen + listings.length) < total
+      if (listings.length >= PAGE_SIZE) break        // page pleine → OK
+      if (!moreExpected) break                        // fin légitime, ou slice plafonné (total>cap)
+      if (listings.length > 0 && attempt >= 2) break  // partiel après retries → on accepte (anti-boucle)
+      // sinon : vide/tronquée alors qu'on attend plus → retry
     }
     if (listings.length === 0) break
     seen += listings.length
@@ -472,7 +476,10 @@ async function processSlice(supabase: any, offerType: string, slice: Slice, nowI
     const { upserted, errors } = await upsertRows(supabase, rows)
     stats.upserted += upserted
     stats.errors += errors
-    if (listings.length < PAGE_SIZE) break
+    const subCap = total > 0 && total <= SLICE_CAP
+    if (subCap && seen >= total) break               // slice sous cap entièrement récupéré
+    if (!subCap && listings.length < PAGE_SIZE) break // fin de la fenêtre d'un slice plafonné
+    page++
   }
   stats.slices++
   if (total > SLICE_CAP && seen < total) {
