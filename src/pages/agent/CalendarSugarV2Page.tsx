@@ -479,7 +479,6 @@ export default function CalendarSugarV2Page() {
               filters={filters}
               onFilters={setFilters}
               hotBuyers={hotBuyers}
-              aiInsights={[]}
               onSelectEvent={setSelectedId}
             />
 

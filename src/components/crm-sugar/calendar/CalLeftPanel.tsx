@@ -16,7 +16,9 @@ interface CalLeftPanelProps {
   filters: Record<string, boolean>
   onFilters: (f: Record<string, boolean>) => void
   hotBuyers: CalHotBuyer[]
-  aiInsights: CalAIInsight[]
+  /** Insights IA du calendrier — non alimentés (data-gated). Optionnel : le bloc
+   *  ne s'affiche que si la liste est non vide (sinon rien). */
+  aiInsights?: CalAIInsight[]
   onSelectEvent: (id: string) => void
 }
 
@@ -27,7 +29,7 @@ export function CalLeftPanel({
   filters,
   onFilters,
   hotBuyers,
-  aiInsights,
+  aiInsights = [],
   onSelectEvent,
 }: CalLeftPanelProps) {
   return (
