@@ -36,7 +36,7 @@ Retourne un JSON strict avec ces champs (utilise null si l'info n'est pas trouv�
   "city": "string — ville",
   "canton": "string — code canton 2 lettres (GE, VD, ZH...)",
   "postal_code": "string — NPA",
-  "photos": ["string — URLs des photos du bien (les premières 10 max)"],
+  "photos": ["string — URLs de TOUTES les photos du bien (pas de limite), full-size, dans l'ordre d'affichage"],
   "features": ["string — liste des caractéristiques"],
   "is_furnished": boolean | null,
   "deposit_months": number | null,
@@ -57,7 +57,7 @@ Règles :
 - Prix en CHF, juste le nombre (pas d'apostrophes)
 - Surface en m² (nombre seul)
 - Déduis le canton depuis le NPA ou la ville si non mentionné explicitement
-- Pour les photos, extrais les URLs complètes des images (pas les thumbnails, les full-size si possible)
+- Pour les photos, extrais les URLs complètes de TOUTES les images de la galerie (pas les thumbnails, full-size si possible) — ne te limite pas à quelques-unes
 - Normalise les features : "place de parc" → "parking", "balcon/loggia" → "balcon"
 - Si le portail est identifiable (Homegate, ImmoScout24, etc.), indique-le dans source_portal
 - transaction_type "rent" si la page mentionne loyer/CHF par mois/à louer ; "buy" si prix d'achat/à vendre/CHF total

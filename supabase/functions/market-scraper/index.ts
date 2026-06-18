@@ -51,6 +51,67 @@ function buildImageUrl(image: { file_name?: string; bucket_name?: string }): str
   return `https://img.realadvisor.ch/_/rs:fill:1200:800:1:0/q:75/${encodedPath}.webp`
 }
 
+// ── Field mapping (RealAdvisor API → market_listings) ──────
+// We verified the RealAdvisor API returns the COMPLETE gallery per listing
+// (5–19 photos typical, no source-side cap) and 53 fields. We used to truncate
+// to 15 photos / 2000 description chars and drop ~10 structured fields. These
+// bounds are generous safety valves against a malformed payload, not real data.
+const MAX_PHOTOS = 60
+const MAX_DESCRIPTION_CHARS = 8000
+
+function buildPhotos(item: { images?: unknown }): string[] {
+  const photos: string[] = []
+  if (Array.isArray(item.images)) {
+    for (const img of item.images.slice(0, MAX_PHOTOS)) {
+      const url = buildImageUrl(img)
+      if (url) photos.push(url)
+    }
+  }
+  return photos
+}
+
+function cleanDescription(raw: unknown): string | null {
+  return typeof raw === 'string' && raw
+    ? raw.replace(/<[^>]+>/g, '').substring(0, MAX_DESCRIPTION_CHARS)
+    : null
+}
+
+// RealAdvisor bullet_points = { fr:[], de:[], en:[], it:[] } highlight lists.
+// Prefer FR, fall back to other locales, for the features (jsonb) column.
+function extractFeatures(bulletPoints: unknown): string[] {
+  if (!bulletPoints || typeof bulletPoints !== 'object') return []
+  const bp = bulletPoints as Record<string, unknown>
+  const arr = bp.fr ?? bp.en ?? bp.de ?? bp.it
+  return Array.isArray(arr) ? arr.filter((x: unknown): x is string => typeof x === 'string') : []
+}
+
+// Shared enrichment applied on BOTH insert and update, so the existing rows
+// get backfilled on the next sync — not just freshly created ones.
+function buildEnrichment(item: Record<string, unknown>): Record<string, unknown> {
+  const parking = typeof item.number_of_parking === 'number' ? item.number_of_parking : null
+  const enrichment: Record<string, unknown> = {
+    description: cleanDescription(item.description),
+    surface_m2: (item.living_surface as number) || (item.computed_surface as number) || null,
+    usable_surface: (item.usable_surface as number) ?? null,
+    land_surface: (item.land_surface as number) ?? null,
+    rooms: (item.number_of_rooms as number) || null,
+    bathrooms: (item.number_of_bathrooms as number) || null,
+    price_per_m2: (item.sale_price_per_living_surface as number) || null,
+    year_built: (item.construction_year as number) ?? null,
+    year_renovated: (item.renovation_year as number) ?? null,
+    parking_count: parking,
+    features: extractFeatures(item.bullet_points),
+    property_type_detail: (item.property_type as string) || null,
+    agency_logo_url: (item.agency_logo_url as string) || null,
+    agency_reference: (item.agency_reference as string) || null,
+    visit_contact_name: (item.visit_contact_person as string) || null,
+    visit_contact_phone: (item.visit_contact_phone_number as string) || null,
+    source_created_at: (item.created_at as string) || null,
+  }
+  if (parking != null && parking > 0) enrichment.has_parking = true
+  return enrichment
+}
+
 // ── Main Handler ───────────────────────────────────────────
 
 serve(async (req) => {
@@ -109,14 +170,9 @@ serve(async (req) => {
       const salePrice = item.sale_price || 0
       if (salePrice <= 0) { result.listings_skipped++; continue }
 
-      // Build CDN photo URLs
-      const photos: string[] = []
-      if (Array.isArray(item.images)) {
-        for (const img of item.images.slice(0, 15)) {
-          const url = buildImageUrl(img)
-          if (url) photos.push(url)
-        }
-      }
+      // Full gallery (caps removed) + all the structured fields the source gives.
+      const photos = buildPhotos(item)
+      const enrichment = buildEnrichment(item as Record<string, unknown>)
 
       const rawType = item.property_main_type || item.property_type || 'APPT'
       const canton = cantonCode || stateName
@@ -129,8 +185,11 @@ serve(async (req) => {
 
       if (existing) {
         const updates: Record<string, unknown> = {
+          ...enrichment,
           last_seen_at: new Date().toISOString(),
-          title, agency_name: item.agency_name,
+          title,
+          agency_name: item.agency_name || null,
+          agency_phone: item.agency_contact_phone_number || null,
           photos, photos_count: photos.length,
         }
         const oldPrice = Number(existing.current_price) || 0
@@ -147,21 +206,15 @@ serve(async (req) => {
         await supabase.from('market_listings').update(updates).eq('id', existing.id)
         result.listings_updated++
       } else {
-        const description = item.description && typeof item.description === 'string'
-          ? item.description.replace(/<[^>]+>/g, '').substring(0, 2000) : null
-
         await supabase.from('market_listings').insert({
+          ...enrichment,
           canton, city: item.locality || '', postal_code: item.postcode || null,
           address: item.address || '', lat: item.lat || null, lng: item.lng || null,
-          title, description, type: TYPE_MAP[rawType] || 'apartment',
+          title, type: TYPE_MAP[rawType] || 'apartment',
           transaction_type: 'buy', price: salePrice,
           price_at_first_seen: salePrice, current_price: salePrice,
-          price_per_m2: item.sale_price_per_living_surface || null,
-          rooms: item.number_of_rooms || null,
           bedrooms: item.number_of_bedrooms || null,
-          bathrooms: item.number_of_bathrooms || null,
-          surface_m2: item.living_surface || item.computed_surface || null,
-          floor: item.floor || null, features: '[]',
+          floor: item.floor || null,
           photos, photos_count: photos.length,
           source_portal: item.portal || 'realadvisor',
           source_url: `https://realadvisor.ch/fr/acheter/bien-immobilier/${sourceId}`,

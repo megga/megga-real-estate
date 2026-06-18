@@ -194,6 +194,11 @@ function mapPrice(l: FlatfoxListing): number {
   return 0
 }
 
+// Generous safety bound only — Flatfox returns the full gallery via
+// `expand=images` and we want all of it. We used to truncate to 10, dropping
+// photos on richer listings; this just guards against a malformed payload.
+const MAX_PHOTOS = 60
+
 function mapPhotos(images: FlatfoxListing['images']): string[] {
   if (!Array.isArray(images)) return []
   // Sort by Flatfox's `ordering` field — the agency sets photo order, usually
@@ -205,7 +210,7 @@ function mapPhotos(images: FlatfoxListing['images']): string[] {
     return oa - ob
   })
   const urls: string[] = []
-  for (const img of sorted.slice(0, 10)) {
+  for (const img of sorted.slice(0, MAX_PHOTOS)) {
     if (img && typeof img === 'object') {
       // Use original full-resolution URL (no alias = ~100KB, sharp)
       // Avoids pixelation in lightbox and listing detail pages
