@@ -1,9 +1,12 @@
 -- Assainissement Vague 2 — purge table morte + amorçage table vivante.
 --
--- ai_actions_queue : table + helper can_auto_send(uuid,text) du système « Day 0 »
--- jamais livré. Vérifié en prod : 0 ligne, 0 FK entrante, 0 appelant repo/cron,
--- can_auto_send n'est référencé par aucune autre fonction. Le modèle `reminders`
--- (vivant, lu par automation-engine) a remplacé cette file. → DROP.
+-- ai_actions_queue : table du système « Day 0 » jamais livré. Vérifié en prod :
+-- 0 ligne, 0 FK entrante, 0 lecteur (repo/cron). Le modèle `reminders` (vivant,
+-- lu par automation-engine) a remplacé cette file. → DROP.
+-- NB : can_auto_send(uuid,text) est CONSERVÉE — c'est le gate d'autonomie VIVANT
+-- du WhatsApp agent (lit autonomy_gate->>p_action_type, testé en CI via
+-- whatsapp-autonomy-gate.spec), malgré son commentaire baseline périmé qui
+-- évoque ai_actions_queue.
 --
 -- automation_rules : table VIVANTE (cron hourly-automation-scan → automation-engine
 -- la lit) mais VIDE (0 règle) → la branche automation est du code mort faute de
@@ -15,7 +18,6 @@
 -- et l'absence de doublon (no-op en stack fraîche / si déjà amorcé).
 
 drop table if exists public.ai_actions_queue cascade;
-drop function if exists public.can_auto_send(uuid, text);
 
 insert into public.automation_rules (agency_id, name, trigger_event, action, delay_days, is_active, auto_send)
 select
