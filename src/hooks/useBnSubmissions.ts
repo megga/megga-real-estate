@@ -4,7 +4,9 @@
 //
 // Champs non persistés en DB (defaults raisonnables) :
 //   beds/baths/year/energy/floor/motive/deadline/condition/features/photoCount
-//   autoChecks : tous 'ok' (le real check viendra avec l'IA validation).
+//   autoChecks : photosCount calculé (réel) ; addressMatch/duplicates/cantonalRegistry
+//   = 'pending' (non vérifié) tant que le moteur de contrôle n'est pas câblé. On ne
+//   fabrique PAS de 'ok' sur une surface compliance (règle anti-fabrication).
 
 import { useMemo } from 'react'
 import { useSellerLeads, type SellerLeadRow } from '@/hooks/useSellerLeads'
@@ -92,10 +94,10 @@ function leadToSubmission(lead: SellerLeadRow): CrmSubmission {
     features: [],
     accent: accentFromId(lead.id),
     autoChecks: {
-      addressMatch: 'ok',
+      addressMatch: 'pending',
       photosCount: (p.photos?.length ?? 0) >= 3 ? 'ok' : 'warn',
-      duplicates: 'ok',
-      cantonalRegistry: 'ok',
+      duplicates: 'pending',
+      cantonalRegistry: 'pending',
     },
   }
 }

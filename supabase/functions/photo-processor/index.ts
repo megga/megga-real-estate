@@ -191,7 +191,11 @@ serve(async (req: Request) => {
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace(/^Bearer\s+/i, '')
   const role = decodeJwtRole(token)
-  if (role !== 'service_role') {
+  // Accept the current sb_secret_ service key (string-equality) in addition to
+  // the legacy service_role JWT, so callers (backfill-cf-images via pg_cron) that
+  // forward get_app_config('service_role_key') authenticate.
+  const isServiceRole = role === 'service_role' || (SERVICE_ROLE_KEY !== '' && token === SERVICE_ROLE_KEY)
+  if (!isServiceRole) {
     return new Response(
       JSON.stringify({ success: false, error: 'service_role required' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

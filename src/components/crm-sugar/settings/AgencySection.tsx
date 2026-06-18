@@ -502,7 +502,8 @@ function CommercialTargetsGroup() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  AUTOCOMPLETE ADRESSE (liste suisse mockée — cible prod : API swisstopo)
+//  AUTOCOMPLETE ADRESSE — API fédérale geo.admin.ch (swisstopo SearchServer)
+//  Publique, sans clé, CORS. Remplace l'ancienne liste suisse mockée.
 // ═══════════════════════════════════════════════════════════════════════════
 interface AddrSuggestion {
   address: string
@@ -510,32 +511,84 @@ interface AddrSuggestion {
   city: string
   canton: string
 }
-// Liste mockée. Cible prod : autocomplete swisstopo (api3.geo.admin.ch).
-const ADDRESS_SUGGESTIONS: AddrSuggestion[] = [
-  { address: '14 rue du Rhône', postal: '1204', city: 'Genève', canton: 'GE' },
-  { address: '2 quai du Mont-Blanc', postal: '1201', city: 'Genève', canton: 'GE' },
-  { address: '12 rue du Marché', postal: '1204', city: 'Genève', canton: 'GE' },
-  { address: '5 place de la Fusterie', postal: '1204', city: 'Genève', canton: 'GE' },
-  { address: '30 route de Florissant', postal: '1206', city: 'Genève', canton: 'GE' },
-  { address: '1 rue de la Confédération', postal: '1204', city: 'Genève', canton: 'GE' },
-  { address: '10 rue du Stand', postal: '1204', city: 'Genève', canton: 'GE' },
-  { address: '8 avenue de la Gare', postal: '1003', city: 'Lausanne', canton: 'VD' },
-]
+
+interface GeoAttrs {
+  label?: string
+  detail?: string
+}
+
+const CH_CANTONS = new Set([
+  'GE', 'VD', 'VS', 'NE', 'FR', 'BE', 'JU', 'BS', 'BL', 'AG', 'SO', 'ZH', 'LU', 'ZG',
+  'SZ', 'NW', 'OW', 'UR', 'GL', 'SH', 'TG', 'AR', 'AI', 'SG', 'GR', 'TI',
+])
+
+// geo.admin renvoie un `label` HTML (« Rue X 14 <b>1204 Genève</b> ») + un
+// `detail` minuscule qui se termine souvent par le code canton. On en extrait
+// adresse / NPA / localité (+ canton en best-effort, sinon laissé au champ).
+function parseGeoResult(attrs: GeoAttrs): AddrSuggestion | null {
+  const label = (attrs.label ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  // Le NPA (4 chiffres) précède la localité ; les numéros de rue sont en tête.
+  // On prend le DERNIER groupe de 4 chiffres pour ne pas confondre un numéro de
+  // rue à 4 chiffres avec le code postal.
+  const plzAll = label.match(/\b\d{4}\b/g)
+  if (!plzAll || plzAll.length === 0) return null
+  const plz = plzAll[plzAll.length - 1]
+  const idx = label.lastIndexOf(plz)
+  const address = label.slice(0, idx).trim()
+  const city = label.slice(idx + plz.length).trim()
+  if (!address || !city) return null
+  let canton = ''
+  const tokens = (attrs.detail ?? '').split(/\s+/)
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    if (CH_CANTONS.has(tokens[i].toUpperCase())) { canton = tokens[i].toUpperCase(); break }
+  }
+  return { address, postal: plz, city, canton }
+}
 
 function AddressAutocomplete({ form, set }: { form: AgencyForm; set: (patch: Partial<AgencyForm>) => void }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [focus, setFocus] = useState(false)
   const [manual, setManual] = useState(false)
-  const matches = query.trim()
-    ? ADDRESS_SUGGESTIONS.filter(s =>
-        `${s.address} ${s.postal} ${s.city} ${s.canton}`.toLowerCase().includes(query.toLowerCase()),
-      ).slice(0, 5)
-    : []
+  const [matches, setMatches] = useState<AddrSuggestion[]>([])
+  const abortRef = useRef<AbortController | null>(null)
+
+  // Recherche d'adresses suisses via geo.admin.ch, débouncée (250ms).
+  useEffect(() => {
+    const q = query.trim()
+    if (q.length < 3) { setMatches([]); return }
+    const t = setTimeout(async () => {
+      abortRef.current?.abort()
+      const ctrl = new AbortController()
+      abortRef.current = ctrl
+      try {
+        const url =
+          'https://api3.geo.admin.ch/rest/services/api/SearchServer' +
+          `?type=locations&origins=address&limit=6&searchText=${encodeURIComponent(q)}`
+        const res = await fetch(url, { signal: ctrl.signal })
+        if (!res.ok) { setMatches([]); return }
+        const json = (await res.json()) as { results?: { attrs?: GeoAttrs }[] }
+        const out: AddrSuggestion[] = []
+        for (const r of json.results ?? []) {
+          const parsed = r.attrs ? parseGeoResult(r.attrs) : null
+          if (parsed) out.push(parsed)
+        }
+        setMatches(out)
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('[AgencySection] swisstopo search failed:', (err as Error).message)
+          setMatches([])
+        }
+      }
+    }, 250)
+    return () => clearTimeout(t)
+  }, [query])
+
   const choose = (s: AddrSuggestion) => {
-    set({ address: s.address, postal: s.postal, city: s.city, canton: s.canton, country: 'Suisse' })
+    set({ address: s.address, postal: s.postal, city: s.city, country: 'Suisse', ...(s.canton ? { canton: s.canton } : {}) })
     setQuery('')
     setOpen(false)
+    setMatches([])
   }
   const hasAddress = !!(form.address && form.city)
 
@@ -601,9 +654,9 @@ function AddressAutocomplete({ form, set }: { form: AgencyForm; set: (patch: Par
               animation: 'setFadeUp .16s cubic-bezier(.2,.8,.2,1) both',
             }}
           >
-            {matches.map((s, i) => (
+            {matches.map((s) => (
               <button
-                key={i}
+                key={`${s.address}-${s.postal}-${s.city}`}
                 onMouseDown={() => choose(s)}
                 onMouseEnter={e => {
                   e.currentTarget.style.background = SET.cardSubtle
@@ -632,7 +685,7 @@ function AddressAutocomplete({ form, set }: { form: AgencyForm; set: (patch: Par
                     {s.address}
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: SET.muted, marginTop: 1 }}>
-                    {s.postal} {s.city}, {s.canton}
+                    {s.postal} {s.city}{s.canton ? `, ${s.canton}` : ''}
                   </div>
                 </div>
               </button>

@@ -275,7 +275,9 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 - Backend conservé intact : `market_listings` (~34k Flatfox), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** 11/14 pages connectées Supabase — Contacts, Pipeline 14 colonnes, Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline 14 colonnes, Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
+
+**Réseau inter-agences (`/dashboard/network`, `NetworkSugarV2Page`) : 🚧 EN CONSTRUCTION.** Prototype hi-fi en données d'exemple (5 vues, dont 3 « Coming soon ») — aucun backend (pas de table `agency_partners`/`shared_listings`, pas de RLS cross-agence). Un bandeau « en construction » est affiché sur la page. Le module réel (partage de biens inter-agences + RLS + modèles PDF) arrivera plus tard ; ne pas présenter cette page comme livrée.
 
 **MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. Inférence = DeepSeek par défaut (coût) ; Claude réservé à dashboard-ai-hint / extract-lead et kyc-screening.
 

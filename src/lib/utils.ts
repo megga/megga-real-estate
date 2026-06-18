@@ -38,6 +38,15 @@ export function formatDate(date: string | Date): string {
 }
 
 /**
+ * Format a date as the « Aujourd'hui » header label, capitalized.
+ * Example: "Dimanche 14 juin"
+ */
+export function formatTodayHeader(date: Date = new Date()): string {
+  const s = format(date, 'EEEE d MMMM', { locale: fr })
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+/**
  * Format date as relative time in French
  * Example: "il y a 2 heures"
  */

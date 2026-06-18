@@ -15,6 +15,8 @@ import {
   type SegmentId,
   type SortMode,
 } from './helpers'
+import { useContactScores, type ContactHealth } from '@/hooks/useContactScores'
+import { CtScoreBadge } from './CtScoreBadge'
 
 // ─── Segment chip ─────────────────────────────────────────────────────
 interface CtSegmentProps {
@@ -72,9 +74,10 @@ interface CtRowProps {
   onSelect: () => void
   sp: SugarPalette
   dark: boolean
+  scoreHealth?: ContactHealth | null
 }
 
-function CtRow({ contact, deal, selected, onSelect, sp, dark }: CtRowProps) {
+function CtRow({ contact, deal, selected, onSelect, sp, dark, scoreHealth }: CtRowProps) {
   const [hov, setHov] = useState(false)
   const score = contact.score || 0
   const scoreColor = ctScoreColor(score)
@@ -203,6 +206,12 @@ function CtRow({ contact, deal, selected, onSelect, sp, dark }: CtRowProps) {
             />
             <span style={{ color: sp.sub }}>{ctRelativeTime(contact.lastActivityAt)}</span>
           </span>
+          {scoreHealth && (
+            <>
+              <span style={{ color: sp.sub }}>·</span>
+              <CtScoreBadge health={scoreHealth} size="sm" />
+            </>
+          )}
         </div>
         {stage && (
           <div
@@ -280,6 +289,7 @@ export function ContactsListPane({
   // sinon fallback sur `contacts` (suffit quand le composant n'a pas de filtres
   // externes au-dessus, ex: cas isolé en démo).
   const countsSource = allContacts ?? contacts
+  const { scores: contactScores } = useContactScores()
   const segmentCounts = useMemo(() => {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - 14)
@@ -540,6 +550,7 @@ export function ContactsListPane({
                 onSelect={() => onSelect(c.id)}
                 sp={sp}
                 dark={dark}
+                scoreHealth={contactScores.get(c.id)}
               />
             )
           })

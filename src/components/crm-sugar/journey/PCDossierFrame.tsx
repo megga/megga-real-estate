@@ -34,8 +34,11 @@ export function PCDossierFrame({
   const NOTCH_DEPTH = 38
   const AVATAR = 50
   const AVATAR_GAP = 14
-  const teamCount = dossier.team.length + 1
-  const NOTCH_W = teamCount * AVATAR + (teamCount - 1) * AVATAR_GAP + 40
+  // Équipe (RBAC) non câblée → team toujours vide. Pas de notch ni d'avatars
+  // tant qu'il n'y a personne à montrer (évite un panorama d'équipe trompeur +
+  // un bouton « + » non fonctionnel).
+  const teamCount = dossier.team.length > 0 ? dossier.team.length + 1 : 0
+  const NOTCH_W = teamCount > 0 ? teamCount * AVATAR + (teamCount - 1) * AVATAR_GAP + 40 : 0
 
   const bentoFill = dark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)'
   const bentoStroke = sp.frameBorder
@@ -132,7 +135,9 @@ export function PCDossierFrame({
           </span>
         </div>
 
-        {/* Avatars in notch */}
+        {/* Avatars in notch — masqués tant que l'équipe (RBAC) n'est pas câblée
+            (team toujours vide) : pas de panorama d'équipe ni de « + » trompeur. */}
+        {dossier.team.length > 0 ? (
         <div
           style={{
             flex: 1,
@@ -211,6 +216,9 @@ export function PCDossierFrame({
             </div>
           </div>
         </div>
+        ) : (
+          <div style={{ flex: 1 }} />
+        )}
 
         {/* Right actions */}
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>

@@ -71,7 +71,10 @@ serve(async (req: Request) => {
     const payload = decodeJwtPayload(token)
     const jwtRole = payload?.role as string | undefined
 
-    if (jwtRole !== 'service_role') {
+    // Accept the current sb_secret_ service key (string-equality) in addition
+    // to the legacy service_role JWT, so pg_cron via get_app_config authenticates.
+    const isServiceKey = serviceKey !== '' && token === serviceKey
+    if (jwtRole !== 'service_role' && !isServiceKey) {
       // Try user auth via super_admin check
       const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
         global: { headers: { Authorization: authHeader } },

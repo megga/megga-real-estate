@@ -5,6 +5,8 @@ import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycAvatar, KycBlackPill, KycCircleBtn, KycNeutralPill } from '../primitives'
 import type { Contact } from '@/types/contact'
+import { useContactScores } from '@/hooks/useContactScores'
+import { CtScoreBadge } from '@/components/crm-sugar/contacts/CtScoreBadge'
 
 interface Props {
   contact: Contact
@@ -12,6 +14,8 @@ interface Props {
 }
 
 export function CdHero({ contact, onBack }: Props) {
+  const { scores: contactScores } = useContactScores()
+  const contactHealth = contactScores.get(contact.id)
   const typeLabel =
     {
       buyer: 'Acheteur',
@@ -125,6 +129,7 @@ export function CdHero({ contact, onBack }: Props) {
                   label={`Score ${score === 'hot' ? 'Chaud' : score === 'warm' ? 'Tiède' : 'Froid'}`}
                 />
               )}
+              {contactHealth && <CtScoreBadge health={contactHealth} size="md" />}
               {contact.source && (
                 <KycNeutralPill label={`Source : ${contact.source}`} />
               )}

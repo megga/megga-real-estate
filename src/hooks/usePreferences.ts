@@ -142,12 +142,21 @@ export function usePreferences() {
   const saveToSupabase = useCallback((prefs: DashboardPreferences) => {
     if (!profileId) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      supabase
+    debounceRef.current = setTimeout(async () => {
+      // Read-modify-write : préserve les autres sous-objets de `preferences`
+      // (ui, notifications) au lieu de les écraser, et remonte les erreurs au
+      // lieu de les avaler en silence (ancien `.then(() => {})`).
+      const { data: row } = await supabase
         .from('profiles')
-        .update({ preferences: prefs as unknown as import('@/types/database').Json })
+        .select('preferences')
         .eq('id', profileId)
-        .then(() => { /* silent */ })
+        .maybeSingle<{ preferences: Record<string, unknown> | null }>()
+      const current = row?.preferences ?? {}
+      const { error } = await supabase
+        .from('profiles')
+        .update({ preferences: { ...current, ...prefs } as unknown as import('@/types/database').Json })
+        .eq('id', profileId)
+      if (error) console.error('[usePreferences] preferences sync failed:', error.message)
     }, 500)
   }, [profileId])
 
