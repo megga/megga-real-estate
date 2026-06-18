@@ -27,7 +27,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const RA_BASE = 'https://realadvisor.ch'
 const PAGE_SIZE = 36
-const PACE_MS = 1200
+// Pacing volontairement lent : RA/Cloudflare throttle sous requêtes rapides
+// soutenues (renvoie des 200 au corps non-JSON ou des listes vides). 2.5s + le
+// retry anti-troncature ci-dessous = ingestion fiable au prix de la lenteur.
+const PACE_MS = 2500
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
@@ -392,8 +395,15 @@ async function fetchPage(offerType: string, slice: Slice, page: number): Promise
       headers: { Accept: 'application/json', 'User-Agent': USER_AGENT, 'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8' },
     })
     if (res.ok) {
-      const body = await res.json()
-      return { total_count: body.total_count ?? 0, listings: body.listings ?? [] }
+      const text = await res.text()
+      try {
+        const body = JSON.parse(text)
+        return { total_count: body.total_count ?? 0, listings: body.listings ?? [] }
+      } catch {
+        // HTTP 200 mais corps non-JSON = challenge/throttle Cloudflare → backoff + retry.
+        if (attempt < BACKOFF_RETRIES) { await sleep(BACKOFF_BASE_MS * 2 ** attempt); attempt += 1; continue }
+        throw new Error(`realadvisor non-JSON 200 (${slice.canton} p${page}) après ${attempt} retries`)
+      }
     }
     await res.text().catch(() => {})
     if (BACKOFF_ON.has(res.status) && attempt < BACKOFF_RETRIES) {
@@ -435,9 +445,20 @@ async function processSlice(supabase: any, offerType: string, slice: Slice, nowI
   let seen = 0
   for (let page = 1; page <= MAX_PAGES_PER_SLICE; page++) {
     if (page > 1) await sleep(PACE_MS)
-    const res = await fetchPage(offerType, slice, page)
+    let res = await fetchPage(offerType, slice, page)
     if (page === 1) total = res.total_count
-    const listings = res.listings || []
+    let listings = res.listings || []
+    // Page vide ALORS QU'on attend encore des résultats (slice sous le cap, pas
+    // encore tout vu) = throttle/transient, PAS la vraie fin → backoff + retry,
+    // au lieu de tronquer le slice. (Le slice non filtré d'un gros canton a
+    // total > SLICE_CAP : on n'y retry pas, sa fenêtre est légitimement plafonnée.)
+    let emptyRetry = 0
+    while (listings.length === 0 && seen < total && total <= SLICE_CAP && emptyRetry < 4) {
+      await sleep(BACKOFF_BASE_MS * 2 ** emptyRetry)
+      res = await fetchPage(offerType, slice, page)
+      listings = res.listings || []
+      emptyRetry++
+    }
     if (listings.length === 0) break
     seen += listings.length
     stats.fetched += listings.length
