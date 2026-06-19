@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/overlay-storefront.mjs",
     "lint": "eslint .",
+    "lint:prose": "node scripts/check-prose-typography.mjs",
     "preview": "vite preview",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",

@@ -233,8 +233,8 @@
     },
     "twoFactor": {
       "title": "Autenticazione a due fattori",
-      "enabled": "Attivata — il Suo account è protetto",
-      "disabled": "Disattivata — consigliata per maggiore sicurezza",
+      "enabled": "Attivata - il Suo account è protetto",
+      "disabled": "Disattivata - consigliata per maggiore sicurezza",
       "comingSoon": "Prossimamente disponibile",
       "recommendation": "Consigliamo di attivare la 2FA per proteggere il Suo account, soprattutto per uno strumento di conformità LRD/KYC."
     },
@@ -344,8 +344,8 @@
       "customBranding": "Branding personalizzato",
       "dataExport": "Esportazione dati",
       "staging": "MEGGA Staging (virtual staging IA)",
-      "staging50": "MEGGA Staging — 50 immagini/mese",
-      "staging200": "MEGGA Staging — 200 immagini/mese",
+      "staging50": "MEGGA Staging - 50 immagini/mese",
+      "staging200": "MEGGA Staging - 200 immagini/mese",
       "support247": "Supporto prioritario 24/7"
     },
     "custom": {
@@ -446,7 +446,7 @@
   },
   "apps": {
     "filters": { "all": "Tutti", "connected": "Connessi", "calendar": "Calendario", "crm": "CRM", "tools": "Strumenti", "storage": "Archiviazione" },
-    "status": { "connected": "Connesso", "notConnected": "Non connesso", "comingSoon": "Presto", "connect": "Collegare", "connectedDetail": "Attivo — dominio megga.ch verificato" },
+    "status": { "connected": "Connesso", "notConnected": "Non connesso", "comingSoon": "Presto", "connect": "Collegare", "connectedDetail": "Attivo - dominio megga.ch verificato" },
     "empty": "Nessuna applicazione in questa categoria.",
     "google-calendar": { "name": "Google Calendar", "desc": "Sincronizzazione visite e appuntamenti" },
     "outlook-calendar": { "name": "Outlook Calendar", "desc": "Sincronizzazione visite e appuntamenti" },

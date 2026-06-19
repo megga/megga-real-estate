@@ -9,6 +9,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { meggaProse } from '../_shared/megga-prose.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -125,10 +126,10 @@ Quelle est l'action prioritaire de la semaine ?`
     const parsed = JSON.parse(match[0]) as Partial<HintOutput>
     if (!parsed.title || !parsed.desc || !parsed.cta) return null
     return {
-      label: parsed.label ?? 'Action prioritaire',
-      title: parsed.title,
-      desc: parsed.desc,
-      cta: parsed.cta,
+      label: meggaProse(parsed.label ?? 'Action prioritaire'),
+      title: meggaProse(parsed.title),
+      desc: meggaProse(parsed.desc),
+      cta: meggaProse(parsed.cta),
       ctaUrl: parsed.ctaUrl,
     }
   } catch {

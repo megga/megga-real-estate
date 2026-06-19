@@ -13,6 +13,7 @@ import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
+import { meggaProse } from '../_shared/megga-prose.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, detectLang, t, type WaLang, undoneStage, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 
@@ -390,7 +391,7 @@ async function processAgentMessage(
     metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
     metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
   }
-  const outText = toWhatsAppText(reply) // Markdown DeepSeek (**gras**) → syntaxe WhatsApp (*gras*)
+  const outText = toWhatsAppText(meggaProse(reply)) // style maison (meggaProse) puis Markdown DeepSeek (**gras**) → WhatsApp (*gras*)
   const sendReq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: outText }, sendConfig)
   let outId: string | null = null
   try {
@@ -477,7 +478,7 @@ async function sendWhatsAppText(
     metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
     metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
   }
-  const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(body) }, sendConfig)
+  const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(meggaProse(body)) }, sendConfig)
   try {
     const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
     return sres.ok
@@ -605,7 +606,7 @@ async function executePending(
       metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
       metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
     }
-    const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: toWhatsAppText(text) }, sendConfig)
+    const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: toWhatsAppText(meggaProse(text)) }, sendConfig)
     let outId: string | null = null
     try {
       const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
