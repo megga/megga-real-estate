@@ -322,8 +322,8 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
                   )}
                   {needsKycBanner && (
                     <Guard sp={sp} tone="info"
-                      title="KYC obligatoire à cette étape"
-                      body="Conformément à la LBA, le contact doit être vérifié avant toute offre. Le KYC sera ajouté comme prochaine action si non lancé." />
+                      title="KYC recommandé à cette étape"
+                      body="Le KYC est proposé comme prochaine action, en appui de la conformité LBA. Il n'empêche aucune étape du pipeline ; la vérification finale revient au notaire." />
                   )}
                 </div>
               )}
