@@ -1,4 +1,5 @@
-// Unit test — helpers purs de la mini-carte Mapbox de l'Atelier Matching.
+// Unit test — helpers purs Mapbox partagés (@/lib/mapbox), utilisés par TOUTES les
+// cartes (Atelier mini-carte, ListingForm, fiche bien). Déplacés depuis l'Atelier en B4.
 // Verrou anti-régression sur les invariants faciles à casser par accident :
 //   - l'ORDRE lng/lat (Mapbox veut lng,lat ; la DB stocke lat + lng séparés —
 //     une inversion donne une carte plausible mais fausse, sans erreur)
@@ -7,7 +8,7 @@
 //   quand une colonne géo n'est pas remplie (revue adversariale, 10 juin 2026).
 
 import { describe, it, expect } from 'vitest'
-import { buildStaticMapUrl, validCoords } from '@/components/matching-atelier/mapUrl'
+import { buildStaticMapUrl, validCoords } from '@/lib/mapbox'
 
 describe('validCoords', () => {
   it('accepte une coord suisse valide et renvoie [lng, lat] (ordre Mapbox)', () => {
