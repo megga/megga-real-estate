@@ -761,7 +761,7 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
 
   // Données live via les 3 RPC d'agrégation (scope figé 'me' en V1 — la page est
   // le cockpit de l'agent ; toggle scope = backlog quand l'agence devient multi-agents).
-  const { data: d, isLoading } = useAxDashboardData(period, 'me')
+  const { data: d, isLoading, isError, refetch } = useAxDashboardData(period, 'me')
 
   useEffect(() => { axEnsureKeyframes() }, [])
 
@@ -770,6 +770,7 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
     const el = spinRef.current
     if (el && el.animate) el.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-720deg)' }], { duration: 1100, easing: 'cubic-bezier(.2,.8,.2,1)' })
     setSpin(true); setChartKey(k => k + 1)
+    refetch()
     window.setTimeout(() => setSpin(false), 1100)
   }
   const onPeriod = (p: AxPeriodId) => {
@@ -798,7 +799,35 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
       </div>
 
       {/* content */}
-      {isLoading || !d ? (
+      {isError && !d ? (
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0' }}>
+          <div style={{ textAlign: 'center', padding: '64px 20px', color: A.ink }}>
+            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
+              Impossible de charger vos performances
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, marginBottom: 16 }}>
+              Une erreur est survenue lors du calcul des indicateurs. Réessayez dans un instant.
+            </div>
+            <button
+              onClick={() => refetch()}
+              style={{
+                height: 36,
+                padding: '0 18px',
+                borderRadius: 999,
+                background: 'transparent',
+                color: A.ink,
+                border: `1px solid ${A.ink}33`,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      ) : isLoading || !d ? (
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0' }}>
           <AxSkeleton />
         </div>

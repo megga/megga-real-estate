@@ -24,6 +24,8 @@ import {
 export interface UseContactsSugarReturn {
   contacts: CrmContact[]
   isLoading: boolean
+  isError: boolean
+  refetch: () => void
 }
 
 export function useContactsSugar(): UseContactsSugarReturn {
@@ -31,7 +33,12 @@ export function useContactsSugar(): UseContactsSugarReturn {
   const agencyId = profile?.agency_id
 
   // 1. Contacts de l'agence (RLS agency-scopée)
-  const { data: rawContacts = [], isLoading: contactsLoading } = useQuery({
+  const {
+    data: rawContacts = [],
+    isLoading: contactsLoading,
+    isError: contactsError,
+    refetch,
+  } = useQuery({
     queryKey: ['contacts-sugar', agencyId],
     queryFn: async (): Promise<Contact[]> => {
       if (!agencyId) return []
@@ -97,5 +104,7 @@ export function useContactsSugar(): UseContactsSugarReturn {
   return {
     contacts,
     isLoading: contactsLoading || kycLoading,
+    isError: contactsError,
+    refetch,
   }
 }

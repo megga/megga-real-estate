@@ -10,9 +10,15 @@
       "tags": "assainissement,cleanup,sain,vagues,securite,purge,honnetete,2026-06"
     },
     {
+      "key": "megga/crm-credibility-pass",
+      "namespace": "megga",
+      "value": "PASSE CREDIBILITE CRM (Phase A, juin 2026), sur la base de l'audit v1 (cf MEMORY project_crm_v1_readiness_audit: ~83% construit / ~5% eprouve en prod, moteur tourne a vide). A1 PURGE DONNEES FABRIQUEES (volet contact v2 ContactsDetailPane/Widgets): timeline mock-1/2/3 -> etat vide honnete; CtKyc score risque 14 + compteur pieces + dates screening INVENTES -> riskLevel/expiresAt reels ou '—'; Preferences Canal/Moment + 'Agent: Gregory Lyonnet' codes en dur -> derives reels ou 'Non assigne'. A2 ETATS D'ERREUR: hooks useBiensSugar/useContactsSugar/useAxDashboardData remontent isError+refetch; pages Biens/Contacts/Analytics affichent une vraie erreur + bouton Reessayer (fin du faux 'vide' et du skeleton infini Analytics). Module « Aujourd'hui » (cockpit AgendaTile/RelancesTile/PipelineTile/ObjectifTile + PageCatalogue): le seed demo est gate derriere un flag `demo` (jamais passe en prod) au lieu de 'pas de donnees' -> un agent reel sans data voit des etats vides HONNETES (CHF 0.0M, 0 leads, journee degagee, objectif non defini, 'Aucun match') au lieu du seed (faux 47 leads/faux agenda/Marie Bertrand); badge '≈ 35 min' code en dur retire; verifie en navigateur via dev bypass. A3 PURGE CODE MORT (22 fichiers, tsc + build vite verts): cluster crm-sugar-v3/dashboard/* (DashboardApp/DBCockpit/DBObjectif/DBEntonnoir + support) + 5 hooks useDashboard* (Cockpit/Objectif/Funnel/Stats/AiHint) NON ROUTES (supplantes par RPC analytics_*/AxDashboard) — PORTAIENT les violations count:'exact'; pages KYC legacy KycList/Detail/Showcase SugarV2 + routes kyc/v2 kyc/showcase; CopilotSummary orphelin; ListingGenerator mort. GARDE relanceData.ts (utilise par useRelanceLeads/Today). NB l'edge dashboard-ai-hint reste deployee mais sans caller frontend. A4 FICHE CONTACT ACTIONNABLE (v3): CdNotesCard editable + PERSISTE (contacts.notes via useUpdateContact); boutons hero cables (Appeler tel:/E-mail mailto:/Message wa.me/Planifier->calendrier/Nouvelle action->visits/new); 'Agent referent: Gregory Lyonnet' -> agent reel profile.full_name ou 'Non assigne' (Contact n'a AUCUN champ d'agent assigne en base). DECORATIFS NON ENCORE TRAITES: boutons timeline v3 'Resumer MEGGA AI'/'Ajouter', boutons volet contact v2 (···/Tout voir/+ Tag), overlay RelanceSession SEED_LEADS, count:'exact' en code VIVANT (dont AdminMonitoringPage sur market_listings 90k). SUITE = Phase B (fermer les boucles metier: matching reaction+envoi unifies, stades pipeline 14->8, portail offres/docs, Mapbox ListingForm+fiche).",
+      "tags": "credibilite,phase-a,cleanup,mock,error-states,code-mort,2026-06"
+    },
+    {
       "key": "megga/overview",
       "namespace": "megga",
-      "value": "MEGGA Real Estate: SaaS immobilier suisse AI-native, compliance-first. PIVOT juin 2026 = recentrage CRM-first: app.megga.ch sert le CRM transactionnel agent (pipeline LAB/KYC + portail vendeur + copilote IA MEGGA + super-admin). La marketplace publique est DESACTIVEE — les routes /acheter /louer redirigent vers la vitrine megga.ch (MarketplaceDisabledRedirect); le backend marketplace (market_listings ~34k Flatfox, flatfox-sync, matching) est CONSERVE intact pour le matching CRM, pas pour un affichage public. Stack React/Vite sur Cloudflare Pages + Supabase (Postgres, 67 edge functions, RLS, pg_cron). L'IA est compliance-enabling, jamais compliance-replacing; inference = DeepSeek par defaut (cout), Claude sur surfaces ciblees.",
+      "value": "MEGGA Real Estate: SaaS immobilier suisse AI-native, compliance-first. PIVOT juin 2026 = recentrage CRM-first: app.megga.ch sert le CRM transactionnel agent (pipeline LAB/KYC + portail vendeur + copilote IA MEGGA + super-admin). La marketplace publique est DESACTIVEE — les routes /acheter /louer redirigent vers la vitrine megga.ch (MarketplaceDisabledRedirect); le backend marketplace (market_listings ~90k Flatfox dont ~50k active, flatfox-sync, matching) est CONSERVE intact pour le matching CRM, pas pour un affichage public. Stack React/Vite sur Cloudflare Pages + Supabase (Postgres, ~63 edge functions, RLS, pg_cron). L'IA est compliance-enabling, jamais compliance-replacing; inference = DeepSeek par defaut (cout), Claude sur surfaces ciblees.",
       "tags": "system,overview"
     },
     {
@@ -42,13 +48,13 @@
     {
       "key": "megga/stack-frontend",
       "namespace": "megga",
-      "value": "Frontend: React 18 + TypeScript + Vite + Tailwind. React Router v6, React Query (+ supabase-cache-helpers), react-hook-form + Zod, dnd-kit (pipeline kanban), Mapbox GL (lazy), Recharts, Lucide, react-i18next (FR/DE/EN/IT), Sentry, PostHog. Build: tsc -b && vite build (+ postbuild overlay-storefront).",
+      "value": "Frontend: React 18 + TypeScript + Vite + Tailwind. React Router v6, React Query (+ supabase-cache-helpers), react-hook-form + Zod, dnd-kit (réordonnancement photos dans ListingFormPage — le pipeline kanban utilise du drag HTML5 natif, PAS dnd-kit), Mapbox GL (lazy), Recharts, Lucide, react-i18next (FR/DE/EN/IT), Sentry, PostHog. Build: tsc -b && vite build (+ postbuild overlay-storefront).",
       "tags": "stack,frontend"
     },
     {
       "key": "megga/stack-backend",
       "namespace": "megga",
-      "value": "Backend: Supabase Pro (ref eayczugyrvmtqnnmvjod, eu-west-1). Postgres 15, Auth, Storage, Realtime, pgvector, pg_cron, pg_net. 67 Edge Functions Deno dans supabase/functions/. CI/CD: push main -> GitHub Actions -> Cloudflare Pages + Supabase edge auto-deploy.",
+      "value": "Backend: Supabase Pro (ref eayczugyrvmtqnnmvjod, eu-west-1). Postgres 15, Auth, Storage, Realtime, pgvector, pg_cron, pg_net. ~63 Edge Functions Deno dans supabase/functions/. CI/CD: push main -> GitHub Actions -> Cloudflare Pages + Supabase edge auto-deploy.",
       "tags": "stack,backend,supabase"
     },
     {
@@ -114,7 +120,7 @@
     {
       "key": "megga/db-domains",
       "namespace": "megga",
-      "value": "Tables par domaine: tenant (agencies, profiles, agency_profiles, agent_profiles, team_invitations); contacts (contacts, seller_leads, contact_scores); biens (properties, listings, market_listings ~33k, external_listings); pipeline (transactions, crm_offers [historique via parent_offer_id + audit activity_events, pas de table crm_offers_history], visits, client_searches, matches); KYC (kyc_cases, kyc_checklist_items, kyc_magic_links+uploads, kyc_screening_decisions, documents); portail (seller_portals, seller_preferences, vendor_dossiers); billing (subscriptions); messaging (message_threads, messages, email_messages_cache); audit (activity_events, auth_events, platform_metrics, flatfox_sync_runs). Detail: docs/schema.md.",
+      "value": "Tables par domaine: tenant (agencies, profiles, agency_profiles, agent_profiles, team_invitations); contacts (contacts, seller_leads, contact_scores); biens (properties, listings, market_listings ~90k dont ~50k active, external_listings); pipeline (transactions, crm_offers [historique via parent_offer_id + audit activity_events, pas de table crm_offers_history], visits, client_searches, matches); KYC (kyc_cases, kyc_checklist_items, kyc_magic_links+uploads, kyc_screening_decisions, documents); portail (seller_portals, seller_preferences, vendor_dossiers); billing (subscriptions); messaging (message_threads, messages, email_messages_cache); audit (activity_events, auth_events, platform_metrics, flatfox_sync_runs). Detail: docs/schema.md.",
       "tags": "database,schema"
     },
     {
@@ -426,7 +432,7 @@
     {
       "key": "megga/pages-inventory-app",
       "namespace": "megga",
-      "value": "Pages CRM agent (~36): TodaySugarPage (Action Board), DashboardSugarV4Page, PipelineSugarV2Page (Kanban 14 colonnes), ContactsSugarV2Page + ContactDetailSugarV3Page, BiensSugarV2Page + BienDetailSugarV3Page, ListingFormPage (wizard + annonce IA), MatchingSugarV2Page, DealDetailSugarV3Page, Offer/Visit ModalSugarV3Page, VisitDetailSugarV3Page, Kyc List/Detail/SugarV3 + KycExportPage, CalendarSugarV2Page, Journey/Network SugarV2Page, SettingsSugarV2Page, ImportLeadSugarV3Page, ContactImportPage, AuditSugarPage, Support(+Detail). Portail vendeur ~11 (MyFile/Visits/Offers/Documents/Messages/Profile + Analytics). Admin 14, dev 4. NB: ~104 ecrans reels (vs 42 du MVP spec).",
+      "value": "Pages CRM agent (~36): TodaySugarPage (Action Board), DashboardSugarV4Page, PipelineSugarV2Page (Kanban: 14 stades DB repliés sur 8 colonnes UI via CRM_STAGES, lost masqué; drag HTML5 natif), ContactsSugarV2Page + ContactDetailSugarV3Page, BiensSugarV2Page + BienDetailSugarV3Page, ListingFormPage (wizard + annonce IA), MatchingSugarV2Page, DealDetailSugarV3Page, Offer/Visit ModalSugarV3Page, VisitDetailSugarV3Page, Kyc List/Detail/SugarV3 + KycExportPage, CalendarSugarV2Page, Journey/Network SugarV2Page, SettingsSugarV2Page, ImportLeadSugarV3Page, ContactImportPage, AuditSugarPage, Support(+Detail). Portail vendeur = page unique « Votre vente » (VotreVentePage, /portal/:token, lecture seule). Admin 16, dev 4. NB: ~104 ecrans reels (vs 42 du MVP spec).",
       "tags": "frontend,pages,agent,admin"
     },
     {
@@ -438,7 +444,7 @@
     {
       "key": "megga/roadmap-sprints",
       "namespace": "megga",
-      "value": "Roadmap (~16 semaines, spec Gregory). CRM enrichi 6 etapes: 1) migrations DB, 2) ContactDetail enrichie (resume IA, timeline unifiee, next-best-action), 3) Pipeline Kanban 14 colonnes, 4) Action Board ('quoi faire aujourd'hui'), 5) matching acheteurs<->biens 100pts, 6) relances 6 types. Puis Sprint 5 IA (ai-copilot/matching/scoring + daily_actions pg_cron), Sprint 6 communication (WhatsApp Business envoi/reception + messaging unifie + portail vendeur), Sprint 7 marketplace (recherche conversationnelle, copilot negociation, annonces multi-versions). Pilote 10-20 agences.",
+      "value": "Roadmap (~16 semaines, spec Gregory). CRM enrichi 6 etapes: 1) migrations DB, 2) ContactDetail enrichie (resume IA, timeline unifiee, next-best-action), 3) Pipeline Kanban (14 stades DB → 8 colonnes UI), 4) Action Board ('quoi faire aujourd'hui'), 5) matching acheteurs<->biens 100pts, 6) relances 6 types. Puis Sprint 5 IA (ai-copilot/matching/scoring + daily_actions pg_cron), Sprint 6 communication (WhatsApp Business envoi/reception + messaging unifie + portail vendeur), Sprint 7 marketplace (recherche conversationnelle, copilot negociation, annonces multi-versions). Pilote 10-20 agences.",
       "tags": "roadmap,planning"
     },
     {
@@ -570,7 +576,7 @@
     {
       "key": "megga/pipeline-kanban",
       "namespace": "megga",
-      "value": "Pipeline Kanban (PipelineSugarV2Page): 9 colonnes UI (CRM_STAGES dans crm-sugar/tokens.ts) qui AGREGENT les sous-stages: new-lead, to-qualify, searching (active_search+to_recontact), visit-scheduled, visit-done, interest-confirmed, offer (regroupe offer+negotiation+reserved+financing+notary), signed, lost. Drag-drop dnd-kit: overlay optimiste -> useUpdateTransactionStage -> UPDATE transactions.stage -> trigger monitor_transaction_kyc_gate -> activity_event. PIEGE: useUpdateTransactionStage ecrit 2 tables (transactions + activity_events) donc reste en useMutation brut avec invalidateQueries explicite (pas Cache Helpers).",
+      "value": "Pipeline Kanban (PipelineSugarV2Page): 9 colonnes UI (CRM_STAGES dans crm-sugar/tokens.ts) qui AGREGENT les sous-stages: new-lead, to-qualify, searching (active_search+to_recontact), visit-scheduled, visit-done, interest-confirmed, offer (regroupe offer+negotiation+reserved+financing+notary), signed, lost. Drag-drop HTML5 natif (onDragStart/onDrop/draggable, PAS dnd-kit): overlay optimiste -> useUpdateTransactionStage -> UPDATE transactions.stage -> trigger monitor_transaction_kyc_gate -> activity_event. PIEGE: useUpdateTransactionStage ecrit 2 tables (transactions + activity_events) donc reste en useMutation brut avec invalidateQueries explicite (pas Cache Helpers).",
       "tags": "transactions,pipeline,kanban,frontend"
     },
     {

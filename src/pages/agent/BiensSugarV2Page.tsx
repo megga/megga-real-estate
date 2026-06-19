@@ -53,7 +53,7 @@ export default function BiensSugarV2Page() {
   const surf = galSurfaces(sp, dark)
 
   // Source de vérité : Supabase via useBiensSugar (RLS agency-scopée)
-  const { biens, isLoading } = useBiensSugar()
+  const { biens, isLoading, isError, refetch } = useBiensSugar()
   // Soumissions vendeurs (seller_leads status='new') via useBnSubmissions
   const { submissions } = useBnSubmissions()
 
@@ -399,11 +399,48 @@ export default function BiensSugarV2Page() {
                   placeItems: 'center',
                 }}
               >
-                <MEIcon name="home" size={22} color={sp.sub} />
+                <MEIcon
+                  name={isError ? 'alert' : 'home'}
+                  size={22}
+                  color={isError ? '#E53935' : sp.sub}
+                />
               </div>
               <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>
-                {isLoading ? 'Chargement…' : 'Aucun bien ne correspond'}
+                {isError
+                  ? 'Impossible de charger vos biens'
+                  : isLoading
+                    ? 'Chargement…'
+                    : 'Aucun bien ne correspond'}
               </div>
+              {isError && (
+                <>
+                  <div style={{ fontSize: 12.5, color: sp.sub, marginTop: 6, lineHeight: 1.5 }}>
+                    Une erreur est survenue. Vérifiez votre connexion, puis réessayez.
+                  </div>
+                  <button
+                    onClick={() => refetch()}
+                    style={{
+                      marginTop: 14,
+                      height: 34,
+                      padding: '0 16px',
+                      borderRadius: 999,
+                      background: surf.card,
+                      color: sp.ink,
+                      border: surf.hairline,
+                      boxShadow: surf.shadow,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <MEIcon name="refresh" size={13} color={sp.soft} /> Réessayer
+                  </button>
+                </>
+              )}
             </div>
           ) : view === 'galerie' ? (
             <div className="gal-grid">

@@ -24,16 +24,19 @@ const objArc = (cx: number, cy: number, r: number, s: number, e: number): string
   return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`
 }
 
-export function ObjectifTile() {
+export function ObjectifTile({ demo = false }: { demo?: boolean } = {}) {
   const { data: d } = useAxDashboardData('year', 'me')
   const seed = DATA.objectif
-  const live = !!d
-  const targetIsSet = d ? (d.targetIsSet ?? d.target > 0) : true // le seed a toujours un objectif
-  const noTarget = live && !targetIsSet
+  // Agent réel → données live (même partielles) ; le seed démo ne sert que derrière
+  // `demo`. Réel sans donnée (chargement / agence sans objectif) → « non défini »,
+  // jamais le seed.
+  const live = !demo && !!d
+  const targetIsSet = live ? (d!.targetIsSet ?? d!.target > 0) : demo
+  const noTarget = !targetIsSet
 
-  const objectif = live ? d!.target : seed.objectif
-  const realise = live ? d!.realizedNow : seed.realise
-  const projete = live ? d!.projectedEnd : seed.projete
+  const objectif = live ? d!.target : demo ? seed.objectif : 0
+  const realise = live ? d!.realizedNow : demo ? seed.realise : 0
+  const projete = live ? d!.projectedEnd : demo ? seed.projete : 0
   // % projeté de l'objectif (jauge). 0 si pas d'objectif saisi (pas de fausse aiguille).
   const pct = noTarget ? 0 : live ? axPace(d!).projPct : seed.pct
   const pctClamped = Math.max(0, Math.min(100, pct))

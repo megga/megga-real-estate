@@ -119,9 +119,9 @@ function AgfRow({ a, hovered, onHover }: { a: AgendaItem; hovered: boolean; onHo
 }
 
 // ─── Corps de tuile Agenda (à placer dans <Tile> après le TileHead) ─────
-export function AgendaTile() {
+export function AgendaTile({ demo = false }: { demo?: boolean } = {}) {
   const [hover, setHover] = useState<number | null>(null)
-  const { events, isLoading } = useCalendarSugar()
+  const { events } = useCalendarSugar()
 
   const today = useMemo<AgendaRow[]>(() => {
     const now = new Date()
@@ -130,7 +130,9 @@ export function AgendaTile() {
       .map((e) => calEventToRow(e as CalEventLite))
   }, [events])
 
-  const live = !isLoading && today.length > 0
+  // Agent réel → agenda réel (même vide → « journée dégagée ») ; le seed démo ne
+  // sert que derrière `demo`.
+  const live = !demo
   const agenda: AgendaRow[] = live ? deriveFlags(today) : DATA.agenda
   const next = agenda.find((a) => a.now) || agenda[1] || agenda[0]
   const rest = agenda.filter((a) => !a.now && !a.done)
