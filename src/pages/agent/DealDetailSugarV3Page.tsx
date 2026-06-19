@@ -4,8 +4,8 @@
 // Sections :
 //   1. Header retour pipeline + actions (modifier / visite / nouvelle offre)
 //   2. Hero — acheteur + bien, stepper 8 cercles, montant + sentiment
-//   3. Bannière KYC bloquante (si stage∈{interest-confirmed, offer, signed}
-//      ET kyc.status !== 'verified') — réutilise verrou Sprint 1
+//   3. Bannière KYC — rappel NON-BLOQUANT (si stage∈{interest-confirmed, offer,
+//      signed} ET kyc.status !== 'verified') : recommandation, jamais un verrou
 //   4. Grid 2 cols :
 //      Main:    Offres & contre-offres (timeline filiation) · Activité
 //      Sidebar: Acheteur · Bien · Prochaine action · Documents · Notes privées
@@ -330,7 +330,7 @@ export default function DealDetailSugarV3Page() {
           <DdStageStepper stage={deal.stage} />
         </DdCard>
 
-        {/* BANNIÈRE KYC BLOQUANTE */}
+        {/* BANNIÈRE KYC — RAPPEL NON-BLOQUANT (recommandation, pas un verrou) */}
         {kycBlocking && (
           <div
             style={{
@@ -364,7 +364,7 @@ export default function DealDetailSugarV3Page() {
               <div
                 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}
               >
-                KYC requis avant signature
+                KYC recommandé avant la signature
               </div>
               <div
                 style={{
@@ -373,16 +373,13 @@ export default function DealDetailSugarV3Page() {
                   lineHeight: 1.5,
                 }}
               >
-                Le contact{' '}
+                Un KYC vérifié pour{' '}
                 <strong style={{ color: '#fff', fontWeight: 700 }}>
                   {contactName}
                 </strong>{' '}
-                doit avoir un KYC vérifié pour passer en étape{' '}
-                <strong style={{ color: '#fff', fontWeight: 700 }}>
-                  Signé
-                </strong>
-                . Vous pouvez continuer la négociation mais la signature sera
-                bloquée.
+                est recommandé avant la signature, en appui de conformité LBA
+                (pas un verrou). Vous pouvez poursuivre la négociation et la
+                signature ; la vérification finale revient au notaire.
               </div>
             </div>
             <button
