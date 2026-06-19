@@ -18,7 +18,7 @@
   "search": "Rechercher...",
   "clear": "Effacer",
   "filter_type": "Type",
-  "pagination": "{{from}}–{{to}} sur {{total}}",
+  "pagination": "{{from}}-{{to}} sur {{total}}",
   "external": {
     "notFound": "Bien non trouvé",
     "backToMatching": "Retour au matching",

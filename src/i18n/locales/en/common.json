@@ -112,7 +112,7 @@
     "buyDesc": "Find your ideal property among thousands of verified listings throughout Switzerland.",
     "buyCta": "Search for a property",
     "rentTitle": "Rent",
-    "rentDesc": "Apartments, houses, shared flats — browse available rental offers now.",
+    "rentDesc": "Apartments, houses, shared flats - browse available rental offers now.",
     "rentCta": "View rentals",
     "estimateTitle": "Estimate",
     "estimateDesc": "Get an estimate of your property in seconds with our market analysis.",
@@ -143,7 +143,7 @@
     "terms": "Terms of service",
     "madeInSwitzerland": "Made in Switzerland",
     "lpd": "LPD compliant",
-    "disclaimer": "Technology platform — estimates are indicative. Map data swisstopo."
+    "disclaimer": "Technology platform - estimates are indicative. Map data swisstopo."
   },
   "auth": {
     "professionalSpace": "Professional space",
@@ -204,28 +204,28 @@
         "basis": "Legal basis"
       },
       "items": {
-        "anthropic": "Anthropic (Claude API) — AI assistance — United States — SCCs / DPF",
-        "google": "Google Cloud (Calendar API, Gemini) — Calendar integration, AI — United States — DPF",
-        "stripe": "Stripe — Payments and subscriptions — United States — DPF",
-        "resend": "Resend — Transactional emails — United States — SCCs",
-        "mapbox": "Mapbox — Mapping and geolocation — United States — SCCs",
-        "posthog": "PostHog — Product analytics — European Union (eu.posthog.com)",
-        "supabase": "Supabase — Hosting, database, authentication — European Union (eu-west-1, Ireland)",
-        "dilisense": "Dilisense — PEP/Sanctions screening (AML) — European Union"
+        "anthropic": "Anthropic (Claude API) - AI assistance - United States - SCCs / DPF",
+        "google": "Google Cloud (Calendar API, Gemini) - Calendar integration, AI - United States - DPF",
+        "stripe": "Stripe - Payments and subscriptions - United States - DPF",
+        "resend": "Resend - Transactional emails - United States - SCCs",
+        "mapbox": "Mapbox - Mapping and geolocation - United States - SCCs",
+        "posthog": "PostHog - Product analytics - European Union (eu.posthog.com)",
+        "supabase": "Supabase - Hosting, database, authentication - European Union (eu-west-1, Ireland)",
+        "dilisense": "Dilisense - PEP/Sanctions screening (AML) - European Union"
       }
     },
     "subprocessors": {
       "extraIntro": "Full list of our subprocessors and their purposes:",
-      "anthropic": "Anthropic (Claude API) — AI assistance, domain copilot",
-      "supabase": "Supabase — Hosting, database, authentication",
-      "cloudflare": "Cloudflare — CDN, DDoS protection",
-      "stripe": "Stripe — Payments and subscriptions",
-      "resend": "Resend — Transactional emails",
-      "google": "Google (Calendar API, Gemini) — Calendar sync, AI",
-      "dilisense": "Dilisense — PEP/Sanctions screening (purpose: AML compliance)",
-      "mapbox": "Mapbox — Mapping and property search",
-      "posthog": "PostHog — Product analytics (consent-based)",
-      "microsoft": "Microsoft Outlook — Calendar sync (agent tools integration)"
+      "anthropic": "Anthropic (Claude API) - AI assistance, domain copilot",
+      "supabase": "Supabase - Hosting, database, authentication",
+      "cloudflare": "Cloudflare - CDN, DDoS protection",
+      "stripe": "Stripe - Payments and subscriptions",
+      "resend": "Resend - Transactional emails",
+      "google": "Google (Calendar API, Gemini) - Calendar sync, AI",
+      "dilisense": "Dilisense - PEP/Sanctions screening (purpose: AML compliance)",
+      "mapbox": "Mapbox - Mapping and property search",
+      "posthog": "PostHog - Product analytics (consent-based)",
+      "microsoft": "Microsoft Outlook - Calendar sync (agent tools integration)"
     },
     "complaint": {
       "heading": "Right to file a complaint with the supervisory authority",
@@ -325,7 +325,7 @@
       "addManually": "Add manually",
       "addManuallyDesc": "Create 1 to 10 contacts quickly.",
       "seedDemo": "Explore with demo data",
-      "seedDemoDesc": "10 contacts, 5 properties, 3 transactions — realistic Swiss data.",
+      "seedDemoDesc": "10 contacts, 5 properties, 3 transactions - realistic Swiss data.",
       "seeding": "Creating...",
       "skip": "Skip this step →",
       "addTitle": "Add contacts",
@@ -341,7 +341,7 @@
     },
     "done": {
       "title": "Your workspace is ready",
-      "subtitle": "Your Action Board guides you daily — follow-ups, matches, visits, everything is centralised.",
+      "subtitle": "Your Action Board guides you daily - follow-ups, matches, visits, everything is centralised.",
       "dataEurope": "Data in Europe",
       "compliant": "nFADP compliant",
       "loading": "Loading...",
@@ -427,7 +427,7 @@
       "understood": "Understood",
       "lowConfidence": "I didn't quite catch that. Try: «2 bedroom Geneva under 2500».",
       "onboardingTitle": "Smart search",
-      "onboardingBody": "Describe what you're looking for in plain language — price, rooms, city, amenities…",
+      "onboardingBody": "Describe what you're looking for in plain language - price, rooms, city, amenities…",
       "onboardingExample": "villa with pool Geneva up to 3M",
       "onboardingBadge": "New",
       "onboardingDismiss": "Got it"
@@ -497,7 +497,7 @@
     "emailLabel": "Email",
     "phoneLabel": "Phone",
     "prepareVisitTitle": "A few details to prepare the visit",
-    "prepareVisitOptional": "Optional — helps the agent assist you better",
+    "prepareVisitOptional": "Optional - helps the agent assist you better",
     "estimatedBudget": "Estimated budget",
     "mortgageFinancing": "Mortgage financing",
     "financingNotYet": "Not yet",
@@ -535,7 +535,7 @@
       },
       "2": {
         "title": "Predictive AI",
-        "description": "Algorithm trained on the specifics of the Swiss real estate market — canton by canton."
+        "description": "Algorithm trained on the specifics of the Swiss real estate market - canton by canton."
       },
       "3": {
         "title": "Quarterly updates",
@@ -545,7 +545,7 @@
     },
     "priceTable": {
       "title": "Average prices per m² in Switzerland",
-      "updated": "Data updated — March 2026",
+      "updated": "Data updated - March 2026",
       "canton": "Canton",
       "apartment": "Apartment (CHF/m²)",
       "house": "House (CHF/m²)",
@@ -594,14 +594,14 @@
     "hero": {
       "badge": "All-in-one platform",
       "title": "The Swiss real estate platform that thinks like an agent",
-      "subtitle": "AI search, estimation, CRM, LAB/KYC compliance, seller portal — all in one platform.",
+      "subtitle": "AI search, estimation, CRM, LAB/KYC compliance, seller portal - all in one platform.",
       "individual": "I am an individual",
       "professional": "I am a professional"
     },
     "individuals": {
       "0": {
         "title": "Conversational search",
-        "description": "Describe your ideal property in natural language. Our AI understands your criteria and suggests the best properties — without touching a single filter.",
+        "description": "Describe your ideal property in natural language. Our AI understands your criteria and suggests the best properties - without touching a single filter.",
         "features": {
           "0": "Multilingual search FR/DE/EN/IT",
           "1": "Interactive Mapbox map with pins",
@@ -630,7 +630,7 @@
         "cta": "Sell my property"
       },
       "badge": "For individuals",
-      "title": "Buy, rent, sell — simply.",
+      "title": "Buy, rent, sell - simply.",
       "subtitle": "Powerful tools, intuitive experience."
     },
     "professionals": {
@@ -662,7 +662,7 @@
       },
       "4": {
         "title": "Document generation",
-        "desc": "Mandates, visit vouchers, offers — generated in 1 click.",
+        "desc": "Mandates, visit vouchers, offers - generated in 1 click.",
         "tags": "Templates,PDF/DOCX,Auto-fill"
       },
       "5": {
@@ -677,7 +677,7 @@
       },
       "7": {
         "title": "AI Copilot",
-        "desc": "Contextual AI on your real files — not a gimmick.",
+        "desc": "Contextual AI on your real files - not a gimmick.",
         "tags": "Next action,Writing,Lead scoring"
       },
       "8": {
@@ -709,11 +709,11 @@
       },
       "5": {
         "before": "Approximate estimation",
-        "after": "AI estimation — 47,000 transactions"
+        "after": "AI estimation - 47,000 transactions"
       },
       "6": {
         "before": "CHF 200-800/month/listing",
-        "after": "From CHF 0 — free plan"
+        "after": "From CHF 0 - free plan"
       },
       "badge": "The change",
       "title": "Before MEGGA vs With MEGGA",
@@ -900,7 +900,7 @@
       },
       "step3": {
         "title": "Add photos",
-        "subtitle": "Optional — photos improve accuracy by {{percent}}%",
+        "subtitle": "Optional - photos improve accuracy by {{percent}}%",
         "dropzone": "Drag your photos here",
         "dropzoneSubtitle": "or click to select (max 10)",
         "photosCount": "{{count}}/10 photos",
@@ -1114,7 +1114,7 @@
     "cta": {
       "badge": "Visit & contact",
       "title": "Interested in this property?",
-      "subtitle": "Request a viewing or get the full file — the agency will respond within 24 hours.",
+      "subtitle": "Request a viewing or get the full file - the agency will respond within 24 hours.",
       "button": "Request a viewing",
       "imageAlt": "Property card preview on a tablet"
     },

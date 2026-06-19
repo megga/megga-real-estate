@@ -99,7 +99,7 @@
       "invalid_title": "Invalid link",
       "invalid_body": "The link you opened is not recognised. Please check that you copied the full URL from your email.",
       "loading_title": "Loading the link…",
-      "loading_body": "Just a moment — we're verifying your secure link.",
+      "loading_body": "Just a moment - we're verifying your secure link.",
       "network_title": "Cannot connect",
       "network_body": "Unable to reach the server. Check your internet connection and try again.",
       "expired_link_body": "This link is no longer valid. Please ask your agent for a new link.",

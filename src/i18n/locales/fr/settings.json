@@ -233,8 +233,8 @@
     },
     "twoFactor": {
       "title": "Authentification à deux facteurs",
-      "enabled": "Activé — votre compte est protégé",
-      "disabled": "Désactivé — recommandé pour plus de sécurité",
+      "enabled": "Activé - votre compte est protégé",
+      "disabled": "Désactivé - recommandé pour plus de sécurité",
       "comingSoon": "Bientôt disponible",
       "recommendation": "Nous recommandons d'activer la 2FA pour protéger votre compte, surtout pour un outil de conformité LAB/KYC."
     },
@@ -344,8 +344,8 @@
       "customBranding": "Branding personnalisé",
       "dataExport": "Export données",
       "staging": "MEGGA Staging (virtual staging IA)",
-      "staging50": "MEGGA Staging — 50 images/mois",
-      "staging200": "MEGGA Staging — 200 images/mois",
+      "staging50": "MEGGA Staging - 50 images/mois",
+      "staging200": "MEGGA Staging - 200 images/mois",
       "support247": "Support prioritaire 24/7"
     },
     "custom": {
@@ -363,7 +363,7 @@
       "configure": "Configurer",
       "disconnect": "Déconnecter",
       "comingSoon": "Bientôt disponible",
-      "connectedDetail": "Actif — domaine megga.ch vérifié"
+      "connectedDetail": "Actif - domaine megga.ch vérifié"
     },
     "categories": {
       "essential": "Essentiel",
