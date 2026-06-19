@@ -13,6 +13,7 @@ import { SugarPipelineKycLock } from '@/components/crm-sugar-v3/pipeline/SugarPi
 import { PipelineKycToast } from '@/components/crm-sugar-v3/pipeline/PipelineKycToast'
 import { KycOverrideModal } from '@/components/crm-sugar-v3/pipeline/KycOverrideModal'
 import { useLogAudit } from '@/hooks/useAuditLog'
+import { useToast } from '@/components/ui/Toast'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
 import {
@@ -73,6 +74,7 @@ export default function PipelineSugarV2Page() {
   }
 
   const logAudit = useLogAudit()
+  const toast = useToast()
 
   // ── Source de vérité : Supabase via usePipelineSugar ────────────────
   // Le hook remplit le registry runtime ; crmContactById/crmBienById ci-dessous
@@ -119,6 +121,11 @@ export default function PipelineSugarV2Page() {
     updateStage.mutate(
       { id: dealId, stage: stageIdToTransactionStage(targetStage) },
       {
+        onError: () => {
+          toast.error('Impossible de déplacer le deal', {
+            description: "Le changement d'étape n'a pas été enregistré. Vérifiez votre connexion, puis réessayez.",
+          })
+        },
         onSettled: () => {
           setPendingStage(prev => {
             if (!prev.has(dealId)) return prev
