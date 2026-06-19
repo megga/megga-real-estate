@@ -612,8 +612,7 @@ async function runSweep(supabase: any, offerType: string, syncStartAt: string, t
 // created_at_desc, on pagine le HAUT (les plus récents) et on s'arrête dès qu'on
 // a rattrapé le delta. 4-18 requêtes RA/jour, une seule invocation, PAS de sweep.
 // Kill-switch + circuit-breaker + détection du throttle silencieux.
-const FRESH_MAX_PAGES = 18
-const FRESH_LOOKBACK_MS = 36 * 60 * 60 * 1000
+const FRESH_MAX_PAGES = 22 // ≈ le cap d'API (~792 plus récents) : couvre un jour médian (~800 nouvelles/j)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function isFreshEnabled(supabase: any): Promise<boolean> {
@@ -672,7 +671,6 @@ async function runFresh(body: SyncRequest, supabase: any): Promise<void> {
   if (!runId) { console.error('[fresh] verrou non acquis (no run id) — abort'); return }
 
   const nowIso = new Date().toISOString()
-  const lookbackCut = Date.now() - FRESH_LOOKBACK_MS
   const national: Slice = { canton: '' } // requête nationale (buildSearchParams n'ajoute pas placeSlugs)
   const s: FreshStats = { fetched: 0, upserted: 0, inserted: 0, updated: 0, skipped: 0, errors: 0, pages: 0 }
   let totalExpected = 0
@@ -711,9 +709,9 @@ async function runFresh(body: SyncRequest, supabase: any): Promise<void> {
       s.inserted += newInPage; s.updated += (rows.length - newInPage)
       await updateFreshRun(supabase, runId, s, totalExpected)
       // STOP : page entierement deja connue ET assez vieille -> delta rattrape.
-      const allKnown = newInPage === 0
-      const allOld = listings.every((h) => { const t = h.created_at ? Date.parse(h.created_at) : 0; return t > 0 && t < lookbackCut })
-      if (allKnown && allOld) break
+      // Page entièrement déjà connue = on a rejoint le territoire des runs
+      // précédents → delta rattrapé, on s'arrête (sinon on va jusqu'au cap API).
+      if (newInPage === 0) break
     }
     await updateFreshRun(supabase, runId, s, totalExpected)
     await finalizeRun(supabase, runId, { status: 'completed', totalSeen: s.fetched, removed: 0 })
