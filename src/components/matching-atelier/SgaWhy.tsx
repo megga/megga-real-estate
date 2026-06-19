@@ -43,11 +43,13 @@ interface SgaWhyProps {
   onLater: () => void
   onVisit: () => void
   onRelance: () => void
+  onInterested: () => void
+  onNotInterested: () => void
   onPivot: () => void
   onStartKyc: () => void
 }
 
-export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater, onVisit, onRelance, onPivot, onStartKyc }: SgaWhyProps) {
+export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater, onVisit, onRelance, onInterested, onNotInterested, onPivot, onStartKyc }: SgaWhyProps) {
   const kyc = SGA_KYC[b.kyc]
   const softKyc = b.kyc === 'none' || b.kyc === 'stale'
   const showVisit = b.status === 'engaged' && canVisit
@@ -122,9 +124,19 @@ export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater
 
       <div className="sga-triage">
         {b.status === 'no-reply' && (
-          <button className="btn btn-ghost" onClick={onRelance}>
-            <SgaIcon d="refresh" size={15} /> Relancer · autre canal
-          </button>
+          <>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onInterested}>
+                <SgaIcon d="check" size={16} /> Intéressé
+              </button>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onNotInterested}>
+                <SgaIcon d="close" size={16} /> Pas intéressé
+              </button>
+            </div>
+            <button className="btn btn-ghost" onClick={onRelance}>
+              <SgaIcon d="refresh" size={15} /> Relancer · autre canal
+            </button>
+          </>
         )}
         {showVisit && (
           <button className="btn btn-ghost" onClick={onVisit}>

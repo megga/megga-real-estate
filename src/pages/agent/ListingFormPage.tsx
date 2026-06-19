@@ -15,6 +15,7 @@ import { cn, formatCHF, formatRent } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
 import type { PropertyType } from '@/lib/constants'
 import SwissAddressAutocomplete from '@/components/listings/SwissAddressAutocomplete'
+import { PropertyStaticMap } from '@/components/map/PropertyStaticMap'
 import type { SwissAddressSuggestion } from '@/hooks/useSwissAddress'
 import {
   useProperty,
@@ -783,13 +784,12 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
         lat && lng ? 'border-theme-border' : 'border-dashed border-theme-border bg-theme-section'
       )}>
         {lat && lng ? (
-          <div className="w-full h-full bg-theme-section flex items-center justify-center relative">
-            <div className="text-center">
-              <MEIcon name="location" className="h-6 w-6 text-theme-primary mx-auto mb-1" />
-              <p className="text-xs text-theme-secondary">{lat.toFixed(4)}, {lng.toFixed(4)}</p>
-              <p className="text-xs text-theme-muted mt-0.5">Carte Mapbox (prochaine mise à jour)</p>
-            </div>
-          </div>
+          <PropertyStaticMap
+            lat={lat}
+            lng={lng}
+            address={[address, postalCode, city].filter(Boolean).join(' ')}
+            className="w-full h-full"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <div className="text-center">

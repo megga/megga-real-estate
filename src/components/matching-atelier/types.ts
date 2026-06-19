@@ -7,7 +7,7 @@ import type { SearchCriteria } from '@/types/contact'
 export type AtelierTab = 'all' | 'to-send' | 'engaged' | 'no-reply'
 export type AtelierKyc = 'verified' | 'pending' | 'stale' | 'none'
 export type AtelierStatus = 'to-send' | 'engaged' | 'no-reply'
-export type TriageKind = 'sent' | 'skipped' | 'later' | 'relance'
+export type TriageKind = 'sent' | 'skipped' | 'later' | 'relance' | 'interested' | 'rejected'
 
 export interface AtelierReason {
   label: string

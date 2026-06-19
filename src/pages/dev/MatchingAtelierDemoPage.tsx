@@ -250,6 +250,7 @@ export default function MatchingAtelierDemoPage() {
     relance: () => stubHandle(),
     snooze: () => stubHandle(),
     dismiss: () => stubHandle(),
+    react: () => stubHandle(),
     wake: () => undefined,
     visit: () => undefined,
   }), [])

@@ -1,7 +1,7 @@
 // MEGGA CRM — Atelier Matching · triptyque plein écran (handoff juin 2026).
 //
-// Remplace l'ancien écran Matching (MatchingSugarV2Page, conservé sur
-// /dashboard/matching/v2 le temps de la transition — même pattern que KYC v2).
+// Remplace l'ancien écran Matching (MatchingSugarV2Page + /dashboard/matching/v2,
+// retirés en Phase B après l'unification du geste de réaction sur cette route).
 //
 // Ce fichier est le CONTENEUR : données réelles (useAtelierMatching), gestes
 // Supabase différés (undo 5 s avant toute écriture), deep-links et navigation.
@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import {
   execDismiss,
+  execReact,
   execRelance,
   execSendDossier,
   execSnooze,
@@ -95,6 +96,12 @@ export default function MatchingAtelierPage() {
       const e = matchIndex.get(matchId)
       if (!e) return null
       await execDismiss(e.buyer)
+      return null
+    }, { onSettled: refresh, onError: showError }),
+    react: (matchId, reaction) => registry.defer(async () => {
+      const e = matchIndex.get(matchId)
+      if (!e) return null
+      await execReact(e.buyer, reaction)
       return null
     }, { onSettled: refresh, onError: showError }),
     wake: matchId => { void execWake(matchId).then(refresh).catch(showError) },

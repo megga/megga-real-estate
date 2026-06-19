@@ -22,6 +22,9 @@ export interface AtelierGestes {
   relance: (matchId: string) => PendingHandle
   snooze: (matchId: string) => PendingHandle
   dismiss: (matchId: string) => PendingHandle
+  /** réaction du client à un dossier envoyé (HITL) → matches.status interested/rejected,
+   *  produit response_at via trigger. Même fenêtre d'annulation 5 s que les autres écritures. */
+  react: (matchId: string, reaction: 'interested' | 'rejected') => PendingHandle
   /** réactivation d'un reporté — immédiate, pas de fenêtre d'annulation */
   wake: (matchId: string) => void
   /** « Proposer une visite » — bascule vers le flux visite (picker réel) */
