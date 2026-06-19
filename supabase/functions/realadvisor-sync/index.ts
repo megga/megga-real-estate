@@ -31,7 +31,10 @@ const PAGE_SIZE = 36
 // soutenues (renvoie des 200 au corps non-JSON ou des listes vides). 2.5s + le
 // retry anti-troncature ci-dessous = ingestion fiable au prix de la lenteur.
 const PACE_MS = 2500
-const USER_AGENT =
+// UA par défaut : string Chrome générique qui PASSE le WAF Cloudflare de RA aujourd'hui.
+// Surchargeable SANS redeploy via app_config.realadvisor_user_agent (cf loadIdentity) —
+// on garde celui-ci comme fallback/rollback tant que RA n'a pas whitelisté un UA dédié.
+const UA_DEFAULT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
 const TIME_BUDGET_MS = 100_000
@@ -53,6 +56,16 @@ const BACKOFF_BASE_MS = 2000
 
 const SAFETY_MIN_RATIO = 0.8
 
+// ─── Sweep ENUM (suppression destructive SÛRE, cf red-team 19 juin) ───
+// On ne supprime un bien QUE s'il tombe dans un slice (canton×bande) RÉELLEMENT
+// énuméré en entier ce cycle (reçu fully_enumerated) et qu'il n'a pas été revu. Les
+// résidus inatteignables (price=0 hors bandes, bandes plafonnées, cantons throttlés)
+// ne sont jamais dans un reçu fully_enumerated → jamais supprimés. La fenêtre de cycle
+// (8j) + le double plafond = garde-fou anti-wipe. Détails : runSweepEnum + RPC.
+const SWEEP_WINDOW_DAYS = 8       // un canton est re-crawlé 1×/7j → fenêtre 8j (1j de marge)
+const SWEEP_CAP_ABS = 1200        // jamais > 1200 retraits en une passe
+const SWEEP_CAP_PCT = 0.03        // ni > 3% du vivant (au-delà = anomalie → on s'abstient)
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -68,6 +81,19 @@ const CANTONS = [
   'canton-nidwald', 'canton-obwald', 'canton-uri',
 ]
 
+// slug RA → code canton 2 lettres (= market_listings.canton, dérivé du NPA). Sert au
+// sweep ENUM : relier un reçu de slice (indexé par slug) aux lignes market_listings.
+const SLUG_TO_CODE: Record<string, string> = {
+  'canton-geneve': 'GE', 'canton-vaud': 'VD', 'canton-valais': 'VS', 'canton-fribourg': 'FR',
+  'canton-neuchatel': 'NE', 'canton-jura': 'JU', 'canton-berne': 'BE', 'canton-zurich': 'ZH',
+  'canton-lucerne': 'LU', 'canton-zoug': 'ZG', 'canton-schwyz': 'SZ', 'canton-tessin': 'TI',
+  'canton-grisons': 'GR', 'canton-bale-ville': 'BS', 'canton-bale-campagne': 'BL',
+  'canton-argovie': 'AG', 'canton-soleure': 'SO', 'canton-thurgovie': 'TG', 'canton-schaffhouse': 'SH',
+  'canton-saint-gall': 'SG', 'canton-appenzell-rhodes-exterieures': 'AR',
+  'canton-appenzell-rhodes-interieures': 'AI', 'canton-glaris': 'GL', 'canton-nidwald': 'NW',
+  'canton-obwald': 'OW', 'canton-uri': 'UR',
+}
+
 // ─── Types ───────────────────────────────────────────────────────
 
 interface Slice { canton: string; gte?: number; lte?: number }
@@ -77,7 +103,7 @@ interface SyncRequest {
   cantons?: string[]               // override (run de test scopé) ; absent = les 26
   slice_index?: number             // curseur de reprise dans la work-list
   sync_start_at?: string
-  mode?: 'chunk' | 'sweep' | 'fresh'
+  mode?: 'chunk' | 'sweep' | 'fresh' | 'sweep_enum'
   total_expected?: number
   stats?: SyncStats
   run_id?: string
@@ -368,6 +394,32 @@ function buildWorklist(offerType: string, cantons?: string[]): Slice[] {
   return slices
 }
 
+// ─── Identité réseau (UA configurable, rollout whitelist RA) ──────
+
+interface Identity { ua: string; from: string | null }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getConfigValue(supabase: any, key: string): Promise<string | null> {
+  try {
+    const { data } = await supabase.from('app_config').select('value').eq('key', key).maybeSingle()
+    return data ? String(data.value) : null
+  } catch { return null }
+}
+
+// UA + From lus UNE fois par invocation. UA vide/trop court ou erreur app_config →
+// UA_DEFAULT (le string Chrome qui marche), donc le rollback = 1 UPDATE sans redeploy.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadIdentity(supabase: any): Promise<Identity> {
+  try {
+    const { data } = await supabase.from('app_config').select('key,value')
+      .in('key', ['realadvisor_user_agent', 'realadvisor_contact_email'])
+    const m = new Map((data || []).map((r: { key: string; value: string }) => [r.key, r.value]))
+    const uaRaw = String(m.get('realadvisor_user_agent') ?? '').trim()
+    const fromRaw = String(m.get('realadvisor_contact_email') ?? '').trim()
+    return { ua: uaRaw.length >= 10 ? uaRaw : UA_DEFAULT, from: fromRaw || null }
+  } catch { return { ua: UA_DEFAULT, from: null } }
+}
+
 // ─── Fetch /api/listings (avec backoff) ───────────────────────────
 
 function buildSearchParams(offerType: string, slice: Slice, page: number): URLSearchParams {
@@ -386,13 +438,18 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-async function fetchPage(offerType: string, slice: Slice, page: number): Promise<RealAdvisorPage> {
+async function fetchPage(offerType: string, slice: Slice, page: number, ident: Identity): Promise<RealAdvisorPage> {
   const url = `${RA_BASE}/api/listings?${buildSearchParams(offerType, slice, page).toString()}`
   let attempt = 0
   while (true) {
     const res = await fetch(url, {
       method: 'GET',
-      headers: { Accept: 'application/json', 'User-Agent': USER_AGENT, 'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8' },
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': ident.ua,
+        'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8',
+        ...(ident.from ? { From: ident.from } : {}),
+      },
     })
     if (res.ok) {
       const text = await res.text()
@@ -440,7 +497,7 @@ async function upsertRows(supabase: any, rows: Record<string, unknown>[]): Promi
 // Traite un slice ENTIER : pagine jusqu'à épuisement ou cap. Retourne capped=true
 // si le slice avait plus de biens que ce que le cap d'API a laissé voir.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function processSlice(supabase: any, offerType: string, slice: Slice, nowIso: string, stats: SyncStats): Promise<void> {
+async function processSlice(supabase: any, offerType: string, slice: Slice, nowIso: string, stats: SyncStats, ident: Identity, cycleId: string): Promise<void> {
   let total = 0
   let seen = 0
   let page = 1
@@ -453,7 +510,7 @@ async function processSlice(supabase: any, offerType: string, slice: Slice, nowI
     let listings: RawHit[] = []
     for (let attempt = 0; attempt <= BACKOFF_RETRIES; attempt++) {
       if (attempt > 0) await sleep(BACKOFF_BASE_MS * 2 ** (attempt - 1))
-      const res = await fetchPage(offerType, slice, page)
+      const res = await fetchPage(offerType, slice, page, ident)
       if (page === 1 && total === 0) total = res.total_count
       listings = res.listings || []
       const subCap = total > 0 && total <= SLICE_CAP
@@ -482,10 +539,27 @@ async function processSlice(supabase: any, offerType: string, slice: Slice, nowI
     page++
   }
   stats.slices++
+  const fullyEnumerated = total > 0 && total <= SLICE_CAP && seen >= total
   if (total > SLICE_CAP && seen < total) {
     stats.capped++
     console.warn(`[capped] ${slice.canton} ${slice.gte ?? ''}-${slice.lte ?? ''}: total=${total} vu=${seen} (résidu au-dessus du cap d'API)`)
   }
+  // Reçu d'énumération du slice : pilote le sweep ENUM. fully_enumerated=true ⇒ on a
+  // vu TOUTES les annonces de ce (canton×bande) ⇒ celles qu'on n'a PAS revues sont
+  // réellement parties. Un slice plafonné/throttlé reste fully_enumerated=false ⇒ exclu
+  // du sweep (jamais de faux retrait). cycle_id = début du run (= last_seen des biens revus).
+  try {
+    await supabase.from('realadvisor_slice_coverage').insert({
+      cycle_id: cycleId,
+      canton: slice.canton,
+      canton_code: SLUG_TO_CODE[slice.canton] ?? null,
+      gte: slice.gte ?? null,
+      lte: slice.lte ?? null,
+      seen,
+      total,
+      fully_enumerated: fullyEnumerated,
+    })
+  } catch (err) { console.error('[coverage] insert exception:', err) }
 }
 
 // ─── Tracking realadvisor_sync_runs ───────────────────────────────
@@ -568,10 +642,10 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
 
 // Total attendu = total_count brut de l'offer_type (1 sonde), pour le ratio de sécurité du sweep.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function fetchOfferTotal(offerType: string): Promise<number> {
+async function fetchOfferTotal(offerType: string, ident: Identity): Promise<number> {
   try {
     const res = await fetch(`${RA_BASE}/api/listings?offerType_eq=${offerType}`, {
-      headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+      headers: { Accept: 'application/json', 'User-Agent': ident.ua, ...(ident.from ? { From: ident.from } : {}) },
     })
     if (!res.ok) { await res.text().catch(() => {}); return 0 }
     const body = await res.json()
@@ -671,6 +745,7 @@ async function runFresh(body: SyncRequest, supabase: any): Promise<void> {
   if (!runId) { console.error('[fresh] verrou non acquis (no run id) — abort'); return }
 
   const nowIso = new Date().toISOString()
+  const ident = await loadIdentity(supabase)
   const national: Slice = { canton: '' } // requête nationale (buildSearchParams n'ajoute pas placeSlugs)
   const s: FreshStats = { fetched: 0, upserted: 0, inserted: 0, updated: 0, skipped: 0, errors: 0, pages: 0 }
   let totalExpected = 0
@@ -678,7 +753,7 @@ async function runFresh(body: SyncRequest, supabase: any): Promise<void> {
   try {
     for (let page = 1; page <= FRESH_MAX_PAGES; page++) {
       if (page > 1) await sleep(PACE_MS)
-      const res = await fetchPage(offerType, national, page)
+      const res = await fetchPage(offerType, national, page, ident)
       if (page === 1) totalExpected = res.total_count
       const listings = res.listings || []
       // Throttle silencieux : page 1 nationale vide alors qu'il y a un catalogue
@@ -733,6 +808,7 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
   const isScoped = Array.isArray(body.cantons) && body.cantons.length > 0
   try {
     const syncStartAt = body.sync_start_at ?? new Date().toISOString()
+    const ident = await loadIdentity(supabase)
     const mode = body.mode ?? 'chunk'
     const stats: SyncStats = body.stats ?? { fetched: 0, upserted: 0, skipped: 0, errors: 0, pages: 0, slices: 0, capped: 0 }
     let totalExpected = body.total_expected ?? 0
@@ -756,7 +832,16 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
     // Première invocation : total attendu + reap + verrou.
     let sliceIdx = body.slice_index
     if (sliceIdx === undefined) {
-      totalExpected = await fetchOfferTotal(offerType)
+      // Rolling crawl (cron-rolling) : kill-switch + garde-fou anti full-crawl accidentel.
+      if (body.trigger_source === 'cron-rolling') {
+        if ((await getConfigValue(supabase, 'realadvisor_rolling_enabled')) === 'false') {
+          console.warn('[rolling] kill-switch off (realadvisor_rolling_enabled=false) — abort'); return
+        }
+        if (!isScoped) {
+          console.error('[rolling] cantons vide (shard_map manquant ?) — abort pour éviter un full-crawl involontaire'); return
+        }
+      }
+      totalExpected = await fetchOfferTotal(offerType, ident)
       await reapStaleRuns(supabase)
       const lock = await createRunRow(supabase, offerType, body.trigger_source)
       if (lock.blocked) { console.warn('[chunk] aborting: another run active'); return }
@@ -767,7 +852,7 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
     }
 
     while (sliceIdx < worklist.length) {
-      await processSlice(supabase, offerType, worklist[sliceIdx], nowIso, stats)
+      await processSlice(supabase, offerType, worklist[sliceIdx], nowIso, stats, ident, syncStartAt)
       sliceIdx++
       await updateRunChunk(supabase, runId, stats, totalExpected)
       if (Date.now() - startedAtMs > TIME_BUDGET_MS && sliceIdx < worklist.length) {
@@ -791,13 +876,61 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
   }
 }
 
+// ─── Mode SWEEP_ENUM : suppression destructive SÛRE, scopée aux slices énumérés ───
+// Délègue à la RPC realadvisor_sweep_enum (atomique). Tant que
+// app_config.realadvisor_sweep_enabled ≠ 'true' → DRY-RUN (compte les candidats, ne
+// supprime RIEN) : on calibre la vraie volumétrie de churn avant d'armer. La RPC
+// applique le double plafond (anti-anomalie). On NE prend PAS le verrou singleton :
+// on insère une ligne de run à statut TERMINAL (jamais 'running'), donc un crawl long
+// ne peut ni bloquer le sweep ni le faire reaper.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runSweepEnum(body: SyncRequest, supabase: any): Promise<void> {
+  const offerType = body.offer_type || 'buy'
+  const triggerSource = body.trigger_source || 'cron-sweep'
+  const apply = (await getConfigValue(supabase, 'realadvisor_sweep_enabled')) === 'true'
+  try {
+    const { data, error } = await supabase.rpc('realadvisor_sweep_enum', {
+      p_offer_type: offerType,
+      p_window_days: SWEEP_WINDOW_DAYS,
+      p_cap_abs: SWEEP_CAP_ABS,
+      p_cap_pct: SWEEP_CAP_PCT,
+      p_apply: apply,
+    })
+    if (error) throw error
+    const r = (data ?? {}) as { status?: string; candidates?: number; live?: number; removed?: number }
+    const status = r.status === 'completed' ? 'completed'
+      : r.status === 'safety_skipped' ? 'safety_skipped'
+      : 'dry_run'
+    await supabase.from('realadvisor_sync_runs').insert({
+      offer_type: offerType,
+      trigger_source: triggerSource,
+      status,
+      ended_at: new Date().toISOString(),
+      total_removed: r.removed ?? 0,
+      total_seen: r.live ?? 0,
+      error_message: `sweep_enum apply=${apply} candidates=${r.candidates ?? 0} live=${r.live ?? 0} removed=${r.removed ?? 0} rpc=${r.status}`,
+    })
+    console.log(`[sweep_enum] apply=${apply}`, r)
+  } catch (err) {
+    console.error('[sweep_enum] error:', err)
+    try {
+      await supabase.from('realadvisor_sync_runs').insert({
+        offer_type: offerType, trigger_source: triggerSource, status: 'failed',
+        ended_at: new Date().toISOString(), error_message: String(err).slice(0, 500),
+      })
+    } catch { /* noop */ }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     const body: SyncRequest = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
 
-    const work = body.mode === 'fresh' ? runFresh(body, supabase) : runBackground(body, supabase)
+    const work = body.mode === 'fresh' ? runFresh(body, supabase)
+      : body.mode === 'sweep_enum' ? runSweepEnum(body, supabase)
+      : runBackground(body, supabase)
     // @ts-expect-error EdgeRuntime is a Supabase-specific Deno global
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
       // @ts-expect-error keep the isolate alive until the work resolves
