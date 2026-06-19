@@ -79,7 +79,7 @@ export default function ContactsSugarV2Page() {
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
   // ── Data source: Supabase via adapter ───────────────────────────────
-  const { contacts, isLoading } = useContactsSugar()
+  const { contacts, isLoading, isError, refetch } = useContactsSugar()
   const { data: rawTransactions = [] } = useTransactions()
 
   // Index : un deal (le plus récent) par contactId — pour les badges de
@@ -348,6 +348,8 @@ export default function ContactsSugarV2Page() {
             contacts={filtered}
             allContacts={contacts}
             isLoading={isLoading}
+            isError={isError}
+            onRetry={refetch}
             dealsByContactId={dealsByContactId}
             selectedId={selectedId}
             onSelect={setSelectedId}

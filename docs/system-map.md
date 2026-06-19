@@ -60,8 +60,8 @@ avoir livré une feature ou changé l'architecture :
 
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
 CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin.
-Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~34k
-`market_listings`) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 67 edge functions,
+Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~90k
+`market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, ~63 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
 humaine obligatoire).
 
@@ -77,7 +77,7 @@ fragmenté.
 Frontend   React 18 / TS / Vite / Tailwind · React Router v6 · React Query (+ supabase-cache-helpers)
            i18n react-i18next (FR/DE/EN/IT) · Mapbox GL (lazy) · Recharts · Sentry · PostHog
 Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 15, Auth, Storage,
-           Realtime, pgvector, pg_cron, pg_net · 67 Edge Functions (Deno)
+           Realtime, pgvector, pg_cron, pg_net · ~63 Edge Functions (Deno)
 IA         Claude (Sonnet/Haiku, côté agent) + DeepSeek V3 (côté public + fallback)
            via abstraction _shared/ai-provider.ts (tracking coût → ai_usage_logs)
 Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · Google AI (staging)
@@ -167,7 +167,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, setti
 ### Tables par domaine
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`.
 - **Contacts & leads** : `contacts`, `seller_leads`, `contact_scores`.
-- **Biens** : `properties` (internes), `property_scores` (score de bien santé/chaleur, RPC `calculate_property_scores`), `listings` (publiées), `market_listings` (~33k Flatfox), `external_listings` (legacy).
+- **Biens** : `properties` (internes), `property_scores` (score de bien santé/chaleur, RPC `calculate_property_scores`), `listings` (publiées), `market_listings` (~90k Flatfox, ~50k active), `external_listings` (legacy).
 - **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` (offres/contre-offres ; historique via `parent_offer_id` + audit `activity_events`, pas de table `crm_offers_history`), `visits`, `client_searches`, `matches`.
 - **KYC / compliance** : `kyc_cases`, `kyc_checklist_items`, `kyc_magic_links` + `kyc_magic_link_uploads`, `kyc_screening_decisions`, `documents` (sha256, retention).
 - **Portail vendeur** : `seller_portals` (token 6 mois), `vendor_dossiers`.
@@ -200,7 +200,7 @@ Plomberie qui capture les signaux temporels (fondation de la couche v2 ; cerveau
 
 ## 4. Pipeline marketplace (Flatfox / market_listings) ⚙️
 
-- **Source** : API Flatfox (location, 33k+ actifs, 26 cantons, 8 types). Aussi RealAdvisor via `market-scraper(-batch)`.
+- **Source** : API Flatfox (location, ~50k actifs, 26 cantons, 8 types). Aussi RealAdvisor via `market-scraper(-batch)`.
 - **Cron** : `flatfox-sync-daily` `0 4 * * *` (04:00 UTC) → edge `flatfox-sync` (chunked self-invoke, 5 pages/chunk, rate-limit 1 req/s, lock singleton).
 - **Opérations** : UPSERT (source_id UNIQUE, last_seen_at), mark removed (safety ≥80% vus avant sweep), photos → Cloudflare R2 (`photos_cf` via `photo-processor`), `quality_score`, `relevance_score` (GENERATED).
 - **Observabilité** : `flatfox_sync_runs` (status, totaux, chunks) → dashboard admin.
@@ -224,7 +224,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > Tout l'ancien storefront marketplace Property X décrit ci-dessous est **conservé en sommeil** dans
 > [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/) (ex-`sites/property-preview/`),
 > **rien supprimé**, réactivable en repointant `scripts/overlay-storefront.mjs`. La table `market_listings`
-> (~34k biens) **reste active** : elle nourrit le CRM (matching, estimation, stats copilote). La doc
+> (~90k biens) **reste active** : elle nourrit le CRM (matching, estimation, stats copilote). La doc
 > ci-dessous reste valable pour ce dossier en sommeil (phase ultérieure = Sprint 7).
 
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**

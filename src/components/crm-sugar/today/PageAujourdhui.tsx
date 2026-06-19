@@ -115,9 +115,12 @@ export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
   // Total pipeline d'en-tête — vrai cumul des deals actifs (hors 'lost'),
   // fallback démo si aucune transaction. (usePipelineSugar dédupe avec la tuile.)
   const { deals, isLoading } = usePipelineSugar()
-  const pipelineTotal = !isLoading && deals.length > 0
-    ? `CHF ${(deals.filter((d) => d.stage !== 'lost').reduce((s, d) => s + (d.value || 0), 0) / 1e6).toFixed(1)}M`
-    : DATA.pipelineTotal
+  // Total réel (CHF 0.0M honnête si aucun deal) ; le seed démo ne sert que derrière `demo`.
+  const pipelineTotal = demo
+    ? DATA.pipelineTotal
+    : isLoading
+      ? '—'
+      : `CHF ${(deals.filter((d) => d.stage !== 'lost').reduce((s, d) => s + (d.value || 0), 0) / 1e6).toFixed(1)}M`
 
   // File de priorités réelle (matches forts + reminders + deals), scorée et
   // tierisée, partagée colonne Focus / Mode Focus / rangée Ensuite. Empty-state
@@ -157,23 +160,22 @@ export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: 14, minHeight: 0 }}>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
                 <TileHead icon="cal" title="Agenda du jour" action={<MoreLink onClick={() => navigate('calendar')} />} />
-                <AgendaTile />
+                <AgendaTile demo={demo} />
               </Tile>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
-                <TileHead icon="bolt" title="Relances IA" accent={TK.primary}
-                  action={<span style={{ fontSize: 12, fontWeight: 700, color: TK.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>≈ 35 min</span>} />
-                <RelancesTile onStart={() => setRelanceOpen(true)} />
+                <TileHead icon="bolt" title="Relances IA" accent={TK.primary} />
+                <RelancesTile demo={demo} onStart={() => setRelanceOpen(true)} />
               </Tile>
             </div>
             <div style={{ flex: 0.94, display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: 14, minHeight: 0 }}>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
                 <TileHead icon="trend" title="Pipeline"
                   action={<span style={{ fontSize: 13.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums' }}>{pipelineTotal}</span>} />
-                <PipelineTile />
+                <PipelineTile demo={demo} />
               </Tile>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
                 <TileHead icon="target" title="Objectif" />
-                <ObjectifTile />
+                <ObjectifTile demo={demo} />
               </Tile>
             </div>
           </div>

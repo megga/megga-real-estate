@@ -229,7 +229,7 @@ export function CtMatches({
 
 // ─── Activity timeline ────────────────────────────────────────────────
 export function CtActivity({
-  contact,
+  contact: _contact,
   activity: activityProp,
   sp,
   fill,
@@ -239,32 +239,9 @@ export function CtActivity({
   sp: SugarPalette
   fill?: boolean
 }) {
-  const items = activityProp ?? []
-  // Mock fallback si pas encore d'activité réelle (la timeline réelle est vide
-  // tant que personne n'a généré d'activity_event pour ce contact).
-  const all =
-    items.length > 0
-      ? items
-      : [
-          {
-            id: 'mock-1',
-            at: '2026-04-29T15:32:00',
-            kind: 'note',
-            text: "Notes synchronisées depuis l'agenda.",
-          },
-          {
-            id: 'mock-2',
-            at: '2026-04-25T11:00:00',
-            kind: 'call',
-            text: 'Premier appel de qualification — 12 min.',
-          },
-          {
-            id: 'mock-3',
-            at: '2026-04-20T09:00:00',
-            kind: 'lead-in',
-            text: 'Contact créé via ' + (contact.source || 'import') + '.',
-          },
-        ]
+  // Timeline réelle (activity_events). Pas de fallback fabriqué : tant qu'aucun
+  // événement n'existe pour ce contact, on affiche un état vide honnête.
+  const all = activityProp ?? []
 
   const iconMap: Record<string, MEIconName> = {
     'ai-action': 'sparkle',
@@ -292,6 +269,11 @@ export function CtActivity({
 
   return (
     <CtCard sp={sp} padding="6px 14px" fill={fill} style={fill ? { overflowY: 'auto' } : undefined}>
+      {all.length === 0 && (
+        <div style={{ fontSize: 12.5, color: sp.sub, textAlign: 'center', padding: '20px 8px' }}>
+          Aucune activité enregistrée pour ce contact.
+        </div>
+      )}
       {all.map((a, i) => (
         <div
           key={a.id}
@@ -825,23 +807,30 @@ export function CtKyc({
     stale: 'Relancer le screening',
   } as const)[status]
 
-  // KPIs
-  const docsTotal = 6
-  const docsDone = ({ none: 0, pending: 3, verified: 6, stale: 6 } as const)[status] ?? 0
-  const riskValue = status === 'verified' || status === 'stale' ? 14 : null
+  // KPIs — données réelles uniquement. Le détail complet du dossier (pièces,
+  // historique de screening) vit dans l'onglet KYC ; on n'invente ni score de
+  // risque, ni compteur de pièces, ni date de screening ici.
+  const riskLevel =
+    status === 'verified' || status === 'stale' ? contact.kyc?.riskLevel : undefined
   const riskLabel =
-    contact.kyc?.riskLevel ||
-    (riskValue != null ? (riskValue < 25 ? 'Faible' : riskValue < 60 ? 'Modéré' : 'Élevé') : '—')
+    riskLevel === 'high'
+      ? 'Élevé'
+      : riskLevel === 'medium'
+        ? 'Modéré'
+        : riskLevel === 'low'
+          ? 'Faible'
+          : '—'
   const riskColor =
-    riskValue == null
-      ? sp.sub
-      : riskValue < 25
-        ? '#0E9F6E'
-        : riskValue < 60
-          ? '#F59E0B'
-          : '#E53935'
-  const lastScreen =
-    status === 'verified' ? '12.04.26' : status === 'stale' ? '03.02.25' : '—'
+    riskLevel === 'high'
+      ? '#E53935'
+      : riskLevel === 'medium'
+        ? '#F59E0B'
+        : riskLevel === 'low'
+          ? '#0E9F6E'
+          : sp.sub
+  const validUntil = contact.kyc?.expiresAt
+    ? contact.kyc.expiresAt.slice(0, 10).split('-').reverse().join('.')
+    : '—'
 
   return (
     <CtCard sp={sp} padding="14px 16px" fill={fill}>
@@ -997,17 +986,7 @@ export function CtKyc({
               marginTop: 2,
             }}
           >
-            {riskValue != null ? riskValue : '—'}
-            <span
-              style={{
-                fontSize: 10,
-                color: sp.sub,
-                fontWeight: 600,
-                marginLeft: 4,
-              }}
-            >
-              {riskValue != null ? `/ ${riskLabel}` : ''}
-            </span>
+            {riskLabel}
           </div>
         </div>
         <div style={{ padding: '8px 10px', borderRadius: 8, background: sp.cardSubBg }}>
@@ -1030,8 +1009,7 @@ export function CtKyc({
               marginTop: 2,
             }}
           >
-            {docsDone}
-            <span style={{ fontSize: 10, color: sp.sub, fontWeight: 600 }}> / {docsTotal}</span>
+            —
           </div>
         </div>
         <div style={{ padding: '8px 10px', borderRadius: 8, background: sp.cardSubBg }}>
@@ -1044,7 +1022,7 @@ export function CtKyc({
               color: sp.sub,
             }}
           >
-            Dernier screening
+            Validité
           </div>
           <div
             style={{
@@ -1054,7 +1032,7 @@ export function CtKyc({
               marginTop: 2,
             }}
           >
-            {lastScreen}
+            {validUntil}
           </div>
         </div>
       </div>

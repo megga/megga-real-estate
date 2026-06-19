@@ -168,13 +168,16 @@ export default function ContactDetailSugarV3Page() {
             <CdHero
               contact={contact}
               onBack={() => navigate('/dashboard/contacts')}
+              agentName={profile?.full_name ?? undefined}
+              onSchedule={() => navigate('/dashboard/calendar')}
+              onNewAction={() => navigate('/dashboard/visits/new')}
             />
 
             <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18 }}>
               {/* COLONNE PRINCIPALE */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <CdTimelineCard events={contactEvents} />
-                <CdNotesCard notes={contact.notes} />
+                <CdNotesCard key={contact.id} contactId={contact.id} notes={contact.notes} />
                 <CdWhatsAppCard contactId={contact.id} />
                 <CdConversationInsight contactId={contact.id} />
               </div>

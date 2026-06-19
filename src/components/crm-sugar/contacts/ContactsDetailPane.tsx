@@ -461,10 +461,18 @@ export function ContactsDetailPane({
         </CtBento>
 
         <CtBento sp={sp} title="Préférences" padding="14px 20px">
-          <CtKv sp={sp} label="Langue" value={contact.lang?.toUpperCase()} />
-          <CtKv sp={sp} label="Canal" value="Email + Tél." />
-          <CtKv sp={sp} label="Moment" value="9h–12h sem." />
-          <CtKv sp={sp} label="Agent" value="Gregory Lyonnet" />
+          <CtKv sp={sp} label="Langue" value={contact.lang?.toUpperCase() || '—'} />
+          <CtKv
+            sp={sp}
+            label="Canal"
+            value={
+              [contact.email && 'Email', contact.phone && 'Téléphone']
+                .filter(Boolean)
+                .join(' · ') || '—'
+            }
+          />
+          <CtKv sp={sp} label="Moment" value="Non renseigné" />
+          <CtKv sp={sp} label="Agent" value={contact.assignedTo || 'Non assigné'} />
         </CtBento>
 
         {/* Row 3 : Matchs span 2 */}

@@ -11,9 +11,16 @@ import { CtScoreBadge } from '@/components/crm-sugar/contacts/CtScoreBadge'
 interface Props {
   contact: Contact
   onBack: () => void
+  /** Nom de l'agent qui suit ce contact (agent connecté). Défaut : « Non assigné ». */
+  agentName?: string
+  /** Ouvre la planification (calendrier). */
+  onSchedule?: () => void
+  /** Crée une nouvelle action (visite/RDV) pour ce contact. */
+  onNewAction?: () => void
 }
 
-export function CdHero({ contact, onBack }: Props) {
+export function CdHero({ contact, onBack, agentName, onSchedule, onNewAction }: Props) {
+  const phoneDigits = (contact.phone ?? '').replace(/[^\d]/g, '')
   const { scores: contactScores } = useContactScores()
   const contactHealth = contactScores.get(contact.id)
   const typeLabel =
@@ -142,23 +149,35 @@ export function CdHero({ contact, onBack }: Props) {
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <KycCircleBtn
-            title="Appeler"
+            title={contact.phone ? `Appeler ${contact.phone}` : 'Aucun numéro'}
+            onClick={() => {
+              if (contact.phone) window.location.href = `tel:${contact.phone}`
+            }}
             icon={<SgIcon name="phone" size={17} stroke={SugarV3.inkSoft} />}
           />
           <KycCircleBtn
-            title="E-mail"
+            title={contact.email ? `Écrire à ${contact.email}` : 'Aucun e-mail'}
+            onClick={() => {
+              if (contact.email) window.location.href = `mailto:${contact.email}`
+            }}
             icon={<SgIcon name="mail" size={17} stroke={SugarV3.inkSoft} />}
           />
           <KycCircleBtn
-            title="Message"
+            title={phoneDigits ? 'Message WhatsApp' : 'Aucun numéro'}
+            onClick={() => {
+              if (phoneDigits)
+                window.open(`https://wa.me/${phoneDigits}`, '_blank', 'noopener,noreferrer')
+            }}
             icon={<SgIcon name="msg" size={17} stroke={SugarV3.inkSoft} />}
           />
           <KycCircleBtn
             title="Planifier"
+            onClick={onSchedule}
             icon={<SgIcon name="cal" size={17} stroke={SugarV3.inkSoft} />}
           />
           <KycBlackPill
             size="md"
+            onClick={onNewAction}
             icon={<SgIcon name="plus" size={14} stroke="#fff" sw={2} />}
           >
             Nouvelle action
@@ -181,7 +200,7 @@ export function CdHero({ contact, onBack }: Props) {
         <KvBlock label="E-mail" value={contact.email ?? '—'} />
         <KvBlock label="Téléphone" value={contact.phone ?? '—'} mono />
         <KvBlock label="Langue" value={langLabel} />
-        <KvBlock label="Agent référent" value="Gregory Lyonnet" />
+        <KvBlock label="Agent référent" value={agentName || 'Non assigné'} />
       </div>
     </div>
   )

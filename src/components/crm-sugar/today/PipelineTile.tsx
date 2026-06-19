@@ -44,10 +44,11 @@ function computeBuckets(deals: { stage: StageId; value: number }[]): Bucket[] {
   return BUCKET_ORDER.map((key) => ({ key, count: acc[key].count, value: acc[key].value }))
 }
 
-export function PipelineTile() {
+export function PipelineTile({ demo = false }: { demo?: boolean } = {}) {
   const [hover, setHover] = useState<number | null>(null)
-  const { deals, isLoading } = usePipelineSugar()
-  const live = !isLoading && deals.length > 0
+  const { deals } = usePipelineSugar()
+  // Agent réel → vrai pipeline (entonnoir à 0 si aucun deal) ; seed démo derrière `demo`.
+  const live = !demo
 
   const buckets: Bucket[] = live ? computeBuckets(deals) : DATA.pipeline
   const maxV = Math.max(...buckets.map((p) => p.value), 1)

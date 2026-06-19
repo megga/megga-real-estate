@@ -14,8 +14,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { cn, formatCHF, formatRent } from '@/lib/utils'
 import { PROPERTY_TYPE_LABELS, CANTONS } from '@/lib/constants'
 import type { PropertyType } from '@/lib/constants'
-// ListingGenerator import removed alongside its render block — the
-// component generated text via a hardcoded switch (no Claude call).
 import SwissAddressAutocomplete from '@/components/listings/SwissAddressAutocomplete'
 import type { SwissAddressSuggestion } from '@/hooks/useSwissAddress'
 import {

@@ -27,6 +27,8 @@ async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
 export function useAxDashboardData(period: AxPeriodId, scope: AxScope): {
   data: AxPeriodData | null
   isLoading: boolean
+  isError: boolean
+  refetch: () => void
 } {
   const cockpit = useQuery({
     queryKey: ['ax-cockpit', period, scope],
@@ -45,6 +47,12 @@ export function useAxDashboardData(period: AxPeriodId, scope: AxScope): {
   })
 
   const isLoading = cockpit.isLoading || objectif.isLoading || funnel.isLoading
+  const isError = cockpit.isError || objectif.isError || funnel.isError
+  const refetch = () => {
+    void cockpit.refetch()
+    void objectif.refetch()
+    void funnel.refetch()
+  }
 
   const data = useMemo<AxPeriodData | null>(() => {
     if (isLoading) return null
@@ -54,5 +62,5 @@ export function useAxDashboardData(period: AxPeriodId, scope: AxScope): {
     return buildAxData(period, cockpit.data, objectif.data, funnel.data)
   }, [period, isLoading, cockpit.data, objectif.data, funnel.data])
 
-  return { data, isLoading }
+  return { data, isLoading, isError, refetch }
 }

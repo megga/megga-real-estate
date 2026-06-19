@@ -248,6 +248,10 @@ interface ContactsListPaneProps {
   allContacts?: CrmContact[]
   /** True pendant le premier fetch Supabase — affiche un état "Chargement…". */
   isLoading?: boolean
+  /** True si le fetch a échoué — affiche un état d'erreur (pas un faux vide). */
+  isError?: boolean
+  /** Relance le fetch depuis l'état d'erreur. */
+  onRetry?: () => void
   /** Mapping contactId → premier deal (pour le badge sur chaque ligne). */
   dealsByContactId?: Record<string, CrmDeal | undefined>
   selectedId: string | null
@@ -270,6 +274,8 @@ export function ContactsListPane({
   contacts,
   allContacts,
   isLoading,
+  isError,
+  onRetry,
   dealsByContactId,
   selectedId,
   onSelect,
@@ -534,9 +540,40 @@ export function ContactsListPane({
               fontSize: 12.5,
             }}
           >
-            {isLoading
-              ? 'Chargement des contacts…'
-              : 'Aucun contact ne correspond aux filtres.'}
+            {isError ? (
+              <>
+                <div style={{ fontWeight: 700, color: sp.ink, marginBottom: 6 }}>
+                  Impossible de charger les contacts
+                </div>
+                <div style={{ lineHeight: 1.5 }}>
+                  Une erreur est survenue. Vérifiez votre connexion, puis réessayez.
+                </div>
+                {onRetry && (
+                  <button
+                    onClick={() => onRetry()}
+                    style={{
+                      marginTop: 14,
+                      height: 32,
+                      padding: '0 14px',
+                      borderRadius: 999,
+                      background: 'transparent',
+                      color: sp.ink,
+                      border: `1px solid ${sp.cardBorder}`,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Réessayer
+                  </button>
+                )}
+              </>
+            ) : isLoading ? (
+              'Chargement des contacts…'
+            ) : (
+              'Aucun contact ne correspond aux filtres.'
+            )}
           </div>
         ) : (
           contacts.map(c => {

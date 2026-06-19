@@ -93,13 +93,10 @@ const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
-const KycListSugarV2Page = lazy(() => import('@/pages/agent/KycListSugarV2Page'))
-const KycDetailSugarV2Page = lazy(() => import('@/pages/agent/KycDetailSugarV2Page'))
 const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
 // Sprint 4.4 — Export PDF dossier KYC (route print-friendly, hors layout agent)
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
-const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
 const NetworkSugarV2Page = lazy(() => import('@/pages/agent/NetworkSugarV2Page'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
@@ -512,10 +509,6 @@ function AnimatedRoutes() {
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
                 <Route path="kyc" element={<KycSugarV3Page />} />
                 <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
-                {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
-                <Route path="kyc/showcase" element={<KycShowcasePage />} />
-                <Route path="kyc/v2" element={<KycListSugarV2Page />} />
-                <Route path="kyc/v2/:id" element={<KycDetailSugarV2Page />} />
                 <Route path="network" element={<NetworkSugarV2Page />} />
                 <Route path="reseau" element={<Navigate to="/dashboard/network" replace />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}

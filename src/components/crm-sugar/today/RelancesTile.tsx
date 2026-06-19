@@ -32,10 +32,11 @@ function bucketize(scores: number[]) {
   ]
 }
 
-export function RelancesTile({ onStart }: { onStart: () => void }) {
+export function RelancesTile({ onStart, demo = false }: { onStart: () => void; demo?: boolean }) {
   const [h, setH] = useState(false)
-  const { leads, isLoading, isEmpty } = useRelanceLeads()
-  const live = !isLoading && !isEmpty
+  const { leads } = useRelanceLeads()
+  // Agent réel → vrais leads (0 honnête si aucun) ; seed démo seulement derrière `demo`.
+  const live = !demo
 
   const total = live ? leads.length : SEED_TOTAL
   const seg = live ? bucketize(leads.map((l) => l.score)) : SEED_SEG

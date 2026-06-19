@@ -774,7 +774,7 @@ function EnjeuStat({ icon, children, accent }: { icon: string; children: ReactNo
 }
 
 // ─── PAGE ─────────────────────────────────────────────────────────────
-export function PageCatalogue() {
+export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
   const [filter, setFilter] = useState('tous')
   const [sortI, setSortI] = useState(0)
   const [sel, setSel] = useState<CatItem | null>(null)
@@ -786,7 +786,7 @@ export function PageCatalogue() {
 
   // Matches réels de l'agence (score desc) → items de catalogue ; fallback démo
   // (seed) si aucun match ou session non authentifiée.
-  const { matches, isLoading, sendMatch } = useMatching()
+  const { matches, sendMatch } = useMatching()
   // Matches déjà marqués « proposés » en base (évite un double envoi sur re-toggle).
   const sentRef = useRef<Set<string>>(new Set())
 
@@ -801,9 +801,11 @@ export function PageCatalogue() {
       sendMatch(m.matchId, 'email')
     }
   }
+  // Agent réel → vrais matchs (état vide « Aucun match » si aucun) ; le seed démo
+  // ne sert que derrière `demo`.
   const catalogue = useMemo<CatItem[]>(
-    () => (!isLoading && matches.length > 0 ? matches.map(matchToCatItem) : SEED_CATA),
-    [matches, isLoading],
+    () => (demo ? SEED_CATA : matches.map(matchToCatItem)),
+    [matches, demo],
   )
 
   const f = CATA_FILTERS.find((x) => x.key === filter) || CATA_FILTERS[0]
