@@ -29,6 +29,7 @@ import {
   useProperty, useUpdateProperty, type CreatePropertyInput,
 } from '@/hooks/useProperties'
 import { usePropertyStats } from '@/hooks/usePropertyStats'
+import { PropertyStaticMap } from '@/components/map/PropertyStaticMap'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useContacts } from '@/hooks/useContacts'
 import { useLogAudit } from '@/hooks/useAuditLog'
@@ -716,6 +717,11 @@ export default function BienDetailSugarV3Page() {
                 <BvSpec icon="trending-up" label="CHF/m²" value={ppm2 ? vxCompact(ppm2) : '—'} sp={sp} />
               </div>
             </div>
+          </div>
+
+          {/* Localisation — carte statique (Mapbox Static Images, lazy ; coords du bien) */}
+          <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid ' + sp.hairline, height: 220, position: 'relative', marginBottom: 22 }}>
+            <PropertyStaticMap lat={bien.lat} lng={bien.lng} address={bien.address} className="w-full h-full" emptyHint="Localisation indisponible" />
           </div>
 
           {/* BODY : 2 colonnes */}
