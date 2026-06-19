@@ -583,8 +583,11 @@ async function fetchOfferTotal(offerType: string): Promise<number> {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runSweep(supabase: any, offerType: string, syncStartAt: string, totalExpected: number): Promise<{ removed: number; skipped_safety: boolean }> {
+  // count: 'estimated' et PAS 'exact' — market_listings fait > 100k lignes, un
+  // count exact force un seq scan -> statement timeout (cf CLAUDE.md §7). Un
+  // estimé suffit pour le garde-fou grossier (seuil 80%).
   const { count: seen } = await supabase
-    .from('market_listings').select('id', { count: 'exact', head: true })
+    .from('market_listings').select('id', { count: 'estimated', head: true })
     .eq('source_portal', 'realadvisor').eq('transaction_type', offerType)
     .gte('last_seen_at', syncStartAt)
   const totalSeen = seen ?? 0
