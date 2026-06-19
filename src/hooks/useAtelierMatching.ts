@@ -662,6 +662,20 @@ export async function execDismiss(buyer: AtelierBuyer): Promise<void> {
   if (error) throw error
 }
 
+/** Réaction du client à un dossier envoyé (HITL, Intéressé/Pas intéressé). Pose
+ *  matches.status -> déclenche set_match_response_at (response_at) + log_match_reaction
+ *  (audit) — ferme la boucle de réactivité depuis la route live. */
+export async function execReact(
+  buyer: AtelierBuyer,
+  reaction: 'interested' | 'rejected',
+): Promise<void> {
+  const { error } = await supabase
+    .from('matches')
+    .update({ status: reaction })
+    .eq('id', buyer.matchId)
+  if (error) throw error
+}
+
 /** Réactivation manuelle anticipée d'un reporté (parking) — immédiat */
 export async function execWake(matchId: string): Promise<void> {
   const { error } = await supabase

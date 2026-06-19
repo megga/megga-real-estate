@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import {
   execDismiss,
+  execReact,
   execRelance,
   execSendDossier,
   execSnooze,
@@ -95,6 +96,12 @@ export default function MatchingAtelierPage() {
       const e = matchIndex.get(matchId)
       if (!e) return null
       await execDismiss(e.buyer)
+      return null
+    }, { onSettled: refresh, onError: showError }),
+    react: (matchId, reaction) => registry.defer(async () => {
+      const e = matchIndex.get(matchId)
+      if (!e) return null
+      await execReact(e.buyer, reaction)
       return null
     }, { onSettled: refresh, onError: showError }),
     wake: matchId => { void execWake(matchId).then(refresh).catch(showError) },

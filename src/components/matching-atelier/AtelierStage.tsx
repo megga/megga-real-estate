@@ -109,10 +109,12 @@ export default function AtelierStage({
       kind === 'sent' ? gestes.send(matchId)
       : kind === 'relance' ? gestes.relance(matchId)
       : kind === 'later' ? gestes.snooze(matchId)
+      : kind === 'interested' ? gestes.react(matchId, 'interested')
+      : kind === 'rejected' ? gestes.react(matchId, 'rejected')
       : gestes.dismiss(matchId)
     handles.current.set(matchId, handle)
 
-    setExiting({ id: matchId, dir: kind === 'sent' || kind === 'relance' ? 'send' : kind === 'later' ? 'later' : 'skip' })
+    setExiting({ id: matchId, dir: kind === 'sent' || kind === 'relance' || kind === 'interested' ? 'send' : kind === 'later' ? 'later' : 'skip' })
     exitTimer.current = setTimeout(() => {
       setProcessed(p => ({ ...p, [matchId]: kind }))
       if (ret) setLaterInfo(m => ({ ...m, [matchId]: ret }))
@@ -124,8 +126,10 @@ export default function AtelierStage({
         kind === 'sent' ? `Dossier transmis à ${b.first} ${b.last} · ajouté à son dossier client`
         : kind === 'relance' ? `Relance envoyée à ${b.first} ${b.last} · consignée dans son dossier`
         : kind === 'later' ? `Plus tard · ${b.first} ${b.last} reviendra dans la file le ${ret}`
+        : kind === 'interested' ? `${b.first} ${b.last} · intéressé·e — réactivité consignée`
+        : kind === 'rejected' ? `${b.first} ${b.last} · pas intéressé·e`
         : `${b.first} ${b.last} écarté·e de la file`,
-        kind === 'sent' || kind === 'relance',
+        kind === 'sent' || kind === 'relance' || kind === 'interested',
         handle,
       )
     }, 340)
@@ -188,6 +192,7 @@ export default function AtelierStage({
       else if (k === 'x' || e.key === 'ArrowLeft') { e.preventDefault(); if (selected) triage(selected.matchId, 'skipped') }
       else if (k === 'p') { e.preventDefault(); if (selected) triage(selected.matchId, 'later') }
       else if (k === 'r') { e.preventDefault(); if (selected && selected.status === 'no-reply') requestRelance(selected.matchId) }
+      else if (k === 'i') { e.preventDefault(); if (selected && selected.status === 'no-reply') triage(selected.matchId, 'interested') }
       else if (k === 'v') { e.preventDefault(); if (selected && selected.status === 'engaged' && canVisit) gestes.visit(selected.matchId) }
       else if (k === 'j' || e.key === 'ArrowDown') { e.preventDefault(); move(1) }
       else if (k === 'k' || e.key === 'ArrowUp') { e.preventDefault(); move(-1) }
@@ -296,6 +301,8 @@ export default function AtelierStage({
                   onLater={() => triage(selected.matchId, 'later')}
                   onVisit={() => gestes.visit(selected.matchId)}
                   onRelance={() => requestRelance(selected.matchId)}
+                  onInterested={() => triage(selected.matchId, 'interested')}
+                  onNotInterested={() => triage(selected.matchId, 'rejected')}
                   onPivot={() => onOpenBuyerPivot(selected.id)}
                   onStartKyc={() => onStartKyc(selected.id)}
                 />
