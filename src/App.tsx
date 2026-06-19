@@ -86,7 +86,6 @@ const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugar
 // visit capture is a separate sprint.
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
 const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
-const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
 const MatchingAtelierPage = lazy(() => import('@/pages/agent/MatchingAtelierPage'))
 const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
@@ -500,8 +499,6 @@ function AnimatedRoutes() {
                 {/* Atelier Matching — triptyque plein écran (handoff juin 2026).
                     Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id> */}
                 <Route path="matching" element={<MatchingAtelierPage />} />
-                {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
-                <Route path="matching/v2" element={<MatchingSugarV2Page />} />
                 <Route path="journey" element={<JourneySugarV2Page />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
