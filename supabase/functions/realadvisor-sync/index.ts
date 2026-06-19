@@ -77,7 +77,7 @@ interface SyncRequest {
   cantons?: string[]               // override (run de test scopé) ; absent = les 26
   slice_index?: number             // curseur de reprise dans la work-list
   sync_start_at?: string
-  mode?: 'chunk' | 'sweep'
+  mode?: 'chunk' | 'sweep' | 'fresh'
   total_expected?: number
   stats?: SyncStats
   run_id?: string
@@ -373,7 +373,7 @@ function buildWorklist(offerType: string, cantons?: string[]): Slice[] {
 function buildSearchParams(offerType: string, slice: Slice, page: number): URLSearchParams {
   const sp = new URLSearchParams()
   sp.set('offerType_eq', offerType)
-  sp.set('placeSlugs', JSON.stringify([{ slug: slice.canton, lang: 'fr' }]))
+  if (slice.canton) sp.set('placeSlugs', JSON.stringify([{ slug: slice.canton, lang: 'fr' }]))
   const pf = offerType === 'rent' ? 'grossRentMonthly' : 'salePrice'
   if (slice.gte != null) sp.set(`${pf}_gte`, String(slice.gte))
   if (slice.lte != null) sp.set(`${pf}_lte`, String(slice.lte))
@@ -607,6 +607,123 @@ async function runSweep(supabase: any, offerType: string, syncStartAt: string, t
   return { removed: Array.isArray(data) ? data.length : 0, skipped_safety: false }
 }
 
+// ─── Mode FRESH : mise à jour quotidienne légère (accès RealAdvisor accordé) ─
+// Ne balaye PAS la work-list canton×prix. UNE requête NATIONALE triée
+// created_at_desc, on pagine le HAUT (les plus récents) et on s'arrête dès qu'on
+// a rattrapé le delta. 4-18 requêtes RA/jour, une seule invocation, PAS de sweep.
+// Kill-switch + circuit-breaker + détection du throttle silencieux.
+const FRESH_MAX_PAGES = 18
+const FRESH_LOOKBACK_MS = 36 * 60 * 60 * 1000
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function isFreshEnabled(supabase: any): Promise<boolean> {
+  try {
+    const { data } = await supabase.from('app_config').select('value').eq('key', 'realadvisor_fresh_enabled').maybeSingle()
+    if (!data) return true // flag absent = activé par défaut
+    return String(data.value).toLowerCase() !== 'false'
+  } catch { return true }
+}
+
+// Circuit-breaker : si les 2 derniers runs cron-fresh sont throttled/failed, on n'y va pas.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function freshCircuitOpen(supabase: any): Promise<boolean> {
+  try {
+    const { data } = await supabase.from('realadvisor_sync_runs')
+      .select('status').eq('trigger_source', 'cron-fresh')
+      .order('started_at', { ascending: false }).limit(2)
+    if (!data || data.length < 2) return false
+    return data.every((r: { status: string }) => r.status === 'throttled' || r.status === 'failed')
+  } catch { return false }
+}
+
+interface FreshStats { fetched: number; upserted: number; inserted: number; updated: number; skipped: number; errors: number; pages: number }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function updateFreshRun(supabase: any, runId: string | undefined, s: FreshStats, totalExpected: number): Promise<void> {
+  if (!runId) return
+  try {
+    await supabase.from('realadvisor_sync_runs').update({
+      total_expected: totalExpected || null,
+      total_seen: s.fetched, total_upserted: s.upserted,
+      total_inserted: s.inserted, total_updated: s.updated,
+      total_errors: s.errors, pages_fetched: s.pages,
+      last_chunk_at: new Date().toISOString(),
+    }).eq('id', runId)
+  } catch (err) { console.error('[fresh run update] exception:', err) }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runFresh(body: SyncRequest, supabase: any): Promise<void> {
+  const offerType = body.offer_type || 'buy'
+  const triggerSource = body.trigger_source || 'cron-fresh'
+
+  if (!(await isFreshEnabled(supabase))) { console.warn('[fresh] kill-switch off (app_config.realadvisor_fresh_enabled=false) — abort'); return }
+  if (await freshCircuitOpen(supabase)) {
+    console.warn('[fresh] circuit-breaker ouvert (2 derniers cron-fresh KO) — abort')
+    const l = await createRunRow(supabase, offerType, triggerSource)
+    if (l.id) await finalizeRun(supabase, l.id, { status: 'circuit_open', errorMessage: '2 runs fresh consécutifs KO' })
+    return
+  }
+
+  await reapStaleRuns(supabase)
+  const lock = await createRunRow(supabase, offerType, triggerSource)
+  if (lock.blocked) { console.warn('[fresh] un run est déjà actif — abort'); return }
+  const runId = lock.id ?? undefined
+  if (!runId) { console.error('[fresh] verrou non acquis (no run id) — abort'); return }
+
+  const nowIso = new Date().toISOString()
+  const lookbackCut = Date.now() - FRESH_LOOKBACK_MS
+  const national: Slice = { canton: '' } // requête nationale (buildSearchParams n'ajoute pas placeSlugs)
+  const s: FreshStats = { fetched: 0, upserted: 0, inserted: 0, updated: 0, skipped: 0, errors: 0, pages: 0 }
+  let totalExpected = 0
+
+  try {
+    for (let page = 1; page <= FRESH_MAX_PAGES; page++) {
+      if (page > 1) await sleep(PACE_MS)
+      const res = await fetchPage(offerType, national, page)
+      if (page === 1) totalExpected = res.total_count
+      const listings = res.listings || []
+      // Throttle silencieux : page 1 nationale vide alors qu'il y a un catalogue
+      // (jamais 0 resultat national legitime) -> on n'ecrit RIEN, status throttled.
+      if (listings.length === 0) {
+        if (page === 1 && totalExpected > 0) {
+          await finalizeRun(supabase, runId, { status: 'throttled', totalSeen: 0, errorMessage: 'page 1 nationale vide (throttle silencieux)' })
+          return
+        }
+        break
+      }
+      s.fetched += listings.length
+      s.pages++
+      const ids = listings.map((h) => String(h.id)).filter(Boolean)
+      const { data: existRows } = await supabase.from('market_listings')
+        .select('source_id').eq('source_portal', 'realadvisor').in('source_id', ids)
+      const known = new Set((existRows || []).map((r: { source_id: string }) => String(r.source_id)))
+      const rows: Record<string, unknown>[] = []
+      let newInPage = 0
+      for (const hit of listings) {
+        const row = mapHit(hit, offerType, nowIso)
+        if (row === null) { s.skipped++; continue }
+        if (!known.has(String(hit.id))) newInPage++
+        rows.push(row)
+      }
+      const { upserted, errors } = await upsertRows(supabase, rows)
+      s.upserted += upserted; s.errors += errors
+      s.inserted += newInPage; s.updated += (rows.length - newInPage)
+      await updateFreshRun(supabase, runId, s, totalExpected)
+      // STOP : page entierement deja connue ET assez vieille -> delta rattrape.
+      const allKnown = newInPage === 0
+      const allOld = listings.every((h) => { const t = h.created_at ? Date.parse(h.created_at) : 0; return t > 0 && t < lookbackCut })
+      if (allKnown && allOld) break
+    }
+    await updateFreshRun(supabase, runId, s, totalExpected)
+    await finalizeRun(supabase, runId, { status: 'completed', totalSeen: s.fetched, removed: 0 })
+    console.log(`[fresh] done — inserted=${s.inserted} updated=${s.updated} pages=${s.pages}`)
+  } catch (err) {
+    console.error('[fresh] error:', err)
+    await finalizeRun(supabase, runId, { status: 'failed', errorMessage: String(err).slice(0, 500) })
+  }
+}
+
 // ─── Worker sériel : balaye la work-list de slices ────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -682,7 +799,7 @@ serve(async (req) => {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     const body: SyncRequest = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
 
-    const work = runBackground(body, supabase)
+    const work = body.mode === 'fresh' ? runFresh(body, supabase) : runBackground(body, supabase)
     // @ts-expect-error EdgeRuntime is a Supabase-specific Deno global
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
       // @ts-expect-error keep the isolate alive until the work resolves
