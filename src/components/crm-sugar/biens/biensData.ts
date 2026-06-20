@@ -1,6 +1,7 @@
-// MEGGA CRM Sugar v2 — Données spécifiques à l'écran Mes biens
+// MEGGA CRM Sugar v2 — Types + helpers de l'écran Mes biens
 // 1:1 port from the Claude Design bundle (`crm-biens-data.jsx`).
-// Soumissions vendeurs (MEGGA Vendre wizard), historique de publication et alertes.
+// Shape CrmSubmission (alimentée en live par useBnSubmissions depuis seller_leads)
+// + alertes de publication. Le tableau démo CRM_SUBMISSIONS a été retiré.
 
 import type { CrmBien } from '../mockData'
 
@@ -46,107 +47,6 @@ export interface CrmSubmission {
     cantonalRegistry: 'ok' | 'warn' | 'error' | 'pending'
   }
 }
-
-export const CRM_SUBMISSIONS: CrmSubmission[] = [
-  {
-    id: 'sub-001',
-    submittedAt: '2026-04-30T08:14:00',
-    contactId: 'c-006',
-    sla: 'À contacter sous 48h',
-    type: 'maison',
-    transaction: 'vente',
-    title: 'Maison familiale Carouge — succession',
-    addr: 'Avenue Cardinal-Mermillod 22, Carouge',
-    canton: 'GE',
-    rooms: 6, beds: 4, baths: 2, area: 165, year: 1968, energy: 'D',
-    floor: null, floorsTotal: 2,
-    askingPrice: 1850000,
-    priceMode: 'owner',
-    motive: 'succession',
-    deadline: '6-12mois',
-    condition: 'to-refresh',
-    photoCount: 12,
-    desc: "Maison de 6 pièces sur deux étages avec jardin sud, garage double et grande cave. Quartier calme et résidentiel, proche commerces et écoles. Bien à rafraîchir mais structure saine.",
-    features: ['jardin', 'garage', 'cave', 'cheminée'],
-    accent: '#E53935',
-    autoChecks: {
-      addressMatch: 'ok',
-      photosCount: 'warn',
-      duplicates: 'ok',
-      cantonalRegistry: 'ok',
-    },
-  },
-  {
-    id: 'sub-002',
-    submittedAt: '2026-04-29T17:42:00',
-    contactId: null,
-    contactDraft: {
-      firstName: 'Hugo',
-      lastName: 'Beretta',
-      email: 'h.beretta@gmail.com',
-      phone: '+41 79 514 22 08',
-      lang: 'fr',
-    },
-    sla: 'À contacter sous 24h',
-    type: 'appartement',
-    transaction: 'vente',
-    title: '3.5 pièces Rive droite',
-    addr: 'Rue de Lausanne 110, Genève',
-    canton: 'GE',
-    rooms: 3.5, beds: 2, baths: 1, area: 78, year: 2003, energy: 'C',
-    floor: 4, floorsTotal: 6,
-    askingPrice: null,
-    priceMode: 'agent',
-    motive: 'changement de vie',
-    deadline: '3-6mois',
-    condition: 'good',
-    photoCount: 6,
-    desc: 'Appartement traversant en bon état, balcon donnant sur la cour intérieure, ascenseur, cave. Proche transports.',
-    features: ['balcon', 'ascenseur', 'cave'],
-    accent: '#0041D9',
-    autoChecks: {
-      addressMatch: 'ok',
-      photosCount: 'warn',
-      duplicates: 'warn',
-      cantonalRegistry: 'ok',
-    },
-  },
-  {
-    id: 'sub-003',
-    submittedAt: '2026-04-28T11:05:00',
-    contactId: null,
-    contactDraft: {
-      firstName: 'Sandrine',
-      lastName: 'Veuthey',
-      email: 's.veuthey@bluewin.ch',
-      phone: '+41 78 902 11 87',
-      lang: 'fr',
-    },
-    sla: 'À contacter sous 48h',
-    type: 'appartement',
-    transaction: 'location',
-    title: '2 pièces Pâquis (location)',
-    addr: 'Rue de Berne 41, Genève',
-    canton: 'GE',
-    rooms: 2, beds: 1, baths: 1, area: 48, year: 1970, energy: 'E',
-    floor: 2, floorsTotal: 5,
-    askingRent: 1850,
-    priceMode: 'owner',
-    motive: 'investissement',
-    deadline: 'urgent',
-    condition: 'to-refresh',
-    photoCount: 4,
-    desc: 'Studio amélioré louable rapidement, idéal investisseur ou expat. Quartier vivant.',
-    features: ['cave'],
-    accent: '#06B6D4',
-    autoChecks: {
-      addressMatch: 'ok',
-      photosCount: 'error',
-      duplicates: 'ok',
-      cantonalRegistry: 'ok',
-    },
-  },
-]
 
 // BienHistoryEvent + CRM_BIEN_HISTORY retirés : étaient consommés par
 // BnDetailOverlay (onglet Historique) mais le wire backend (query
