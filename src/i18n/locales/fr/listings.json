@@ -178,7 +178,7 @@
       "canton": "Canton",
       "address": "Adresse",
       "egid": "EGID (identifiant fédéral du bâtiment)",
-      "egidHelp": "9 chiffres — recherchable sur <mono>map.geo.admin.ch</mono>. Optionnel ici, indispensable chez le notaire.",
+      "egidHelp": "9 chiffres, recherchable sur <mono>map.geo.admin.ch</mono>. Optionnel ici, indispensable chez le notaire.",
       "monthlyRent": "Loyer mensuel",
       "salePrice": "Prix de vente",
       "chargesMonthly": "Charges mensuelles",
@@ -236,7 +236,7 @@
       }
     },
     "regie": {
-      "summary": "Régie externe (optionnel — sinon l'agence publie sous son nom)",
+      "summary": "Régie externe (optionnel, sinon l'agence publie sous son nom)",
       "name": "Nom régie",
       "phone": "Téléphone",
       "email": "Email",
@@ -253,7 +253,7 @@
     "required": "(requis)",
     "coverPhoto": "Couverture",
     "photoAlt": "Photo {{index}}",
-    "roomTagPlaceholder": "— Pièce —",
+    "roomTagPlaceholder": "Pièce",
     "floorPlan": {
       "upgradeTitle": "Plan interactif",
       "upgradeDescription": "Ajoutez un plan d'étage cliquable pour permettre aux acheteurs de naviguer les photos pièce par pièce."
@@ -276,7 +276,7 @@
       "roomType": "Type de pièce",
       "generating": "Génération en cours...",
       "generate": "Générer la version meublée",
-      "upgradeSuffix": "— Passez au plan Pro pour débloquer.",
+      "upgradeSuffix": "- Passez au plan Pro pour débloquer.",
       "original": "Original",
       "furnished": "Meublé",
       "imagesRemaining_one": "{{count}} image restante ce mois",
@@ -463,8 +463,8 @@
       "a_animer": "À animer",
       "en_veille": "En veille",
       "fallback": "Estimation",
-      "tooltip": "Score de bien — estimation",
-      "tooltipLimited": "Score de bien — estimation · données limitées"
+      "tooltip": "Score de bien, estimation",
+      "tooltipLimited": "Score de bien, estimation · données limitées"
     },
     "submissions": {
       "bannerTitle_one": "{{count}} nouvelle soumission vendeur",
@@ -588,7 +588,7 @@
       "tabPrivate": "Privée",
       "privatePlaceholder": "Notes internes (jamais publiées) : disponibilités du vendeur, marge de négociation, préférences acheteurs…",
       "privateOnly": "Visible uniquement par l'équipe MEGGA · jamais publié",
-      "privateEmpty": "Aucune note d'équipe — passe en édition (✎) pour en ajouter. Visible MEGGA seulement."
+      "privateEmpty": "Aucune note d'équipe, passe en édition (✎) pour en ajouter. Visible MEGGA seulement."
     },
     "specs": {
       "eyebrow": "Caractéristiques",
@@ -610,7 +610,7 @@
       "offerSuffix": " · offre {{amount}}",
       "matchAffinity": "Match MEGGA AI · {{score}}% d'affinité",
       "propose": "Proposer",
-      "kycNotice": "<0>KYC à compléter</0> pour un acheteur — optionnel à ce stade, requis avant signature.",
+      "kycNotice": "<0>KYC à compléter</0> pour un acheteur, optionnel à ce stade, requis avant signature.",
       "startKyc": "Lancer"
     },
     "nextVisit": {
@@ -741,7 +741,7 @@
       "subtitle": "Ajoutez un plan et associez vos photos par pièce",
       "uploading": "Upload en cours...",
       "dropHere": "Glissez votre plan ici",
-      "fileHint": "JPG, PNG, WebP ou SVG — max 15 MB",
+      "fileHint": "JPG, PNG, WebP ou SVG, max 15 MB",
       "browse": "Parcourir",
       "instructions": "Cliquez sur le plan pour placer un point. Glissez pour repositionner.",
       "canvasAria": "Cliquez pour placer un point",
@@ -821,7 +821,7 @@
         "email": "Email",
         "phone": "Téléphone",
         "phonePlaceholder": "+41 79 …",
-        "kycNote": "Le KYC pourra être lancé après la signature du mandat. MEGGA peut envoyer la procédure au vendeur — c'est optionnel.",
+        "kycNote": "Le KYC pourra être lancé après la signature du mandat. MEGGA peut envoyer la procédure au vendeur, c'est optionnel.",
         "createContact": "Créer le contact"
       },
       "mandate": {
@@ -878,7 +878,7 @@
         "settingsTitle": "Ajustez les conditions du mandat",
         "commissionExample": "<base>Sur un bien à 1'500'000 CHF</base>, la commission s'élèverait à <amountStrong>{{amount}}</amountStrong> ({{party}}).",
         "signedNote": "Mandat marqué comme signé.",
-        "notSignedNote": "Mandat non signé — vous pourrez l'envoyer pour signature après publication.",
+        "notSignedNote": "Mandat non signé, vous pourrez l'envoyer pour signature après publication.",
         "markUnsigned": "Marquer comme non signé",
         "markSigned": "Marquer comme signé"
       }
@@ -901,12 +901,12 @@
         "postalAdjust": "Code postal (ajuster)"
       },
       "mapPrompt": "Tapez une adresse pour voir la carte",
-      "mapUnavailable": "⚠ Carte indisponible — token Mapbox à configurer"
+      "mapUnavailable": "⚠ Carte indisponible, token Mapbox à configurer"
     },
     "step3": {
       "eyebrow": "Étape 4 sur 8 · Caractéristiques",
       "title": "Décrivez le bien",
-      "subtitle": "Type, surface, pièces, performance énergétique. Tout est optionnel — vous pourrez compléter plus tard.",
+      "subtitle": "Type, surface, pièces, performance énergétique. Tout est optionnel, vous pourrez compléter plus tard.",
       "typeSection": {
         "title": "Type de bien",
         "subtitle": "Choisissez la nature du bien à publier."
@@ -925,7 +925,7 @@
         "title": "Performance énergétique",
         "subtitle": "Classe DPE selon le canton. Visible sur l'annonce."
       },
-      "energyClassLabel": "Classe {{class}} — {{desc}}",
+      "energyClassLabel": "Classe {{class}} - {{desc}}",
       "energyDesc": {
         "A": "Très performant",
         "B": "Performant",
@@ -1004,8 +1004,8 @@
         },
         "message": {
           "none": "Commencez par ajouter au moins 8 photos.",
-          "insufficient_one": "Seulement {{count}} photo — l'annonce sera moins consultée.",
-          "insufficient_other": "Seulement {{count}} photos — l'annonce sera moins consultée.",
+          "insufficient_one": "Seulement {{count}} photo, l'annonce sera moins consultée.",
+          "insufficient_other": "Seulement {{count}} photos, l'annonce sera moins consultée.",
           "toComplete_one": "{{count}} photo · presque prêt, ajoutez-en encore quelques-unes.",
           "toComplete_other": "{{count}} photos · presque prêt, ajoutez-en encore quelques-unes.",
           "good_one": "{{count}} photo · qualité satisfaisante.",
@@ -1029,7 +1029,7 @@
           "receiving": "Réception en cours…"
         },
         "title": "Scannez avec votre téléphone",
-        "intro": "Ouvrez l'appareil photo de votre téléphone et visez le QR code. Une page web s'ouvrira pour transférer vos photos directement dans ce wizard — sans installation.",
+        "intro": "Ouvrez l'appareil photo de votre téléphone et visez le QR code. Une page web s'ouvrira pour transférer vos photos directement dans ce wizard, sans installation.",
         "step1": "Scannez le code avec votre téléphone",
         "step2": "Autorisez l'accès aux photos",
         "step3": "Sélectionnez et envoyez",
@@ -1039,7 +1039,7 @@
       "drive": {
         "connecting": "Connexion en cours…",
         "connect": "Connecter mon compte",
-        "readOnlyNote": "Lecture seule — MEGGA importera une copie. Vos fichiers d'origine restent intacts."
+        "readOnlyNote": "Lecture seule, MEGGA importera une copie. Vos fichiers d'origine restent intacts."
       }
     },
     "step5": {
@@ -1102,14 +1102,14 @@
         "family": "Familial"
       },
       "staging": {
-        "before": "Avant — vide",
-        "after": "Après — meublé virtuellement",
+        "before": "Avant, vide",
+        "after": "Après, meublé virtuellement",
         "dragToCompare": "Glissez pour comparer",
         "buyerEyebrow": "Pour l'acheteur · immersif",
         "buyerTitle": "Staging virtuel premium",
         "buyerDesc": "Sur les pièces vides, l'acheteur peut activer le mobilier virtuel pour se projeter. Affiché sur la fiche publique avec un slider avant/après.",
         "enableBuyer": "Activer le staging acheteur",
-        "buyerPrice": "{{price}} CHF — facturé une fois à la publication",
+        "buyerPrice": "{{price}} CHF, facturé une fois à la publication",
         "provenanceTitle": "Provenance certifiée",
         "provenanceDesc": "Chaque image générée est signée."
       },
@@ -1140,7 +1140,7 @@
       },
       "recap": {
         "eyebrow": "Options sélectionnées",
-        "empty": "Aucune option pour l'instant — vous publierez votre annonce gratuitement.",
+        "empty": "Aucune option pour l'instant, vous publierez votre annonce gratuitement.",
         "total": "Total des options : {{total}} CHF, facturés à la publication."
       }
     },
@@ -1278,7 +1278,7 @@
       "eyebrow": "Staging Studio · {{room}}",
       "title": "Meubler virtuellement cette pièce",
       "c2paSigned": "Signé C2PA",
-      "originalEmpty": "Original — vide",
+      "originalEmpty": "Original, vide",
       "furnished": "Meublé",
       "seed": "seed {{seed}}",
       "variant": "Variante {{letter}}",

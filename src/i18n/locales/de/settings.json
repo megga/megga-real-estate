@@ -99,7 +99,7 @@
       "confirm": "Discard changes"
     },
     "toast": {
-      "sessionExpired": "Session expired — sign in again to save",
+      "sessionExpired": "Session expired, sign in again to save",
       "saved": "Profile saved",
       "saveError": "Error while saving"
     }
@@ -173,7 +173,7 @@
       "title": "Sales targets",
       "yearlyLabel": "Annual target (commissions, CHF)",
       "split": "Split automatically: {{monthly}}/month · {{quarterly}}/quarter",
-      "empty": "No target set — the Dashboard hides pace and projection until a target is entered.",
+      "empty": "No target set, the Dashboard hides pace and projection until a target is entered.",
       "save": "Save target",
       "toastSaved": "Sales target saved",
       "toastError": "Error while saving the target"
@@ -367,7 +367,7 @@
       }
     },
     "toast": {
-      "sessionExpired": "Session expired — sign in again to save",
+      "sessionExpired": "Session expired, sign in again to save",
       "saved": "Notifications saved",
       "saveError": "Error while saving"
     }
@@ -388,8 +388,8 @@
       "success": "Passwort erfolgreich geändert.",
       "error": "Fehler beim Ändern des Passworts.",
       "descView": "The master key to your MEGGA account.",
-      "descEdit": "Choose a new key — at least 8 characters.",
-      "descForgot": "No need for the old one — we'll send you a secure link.",
+      "descEdit": "Choose a new key, at least 8 characters.",
+      "descForgot": "No need for the old one, we'll send you a secure link.",
       "descSent": "Reset link sent.",
       "encryptedNote": "Encrypted · never shown in plain text",
       "currentLabel": "Current password",
@@ -423,14 +423,14 @@
     },
     "twoFactor": {
       "title": "Two-factor authentication",
-      "enabled": "Aktiviert — Ihr Konto ist geschützt",
-      "disabled": "Deaktiviert — für mehr Sicherheit empfohlen",
+      "enabled": "Aktiviert, Ihr Konto ist geschützt",
+      "disabled": "Deaktiviert, für mehr Sicherheit empfohlen",
       "comingSoon": "Demnächst verfügbar",
       "recommendation": "Wir empfehlen die Aktivierung der 2FA zum Schutz Ihres Kontos, insbesondere für ein GwG/KYC-Compliance-Tool.",
       "badgeEnabled": "Enabled",
       "badgeRecommended": "Recommended",
-      "stepScan": "Step 1 of 2 — Scan this QR code in your authenticator app.",
-      "stepVerify": "Step 2 of 2 — Enter the 6-digit code shown in the app.",
+      "stepScan": "Step 1 of 2, Scan this QR code in your authenticator app.",
+      "stepVerify": "Step 2 of 2, Enter the 6-digit code shown in the app.",
       "stepDone": "Your account is protected. A code will be required on each new sign-in.",
       "authenticatorApp": "Authenticator app",
       "enable": "Enable 2FA",
@@ -595,8 +595,8 @@
       "customBranding": "Individuelles Branding",
       "dataExport": "Datenexport",
       "staging": "MEGGA Staging (KI Virtual Staging)",
-      "staging50": "MEGGA Staging — 50 Bilder/Monat",
-      "staging200": "MEGGA Staging — 200 Bilder/Monat",
+      "staging50": "MEGGA Staging, 50 Bilder/Monat",
+      "staging200": "MEGGA Staging, 200 Bilder/Monat",
       "support247": "Prioritätssupport 24/7"
     },
     "custom": {
@@ -615,7 +615,7 @@
       "disconnect": "Trennen",
       "comingSoon": "Demnächst verfügbar",
       "onRequest": "On request",
-      "connectedDetail": "Active — domain megga.ch verified"
+      "connectedDetail": "Active, domain megga.ch verified"
     },
     "categories": {
       "essential": "Wesentlich",
@@ -791,9 +791,9 @@
       "apiKeyHint": "Skribble → Administration → API keys.",
       "defaultLevel": "Default signature level",
       "qualities": {
-        "QES": "Qualified — same legal value as a handwritten signature (ZertES/eIDAS).",
-        "AES": "Advanced — signer identity verified.",
-        "SES": "Simple — quick agreement, without strong identification."
+        "QES": "Qualified, same legal value as a handwritten signature (ZertES/eIDAS).",
+        "AES": "Advanced, signer identity verified.",
+        "SES": "Simple, quick agreement, without strong identification."
       },
       "trustNote": "Your key is encrypted (Supabase Vault), never exposed, and validated on connection.",
       "connectFailed": "Connection failed",
@@ -1009,7 +1009,7 @@
     "loading": "Loading billing…",
     "unknownError": "Unknown error",
     "failureWith": "Failed: {{message}}",
-    "stripeMissing": "Stripe configuration missing — contact support",
+    "stripeMissing": "Stripe configuration missing, contact support",
     "yourSubscription": "Your subscription",
     "perMonth": "/month",
     "onQuote": "On quote",

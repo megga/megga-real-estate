@@ -42,7 +42,7 @@
     "timelineCount_one": "Timeline · {{count}} event",
     "timelineCount_other": "Timeline · {{count}} events",
     "now": "NOW · {{time}}",
-    "dayEmpty": "Free day — block time for your hot buyers.",
+    "dayEmpty": "Free day, block time for your hot buyers.",
     "heroFirst": "First appointment",
     "heroInProgress": "IN PROGRESS",
     "heroInMinutes_one": "IN {{count}} MIN",
@@ -111,7 +111,7 @@
     "newEvent": "New event",
     "creating": "Creating…",
     "fullAgenda": "Full agenda",
-    "weekRange": "Week of {{startDay}} {{startMonth}} – {{endDay}} {{endMonth}}",
+    "weekRange": "Week of {{startDay}} {{startMonth}} - {{endDay}} {{endMonth}}",
     "selectContactAndProperty": "Select both a contact AND a property to schedule a viewing",
     "errorUnknown": "Unknown error",
     "createFailed": "Failed: {{error}}",
@@ -164,7 +164,7 @@
     },
     "locationPlaceholder": "Appointment address",
     "notesPlaceholder": "Optional notes...",
-    "noContact": "— No contact —",
-    "noProperty": "— No property —"
+    "noContact": "No contact",
+    "noProperty": "No property"
   }
 }

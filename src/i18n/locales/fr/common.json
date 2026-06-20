@@ -38,7 +38,7 @@
     "adminLearning": "Styles appris",
     "adminToolUsage": "Usage des outils",
     "journey": "Parcours",
-    "aiAgent": "Megga — Agent IA",
+    "aiAgent": "Megga, Agent IA",
     "notifications": "Notifications",
     "callbacksToday": "Relances du jour",
     "importLeads": "Importer des leads"
@@ -491,7 +491,7 @@
       },
       "empty": {
         "title": "Aucun résultat pour « {{query}} »",
-        "body": "Demandez plutôt à Megga — il connaît tout votre CRM."
+        "body": "Demandez plutôt à Megga, il connaît tout votre CRM."
       },
       "askMeggaQuery": "Demander à Megga : « {{query}} »",
       "deal": {

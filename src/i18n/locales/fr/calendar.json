@@ -42,7 +42,7 @@
     "timelineCount_one": "Timeline · {{count}} événement",
     "timelineCount_other": "Timeline · {{count}} événements",
     "now": "MAINTENANT · {{time}}",
-    "dayEmpty": "Journée libre — bloquez du temps pour les acheteurs chauds.",
+    "dayEmpty": "Journée libre, bloquez du temps pour les acheteurs chauds.",
     "heroFirst": "Premier RDV",
     "heroInProgress": "EN COURS",
     "heroInMinutes_one": "DANS {{count}} MIN",
@@ -111,7 +111,7 @@
     "newEvent": "Nouvel événement",
     "creating": "Création…",
     "fullAgenda": "Agenda complet",
-    "weekRange": "Semaine du {{startDay}} {{startMonth}} – {{endDay}} {{endMonth}}",
+    "weekRange": "Semaine du {{startDay}} {{startMonth}} - {{endDay}} {{endMonth}}",
     "selectContactAndProperty": "Sélectionnez un contact ET un bien pour planifier une visite",
     "errorUnknown": "Erreur inconnue",
     "createFailed": "Échec : {{error}}",
@@ -164,7 +164,7 @@
     },
     "locationPlaceholder": "Adresse du rendez-vous",
     "notesPlaceholder": "Notes optionnelles...",
-    "noContact": "— Aucun contact —",
-    "noProperty": "— Aucun bien —"
+    "noContact": "Aucun contact",
+    "noProperty": "Aucun bien"
   }
 }

@@ -79,12 +79,12 @@
       },
       "paste": {
         "title": "Collez le message du prospect.",
-        "subtitle": "Email, SMS, formulaire web, message WhatsApp transcrit — MEGGA AI extrait l'identité, l'intention et propose la prochaine action.",
+        "subtitle": "Email, SMS, formulaire web, message WhatsApp transcrit, MEGGA AI extrait l'identité, l'intention et propose la prochaine action.",
         "placeholder": "Collez ici l'email, le SMS ou le message reçu. Plus le texte est riche, meilleure est l'extraction…",
         "tryExample": "Essayer avec un exemple"
       },
       "errors": {
-        "unauthorized": "Session expirée — reconnectez-vous.",
+        "unauthorized": "Session expirée, reconnectez-vous.",
         "textTooShort": "Le message est trop court pour être analysé (10 caractères minimum).",
         "rateLimit": "Quota d'extractions atteint pour cette heure. Réessayez plus tard ou contactez votre admin.",
         "llmUnavailable": "MEGGA AI est temporairement indisponible. Réessayez dans un instant.",
@@ -99,7 +99,7 @@
       "banner": {
         "lowConfidence": {
           "title": "Message court ou ambigu",
-          "body": "Vérifier l'extraction avant de créer — certains champs peuvent être incomplets."
+          "body": "Vérifier l'extraction avant de créer, certains champs peuvent être incomplets."
         },
         "truncated": {
           "title": "Message tronqué pour l'analyse",
@@ -180,8 +180,8 @@
       "csv": {
         "title": "Importer depuis un CSV",
         "uploadPrompt": "Glissez ou sélectionnez votre fichier",
-        "mapPrompt_one": "{{count}} contact trouvé — mappez les colonnes",
-        "mapPrompt_other": "{{count}} contacts trouvés — mappez les colonnes",
+        "mapPrompt_one": "{{count}} contact trouvé, mappez les colonnes",
+        "mapPrompt_other": "{{count}} contacts trouvés, mappez les colonnes",
         "dropTitle": "Glissez votre fichier CSV ici",
         "dropHint": "ou cliquez pour sélectionner (.csv, .tsv)",
         "previewLabel": "Aperçu :"
@@ -305,7 +305,7 @@
     "unassigned": "Non assigné",
     "matchesTitle": "Matchs · {{count}}",
     "seeAllArrow": "Tout voir →",
-    "rdvPlanned": "{{type}} planifié — {{when}}",
+    "rdvPlanned": "{{type}} planifié, {{when}}",
     "rdvWhen": "{{date}} à {{time}}",
     "rdvType": {
       "visit": "Visite",
@@ -414,8 +414,8 @@
     "loading": "Chargement des contacts…",
     "emptyFiltered": "Aucun contact ne correspond aux filtres.",
     "toast": {
-      "created": "Contact créé — {{name}}",
-      "error": "Erreur — {{message}}",
+      "created": "Contact créé, {{name}}",
+      "error": "Erreur, {{message}}",
       "unknownError": "Erreur inconnue"
     },
     "sourceFilter": {
@@ -472,9 +472,9 @@
       },
       "placeholder": {
         "note": "Ajouter une note rapide…",
-        "call": "Résumer un appel — points clés, prochaine étape…",
+        "call": "Résumer un appel, points clés, prochaine étape…",
         "email": "Sujet + corps de l'email…",
-        "task": "Tâche à faire — date, qui ?"
+        "task": "Tâche à faire, date, qui ?"
       },
       "suggest": "Suggérer avec MEGGA AI",
       "save": "Enregistrer"
@@ -514,10 +514,10 @@
         "stale": "À re-screener"
       },
       "hint": {
-        "none": "Vous pouvez continuer à travailler ce dossier — pensez à le compléter avant la signature.",
+        "none": "Vous pouvez continuer à travailler ce dossier, pensez à le compléter avant la signature.",
         "pending": "Vérifications en attente · délai habituel 24-48h.",
         "verified": "Risque {{risk}} · dernier screening {{date}}.",
-        "stale": "Sanctions/PEP à rafraîchir — recommandé après 12 mois ou changement de situation."
+        "stale": "Sanctions/PEP à rafraîchir, recommandé après 12 mois ou changement de situation."
       },
       "cta": {
         "none": "Démarrer le dossier KYC",
@@ -543,8 +543,8 @@
         "froid": "Froid"
       },
       "estimation": "Estimation",
-      "title": "Score de contact — estimation",
-      "titleLimited": "Score de contact — estimation · données limitées"
+      "title": "Score de contact, estimation",
+      "titleLimited": "Score de contact, estimation · données limitées"
     }
   },
   "newContact": {
@@ -635,7 +635,7 @@
     "duration": "Durée",
     "minutes": "{{count}} min",
     "linkedProperty": "Bien associé",
-    "noProperty": "— Aucun —",
+    "noProperty": "Aucun",
     "location": "Lieu",
     "locationPlaceholder": {
       "visit": "Adresse du bien…",
@@ -669,7 +669,7 @@
     "notesTitle": "Notes internes",
     "notesEyebrow": "Privé · équipe MEGGA",
     "edit": "Modifier",
-    "notesPlaceholder": "Note interne — visible par l'équipe MEGGA uniquement.",
+    "notesPlaceholder": "Note interne, visible par l'équipe MEGGA uniquement.",
     "cancel": "Annuler",
     "saving": "Enregistrement…",
     "save": "Enregistrer",
@@ -677,7 +677,7 @@
     "kycBannerNoneStatus": "aucun dossier KYC n'a encore été ouvert",
     "kycBannerPendingStatus": "le dossier KYC est en cours, pièces à compléter",
     "kycBannerReviewStatus": "le dossier KYC est à revoir",
-    "kycBannerTitle": "Conformité KYC — {{status}}.",
+    "kycBannerTitle": "Conformité KYC, {{status}}.",
     "kycBannerDesc": "Complétez le KYC pour préparer le passage en <1>Intérêt confirmé</1>. C'est une assistance facultative, jamais un blocage.",
     "kycBannerProgress": "Avancement : {{pct}} %.",
     "kycStart": "Lancer le KYC",
@@ -732,7 +732,7 @@
     "status": {
       "none": {
         "label": "À démarrer",
-        "hint": "Vous pouvez continuer à travailler ce dossier — pensez à le compléter avant la signature."
+        "hint": "Vous pouvez continuer à travailler ce dossier, pensez à le compléter avant la signature."
       },
       "pending": {
         "label": "En cours",
@@ -740,15 +740,15 @@
       },
       "verified": {
         "label": "Validé",
-        "hint": "Dossier conforme — re-screening conseillé à 12 mois."
+        "hint": "Dossier conforme, re-screening conseillé à 12 mois."
       },
       "stale": {
         "label": "À re-screener",
-        "hint": "Sanctions/PEP à rafraîchir — recommandé après 12 mois ou changement de situation."
+        "hint": "Sanctions/PEP à rafraîchir, recommandé après 12 mois ou changement de situation."
       },
       "failed": {
         "label": "Échec",
-        "hint": "Un contrôle a échoué — revoyez le dossier en détail."
+        "hint": "Un contrôle a échoué, revoyez le dossier en détail."
       }
     },
     "cta": {

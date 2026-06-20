@@ -78,7 +78,7 @@
       },
       "sellerMandate": {
         "label": "Seller mandate",
-        "sub": "New property to publish — mandate required"
+        "sub": "New property to publish, mandate required"
       },
       "tenant": {
         "label": "Tenant",
@@ -134,7 +134,7 @@
       "kycVerified": "KYC ✓",
       "kycPending": "KYC in progress",
       "kycTodo": "KYC to do",
-      "empty": "No results — switch to “New” to create this contact.",
+      "empty": "No results, switch to “New” to create this contact.",
       "firstName": "First name",
       "lastName": "Last name",
       "email": "Email",
@@ -159,7 +159,7 @@
     "guard": {
       "mandate": {
         "title": "Mandate required before publication",
-        "body": "A mandate wizard will be offered after creation — 3 documents to sign (mandate, terms, inventory of fixtures)."
+        "body": "A mandate wizard will be offered after creation, 3 documents to sign (mandate, terms, inventory of fixtures)."
       },
       "kyc": {
         "title": "KYC recommended at this stage",
@@ -167,7 +167,7 @@
       }
     },
     "error": {
-      "noAgency": "No agency linked — cannot create the deal",
+      "noAgency": "No agency linked, cannot create the deal",
       "demoBien": "The selected property is a demo example. Select a real property from the agency portfolio.",
       "demoContact": "The selected contact is a demo example. Select a real contact.",
       "selectContact": "Select a contact",
@@ -223,7 +223,7 @@
     "searchPlaceholder": "Search contact, property, note…",
     "importLead": "Import a lead",
     "importLeadHint": "Import a lead via MEGGA AI",
-    "commandPaletteComingSoon": "Search — ⌘K (coming soon)",
+    "commandPaletteComingSoon": "Search, ⌘K (coming soon)",
     "list": {
       "dealContact": "Deal / Contact",
       "nextAction": "Next action",
@@ -289,7 +289,7 @@
       "override": "Override"
     },
     "lock": {
-      "title": "Non-blocking reminder — open the KYC files",
+      "title": "Non-blocking reminder, open the KYC files",
       "pending_one": "<strong>{{count}}</strong> KYC file to complete",
       "pending_other": "<strong>{{count}}</strong> KYC files to complete",
       "optional": "Optional"
@@ -357,9 +357,9 @@
     "surface_rooms": "{{surface}} m² · {{rooms}} rooms",
     "documents": "Documents",
     "documents_subtitle": "For this deal",
-    "doc_formal_offer": "Formal offer — {{by}}",
-    "doc_counter_offer": "Counter-offer — {{by}}",
-    "doc_kyc_complete": "Buyer KYC — complete file",
+    "doc_formal_offer": "Formal offer, {{by}}",
+    "doc_counter_offer": "Counter-offer, {{by}}",
+    "doc_kyc_complete": "Buyer KYC, complete file",
     "doc_sale_agreement": "Sale agreement",
     "no_documents": "No document generated for this deal.",
     "doc_status_signed": "Signed",
@@ -370,7 +370,7 @@
     "private_notes": "Private notes",
     "notes_team": "{{brand}} team",
     "notes_saving": "Saving…",
-    "notes_empty": "Private notes — visible only to the {{brand}} team.",
+    "notes_empty": "Private notes, visible only to the {{brand}} team.",
     "never_visible_client": "Never visible to the client",
     "asking_price": "Asking price",
     "offer_received": "Offer received",

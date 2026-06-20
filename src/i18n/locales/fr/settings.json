@@ -99,7 +99,7 @@
       "confirm": "Annuler les modifs"
     },
     "toast": {
-      "sessionExpired": "Session expirée — reconnectez-vous pour enregistrer",
+      "sessionExpired": "Session expirée, reconnectez-vous pour enregistrer",
       "saved": "Profil enregistré",
       "saveError": "Erreur lors de l'enregistrement"
     }
@@ -173,7 +173,7 @@
       "title": "Objectifs commerciaux",
       "yearlyLabel": "Objectif annuel (commissions, CHF)",
       "split": "Réparti automatiquement : {{monthly}}/mois · {{quarterly}}/trimestre",
-      "empty": "Aucun objectif défini — le Dashboard masque le rythme et la projection tant qu'aucune cible n'est saisie.",
+      "empty": "Aucun objectif défini, le Dashboard masque le rythme et la projection tant qu'aucune cible n'est saisie.",
       "save": "Enregistrer l'objectif",
       "toastSaved": "Objectif commercial enregistré",
       "toastError": "Erreur lors de l'enregistrement de l'objectif"
@@ -367,7 +367,7 @@
       }
     },
     "toast": {
-      "sessionExpired": "Session expirée — reconnectez-vous pour enregistrer",
+      "sessionExpired": "Session expirée, reconnectez-vous pour enregistrer",
       "saved": "Notifications enregistrées",
       "saveError": "Erreur lors de l’enregistrement"
     }
@@ -388,8 +388,8 @@
       "success": "Mot de passe modifié avec succès.",
       "error": "Erreur lors de la modification du mot de passe.",
       "descView": "Clé maîtresse de votre compte MEGGA.",
-      "descEdit": "Choisissez une nouvelle clé — au moins 8 caractères.",
-      "descForgot": "Pas besoin de l'ancienne — on vous envoie un lien sécurisé.",
+      "descEdit": "Choisissez une nouvelle clé, au moins 8 caractères.",
+      "descForgot": "Pas besoin de l'ancienne, on vous envoie un lien sécurisé.",
       "descSent": "Lien de réinitialisation envoyé.",
       "encryptedNote": "Chiffré · jamais affiché en clair",
       "currentLabel": "Mot de passe actuel",
@@ -423,14 +423,14 @@
     },
     "twoFactor": {
       "title": "Double authentification",
-      "enabled": "Activé — votre compte est protégé",
-      "disabled": "Désactivé — recommandé pour plus de sécurité",
+      "enabled": "Activé, votre compte est protégé",
+      "disabled": "Désactivé, recommandé pour plus de sécurité",
       "comingSoon": "Bientôt disponible",
       "recommendation": "Nous recommandons d'activer la 2FA pour protéger votre compte, surtout pour un outil de conformité LAB/KYC.",
       "badgeEnabled": "Activée",
       "badgeRecommended": "Recommandé",
-      "stepScan": "Étape 1 sur 2 — Scannez ce QR code dans votre application d'authentification.",
-      "stepVerify": "Étape 2 sur 2 — Saisissez le code à 6 chiffres affiché dans l'application.",
+      "stepScan": "Étape 1 sur 2, Scannez ce QR code dans votre application d'authentification.",
+      "stepVerify": "Étape 2 sur 2, Saisissez le code à 6 chiffres affiché dans l'application.",
       "stepDone": "Votre compte est protégé. Un code sera demandé à chaque nouvelle connexion.",
       "authenticatorApp": "Application d'authentification",
       "enable": "Activer la 2FA",
@@ -595,8 +595,8 @@
       "customBranding": "Branding personnalisé",
       "dataExport": "Export données",
       "staging": "MEGGA Staging (virtual staging IA)",
-      "staging50": "MEGGA Staging — 50 images/mois",
-      "staging200": "MEGGA Staging — 200 images/mois",
+      "staging50": "MEGGA Staging, 50 images/mois",
+      "staging200": "MEGGA Staging, 200 images/mois",
       "support247": "Support prioritaire 24/7"
     },
     "custom": {
@@ -614,7 +614,7 @@
       "configure": "Configurer",
       "disconnect": "Déconnecter",
       "comingSoon": "Bientôt disponible",
-      "connectedDetail": "Actif — domaine megga.ch vérifié",
+      "connectedDetail": "Actif, domaine megga.ch vérifié",
       "onRequest": "Sur demande"
     },
     "categories": {
@@ -791,9 +791,9 @@
       "apiKeyHint": "Skribble → Administration → Clés API.",
       "defaultLevel": "Niveau de signature par défaut",
       "qualities": {
-        "QES": "Qualifiée — même valeur qu'une signature manuscrite (ZertES/eIDAS).",
-        "AES": "Avancée — identité du signataire vérifiée.",
-        "SES": "Simple — accord rapide, sans identification forte."
+        "QES": "Qualifiée, même valeur qu'une signature manuscrite (ZertES/eIDAS).",
+        "AES": "Avancée, identité du signataire vérifiée.",
+        "SES": "Simple, accord rapide, sans identification forte."
       },
       "trustNote": "Votre clé est chiffrée (Supabase Vault), jamais exposée, et validée à la connexion.",
       "connectFailed": "Connexion impossible",
@@ -1009,7 +1009,7 @@
     "loading": "Chargement de la facturation…",
     "unknownError": "Erreur inconnue",
     "failureWith": "Échec : {{message}}",
-    "stripeMissing": "Configuration Stripe manquante — contactez le support",
+    "stripeMissing": "Configuration Stripe manquante, contactez le support",
     "yourSubscription": "Votre abonnement",
     "perMonth": "/mois",
     "onQuote": "Sur devis",

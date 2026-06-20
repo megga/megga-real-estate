@@ -97,7 +97,7 @@
       "saving": "Saving...",
       "notesPlaceholder": "Notes on this contact...",
       "nextAction": "Next action",
-      "nextActionHigh": "Offer a viewing — this contact is highly engaged",
+      "nextActionHigh": "Offer a viewing, this contact is highly engaged",
       "nextActionMedium": "Send similar properties to keep them interested",
       "nextActionLow": "Follow up with a new property or a price drop",
       "recentActivity": "Recent activity",
@@ -106,7 +106,7 @@
       "matching": "Matching",
       "compatibleProperties_one": "{{count}} matching property",
       "compatibleProperties_other": "{{count}} matching properties",
-      "bestMatch": "Best: {{score}}% — {{title}}",
+      "bestMatch": "Best: {{score}}%, {{title}}",
       "propertyFallback": "Property",
       "sentProperties": "Properties sent",
       "moreCount_one": "+{{count}} other",
@@ -193,7 +193,7 @@
       "daysOnMarket_other": "{{count}} days on market",
       "visits_one": "{{count}} visit",
       "visits_other": "{{count}} visits",
-      "disclaimer": "Decision support — not a formal recommendation.",
+      "disclaimer": "Decision support, not a formal recommendation.",
       "interest": {
         "veryHigh": "Very high",
         "high": "High",
@@ -214,13 +214,13 @@
         "hold": {
           "strategy": "Hold the price with supporting arguments",
           "counterOffer": "Counter-offer at -3% maximum",
-          "reasoningLong": "The {{gap}}% gap is significant. However, the property has been on the market for a while — consider an adjustment.",
-          "reasoningMarket": "The {{gap}}% gap is significant. The price is justified by the market — present the comparables."
+          "reasoningLong": "The {{gap}}% gap is significant. However, the property has been on the market for a while, consider an adjustment.",
+          "reasoningMarket": "The {{gap}}% gap is significant. The price is justified by the market, present the comparables."
         },
         "tooLow": {
-          "strategy": "Offer too low — decline politely",
+          "strategy": "Offer too low, decline politely",
           "counterOffer": "Hold the asking price",
-          "reasoningInterest": "The {{gap}}% gap is too large. The property has drawn interest ({{visits}} visits) — other buyers are possible.",
+          "reasoningInterest": "The {{gap}}% gap is too large. The property has drawn interest ({{visits}} visits), other buyers are possible.",
           "reasoningBudget": "The {{gap}}% gap is too large. Suggest the buyer revisit their budget."
         }
       }
@@ -238,7 +238,7 @@
         "medium": "Moderate impact",
         "low": "Low impact"
       },
-      "disclaimer": "AI analysis of visit feedback — anonymised data."
+      "disclaimer": "AI analysis of visit feedback, anonymised data."
     },
     "seller": {
       "title": "Seller intelligence",

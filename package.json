@@ -9,6 +9,7 @@
     "postbuild": "node scripts/overlay-storefront.mjs",
     "lint": "eslint .",
     "lint:prose": "node scripts/check-prose-typography.mjs",
+    "i18n:prose:fix": "node scripts/i18n-fix-typography.mjs",
     "i18n:scan": "node scripts/i18n-scan.mjs",
     "i18n:parity": "node scripts/i18n-parity.mjs",
     "i18n:parity:ci": "node scripts/i18n-parity.mjs --ci",

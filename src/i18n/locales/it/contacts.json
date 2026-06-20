@@ -79,12 +79,12 @@
       },
       "paste": {
         "title": "Paste the prospect's message.",
-        "subtitle": "Email, SMS, web form, transcribed WhatsApp message — MEGGA AI extracts the identity and intent, and suggests the next action.",
+        "subtitle": "Email, SMS, web form, transcribed WhatsApp message, MEGGA AI extracts the identity and intent, and suggests the next action.",
         "placeholder": "Paste the email, SMS or message you received here. The richer the text, the better the extraction…",
         "tryExample": "Try with an example"
       },
       "errors": {
-        "unauthorized": "Session expired — please sign in again.",
+        "unauthorized": "Session expired, please sign in again.",
         "textTooShort": "The message is too short to analyse (10 characters minimum).",
         "rateLimit": "Extraction quota reached for this hour. Try again later or contact your admin.",
         "llmUnavailable": "MEGGA AI is temporarily unavailable. Please try again shortly.",
@@ -99,7 +99,7 @@
       "banner": {
         "lowConfidence": {
           "title": "Short or ambiguous message",
-          "body": "Review the extraction before creating — some fields may be incomplete."
+          "body": "Review the extraction before creating, some fields may be incomplete."
         },
         "truncated": {
           "title": "Message truncated for analysis",
@@ -180,8 +180,8 @@
       "csv": {
         "title": "Import from a CSV",
         "uploadPrompt": "Drag or select your file",
-        "mapPrompt_one": "{{count}} contact found — map the columns",
-        "mapPrompt_other": "{{count}} contacts found — map the columns",
+        "mapPrompt_one": "{{count}} contact found, map the columns",
+        "mapPrompt_other": "{{count}} contacts found, map the columns",
         "dropTitle": "Drop your CSV file here",
         "dropHint": "or click to select (.csv, .tsv)",
         "previewLabel": "Preview:"
@@ -305,7 +305,7 @@
     "unassigned": "Unassigned",
     "matchesTitle": "Matches · {{count}}",
     "seeAllArrow": "See all →",
-    "rdvPlanned": "{{type}} scheduled — {{when}}",
+    "rdvPlanned": "{{type}} scheduled, {{when}}",
     "rdvWhen": "{{date}} at {{time}}",
     "rdvType": {
       "visit": "Viewing",
@@ -414,8 +414,8 @@
     "loading": "Loading contacts…",
     "emptyFiltered": "No contact matches the filters.",
     "toast": {
-      "created": "Contact created — {{name}}",
-      "error": "Error — {{message}}",
+      "created": "Contact created, {{name}}",
+      "error": "Error, {{message}}",
       "unknownError": "Unknown error"
     },
     "sourceFilter": {
@@ -472,9 +472,9 @@
       },
       "placeholder": {
         "note": "Add a quick note…",
-        "call": "Summarise a call — key points, next step…",
+        "call": "Summarise a call, key points, next step…",
         "email": "Subject + email body…",
-        "task": "Task to do — due date, who?"
+        "task": "Task to do, due date, who?"
       },
       "suggest": "Suggest with MEGGA AI",
       "save": "Save"
@@ -514,10 +514,10 @@
         "stale": "Re-screen needed"
       },
       "hint": {
-        "none": "You can keep working this file — remember to complete it before signing.",
+        "none": "You can keep working this file, remember to complete it before signing.",
         "pending": "Checks pending · usual turnaround 24-48h.",
         "verified": "Risk {{risk}} · last screening {{date}}.",
-        "stale": "Sanctions/PEP to refresh — recommended after 12 months or a change of circumstances."
+        "stale": "Sanctions/PEP to refresh, recommended after 12 months or a change of circumstances."
       },
       "cta": {
         "none": "Start the KYC file",
@@ -543,8 +543,8 @@
         "froid": "Cold"
       },
       "estimation": "Estimate",
-      "title": "Contact score — estimate",
-      "titleLimited": "Contact score — estimate · limited data"
+      "title": "Contact score, estimate",
+      "titleLimited": "Contact score, estimate · limited data"
     }
   },
   "newContact": {
@@ -635,7 +635,7 @@
     "duration": "Duration",
     "minutes": "{{count}} min",
     "linkedProperty": "Linked property",
-    "noProperty": "— None —",
+    "noProperty": "None",
     "location": "Location",
     "locationPlaceholder": {
       "visit": "Property address…",
@@ -669,7 +669,7 @@
     "notesTitle": "Internal notes",
     "notesEyebrow": "Private · MEGGA team",
     "edit": "Edit",
-    "notesPlaceholder": "Internal note — visible to the MEGGA team only.",
+    "notesPlaceholder": "Internal note, visible to the MEGGA team only.",
     "cancel": "Cancel",
     "saving": "Saving…",
     "save": "Save",
@@ -677,7 +677,7 @@
     "kycBannerNoneStatus": "no KYC file opened yet",
     "kycBannerPendingStatus": "the KYC file is in progress, documents to complete",
     "kycBannerReviewStatus": "the KYC file should be reviewed",
-    "kycBannerTitle": "KYC compliance — {{status}}.",
+    "kycBannerTitle": "KYC compliance, {{status}}.",
     "kycBannerDesc": "Complete the KYC to prepare the move to <1>Confirmed interest</1>. It's an optional assist, never a blocker.",
     "kycBannerProgress": "Progress: {{pct}}%.",
     "kycStart": "Start KYC",
@@ -732,7 +732,7 @@
     "status": {
       "none": {
         "label": "To start",
-        "hint": "You can keep working this file — remember to complete it before signing."
+        "hint": "You can keep working this file, remember to complete it before signing."
       },
       "pending": {
         "label": "In progress",
@@ -740,15 +740,15 @@
       },
       "verified": {
         "label": "Verified",
-        "hint": "File compliant — re-screening advised at 12 months."
+        "hint": "File compliant, re-screening advised at 12 months."
       },
       "stale": {
         "label": "To re-screen",
-        "hint": "Sanctions/PEP need refreshing — recommended after 12 months or a change of circumstances."
+        "hint": "Sanctions/PEP need refreshing, recommended after 12 months or a change of circumstances."
       },
       "failed": {
         "label": "Failed",
-        "hint": "A check failed — review the file in detail."
+        "hint": "A check failed, review the file in detail."
       }
     },
     "cta": {

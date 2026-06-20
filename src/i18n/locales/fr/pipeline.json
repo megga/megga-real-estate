@@ -78,7 +78,7 @@
       },
       "sellerMandate": {
         "label": "Mandat vendeur",
-        "sub": "Nouveau bien à publier — mandat requis"
+        "sub": "Nouveau bien à publier, mandat requis"
       },
       "tenant": {
         "label": "Locataire",
@@ -134,7 +134,7 @@
       "kycVerified": "KYC ✓",
       "kycPending": "KYC en cours",
       "kycTodo": "KYC à faire",
-      "empty": "Aucun résultat — basculez sur « Nouveau » pour créer ce contact.",
+      "empty": "Aucun résultat, basculez sur « Nouveau » pour créer ce contact.",
       "firstName": "Prénom",
       "lastName": "Nom",
       "email": "Email",
@@ -159,7 +159,7 @@
     "guard": {
       "mandate": {
         "title": "Mandat requis avant publication",
-        "body": "Un wizard mandat sera proposé après création — 3 documents à signer (mandat, conditions, état des lieux)."
+        "body": "Un wizard mandat sera proposé après création, 3 documents à signer (mandat, conditions, état des lieux)."
       },
       "kyc": {
         "title": "KYC recommandé à cette étape",
@@ -167,7 +167,7 @@
       }
     },
     "error": {
-      "noAgency": "Aucune agence rattachée — impossible de créer le deal",
+      "noAgency": "Aucune agence rattachée, impossible de créer le deal",
       "demoBien": "Le bien sélectionné est un exemple de démo. Sélectionnez un bien réel du portefeuille agence.",
       "demoContact": "Le contact sélectionné est un exemple de démo. Sélectionnez un contact réel.",
       "selectContact": "Sélectionnez un contact",
@@ -223,7 +223,7 @@
     "searchPlaceholder": "Rechercher contact, bien, note…",
     "importLead": "Importer un lead",
     "importLeadHint": "Importer un lead via MEGGA AI",
-    "commandPaletteComingSoon": "Recherche — ⌘K (à venir)",
+    "commandPaletteComingSoon": "Recherche, ⌘K (à venir)",
     "list": {
       "dealContact": "Deal / Contact",
       "nextAction": "Prochaine action",
@@ -289,7 +289,7 @@
       "override": "Passer outre"
     },
     "lock": {
-      "title": "Rappel non-bloquant — ouvrir les dossiers KYC",
+      "title": "Rappel non-bloquant, ouvrir les dossiers KYC",
       "pending_one": "<strong>{{count}}</strong> dossier KYC à compléter",
       "pending_other": "<strong>{{count}}</strong> dossiers KYC à compléter",
       "optional": "Optionnel"
@@ -357,9 +357,9 @@
     "surface_rooms": "{{surface}} m² · {{rooms}} pièces",
     "documents": "Documents",
     "documents_subtitle": "Du deal",
-    "doc_formal_offer": "Offre formelle — {{by}}",
-    "doc_counter_offer": "Contre-offre — {{by}}",
-    "doc_kyc_complete": "KYC acheteur — dossier complet",
+    "doc_formal_offer": "Offre formelle, {{by}}",
+    "doc_counter_offer": "Contre-offre, {{by}}",
+    "doc_kyc_complete": "KYC acheteur, dossier complet",
     "doc_sale_agreement": "Compromis de vente",
     "no_documents": "Aucun document généré pour ce deal.",
     "doc_status_signed": "Signé",
@@ -370,7 +370,7 @@
     "private_notes": "Notes privées",
     "notes_team": "Équipe {{brand}}",
     "notes_saving": "Enregistrement…",
-    "notes_empty": "Notes privées — visibles uniquement par l'équipe {{brand}}.",
+    "notes_empty": "Notes privées, visibles uniquement par l'équipe {{brand}}.",
     "never_visible_client": "Jamais visible par le client",
     "asking_price": "Prix demandé",
     "offer_received": "Offre reçue",

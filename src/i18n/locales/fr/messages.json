@@ -97,7 +97,7 @@
       "saving": "Sauvegarde...",
       "notesPlaceholder": "Notes sur ce contact...",
       "nextAction": "Prochaine action",
-      "nextActionHigh": "Proposer une visite — ce contact est très engagé",
+      "nextActionHigh": "Proposer une visite, ce contact est très engagé",
       "nextActionMedium": "Envoyer des biens similaires pour maintenir l'intérêt",
       "nextActionLow": "Relancer avec un nouveau bien ou une baisse de prix",
       "recentActivity": "Activité récente",
@@ -106,7 +106,7 @@
       "matching": "Matching",
       "compatibleProperties_one": "{{count}} bien compatible",
       "compatibleProperties_other": "{{count}} biens compatibles",
-      "bestMatch": "Meilleur : {{score}}% — {{title}}",
+      "bestMatch": "Meilleur : {{score}}%, {{title}}",
       "propertyFallback": "Bien",
       "sentProperties": "Biens envoyés",
       "moreCount_one": "+{{count}} autre",
@@ -193,7 +193,7 @@
       "daysOnMarket_other": "{{count}} jours en vente",
       "visits_one": "{{count}} visite",
       "visits_other": "{{count}} visites",
-      "disclaimer": "Aide à la décision — ne constitue pas une recommandation formelle.",
+      "disclaimer": "Aide à la décision, ne constitue pas une recommandation formelle.",
       "interest": {
         "veryHigh": "Très élevé",
         "high": "Élevé",
@@ -214,13 +214,13 @@
         "hold": {
           "strategy": "Maintenir le prix avec arguments",
           "counterOffer": "Contre-offre à -3% maximum",
-          "reasoningLong": "L'écart de {{gap}}% est significatif. Cependant, le bien est en vente depuis longtemps — considérer un ajustement.",
-          "reasoningMarket": "L'écart de {{gap}}% est significatif. Le prix est justifié par le marché — présenter les comparables."
+          "reasoningLong": "L'écart de {{gap}}% est significatif. Cependant, le bien est en vente depuis longtemps, considérer un ajustement.",
+          "reasoningMarket": "L'écart de {{gap}}% est significatif. Le prix est justifié par le marché, présenter les comparables."
         },
         "tooLow": {
-          "strategy": "Offre trop basse — refuser poliment",
+          "strategy": "Offre trop basse, refuser poliment",
           "counterOffer": "Maintenir le prix demandé",
-          "reasoningInterest": "L'écart de {{gap}}% est trop important. Le bien a suscité de l'intérêt ({{visits}} visites) — d'autres acheteurs sont possibles.",
+          "reasoningInterest": "L'écart de {{gap}}% est trop important. Le bien a suscité de l'intérêt ({{visits}} visites), d'autres acheteurs sont possibles.",
           "reasoningBudget": "L'écart de {{gap}}% est trop important. Suggérer à l'acheteur de revoir son budget."
         }
       }
@@ -238,7 +238,7 @@
         "medium": "Impact modéré",
         "low": "Impact faible"
       },
-      "disclaimer": "Analyse IA des retours de visite — données anonymisées."
+      "disclaimer": "Analyse IA des retours de visite, données anonymisées."
     },
     "seller": {
       "title": "Seller intelligence",

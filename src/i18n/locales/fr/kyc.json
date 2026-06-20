@@ -202,7 +202,7 @@
     },
     "contact": {
       "title": "Pour quel contact ?",
-      "subtitle": "Les contacts qui ont déjà un dossier KYC en cours apparaissent grisés — vous pouvez les rouvrir depuis la liste principale.",
+      "subtitle": "Les contacts qui ont déjà un dossier KYC en cours apparaissent grisés, vous pouvez les rouvrir depuis la liste principale.",
       "searchPlaceholder": "Rechercher un contact, un e-mail…",
       "empty": "Aucun contact ne correspond à cette recherche.",
       "existingDossier": "Dossier existant",
@@ -284,19 +284,19 @@
         "validation": "Validation"
       },
       "titles": {
-        "context": "Contexte — {{name}}",
+        "context": "Contexte, {{name}}",
         "start": "Démarrer un dossier",
-        "identity": "Identité — {{name}}",
-        "funds": "Origine des fonds — {{name}}",
+        "identity": "Identité, {{name}}",
+        "funds": "Origine des fonds, {{name}}",
         "screening": "Screening PEP & sanctions",
         "validation": "Validation finale du dossier"
       },
       "kickers": {
-        "0": "Étape 1 sur 5 · LBA art. 3 — Contexte de la relation",
-        "1": "Étape 2 sur 5 · LBA art. 3 — Identification du cocontractant",
-        "2": "Étape 3 sur 5 · LBA art. 4 — Origine des fonds",
-        "3": "Étape 4 sur 5 · LBA art. 4 — Screening PEP & sanctions",
-        "4": "Étape 5 sur 5 · LBA — Validation conformité"
+        "0": "Étape 1 sur 5 · LBA art. 3, Contexte de la relation",
+        "1": "Étape 2 sur 5 · LBA art. 3, Identification du cocontractant",
+        "2": "Étape 3 sur 5 · LBA art. 4, Origine des fonds",
+        "3": "Étape 4 sur 5 · LBA art. 4, Screening PEP & sanctions",
+        "4": "Étape 5 sur 5 · LBA, Validation conformité"
       },
       "subs": {
         "0": "Sélectionnez le contact concerné, son rôle dans la transaction et un montant indicatif si déjà connu.",
@@ -366,7 +366,7 @@
         "screeningStatus": "En cours · 4 sources interrogées",
         "screeningHint": "Lancé automatiquement à la saisie. Résultats à l'étape Screening.",
         "tipTitle": "Conseil conformité",
-        "tipBody": "Pensez à scanner aussi le verso si CI suisse — le numéro de document figure au dos."
+        "tipBody": "Pensez à scanner aussi le verso si CI suisse, le numéro de document figure au dos."
       },
       "nav": {
         "back": "Retour",
@@ -382,7 +382,7 @@
       "errors": {
         "selectContactType": "Sélectionnez un contact et un type de relation pour continuer.",
         "selectContactTypeShort": "Sélectionnez un contact et un type de relation.",
-        "noAgency": "Profil agence introuvable — impossible de créer le dossier.",
+        "noAgency": "Profil agence introuvable, impossible de créer le dossier.",
         "createFailed": "Erreur lors de la création du dossier."
       }
     }
@@ -390,7 +390,7 @@
   "dossier": {
     "row": {
       "incomplete": "À compléter",
-      "incompleteHint": "Rappel doux — KYC à compléter (non bloquant pour le pipeline)"
+      "incompleteHint": "Rappel doux, KYC à compléter (non bloquant pour le pipeline)"
     },
     "detail": {
       "loadError": "Impossible de charger ce dossier KYC.",
@@ -407,7 +407,7 @@
       "nationalityRequired": "Nationalité requise pour le screening Dilisense. Mettez à jour le contact.",
       "screeningRestarted": "Screening Dilisense relancé.",
       "screeningFailed": "Échec du screening.",
-      "agencyMissing": "agency_id manquant — connexion requise.",
+      "agencyMissing": "agency_id manquant, connexion requise.",
       "decisionSaved": "Décision « {{verdict}} » enregistrée.",
       "saveFailed": "Échec de l’enregistrement.",
       "fileUploaded": "« {{name}} » téléversé.",
@@ -445,7 +445,7 @@
       },
       "awaiting_evidence": {
         "label": "En attente d’éléments",
-        "hint": "Examen en pause — éléments complémentaires demandés au client."
+        "hint": "Examen en pause, éléments complémentaires demandés au client."
       }
     },
     "confirm": {
@@ -508,7 +508,7 @@
       "redFlag": "Red flag LBA",
       "redFlagSuffix": "(red flag)",
       "linkedDoc": "Pièce liée :",
-      "noLinkedDoc": "Aucune pièce associée — à téléverser.",
+      "noLinkedDoc": "Aucune pièce associée, à téléverser.",
       "errorAgencyMissing": "agency_id manquant.",
       "errorSave": "Échec de l’enregistrement.",
       "overlayEyebrow": "LBA art. 6 al. 1 lit. b · Arrière-plan économique",
@@ -519,7 +519,7 @@
       "descriptionPlaceholder": "Précisez l’arrière-plan économique : période, instruments, contreparties.",
       "descriptionPlaceholderCrypto": "Ex : USDT achetés en 2021 sur Kraken, exchange régulé FINMA, conservation cold wallet, attestation jointe.",
       "docLabel": "Pièce justificative (catégorie financial ou compliance)",
-      "docNone": "— Aucune pièce —",
+      "docNone": "Aucune pièce",
       "cancel": "Annuler",
       "saving": "Enregistrement…",
       "save": "Enregistrer",
@@ -546,7 +546,7 @@
         },
         "crypto": {
           "label": "Crypto-actifs",
-          "hint": "Red flag LBA — description détaillée recommandée"
+          "hint": "Red flag LBA, description détaillée recommandée"
         },
         "loan": {
           "label": "Prêt bancaire",
@@ -554,7 +554,7 @@
         },
         "mixed": {
           "label": "Origine mixte",
-          "hint": "Red flag LBA — détailler chaque source"
+          "hint": "Red flag LBA, détailler chaque source"
         },
         "other": {
           "label": "Autre",
@@ -566,10 +566,10 @@
       "typeBuyer": "Acheteur",
       "typeSeller": "Vendeur",
       "stateEyebrow": "État du dossier",
-      "stateVerifiedTitle": "Dossier vérifié — transaction autorisée",
+      "stateVerifiedTitle": "Dossier vérifié, transaction autorisée",
       "stateUnverifiedTitle": "Vérifications à compléter",
       "stateVerifiedBody": "Tous les contrôles LBA sont validés.",
-      "stateUnverifiedBody": "Vous pouvez continuer à faire avancer le deal — le KYC reste recommandé avant la signature, mais il n'est pas bloquant.",
+      "stateUnverifiedBody": "Vous pouvez continuer à faire avancer le deal, le KYC reste recommandé avant la signature, mais il n'est pas bloquant.",
       "markingAll": "Validation…",
       "markAllVerified": "Tout marquer vérifié",
       "checksEyebrow": "Contrôles · LBA art. 3-7",
@@ -591,7 +591,7 @@
     "audit": {
       "eyebrow": "Conformité nLPD · LBA",
       "title": "Piste d'audit",
-      "empty": "Aucune action enregistrée — dossier non démarré.",
+      "empty": "Aucune action enregistrée, dossier non démarré.",
       "retention": "Traçabilité conservée 10 ans (art. 7 LBA)",
       "exportPdf": "Exporter PDF horodaté",
       "actorSystem": "Système",
@@ -617,7 +617,7 @@
   },
   "list": {
     "heading": "Dossiers KYC.",
-    "intro": "Toute transaction immobilière en Suisse exige une vérification documentée de l'identité, du domicile et de l'origine des fonds. Le KYC reste recommandé avant la signature — un rappel doux, jamais bloquant.",
+    "intro": "Toute transaction immobilière en Suisse exige une vérification documentée de l'identité, du domicile et de l'origine des fonds. Le KYC reste recommandé avant la signature, un rappel doux, jamais bloquant.",
     "export": "Exporter",
     "newDossier": "Nouveau dossier",
     "stats": {
@@ -648,8 +648,8 @@
   "nonBlocking": {
     "complete": "Compléter",
     "dismiss": "Ignorer",
-    "dealBadgeHint_one": "{{count}} pièce manquante — non bloquant",
-    "dealBadgeHint_other": "{{count}} pièces manquantes — non bloquant",
+    "dealBadgeHint_one": "{{count}} pièce manquante, non bloquant",
+    "dealBadgeHint_other": "{{count}} pièces manquantes, non bloquant",
     "availableActions": "Actions disponibles",
     "completeBeforeSignature": "Compléter le KYC avant la signature",
     "debtIntro": "Aucune action n'est jamais bloquée. Le responsable conformité voit ici la dette accumulée et relance.",
@@ -657,9 +657,9 @@
     "daysShort_other": "{{count}}j",
     "followUp": "Relancer",
     "showcase": {
-      "contactBanner": "Fiche contact — banner doux (n'empêche aucune action)",
-      "dealBadge": "Carte deal — badge persistant",
-      "debtTable": "Tableau de dette — vu par le responsable"
+      "contactBanner": "Fiche contact, banner doux (n'empêche aucune action)",
+      "dealBadge": "Carte deal, badge persistant",
+      "debtTable": "Tableau de dette, vu par le responsable"
     }
   },
   "contactBento": {
@@ -716,8 +716,8 @@
     "checkJustif": {
       "id": "Pièce d'identité officielle",
       "address": "Justificatif de domicile < 3 mois",
-      "pep": "Dilisense — clear",
-      "sanctions": "Dilisense — clear",
+      "pep": "Dilisense, clear",
+      "sanctions": "Dilisense, clear",
       "funds": "Attestation bancaire + fiche salaire"
     },
     "contactType": {
@@ -784,7 +784,7 @@
       "footerLegal": "MEGGA · legal@megga.ch · LBA art. 7 · Document à conserver 10 ans",
       "pageAbbrev": "p.",
       "page1": {
-        "eyebrow": "Synthèse exécutive · LBA art. 3–7",
+        "eyebrow": "Synthèse exécutive · LBA art. 3-7",
         "title": "Rapport KYC"
       },
       "section": {
@@ -864,7 +864,7 @@
       "recommendationLabel": "Recommandation",
       "confidence": "Confiance : {{pct}} %",
       "patternsDetected": "Patterns détectés",
-      "assistedEstimateNotice": "Estimation assistée — aide à la décision, ne remplace pas l'appréciation du chargé de conformité (MLRO). À valider.",
+      "assistedEstimateNotice": "Estimation assistée, aide à la décision, ne remplace pas l'appréciation du chargé de conformité (MLRO). À valider.",
       "page3": {
         "eyebrow": "Annexes",
         "title": "Pièces justificatives.",

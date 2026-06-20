@@ -202,7 +202,7 @@
     },
     "contact": {
       "title": "For which contact?",
-      "subtitle": "Contacts who already have an open KYC case appear greyed out — you can reopen them from the main list.",
+      "subtitle": "Contacts who already have an open KYC case appear greyed out, you can reopen them from the main list.",
       "searchPlaceholder": "Search for a contact or email…",
       "empty": "No contact matches this search.",
       "existingDossier": "Existing case",
@@ -284,19 +284,19 @@
         "validation": "Validation"
       },
       "titles": {
-        "context": "Context — {{name}}",
+        "context": "Context, {{name}}",
         "start": "Start a case",
-        "identity": "Identity — {{name}}",
-        "funds": "Source of funds — {{name}}",
+        "identity": "Identity, {{name}}",
+        "funds": "Source of funds, {{name}}",
         "screening": "PEP & sanctions screening",
         "validation": "Final case validation"
       },
       "kickers": {
-        "0": "Step 1 of 5 · AMLA art. 3 — Relationship context",
-        "1": "Step 2 of 5 · AMLA art. 3 — Identification of the contracting party",
-        "2": "Step 3 of 5 · AMLA art. 4 — Source of funds",
-        "3": "Step 4 of 5 · AMLA art. 4 — PEP & sanctions screening",
-        "4": "Step 5 of 5 · AMLA — Compliance validation"
+        "0": "Step 1 of 5 · AMLA art. 3, Relationship context",
+        "1": "Step 2 of 5 · AMLA art. 3, Identification of the contracting party",
+        "2": "Step 3 of 5 · AMLA art. 4, Source of funds",
+        "3": "Step 4 of 5 · AMLA art. 4, PEP & sanctions screening",
+        "4": "Step 5 of 5 · AMLA, Compliance validation"
       },
       "subs": {
         "0": "Select the relevant contact, their role in the transaction and an indicative amount if already known.",
@@ -366,7 +366,7 @@
         "screeningStatus": "In progress · 4 sources queried",
         "screeningHint": "Started automatically on entry. Results at the Screening step.",
         "tipTitle": "Compliance tip",
-        "tipBody": "Remember to scan the back too for a Swiss ID card — the document number is on the reverse."
+        "tipBody": "Remember to scan the back too for a Swiss ID card, the document number is on the reverse."
       },
       "nav": {
         "back": "Back",
@@ -382,7 +382,7 @@
       "errors": {
         "selectContactType": "Select a contact and a relationship type to continue.",
         "selectContactTypeShort": "Select a contact and a relationship type.",
-        "noAgency": "Agency profile not found — the case can't be created.",
+        "noAgency": "Agency profile not found, the case can't be created.",
         "createFailed": "Error while creating the case."
       }
     }
@@ -390,7 +390,7 @@
   "dossier": {
     "row": {
       "incomplete": "To complete",
-      "incompleteHint": "Gentle reminder — KYC to complete (does not block the pipeline)"
+      "incompleteHint": "Gentle reminder, KYC to complete (does not block the pipeline)"
     },
     "detail": {
       "loadError": "This KYC case could not be loaded.",
@@ -407,7 +407,7 @@
       "nationalityRequired": "Nationality is needed for the Dilisense screening. Please update the contact.",
       "screeningRestarted": "Dilisense screening restarted.",
       "screeningFailed": "Screening failed.",
-      "agencyMissing": "Missing agency_id — sign-in required.",
+      "agencyMissing": "Missing agency_id, sign-in required.",
       "decisionSaved": "Decision \"{{verdict}}\" saved.",
       "saveFailed": "Save failed.",
       "fileUploaded": "\"{{name}}\" uploaded.",
@@ -445,7 +445,7 @@
       },
       "awaiting_evidence": {
         "label": "Awaiting evidence",
-        "hint": "Review on hold — additional evidence requested from the client."
+        "hint": "Review on hold, additional evidence requested from the client."
       }
     },
     "confirm": {
@@ -508,7 +508,7 @@
       "redFlag": "AMLA red flag",
       "redFlagSuffix": "(red flag)",
       "linkedDoc": "Linked document:",
-      "noLinkedDoc": "No document linked — to be uploaded.",
+      "noLinkedDoc": "No document linked, to be uploaded.",
       "errorAgencyMissing": "Missing agency_id.",
       "errorSave": "Save failed.",
       "overlayEyebrow": "AMLA art. 6 para. 1 let. b · Economic background",
@@ -519,7 +519,7 @@
       "descriptionPlaceholder": "Specify the economic background: period, instruments, counterparties.",
       "descriptionPlaceholderCrypto": "E.g. USDT bought in 2021 on Kraken, FINMA-regulated exchange, cold-wallet custody, attestation attached.",
       "docLabel": "Supporting document (financial or compliance category)",
-      "docNone": "— No document —",
+      "docNone": "No document",
       "cancel": "Cancel",
       "saving": "Saving…",
       "save": "Save",
@@ -546,7 +546,7 @@
         },
         "crypto": {
           "label": "Crypto-assets",
-          "hint": "AMLA red flag — detailed description recommended"
+          "hint": "AMLA red flag, detailed description recommended"
         },
         "loan": {
           "label": "Bank loan",
@@ -554,7 +554,7 @@
         },
         "mixed": {
           "label": "Mixed origin",
-          "hint": "AMLA red flag — detail each source"
+          "hint": "AMLA red flag, detail each source"
         },
         "other": {
           "label": "Other",
@@ -566,7 +566,7 @@
       "typeBuyer": "Buyer",
       "typeSeller": "Seller",
       "stateEyebrow": "Case status",
-      "stateVerifiedTitle": "Case verified — ready to proceed",
+      "stateVerifiedTitle": "Case verified, ready to proceed",
       "stateUnverifiedTitle": "Checks to complete",
       "stateVerifiedBody": "All AMLA checks are validated.",
       "stateUnverifiedBody": "You can keep moving the deal forward. KYC is recommended before signing, but it is not blocking.",
@@ -591,7 +591,7 @@
     "audit": {
       "eyebrow": "FADP · AMLA compliance",
       "title": "Audit trail",
-      "empty": "No action recorded — case not started.",
+      "empty": "No action recorded, case not started.",
       "retention": "Traceability retained for 10 years (AMLA art. 7)",
       "exportPdf": "Export timestamped PDF",
       "actorSystem": "System",
@@ -617,7 +617,7 @@
   },
   "list": {
     "heading": "KYC cases.",
-    "intro": "Every Swiss real-estate transaction calls for a documented check of identity, address and source of funds. KYC stays recommended before signing — a gentle reminder, never a blocker. Final verification rests with the notary.",
+    "intro": "Every Swiss real-estate transaction calls for a documented check of identity, address and source of funds. KYC stays recommended before signing, a gentle reminder, never a blocker. Final verification rests with the notary.",
     "export": "Export",
     "newDossier": "New case",
     "stats": {
@@ -648,8 +648,8 @@
   "nonBlocking": {
     "complete": "Complete",
     "dismiss": "Dismiss",
-    "dealBadgeHint_one": "{{count}} document outstanding — non-blocking",
-    "dealBadgeHint_other": "{{count}} documents outstanding — non-blocking",
+    "dealBadgeHint_one": "{{count}} document outstanding, non-blocking",
+    "dealBadgeHint_other": "{{count}} documents outstanding, non-blocking",
     "availableActions": "Available actions",
     "completeBeforeSignature": "Complete KYC before signing",
     "debtIntro": "No action is ever blocked. The compliance lead sees the outstanding items here and follows up.",
@@ -657,9 +657,9 @@
     "daysShort_other": "{{count}}d",
     "followUp": "Follow up",
     "showcase": {
-      "contactBanner": "Contact card — gentle banner (blocks no action)",
-      "dealBadge": "Deal card — persistent badge",
-      "debtTable": "Outstanding-items table — compliance lead view"
+      "contactBanner": "Contact card, gentle banner (blocks no action)",
+      "dealBadge": "Deal card, persistent badge",
+      "debtTable": "Outstanding-items table, compliance lead view"
     }
   },
   "contactBento": {
@@ -716,8 +716,8 @@
     "checkJustif": {
       "id": "Official ID document",
       "address": "Proof of address < 3 months",
-      "pep": "Dilisense — clear",
-      "sanctions": "Dilisense — clear",
+      "pep": "Dilisense, clear",
+      "sanctions": "Dilisense, clear",
       "funds": "Bank statement + payslip"
     },
     "contactType": {
@@ -784,7 +784,7 @@
       "footerLegal": "MEGGA · legal@megga.ch · AMLA art. 7 · Retain for 10 years",
       "pageAbbrev": "p.",
       "page1": {
-        "eyebrow": "Executive summary · AMLA art. 3–7",
+        "eyebrow": "Executive summary · AMLA art. 3-7",
         "title": "KYC report"
       },
       "section": {
@@ -864,7 +864,7 @@
       "recommendationLabel": "Recommendation",
       "confidence": "Confidence: {{pct}}%",
       "patternsDetected": "Patterns detected",
-      "assistedEstimateNotice": "Assisted estimate — a decision aid; it does not replace the compliance officer's (MLRO) assessment. To be validated.",
+      "assistedEstimateNotice": "Assisted estimate, a decision aid; it does not replace the compliance officer's (MLRO) assessment. To be validated.",
       "page3": {
         "eyebrow": "Appendices",
         "title": "Supporting documents.",
