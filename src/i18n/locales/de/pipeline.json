@@ -479,5 +479,59 @@
     "footer": {
       "stepCount": "Step {{current}} / {{total}}"
     }
+  },
+  "journey": {
+    "stages": {
+      "mandat": "Mandate received",
+      "market": "On the market",
+      "nego": "Negotiation",
+      "closing": "Closing"
+    },
+    "urgency": {
+      "high": "High urgency",
+      "medium": "Medium",
+      "low": "Relaxed"
+    },
+    "task": {
+      "mandatSigned": "Mandate signed",
+      "kycSeller": "Seller KYC",
+      "commercialBrief": "Sales brief",
+      "photosVideo": "Photos & video",
+      "listingPublished": "Listing published",
+      "visitsScheduled": "Viewings scheduled",
+      "offersReceived": "Offers received",
+      "negotiation": "Negotiation",
+      "preliminaryAgreement": "Preliminary agreement",
+      "notarialDeed": "Notarial deed",
+      "actions": {
+        "markDone": "Mark as done",
+        "reschedule": "Reschedule",
+        "more": "More"
+      }
+    },
+    "roomsAbbr": "rooms",
+    "dossierFallback": "File",
+    "title": "Team journey",
+    "subtitle": "Real-time tracking of every file · panoramic view",
+    "emptyState": "No file matches the selected filters.",
+    "filters": {
+      "stageLabel": "Stage",
+      "allStages": "All",
+      "urgencyLabel": "Urgency",
+      "allUrgencies": "All",
+      "activeCount_one": "{{count}} active file",
+      "activeCount_other": "{{count}} active files"
+    },
+    "actions": {
+      "addMember": "Add a member",
+      "addTask": "Add a task",
+      "shareToNetwork": "Share to the network",
+      "schedule": "Schedule"
+    },
+    "avatar": {
+      "title": "{{firstName}} {{lastName}}, {{role}}",
+      "tasksInProgress_one": "{{count}} task in progress",
+      "tasksInProgress_other": "{{count}} tasks in progress"
+    }
   }
 }

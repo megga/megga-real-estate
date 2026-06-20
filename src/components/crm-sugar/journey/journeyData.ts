@@ -1,6 +1,12 @@
 // MEGGA CRM Sugar v2 — Parcours module data
 // 1:1 port from `crm-parcours-data.jsx`. Équipe + 5 dossiers immobiliers actifs.
 
+// i18n : seuls les libellés STRUCTURELS rendus en live (étapes du parcours,
+// niveaux d'urgence) sont traduits via getter singleton (clés pipeline:journey.*).
+// PARCOURS_TEAM et PARCOURS_DOSSIERS = données de démo (non rendues, la page lit
+// useParcoursSugar) → laissées en FR.
+import i18n from '@/i18n'
+
 export interface ParcoursAgent {
   id: string
   firstName: string
@@ -33,10 +39,10 @@ export interface ParcoursStage {
 }
 
 export const PARCOURS_STAGES: ParcoursStage[] = [
-  { id: 'mandat', label: 'Réception mandat', color: '#1E5BC6' },
-  { id: 'market', label: 'Mise en marché', color: '#0891B2' },
-  { id: 'nego', label: 'Négociation', color: '#C45A00' },
-  { id: 'closing', label: 'Closing', color: '#059669' },
+  { id: 'mandat', get label() { return i18n.t('pipeline:journey.stages.mandat') }, color: '#1E5BC6' },
+  { id: 'market', get label() { return i18n.t('pipeline:journey.stages.market') }, color: '#0891B2' },
+  { id: 'nego', get label() { return i18n.t('pipeline:journey.stages.nego') }, color: '#C45A00' },
+  { id: 'closing', get label() { return i18n.t('pipeline:journey.stages.closing') }, color: '#059669' },
 ]
 
 export type TaskState = 'done' | 'active' | 'todo'
@@ -260,7 +266,7 @@ export interface UrgencyMeta {
 }
 
 export const URGENCY_MAP: Record<Urgency, UrgencyMeta> = {
-  high: { label: 'Urgence haute', dot: '#E53935', bg: 'rgba(229,57,53,0.10)', fg: '#E53935' },
-  medium: { label: 'Moyenne', dot: '#F59E0B', bg: 'rgba(245,158,11,0.14)', fg: '#A85B00' },
-  low: { label: 'Sereine', dot: '#0E9F6E', bg: 'rgba(14,159,110,0.10)', fg: '#0E9F6E' },
+  high: { get label() { return i18n.t('pipeline:journey.urgency.high') }, dot: '#E53935', bg: 'rgba(229,57,53,0.10)', fg: '#E53935' },
+  medium: { get label() { return i18n.t('pipeline:journey.urgency.medium') }, dot: '#F59E0B', bg: 'rgba(245,158,11,0.14)', fg: '#A85B00' },
+  low: { get label() { return i18n.t('pipeline:journey.urgency.low') }, dot: '#0E9F6E', bg: 'rgba(14,159,110,0.10)', fg: '#0E9F6E' },
 }
