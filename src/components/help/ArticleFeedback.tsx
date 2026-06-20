@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ThumbsUp, ThumbsDown, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 export default function ArticleFeedback({ slug }: { slug: string }) {
+  const { t } = useTranslation('common')
   const [voted, setVoted] = useState<boolean | null>(null)
   const [showComment, setShowComment] = useState(false)
   const [comment, setComment] = useState('')
@@ -47,7 +49,7 @@ export default function ArticleFeedback({ slug }: { slug: string }) {
       <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center gap-2 text-sm text-emerald-600">
           <Check className="h-4 w-4" />
-          Merci pour votre retour !
+          {t('help.feedbackThanks')}
         </div>
       </div>
     )
@@ -55,7 +57,7 @@ export default function ArticleFeedback({ slug }: { slug: string }) {
 
   return (
     <div className="border-t border-gray-100 pt-6">
-      <p className="text-sm text-gray-600 mb-3">Cet article vous a été utile ?</p>
+      <p className="text-sm text-gray-600 mb-3">{t('help.feedbackPrompt')}</p>
       <div className="flex items-center gap-2">
         <button
           onClick={() => handleVote(true)}
@@ -63,7 +65,7 @@ export default function ArticleFeedback({ slug }: { slug: string }) {
           className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-900 transition-colors flex items-center gap-2 disabled:opacity-50"
         >
           <ThumbsUp className="h-4 w-4" />
-          Oui
+          {t('help.feedbackYes')}
         </button>
         <button
           onClick={() => handleVote(false)}
@@ -71,7 +73,7 @@ export default function ArticleFeedback({ slug }: { slug: string }) {
           className="h-9 px-4 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-900 transition-colors flex items-center gap-2 disabled:opacity-50"
         >
           <ThumbsDown className="h-4 w-4" />
-          Non
+          {t('help.feedbackNo')}
         </button>
       </div>
 
@@ -80,7 +82,7 @@ export default function ArticleFeedback({ slug }: { slug: string }) {
           <textarea
             value={comment}
             onChange={e => setComment(e.target.value)}
-            placeholder="Qu'est-ce qui pourrait être amélioré ?"
+            placeholder={t('help.feedbackPlaceholder')}
             rows={3}
             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 resize-none"
           />
@@ -88,7 +90,7 @@ export default function ArticleFeedback({ slug }: { slug: string }) {
             onClick={handleSubmitComment}
             className="h-8 px-4 rounded-lg text-xs font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors"
           >
-            Envoyer
+            {t('help.feedbackSend')}
           </button>
         </div>
       )}

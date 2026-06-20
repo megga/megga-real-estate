@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import { CHANGELOG } from '@/lib/helpArticles'
@@ -11,21 +12,22 @@ function formatDate(dateStr: string): string {
 }
 
 export default function HelpChangelogPage() {
+  const { t } = useTranslation('common')
   return (
     <div className="min-h-screen bg-white">
       <HomeStickyHeader alwaysShow />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
-          <Link to="/help" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
+          <Link to="/help" className="hover:text-gray-600 transition-colors">{t('footer.helpCenter')}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-gray-700">Nouveautés</span>
+          <span className="text-gray-700">{t('help.changelog.breadcrumb')}</span>
         </div>
 
         <div className="flex items-center gap-6 mb-2">
           <div className="w-20 h-20 shrink-0"><ChangelogIllustration /></div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 mb-1">Nouveautés</h1>
-            <p className="text-sm text-gray-500">Les dernières améliorations de MEGGA.</p>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">{t('help.changelog.title')}</h1>
+            <p className="text-sm text-gray-500">{t('help.changelog.subtitle')}</p>
           </div>
         </div>
         <div className="mb-10" />

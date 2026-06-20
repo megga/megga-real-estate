@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
@@ -6,22 +7,23 @@ import HelpSearchBar from '@/components/help/HelpSearchBar'
 import SupportIllustration from '@/components/illustrations/SupportIllustration'
 import { getArticlesByCategory, getSections, type HelpArticle } from '@/lib/helpArticles'
 
-const CATEGORY_META: Record<string, { label: string; description: string }> = {
+const CATEGORY_META: Record<string, { labelKey: string; descriptionKey: string }> = {
   agent: {
-    label: 'Guides Agent immobilier',
-    description: 'CRM, pipeline, KYC, matching, communication, IA — tout ce dont vous avez besoin.',
+    labelKey: 'help.categoryAgentLabel',
+    descriptionKey: 'help.categoryAgentDescription',
   },
   vendeur: {
-    label: 'Guides Vendeur',
-    description: 'Estimation, mandat, suivi de vente, portail vendeur, analyse march\u00e9.',
+    labelKey: 'help.categorySellerLabel',
+    descriptionKey: 'help.categorySellerDescription',
   },
   acheteur: {
-    label: 'Guides Acheteur',
-    description: 'Recherche, visites, financement, comparaison, alertes.',
+    labelKey: 'help.categoryBuyerLabel',
+    descriptionKey: 'help.categoryBuyerDescription',
   },
 }
 
 export default function HelpCategoryPage() {
+  const { t } = useTranslation('common')
   const { category } = useParams<{ category: string }>()
   const meta = CATEGORY_META[category || '']
   const articles = getArticlesByCategory(category as HelpArticle['category'])
@@ -32,12 +34,12 @@ export default function HelpCategoryPage() {
       <div className="min-h-screen bg-white">
         <HomeStickyHeader alwaysShow />
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-          <p className="text-gray-500 text-base">Cat\u00e9gorie introuvable.</p>
+          <p className="text-gray-500 text-base">{t('help.categoryNotFound')}</p>
           <Link
             to="/help"
             className="text-sm text-gray-900 underline mt-4 inline-block hover:text-gray-700 transition-colors"
           >
-            Retour au centre d'aide
+            {t('help.backToHelpCenter')}
           </Link>
         </div>
         <Footer />
@@ -56,22 +58,22 @@ export default function HelpCategoryPage() {
             to="/help"
             className="text-gray-500 hover:text-gray-600 transition-colors"
           >
-            Centre d'aide
+            {t('help.helpCenter')}
           </Link>
           <ChevronRight className="h-3.5 w-3.5 text-gray-500" />
-          <span className="text-gray-700 font-medium">{meta.label}</span>
+          <span className="text-gray-700 font-medium">{t(meta.labelKey)}</span>
         </nav>
 
         {/* Category header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {meta.label}
+            {t(meta.labelKey)}
           </h1>
           <p className="text-base text-gray-500 mb-1">
-            {meta.description}
+            {t(meta.descriptionKey)}
           </p>
           <p className="text-sm text-gray-500">
-            {articles.length} article{articles.length > 1 ? 's' : ''}
+            {t('help.articleCount', { count: articles.length })}
           </p>
         </div>
 
@@ -121,15 +123,15 @@ export default function HelpCategoryPage() {
             <SupportIllustration className="w-full max-w-[360px] h-auto" />
           </div>
           <div className="md:w-[45%] flex flex-col justify-center p-8 md:p-10">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">Contactez-nous</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">{t('help.contactUs')}</h3>
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
+              {t('help.contactSubtitle')}
             </p>
             <Link
               to="/help/contact"
               className="h-11 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center w-fit"
             >
-              Contactez-nous
+              {t('help.contactUs')}
             </Link>
           </div>
         </div>

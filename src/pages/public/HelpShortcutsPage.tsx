@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import { KEYBOARD_SHORTCUTS } from '@/lib/helpArticles'
 import KeyboardIllustration from '@/components/illustrations/KeyboardIllustration'
 
 export default function HelpShortcutsPage() {
+  const { t } = useTranslation('common')
   const contexts = [...new Set(KEYBOARD_SHORTCUTS.map(s => s.context))]
 
   return (
@@ -13,16 +15,16 @@ export default function HelpShortcutsPage() {
       <HomeStickyHeader alwaysShow />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
-          <Link to="/help" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
+          <Link to="/help" className="hover:text-gray-600 transition-colors">{t('footer.helpCenter')}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-gray-700">Raccourcis clavier</span>
+          <span className="text-gray-700">{t('help.shortcuts.breadcrumb')}</span>
         </div>
 
         <div className="flex items-center gap-6 mb-8">
           <div className="w-20 h-20 shrink-0"><KeyboardIllustration /></div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 mb-1">Raccourcis clavier</h1>
-            <p className="text-sm text-gray-500">Gagnez du temps avec les raccourcis clavier MEGGA.</p>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">{t('help.shortcuts.title')}</h1>
+            <p className="text-sm text-gray-500">{t('help.shortcuts.subtitle')}</p>
           </div>
         </div>
 
