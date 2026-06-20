@@ -47,6 +47,13 @@ const R2_SECRET_ACCESS_KEY = (Deno.env.get('R2_SECRET_ACCESS_KEY') ?? '').trim()
 const R2_PUBLIC_BASE = (Deno.env.get('R2_PUBLIC_BASE') ?? '').replace(/\/$/, '')
 const R2_BUCKET = Deno.env.get('R2_BUCKET') ?? 'megga-market'
 
+// Service key for string-equality auth (line ~197). With the sb_secret_ key
+// roll-out, callers forward get_app_config('service_role_key') — a raw token,
+// not a JWT — so the role-claim decode returns null and we fall back to
+// comparing it against this env var. May be empty if the EF runtime doesn't
+// inject it; the comparison short-circuits on '' so that's safe.
+const SERVICE_ROLE_KEY = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
+
 // Decode a Supabase JWT payload without verifying the signature. We only
 // use this to check the `role` claim; write operations still go through
 // Supabase's own RLS on any table access. This is robust to the secret-key
