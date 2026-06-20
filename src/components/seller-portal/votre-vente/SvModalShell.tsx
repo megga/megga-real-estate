@@ -3,11 +3,13 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { useSP } from './theme'
 import { SvIcon } from './icons'
 
 export default function SvModalShell({ children, onClose }: { children: ReactNode; onClose: () => void }) {
   const SP = useSP()
+  const { t } = useTranslation('common')
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -56,7 +58,7 @@ export default function SvModalShell({ children, onClose }: { children: ReactNod
       >
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('portal.modal.close')}
           style={{
             position: 'absolute',
             top: 22,

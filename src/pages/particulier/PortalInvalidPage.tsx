@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ShieldX, Clock, Ban } from 'lucide-react'
 
 interface PortalInvalidPageProps {
@@ -6,21 +7,22 @@ interface PortalInvalidPageProps {
 }
 
 export default function PortalInvalidPage({ reason }: PortalInvalidPageProps) {
+  const { t } = useTranslation('common')
   const config = {
     not_found: {
       icon: ShieldX,
-      title: 'Portail introuvable',
-      description: 'Ce lien ne correspond à aucun portail vendeur. Vérifiez le lien reçu de votre agent immobilier.',
+      title: t('portal.invalid.notFound.title'),
+      description: t('portal.invalid.notFound.description'),
     },
     expired: {
       icon: Clock,
-      title: 'Portail expiré',
-      description: 'Ce portail vendeur a expiré. Contactez votre agent immobilier pour obtenir un nouveau lien.',
+      title: t('portal.invalid.expired.title'),
+      description: t('portal.invalid.expired.description'),
     },
     revoked: {
       icon: Ban,
-      title: 'Accès révoqué',
-      description: 'L\'accès à ce portail a été désactivé. Contactez votre agent immobilier pour plus d\'informations.',
+      title: t('portal.invalid.revoked.title'),
+      description: t('portal.invalid.revoked.description'),
     },
   }
 
@@ -38,7 +40,7 @@ export default function PortalInvalidPage({ reason }: PortalInvalidPageProps) {
           to="/"
           className="inline-flex items-center h-10 px-6 rounded-lg text-sm font-medium border border-[#383838] text-[#8E8E96] hover:text-[#ECECEF] hover:border-[#555] transition-colors"
         >
-          Retour à l'accueil
+          {t('portal.invalid.backHome')}
         </Link>
       </div>
     </div>

@@ -4,6 +4,7 @@
 // Phase 1 (visuel) : la transmission réelle est stubbée (prop onSubmit).
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSP } from './theme'
 import type { SellerSP } from './tokens'
 import { sellerFmtCHF } from './tokens'
@@ -26,6 +27,7 @@ interface Props {
 
 export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto, onClose, onSubmit }: Props) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   const [choice, setChoice] = useState<OfferDecision | null>(null)
   const [counter, setCounter] = useState<number>(askingPrice)
   const [sent, setSent] = useState(false)
@@ -36,17 +38,17 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
   const ecartPct = Math.round((ecart / askingPrice) * 1000) / 10
 
   const CHOICES: { id: OfferDecision; title: string; desc: string; tone: string; icon: 'check' | 'arrowUpDown' | 'x' }[] = [
-    { id: 'accept', title: "Accepter l'offre", desc: 'Vous validez le montant proposé.', tone: SP.forestGreen, icon: 'check' },
-    { id: 'counter', title: 'Faire une contre-offre', desc: 'Proposez votre prix en retour.', tone: SP.burntOrange, icon: 'arrowUpDown' },
-    { id: 'refuse', title: "Refuser l'offre", desc: 'Vous déclinez cette proposition.', tone: '#DC2626', icon: 'x' },
+    { id: 'accept', title: t('portal.offer.choice.accept.title'), desc: t('portal.offer.choice.accept.desc'), tone: SP.forestGreen, icon: 'check' },
+    { id: 'counter', title: t('portal.offer.choice.counter.title'), desc: t('portal.offer.choice.counter.desc'), tone: SP.burntOrange, icon: 'arrowUpDown' },
+    { id: 'refuse', title: t('portal.offer.choice.refuse.title'), desc: t('portal.offer.choice.refuse.desc'), tone: '#DC2626', icon: 'x' },
   ]
 
   // ── Écran de confirmation ──────────────────────────────────────────────
   if (sent) {
     const msg: Record<OfferDecision, string> = {
-      accept: 'Votre accord est transmis. Votre agent revient vers vous pour la suite (compromis, notaire).',
-      counter: `Votre contre-offre de ${sellerFmtCHF(counter)} est transmise à votre agent, qui la présentera à l'acheteur.`,
-      refuse: 'Votre refus est transmis à votre agent. Il vous tiendra informé de la suite.',
+      accept: t('portal.offer.sent.accept'),
+      counter: t('portal.offer.sent.counter', { amount: sellerFmtCHF(counter) }),
+      refuse: t('portal.offer.sent.refuse'),
     }
     return (
       <SvModalShell onClose={onClose}>
@@ -66,7 +68,7 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
             <SvIcon name="check" size={28} stroke={SP.onAccent} sw={2.4} />
           </div>
           <h2 style={{ margin: '0 0 12px', fontSize: 23, fontWeight: 700, color: SP.ink, letterSpacing: -0.5 }}>
-            C'est transmis
+            {t('portal.offer.sent.title')}
           </h2>
           <p style={{ margin: '0 auto 26px', maxWidth: 380, fontSize: 15, fontWeight: 500, color: SP.inkSoft, lineHeight: 1.55 }}>
             {choice ? msg[choice] : ''}
@@ -77,7 +79,7 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
             onMouseEnter={(e) => Object.assign(e.currentTarget.style, blackBtnHover(SP))}
             onMouseLeave={(e) => Object.assign(e.currentTarget.style, blackBtn(SP, false))}
           >
-            Revenir à ma vente
+            {t('portal.offer.sent.back')}
           </button>
         </div>
       </SvModalShell>
@@ -94,7 +96,7 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
       await onSubmit?.({ decision: choice, counterAmount: choice === 'counter' ? counter : undefined })
       setSent(true)
     } catch {
-      setError("L'envoi a échoué. Vérifiez votre connexion, ou contactez directement votre agent.")
+      setError(t('portal.offer.error.send'))
     } finally {
       setSending(false)
     }
@@ -115,10 +117,10 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
             marginBottom: 12,
           }}
         >
-          Offre reçue
+          {t('portal.offer.eyebrow')}
         </span>
         <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: SP.ink, letterSpacing: -0.5 }}>
-          Que souhaitez-vous faire ?
+          {t('portal.offer.heading')}
         </h2>
       </div>
 
@@ -136,14 +138,14 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
         }}
       >
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: SP.muted, marginBottom: 5 }}>Montant proposé</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: SP.muted, marginBottom: 5 }}>{t('portal.offer.recap.amount')}</div>
           <div className="sg-tnum" style={{ fontSize: 30, fontWeight: 700, color: SP.ink, letterSpacing: -0.8, lineHeight: 1 }}>
             {sellerFmtCHF(offer.amount)}
           </div>
         </div>
         <div style={{ width: 1, alignSelf: 'stretch', background: SP.hairline, margin: '2px 0' }} />
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: SP.muted, marginBottom: 5 }}>Écart au prix affiché</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: SP.muted, marginBottom: 5 }}>{t('portal.offer.recap.gap')}</div>
           <div className="sg-tnum" style={{ fontSize: 17, fontWeight: 700, color: SP.inkSoft, letterSpacing: -0.3 }}>
             {ecart >= 0 ? '+' : '−'}
             {sellerFmtCHF(Math.abs(ecart))}
@@ -224,7 +226,7 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
       {choice === 'counter' && (
         <div className="sg-enter" style={{ marginBottom: 18 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: SP.inkSoft, marginBottom: 8 }}>
-            Votre prix souhaité
+            {t('portal.offer.counter.label')}
           </label>
           <div style={{ position: 'relative' }}>
             <span
@@ -287,7 +289,7 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
       >
         <SvAvatarCircle name={agentName} size={34} photo={agentPhoto} />
         <span style={{ fontSize: 13.5, fontWeight: 500, color: SP.inkSoft, lineHeight: 1.45 }}>
-          {agentName.split(' ')[0]} valide chaque décision avec vous avant transmission. Rien n'est envoyé sans votre accord.
+          {t('portal.offer.reassurance', { name: agentName.split(' ')[0] })}
         </span>
       </div>
 
@@ -306,7 +308,7 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
           onMouseEnter={(e) => (e.currentTarget.style.background = SP.cardSubtle)}
           onMouseLeave={(e) => (e.currentTarget.style.background = SP.card)}
         >
-          Annuler
+          {t('portal.offer.cancel')}
         </button>
         <button
           disabled={!canConfirm || sending}
@@ -315,7 +317,7 @@ export default function SvOfferModal({ offer, askingPrice, agentName, agentPhoto
           onMouseEnter={(e) => canConfirm && !sending && Object.assign(e.currentTarget.style, blackBtnHover(SP))}
           onMouseLeave={(e) => canConfirm && !sending && Object.assign(e.currentTarget.style, blackBtn(SP, false))}
         >
-          {sending ? 'Transmission…' : 'Transmettre à mon agent'}
+          {sending ? t('portal.offer.submitting') : t('portal.offer.submit')}
         </button>
       </div>
     </SvModalShell>

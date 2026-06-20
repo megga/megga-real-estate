@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { SvIcon } from './icons'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function SvGalleryLightbox({ title, photos, onClose }: Props) {
+  const { t } = useTranslation('common')
   const [idx, setIdx] = useState(0)
   const n = photos.length
   const go = useCallback((d: number) => setIdx((i) => (i + d + n) % Math.max(1, n)), [n])
@@ -70,7 +72,7 @@ export default function SvGalleryLightbox({ title, photos, onClose }: Props) {
         </div>
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('portal.gallery.close')}
           style={{
             width: 44,
             height: 44,
@@ -115,9 +117,9 @@ export default function SvGalleryLightbox({ title, photos, onClose }: Props) {
             >
               <SvIcon name="grid" size={24} stroke="rgba(255,255,255,0.7)" sw={1.6} />
             </div>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>Aucune photo pour le moment</div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>{t('portal.gallery.emptyTitle')}</div>
             <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
-              Les photos de votre bien apparaîtront ici.
+              {t('portal.gallery.emptyHint')}
             </div>
           </div>
         ) : (
@@ -125,7 +127,7 @@ export default function SvGalleryLightbox({ title, photos, onClose }: Props) {
             {n > 1 && (
               <button
                 onClick={() => go(-1)}
-                aria-label="Précédente"
+                aria-label={t('portal.gallery.previous')}
                 style={arrowBtn('left')}
               >
                 <SvIcon name="chevronLeft" size={22} stroke="#fff" sw={1.8} />
@@ -133,7 +135,7 @@ export default function SvGalleryLightbox({ title, photos, onClose }: Props) {
             )}
             <img
               src={photos[idx]}
-              alt={`Photo ${idx + 1}`}
+              alt={t('portal.gallery.photoAlt', { index: idx + 1 })}
               style={{
                 maxWidth: '100%',
                 maxHeight: '100%',
@@ -145,7 +147,7 @@ export default function SvGalleryLightbox({ title, photos, onClose }: Props) {
             {n > 1 && (
               <button
                 onClick={() => go(1)}
-                aria-label="Suivante"
+                aria-label={t('portal.gallery.next')}
                 style={arrowBtn('right')}
               >
                 <SvIcon name="chevronRight" size={22} stroke="#fff" sw={1.8} />

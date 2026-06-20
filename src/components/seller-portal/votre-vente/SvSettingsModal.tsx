@@ -4,6 +4,7 @@
 // Phase 1 (visuel) : la persistance réelle est stubbée (prop onSave).
 import { useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSP } from './theme'
 import { SvIcon } from './icons'
 import type { SvIconName } from './icons'
@@ -188,6 +189,7 @@ function FieldLabel({ children }: { children: ReactNode }) {
 // ── Modal ───────────────────────────────────────────────────────────────
 export default function SvSettingsModal({ settings, onChange, dark, onDark, onClose, onSave }: Props) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   const [saving, setSaving] = useState(false)
 
   const toggleDay = (d: string) => {
@@ -223,55 +225,55 @@ export default function SvSettingsModal({ settings, onChange, dark, onDark, onCl
             marginBottom: 10,
           }}
         >
-          Réglages
+          {t('portal.settings.eyebrow')}
         </span>
-        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: SP.ink, letterSpacing: -0.5 }}>Paramètres</h2>
+        <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: SP.ink, letterSpacing: -0.5 }}>{t('portal.settings.title')}</h2>
       </div>
 
-      <SgSection icon="mail" title="Notifications" sub="Vous êtes prévenu par e-mail." first>
-        <SgToggleRow label="Nouvelle offre reçue" on={settings.notifOffre} onChange={(v) => onChange('notifOffre', v)} />
-        <SgToggleRow label="Visite planifiée" on={settings.notifVisite} onChange={(v) => onChange('notifVisite', v)} />
-        <SgToggleRow label="Retour après visite" on={settings.notifRetour} onChange={(v) => onChange('notifRetour', v)} />
+      <SgSection icon="mail" title={t('portal.settings.notif.title')} sub={t('portal.settings.notif.sub')} first>
+        <SgToggleRow label={t('portal.settings.notif.offer')} on={settings.notifOffre} onChange={(v) => onChange('notifOffre', v)} />
+        <SgToggleRow label={t('portal.settings.notif.visit')} on={settings.notifVisite} onChange={(v) => onChange('notifVisite', v)} />
+        <SgToggleRow label={t('portal.settings.notif.feedback')} on={settings.notifRetour} onChange={(v) => onChange('notifRetour', v)} />
       </SgSection>
 
-      <SgSection icon="calendar" title="Disponibilités des visites" sub="Quand votre bien peut être visité.">
+      <SgSection icon="calendar" title={t('portal.settings.availability.title')} sub={t('portal.settings.availability.sub')}>
         <SgChips
           options={[
-            { value: 'lun', label: 'Lun' },
-            { value: 'mar', label: 'Mar' },
-            { value: 'mer', label: 'Mer' },
-            { value: 'jeu', label: 'Jeu' },
-            { value: 'ven', label: 'Ven' },
-            { value: 'sam', label: 'Sam' },
-            { value: 'dim', label: 'Dim' },
+            { value: 'lun', label: t('portal.settings.availability.day.mon') },
+            { value: 'mar', label: t('portal.settings.availability.day.tue') },
+            { value: 'mer', label: t('portal.settings.availability.day.wed') },
+            { value: 'jeu', label: t('portal.settings.availability.day.thu') },
+            { value: 'ven', label: t('portal.settings.availability.day.fri') },
+            { value: 'sam', label: t('portal.settings.availability.day.sat') },
+            { value: 'dim', label: t('portal.settings.availability.day.sun') },
           ]}
           values={settings.jours}
           onToggle={toggleDay}
         />
-        <FieldLabel>Créneaux</FieldLabel>
+        <FieldLabel>{t('portal.settings.availability.slotsLabel')}</FieldLabel>
         <SgChips
           options={[
-            { value: 'matin', label: 'Matin' },
-            { value: 'apresmidi', label: 'Après-midi' },
-            { value: 'soir', label: 'Soir' },
+            { value: 'matin', label: t('portal.settings.availability.slot.morning') },
+            { value: 'apresmidi', label: t('portal.settings.availability.slot.afternoon') },
+            { value: 'soir', label: t('portal.settings.availability.slot.evening') },
           ]}
           values={settings.creneaux}
           onToggle={toggleSlot}
         />
-        <FieldLabel>Préavis souhaité</FieldLabel>
+        <FieldLabel>{t('portal.settings.availability.noticeLabel')}</FieldLabel>
         <SgSegment
           options={[
-            { value: 'jour', label: 'Le jour même' },
-            { value: '24h', label: '24 h' },
-            { value: '48h', label: '48 h' },
+            { value: 'jour', label: t('portal.settings.availability.notice.sameDay') },
+            { value: '24h', label: t('portal.settings.availability.notice.24h') },
+            { value: '48h', label: t('portal.settings.availability.notice.48h') },
           ]}
           value={settings.preavis}
           onChange={(v) => onChange('preavis', v)}
         />
       </SgSection>
 
-      <SgSection icon="globe" title="Langue & contact">
-        <FieldLabel>Langue de l'interface</FieldLabel>
+      <SgSection icon="globe" title={t('portal.settings.langContact.title')}>
+        <FieldLabel>{t('portal.settings.langContact.langLabel')}</FieldLabel>
         <SgSegment
           options={[
             { value: 'fr', label: 'FR' },
@@ -282,20 +284,20 @@ export default function SvSettingsModal({ settings, onChange, dark, onDark, onCl
           value={settings.langue}
           onChange={(v) => onChange('langue', v)}
         />
-        <FieldLabel>Comment votre agent vous contacte</FieldLabel>
+        <FieldLabel>{t('portal.settings.langContact.channelLabel')}</FieldLabel>
         <SgSegment
           options={[
             { value: 'whatsapp', label: 'WhatsApp' },
-            { value: 'tel', label: 'Téléphone' },
-            { value: 'email', label: 'E-mail' },
+            { value: 'tel', label: t('portal.settings.langContact.channel.phone') },
+            { value: 'email', label: t('portal.settings.langContact.channel.email') },
           ]}
           value={settings.canal}
           onChange={(v) => onChange('canal', v)}
         />
       </SgSection>
 
-      <SgSection icon={dark ? 'moon' : 'sun'} title="Apparence">
-        <SgToggleRow label="Mode sombre" sub="Confort de lecture en faible luminosité" on={dark} onChange={onDark} />
+      <SgSection icon={dark ? 'moon' : 'sun'} title={t('portal.settings.appearance.title')}>
+        <SgToggleRow label={t('portal.settings.appearance.darkMode')} sub={t('portal.settings.appearance.darkModeSub')} on={dark} onChange={onDark} />
       </SgSection>
 
       <div style={{ display: 'flex', gap: 12, marginTop: 30 }}>
@@ -319,7 +321,7 @@ export default function SvSettingsModal({ settings, onChange, dark, onDark, onCl
           onMouseEnter={(e) => (e.currentTarget.style.background = SP.cardSubtle)}
           onMouseLeave={(e) => (e.currentTarget.style.background = SP.card)}
         >
-          Annuler
+          {t('portal.settings.cancel')}
         </button>
         <button
           onClick={save}
@@ -349,7 +351,7 @@ export default function SvSettingsModal({ settings, onChange, dark, onDark, onCl
             e.currentTarget.style.transform = 'translateY(0)'
           }}
         >
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
+          {saving ? t('portal.settings.saving') : t('portal.settings.save')}
         </button>
       </div>
     </SvModalShell>
