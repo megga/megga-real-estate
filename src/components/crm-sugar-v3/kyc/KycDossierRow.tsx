@@ -6,6 +6,7 @@
 //  - thème dynamique clair ↔ sombre via useKycPalette
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { KycAvatar } from '../primitives'
 import { SgIcon } from '../icons'
 import { useKycPalette } from './kycPalette'
@@ -19,6 +20,7 @@ interface Props {
 
 export function KycDossierRow({ dossier, onOpen }: Props) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
   const [hover, setHover] = useState(false)
 
   const c = dossier.contact
@@ -76,7 +78,7 @@ export function KycDossierRow({ dossier, onOpen }: Props) {
         {c.first_name} {c.last_name}
         {incomplete && (
           <span
-            title="Rappel doux — KYC à compléter (non bloquant pour le pipeline)"
+            title={t('dossier.row.incompleteHint')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -94,7 +96,7 @@ export function KycDossierRow({ dossier, onOpen }: Props) {
             }}
           >
             <SgIcon name="clock" size={10} stroke={sp.muted} sw={2} />
-            À compléter
+            {t('dossier.row.incomplete')}
           </span>
         )}
       </div>

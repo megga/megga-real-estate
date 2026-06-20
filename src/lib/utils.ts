@@ -1,7 +1,19 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { format, formatDistanceToNow } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { format, formatDistanceToNow, type Locale } from 'date-fns'
+import { fr, enUS, de, it } from 'date-fns/locale'
+import i18n from '@/i18n'
+
+// Locale date-fns suivant la langue active (i18n). FR par défaut. Permet aux
+// libellés de date écrits en toutes lettres (jour/mois) de se localiser sans
+// changer les formats numériques suisses (DD.MM.YYYY) ni le séparateur CHF.
+function dfLocale(): Locale {
+  const l = i18n.language || 'fr'
+  if (l.startsWith('en')) return enUS
+  if (l.startsWith('de')) return de
+  if (l.startsWith('it')) return it
+  return fr
+}
 
 /**
  * Merge Tailwind classes with clsx + tailwind-merge
@@ -34,7 +46,7 @@ export function formatCHF(amount: number | string | null | undefined): string {
  */
 export function formatDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date
-  return format(d, 'dd.MM.yyyy', { locale: fr })
+  return format(d, 'dd.MM.yyyy', { locale: dfLocale() })
 }
 
 /**
@@ -42,7 +54,7 @@ export function formatDate(date: string | Date): string {
  * Example: "Dimanche 14 juin"
  */
 export function formatTodayHeader(date: Date = new Date()): string {
-  const s = format(date, 'EEEE d MMMM', { locale: fr })
+  const s = format(date, 'EEEE d MMMM', { locale: dfLocale() })
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 

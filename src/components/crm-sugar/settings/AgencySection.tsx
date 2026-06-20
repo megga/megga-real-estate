@@ -11,6 +11,7 @@
 // SetBlackBtn, SetGhostBtn) — aucune jauge ni primitive réécrite.
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
@@ -268,6 +269,7 @@ function AgKV({ icon, label, value }: { icon: ReactNode; label: string; value: s
 }
 
 function AgencyHero({ form, score, onEditLogo }: { form: AgencyForm; score: number; onEditLogo: () => void }) {
+  const { t } = useTranslation('settings')
   const b = form.branding
   return (
     <div
@@ -315,7 +317,7 @@ function AgencyHero({ form, score, onEditLogo }: { form: AgencyForm; score: numb
             {b.logoUrl ? (
               <img
                 src={b.logoUrl}
-                alt="Logo agence"
+                alt={t('agency.logoAlt')}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             ) : (
@@ -324,7 +326,7 @@ function AgencyHero({ form, score, onEditLogo }: { form: AgencyForm; score: numb
           </div>
           <button
             onClick={onEditLogo}
-            title="Modifier le logo"
+            title={t('agency.editLogo')}
             style={{
               position: 'absolute',
               bottom: -8,
@@ -376,7 +378,7 @@ function AgencyHero({ form, score, onEditLogo }: { form: AgencyForm; score: numb
                 textTransform: 'uppercase',
               }}
             >
-              Mon agence
+              {t('agency.myAgency')}
             </div>
             <div
               style={{
@@ -387,22 +389,22 @@ function AgencyHero({ form, score, onEditLogo }: { form: AgencyForm; score: numb
                 marginTop: 3,
               }}
             >
-              {form.name || 'Nom non défini'}
+              {form.name || t('agency.nameUndefined')}
             </div>
           </div>
           <SetRing value={score} size={78} showPercent />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 28px' }}>
-          <AgKV icon={<LocalIcon name="file" size={15} stroke={SET.ink} />} label="Numéro IDE" value={form.ide} />
-          <AgKV icon={<LocalIcon name="badge" size={15} stroke={SET.ink} />} label="N° TVA" value={form.tva} />
+          <AgKV icon={<LocalIcon name="file" size={15} stroke={SET.ink} />} label={t('agency.ide')} value={form.ide} />
+          <AgKV icon={<LocalIcon name="badge" size={15} stroke={SET.ink} />} label={t('agency.vat')} value={form.tva} />
           <AgKV
             icon={<LocalIcon name="mapPin" size={15} stroke={SET.ink} />}
-            label="Siège"
+            label={t('agency.headquarters')}
             value={form.address ? `${form.address}, ${form.postal} ${form.city}`.replace(/,\s+$/, '') : ''}
           />
-          <AgKV icon={<LocalIcon name="phone" size={15} stroke={SET.ink} />} label="Téléphone" value={form.phone} />
-          <AgKV icon={<SetIcon name="globe" size={15} stroke={SET.ink} />} label="Site web" value={form.web} />
-          <AgKV icon={<SetIcon name="mail" size={15} stroke={SET.ink} />} label="Email" value={form.email} />
+          <AgKV icon={<LocalIcon name="phone" size={15} stroke={SET.ink} />} label={t('agency.phone')} value={form.phone} />
+          <AgKV icon={<SetIcon name="globe" size={15} stroke={SET.ink} />} label={t('agency.website')} value={form.web} />
+          <AgKV icon={<SetIcon name="mail" size={15} stroke={SET.ink} />} label={t('agency.email')} value={form.email} />
         </div>
       </div>
     </div>
@@ -452,6 +454,7 @@ function AgGroup({
 // dérive le trimestriel /4 et le mensuel /12. On ne saisit QUE l'annuel : 3 champs
 // libres se désynchronisent (chiffre muet contradictoire, banni).
 function CommercialTargetsGroup() {
+  const { t } = useTranslation('settings')
   const { targets, isLoading, saveYearly, isSaving } = useAgencyTargets()
   const toast = useToast()
   const [yearly, setYearly] = useState<string>('')
@@ -467,18 +470,18 @@ function CommercialTargetsGroup() {
   const handleSave = async () => {
     try {
       await saveYearly(parsed)
-      toast.success('Objectif commercial enregistré', { duration: 2400 })
+      toast.success(t('agency.targets.toastSaved'), { duration: 2400 })
     } catch (err) {
       console.error('[CommercialTargetsGroup] save failed', err)
-      toast.error('Erreur lors de l’enregistrement de l’objectif')
+      toast.error(t('agency.targets.toastError'))
     }
   }
 
   return (
-    <AgGroup glyph="target" title="Objectifs commerciaux">
+    <AgGroup glyph="target" title={t('agency.targets.title')}>
       <div style={{ display: 'grid', gap: 14 }}>
         <SetInput
-          label="Objectif annuel (commissions, CHF)"
+          label={t('agency.targets.yearlyLabel')}
           type="number"
           value={yearly}
           onChange={setYearly}
@@ -488,12 +491,15 @@ function CommercialTargetsGroup() {
         />
         <div style={{ fontSize: 12, fontWeight: 500, color: SET.muted, lineHeight: 1.5 }}>
           {parsed > 0
-            ? `Réparti automatiquement : ${formatCHF(Math.round(parsed / 12))}/mois · ${formatCHF(Math.round(parsed / 4))}/trimestre`
-            : 'Aucun objectif défini — le Dashboard masque le rythme et la projection tant qu’aucune cible n’est saisie.'}
+            ? t('agency.targets.split', {
+                monthly: formatCHF(Math.round(parsed / 12)),
+                quarterly: formatCHF(Math.round(parsed / 4)),
+              })
+            : t('agency.targets.empty')}
         </div>
         <div>
           <SetBlackBtn onClick={handleSave} disabled={!dirty || isLoading} loading={isSaving} size="sm">
-            Enregistrer l’objectif
+            {t('agency.targets.save')}
           </SetBlackBtn>
         </div>
       </div>
@@ -546,6 +552,7 @@ function parseGeoResult(attrs: GeoAttrs): AddrSuggestion | null {
 }
 
 function AddressAutocomplete({ form, set }: { form: AgencyForm; set: (patch: Partial<AgencyForm>) => void }) {
+  const { t } = useTranslation('settings')
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [focus, setFocus] = useState(false)
@@ -626,7 +633,7 @@ function AddressAutocomplete({ form, set }: { form: AgencyForm; set: (patch: Par
               setFocus(false)
               setTimeout(() => setOpen(false), 150)
             }}
-            placeholder="Rechercher une adresse en Suisse…"
+            placeholder={t('agency.address.searchPlaceholder')}
             style={{
               flex: 1,
               border: 0,
@@ -746,7 +753,7 @@ function AddressAutocomplete({ form, set }: { form: AgencyForm; set: (patch: Par
               whiteSpace: 'nowrap',
             }}
           >
-            {manual ? 'Terminé' : 'Ajuster manuellement'}
+            {manual ? t('agency.address.done') : t('agency.address.adjustManually')}
           </button>
         </div>
       )}
@@ -755,16 +762,16 @@ function AddressAutocomplete({ form, set }: { form: AgencyForm; set: (patch: Par
       {manual && (
         <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14 }}>
           <div style={{ gridColumn: '1 / -1' }}>
-            <SetInput label="Rue et numéro" value={form.address} onChange={v => set({ address: v })} />
+            <SetInput label={t('agency.address.streetAndNumber')} value={form.address} onChange={v => set({ address: v })} />
           </div>
-          <SetInput label="NPA" value={form.postal} onChange={v => set({ postal: v })} />
-          <SetInput label="Ville" value={form.city} onChange={v => set({ city: v })} />
+          <SetInput label={t('agency.address.npa')} value={form.postal} onChange={v => set({ postal: v })} />
+          <SetInput label={t('agency.city')} value={form.city} onChange={v => set({ city: v })} />
           <SetInput
-            label="Canton"
+            label={t('agency.canton')}
             value={form.canton}
             onChange={v => set({ canton: v.slice(0, 2).toUpperCase() })}
           />
-          <SetInput label="Pays" value={form.country} onChange={v => set({ country: v })} />
+          <SetInput label={t('agency.country')} value={form.country} onChange={v => set({ country: v })} />
         </div>
       )}
     </div>
@@ -798,6 +805,7 @@ function LogoUploadModal({
   onClose: () => void
   onApply: (url: string | null) => void
 }) {
+  const { t } = useTranslation('settings')
   const [img, setImg] = useState<LoadedImg | null>(null)
   const [scale, setScale] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -970,9 +978,9 @@ function LogoUploadModal({
                 )}
               </div>
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>Logo mis à jour</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>{t('agency.logoModal.successTitle')}</div>
             <div style={{ fontSize: 13, color: SET.muted, marginTop: 5 }}>
-              Le nouveau logo a été enregistré pour votre agence.
+              {t('agency.logoModal.successDesc')}
             </div>
           </div>
         ) : (
@@ -994,10 +1002,10 @@ function LogoUploadModal({
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h3 style={{ margin: '2px 0 4px', fontSize: 19, fontWeight: 700, color: SET.ink, letterSpacing: -0.4 }}>
-                  Logo de l'agence
+                  {t('agency.logoModal.title')}
                 </h3>
                 <p style={{ margin: 0, fontSize: 13, color: SET.inkSoft, lineHeight: 1.5 }}>
-                  Importez une image, puis ajustez le cadrage.
+                  {t('agency.logoModal.subtitle')}
                 </p>
               </div>
               <button
@@ -1085,10 +1093,10 @@ function LogoUploadModal({
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: SET.ink, letterSpacing: -0.2, lineHeight: 1.3 }}>
-                    Glissez une image ici
+                    {t('agency.logoModal.dropHere')}
                   </div>
                   <div style={{ fontSize: 12.5, color: SET.muted, lineHeight: 1.3, whiteSpace: 'nowrap' }}>
-                    ou <span style={{ color: SET.ink, fontWeight: 600 }}>parcourez vos fichiers</span>
+                    {t('agency.logoModal.or')} <span style={{ color: SET.ink, fontWeight: 600 }}>{t('agency.logoModal.browseFiles')}</span>
                   </div>
                 </div>
               </div>
@@ -1183,7 +1191,7 @@ function LogoUploadModal({
                   </svg>
                   <button
                     onClick={autoFrame}
-                    title="Recentrer automatiquement"
+                    title={t('agency.logoModal.autoFrameTitle')}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1214,7 +1222,7 @@ function LogoUploadModal({
                       <path d="M5 3v4h4M19 21v-4h-4" />
                       <path d="M3 13a9 9 0 0 0 15 6.7M21 11A9 9 0 0 0 6 4.3" />
                     </svg>
-                    Cadrage auto
+                    {t('agency.logoModal.autoFrame')}
                   </button>
                 </div>
               </div>
@@ -1237,18 +1245,18 @@ function LogoUploadModal({
                       padding: '8px 4px',
                     }}
                   >
-                    Retirer le logo
+                    {t('agency.logoModal.remove')}
                   </button>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <SetGhostBtn onClick={onClose}>Annuler</SetGhostBtn>
+                <SetGhostBtn onClick={onClose}>{t('common:actions.cancel')}</SetGhostBtn>
                 <SetBlackBtn
                   disabled={!img}
                   onClick={apply}
                   icon={<SetIcon name="check" size={14} stroke={SET.blackInk} sw={2.4} />}
                 >
-                  Appliquer
+                  {t('agency.logoModal.apply')}
                 </SetBlackBtn>
               </div>
             </div>
@@ -1263,6 +1271,7 @@ function LogoUploadModal({
 //  SECTION
 // ═══════════════════════════════════════════════════════════════════════════
 export function AgencySection() {
+  const { t } = useTranslation('settings')
   const { agency: serverAgency, isLoading, isSaving, hasBackend, agencyId, save } = useAgencySettings()
   const [form, setForm] = useState<AgencyForm>(() => toForm(serverAgency))
   const [saved, setSaved] = useState<AgencyForm>(() => toForm(serverAgency))
@@ -1285,16 +1294,16 @@ export function AgencySection() {
 
   const handleSave = async () => {
     if (!hasBackend) {
-      toast.error('Aucune agence associée à votre profil')
+      toast.error(t('agency.toast.noAgency'))
       return
     }
     try {
       await save(toServer(form))
       setSaved(form)
-      toast.success('Agence enregistrée', { duration: 2400 })
+      toast.success(t('agency.toast.saved'), { duration: 2400 })
     } catch (err) {
       console.error('[AgencySection] save failed', err)
-      toast.error('Erreur lors de l’enregistrement')
+      toast.error(t('agency.toast.saveError'))
     }
   }
 
@@ -1323,10 +1332,10 @@ export function AgencySection() {
       try {
         await save(toServer({ ...form, branding: { ...form.branding, logoUrl: null } }))
         setSaved(s => ({ ...s, branding: { ...s.branding, logoUrl: null } }))
-        toast.success('Logo retiré', { duration: 2400 })
+        toast.success(t('agency.toast.logoRemoved'), { duration: 2400 })
       } catch (err) {
         console.error('[AgencySection] logo remove persist failed', err)
-        toast.error('Erreur lors de la suppression du logo')
+        toast.error(t('agency.toast.logoRemoveError'))
       }
       return
     }
@@ -1336,7 +1345,7 @@ export function AgencySection() {
     const publicUrl = await uploadAgencyLogo(url, agencyId)
     if (!publicUrl) {
       setBranding({ logoUrl: url })
-      toast.error('Le logo n’a pas pu être téléversé, aperçu local seulement')
+      toast.error(t('agency.toast.logoUploadError'))
       return
     }
 
@@ -1344,17 +1353,17 @@ export function AgencySection() {
     try {
       await save(toServer({ ...form, branding: { ...form.branding, logoUrl: publicUrl } }))
       setSaved(s => ({ ...s, branding: { ...s.branding, logoUrl: publicUrl } }))
-      toast.success('Logo mis à jour', { duration: 2400 })
+      toast.success(t('agency.toast.logoUpdated'), { duration: 2400 })
     } catch (err) {
       console.error('[AgencySection] logo persist failed', err)
-      toast.error('Erreur lors de l’enregistrement du logo')
+      toast.error(t('agency.toast.logoSaveError'))
     }
   }
 
   // Loading
   if (isLoading && !serverAgency.name) {
     return (
-      <div style={{ padding: 40, color: SET.muted, fontSize: 13 }}>Chargement de l'agence…</div>
+      <div style={{ padding: 40, color: SET.muted, fontSize: 13 }}>{t('agency.loading')}</div>
     )
   }
 
@@ -1384,11 +1393,10 @@ export function AgencySection() {
           <SetIcon name="building" size={28} stroke={SET.muted} />
         </div>
         <div style={{ fontSize: 17, fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>
-          Aucune agence rattachée
+          {t('agency.empty.title')}
         </div>
         <div style={{ fontSize: 13.5, color: SET.muted, maxWidth: 360, lineHeight: 1.55 }}>
-          Votre profil n'est associé à aucune agence. Contactez votre administrateur pour rejoindre
-          un cabinet.
+          {t('agency.empty.description')}
         </div>
       </div>
     )
@@ -1421,43 +1429,43 @@ export function AgencySection() {
         >
           {/* Colonne gauche : Identité légale + Adresse du siège */}
           <div style={{ background: SET.card, borderRadius: 24, boxShadow: SET.shadow, overflow: 'hidden' }}>
-            <AgGroup setIcon="building" title="Identité légale" first>
+            <AgGroup setIcon="building" title={t('agency.legalIdentityTitle')} first>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <SetInput label="Nom commercial" value={form.name} onChange={v => set({ name: v })} />
+                <SetInput label={t('agency.commercialName')} value={form.name} onChange={v => set({ name: v })} />
                 <SetInput
-                  label="Année de création"
+                  label={t('agency.foundedYear')}
                   value={form.foundedYear}
                   onChange={v => set({ foundedYear: v })}
                   type="number"
                 />
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <SetInput label="Raison sociale" value={form.legal} onChange={v => set({ legal: v })} />
+                  <SetInput label={t('agency.legalName')} value={form.legal} onChange={v => set({ legal: v })} />
                 </div>
-                <SetInput label="Numéro IDE" value={form.ide} onChange={v => set({ ide: v })} />
-                <SetInput label="N° TVA" value={form.tva} onChange={v => set({ tva: v })} />
+                <SetInput label={t('agency.ide')} value={form.ide} onChange={v => set({ ide: v })} />
+                <SetInput label={t('agency.vat')} value={form.tva} onChange={v => set({ tva: v })} />
               </div>
             </AgGroup>
-            <AgGroup glyph="mapPin" title="Adresse du siège">
+            <AgGroup glyph="mapPin" title={t('agency.headquartersTitle')}>
               <AddressAutocomplete form={form} set={set} />
             </AgGroup>
           </div>
 
           {/* Colonne droite : Coordonnées publiques + Présentation publique */}
           <div style={{ background: SET.card, borderRadius: 24, boxShadow: SET.shadow, overflow: 'hidden' }}>
-            <AgGroup glyph="phone" title="Coordonnées publiques" first>
+            <AgGroup glyph="phone" title={t('agency.publicContactTitle')} first>
               <div style={{ display: 'grid', gap: 16 }}>
-                <SetInput label="Téléphone" type="tel" value={form.phone} onChange={v => set({ phone: v })} />
-                <SetInput label="Email" type="email" value={form.email} onChange={v => set({ email: v })} />
-                <SetInput label="Site web" value={form.web} onChange={v => set({ web: v })} prefix="https://" />
+                <SetInput label={t('agency.phone')} type="tel" value={form.phone} onChange={v => set({ phone: v })} />
+                <SetInput label={t('agency.email')} type="email" value={form.email} onChange={v => set({ email: v })} />
+                <SetInput label={t('agency.website')} value={form.web} onChange={v => set({ web: v })} prefix="https://" />
               </div>
             </AgGroup>
             <CommercialTargetsGroup />
-            <AgGroup setIcon="globe" title="Présentation publique">
+            <AgGroup setIcon="globe" title={t('agency.publicPresentationTitle')}>
               <SetTextarea
                 value={form.aboutShort}
                 onChange={v => set({ aboutShort: v })}
                 rows={3}
-                placeholder="Cabinet boutique spécialisé sur…"
+                placeholder={t('agency.aboutPlaceholder')}
               />
             </AgGroup>
           </div>
@@ -1468,9 +1476,9 @@ export function AgencySection() {
 
       {confirmOpen && (
         <ConfirmModal
-          title="Annuler les modifications ?"
-          desc="Vos changements seront perdus. Cette action est irréversible."
-          danger="Annuler les modifs"
+          title={t('agency.cancelConfirm.title')}
+          desc={t('agency.cancelConfirm.desc')}
+          danger={t('agency.cancelConfirm.confirm')}
           onCancel={() => setConfirmOpen(false)}
           onConfirm={() => {
             setForm(saved)

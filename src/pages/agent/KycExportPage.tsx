@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useKycCase, useKycDocuments, useKycAuditEvents } from '@/hooks/useKyc'
 import { useTransaction } from '@/hooks/useTransactions'
 import { useAuth } from '@/hooks/useAuth'
@@ -20,6 +21,7 @@ import { PdfPage3 } from '@/components/kyc-report/PdfPage3'
 import { PDF } from '@/components/kyc-report/tokens'
 
 export default function KycExportPage() {
+  const { t } = useTranslation('kyc')
   const { dossierId } = useParams<{ dossierId: string }>()
   const { profile } = useAuth()
 
@@ -75,7 +77,7 @@ export default function KycExportPage() {
       dossier,
       documents,
       auditEvents,
-      agentName: profile?.full_name ?? 'Agent compliance',
+      agentName: profile?.full_name ?? t('report.export.agentFallback'),
       agencyName: agency?.name ?? 'MEGGA',
       transactionAmount:
         transaction?.price_final ?? transaction?.price_offered ?? null,
@@ -85,13 +87,13 @@ export default function KycExportPage() {
   }, [dossier, documents, auditEvents, profile, agency, transaction])
 
   if (dossierLoading) {
-    return <ExportPlaceholder>Chargement du dossier…</ExportPlaceholder>
+    return <ExportPlaceholder>{t('report.export.loading')}</ExportPlaceholder>
   }
   if (dossierError || !dossier) {
-    return <ExportPlaceholder>Dossier introuvable.</ExportPlaceholder>
+    return <ExportPlaceholder>{t('report.export.notFound')}</ExportPlaceholder>
   }
   if (!reportData) {
-    return <ExportPlaceholder>Préparation du rapport…</ExportPlaceholder>
+    return <ExportPlaceholder>{t('report.export.preparing')}</ExportPlaceholder>
   }
 
   return (
@@ -163,6 +165,7 @@ interface ExportToolbarProps {
 }
 
 function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
+  const { t } = useTranslation('kyc')
   return (
     <div
       className="pdf-export-toolbar"
@@ -196,7 +199,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
             cursor: 'pointer',
           }}
         >
-          ← Fermer
+          {`← ${t('report.export.close')}`}
         </button>
         <div
           style={{
@@ -207,7 +210,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
             textTransform: 'uppercase',
           }}
         >
-          Rapport KYC · {reference}
+          {t('report.export.reportRef', { reference })}
         </div>
       </div>
       <button
@@ -227,7 +230,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
           boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
         }}
       >
-        Imprimer / Enregistrer en PDF
+        {t('report.export.print')}
       </button>
     </div>
   )

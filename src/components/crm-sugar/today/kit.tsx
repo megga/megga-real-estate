@@ -7,6 +7,7 @@
 
 import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { TK, type TkToneName } from './tk'
 
@@ -206,13 +207,14 @@ interface MoreLinkProps {
   onClick?: () => void
 }
 
-export function MoreLink({ children = 'Tout voir', onClick }: MoreLinkProps) {
+export function MoreLink({ children, onClick }: MoreLinkProps) {
+  const { t } = useTranslation('common')
   return (
     <span
       onClick={onClick}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: TK.sub, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
     >
-      {children}
+      {children ?? t('actions.viewAll')}
       <RXIcon name="arrow" size={13} sw={2} />
     </span>
   )

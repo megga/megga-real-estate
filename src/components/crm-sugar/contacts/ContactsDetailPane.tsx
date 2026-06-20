@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-contacts-sugar.jsx` (CtEmptyDetail, CtDetail).
 
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { CRM_AI_SUGGESTIONS, type CrmContact } from '../mockData'
 import { useContactSugarRelations } from '@/hooks/useContactSugarRelations'
@@ -16,10 +17,10 @@ import {
   CtMatches,
   CtSellerStats,
 } from './ContactsDetailWidgets'
-import { ctRelativeTime, ctScoreColor, ctTypeLabel } from './helpers'
+import { ctRelativeTime, ctScoreColor, ctTypeLabel, type CtT } from './helpers'
 import { ModalPlanRdv, type RdvPayload } from './ModalPlanRdv'
 
-function CtEmptyDetail({ sp }: { sp: SugarPalette }) {
+function CtEmptyDetail({ sp, t }: { sp: SugarPalette; t: CtT }) {
   return (
     <div
       style={{
@@ -54,11 +55,9 @@ function CtEmptyDetail({ sp }: { sp: SugarPalette }) {
             marginBottom: 6,
           }}
         >
-          Aucun contact sélectionné
+          {t('detail.noneSelectedTitle')}
         </div>
-        <div style={{ lineHeight: 1.5 }}>
-          Choisissez un contact dans la liste pour voir sa fiche détaillée.
-        </div>
+        <div style={{ lineHeight: 1.5 }}>{t('detail.noneSelectedDesc')}</div>
       </div>
     </div>
   )
@@ -77,6 +76,7 @@ export function ContactsDetailPane({
   dark,
   onPlanRdv,
 }: ContactsDetailPaneProps) {
+  const { t, i18n } = useTranslation('contacts')
   const [rdvOpen, setRdvOpen] = useState(false)
 
   // Reset RDV modal when contact changes
@@ -88,7 +88,7 @@ export function ContactsDetailPane({
   // courant (hooks call inconditionnel — `undefined` désactive les queries).
   const { matches, deals, activity, biensOwned } = useContactSugarRelations(contact?.id)
 
-  if (!contact) return <CtEmptyDetail sp={sp} />
+  if (!contact) return <CtEmptyDetail sp={sp} t={t} />
 
   const fullName = contact.firstName + ' ' + contact.lastName
   const initials = crmInitials(fullName)
@@ -104,19 +104,14 @@ export function ContactsDetailPane({
   const dealCount = deals.length
 
   const handleSaveRdv = (data: RdvPayload) => {
-    const labels: Record<RdvPayload['type'], string> = {
-      visit: 'Visite',
-      phone: 'Téléphone',
-      video: 'Visio',
-      notary: 'Signature notaire',
-      other: 'RDV',
-    }
     const dt = new Date(data.date + 'T' + data.time)
-    const fmt =
-      dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) +
-      ' à ' +
-      data.time
-    onPlanRdv(`${labels[data.type]} planifié — ${fmt}`)
+    const when = t('detail.rdvWhen', {
+      date: dt.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' }),
+      time: data.time,
+    })
+    onPlanRdv(
+      t('detail.rdvPlanned', { type: t(`detail.rdvType.${data.type}`), when }),
+    )
   }
 
   return (
@@ -183,7 +178,7 @@ export function ContactsDetailPane({
                       : '#06B6D4'
                 }
               >
-                {ctTypeLabel(contact.type)}
+                {ctTypeLabel(contact.type, t)}
               </CtChip>
               <CtChip sp={sp} dark={dark}>
                 <span
@@ -194,7 +189,7 @@ export function ContactsDetailPane({
                     background: scoreColor,
                   }}
                 />
-                Score {score}
+                {t('detail.scoreChip', { score })}
               </CtChip>
             </div>
             <div style={{ fontSize: 12.5, color: sp.soft, fontWeight: 500 }}>
@@ -223,9 +218,11 @@ export function ContactsDetailPane({
               {contact.lang?.toUpperCase()}
             </div>
             <div style={{ fontSize: 11.5, color: sp.sub, marginTop: 4 }}>
-              Source : {contact.source} · Créé le{' '}
-              {(contact.createdAt || '').slice(0, 10)} · Dernière activité{' '}
-              {ctRelativeTime(contact.lastActivityAt)}
+              {t('detail.metaLine', {
+                source: contact.source,
+                date: (contact.createdAt || '').slice(0, 10),
+                activity: ctRelativeTime(contact.lastActivityAt, t),
+              })}
             </div>
             {(contact.tags?.length ?? 0) > 0 && (
               <div
@@ -254,7 +251,7 @@ export function ContactsDetailPane({
                     fontFamily: 'inherit',
                   }}
                 >
-                  + Tag
+                  {t('detail.addTag')}
                 </button>
               </div>
             )}
@@ -262,8 +259,8 @@ export function ContactsDetailPane({
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button
               onClick={() => setRdvOpen(true)}
-              title="Planifier un rendez-vous"
-              aria-label="Planifier un rendez-vous"
+              title={t('detail.planRdvTitle')}
+              aria-label={t('detail.planRdvTitle')}
               style={{
                 height: 36,
                 padding: '0 14px',
@@ -282,11 +279,11 @@ export function ContactsDetailPane({
               }}
             >
               <MEIcon name="calendar" size={13} color={dark ? '#0A0A0F' : sp.pageBg} />
-              Planifier
+              {t('detail.plan')}
             </button>
             <button
-              title="Plus d'actions"
-              aria-label="Plus d'actions"
+              title={t('detail.moreActions')}
+              aria-label={t('detail.moreActions')}
               style={{
                 width: 36,
                 height: 36,
@@ -331,7 +328,7 @@ export function ContactsDetailPane({
       >
         <CtBento
           sp={sp}
-          title="Activité récente"
+          title={t('detail.recentActivity')}
           action={
             <button
               style={{
@@ -344,14 +341,14 @@ export function ContactsDetailPane({
                 fontFamily: 'inherit',
               }}
             >
-              Tout voir
+              {t('detail.seeAll')}
             </button>
           }
         >
           <CtActivity contact={contact} activity={activity} sp={sp} fill />
         </CtBento>
 
-        <CtBento sp={sp} title="Saisie rapide">
+        <CtBento sp={sp} title={t('detail.quickEntry')}>
           <CtComposer sp={sp} dark={dark} fill />
         </CtBento>
       </div>
@@ -369,7 +366,7 @@ export function ContactsDetailPane({
         {isBuyer && contact.criteria && (
           <CtBento
             sp={sp}
-            title="Critères de recherche"
+            title={t('detail.searchCriteria')}
             style={{ height: '100%' }}
             action={
               <button
@@ -383,7 +380,7 @@ export function ContactsDetailPane({
                   fontFamily: 'inherit',
                 }}
               >
-                Modifier
+                {t('detail.modify')}
               </button>
             }
           >
@@ -391,7 +388,7 @@ export function ContactsDetailPane({
           </CtBento>
         )}
         {isSeller && (
-          <CtBento sp={sp} title="Mandats & diffusion" style={{ height: '100%' }}>
+          <CtBento sp={sp} title={t('detail.mandatesDistribution')} style={{ height: '100%' }}>
             <CtSellerStats contact={contact} biensOwned={biensOwned} sp={sp} />
           </CtBento>
         )}
@@ -404,12 +401,12 @@ export function ContactsDetailPane({
             height: '100%',
           }}
         >
-          <CtBento sp={sp} title="Conformité KYC / LBA" style={{ flex: 1 }}>
+          <CtBento sp={sp} title={t('detail.kycCompliance')} style={{ flex: 1 }}>
             <CtKyc contact={contact} sp={sp} fill />
           </CtBento>
           <CtBento
             sp={sp}
-            title="Notes internes"
+            title={t('detail.internalNotes')}
             style={{ flex: 1 }}
             action={
               <button
@@ -423,14 +420,14 @@ export function ContactsDetailPane({
                   fontFamily: 'inherit',
                 }}
               >
-                Modifier
+                {t('detail.modify')}
               </button>
             }
           >
             <div style={{ fontSize: 13, color: sp.soft, lineHeight: 1.65 }}>
               {contact.notes || (
                 <span style={{ color: sp.sub, fontStyle: 'italic' }}>
-                  Aucune note pour ce contact.
+                  {t('detail.noNotes')}
                 </span>
               )}
             </div>
@@ -440,7 +437,7 @@ export function ContactsDetailPane({
         {/* Row 2 : Deals (G) | Préférences (D) */}
         <CtBento
           sp={sp}
-          title={`Deals · ${dealCount}`}
+          title={t('detail.dealsTitle', { count: dealCount })}
           action={
             <button
               style={{
@@ -453,26 +450,26 @@ export function ContactsDetailPane({
                 fontFamily: 'inherit',
               }}
             >
-              + Nouveau
+              {t('detail.newShort')}
             </button>
           }
         >
           <CtDeals contact={contact} deals={deals} sp={sp} fill />
         </CtBento>
 
-        <CtBento sp={sp} title="Préférences" padding="14px 20px">
-          <CtKv sp={sp} label="Langue" value={contact.lang?.toUpperCase() || '—'} />
+        <CtBento sp={sp} title={t('detail.preferences')} padding="14px 20px">
+          <CtKv sp={sp} label={t('detail.prefLanguage')} value={contact.lang?.toUpperCase() || '—'} />
           <CtKv
             sp={sp}
-            label="Canal"
+            label={t('detail.prefChannel')}
             value={
-              [contact.email && 'Email', contact.phone && 'Téléphone']
+              [contact.email && t('detail.channelEmail'), contact.phone && t('detail.channelPhone')]
                 .filter(Boolean)
                 .join(' · ') || '—'
             }
           />
-          <CtKv sp={sp} label="Moment" value="Non renseigné" />
-          <CtKv sp={sp} label="Agent" value={contact.assignedTo || 'Non assigné'} />
+          <CtKv sp={sp} label={t('detail.prefMoment')} value={t('detail.notProvided')} />
+          <CtKv sp={sp} label={t('detail.prefAgent')} value={contact.assignedTo || t('detail.unassigned')} />
         </CtBento>
 
         {/* Row 3 : Matchs span 2 */}
@@ -480,7 +477,7 @@ export function ContactsDetailPane({
           <CtBento
             sp={sp}
             span={2}
-            title={`Matchs · ${matchCount}`}
+            title={t('detail.matchesTitle', { count: matchCount })}
             action={
               <button
                 style={{
@@ -493,7 +490,7 @@ export function ContactsDetailPane({
                   fontFamily: 'inherit',
                 }}
               >
-                Tout voir →
+                {t('detail.seeAllArrow')}
               </button>
             }
           >

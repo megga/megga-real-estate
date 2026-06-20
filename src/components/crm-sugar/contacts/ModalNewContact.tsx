@@ -3,6 +3,7 @@
 
 import { useEffect, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { Trans, useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../tokens'
 
@@ -35,25 +36,28 @@ export interface NewContactPayload {
   }
 }
 
+// Listes constantes : on conserve des clés i18n stables (`labelKey`/`descKey`)
+// résolues au rendu via `t(...)` — pas de texte FR en dur.
 const NC_TYPES: {
   id: NewContactType
-  label: string
+  labelKey: string
   icon: MEIconName
   color: string
-  desc: string
+  descKey: string
 }[] = [
-  { id: 'buyer', label: 'Acheteur', icon: 'search', color: '#0041D9', desc: 'Recherche un bien à acheter' },
-  { id: 'tenant', label: 'Locataire', icon: 'home', color: '#06B6D4', desc: 'Recherche une location' },
-  { id: 'seller', label: 'Vendeur', icon: 'flag', color: '#B45309', desc: 'Met un bien en vente' },
-  { id: 'landlord', label: 'Propriétaire', icon: 'building', color: '#0E9F6E', desc: 'Met un bien en location' },
+  { id: 'buyer', labelKey: 'contactType.buyer', icon: 'search', color: '#0041D9', descKey: 'newContact.typeDesc.buyer' },
+  { id: 'tenant', labelKey: 'contactType.tenant', icon: 'home', color: '#06B6D4', descKey: 'newContact.typeDesc.tenant' },
+  { id: 'seller', labelKey: 'contactType.seller', icon: 'flag', color: '#B45309', descKey: 'newContact.typeDesc.seller' },
+  { id: 'landlord', labelKey: 'contactType.landlord', icon: 'building', color: '#0E9F6E', descKey: 'newContact.typeDesc.landlord' },
 ]
 
 const NC_CIVILITIES = [
-  { id: 'mr', label: 'M.' },
-  { id: 'mrs', label: 'Mme' },
-  { id: 'x', label: 'Autre' },
+  { id: 'mr', labelKey: 'newContact.civility.mr' },
+  { id: 'mrs', labelKey: 'newContact.civility.mrs' },
+  { id: 'x', labelKey: 'newContact.civility.other' },
 ]
 
+// Codes de langue affichés tels quels (FR/DE/IT/EN) — non traduits.
 const NC_LANGS = [
   { id: 'fr', label: 'FR' },
   { id: 'de', label: 'DE' },
@@ -62,12 +66,12 @@ const NC_LANGS = [
 ]
 
 const NC_SOURCES = [
-  { id: 'website', label: 'Site web' },
-  { id: 'referral', label: 'Recommandation' },
-  { id: 'portal', label: 'Portail' },
-  { id: 'walk-in', label: 'Walk-in' },
-  { id: 'csv', label: 'Import' },
-  { id: 'other', label: 'Autre' },
+  { id: 'website', labelKey: 'newContact.source.website' },
+  { id: 'referral', labelKey: 'newContact.source.referral' },
+  { id: 'portal', labelKey: 'newContact.source.portal' },
+  { id: 'walk-in', labelKey: 'newContact.source.walkIn' },
+  { id: 'csv', labelKey: 'newContact.source.import' },
+  { id: 'other', labelKey: 'newContact.source.other' },
 ]
 
 const NC_AGENTS = [
@@ -77,16 +81,18 @@ const NC_AGENTS = [
   { id: 'agt-4', name: 'Élodie Chen' },
 ]
 
+// Valeurs de tags persistées telles quelles (deviennent la donnée stockée) —
+// non traduites.
 const NC_TAG_SUGGESTIONS = [
   'famille', 'primo-accédant', 'investisseur', 'haute valeur',
   'urgent', 'succession', 'expat', 'locataire',
 ]
 
 const NC_PROPERTY_TYPES = [
-  { id: 'appartement', label: 'Appartement' },
-  { id: 'maison', label: 'Maison' },
-  { id: 'terrain', label: 'Terrain' },
-  { id: 'commercial', label: 'Commercial' },
+  { id: 'appartement', labelKey: 'newContact.propertyType.apartment' },
+  { id: 'maison', labelKey: 'newContact.propertyType.house' },
+  { id: 'terrain', labelKey: 'newContact.propertyType.land' },
+  { id: 'commercial', labelKey: 'newContact.propertyType.commercial' },
 ]
 
 const NC_CANTONS = ['GE', 'VD', 'VS', 'FR', 'NE', 'JU', 'BE', 'ZH']
@@ -112,6 +118,7 @@ interface ModalNewContactProps {
 }
 
 export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, error = null }: ModalNewContactProps) {
+  const { t } = useTranslation('contacts')
   const [type, setType] = useState<NewContactType>('buyer')
   const [civility, setCivility] = useState('mr')
   const [firstName, setFirstName] = useState('')
@@ -329,15 +336,19 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 letterSpacing: -0.4,
               }}
             >
-              Nouveau contact
+              {t('newContact.title')}
             </h2>
             <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>
-              Crée une fiche · {NC_TYPES.find(x => x.id === type)?.desc}
+              {t('newContact.subtitle')} ·{' '}
+              {(() => {
+                const dk = NC_TYPES.find(x => x.id === type)?.descKey
+                return dk ? t(dk) : ''
+              })()}
             </div>
           </div>
           <button
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t('common:actions.close')}
             style={{
               width: 32,
               height: 32,
@@ -409,7 +420,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.2 }}>
-                      {tt.label}
+                      {t(tt.labelKey)}
                     </div>
                     <div
                       style={{
@@ -420,7 +431,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                         fontWeight: 500,
                       }}
                     >
-                      {tt.desc}
+                      {t(tt.descKey)}
                     </div>
                   </div>
                 </button>
@@ -450,7 +461,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
               gap: 16,
             }}
           >
-            <h3 style={colTitleStyle}>Identité</h3>
+            <h3 style={colTitleStyle}>{t('newContact.identity')}</h3>
 
             <div
               style={{
@@ -460,7 +471,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
               }}
             >
               <div>
-                <label style={labelStyle}>Civ.</label>
+                <label style={labelStyle}>{t('newContact.civilityLabel')}</label>
                 <select
                   value={civility}
                   onChange={e => setCivility(e.target.value)}
@@ -469,36 +480,36 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 >
                   {NC_CIVILITIES.map(c => (
                     <option key={c.id} value={c.id}>
-                      {c.label}
+                      {t(c.labelKey)}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>Prénom *</label>
+                <label style={labelStyle}>{t('newContact.firstName')}</label>
                 <input
                   className="nc-input"
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
-                  placeholder="Marie"
+                  placeholder={t('newContact.firstNamePlaceholder')}
                   style={inputStyle}
                   autoFocus
                 />
               </div>
               <div>
-                <label style={labelStyle}>Nom *</label>
+                <label style={labelStyle}>{t('newContact.lastName')}</label>
                 <input
                   className="nc-input"
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
-                  placeholder="Bertrand"
+                  placeholder={t('newContact.lastNamePlaceholder')}
                   style={inputStyle}
                 />
               </div>
             </div>
 
             <div>
-              <label style={labelStyle}>Email *</label>
+              <label style={labelStyle}>{t('newContact.email')}</label>
               <input
                 className="nc-input"
                 type="email"
@@ -517,7 +528,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
               }}
             >
               <div>
-                <label style={labelStyle}>Téléphone</label>
+                <label style={labelStyle}>{t('newContact.phone')}</label>
                 <input
                   className="nc-input"
                   type="tel"
@@ -531,7 +542,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 />
               </div>
               <div>
-                <label style={labelStyle}>Langue</label>
+                <label style={labelStyle}>{t('newContact.language')}</label>
                 <div style={{ display: 'flex', gap: 4, height: 38 }}>
                   {NC_LANGS.map(l => {
                     const active = lang === l.id
@@ -561,7 +572,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
-                <label style={labelStyle}>Source du lead</label>
+                <label style={labelStyle}>{t('newContact.leadSource')}</label>
                 <select
                   className="nc-input"
                   value={source}
@@ -570,13 +581,13 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 >
                   {NC_SOURCES.map(s => (
                     <option key={s.id} value={s.id}>
-                      {s.label}
+                      {t(s.labelKey)}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>Agent assigné</label>
+                <label style={labelStyle}>{t('newContact.assignedAgent')}</label>
                 <select
                   className="nc-input"
                   value={assignedTo}
@@ -593,7 +604,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
             </div>
 
             <div>
-              <label style={labelStyle}>Tags / segment</label>
+              <label style={labelStyle}>{t('newContact.tags')}</label>
               {tags.length > 0 && (
                 <div
                   style={{
@@ -651,7 +662,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                     setTags(tags.slice(0, -1))
                   }
                 }}
-                placeholder="Ajouter un tag puis Entrée…"
+                placeholder={t('newContact.tagPlaceholder')}
                 style={inputStyle}
               />
               <div
@@ -687,12 +698,12 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
             </div>
 
             <div>
-              <label style={labelStyle}>Note libre</label>
+              <label style={labelStyle}>{t('newContact.note')}</label>
               <textarea
                 className="nc-input"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                placeholder="Contexte, source de l'intro, points à retenir…"
+                placeholder={t('newContact.notePlaceholder')}
                 style={{
                   ...inputStyle,
                   height: 76,
@@ -717,12 +728,16 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
             {isBuyerSide && (
               <>
                 <h3 style={colTitleStyle}>
-                  Critères de recherche {type === 'tenant' ? '· location' : '· achat'}
+                  {type === 'tenant'
+                    ? t('newContact.searchCriteria.titleRent')
+                    : t('newContact.searchCriteria.titleBuy')}
                 </h3>
 
                 <div>
                   <label style={labelStyle}>
-                    {type === 'tenant' ? 'Loyer mensuel max (CHF)' : 'Budget (CHF)'}
+                    {type === 'tenant'
+                      ? t('newContact.searchCriteria.maxRent')
+                      : t('newContact.searchCriteria.budget')}
                   </label>
                   {type === 'tenant' ? (
                     <input
@@ -751,7 +766,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                         inputMode="numeric"
                         value={budgetMin}
                         onChange={e => setBudgetMin(e.target.value)}
-                        placeholder="Min · 900000"
+                        placeholder={t('newContact.searchCriteria.budgetMinPlaceholder')}
                         style={{
                           ...inputStyle,
                           fontFamily: 'JetBrains Mono, monospace',
@@ -763,7 +778,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                         inputMode="numeric"
                         value={budgetMax}
                         onChange={e => setBudgetMax(e.target.value)}
-                        placeholder="Max · 1300000"
+                        placeholder={t('newContact.searchCriteria.budgetMaxPlaceholder')}
                         style={{
                           ...inputStyle,
                           fontFamily: 'JetBrains Mono, monospace',
@@ -787,7 +802,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Type de bien</label>
+                  <label style={labelStyle}>{t('newContact.propertyTypeLabel')}</label>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {NC_PROPERTY_TYPES.map(p => {
                       const active = propTypes.includes(p.id)
@@ -812,7 +827,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                           }}
                         >
                           {active && <span style={{ fontSize: 10 }}>✓</span>}
-                          {p.label}
+                          {t(p.labelKey)}
                         </button>
                       )
                     })}
@@ -820,7 +835,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Cantons</label>
+                  <label style={labelStyle}>{t('newContact.cantons')}</label>
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                     {NC_CANTONS.map(c => {
                       const active = cantons.includes(c)
@@ -850,7 +865,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Pièces min.</label>
+                  <label style={labelStyle}>{t('newContact.minRooms')}</label>
                   <input
                     className="nc-input"
                     type="number"
@@ -860,7 +875,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                     step="0.5"
                     value={roomsMin}
                     onChange={e => setRoomsMin(e.target.value)}
-                    placeholder="ex. 4"
+                    placeholder={t('newContact.minRoomsPlaceholder')}
                     style={{
                       ...inputStyle,
                       fontFamily: 'JetBrains Mono, monospace',
@@ -880,10 +895,11 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                     lineHeight: 1.55,
                   }}
                 >
-                  Ces critères lanceront un premier{' '}
-                  <strong style={{ color: sp.ink }}>matching IA</strong> dès la création.
-                  <br />
-                  Tu pourras les affiner depuis la fiche.
+                  <Trans
+                    t={t}
+                    i18nKey="newContact.matchingHint"
+                    components={{ strong: <strong style={{ color: sp.ink }} />, br: <br /> }}
+                  />
                 </div>
               </>
             )}
@@ -891,7 +907,9 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
             {isSellerSide && (
               <>
                 <h3 style={colTitleStyle}>
-                  Bien à {type === 'seller' ? 'vendre' : 'louer'}
+                  {type === 'seller'
+                    ? t('newContact.property.titleSell')
+                    : t('newContact.property.titleRent')}
                 </h3>
 
                 <div
@@ -906,19 +924,20 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                     marginBottom: 6,
                   }}
                 >
-                  Crée une{' '}
-                  <strong style={{ color: sp.ink }}>fiche bien minimale</strong> liée à ce
-                  contact. Tu compléteras photos, prix et descriptif via le wizard depuis
-                  la fiche.
+                  <Trans
+                    t={t}
+                    i18nKey="newContact.property.minFicheHint"
+                    components={{ strong: <strong style={{ color: sp.ink }} /> }}
+                  />
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Adresse du bien</label>
+                  <label style={labelStyle}>{t('newContact.property.address')}</label>
                   <input
                     className="nc-input"
                     value={bienAddress}
                     onChange={e => setBienAddress(e.target.value)}
-                    placeholder="Rue du Mont-Blanc 12, 1201 Genève"
+                    placeholder={t('newContact.property.addressPlaceholder')}
                     style={inputStyle}
                   />
                 </div>
@@ -931,7 +950,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                   }}
                 >
                   <div>
-                    <label style={labelStyle}>Type</label>
+                    <label style={labelStyle}>{t('newContact.property.type')}</label>
                     <select
                       className="nc-input"
                       value={bienType}
@@ -940,13 +959,13 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                     >
                       {NC_PROPERTY_TYPES.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.label}
+                          {t(p.labelKey)}
                         </option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Pièces</label>
+                    <label style={labelStyle}>{t('newContact.property.rooms')}</label>
                     <input
                       className="nc-input"
                       type="number"
@@ -983,7 +1002,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                   }}
                 >
                   <MEIcon name="plus" size={12} color={sp.soft} />
-                  Ouvrir le wizard bien complet
+                  {t('newContact.property.openWizard')}
                 </button>
 
                 <div
@@ -998,8 +1017,11 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                     lineHeight: 1.55,
                   }}
                 >
-                  La <strong style={{ color: sp.ink }}>signature de mandat</strong> et la
-                  KYC seront proposées comme prochaines étapes après création.
+                  <Trans
+                    t={t}
+                    i18nKey="newContact.property.mandateKycHint"
+                    components={{ strong: <strong style={{ color: sp.ink }} /> }}
+                  />
                 </div>
               </>
             )}
@@ -1042,9 +1064,11 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 cursor: 'pointer',
               }}
             />
-            J'ai obtenu le{' '}
-            <strong style={{ color: sp.ink, fontWeight: 700 }}>consentement RGPD</strong>{' '}
-            du contact
+            <Trans
+              t={t}
+              i18nKey="newContact.gdprConsent"
+              components={{ strong: <strong style={{ color: sp.ink, fontWeight: 700 }} /> }}
+            />
           </label>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -1074,7 +1098,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 marginRight: 4,
               }}
             >
-              ⌘⏎ pour créer
+              {t('newContact.shortcutCreate')}
             </span>
             <button
               onClick={onClose}
@@ -1093,7 +1117,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 opacity: isPending ? 0.5 : 1,
               }}
             >
-              Annuler
+              {t('common:actions.cancel')}
             </button>
             <button
               onClick={handleSave}
@@ -1121,7 +1145,7 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
                 size={12}
                 color={canSave && !isPending ? primaryInk : sp.sub}
               />
-              {isPending ? 'Création…' : 'Créer le contact'}
+              {isPending ? t('newContact.creating') : t('newContact.submit')}
             </button>
           </div>
         </div>

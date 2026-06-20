@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { Search, Plus, Archive } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { MessageThread } from '@/hooks/useMessaging'
@@ -18,21 +20,21 @@ interface ChatThreadListProps {
 }
 
 // Compact relative date: "2m", "3h", "5j", "2sem"
-function compactDate(dateStr: string): string {
+function compactDate(dateStr: string, t: TFunction): string {
   const now = Date.now()
   const d = new Date(dateStr).getTime()
   const diff = Math.max(0, now - d)
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'now'
-  if (mins < 60) return `${mins}m`
+  if (mins < 1) return t('chat.compactDate.now')
+  if (mins < 60) return t('chat.compactDate.minutes', { count: mins })
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h`
+  if (hours < 24) return t('chat.compactDate.hours', { count: hours })
   const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}j`
+  if (days < 7) return t('chat.compactDate.days', { count: days })
   const weeks = Math.floor(days / 7)
-  if (weeks < 5) return `${weeks}sem`
+  if (weeks < 5) return t('chat.compactDate.weeks', { count: weeks })
   const months = Math.floor(days / 30)
-  return `${months}mo`
+  return t('chat.compactDate.months', { count: months })
 }
 
 function ThreadAvatar({ initials, isActive }: {
@@ -54,6 +56,7 @@ export { AI_THREAD_ID }
 export default function ChatThreadList({
   threads, selectedThreadId, onSelectThread, onCompose, archivedThreadIds, onArchive, aiLastMessage,
 }: ChatThreadListProps) {
+  const { t } = useTranslation('messages')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
 
@@ -82,18 +85,18 @@ export default function ChatThreadList({
       {/* Header */}
       <div className="px-5 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
         <div>
-          <h1 className="text-lg font-semibold text-theme-primary">Chat</h1>
+          <h1 className="text-lg font-semibold text-theme-primary">{t('chat.title')}</h1>
           {unreadCount > 0 && (
             <p className="text-xs text-accent font-medium mt-0.5">
-              {unreadCount} non lu{unreadCount > 1 ? 's' : ''}
+              {t('chat.unreadCount', { count: unreadCount })}
             </p>
           )}
         </div>
         <button
           onClick={onCompose}
-          aria-label="Nouveau message"
+          aria-label={t('compose.title')}
           className="h-8 w-8 rounded-lg bg-theme-card flex items-center justify-center text-theme-secondary hover:text-theme-primary border border-theme-border hover:border-theme-active transition-colors"
-          title="Nouveau message"
+          title={t('compose.title')}
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -105,8 +108,8 @@ export default function ChatThreadList({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-theme-muted" />
           <input
             type="text"
-            placeholder="Rechercher..."
-            aria-label="Rechercher une conversation"
+            placeholder={t('search_placeholder')}
+            aria-label={t('chat.searchAriaLabel')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-9 pl-9 pr-3 bg-theme-card border border-theme-border rounded-lg text-sm text-theme-primary placeholder:text-theme-muted outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors"
@@ -117,10 +120,10 @@ export default function ChatThreadList({
       {/* Filters */}
       <div className="flex gap-1.5 px-5 pb-3 flex-shrink-0">
         {([
-          { value: 'all' as FilterType, label: 'Tous' },
-          { value: 'unread' as FilterType, label: 'Non lus' },
-          { value: 'buyer' as FilterType, label: 'Acheteurs' },
-          { value: 'seller' as FilterType, label: 'Vendeurs' },
+          { value: 'all' as FilterType, label: t('filter.all') },
+          { value: 'unread' as FilterType, label: t('filter.unread') },
+          { value: 'buyer' as FilterType, label: t('filter.buyers') },
+          { value: 'seller' as FilterType, label: t('filter.sellers') },
         ]).map((f) => (
           <button
             key={f.value}
@@ -160,7 +163,7 @@ export default function ChatThreadList({
               <span className="text-sm font-semibold text-theme-primary">MEGGA AI</span>
             </div>
             <p className="text-xs text-theme-muted truncate mt-0.5">
-              {aiLastMessage || 'Votre assistant intelligent'}
+              {aiLastMessage || t('chat.aiAssistantTagline')}
             </p>
           </div>
         </div>
@@ -176,7 +179,7 @@ export default function ChatThreadList({
         {filteredThreads.length === 0 && filter !== 'all' && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <img src="/illustrations/maggy/EmptyState.svg" alt="" className="w-40 h-32 mx-auto mb-3" loading="lazy" decoding="async" />
-            <p className="text-xs text-theme-muted">Aucune conversation.</p>
+            <p className="text-xs text-theme-muted">{t('chat.noConversations')}</p>
           </div>
         )}
         {filteredThreads.map((thread) => {
@@ -190,7 +193,7 @@ export default function ChatThreadList({
               tabIndex={0}
               onClick={() => onSelectThread(thread.id)}
               onKeyDown={(e) => e.key === 'Enter' && onSelectThread(thread.id)}
-              aria-label={`Conversation avec ${thread.contact_name}`}
+              aria-label={t('chat.conversationWith', { name: thread.contact_name })}
               className={cn(
                 'w-full text-left px-5 py-3 flex gap-3 transition-all cursor-pointer group relative',
                 isActive ? 'bg-theme-active' : 'hover:bg-theme-hover'
@@ -216,7 +219,7 @@ export default function ChatThreadList({
                     'text-xs flex-shrink-0 tabular-nums',
                     isUnread ? 'text-accent font-medium' : 'text-theme-muted'
                   )}>
-                    {compactDate(thread.last_message_at)}
+                    {compactDate(thread.last_message_at, t)}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -238,9 +241,9 @@ export default function ChatThreadList({
               {/* Archive button on hover */}
               <button
                 onClick={(e) => { e.stopPropagation(); onArchive(thread.id) }}
-                aria-label={archivedThreadIds.has(thread.id) ? 'Désarchiver' : 'Archiver'}
+                aria-label={archivedThreadIds.has(thread.id) ? t('chat.unarchive') : t('chat.archive')}
                 className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-theme-section transition-all self-center shrink-0"
-                title={archivedThreadIds.has(thread.id) ? 'Désarchiver' : 'Archiver'}
+                title={archivedThreadIds.has(thread.id) ? t('chat.unarchive') : t('chat.archive')}
               >
                 <Archive className="w-3.5 h-3.5 text-theme-muted" />
               </button>

@@ -15,6 +15,7 @@
 //   fond #0B0C0E en light, #16171F en dark — seule surface hors tokens clairs.
 
 import { useEffect, useRef, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ui/Toast'
 import { SetIcon, SetRing } from './atoms'
@@ -35,12 +36,13 @@ const isDark = () => SET.card === SET_DARK.card
 
 // ════════════════════════════════════════════════════════════════════════
 //  Modèle de posture — 2FA off = 78 (Bon) / on = 100 (Excellent)
+//  verdictKey / actionLabelKey sont résolus via t() dans HeroSecurity.
 // ════════════════════════════════════════════════════════════════════════
 function secModel(twoFAOn: boolean) {
   const score = twoFAOn ? 100 : 78
   return twoFAOn
-    ? { score, verdict: 'Excellent', tone: TONE_OK, actions: 0, actionLabel: 'Compte entièrement protégé' }
-    : { score, verdict: 'Bon', tone: TONE_WARN, actions: 1, actionLabel: '1 action recommandée' }
+    ? { score, verdictKey: 'settings.security.posture.verdictExcellent', tone: TONE_OK, actions: 0, actionLabelKey: 'settings.security.posture.fullyProtected' }
+    : { score, verdictKey: 'settings.security.posture.verdictGood', tone: TONE_WARN, actions: 1, actionLabelKey: 'settings.security.posture.oneActionRecommended' }
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -55,7 +57,14 @@ function scorePassword(s: string): number {
   if (/[^A-Za-z0-9]/.test(s)) n++
   return Math.min(n, 4)
 }
-const PWD_LABELS = ['Trop court', 'Faible', 'Moyen', 'Bon', 'Robuste']
+// Clés i18n indexées par score 0–4 — résolues via t() dans <Meter />.
+const PWD_LABEL_KEYS = [
+  'settings.security.password.strengthTooShort',
+  'settings.security.password.strengthWeak',
+  'settings.security.password.strengthMedium',
+  'settings.security.password.strengthGood',
+  'settings.security.password.strengthStrong',
+]
 const PWD_COLORS = [SET.muted, SET.bad, SET.warn, SET.ok, SET.ok]
 
 // ════════════════════════════════════════════════════════════════════════
@@ -76,6 +85,7 @@ function PwdField({
   autoFocus?: boolean
   tone?: string | null
 }) {
+  const { t } = useTranslation('settings')
   const [show, setShow] = useState(false)
   const [foc, setFoc] = useState(false)
   const ring = tone || (foc ? SET.ink : null)
@@ -133,7 +143,7 @@ function PwdField({
         <button
           type="button"
           onClick={() => setShow(v => !v)}
-          aria-label={show ? 'Masquer' : 'Afficher'}
+          aria-label={show ? t('settings.security.password.hide') : t('settings.security.password.show')}
           style={{
             width: 34,
             height: 34,
@@ -155,6 +165,7 @@ function PwdField({
 
 // Barre de force réutilisable (4 segments).
 function Meter({ s }: { s: number }) {
+  const { t } = useTranslation('settings')
   const col = PWD_COLORS[s]
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -181,7 +192,7 @@ function Meter({ s }: { s: number }) {
           whiteSpace: 'nowrap',
         }}
       >
-        {PWD_LABELS[s]}
+        {t(PWD_LABEL_KEYS[s])}
       </span>
     </div>
   )
@@ -189,6 +200,7 @@ function Meter({ s }: { s: number }) {
 
 // CTA noir avec état désactivé (sur surface claire).
 function SaveBtn({ ready, onClick, loading }: { ready: boolean; onClick: () => void; loading?: boolean }) {
+  const { t } = useTranslation('settings')
   return (
     <button
       onClick={() => ready && !loading && onClick()}
@@ -226,13 +238,14 @@ function SaveBtn({ ready, onClick, loading }: { ready: boolean; onClick: () => v
       ) : (
         <SetIcon name="check" size={14} stroke={ready ? SET.blackInk : SET.ghost} sw={2.4} />
       )}
-      Enregistrer
+      {t('settings.page.save')}
     </button>
   )
 }
 
 // Sceau de succès centré.
 function SuccessCenter({ sub }: { sub: string }) {
+  const { t } = useTranslation('settings')
   return (
     <div
       style={{
@@ -262,7 +275,7 @@ function SuccessCenter({ sub }: { sub: string }) {
         </svg>
       </div>
       <div style={{ marginTop: 18, fontSize: 17, fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
-        Mot de passe modifié
+        {t('settings.security.password.changedTitle')}
       </div>
       <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 500, color: SET.muted }}>{sub}</div>
     </div>
@@ -273,6 +286,7 @@ function SuccessCenter({ sub }: { sub: string }) {
 //  CARTE MOT DE PASSE — view · edit · forgot · sent · saved (câblage réel)
 // ════════════════════════════════════════════════════════════════════════
 function PwdVaultLight() {
+  const { t } = useTranslation('settings')
   const { user, updatePassword, resetPassword } = useAuth()
   const toast = useToast()
   const verifiedEmail = user?.email ?? ''
@@ -319,7 +333,7 @@ function PwdVaultLight() {
     const { error } = await updatePassword(nw)
     setSaving(false)
     if (error) {
-      toast.error(`Échec : ${error}`)
+      toast.error(t('settings.security.failureWith', { message: error }))
       return
     }
     reset()
@@ -330,7 +344,7 @@ function PwdVaultLight() {
     if (!verifiedEmail) return
     const { error } = await resetPassword(verifiedEmail)
     if (error) {
-      toast.error(`Échec : ${error}`)
+      toast.error(t('settings.security.failureWith', { message: error }))
       return
     }
     setMode('sent')
@@ -365,13 +379,13 @@ function PwdVaultLight() {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, letterSpacing: -0.3, color: SET.ink }}>
-          Mot de passe
+          {t('settings.security.password.title')}
         </h3>
         <p style={{ margin: '5px 0 0', fontSize: 12.5, color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>
-          {mode === 'view' && 'Clé maîtresse de votre compte MEGGA.'}
-          {mode === 'edit' && 'Choisissez une nouvelle clé — au moins 8 caractères.'}
-          {mode === 'forgot' && "Pas besoin de l'ancienne — on vous envoie un lien sécurisé."}
-          {mode === 'sent' && 'Lien de réinitialisation envoyé.'}
+          {mode === 'view' && t('settings.security.password.descView')}
+          {mode === 'edit' && t('settings.security.password.descEdit')}
+          {mode === 'forgot' && t('settings.security.password.descForgot')}
+          {mode === 'sent' && t('settings.security.password.descSent')}
         </p>
       </div>
     </div>
@@ -418,7 +432,7 @@ function PwdVaultLight() {
             }}
           >
             <span style={{ fontSize: 12, color: SET.muted, fontWeight: 600 }}>
-              Chiffré · jamais affiché en clair
+              {t('settings.security.password.encryptedNote')}
             </span>
             <button
               onClick={() => setMode('edit')}
@@ -439,7 +453,7 @@ function PwdVaultLight() {
                 boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
               }}
             >
-              <SetIcon name="key" size={13} stroke={SET.blackInk} sw={2.2} /> Modifier
+              <SetIcon name="key" size={13} stroke={SET.blackInk} sw={2.2} /> {t('common:actions.edit')}
             </button>
           </div>
         </>
@@ -455,7 +469,7 @@ function PwdVaultLight() {
           }}
         >
           <div>
-            <PwdField label="Mot de passe actuel" value={cur} onChange={setCur} placeholder="Clé actuelle" autoFocus />
+            <PwdField label={t('settings.security.password.currentLabel')} value={cur} onChange={setCur} placeholder={t('settings.security.password.currentPlaceholder')} autoFocus />
             <div style={{ marginTop: 8, textAlign: 'right' }}>
               <button
                 onClick={() => {
@@ -475,12 +489,12 @@ function PwdVaultLight() {
                   padding: 0,
                 }}
               >
-                Mot de passe oublié&nbsp;?
+                {t('settings.security.password.forgotLink')}
               </button>
             </div>
           </div>
           <div>
-            <PwdField label="Nouveau mot de passe" value={nw} onChange={setNw} placeholder="Nouvelle clé" />
+            <PwdField label={t('settings.security.password.newLabel')} value={nw} onChange={setNw} placeholder={t('settings.security.password.newPlaceholder')} />
             {nw && (
               <div style={{ marginTop: 10 }}>
                 <Meter s={s} />
@@ -489,10 +503,10 @@ function PwdVaultLight() {
           </div>
           <div>
             <PwdField
-              label="Confirmer"
+              label={t('settings.security.password.confirmLabel')}
               value={cf}
               onChange={setCf}
-              placeholder="Répétez la clé"
+              placeholder={t('settings.security.password.confirmPlaceholder')}
               tone={ko ? SET.bad : match ? SET.ok : null}
             />
             {(match || ko) && (
@@ -508,7 +522,7 @@ function PwdVaultLight() {
                 }}
               >
                 <SetIcon name={match ? 'check' : 'x'} size={13} stroke={match ? SET.ok : SET.bad} sw={2.4} />
-                {match ? 'Les clés correspondent' : 'Les clés ne correspondent pas'}
+                {match ? t('settings.security.password.keysMatch') : t('settings.security.password.keysMismatch')}
               </div>
             )}
           </div>
@@ -530,7 +544,7 @@ function PwdVaultLight() {
               }}
               style={ghostInline}
             >
-              Annuler
+              {t('common:actions.cancel')}
             </button>
             <SaveBtn ready={canSave} loading={saving} onClick={save} />
           </div>
@@ -580,7 +594,7 @@ function PwdVaultLight() {
                   letterSpacing: 0.6,
                 }}
               >
-                Envoyé à
+                {t('settings.security.password.sentTo')}
               </div>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: SET.ink, letterSpacing: -0.1, marginTop: 1 }}>
                 {maskEmail(verifiedEmail)}
@@ -599,7 +613,7 @@ function PwdVaultLight() {
             }}
           >
             <SetIcon name="info" size={13} stroke={SET.muted} sw={1.8} />
-            <span>Le lien expire dans 1 h. Par sécurité, vérifiez vos sessions après réinitialisation.</span>
+            <span>{t('settings.security.password.forgotInfo')}</span>
           </div>
           <div
             style={{
@@ -613,7 +627,7 @@ function PwdVaultLight() {
             }}
           >
             <button onClick={() => setMode('edit')} style={ghostInline}>
-              Retour
+              {t('common:actions.back')}
             </button>
             <button
               onClick={sendReset}
@@ -635,7 +649,7 @@ function PwdVaultLight() {
                 boxShadow: verifiedEmail ? '0 6px 16px rgba(11,12,14,0.18)' : 'none',
               }}
             >
-              <SetIcon name="mail" size={14} stroke={verifiedEmail ? SET.blackInk : SET.ghost} sw={2} /> Envoyer le lien
+              <SetIcon name="mail" size={14} stroke={verifiedEmail ? SET.blackInk : SET.ghost} sw={2} /> {t('settings.security.password.sendLink')}
             </button>
           </div>
         </div>
@@ -676,12 +690,15 @@ function PwdVaultLight() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
-                Vérifiez votre boîte de réception
+                {t('settings.security.password.checkInbox')}
               </div>
               <div style={{ fontSize: 11.5, color: SET.muted, fontWeight: 500, marginTop: 3, lineHeight: 1.5 }}>
-                Ouvrez le lien envoyé à{' '}
-                <strong style={{ color: SET.ink, fontWeight: 700 }}>{maskEmail(verifiedEmail)}</strong> pour définir une
-                nouvelle clé. Il expire dans 1 h.
+                <Trans
+                  i18nKey="settings.security.password.sentBody"
+                  ns="settings"
+                  values={{ email: maskEmail(verifiedEmail) }}
+                  components={{ b: <strong style={{ color: SET.ink, fontWeight: 700 }} /> }}
+                />
               </div>
             </div>
           </div>
@@ -696,9 +713,9 @@ function PwdVaultLight() {
             }}
           >
             <span style={{ fontSize: 11.5, fontWeight: 600, color: SET.muted }}>
-              Rien reçu&nbsp;?{' '}
+              {t('settings.security.password.nothingReceived')}{' '}
               {cooldown > 0 ? (
-                <span style={{ color: SET.ghost, fontWeight: 700 }}>Renvoyer dans {cooldown}s</span>
+                <span style={{ color: SET.ghost, fontWeight: 700 }}>{t('settings.security.password.resendIn', { count: cooldown })}</span>
               ) : (
                 <button
                   onClick={sendReset}
@@ -715,7 +732,7 @@ function PwdVaultLight() {
                     padding: 0,
                   }}
                 >
-                  Renvoyer
+                  {t('settings.security.password.resend')}
                 </button>
               )}
             </span>
@@ -726,13 +743,13 @@ function PwdVaultLight() {
               }}
               style={ghostInline}
             >
-              Terminé
+              {t('settings.security.password.done')}
             </button>
           </div>
         </div>
       )}
 
-      {mode === 'saved' && <SuccessCenter sub="Chiffré de bout en bout · à l'instant." />}
+      {mode === 'saved' && <SuccessCenter sub={t('settings.security.password.changedSub')} />}
     </div>
   )
 }
@@ -808,6 +825,7 @@ function CodeInput({ value, onChange }: { value: string; onChange: (v: string) =
 //  effet de synchronisation (l'étape « done » est dérivée de l'état réel).
 // ════════════════════════════════════════════════════════════════════════
 function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
+  const { t } = useTranslation('settings')
   const { isEnabled, isLoading, enroll, verify, disable, qr, secret, error } = mfa
   // `flow` ne porte QUE le parcours d'enrôlement ; l'état « done » vient du
   // hook (isEnabled). On dérive donc l'étape affichée sans miroir d'état.
@@ -894,7 +912,7 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, letterSpacing: -0.3, color: '#fff' }}>
-              Double authentification
+              {t('settings.security.twoFactor.title')}
             </h3>
             {step === 'done' ? (
               <span
@@ -911,7 +929,7 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
                   alignItems: 'center',
                 }}
               >
-                ACTIVÉE
+                {t('settings.security.twoFactor.badgeEnabled')}
               </span>
             ) : (
               <span
@@ -928,7 +946,7 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
                   alignItems: 'center',
                 }}
               >
-                RECOMMANDÉ
+                {t('settings.security.twoFactor.badgeRecommended')}
               </span>
             )}
           </div>
@@ -942,9 +960,9 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
                 lineHeight: 1.5,
               }}
             >
-              {step === 'scan' && 'Étape 1 sur 2 — Scannez ce QR code dans votre application d’authentification.'}
-              {step === 'verify' && 'Étape 2 sur 2 — Saisissez le code à 6 chiffres affiché dans l’application.'}
-              {step === 'done' && 'Votre compte est protégé. Un code sera demandé à chaque nouvelle connexion.'}
+              {step === 'scan' && t('settings.security.twoFactor.stepScan')}
+              {step === 'verify' && t('settings.security.twoFactor.stepVerify')}
+              {step === 'done' && t('settings.security.twoFactor.stepDone')}
             </p>
           )}
         </div>
@@ -999,7 +1017,7 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: -0.2, color: '#fff', whiteSpace: 'nowrap' }}>
-                Application d'authentification
+                {t('settings.security.twoFactor.authenticatorApp')}
               </span>
               <div style={{ display: 'flex', gap: 6, marginTop: 9, flexWrap: 'wrap' }}>
                 {['Google Authenticator', 'Authy', '1Password'].map(a => (
@@ -1023,7 +1041,7 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
           </div>
           <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
             <button onClick={startEnroll} disabled={acting || isLoading} style={whiteBtn(!acting && !isLoading)}>
-              {acting ? 'Préparation…' : 'Activer la 2FA'}
+              {acting ? t('settings.security.twoFactor.preparing') : t('settings.security.twoFactor.enable')}
               {!acting && <SetIcon name="arrowR" size={14} stroke="#0B0C0E" sw={2.2} />}
             </button>
           </div>
@@ -1048,9 +1066,9 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
               }}
             >
               {qr ? (
-                <img src={qr} alt="QR code 2FA" width={132} height={132} style={{ display: 'block' }} />
+                <img src={qr} alt={t('settings.security.twoFactor.qrAlt')} width={132} height={132} style={{ display: 'block' }} />
               ) : (
-                <span style={{ fontSize: 12, color: '#5F6368', fontWeight: 600 }}>QR indisponible</span>
+                <span style={{ fontSize: 12, color: '#5F6368', fontWeight: 600 }}>{t('settings.security.twoFactor.qrUnavailable')}</span>
               )}
             </div>
             <div style={{ flex: '1 1 200px', minWidth: 180, maxWidth: 360 }}>
@@ -1064,7 +1082,7 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
                   marginBottom: 8,
                 }}
               >
-                Saisie manuelle
+                {t('settings.security.twoFactor.manualEntry')}
               </div>
               <div
                 style={{
@@ -1095,10 +1113,10 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
           </div>
           <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <button onClick={() => setFlow('idle')} style={ghostBtn}>
-              Annuler
+              {t('common:actions.cancel')}
             </button>
             <button onClick={() => setFlow('verify')} style={whiteBtn(true)}>
-              J'ai scanné <SetIcon name="arrowR" size={14} stroke="#0B0C0E" sw={2.2} />
+              {t('settings.security.twoFactor.scanned')} <SetIcon name="arrowR" size={14} stroke="#0B0C0E" sw={2.2} />
             </button>
           </div>
         </div>
@@ -1109,7 +1127,7 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
         <div style={{ animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both' }}>
           <CodeInput value={code} onChange={setCode} />
           <p style={{ margin: '14px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500, lineHeight: 1.5 }}>
-            Le code change toutes les 30 secondes. Saisissez celui affiché actuellement.
+            {t('settings.security.twoFactor.codeCaption')}
           </p>
           <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <button
@@ -1119,10 +1137,10 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
               }}
               style={ghostBtn}
             >
-              Retour
+              {t('common:actions.back')}
             </button>
             <button onClick={submitCode} disabled={!valid || acting} style={whiteBtn(valid && !acting)}>
-              {acting ? 'Vérification…' : 'Vérifier & activer'}
+              {acting ? t('settings.security.twoFactor.verifying') : t('settings.security.twoFactor.verifyEnable')}
               {!acting && <SetIcon name="check" size={15} stroke={valid ? '#0B0C0E' : 'rgba(255,255,255,0.4)'} sw={2.2} />}
             </button>
           </div>
@@ -1158,14 +1176,14 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.1, color: '#fff' }}>
-              Application d'authentification
+              {t('settings.security.twoFactor.authenticatorApp')}
             </div>
             <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', fontWeight: 500, marginTop: 3 }}>
-              Configurée · facteur principal
+              {t('settings.security.twoFactor.configuredPrimary')}
             </div>
           </div>
           <button onClick={turnOff} disabled={acting} style={ghostBtn}>
-            {acting ? '…' : 'Désactiver'}
+            {acting ? '…' : t('settings.security.twoFactor.disable')}
           </button>
         </div>
       )}
@@ -1177,8 +1195,11 @@ function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
 //  HERO sombre — titre + verdict + SetRing + 2FA inline
 // ════════════════════════════════════════════════════════════════════════
 function HeroSecurity({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
+  const { t } = useTranslation('settings')
   // Le score suit l'état réel de la 2FA (isEnabled) — pas de state miroir.
-  const { score, verdict, tone, actions, actionLabel } = secModel(mfa.isEnabled)
+  const { score, verdictKey, tone, actions, actionLabelKey } = secModel(mfa.isEnabled)
+  const verdict = t(verdictKey)
+  const actionLabel = t(actionLabelKey)
   const heroBg = isDark() ? '#16171F' : '#0B0C0E'
   return (
     <div
@@ -1203,7 +1224,7 @@ function HeroSecurity({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
         }}
       >
         <div style={{ minWidth: 260 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -0.8 }}>Sécurité du compte</h1>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -0.8 }}>{t('settings.security.hero.title')}</h1>
           <p
             style={{
               margin: '8px 0 0',
@@ -1214,9 +1235,9 @@ function HeroSecurity({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
               maxWidth: 440,
             }}
           >
-            MEGGA traite des données de transaction sensibles.
+            {t('settings.security.hero.subtitleLine1')}
             <br />
-            Gardez votre compte verrouillé et surveillez son activité.
+            {t('settings.security.hero.subtitleLine2')}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -1266,27 +1287,30 @@ function deviceIcon(d: UserDevice): 'app' | 'keyboard' {
   return 'keyboard'
 }
 
-function deviceLabel(d: UserDevice): string {
+// `t` injecté depuis SessionsCard (fonction pure, hors composant).
+type TFunc = ReturnType<typeof useTranslation>['t']
+
+function deviceLabel(d: UserDevice, t: TFunc): string {
   const b = d.browser?.trim()
   const o = d.os?.trim()
   if (b && o) return `${b} · ${o}`
   if (b) return b
   if (o) return o
   if (d.user_agent) return d.user_agent.slice(0, 48)
-  return 'Appareil inconnu'
+  return t('settings.security.sessions.unknownDevice')
 }
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: TFunc): string {
   const then = new Date(iso).getTime()
   if (Number.isNaN(then)) return '—'
   const diff = Date.now() - then
   const min = Math.floor(diff / 60000)
-  if (min < 1) return "À l'instant"
-  if (min < 60) return `Il y a ${min} min`
+  if (min < 1) return t('settings.security.sessions.justNow')
+  if (min < 60) return t('settings.security.sessions.minutesAgo', { count: min })
   const h = Math.floor(min / 60)
-  if (h < 24) return `Il y a ${h} h`
+  if (h < 24) return t('settings.security.sessions.hoursAgo', { count: h })
   const dDays = Math.floor(h / 24)
-  if (dDays < 7) return `Il y a ${dDays} j`
+  if (dDays < 7) return t('settings.security.sessions.daysAgo', { count: dDays })
   try {
     return new Date(iso).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit', year: 'numeric' })
   } catch {
@@ -1295,6 +1319,7 @@ function relativeTime(iso: string): string {
 }
 
 function SessionsCard() {
+  const { t } = useTranslation('settings')
   const { devices, isLoading, revoke, currentId, error } = useUserDevices()
   const [closing, setClosing] = useState<string | null>(null)
 
@@ -1308,10 +1333,10 @@ function SessionsCard() {
 
   const others = devices.filter(d => d.id !== currentId).length
   const subtitle = isLoading
-    ? 'Chargement de vos appareils…'
+    ? t('settings.security.sessions.loadingDevices')
     : others > 0
-      ? `${devices.length} ${devices.length > 1 ? 'sessions actives' : 'session active'} sur votre compte.`
-      : 'Cet appareil uniquement. Aucune autre session active.'
+      ? t('settings.security.sessions.activeCount', { count: devices.length })
+      : t('settings.security.sessions.thisDeviceOnly')
 
   return (
     <div style={{ background: SET.card, borderRadius: 24, boxShadow: SET.shadow }}>
@@ -1334,7 +1359,7 @@ function SessionsCard() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>
-              Appareils &amp; sessions
+              {t('settings.security.sessions.title')}
             </h3>
             <p style={{ margin: 0, fontSize: 13, color: SET.muted, fontWeight: 500, lineHeight: 1.5 }}>{subtitle}</p>
           </div>
@@ -1391,7 +1416,7 @@ function SessionsCard() {
               <SetIcon name="info" size={15} stroke={SET.muted} sw={2} />
             </div>
             <div style={{ fontSize: 12, color: SET.muted, fontWeight: 600 }}>
-              {error ? 'Impossible de charger vos appareils pour le moment.' : 'Aucun appareil enregistré pour le moment.'}
+              {error ? t('settings.security.sessions.loadError') : t('settings.security.sessions.empty')}
             </div>
           </div>
         )}
@@ -1443,7 +1468,7 @@ function SessionsCard() {
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {deviceLabel(d)}
+                      {deviceLabel(d, t)}
                     </span>
                     {current && (
                       <span
@@ -1461,7 +1486,7 @@ function SessionsCard() {
                           flexShrink: 0,
                         }}
                       >
-                        Cet appareil
+                        {t('settings.security.sessions.thisDevice')}
                       </span>
                     )}
                   </div>
@@ -1476,7 +1501,7 @@ function SessionsCard() {
                       textOverflow: 'ellipsis',
                     }}
                   >
-                    {loc || 'Localisation inconnue'}
+                    {loc || t('settings.security.sessions.unknownLocation')}
                   </div>
                 </div>
                 <div
@@ -1489,7 +1514,7 @@ function SessionsCard() {
                     marginRight: current ? 0 : 4,
                   }}
                 >
-                  {relativeTime(d.last_seen_at)}
+                  {relativeTime(d.last_seen_at, t)}
                 </div>
                 {!current && (
                   <button
@@ -1509,7 +1534,7 @@ function SessionsCard() {
                       boxShadow: `inset 0 0 0 1px ${SET.line}`,
                     }}
                   >
-                    Déconnecter
+                    {t('settings.security.sessions.disconnect')}
                   </button>
                 )}
               </div>
@@ -1542,7 +1567,7 @@ function SessionsCard() {
               <SetIcon name="check" size={15} stroke={SET.ok} sw={2.2} />
             </div>
             <div style={{ fontSize: 12, color: SET.muted, fontWeight: 600 }}>
-              Toutes les autres sessions ont été déconnectées.
+              {t('settings.security.sessions.allOthersDisconnected')}
             </div>
           </div>
         )}
@@ -1562,8 +1587,7 @@ function SessionsCard() {
           >
             <SetIcon name="info" size={14} stroke={SET.muted} sw={2} />
             <div style={{ fontSize: 11.5, color: SET.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-              « Déconnecter » retire l'appareil de cette liste. La fin de session distante complète sera ajoutée
-              prochainement.
+              {t('settings.security.sessions.revokeNote')}
             </div>
           </div>
         )}

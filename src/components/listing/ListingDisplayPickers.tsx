@@ -6,6 +6,7 @@
 //   - partner_agency       (none / naef / cardis / bernard)
 
 import type { CSSProperties, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const M = {
   ink: '#0E1410',
@@ -161,11 +162,12 @@ interface ContactLayoutPickerProps {
 }
 
 export function ContactLayoutPicker({ value, onChange }: ContactLayoutPickerProps) {
+  const { t } = useTranslation('listings')
   const opts: VariantOption<ContactLayout>[] = [
     {
       value: 'right',
-      label: 'Sticky droite',
-      description: 'Carte agent en colonne droite',
+      label: t('editor.contactLayout.right.label'),
+      description: t('editor.contactLayout.right.description'),
       mock: (
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 4, height: 64 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -178,8 +180,8 @@ export function ContactLayoutPicker({ value, onChange }: ContactLayoutPickerProp
     },
     {
       value: 'banner',
-      label: 'Banner haut',
-      description: 'CTA dans la card prix',
+      label: t('editor.contactLayout.banner.label'),
+      description: t('editor.contactLayout.banner.description'),
       mock: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, height: 64 }}>
           <div style={{ ...tile, height: 22 }} />
@@ -189,8 +191,8 @@ export function ContactLayoutPicker({ value, onChange }: ContactLayoutPickerProp
     },
     {
       value: 'floating',
-      label: 'Floating',
-      description: 'Widget bottom-right fixe',
+      label: t('editor.contactLayout.floating.label'),
+      description: t('editor.contactLayout.floating.description'),
       mock: (
         <div style={{ position: 'relative', height: 64, background: '#F2F4F8', borderRadius: 4 }}>
           <div style={{ position: 'absolute', bottom: 4, right: 4, width: 26, height: 18, ...tile }} />
@@ -200,8 +202,8 @@ export function ContactLayoutPicker({ value, onChange }: ContactLayoutPickerProp
   ]
   return (
     <VariantPicker<ContactLayout>
-      title="Carte de contact"
-      subtitle="Où afficher le bloc agent sur la fiche."
+      title={t('editor.contactLayout.title')}
+      subtitle={t('editor.contactLayout.subtitle')}
       value={value}
       onChange={(v) => onChange(v ?? 'right')}
       options={opts}
@@ -219,11 +221,12 @@ interface NeighborhoodVariantPickerProps {
 }
 
 export function NeighborhoodVariantPicker({ value, onChange }: NeighborhoodVariantPickerProps) {
+  const { t } = useTranslation('listings')
   const opts: VariantOption<NeighborhoodVariant>[] = [
     {
       value: 'map',
-      label: 'Carte interactive',
-      description: 'Leaflet OSM + amenities autour du bien',
+      label: t('editor.neighborhood.map.label'),
+      description: t('editor.neighborhood.map.description'),
       mock: (
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 4, height: 64 }}>
           <div
@@ -257,8 +260,8 @@ export function NeighborhoodVariantPicker({ value, onChange }: NeighborhoodVaria
     },
     {
       value: 'scores',
-      label: 'Scores éditoriaux',
-      description: 'Marchabilité, Transports, Calme + le mot de MEGGA',
+      label: t('editor.neighborhood.scores.label'),
+      description: t('editor.neighborhood.scores.description'),
       mock: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, height: 64 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
@@ -274,8 +277,8 @@ export function NeighborhoodVariantPicker({ value, onChange }: NeighborhoodVaria
   ]
   return (
     <VariantPicker<NeighborhoodVariant>
-      title="Bloc « Le quartier »"
-      subtitle="Comment présenter l'environnement du bien."
+      title={t('editor.neighborhood.title')}
+      subtitle={t('editor.neighborhood.subtitle')}
       value={value}
       onChange={(v) => onChange(v ?? 'map')}
       options={opts}
@@ -293,6 +296,8 @@ interface PartnerAgencyPickerProps {
 }
 
 export function PartnerAgencyPicker({ value, onChange }: PartnerAgencyPickerProps) {
+  const { t } = useTranslation('listings')
+  // Partner names + taglines are brand identity (proper nouns) — not translated.
   const PARTNERS: Array<{ key: PartnerAgencyKey; name: string; tagline: string; color: string; mono: string }> = [
     { key: 'naef', name: 'Naef Immobilier', tagline: 'Depuis 1881', color: '#0E1410', mono: 'N' },
     { key: 'cardis', name: "Cardis Sotheby's", tagline: 'International Realty', color: '#0B2545', mono: 'C' },
@@ -341,14 +346,14 @@ export function PartnerAgencyPicker({ value, onChange }: PartnerAgencyPickerProp
   }))
   return (
     <VariantPicker<PartnerAgencyKey>
-      title="Agence partenaire"
-      subtitle="Affiche un bandeau d'agence en haut de la carte agent (optionnel)."
+      title={t('editor.partnerAgency.title')}
+      subtitle={t('editor.partnerAgency.subtitle')}
       value={value}
       onChange={(v) => onChange(v as PartnerAgencyKey | null)}
       options={opts}
       allowNull
-      nullLabel="Aucune"
-      nullDescription="MEGGA Real Estate par défaut"
+      nullLabel={t('editor.partnerAgency.none.label')}
+      nullDescription={t('editor.partnerAgency.none.description')}
     />
   )
 }

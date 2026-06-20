@@ -36,7 +36,12 @@
     "adminNps": "Soddisfazione",
     "adminAutonomy": "Autonomia agenti",
     "adminLearning": "Stili appresi",
-    "adminToolUsage": "Utilizzo strumenti"
+    "adminToolUsage": "Utilizzo strumenti",
+    "journey": "Journey",
+    "aiAgent": "Megga — AI agent",
+    "notifications": "Notifications",
+    "callbacksToday": "Today's callbacks",
+    "importLeads": "Import leads"
   },
   "sections": {
     "main": "Principale",
@@ -70,7 +75,8 @@
     "noResults": "Nessun risultato",
     "showMore": "Mostra di più",
     "showLess": "Mostra di meno",
-    "viewAll": "Vedi tutto"
+    "viewAll": "Vedi tutto",
+    "options": "Options"
   },
   "time": {
     "ago": "fa",
@@ -456,7 +462,38 @@
     "loadMore": "Carica altri risultati",
     "typeConfirmed": "Tipo ✓",
     "clearSearch": "Cancella ricerca",
-    "reset": "Reimposta"
+    "reset": "Reimposta",
+    "command": {
+      "placeholder": "Search or ask Megga…",
+      "clear": "Clear",
+      "scope": {
+        "all": "All",
+        "contacts": "Contacts",
+        "biens": "Properties",
+        "deals": "Deals",
+        "docs": "Documents"
+      },
+      "section": {
+        "resumeMegga": "Resume with Megga",
+        "recents": "Recent",
+        "askMegga": "Ask Megga",
+        "meggaConvos": "Megga conversations",
+        "biens": "Properties",
+        "deals": "Deals"
+      },
+      "badge": {
+        "semantic": "semantic"
+      },
+      "empty": {
+        "title": "No results for “{{query}}”",
+        "body": "Ask Megga instead — it knows your entire CRM."
+      },
+      "askMeggaQuery": "Ask Megga: “{{query}}”",
+      "deal": {
+        "untitled": "Deal"
+      },
+      "roomsShort": "{{count}} rm"
+    }
   },
   "listing": {
     "contactAgent": "Contatta l'agente",
@@ -1138,5 +1175,172 @@
       "minergie": "Minergie",
       "newBuilding": "Nuova costruzione"
     }
+  },
+  "notifications": {
+    "kind": {
+      "kyc": "KYC",
+      "visite": "Viewing",
+      "offre": "Offer",
+      "mandat": "Mandate",
+      "ai": "MEGGA AI",
+      "doc": "Document",
+      "team": "Team",
+      "system": "System"
+    },
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread",
+    "hideOne": "Hide this notification",
+    "muteKind": "Turn off “{{kind}}”",
+    "toastMarkedRead": "Marked as read",
+    "toastMarkedUnread": "Marked as unread",
+    "toastHidden": "Notification hidden",
+    "toastMuted": "“{{kind}}” notifications turned off",
+    "unreadCount_one": "{{count}} unread",
+    "unreadCount_other": "{{count}} unread",
+    "allClear": "You're all caught up",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications yet.",
+    "pause2h": "Pause for 2h",
+    "seeAll": "See all notifications"
+  },
+  "popovers": {
+    "quickAdd": {
+      "title": "Quick add",
+      "task": {
+        "label": "New task",
+        "sub": "Quick action to schedule"
+      },
+      "visit": {
+        "label": "Schedule viewing",
+        "sub": "Property · buyer · slot"
+      },
+      "contact": {
+        "label": "New contact",
+        "sub": "Lead, buyer or seller"
+      },
+      "deal": {
+        "label": "New offer",
+        "sub": "Start a deal"
+      },
+      "note": {
+        "label": "Internal note",
+        "sub": "Memo for the day"
+      }
+    },
+    "reschedule": {
+      "title": "Reschedule",
+      "current": "Currently · {{label}}",
+      "slots": {
+        "now": {
+          "label": "Now",
+          "sub": "Start the task"
+        },
+        "later": {
+          "label": "+ 2 hours",
+          "sub": "Push back slightly"
+        },
+        "tomorrow": {
+          "label": "Tomorrow morning"
+        },
+        "monday": {
+          "label": "Monday"
+        },
+        "week": {
+          "label": "This week",
+          "sub": "AI auto-placement"
+        }
+      }
+    },
+    "miniCalendar": {
+      "open": "Open"
+    },
+    "rowMenu": {
+      "title": "Actions",
+      "open": {
+        "label": "Open record",
+        "sub": "View full details"
+      },
+      "reschedule": {
+        "label": "Reschedule",
+        "sub": "Pick a new slot"
+      },
+      "priority": {
+        "label": "Mark as priority",
+        "sub": "Moves to the top of the journey"
+      },
+      "assign": {
+        "label": "Assign to…",
+        "sub": "Delegate to a teammate"
+      },
+      "complete": {
+        "label": "Mark as done",
+        "sub": "Close this action"
+      },
+      "delete": {
+        "label": "Delete",
+        "sub": "Remove from the journey"
+      }
+    },
+    "aiLeads": {
+      "title": "MEGGA AI · Processing request",
+      "caption_one": "{{count}} lead waiting · qualify or delegate",
+      "caption_other": "{{count}} leads waiting · qualify or delegate",
+      "reject": "Reject",
+      "accept": "Accept and qualify",
+      "qualifyAll": "Qualify all with AI",
+      "reviewOneByOne": "Review one by one"
+    },
+    "statusMenu": {
+      "title": "Change status",
+      "current": "Currently · {{status}}",
+      "items": {
+        "planned": {
+          "label": "Planned",
+          "sub": "Slot booked"
+        },
+        "todo": {
+          "label": "To do",
+          "sub": "Awaiting action"
+        },
+        "inProgress": {
+          "label": "In progress",
+          "sub": "Action underway"
+        },
+        "blocked": {
+          "label": "Blocked",
+          "sub": "Depends on a third party"
+        },
+        "done": {
+          "label": "Done",
+          "sub": "Completed · to archive"
+        }
+      }
+    },
+    "pipelineDrill": {
+      "executed": {
+        "title": "Completed tasks · week"
+      },
+      "active": {
+        "title": "Active deals"
+      },
+      "pipeline": {
+        "title": "Pipeline volume"
+      },
+      "matches": {
+        "title": "New matches · 24h"
+      },
+      "risk": {
+        "title": "Deals at risk"
+      },
+      "openFull": "Open full pipeline"
+    }
+  },
+  "profile": {
+    "defaultName": "Agent",
+    "noAgency": "No agency set",
+    "preferences": "Preferences",
+    "security": "Security & sessions",
+    "billing": "Billing & subscription",
+    "help": "Help center"
   }
 }

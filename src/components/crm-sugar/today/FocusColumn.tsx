@@ -6,9 +6,10 @@
 // « Fait » la sort de la file. La carte + le bouton principal s'adaptent au type.
 
 import { useState, useEffect, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TK } from './tk'
 import { RXIcon } from './kit'
-import { focusTy, type FocusItem, type FocusTypeDef } from './focusQueue'
+import { focusTy, focusTagKey, type FocusItem, type FocusTypeDef } from './focusQueue'
 
 // ─── Cellule statistique du récap de fin de file (colonne cockpit) ───────
 function FcStat({ value, label }: { value: number; label: string }) {
@@ -26,6 +27,7 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
   onSnooze?: (item: FocusItem) => void
   isLoading?: boolean
 }) {
+  const { t } = useTranslation('dashboard')
   const [queue, setQueue] = useState<FocusItem[]>(baseQueue)
   const [idx, setIdx] = useState(0)
   const [calling, setCalling] = useState(false)
@@ -100,7 +102,7 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
         boxShadow: TK.shadowLg, border: `1px solid ${TK.borderHi}`,
         background: `radial-gradient(120% 90% at 50% 0%, ${TK.frameHi} 0%, ${TK.bg} 70%)`,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 28 }}>
-        <div style={{ fontSize: 13, color: TK.sub }}>Chargement de tes priorités…</div>
+        <div style={{ fontSize: 13, color: TK.sub }}>{t('today.focus.loading')}</div>
       </div>
     )
   }
@@ -117,20 +119,20 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
           background: '#15643F', boxShadow: '0 12px 30px -10px rgba(52,199,150,.5)' }}>
           <RXIcon name="check" size={30} sw={2.4} color="#DBF4E6" />
         </div>
-        <h2 style={{ margin: '18px 0 0', fontSize: 23, fontWeight: 800, letterSpacing: -0.6, color: TK.ink }}>File traitée</h2>
+        <h2 style={{ margin: '18px 0 0', fontSize: 23, fontWeight: 800, letterSpacing: -0.6, color: TK.ink }}>{t('today.focus.queueDone')}</h2>
         <div style={{ fontSize: 13, color: TK.sub, marginTop: 6, maxWidth: 240, lineHeight: 1.45 }}>
-          Toutes tes priorités du moment sont gérées. Profite — ou avance sur le pipeline.</div>
+          {t('today.focus.queueDoneSub')}</div>
 
         {/* Récap de session — le sentiment d'accompli qui referme la boucle */}
         <div style={{ display: 'flex', marginTop: 20, borderRadius: 14, overflow: 'hidden',
           border: `1px solid ${TK.borderHi}`, background: TK.card }}>
-          <FcStat value={total} label={total > 1 ? 'traitées' : 'traitée'} />
+          <FcStat value={total} label={t('today.focus.statProcessed', { count: total })} />
           <div style={{ width: 1, background: TK.borderHi }} />
-          <FcStat value={focusMin} label="min focus" />
+          <FcStat value={focusMin} label={t('today.focus.statMinFocus')} />
           {snoozeCount > 0 && (
             <>
               <div style={{ width: 1, background: TK.borderHi }} />
-              <FcStat value={snoozeCount} label={snoozeCount > 1 ? 'reportées' : 'reportée'} />
+              <FcStat value={snoozeCount} label={t('today.focus.statSnoozed', { count: snoozeCount })} />
             </>
           )}
         </div>
@@ -138,7 +140,7 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
         <button onClick={reset} style={{ marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 8, height: 42, padding: '0 18px',
           borderRadius: 999, border: `1px solid ${TK.borderHi}`, cursor: 'pointer', background: TK.card, color: TK.ink,
           fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700 }}>
-          <RXIcon name="arrow" size={16} sw={2} color={TK.ink} />Revoir la file</button>
+          <RXIcon name="arrow" size={16} sw={2} color={TK.ink} />{t('today.focus.reviewQueue')}</button>
       </div>
     )
   }
@@ -188,15 +190,15 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 11px', borderRadius: 999,
               background: 'rgba(8,8,12,.5)', backdropFilter: 'blur(10px)', border: `1px solid ${TK.borderHi}`,
               fontSize: 11, fontWeight: 800, letterSpacing: 0.3, color: '#fff', whiteSpace: 'nowrap' }}>
-              <RXIcon name={tyy.icon} size={12} sw={2.1} color={tyy.badge} />{item.category}</span>
+              <RXIcon name={tyy.icon} size={12} sw={2.1} color={tyy.badge} />{t(`today.tags.${focusTagKey(item.category)}`)}</span>
             {item.time && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap',
                 color: item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.72)' }}>
                 <RXIcon name="clock" size={12} color={item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.6)'} />{item.time}</span>
             )}
             {/* Score = estimation (jamais « garanti »/« automatique ») */}
-            <span title="Priorité estimée" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', color: 'rgba(255,255,255,.62)' }}>
-              <RXIcon name="spark" size={12} color="#9b7cf0" />estimation · {item.displayScore}</span>
+            <span title={t('today.focus.estimatedPriority')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', color: 'rgba(255,255,255,.62)' }}>
+              <RXIcon name="spark" size={12} color="#9b7cf0" />{t('today.focus.estimate')} · {item.displayScore}</span>
           </div>
 
           <h2 style={{ margin: '12px 0 0', fontSize: 29, fontWeight: 800, letterSpacing: -0.9, color: '#fff', lineHeight: 1.02, ...rise(2) }}>{item.contact}</h2>
@@ -225,14 +227,14 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
                       <span style={{ position: 'absolute', inset: 0, borderRadius: 999, background: '#34C796', animation: 'focus-ping 1.4s cubic-bezier(0,0,.2,1) infinite' }} />
                       <span style={{ position: 'relative', width: 9, height: 9, borderRadius: 999, background: '#34C796' }} />
                     </span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>Terminer · {mmss}</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{t('today.focus.finish')} · {mmss}</span>
                   </>
                 ) : (
-                  <><RXIcon name={tyy.icon} size={18} sw={1.9} />{tyy.label(item.contact)}</>
+                  <><RXIcon name={tyy.icon} size={18} sw={1.9} />{t(tyy.labelKey, { name: item.contact.split(' ')[0] })}</>
                 )}
               </button>
               {/* Replanifier — repousse en fin de file */}
-              <button onClick={snooze} title="Replanifier" style={{
+              <button onClick={snooze} title={t('today.focus.reschedule')} style={{
                 width: 46, height: 46, borderRadius: 999, border: `1px solid ${TK.borderHi}`, cursor: 'pointer', flexShrink: 0,
                 background: 'rgba(8,8,12,.5)', backdropFilter: 'blur(10px)', display: 'grid', placeItems: 'center',
                 transition: 'background .2s ease' }}
@@ -241,7 +243,7 @@ export function FocusColumn({ baseQueue, onDone, onSnooze, isLoading = false }: 
                 <RXIcon name="cal" size={17} sw={1.8} color="#fff" />
               </button>
               {/* Fait — sort de la file */}
-              <button onClick={done} title="Marquer fait" style={{
+              <button onClick={done} title={t('today.focus.markDone')} style={{
                 width: 46, height: 46, borderRadius: 999, border: `1px solid ${TK.borderHi}`, cursor: 'pointer', flexShrink: 0,
                 background: 'rgba(8,8,12,.5)', backdropFilter: 'blur(10px)',
                 display: 'grid', placeItems: 'center', transition: 'background .25s ease, border-color .25s ease' }}

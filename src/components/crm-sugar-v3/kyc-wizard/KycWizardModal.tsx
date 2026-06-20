@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export function KycWizardModal({ onClose, initialContactId }: Props) {
+  const { t } = useTranslation('kyc')
   const navigate = useNavigate()
   const sp = useKycPalette()
   const { profile } = useAuth()
@@ -99,7 +101,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
 
   const finish = async () => {
     if (!data.contactId || !data.vigilance || !profile?.agency_id) {
-      setError('Contact et vigilance requis')
+      setError(t('wizard.errors.missingContactVigilance'))
       return
     }
     try {
@@ -116,7 +118,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
         setDone(true)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Échec de la création')
+      setError(err instanceof Error ? err.message : t('wizard.errors.createFailed'))
     }
   }
 
@@ -146,6 +148,13 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
     '--kw-thumb': sp.scrollThumb,
     '--kw-thumb-h': sp.scrollThumbHover,
   } as CSSProperties
+
+  // Libellés du stepper traduits ici (réactifs au changement de langue) ; KwStepper
+  // ne lit que `label`. Cf KYC_UI_STEPS / docs/i18n-conventions §5.
+  const stepperSteps = useMemo(
+    () => WIZARD_STEPS.map((s) => ({ id: s.id, label: t(s.labelKey) })),
+    [t],
+  )
 
   return (
     <div
@@ -213,7 +222,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
                 whiteSpace: 'nowrap',
               }}
             >
-              Conformité LBA
+              {t('wizard.header.eyebrow')}
             </div>
             <div
               style={{
@@ -223,21 +232,21 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
                 letterSpacing: -0.3,
               }}
             >
-              Nouveau dossier KYC
+              {t('wizard.header.title')}
             </div>
           </div>
         </div>
 
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
           {!done && (
-            <KwStepper steps={WIZARD_STEPS} current={step} onJump={setStep} />
+            <KwStepper steps={stepperSteps} current={step} onJump={setStep} />
           )}
         </div>
 
         <KycCircleBtn
           icon={<SgIcon name="close" size={18} stroke={sp.ink} />}
           onClick={onClose}
-          title="Fermer"
+          title={t('wizard.close')}
         />
       </header>
 
@@ -304,7 +313,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
                 onClick={prev}
                 icon={<SgIcon name="arrowL" size={16} stroke={sp.inkSoft} />}
               >
-                Précédent
+                {t('wizard.nav.previous')}
               </KycGhostPill>
             )}
           </div>
@@ -316,12 +325,12 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
               icon={<SgIcon name="arrowR" size={16} stroke={sp.onAccent} />}
             >
               {createDossier.isPending
-                ? 'Création…'
+                ? t('wizard.nav.creating')
                 : step === WIZARD_STEPS.length - 1
                   ? data.source === 'magic'
-                    ? 'Préparer le lien magique'
-                    : 'Ouvrir le dossier'
-                  : 'Continuer'}
+                    ? t('wizard.nav.prepareMagicLink')
+                    : t('wizard.nav.openDossier')
+                  : t('wizard.nav.continue')}
             </KycBlackPill>
           </div>
         </footer>
@@ -335,12 +344,12 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
           contactName={`${magicContact.first_name} ${magicContact.last_name}`.trim()}
           contactSummary={
             magicContact.type === 'seller'
-              ? 'Vendeur'
+              ? t('wizard.roles.seller')
               : magicContact.type === 'landlord'
-                ? 'Bailleur'
+                ? t('wizard.roles.landlord')
                 : magicContact.type === 'tenant'
-                  ? 'Locataire'
-                  : 'Acheteur'
+                  ? t('wizard.roles.tenant')
+                  : t('wizard.roles.buyer')
           }
           contactEmail={magicContact.email}
           contactPhone={magicContact.phone}

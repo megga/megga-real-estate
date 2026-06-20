@@ -11,6 +11,7 @@
 
 import { useState } from 'react'
 import type { JSX } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
 import { ConfirmModal, SetBlackBtn, SetGhostBtn, SetIcon } from './atoms'
 import { SET_PALETTE } from './data'
@@ -65,6 +66,7 @@ const PROVIDERS: ProviderDef[] = [
 ]
 
 export function SSOConnectionsCard() {
+  const { t } = useTranslation('settings')
   const toast = useToast()
   const { isLinked, emailFor, link, unlink, isLoading, error } = useSsoIdentities()
   const [confirmDisc, setConfirmDisc] = useState<SsoProvider | null>(null)
@@ -83,7 +85,7 @@ export function SSOConnectionsCard() {
     setBusy(id)
     const ok = await unlink(id)
     setBusy(null)
-    if (ok) toast.success(`${PROVIDERS.find(p => p.id === id)?.name} déconnecté`)
+    if (ok) toast.success(t('settings.security.sso.disconnected', { name: PROVIDERS.find(p => p.id === id)?.name }))
     else if (error) toast.error(error)
   }
 
@@ -127,7 +129,7 @@ export function SSOConnectionsCard() {
                   letterSpacing: -0.3,
                 }}
               >
-                Méthodes de connexion
+                {t('settings.security.sso.title')}
               </h3>
               <p
                 style={{
@@ -138,7 +140,7 @@ export function SSOConnectionsCard() {
                   lineHeight: 1.5,
                 }}
               >
-                Identifiez-vous en un clic. Votre e-mail + mot de passe restent toujours actifs.
+                {t('settings.security.sso.subtitle')}
               </p>
             </div>
           </div>
@@ -196,17 +198,17 @@ export function SSOConnectionsCard() {
                     }}
                   >
                     {linked
-                      ? `${email ?? 'Compte lié'} · Connecté`
-                      : `Connectez-vous avec votre compte ${p.name}`}
+                      ? t('settings.security.sso.linkedDetail', { account: email ?? t('settings.security.sso.linkedAccount') })
+                      : t('settings.security.sso.connectWith', { name: p.name })}
                   </div>
                 </div>
                 {linked ? (
                   <SetGhostBtn size="sm" onClick={() => setConfirmDisc(p.id)} disabled={pending}>
-                    Déconnecter
+                    {t('settings.security.sso.disconnect')}
                   </SetGhostBtn>
                 ) : (
                   <SetBlackBtn size="sm" onClick={() => handleConnect(p.id)} disabled={pending} loading={pending}>
-                    Connecter
+                    {t('settings.security.sso.connect')}
                   </SetBlackBtn>
                 )}
               </div>
@@ -247,8 +249,7 @@ export function SSOConnectionsCard() {
           >
             <SetIcon name="info" size={14} stroke={SET.muted} sw={2} />
             <div style={{ fontSize: 11.5, color: SET.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-              MEGGA reçoit uniquement votre nom, e-mail et photo de profil. Aucun mot de passe n'est
-              partagé. Vous pouvez révoquer l'accès ici ou depuis votre compte Google / Microsoft.
+              {t('settings.security.sso.privacyNote')}
             </div>
           </div>
         </div>
@@ -258,11 +259,13 @@ export function SSOConnectionsCard() {
         <ConfirmModal
           icon="link"
           tone="warn"
-          title={`Déconnecter ${PROVIDERS.find(p => p.id === confirmDisc)?.name} ?`}
-          desc={`Vous ne pourrez plus vous connecter à MEGGA via ${
-            PROVIDERS.find(p => p.id === confirmDisc)?.name
-          }. Votre e-mail + mot de passe restent actifs.`}
-          danger="Déconnecter"
+          title={t('settings.security.sso.disconnectConfirmTitle', {
+            name: PROVIDERS.find(p => p.id === confirmDisc)?.name,
+          })}
+          desc={t('settings.security.sso.disconnectConfirmDesc', {
+            name: PROVIDERS.find(p => p.id === confirmDisc)?.name,
+          })}
+          danger={t('settings.security.sso.disconnect')}
           onCancel={() => setConfirmDisc(null)}
           onConfirm={() => handleDisconnect(confirmDisc)}
         />

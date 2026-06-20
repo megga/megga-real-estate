@@ -5,6 +5,7 @@
 // Les contacts ayant déjà un dossier KYC en cours sont grisés et non-cliquables.
 
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SgIcon } from '../icons'
 import { useKycPalette } from '../kyc/kycPalette'
 import { useContacts } from '@/hooks/useContacts'
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function KwStepContact({ data, set }: Props) {
+  const { t } = useTranslation('kyc')
   const sp = useKycPalette()
   const { contacts = [] } = useContacts()
   const { data: dossiers = [] } = useKycDossiers()
@@ -60,7 +62,7 @@ export function KwStepContact({ data, set }: Props) {
             lineHeight: 1.1,
           }}
         >
-          Pour quel contact&nbsp;?
+          {t('wizard.contact.title')}
         </h1>
         <p
           style={{
@@ -71,8 +73,7 @@ export function KwStepContact({ data, set }: Props) {
             lineHeight: 1.55,
           }}
         >
-          Les contacts qui ont déjà un dossier KYC en cours apparaissent grisés —
-          vous pouvez les rouvrir depuis la liste principale.
+          {t('wizard.contact.subtitle')}
         </p>
       </div>
 
@@ -95,7 +96,7 @@ export function KwStepContact({ data, set }: Props) {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher un contact, un e-mail…"
+          placeholder={t('wizard.contact.searchPlaceholder')}
           style={{
             flex: 1,
             border: 0,
@@ -136,22 +137,22 @@ export function KwStepContact({ data, set }: Props) {
                 fontWeight: 500,
               }}
             >
-              Aucun contact ne correspond à cette recherche.
+              {t('wizard.contact.empty')}
             </div>
           ) : (
             filtered.map((c) => {
               const has = contactsWithActiveDossier.has(c.id)
               const selected = data.contactId === c.id
-              const typeLabel =
+              const typeShort =
                 c.type === 'buyer'
-                  ? 'Acheteur'
+                  ? t('wizard.contact.typeShort.buyer')
                   : c.type === 'seller'
-                    ? 'Vendeur'
+                    ? t('wizard.contact.typeShort.seller')
                     : c.type === 'tenant'
-                      ? 'Locataire'
+                      ? t('wizard.contact.typeShort.tenant')
                       : c.type === 'landlord'
-                        ? 'Propriétaire'
-                        : 'Mixte'
+                        ? t('wizard.contact.typeShort.landlord')
+                        : t('wizard.contact.typeShort.mixed')
               const initials = `${c.first_name[0] ?? ''}${c.last_name[0] ?? ''}`.toUpperCase()
               return (
                 <button
@@ -233,7 +234,7 @@ export function KwStepContact({ data, set }: Props) {
                       letterSpacing: 0.1,
                     }}
                   >
-                    {typeLabel.slice(0, 4)}
+                    {typeShort}
                   </span>
                   {has ? (
                     <span
@@ -248,7 +249,7 @@ export function KwStepContact({ data, set }: Props) {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      Dossier existant
+                      {t('wizard.contact.existingDossier')}
                     </span>
                   ) : selected ? (
                     <span

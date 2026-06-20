@@ -2,6 +2,7 @@
 // prod, handoff §6.7). Plein écran, navigation ←/→, fermeture Esc, filmstrip.
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import type { AtelierGalleryPhoto, AtelierListing } from './types'
 
@@ -12,6 +13,7 @@ function SgaGalPhoto({ p, className, big, idx, total }: {
   idx?: number
   total?: number
 }) {
+  const { t } = useTranslation('matching')
   if (p?.url) {
     return (
       <div className={'sgal-img-wrap' + (className ? ` ${className}` : '')}>
@@ -27,7 +29,7 @@ function SgaGalPhoto({ p, className, big, idx, total }: {
       <div className="sgal-ph-grain" />
       <div className="sgal-ph-lbl">
         <SgaIcon d="camera" size={big ? 30 : 17} sw={1.5} />
-        <span>{p?.label ?? 'photo'}</span>
+        <span>{p?.label ?? t('atelier.photo')}</span>
         {idx != null && total != null && (
           <em className="nums">{String(idx + 1).padStart(2, '0')} / {total}</em>
         )}
@@ -43,6 +45,7 @@ interface SgaGalleryProps {
 }
 
 export default function SgaGallery({ L, openIndex, onClose }: SgaGalleryProps) {
+  const { t } = useTranslation('matching')
   const photos = L.gallery
   const count = Math.max(photos.length, 1)
   const [index, setIndex] = useState(Math.min(Math.max(openIndex, 0), count - 1))
@@ -63,23 +66,23 @@ export default function SgaGallery({ L, openIndex, onClose }: SgaGalleryProps) {
   const cur = photos[index]
 
   return (
-    <div className="sgal sgal-lightbox" role="dialog" aria-label="Galerie photo">
+    <div className="sgal sgal-lightbox" role="dialog" aria-label={t('atelier.photoGallery')}>
       <div className="sgal-lb-top">
         <div className="sgal-lb-meta">
-          <span className="eyebrow">{cur?.room ?? 'Photos'}</span>
+          <span className="eyebrow">{cur?.room ?? t('atelier.photos')}</span>
           <span className="sgal-lb-title">{cur?.label ?? L.title}</span>
         </div>
         <span className="sgal-counter nums">{index + 1} / {count}</span>
-        <button className="sgal-circle" title="Fermer (Échap)" onClick={onClose}>
+        <button className="sgal-circle" title={t('atelier.closeEsc')} onClick={onClose}>
           <SgaIcon d="close" size={18} />
         </button>
       </div>
       <div className="sgal-lb-stage">
-        <button className="sgal-nav prev" onClick={prev} aria-label="Précédente">
+        <button className="sgal-nav prev" onClick={prev} aria-label={t('atelier.previous')}>
           <SgaIcon d="chevron-left" size={24} />
         </button>
         <SgaGalPhoto p={cur} className="sgal-lb-photo" big idx={index} total={count} key={index} />
-        <button className="sgal-nav next" onClick={next} aria-label="Suivante">
+        <button className="sgal-nav next" onClick={next} aria-label={t('atelier.next')}>
           <SgaIcon d="chevron-right" size={24} />
         </button>
       </div>

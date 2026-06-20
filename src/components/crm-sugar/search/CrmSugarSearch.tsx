@@ -9,6 +9,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   CRM_TOKENS, crmSugarPalette, CRM_STAGES, type SugarPalette,
 } from '@/components/crm-sugar/tokens'
@@ -27,11 +28,11 @@ const RECENTS: { q: string }[] = [
 ]
 
 const SCOPES = [
-  { id: 'all', label: 'Tout' },
-  { id: 'contacts', label: 'Contacts' },
-  { id: 'biens', label: 'Biens' },
-  { id: 'deals', label: 'Deals' },
-  { id: 'docs', label: 'Documents' },
+  { id: 'all', labelKey: 'search.command.scope.all' },
+  { id: 'contacts', labelKey: 'search.command.scope.contacts' },
+  { id: 'biens', labelKey: 'search.command.scope.biens' },
+  { id: 'deals', labelKey: 'search.command.scope.deals' },
+  { id: 'docs', labelKey: 'search.command.scope.docs' },
 ] as const
 type ScopeId = (typeof SCOPES)[number]['id']
 
@@ -246,6 +247,8 @@ interface Props {
 
 export default function CrmSugarSearch({ open, onClose }: Props) {
   const navigate = useNavigate()
+  // Collision : la variable `t` ci-dessous = tokens de thème. Le traducteur = `tr`.
+  const { t: tr } = useTranslation('common')
 
   // Thème : même source que les pages Sugar (localStorage), lu à l'ouverture.
   const dark = useMemo<boolean>(() => {
@@ -294,13 +297,13 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
     const withLabel = deals.map(d => {
       const bien = d.bienId ? crmBienById(d.bienId) : undefined
       const contact = crmContactById(d.contactId)
-      const title = bien?.title || (contact ? `${contact.firstName} ${contact.lastName}` : 'Transaction')
+      const title = bien?.title || (contact ? `${contact.firstName} ${contact.lastName}` : tr('search.command.deal.untitled'))
       const stageLabel = CRM_STAGES[d.stage]?.label ?? d.stage
       return { id: d.id, title, stageLabel }
     })
     const list = withLabel.filter(d => `${d.title} ${d.stageLabel}`.toLowerCase().includes(ql))
     return list.slice(0, scope === 'deals' ? 20 : 3)
-  }, [deals, ql, scope])
+  }, [deals, ql, scope, tr])
 
   const meggaResults = useMemo(() => searchMegga(q), [q])
   const meggaRecent = useMemo(
@@ -449,7 +452,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
             className="sugarSearchField"
             value={q}
             onChange={e => { setQ(e.target.value); setActiveIdx(0) }}
-            placeholder="Rechercher ou demander à Megga…"
+            placeholder={tr('search.command.placeholder')}
             autoFocus
             style={{
               flex: 1, minWidth: 0, background: 'transparent', border: 0, outline: 'none',
@@ -463,14 +466,14 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
               onClick={() => { setQ(''); setActiveIdx(0); inputRef.current?.focus() }}
               onMouseEnter={e => (e.currentTarget.style.color = sp.ink)}
               onMouseLeave={e => (e.currentTarget.style.color = sp.sub)}
-              title="Effacer la recherche"
+              title={tr('search.clearSearch')}
               style={{
                 flexShrink: 0, border: 0, background: 'transparent', cursor: 'pointer',
                 color: sp.sub, fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
                 letterSpacing: -0.1, padding: '4px 2px', transition: 'color .15s ease',
               }}
             >
-              Effacer
+              {tr('search.command.clear')}
             </button>
           )}
         </div>
@@ -494,7 +497,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                   transition: 'background .15s ease, color .15s ease',
                 }}
               >
-                {s.label}
+                {tr(s.labelKey)}
               </button>
             )
           })}
@@ -505,7 +508,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
           {/* ── État vide ── */}
           {showEmpty && (
             <>
-              <Section title="Reprendre avec Megga" count={meggaRecent.length} sp={sp}>
+              <Section title={tr('search.command.section.resumeMegga')} count={meggaRecent.length} sp={sp}>
                 {meggaRecent.map((j, i) => (
                   <MeggaConvoRow
                     key={j.id} convo={j} q={q} sp={sp} dark={dark}
@@ -516,7 +519,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 ))}
               </Section>
 
-              <Section title="Récents" sp={sp}>
+              <Section title={tr('search.command.section.recents')} sp={sp}>
                 {RECENTS.map((r, i) => {
                   const idx = offEmptyRecents + i
                   const isActive = activeIdx === idx
@@ -533,7 +536,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 })}
               </Section>
 
-              <Section title="Demander à Megga" sp={sp}>
+              <Section title={tr('search.command.section.askMegga')} sp={sp}>
                 {AI_PROMPTS.map((p, i) => {
                   const idx = offEmptyPrompts + i
                   const isActive = activeIdx === idx
@@ -556,8 +559,8 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
               <div style={{ width: 56, height: 56, borderRadius: 16, margin: '0 auto 14px', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
                 <IconSearch stroke={sp.sub} />
               </div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: sp.ink }}>Aucun résultat pour « {q} »</div>
-              <div style={{ fontSize: 13, marginTop: 6 }}>Demandez plutôt à Megga — il connaît tout votre CRM.</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: sp.ink }}>{tr('search.command.empty.title', { query: q })}</div>
+              <div style={{ fontSize: 13, marginTop: 6 }}>{tr('search.command.empty.body')}</div>
               <button
                 onClick={goJulien}
                 style={{
@@ -568,14 +571,14 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 }}
               >
                 <IconSpark size={14} stroke="#fff" />
-                Demander à Megga : « {q} »
+                {tr('search.command.askMeggaQuery', { query: q })}
               </button>
             </div>
           )}
 
           {/* ── Conversations Megga (sémantique) ── */}
           {!showEmpty && meggaResults.length > 0 && (
-            <Section title="Conversations Megga" count={meggaResults.length} sp={sp} accent={accentBlue} badge="sémantique">
+            <Section title={tr('search.command.section.meggaConvos')} count={meggaResults.length} sp={sp} accent={accentBlue} badge={tr('search.command.badge.semantic')}>
               {meggaResults.map((j, i) => (
                 <MeggaConvoRow
                   key={j.id} convo={j} q={q} sp={sp} dark={dark}
@@ -589,7 +592,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
 
           {/* ── Contacts ── */}
           {!showEmpty && contactResults.length > 0 && (
-            <Section title="Contacts" count={contactResults.length} sp={sp}>
+            <Section title={tr('nav.contacts')} count={contactResults.length} sp={sp}>
               {contactResults.map((c, i) => {
                 const idx = offContacts + i
                 const isActive = activeIdx === idx
@@ -619,7 +622,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
 
           {/* ── Biens ── */}
           {!showEmpty && bienResults.length > 0 && (
-            <Section title="Biens" count={bienResults.length} sp={sp}>
+            <Section title={tr('search.command.section.biens')} count={bienResults.length} sp={sp}>
               {bienResults.map((b, i) => {
                 const idx = offBiens + i
                 const isActive = activeIdx === idx
@@ -633,14 +636,14 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                       </div>
                       <div style={{ fontSize: 12, color: sp.sub, marginTop: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
                         <span>{b.addr || b.canton || '—'}</span>
-                        {b.rooms ? <><span style={{ width: 3, height: 3, borderRadius: 999, background: sp.sub, opacity: 0.5 }} /><span>{b.rooms} p.</span></> : null}
+                        {b.rooms ? <><span style={{ width: 3, height: 3, borderRadius: 999, background: sp.sub, opacity: 0.5 }} /><span>{tr('search.command.roomsShort', { count: b.rooms })}</span></> : null}
                         {b.area ? <span>· {b.area} m²</span> : null}
                       </div>
                     </div>
                     {price ? (
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
-                          {formatCHF(price)}{b.transaction === 'location' ? '/mois' : ''}
+                          {formatCHF(price)}{b.transaction === 'location' ? tr('search.perMonth') : ''}
                         </div>
                         <div style={{ fontSize: 10.5, color: sp.sub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>{b.transaction}</div>
                       </div>
@@ -653,7 +656,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
 
           {/* ── Deals ── */}
           {!showEmpty && dealResults.length > 0 && (
-            <Section title="Deals" count={dealResults.length} sp={sp}>
+            <Section title={tr('search.command.section.deals')} count={dealResults.length} sp={sp}>
               {dealResults.map((d, i) => {
                 const idx = offDeals + i
                 const isActive = activeIdx === idx
@@ -693,7 +696,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                   <IconSpark size={14} stroke="#fff" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>Demander à Megga : « {q} »</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>{tr('search.command.askMeggaQuery', { query: q })}</div>
                 </div>
                 <IconArrowR stroke={sp.sub} />
               </button>

@@ -2,6 +2,7 @@
 //
 // 2 cartes : Standard (LBA art. 3-4) / Renforcée (LBA art. 6).
 
+import { useTranslation } from 'react-i18next'
 import { useKycPalette } from '../kyc/kycPalette'
 import { SgIcon } from '../icons'
 import { KwGateCard } from './KwGateCard'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function KwStepVigilance({ data, set }: Props) {
+  const { t } = useTranslation('kyc')
   const sp = useKycPalette()
 
   return (
@@ -34,7 +36,7 @@ export function KwStepVigilance({ data, set }: Props) {
             lineHeight: 1.1,
           }}
         >
-          Quel niveau de vigilance&nbsp;?
+          {t('wizard.vigilance.title')}
         </h1>
         <p
           style={{
@@ -45,8 +47,7 @@ export function KwStepVigilance({ data, set }: Props) {
             lineHeight: 1.55,
           }}
         >
-          La vigilance renforcée est requise pour les transactions supérieures
-          à CHF 100'000, les contacts PEP et les opérations internationales.
+          {t('wizard.vigilance.subtitle')}
         </p>
       </div>
 
@@ -61,16 +62,16 @@ export function KwStepVigilance({ data, set }: Props) {
             marginBottom: 12,
           }}
         >
-          Type d&apos;entité LBA
+          {t('wizard.vigilance.entityTypeLabel')}
         </div>
         <div
           role="radiogroup"
-          aria-label="Type d'entité"
+          aria-label={t('wizard.vigilance.entityTypeAria')}
           style={{ display: 'inline-flex', gap: 8, background: sp.cardSubtle, padding: 6, borderRadius: 999 }}
         >
           {([
-            { value: 'pp', label: 'Personne physique', icon: 'user' },
-            { value: 'pm', label: 'Personne morale', icon: 'building' },
+            { value: 'pp', label: t('wizard.vigilance.entityPp'), icon: 'user' },
+            { value: 'pm', label: t('wizard.vigilance.entityPm'), icon: 'building' },
           ] as const).map((opt) => {
             const isSelected = data.entityType === opt.value
             return (
@@ -115,8 +116,7 @@ export function KwStepVigilance({ data, set }: Props) {
               fontWeight: 500,
             }}
           >
-            Les personnes morales déclenchent l&apos;identification des ayants
-            droit économiques (LBA art. 4).
+            {t('wizard.vigilance.pmHint')}
           </div>
         )}
       </div>
@@ -131,8 +131,8 @@ export function KwStepVigilance({ data, set }: Props) {
               stroke={data.vigilance === 'standard' ? sp.onAccent : sp.black}
             />
           }
-          title="Vigilance standard"
-          sub="Cinq contrôles classiques · LBA art. 3-4. Suffit pour la majorité des transactions résidentielles courantes."
+          title={t('wizard.vigilance.standard.title')}
+          sub={t('wizard.vigilance.standard.sub')}
           onClick={() => set({ vigilance: 'standard', riskLevel: 'low' })}
         />
         <KwGateCard
@@ -144,8 +144,8 @@ export function KwStepVigilance({ data, set }: Props) {
               stroke={data.vigilance === 'renforced' ? sp.onAccent : sp.black}
             />
           }
-          title="Vigilance renforcée"
-          sub="Contrôles approfondis sur l'origine des fonds, bénéficiaires effectifs et arrière-plan économique · LBA art. 6."
+          title={t('wizard.vigilance.renforced.title')}
+          sub={t('wizard.vigilance.renforced.sub')}
           onClick={() => set({ vigilance: 'renforced', riskLevel: 'medium' })}
         />
       </div>

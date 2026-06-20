@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Pipeline list view (table).
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx — `SugarPipelineList`).
 
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { CRM_STAGES, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
 import { crmContactById, crmBienById, type CrmDeal } from '../mockData'
@@ -20,6 +21,7 @@ interface PipelineListProps {
 }
 
 export function PipelineList({ sp, deals, onOpenDeal }: PipelineListProps) {
+  const { t } = useTranslation('pipeline')
   return (
     <div style={{
       background: sp.cardBg, border: `1px solid ${sp.cardBorder}`,
@@ -34,19 +36,19 @@ export function PipelineList({ sp, deals, onOpenDeal }: PipelineListProps) {
         letterSpacing: 0.4, textTransform: 'uppercase',
       }}>
         <span></span>
-        <span>Deal / Contact</span>
-        <span>Bien</span>
-        <span>Étape</span>
-        <span>Valeur</span>
-        <span>Prochaine action</span>
-        <span style={{ textAlign: 'right' }}>Statut</span>
+        <span>{t('board.list.dealContact')}</span>
+        <span>{t('column.property')}</span>
+        <span>{t('column.stage')}</span>
+        <span>{t('column.value')}</span>
+        <span>{t('board.list.nextAction')}</span>
+        <span style={{ textAlign: 'right' }}>{t('board.list.status')}</span>
       </div>
       {deals.map((deal, i) => {
         const c = crmContactById(deal.contactId)!
         const b = deal.bienId ? crmBienById(deal.bienId) : null
         const stage = CRM_STAGES[deal.stage]
         const riskColor = deal.risk === 'at-risk' ? '#F59E0B' : deal.risk === 'stalled' ? '#E53935' : '#0E9F6E'
-        const riskLabel = deal.risk === 'at-risk' ? 'À risque' : deal.risk === 'stalled' ? 'Bloqué' : 'Sain'
+        const riskLabel = deal.risk === 'at-risk' ? t('board.risk.atRisk') : deal.risk === 'stalled' ? t('board.risk.stalled') : t('board.risk.healthy')
         const riskBg = deal.risk === 'at-risk' ? '#FEF3DB' : deal.risk === 'stalled' ? '#FDECEA' : '#E1F5EC'
         return (
           <div key={deal.id} onClick={() => onOpenDeal?.(deal.id)} style={{
@@ -74,7 +76,7 @@ export function PipelineList({ sp, deals, onOpenDeal }: PipelineListProps) {
               fontSize: 12.5, color: sp.soft,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
-              {b ? b.title : <span style={{ color: sp.sub, fontStyle: 'italic' }}>Recherche active</span>}
+              {b ? b.title : <span style={{ color: sp.sub, fontStyle: 'italic' }}>{t('board.noPropertyYet')}</span>}
             </div>
             <span style={{
               display: 'inline-flex', alignItems: 'center',
@@ -83,7 +85,7 @@ export function PipelineList({ sp, deals, onOpenDeal }: PipelineListProps) {
               whiteSpace: 'nowrap',
               boxShadow: `inset 0 -1px 0 rgba(0,0,0,0.14)`,
             }}>
-              {stage.label}
+              {t(`stages.${deal.stage}`)}
             </span>
             <span style={{ fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
               {deal.value ? crmFmtCHF(deal.value) : '—'}
@@ -111,7 +113,7 @@ export function PipelineList({ sp, deals, onOpenDeal }: PipelineListProps) {
       })}
       {deals.length === 0 && (
         <div style={{ padding: '40px 24px', textAlign: 'center', color: sp.sub, fontSize: 13 }}>
-          Aucun deal ne correspond aux filtres actifs.
+          {t('board.list.noMatch')}
         </div>
       )}
     </div>

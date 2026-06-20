@@ -4,6 +4,7 @@
 // lightbox plein écran). Câblé sur de VRAIES photos quand elles existent.
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { crmInitials } from '@/components/crm-sugar/tokens'
 
 // ─── Palettes (light/dark) ───────────────────────────────────────────────
@@ -590,15 +591,18 @@ export function VxLightbox({
 }
 
 // ─── Pilule de statut (façon KYC : fond plein opaque + texte blanc) ───────
+// Libellé via i18n (listings:status.*) ; tonalités conservées telles quelles.
 export function VxStatusPill({ status, dark }: { status: string; dark: boolean }) {
-  const map: Record<string, { label: string; tone: string; on: string }> = {
-    active: { label: 'Actif', tone: dark ? '#0E9F6E' : '#059669', on: '#fff' },
-    reserved: { label: 'Réservé', tone: dark ? '#D97A1E' : '#C45A00', on: '#fff' },
-    draft: { label: 'Brouillon', tone: '#6B7280', on: '#fff' },
-    paused: { label: 'En pause', tone: dark ? '#7C8593' : '#7A8088', on: '#fff' },
-    sold: { label: 'Vendu', tone: dark ? '#E5E7EB' : '#0B0C0E', on: dark ? '#0B0C0E' : '#fff' },
+  const { t: tr } = useTranslation('listings')
+  const map: Record<string, { tone: string; on: string }> = {
+    active: { tone: dark ? '#0E9F6E' : '#059669', on: '#fff' },
+    reserved: { tone: dark ? '#D97A1E' : '#C45A00', on: '#fff' },
+    draft: { tone: '#6B7280', on: '#fff' },
+    paused: { tone: dark ? '#7C8593' : '#7A8088', on: '#fff' },
+    sold: { tone: dark ? '#E5E7EB' : '#0B0C0E', on: dark ? '#0B0C0E' : '#fff' },
   }
   const m = map[status] || map.draft
+  const labelKey = map[status] ? status : 'draft'
   return (
     <span
       style={{
@@ -614,7 +618,7 @@ export function VxStatusPill({ status, dark }: { status: string; dark: boolean }
         whiteSpace: 'nowrap',
       }}
     >
-      {m.label}
+      {tr(`status.${labelKey}`)}
     </span>
   )
 }

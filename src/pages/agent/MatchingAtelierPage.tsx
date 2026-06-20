@@ -15,6 +15,7 @@
 // Rendu plein écran par-dessus le shell (pattern OfferModalSugarV3Page).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -35,6 +36,7 @@ import type { AtelierBuyer, AtelierListing } from '@/components/matching-atelier
 import '@/components/matching-atelier/atelier.css'
 
 export default function MatchingAtelierPage() {
+  const { t } = useTranslation('matching')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const dark = useSugarDark()
@@ -59,10 +61,10 @@ export default function MatchingAtelierPage() {
     return {
       agencyId: profile.agency_id,
       userId: profile.id ?? user?.id ?? '',
-      agentName: profile.full_name ?? 'Votre agent MEGGA',
+      agentName: profile.full_name ?? t('atelier.defaultAgentName'),
       agentPhone: profile.phone ?? null,
     }
-  }, [profile, user])
+  }, [profile, user, t])
 
   // matchId → (acheteur, annonce) — couvre les deux modes (les pivots
   // regroupent TOUS les matches actifs de l'agence)
@@ -170,7 +172,7 @@ export default function MatchingAtelierPage() {
       onOpenBuyerPivot={openBuyerPivot}
       onCloseBuyerPivot={closeBuyerPivot}
       onStartKyc={contactId => navigate(`/dashboard/kyc?openContactId=${contactId}`)}
-      emptyAction={{ label: 'Lancer un scan', busy: scanning, run: () => void runScan() }}
+      emptyAction={{ label: t('atelier.empty.scanCta'), busy: scanning, run: () => void runScan() }}
     />
   )
 }

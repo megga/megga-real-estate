@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx — `CRMWizardSugarV2`).
 
 import { useState, useEffect, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   SugarV2, setSugarV2Dark, EMPTY_WIZARD, SG_STEPS, SG_KEYFRAMES, type WizardData,
 } from './tokens'
@@ -35,6 +36,7 @@ interface WizardShellProps {
 }
 
 export default function WizardShell({ onClose }: WizardShellProps) {
+  const { t } = useTranslation('listings')
   // Le wizard suit le mode clair/sombre du CRM. On bascule le thème actif lu par
   // le Proxy SugarV2 AU RENDER (avant que les step files lisent leurs couleurs),
   // exactement comme le prototype Sugar (window.__setSugarV2Dark).
@@ -176,7 +178,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
       // refresh on next render.
       setPublished(true)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Erreur inconnue'
+      const message = e instanceof Error ? e.message : t('wizard.shell.unknownError')
       setPublishError(message)
     }
   }
@@ -211,9 +213,9 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   }
 
   const headerLabel = published
-    ? 'Publication'
+    ? t('wizard.steps.publish')
     : (step === 1)
-      ? (subStep === 0 ? 'Vendeur' : 'Mandat')
+      ? (subStep === 0 ? t('wizard.steps.mandate') : t('wizard.shell.mandateTitle'))
       : SG_STEPS[step].label
 
   return (
@@ -251,7 +253,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
             <div style={{
               fontSize: 11, fontWeight: 600, color: SugarV2.muted,
               letterSpacing: 1, textTransform: 'uppercase',
-            }}>Nouveau bien</div>
+            }}>{t('form.header.new')}</div>
             <div style={{
               fontSize: 18, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3,
             }}>{headerLabel}</div>
@@ -265,7 +267,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         <SgCircleBtn
           icon={<SgIcon name="close" size={18} stroke={SugarV2.ink} />}
           onClick={onClose}
-          title="Fermer"
+          title={t('common:actions.close')}
         />
       </header>
 
@@ -307,7 +309,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           {step > 0 && (
             <SgGhostPill onClick={prev}
               icon={<SgIcon name="arrowL" size={16} stroke={SugarV2.inkSoft} />}>
-              Précédent
+              {t('common:actions.previous')}
             </SgGhostPill>
           )}
         </div>
@@ -319,15 +321,15 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           {step < SG_STEPS.length - 1 ? (
             <SgBlackPill onClick={next} disabled={!canNext}
               icon={<SgIcon name="arrowR" size={16} stroke={SugarV2.onBlack} />}>
-              Continuer
+              {t('wizard.shell.continue')}
             </SgBlackPill>
           ) : (
             <SgBlackPill onClick={handlePublish} disabled={createProperty.isPending}>
               {createProperty.isPending
-                ? 'Publication…'
-                : data.publishMode === 'schedule' ? 'Programmer la publication'
-                : data.publishMode === 'draft' ? 'Enregistrer en brouillon'
-                : 'Publier sur MEGGA'}
+                ? t('wizard.shell.publishing')
+                : data.publishMode === 'schedule' ? t('wizard.shell.schedulePublish')
+                : data.publishMode === 'draft' ? t('wizard.shell.saveDraft')
+                : t('wizard.shell.publish')}
             </SgBlackPill>
           )}
         </div>
@@ -344,7 +346,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           border: `1px solid ${dark ? 'rgba(242,107,101,0.35)' : '#FCA5A5'}`,
           fontSize: 12.5, fontWeight: 600,
         }}>
-          Échec de la publication : {publishError}
+          {t('wizard.shell.publishError', { message: publishError })}
         </div>
       )}
     </div>

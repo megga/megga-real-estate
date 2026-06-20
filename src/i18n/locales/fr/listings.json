@@ -2,9 +2,27 @@
   "title": "Mes biens",
   "count": "{{count}} biens",
   "add_button": "Ajouter un bien",
-  "tab": { "all": "Tous", "active": "Actifs", "drafts": "Brouillons", "reserved": "Réservés", "sold": "Vendus" },
-  "type": { "apartment": "Appartement", "house": "Maison", "villa": "Villa", "commercial": "Commercial", "land": "Terrain" },
-  "column": { "property": "Bien", "type": "Type", "status": "Statut", "price": "Prix", "activity": "Activité" },
+  "tab": {
+    "all": "Tous",
+    "active": "Actifs",
+    "drafts": "Brouillons",
+    "reserved": "Réservés",
+    "sold": "Vendus"
+  },
+  "type": {
+    "apartment": "Appartement",
+    "house": "Maison",
+    "villa": "Villa",
+    "commercial": "Commercial",
+    "land": "Terrain"
+  },
+  "column": {
+    "property": "Bien",
+    "type": "Type",
+    "status": "Statut",
+    "price": "Prix",
+    "activity": "Activité"
+  },
   "no_photo": "Pas de photo",
   "empty_no_properties": "Vous n'avez pas encore ajouté de bien",
   "empty_no_results": "Aucun bien trouvé",
@@ -94,6 +112,1247 @@
       "apartment_studio": "Studio",
       "apartment_loft": "Loft",
       "apartment_terrasse_flat": "Rez-jardin"
+    }
+  },
+  "status": {
+    "active": "Actif",
+    "reserved": "Réservé",
+    "draft": "Brouillon",
+    "paused": "En pause",
+    "sold": "Vendu"
+  },
+  "relativeTime": {
+    "min": "{{n}} min",
+    "h": "{{n}} h",
+    "j": "{{n}} j",
+    "mois": "{{n}} mois"
+  },
+  "form": {
+    "step1": {
+      "title": "Informations générales",
+      "subtitle": "Décrivez votre bien immobilier.",
+      "characteristics": "Caractéristiques"
+    },
+    "step2": {
+      "title": "Localisation",
+      "subtitle": "Où se situe le bien ?",
+      "addressSearchHelp": "Recherche dans toutes les adresses officielles suisses",
+      "manualEntry": "Saisir manuellement",
+      "searchByAddress": "Rechercher par adresse",
+      "mapPlaceholder": "Sélectionnez une adresse pour voir la localisation"
+    },
+    "step3": {
+      "title": "Prix & détails",
+      "subtitle": "Définissez le prix et les caractéristiques du bien."
+    },
+    "step4": {
+      "title": "Photos",
+      "subtitle": "Ajoutez des photos de qualité. Glissez pour réordonner. La première sera la couverture.",
+      "dropzoneTitle": "Glissez vos photos ici ou cliquez pour parcourir",
+      "dropzoneHint": "JPG, PNG ou WebP · Max 10 Mo · Jusqu'à 20 photos",
+      "layoutTitle": "Disposition de la fiche publique",
+      "layoutSubtitle": "Choisissez comment votre annonce sera mise en page sur la fiche publique du bien."
+    },
+    "step5": {
+      "title": "Description & publication",
+      "subtitle": "Rédigez une description attrayante et choisissez vos tags."
+    },
+    "fields": {
+      "title": "Titre de l'annonce",
+      "type": "Type de bien",
+      "rooms": "Pièces",
+      "bedrooms": "Chambres",
+      "bathrooms": "Salles de bain",
+      "surface": "Surface",
+      "floor": "Étage",
+      "totalFloors": "Nb. étages",
+      "yearBuilt": "Année",
+      "condition": "État du bien",
+      "energyClass": "Classe énergétique (CECB)",
+      "energyClassHelp": "Requis à la vente dans les cantons GE, VD, NE (loi cantonale énergie).",
+      "propertyAddress": "Adresse du bien",
+      "street": "Rue",
+      "city": "Ville",
+      "postalCode": "NPA",
+      "postalCodeFull": "Code postal",
+      "canton": "Canton",
+      "address": "Adresse",
+      "egid": "EGID (identifiant fédéral du bâtiment)",
+      "egidHelp": "9 chiffres — recherchable sur <mono>map.geo.admin.ch</mono>. Optionnel ici, indispensable chez le notaire.",
+      "monthlyRent": "Loyer mensuel",
+      "salePrice": "Prix de vente",
+      "chargesMonthly": "Charges mensuelles",
+      "deposit": "Caution (mois de loyer)",
+      "furnished": "Meublé",
+      "mandateType": "Type de mandat",
+      "features": "Caractéristiques",
+      "availability": "Disponibilité",
+      "description": "Description du bien",
+      "tags": "Tags"
+    },
+    "placeholders": {
+      "title": "Ex : Appartement lumineux aux Eaux-Vives",
+      "addressSearch": "Tapez une adresse suisse...",
+      "select": "Sélectionner...",
+      "description": "Décrivez les points forts du bien, son environnement, ses atouts..."
+    },
+    "typeDesc": {
+      "apartment": "PPE ou locatif",
+      "house": "Individuelle ou mitoyenne",
+      "villa": "Haut de gamme",
+      "commercial": "Bureau ou commerce",
+      "land": "Terrain constructible"
+    },
+    "condition": {
+      "new": "Neuf",
+      "renovated": "Rénové",
+      "good": "Bon état",
+      "to_renovate": "À rénover"
+    },
+    "availability": {
+      "immediate": "Immédiat",
+      "3months": "Dans 3 mois",
+      "negotiable": "À convenir"
+    },
+    "perMonth": "/mois",
+    "monthsCount_one": "{{count}} mois",
+    "monthsCount_other": "{{count}} mois",
+    "furnishedOption": {
+      "notFurnished": "Non meublé",
+      "furnished": "Meublé"
+    },
+    "mandate": {
+      "exclusive": {
+        "label": "Exclusif",
+        "desc": "Seul mandataire"
+      },
+      "simple": {
+        "label": "Simple",
+        "desc": "Multi-agences"
+      },
+      "search": {
+        "label": "Recherche",
+        "desc": "Mandat acheteur"
+      }
+    },
+    "regie": {
+      "summary": "Régie externe (optionnel — sinon l'agence publie sous son nom)",
+      "name": "Nom régie",
+      "phone": "Téléphone",
+      "email": "Email",
+      "website": "Site web"
+    },
+    "featureGroup": {
+      "exterior": "Extérieur",
+      "parkingStorage": "Parking & stockage",
+      "interior": "Intérieur",
+      "qualityAccess": "Qualité & accessibilité"
+    },
+    "featuresSelected_one": "{{count}} caractéristique sélectionnée",
+    "featuresSelected_other": "{{count}} caractéristiques sélectionnées",
+    "required": "(requis)",
+    "coverPhoto": "Couverture",
+    "photoAlt": "Photo {{index}}",
+    "roomTagPlaceholder": "— Pièce —",
+    "floorPlan": {
+      "upgradeTitle": "Plan interactif",
+      "upgradeDescription": "Ajoutez un plan d'étage cliquable pour permettre aux acheteurs de naviguer les photos pièce par pièce."
+    },
+    "c2pa": {
+      "title": "Certification C2PA",
+      "titleSigned": "Photos certifiées C2PA",
+      "saveFirst": "Sauvegardez le bien pour certifier les photos",
+      "proveAuthenticity": "Signez vos photos pour prouver leur authenticité",
+      "signedCount_one": "{{count}} photo signée cryptographiquement",
+      "signedCount_other": "{{count}} photos signées cryptographiquement",
+      "certifying": "Certification...",
+      "certify": "Certifier",
+      "error": "Erreur lors de la certification. Réessayez ultérieurement."
+    },
+    "staging": {
+      "subtitle": "Meublez vos pièces vides avec l'IA",
+      "selectPhoto": "Sélectionnez une photo à meubler",
+      "style": "Style",
+      "roomType": "Type de pièce",
+      "generating": "Génération en cours...",
+      "generate": "Générer la version meublée",
+      "upgradeSuffix": "— Passez au plan Pro pour débloquer.",
+      "original": "Original",
+      "furnished": "Meublé",
+      "imagesRemaining_one": "{{count}} image restante ce mois",
+      "imagesRemaining_other": "{{count}} images restantes ce mois",
+      "stageAnother": "Meubler une autre photo"
+    },
+    "method": {
+      "heading": "Ajouter un bien",
+      "subheading": "Comment souhaitez-vous saisir ce bien ?",
+      "manual": {
+        "title": "Saisie manuelle",
+        "desc": "Remplir le formulaire étape par étape"
+      },
+      "duplicate": {
+        "title": "Dupliquer un bien existant",
+        "desc": "Copier les infos d'un de vos biens",
+        "descEmpty": "Vous n'avez aucun bien à dupliquer"
+      },
+      "url": {
+        "title": "Depuis une URL",
+        "desc": "Importer depuis Homegate, ImmoScout24..."
+      },
+      "pdf": {
+        "title": "Depuis un PDF",
+        "desc": "Extraire les infos d'une fiche descriptive"
+      },
+      "soon": "Bientôt"
+    },
+    "duplicate": {
+      "heading": "Dupliquer un bien",
+      "subheading": "Sélectionnez le bien à copier",
+      "searchPlaceholder": "Rechercher par titre, adresse, ville..."
+    },
+    "url": {
+      "heading": "Importer depuis une URL",
+      "subheading": "Collez le lien d'une annonce immobilière suisse",
+      "analyze": "Analyser l'annonce",
+      "errorTitle": "Erreur d'importation",
+      "supportedPortals": "Portails supportés :",
+      "analyzing": "Analyse de l'annonce en cours...",
+      "analyzingHint": "MEGGA AI lit la page et extrait les informations du bien"
+    },
+    "pdf": {
+      "heading": "Importer depuis un PDF",
+      "subheading": "Uploadez une fiche descriptive, un mandat ou tout document décrivant le bien",
+      "dropzoneTitle": "Glissez votre PDF ici",
+      "dropzoneHint": "ou cliquez pour sélectionner (max 20 Mo)",
+      "analyzing": "Analyse du document en cours...",
+      "analyzingHint": "MEGGA AI lit le PDF et extrait les informations du bien",
+      "errorTitle": "Erreur d'extraction",
+      "retry": "Réessayer avec un autre fichier",
+      "supportedFormats": "Formats supportés : fiches descriptives, mandats de vente, rapports d'estimation"
+    },
+    "header": {
+      "edit": "Modifier le bien",
+      "duplicate": "Dupliquer le bien",
+      "new": "Nouveau bien",
+      "stepIndicator": "Étape {{current}} sur {{total}}"
+    },
+    "autosave": {
+      "saving": "Sauvegarde...",
+      "saved": "Brouillon sauvegardé"
+    },
+    "transaction": {
+      "buy": "Vente",
+      "rent": "Location",
+      "locked": "Le type de transaction est verrouillé en mode édition"
+    },
+    "sections": {
+      "general": "Infos générales",
+      "location": "Localisation",
+      "priceDetails": "Prix & détails",
+      "photos": "Photos",
+      "photosCount_one": "{{count}} photo",
+      "photosCount_other": "{{count}} photos",
+      "descriptionPublish": "Description & publication",
+      "description": "Description"
+    },
+    "preview": {
+      "heading": "Aperçu de l'annonce",
+      "titlePlaceholder": "Titre de l'annonce",
+      "cityPlaceholder": "Ville",
+      "roomsCount_one": "{{count}} pièce",
+      "roomsCount_other": "{{count}} pièces",
+      "descriptionPlaceholder": "La description apparaîtra ici...",
+      "newPropertyTitle": "Nouveau bien",
+      "noAddress": "Adresse non renseignée",
+      "roomsShort_one": "{{count}}p.",
+      "roomsShort_other": "{{count}}p."
+    },
+    "completion": "Complétion",
+    "actions": {
+      "saveDraft": "Sauver brouillon",
+      "draft": "Brouillon",
+      "publish": "Publier",
+      "save": "Enregistrer"
+    },
+    "errors": {
+      "fixInvalidFields": "Corrigez les champs invalides avant de sauvegarder (prix, canton, NPA, coordonnées Suisse).",
+      "lbaRent": "LBA art. 6 : un mandat de gérance signé est requis avant publication d'une location. Enregistrez le mandat depuis la fiche du bien (brouillon) avant de publier.",
+      "lbaBuy": "LBA art. 6 : ce bien à CHF {{price}} ne peut être publié sans mandat signé. Enregistrez le mandat depuis la fiche du bien (brouillon) avant de publier."
+    },
+    "validation": {
+      "latOutsideSwitzerland": "Latitude hors Suisse",
+      "lngOutsideSwitzerland": "Longitude hors Suisse",
+      "urlInvalid": "URL invalide (http(s) uniquement)",
+      "emailInvalid": "Email invalide",
+      "titleMin": "Le titre doit contenir au moins 5 caractères",
+      "max200": "Maximum 200 caractères",
+      "max100": "Maximum 100 caractères",
+      "typeRequired": "Sélectionnez un type de bien",
+      "roomsMin": "Minimum 0.5 pièce",
+      "roomsMax": "Maximum 30 pièces",
+      "min0": "Minimum 0",
+      "bedroomsMax": "Maximum 20 chambres",
+      "bathroomsMax": "Maximum 10",
+      "surfaceMin": "Minimum 5 m²",
+      "surfaceMax": "Maximum 10000 m²",
+      "addressRequired": "L'adresse est requise",
+      "cityRequired": "La ville est requise",
+      "cantonRequired": "Sélectionnez un canton suisse valide",
+      "postalCodeInvalid": "NPA suisse invalide (4 chiffres, ne commence pas par 0)",
+      "egidInvalid": "EGID = 9 chiffres (identifiant fédéral du bâtiment)",
+      "priceNegative": "Prix négatif refusé",
+      "mandateRequired": "Sélectionnez un type de mandat",
+      "featuresMax": "Maximum 50 caractéristiques",
+      "photoUrlInvalid": "URL de photo invalide",
+      "photosMax": "Maximum 50 photos",
+      "descriptionMin": "La description doit contenir au moins 20 caractères",
+      "descriptionMax": "Description trop longue (max 10 000 caractères)",
+      "tagsMax": "Maximum 20 tags",
+      "rentRange": "Loyer entre CHF {{min}} et CHF {{max}}/mois",
+      "availabilityRequiredRent": "Date requise pour une location",
+      "priceRange": "Prix entre CHF {{min}} et CHF {{max}}",
+      "cecbRequired": "CECB obligatoire à la vente dans le canton {{canton}}. Renseignez la classe énergétique."
+    }
+  },
+  "biens": {
+    "create": "Créer un bien",
+    "export": "Exporter",
+    "loading": "Chargement…",
+    "subtitle_one": "{{count}} bien sur {{total}} dans votre catalogue",
+    "subtitle_other": "{{count}} biens sur {{total}} dans votre catalogue",
+    "searchPlaceholder": "Rechercher un bien, une adresse, une référence…",
+    "seller": "Vendeur",
+    "unlinked": "Non lié",
+    "perMonth": "/mois",
+    "toEstimate": "À estimer",
+    "finish": "Finir",
+    "photosToAdd": "Photos à ajouter",
+    "sort": {
+      "recent": "Récents",
+      "priceDesc": "Prix décroissant",
+      "priceAsc": "Prix croissant",
+      "surface": "Surface",
+      "views": "Plus vus"
+    },
+    "view": {
+      "gallery": "Galerie",
+      "list": "Liste"
+    },
+    "kpi": {
+      "portfolioValue": "Valeur du portefeuille",
+      "viewsCumulated": "Vues cumulées · 30 j",
+      "visitRequests": "Demandes de visite",
+      "views": "Vues"
+    },
+    "empty": {
+      "noMatch": "Aucun bien ne correspond"
+    },
+    "error": {
+      "title": "Impossible de charger vos biens",
+      "message": "Une erreur est survenue. Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer"
+    },
+    "spec": {
+      "rooms": "pièces",
+      "beds": "ch.",
+      "baths": "sdb",
+      "epc": "DPE"
+    },
+    "score": {
+      "chaud": "Chaud",
+      "a_animer": "À animer",
+      "en_veille": "En veille",
+      "fallback": "Estimation",
+      "tooltip": "Score de bien — estimation",
+      "tooltipLimited": "Score de bien — estimation · données limitées"
+    },
+    "submissions": {
+      "bannerTitle_one": "{{count}} nouvelle soumission vendeur",
+      "bannerTitle_other": "{{count}} nouvelles soumissions vendeurs",
+      "subtitle": "Particuliers ayant déposé leur bien via MEGGA Vendre",
+      "subtitleWithUrgent": "{{urgent}} · Particuliers ayant déposé leur bien via MEGGA Vendre",
+      "urgentClause_one": "{{count}} à traiter sous 24h",
+      "urgentClause_other": "{{count}} à traiter sous 24h",
+      "open": "Ouvrir",
+      "inbox": "Inbox vendeurs",
+      "count_one": "{{count}} soumission",
+      "count_other": "{{count}} soumissions",
+      "receivedAgo": "Reçu {{time}}"
+    },
+    "transaction": {
+      "rent": "Location",
+      "sale": "Vente"
+    },
+    "detail": {
+      "back": "Retour aux biens",
+      "publish": "Publier",
+      "update": "Mettre à jour",
+      "viewPhotos_one": "Voir la photo",
+      "viewPhotos_other": "Voir les {{count}} photos",
+      "exclusiveMandate": "Mandat exclusif",
+      "charges": "+ CHF {{amount}} charges",
+      "tabs": {
+        "overview": "Vue d'ensemble",
+        "performance": "Performance",
+        "requests": "Demandes",
+        "history": "Historique"
+      },
+      "specs": {
+        "surface": "Surface",
+        "rooms": "Pièces",
+        "epc": "DPE",
+        "bedrooms": "Cham.",
+        "bathrooms": "S. de bain",
+        "year": "Année"
+      },
+      "mandate": {
+        "heading": "Mandat",
+        "type": "Type",
+        "commission": "Commission",
+        "signedOn": "Signé le",
+        "expiresOn": "Expire le"
+      },
+      "distribution": "Diffusion",
+      "channelActive": "Actif",
+      "channelInactive": "Non publié",
+      "call": "Appeler",
+      "email": "Email",
+      "noSeller": "Aucun vendeur rattaché",
+      "perf": {
+        "views": "Vues",
+        "favorites": "Favoris",
+        "requests": "Demandes"
+      },
+      "noRequests": "Aucune demande ni match pour ce bien.",
+      "noHistory": "Aucun événement enregistré."
+    }
+  },
+  "detail": {
+    "loading": "Chargement du bien…",
+    "loadError": "Erreur de chargement du bien : {{message}}",
+    "unknownError": "inconnue",
+    "notFound": "Bien introuvable.",
+    "editingBadge": "Édition",
+    "editListing": "Modifier l'annonce",
+    "cancelEdit": "Annuler",
+    "scheduleVisit": "Planifier une visite",
+    "saveAndPublish": "Enregistrer & publier",
+    "manageDistribution": "Gérer la diffusion",
+    "publishProperty": "Publier le bien",
+    "distribution": "Diffusion",
+    "onlineOn": "Annonce en ligne sur {{portals}}",
+    "notPublishedYet": "Bien non encore publié",
+    "viewPhotos": "Voir les {{count}} photos",
+    "c2paVerified": "Provenance vérifiée · C2PA",
+    "transactionRent": "Location",
+    "transactionSale": "Vente",
+    "rentLabel": "Loyer",
+    "salePriceLabel": "Prix de vente",
+    "perMonth": "/mois",
+    "chargesLine": "+ CHF {{amount}} charges{{suffix}}",
+    "locationUnavailable": "Localisation indisponible",
+    "energyClassUnknown": "non renseignée",
+    "autoDescription": "Bien de {{rooms}} pièces ({{surface}} m²) situé {{address}}. Construit en {{year}}, classe énergétique {{energyClass}}.",
+    "spec": {
+      "surface": "Surface",
+      "rooms": "Pièces",
+      "bedrooms": "Chambres",
+      "bathrooms": "SdB",
+      "year": "Année",
+      "energyClass": "DPE"
+    },
+    "stage": {
+      "new_lead": "Nouveau lead",
+      "to_qualify": "À qualifier",
+      "active_search": "En recherche",
+      "visit_planned": "Visite planifiée",
+      "visit_done": "Visite effectuée",
+      "interest_confirmed": "Intérêt confirmé",
+      "offer": "Offre",
+      "negotiation": "Négociation",
+      "reserved": "Réservé",
+      "financing": "Financement",
+      "notary": "Notaire",
+      "signed": "Signé",
+      "lost": "Perdu",
+      "to_recontact": "À relancer"
+    },
+    "status": {
+      "archived": "Archivé"
+    },
+    "description": {
+      "eyebrow": "Description",
+      "publicTitle": "Annonce visible par les acheteurs",
+      "privateTitle": "Notes équipe MEGGA",
+      "tabPublic": "Publique",
+      "tabPrivate": "Privée",
+      "privatePlaceholder": "Notes internes (jamais publiées) : disponibilités du vendeur, marge de négociation, préférences acheteurs…",
+      "privateOnly": "Visible uniquement par l'équipe MEGGA · jamais publié",
+      "privateEmpty": "Aucune note d'équipe — passe en édition (✎) pour en ajouter. Visible MEGGA seulement."
+    },
+    "specs": {
+      "eyebrow": "Caractéristiques",
+      "title": "Le détail du bien",
+      "propertyType": "Type de bien",
+      "transaction": "Transaction",
+      "livingArea": "Surface habitable",
+      "bathrooms": "Salles de bain",
+      "energyClass": "Classe énergétique",
+      "energyClassValue": "DPE {{grade}}",
+      "charges": "Charges"
+    },
+    "buyers": {
+      "eyebrow_one": "Pipeline acheteur sur ce bien",
+      "eyebrow_other": "Pipeline acheteurs sur ce bien",
+      "title": "Acheteurs en cours",
+      "pipeline": "Pipeline",
+      "buyerFallback": "Acheteur",
+      "offerSuffix": " · offre {{amount}}",
+      "matchAffinity": "Match MEGGA AI · {{score}}% d'affinité",
+      "propose": "Proposer",
+      "kycNotice": "<0>KYC à compléter</0> pour un acheteur — optionnel à ce stade, requis avant signature.",
+      "startKyc": "Lancer"
+    },
+    "nextVisit": {
+      "eyebrow": "Prochaine visite",
+      "visitor": "Visiteur",
+      "reschedule": "Déplacer",
+      "cancel": "Annuler",
+      "cancelledTitle": "Visite annulée",
+      "cancelledLine": "Retirée de votre planning"
+    },
+    "performance": {
+      "eyebrow": "Performance · 30 jours",
+      "views": "Vues",
+      "favorites": "Favoris",
+      "requests": "Demandes",
+      "trend": "+{{percent}} % vs. mois précédent"
+    },
+    "mandate": {
+      "eyebrow": "Mandat",
+      "heading": "Mandat {{type}}",
+      "sellerViewProfile": "Vendeur · voir la fiche",
+      "commission": "Commission",
+      "signedOn": "Signé le",
+      "expiresOn": "Expire le",
+      "expiresIn_one": "dans {{count}} j",
+      "expiresIn_other": "dans {{count}} j",
+      "overdue_one": "{{count}} j de retard",
+      "overdue_other": "{{count}} j de retard",
+      "type": {
+        "exclusive": "exclusif",
+        "simple": "simple",
+        "semi_exclusive": "semi-exclusif"
+      }
+    },
+    "distributionSection": {
+      "eyebrow": "Diffusion",
+      "notPublished": "Non publié",
+      "online": "En ligne",
+      "offline": "Hors ligne"
+    },
+    "historySection": {
+      "eyebrow": "Historique"
+    },
+    "history": {
+      "created": "Bien créé dans le CRM",
+      "published": "Annonce publiée",
+      "updated": "Annonce mise à jour"
+    },
+    "visitModal": {
+      "title": "Planifier une visite",
+      "day": "Jour",
+      "time": "Heure",
+      "visitor": "Visiteur",
+      "confirm": "Confirmer la visite",
+      "scheduledTitle": "Visite planifiée",
+      "scheduledLine": "{{date}} à {{time}}",
+      "scheduledHint": "Ajoutée à votre planning local"
+    },
+    "toast": {
+      "publishedTitle": "Annonce publiée",
+      "updatedTitle": "Annonce mise à jour",
+      "statusActive": "Statut passé en actif",
+      "auditAdded": "Entrée ajoutée au journal d'audit nLPD"
+    },
+    "c2paAlert": {
+      "title": "Photos sans certification d'authenticité",
+      "body": "Re-uploader les photos pour fiabiliser la diffusion. La publication MEGGA Marketplace attendra la certification ; les portails partenaires acceptent malgré tout.",
+      "action": "Re-uploader"
+    }
+  },
+  "editor": {
+    "gallery": {
+      "title": "Mise en page de la galerie",
+      "subtitle": "Choisissez comment vos photos seront affichées sur la fiche publique du bien.",
+      "layout": {
+        "hero": {
+          "label": "Hero",
+          "description": "1 grande + grille 2×2"
+        },
+        "mosaic": {
+          "label": "Mosaïque",
+          "description": "6 photos asymétriques"
+        },
+        "carousel": {
+          "label": "Carrousel",
+          "description": "Photo unique + flèches + miniatures"
+        }
+      }
+    },
+    "contactLayout": {
+      "title": "Carte de contact",
+      "subtitle": "Où afficher le bloc agent sur la fiche.",
+      "right": {
+        "label": "Sticky droite",
+        "description": "Carte agent en colonne droite"
+      },
+      "banner": {
+        "label": "Banner haut",
+        "description": "CTA dans la card prix"
+      },
+      "floating": {
+        "label": "Floating",
+        "description": "Widget bottom-right fixe"
+      }
+    },
+    "neighborhood": {
+      "title": "Bloc « Le quartier »",
+      "subtitle": "Comment présenter l'environnement du bien.",
+      "map": {
+        "label": "Carte interactive",
+        "description": "Leaflet OSM + amenities autour du bien"
+      },
+      "scores": {
+        "label": "Scores éditoriaux",
+        "description": "Marchabilité, Transports, Calme + le mot de MEGGA"
+      }
+    },
+    "partnerAgency": {
+      "title": "Agence partenaire",
+      "subtitle": "Affiche un bandeau d'agence en haut de la carte agent (optionnel).",
+      "none": {
+        "label": "Aucune",
+        "description": "MEGGA Real Estate par défaut"
+      }
+    },
+    "floorPlan": {
+      "title": "Plan interactif",
+      "subtitle": "Ajoutez un plan et associez vos photos par pièce",
+      "uploading": "Upload en cours...",
+      "dropHere": "Glissez votre plan ici",
+      "fileHint": "JPG, PNG, WebP ou SVG — max 15 MB",
+      "browse": "Parcourir",
+      "instructions": "Cliquez sur le plan pour placer un point. Glissez pour repositionner.",
+      "canvasAria": "Cliquez pour placer un point",
+      "imageAlt": "Plan d'étage",
+      "hotspotAria": "Point {{room}}",
+      "room": "Pièce",
+      "linkedPhotos_one": "Photo associée ({{count}})",
+      "linkedPhotos_other": "Photos associées ({{count}})",
+      "photoCount_one": "{{count}} photo",
+      "photoCount_other": "{{count}} photos",
+      "taggedCounter": "{{tagged}}/{{total}} photos taguées"
+    },
+    "address": {
+      "placeholder": "Rechercher une adresse en Suisse...",
+      "noResults": "Aucune adresse trouvée",
+      "noResultsHint": "Vérifiez l'orthographe ou essayez un autre terme",
+      "error": "Erreur de connexion. Réessayez."
+    }
+  },
+  "wizard": {
+    "steps": {
+      "start": "Démarrer",
+      "mandate": "Vendeur",
+      "address": "Adresse",
+      "specs": "Caractéristiques",
+      "photos": "Photos",
+      "desc": "Description",
+      "options": "Options",
+      "publish": "Publication"
+    },
+    "forOwner": "Pour {{name}}",
+    "ownerVia": {
+      "submission": "via soumission",
+      "linked": "vendeur lié"
+    },
+    "step0": {
+      "eyebrow": "Étape 1 sur 8 · Démarrer",
+      "title": "Comment souhaitez-vous créer ce bien ?",
+      "subtitle": "Trois manières d'aller vite. Le contenu sera ensuite affiné étape par étape.",
+      "manual": {
+        "title": "Saisir manuellement",
+        "sub": "Vous remplissez chaque section. Idéal quand vous connaissez le bien et avez les éléments en main."
+      },
+      "import": {
+        "title": "Importer un mandat",
+        "sub": "PDF de mandat. MEGGA AI extrait les infos pour pré-remplir."
+      },
+      "autosave": {
+        "title": "Brouillon sauvegardé automatiquement",
+        "note": "Vous pouvez fermer le wizard à tout moment, vos données restent."
+      },
+      "submissions": {
+        "title": "Reprendre une soumission",
+        "subtitle": "{{count}} particuliers ont soumis leur bien. Sélectionnez-en un pour pré-remplir.",
+        "emptyTitle": "Aucune soumission",
+        "emptyBody": "Aucun particulier n'a soumis de bien pour le moment.",
+        "unknownVendor": "Vendeur inconnu"
+      }
+    },
+    "step1": {
+      "vendor": {
+        "eyebrow": "Étape 2 sur 8 · Vendeur (1/2)",
+        "title": "Qui est le propriétaire ?",
+        "subtitle": "Liez ce bien à un contact existant ou créez-en un nouveau.",
+        "change": "Changer",
+        "searchPlaceholder": "Tapez le nom, l'email ou le téléphone du vendeur…",
+        "newButton": "+ Nouveau",
+        "recentSellers": "Vos vendeurs récents",
+        "noMatchTitle": "Aucun contact trouvé pour « {{query}} »",
+        "noMatchBody": "Créez un nouveau contact vendeur.",
+        "createNamed": "+ Créer « {{query}} »",
+        "sellerTag": "Vendeur",
+        "newSeller": "Nouveau vendeur",
+        "quickInfo": "Quelques informations rapides",
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "email": "Email",
+        "phone": "Téléphone",
+        "phonePlaceholder": "+41 79 …",
+        "kycNote": "Le KYC pourra être lancé après la signature du mandat. MEGGA peut envoyer la procédure au vendeur — c'est optionnel.",
+        "createContact": "Créer le contact"
+      },
+      "mandate": {
+        "eyebrow": "Étape 2 sur 8 · Mandat (2/2)",
+        "title": "Quel type de mandat ?",
+        "subtitle": "Importez un mandat signé pour gagner du temps, ou configurez-le manuellement.",
+        "subtitleImported": "MEGGA AI a extrait les informations de votre mandat. Vérifiez et ajustez si nécessaire.",
+        "field": {
+          "type": "Type de mandat",
+          "duration": "Durée",
+          "commission": "Commission",
+          "fees": "Honoraires",
+          "signedAt": "Date de signature",
+          "vendor": "Vendeur identifié"
+        },
+        "type": {
+          "exclusive": {
+            "title": "Mandat exclusif",
+            "sub": "Vous êtes seul mandataire. Commission garantie, meilleur engagement."
+          },
+          "simple": {
+            "title": "Mandat simple",
+            "sub": "Le vendeur peut mandater plusieurs agences. Commission au premier qui vend."
+          },
+          "co": {
+            "title": "Co-mandat",
+            "sub": "Mandat partagé entre 2 agences. Commission à diviser selon entente."
+          }
+        },
+        "recommended": "Recommandé",
+        "import": {
+          "title": "Importer un mandat signé",
+          "hint": "Glissez votre PDF ici. MEGGA AI extrait automatiquement le type, la durée, la commission et la date de signature.",
+          "choosePdf": "Choisir le PDF"
+        },
+        "reading": "Lecture du fichier…",
+        "analyzing": "MEGGA AI analyse votre mandat",
+        "searchingNextField": "Recherche du champ suivant…",
+        "importedTitle": "Mandat importé et analysé",
+        "enterManually": "Saisir manuellement",
+        "enterManuallyQuoted": "« Saisir manuellement »",
+        "editHint": "Pour modifier ces valeurs, cliquez sur",
+        "months": "{{count}} mois",
+        "feesOwner": "À charge du vendeur",
+        "feesBuyer": "À charge de l'acheteur",
+        "feesOwnerInline": "à charge du vendeur",
+        "feesBuyerInline": "à charge de l'acheteur",
+        "statusLabel": "Statut",
+        "signed": "Signé",
+        "notSigned": "Non signé",
+        "orManual": "ou configurez à la main",
+        "proposedCommission": "Commission proposée",
+        "settings": "Paramètres",
+        "settingsTitle": "Ajustez les conditions du mandat",
+        "commissionExample": "<base>Sur un bien à 1'500'000 CHF</base>, la commission s'élèverait à <amountStrong>{{amount}}</amountStrong> ({{party}}).",
+        "signedNote": "Mandat marqué comme signé.",
+        "notSignedNote": "Mandat non signé — vous pourrez l'envoyer pour signature après publication.",
+        "markUnsigned": "Marquer comme non signé",
+        "markSigned": "Marquer comme signé"
+      }
+    },
+    "step2": {
+      "eyebrow": "Étape 3 sur 8 · Adresse",
+      "title": "Où se situe le bien ?",
+      "subtitle": "Tapez une adresse, MEGGA AI complète le code postal, le canton et les coordonnées.",
+      "searchPlaceholder": "Rue, numéro, ville…",
+      "confirmedTitle": "Adresse confirmée",
+      "confirmedSubtitle": "Code postal, canton et coordonnées détectés automatiquement.",
+      "coordinates": "Coordonnées",
+      "refineToggle": "Affiner les détails (étage, lot, parcelle…)",
+      "refine": {
+        "unit": "N° d'appartement / lot",
+        "unitPlaceholder": "Ex : 3B",
+        "outOf": "Sur",
+        "cadastral": "N° parcelle cadastrale",
+        "cadastralPlaceholder": "Ex : 1234-567",
+        "postalAdjust": "Code postal (ajuster)"
+      },
+      "mapPrompt": "Tapez une adresse pour voir la carte",
+      "mapUnavailable": "⚠ Carte indisponible — token Mapbox à configurer"
+    },
+    "step3": {
+      "eyebrow": "Étape 4 sur 8 · Caractéristiques",
+      "title": "Décrivez le bien",
+      "subtitle": "Type, surface, pièces, performance énergétique. Tout est optionnel — vous pourrez compléter plus tard.",
+      "typeSection": {
+        "title": "Type de bien",
+        "subtitle": "Choisissez la nature du bien à publier."
+      },
+      "surfaceSection": {
+        "title": "Surface habitable",
+        "subtitle": "Glissez le slider pour ajuster."
+      },
+      "roomsSection": {
+        "title": "Pièces & année",
+        "subtitle": "Détails sur la composition du bien."
+      },
+      "yearLabel": "Année de construction",
+      "yearPlaceholder": "Ex : 1985",
+      "energySection": {
+        "title": "Performance énergétique",
+        "subtitle": "Classe DPE selon le canton. Visible sur l'annonce."
+      },
+      "energyClassLabel": "Classe {{class}} — {{desc}}",
+      "energyDesc": {
+        "A": "Très performant",
+        "B": "Performant",
+        "C": "Bonne performance",
+        "D": "Performance moyenne",
+        "E": "Énergivore",
+        "F": "Très énergivore",
+        "G": "Passoire thermique"
+      },
+      "featuresSection": {
+        "title": "Équipements & atouts",
+        "subtitle": "Ce qui rendra l'annonce plus attirante. Sélectionnez tout ce qui s'applique."
+      },
+      "feature": {
+        "balcon": "Balcon",
+        "terrasse": "Terrasse",
+        "jardin": "Jardin",
+        "garage": "Garage",
+        "parking": "Place de parc",
+        "cave": "Cave",
+        "ascenseur": "Ascenseur",
+        "piscine": "Piscine",
+        "cheminée": "Cheminée",
+        "clim": "Climatisation",
+        "buanderie": "Buanderie",
+        "vue": "Vue dégagée"
+      }
+    },
+    "txBadge": {
+      "sale": "À vendre",
+      "rent": "À louer"
+    },
+    "perMonth": " / mois",
+    "perMonthShort": "/mois",
+    "country": "Suisse",
+    "photosCount_one": "{{count}} photo",
+    "photosCount_other": "{{count}} photos",
+    "step4": {
+      "eyebrow": "Étape 5 sur 8 · Photos",
+      "title": "Ajoutez les photos du bien",
+      "intro": "Les annonces avec 8 à 12 photos reçoivent <strong>3× plus de demandes</strong>. La première photo sera la couverture sur MEGGA.",
+      "mode": {
+        "pc": "Depuis cet ordinateur",
+        "mobile": "Depuis votre téléphone",
+        "drive": "Depuis un drive"
+      },
+      "dropzone": {
+        "title": "Glissez-déposez vos photos",
+        "titleActive": "Déposez vos photos ici",
+        "browse": "ou <browse>parcourez</browse> vos fichiers",
+        "maxPhotos_one": "Jusqu'à {{count}} photo",
+        "maxPhotos_other": "Jusqu'à {{count}} photos",
+        "maxSize": "Max {{size}} Mo / photo"
+      },
+      "grid": {
+        "empty": "Aucune photo pour l'instant",
+        "count_one": "{{count}} photo",
+        "count_other": "{{count}} photos",
+        "reorderHint": "· glissez pour réordonner",
+        "clearAll": "Tout effacer",
+        "emptyHint": "La grille apparaîtra ici dès que vous aurez ajouté votre première photo."
+      },
+      "cover": "Couverture",
+      "action": {
+        "stage": "Meubler virtuellement",
+        "setCover": "Définir comme couverture"
+      },
+      "quality": {
+        "eyebrow": "MEGGA AI · Qualité",
+        "label": {
+          "none": "Aucune photo",
+          "insufficient": "Insuffisant",
+          "toComplete": "À compléter",
+          "good": "Bon",
+          "excellent": "Excellent"
+        },
+        "message": {
+          "none": "Commencez par ajouter au moins 8 photos.",
+          "insufficient_one": "Seulement {{count}} photo — l'annonce sera moins consultée.",
+          "insufficient_other": "Seulement {{count}} photos — l'annonce sera moins consultée.",
+          "toComplete_one": "{{count}} photo · presque prêt, ajoutez-en encore quelques-unes.",
+          "toComplete_other": "{{count}} photos · presque prêt, ajoutez-en encore quelques-unes.",
+          "good_one": "{{count}} photo · qualité satisfaisante.",
+          "good_other": "{{count}} photos · qualité satisfaisante.",
+          "excellent_one": "{{count}} photo · annonce premium.",
+          "excellent_other": "{{count}} photos · annonce premium."
+        },
+        "suggestion": {
+          "addMore_one": "Ajoutez {{count}} photo pour atteindre le minimum recommandé",
+          "addMore_other": "Ajoutez {{count}} photos pour atteindre le minimum recommandé",
+          "exterior": "Ajoutez au moins une photo extérieure",
+          "plan": "Un plan augmente la confiance des acheteurs",
+          "rooms": "Photographiez chaque pièce principale"
+        }
+      },
+      "phone": {
+        "uniqueCode": "Code unique · 2h",
+        "phase": {
+          "waiting": "En attente",
+          "connected": "Téléphone appairé",
+          "receiving": "Réception en cours…"
+        },
+        "title": "Scannez avec votre téléphone",
+        "intro": "Ouvrez l'appareil photo de votre téléphone et visez le QR code. Une page web s'ouvrira pour transférer vos photos directement dans ce wizard — sans installation.",
+        "step1": "Scannez le code avec votre téléphone",
+        "step2": "Autorisez l'accès aux photos",
+        "step3": "Sélectionnez et envoyez",
+        "simulate": "Simuler l'appairage",
+        "connected": "Connecté"
+      },
+      "drive": {
+        "connecting": "Connexion en cours…",
+        "connect": "Connecter mon compte",
+        "readOnlyNote": "Lecture seule — MEGGA importera une copie. Vos fichiers d'origine restent intacts."
+      }
+    },
+    "step5": {
+      "eyebrow": "Étape 6 sur 8 · Prix & Description",
+      "title": "D'abord le prix.",
+      "intro": "C'est l'élément qui décidera 80 % des visites. Vous pourrez l'ajuster plus tard.",
+      "chargesLabel": "+ Charges mensuelles",
+      "estimation": {
+        "eyebrow": "MEGGA AI · Estimation marché",
+        "range": "Pour un {{label}}, la fourchette habituelle se situe entre <b>{{low}}</b> et <b>{{high}}</b>.",
+        "rangeRent": "Pour un {{label}}, la fourchette habituelle se situe entre <b>{{low}}</b> et <b>{{high}}</b> / mois.",
+        "use": "Utiliser {{amount}}"
+      },
+      "position": {
+        "eyebrow": "Positionnement",
+        "farBelow": "Très en-dessous",
+        "below": "En-dessous",
+        "inRange": "Dans la fourchette",
+        "above": "Au-dessus",
+        "farAbove": "Très au-dessus"
+      },
+      "descTitle": "Puis la description.",
+      "descSubtitle": "Quelques lignes qui donnent envie. Laissez MEGGA AI rédiger un premier jet, ou écrivez à la main.",
+      "ai": {
+        "title": "MEGGA AI rédige pour vous",
+        "hint": "Utilise le type, la surface, les pièces, les équipements et la commune.",
+        "thinking": "Réflexion…",
+        "writing": "Rédaction…",
+        "regenerate": "Régénérer",
+        "generate": "Générer"
+      },
+      "tone": {
+        "neutre": "Neutre",
+        "premium": "Premium",
+        "famille": "Famille",
+        "invest": "Investisseur"
+      },
+      "descPlaceholder": "Écrivez ici la description du bien… ou cliquez sur Générer.",
+      "counter": {
+        "chars_one": "{{count}} caractère",
+        "chars_other": "{{count}} caractères",
+        "beforeMin_one": " · {{count}} avant le minimum",
+        "beforeMin_other": " · {{count}} avant le minimum",
+        "target": " · objectif {{target}}",
+        "ideal": " · longueur idéale ✓"
+      },
+      "writtenByAi": "Rédigé par MEGGA AI",
+      "editHint": "Vous pouvez librement éditer le texte généré."
+    },
+    "step6": {
+      "eyebrow": "Étape 7 sur 8 · Options",
+      "title": "Donnez plus d'impact à votre annonce.",
+      "intro": "Toutes les options sont facultatives. Vous pourrez les activer plus tard depuis la fiche du bien.",
+      "style": {
+        "scandinave": "Scandinave",
+        "modern": "Moderne",
+        "warm": "Chaleureux",
+        "minimal": "Minimaliste",
+        "luxe": "Luxe",
+        "family": "Familial"
+      },
+      "staging": {
+        "before": "Avant — vide",
+        "after": "Après — meublé virtuellement",
+        "dragToCompare": "Glissez pour comparer",
+        "buyerEyebrow": "Pour l'acheteur · immersif",
+        "buyerTitle": "Staging virtuel premium",
+        "buyerDesc": "Sur les pièces vides, l'acheteur peut activer le mobilier virtuel pour se projeter. Affiché sur la fiche publique avec un slider avant/après.",
+        "enableBuyer": "Activer le staging acheteur",
+        "buyerPrice": "{{price}} CHF — facturé une fois à la publication",
+        "provenanceTitle": "Provenance certifiée",
+        "provenanceDesc": "Chaque image générée est signée."
+      },
+      "agent": {
+        "eyebrow": "Pour l'agent · multi-styles",
+        "title": "Staging virtuel agent",
+        "desc": "Générez plusieurs ambiances pour les entretiens et les contre-propositions. Non visible côté acheteur.",
+        "selectedStyles_one": "{{count}} style · {{price}} CHF",
+        "selectedStyles_other": "{{count}} styles · {{price}} CHF"
+      },
+      "pricePerStyle": "{{price}} CHF",
+      "priceChf": "{{price}} CHF",
+      "featured": {
+        "tag": "Visibilité",
+        "title": "Mise en avant 30 jours",
+        "subtitle": "Top des résultats sur MEGGA, mention « En vedette » et notif aux acheteurs proches.",
+        "statViews": "Vues estimées",
+        "statRequests": "Demandes"
+      },
+      "video": {
+        "tag": "Production",
+        "title": "Visite vidéo guidée",
+        "subtitle": "Un opérateur MEGGA filme et monte une visite professionnelle de 90 secondes.",
+        "statDelay": "Délai",
+        "statDelayValue_one": "{{count}} jour",
+        "statDelayValue_other": "{{count}} jours",
+        "statEngagement": "Engagement"
+      },
+      "recap": {
+        "eyebrow": "Options sélectionnées",
+        "empty": "Aucune option pour l'instant — vous publierez votre annonce gratuitement.",
+        "total": "Total des options : {{total}} CHF, facturés à la publication."
+      }
+    },
+    "step7": {
+      "eyebrow": "Étape 8 sur 8 · Publication",
+      "title": "Prêt à mettre en ligne ?",
+      "intro": "Voici à quoi ressemblera votre annonce. Ajustez la dernière étape avant la publication.",
+      "noCoverPhoto": "Pas de photo de couverture",
+      "badge": {
+        "featured": "★ En vedette",
+        "video": "▶ Visite vidéo",
+        "staging": "Staging"
+      },
+      "chip": {
+        "rooms_one": "{{count}} pièce",
+        "rooms_other": "{{count}} pièces",
+        "bedrooms_one": "{{count}} ch.",
+        "bedrooms_other": "{{count}} ch.",
+        "epc": "DPE {{grade}}"
+      },
+      "addressPlaceholder": "Adresse à compléter",
+      "agentLine": "MEGGA · {{canton}} · Présentation par l'agent",
+      "contact": "Contacter",
+      "whenPublish": "Quand publier",
+      "publishNow": {
+        "title": "Publier maintenant",
+        "sub": "L'annonce devient visible dans les 30 secondes."
+      },
+      "schedule": {
+        "title": "Programmer",
+        "sub": "Choisissez la date et l'heure de mise en ligne."
+      },
+      "draft": {
+        "title": "Enregistrer en brouillon",
+        "sub": "Reprenez plus tard. Aucune date publique."
+      },
+      "scheduleDateLabel": "Date et heure (Europe/Zurich)",
+      "visibility": {
+        "eyebrow": "Visibilité",
+        "public": "Public",
+        "network": "Réseau MEGGA",
+        "private": "Privé",
+        "publicDesc": "Visible sur megga.ch et les portails partenaires.",
+        "networkDesc": "Visible uniquement par les agents MEGGA.",
+        "privateDesc": "Visible uniquement via lien privé."
+      },
+      "recap": {
+        "title": "Récapitulatif",
+        "seller": "Vendeur",
+        "mandate": "Mandat",
+        "photos": "Photos",
+        "price": "Prix",
+        "description": "Description",
+        "charsCount_one": "{{count}} caractère",
+        "charsCount_other": "{{count}} caractères"
+      },
+      "mandate": {
+        "exclusive": "Exclusif",
+        "simple": "Simple",
+        "co": "Co-mandat"
+      }
+    },
+    "step8": {
+      "eyebrow": {
+        "now": "Publication confirmée",
+        "schedule": "Programmée",
+        "draft": "Brouillon"
+      },
+      "title": {
+        "now": "Annonce publiée",
+        "schedule": "Publication programmée",
+        "draft": "Brouillon enregistré"
+      },
+      "subtitle": {
+        "now": "Votre bien est désormais en ligne sur MEGGA.",
+        "schedule": "La publication aura lieu le {{date}}.",
+        "scheduleFallbackDate": "à la date choisie",
+        "draft": "Vous pourrez reprendre depuis votre tableau de bord."
+      },
+      "noCover": "Pas de couverture",
+      "noAddress": "Bien sans adresse",
+      "stagedCount_one": "{{count}} stagée",
+      "stagedCount_other": "{{count}} stagées",
+      "viewListing": "Voir l'annonce",
+      "publicUrl": "URL publique",
+      "copy": "Copier",
+      "qrCode": "QR Code",
+      "share": "Partager",
+      "liveActivity": "Activité en direct",
+      "firstSeconds": "Premières secondes en ligne",
+      "stat": {
+        "views": "Vues",
+        "saves": "Sauvegardes",
+        "contactRequests": "Demandes contact"
+      },
+      "next": {
+        "createAnother": {
+          "title": "Créer un autre bien",
+          "subtitle": "Garder l'élan, ajouter un autre mandat."
+        },
+        "seeBuyers": {
+          "title": "Voir vos acheteurs",
+          "subtitle_one": "MEGGA AI a trouvé {{count}} match potentiel.",
+          "subtitle_other": "MEGGA AI a trouvé {{count}} matchs potentiels.",
+          "tag_one": "{{count}} match",
+          "tag_other": "{{count}} matchs"
+        },
+        "backToCrm": {
+          "title": "Retour au CRM",
+          "subtitle": "Tableau de bord et pipeline."
+        }
+      },
+      "confirmationEmail": "Vous recevrez un email de confirmation à <strong>{{email}}</strong>.",
+      "c2paNote": "Toutes les images générées sont signées <strong>C2PA</strong> · provenance vérifiable par l'acheteur."
+    },
+    "shell": {
+      "mandateTitle": "Mandat",
+      "continue": "Continuer",
+      "publishing": "Publication…",
+      "schedulePublish": "Programmer la publication",
+      "saveDraft": "Enregistrer en brouillon",
+      "publish": "Publier sur MEGGA",
+      "publishError": "Échec de la publication : {{message}}",
+      "unknownError": "Erreur inconnue",
+      "recommended": "Recommandé",
+      "choose": "Choisir"
+    },
+    "kyc": {
+      "verified": "KYC vérifié",
+      "pending": "KYC en cours",
+      "none": "KYC à faire",
+      "stale": "KYC à re-screener"
+    },
+    "staging": {
+      "eyebrow": "Staging Studio · {{room}}",
+      "title": "Meubler virtuellement cette pièce",
+      "c2paSigned": "Signé C2PA",
+      "originalEmpty": "Original — vide",
+      "furnished": "Meublé",
+      "seed": "seed {{seed}}",
+      "variant": "Variante {{letter}}",
+      "idleTitle": "Configurez votre génération",
+      "idleBody": "Choisissez un style ou décrivez l'ambiance. Nano Banana 2 produira 4 variantes signées C2PA.",
+      "generatingCount": "Génération · {{count}}/{{total}} variantes",
+      "signingProgress": "Signature C2PA en cours…",
+      "dragToCompare": "Glissez pour comparer",
+      "thumbsEmpty": "Les variantes générées apparaîtront ici.",
+      "roomTypeLabel": "Type de pièce",
+      "roomTypeHint": "Détecté automatiquement",
+      "rooms": {
+        "salon": "Salon",
+        "chambre": "Chambre",
+        "cuisine": "Cuisine",
+        "salleDeBain": "Salle de bain",
+        "bureau": "Bureau",
+        "entree": "Entrée"
+      },
+      "styleLabel": "Style",
+      "styleHintPreset": "6 ambiances Sugar",
+      "styleHintCustom": "Décrivez votre vision",
+      "tabPreset": "Préréglages",
+      "tabCustom": "Personnalisé · prompt libre",
+      "presets": {
+        "scandinave": {
+          "label": "Scandinave"
+        },
+        "moderne": {
+          "label": "Moderne"
+        },
+        "chaleureux": {
+          "label": "Chaleureux"
+        },
+        "minimal": {
+          "label": "Minimaliste"
+        },
+        "luxe": {
+          "label": "Luxe"
+        },
+        "familial": {
+          "label": "Familial"
+        }
+      },
+      "customPlaceholder": "Ex : style chalet vaudois, bois clair brut, lin écru, lumière dorée de fin d'après-midi, plantes vertes minimales…",
+      "quickInspirations": "Inspirations rapides",
+      "quickPrompts": {
+        "0": "Style chalet vaudois bois clair, fin d'après-midi doré",
+        "1": "Loft urbain industriel, béton ciré et noir mat",
+        "2": "Bord du lac Léman, rotin, lin écru, lumière du matin"
+      },
+      "advancedToggle": "Précisions avancées",
+      "densityLabel": "Densité de mobilier",
+      "density": {
+        "leger": "Léger",
+        "moyen": "Moyen",
+        "dense": "Dense"
+      },
+      "budgetLabel": "Gamme",
+      "budget": {
+        "economique": "Économique",
+        "standard": "Standard",
+        "premium": "Premium"
+      },
+      "promptRecap": "{{style}} dans un {{room}}, densité {{density}}, gamme {{budget}}",
+      "promptRecapEmpty": "(décrivez l'ambiance ci-dessus)",
+      "generateCta": "Générer {{count}} variantes",
+      "generatingShort": "Génération…",
+      "signingShort": "Signature C2PA…",
+      "regenerate": "Régénérer",
+      "pickPrompt": "Cochez les variantes à conserver",
+      "addSigned_one": "Ajouter {{count}} variante signée",
+      "addSigned_other": "Ajouter {{count}} variantes signées",
+      "saveFootnote": "Les variantes sélectionnées seront ajoutées comme <strong>variantes signées</strong> de cette photo. L'original reste inchangé."
     }
   }
 }

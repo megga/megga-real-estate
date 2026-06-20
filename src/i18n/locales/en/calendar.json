@@ -1,1 +1,170 @@
-{}
+{
+  "eventType": {
+    "visite": "Viewing",
+    "mandate": "Mandate / Valuation",
+    "notary": "Notary signing",
+    "task": "Task / Follow-up",
+    "publish": "Publication"
+  },
+  "days": [
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat"
+  ],
+  "daysFull": [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ],
+  "months": [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ],
+  "views": {
+    "timelineCount_one": "Timeline · {{count}} event",
+    "timelineCount_other": "Timeline · {{count}} events",
+    "now": "NOW · {{time}}",
+    "dayEmpty": "Free day — block time for your hot buyers.",
+    "heroFirst": "First appointment",
+    "heroInProgress": "IN PROGRESS",
+    "heroInMinutes_one": "IN {{count}} MIN",
+    "heroInMinutes_other": "IN {{count}} MIN",
+    "heroAtTime": "AT {{time}}",
+    "heroLast": "LAST APPOINTMENT",
+    "warmBadge": "Hot · {{pct}}%",
+    "moreEvents_one": "+ {{count}} more",
+    "moreEvents_other": "+ {{count}} more",
+    "todayBadge": "TODAY",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events"
+  },
+  "panel": {
+    "miniWeekdays": [
+      "M",
+      "T",
+      "W",
+      "T",
+      "F",
+      "S",
+      "S"
+    ],
+    "filterByType": "Filter by type",
+    "hotBuyers": "Hot buyers",
+    "cardAriaLabel": "Card {{index}}",
+    "emptyTitle": "Select an event",
+    "emptyHint": "Click an appointment to see details and take action.",
+    "statusDone": "Completed",
+    "statusCancelled": "Cancelled",
+    "linkedProperty": "Linked property",
+    "notes": "Notes",
+    "directions": "Directions",
+    "markDone": "Mark done",
+    "views": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "agenda": "Agenda"
+    }
+  },
+  "edit": {
+    "newEvent": "New event",
+    "typeLabel": "Type",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Event title",
+    "dateLabel": "Date",
+    "startLabel": "Start",
+    "endLabel": "End",
+    "locationLabel": "Location",
+    "locationPlaceholder": "Address",
+    "contactLabel": "Contact",
+    "namePlaceholder": "Name",
+    "rolePlaceholder": "Role",
+    "phonePlaceholder": "Phone",
+    "propertyLabel": "Property",
+    "designationPlaceholder": "Designation",
+    "areaPlaceholder": "m²",
+    "pricePlaceholder": "Price CHF",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Internal notes",
+    "save": "Save"
+  },
+  "page": {
+    "eyebrow": "Calendar",
+    "newEvent": "New event",
+    "creating": "Creating…",
+    "fullAgenda": "Full agenda",
+    "weekRange": "Week of {{startDay}} {{startMonth}} – {{endDay}} {{endMonth}}",
+    "selectContactAndProperty": "Select both a contact AND a property to schedule a viewing",
+    "errorUnknown": "Unknown error",
+    "createFailed": "Failed: {{error}}",
+    "created": {
+      "visit": "Viewing scheduled",
+      "meeting": "Appointment scheduled",
+      "reminder": "Follow-up created",
+      "signing": "Signing scheduled",
+      "deadline": "Deadline added",
+      "personal": "Personal event added"
+    }
+  },
+  "createVisit": {
+    "title": "New event",
+    "description": "Schedule a viewing, an appointment or a follow-up",
+    "eventType": {
+      "visit": "Viewing",
+      "meeting": "Appointment",
+      "reminder": "Follow-up",
+      "signing": "Signing",
+      "deadline": "Deadline",
+      "personal": "Personal"
+    },
+    "prefix": {
+      "visit": "Viewing",
+      "meeting": "Appt.",
+      "reminder": "Reminder",
+      "signing": "Signing",
+      "deadline": "Deadline",
+      "personal": ""
+    },
+    "recurrence": {
+      "none": "Never",
+      "daily": "Every day",
+      "weekly": "Every week",
+      "biweekly": "Every 2 weeks",
+      "monthly": "Every month"
+    },
+    "field": {
+      "type": "Type",
+      "title": "Title",
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration",
+      "recurrence": "Recurrence",
+      "contact": "Contact",
+      "property": "Property",
+      "location": "Address",
+      "notes": "Notes"
+    },
+    "locationPlaceholder": "Appointment address",
+    "notesPlaceholder": "Optional notes...",
+    "noContact": "— No contact —",
+    "noProperty": "— No property —"
+  }
+}

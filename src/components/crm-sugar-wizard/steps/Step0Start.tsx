@@ -7,6 +7,7 @@
 // propres leads vendeur (filter status='new').
 
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV2, type WizardData } from '../tokens'
 import { SgGateCard, SgIcon } from '../primitives'
 import { useSellerLeads, type SellerLeadRow } from '@/hooks/useSellerLeads'
@@ -80,6 +81,7 @@ function leadToSubmission(lead: SellerLeadRow): CrmSubmission {
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
 export function Step0Start({ data, set }: StepProps) {
+  const { t } = useTranslation('listings')
   // Filtre status='new' : seules les soumissions encore à traiter (les autres
   // sont déjà converties en mandat ou perdues).
   const { data: leads = [] } = useSellerLeads('new')
@@ -95,18 +97,18 @@ export function Step0Start({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 1 sur 8 · Démarrer</div>
+        }}>{t('wizard.step0.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
         }}>
-          Comment souhaitez-vous créer ce bien&nbsp;?
+          {t('wizard.step0.title')}
         </h1>
         <p style={{
           margin: 0, fontSize: 15, color: SugarV2.inkSoft,
           fontWeight: 500, lineHeight: 1.55,
         }}>
-          Trois manières d'aller vite. Le contenu sera ensuite affiné étape par étape.
+          {t('wizard.step0.subtitle')}
         </p>
       </div>
 
@@ -120,15 +122,15 @@ export function Step0Start({ data, set }: StepProps) {
           <SgGateCard
             recommended
             icon={<SgIcon name="edit" size={26} stroke={SugarV2.black} />}
-            title="Saisir manuellement"
-            sub="Vous remplissez chaque section. Idéal quand vous connaissez le bien et avez les éléments en main."
+            title={t('wizard.step0.manual.title')}
+            sub={t('wizard.step0.manual.sub')}
             onClick={() => set({ source: 'manual', fromSubmissionId: null, ownerContactId: null })} />
         </div>
         <div style={{ display: 'flex' }}>
           <SgGateCard
             icon={<SgIcon name="upload" size={26} stroke={SugarV2.black} />}
-            title="Importer un mandat"
-            sub="PDF de mandat. MEGGA AI extrait les infos pour pré-remplir."
+            title={t('wizard.step0.import.title')}
+            sub={t('wizard.step0.import.sub')}
             onClick={() => set({ source: 'import', fromSubmissionId: null, ownerContactId: null })} />
         </div>
         <div style={{ display: 'flex' }}>
@@ -152,9 +154,9 @@ export function Step0Start({ data, set }: StepProps) {
         </div>
         <div>
           <div style={{ color: SugarV2.ink, fontWeight: 600, marginBottom: 2 }}>
-            Brouillon sauvegardé automatiquement
+            {t('wizard.step0.autosave.title')}
           </div>
-          Vous pouvez fermer le wizard à tout moment, vos données restent.
+          {t('wizard.step0.autosave.note')}
         </div>
       </div>
     </div>
@@ -165,6 +167,7 @@ export function Step0Start({ data, set }: StepProps) {
 function SubmissionsCard({
   subs, data, set,
 }: { subs: CrmSubmission[]; data: WizardData; set: (patch: Partial<WizardData>) => void }) {
+  const { t } = useTranslation('listings')
   const [hover, setHover] = useState<string | null>(null)
 
   if (subs.length === 0) {
@@ -182,10 +185,10 @@ function SubmissionsCard({
           <SgIcon name="inbox" size={26} stroke={SugarV2.muted} />
         </div>
         <div style={{ fontSize: 18, fontWeight: 700, color: SugarV2.muted, letterSpacing: -0.3 }}>
-          Aucune soumission
+          {t('wizard.step0.submissions.emptyTitle')}
         </div>
         <div style={{ fontSize: 13, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.5 }}>
-          Aucun particulier n'a soumis de bien pour le moment.
+          {t('wizard.step0.submissions.emptyBody')}
         </div>
       </div>
     )
@@ -245,13 +248,13 @@ function SubmissionsCard({
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.3, marginBottom: 2 }}>
-            Reprendre une soumission
+            {t('wizard.step0.submissions.title')}
           </div>
           <div style={{
             fontSize: 12.5, fontWeight: 500, lineHeight: 1.45,
             color: isSelected ? SugarV2.onAcc70 : SugarV2.inkSoft,
           }}>
-            {subs.length} particuliers ont soumis leur bien. Sélectionnez-en un pour pré-remplir.
+            {t('wizard.step0.submissions.subtitle', { count: subs.length })}
           </div>
         </div>
       </div>
@@ -265,7 +268,7 @@ function SubmissionsCard({
           // toujours rempli côté adapter leadToSubmission().
           const name = sub.contactDraft
             ? `${sub.contactDraft.firstName} ${sub.contactDraft.lastName}`
-            : 'Vendeur inconnu'
+            : t('wizard.step0.submissions.unknownVendor')
           const initials = name.split(' ').filter(Boolean).map(p => p[0]).join('').substring(0, 2).toUpperCase()
 
           return (

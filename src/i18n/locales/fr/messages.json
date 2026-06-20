@@ -9,6 +9,486 @@
     "send": "Envoyer"
   },
   "empty_state": "Sélectionnez une conversation",
-  "filter": { "all": "Tous", "unread": "Non lus", "buyers": "Acheteurs", "sellers": "Vendeurs" },
-  "search_placeholder": "Rechercher..."
+  "filter": {
+    "all": "Tous",
+    "unread": "Non lus",
+    "buyers": "Acheteurs",
+    "sellers": "Vendeurs"
+  },
+  "search_placeholder": "Rechercher...",
+  "chat": {
+    "title": "Chat",
+    "unreadCount_one": "{{count}} non lu",
+    "unreadCount_other": "{{count}} non lus",
+    "searchAriaLabel": "Rechercher une conversation",
+    "aiAssistantTagline": "Votre assistant intelligent",
+    "noConversations": "Aucune conversation.",
+    "conversationWith": "Conversation avec {{name}}",
+    "archive": "Archiver",
+    "unarchive": "Désarchiver",
+    "compactDate": {
+      "now": "maintenant",
+      "minutes": "{{count}}min",
+      "hours": "{{count}}h",
+      "days": "{{count}}j",
+      "weeks": "{{count}}sem",
+      "months": "{{count}}mo"
+    },
+    "showProfile": "Afficher le profil",
+    "removePin": "Retirer l'épingle",
+    "noMessagesYet": "Aucun message pour l'instant",
+    "sendToStart": "Envoyez un message pour démarrer la conversation",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "cancelReply": "Annuler la réponse",
+    "replyToPlaceholder": "Répondre à {{name}}...",
+    "messageToPlaceholder": "Message à {{name}}...",
+    "contactType": {
+      "buyer": "Acheteur",
+      "seller": "Vendeur"
+    },
+    "score": {
+      "hot": "Hot",
+      "warm": "Warm",
+      "cold": "Cold"
+    },
+    "menu": {
+      "reply": "Répondre",
+      "copyText": "Copier le texte",
+      "pin": "Épingler",
+      "unpin": "Désépingler",
+      "transferToAi": "Transférer à MEGGA AI"
+    },
+    "matchStatus": {
+      "interested": "Intéressé",
+      "visit": "Visite",
+      "sent": "Envoyé"
+    },
+    "propertyStatus": {
+      "active": "Actif",
+      "reserved": "Réservé",
+      "sold": "Vendu",
+      "draft": "Brouillon"
+    },
+    "transferToAiPrompt": "Analyse ce message de {{name}} : \"{{message}}\"",
+    "panel": {
+      "profile": "Profil",
+      "closeProfile": "Fermer le profil",
+      "seriousnessScore": "Score sérieux",
+      "scoreOutOf": "{{score}}/100",
+      "aiEstimate": "estimation IA",
+      "contact": "Contact",
+      "phone": "Téléphone",
+      "email": "Email",
+      "pipeline": "Pipeline",
+      "noActiveDeal": "Aucun deal actif",
+      "lastInteraction": "Dernière interaction",
+      "budget": "Budget",
+      "budgetAnnounced": "Annoncé",
+      "budgetEstimatedAi": "Estimé IA",
+      "tags": "Tags",
+      "addTag": "+ Ajouter",
+      "removeTag": "Retirer le tag {{tag}}",
+      "noTag": "Aucun tag",
+      "newTagPlaceholder": "Nouveau tag...",
+      "addTagAriaLabel": "Ajouter un tag",
+      "addTagConfirm": "OK",
+      "notes": "Notes",
+      "saving": "Sauvegarde...",
+      "notesPlaceholder": "Notes sur ce contact...",
+      "nextAction": "Prochaine action",
+      "nextActionHigh": "Proposer une visite — ce contact est très engagé",
+      "nextActionMedium": "Envoyer des biens similaires pour maintenir l'intérêt",
+      "nextActionLow": "Relancer avec un nouveau bien ou une baisse de prix",
+      "recentActivity": "Activité récente",
+      "you": "Vous",
+      "noActivity": "Aucune activité",
+      "matching": "Matching",
+      "compatibleProperties_one": "{{count}} bien compatible",
+      "compatibleProperties_other": "{{count}} biens compatibles",
+      "bestMatch": "Meilleur : {{score}}% — {{title}}",
+      "propertyFallback": "Bien",
+      "sentProperties": "Biens envoyés",
+      "moreCount_one": "+{{count}} autre",
+      "moreCount_other": "+{{count}} autres",
+      "askAi": "Demander à MEGGA AI",
+      "askAiPrompt": "Résume-moi le client {{name}}",
+      "viewFullProfile": "Voir le profil complet",
+      "linkedProperty": "Bien lié",
+      "propertySummary": "{{price}} · {{rooms}}p · {{surface}} m²",
+      "roomsCount_one": "{{count}} pièce",
+      "roomsCount_other": "{{count}} pièces",
+      "bedroomsCount_one": "{{count}} ch.",
+      "bedroomsCount_other": "{{count}} ch.",
+      "floorLabel": "{{floor}}e étage",
+      "viewFullListing": "Voir la fiche complète",
+      "linkedToConversation": "Bien lié à cette conversation",
+      "conversation": "Conversation",
+      "messagesCount": "Messages",
+      "firstMessage": "Premier message",
+      "lastMessage": "Dernier message"
+    },
+    "input": {
+      "placeholder": "Demandez-moi quelque chose...",
+      "clearContext": "Retirer le contexte",
+      "cancelRecording": "Annuler l'enregistrement",
+      "stopAndTranscribe": "Arrêter et transcrire",
+      "removeFile": "Retirer le fichier",
+      "fileTooLarge": "Fichier trop volumineux (max {{size}} Mo)",
+      "askAbout": "Demandez à propos de {{name}}...",
+      "messageAriaLabel": "Message",
+      "attachFile": "Joindre un fichier",
+      "hintCommand": "/commande",
+      "hintContact": "@contact",
+      "hintProperty": "#bien",
+      "voiceMemo": "Mémo vocal",
+      "micError": "Impossible d'accéder au microphone. Vérifiez les permissions."
+    },
+    "slash": {
+      "summary": {
+        "desc": "Résumer un client ou le portefeuille",
+        "insert": "Résume-moi "
+      },
+      "followUp": {
+        "desc": "Rédiger une relance email/message",
+        "insert": "Rédige une relance pour "
+      },
+      "matching": {
+        "desc": "Trouver des biens pour un client",
+        "insert": "Quels biens proposer à "
+      },
+      "analysis": {
+        "desc": "Analyser le marché ou un bien",
+        "insert": "Analyse le marché pour "
+      },
+      "mandate": {
+        "desc": "Préparer un mandat de vente",
+        "insert": "Prépare un mandat pour "
+      },
+      "actions": {
+        "desc": "Voir les prochaines actions",
+        "insert": "Quelles sont les prochaines actions ?"
+      },
+      "kyc": {
+        "desc": "Vérifier la conformité d'un client",
+        "insert": "Vérifie le dossier KYC de "
+      },
+      "offer": {
+        "desc": "Analyser ou rédiger une offre",
+        "insert": "Analyse l'offre pour "
+      }
+    }
+  },
+  "copilot": {
+    "aiEstimate": "estimation IA",
+    "negotiation": {
+      "title": "Copilote de négociation",
+      "aiBadge": "Suggestion IA",
+      "askingPrice": "Prix demandé",
+      "gap": "Écart",
+      "offerReceived": "Offre reçue",
+      "recommendedStrategy": "Stratégie recommandée",
+      "buyerInterest": "Intérêt acheteur :",
+      "daysOnMarket_one": "{{count}} jour en vente",
+      "daysOnMarket_other": "{{count}} jours en vente",
+      "visits_one": "{{count}} visite",
+      "visits_other": "{{count}} visites",
+      "disclaimer": "Aide à la décision — ne constitue pas une recommandation formelle.",
+      "interest": {
+        "veryHigh": "Très élevé",
+        "high": "Élevé",
+        "medium": "Moyen",
+        "low": "Faible"
+      },
+      "tiers": {
+        "symbolic": {
+          "strategy": "Accepter ou contre-offre symbolique",
+          "counterOffer": "Contre-offre à -1% du prix demandé",
+          "reasoning": "L'écart est faible ({{gap}}%). Avec {{visits}} visites et {{days}} jours en vente, le marché valide le prix. Risque de perdre l'acheteur en négociant trop."
+        },
+        "moderate": {
+          "strategy": "Contre-offre modérée",
+          "counterOffer": "Contre-offre au point médian (-{{mid}}%)",
+          "reasoning": "L'écart de {{gap}}% est dans la norme de négociation. Proposer un compromis au milieu pour maintenir l'intérêt tout en protégeant la valeur."
+        },
+        "hold": {
+          "strategy": "Maintenir le prix avec arguments",
+          "counterOffer": "Contre-offre à -3% maximum",
+          "reasoningLong": "L'écart de {{gap}}% est significatif. Cependant, le bien est en vente depuis longtemps — considérer un ajustement.",
+          "reasoningMarket": "L'écart de {{gap}}% est significatif. Le prix est justifié par le marché — présenter les comparables."
+        },
+        "tooLow": {
+          "strategy": "Offre trop basse — refuser poliment",
+          "counterOffer": "Maintenir le prix demandé",
+          "reasoningInterest": "L'écart de {{gap}}% est trop important. Le bien a suscité de l'intérêt ({{visits}} visites) — d'autres acheteurs sont possibles.",
+          "reasoningBudget": "L'écart de {{gap}}% est trop important. Suggérer à l'acheteur de revoir son budget."
+        }
+      }
+    },
+    "objections": {
+      "title": "Analyse des objections",
+      "aiBadge": "Analyse IA",
+      "basedOnVisits_one": "Basée sur les retours de {{count}} visite.",
+      "basedOnVisits_other": "Basée sur les retours de {{count}} visites.",
+      "recurring": "Objections récurrentes",
+      "weaknesses": "Points faibles identifiés",
+      "adjustments": "Suggestions d'ajustement",
+      "impact": {
+        "high": "Impact fort",
+        "medium": "Impact modéré",
+        "low": "Impact faible"
+      },
+      "disclaimer": "Analyse IA des retours de visite — données anonymisées."
+    },
+    "seller": {
+      "title": "Seller intelligence",
+      "tensionLevel": "Niveau de tension",
+      "priceReductionProbability": "Probabilité de baisse de prix",
+      "dissatisfactionRisk": "Risque d'insatisfaction",
+      "urgencyLabel": "Urgence",
+      "daysOnMarket": "Jours en vente",
+      "totalVisits": "Visites totales",
+      "tension": {
+        "calm": "Calme",
+        "moderate": "Modéré",
+        "tense": "Tendu",
+        "critical": "Critique"
+      },
+      "urgency": {
+        "notUrgent": "Pas pressé",
+        "moderate": "Modéré",
+        "urgent": "Urgent",
+        "veryUrgent": "Très urgent"
+      }
+    },
+    "buyer": {
+      "title": "Buyer intelligence",
+      "seriousnessLevel": "Niveau de sérieux",
+      "purchaseProbability": "Probabilité d'achat",
+      "timingLabel": "Timing",
+      "engagementLabel": "Engagement",
+      "budgetAnnounced": "Budget annoncé",
+      "budgetEstimated": "Estimé · estimation IA",
+      "timing": {
+        "immediate": "Immédiat",
+        "months1to3": "1-3 mois",
+        "months3to6": "3-6 mois",
+        "months6to12": "6-12 mois",
+        "longTerm": "Long terme"
+      },
+      "engagement": {
+        "veryHigh": "Très élevé",
+        "high": "Élevé",
+        "medium": "Moyen",
+        "low": "Faible",
+        "dormant": "Dormant"
+      }
+    }
+  },
+  "julien": {
+    "greeting": {
+      "lateNight": "Encore là, {{name}} ?",
+      "morning": "Bon matin, {{name}}",
+      "midday": "Bon midi, {{name}}",
+      "afternoon": "Bon après-midi, {{name}}",
+      "evening": "Bonsoir, {{name}}",
+      "night": "Bonne soirée, {{name}}"
+    },
+    "subgreeting": {
+      "earlyMorning": "Comment démarrons-nous la journée ?",
+      "morning": "Que puis-je préparer pour vous ce matin ?",
+      "midday": "Une pause ? Je peux résumer la matinée.",
+      "afternoon": "On attaque l'après-midi ?",
+      "endOfDay": "Bouclons la journée ensemble.",
+      "weekend": "On prépare la semaine prochaine ?",
+      "default": "Comment puis-je vous aider ?"
+    },
+    "promptPlaceholder": "Comment puis-je vous aider ?",
+    "error": {
+      "failed": "Désolé, je n'ai pas pu traiter ta demande. Réessaie."
+    },
+    "actions": {
+      "copy": "Copier",
+      "copied": "Copié !"
+    },
+    "email": {
+      "draftTitle": "Brouillon email",
+      "notSent": "Non envoyé",
+      "copyEmail": "Copier l'email",
+      "copied": "Copié",
+      "toLabel": "À",
+      "subjectLabel": "Objet",
+      "noSubject": "(sans objet)"
+    },
+    "suggestions": {
+      "pipeline": {
+        "analyze": {
+          "label": "Analyse de mon pipeline",
+          "prompt": "Analyse mon pipeline actuel : où sont les blocages, quelles opportunités prioriser ?"
+        },
+        "followUp": {
+          "label": "Relance dossiers en pause",
+          "prompt": "Rédige un message de relance pour mes dossiers stagnants depuis plus de 14 jours."
+        },
+        "nextActions": {
+          "label": "Prochaines actions",
+          "prompt": "Quelles sont les 3 prochaines actions concrètes à mener sur mon pipeline ?"
+        }
+      },
+      "biens": {
+        "premiumListing": {
+          "label": "Annonce premium",
+          "prompt": "Rédige une annonce premium pour le bien que je viens de consulter, ton MEGGA, mise en avant des points forts."
+        },
+        "comparableEstimate": {
+          "label": "Estimation comparable",
+          "prompt": "Donne-moi une estimation comparable rapide pour ce bien à partir des transactions récentes du quartier."
+        },
+        "ownerPitch": {
+          "label": "Pitch propriétaire",
+          "prompt": "Prépare un pitch pour convaincre le propriétaire de signer en mandat exclusif."
+        }
+      },
+      "contacts": {
+        "checkInEmail": {
+          "label": "Email de prise de nouvelles",
+          "prompt": "Rédige un email de prise de nouvelles chaleureux pour un contact que je n'ai pas relancé depuis longtemps."
+        },
+        "prepareCall": {
+          "label": "Préparer un appel",
+          "prompt": "Prépare-moi 5 questions ouvertes pour qualifier un nouveau contact acheteur."
+        },
+        "followUpPlan": {
+          "label": "Plan de relance",
+          "prompt": "Construis un plan de relance progressif sur 3 semaines pour mes contacts inactifs."
+        }
+      },
+      "matching": {
+        "email": {
+          "label": "Email de matching",
+          "prompt": "Rédige un email présentant un bien matché à un acheteur, avec arguments personnalisés."
+        },
+        "refineCriteria": {
+          "label": "Affiner les critères",
+          "prompt": "Aide-moi à affiner les critères de recherche d'un acheteur pour améliorer le matching."
+        },
+        "relevance": {
+          "label": "Pertinence des matchs",
+          "prompt": "Analyse la pertinence des correspondances actuelles : quels sont les vrais top-matchs ?"
+        }
+      },
+      "calendar": {
+        "prepareToday": {
+          "label": "Préparer mes RDV du jour",
+          "prompt": "Liste mes rendez-vous du jour avec un brief synthétique pour chacun."
+        },
+        "confirmVisits": {
+          "label": "Confirmer les visites",
+          "prompt": "Rédige un SMS court de confirmation pour mes visites planifiées."
+        },
+        "visitRecap": {
+          "label": "Récap après visite",
+          "prompt": "Modèle de récap à envoyer après une visite de bien."
+        }
+      },
+      "docs": {
+        "checklist": {
+          "label": "Checklist compromis",
+          "prompt": "Donne-moi la checklist complète des points à vérifier avant signature d'un compromis à Genève."
+        },
+        "clause": {
+          "label": "Clause spécifique",
+          "prompt": "Rédige une clause de condition suspensive pour un financement bancaire."
+        },
+        "mandateTemplate": {
+          "label": "Modèle de mandat",
+          "prompt": "Génère un modèle de mandat de vente exclusif conforme au droit suisse."
+        }
+      },
+      "today": {
+        "summary": {
+          "label": "Résume mes dossiers",
+          "prompt": "Donne-moi un résumé de mes dossiers actifs en ce moment."
+        },
+        "priorities": {
+          "label": "Priorités du jour",
+          "prompt": "Quelles sont mes 3 priorités absolues aujourd'hui d'après mon planning ?"
+        },
+        "weekOutlook": {
+          "label": "Météo de la semaine",
+          "prompt": "Synthèse de la semaine : ce qui avance, ce qui bloque, ce qui manque."
+        }
+      },
+      "earlyMorning": {
+        "appointments": {
+          "label": "Mes RDV du jour",
+          "prompt": "Résume mes rendez-vous du jour avec un brief pour chacun."
+        },
+        "priorities": {
+          "label": "Priorités matinales",
+          "prompt": "Quelles sont mes 3 priorités à attaquer ce matin ?"
+        },
+        "emails": {
+          "label": "Emails à envoyer",
+          "prompt": "Quels emails dois-je envoyer en priorité ce matin ?"
+        }
+      },
+      "midday": {
+        "progress": {
+          "label": "Avancement matinal",
+          "prompt": "Fais le point sur ce qui a avancé ce matin sur mes dossiers."
+        },
+        "visitFollowUp": {
+          "label": "Email de suivi visite",
+          "prompt": "Rédige un email professionnel de suivi après une visite pour un appartement à Genève."
+        },
+        "genevaMarket": {
+          "label": "Marché genevois",
+          "prompt": "Analyse rapide du marché immobilier genevois : tendances, délais, segments actifs."
+        }
+      },
+      "afternoon": {
+        "visitFollowUp": {
+          "label": "Suivi visite",
+          "prompt": "Rédige un email professionnel de suivi après une visite pour un appartement à Genève."
+        },
+        "summary": {
+          "label": "Résume mes dossiers",
+          "prompt": "Donne-moi un résumé de mes dossiers actifs en ce moment."
+        },
+        "remaining": {
+          "label": "Reste à faire aujourd'hui",
+          "prompt": "Que me reste-t-il à boucler aujourd'hui ?"
+        }
+      },
+      "friday": {
+        "weekReview": {
+          "label": "Bilan de la semaine",
+          "prompt": "Bilan de ma semaine : succès, points d'attention, dossiers à reprendre lundi."
+        },
+        "prepareMonday": {
+          "label": "Préparer lundi",
+          "prompt": "Liste les actions clés pour bien démarrer lundi matin."
+        },
+        "endOfWeekEmails": {
+          "label": "Emails de fin de semaine",
+          "prompt": "Rédige un email de fin de semaine à envoyer à mes clients actifs."
+        }
+      },
+      "evening": {
+        "dayReview": {
+          "label": "Bilan du jour",
+          "prompt": "Fais le bilan de ma journée : ce qui a avancé, ce qui reste."
+        },
+        "prepareTomorrow": {
+          "label": "Préparer demain",
+          "prompt": "Quelles sont les 3 actions prioritaires à préparer pour demain ?"
+        },
+        "endOfDayEmail": {
+          "label": "Email de fin de journée",
+          "prompt": "Rédige un email de fin de journée à un client en attente d'un retour."
+        }
+      }
+    }
+  }
 }

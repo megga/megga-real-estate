@@ -14,6 +14,7 @@
 
 import { useState, useMemo } from 'react'
 import type { ReactNode } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycBlackPill, KycGhostPill } from '../primitives'
@@ -51,6 +52,7 @@ interface ModeCardProps {
 }
 
 function MlkModeCard({ selected, title, sub, duration, steps, recommended, onClick }: ModeCardProps) {
+  const { t } = useTranslation('kyc')
   return (
     <button
       type="button"
@@ -91,7 +93,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
             textTransform: 'uppercase',
           }}
         >
-          Conseillé
+          {t('wizard.magic.recommended')}
         </span>
       )}
       <div>
@@ -401,6 +403,8 @@ function FormView({
   onClose,
   onSubmit,
 }: FormViewProps) {
+  const { t } = useTranslation('kyc')
+  const firstName = contactName.split(' ')[0]
   return (
     <>
       {/* Header */}
@@ -424,7 +428,7 @@ function FormView({
               marginBottom: 6,
             }}
           >
-            Lien magique · KYC
+            {t('wizard.magic.eyebrow')}
           </div>
           <h2
             style={{
@@ -436,7 +440,7 @@ function FormView({
               lineHeight: 1.15,
             }}
           >
-            Demander ses pièces à {contactName.split(' ')[0]}
+            {t('wizard.magic.title', { firstName })}
           </h2>
           {contactSummary && (
             <div style={{ marginTop: 8, fontSize: 13, color: SugarV3.muted, fontWeight: 500 }}>
@@ -447,7 +451,7 @@ function FormView({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('wizard.magic.close')}
           style={{
             width: 38,
             height: 38,
@@ -478,7 +482,7 @@ function FormView({
             marginBottom: 10,
           }}
         >
-          Mode de collecte
+          {t('wizard.magic.modeLabel')}
         </div>
         <div
           style={{
@@ -490,18 +494,18 @@ function FormView({
         >
           <MlkModeCard
             selected={mode === 'libre'}
-            title="Libre"
-            sub="Le client dépose ses pièces et c'est tout. Vous vérifiez vous-même côté CRM."
-            duration="3 min"
-            steps="2 écrans"
+            title={t('wizard.magic.modeLibre.title')}
+            sub={t('wizard.magic.modeLibre.sub')}
+            duration={t('wizard.magic.modeLibre.duration')}
+            steps={t('wizard.magic.modeLibre.steps')}
             onClick={() => setMode('libre')}
           />
           <MlkModeCard
             selected={mode === 'verifiee'}
-            title="Vérifiée"
-            sub="Le client confirme les données détectées sur ses pièces avant envoi."
-            duration="5 min"
-            steps="3 écrans"
+            title={t('wizard.magic.modeVerifiee.title')}
+            sub={t('wizard.magic.modeVerifiee.sub')}
+            duration={t('wizard.magic.modeVerifiee.duration')}
+            steps={t('wizard.magic.modeVerifiee.steps')}
             recommended
             onClick={() => setMode('verifiee')}
           />
@@ -518,21 +522,21 @@ function FormView({
             marginBottom: 10,
           }}
         >
-          Envoyer par
+          {t('wizard.magic.channelLabel')}
         </div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
           <MlkChannelChip
             icon="mail"
-            label="Email"
-            sub={contactEmail ?? 'Aucun email renseigné'}
+            label={t('wizard.magic.channelEmail')}
+            sub={contactEmail ?? t('wizard.magic.noEmail')}
             selected={channels.includes('email')}
             disabled={!contactEmail}
             onClick={() => toggleChannel('email')}
           />
           <MlkChannelChip
             icon="phone"
-            label="SMS"
-            sub={contactPhone ?? 'Aucun téléphone renseigné'}
+            label={t('wizard.magic.channelSms')}
+            sub={contactPhone ?? t('wizard.magic.noPhone')}
             selected={channels.includes('sms')}
             disabled={!contactPhone}
             onClick={() => toggleChannel('sms')}
@@ -550,14 +554,14 @@ function FormView({
             marginBottom: 10,
           }}
         >
-          Message personnalisé · optionnel
+          {t('wizard.magic.messageLabel')}
         </div>
         <textarea
           value={customMessage}
           onChange={(e) => setCustomMessage(e.target.value.slice(0, 500))}
           placeholder={
             defaultMessagePlaceholder ??
-            `Bonjour ${contactName.split(' ')[0]},\nComme convenu, voici le lien pour finaliser votre dossier KYC. À très vite.`
+            t('wizard.magic.messagePlaceholder', { firstName })
           }
           rows={3}
           style={{
@@ -600,9 +604,10 @@ function FormView({
               lineHeight: 1.5,
             }}
           >
-            Le lien expire dans{' '}
-            <strong style={{ color: SugarV3.ink, fontWeight: 700 }}>7 jours</strong>. L&apos;envoi
-            est consigné dans la piste d&apos;audit LBA art. 7.
+            <Trans
+              i18nKey="kyc:wizard.magic.expiryNote"
+              components={{ 1: <strong style={{ color: SugarV3.ink, fontWeight: 700 }} /> }}
+            />
           </span>
         </div>
 
@@ -635,7 +640,7 @@ function FormView({
           gap: 16,
         }}
       >
-        <KycGhostPill onClick={onClose}>Annuler</KycGhostPill>
+        <KycGhostPill onClick={onClose}>{t('wizard.magic.cancel')}</KycGhostPill>
         <KycBlackPill
           size="md"
           onClick={onSubmit}
@@ -643,8 +648,8 @@ function FormView({
           icon={<SgIcon name="arrowR" size={16} stroke="#fff" sw={2} />}
         >
           {isPending
-            ? 'Envoi en cours…'
-            : `Envoyer le lien à ${contactName.split(' ')[0]}`}
+            ? t('wizard.magic.sending')
+            : t('wizard.magic.sendLink', { firstName })}
         </KycBlackPill>
       </div>
     </>
@@ -662,6 +667,8 @@ interface SuccessViewProps {
 }
 
 function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessViewProps) {
+  const { t } = useTranslation('kyc')
+  const firstName = contactName.split(' ')[0]
   return (
     <>
       <div style={{ padding: '40px 40px 24px', textAlign: 'center' }}>
@@ -688,7 +695,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
             marginBottom: 6,
           }}
         >
-          Lien magique créé
+          {t('wizard.magic.success.eyebrow')}
         </div>
         <h2
           style={{
@@ -700,7 +707,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
             lineHeight: 1.15,
           }}
         >
-          Lien envoyé à {contactName.split(' ')[0]}
+          {t('wizard.magic.success.title', { firstName })}
         </h2>
         <p
           style={{
@@ -714,8 +721,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
             marginRight: 'auto',
           }}
         >
-          {contactName.split(' ')[0]} recevra le lien dans quelques secondes. Vous serez
-          notifié dès qu&apos;il dépose ses pièces ou si rien n&apos;arrive sous 3 jours.
+          {t('wizard.magic.success.body', { firstName })}
         </p>
       </div>
 
@@ -741,7 +747,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
                 marginBottom: 4,
               }}
             >
-              URL sécurisée · expire dans 7 jours
+              {t('wizard.magic.success.urlLabel')}
             </div>
             <div
               style={{
@@ -768,7 +774,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
               />
             }
           >
-            {copyState === 'copied' ? 'Copié' : 'Copier'}
+            {copyState === 'copied' ? t('wizard.magic.success.copied') : t('wizard.magic.success.copy')}
           </KycGhostPill>
         </div>
       </div>
@@ -784,7 +790,7 @@ function SuccessView({ link, contactName, copyState, onCopy, onClose }: SuccessV
         }}
       >
         <KycBlackPill size="md" onClick={onClose}>
-          Fermer
+          {t('wizard.magic.success.close')}
         </KycBlackPill>
       </div>
     </>

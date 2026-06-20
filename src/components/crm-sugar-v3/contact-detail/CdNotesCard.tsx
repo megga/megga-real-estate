@@ -3,6 +3,7 @@
 // Monté avec `key={contact.id}` côté page → l'état se réinitialise par contact.
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycBlackPill, KycGhostPill, KycSection } from '../primitives'
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function CdNotesCard({ contactId, notes }: Props) {
+  const { t } = useTranslation('contacts')
   const [savedNotes, setSavedNotes] = useState<string | null>(notes)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(notes ?? '')
@@ -33,8 +35,8 @@ export function CdNotesCard({ contactId, notes }: Props) {
 
   return (
     <KycSection
-      title="Notes internes"
-      eyebrow="Privé · équipe MEGGA"
+      title={t('cd.notesTitle')}
+      eyebrow={t('cd.notesEyebrow')}
       action={
         editing ? null : (
           <KycGhostPill
@@ -42,7 +44,7 @@ export function CdNotesCard({ contactId, notes }: Props) {
             onClick={startEdit}
             icon={<SgIcon name="pencil" size={13} stroke={SugarV3.inkSoft} />}
           >
-            Modifier
+            {t('cd.edit')}
           </KycGhostPill>
         )
       }
@@ -53,7 +55,7 @@ export function CdNotesCard({ contactId, notes }: Props) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             autoFocus
-            placeholder="Note interne — visible par l'équipe MEGGA uniquement."
+            placeholder={t('cd.notesPlaceholder')}
             style={{
               width: '100%',
               minHeight: 104,
@@ -74,10 +76,10 @@ export function CdNotesCard({ contactId, notes }: Props) {
           />
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <KycGhostPill size="sm" onClick={cancel} disabled={isPending}>
-              Annuler
+              {t('cd.cancel')}
             </KycGhostPill>
             <KycBlackPill size="md" onClick={save} disabled={isPending}>
-              {isPending ? 'Enregistrement…' : 'Enregistrer'}
+              {isPending ? t('cd.saving') : t('cd.save')}
             </KycBlackPill>
           </div>
         </div>
@@ -95,7 +97,7 @@ export function CdNotesCard({ contactId, notes }: Props) {
             whiteSpace: 'pre-wrap',
           }}
         >
-          {savedNotes || 'Aucune note pour ce contact.'}
+          {savedNotes || t('cd.notesEmpty')}
         </div>
       )}
     </KycSection>

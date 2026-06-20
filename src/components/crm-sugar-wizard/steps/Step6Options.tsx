@@ -2,21 +2,23 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step6.jsx).
 
 import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV2, shade, sgOn, sgAcc, type WizardData } from '../tokens'
 import { SgSwitch } from '../primitives'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
-const STYLES: { v: string; label: string; tone: string; accent: string }[] = [
-  { v: 'scandinave', label: 'Scandinave',  tone: '#E8E4DD', accent: '#A8B5BF' },
-  { v: 'moderne',    label: 'Moderne',     tone: '#D4D8DC', accent: '#3C4148' },
-  { v: 'chaleureux', label: 'Chaleureux',  tone: '#E8D6C2', accent: '#8B6F4E' },
-  { v: 'minimal',    label: 'Minimaliste', tone: '#EFEFEF', accent: '#0B0C0E' },
-  { v: 'luxe',       label: 'Luxe',        tone: '#D9C9A0', accent: '#7A632E' },
-  { v: 'familial',   label: 'Familial',    tone: '#D6E1D8', accent: '#5A7A60' },
+const STYLES: { v: string; labelKey: string; tone: string; accent: string }[] = [
+  { v: 'scandinave', labelKey: 'wizard.step6.style.scandinave', tone: '#E8E4DD', accent: '#A8B5BF' },
+  { v: 'moderne',    labelKey: 'wizard.step6.style.modern',     tone: '#D4D8DC', accent: '#3C4148' },
+  { v: 'chaleureux', labelKey: 'wizard.step6.style.warm',       tone: '#E8D6C2', accent: '#8B6F4E' },
+  { v: 'minimal',    labelKey: 'wizard.step6.style.minimal',    tone: '#EFEFEF', accent: '#0B0C0E' },
+  { v: 'luxe',       labelKey: 'wizard.step6.style.luxe',       tone: '#D9C9A0', accent: '#7A632E' },
+  { v: 'familial',   labelKey: 'wizard.step6.style.family',     tone: '#D6E1D8', accent: '#5A7A60' },
 ]
 
 export function Step6Options({ data, set }: StepProps) {
+  const { t: tr } = useTranslation('listings')
   const opt = data.options
   const setOpt = (patch: Partial<typeof opt>) => set({ options: { ...opt, ...patch } })
 
@@ -46,13 +48,13 @@ export function Step6Options({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 7 sur 8 · Options</div>
+        }}>{tr('wizard.step6.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>Donnez plus d'impact à votre annonce.</h1>
+        }}>{tr('wizard.step6.title')}</h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          Toutes les options sont facultatives. Vous pourrez les activer plus tard depuis la fiche du bien.
+          {tr('wizard.step6.intro')}
         </p>
       </div>
 
@@ -88,7 +90,7 @@ export function Step6Options({ data, set }: StepProps) {
               padding: '5px 11px', borderRadius: 999,
               background: sgAcc(0.92), color: SugarV2.ink,
               fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-            }}>Avant — vide</div>
+            }}>{tr('wizard.step6.staging.before')}</div>
           </div>
 
           <div style={{
@@ -112,7 +114,7 @@ export function Step6Options({ data, set }: StepProps) {
               padding: '5px 11px', borderRadius: 999,
               background: SugarV2.black, color: sgOn(),
               fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-            }}>Après — meublé virtuellement</div>
+            }}>{tr('wizard.step6.staging.after')}</div>
           </div>
 
           <div style={{
@@ -143,21 +145,20 @@ export function Step6Options({ data, set }: StepProps) {
             background: 'rgba(0,0,0,0.65)', color: sgOn(),
             fontSize: 10, fontWeight: 600, letterSpacing: 0.4,
             backdropFilter: 'blur(6px)',
-          }}>Glissez pour comparer</div>
+          }}>{tr('wizard.step6.staging.dragToCompare')}</div>
         </div>
 
         <div style={{ padding: 32, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{
             fontSize: 11, fontWeight: 700, color: SugarV2.muted,
             letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
-          }}>Pour l'acheteur · immersif</div>
+          }}>{tr('wizard.step6.staging.buyerEyebrow')}</div>
           <h3 style={{
             margin: '0 0 12px', fontSize: 24, fontWeight: 700,
             color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2,
-          }}>Staging virtuel premium</h3>
+          }}>{tr('wizard.step6.staging.buyerTitle')}</h3>
           <p style={{ margin: '0 0 24px', fontSize: 14, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-            Sur les pièces vides, l'acheteur peut activer le mobilier virtuel pour se projeter.
-            Affiché sur la fiche publique avec un slider avant/après.
+            {tr('wizard.step6.staging.buyerDesc')}
           </p>
 
           <div style={{
@@ -169,13 +170,13 @@ export function Step6Options({ data, set }: StepProps) {
           }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, marginBottom: 2 }}>
-                Activer le staging acheteur
+                {tr('wizard.step6.staging.enableBuyer')}
               </div>
               <div style={{
                 fontSize: 11.5, fontWeight: 500,
                 color: stagingUserOn ? sgAcc(0.70) : SugarV2.muted,
               }}>
-                49 CHF — facturé une fois à la publication
+                {tr('wizard.step6.staging.buyerPrice', { price: 49 })}
               </div>
             </div>
             <SgSwitch
@@ -201,10 +202,10 @@ export function Step6Options({ data, set }: StepProps) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.1, marginBottom: 2 }}>
-                Provenance certifiée
+                {tr('wizard.step6.staging.provenanceTitle')}
               </div>
               <div style={{ fontSize: 11, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.4 }}>
-                Chaque image générée est signée.
+                {tr('wizard.step6.staging.provenanceDesc')}
               </div>
             </div>
             <span style={{
@@ -225,13 +226,13 @@ export function Step6Options({ data, set }: StepProps) {
             <div style={{
               fontSize: 11, fontWeight: 700, color: SugarV2.muted,
               letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8,
-            }}>Pour l'agent · multi-styles</div>
+            }}>{tr('wizard.step6.agent.eyebrow')}</div>
             <h3 style={{
               margin: '0 0 6px', fontSize: 22, fontWeight: 700,
               color: SugarV2.ink, letterSpacing: -0.4, lineHeight: 1.2,
-            }}>Staging virtuel agent</h3>
+            }}>{tr('wizard.step6.agent.title')}</h3>
             <p style={{ margin: 0, fontSize: 13.5, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55, maxWidth: 540 }}>
-              Générez plusieurs ambiances pour les entretiens et les contre-propositions. Non visible côté acheteur.
+              {tr('wizard.step6.agent.desc')}
             </p>
           </div>
           {stagingAgent.length > 0 && (
@@ -241,7 +242,7 @@ export function Step6Options({ data, set }: StepProps) {
               fontSize: 11.5, fontWeight: 700, letterSpacing: 0.2,
               flexShrink: 0,
             }}>
-              {stagingAgent.length} style{stagingAgent.length > 1 ? 's' : ''} · {stagingAgent.length * 29} CHF
+              {tr('wizard.step6.agent.selectedStyles', { count: stagingAgent.length, price: stagingAgent.length * 29 })}
             </div>
           )}
         </div>
@@ -278,10 +279,10 @@ export function Step6Options({ data, set }: StepProps) {
                 }}>
                   <div style={{ textAlign: 'left' }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
-                      {s.label}
+                      {tr(s.labelKey)}
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: SugarV2.muted, marginTop: 1 }}>
-                      29 CHF
+                      {tr('wizard.step6.pricePerStyle', { price: 29 })}
                     </div>
                   </div>
                   <div style={{
@@ -313,15 +314,15 @@ export function Step6Options({ data, set }: StepProps) {
               <path d="M13 2 8 9h2"/>
             </svg>
           }
-          tag="Visibilité"
-          title="Mise en avant 30 jours"
-          subtitle="Top des résultats sur MEGGA, mention « En vedette » et notif aux acheteurs proches."
-          price="199 CHF"
+          tag={tr('wizard.step6.featured.tag')}
+          title={tr('wizard.step6.featured.title')}
+          subtitle={tr('wizard.step6.featured.subtitle')}
+          price={tr('wizard.step6.priceChf', { price: 199 })}
           checked={!!opt.featured}
           onToggle={() => setOpt({ featured: !opt.featured })}
           stats={[
-            { label: 'Vues estimées', value: '×3,2' },
-            { label: 'Demandes',       value: '×2,4' },
+            { label: tr('wizard.step6.featured.statViews'), value: '×3,2' },
+            { label: tr('wizard.step6.featured.statRequests'), value: '×2,4' },
           ]}
         />
 
@@ -332,15 +333,15 @@ export function Step6Options({ data, set }: StepProps) {
               <path d="m17 10 4-2v8l-4-2"/>
             </svg>
           }
-          tag="Production"
-          title="Visite vidéo guidée"
-          subtitle="Un opérateur MEGGA filme et monte une visite professionnelle de 90 secondes."
-          price="89 CHF"
+          tag={tr('wizard.step6.video.tag')}
+          title={tr('wizard.step6.video.title')}
+          subtitle={tr('wizard.step6.video.subtitle')}
+          price={tr('wizard.step6.priceChf', { price: 89 })}
           checked={!!opt.videoTour}
           onToggle={() => setOpt({ videoTour: !opt.videoTour })}
           stats={[
-            { label: 'Délai',      value: '7 jours' },
-            { label: 'Engagement', value: '+58 %' },
+            { label: tr('wizard.step6.video.statDelay'),     value: tr('wizard.step6.video.statDelayValue', { count: 7 }) },
+            { label: tr('wizard.step6.video.statEngagement'), value: '+58 %' },
           ]}
         />
       </div>
@@ -369,12 +370,12 @@ export function Step6Options({ data, set }: StepProps) {
             fontSize: 11, fontWeight: 700, color: SugarV2.muted,
             letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4,
           }}>
-            Options sélectionnées
+            {tr('wizard.step6.recap.eyebrow')}
           </div>
           <div style={{ fontSize: 15, color: SugarV2.ink, fontWeight: 600, letterSpacing: -0.2 }}>
             {total === 0
-              ? "Aucune option pour l'instant — vous publierez votre annonce gratuitement."
-              : `Total des options : ${total} CHF, facturés à la publication.`}
+              ? tr('wizard.step6.recap.empty')
+              : tr('wizard.step6.recap.total', { total })}
           </div>
         </div>
         {total > 0 && (

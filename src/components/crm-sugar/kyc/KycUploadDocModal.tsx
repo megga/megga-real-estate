@@ -4,6 +4,7 @@
 
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { BlackBtn, GhostBtn, KycIcon, SectionLabel, SP } from './atoms'
 import type { KycIconName } from './atoms'
 import { useUploadKycDocument } from '@/hooks/useKyc'
@@ -14,16 +15,16 @@ const ACCEPTED_MIME = '.pdf,.jpg,.jpeg,.png,.webp'
 
 interface CategoryDef {
   k: DocumentCategory
-  label: string
+  labelKey: string
   icon: KycIconName
 }
 
 const CATEGORIES: CategoryDef[] = [
-  { k: 'identity', label: 'Identité', icon: 'user' },
-  { k: 'domicile', label: 'Domicile', icon: 'globe' },
-  { k: 'financial', label: 'Revenus', icon: 'bank' },
-  { k: 'compliance', label: 'Conformité', icon: 'shield' },
-  { k: 'other', label: 'Autre', icon: 'doc' },
+  { k: 'identity', labelKey: 'upload.categories.identity', icon: 'user' },
+  { k: 'domicile', labelKey: 'upload.categories.domicile', icon: 'globe' },
+  { k: 'financial', labelKey: 'upload.categories.financial', icon: 'bank' },
+  { k: 'compliance', labelKey: 'upload.categories.compliance', icon: 'shield' },
+  { k: 'other', labelKey: 'upload.categories.other', icon: 'doc' },
 ]
 
 interface KycUploadDocModalProps {
@@ -43,6 +44,7 @@ export function KycUploadDocModal({
   onSuccess,
   onError,
 }: KycUploadDocModalProps) {
+  const { t } = useTranslation('kyc')
   const inputRef = useRef<HTMLInputElement>(null)
   const [category, setCategory] = useState<DocumentCategory>('identity')
   const [file, setFile] = useState<File | null>(null)
@@ -55,7 +57,7 @@ export function KycUploadDocModal({
 
   const acceptFile = (f: File) => {
     if (f.size > MAX_SIZE_BYTES) {
-      setErrorMsg('Fichier trop volumineux (10 Mo max).')
+      setErrorMsg(t('upload.errorTooLarge'))
       setFile(null)
       return
     }
@@ -74,19 +76,20 @@ export function KycUploadDocModal({
         documentCategory: category,
         uploadedBy,
       })
-      onSuccess(`Document ajouté : ${file.name}`)
+      onSuccess(t('upload.successAdded', { name: file.name }))
       onClose()
     } catch (e) {
-      const msg = (e as Error).message || "Échec de l'upload."
+      const msg = (e as Error).message || t('upload.errorFailed')
       setErrorMsg(msg)
       onError(msg)
     }
   }
 
   const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} o`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+    if (bytes < 1024) return t('upload.sizeBytes', { value: bytes })
+    if (bytes < 1024 * 1024)
+      return t('upload.sizeKb', { value: (bytes / 1024).toFixed(0) })
+    return t('upload.sizeMb', { value: (bytes / (1024 * 1024)).toFixed(1) })
   }
 
   return createPortal(
@@ -155,7 +158,7 @@ export function KycUploadDocModal({
                 color: SP.ink,
               }}
             >
-              Ajouter une pièce
+              {t('upload.title')}
             </h3>
             <p
               style={{
@@ -164,12 +167,14 @@ export function KycUploadDocModal({
                 color: SP.muted,
               }}
             >
-              PDF, JPG, PNG · 10 Mo max · Stockage chiffré
+              {t('upload.subtitle')}
             </p>
           </div>
           <button
             onClick={() => !submitting && onClose()}
             disabled={submitting}
+            aria-label={t('upload.close')}
+            title={t('upload.close')}
             style={{
               width: 32,
               height: 32,
@@ -188,7 +193,7 @@ export function KycUploadDocModal({
         </div>
 
         {/* Catégorie */}
-        <SectionLabel>Catégorie</SectionLabel>
+        <SectionLabel>{t('upload.categoryLabel')}</SectionLabel>
         <div
           style={{
             display: 'grid',
@@ -225,14 +230,14 @@ export function KycUploadDocModal({
                   stroke={on ? '#fff' : SP.inkSoft}
                   sw={1.8}
                 />
-                <span style={{ fontSize: 11, fontWeight: 700 }}>{c.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700 }}>{t(c.labelKey)}</span>
               </button>
             )
           })}
         </div>
 
         {/* File picker */}
-        <SectionLabel>Document</SectionLabel>
+        <SectionLabel>{t('upload.documentLabel')}</SectionLabel>
         <input
           ref={inputRef}
           type="file"
@@ -303,7 +308,8 @@ export function KycUploadDocModal({
                 flexShrink: 0,
                 opacity: submitting ? 0.5 : 1,
               }}
-              title="Retirer le fichier"
+              aria-label={t('upload.removeFile')}
+              title={t('upload.removeFile')}
             >
               <KycIcon name="x" size={12} sw={2} />
             </button>
@@ -352,7 +358,7 @@ export function KycUploadDocModal({
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: SP.ink }}>
-                Glisser un fichier ici
+                {t('upload.dropTitle')}
               </div>
               <div
                 style={{
@@ -361,7 +367,7 @@ export function KycUploadDocModal({
                   marginTop: 2,
                 }}
               >
-                ou cliquer pour parcourir
+                {t('upload.dropHint')}
               </div>
             </div>
           </div>
@@ -395,7 +401,9 @@ export function KycUploadDocModal({
             gap: 10,
           }}
         >
-          <GhostBtn onClick={() => !submitting && onClose()}>Annuler</GhostBtn>
+          <GhostBtn onClick={() => !submitting && onClose()}>
+            {t('upload.cancel')}
+          </GhostBtn>
           <BlackBtn
             onClick={handleSubmit}
             icon={
@@ -410,7 +418,7 @@ export function KycUploadDocModal({
               cursor: canSubmit ? 'pointer' : 'not-allowed',
             }}
           >
-            {submitting ? 'Téléversement…' : 'Téléverser'}
+            {submitting ? t('upload.submitting') : t('upload.submit')}
           </BlackBtn>
         </div>
       </div>

@@ -6,6 +6,7 @@
 // sélection, sorties animées, undo, parking, modals, raccourcis clavier.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import SgaQueue, { type SnoozedEntry } from './SgaQueue'
 import SgaListing from './SgaListing'
@@ -51,6 +52,7 @@ export default function AtelierStage({
   dark, isLoading, pivot, pivotBuyer, pool, poolCountFor, gestes,
   onClose, onOpenDeal, onOpenBuyerPivot, onCloseBuyerPivot, onStartKyc, emptyAction,
 }: AtelierStageProps) {
+  const { t } = useTranslation('matching')
   const [tab, setTab] = useState<AtelierTab>('to-send')
   const [query, setQuery] = useState('')
   const [processed, setProcessed] = useState<Record<string, TriageKind>>({})
@@ -122,18 +124,19 @@ export default function AtelierStage({
       setExiting(null)
       if (nxt) setSelId(nxt)
       exitTimer.current = null
+      const name = `${b.first} ${b.last}`
       showToast(
-        kind === 'sent' ? `Dossier transmis à ${b.first} ${b.last} · ajouté à son dossier client`
-        : kind === 'relance' ? `Relance envoyée à ${b.first} ${b.last} · consignée dans son dossier`
-        : kind === 'later' ? `Plus tard · ${b.first} ${b.last} reviendra dans la file le ${ret}`
-        : kind === 'interested' ? `${b.first} ${b.last} · intéressé·e — réactivité consignée`
-        : kind === 'rejected' ? `${b.first} ${b.last} · pas intéressé·e`
-        : `${b.first} ${b.last} écarté·e de la file`,
+        kind === 'sent' ? t('atelier.toast.sent', { name })
+        : kind === 'relance' ? t('atelier.toast.relance', { name })
+        : kind === 'later' ? t('atelier.toast.later', { name, date: ret })
+        : kind === 'interested' ? t('atelier.toast.interested', { name })
+        : kind === 'rejected' ? t('atelier.toast.rejected', { name })
+        : t('atelier.toast.skipped', { name }),
         kind === 'sent' || kind === 'relance' || kind === 'interested',
         handle,
       )
     }, 340)
-  }, [buyers, nextAfter, gestes, showToast])
+  }, [buyers, nextAfter, gestes, showToast, t])
 
   const requestSend = useCallback((matchId: string) => {
     if (exitTimer.current) return
@@ -170,8 +173,8 @@ export default function AtelierStage({
     setLaterInfo(m => { const q = { ...m }; delete q[matchId]; return q })
     setHistory(h => h.filter(x => x !== matchId))
     setSelId(matchId)
-    showToast(`${b.first} ${b.last} est de retour dans la file`, false, null, true)
-  }, [buyers, gestes, showToast])
+    showToast(t('atelier.toast.backInQueue', { name: `${b.first} ${b.last}` }), false, null, true)
+  }, [buyers, gestes, showToast, t])
 
   const move = useCallback((dir: number) => {
     if (!filtered.length) return
@@ -219,18 +222,18 @@ export default function AtelierStage({
     <div className="sga sga-stage" data-theme={dark ? 'dark' : 'light'} data-density="confort">
       {/* ── top bar ── */}
       <div className="sga-top">
-        <button className="btn circle" title="Fermer l'atelier" onClick={onClose}>
+        <button className="btn circle" title={t('atelier.closeAtelier')} onClick={onClose}>
           <SgaIcon d="close" size={18} />
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.18, minWidth: 0 }}>
           <span className="t3 semi" style={{ color: 'var(--ink)' }}>
-            {pivotBuyer ? "Matching de l'acheteur" : "Matching de l'annonce"}
+            {pivotBuyer ? t('atelier.buyerTitle') : t('atelier.listingTitle')}
           </span>
         </div>
         <div style={{ flex: 1 }} />
         {pivotBuyer ? (
           <button className="btn btn-ghost" style={{ padding: '10px 18px' }} onClick={onCloseBuyerPivot}>
-            Revenir à l'annonce
+            {t('atelier.backToListing')}
           </button>
         ) : pivot ? (
           <div className="seg">
@@ -257,14 +260,13 @@ export default function AtelierStage({
           <section className="sga-panel sga-enter" style={{ gridColumn: '1 / -1' }}>
             <div className="sga-empty">
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-                <div className="t4 semi" style={{ color: 'var(--ink)' }}>Aucun match à trier</div>
+                <div className="t4 semi" style={{ color: 'var(--ink)' }}>{t('atelier.empty.title')}</div>
                 <div className="t1 muted" style={{ maxWidth: 320 }}>
-                  Le moteur n'a proposé aucun rapprochement annonce ↔ acheteur pour l'instant.
-                  Ajoutez des recherches actives à vos contacts ou relancez un scan.
+                  {t('atelier.empty.desc')}
                 </div>
                 {emptyAction && (
                   <button className="btn btn-ghost" onClick={emptyAction.run} disabled={emptyAction.busy}>
-                    <SgaIcon d="refresh" size={15} /> {emptyAction.busy ? 'Scan en cours…' : emptyAction.label}
+                    <SgaIcon d="refresh" size={15} /> {emptyAction.busy ? t('atelier.empty.scanning') : emptyAction.label}
                   </button>
                 )}
               </div>
@@ -309,9 +311,9 @@ export default function AtelierStage({
               ) : (
                 <div className="sga-empty">
                   <div>
-                    <div className="t4 semi" style={{ marginBottom: 6, color: 'var(--ink)' }}>File traitée</div>
+                    <div className="t4 semi" style={{ marginBottom: 6, color: 'var(--ink)' }}>{t('atelier.queueDone.title')}</div>
                     <div className="t1 muted" style={{ maxWidth: 240 }}>
-                      Tous les acheteurs de cet onglet ont été triés. Changez d'onglet.
+                      {t('atelier.queueDone.desc')}
                     </div>
                   </div>
                 </div>
@@ -367,10 +369,10 @@ export default function AtelierStage({
                 void h.flushNow().then(r => onOpenDeal(r?.dealId ?? null))
               }}
             >
-              Voir le deal →
+              {t('atelier.toast.seeDeal')}
             </button>
           )}
-          {!toast.plain && <button className="undo" onClick={undo}>Annuler</button>}
+          {!toast.plain && <button className="undo" onClick={undo}>{t('common:actions.cancel')}</button>}
         </div>
       )}
     </div>

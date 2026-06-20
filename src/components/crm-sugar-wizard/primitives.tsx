@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx + step1.jsx + step3.jsx).
 
 import { useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, sgAcc } from './tokens'
 
 // ─── Icons (line-style, Sugar) ──────────────────────────────────────────
@@ -183,6 +184,7 @@ export function SgGateCard({
   recommended?: boolean
   disabled?: boolean
 }) {
+  const { t } = useTranslation('listings')
   const [hover, setHover] = useState(false)
   return (
     <button onClick={onClick} disabled={disabled}
@@ -209,7 +211,7 @@ export function SgGateCard({
           background: SugarV2.black, color: SugarV2.onBlack,
           fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
           textTransform: 'uppercase',
-        }}>Recommandé</span>
+        }}>{t('wizard.shell.recommended')}</span>
       )}
 
       <div style={{
@@ -237,7 +239,7 @@ export function SgGateCard({
         fontSize: 13, fontWeight: 600,
         transition: 'color .2s',
       }}>
-        Choisir
+        {t('wizard.shell.choose')}
         <span style={{
           display: 'inline-flex', transform: hover ? 'translateX(4px)' : 'translateX(0)',
           transition: 'transform .25s ease',
@@ -330,14 +332,18 @@ export function SgAvatar({
 }
 
 // ─── Pastille KYC ──────────────────────────────────────────────────────
+// KYC = assist optionnel, jamais bloquant : « à faire » reste un état facultatif.
 export function SgKycChip({ status }: { status?: 'verified' | 'pending' | 'none' | 'stale' | string }) {
-  const map: Record<string, { label: string; color: string; bg: string }> = {
-    verified: { label: 'KYC vérifié',         color: SugarV2.ok,    bg: 'rgba(16,185,129,0.10)' },
-    pending:  { label: 'KYC en cours',        color: SugarV2.warn,  bg: 'rgba(245,158,11,0.10)' },
-    none:     { label: 'KYC à faire',         color: SugarV2.muted, bg: 'rgba(122,128,136,0.10)' },
-    stale:    { label: 'KYC à re-screener',   color: SugarV2.warn,  bg: 'rgba(245,158,11,0.10)' },
+  const { t } = useTranslation('listings')
+  // Couleurs thème par statut (non traduites) ; le libellé vient de l'i18n.
+  const tone: Record<string, { color: string; bg: string }> = {
+    verified: { color: SugarV2.ok,    bg: 'rgba(16,185,129,0.10)' },
+    pending:  { color: SugarV2.warn,  bg: 'rgba(245,158,11,0.10)' },
+    none:     { color: SugarV2.muted, bg: 'rgba(122,128,136,0.10)' },
+    stale:    { color: SugarV2.warn,  bg: 'rgba(245,158,11,0.10)' },
   }
-  const m = map[status || 'none'] ?? map.none
+  const key = status && tone[status] ? status : 'none'
+  const m = tone[key]
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -346,7 +352,7 @@ export function SgKycChip({ status }: { status?: 'verified' | 'pending' | 'none'
       fontSize: 10.5, fontWeight: 600, letterSpacing: 0.2,
     }}>
       <span style={{ width: 5, height: 5, borderRadius: 999, background: m.color }} />
-      {m.label}
+      {t(`wizard.kyc.${key}`)}
     </span>
   )
 }

@@ -12,6 +12,7 @@
 // Logique d'URL et validation des coords : ./mapUrl (pur, testé).
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import { buildStaticMapUrl, geocodeAddress, validCoords } from '@/lib/mapbox'
 
@@ -28,6 +29,7 @@ interface SgaMiniMapProps {
 }
 
 export default function SgaMiniMap({ lat, lng, address, label, className, style }: SgaMiniMapProps) {
+  const { t } = useTranslation('matching')
   // Coords résolues : row directe (si exploitable), sinon géocodage de l'adresse.
   const [resolved, setResolved] = useState<[number, number] | null>(() => validCoords(lat, lng))
   const [imgFailed, setImgFailed] = useState(false)
@@ -60,7 +62,7 @@ export default function SgaMiniMap({ lat, lng, address, label, className, style 
           <img
             className="sga-map-img"
             src={buildStaticMapUrl(resolved[0], resolved[1], MAPBOX_TOKEN)}
-            alt={`Carte — ${address}`}
+            alt={t('atelier.mapAlt', { address })}
             loading="lazy"
             draggable={false}
             onError={() => setImgFailed(true)}

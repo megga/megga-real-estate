@@ -20,6 +20,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { motion, type Transition } from 'motion/react'
 import type { SugarPalette } from './tokens'
 import { RelanceSession } from '@/components/crm-sugar/today/RelanceSession'
@@ -288,6 +289,7 @@ export function SugarIconRail({
   active = 'today', onNavigate, dark, setDark, sp, onCmd, extraBottomBtn,
 }: SugarIconRailProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation('common')
   const [relanceOpen, setRelanceOpen] = useState(false)
 
   // Nonce de rejeu PARTAGÉ : un seul survol relance toutes les icônes (design
@@ -311,19 +313,19 @@ export function SugarIconRail({
 
   // Outils transverses (la TopNav gère les PAGES — aucun doublon ici).
   const items: RailItem[] = [
-    { id: 'search', icon: 'search', label: 'Rechercher', action: () => openSugarSearch() },
-    { id: 'add', icon: 'plus', label: 'Créer', action: () => onCmd?.() },
-    { id: 'relances', icon: 'phone', label: 'Relances du jour', action: () => setRelanceOpen(true) },
-    { id: 'import', icon: 'download', label: 'Importer des leads', action: () => navigate('/dashboard/import-lead') },
-    { id: 'kyc', icon: 'shield', label: 'KYC', action: () => onNavigate?.('kyc') },
-    { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', action: () => onNavigate?.('dashboard') },
+    { id: 'search', icon: 'search', label: t('actions.search'), action: () => openSugarSearch() },
+    { id: 'add', icon: 'plus', label: t('actions.create'), action: () => onCmd?.() },
+    { id: 'relances', icon: 'phone', label: t('nav.callbacksToday'), action: () => setRelanceOpen(true) },
+    { id: 'import', icon: 'download', label: t('nav.importLeads'), action: () => navigate('/dashboard/import-lead') },
+    { id: 'kyc', icon: 'shield', label: t('nav.kyc'), action: () => onNavigate?.('kyc') },
+    { id: 'dashboard', icon: 'dashboard', label: t('nav.dashboard'), action: () => onNavigate?.('dashboard') },
   ]
-  const settingsItem: RailItem = { id: 'settings', icon: 'settings', label: 'Réglages', action: () => onNavigate?.('settings') }
+  const settingsItem: RailItem = { id: 'settings', icon: 'settings', label: t('nav.settings'), action: () => onNavigate?.('settings') }
   // Icône sun/moon selon la maquette (lune en clair, soleil en sombre). Bascule
   // le thème ET relance l'anim pour que la nouvelle icône se dessine.
   const darkItem: RailItem = {
     id: '__dark', icon: dark ? 'sun' : 'moon',
-    label: dark ? 'Mode clair' : 'Mode sombre',
+    label: dark ? t('nav.lightMode') : t('nav.darkMode'),
     action: () => { setDark(!dark); replay() },
   }
 

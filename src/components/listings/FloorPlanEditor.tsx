@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ export default function FloorPlanEditor({
   onUploadFloorPlan,
   isUploading,
 }: FloorPlanEditorProps) {
+  const { t } = useTranslation('listings')
   const [isOpen, setIsOpen] = useState(false)
   const [activeHotspot, setActiveHotspot] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -164,8 +166,8 @@ export default function FloorPlanEditor({
             <MEIcon name="location" className="w-4 h-4 text-accent" />
           </div>
           <div className="text-left">
-            <p className="text-sm font-semibold text-theme-primary">Plan interactif</p>
-            <p className="text-xs text-theme-tertiary">Ajoutez un plan et associez vos photos par pièce</p>
+            <p className="text-sm font-semibold text-theme-primary">{t('editor.floorPlan.title')}</p>
+            <p className="text-xs text-theme-tertiary">{t('editor.floorPlan.subtitle')}</p>
           </div>
         </div>
         <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-muted transition-transform', isOpen && 'rotate-180')} />
@@ -182,11 +184,11 @@ export default function FloorPlanEditor({
             >
               <MEIcon name="upload" className="w-6 h-6 mx-auto text-theme-muted mb-2" />
               <p className="text-sm text-theme-secondary mb-1">
-                {isUploading ? 'Upload en cours...' : 'Glissez votre plan ici'}
+                {isUploading ? t('editor.floorPlan.uploading') : t('editor.floorPlan.dropHere')}
               </p>
-              <p className="text-xs text-theme-muted mb-3">JPG, PNG, WebP ou SVG — max 15 MB</p>
+              <p className="text-xs text-theme-muted mb-3">{t('editor.floorPlan.fileHint')}</p>
               <label className="inline-flex items-center gap-2 h-8 px-3 text-xs font-medium border border-theme-border rounded-lg cursor-pointer hover:border-theme-active transition-colors text-theme-secondary hover:text-theme-primary">
-                Parcourir
+                {t('editor.floorPlan.browse')}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/svg+xml"
@@ -200,7 +202,7 @@ export default function FloorPlanEditor({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-theme-secondary">
-                  Cliquez sur le plan pour placer un point. Glissez pour repositionner.
+                  {t('editor.floorPlan.instructions')}
                 </p>
                 <button
                   type="button"
@@ -208,7 +210,7 @@ export default function FloorPlanEditor({
                   className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
                 >
                   <MEIcon name="trash" className="w-3 h-3" />
-                  Supprimer
+                  {t('common:actions.delete')}
                 </button>
               </div>
 
@@ -216,14 +218,14 @@ export default function FloorPlanEditor({
                 ref={containerRef}
                 role="button"
                 tabIndex={0}
-                aria-label="Cliquez pour placer un hotspot"
+                aria-label={t('editor.floorPlan.canvasAria')}
                 onClick={handlePlanClick}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (containerRef.current) { const rect = containerRef.current.getBoundingClientRect(); const synth = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2, target: e.target, nativeEvent: { offsetX: rect.width / 2, offsetY: rect.height / 2 } } as unknown as React.MouseEvent<HTMLDivElement>; handlePlanClick(synth) } } }}
                 className="relative rounded-lg overflow-hidden border border-theme-border cursor-crosshair select-none"
               >
                 <img
                   src={floorPlanUrl}
-                  alt="Plan d'étage"
+                  alt={t('editor.floorPlan.imageAlt')}
                   className="w-full h-auto block"
                   draggable={false}
                   decoding="async"
@@ -261,7 +263,7 @@ export default function FloorPlanEditor({
                           'absolute w-5 h-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white cursor-grab active:cursor-grabbing transition-all z-10 flex items-center justify-center animate-in zoom-in-50 duration-200',
                           activeHotspot === hs.id ? 'bg-accent ring-2 ring-accent/30' : 'bg-accent hover:ring-2 hover:ring-accent/20'
                         )}
-                        aria-label={`Hotspot ${getRoomLabel(hs.roomKey)}`}
+                        aria-label={t('editor.floorPlan.hotspotAria', { room: getRoomLabel(hs.roomKey) })}
                       >
                         <MEIcon name="grip" className="w-2.5 h-2.5 text-white" />
                       </div>
@@ -276,7 +278,7 @@ export default function FloorPlanEditor({
                       <div className="space-y-3">
                         {/* Room selector */}
                         <div>
-                          <label className="text-xs text-theme-secondary mb-1 block">Pièce</label>
+                          <label className="text-xs text-theme-secondary mb-1 block">{t('editor.floorPlan.room')}</label>
                           <select
                             value={hs.roomKey}
                             onChange={e => {
@@ -298,7 +300,7 @@ export default function FloorPlanEditor({
                         {photos.length > 0 && (
                           <div>
                             <label className="text-xs text-theme-secondary mb-1 block">
-                              Photos associées ({hs.photoUrls.length})
+                              {t('editor.floorPlan.linkedPhotos', { count: hs.photoUrls.length })}
                             </label>
                             <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto scrollbar-hide">
                               {photos.map((url, i) => (
@@ -330,14 +332,14 @@ export default function FloorPlanEditor({
                             onClick={() => removeHotspot(hs.id)}
                             className="text-xs text-red-500 hover:text-red-600 transition-colors"
                           >
-                            Supprimer
+                            {t('common:actions.delete')}
                           </button>
                           <button
                             type="button"
                             onClick={() => setActiveHotspot(null)}
                             className="h-7 px-3 text-xs font-medium border border-theme-border rounded-lg hover:border-theme-active transition-colors text-theme-secondary hover:text-theme-primary"
                           >
-                            Fermer
+                            {t('common:actions.close')}
                           </button>
                         </div>
                       </div>
@@ -370,13 +372,16 @@ export default function FloorPlanEditor({
                           <span className="w-1.5 h-1.5 rounded-full bg-accent" />
                           {getRoomLabel(hs.roomKey)}
                           {hs.photoUrls.length > 0 && (
-                            <span className="text-theme-muted">· {hs.photoUrls.length} photo{hs.photoUrls.length > 1 ? 's' : ''}</span>
+                            <span className="text-theme-muted">· {t('editor.floorPlan.photoCount', { count: hs.photoUrls.length })}</span>
                           )}
                         </span>
                       ))}
                     </div>
                     <span className="text-xs text-theme-muted whitespace-nowrap ml-2">
-                      {hotspots.reduce((n, h) => n + h.photoUrls.length, 0)}/{photos.length} photos taguées
+                      {t('editor.floorPlan.taggedCounter', {
+                        tagged: hotspots.reduce((n, h) => n + h.photoUrls.length, 0),
+                        total: photos.length,
+                      })}
                     </span>
                   </div>
                 </div>

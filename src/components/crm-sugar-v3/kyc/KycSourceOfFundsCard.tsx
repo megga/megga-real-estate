@@ -4,6 +4,8 @@
 // comme red flag. Ici on documente, on associe une pièce, on logge.
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { KycBlackPill, KycGhostPill } from './kycPrimitives'
 import { useKycPalette } from './kycPalette'
 import { SgIcon } from '../icons'
@@ -20,20 +22,28 @@ interface Props {
   agentId: string
 }
 
-const SOURCE_LABELS: Record<KycSourceOfFundsType, { label: string; hint: string; isRedFlag: boolean }> = {
-  salary:        { label: 'Salaire / revenus d’activité',         hint: 'Fiches de paie ou attestation employeur',                isRedFlag: false },
-  sale_property: { label: 'Vente d’un bien immobilier',           hint: 'Contrat de vente notarié',                              isRedFlag: false },
-  sale_business: { label: 'Vente d’entreprise / parts sociales',  hint: 'Acte de cession',                                       isRedFlag: false },
-  inheritance:   { label: 'Héritage / donation',                       hint: 'Acte notarié',                                          isRedFlag: false },
-  investment:    { label: 'Revenus de placement / dividendes',         hint: 'Relevé bancaire ou attestation fiscale',                isRedFlag: false },
-  crypto:        { label: 'Crypto-actifs',                             hint: 'Red flag LBA — description détaillée obligatoire',      isRedFlag: true  },
-  loan:          { label: 'Prêt bancaire',                             hint: 'Contrat de prêt + attestation banque',                  isRedFlag: false },
-  mixed:         { label: 'Origine mixte',                             hint: 'Red flag LBA — détailler chaque source',                isRedFlag: true  },
-  other:         { label: 'Autre',                                     hint: 'Description obligatoire',                               isRedFlag: true  },
+/** Libellés des types d'origine des fonds. `isRedFlag` est une donnée métier
+ * (LBA), pas du texte — seuls `label`/`hint` sont traduits via `t`. */
+function buildSourceLabels(
+  t: TFunction
+): Record<KycSourceOfFundsType, { label: string; hint: string; isRedFlag: boolean }> {
+  return {
+    salary:        { label: t('dossier.funds.types.salary.label'),        hint: t('dossier.funds.types.salary.hint'),        isRedFlag: false },
+    sale_property: { label: t('dossier.funds.types.sale_property.label'),  hint: t('dossier.funds.types.sale_property.hint'),  isRedFlag: false },
+    sale_business: { label: t('dossier.funds.types.sale_business.label'),  hint: t('dossier.funds.types.sale_business.hint'),  isRedFlag: false },
+    inheritance:   { label: t('dossier.funds.types.inheritance.label'),    hint: t('dossier.funds.types.inheritance.hint'),    isRedFlag: false },
+    investment:    { label: t('dossier.funds.types.investment.label'),     hint: t('dossier.funds.types.investment.hint'),     isRedFlag: false },
+    crypto:        { label: t('dossier.funds.types.crypto.label'),         hint: t('dossier.funds.types.crypto.hint'),         isRedFlag: true  },
+    loan:          { label: t('dossier.funds.types.loan.label'),           hint: t('dossier.funds.types.loan.hint'),           isRedFlag: false },
+    mixed:         { label: t('dossier.funds.types.mixed.label'),          hint: t('dossier.funds.types.mixed.hint'),          isRedFlag: true  },
+    other:         { label: t('dossier.funds.types.other.label'),          hint: t('dossier.funds.types.other.hint'),          isRedFlag: true  },
+  }
 }
 
 export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
+  const sourceLabels = buildSourceLabels(t)
   const [editing, setEditing] = useState(false)
   const update = useUpdateKycSourceOfFunds()
   const [error, setError] = useState<string | null>(null)
@@ -42,7 +52,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
   const currentDoc = dossier.source_of_funds_doc_id
     ? documents.find((d) => d.id === dossier.source_of_funds_doc_id) ?? null
     : null
-  const isRedFlag = currentType ? SOURCE_LABELS[currentType].isRedFlag : false
+  const isRedFlag = currentType ? sourceLabels[currentType].isRedFlag : false
 
   const handleSubmit = (
     sourceType: KycSourceOfFundsType,
@@ -51,7 +61,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
   ) => {
     setError(null)
     if (!dossier.agency_id) {
-      setError('agency_id manquant.')
+      setError(t('dossier.funds.errorAgencyMissing'))
       return
     }
     update.mutate(
@@ -66,7 +76,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
       {
         onSuccess: () => setEditing(false),
         onError: (err) =>
-          setError(err instanceof Error ? err.message : 'Échec de l’enregistrement.'),
+          setError(err instanceof Error ? err.message : t('dossier.funds.errorSave')),
       }
     )
   }
@@ -103,7 +113,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
                 marginBottom: 4,
               }}
             >
-              Origine économique · LBA art. 6 al. 1 lit. b
+              {t('dossier.funds.eyebrow')}
             </div>
             <h3
               style={{
@@ -114,14 +124,14 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
                 letterSpacing: -0.3,
               }}
             >
-              Source des fonds
+              {t('dossier.funds.title')}
             </h3>
           </div>
           <KycGhostPill
             onClick={() => setEditing(true)}
             icon={<SgIcon name="pencil" size={14} stroke={sp.inkSoft} />}
           >
-            {currentType ? 'Modifier' : 'Documenter'}
+            {currentType ? t('dossier.funds.edit') : t('dossier.funds.document')}
           </KycGhostPill>
         </div>
 
@@ -137,8 +147,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
               lineHeight: 1.55,
             }}
           >
-            Non documentée. Pour les transactions à vigilance renforcée et tout montant
-            supérieur à CHF 100&apos;000, l&apos;arrière-plan économique doit être clarifié et conservé.
+            {t('dossier.funds.notDocumented')}
           </div>
         ) : (
           <div
@@ -152,7 +161,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
             }}
           >
             <div>
-              <strong style={{ fontWeight: 700 }}>{SOURCE_LABELS[currentType].label}</strong>
+              <strong style={{ fontWeight: 700 }}>{sourceLabels[currentType].label}</strong>
               {isRedFlag && (
                 <span
                   style={{
@@ -164,7 +173,7 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
                     color: sp.errDarker,
                   }}
                 >
-                  Red flag LBA
+                  {t('dossier.funds.redFlag')}
                 </span>
               )}
             </div>
@@ -175,9 +184,9 @@ export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
             )}
             <div style={{ color: sp.muted, fontSize: 12 }}>
               {currentDoc ? (
-                <>Pièce liée : <strong style={{ color: sp.ink }}>{currentDoc.name}</strong></>
+                <>{t('dossier.funds.linkedDoc')} <strong style={{ color: sp.ink }}>{currentDoc.name}</strong></>
               ) : (
-                <em>Aucune pièce associée — à téléverser.</em>
+                <em>{t('dossier.funds.noLinkedDoc')}</em>
               )}
             </div>
           </div>
@@ -234,6 +243,8 @@ function SourceOfFundsOverlay({
   onSubmit,
 }: OverlayProps) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
+  const sourceLabels = buildSourceLabels(t)
   const [sourceType, setSourceType] = useState<KycSourceOfFundsType>(
     dossier.source_of_funds_type ?? 'salary'
   )
@@ -291,7 +302,7 @@ function SourceOfFundsOverlay({
             marginBottom: 10,
           }}
         >
-          LBA art. 6 al. 1 lit. b · Arrière-plan économique
+          {t('dossier.funds.overlayEyebrow')}
         </div>
         <h2
           style={{
@@ -302,7 +313,7 @@ function SourceOfFundsOverlay({
             letterSpacing: -0.4,
           }}
         >
-          Documenter l&apos;origine des fonds
+          {t('dossier.funds.overlayTitle')}
         </h2>
 
         <label
@@ -314,7 +325,7 @@ function SourceOfFundsOverlay({
             marginBottom: 6,
           }}
         >
-          Type
+          {t('dossier.funds.typeLabel')}
         </label>
         <select
           value={sourceType}
@@ -331,10 +342,10 @@ function SourceOfFundsOverlay({
             marginBottom: 6,
           }}
         >
-          {(Object.keys(SOURCE_LABELS) as KycSourceOfFundsType[]).map((t) => (
-            <option key={t} value={t}>
-              {SOURCE_LABELS[t].label}
-              {SOURCE_LABELS[t].isRedFlag ? ' (red flag)' : ''}
+          {(Object.keys(sourceLabels) as KycSourceOfFundsType[]).map((type) => (
+            <option key={type} value={type}>
+              {sourceLabels[type].label}
+              {sourceLabels[type].isRedFlag ? ` ${t('dossier.funds.redFlagSuffix')}` : ''}
             </option>
           ))}
         </select>
@@ -346,7 +357,7 @@ function SourceOfFundsOverlay({
             marginBottom: 18,
           }}
         >
-          {SOURCE_LABELS[sourceType].hint}
+          {sourceLabels[sourceType].hint}
         </div>
 
         <label
@@ -358,7 +369,9 @@ function SourceOfFundsOverlay({
             marginBottom: 6,
           }}
         >
-          Description {requiresDesc ? `(${descTrimLen}/20 caractères min)` : '(optionnelle)'}
+          {requiresDesc
+            ? t('dossier.funds.descriptionLabelRequired', { count: descTrimLen })
+            : t('dossier.funds.descriptionLabelOptional')}
         </label>
         <textarea
           value={description}
@@ -366,8 +379,8 @@ function SourceOfFundsOverlay({
           rows={4}
           placeholder={
             sourceType === 'crypto'
-              ? 'Ex : USDT achetés en 2021 sur Kraken, exchange régulé FINMA, conservation cold wallet, attestation jointe.'
-              : 'Précisez l’arrière-plan économique : période, instruments, contreparties.'
+              ? t('dossier.funds.descriptionPlaceholderCrypto')
+              : t('dossier.funds.descriptionPlaceholder')
           }
           style={{
             width: '100%',
@@ -393,7 +406,7 @@ function SourceOfFundsOverlay({
             marginBottom: 6,
           }}
         >
-          Pièce justificative (catégorie financial ou compliance)
+          {t('dossier.funds.docLabel')}
         </label>
         <select
           value={docId}
@@ -410,7 +423,7 @@ function SourceOfFundsOverlay({
             marginBottom: 22,
           }}
         >
-          <option value="">— Aucune pièce —</option>
+          <option value="">{t('dossier.funds.docNone')}</option>
           {eligibleDocs.map((d) => (
             <option key={d.id} value={d.id}>
               {d.name} · {d.document_category}
@@ -419,7 +432,7 @@ function SourceOfFundsOverlay({
         </select>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <KycGhostPill onClick={onCancel}>Annuler</KycGhostPill>
+          <KycGhostPill onClick={onCancel}>{t('dossier.funds.cancel')}</KycGhostPill>
           <KycBlackPill
             size="md"
             onClick={() =>
@@ -428,7 +441,7 @@ function SourceOfFundsOverlay({
             disabled={!canSubmit}
             icon={<SgIcon name="check" size={14} stroke={sp.onAccent} />}
           >
-            {isPending ? 'Enregistrement…' : 'Enregistrer'}
+            {isPending ? t('dossier.funds.saving') : t('dossier.funds.save')}
           </KycBlackPill>
         </div>
       </div>

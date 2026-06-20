@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Modal } from '@/components/ui/modal'
@@ -7,12 +8,7 @@ import { useContacts } from '@/hooks/useContacts'
 import { useAgencyListings } from '@/hooks/useListings'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 
-const MANDATE_OPTIONS = [
-  { value: '', label: 'Aucun' },
-  { value: 'simple', label: 'Simple' },
-  { value: 'exclusive', label: 'Exclusif' },
-  { value: 'semi_exclusive', label: 'Semi-exclusif' },
-] as const
+const MANDATE_VALUES = ['', 'simple', 'exclusive', 'semi_exclusive'] as const
 
 const labelClasses = 'block text-sm font-medium text-theme-primary mb-1.5'
 const selectClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors appearance-none'
@@ -23,7 +19,8 @@ interface NewTransactionDialogProps {
   title?: string
 }
 
-export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle transaction' }: NewTransactionDialogProps) {
+export default function NewTransactionDialog({ open, onClose, title }: NewTransactionDialogProps) {
+  const { t } = useTranslation('pipeline')
   const { profile } = useAuth()
   const { contacts } = useContacts()
   const { data: listings } = useAgencyListings()
@@ -79,8 +76,8 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
     <Modal
       open={open}
       onClose={handleClose}
-      title={title}
-      description="Créez un deal dans votre pipeline."
+      title={title ?? t('transaction.dialog_title')}
+      description={t('transaction.dialog_subtitle')}
       size="md"
     >
       <>
@@ -89,14 +86,14 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
           {/* Contact + Bien */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClasses}>Contact</label>
+              <label className={labelClasses}>{t('column.contact')}</label>
               <div className="relative">
                 <select
                   value={contactId}
                   onChange={(e) => setContactId(e.target.value)}
                   className={selectClasses}
                 >
-                  <option value="">Sélectionner...</option>
+                  <option value="">{t('lost.select')}</option>
                   {(contacts ?? []).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.first_name} {c.last_name}
@@ -107,14 +104,14 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
               </div>
             </div>
             <div>
-              <label className={labelClasses}>Bien <span className="text-theme-muted font-normal">(optionnel)</span></label>
+              <label className={labelClasses}>{t('column.property')} <span className="text-theme-muted font-normal">{t('transaction.optional')}</span></label>
               <div className="relative">
                 <select
                   value={propertyId}
                   onChange={(e) => setPropertyId(e.target.value)}
                   className={selectClasses}
                 >
-                  <option value="">Sélectionner...</option>
+                  <option value="">{t('lost.select')}</option>
                   {(listings ?? []).map((l) => (
                     <option key={l.id} value={l.property_id || l.id}>
                       {l.title}
@@ -128,7 +125,7 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
 
           {/* Rôle — pill buttons */}
           <div>
-            <label className={labelClasses}>Rôle</label>
+            <label className={labelClasses}>{t('transaction.role')}</label>
             <div className="flex gap-1.5">
               {(['buyer', 'seller'] as const).map((role) => (
                 <button
@@ -142,7 +139,7 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
                       : 'border-theme-border text-theme-tertiary hover:text-theme-secondary'
                   )}
                 >
-                  {role === 'buyer' ? 'Acheteur' : 'Vendeur'}
+                  {role === 'buyer' ? t('transaction.role_buyer') : t('transaction.role_seller')}
                 </button>
               ))}
             </div>
@@ -155,7 +152,7 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
               onClick={() => setShowDetails(true)}
               className="flex items-center gap-1 text-sm text-theme-tertiary hover:text-theme-primary transition-colors"
             >
-              + Ajouter des détails
+              {t('transaction.add_details')}
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           ) : (
@@ -163,7 +160,7 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
               {/* Mandat */}
               <div>
                 <label className={labelClasses}>
-                  Type de mandat <span className="text-theme-muted font-normal">(optionnel)</span>
+                  {t('transaction.mandate_type')} <span className="text-theme-muted font-normal">{t('transaction.optional')}</span>
                 </label>
                 <div className="relative">
                   <select
@@ -171,8 +168,8 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
                     onChange={(e) => setMandateType(e.target.value)}
                     className={selectClasses}
                   >
-                    {MANDATE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    {MANDATE_VALUES.map((value) => (
+                      <option key={value} value={value}>{t(`transaction.mandate.${value || 'none'}`)}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary pointer-events-none" />
@@ -182,13 +179,13 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
               {/* Notes */}
               <div>
                 <label className={labelClasses}>
-                  Notes <span className="text-theme-muted font-normal">(optionnel)</span>
+                  {t('transaction.notes')} <span className="text-theme-muted font-normal">{t('transaction.optional')}</span>
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
-                  placeholder="Contexte, détails importants..."
+                  placeholder={t('transaction.notes_placeholder')}
                   className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none placeholder:text-theme-tertiary"
                 />
               </div>
@@ -203,7 +200,7 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
             onClick={handleClose}
             className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
           >
-            Annuler
+            {t('common:actions.cancel')}
           </button>
           <button
             type="button"
@@ -215,7 +212,7 @@ export default function NewTransactionDialog({ open, onClose, title = 'Nouvelle 
             )}
           >
             {createTransaction.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Créer
+            {t('common:actions.create')}
           </button>
         </div>
       </>

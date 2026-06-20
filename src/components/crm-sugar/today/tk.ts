@@ -104,12 +104,14 @@ export function applyTK(dark: boolean): void {
   TK.mode = dark === false ? 'light' : 'dark'
 }
 
-// Phases pipeline (couleurs de reconnaissance).
-export const TK_STAGE: Record<string, { label: string; color: string }> = {
-  recherche: { label: 'Recherche active', color: '#6F8CFF' },
-  visite: { label: 'Visite planifiée', color: '#39B7C9' },
-  offre: { label: 'Offre déposée', color: '#E08A45' },
-  compromis: { label: 'Compromis', color: '#34C796' },
+// Phases pipeline (couleurs de reconnaissance). `labelKey` = clé i18n stable
+// (namespace dashboard) ; le libellé est traduit chez le consommateur (cf. §5
+// des conventions i18n — module pur, pas de hook ici).
+export const TK_STAGE: Record<string, { labelKey: string; color: string }> = {
+  recherche: { labelKey: 'today.pipeline.stages.searching', color: '#6F8CFF' },
+  visite: { labelKey: 'today.pipeline.stages.visit', color: '#39B7C9' },
+  offre: { labelKey: 'today.pipeline.stages.offer', color: '#E08A45' },
+  compromis: { labelKey: 'today.pipeline.stages.compromis', color: '#34C796' },
 }
 
 export type TkToneName = 'ok' | 'warn' | 'danger' | 'info' | 'neutral'

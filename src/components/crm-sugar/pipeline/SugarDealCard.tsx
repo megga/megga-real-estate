@@ -3,6 +3,7 @@
 
 import { memo, useState, type DragEvent as ReactDragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { CRM_STAGES, crmFmtCHF, crmInitials, type SugarPalette } from '../tokens'
 import { crmContactById, crmBienById, type CrmContact, type CrmDeal } from '../mockData'
@@ -51,6 +52,7 @@ function nextActionIcon(kind: string): MEIconName {
 function SugarDealCardImpl({
   deal, focused = false, sp, dark, onClick, isDragging, onDragStart, onDragEnd,
 }: DealCardProps) {
+  const { t } = useTranslation('pipeline')
   const c = crmContactById(deal.contactId)!
   const b = deal.bienId ? crmBienById(deal.bienId) : null
   const riskColor = deal.risk === 'at-risk' ? '#F59E0B' : deal.risk === 'stalled' ? '#E53935' : null
@@ -123,7 +125,7 @@ function SugarDealCardImpl({
             fontSize: 10.5, color: sub, marginTop: 1,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            {b ? b.title : 'Recherche active'}
+            {b ? b.title : t('board.noPropertyYet')}
           </div>
         </div>
         {kycProg && !focused && !hover && !menuOpen && (
@@ -151,7 +153,7 @@ function SugarDealCardImpl({
             fontVariantNumeric: 'tabular-nums',
           }}>{deal.value ? crmFmtCHF(deal.value) : '—'}</div>
           <div style={{ fontSize: 10.5, color: sub, fontWeight: 600, marginTop: 1 }}>
-            {deal.probability}% · {stage.label}
+            {deal.probability}% · {t(`stages.${deal.stage}`)}
           </div>
         </div>
         <SugarMiniRing
@@ -203,6 +205,7 @@ function CardQuickActions({
   setMenuOpen: (v: boolean | ((o: boolean) => boolean)) => void
   dark: boolean
 }) {
+  const { t } = useTranslation('pipeline')
   const navigate = useNavigate()
   const updateStage = useUpdateTransactionStage()
   const [reassignOpen, setReassignOpen] = useState(false)
@@ -213,11 +216,11 @@ function CardQuickActions({
   // event for compliance).
   async function archiveDeal() {
     if (isMockId(dealId)) {
-       
-      window.alert('Archivage disponible sur un deal réel uniquement (donnée de démo).')
+
+      window.alert(t('board.card.archiveDemoOnly'))
       return
     }
-    if (typeof window !== 'undefined' && !window.confirm('Archiver ce deal ?')) return
+    if (typeof window !== 'undefined' && !window.confirm(t('board.card.archiveConfirm'))) return
     // The transactions.status enum has no 'archived' — we use 'cancelled'
     // as the closest "remove from active view" semantic. Could split into
     // a dedicated 'archived' value via a future migration if needed.
@@ -226,19 +229,19 @@ function CardQuickActions({
       .update({ status: 'cancelled' })
       .eq('id', dealId)
      
-    if (error) window.alert(`Échec : ${error.message}`)
+    if (error) window.alert(t('board.card.actionFailed', { message: error.message }))
     // Cache Helpers in sibling hooks invalidates on update via auto-key
     // matching; the pipeline kanban refreshes on next render.
   }
 
   async function markLost() {
     if (isMockId(dealId)) {
-       
-      window.alert('Marquer perdu disponible sur un deal réel uniquement (donnée de démo).')
+
+      window.alert(t('board.card.markLostDemoOnly'))
       return
     }
     if (typeof window === 'undefined') return
-    const reason = window.prompt('Motif de la perte (optionnel, journalisé dans l\'audit trail) :')
+    const reason = window.prompt(t('board.card.lostReasonPrompt'))
     if (reason === null) return // cancelled
     try {
       await updateStage.mutateAsync({
@@ -247,9 +250,9 @@ function CardQuickActions({
         lostReason: reason.trim() || undefined,
       })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'erreur inconnue'
-       
-      window.alert(`Échec : ${msg}`)
+      const msg = err instanceof Error ? err.message : t('board.card.unknownError')
+
+      window.alert(t('board.card.actionFailed', { message: msg }))
     }
   }
   const btnBg = focused ? 'rgba(255,255,255,.16)' : sp.cardBg
@@ -270,7 +273,7 @@ function CardQuickActions({
       animation: 'qaFade .14s ease-out',
     }}>
       <style>{`@keyframes qaFade { from { opacity: 0; transform: translateY(-2px) } to { opacity: 1; transform: none } }`}</style>
-      <button title="Planifier une visite"
+      <button title={t('board.card.scheduleVisit')}
         onClick={e => {
           stop(e)
           const q = new URLSearchParams()
@@ -283,7 +286,7 @@ function CardQuickActions({
         <MEIcon name="home" size={11} color={btnFg} />
       </button>
       <div style={{ position: 'relative' }}>
-        <button title="Plus d'options"
+        <button title={t('board.card.moreOptions')}
           onClick={e => { stop(e); setMenuOpen(o => !o) }}
           style={baseBtn(menuOpen ? { background: sp.ink, color: sp.pageBg, borderColor: sp.ink } : {})}
           onMouseEnter={e => { if (!menuOpen) e.currentTarget.style.transform = 'scale(1.08)' }}
@@ -300,17 +303,17 @@ function CardQuickActions({
             WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
             padding: 6, zIndex: 10, animation: 'qaFade .14s ease-out',
           }}>
-            <MenuItem sp={sp} dark={dark} icon="users" label="Réassigner" onClick={() => {
+            <MenuItem sp={sp} dark={dark} icon="users" label={t('board.card.reassign')} onClick={() => {
               if (isMockId(dealId)) {
                 setMenuOpen(false)
-                 
-                window.alert('Réassignation disponible sur un deal réel uniquement (donnée de démo).')
+
+                window.alert(t('board.card.reassignDemoOnly'))
                 return
               }
               setReassignOpen(true)
             }} />
-            <MenuItem sp={sp} dark={dark} icon="file" label="Archiver" onClick={() => { setMenuOpen(false); void archiveDeal() }} />
-            <MenuItem sp={sp} dark={dark} icon="alert" label="Marquer perdu" tone="danger" onClick={() => { setMenuOpen(false); void markLost() }} />
+            <MenuItem sp={sp} dark={dark} icon="file" label={t('board.card.archive')} onClick={() => { setMenuOpen(false); void archiveDeal() }} />
+            <MenuItem sp={sp} dark={dark} icon="alert" label={t('board.card.markLost')} tone="danger" onClick={() => { setMenuOpen(false); void markLost() }} />
           </div>
         )}
         {reassignOpen && (
@@ -339,6 +342,7 @@ function ReassignPicker({
   dealId: string
   onClose: () => void
 }) {
+  const { t } = useTranslation('pipeline')
   const { data: members = [] as Array<{ id: string; full_name: string; avatar_url: string | null }>, isLoading } = useTeamMembers()
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -377,14 +381,14 @@ function ReassignPicker({
       }}
     >
       <div style={{ padding: '4px 8px 8px', fontSize: 11, fontWeight: 700, color: sp.sub, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-        Réassigner à
+        {t('board.card.reassignTo')}
       </div>
       {isLoading && (
-        <div style={{ padding: 12, color: sp.sub, fontSize: 12 }}>Chargement…</div>
+        <div style={{ padding: 12, color: sp.sub, fontSize: 12 }}>{t('common:actions.loading')}</div>
       )}
       {!isLoading && members.length === 0 && (
         <div style={{ padding: 12, color: sp.sub, fontSize: 12 }}>
-          Aucun autre agent dans l'agence.
+          {t('board.card.noOtherAgents')}
         </div>
       )}
       <div style={{ maxHeight: 280, overflowY: 'auto' }}>

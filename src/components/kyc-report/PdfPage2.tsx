@@ -7,6 +7,7 @@
 //      Affichée uniquement si data.risk_analysis est non-null.
 //      Aucun nom de provider IA dans le rendu.
 
+import { useTranslation } from 'react-i18next'
 import { PdfShell, PdfSectionRule, PdfDef, PdfSemPill, PdfCheckIcon } from './PdfShell'
 import { PDF, fmtCHF, fmtDateSwiss, fmtDateTimeSwiss, pad2 } from './tokens'
 import type { PdfReportData } from './buildReportData'
@@ -16,14 +17,16 @@ interface Props {
 }
 
 export function PdfPage2({ data }: Props) {
+  const { t } = useTranslation('kyc')
   const screeningDate = fmtDateTimeSwiss(data.screening_date)
+  const noMatch = t('report.pdf.page2.noMatch')
   const screeningRows: Array<[string, string, string, string]> = [
-    ['PEP (Personnes Exposées Politiquement)', data.screening_provider, '0 match', screeningDate],
-    ['Sanctions OFAC (États-Unis)', data.screening_provider, '0 match', screeningDate],
-    ['Sanctions SECO (Suisse)', data.screening_provider, '0 match', screeningDate],
-    ['Sanctions UE', data.screening_provider, '0 match', screeningDate],
-    ['Sanctions ONU', data.screening_provider, '0 match', screeningDate],
-    ['Listes adverse media', data.screening_provider, '0 match', screeningDate],
+    [t('report.pdf.page2.list.pep'), data.screening_provider, noMatch, screeningDate],
+    [t('report.pdf.page2.list.ofac'), data.screening_provider, noMatch, screeningDate],
+    [t('report.pdf.page2.list.seco'), data.screening_provider, noMatch, screeningDate],
+    [t('report.pdf.page2.list.eu'), data.screening_provider, noMatch, screeningDate],
+    [t('report.pdf.page2.list.un'), data.screening_provider, noMatch, screeningDate],
+    [t('report.pdf.page2.list.adverseMedia'), data.screening_provider, noMatch, screeningDate],
   ]
 
   return (
@@ -38,7 +41,7 @@ export function PdfPage2({ data }: Props) {
             textTransform: 'uppercase',
           }}
         >
-          Diligence raisonnable effectuée
+          {t('report.pdf.page2.eyebrow')}
         </div>
         <h2
           style={{
@@ -50,13 +53,13 @@ export function PdfPage2({ data }: Props) {
             lineHeight: 1.05,
           }}
         >
-          Contrôles &amp; pièces.
+          {t('report.pdf.page2.title')}
         </h2>
       </div>
 
       {/* 04 — Screening Dilisense */}
       <PdfSectionRule num={4}>
-        Screening listes officielles · {data.screening_provider}
+        {t('report.pdf.section.screening', { provider: data.screening_provider })}
       </PdfSectionRule>
       <table
         style={{
@@ -68,7 +71,13 @@ export function PdfPage2({ data }: Props) {
       >
         <thead>
           <tr>
-            {['Liste', 'Provider', 'Résultat', 'Horodatage', ''].map((h, i) => (
+            {[
+              t('report.pdf.col.list'),
+              t('report.pdf.col.provider'),
+              t('report.pdf.col.result'),
+              t('report.pdf.col.timestamp'),
+              '',
+            ].map((h, i) => (
               <th
                 key={i}
                 style={{
@@ -116,7 +125,7 @@ export function PdfPage2({ data }: Props) {
                   fontWeight: 600,
                 }}
               >
-                {data.screening_clear ? '0 match' : r[2]}
+                {data.screening_clear ? noMatch : r[2]}
               </td>
               <td
                 style={{
@@ -129,9 +138,9 @@ export function PdfPage2({ data }: Props) {
               </td>
               <td style={{ padding: '7px 0', textAlign: 'right' }}>
                 {data.screening_clear ? (
-                  <PdfSemPill tone="ok">Clear</PdfSemPill>
+                  <PdfSemPill tone="ok">{t('report.pdf.page2.clear')}</PdfSemPill>
                 ) : (
-                  <PdfSemPill tone="warn">À examiner</PdfSemPill>
+                  <PdfSemPill tone="warn">{t('report.pdf.page2.toReview')}</PdfSemPill>
                 )}
               </td>
             </tr>
@@ -141,7 +150,7 @@ export function PdfPage2({ data }: Props) {
 
       {/* 05 — Contrôles LBA validés */}
       <PdfSectionRule num={5}>
-        Contrôles LBA validés · art. 3 à 7
+        {t('report.pdf.section.lbaChecks')}
       </PdfSectionRule>
       <table
         style={{
@@ -153,7 +162,13 @@ export function PdfPage2({ data }: Props) {
       >
         <thead>
           <tr>
-            {['#', 'Contrôle', 'Pièce justificative', 'Date', 'Agent'].map(
+            {[
+              t('report.pdf.col.num'),
+              t('report.pdf.col.control'),
+              t('report.pdf.col.supportingDoc'),
+              t('report.pdf.col.date'),
+              t('report.pdf.col.agent'),
+            ].map(
               (h, i) => (
                 <th
                   key={i}
@@ -242,7 +257,7 @@ export function PdfPage2({ data }: Props) {
       </table>
 
       {/* 06 — Source des fonds */}
-      <PdfSectionRule num={6}>Source des fonds documentée</PdfSectionRule>
+      <PdfSectionRule num={6}>{t('report.pdf.section.sourceOfFunds')}</PdfSectionRule>
       <div
         style={{
           display: 'grid',
@@ -250,13 +265,13 @@ export function PdfPage2({ data }: Props) {
           gap: 24,
         }}
       >
-        <PdfDef label="Type" value={data.source_of_funds.type_label} />
+        <PdfDef label={t('report.pdf.label.type')} value={data.source_of_funds.type_label} />
         <PdfDef
-          label="Établissement"
+          label={t('report.pdf.label.establishment')}
           value={data.source_of_funds.establishment ?? '—'}
         />
         <PdfDef
-          label="Montant attesté"
+          label={t('report.pdf.label.attestedAmount')}
           value={fmtCHF(data.source_of_funds.amount)}
         />
       </div>
@@ -278,7 +293,7 @@ export function PdfPage2({ data }: Props) {
       {/* 07 — Analyse de risque (estimation assistée — masquée si ai_analysis absent) */}
       {data.risk_analysis && (
         <>
-          <PdfSectionRule num={7}>Analyse de risque</PdfSectionRule>
+          <PdfSectionRule num={7}>{t('report.pdf.section.riskAnalysis')}</PdfSectionRule>
 
           {/* Niveau de risque + recommandation */}
           <div
@@ -308,7 +323,7 @@ export function PdfPage2({ data }: Props) {
                   marginBottom: 6,
                 }}
               >
-                Niveau de risque qualitative
+                {t('report.pdf.riskLevelLabel')}
               </div>
               <div
                 style={{
@@ -352,7 +367,7 @@ export function PdfPage2({ data }: Props) {
                   marginBottom: 6,
                 }}
               >
-                Recommandation
+                {t('report.pdf.recommendationLabel')}
               </div>
               <div
                 style={{
@@ -374,7 +389,7 @@ export function PdfPage2({ data }: Props) {
                     marginTop: 3,
                   }}
                 >
-                  Confiance : {data.risk_analysis.confidence_pct} %
+                  {t('report.pdf.confidence', { pct: data.risk_analysis.confidence_pct })}
                 </div>
               )}
             </div>
@@ -407,7 +422,7 @@ export function PdfPage2({ data }: Props) {
                   marginBottom: 5,
                 }}
               >
-                Patterns détectés
+                {t('report.pdf.patternsDetected')}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {data.risk_analysis.patterns.map((p, i) => (
@@ -443,8 +458,7 @@ export function PdfPage2({ data }: Props) {
               lineHeight: 1.4,
             }}
           >
-            Estimation assistée — aide à la décision, ne remplace pas l'appréciation
-            du chargé de conformité (MLRO). À valider.
+            {t('report.pdf.assistedEstimateNotice')}
           </div>
         </>
       )}

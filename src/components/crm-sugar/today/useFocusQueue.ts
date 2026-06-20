@@ -16,6 +16,8 @@
 // non-bloquant ; 0 LLM. Empty-state honnête côté UI (plus de seed démo en prod).
 
 import { useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useReminders } from '@/hooks/useReminders'
 import { useSellerLeads } from '@/hooks/useSellerLeads'
@@ -55,9 +57,17 @@ function avFromId(id: string): string {
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0
   return AV_PAL[Math.abs(h) % AV_PAL.length]
 }
+// Locale d'affichage de l'heure suivant la langue active (formats suisses).
+function timeLocale(): string {
+  const l = i18n.language || 'fr'
+  if (l.startsWith('en')) return 'en-CH'
+  if (l.startsWith('de')) return 'de-CH'
+  if (l.startsWith('it')) return 'it-CH'
+  return 'fr-CH'
+}
 function fmtTime(iso: string | null | undefined): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString(timeLocale(), { hour: '2-digit', minute: '2-digit' })
 }
 
 // Étape du deal → type d'action (bouton) + libellé de catégorie (badge).
@@ -86,6 +96,7 @@ export interface UseFocusQueueResult {
 }
 
 export function useFocusQueue(): UseFocusQueueResult {
+  const { t } = useTranslation('dashboard')
   const { deals, contactsById, biensById, kycByContact, isLoading: dealsLoading } = usePipelineSugar()
   const { reminders, isLoading: remLoading, markAsDone, snooze } = useReminders()
   const { matches, isLoading: matchesLoading } = useFocusMatches()
@@ -116,7 +127,7 @@ export function useFocusQueue(): UseFocusQueueResult {
       if (d.stage === 'lost') continue
       const c = contactsById.get(d.contactId)
       const b = d.bienId ? biensById.get(d.bienId) : undefined
-      const contact = c ? `${c.firstName} ${c.lastName}`.trim() : 'Contact'
+      const contact = c ? `${c.firstName} ${c.lastName}`.trim() : t('today.queue.contact')
       const kyc = kycByContact.get(d.contactId)
 
       // 1b. RADAR KYC×closing : deal proche du closing dont le dossier KYC
@@ -146,9 +157,9 @@ export function useFocusQueue(): UseFocusQueueResult {
           time: '',
           eta: '',
           sub: b?.title
-            ? `${b.title} — dossier KYC à finaliser avant le closing.`
-            : 'Dossier KYC à finaliser avant le closing.',
-          reason: buildReason(input, now, cfg),
+            ? t('today.queue.kycSubTitled', { title: b.title })
+            : t('today.queue.kycSub'),
+          reason: buildReason(input, now, t, cfg),
           score,
           displayScore: toDisplayScore(score, cfg),
           tier,
@@ -180,8 +191,8 @@ export function useFocusQueue(): UseFocusQueueResult {
         category,
         time: fmtTime(d.nextAction?.dueAt),
         eta: '',
-        sub: b?.title ? `${b.title} — à faire avancer.` : 'Deal à faire avancer.',
-        reason: buildReason(input, now, cfg),
+        sub: b?.title ? t('today.queue.dealSubTitled', { title: b.title }) : t('today.queue.dealSub'),
+        reason: buildReason(input, now, t, cfg),
         score,
         displayScore: toDisplayScore(score, cfg),
         tier,
@@ -207,15 +218,15 @@ export function useFocusQueue(): UseFocusQueueResult {
         id: `rem-${r.id}`,
         type,
         signalKind: 'reminder',
-        contact: r.contactName || 'Contact',
+        contact: r.contactName || t('today.queue.contact'),
         contactId: r.contactId || r.id,
         initials: initialsOf(r.contactName || ''),
         av: avFromId(r.contactId || r.id),
         category,
         time: fmtTime(r.triggerAt),
         eta: '',
-        sub: r.description || r.title || (category === 'KYC' ? "Vérification d'identité à compléter." : 'À relancer.'),
-        reason: buildReason(input, now, cfg),
+        sub: r.description || r.title || (category === 'KYC' ? t('today.queue.reminderKycSub') : t('today.queue.reminderSub')),
+        reason: buildReason(input, now, t, cfg),
         score,
         displayScore: toDisplayScore(score, cfg),
         tier,
@@ -236,7 +247,7 @@ export function useFocusQueue(): UseFocusQueueResult {
       }
       const score = scoreItem(input, now, cfg)
       const tier = assignTier(input, now, cfg)
-      const contact = m.contactName || 'Contact'
+      const contact = m.contactName || t('today.queue.contact')
       out.push({
         id: `match-${m.matchId}`,
         type: 'match',
@@ -250,8 +261,8 @@ export function useFocusQueue(): UseFocusQueueResult {
         eta: '',
         sub: m.propertyTitle
           ? `${m.propertyTitle}${m.city ? ` · ${m.city}` : ''}`
-          : 'Bien proposé — à présenter.',
-        reason: buildReason(input, now, cfg),
+          : t('today.queue.matchSub'),
+        reason: buildReason(input, now, t, cfg),
         score,
         displayScore: toDisplayScore(score, cfg),
         scoreBrut: m.score,
@@ -275,6 +286,7 @@ export function useFocusQueue(): UseFocusQueueResult {
       const pd = lead.property_data
       const city = pd?.city || null
       const est = lead.estimation_median != null ? fmtCHF(lead.estimation_median) : null
+      const estLabel = est ? t('today.queue.estimationValue', { value: est }) : null
       const input: FocusScoreInput = {
         signalKind: 'seller-lead',
         sellerEstimation: lead.estimation_median,
@@ -295,9 +307,9 @@ export function useFocusQueue(): UseFocusQueueResult {
         category: 'VENDEUR',
         time: '',
         eta: '',
-        sub: [pd?.address || city, est ? `estimation ${est}` : null].filter(Boolean).join(' · ')
-          || 'Nouveau mandat vendeur à qualifier.',
-        reason: buildReason(input, now, cfg),
+        sub: [pd?.address || city, estLabel].filter(Boolean).join(' · ')
+          || t('today.queue.sellerSub'),
+        reason: buildReason(input, now, t, cfg),
         score,
         displayScore: toDisplayScore(score, cfg),
         tier,
@@ -322,7 +334,7 @@ export function useFocusQueue(): UseFocusQueueResult {
       }
       const score = scoreItem(input, now, cfg)
       const tier = assignTier(input, now, cfg)
-      const contact = o.by_label || 'Offre'
+      const contact = o.by_label || t('today.queue.offerContact')
       out.push({
         id: `offer-${o.id}`,
         type: 'offer',
@@ -334,8 +346,8 @@ export function useFocusQueue(): UseFocusQueueResult {
         category: 'OFFRE',
         time: '',
         eta: '',
-        sub: `Offre ${fmtCHF(o.amount)} en attente — réponse à suivre.`,
-        reason: buildReason(input, now, cfg),
+        sub: t('today.queue.offerSub', { amount: fmtCHF(o.amount) }),
+        reason: buildReason(input, now, t, cfg),
         score,
         displayScore: toDisplayScore(score, cfg),
         tier,
@@ -359,7 +371,7 @@ export function useFocusQueue(): UseFocusQueueResult {
       if (classifyVisit(input, now) === 'none') continue
       const score = scoreItem(input, now, cfg)
       const tier = assignTier(input, now, cfg)
-      const contact = v.contactName || 'Contact'
+      const contact = v.contactName || t('today.queue.contact')
       out.push({
         id: `visit-${v.id}`,
         type: 'visit',
@@ -371,8 +383,8 @@ export function useFocusQueue(): UseFocusQueueResult {
         category: 'VISITE',
         time: fmtTime(v.scheduledAt),
         eta: '',
-        sub: [v.propertyTitle, v.propertyCity].filter(Boolean).join(' · ') || 'Visite à suivre.',
-        reason: buildReason(input, now, cfg),
+        sub: [v.propertyTitle, v.propertyCity].filter(Boolean).join(' · ') || t('today.queue.visitSub'),
+        reason: buildReason(input, now, t, cfg),
         score,
         displayScore: toDisplayScore(score, cfg),
         tier,
@@ -403,7 +415,7 @@ export function useFocusQueue(): UseFocusQueueResult {
       }
       const score = scoreItem(input, now, cfg)
       const tier = assignTier(input, now, cfg)
-      const contact = `${lead.first} ${lead.last}`.trim() || 'Contact'
+      const contact = `${lead.first} ${lead.last}`.trim() || t('today.queue.contact')
       out.push({
         id: `cooling-${lead.id}`,
         type: 'cooling',
@@ -415,8 +427,10 @@ export function useFocusQueue(): UseFocusQueueResult {
         category: 'RELANCE',
         time: '',
         eta: '',
+        // lead.reason vient de useRelanceLeads (hors bundle pilote) — encore FR.
+        // À internationaliser avec la surface « relances/contacts » (Phase 2).
         sub: lead.reason,
-        reason: buildReason(input, now, cfg),
+        reason: buildReason(input, now, t, cfg),
         score,
         displayScore: toDisplayScore(score, cfg),
         tier,
@@ -444,7 +458,7 @@ export function useFocusQueue(): UseFocusQueueResult {
       const tier = assignTier(input, now, cfg)
       if (tier === 'rest') continue
       const score = scoreItem(input, now, cfg)
-      const title = p.title || 'Bien sans titre'
+      const title = p.title || t('today.queue.untitledProperty')
       out.push({
         id: `bien-${p.propertyId}`,
         type: 'bien',
@@ -458,8 +472,8 @@ export function useFocusQueue(): UseFocusQueueResult {
         category: 'BIEN',
         time: '',
         eta: '',
-        sub: [p.title, p.city].filter(Boolean).join(' · ') || 'Bien interne à travailler.',
-        reason: buildReason(input, now, cfg),
+        sub: [p.title, p.city].filter(Boolean).join(' · ') || t('today.queue.propertySub'),
+        reason: buildReason(input, now, t, cfg),
         score,
         displayScore: toDisplayScore(score, cfg),
         tier,
@@ -470,7 +484,7 @@ export function useFocusQueue(): UseFocusQueueResult {
     }
 
     return finalizeQueue(out, cfg)
-  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, coolingLeads, expiringOffers, focusVisits, focusProperties, cfg])
+  }, [deals, contactsById, biensById, kycByContact, reminders, matches, sellerLeads, coolingLeads, expiringOffers, focusVisits, focusProperties, cfg, t])
 
   const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading || coolingLoading || offersLoading || visitsLoading || propsLoading
   const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0 || coolingLeads.length > 0 || expiringOffers.length > 0 || focusVisits.length > 0 || focusProperties.length > 0

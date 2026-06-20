@@ -69,28 +69,40 @@ export interface FocusTypeDef {
   icon: string
   badge: string
   live: boolean
-  label: (n: string) => string
+  /** Clé i18n du bouton principal (namespace dashboard). Interpolation {{name}}
+   * = prénom du contact, traduit chez le consommateur (cf i18n-conventions §5). */
+  labelKey: string
 }
 
-// type → bouton principal + couleur d'accent du badge
+// type → bouton principal + couleur d'accent du badge. `labelKey` est traduit
+// par le composant via t(ty.labelKey, { name: prénom }).
 export const FOCUS_TYPE: Record<string, FocusTypeDef> = {
-  call: { icon: 'phone', badge: '#6F8CFF', live: true, label: (n) => `Appeler ${n.split(' ')[0]}` },
-  kyc: { icon: 'shield', badge: '#39B7C9', live: false, label: () => 'Vérifier le KYC' },
-  sign: { icon: 'doc', badge: '#E08A45', live: false, label: () => 'Préparer le mandat' },
-  offer: { icon: 'offer', badge: '#34C796', live: false, label: () => "Relancer l'offre" },
-  match: { icon: 'phone', badge: '#6F8CFF', live: true, label: (n) => `Appeler ${n.split(' ')[0]}` },
+  call: { icon: 'phone', badge: '#6F8CFF', live: true, labelKey: 'today.focusTypes.call' },
+  kyc: { icon: 'shield', badge: '#39B7C9', live: false, labelKey: 'today.focusTypes.kyc' },
+  sign: { icon: 'doc', badge: '#E08A45', live: false, labelKey: 'today.focusTypes.sign' },
+  offer: { icon: 'offer', badge: '#34C796', live: false, labelKey: 'today.focusTypes.offer' },
+  match: { icon: 'phone', badge: '#6F8CFF', live: true, labelKey: 'today.focusTypes.call' },
   // Focus radar v1 — nouveau mandat vendeur 'new' à réclamer (argent qui attend).
-  seller: { icon: 'flame', badge: '#34C796', live: false, label: (n) => `Contacter ${n.split(' ')[0]}` },
+  seller: { icon: 'flame', badge: '#34C796', live: false, labelKey: 'today.focusTypes.seller' },
   // Focus radar v2 — lead qui refroidit / jamais recontacté (relance de fond).
-  cooling: { icon: 'clock', badge: '#6F8CFF', live: false, label: (n) => `Relancer ${n.split(' ')[0]}` },
+  cooling: { icon: 'clock', badge: '#6F8CFF', live: false, labelKey: 'today.focusTypes.cooling' },
   // Focus radar v3 — visite à préparer (jour) / débrief en attente / no-show.
   // (Les offres qui expirent réutilisent le type 'offer' ci-dessus.)
-  visit: { icon: 'cal', badge: '#9b7cf0', live: false, label: () => 'Voir la visite' },
+  visit: { icon: 'cal', badge: '#9b7cf0', live: false, labelKey: 'today.focusTypes.visit' },
   // Focus radar v4 — bien interne à pousser (score de bien backend). UI-only.
-  bien: { icon: 'building', badge: '#5b6cff', live: false, label: () => 'Voir le bien' },
+  bien: { icon: 'building', badge: '#5b6cff', live: false, labelKey: 'today.focusTypes.bien' },
 }
 
 export const focusTy = (t: string): FocusTypeDef => FOCUS_TYPE[t] || FOCUS_TYPE.call
+
+// Code de catégorie (badge) → segment de clé i18n today.tags.* . Le `category`
+// reste un CODE stable interne ; seul l'affichage est traduit (chez le
+// consommateur : t(`today.tags.${focusTagKey(item.category)}`)).
+const TAG_KEY: Record<string, string> = {
+  OFFRE: 'offer', MANDAT: 'mandate', RELANCE: 'relance', KYC: 'kyc',
+  VENDEUR: 'seller', VISITE: 'visit', BIEN: 'property', MATCH: 'match',
+}
+export const focusTagKey = (category: string): string => TAG_KEY[category] || category.toLowerCase()
 
 // Sélectionne la file actionnable à afficher (pur, testable). En live on retire
 // le tier « reste » (faible bruit, plié) ; sinon le seed démo n'est servi que

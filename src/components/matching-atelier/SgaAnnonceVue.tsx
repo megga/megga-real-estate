@@ -6,6 +6,7 @@
 // AUCUNE mention du portail source dans l'UI.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import { sgaDateLong, sgaDateShort, sgaFmtCHF } from './format'
 import SgaMiniMap from './SgaMiniMap'
@@ -13,6 +14,7 @@ import type { AtelierBuyer, AtelierListing } from './types'
 
 /* ── collage photo éditorial (1 hero + 2 tuiles, labels de pièce) ──────── */
 function SgvCollage({ L, onOpenPhoto }: { L: AtelierListing; onOpenPhoto: (i: number) => void }) {
+  const { t } = useTranslation('matching')
   const G = L.gallery
   const rest = Math.max(0, (L.photos || G.length) - 3)
   const tile = (i: number, extra?: 'more') => (
@@ -26,21 +28,21 @@ function SgvCollage({ L, onOpenPhoto }: { L: AtelierListing; onOpenPhoto: (i: nu
       {extra === 'more' && rest > 0 && (
         <div className="rest">
           <SgaIcon d="layers" size={18} />
-          <span className="nums">+{rest} photos</span>
+          <span className="nums">+{t('atelier.morePhotos', { count: rest })}</span>
         </div>
       )}
     </div>
   )
   return (
-    <div className="sgv-collage" aria-label={`${L.photos} photos — ouvrir la galerie`}>
+    <div className="sgv-collage" aria-label={t('atelier.openGalleryAria', { count: L.photos })}>
       <div className="sgv-cphoto main" onClick={() => onOpenPhoto(0)}>
         {G[0]?.url ? (
           <img src={G[0].url} alt={G[0].label} draggable="false" />
         ) : (
-          <div className="sga-ph"><div className="ph-lbl"><SgaIcon d="camera" size={26} /><span>photo principale</span></div></div>
+          <div className="sga-ph"><div className="ph-lbl"><SgaIcon d="camera" size={26} /><span>{t('atelier.mainPhoto')}</span></div></div>
         )}
         {G[0] && <span className="cap">{G[0].label}</span>}
-        <div className="sga-zoomcue"><SgaIcon d="search" size={13} /> Ouvrir la galerie</div>
+        <div className="sga-zoomcue"><SgaIcon d="search" size={13} /> {t('atelier.openGallery')}</div>
       </div>
       {tile(1)}
       {tile(2, 'more')}
@@ -60,10 +62,11 @@ function SgvSection({ title, children }: { title: string; children: ReactNode })
 }
 
 function SgvPriceCard({ L }: { L: AtelierListing }) {
+  const { t } = useTranslation('matching')
   const drop = L.priceWas ? L.priceWas - L.price : 0
   return (
     <div className="sgv-card">
-      <span className="eyebrow">Prix de {L.transaction === 'Vente' ? 'vente' : 'location'}</span>
+      <span className="eyebrow">{L.transaction === 'Vente' ? t('atelier.salePrice') : t('atelier.rentPrice')}</span>
       <div className="sgv-price nums">{sgaFmtCHF(L.price)}</div>
       {drop > 0 && (
         <div className="sgv-delta">
@@ -74,21 +77,21 @@ function SgvPriceCard({ L }: { L: AtelierListing }) {
         {L.pricePerM2 != null && (
           <div className="sgv-row">
             <span className="ic"><SgaIcon d="surface" size={14} /></span>
-            <span className="lb">Prix au m²</span>
+            <span className="lb">{t('atelier.pricePerM2')}</span>
             <span className="vl nums">{sgaFmtCHF(Math.round(L.pricePerM2))}</span>
           </div>
         )}
         {L.charges != null && (
           <div className="sgv-row">
             <span className="ic"><SgaIcon d="tag" size={14} /></span>
-            <span className="lb">Charges mensuelles</span>
-            <span className="vl nums">{sgaFmtCHF(L.charges)} / mois</span>
+            <span className="lb">{t('atelier.monthlyCharges')}</span>
+            <span className="vl nums">{t('atelier.perMonth', { value: sgaFmtCHF(L.charges) })}</span>
           </div>
         )}
         {drop > 0 && (
           <div className="sgv-row">
             <span className="ic"><SgaIcon d="trend-down" size={14} /></span>
-            <span className="lb">Baisse constatée</span>
+            <span className="lb">{t('atelier.priceDrop')}</span>
             <span className="vl nums">−{sgaFmtCHF(drop)}</span>
           </div>
         )}
@@ -98,17 +101,18 @@ function SgvPriceCard({ L }: { L: AtelierListing }) {
 }
 
 function SgvSpecs({ L }: { L: AtelierListing }) {
+  const { t } = useTranslation('matching')
   const cells: Array<{ d: Parameters<typeof SgaIcon>[0]['d']; k: string; v: string }> = []
-  if (L.rooms != null) cells.push({ d: 'home', k: 'Pièces', v: `${L.rooms}` })
-  if (L.area != null) cells.push({ d: 'surface', k: 'Surface', v: `${L.area} m²` })
-  if (L.beds != null) cells.push({ d: 'bed', k: 'Chambres', v: `${L.beds}` })
-  if (L.baths != null) cells.push({ d: 'bath', k: "Salles d'eau", v: `${L.baths}` })
-  if (L.floor != null) cells.push({ d: 'lift', k: 'Étage', v: `${L.floor}ᵉ${L.lift ? ' · asc.' : ''}` })
-  if (L.year != null) cells.push({ d: 'calendar', k: 'Année', v: `${L.year}` })
-  if (L.kind === 'market') cells.push({ d: 'layers', k: 'Meublé', v: L.isFurnished ? 'Oui' : 'Non' })
-  cells.push({ d: 'camera', k: 'Photos', v: `${L.photos}` })
+  if (L.rooms != null) cells.push({ d: 'home', k: t('atelier.specRooms'), v: `${L.rooms}` })
+  if (L.area != null) cells.push({ d: 'surface', k: t('atelier.specSurface'), v: `${L.area} m²` })
+  if (L.beds != null) cells.push({ d: 'bed', k: t('atelier.specBedrooms'), v: `${L.beds}` })
+  if (L.baths != null) cells.push({ d: 'bath', k: t('atelier.specBathrooms'), v: `${L.baths}` })
+  if (L.floor != null) cells.push({ d: 'lift', k: t('atelier.specFloor'), v: `${L.floor}ᵉ${L.lift ? t('atelier.floorLiftSuffix') : ''}` })
+  if (L.year != null) cells.push({ d: 'calendar', k: t('atelier.specYear'), v: `${L.year}` })
+  if (L.kind === 'market') cells.push({ d: 'layers', k: t('atelier.specFurnished'), v: L.isFurnished ? t('atelier.yes') : t('atelier.no') })
+  cells.push({ d: 'camera', k: t('atelier.specPhotos'), v: `${L.photos}` })
   return (
-    <SgvSection title="Caractéristiques">
+    <SgvSection title={t('atelier.sectionSpecs')}>
       <div className="sgv-specgrid">
         {cells.map(c => (
           <div className="sgv-speccell" key={c.k}>
@@ -124,6 +128,7 @@ function SgvSpecs({ L }: { L: AtelierListing }) {
 
 /* sparkline 2 segments : prix stable puis baisse (ligne plate si stable) */
 function SgvSpark({ L }: { L: AtelierListing }) {
+  const { t } = useTranslation('matching')
   const drop = L.priceWas ? L.priceWas - L.price : 0
   const pts = drop > 0 ? '2,7 56,7 97,18' : '2,13 97,13'
   const end = drop > 0 ? [97, 18] : [97, 13]
@@ -145,46 +150,47 @@ function SgvSpark({ L }: { L: AtelierListing }) {
       </svg>
       <div className="lbls">
         {L.firstSeenAt && <span className="nums">{sgaDateShort(L.firstSeenAt)} · {sgaFmtCHF(L.priceWas ?? L.price)}</span>}
-        <span className="nums now">Aujourd'hui · {sgaFmtCHF(L.price)}</span>
+        <span className="nums now">{t('atelier.today')} · {sgaFmtCHF(L.price)}</span>
       </div>
     </div>
   )
 }
 
 function SgvMarket({ L }: { L: AtelierListing }) {
+  const { t } = useTranslation('matching')
   return (
     <div className="sgv-card">
-      <span className="eyebrow">Veille marché</span>
+      <span className="eyebrow">{t('atelier.marketWatch')}</span>
       <SgvSpark L={L} />
       <div className="sgv-rows">
         {L.daysOnMarket != null && (
           <div className="sgv-row">
             <span className="ic"><SgaIcon d="clock" size={14} /></span>
-            <span className="lb">Sur le marché</span>
-            <span className="vl nums">{L.daysOnMarket} jours</span>
+            <span className="lb">{t('atelier.onMarket')}</span>
+            <span className="vl nums">{t('atelier.daysCount', { count: L.daysOnMarket })}</span>
           </div>
         )}
         {L.firstSeenAt && (
           <div className="sgv-row">
             <span className="ic"><SgaIcon d="calendar" size={14} /></span>
-            <span className="lb">Première détection</span>
+            <span className="lb">{t('atelier.firstDetection')}</span>
             <span className="vl nums">{sgaDateLong(L.firstSeenAt)}</span>
           </div>
         )}
         <div className="sgv-row">
           <span className="ic"><SgaIcon d="camera" size={14} /></span>
-          <span className="lb">Photos collectées</span>
+          <span className="lb">{t('atelier.photosCollected')}</span>
           <span className="vl nums">{L.photos}</span>
         </div>
       </div>
       {L.qualityScore != null && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
-            <span className="t1 semi" style={{ color: 'var(--ink)' }}>Complétude du dossier</span>
+            <span className="t1 semi" style={{ color: 'var(--ink)' }}>{t('atelier.dossierCompleteness')}</span>
             <span className="t1 dim nums">{L.qualityScore}/100</span>
           </div>
           <div className="sgv-qgauge"><i style={{ width: `${L.qualityScore}%` }} /></div>
-          <div className="t1 muted" style={{ marginTop: 7 }}>Prix, surface, photos et localisation vérifiés.</div>
+          <div className="t1 muted" style={{ marginTop: 7 }}>{t('atelier.qualityVerified')}</div>
         </div>
       )}
     </div>
@@ -192,11 +198,12 @@ function SgvMarket({ L }: { L: AtelierListing }) {
 }
 
 function SgvAgency({ L }: { L: AtelierListing }) {
+  const { t } = useTranslation('matching')
   const name = L.agency.name ?? '—'
   const init = name.split(/\s+/).filter(w => /^[A-ZÀ-Ž]/.test(w)).slice(0, 2).map(w => w[0]).join('') || 'R'
   return (
     <div className="sgv-card">
-      <span className="eyebrow">Commercialisation</span>
+      <span className="eyebrow">{t('atelier.marketing')}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div className="av" style={{ width: 44, height: 44, background: '#0B0C0E', fontSize: 14 }}>{init}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -205,11 +212,11 @@ function SgvAgency({ L }: { L: AtelierListing }) {
         </div>
         {L.agency.phone && (
           <a className="btn btn-ghost btn-sm" href={`tel:${L.agency.phone.replace(/\s/g, '')}`} style={{ textDecoration: 'none' }}>
-            <SgaIcon d="phone" size={13} /> Appeler
+            <SgaIcon d="phone" size={13} /> {t('common:actions.call')}
           </a>
         )}
       </div>
-      <div className="t1 muted">Coordonnées vérifiées par la veille marché.</div>
+      <div className="t1 muted">{t('atelier.contactVerified')}</div>
     </div>
   )
 }
@@ -225,6 +232,7 @@ interface SgaAnnonceVueProps {
 }
 
 export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, onOpenPhoto }: SgaAnnonceVueProps) {
+  const { t } = useTranslation('matching')
   const [closing, setClosing] = useState(false)
   const [copied, setCopied] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -257,14 +265,14 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, o
       className={'sga-overlay sgv-wrap' + (closing ? ' is-closing' : '')}
       onClick={e => { if (e.target === e.currentTarget) close() }}
     >
-      <div className="sgv-modal" role="dialog" aria-label="Annonce complète">
+      <div className="sgv-modal" role="dialog" aria-label={t('atelier.fullListing')}>
         {/* ── en-tête ── */}
         <div className="sgv-mo-head">
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
             <div className="sgv-eyebrow-row">
-              <button className="chip sm chip-outline nums sgv-ref" title="Copier la référence" onClick={copyRef}>
+              <button className="chip sm chip-outline nums sgv-ref" title={t('atelier.copyRef')} onClick={copyRef}>
                 <SgaIcon d={copied ? 'check' : 'copy'} size={11} />
-                {copied ? 'Référence copiée' : L.ref}
+                {copied ? t('atelier.refCopied') : L.ref}
               </button>
             </div>
             <div className="sgv-title">{L.title}</div>
@@ -276,7 +284,7 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, o
               <span className="chip sm">{L.type}</span>
             </div>
           </div>
-          <button className="btn circle" style={{ width: 40, minWidth: 40, height: 40 }} title="Fermer (Échap)" onClick={close}>
+          <button className="btn circle" style={{ width: 40, minWidth: 40, height: 40 }} title={t('atelier.closeEsc')} onClick={close}>
             <SgaIcon d="close" size={16} />
           </button>
         </div>
@@ -288,7 +296,7 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, o
               <SgvCollage L={L} onOpenPhoto={onOpenPhoto} />
               <SgvSpecs L={L} />
               {L.features.length > 0 && (
-                <SgvSection title="Atouts">
+                <SgvSection title={t('atelier.sectionFeatures')}>
                   <div className="sga-specs">
                     {L.features.map(f => (
                       <span className="sga-spec" key={f}><SgaIcon d="check" size={14} /> {f}</span>
@@ -297,11 +305,11 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, o
                 </SgvSection>
               )}
               {L.desc && (
-                <SgvSection title="Description">
+                <SgvSection title={t('atelier.sectionDescription')}>
                   <div className="sga-desc" style={{ fontSize: 14, color: 'var(--ink-soft)' }}>{L.desc}</div>
                 </SgvSection>
               )}
-              <SgvSection title="Localisation">
+              <SgvSection title={t('atelier.sectionLocation')}>
                 <SgaMiniMap lat={L.lat} lng={L.lng} address={L.addr} label={L.addr} className="sgv-map" />
               </SgvSection>
             </div>
@@ -316,7 +324,7 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, o
         {/* ── pied ── */}
         <div className="sgv-foot">
           <span style={{ flex: 1 }} />
-          <button className="btn btn-ghost" onClick={close}>Fermer</button>
+          <button className="btn btn-ghost" onClick={close}>{t('common:actions.close')}</button>
           <button
             className="btn btn-primary"
             onClick={onPropose ? () => {
@@ -325,7 +333,7 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose, o
               closeTimer.current = setTimeout(onPropose, 230)
             } : close}
           >
-            <SgaIcon d="send" size={16} /> {buyer && onPropose ? `Proposer à ${buyer.first}` : 'Proposer aux acheteurs'}
+            <SgaIcon d="send" size={16} /> {buyer && onPropose ? t('atelier.proposeToBuyer', { name: buyer.first }) : t('atelier.proposeToBuyers')}
           </button>
         </div>
       </div>

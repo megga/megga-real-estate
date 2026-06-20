@@ -1,6 +1,7 @@
+import { useTranslation } from 'react-i18next'
 import { X, User, Building2, Calendar, Banknote } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
-import { TRANSACTION_STAGE_LABELS, type TransactionStage } from '@/lib/constants'
+import { mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
 import NegotiationCopilot from '@/components/ai-copilot/NegotiationCopilot'
 
 // Mock enrichment data for deals that have offers
@@ -23,7 +24,8 @@ interface DealDetailModalProps {
 }
 
 export default function DealDetailModal({ deal, onClose }: DealDetailModalProps) {
-  const stageLabel = TRANSACTION_STAGE_LABELS[deal.stage as TransactionStage] || deal.stage
+  const { t } = useTranslation('pipeline')
+  const stageLabel = t(`stages.${mapTransactionStageToStepper(deal.stage)}`)
   const showNegotiation = deal.stage === 'offer' || deal.stage === 'negotiation'
   const offerData = DEAL_OFFER_DATA[deal.id]
 
@@ -54,33 +56,33 @@ export default function DealDetailModal({ deal, onClose }: DealDetailModalProps)
         <div className="p-5 space-y-3">
           <div className="flex items-center gap-3 text-sm">
             <Banknote className="w-4 h-4 text-theme-tertiary shrink-0" />
-            <span className="text-theme-secondary">Prix demandé</span>
+            <span className="text-theme-secondary">{t('deal.asking_price')}</span>
             <span className="ml-auto font-semibold text-theme-primary">{formatCHF(deal.price)}</span>
           </div>
 
           {offerData && (
             <div className="flex items-center gap-3 text-sm">
               <Banknote className="w-4 h-4 text-accent shrink-0" />
-              <span className="text-theme-secondary">Offre reçue</span>
+              <span className="text-theme-secondary">{t('deal.offer_received')}</span>
               <span className="ml-auto font-semibold text-accent">{formatCHF(offerData.offerPrice)}</span>
             </div>
           )}
 
           <div className="flex items-center gap-3 text-sm">
             <User className="w-4 h-4 text-theme-tertiary shrink-0" />
-            <span className="text-theme-secondary">Contact</span>
+            <span className="text-theme-secondary">{t('column.contact')}</span>
             <span className="ml-auto text-theme-primary">{deal.contact_name}</span>
           </div>
 
           <div className="flex items-center gap-3 text-sm">
             <Building2 className="w-4 h-4 text-theme-tertiary shrink-0" />
-            <span className="text-theme-secondary">Étape</span>
+            <span className="text-theme-secondary">{t('column.stage')}</span>
             <span className="ml-auto text-theme-primary">{stageLabel}</span>
           </div>
 
           <div className="flex items-center gap-3 text-sm">
             <Calendar className="w-4 h-4 text-theme-tertiary shrink-0" />
-            <span className="text-theme-secondary">Dernière mise à jour</span>
+            <span className="text-theme-secondary">{t('deal.last_update')}</span>
             <span className="ml-auto text-theme-tertiary">{deal.updated_at}</span>
           </div>
         </div>
@@ -101,7 +103,7 @@ export default function DealDetailModal({ deal, onClose }: DealDetailModalProps)
         {showNegotiation && !offerData && (
           <div className="px-5 pb-5">
             <div className="rounded-xl border border-theme-border p-4 text-center">
-              <p className="text-sm text-theme-tertiary">Aucune offre enregistrée pour cette transaction.</p>
+              <p className="text-sm text-theme-tertiary">{t('deal.no_offer_recorded')}</p>
             </div>
           </div>
         )}
@@ -117,7 +119,7 @@ export default function DealDetailModal({ deal, onClose }: DealDetailModalProps)
                 'transition-colors flex items-center justify-center'
               )}
             >
-              Voir le contact
+              {t('deal.view_contact')}
             </a>
           )}
           <button
@@ -128,7 +130,7 @@ export default function DealDetailModal({ deal, onClose }: DealDetailModalProps)
               'transition-colors'
             )}
           >
-            Fermer
+            {t('common:actions.close')}
           </button>
         </div>
       </div>

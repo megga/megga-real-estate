@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-contacts-sugar.jsx` (CtSegment, CtRow, CtListPane).
 
 import { useMemo, useState, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { type CrmContact, type CrmDeal } from '../mockData'
 import { CRM_STAGES } from '../tokens'
@@ -12,6 +13,7 @@ import {
   ctRelativeTime,
   ctScoreColor,
   ctTypeLabel,
+  type CtT,
   type SegmentId,
   type SortMode,
 } from './helpers'
@@ -75,9 +77,10 @@ interface CtRowProps {
   sp: SugarPalette
   dark: boolean
   scoreHealth?: ContactHealth | null
+  t: CtT
 }
 
-function CtRow({ contact, deal, selected, onSelect, sp, dark, scoreHealth }: CtRowProps) {
+function CtRow({ contact, deal, selected, onSelect, sp, dark, scoreHealth, t }: CtRowProps) {
   const [hov, setHov] = useState(false)
   const score = contact.score || 0
   const scoreColor = ctScoreColor(score)
@@ -191,7 +194,7 @@ function CtRow({ contact, deal, selected, onSelect, sp, dark, scoreHealth }: CtR
               fontWeight: 600,
             }}
           >
-            {ctTypeLabel(contact.type)}
+            {ctTypeLabel(contact.type, t)}
           </span>
           <span style={{ color: sp.sub }}>·</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -204,7 +207,7 @@ function CtRow({ contact, deal, selected, onSelect, sp, dark, scoreHealth }: CtR
                 flexShrink: 0,
               }}
             />
-            <span style={{ color: sp.sub }}>{ctRelativeTime(contact.lastActivityAt)}</span>
+            <span style={{ color: sp.sub }}>{ctRelativeTime(contact.lastActivityAt, t)}</span>
           </span>
           {scoreHealth && (
             <>
@@ -233,7 +236,7 @@ function CtRow({ contact, deal, selected, onSelect, sp, dark, scoreHealth }: CtR
                 background: stage.color,
               }}
             />
-            {stage.label}
+            {t(`pipeline:stages.${deal!.stage}`)}
           </div>
         )}
       </div>
@@ -291,6 +294,7 @@ export function ContactsListPane({
   onImportLead,
   style,
 }: ContactsListPaneProps) {
+  const { t } = useTranslation('contacts')
   // Source pour les compteurs : `allContacts` (avant filtrage) si fournie,
   // sinon fallback sur `contacts` (suffit quand le composant n'a pas de filtres
   // externes au-dessus, ex: cas isolé en démo).
@@ -358,7 +362,7 @@ export function ContactsListPane({
               lineHeight: 1,
             }}
           >
-            Contacts
+            {t('title')}
           </h2>
           <span
             style={{
@@ -389,7 +393,7 @@ export function ContactsListPane({
                 fontFamily: 'inherit',
                 marginRight: 6,
               }}
-              title="Importer un lead via MEGGA AI"
+              title={t('list.importLeadTitle')}
             >
               <MEIcon name="sparkle" size={13} color={sp.ink} />
             </button>
@@ -409,7 +413,7 @@ export function ContactsListPane({
               fontFamily: 'inherit',
               boxShadow: sp.focusShadow,
             }}
-            title="Nouveau contact"
+            title={t('list.newContactTitle')}
           >
             <MEIcon name="plus" size={13} color={sp.pageBg} />
           </button>
@@ -433,7 +437,7 @@ export function ContactsListPane({
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Nom, email, tag…"
+            placeholder={t('list.searchPlaceholder')}
             style={{
               flex: 1,
               background: 'transparent',
@@ -477,7 +481,7 @@ export function ContactsListPane({
           {CT_SEGMENTS.map(s => (
             <CtSegment
               key={s.id}
-              label={s.label}
+              label={t(s.labelKey)}
               count={segmentCounts[s.id]}
               active={segment === s.id}
               onClick={() => setSegment(s.id)}
@@ -498,9 +502,7 @@ export function ContactsListPane({
             fontWeight: 600,
           }}
         >
-          <span>
-            {contacts.length} résultat{contacts.length > 1 ? 's' : ''}
-          </span>
+          <span>{t('list.resultsCount', { count: contacts.length })}</span>
           <button
             onClick={() => setSort(nextSort(sort))}
             style={{
@@ -516,7 +518,7 @@ export function ContactsListPane({
               gap: 4,
             }}
           >
-            Tri : {sort === 'activity' ? 'Activité' : sort === 'score' ? 'Score' : 'Nom'}
+            {t('list.sortLabel', { mode: t(`list.sort.${sort}`) })}
             <MEIcon name="chevron-up-down" size={10} color={sp.soft} />
           </button>
         </div>
@@ -543,11 +545,9 @@ export function ContactsListPane({
             {isError ? (
               <>
                 <div style={{ fontWeight: 700, color: sp.ink, marginBottom: 6 }}>
-                  Impossible de charger les contacts
+                  {t('list.errorTitle')}
                 </div>
-                <div style={{ lineHeight: 1.5 }}>
-                  Une erreur est survenue. Vérifiez votre connexion, puis réessayez.
-                </div>
+                <div style={{ lineHeight: 1.5 }}>{t('list.errorBody')}</div>
                 {onRetry && (
                   <button
                     onClick={() => onRetry()}
@@ -565,14 +565,14 @@ export function ContactsListPane({
                       fontWeight: 700,
                     }}
                   >
-                    Réessayer
+                    {t('list.retry')}
                   </button>
                 )}
               </>
             ) : isLoading ? (
-              'Chargement des contacts…'
+              t('list.loading')
             ) : (
-              'Aucun contact ne correspond aux filtres.'
+              t('list.emptyFiltered')
             )}
           </div>
         ) : (
@@ -588,6 +588,7 @@ export function ContactsListPane({
                 sp={sp}
                 dark={dark}
                 scoreHealth={contactScores.get(c.id)}
+                t={t}
               />
             )
           })

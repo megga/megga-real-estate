@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
@@ -26,13 +27,16 @@ import { PageCatalogue } from '@/components/crm-sugar/today/PageCatalogue'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
+// `labelKey` = clé i18n stable (namespace dashboard) ; le libellé est traduit
+// chez le consommateur (cf. § conventions i18n — module statique, pas de hook).
 const TODAY_PAGES = [
-  { id: 'today', label: "Aujourd'hui" },
-  { id: 'catalogue', label: 'Catalogue' },
+  { id: 'today', labelKey: 'today.pager.today' },
+  { id: 'catalogue', labelKey: 'today.pager.catalogue' },
 ]
 
 // ─── Points de page (droite) ────────────────────────────────────────────
 function TodayPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: number) => void; lightMode: boolean }) {
+  const { t } = useTranslation('dashboard')
   const activeCol = lightMode ? '#0B0C0E' : '#F2F2F6'
   const idleCol = lightMode ? 'rgba(11,12,14,.18)' : 'rgba(255,255,255,.22)'
   return (
@@ -43,7 +47,7 @@ function TodayPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: numb
       {TODAY_PAGES.map((p, i) => {
         const active = i === page
         return (
-          <button key={p.id} onClick={() => onGo(i)} title={p.label} style={{
+          <button key={p.id} onClick={() => onGo(i)} title={t(p.labelKey)} style={{
             width: 8, height: active ? 26 : 8, borderRadius: 999, border: 0, cursor: 'pointer', padding: 0,
             background: active ? activeCol : idleCol,
             transition: 'height .5s cubic-bezier(.76,0,.24,1), background .4s ease',
@@ -56,16 +60,18 @@ function TodayPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: numb
 
 // ─── Indice molette (bas-gauche, discret) ────────────────────────────────
 function TodayScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: number) => void; sub: string; ink: string }) {
+  const { t } = useTranslation('dashboard')
   const next = TODAY_PAGES[page + 1]
   const prev = page > 0 ? TODAY_PAGES[page - 1] : null
   const target = next || prev
   const dir = next ? 1 : -1
   if (!target) return null
+  const targetLabel = t(target.labelKey)
   return (
     <button
       className="today-scroll-hint"
       onClick={() => onGo(page + dir)}
-      aria-label={`Molette pour ${target.label}`}
+      aria-label={t('today.pager.wheelTo', { label: targetLabel })}
       style={{
         position: 'absolute', bottom: 20, left: 26, zIndex: 60,
         display: 'flex', alignItems: 'center', gap: 11,
@@ -87,7 +93,7 @@ function TodayScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: num
         transform: 'translateX(-6px)',
         transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)',
       }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: ink }}>{target.label}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: ink }}>{targetLabel}</span>
       </span>
     </button>
   )

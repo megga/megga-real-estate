@@ -1,6 +1,8 @@
 // MEGGA CRM Sugar v3 — Piste d'audit du dossier (mini timeline)
 // Port 1:1 de crm-screen-kyc-sugar.jsx lignes 499-584 (KycAuditTrail).
 
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { fmtDateTime } from '../tokens'
 import { KycGhostPill } from './kycPrimitives'
 import { useKycPalette } from './kycPalette'
@@ -20,17 +22,18 @@ interface TimelineEntry {
   note?: string
 }
 
-function resolveActor(e: KycAuditEvent): string {
+function resolveActor(e: KycAuditEvent, t: TFunction): string {
   if (e.actor_kind === 'ai') return 'MEGGA AI'
-  if (e.actor_kind === 'system') return 'Système'
+  if (e.actor_kind === 'system') return t('dossier.audit.actorSystem')
   const name = e.actor?.full_name?.trim()
   if (name) return name
-  if (e.actor_id) return 'Agent inconnu'
-  return 'Système'
+  if (e.actor_id) return t('dossier.audit.actorUnknown')
+  return t('dossier.audit.actorSystem')
 }
 
 export function KycAuditTrail({ events, onExportPdf }: Props) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
   const entries: TimelineEntry[] = events
     .map((e) => {
       const sev =
@@ -40,7 +43,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
       return {
         at: e.created_at,
         label: e.action,
-        actor: resolveActor(e),
+        actor: resolveActor(e, t),
         severity: sev,
         note:
           typeof e.metadata?.note === 'string'
@@ -72,7 +75,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
             marginBottom: 4,
           }}
         >
-          Conformité nLPD · LBA
+          {t('dossier.audit.eyebrow')}
         </div>
         <h3
           style={{
@@ -83,7 +86,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
             letterSpacing: -0.3,
           }}
         >
-          Piste d'audit
+          {t('dossier.audit.title')}
         </h3>
       </div>
 
@@ -99,7 +102,7 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
             fontWeight: 500,
           }}
         >
-          Aucune action enregistrée — dossier non démarré.
+          {t('dossier.audit.empty')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -195,12 +198,12 @@ export function KycAuditTrail({ events, onExportPdf }: Props) {
           fontWeight: 500,
         }}
       >
-        <span>Traçabilité conservée 10 ans (art. 7 LBA)</span>
+        <span>{t('dossier.audit.retention')}</span>
         <KycGhostPill
           onClick={onExportPdf}
           icon={<SgIcon name="download" size={14} stroke={sp.inkSoft} />}
         >
-          Exporter PDF horodaté
+          {t('dossier.audit.exportPdf')}
         </KycGhostPill>
       </div>
     </div>

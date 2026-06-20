@@ -8,6 +8,7 @@
 // Spec : KYC_ENRICHISSEMENTS.md §1 + README §Arbitrages §3
 
 import { Fragment } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV3, fmtDateShort } from '../tokens'
 import { SgIcon } from '../icons'
 import {
@@ -27,57 +28,25 @@ interface Props {
 interface HeaderMeta {
   tone: string
   soft: string
-  label: string
-  hint: string
 }
 
 const HEADER_BY_STATUS: Record<KycDossierStatus, HeaderMeta> = {
-  none: {
-    tone: SugarV3.warn,
-    soft: SugarV3.warnSoft,
-    label: 'À démarrer',
-    hint: 'Vous pouvez continuer à travailler ce dossier — pensez à le compléter avant la signature.',
-  },
-  pending: {
-    tone: SugarV3.warn,
-    soft: SugarV3.warnSoft,
-    label: 'En cours',
-    hint: 'Vérifications en attente · délai habituel 24-48h.',
-  },
-  verified: {
-    tone: SugarV3.okDark,
-    soft: SugarV3.okSoft,
-    label: 'Validé',
-    hint: 'Dossier conforme — re-screening conseillé à 12 mois.',
-  },
-  stale: {
-    tone: SugarV3.warn,
-    soft: SugarV3.warnSoft,
-    label: 'À re-screener',
-    hint: 'Sanctions/PEP à rafraîchir — recommandé après 12 mois ou changement de situation.',
-  },
-  failed: {
-    tone: SugarV3.err,
-    soft: SugarV3.errSoft,
-    label: 'Échec',
-    hint: 'Un contrôle a échoué — revoyez le dossier en détail.',
-  },
-}
-
-const CTA_BY_STATUS: Record<KycDossierStatus, string> = {
-  none: 'Démarrer le dossier KYC',
-  pending: 'Voir le dossier',
-  verified: 'Consulter le dossier',
-  stale: 'Relancer le screening',
-  failed: 'Examiner le dossier',
+  none: { tone: SugarV3.warn, soft: SugarV3.warnSoft },
+  pending: { tone: SugarV3.warn, soft: SugarV3.warnSoft },
+  verified: { tone: SugarV3.okDark, soft: SugarV3.okSoft },
+  stale: { tone: SugarV3.warn, soft: SugarV3.warnSoft },
+  failed: { tone: SugarV3.err, soft: SugarV3.errSoft },
 }
 
 export function CtKyc({ contactId, onOpenKyc }: Props) {
+  const { t } = useTranslation('contacts')
   const { data: dossier } = useKycDossierByContact(contactId)
 
   const status: KycDossierStatus = dossier?.dossier_status ?? 'none'
   const header = HEADER_BY_STATUS[status]
-  const cta = CTA_BY_STATUS[status]
+  const headerLabel = t(`ctKyc.status.${status}.label`)
+  const headerHint = t(`ctKyc.status.${status}.hint`)
+  const cta = t(`ctKyc.cta.${status}`)
 
   // Step actif : depuis status par défaut (handoff KYC_ENRICHISSEMENTS §1)
   const activeStep = STEP_BY_STATUS[status] ?? 0
@@ -139,7 +108,7 @@ export function CtKyc({ contactId, onOpenKyc }: Props) {
               gap: 8,
             }}
           >
-            Conformité KYC / LBA
+            {t('ctKyc.title')}
             <span
               style={{
                 padding: '2px 8px',
@@ -151,7 +120,7 @@ export function CtKyc({ contactId, onOpenKyc }: Props) {
                 letterSpacing: 0.2,
               }}
             >
-              {header.label}
+              {headerLabel}
             </span>
           </div>
           <div
@@ -162,7 +131,7 @@ export function CtKyc({ contactId, onOpenKyc }: Props) {
               lineHeight: 1.45,
             }}
           >
-            {header.hint}
+            {headerHint}
           </div>
         </div>
       </div>
@@ -218,7 +187,7 @@ export function CtKyc({ contactId, onOpenKyc }: Props) {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {s.label}
+                  {t(s.labelKey)}
                 </div>
               </div>
               {i < KYC_UI_STEPS.length - 1 && (
@@ -265,7 +234,7 @@ export function CtKyc({ contactId, onOpenKyc }: Props) {
               color: SugarV3.muted,
             }}
           >
-            Risque
+            {t('ctKyc.kpi.risk')}
           </div>
           <div
             style={{
@@ -305,7 +274,7 @@ export function CtKyc({ contactId, onOpenKyc }: Props) {
               color: SugarV3.muted,
             }}
           >
-            Pièces
+            {t('ctKyc.kpi.docs')}
           </div>
           <div
             style={{
@@ -345,7 +314,7 @@ export function CtKyc({ contactId, onOpenKyc }: Props) {
               color: SugarV3.muted,
             }}
           >
-            Dernier screening
+            {t('ctKyc.kpi.lastScreening')}
           </div>
           <div
             style={{

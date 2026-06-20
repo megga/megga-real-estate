@@ -28,6 +28,16 @@ import {
 import { selectFocusQueue, FOCUS_QUEUE_DEMO, type FocusItem } from '@/components/crm-sugar/today/focusQueue'
 import { transactionToCrmDeal } from '@/lib/sugarAdapters'
 import type { ContactTransaction } from '@/hooks/useTransactions'
+import i18next from 'i18next'
+import frDashboard from '@/i18n/locales/fr/dashboard.json'
+
+// buildReason produit son texte via un traducteur INJECTÉ (cf i18n-conventions
+// §5). On lui passe ici une instance i18next FR autonome (0 dépendance
+// navigateur) : les assertions FR ci-dessous restent valides car le JSON FR
+// (today.reasons.*) reproduit à l'identique les libellés d'origine.
+const i18nTest = i18next.createInstance()
+void i18nTest.init({ lng: 'fr', resources: { fr: { dashboard: frDashboard } }, ns: ['dashboard'], defaultNS: 'dashboard', initImmediate: false, interpolation: { escapeValue: false } })
+const t = i18nTest.getFixedT('fr', 'dashboard')
 
 const NOW = Date.parse('2026-06-16T12:00:00')
 const daysAgo = (n: number) => new Date(NOW - n * 86_400_000).toISOString()
@@ -93,7 +103,7 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
     const i = match({ matchScore: 88 })
     expect(scoreItem(i, NOW)).toBe(scoreItem(i, NOW))
     expect(assignTier(i, NOW)).toBe(assignTier(i, NOW))
-    expect(buildReason(i, NOW)).toBe(buildReason(i, NOW))
+    expect(buildReason(i, NOW, t)).toBe(buildReason(i, NOW, t))
   })
 
   it('U4 — seuil match 80 : 80 → now, 79 → next', () => {
@@ -153,14 +163,14 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
   })
 
   it('U10 — buildReason : FR, sans UUID, sans `.detail` brut (apartment / 110 m² / zone non corresp.)', () => {
-    const r = buildReason(match({ matchScore: 87, reasonKeys: ['type', 'rooms', 'zone'] }), NOW)
+    const r = buildReason(match({ matchScore: 87, reasonKeys: ['type', 'rooms', 'zone'] }), NOW, t)
     expect(r).toContain('Match fort (87)')
     expect(r.toLowerCase()).not.toContain('apartment')
     expect(r).not.toContain('110 m²')
     expect(r).not.toContain('Zone non correspondante')
     expect(r).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i) // pas d'UUID
     // reminder en retard → libellé FR daté
-    expect(buildReason(reminder({ reminderTriggerAt: daysAgo(3) }), NOW)).toContain('en retard de 3 j')
+    expect(buildReason(reminder({ reminderTriggerAt: daysAgo(3) }), NOW, t)).toContain('en retard de 3 j')
   })
 
   it('U11 — empty-state : finalizeQueue([]) → []', () => {
@@ -234,13 +244,13 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
   })
 
   it('R3 — seller-lead : reason FR (ville + ancienneté), sans UUID', () => {
-    const r = buildReason(sellerLead({ sellerCity: 'Lausanne', sellerCreatedAt: daysAgo(20) }), NOW)
+    const r = buildReason(sellerLead({ sellerCity: 'Lausanne', sellerCreatedAt: daysAgo(20) }), NOW, t)
     expect(r).toContain('Nouveau lead vendeur')
     expect(r).toContain('Lausanne')
     expect(r).toContain('en attente depuis 20 j')
     expect(r).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
     // lead frais (< 7 j) : pas de mention d'attente
-    expect(buildReason(sellerLead({ sellerCreatedAt: daysAgo(2) }), NOW)).not.toContain('en attente')
+    expect(buildReason(sellerLead({ sellerCreatedAt: daysAgo(2) }), NOW, t)).not.toContain('en attente')
   })
 
   it('R4 — routage deal→kyc : helpers isClosingProximate / hasKycGap', () => {
@@ -332,10 +342,10 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
   })
 
   it('R12 — cooling reason : honnête (jamais recontacté vs daté), tags qualité, sans UUID', () => {
-    const never = buildReason(cooling({ coolingHasDate: false, coolingQuality: 85 }), NOW)
+    const never = buildReason(cooling({ coolingHasDate: false, coolingQuality: 85 }), NOW, t)
     expect(never).toContain('jamais recontacté')
     expect(never).toContain('lead chaud')
-    const dated = buildReason(cooling({ coolingHasDate: true, coolingDormDays: 42, coolingQuality: 35 }), NOW)
+    const dated = buildReason(cooling({ coolingHasDate: true, coolingDormDays: 42, coolingQuality: 35 }), NOW, t)
     expect(dated).toContain('sans contact depuis 42 j')
     expect(dated).toContain('lead froid')
     expect(never).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
@@ -381,10 +391,10 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
   })
 
   it('R16 — offer-expiring reason : FR (aujourd\'hui / dans N j / dépassée), sans UUID', () => {
-    expect(buildReason(offerExpiring({ offerExpiresAt: hoursFromNow(3) }), NOW)).toContain("expire aujourd'hui")
-    expect(buildReason(offerExpiring({ offerExpiresAt: daysFromNow(3) }), NOW)).toContain('expire dans 3 j')
-    expect(buildReason(offerExpiring({ offerExpiresAt: daysAgo(2) }), NOW)).toContain('délai dépassé')
-    expect(buildReason(offerExpiring(), NOW)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+    expect(buildReason(offerExpiring({ offerExpiresAt: hoursFromNow(3) }), NOW, t)).toContain("expire aujourd'hui")
+    expect(buildReason(offerExpiring({ offerExpiresAt: daysFromNow(3) }), NOW, t)).toContain('expire dans 3 j')
+    expect(buildReason(offerExpiring({ offerExpiresAt: daysAgo(2) }), NOW, t)).toContain('délai dépassé')
+    expect(buildReason(offerExpiring(), NOW, t)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
   })
 
   it('R17 — classifyVisit : today / debrief / no-show / none (déterministe)', () => {
@@ -417,11 +427,11 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
   })
 
   it('R19 — visit reason : FR honnête (préparer / débrief / clôturer / relancer), sans UUID', () => {
-    expect(buildReason(visit({ visitScheduledAt: hoursFromNow(2), visitStatus: 'planned' }), NOW)).toContain('à préparer')
-    expect(buildReason(visit({ visitScheduledAt: daysAgo(2), visitStatus: 'done', visitDebriefMissing: true }), NOW)).toContain('débrief à saisir')
-    expect(buildReason(visit({ visitScheduledAt: daysAgo(2), visitStatus: 'planned' }), NOW)).toContain('à clôturer')
-    expect(buildReason(visit({ visitScheduledAt: daysAgo(1), visitStatus: 'no_show' }), NOW)).toContain('à relancer')
-    expect(buildReason(visit(), NOW)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+    expect(buildReason(visit({ visitScheduledAt: hoursFromNow(2), visitStatus: 'planned' }), NOW, t)).toContain('à préparer')
+    expect(buildReason(visit({ visitScheduledAt: daysAgo(2), visitStatus: 'done', visitDebriefMissing: true }), NOW, t)).toContain('débrief à saisir')
+    expect(buildReason(visit({ visitScheduledAt: daysAgo(2), visitStatus: 'planned' }), NOW, t)).toContain('à clôturer')
+    expect(buildReason(visit({ visitScheduledAt: daysAgo(1), visitStatus: 'no_show' }), NOW, t)).toContain('à relancer')
+    expect(buildReason(visit(), NOW, t)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
   })
 
   it('R20 — parseFocusConfig : merge défensif des nouveaux poids/seuils/caps (offer/visit)', () => {
@@ -501,18 +511,18 @@ describe('focusScore — Algo Focus (déterministe, explicable)', () => {
 
   it('P3 — property reason : geste HONNÊTE tiré du levier le plus faible, sans UUID', () => {
     // fiche incomplète → « fiche à compléter »
-    expect(buildReason(propertyPush({ propertyCompleteness: 50 }), NOW)).toContain('fiche à compléter')
+    expect(buildReason(propertyPush({ propertyCompleteness: 50 }), NOW, t)).toContain('fiche à compléter')
     // fiche ok + acheteurs croisés (interest > 35) sans deal → « à mettre en avant »
-    expect(buildReason(propertyPush({ propertyCompleteness: 63, propertyInterest: 74, propertyPipeline: 25 }), NOW))
+    expect(buildReason(propertyPush({ propertyCompleteness: 63, propertyInterest: 74, propertyPipeline: 25 }), NOW, t))
       .toContain('à mettre en avant')
     // fiche ok, pas d'intérêt, pas de deal → « pas encore lié à un deal »
-    expect(buildReason(propertyPush({ propertyCompleteness: 70, propertyInterest: 30, propertyPipeline: 25 }), NOW))
+    expect(buildReason(propertyPush({ propertyCompleteness: 70, propertyInterest: 30, propertyPipeline: 25 }), NOW, t))
       .toContain('pas encore lié à un deal')
     // label en_veille → libellé dédié
-    expect(buildReason(propertyPush({ propertyLabel: 'en_veille', propertyOverall: 40 }), NOW)).toContain('en veille')
+    expect(buildReason(propertyPush({ propertyLabel: 'en_veille', propertyOverall: 40 }), NOW, t)).toContain('en veille')
     // données limitées explicites quand data_completeness faible
-    expect(buildReason(propertyPush({ propertyDataCompleteness: 0.2 }), NOW)).toContain('données limitées')
-    expect(buildReason(propertyPush(), NOW)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
+    expect(buildReason(propertyPush({ propertyDataCompleteness: 0.2 }), NOW, t)).toContain('données limitées')
+    expect(buildReason(propertyPush(), NOW, t)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/i)
   })
 
   it('P4 — displayScore [0..100] pour la famille bien-à-pousser', () => {

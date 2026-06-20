@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step8.jsx).
 
 import { useState, useEffect, useMemo, type ReactNode, type CSSProperties } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, fmtCHF, shade, type WizardData } from '../tokens'
 
 interface SuccessProps {
@@ -11,6 +12,7 @@ interface SuccessProps {
 }
 
 export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
+  const { t: tr } = useTranslation('listings')
   const [phase, setPhase] = useState<'entering' | 'settled'>('entering')
   const [views, setViews] = useState(0)
   const [saves, setSaves] = useState(0)
@@ -41,14 +43,16 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
 
   const mode = data.publishMode || 'now'
   const titleByMode: Record<string, string> = {
-    now: 'Annonce publiée',
-    schedule: 'Publication programmée',
-    draft: 'Brouillon enregistré',
+    now: tr('wizard.step8.title.now'),
+    schedule: tr('wizard.step8.title.schedule'),
+    draft: tr('wizard.step8.title.draft'),
   }
   const subByMode: Record<string, string> = {
-    now: 'Votre bien est désormais en ligne sur MEGGA.',
-    schedule: `La publication aura lieu le ${data.scheduledAt ? formatScheduled(data.scheduledAt) : 'à la date choisie'}.`,
-    draft: 'Vous pourrez reprendre depuis votre tableau de bord.',
+    now: tr('wizard.step8.subtitle.now'),
+    schedule: tr('wizard.step8.subtitle.schedule', {
+      date: data.scheduledAt ? formatScheduled(data.scheduledAt) : tr('wizard.step8.subtitle.scheduleFallbackDate'),
+    }),
+    draft: tr('wizard.step8.subtitle.draft'),
   }
 
   return (
@@ -105,7 +109,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         <div style={{
           fontSize: 12, fontWeight: 700, color: SugarV2.muted,
           letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12,
-        }}>{mode === 'now' ? 'Publication confirmée' : mode === 'schedule' ? 'Programmée' : 'Brouillon'}</div>
+        }}>{mode === 'now' ? tr('wizard.step8.eyebrow.now') : mode === 'schedule' ? tr('wizard.step8.eyebrow.schedule') : tr('wizard.step8.eyebrow.draft')}</div>
 
         <h1 style={{
           margin: '0 0 12px', fontSize: 44, fontWeight: 700,
@@ -139,7 +143,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
               <path d="M3 21V11l9-7 9 7v10"/><path d="M9 21v-7h6v7"/>
             </svg>
           ) : (
-            <div style={{ fontSize: 11, color: SugarV2.muted, fontWeight: 600 }}>Pas de couverture</div>
+            <div style={{ fontSize: 11, color: SugarV2.muted, fontWeight: 600 }}>{tr('wizard.step8.noCover')}</div>
           )}
         </div>
 
@@ -147,17 +151,17 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           <div style={{
             fontSize: 11, fontWeight: 700, color: SugarV2.muted,
             letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
-          }}>{tx === 'vente' ? 'À vendre' : 'À louer'} · {data.canton || 'Suisse'}</div>
+          }}>{tx === 'vente' ? tr('wizard.txBadge.sale') : tr('wizard.txBadge.rent')} · {data.canton || tr('wizard.country')}</div>
           <div style={{
             fontSize: 20, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.4, marginBottom: 4,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>{data.addr || 'Bien sans adresse'}</div>
+          }}>{data.addr || tr('wizard.step8.noAddress')}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: SugarV2.inkSoft, fontWeight: 500 }}>
             <span style={{ fontWeight: 700, color: SugarV2.ink }}>
-              {fmtCHF(price) || '—'} CHF{tx === 'location' ? '/mois' : ''}
+              {fmtCHF(price) || '—'} CHF{tx === 'location' ? tr('wizard.perMonthShort') : ''}
             </span>
             <span style={{ color: SugarV2.muted }}>·</span>
-            <span>{photoCount} photo{photoCount > 1 ? 's' : ''}</span>
+            <span>{tr('wizard.photosCount', { count: photoCount })}</span>
             {stagedCount > 0 && (
               <>
                 <span style={{ color: SugarV2.muted }}>·</span>
@@ -167,7 +171,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
                   background: SugarV2.cardSubtle, color: SugarV2.ink,
                   fontSize: 11, fontWeight: 700,
                 }}>
-                  {stagedCount} stagée{stagedCount > 1 ? 's' : ''}
+                  {tr('wizard.step8.stagedCount', { count: stagedCount })}
                 </span>
               </>
             )}
@@ -186,7 +190,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 26px rgba(0,0,0,0.30)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.22)' }}>
-            Voir l'annonce
+            {tr('wizard.step8.viewListing')}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M7 17 17 7M7 7h10v10"/>
             </svg>
@@ -215,16 +219,16 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
             <div style={{
               fontSize: 10.5, fontWeight: 700, color: SugarV2.muted,
               letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 2,
-            }}>URL publique</div>
+            }}>{tr('wizard.step8.publicUrl')}</div>
             <div style={{
               fontSize: 13.5, fontWeight: 600, color: SugarV2.ink,
               fontFamily: 'ui-monospace, Menlo, monospace',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{publicUrl}</div>
           </div>
-          <IconBtn icon="copy" label="Copier" />
-          <IconBtn icon="qr" label="QR Code" />
-          <IconBtn icon="share" label="Partager" />
+          <IconBtn icon="copy" label={tr('wizard.step8.copy')} />
+          <IconBtn icon="qr" label={tr('wizard.step8.qrCode')} />
+          <IconBtn icon="share" label={tr('wizard.step8.share')} />
         </div>
       )}
 
@@ -239,9 +243,9 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
               <div style={{
                 fontSize: 11, fontWeight: 700, color: SugarV2.muted,
                 letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4,
-              }}>Activité en direct</div>
+              }}>{tr('wizard.step8.liveActivity')}</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
-                Premières secondes en ligne
+                {tr('wizard.step8.firstSeconds')}
               </div>
             </div>
             <div style={{
@@ -258,9 +262,9 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            <Stat icon="eye" label="Vues" value={views} />
-            <Stat icon="bookmark" label="Sauvegardes" value={saves} />
-            <Stat icon="message" label="Demandes contact" value={contacts} />
+            <Stat icon="eye" label={tr('wizard.step8.stat.views')} value={views} />
+            <Stat icon="bookmark" label={tr('wizard.step8.stat.saves')} value={saves} />
+            <Stat icon="message" label={tr('wizard.step8.stat.contactRequests')} value={contacts} />
           </div>
         </div>
       )}
@@ -269,23 +273,32 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24,
       }}>
-        <NextCard icon="plus" title="Créer un autre bien"
-          subtitle="Garder l'élan, ajouter un autre mandat."
+        <NextCard icon="plus" title={tr('wizard.step8.next.createAnother.title')}
+          subtitle={tr('wizard.step8.next.createAnother.subtitle')}
           onClick={onClose} />
-        <NextCard icon="contacts" title="Voir vos acheteurs"
-          subtitle="MEGGA AI a trouvé 3 matchs potentiels."
-          tag="3 matchs" onClick={onBackToCRM} />
-        <NextCard icon="dashboard" title="Retour au CRM"
-          subtitle="Tableau de bord et pipeline."
+        <NextCard icon="contacts" title={tr('wizard.step8.next.seeBuyers.title')}
+          subtitle={tr('wizard.step8.next.seeBuyers.subtitle', { count: 3 })}
+          tag={tr('wizard.step8.next.seeBuyers.tag', { count: 3 })} onClick={onBackToCRM} />
+        <NextCard icon="dashboard" title={tr('wizard.step8.next.backToCrm.title')}
+          subtitle={tr('wizard.step8.next.backToCrm.subtitle')}
           onClick={onBackToCRM} />
       </div>
 
       <div style={{
         textAlign: 'center', fontSize: 12, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.6,
       }}>
-        Vous recevrez un email de confirmation à <strong style={{ color: SugarV2.ink }}>gregory@megga.ch</strong>.
+        <Trans
+          t={tr}
+          i18nKey="wizard.step8.confirmationEmail"
+          values={{ email: 'gregory@megga.ch' }}
+          components={{ strong: <strong style={{ color: SugarV2.ink }} /> }}
+        />
         <br/>
-        Toutes les images générées sont signées <strong style={{ color: SugarV2.ink }}>C2PA</strong> · provenance vérifiable par l'acheteur.
+        <Trans
+          t={tr}
+          i18nKey="wizard.step8.c2paNote"
+          components={{ strong: <strong style={{ color: SugarV2.ink }} /> }}
+        />
       </div>
     </div>
   )

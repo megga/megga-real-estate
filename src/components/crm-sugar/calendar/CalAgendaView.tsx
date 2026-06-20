@@ -2,9 +2,10 @@
 // 1:1 port from `crm-calendar-sugar-week-month.jsx` (CalAgendaView).
 
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CalIcon } from './CalIcon'
 import { CAL_EVENT_TYPES, eventTypeColors, useCalPalette, type CalEvent } from './data'
-import { CAL_DAYS_FULL, CAL_MONTHS, fmtTime, sameDay } from './helpers'
+import { calDaysFull, calMonths, fmtTime, sameDay } from './helpers'
 
 interface CalAgendaViewProps {
   events: CalEvent[]
@@ -15,6 +16,7 @@ interface CalAgendaViewProps {
 }
 
 export function CalAgendaView({ events, now, selectedId, onSelect, onEdit }: CalAgendaViewProps) {
+  const { t } = useTranslation('calendar')
   const SP = useCalPalette()
   const TYPES = CAL_EVENT_TYPES
 
@@ -74,7 +76,7 @@ export function CalAgendaView({ events, now, selectedId, onSelect, onEdit }: Cal
                     letterSpacing: -0.1,
                   }}
                 >
-                  {CAL_DAYS_FULL[d.getDay()]} {CAL_MONTHS[d.getMonth()].toLowerCase()}
+                  {calDaysFull()[d.getDay()]} {calMonths()[d.getMonth()].toLowerCase()}
                 </div>
                 {isToday && (
                   <span
@@ -88,7 +90,7 @@ export function CalAgendaView({ events, now, selectedId, onSelect, onEdit }: Cal
                       letterSpacing: 0.6,
                     }}
                   >
-                    AUJOURD'HUI
+                    {t('views.todayBadge')}
                   </span>
                 )}
                 <div
@@ -99,7 +101,7 @@ export function CalAgendaView({ events, now, selectedId, onSelect, onEdit }: Cal
                     fontWeight: 600,
                   }}
                 >
-                  {list.length} événement{list.length > 1 ? 's' : ''}
+                  {t('views.eventCount', { count: list.length })}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -2,6 +2,7 @@
 // Sections : 01 Client · 02 Transaction · 03 Verdict global
 // (la section "Analyse contextuelle IA" du modèle est volontairement supprimée)
 
+import { useTranslation } from 'react-i18next'
 import { PdfShell, PdfSectionRule, PdfDef, PdfCheckIcon } from './PdfShell'
 import { PDF, fmtCHF, fmtDateTimeSwiss, fmtHashShort } from './tokens'
 import type { PdfReportData } from './buildReportData'
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function PdfPage1({ data }: Props) {
+  const { t } = useTranslation('kyc')
   return (
     <PdfShell pageNum={1} pageTotal={3}>
       {/* TITRE PRINCIPAL */}
@@ -24,7 +26,7 @@ export function PdfPage1({ data }: Props) {
             textTransform: 'uppercase',
           }}
         >
-          Synthèse exécutive · LBA art. 3–7
+          {t('report.pdf.page1.eyebrow')}
         </div>
         <h1
           style={{
@@ -36,7 +38,7 @@ export function PdfPage1({ data }: Props) {
             lineHeight: 0.98,
           }}
         >
-          Rapport KYC
+          {t('report.pdf.page1.title')}
           <span style={{ color: PDF.muted, fontWeight: 500 }}>.</span>
         </h1>
 
@@ -51,14 +53,14 @@ export function PdfPage1({ data }: Props) {
             borderBottom: `1px solid ${PDF.hair}`,
           }}
         >
-          <PdfDef label="Référence" value={data.reference} mono />
-          <PdfDef label="Émis le" value={fmtDateTimeSwiss(data.emitted_at)} />
-          <PdfDef label="Par" value={data.agent.full_name} />
+          <PdfDef label={t('report.pdf.label.reference')} value={data.reference} mono />
+          <PdfDef label={t('report.pdf.label.emittedOn')} value={fmtDateTimeSwiss(data.emitted_at)} />
+          <PdfDef label={t('report.pdf.label.by')} value={data.agent.full_name} />
         </div>
       </div>
 
       {/* 01 CLIENT */}
-      <PdfSectionRule num={1}>Client</PdfSectionRule>
+      <PdfSectionRule num={1}>{t('report.pdf.section.client')}</PdfSectionRule>
       <div
         style={{
           display: 'grid',
@@ -66,20 +68,20 @@ export function PdfPage1({ data }: Props) {
           gap: 24,
         }}
       >
-        <PdfDef label="Identité" value={data.contact.full_name} />
+        <PdfDef label={t('report.pdf.label.identity')} value={data.contact.full_name} />
         <PdfDef
-          label="Nationalité"
-          value={data.contact.nationality ?? 'Non renseignée'}
+          label={t('report.pdf.label.nationality')}
+          value={data.contact.nationality ?? t('report.pdf.value.notProvided')}
         />
-        <PdfDef label="Type" value={data.contact.type_label} />
+        <PdfDef label={t('report.pdf.label.type')} value={data.contact.type_label} />
         <PdfDef
-          label="Résidence fiscale"
-          value={data.contact.residence ?? 'Non renseignée'}
+          label={t('report.pdf.label.taxResidence')}
+          value={data.contact.residence ?? t('report.pdf.value.notProvided')}
         />
       </div>
 
       {/* 02 TRANSACTION */}
-      <PdfSectionRule num={2}>Transaction</PdfSectionRule>
+      <PdfSectionRule num={2}>{t('report.pdf.section.transaction')}</PdfSectionRule>
       <div
         style={{
           display: 'grid',
@@ -88,19 +90,19 @@ export function PdfPage1({ data }: Props) {
         }}
       >
         <PdfDef
-          label="Bien"
-          value={data.transaction.property_label ?? 'Bien sous mandat'}
+          label={t('report.pdf.label.property')}
+          value={data.transaction.property_label ?? t('report.pdf.value.propertyUnderMandate')}
         />
-        <PdfDef label="Mandat" value={data.transaction.reference} mono />
-        <PdfDef label="Montant" value={fmtCHF(data.transaction.amount)} />
+        <PdfDef label={t('report.pdf.label.mandate')} value={data.transaction.reference} mono />
+        <PdfDef label={t('report.pdf.label.amount')} value={fmtCHF(data.transaction.amount)} />
         <PdfDef
-          label="Étape pipeline"
+          label={t('report.pdf.label.pipelineStage')}
           value={data.transaction.stage ?? '—'}
         />
       </div>
 
       {/* 03 VERDICT GLOBAL — bandeau hero */}
-      <PdfSectionRule num={3}>Verdict global</PdfSectionRule>
+      <PdfSectionRule num={3}>{t('report.pdf.section.verdict')}</PdfSectionRule>
       <div
         style={{
           display: 'grid',
@@ -112,18 +114,18 @@ export function PdfPage1({ data }: Props) {
       >
         {[
           {
-            label: 'Vigilance',
+            label: t('report.pdf.verdictCol.vigilance'),
             value: data.verdict.vigilance_label,
             sub: data.verdict.vigilance_sub,
           },
           {
-            label: 'Risque',
+            label: t('report.pdf.verdictCol.risk'),
             value: data.verdict.risk_label,
             sub: data.verdict.risk_sub,
             dot: data.verdict.risk_dot,
           },
           {
-            label: 'Statut',
+            label: t('report.pdf.verdictCol.status'),
             value: data.verdict.status_label,
             sub: data.verdict.status_sub,
             icon: data.verdict.status_icon,
@@ -221,7 +223,7 @@ export function PdfPage1({ data }: Props) {
               marginBottom: 8,
             }}
           >
-            Validation
+            {t('report.pdf.label.validation')}
           </div>
           <div
             style={{
@@ -232,13 +234,15 @@ export function PdfPage1({ data }: Props) {
             }}
           >
             {data.validated_at ? (
-              <>
-                Validé le {fmtDateTimeSwiss(data.validated_at)} par{' '}
-                <span style={{ fontWeight: 700 }}>{data.agent.full_name}</span>
-              </>
+              <span style={{ fontWeight: 700 }}>
+                {t('report.pdf.validatedBy', {
+                  date: fmtDateTimeSwiss(data.validated_at),
+                  name: data.agent.full_name,
+                })}
+              </span>
             ) : (
               <span style={{ color: PDF.muted, fontStyle: 'italic' }}>
-                Dossier en cours de validation
+                {t('report.pdf.validationPending')}
               </span>
             )}
           </div>
@@ -251,7 +255,7 @@ export function PdfPage1({ data }: Props) {
               letterSpacing: 0.1,
             }}
           >
-            Hash d'intégrité :{' '}
+            {t('report.pdf.label.integrityHash')}{' '}
             <span style={{ fontFamily: 'ui-monospace, monospace' }}>
               {fmtHashShort(data.integrity_hash)}
             </span>
@@ -288,7 +292,7 @@ export function PdfPage1({ data }: Props) {
               marginTop: 6,
             }}
           >
-            Signature numérique · qualifiée
+            {t('report.pdf.signatureCaption')}
           </div>
         </div>
       </div>
@@ -305,8 +309,7 @@ export function PdfPage1({ data }: Props) {
           textAlign: 'center',
         }}
       >
-        « Document interne {data.agent.agency_name} · Strictement confidentiel ·
-        Diffusion restreinte »
+        {t('report.pdf.confidentialNotice', { agency: data.agent.agency_name })}
       </div>
     </PdfShell>
   )

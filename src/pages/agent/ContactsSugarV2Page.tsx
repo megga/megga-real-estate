@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-contacts-sugar.jsx — `CRMScreenContactsSugar`).
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
@@ -27,20 +28,14 @@ import type {
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
-// Mapping inverse Sources Dashboard (slug → label humain) — sync avec
-// SOURCE_SLUGS dans DBEntonnoir.tsx. Quand le modèle Contact aura un champ
-// `source`, on filtrera réellement ici. En attendant, on affiche un banner
-// informatif et on remplit la recherche avec le label pour les contacts qui
-// portent le canal dans leur nom / note.
-const SOURCE_LABELS: Record<string, string> = {
-  marketplace: 'Marketplace MEGGA',
-  'agency-site': 'Site agence',
-  referral: 'Recommandations',
-  social: 'Réseaux sociaux',
-  manual: 'Importé manuel',
-}
+// Slugs Sources Dashboard (sync avec SOURCE_SLUGS dans DBEntonnoir.tsx). Quand le
+// modèle Contact aura un champ `source`, on filtrera réellement ici. En attendant,
+// on affiche un banner informatif. Le libellé humain est traduit via i18n
+// (`list.sourceLabel.<slug>`) au point d'affichage.
+const SOURCE_SLUGS = ['marketplace', 'agency-site', 'referral', 'social', 'manual'] as const
 
 export default function ContactsSugarV2Page() {
+  const { t: tr } = useTranslation('contacts')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -48,7 +43,7 @@ export default function ContactsSugarV2Page() {
   // Snapshot au mount pour ne pas re-déclencher au moindre setSearchParams.
   const [sourceFilter, setSourceFilter] = useState<string | null>(() => {
     const slug = searchParams.get('source')
-    return slug && slug in SOURCE_LABELS ? slug : null
+    return slug && (SOURCE_SLUGS as readonly string[]).includes(slug) ? slug : null
   })
 
   // Consomme le param une fois (URL nettoyée pour ne pas que F5 le re-applique).
@@ -252,12 +247,12 @@ export default function ContactsSugarV2Page() {
         },
       })
       // Cache Helpers auto-invalidates the contacts list — UI refreshes itself.
-      flashToast(`Contact créé — ${fullName}`)
+      flashToast(tr('list.toast.created', { name: fullName }))
       setNewContactOpen(false)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Erreur inconnue'
+      const message = e instanceof Error ? e.message : tr('list.toast.unknownError')
       setCreateError(message)
-      flashToast(`Erreur — ${message}`)
+      flashToast(tr('list.toast.error', { message }))
     }
   }
 
@@ -321,14 +316,18 @@ export default function ContactsSugarV2Page() {
                   textTransform: 'uppercase',
                 }}
               >
-                Filtre Dashboard
+                {tr('list.sourceFilter.badge')}
               </span>
               <span style={{ fontSize: 12.5, fontWeight: 600, color: '#3A3D44' }}>
-                Source : <strong style={{ color: '#0B0C0E', fontWeight: 800 }}>{SOURCE_LABELS[sourceFilter]}</strong> · le filtre canal sera disponible quand les contacts auront le champ source.
+                {tr('list.sourceFilter.label')}{' '}
+                <strong style={{ color: '#0B0C0E', fontWeight: 800 }}>
+                  {tr(`list.sourceLabel.${sourceFilter}`)}
+                </strong>{' '}
+                {tr('list.sourceFilter.hint')}
               </span>
               <button
                 onClick={() => setSourceFilter(null)}
-                aria-label="Retirer le filtre source"
+                aria-label={tr('list.sourceFilter.removeAria')}
                 style={{
                   marginLeft: 'auto',
                   border: 0,
@@ -340,7 +339,7 @@ export default function ContactsSugarV2Page() {
                   padding: '4px 10px',
                 }}
               >
-                Retirer
+                {tr('list.sourceFilter.remove')}
               </button>
             </div>
           )}

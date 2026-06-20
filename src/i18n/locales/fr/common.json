@@ -36,7 +36,12 @@
     "adminNps": "Satisfaction",
     "adminAutonomy": "Autonomie agents",
     "adminLearning": "Styles appris",
-    "adminToolUsage": "Usage des outils"
+    "adminToolUsage": "Usage des outils",
+    "journey": "Parcours",
+    "aiAgent": "Megga — Agent IA",
+    "notifications": "Notifications",
+    "callbacksToday": "Relances du jour",
+    "importLeads": "Importer des leads"
   },
   "sections": {
     "main": "Principal",
@@ -70,7 +75,8 @@
     "noResults": "Aucun résultat",
     "showMore": "Voir plus",
     "showLess": "Voir moins",
-    "viewAll": "Voir tout"
+    "viewAll": "Voir tout",
+    "options": "Options"
   },
   "time": {
     "ago": "il y a",
@@ -461,7 +467,38 @@
     "loadMore": "Charger plus de résultats",
     "typeConfirmed": "Type ✓",
     "clearSearch": "Effacer la recherche",
-    "reset": "Réinitialiser"
+    "reset": "Réinitialiser",
+    "command": {
+      "placeholder": "Rechercher ou demander à Megga…",
+      "clear": "Effacer",
+      "scope": {
+        "all": "Tout",
+        "contacts": "Contacts",
+        "biens": "Biens",
+        "deals": "Deals",
+        "docs": "Documents"
+      },
+      "section": {
+        "resumeMegga": "Reprendre avec Megga",
+        "recents": "Récents",
+        "askMegga": "Demander à Megga",
+        "meggaConvos": "Conversations Megga",
+        "biens": "Biens",
+        "deals": "Deals"
+      },
+      "badge": {
+        "semantic": "sémantique"
+      },
+      "empty": {
+        "title": "Aucun résultat pour « {{query}} »",
+        "body": "Demandez plutôt à Megga — il connaît tout votre CRM."
+      },
+      "askMeggaQuery": "Demander à Megga : « {{query}} »",
+      "deal": {
+        "untitled": "Transaction"
+      },
+      "roomsShort": "{{count}} p."
+    }
   },
   "listing": {
     "contactAgent": "Contacter l'agent",
@@ -1143,5 +1180,172 @@
       "minergie": "Minergie",
       "newBuilding": "Construction neuve"
     }
+  },
+  "notifications": {
+    "kind": {
+      "kyc": "KYC",
+      "visite": "Visite",
+      "offre": "Offre",
+      "mandat": "Mandat",
+      "ai": "MEGGA AI",
+      "doc": "Document",
+      "team": "Équipe",
+      "system": "Système"
+    },
+    "markRead": "Marquer comme lue",
+    "markUnread": "Marquer comme non lue",
+    "hideOne": "Masquer cette notification",
+    "muteKind": "Désactiver « {{kind}} »",
+    "toastMarkedRead": "Marquée comme lue",
+    "toastMarkedUnread": "Marquée comme non lue",
+    "toastHidden": "Notification masquée",
+    "toastMuted": "Notifications « {{kind}} » désactivées",
+    "unreadCount_one": "{{count}} non lue",
+    "unreadCount_other": "{{count}} non lues",
+    "allClear": "Tout est à jour",
+    "markAllRead": "Tout marquer lu",
+    "empty": "Aucune notification pour l'instant.",
+    "pause2h": "Pause 2 h",
+    "seeAll": "Voir toutes les notifications"
+  },
+  "popovers": {
+    "quickAdd": {
+      "title": "Ajout rapide",
+      "task": {
+        "label": "Nouvelle tâche",
+        "sub": "Action rapide à planifier"
+      },
+      "visit": {
+        "label": "Planifier visite",
+        "sub": "Bien · acheteur · créneau"
+      },
+      "contact": {
+        "label": "Nouveau contact",
+        "sub": "Lead, acheteur ou vendeur"
+      },
+      "deal": {
+        "label": "Nouvelle offre",
+        "sub": "Démarrer un dossier"
+      },
+      "note": {
+        "label": "Note interne",
+        "sub": "Mémo lié au jour"
+      }
+    },
+    "reschedule": {
+      "title": "Replanifier",
+      "current": "Actuellement · {{label}}",
+      "slots": {
+        "now": {
+          "label": "Maintenant",
+          "sub": "Démarrer la tâche"
+        },
+        "later": {
+          "label": "+ 2 heures",
+          "sub": "Repousser légèrement"
+        },
+        "tomorrow": {
+          "label": "Demain matin"
+        },
+        "monday": {
+          "label": "Lundi"
+        },
+        "week": {
+          "label": "Cette semaine",
+          "sub": "Auto-placement IA"
+        }
+      }
+    },
+    "miniCalendar": {
+      "open": "Ouvrir"
+    },
+    "rowMenu": {
+      "title": "Actions",
+      "open": {
+        "label": "Ouvrir la fiche",
+        "sub": "Voir le détail complet"
+      },
+      "reschedule": {
+        "label": "Replanifier",
+        "sub": "Choisir un nouveau créneau"
+      },
+      "priority": {
+        "label": "Marquer prioritaire",
+        "sub": "Remonte en haut du parcours"
+      },
+      "assign": {
+        "label": "Assigner à…",
+        "sub": "Déléguer à un collaborateur"
+      },
+      "complete": {
+        "label": "Marquer comme fait",
+        "sub": "Cloturer cette action"
+      },
+      "delete": {
+        "label": "Supprimer",
+        "sub": "Retirer du parcours"
+      }
+    },
+    "aiLeads": {
+      "title": "MEGGA AI · Demande de traitement",
+      "caption_one": "{{count}} lead en attente · qualifie ou délègue",
+      "caption_other": "{{count}} leads en attente · qualifie ou délègue",
+      "reject": "Rejeter",
+      "accept": "Accepter et qualifier",
+      "qualifyAll": "Tout qualifier avec l'IA",
+      "reviewOneByOne": "Examiner un par un"
+    },
+    "statusMenu": {
+      "title": "Changer le statut",
+      "current": "Actuellement · {{status}}",
+      "items": {
+        "planned": {
+          "label": "Planifié",
+          "sub": "Créneau réservé"
+        },
+        "todo": {
+          "label": "À faire",
+          "sub": "En attente d'action"
+        },
+        "inProgress": {
+          "label": "En cours",
+          "sub": "Action en train d'avancer"
+        },
+        "blocked": {
+          "label": "Bloqué",
+          "sub": "Dépend d'un externe"
+        },
+        "done": {
+          "label": "Exécuté",
+          "sub": "Terminé · à archiver"
+        }
+      }
+    },
+    "pipelineDrill": {
+      "executed": {
+        "title": "Tâches exécutées · semaine"
+      },
+      "active": {
+        "title": "Deals actifs"
+      },
+      "pipeline": {
+        "title": "Volume du pipeline"
+      },
+      "matches": {
+        "title": "Nouveaux matchs · 24h"
+      },
+      "risk": {
+        "title": "Deals à risque"
+      },
+      "openFull": "Ouvrir le pipeline complet"
+    }
+  },
+  "profile": {
+    "defaultName": "Agent",
+    "noAgency": "Agence non définie",
+    "preferences": "Préférences",
+    "security": "Sécurité & sessions",
+    "billing": "Facturation & abonnement",
+    "help": "Centre d'aide"
   }
 }

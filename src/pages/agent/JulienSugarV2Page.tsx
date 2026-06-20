@@ -9,6 +9,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
@@ -31,94 +33,94 @@ interface Suggestion {
 
 // ─── Salutations selon l'heure ──────────────────────────────────────────
 
-function getGreeting(firstName: string): string {
+function getGreeting(firstName: string, tr: TFunction): string {
   const h = new Date().getHours()
-  if (h < 5) return `Encore là, ${firstName} ?`
-  if (h < 12) return `Bon matin, ${firstName}`
-  if (h < 14) return `Bon midi, ${firstName}`
-  if (h < 18) return `Bon après-midi, ${firstName}`
-  if (h < 22) return `Bonsoir, ${firstName}`
-  return `Bonne soirée, ${firstName}`
+  if (h < 5) return tr('julien.greeting.lateNight', { name: firstName })
+  if (h < 12) return tr('julien.greeting.morning', { name: firstName })
+  if (h < 14) return tr('julien.greeting.midday', { name: firstName })
+  if (h < 18) return tr('julien.greeting.afternoon', { name: firstName })
+  if (h < 22) return tr('julien.greeting.evening', { name: firstName })
+  return tr('julien.greeting.night', { name: firstName })
 }
 
-function getSubgreeting(): string {
+function getSubgreeting(tr: TFunction): string {
   const h = new Date().getHours()
   const d = new Date().getDay()
-  if (h < 9) return 'Comment démarrons-nous la journée ?'
-  if (h < 12) return 'Que puis-je préparer pour vous ce matin ?'
-  if (h < 14) return 'Une pause ? Je peux résumer la matinée.'
-  if (h < 17) return "On attaque l'après-midi ?"
-  if (h < 19) return 'Bouclons la journée ensemble.'
-  if (d === 5 || d === 6) return 'On prépare la semaine prochaine ?'
-  return 'Comment puis-je vous aider ?'
+  if (h < 9) return tr('julien.subgreeting.earlyMorning')
+  if (h < 12) return tr('julien.subgreeting.morning')
+  if (h < 14) return tr('julien.subgreeting.midday')
+  if (h < 17) return tr('julien.subgreeting.afternoon')
+  if (h < 19) return tr('julien.subgreeting.endOfDay')
+  if (d === 5 || d === 6) return tr('julien.subgreeting.weekend')
+  return tr('julien.subgreeting.default')
 }
 
 // ─── Suggestions dynamiques selon heure + écran précédent ───────────────
 
 type PrevScreen = 'today' | 'pipeline' | 'biens' | 'contacts' | 'matching' | 'calendar' | 'docs' | null
 
-function getDynamicSuggestions(prevScreen: PrevScreen): Suggestion[] {
+function getDynamicSuggestions(prevScreen: PrevScreen, tr: TFunction): Suggestion[] {
   const h = new Date().getHours()
   const day = new Date().getDay()
   if (prevScreen === 'pipeline') return [
-    { id: 'px1', icon: 'chart', label: 'Analyse de mon pipeline', prompt: 'Analyse mon pipeline actuel : où sont les blocages, quelles opportunités prioriser ?' },
-    { id: 'px2', icon: 'draft', label: 'Relance dossiers en pause', prompt: 'Rédige un message de relance pour mes dossiers stagnants depuis plus de 14 jours.' },
-    { id: 'px3', icon: 'checklist', label: 'Prochaines actions', prompt: 'Quelles sont les 3 prochaines actions concrètes à mener sur mon pipeline ?' },
+    { id: 'px1', icon: 'chart', label: tr('julien.suggestions.pipeline.analyze.label'), prompt: tr('julien.suggestions.pipeline.analyze.prompt') },
+    { id: 'px2', icon: 'draft', label: tr('julien.suggestions.pipeline.followUp.label'), prompt: tr('julien.suggestions.pipeline.followUp.prompt') },
+    { id: 'px3', icon: 'checklist', label: tr('julien.suggestions.pipeline.nextActions.label'), prompt: tr('julien.suggestions.pipeline.nextActions.prompt') },
   ]
   if (prevScreen === 'biens') return [
-    { id: 'bx1', icon: 'draft', label: 'Annonce premium', prompt: 'Rédige une annonce premium pour le bien que je viens de consulter, ton MEGGA, mise en avant des points forts.' },
-    { id: 'bx2', icon: 'chart', label: 'Estimation comparable', prompt: 'Donne-moi une estimation comparable rapide pour ce bien à partir des transactions récentes du quartier.' },
-    { id: 'bx3', icon: 'folder', label: 'Pitch propriétaire', prompt: 'Prépare un pitch pour convaincre le propriétaire de signer en mandat exclusif.' },
+    { id: 'bx1', icon: 'draft', label: tr('julien.suggestions.biens.premiumListing.label'), prompt: tr('julien.suggestions.biens.premiumListing.prompt') },
+    { id: 'bx2', icon: 'chart', label: tr('julien.suggestions.biens.comparableEstimate.label'), prompt: tr('julien.suggestions.biens.comparableEstimate.prompt') },
+    { id: 'bx3', icon: 'folder', label: tr('julien.suggestions.biens.ownerPitch.label'), prompt: tr('julien.suggestions.biens.ownerPitch.prompt') },
   ]
   if (prevScreen === 'contacts') return [
-    { id: 'cx1', icon: 'draft', label: 'Email de prise de nouvelles', prompt: "Rédige un email de prise de nouvelles chaleureux pour un contact que je n'ai pas relancé depuis longtemps." },
-    { id: 'cx2', icon: 'folder', label: 'Préparer un appel', prompt: 'Prépare-moi 5 questions ouvertes pour qualifier un nouveau contact acheteur.' },
-    { id: 'cx3', icon: 'checklist', label: 'Plan de relance', prompt: 'Construis un plan de relance progressif sur 3 semaines pour mes contacts inactifs.' },
+    { id: 'cx1', icon: 'draft', label: tr('julien.suggestions.contacts.checkInEmail.label'), prompt: tr('julien.suggestions.contacts.checkInEmail.prompt') },
+    { id: 'cx2', icon: 'folder', label: tr('julien.suggestions.contacts.prepareCall.label'), prompt: tr('julien.suggestions.contacts.prepareCall.prompt') },
+    { id: 'cx3', icon: 'checklist', label: tr('julien.suggestions.contacts.followUpPlan.label'), prompt: tr('julien.suggestions.contacts.followUpPlan.prompt') },
   ]
   if (prevScreen === 'matching') return [
-    { id: 'mx1', icon: 'draft', label: 'Email de matching', prompt: 'Rédige un email présentant un bien matché à un acheteur, avec arguments personnalisés.' },
-    { id: 'mx2', icon: 'folder', label: 'Affiner les critères', prompt: "Aide-moi à affiner les critères de recherche d'un acheteur pour améliorer le matching." },
-    { id: 'mx3', icon: 'chart', label: 'Pertinence des matchs', prompt: 'Analyse la pertinence des correspondances actuelles : quels sont les vrais top-matchs ?' },
+    { id: 'mx1', icon: 'draft', label: tr('julien.suggestions.matching.email.label'), prompt: tr('julien.suggestions.matching.email.prompt') },
+    { id: 'mx2', icon: 'folder', label: tr('julien.suggestions.matching.refineCriteria.label'), prompt: tr('julien.suggestions.matching.refineCriteria.prompt') },
+    { id: 'mx3', icon: 'chart', label: tr('julien.suggestions.matching.relevance.label'), prompt: tr('julien.suggestions.matching.relevance.prompt') },
   ]
   if (prevScreen === 'calendar') return [
-    { id: 'kx1', icon: 'checklist', label: 'Préparer mes RDV du jour', prompt: 'Liste mes rendez-vous du jour avec un brief synthétique pour chacun.' },
-    { id: 'kx2', icon: 'draft', label: 'Confirmer les visites', prompt: 'Rédige un SMS court de confirmation pour mes visites planifiées.' },
-    { id: 'kx3', icon: 'folder', label: 'Récap après visite', prompt: 'Modèle de récap à envoyer après une visite de bien.' },
+    { id: 'kx1', icon: 'checklist', label: tr('julien.suggestions.calendar.prepareToday.label'), prompt: tr('julien.suggestions.calendar.prepareToday.prompt') },
+    { id: 'kx2', icon: 'draft', label: tr('julien.suggestions.calendar.confirmVisits.label'), prompt: tr('julien.suggestions.calendar.confirmVisits.prompt') },
+    { id: 'kx3', icon: 'folder', label: tr('julien.suggestions.calendar.visitRecap.label'), prompt: tr('julien.suggestions.calendar.visitRecap.prompt') },
   ]
   if (prevScreen === 'docs') return [
-    { id: 'dx1', icon: 'checklist', label: 'Checklist compromis', prompt: "Donne-moi la checklist complète des points à vérifier avant signature d'un compromis à Genève." },
-    { id: 'dx2', icon: 'draft', label: 'Clause spécifique', prompt: 'Rédige une clause de condition suspensive pour un financement bancaire.' },
-    { id: 'dx3', icon: 'folder', label: 'Modèle de mandat', prompt: 'Génère un modèle de mandat de vente exclusif conforme au droit suisse.' },
+    { id: 'dx1', icon: 'checklist', label: tr('julien.suggestions.docs.checklist.label'), prompt: tr('julien.suggestions.docs.checklist.prompt') },
+    { id: 'dx2', icon: 'draft', label: tr('julien.suggestions.docs.clause.label'), prompt: tr('julien.suggestions.docs.clause.prompt') },
+    { id: 'dx3', icon: 'folder', label: tr('julien.suggestions.docs.mandateTemplate.label'), prompt: tr('julien.suggestions.docs.mandateTemplate.prompt') },
   ]
   if (prevScreen === 'today') return [
-    { id: 'tx1', icon: 'folder', label: 'Résume mes dossiers', prompt: 'Donne-moi un résumé de mes dossiers actifs en ce moment.' },
-    { id: 'tx2', icon: 'checklist', label: 'Priorités du jour', prompt: "Quelles sont mes 3 priorités absolues aujourd'hui d'après mon planning ?" },
-    { id: 'tx3', icon: 'chart', label: 'Météo de la semaine', prompt: 'Synthèse de la semaine : ce qui avance, ce qui bloque, ce qui manque.' },
+    { id: 'tx1', icon: 'folder', label: tr('julien.suggestions.today.summary.label'), prompt: tr('julien.suggestions.today.summary.prompt') },
+    { id: 'tx2', icon: 'checklist', label: tr('julien.suggestions.today.priorities.label'), prompt: tr('julien.suggestions.today.priorities.prompt') },
+    { id: 'tx3', icon: 'chart', label: tr('julien.suggestions.today.weekOutlook.label'), prompt: tr('julien.suggestions.today.weekOutlook.prompt') },
   ]
   if (h < 10) return [
-    { id: 'hx1', icon: 'checklist', label: 'Mes RDV du jour', prompt: 'Résume mes rendez-vous du jour avec un brief pour chacun.' },
-    { id: 'hx2', icon: 'folder', label: 'Priorités matinales', prompt: 'Quelles sont mes 3 priorités à attaquer ce matin ?' },
-    { id: 'hx3', icon: 'draft', label: 'Emails à envoyer', prompt: 'Quels emails dois-je envoyer en priorité ce matin ?' },
+    { id: 'hx1', icon: 'checklist', label: tr('julien.suggestions.earlyMorning.appointments.label'), prompt: tr('julien.suggestions.earlyMorning.appointments.prompt') },
+    { id: 'hx2', icon: 'folder', label: tr('julien.suggestions.earlyMorning.priorities.label'), prompt: tr('julien.suggestions.earlyMorning.priorities.prompt') },
+    { id: 'hx3', icon: 'draft', label: tr('julien.suggestions.earlyMorning.emails.label'), prompt: tr('julien.suggestions.earlyMorning.emails.prompt') },
   ]
   if (h < 14) return [
-    { id: 'hx4', icon: 'folder', label: 'Avancement matinal', prompt: 'Fais le point sur ce qui a avancé ce matin sur mes dossiers.' },
-    { id: 'hx5', icon: 'draft', label: 'Email de suivi visite', prompt: 'Rédige un email professionnel de suivi après une visite pour un appartement à Genève.' },
-    { id: 'hx6', icon: 'chart', label: 'Marché genevois', prompt: 'Analyse rapide du marché immobilier genevois : tendances, délais, segments actifs.' },
+    { id: 'hx4', icon: 'folder', label: tr('julien.suggestions.midday.progress.label'), prompt: tr('julien.suggestions.midday.progress.prompt') },
+    { id: 'hx5', icon: 'draft', label: tr('julien.suggestions.midday.visitFollowUp.label'), prompt: tr('julien.suggestions.midday.visitFollowUp.prompt') },
+    { id: 'hx6', icon: 'chart', label: tr('julien.suggestions.midday.genevaMarket.label'), prompt: tr('julien.suggestions.midday.genevaMarket.prompt') },
   ]
   if (h < 18) return [
-    { id: 'hx7', icon: 'draft', label: 'Suivi visite', prompt: 'Rédige un email professionnel de suivi après une visite pour un appartement à Genève.' },
-    { id: 'hx8', icon: 'folder', label: 'Résume mes dossiers', prompt: 'Donne-moi un résumé de mes dossiers actifs en ce moment.' },
-    { id: 'hx9', icon: 'checklist', label: 'Reste à faire aujourd\'hui', prompt: 'Que me reste-t-il à boucler aujourd\'hui ?' },
+    { id: 'hx7', icon: 'draft', label: tr('julien.suggestions.afternoon.visitFollowUp.label'), prompt: tr('julien.suggestions.afternoon.visitFollowUp.prompt') },
+    { id: 'hx8', icon: 'folder', label: tr('julien.suggestions.afternoon.summary.label'), prompt: tr('julien.suggestions.afternoon.summary.prompt') },
+    { id: 'hx9', icon: 'checklist', label: tr('julien.suggestions.afternoon.remaining.label'), prompt: tr('julien.suggestions.afternoon.remaining.prompt') },
   ]
   if (day === 5) return [
-    { id: 'hxa', icon: 'folder', label: 'Bilan de la semaine', prompt: "Bilan de ma semaine : succès, points d'attention, dossiers à reprendre lundi." },
-    { id: 'hxb', icon: 'checklist', label: 'Préparer lundi', prompt: 'Liste les actions clés pour bien démarrer lundi matin.' },
-    { id: 'hxc', icon: 'draft', label: 'Emails de fin de semaine', prompt: 'Rédige un email de fin de semaine à envoyer à mes clients actifs.' },
+    { id: 'hxa', icon: 'folder', label: tr('julien.suggestions.friday.weekReview.label'), prompt: tr('julien.suggestions.friday.weekReview.prompt') },
+    { id: 'hxb', icon: 'checklist', label: tr('julien.suggestions.friday.prepareMonday.label'), prompt: tr('julien.suggestions.friday.prepareMonday.prompt') },
+    { id: 'hxc', icon: 'draft', label: tr('julien.suggestions.friday.endOfWeekEmails.label'), prompt: tr('julien.suggestions.friday.endOfWeekEmails.prompt') },
   ]
   return [
-    { id: 'hxd', icon: 'folder', label: 'Bilan du jour', prompt: 'Fais le bilan de ma journée : ce qui a avancé, ce qui reste.' },
-    { id: 'hxe', icon: 'checklist', label: 'Préparer demain', prompt: 'Quelles sont les 3 actions prioritaires à préparer pour demain ?' },
-    { id: 'hxf', icon: 'draft', label: 'Email de fin de journée', prompt: 'Rédige un email de fin de journée à un client en attente d\'un retour.' },
+    { id: 'hxd', icon: 'folder', label: tr('julien.suggestions.evening.dayReview.label'), prompt: tr('julien.suggestions.evening.dayReview.prompt') },
+    { id: 'hxe', icon: 'checklist', label: tr('julien.suggestions.evening.prepareTomorrow.label'), prompt: tr('julien.suggestions.evening.prepareTomorrow.prompt') },
+    { id: 'hxf', icon: 'draft', label: tr('julien.suggestions.evening.endOfDayEmail.label'), prompt: tr('julien.suggestions.evening.endOfDayEmail.prompt') },
   ]
 }
 
@@ -229,7 +231,7 @@ function JIcon({ name, size = 18, color = 'currentColor', sw = 1.6 }: JIconProps
 
 interface ParsedEmail { to: string; subject: string; body: string }
 
-function parseEmail(text: string): ParsedEmail | null {
+function parseEmail(text: string, tr: TFunction): ParsedEmail | null {
   if (!text || text.length < 60) return null
   const t = text.trim()
   const greet = /(^|\n)\s*(Bonjour|Madame|Monsieur|Cher|Chère|Chers|Bonsoir)\b/i
@@ -253,7 +255,7 @@ function parseEmail(text: string): ParsedEmail | null {
       body = body.split('\n').slice(1).join('\n').replace(/^\s*\n+/, '')
     }
   }
-  return { to: toMatch ? toMatch[1].trim() : '', subject: subject || '(sans objet)', body: body || t }
+  return { to: toMatch ? toMatch[1].trim() : '', subject: subject || tr('julien.email.noSubject'), body: body || t }
 }
 
 // ─── Page principale ─────────────────────────────────────────────────────
@@ -401,6 +403,7 @@ interface JulienConversationProps {
 }
 
 function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversationProps) {
+  const { t: tr } = useTranslation('messages')
   const [messages, setMessages] = useState<JulienMessage[]>([])
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const { sendMessageStream, isLoading } = useCopilot()
@@ -442,15 +445,15 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
       ))
     } catch {
       setMessages(prev => prev.map(m =>
-        m.id === lid ? { ...m, content: "Désolé, je n'ai pas pu traiter ta demande. Réessaie.", loading: false, streaming: false } : m,
+        m.id === lid ? { ...m, content: tr('julien.error.failed'), loading: false, streaming: false } : m,
       ))
     }
   }
 
   const isEmpty = messages.length === 0
-  const greeting = useMemo(() => getGreeting(firstName), [firstName])
-  const subgreeting = useMemo(() => getSubgreeting(), [])
-  const dynamicSuggestions = useMemo(() => getDynamicSuggestions(prevScreen), [prevScreen])
+  const greeting = useMemo(() => getGreeting(firstName, tr), [firstName, tr])
+  const subgreeting = useMemo(() => getSubgreeting(tr), [tr])
+  const dynamicSuggestions = useMemo(() => getDynamicSuggestions(prevScreen, tr), [prevScreen, tr])
 
   return (
     <div
@@ -536,16 +539,17 @@ function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversati
 interface BubbleProps { msg: JulienMessage; s: JulienTokens; dark: boolean }
 
 function Bubble({ msg, s, dark }: BubbleProps) {
+  const { t: tr } = useTranslation('messages')
   const isUser = msg.role === 'user'
   const [copied, setCopied] = useState(false)
 
-  const email = (!msg.streaming && !msg.loading && msg.content) ? parseEmail(msg.content) : null
+  const email = (!msg.streaming && !msg.loading && msg.content) ? parseEmail(msg.content, tr) : null
 
   const copyEmail = () => {
     if (!email) return
     const formatted = [
-      email.to ? `À : ${email.to}` : '',
-      `Objet : ${email.subject}`,
+      email.to ? `${tr('julien.email.toLabel')} : ${email.to}` : '',
+      `${tr('julien.email.subjectLabel')} : ${email.subject}`,
       '',
       email.body,
     ].filter(Boolean).join('\n')
@@ -627,7 +631,7 @@ function Bubble({ msg, s, dark }: BubbleProps) {
             }}
           >
             <JIcon name={copied ? 'check' : 'copy'} size={12} color="currentColor" />
-            {copied ? 'Copié !' : 'Copier'}
+            {copied ? tr('julien.actions.copied') : tr('julien.actions.copy')}
           </button>
         </div>
       )}
@@ -683,6 +687,7 @@ interface EmailDraftProps {
 }
 
 function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
+  const { t: tr } = useTranslation('messages')
   return (
     <div
       style={{
@@ -711,7 +716,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
           <JIcon name="mail" size={12} color={s.ink} sw={2} />
         </div>
         <div style={{ fontSize: 12, fontWeight: 700, color: s.ink, letterSpacing: '0.01em' }}>
-          Brouillon email
+          {tr('julien.email.draftTitle')}
         </div>
         <div
           style={{
@@ -721,7 +726,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
             color: '#B5582F',
           }}
         >
-          Non envoyé
+          {tr('julien.email.notSent')}
         </div>
         <div style={{ flex: 1 }} />
         <button
@@ -736,7 +741,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
           }}
         >
           <JIcon name={copied ? 'check' : 'copy'} size={11} color="currentColor" sw={2.2} />
-          {copied ? 'Copié' : "Copier l'email"}
+          {copied ? tr('julien.email.copied') : tr('julien.email.copyEmail')}
         </button>
       </div>
 
@@ -754,7 +759,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}
           >
-            À
+            {tr('julien.email.toLabel')}
           </div>
           <div
             style={{
@@ -773,7 +778,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}
           >
-            Objet
+            {tr('julien.email.subjectLabel')}
           </div>
           <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: s.ink }}>
             {email.subject}
@@ -810,6 +815,7 @@ interface PromptBarProps {
 }
 
 function PromptBar({ onSend, loading, dark, s }: PromptBarProps) {
+  const { t: tr } = useTranslation('messages')
   const [val, setVal] = useState('')
 
   const send = () => {
@@ -842,7 +848,7 @@ function PromptBar({ onSend, loading, dark, s }: PromptBarProps) {
         <div style={{ padding: '14px 16px 0' }}>
           <textarea
             value={val} onChange={e => setVal(e.target.value)} onKeyDown={onKey}
-            placeholder="Comment puis-je vous aider ?" rows={1}
+            placeholder={tr('julien.promptPlaceholder')} rows={1}
             style={{
               width: '100%', border: 0, background: 'transparent',
               color: s.ink, fontSize: 15.5, fontFamily: '"Inter Tight", system-ui, sans-serif',

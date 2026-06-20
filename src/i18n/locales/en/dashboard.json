@@ -106,5 +106,363 @@
       "6months": "6 months",
       "exploring": "Exploring"
     }
+  },
+  "today": {
+    "reasons": {
+      "reminderKycOverdue": "KYC {{days}}d overdue — verification to complete",
+      "reminderOverdue": "Follow-up {{days}}d overdue",
+      "reminderTodayAt": "Follow-up scheduled today ({{time}})",
+      "reminderToday": "Follow-up scheduled today",
+      "sellerLeadCity": "New seller lead — {{city}}",
+      "sellerLead": "New seller lead to claim",
+      "sellerLeadWaiting": " · waiting for {{days}}d",
+      "kycClosing": "Closing near — case KYC to finalize",
+      "kycTail": {
+        "failed": " · case to fix",
+        "stale": " · case to re-verify",
+        "none": " · case not started",
+        "pending": " · case in progress"
+      },
+      "coolingDated": "Cooling lead — no contact for {{days}}d",
+      "coolingNever": "Lead never contacted since creation",
+      "coolingHot": " · hot lead, don't lose it",
+      "coolingCold": " · cold lead",
+      "offerNoDate": "Pending offer — deadline to verify",
+      "offerOverdue": "Pending offer — deadline passed, to close",
+      "offerToday": "Pending offer — expires today",
+      "offerInDays": "Pending offer — expires in {{days}}d",
+      "visitToday": "Visit scheduled today — to prepare",
+      "visitNoShow": "Missed visit — to follow up",
+      "visitDebriefDone": "Past visit — debrief to enter",
+      "visitDebriefClose": "Past visit — to close",
+      "visitFollow": "Visit to follow",
+      "propertyHot": "Property to push — well positioned",
+      "propertyDormant": "Dormant property — to revive or archive",
+      "propertyActivate": "Property to activate",
+      "propertyIncomplete": " · listing to complete",
+      "propertyBuyers": " · cross-matched buyers, to highlight",
+      "propertyNoDeal": " · not yet linked to a deal",
+      "propertyLimited": " · estimate (limited data)",
+      "matchStrong": "Strong match ({{score}})",
+      "matchToConfirm": "Match to confirm ({{score}})",
+      "matchCriteria": " — {{criteria}}",
+      "matchInternal": " · own mandate",
+      "dealStalled": "Stalled deal — to unblock",
+      "dealOffer": "Offer to follow — closing near",
+      "dealAtRisk": "Deal under pressure — to follow up",
+      "dealAdvance": "Stage to move forward",
+      "kycExpired": " · KYC expired",
+      "kycDueToday": " · KYC due today",
+      "kycDueInDays": " · KYC due in {{days}}d",
+      "criteria": {
+        "budget": "budget",
+        "zone": "area",
+        "rooms": "rooms",
+        "type": "property type",
+        "features": "criteria"
+      }
+    },
+    "queue": {
+      "contact": "Contact",
+      "kycSub": "KYC case to finalize before closing.",
+      "kycSubTitled": "{{title}} — KYC case to finalize before closing.",
+      "dealSub": "Deal to move forward.",
+      "dealSubTitled": "{{title}} — to move forward.",
+      "reminderKycSub": "Identity verification to complete.",
+      "reminderSub": "To follow up.",
+      "matchSub": "Property proposed — to present.",
+      "estimationValue": "estimate {{value}}",
+      "sellerSub": "New seller mandate to qualify.",
+      "offerContact": "Offer",
+      "offerSub": "Offer {{amount}} pending — response to follow.",
+      "visitSub": "Visit to follow.",
+      "untitledProperty": "Untitled property",
+      "propertySub": "Internal property to work on."
+    },
+    "tags": {
+      "offer": "Offer",
+      "mandate": "Mandate",
+      "relance": "Follow-up",
+      "kyc": "KYC",
+      "seller": "Seller",
+      "visit": "Visit",
+      "property": "Property",
+      "match": "Match"
+    },
+    "focusTypes": {
+      "call": "Call {{name}}",
+      "kyc": "Review KYC",
+      "sign": "Prepare the mandate",
+      "offer": "Follow up on offer",
+      "seller": "Contact {{name}}",
+      "cooling": "Follow up with {{name}}",
+      "visit": "View visit",
+      "bien": "View property"
+    },
+    "focus": {
+      "loading": "Loading your priorities…",
+      "queueDone": "Queue cleared",
+      "queueDoneSub": "All your current priorities are handled. Take a breath — or move the pipeline forward.",
+      "queueDoneModeSub": "All your priorities are handled. Jump to the match wall to place your properties.",
+      "statProcessed_one": "handled",
+      "statProcessed_other": "handled",
+      "statMinFocus": "focus min",
+      "statSnoozed_one": "snoozed",
+      "statSnoozed_other": "snoozed",
+      "reviewQueue": "Review the queue",
+      "estimatedPriority": "Estimated priority",
+      "estimate": "estimate",
+      "finish": "Finish",
+      "reschedule": "Reschedule",
+      "markDone": "Mark done",
+      "modeTitle": "Focus mode",
+      "quitEsc": "Quit (Esc)",
+      "esc": "Esc",
+      "statPrioritiesProcessed_one": "priority handled",
+      "statPrioritiesProcessed_other": "priorities handled",
+      "statMinConcentration": "min focused",
+      "statRescheduled_one": "rescheduled",
+      "statRescheduled_other": "rescheduled",
+      "viewCatalogue": "View match catalogue",
+      "upNext": "Up next",
+      "lastPriority": "Last priority in the queue."
+    },
+    "cockpit": {
+      "greeting": "Hello {{name}}",
+      "greetingNoName": "Hello",
+      "focusMode": "Focus mode",
+      "next": "Next",
+      "tiles": {
+        "agenda": "Today's schedule",
+        "relances": "AI follow-ups",
+        "pipeline": "Pipeline",
+        "objectif": "Target"
+      },
+      "tags": {
+        "offer": "Offer",
+        "mandate": "Mandate",
+        "seller": "Seller",
+        "kyc": "KYC",
+        "relance": "Follow-up",
+        "match": "Match",
+        "compromis": "Sale agreement",
+        "visit": "Viewing"
+      }
+    },
+    "agenda": {
+      "next": "Next",
+      "empty": "Nothing more after this — your day is clear.",
+      "call": "Call",
+      "inMinutes_one": "in {{count}} min",
+      "inMinutes_other": "in {{count}} min",
+      "inHours_one": "in {{count}} h",
+      "inHours_other": "in {{count}} h",
+      "doneThisMorning_one": "{{count}} done this morning · {{times}}",
+      "doneThisMorning_other": "{{count}} done this morning · {{times}}",
+      "types": {
+        "call": "Call",
+        "kyc": "KYC",
+        "mandate": "Mandate",
+        "visit": "Viewing",
+        "offer": "Offer"
+      }
+    },
+    "relances": {
+      "leadsToFollow": "leads to follow up",
+      "preparedByAi": "prepared by AI",
+      "startSession": "Start session",
+      "tempHot": "hot",
+      "tempWarm": "warm",
+      "tempCold": "cold"
+    },
+    "pipeline": {
+      "stages": {
+        "searching": "Active search",
+        "visit": "Viewing scheduled",
+        "offer": "Offer submitted",
+        "compromis": "Sale agreement"
+      },
+      "dealFallback": "Deal",
+      "riskStalled": "Deal stalled",
+      "riskOverdue": "Deadline overdue"
+    },
+    "objectif": {
+      "realized": "achieved",
+      "realizedNoTarget": "achieved · no target set",
+      "target": "target"
+    },
+    "pager": {
+      "today": "Today",
+      "catalogue": "Catalog",
+      "wheelTo": "Scroll to {{label}}"
+    },
+    "catalogue": {
+      "title": "Match catalogue",
+      "empty": "No matches in this filter.",
+      "proposed": "Proposed",
+      "proposedCount_one": "{{count}} proposed",
+      "proposedCount_other": "{{count}} proposed",
+      "filters": {
+        "all": "All",
+        "followUp": "To follow up",
+        "new": "New"
+      },
+      "sorts": {
+        "score": "Score",
+        "value": "Value",
+        "recency": "Recency"
+      },
+      "sort": {
+        "by": "Sort {{label}}",
+        "byDot": "Sort · {{label}}",
+        "change": "Change sort"
+      },
+      "status": {
+        "new": "New",
+        "sent": "File sent",
+        "visitPlanned": "Visit scheduled",
+        "interested": "Interested"
+      },
+      "why": {
+        "fallback": "New match — first contact to initiate."
+      },
+      "advertiser": {
+        "marketWatch": "Market watch",
+        "internalMandate": "Internal mandate",
+        "externalAdvertiser": "External advertiser",
+        "yourAgency": "Your agency",
+        "source": "Source"
+      },
+      "detail": {
+        "eyebrow": "Match detail",
+        "photos": "photos"
+      },
+      "section": {
+        "specs": "Features",
+        "highlights": "Highlights",
+        "description": "Description",
+        "location": "Location",
+        "salePrice": "Sale price",
+        "buyer": "Buyer",
+        "compatibility": "Compatibility",
+        "advertiser": "Advertiser"
+      },
+      "spec": {
+        "rooms": "Rooms",
+        "roomsCount": "{{rooms}} rooms",
+        "surface": "Surface",
+        "bedrooms": "Bedrooms",
+        "bathrooms": "Bathrooms",
+        "year": "Year",
+        "floor": "Floor",
+        "villa": "Villa"
+      },
+      "price": {
+        "charges": "Charges",
+        "perMonth": "CHF {{amount}} / month",
+        "onMarket": "On the market",
+        "today": "Today",
+        "days_one": "{{count}} day",
+        "days_other": "{{count}} days"
+      },
+      "buyer": {
+        "searching": "{{tag}} · looking for {{specs}}"
+      },
+      "compat": {
+        "perfect": "Profile perfectly aligned",
+        "aligned": "Well aligned with their search",
+        "someGaps": "Aligned — a few gaps",
+        "manyGaps": "Several gaps to address"
+      },
+      "criteria": {
+        "budget": "Budget",
+        "zone": "Area",
+        "type": "Type",
+        "rooms": "Rooms",
+        "features": "Wishes",
+        "toRefine": "to refine"
+      },
+      "action": {
+        "addToFile": "Add to {{name}}'s file",
+        "added": "Added to {{name}}'s file"
+      },
+      "gallery": {
+        "closeHint": "Close (Esc)",
+        "previous": "Previous",
+        "next": "Next",
+        "backToWall": "Back to wall",
+        "title": "Whole catalogue",
+        "subtitle": "Full gallery"
+      },
+      "more": {
+        "otherMatches_one": "other match",
+        "otherMatches_other": "other matches",
+        "viewWhole": "View whole catalogue"
+      }
+    },
+    "relance": {
+      "temp": {
+        "hot": "Hot",
+        "warm": "Warm",
+        "cold": "Cold"
+      },
+      "header": {
+        "title": "Follow-up session",
+        "closeTitle": "Back to dashboard (Esc)"
+      },
+      "agentFallback": "Your MEGGA broker",
+      "generating": "MEGGA AI is writing…",
+      "demoBanner": "Demo mode — no dormant lead in your agency. These examples are sent to no one.",
+      "sendError": "Sending failed — try again or copy the message.",
+      "draft": {
+        "to": "To",
+        "emailMissing": "(email missing)",
+        "subject": "Subject",
+        "regenerate": "Suggest another version",
+        "editable": "Editable text",
+        "fallbackSubject": "Let's reconnect, {{name}}"
+      },
+      "empty": {
+        "prompt": "Need a message?",
+        "help": "AI drafts it from the context.",
+        "cta": "Suggest a message"
+      },
+      "genError": {
+        "title": "The draft couldn't be generated.",
+        "help": "Check your connection, then try again.",
+        "retry": "Try again"
+      },
+      "sent": {
+        "title": "Sent from MEGGA",
+        "tracked": "The follow-up is logged in {{name}}'s record."
+      },
+      "actions": {
+        "copied": "Message copied",
+        "copy": "Copy the message",
+        "openInMailbox": "Open in my mailbox",
+        "sending": "Sending…",
+        "sendFromMegga": "or send from MEGGA"
+      },
+      "nav": {
+        "later": "Later",
+        "notInterested": "Not interested",
+        "next": "Next"
+      },
+      "undo": {
+        "discarded": "{{name}} removed from the loop",
+        "cancel": "Undo"
+      },
+      "done": {
+        "title": "Session complete",
+        "contacted_one": "contacted",
+        "contacted_other": "contacted",
+        "discarded_one": "discarded",
+        "discarded_other": "discarded",
+        "postponed_one": "postponed",
+        "postponed_other": "postponed",
+        "explainer": "Postponed leads will come back tomorrow; discarded ones are out of the loop.",
+        "backToDashboard": "Back to dashboard"
+      }
+    }
   }
 }

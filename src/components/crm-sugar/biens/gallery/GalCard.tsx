@@ -5,6 +5,7 @@
 // La photo porte un `layoutId` partagé → transition vers BnDetailOverlay (FM).
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmBien } from '../../mockData'
@@ -22,6 +23,7 @@ interface GalCardProps {
 }
 
 export function GalCard({ bien, onOpen, sp, surf, dark }: GalCardProps) {
+  const { t } = useTranslation('listings')
   const [hov, setHov] = useState(false)
   const isRent = bien.transaction === 'location'
   const isDraft = bien.status === 'draft'
@@ -75,7 +77,7 @@ export function GalCard({ bien, onOpen, sp, surf, dark }: GalCardProps) {
               >
                 <MEIcon name="plus" size={18} color={sp.sub} />
               </div>
-              <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600 }}>Photos à ajouter</div>
+              <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600 }}>{t('biens.photosToAdd')}</div>
             </div>
           </div>
         ) : (
@@ -157,9 +159,9 @@ export function GalCard({ bien, onOpen, sp, surf, dark }: GalCardProps) {
                 whiteSpace: 'nowrap',
               }}
             >
-              {price ? galFmtCHF(price) : 'À estimer'}
+              {price ? galFmtCHF(price) : t('biens.toEstimate')}
               {isRent && price && (
-                <span style={{ fontSize: 12, color: sp.sub, fontWeight: 600 }}>/mois</span>
+                <span style={{ fontSize: 12, color: sp.sub, fontWeight: 600 }}>{t('biens.perMonth')}</span>
               )}
             </div>
           </div>
@@ -188,7 +190,7 @@ export function GalCard({ bien, onOpen, sp, surf, dark }: GalCardProps) {
                 boxShadow: sp.focusShadow,
               }}
             >
-              Finir <MEIcon name="arrow-right" size={12} color={sp.pageBg} />
+              {t('biens.finish')} <MEIcon name="arrow-right" size={12} color={sp.pageBg} />
             </button>
           ) : (
             <div
@@ -202,12 +204,12 @@ export function GalCard({ bien, onOpen, sp, surf, dark }: GalCardProps) {
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} title="Vues">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} title={t('biens.kpi.views')}>
                 <MEIcon name="eye" size={13} color={sp.ink} /> {galCompact(bien.stats?.views || 0)}
               </span>
               <span
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                title="Demandes de visite"
+                title={t('biens.kpi.visitRequests')}
               >
                 <MEIcon name="calendar" size={13} color={sp.ink} /> {bien.stats?.visitRequests || 0}
               </span>

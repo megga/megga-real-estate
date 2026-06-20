@@ -6,6 +6,7 @@
 // Chaque variante est signée C2PA et S'AJOUTE comme variante (l'original reste).
 
 import { useState, useEffect, type ReactNode } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import { SugarV2, shade, sgOn, type WizardPhoto } from './tokens'
 
 interface StyleVariant {
@@ -54,6 +55,17 @@ const QUICK_PROMPTS = [
 const ROOMS = ['salon', 'chambre', 'cuisine', 'salle de bain', 'bureau', 'entrée'] as const
 type RoomType = typeof ROOMS[number]
 
+// Les valeurs `RoomType` portent espaces/accents (logique/détection inchangée) ;
+// on les mappe vers des clés i18n camelCase pour l'affichage.
+const ROOM_KEY: Record<RoomType, string> = {
+  'salon': 'salon',
+  'chambre': 'chambre',
+  'cuisine': 'cuisine',
+  'salle de bain': 'salleDeBain',
+  'bureau': 'bureau',
+  'entrée': 'entree',
+}
+
 const sleep = (ms: number) => new Promise<void>(r => window.setTimeout(r, ms))
 
 function detectRoom(label: string | undefined): RoomType {
@@ -75,6 +87,7 @@ function shadesAround(hex: string, n: number): string[] {
 }
 
 export default function StagingStudio({ photo, onClose, onSaveVariant }: StagingStudioProps) {
+  const { t } = useTranslation('listings')
   // ── Studio state ─────────────────────────────────────────────────────
   const [roomType, setRoomType] = useState<RoomType>(detectRoom(photo?.label))
   const [styleMode, setStyleMode] = useState<'preset' | 'custom'>('preset')
@@ -115,7 +128,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
         id: `v${Date.now()}-${i}`,
         tone: baseTones[i],
         accent: activeStyle.accent,
-        label: ['Variante A', 'Variante B', 'Variante C', 'Variante D'][i],
+        label: t('wizard.staging.variant', { letter: ['A', 'B', 'C', 'D'][i] }),
         seed: Math.random().toString(36).slice(2, 8).toUpperCase(),
       }
       setVariants(curr => {
@@ -209,10 +222,10 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
             <div style={{
               fontSize: 11, fontWeight: 700, color: SugarV2.muted,
               letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 2,
-            }}>Staging Studio · {photo.label}</div>
+            }}>{t('wizard.staging.eyebrow', { room: photo.label })}</div>
             <div style={{
               fontSize: 16, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3,
-            }}>Meubler virtuellement cette pièce</div>
+            }}>{t('wizard.staging.title')}</div>
           </div>
 
           {/* C2PA badge */}
@@ -227,11 +240,11 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
               <path d="m9 12 2 2 4-4"/>
             </svg>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.1 }}>
-              Signé C2PA
+              {t('wizard.staging.c2paSigned')}
             </span>
           </div>
 
-          <button onClick={onClose} title="Fermer" style={{
+          <button onClick={onClose} title={t('common:actions.close')} style={{
             width: 36, height: 36, borderRadius: 999, border: 0,
             background: SugarV2.cardSubtle, cursor: 'pointer',
             display: 'grid', placeItems: 'center',
@@ -284,7 +297,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                 padding: '6px 12px', borderRadius: 999,
                 background: 'rgba(255,255,255,0.92)', color: '#0B0C0E',
                 fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-              }}>Original — vide</div>
+              }}>{t('wizard.staging.originalEmpty')}</div>
             </div>
 
             {/* APRÈS (variante active) — clipped */}
@@ -316,13 +329,13 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                     padding: '6px 12px', borderRadius: 999,
                     background: '#0B0C0E', color: '#fff',
                     fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-                  }}>Meublé · {active.label}</div>
+                  }}>{t('wizard.staging.furnished')} · {active.label}</div>
                   <div style={{
                     padding: '6px 12px', borderRadius: 999,
                     background: 'rgba(255,255,255,0.95)', color: '#0B0C0E',
                     fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
                     fontFamily: 'ui-monospace, Menlo, monospace',
-                  }}>seed {active.seed}</div>
+                  }}>{t('wizard.staging.seed', { seed: active.seed })}</div>
                 </div>
               </div>
             )}
@@ -375,10 +388,10 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                     </svg>
                   </div>
                   <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
-                    Configurez votre génération
+                    {t('wizard.staging.idleTitle')}
                   </h3>
                   <p style={{ margin: 0, fontSize: 13, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.5 }}>
-                    Choisissez un style ou décrivez l'ambiance. Nano Banana 2 produira 4 variantes signées C2PA.
+                    {t('wizard.staging.idleBody')}
                   </p>
                 </div>
               </div>
@@ -397,8 +410,8 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                   fontSize: 11.5, fontWeight: 700, letterSpacing: 0.5, marginBottom: 10,
                 }}>
                   <span>
-                    {phase === 'generating' && `Génération · ${variants.length}/4 variantes`}
-                    {phase === 'signing' && 'Signature C2PA en cours…'}
+                    {phase === 'generating' && t('wizard.staging.generatingCount', { count: variants.length, total: 4 })}
+                    {phase === 'signing' && t('wizard.staging.signingProgress')}
                   </span>
                   <span style={{ fontFamily: 'ui-monospace, Menlo, monospace' }}>
                     {phase === 'generating' ? `${Math.round(progress)} %` : '100 %'}
@@ -425,7 +438,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                 background: 'rgba(11,12,14,0.65)', color: '#fff',
                 fontSize: 10.5, fontWeight: 600, letterSpacing: 0.4,
                 backdropFilter: 'blur(6px)',
-              }}>Glissez pour comparer</div>
+              }}>{t('wizard.staging.dragToCompare')}</div>
             )}
           </div>
         </div>
@@ -438,7 +451,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
         }}>
           {phase === 'idle' ? (
             <div style={{ fontSize: 12.5, color: SugarV2.muted, fontWeight: 500, paddingLeft: 4 }}>
-              Les variantes générées apparaîtront ici.
+              {t('wizard.staging.thumbsEmpty')}
             </div>
           ) : (
             <>
@@ -522,7 +535,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
         }}>
           <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
             {/* Type de pièce */}
-            <Section label="Type de pièce" hint="Détecté automatiquement">
+            <Section label={t('wizard.staging.roomTypeLabel')} hint={t('wizard.staging.roomTypeHint')}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {ROOMS.map(r => {
                   const sel = roomType === r
@@ -534,21 +547,21 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                       fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
                       cursor: 'pointer', textTransform: 'capitalize',
                       transition: 'all .15s ease',
-                    }}>{r}</button>
+                    }}>{t(`wizard.staging.rooms.${ROOM_KEY[r]}`)}</button>
                   )
                 })}
               </div>
             </Section>
 
             {/* Style — toggle Presets / Custom */}
-            <Section label="Style" hint={styleMode === 'custom' ? 'Décrivez votre vision' : '6 ambiances Sugar'}>
+            <Section label={t('wizard.staging.styleLabel')} hint={styleMode === 'custom' ? t('wizard.staging.styleHintCustom') : t('wizard.staging.styleHintPreset')}>
               <div style={{
                 display: 'flex', padding: 4, borderRadius: 999,
                 background: SugarV2.cardSubtle, marginBottom: 12,
               }}>
                 {([
-                  { v: 'preset' as const, l: 'Presets' },
-                  { v: 'custom' as const, l: 'Custom · prompt libre' },
+                  { v: 'preset' as const, l: t('wizard.staging.tabPreset') },
+                  { v: 'custom' as const, l: t('wizard.staging.tabCustom') },
                 ]).map(o => {
                   const sel = styleMode === o.v
                   return (
@@ -584,7 +597,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                         <div style={{ padding: '7px 10px', textAlign: 'left' }}>
                           <div style={{
                             fontSize: 11.5, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.1,
-                          }}>{p.label}</div>
+                          }}>{t(`wizard.staging.presets.${p.v}.label`)}</div>
                         </div>
                       </button>
                     )
@@ -597,7 +610,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                   <textarea
                     value={customPrompt}
                     onChange={e => setCustomPrompt(e.target.value)}
-                    placeholder="Ex : style chalet vaudois, bois clair brut, lin écru, lumière dorée de fin d'après-midi, plantes vertes minimales…"
+                    placeholder={t('wizard.staging.customPlaceholder')}
                     rows={4}
                     style={{
                       width: '100%', boxSizing: 'border-box',
@@ -612,9 +625,11 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                     <div style={{
                       fontSize: 10, fontWeight: 700, color: SugarV2.muted,
                       letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 6,
-                    }}>Inspirations rapides</div>
+                    }}>{t('wizard.staging.quickInspirations')}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      {QUICK_PROMPTS.map((q, i) => (
+                      {QUICK_PROMPTS.map((_, i) => {
+                        const q = t(`wizard.staging.quickPrompts.${i}`)
+                        return (
                         <button key={i} onClick={() => setCustomPrompt(q)} style={{
                           padding: '8px 12px', borderRadius: 10, border: 0,
                           background: SugarV2.cardSubtle, color: SugarV2.ink,
@@ -626,7 +641,8 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                         onMouseLeave={e => { e.currentTarget.style.background = SugarV2.cardSubtle }}>
                           {q}
                         </button>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
@@ -646,7 +662,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                 style={{ transform: advOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform .15s ease' }}>
                 <path d="m9 6 6 6-6 6"/>
               </svg>
-              Précisions avancées
+              {t('wizard.staging.advancedToggle')}
             </button>
 
             {advOpen && (
@@ -654,12 +670,20 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                 paddingBottom: 12,
                 animation: 'sgFadeUp .2s ease both',
               }}>
-                <Mini label="Densité de mobilier">
-                  <Pills options={[['leger', 'Léger'], ['moyen', 'Moyen'], ['dense', 'Dense']]}
+                <Mini label={t('wizard.staging.densityLabel')}>
+                  <Pills options={[
+                    ['leger', t('wizard.staging.density.leger')],
+                    ['moyen', t('wizard.staging.density.moyen')],
+                    ['dense', t('wizard.staging.density.dense')],
+                  ]}
                     value={density} onChange={v => setDensity(v as typeof density)} />
                 </Mini>
-                <Mini label="Gamme">
-                  <Pills options={[['economique', 'Économique'], ['standard', 'Standard'], ['premium', 'Premium']]}
+                <Mini label={t('wizard.staging.budgetLabel')}>
+                  <Pills options={[
+                    ['economique', t('wizard.staging.budget.economique')],
+                    ['standard', t('wizard.staging.budget.standard')],
+                    ['premium', t('wizard.staging.budget.premium')],
+                  ]}
                     value={budget} onChange={v => setBudget(v as typeof budget)} />
                 </Mini>
               </div>
@@ -674,8 +698,13 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
             }}>
               <span style={{ color: SugarV2.ink, fontWeight: 700 }}>prompt&nbsp;›</span>{' '}
               {styleMode === 'preset'
-                ? `${activeStyle.label.toLowerCase()} dans un ${roomType}, densité ${density}, gamme ${budget}`
-                : (customPrompt || "(décrivez l'ambiance ci-dessus)")}
+                ? t('wizard.staging.promptRecap', {
+                    style: t(`wizard.staging.presets.${activeStyle.v}.label`).toLowerCase(),
+                    room: t(`wizard.staging.rooms.${ROOM_KEY[roomType]}`).toLowerCase(),
+                    density: t(`wizard.staging.density.${density}`).toLowerCase(),
+                    budget: t(`wizard.staging.budget.${budget}`).toLowerCase(),
+                  })
+                : (customPrompt || t('wizard.staging.promptRecapEmpty'))}
             </div>
           </div>
 
@@ -702,7 +731,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m12 3 1.9 5.8L20 11l-5.8 1.9L12 19l-1.9-5.8L4 11l5.8-2L12 3Z"/>
                 </svg>
-                Générer 4 variantes
+                {t('wizard.staging.generateCta', { count: 4 })}
               </button>
             )}
 
@@ -720,7 +749,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                   borderTopColor: SugarV2.ink,
                   animation: 'sgSpin 0.8s linear infinite', display: 'inline-block',
                 }} />
-                {phase === 'generating' ? 'Génération…' : 'Signature C2PA…'}
+                {phase === 'generating' ? t('wizard.staging.generatingShort') : t('wizard.staging.signingShort')}
               </button>
             )}
 
@@ -739,7 +768,7 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                       stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>
                     </svg>
-                    Régénérer
+                    {t('wizard.staging.regenerate')}
                   </button>
                   <button onClick={saveSelection}
                     disabled={pickedCount === 0}
@@ -754,8 +783,8 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                       transition: 'all .15s ease',
                     }}>
                     {pickedCount === 0
-                      ? 'Cochez les variantes à conserver'
-                      : `Ajouter ${pickedCount} variante${pickedCount > 1 ? 's' : ''} signée${pickedCount > 1 ? 's' : ''}`}
+                      ? t('wizard.staging.pickPrompt')
+                      : t('wizard.staging.addSigned', { count: pickedCount })}
                     {pickedCount > 0 && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                         stroke={sgOn()} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -767,9 +796,8 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
                 <div style={{
                   fontSize: 10.5, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.45, textAlign: 'center',
                 }}>
-                  Les variantes sélectionnées seront ajoutées comme{' '}
-                  <strong style={{ color: SugarV2.ink }}>variantes signées</strong> de cette photo.
-                  L'original reste inchangé.
+                  <Trans i18nKey="wizard.staging.saveFootnote" ns="listings"
+                    components={{ strong: <strong style={{ color: SugarV2.ink }} /> }} />
                 </div>
               </>
             )}
