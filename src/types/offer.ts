@@ -80,12 +80,3 @@ export function countActiveConditions(c: OfferConditions): number {
     (c.other.trim() ? 1 : 0)
   )
 }
-
-/** Statut d'affichage user-friendly. */
-export const OFFER_STATUS_LABELS: Record<OfferStatus, string> = {
-  pending: 'En attente',
-  accepted: 'Acceptée',
-  rejected: 'Refusée',
-  expired: 'Expirée',
-  withdrawn: 'Retirée',
-}

@@ -1,11 +1,10 @@
-// i18n : la SEULE map de libellés rendue en live depuis ce module est
+// Ce module n'expose plus qu'UNE map de libellés rendue en live :
 // PROPERTY_TYPE_LABELS (ListingFormPage) → getters singleton vers les clés
-// canoniques listings:type.*. Toutes les autres maps de libellés ici sont du
-// CODE MORT (aucun import de la valeur) et restent en FR : PROPERTY_STATUS_LABELS,
-// TRANSACTION_STAGE_LABELS, KYC_RISK_LABELS, KYC_STATUS_LABELS, KYC_TYPE_LABELS
-// (seul consommateur = kyc/mapping.ts, lui-même mort), PEP/SANCTIONS_STATUS_LABELS.
-// NB : les libellés KYC risque/statut RÉELLEMENT rendus vivent dans
-// crm-sugar-v3/tokens.ts (forme {label,tone}), pas ici.
+// canoniques listings:type.*. Les anciennes maps de libellés mortes
+// (PROPERTY_STATUS / TRANSACTION_STAGE / KYC_RISK / KYC_STATUS / KYC_TYPE /
+// PEP / SANCTIONS_STATUS_LABELS) ont été retirées ; les libellés KYC réellement
+// rendus vivent dans crm-sugar-v3/tokens.ts (forme {label,tone}). Restent ici les
+// codes/enums (`*_STATUSES`, `*_TYPES`, `*_LEVELS`) et leurs types dérivés.
 import i18n from '@/i18n'
 
 export const CANTONS = [
@@ -52,14 +51,6 @@ export const PROPERTY_STATUSES = [
 
 export type PropertyStatus = typeof PROPERTY_STATUSES[number]
 
-export const PROPERTY_STATUS_LABELS: Record<PropertyStatus, string> = {
-  draft: 'Brouillon',
-  active: 'Actif',
-  reserved: 'Réservé',
-  sold: 'Vendu',
-  archived: 'Archivé',
-}
-
 export const TRANSACTION_STAGES = [
   'new_lead',
   'to_qualify',
@@ -79,23 +70,6 @@ export const TRANSACTION_STAGES = [
 
 export type TransactionStage = typeof TRANSACTION_STAGES[number]
 
-export const TRANSACTION_STAGE_LABELS: Record<TransactionStage, string> = {
-  new_lead: 'Nouveau lead',
-  to_qualify: 'À qualifier',
-  active_search: 'Recherche active',
-  visit_planned: 'Visite planifiée',
-  visit_done: 'Visite effectuée',
-  interest_confirmed: 'Intérêt confirmé',
-  offer: 'Offre',
-  negotiation: 'Négociation',
-  reserved: 'Réservé',
-  financing: 'Financement',
-  notary: 'Notaire',
-  signed: 'Signé',
-  lost: 'Perdu',
-  to_recontact: 'À relancer',
-}
-
 // Legacy stage mapping for backward compatibility
 export const LEGACY_STAGE_MAP: Record<string, TransactionStage> = {
   lead: 'new_lead',
@@ -106,35 +80,11 @@ export const LEGACY_STAGE_MAP: Record<string, TransactionStage> = {
 export const KYC_RISK_LEVELS = ['low', 'medium', 'high', 'unassessed'] as const
 export type KycRiskLevel = typeof KYC_RISK_LEVELS[number]
 
-// CODE MORT (aucun import de la valeur ; le vivant = crm-sugar-v3/tokens.ts) → FR.
-export const KYC_RISK_LABELS: Record<KycRiskLevel, string> = {
-  low: 'Faible',
-  medium: 'Moyen',
-  high: 'Élevé',
-  unassessed: 'Non évalué',
-}
-
 export const KYC_STATUSES = ['pending', 'in_progress', 'review', 'validated', 'rejected'] as const
 export type KycStatus = typeof KYC_STATUSES[number]
 
-// CODE MORT (aucun import de la valeur ; le vivant = crm-sugar-v3/tokens.ts) → FR.
-export const KYC_STATUS_LABELS: Record<KycStatus, string> = {
-  pending: 'En attente',
-  in_progress: 'En cours',
-  review: 'En revue',
-  validated: 'Validé',
-  rejected: 'Rejeté',
-}
-
 export const KYC_TYPES = ['buyer_pp', 'buyer_pm', 'seller_pp', 'seller_pm'] as const
 export type KycType = typeof KYC_TYPES[number]
-
-export const KYC_TYPE_LABELS: Record<KycType, string> = {
-  buyer_pp: 'Acheteur PP',
-  buyer_pm: 'Acheteur PM',
-  seller_pp: 'Vendeur PP',
-  seller_pm: 'Vendeur PM',
-}
 
 export const CONTACT_SCORES = ['hot', 'warm', 'cold'] as const
 export type ContactScore = typeof CONTACT_SCORES[number]
@@ -154,20 +104,6 @@ export const FATF_INCREASED_MONITORING = [
 
 export type PepStatus = 'clear' | 'match' | 'pending' | 'not_checked'
 export type SanctionsStatus = 'clear' | 'match' | 'pending' | 'not_checked'
-
-export const PEP_STATUS_LABELS: Record<PepStatus, string> = {
-  clear: 'Aucune correspondance',
-  match: 'Correspondance trouvée',
-  pending: 'Vérification en cours',
-  not_checked: 'Non vérifié',
-}
-
-export const SANCTIONS_STATUS_LABELS: Record<SanctionsStatus, string> = {
-  clear: 'Aucune correspondance',
-  match: 'Correspondance trouvée',
-  pending: 'Vérification en cours',
-  not_checked: 'Non vérifié',
-}
 
 // Stripe Price IDs (from env vars, configured in Stripe Dashboard)
 export const STRIPE_PRICES = {
