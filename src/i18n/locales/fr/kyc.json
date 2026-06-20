@@ -890,5 +890,47 @@
       "unavailable": "Rapport indisponible.",
       "preparing": "Préparation du rapport…"
     }
+  },
+  "check": {
+    "id": {
+      "title": "Pièce d'identité",
+      "sub": "Passeport ou carte d'identité officielle, recto-verso."
+    },
+    "address": {
+      "title": "Justificatif de domicile",
+      "sub": "Facture nominative < 3 mois (loyer, électricité, banque)."
+    },
+    "pep": {
+      "title": "Screening PEP",
+      "sub": "Vérification listes Personnes Exposées Politiquement."
+    },
+    "sanctions": {
+      "title": "Listes de sanctions",
+      "sub": "Croisement OFAC, SECO, ONU, Union Européenne."
+    },
+    "funds": {
+      "title": "Source des fonds",
+      "sub": "Déclaration et preuve d'origine pour transactions > CHF 100'000."
+    }
+  },
+  "dossierStatus": {
+    "none": "À démarrer",
+    "pending": "En cours",
+    "verified": "Vérifié",
+    "failed": "Échec",
+    "stale": "À re-screener"
+  },
+  "riskBadge": {
+    "low": "Risque faible",
+    "medium": "Risque modéré",
+    "high": "Risque élevé",
+    "unassessed": "Non évalué"
+  },
+  "dealBadge": {
+    "verified": "KYC vérifié",
+    "pending": "KYC en cours",
+    "none": "KYC à faire",
+    "stale": "KYC périmé",
+    "failed": "KYC échec"
   }
 }
