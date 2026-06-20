@@ -7,6 +7,7 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { buildAxData, type CockpitJson, type ObjectifJson, type FunnelJson } from '@/components/crm-sugar/analytics/buildAxData'
 import type { AxPeriodId, AxPeriodData } from '@/components/crm-sugar/analytics/tokens'
@@ -30,6 +31,7 @@ export function useAxDashboardData(period: AxPeriodId, scope: AxScope): {
   isError: boolean
   refetch: () => void
 } {
+  const { t, i18n } = useTranslation('dashboard')
   const cockpit = useQuery({
     queryKey: ['ax-cockpit', period, scope],
     queryFn: () => rpc<CockpitJson>('analytics_cockpit', { p_period: period, p_scope: scope }),
@@ -59,8 +61,10 @@ export function useAxDashboardData(period: AxPeriodId, scope: AxScope): {
     if (!cockpit.data || !objectif.data || !funnel.data) return null
     // Un payload vide ('{}') signale une agence absente (JWT sans agence).
     if (!objectif.data.period) return null
-    return buildAxData(period, cockpit.data, objectif.data, funnel.data)
-  }, [period, isLoading, cockpit.data, objectif.data, funnel.data])
+    return buildAxData(period, cockpit.data, objectif.data, funnel.data, t)
+    // i18n.language dans les deps : recalcule les libellés au changement de langue.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, isLoading, cockpit.data, objectif.data, funnel.data, i18n.language])
 
   return { data, isLoading, isError, refetch }
 }

@@ -9,10 +9,15 @@
 //     canal n'est PAS stockée en base, le sous-libellé devient « N leads »).
 // On ne dérive JAMAIS un même chiffre des deux sources.
 
+import type { TFunction } from 'i18next'
 import { formatCHF } from '@/lib/utils'
 import type {
   AxPeriodId, AxPeriodData, AxSeries, AxKpi, AxCompositionItem, AxSource, AxDeal, AxBucketId, AxBucket,
 } from './tokens'
+
+// i18n : adaptateur PUR mais à libellés traduits → un traducteur `t` (lié au
+// namespace 'dashboard', clés dashboard:analytics.*) est injecté par le hook
+// appelant (useAxDashboardData), qui recalcule au changement de langue.
 
 // ── Shapes des payloads RPC (JSON renvoyé par supabase.rpc) ──────────────────
 type DecompCat = 'signed' | 'compromis' | 'offres' | 'pipeline'
@@ -84,20 +89,30 @@ const DECOMP_PROBABILITY: Record<DecompCat, number> = {
   pipeline: 0.35,
 }
 
-// ── Libellés de période (réutilise la grammaire de la maquette) ──────────────
-const PERIOD_META: Record<AxPeriodId, { period: string; granularity: string; pointWord: string }> = {
-  year:    { period: 'cette année',     granularity: 'Cumul mensuel',     pointWord: 'Mois' },
-  quarter: { period: 'ce trimestre',    granularity: 'Cumul hebdomadaire', pointWord: 'Semaine' },
-  month:   { period: 'ce mois',         granularity: 'Cumul journalier',   pointWord: 'Jour' },
+// ── Libellés de période (traduits ; clés dashboard:analytics.period.*) ───────
+function periodMeta(period: AxPeriodId, t: TFunction): { period: string; granularity: string; pointWord: string } {
+  return {
+    period: t(`analytics.period.${period}.label`),
+    granularity: t(`analytics.period.${period}.granularity`),
+    pointWord: t(`analytics.period.${period}.pointWord`),
+  }
 }
 
-// ── Libellés des canaux de source (port de useDashboardFunnel) ───────────────
-const SOURCE_LABELS: Record<string, string> = {
-  website:    'Site agence',
-  onboarding: 'Marketplace MEGGA',
-  referral:   'Recommandations',
-  manual:     'Importé manuel',
-  import:     'Importé manuel',
+// ── Libellés des canaux de source (traduits ; canaux connus, sinon brut) ─────
+function sourceLabel(source: string, t: TFunction): string {
+  const key = source === 'import' ? 'manual' : source
+  const known = ['website', 'onboarding', 'referral', 'manual']
+  return known.includes(key) ? t(`analytics.source.${key}`) : source
+}
+
+// ── Libellé d'étape affiché (drill) ; le code BRUT reste la clé de probaForStage ──
+function stageLabel(raw: string, t: TFunction): string {
+  switch (raw) {
+    case 'Signé': return t('analytics.stage.signed')
+    case 'Compromis': return t('analytics.stage.compromis')
+    case 'Offre': return t('analytics.stage.offer')
+    default: return raw
+  }
 }
 
 // ── Drapeaux fallback commission agrégés (somme sur les 4 catégories) ────────
@@ -169,8 +184,9 @@ export function buildAxData(
   cockpit: CockpitJson,
   objectif: ObjectifJson,
   funnel: FunnelJson,
+  t: TFunction,
 ): AxPeriodData {
-  const meta = PERIOD_META[period]
+  const meta = periodMeta(period, t)
   const decomp = cockpit.decomp ?? { signed: 0, compromis: 0, offres: 0, pipeline: 0 }
   const commissionFlags = aggregateFlags(cockpit.decomp_flags)
 
@@ -180,9 +196,9 @@ export function buildAxData(
 
   // Composition : 3 buckets dérivés de la décompo pondérée du cockpit.
   const composition: AxCompositionItem[] = [
-    { k: 'secured',  label: 'Sécurisé', hint: 'Actes + compromis', v: (decomp.signed ?? 0) + (decomp.compromis ?? 0) },
-    { k: 'probable', label: 'Probable', hint: 'Offres en cours',    v: decomp.offres ?? 0 },
-    { k: 'possible', label: 'Possible', hint: 'Mandats & visites',  v: decomp.pipeline ?? 0 },
+    { k: 'secured',  label: t('analytics.composition.secured.label'),  hint: t('analytics.composition.secured.hint'),  v: (decomp.signed ?? 0) + (decomp.compromis ?? 0) },
+    { k: 'probable', label: t('analytics.composition.probable.label'), hint: t('analytics.composition.probable.hint'), v: decomp.offres ?? 0 },
+    { k: 'possible', label: t('analytics.composition.possible.label'), hint: t('analytics.composition.possible.hint'), v: decomp.pipeline ?? 0 },
   ]
 
   // KPI : 4 tuiles live, sparkline conditionnelle.
@@ -191,7 +207,7 @@ export function buildAxData(
   const convPrev = cockpit.conversion_prev
   const kpis: AxKpi[] = [
     {
-      label: 'Volume transacté',
+      label: t('analytics.kpi.volume'),
       value: (cockpit.volume_signed && cockpit.volume_signed > 0) ? formatCHF(cockpit.volume_signed) : 'CHF —',
       // pas de N-1 de volume calculé : on n'affiche PAS delta_deals (variation du NOMBRE
       // de deals) à côté d'un montant CHF — ce serait un delta trompeur.
@@ -199,14 +215,14 @@ export function buildAxData(
       spark: volumeSpark,
     },
     {
-      label: 'Transactions',
+      label: t('analytics.kpi.transactions'),
       value: String(cockpit.deals ?? 0),
       delta: cockpit.delta_deals ?? 0,
       spark: [],
       abs: true,
     },
     {
-      label: 'Commission moy.',
+      label: t('analytics.kpi.avgCommission'),
       value: (cockpit.n_signed && cockpit.n_signed > 0)
         ? formatCHF(Math.round((decomp.signed ?? 0) / cockpit.n_signed))
         : 'CHF —',
@@ -214,8 +230,8 @@ export function buildAxData(
       spark: [],
     },
     {
-      label: 'Taux conversion',
-      value: conversion === null || conversion === undefined ? 'Données insuffisantes' : `${conversion} %`,
+      label: t('analytics.kpi.conversionRate'),
+      value: conversion === null || conversion === undefined ? t('analytics.insufficientData') : `${conversion} %`,
       delta: (conversion !== null && conversion !== undefined && convPrev !== null && convPrev !== undefined)
         ? conversion - convPrev
         : 0,
@@ -228,9 +244,9 @@ export function buildAxData(
   const srcs = funnel.sources ?? []
   const totalLeads = srcs.reduce((s, x) => s + (x.v ?? 0), 0)
   const sources: AxSource[] = srcs.map(s => ({
-    label: SOURCE_LABELS[s.source] ?? s.source,
+    label: sourceLabel(s.source, t),
     // sous-libellé = taux de qualification du canal (conv = qualifiés / leads).
-    sub: s.conv > 0 ? `${s.conv} % qualifiés` : '',
+    sub: s.conv > 0 ? t('analytics.qualifiedPct', { pct: s.conv }) : '',
     deals: s.v,
     comm: 0,
     pct: totalLeads > 0 ? Math.round((s.v * 100) / totalLeads) : 0,
@@ -241,12 +257,12 @@ export function buildAxData(
   // montant côté SQL). Champs décoratifs when/days vides (masqués si vide).
   const closing: AxDeal[] = (cockpit.contributors ?? [])
     .map(c => ({
-      prop: c.name ?? 'Deal',
+      prop: c.name ?? t('analytics.dealFallback'),
       loc: '',
       gmv: 0,
       comm: c.price_missing ? 0 : (c.amount ?? 0),
-      prob: probaForStage(c.stage),
-      stage: c.stage,
+      prob: probaForStage(c.stage),     // probabilité tirée du code BRUT
+      stage: stageLabel(c.stage, t),    // libellé affiché traduit
       when: '',
       days: 0,
     }))
@@ -255,7 +271,7 @@ export function buildAxData(
   return {
     key: period,
     label: objectif.label,
-    scopeLabel: cockpit.scope === 'me' ? 'Vue personnelle' : 'Vue agence',
+    scopeLabel: cockpit.scope === 'me' ? t('analytics.scope.me') : t('analytics.scope.agency'),
     period: meta.period,
     granularity: meta.granularity,
     pointWord: meta.pointWord,

@@ -464,5 +464,168 @@
         "backToDashboard": "Back to dashboard"
       }
     }
+  },
+  "analytics": {
+    "period": {
+      "year": {
+        "label": "this year",
+        "granularity": "Monthly cumulative",
+        "pointWord": "Month"
+      },
+      "quarter": {
+        "label": "this quarter",
+        "granularity": "Weekly cumulative",
+        "pointWord": "Week"
+      },
+      "month": {
+        "label": "this month",
+        "granularity": "Daily cumulative",
+        "pointWord": "Day"
+      }
+    },
+    "source": {
+      "website": "Agency website",
+      "onboarding": "MEGGA marketplace",
+      "referral": "Referrals",
+      "manual": "Manual import"
+    },
+    "composition": {
+      "secured": {
+        "label": "Secured",
+        "hint": "Deeds + sale agreements"
+      },
+      "probable": {
+        "label": "Probable",
+        "hint": "Offers in progress"
+      },
+      "possible": {
+        "label": "Possible",
+        "hint": "Mandates & viewings"
+      },
+      "title": "What the projection is made of",
+      "total": "{{amount}} in total",
+      "empty": "No projected commission for the period"
+    },
+    "kpi": {
+      "volume": "Transaction volume",
+      "transactions": "Transactions",
+      "avgCommission": "Avg. commission",
+      "conversionRate": "Conversion rate"
+    },
+    "insufficientData": "Insufficient data",
+    "qualifiedPct": "{{pct}} % qualified",
+    "scope": {
+      "me": "Personal view",
+      "agency": "Agency view"
+    },
+    "stage": {
+      "signed": "Signed",
+      "compromis": "Sale agreement",
+      "offer": "Offer"
+    },
+    "dealFallback": "Deal",
+    "title": "Performance",
+    "estimateTooltip": "Estimate weighted by probability of closing",
+    "selector": {
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year"
+    },
+    "toolbar": {
+      "lightMode": "Light mode",
+      "darkMode": "Dark mode",
+      "refresh": "Refresh",
+      "exportPdf": "Export PDF"
+    },
+    "error": {
+      "title": "Unable to load your performance",
+      "body": "An error occurred while computing the indicators. Please try again shortly.",
+      "retry": "Try again"
+    },
+    "pace": {
+      "realized": "Realized",
+      "projected": "Projected",
+      "target": "Target",
+      "tempo": "pace"
+    },
+    "hero": {
+      "eyebrow": "Projected commission",
+      "ahead": "Ahead",
+      "behind": "Behind",
+      "vsTempo": "vs pace",
+      "projectionLead": "At this pace, you close {{period}} at",
+      "projectionMid": "that is",
+      "projectionTail": "of your target.",
+      "noTarget": "No sales target is set for {{period}}.",
+      "setInSettings": "Set it in Settings",
+      "setInSettingsAgency": "Set it in Settings › Agency.",
+      "targetSetByAgency": "Target set by the agency",
+      "editInSettings": "Edit in Settings",
+      "targetUnsetHint": "Target not set · set it in Settings"
+    },
+    "fallback": {
+      "defaultRate_one": "{{count}} property at the default 3 % rate",
+      "defaultRate_other": "{{count}} properties at the default 3 % rate",
+      "missingPrice_one": "{{count}} without a price",
+      "missingPrice_other": "{{count}} without a price",
+      "summary": "Estimated commission: {{parts}}. Enter the mandate rate on your properties to refine it."
+    },
+    "chart": {
+      "title": "Trajectory toward the target",
+      "realized": "Realized",
+      "target": "Target"
+    },
+    "deal": {
+      "commission": "commission",
+      "missingPrice": "price missing"
+    },
+    "closing": {
+      "title": "Signing soon",
+      "empty": "No deal in progress"
+    },
+    "sources": {
+      "title": "Lead sources",
+      "subtitle": "Where your contacts come from · agency scope",
+      "bestChannel": "= your best channel",
+      "empty": "No source for the period",
+      "leadCount_one": "lead",
+      "leadCount_other": "leads"
+    },
+    "drawer": {
+      "bucket": {
+        "secured": {
+          "label": "Secured",
+          "hint": "Signed deeds and binding sale agreements"
+        },
+        "probable": {
+          "label": "Probable",
+          "hint": "Offers submitted, in negotiation"
+        },
+        "possible": {
+          "label": "Possible",
+          "hint": "Active mandates and ongoing viewings"
+        }
+      },
+      "compositionEyebrow": "Composition · {{label}}",
+      "dealEyebrow": "Deal · {{stage}}",
+      "comparableDeals": "Other comparable deals",
+      "fileCount_one": "{{count}} file · commission",
+      "fileCount_other": "{{count}} files · commission",
+      "close": "Close",
+      "field": {
+        "commission": "Commission",
+        "probability": "Probability",
+        "stage": "Stage"
+      },
+      "detailsUnavailable": "Details unavailable",
+      "detailsUnavailableHint": "Per-file detail is coming soon, open the filtered Pipeline to follow up.",
+      "openInPipeline": "Open in the filtered Pipeline"
+    },
+    "trajectory": {
+      "goalLabel": "target",
+      "pointFallback": "Point {{n}}",
+      "projected": "projected",
+      "vsPace": "vs pace"
+    }
   }
 }
