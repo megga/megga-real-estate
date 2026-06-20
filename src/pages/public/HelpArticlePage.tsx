@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ChevronRight } from 'lucide-react'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
@@ -6,10 +7,10 @@ import ArticleFeedback from '@/components/help/ArticleFeedback'
 import SupportIllustration from '@/components/illustrations/SupportIllustration'
 import { getArticle, getArticlesBySlugs } from '@/lib/helpArticles'
 
-const CATEGORY_LABELS: Record<string, string> = {
-  agent: 'Guides Agent',
-  vendeur: 'Guides Vendeur',
-  acheteur: 'Guides Acheteur',
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  agent: 'help.categoryAgent',
+  vendeur: 'help.categorySeller',
+  acheteur: 'help.categoryBuyer',
 }
 
 function slugify(text: string): string {
@@ -120,6 +121,7 @@ function renderMarkdown(content: string) {
 }
 
 export default function HelpArticlePage() {
+  const { t } = useTranslation('common')
   const { category, slug } = useParams<{ category: string; slug: string }>()
   const article = getArticle(slug || '')
 
@@ -128,9 +130,9 @@ export default function HelpArticlePage() {
       <div className="min-h-screen bg-white">
         <HomeStickyHeader alwaysShow />
         <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <p className="text-gray-500">Article introuvable.</p>
+          <p className="text-gray-500">{t('help.articleNotFound')}</p>
           <Link to="/help" className="text-sm text-gray-900 underline mt-4 inline-block">
-            Retour au centre d'aide
+            {t('help.backToHelpCenter')}
           </Link>
         </div>
         <Footer />
@@ -158,11 +160,11 @@ export default function HelpArticlePage() {
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-10 flex-wrap">
           <Link to="/help" className="hover:text-gray-600 transition-colors">
-            Centre d'aide
+            {t('help.helpCenter')}
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <Link to={`/help/${category}`} className="hover:text-gray-600 transition-colors">
-            {CATEGORY_LABELS[category || ''] || category}
+            {CATEGORY_LABEL_KEYS[category || ''] ? t(CATEGORY_LABEL_KEYS[category || '']) : category}
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-600 truncate max-w-[200px] sm:max-w-none">{article.title}</span>
@@ -181,7 +183,7 @@ export default function HelpArticlePage() {
                 {article.title}
               </h1>
               <p className="text-sm text-gray-500 mt-3">
-                {readingTime} min de lecture
+                {t('help.readingTime', { count: readingTime })}
               </p>
             </div>
 
@@ -201,7 +203,7 @@ export default function HelpArticlePage() {
               {headings.length > 0 && (
                 <div className="mb-8">
                   <h4 className="text-xs font-semibold text-gray-500 capitalize mb-3">
-                    Sur cette page
+                    {t('help.onThisPage')}
                   </h4>
                   <nav className="space-y-2">
                     {headings.map(h => (
@@ -221,7 +223,7 @@ export default function HelpArticlePage() {
               {related.length > 0 && (
                 <div className="pt-6 border-t border-gray-100">
                   <h4 className="text-xs font-semibold text-gray-500 capitalize mb-3">
-                    Articles liés
+                    {t('help.relatedArticles')}
                   </h4>
                   <div className="space-y-3">
                     {related.map(a => (
@@ -246,15 +248,15 @@ export default function HelpArticlePage() {
             <SupportIllustration className="w-full max-w-[360px] h-auto" />
           </div>
           <div className="md:w-[45%] flex flex-col justify-center p-8 md:p-10">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">Contactez-nous</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3 leading-tight">{t('help.contactUs')}</h3>
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Posez votre question à notre assistant IA pour une réponse instantanée, ou envoyez un ticket à notre équipe.
+              {t('help.contactSubtitle')}
             </p>
             <Link
               to="/help/contact"
               className="h-11 px-8 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center w-fit"
             >
-              Contactez-nous
+              {t('help.contactUs')}
             </Link>
           </div>
         </div>

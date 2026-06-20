@@ -304,7 +304,72 @@
     "browseGuides": "Sfoglia le guide",
     "sendTicket": "Invia un ticket",
     "iAmSellerOwner": "Sono proprietario o venditore",
-    "iAmBuyerTenant": "Sono acquirente o inquilino"
+    "iAmBuyerTenant": "Sono acquirente o inquilino",
+    "helpCenter": "Help center",
+    "categoryAgent": "Agent guides",
+    "categorySeller": "Seller guides",
+    "categoryBuyer": "Buyer guides",
+    "readingTime_one": "{{count}} min read",
+    "readingTime_other": "{{count}} min read",
+    "onThisPage": "On this page",
+    "relatedArticles": "Related articles",
+    "articleNotFound": "Article not found.",
+    "feedbackPrompt": "Was this article helpful?",
+    "feedbackYes": "Yes",
+    "feedbackNo": "No",
+    "feedbackThanks": "Thank you for your feedback!",
+    "feedbackPlaceholder": "What could be improved?",
+    "feedbackSend": "Send",
+    "categoryNotFound": "Category not found.",
+    "articleCount_one": "{{count}} article",
+    "articleCount_other": "{{count}} articles",
+    "categoryAgentLabel": "Real estate agent guides",
+    "categoryAgentDescription": "CRM, pipeline, KYC, matching, communication, AI · everything you need.",
+    "categorySellerLabel": "Seller guides",
+    "categorySellerDescription": "Valuation, mandate, sale tracking, seller portal, market analysis.",
+    "categoryBuyerLabel": "Buyer guides",
+    "categoryBuyerDescription": "Search, viewings, financing, comparison, alerts.",
+    "categoryAgentShort": "Agent",
+    "categorySellerShort": "Seller",
+    "categoryBuyerShort": "Buyer",
+    "searchPlaceholder": "Search for a topic...",
+    "noResults": "No results for \"{{query}}\"",
+    "askMeggaAi": "Ask MEGGA AI",
+    "changelog": {
+      "breadcrumb": "What's new",
+      "title": "What's new",
+      "subtitle": "The latest improvements to MEGGA."
+    },
+    "compliance": {
+      "breadcrumb": "Compliance",
+      "title": "Compliance and security",
+      "subtitle": "Frequently asked questions about data protection and compliance."
+    },
+    "limits": {
+      "breadcrumb": "Limits and quotas",
+      "title": "Limits and quotas by plan",
+      "subtitle": "Compare the features available with each subscription.",
+      "feature": "Feature",
+      "free": "Free",
+      "pricePerMonth": "{{price}}/month",
+      "customPlanPrompt": "Need a custom plan?"
+    },
+    "shortcuts": {
+      "breadcrumb": "Keyboard shortcuts",
+      "title": "Keyboard shortcuts",
+      "subtitle": "Save time with MEGGA keyboard shortcuts."
+    },
+    "status": {
+      "breadcrumb": "Service status",
+      "title": "Service status",
+      "allOperational": "All systems operational",
+      "operational": "Operational",
+      "degraded": "Degraded",
+      "incident": "Incident",
+      "lastChecked": "Last checked: {{date}} · 30-day uptime: {{uptime}}",
+      "recentIncidents": "Recent incidents",
+      "noIncidents": "No incidents reported in the last 30 days."
+    }
   },
   "onboarding": {
     "steps": {

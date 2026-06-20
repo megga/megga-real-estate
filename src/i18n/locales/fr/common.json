@@ -309,7 +309,72 @@
     "browseGuides": "Parcourir les guides",
     "sendTicket": "Envoyer un ticket",
     "iAmSellerOwner": "Je suis propriétaire ou vendeur",
-    "iAmBuyerTenant": "Je suis acheteur ou locataire"
+    "iAmBuyerTenant": "Je suis acheteur ou locataire",
+    "helpCenter": "Centre d'aide",
+    "categoryAgent": "Guides Agent",
+    "categorySeller": "Guides Vendeur",
+    "categoryBuyer": "Guides Acheteur",
+    "readingTime_one": "{{count}} min de lecture",
+    "readingTime_other": "{{count}} min de lecture",
+    "onThisPage": "Sur cette page",
+    "relatedArticles": "Articles liés",
+    "articleNotFound": "Article introuvable.",
+    "feedbackPrompt": "Cet article vous a-t-il été utile ?",
+    "feedbackYes": "Oui",
+    "feedbackNo": "Non",
+    "feedbackThanks": "Merci pour votre retour !",
+    "feedbackPlaceholder": "Qu'est-ce qui pourrait être amélioré ?",
+    "feedbackSend": "Envoyer",
+    "categoryNotFound": "Catégorie introuvable.",
+    "articleCount_one": "{{count}} article",
+    "articleCount_other": "{{count}} articles",
+    "categoryAgentLabel": "Guides Agent immobilier",
+    "categoryAgentDescription": "CRM, pipeline, KYC, matching, communication, IA · tout ce dont vous avez besoin.",
+    "categorySellerLabel": "Guides Vendeur",
+    "categorySellerDescription": "Estimation, mandat, suivi de vente, portail vendeur, analyse marché.",
+    "categoryBuyerLabel": "Guides Acheteur",
+    "categoryBuyerDescription": "Recherche, visites, financement, comparaison, alertes.",
+    "categoryAgentShort": "Agent",
+    "categorySellerShort": "Vendeur",
+    "categoryBuyerShort": "Acheteur",
+    "searchPlaceholder": "Rechercher un sujet...",
+    "noResults": "Aucun résultat pour « {{query}} »",
+    "askMeggaAi": "Demander à MEGGA AI",
+    "changelog": {
+      "breadcrumb": "Nouveautés",
+      "title": "Nouveautés",
+      "subtitle": "Les dernières améliorations de MEGGA."
+    },
+    "compliance": {
+      "breadcrumb": "Conformité",
+      "title": "Conformité et sécurité",
+      "subtitle": "Questions fréquentes sur la protection des données et la conformité."
+    },
+    "limits": {
+      "breadcrumb": "Limites et quotas",
+      "title": "Limites et quotas par plan",
+      "subtitle": "Comparez les fonctionnalités disponibles selon votre abonnement.",
+      "feature": "Fonctionnalité",
+      "free": "Gratuit",
+      "pricePerMonth": "{{price}}/mois",
+      "customPlanPrompt": "Besoin d'un plan sur mesure ?"
+    },
+    "shortcuts": {
+      "breadcrumb": "Raccourcis clavier",
+      "title": "Raccourcis clavier",
+      "subtitle": "Gagnez du temps avec les raccourcis clavier MEGGA."
+    },
+    "status": {
+      "breadcrumb": "Statut des services",
+      "title": "Statut des services",
+      "allOperational": "Tous les systèmes sont opérationnels",
+      "operational": "Opérationnel",
+      "degraded": "Dégradé",
+      "incident": "Incident",
+      "lastChecked": "Dernière vérification : {{date}} · Uptime 30 jours : {{uptime}}",
+      "recentIncidents": "Incidents récents",
+      "noIncidents": "Aucun incident signalé ces 30 derniers jours."
+    }
   },
   "onboarding": {
     "steps": {

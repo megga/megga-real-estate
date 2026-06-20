@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
@@ -8,6 +9,7 @@ import { COMPLIANCE_FAQ } from '@/lib/helpArticles'
 import ComplianceIllustration from '@/components/illustrations/ComplianceIllustration'
 
 export default function HelpCompliancePage() {
+  const { t } = useTranslation('common')
   const [openIdx, setOpenIdx] = useState<number | null>(0)
 
   return (
@@ -15,16 +17,16 @@ export default function HelpCompliancePage() {
       <HomeStickyHeader alwaysShow />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
-          <Link to="/help" className="hover:text-gray-600 transition-colors">Centre d'aide</Link>
+          <Link to="/help" className="hover:text-gray-600 transition-colors">{t('footer.helpCenter')}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-gray-700">Conformité</span>
+          <span className="text-gray-700">{t('help.compliance.breadcrumb')}</span>
         </div>
 
         <div className="flex items-center gap-5 mb-8">
           <div className="w-20 h-20 shrink-0"><ComplianceIllustration /></div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Conformité et sécurité</h1>
-            <p className="text-sm text-gray-500">Questions fréquentes sur la protection des données et la conformité.</p>
+            <h1 className="text-2xl font-semibold text-gray-900">{t('help.compliance.title')}</h1>
+            <p className="text-sm text-gray-500">{t('help.compliance.subtitle')}</p>
           </div>
         </div>
 

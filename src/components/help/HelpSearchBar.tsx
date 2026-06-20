@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Search, UserCog, Home, ShoppingCart, X } from 'lucide-react'
 import Fuse from 'fuse.js'
 import { ALL_ARTICLES, type HelpArticle } from '@/lib/helpArticles'
@@ -10,13 +11,14 @@ const CATEGORY_ICONS: Record<HelpArticle['category'], typeof UserCog> = {
   acheteur: ShoppingCart,
 }
 
-const CATEGORY_LABELS: Record<HelpArticle['category'], string> = {
-  agent: 'Agent',
-  vendeur: 'Vendeur',
-  acheteur: 'Acheteur',
+const CATEGORY_LABEL_KEYS: Record<HelpArticle['category'], string> = {
+  agent: 'help.categoryAgentShort',
+  vendeur: 'help.categorySellerShort',
+  acheteur: 'help.categoryBuyerShort',
 }
 
 export default function HelpSearchBar() {
+  const { t } = useTranslation('common')
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -93,7 +95,7 @@ export default function HelpSearchBar() {
           onChange={e => setQuery(e.target.value)}
           onFocus={() => query.trim() && setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Rechercher un sujet..."
+          placeholder={t('help.searchPlaceholder')}
           className="w-full h-11 pl-10 pr-10 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
         />
         {query && (
@@ -124,7 +126,7 @@ export default function HelpSearchBar() {
                       <Icon className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{article.title}</p>
-                        <p className="text-xs text-gray-500 truncate">{CATEGORY_LABELS[article.category]} &middot; {article.description}</p>
+                        <p className="text-xs text-gray-500 truncate">{t(CATEGORY_LABEL_KEYS[article.category])} &middot; {article.description}</p>
                       </div>
                     </button>
                   </li>
@@ -134,20 +136,20 @@ export default function HelpSearchBar() {
           ) : (
             <div className="px-4 py-6 text-center">
               <img src="/illustrations/maggy/LookingFor.svg" alt="" className="w-40 h-32 mx-auto mb-3" loading="lazy" decoding="async" />
-              <p className="text-sm text-gray-500 mb-3">Aucun résultat pour "{query}"</p>
+              <p className="text-sm text-gray-500 mb-3">{t('help.noResults', { query })}</p>
               <div className="flex items-center justify-center gap-3">
                 <a
                   href="/dashboard/julien"
                   className="text-xs text-accent hover:underline"
                 >
-                  Demander à MEGGA AI
+                  {t('help.askMeggaAi')}
                 </a>
                 <span className="text-gray-500">|</span>
                 <a
                   href="mailto:support@megga.ch"
                   className="text-xs text-accent hover:underline"
                 >
-                  Envoyer un ticket
+                  {t('help.sendTicket')}
                 </a>
               </div>
             </div>
