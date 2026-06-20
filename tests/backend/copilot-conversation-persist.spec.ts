@@ -89,7 +89,9 @@ describe.skipIf(!HAS_KEYS)('copilot conversation persistence (live executor)', (
     expect(data?.title).toBe(`Stratégie Bertrand ${setup.stamp}`)
     expect(data?.archived).toBe(false)
     expect(data?.messages).toHaveLength(2)
-    expect(data?.last_message_at).toBe('2026-06-20T12:00:00.000Z')
+    // Postgres sérialise timestamptz en '+00:00' ; on compare l'INSTANT, pas la
+    // forme de la chaîne (sinon faux négatif '+00:00' vs '.000Z').
+    expect(new Date(data!.last_message_at).toISOString()).toBe('2026-06-20T12:00:00.000Z')
   })
 
   it('appends to the same conversation on the next turn (id reused, title frozen, last_message_at advanced)', async () => {
@@ -112,7 +114,7 @@ describe.skipIf(!HAS_KEYS)('copilot conversation persistence (live executor)', (
       .single()
     expect(data?.title).toBe(`Stratégie Bertrand ${setup.stamp}`) // figé au 1er tour
     expect(data?.messages).toHaveLength(4)
-    expect(data?.last_message_at).toBe('2026-06-20T12:05:00.000Z')
+    expect(new Date(data!.last_message_at).toISOString()).toBe('2026-06-20T12:05:00.000Z')
   })
 
   it('load() filters on ownership: a foreign user_id cannot read the conversation', async () => {
