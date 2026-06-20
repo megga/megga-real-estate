@@ -14,7 +14,10 @@
     "house": "Maison",
     "villa": "Villa",
     "commercial": "Commercial",
-    "land": "Terrain"
+    "land": "Terrain",
+    "office": "Bureau",
+    "parking": "Parking / Garage",
+    "storage": "Dépôt / Cave"
   },
   "column": {
     "property": "Bien",
