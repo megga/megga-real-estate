@@ -8,7 +8,7 @@
 // - useAuth().profile remplace window.CRM_AGENT pour le prénom et l'avatar.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import {
@@ -19,6 +19,7 @@ import {
 } from '@/components/crm-sugar/SugarShell'
 import { useAuth } from '@/hooks/useAuth'
 import { useCopilot } from '@/hooks/useCopilot'
+import { useConversationMessages } from '@/hooks/useConversationHistory'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -263,6 +264,9 @@ function parseEmail(text: string, tr: TFunction): ParsedEmail | null {
 export default function JulienSugarV2Page() {
   const navigate = useNavigate()
   const { profile } = useAuth()
+  // Conversation à reprendre (?c=<id>) depuis la palette de commande (chantier B).
+  const [searchParams] = useSearchParams()
+  const resumeId = searchParams.get('c')
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -378,6 +382,7 @@ export default function JulienSugarV2Page() {
           <JulienConversation
             s={s} dark={dark} prevScreen={prevScreen}
             firstName={(profile?.full_name?.split(' ')[0]) || 'Grégory'}
+            resumeId={resumeId}
           />
         </main>
       </div>
@@ -400,13 +405,27 @@ interface JulienConversationProps {
   dark: boolean
   prevScreen: PrevScreen
   firstName: string
+  resumeId: string | null
 }
 
-function JulienConversation({ s, dark, prevScreen, firstName }: JulienConversationProps) {
+function JulienConversation({ s, dark, prevScreen, firstName, resumeId }: JulienConversationProps) {
   const { t: tr } = useTranslation('messages')
   const [messages, setMessages] = useState<JulienMessage[]>([])
   const bottomRef = useRef<HTMLDivElement | null>(null)
-  const { sendMessageStream, isLoading } = useCopilot()
+  const { sendMessageStream, isLoading, resumeConversation } = useCopilot()
+
+  // Reprise d'une conversation persistée (chantier B · phase 4) : on charge ses
+  // messages et on seed le copilote (une seule fois par id chargé). Vide tant que
+  // le writer n'est pas activé → la page reste sur son état d'accueil habituel.
+  const { data: resumed } = useConversationMessages(resumeId)
+  const seededRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (resumed && seededRef.current !== resumed.id) {
+      seededRef.current = resumed.id
+      setMessages(resumed.messages.map((m, i) => ({ id: i + 1, role: m.role, content: m.content })))
+      resumeConversation(resumed.id, resumed.messages)
+    }
+  }, [resumed, resumeConversation])
 
   useEffect(() => {
     if (bottomRef.current && bottomRef.current.parentElement) {

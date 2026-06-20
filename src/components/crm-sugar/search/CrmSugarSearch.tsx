@@ -18,6 +18,8 @@ import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { crmBienById, crmContactById } from '@/components/crm-sugar/mockData'
 import { formatCHF } from '@/lib/utils'
+import { useConversationHistory } from '@/hooks/useConversationHistory'
+import { filterConversationsByTitle, type ConversationSummary } from '@/lib/conversation-history'
 
 // ─── Données utilitaires (proto) ─────────────────────────────────────────────
 const SCOPES = [
@@ -161,8 +163,41 @@ function Section({ title, count, children, sp, accent, badge }: {
   )
 }
 
+// ─── Temps relatif localisé (il y a 2 h / 2 hours ago) ───────────────────────
+function relTime(iso: string, lang: string): string {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  const rtf = new Intl.RelativeTimeFormat(lang || 'fr', { numeric: 'auto' })
+  if (Math.abs(min) < 60) return rtf.format(-min, 'minute')
+  const h = Math.round(min / 60)
+  if (Math.abs(h) < 24) return rtf.format(-h, 'hour')
+  return rtf.format(-Math.round(h / 24), 'day')
+}
+
+// ─── Ligne de conversation copilote (titre + temps relatif) ──────────────────
+function MeggaConvoRow({ convo, q, sp, dark, lang, active, onHover, onSelect }: {
+  convo: ConversationSummary; q: string; sp: SugarPalette; dark: boolean; lang: string
+  active: boolean; onHover: () => void; onSelect: () => void
+}) {
+  return (
+    <button onMouseEnter={onHover} onClick={onSelect} style={{ ...ROW_BASE, padding: '12px 14px', gap: 14, color: sp.ink, ...activeRowStyle(active, dark) }}>
+      <div style={{ width: 16, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+        <IconSpark stroke={active ? sp.ink : sp.sub} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: sp.ink, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Hi text={convo.title} q={q} sp={sp} />
+        </div>
+      </div>
+      <span style={{ fontSize: 11, color: sp.sub, fontWeight: 500, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+        {relTime(convo.lastMessageAt, lang)}
+      </span>
+    </button>
+  )
+}
+
 // ─── Item plat pour la navigation clavier ─────────────────────────────────────
 type FlatItem =
+  | { kind: 'megga-convo'; id: string }
   | { kind: 'ai' }
   | { kind: 'ai-query' }
   | { kind: 'contact'; id: string }
@@ -177,7 +212,7 @@ interface Props {
 export default function CrmSugarSearch({ open, onClose }: Props) {
   const navigate = useNavigate()
   // Collision : la variable `t` ci-dessous = tokens de thème. Le traducteur = `tr`.
-  const { t: tr } = useTranslation('common')
+  const { t: tr, i18n } = useTranslation('common')
 
   // Thème : même source que les pages Sugar (localStorage), lu à l'ouverture.
   const dark = useMemo<boolean>(() => {
@@ -207,6 +242,10 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
   const { contacts } = useContacts(debouncedQ.trim().length >= 2 ? { search: debouncedQ.trim() } : undefined)
   const { biens } = useBiensSugar()
   const { deals } = usePipelineSugar()
+  // Conversations copilote persistées (chantier B). Vide tant que le writer n'est
+  // pas activé (flag OFF) → les sections ci-dessous ne s'affichent simplement pas.
+  const { data: conversations } = useConversationHistory(30)
+  const convList = useMemo(() => conversations ?? [], [conversations])
 
   const ql = q.trim().toLowerCase()
 
@@ -234,38 +273,51 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
     return list.slice(0, scope === 'deals' ? 20 : 3)
   }, [deals, ql, scope, tr])
 
+  // État vide = conversations récentes (à reprendre) ; sur requête = filtre titre.
+  const meggaRecent = useMemo(() => convList.slice(0, 5), [convList])
+  const meggaResults = useMemo(() => filterConversationsByTitle(convList, q, 5), [convList, q])
+
   const showEmpty = !q.trim()
-  const totalResults = contactResults.length + bienResults.length + dealResults.length
+  const totalResults = meggaResults.length + contactResults.length + bienResults.length + dealResults.length
 
   // ── Liste plate (ordre = sections affichées) ──
   const flatItems = useMemo<FlatItem[]>(() => {
     const out: FlatItem[] = []
     if (showEmpty) {
+      meggaRecent.forEach(c => out.push({ kind: 'megga-convo', id: c.id }))
       AI_PROMPTS.forEach(() => out.push({ kind: 'ai' }))
     } else {
+      meggaResults.forEach(c => out.push({ kind: 'megga-convo', id: c.id }))
       contactResults.forEach(c => out.push({ kind: 'contact', id: c.id }))
       bienResults.forEach(b => out.push({ kind: 'bien', id: b.id }))
       dealResults.forEach(d => out.push({ kind: 'deal', id: d.id }))
       out.push({ kind: 'ai-query' })
     }
     return out
-  }, [showEmpty, contactResults, bienResults, dealResults])
+  }, [showEmpty, meggaRecent, meggaResults, contactResults, bienResults, dealResults])
 
   const goJulien = useCallback(() => {
     onClose()
     navigate('/dashboard/julien')
   }, [navigate, onClose])
 
+  // Reprendre une conversation copilote : ouvre la page Julien avec son id.
+  const resumeConversation = useCallback((id: string) => {
+    onClose()
+    navigate(`/dashboard/julien?c=${id}`)
+  }, [navigate, onClose])
+
   const runItem = useCallback((item: FlatItem | undefined) => {
     if (!item) return
     switch (item.kind) {
+      case 'megga-convo': resumeConversation(item.id); break
       case 'ai':
       case 'ai-query': goJulien(); break
       case 'contact': onClose(); navigate(`/dashboard/contacts/${item.id}`); break
       case 'bien': onClose(); navigate(`/dashboard/listings/${item.id}`); break
       case 'deal': onClose(); navigate(`/dashboard/transactions/${item.id}`); break
     }
-  }, [goJulien, navigate, onClose])
+  }, [goJulien, resumeConversation, navigate, onClose])
 
   // Focus auto à l'ouverture.
   useEffect(() => {
@@ -305,10 +357,13 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
     ? '0 30px 80px -20px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.04) inset'
     : '0 30px 80px -20px rgba(30,32,38,0.30), 0 1px 0 rgba(255,255,255,0.6) inset'
 
-  const offEmptyPrompts = 0
-  const offContacts = 0
-  const offBiens = contactResults.length
-  const offDeals = contactResults.length + bienResults.length
+  // Offsets de la liste plate (ordre des sections rendues).
+  const offEmptyConvos = 0
+  const offEmptyPrompts = meggaRecent.length
+  const offConvos = 0
+  const offContacts = meggaResults.length
+  const offBiens = meggaResults.length + contactResults.length
+  const offDeals = meggaResults.length + contactResults.length + bienResults.length
 
   return (
     <div
@@ -424,6 +479,19 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
           {/* ── État vide ── */}
           {showEmpty && (
             <>
+              {meggaRecent.length > 0 && (
+                <Section title={tr('search.command.section.resumeMegga')} count={meggaRecent.length} sp={sp}>
+                  {meggaRecent.map((c, i) => (
+                    <MeggaConvoRow
+                      key={c.id} convo={c} q="" sp={sp} dark={dark} lang={i18n.language}
+                      active={activeIdx === offEmptyConvos + i}
+                      onHover={() => setActiveIdx(offEmptyConvos + i)}
+                      onSelect={() => resumeConversation(c.id)}
+                    />
+                  ))}
+                </Section>
+              )}
+
               <Section title={tr('search.command.section.askMegga')} sp={sp}>
                 {AI_PROMPTS.map((p, i) => {
                   const idx = offEmptyPrompts + i
@@ -462,6 +530,20 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 {tr('search.command.askMeggaQuery', { query: q })}
               </button>
             </div>
+          )}
+
+          {/* ── Conversations Megga (sur requête) ── */}
+          {!showEmpty && meggaResults.length > 0 && (
+            <Section title={tr('search.command.section.meggaConvos')} count={meggaResults.length} sp={sp}>
+              {meggaResults.map((c, i) => (
+                <MeggaConvoRow
+                  key={c.id} convo={c} q={q} sp={sp} dark={dark} lang={i18n.language}
+                  active={activeIdx === offConvos + i}
+                  onHover={() => setActiveIdx(offConvos + i)}
+                  onSelect={() => resumeConversation(c.id)}
+                />
+              ))}
+            </Section>
           )}
 
           {/* ── Contacts ── */}
