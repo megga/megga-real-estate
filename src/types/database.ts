@@ -3747,6 +3747,8 @@ export type Database = {
           partner_agency: string | null
           photo_tags: Json | null
           photos: string[] | null
+          photos_cf: Json | null
+          photos_cf_processed_at: string | null
           postal_code: string | null
           price: number | null
           published_at: string | null
@@ -3807,6 +3809,8 @@ export type Database = {
           partner_agency?: string | null
           photo_tags?: Json | null
           photos?: string[] | null
+          photos_cf?: Json | null
+          photos_cf_processed_at?: string | null
           postal_code?: string | null
           price?: number | null
           published_at?: string | null
@@ -3867,6 +3871,8 @@ export type Database = {
           partner_agency?: string | null
           photo_tags?: Json | null
           photos?: string[] | null
+          photos_cf?: Json | null
+          photos_cf_processed_at?: string | null
           postal_code?: string | null
           price?: number | null
           published_at?: string | null

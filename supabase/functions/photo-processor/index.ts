@@ -46,6 +46,12 @@ const R2_SECRET_ACCESS_KEY = (Deno.env.get('R2_SECRET_ACCESS_KEY') ?? '').trim()
 //      R2_PUBLIC_BASE=https://pub-xxxxxx.r2.dev
 const R2_PUBLIC_BASE = (Deno.env.get('R2_PUBLIC_BASE') ?? '').replace(/\/$/, '')
 const R2_BUCKET = Deno.env.get('R2_BUCKET') ?? 'megga-market'
+// Current sb_secret_ service key — used by the token-equality auth branch below.
+// Was REFERENCED but never declared (latent ReferenceError); only masked because
+// pg_cron callers forward a legacy service_role JWT (role-claim branch). The new
+// property-photo-r2 broker forwards app_config.service_role_key (sb_secret_), so
+// the equality branch fires and this must exist.
+const SERVICE_ROLE_KEY = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
 
 // Service key for string-equality auth (line ~197). With the sb_secret_ key
 // roll-out, callers forward get_app_config('service_role_key') — a raw token,
@@ -89,6 +95,10 @@ const corsHeaders = {
 interface ProcessRequest {
   listingId: string
   photoUrls: string[]
+  /** R2 key prefix (e.g. "properties/<uuid>"). DÉRIVÉ SERVER-SIDE par l'appelant
+   *  (broker) à partir d'un id vérifié — jamais une valeur fournie par un client.
+   *  Absent ⇒ défaut "listings/<listingId>" (backfill marketplace inchangé). */
+  keyPrefix?: string
 }
 
 interface PhotoVariants {
@@ -146,7 +156,7 @@ async function fetchPhotoBytes(url: string): Promise<Uint8Array | null> {
 // Process one photo: download → decode → resize × 3 → upload × 3 → return URLs.
 // Returns `{ ok: PhotoVariants }` or `{ err: string }` so the caller can
 // surface the specific failure reason in the response (debugging aid).
-async function processOne(sourceUrl: string, listingId: string, index: number): Promise<{ ok?: PhotoVariants; err?: string }> {
+async function processOne(sourceUrl: string, listingId: string, index: number, keyPrefix?: string): Promise<{ ok?: PhotoVariants; err?: string }> {
   const bytes = await fetchPhotoBytes(sourceUrl)
   if (!bytes) return { err: `fetch failed: ${sourceUrl.slice(0, 80)}` }
 
@@ -158,7 +168,9 @@ async function processOne(sourceUrl: string, listingId: string, index: number): 
   }
 
   const result: PhotoVariants = { id: `listing-${listingId}-${index}` }
-  const baseKey = `listings/${listingId}/${index}`
+  // keyPrefix (server-derived) permet de ranger les photos de biens agence sous
+  // `properties/<uuid>/…` ; sans lui, comportement marketplace inchangé.
+  const baseKey = `${keyPrefix ?? `listings/${listingId}`}/${index}`
   const errors: string[] = []
 
   for (const v of VARIANTS) {
@@ -246,10 +258,18 @@ serve(async (req: Request) => {
     )
   }
 
-  const { listingId, photoUrls } = body
+  const { listingId, photoUrls, keyPrefix } = body
   if (!listingId || !Array.isArray(photoUrls) || photoUrls.length === 0) {
     return new Response(
       JSON.stringify({ success: false, error: 'listingId and non-empty photoUrls[] required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+  // Défense en profondeur : même si keyPrefix est dérivé server-side par le broker,
+  // on refuse tout ce qui n'est pas un chemin sûr (anti path-traversal R2).
+  if (keyPrefix !== undefined && !/^[a-z0-9][a-z0-9/_-]{0,128}$/.test(keyPrefix)) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'invalid keyPrefix' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -263,7 +283,7 @@ serve(async (req: Request) => {
   const photos_cf: PhotoVariants[] = []
   const errors: string[] = []
   for (let i = 0; i < toProcess.length; i++) {
-    const res = await processOne(toProcess[i], listingId, i)
+    const res = await processOne(toProcess[i], listingId, i, keyPrefix)
     if (res.ok) photos_cf.push(res.ok)
     else if (res.err) errors.push(`photo ${i}: ${res.err}`)
   }

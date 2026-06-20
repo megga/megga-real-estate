@@ -208,7 +208,30 @@ export function useDeleteProperty() {
   }
 }
 
-// ── Upload floor plan image to Supabase Storage ──
+// Miroir des photos staging Supabase → Cloudflare R2 via le broker agent-auth
+// `property-photo-r2` (ownership vérifié server-side). Renvoie les URLs R2 dans le
+// MÊME ordre, ou null si échec/partiel (l'appelant garde alors les URLs Supabase :
+// dégradation gracieuse, la photo n'est jamais perdue).
+async function mirrorPhotosToR2(
+  propertyId: string,
+  supabaseUrls: string[],
+  kind: 'photos' | 'floorplan',
+): Promise<string[] | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke<{ success?: boolean; photos?: string[] }>(
+      'property-photo-r2',
+      { body: { propertyId, photoUrls: supabaseUrls, kind } },
+    )
+    if (error || !data?.success || !Array.isArray(data.photos) || data.photos.length !== supabaseUrls.length) {
+      return null
+    }
+    return data.photos
+  } catch {
+    return null
+  }
+}
+
+// ── Upload floor plan image to Supabase Storage (puis miroir R2) ──
 
 export function useUploadFloorPlan() {
   const { profile } = useAuth()
@@ -219,9 +242,11 @@ export function useUploadFloorPlan() {
       const ext = file.name.split('.').pop() ?? 'jpg'
       const filePath = `${agencyId}/properties/${propertyId}/floor-plan/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
 
+      // Strip EXIF/GPS (nLPD) avant le staging public — no-op pour les SVG (zéro EXIF).
+      const stripped = await stripImageMetadata(file)
       const { error: uploadError } = await supabase.storage
         .from('property-photos')
-        .upload(filePath, file, { contentType: file.type })
+        .upload(filePath, stripped, { contentType: file.type })
 
       if (uploadError) throw uploadError
 
@@ -229,12 +254,18 @@ export function useUploadFloorPlan() {
         .from('property-photos')
         .getPublicUrl(filePath)
 
+      // Miroir vers R2 (egress gratuit) ; échec → on garde la copie Supabase.
+      const r2 = await mirrorPhotosToR2(propertyId, [urlData.publicUrl], 'floorplan')
+      if (r2 && r2[0]) {
+        await supabase.storage.from('property-photos').remove([filePath])
+        return r2[0]
+      }
       return urlData.publicUrl
     },
   })
 }
 
-// ── Upload property photos to Supabase Storage ──
+// ── Upload property photos to Supabase Storage (staging) puis miroir R2 ──
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ALLOWED_PHOTO_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
@@ -306,6 +337,7 @@ export function useUploadPropertyPhotos() {
       if (!UUID_RE.test(propertyId)) throw new Error('propertyId invalide')
 
       const urls: string[] = []
+      const filePaths: string[] = []
 
       for (const file of files) {
         // Trust the MIME type, but validate against the bucket whitelist before
@@ -331,8 +363,17 @@ export function useUploadPropertyPhotos() {
           .getPublicUrl(filePath)
 
         urls.push(urlData.publicUrl)
+        filePaths.push(filePath)
       }
 
+      // Miroir vers R2 (egress gratuit). Succès → on sert depuis R2 + on supprime
+      // les copies Supabase (rien ne persiste sur Supabase Storage). Échec → on
+      // garde les copies Supabase et on renvoie leurs URLs (photo jamais perdue).
+      const r2Urls = await mirrorPhotosToR2(propertyId, urls, 'photos')
+      if (r2Urls) {
+        await supabase.storage.from('property-photos').remove(filePaths)
+        return r2Urls
+      }
       return urls
     },
   })
