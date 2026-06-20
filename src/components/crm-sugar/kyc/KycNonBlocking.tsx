@@ -2,10 +2,9 @@
 // 1:1 port from `megga-kyc-variations.jsx` VariationENonBlocking (lines 817-950).
 // 3 composants : Banner doux fiche contact + Badge persistant carte deal + Tableau de dette.
 
-import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Avatar, GhostBtn, KycIcon, Pill, SectionLabel, SP,
+  Avatar, GhostBtn, KycIcon, Pill, SP,
   type KycIconName, type KycTone,
 } from './atoms'
 
@@ -311,140 +310,6 @@ export function KycDebtTable({ rows, onRelance }: KycDebtTableProps) {
           </button>
         </div>
       ))}
-    </div>
-  )
-}
-
-// ─── Showcase combiné (3 contextes) — utilisé dans la page démo ──────────
-const SHOWCASE_DEBT_ROWS: KycDebtRow[] = [
-  { name: 'S. Volkov', info: '2 pièces manquantes', days: 6, tone: 'warn' },
-  { name: 'ATR Holding SA', info: 'Bénéf. effectif à signer', days: 4, tone: 'warn' },
-  { name: 'A. Reinhardt', info: 'Screening > 12 mois', days: 12, tone: 'pending' },
-  { name: 'C. Loreau', info: 'Identité non saisie', days: 5, tone: 'warn' },
-  { name: 'P. Vionnet', info: 'Validation en attente', days: 3, tone: 'pending' },
-]
-
-// Données de démonstration (showcase) — laissées en FR (contenu fictif).
-// Ton non-bloquant : ces libellés rappellent, ils ne verrouillent jamais une action.
-const SHOWCASE_ACTIONS: ContactActionRow[] = [
-  { l: 'Planifier une visite', icon: 'clock' },
-  { l: 'Envoyer 3 nouveaux matchs', icon: 'spark' },
-  {
-    l: 'Préparer une offre',
-    icon: 'doc',
-    hint: 'KYC recommandé avant la signature',
-  },
-  {
-    l: 'Lancer compromis (signature)',
-    icon: 'flag',
-    hint: 'Validation conformité à compléter — le notaire finalise',
-  },
-]
-
-export function KycNonBlockingShowcase({
-  fiche,
-  pipeline,
-  debt,
-}: {
-  fiche?: ReactNode
-  pipeline?: ReactNode
-  debt?: ReactNode
-}) {
-  const { t } = useTranslation('kyc')
-  const [bannerVisible, setBannerVisible] = useState(true)
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1.1fr 1fr',
-        gap: 18,
-        flex: 1,
-        minHeight: 0,
-      }}
-    >
-      {/* Gauche — fiche contact avec banner doux */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <SectionLabel>
-          {t('nonBlocking.showcase.contactBanner')}
-        </SectionLabel>
-        {fiche || (
-          <div
-            style={{
-              background: SP.surface,
-              borderRadius: 22,
-              padding: 20,
-              boxShadow: SP.shadow,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                marginBottom: 14,
-              }}
-            >
-              <Avatar name="S Volkov" size={48} />
-              <div style={{ flex: 1 }}>
-                {/* Persona fictif d'aperçu (données fabriquées) — hors catalogue i18n. */}
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                    letterSpacing: -0.3,
-                  }}
-                >
-                  {'Sergey Volkov'}
-                </div>
-                <div style={{ fontSize: 12, color: SP.muted }}>
-                  {'Acheteur · CHF 2.75M · Cologny'}
-                </div>
-              </div>
-              <Pill tone="warn" dot>
-                {'KYC incomplet · 6j'}
-              </Pill>
-            </div>
-            {bannerVisible && (
-              <div style={{ marginBottom: 14 }}>
-                <KycSoftBanner
-                  title="2 pièces manquantes au dossier KYC"
-                  desc="Justificatif de domicile · attestation d'origine des fonds. Vous pouvez continuer à travailler ce dossier — pensez à compléter avant la signature."
-                  onDismiss={() => setBannerVisible(false)}
-                />
-              </div>
-            )}
-            <KycContactActions actions={SHOWCASE_ACTIONS} />
-          </div>
-        )}
-      </div>
-      {/* Droite — pipeline + dette */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          minHeight: 0,
-        }}
-      >
-        <SectionLabel>{t('nonBlocking.showcase.dealBadge')}</SectionLabel>
-        {pipeline || (
-          <KycDealCard
-            data={{
-              stage: 'Intérêt confirmé',
-              stageTone: 'warn',
-              name: 'Sergey Volkov — Cologny 7p',
-              amount: "CHF 2'750'000",
-              scoreText: 'score 88',
-              due: '06/05',
-              dueLabel: 'Compléter KYC avant signature',
-              kycDone: 4,
-              kycTotal: 6,
-            }}
-          />
-        )}
-        <SectionLabel>{t('nonBlocking.showcase.debtTable')}</SectionLabel>
-        {debt || <KycDebtTable rows={SHOWCASE_DEBT_ROWS} />}
-      </div>
     </div>
   )
 }
