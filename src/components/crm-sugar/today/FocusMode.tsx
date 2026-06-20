@@ -10,10 +10,11 @@
 // `RXIcon` jamais nécessaire car les glyphes existent (calendar / check).
 
 import { useState, useEffect, useCallback, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import { TK } from './tk'
 import { RXIcon } from './kit'
-import { focusTy, type FocusItem, type FocusTypeDef } from './focusQueue'
+import { focusTy, focusTagKey, type FocusItem, type FocusTypeDef } from './focusQueue'
 import { useTodayNav } from './TodayNavContext'
 import { AnimatedTopIcon } from '@/components/crm-sugar/LiquidGlassRail'
 
@@ -73,6 +74,7 @@ const FM_GLASS = 'rgba(8,8,12,.5)'
 
 // ─── Capsule contour « À suivre » ───────────────────────────────────────
 function FmCapsule({ item, onClick, delay, fm }: { item: FocusItem; onClick: () => void; delay: number; fm: FmPalette }) {
+  const { t } = useTranslation('dashboard')
   const ty = focusTy(item.type)
   const [h, setH] = useState(false)
   return (
@@ -97,7 +99,7 @@ function FmCapsule({ item, onClick, delay, fm }: { item: FocusItem; onClick: () 
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: fm.n200, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.contact}</span>
-        <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: fm.n400, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.category}{item.time ? ` · ${item.time}` : ''}</span>
+        <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: fm.n400, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(`today.tags.${focusTagKey(item.category)}`)}{item.time ? ` · ${item.time}` : ''}</span>
       </span>
       <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: '50%', display: 'grid', placeItems: 'center',
         background: fm.capArrowBg, opacity: h ? 1 : 0, transform: h ? 'translateX(0)' : 'translateX(-6px)',
@@ -138,6 +140,7 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
   onDone?: (item: FocusItem) => void
   onSnooze?: (item: FocusItem) => void
 }) {
+  const { t } = useTranslation('dashboard')
   const FM = fmPalette()
   const { goToPage } = useTodayNav()
   const [queue, setQueue] = useState<FocusItem[]>(baseQueue)
@@ -201,7 +204,7 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
   const tyy = ty as FocusTypeDef
 
   return (
-    <div style={overlay} role="dialog" aria-modal="true" aria-label="Mode Focus">
+    <div style={overlay} role="dialog" aria-modal="true" aria-label={t('today.focus.modeTitle')}>
       {FM.grain > 0 && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: FM.grain, mixBlendMode: 'overlay', backgroundImage: `url("${FM_GRAIN}")` }} />
       )}
@@ -222,13 +225,13 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
               {idx + 1}<span style={{ color: FM.pctDim }}> / {total}</span></span>
           </div>
         )}
-        <button onClick={close} title="Quitter (Échap)" style={{
+        <button onClick={close} title={t('today.focus.quitEsc')} style={{
           display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 18px', borderRadius: 999,
           border: `1px solid ${FM.line}`, background: FM.chip, color: FM.n200, cursor: 'pointer',
           fontFamily: 'inherit', fontSize: 13, fontWeight: 700, flexShrink: 0 }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = FM.lineHi }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = FM.line }}>
-          Échap
+          {t('today.focus.esc')}
         </button>
       </div>
 
@@ -239,20 +242,20 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
             boxShadow: '0 16px 40px -12px rgba(52,199,150,.5)' }}>
             <RXIcon name="check" size={34} sw={2.4} color={FM.okFg} />
           </div>
-          <h2 style={{ margin: '22px 0 0', fontSize: 30, fontWeight: 800, letterSpacing: -0.8, color: FM.n100 }}>File traitée</h2>
+          <h2 style={{ margin: '22px 0 0', fontSize: 30, fontWeight: 800, letterSpacing: -0.8, color: FM.n100 }}>{t('today.focus.queueDone')}</h2>
           <div style={{ fontSize: 14.5, color: FM.n400, marginTop: 8, maxWidth: 340, lineHeight: 1.5 }}>
-            Toutes tes priorités sont gérées. Enchaîne sur le mur de matchs pour placer tes biens.</div>
+            {t('today.focus.queueDoneModeSub')}</div>
 
           {/* Récap de session */}
           <div style={{ display: 'flex', alignItems: 'stretch', marginTop: 28, borderRadius: 18, overflow: 'hidden',
             border: `1px solid ${FM.line}`, background: FM.chip }}>
-            <FmStat fm={FM} value={total} label={total > 1 ? 'priorités traitées' : 'priorité traitée'} />
+            <FmStat fm={FM} value={total} label={t('today.focus.statPrioritiesProcessed', { count: total })} />
             <div style={{ width: 1, background: FM.line }} />
-            <FmStat fm={FM} value={focusMin} label="min de concentration" />
+            <FmStat fm={FM} value={focusMin} label={t('today.focus.statMinConcentration')} />
             {snoozeCount > 0 && (
               <>
                 <div style={{ width: 1, background: FM.line }} />
-                <FmStat fm={FM} value={snoozeCount} label={snoozeCount > 1 ? 'replanifiées' : 'replanifiée'} />
+                <FmStat fm={FM} value={snoozeCount} label={t('today.focus.statRescheduled', { count: snoozeCount })} />
               </>
             )}
           </div>
@@ -260,10 +263,10 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
           <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
             <button onClick={reset} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 20px', borderRadius: 999,
               border: `1px solid ${FM.line}`, background: FM.chip, color: FM.n100, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700 }}>
-              <RXIcon name="arrow" size={16} sw={2} color={FM.n100} />Revoir la file</button>
+              <RXIcon name="arrow" size={16} sw={2} color={FM.n100} />{t('today.focus.reviewQueue')}</button>
             <button onClick={goCatalogue} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, height: 46, padding: '0 14px 0 22px', borderRadius: 999, border: 0, background: FM.solidBg, color: FM.solidFg,
               cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800 }}>
-              Voir le catalogue de matchs
+              {t('today.focus.viewCatalogue')}
               <span style={{ width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center', background: FM.solidFg === '#FFFFFF' ? 'rgba(255,255,255,.16)' : 'rgba(11,12,14,.12)' }}>
                 <RXIcon name="arrow" size={15} sw={2.2} color={FM.solidFg} /></span></button>
           </div>
@@ -287,14 +290,14 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 999,
                   background: FM_GLASS, backdropFilter: 'blur(12px)', border: `1px solid ${FM_ONPHOTO}`,
                   fontSize: 12, fontWeight: 800, letterSpacing: 0.4, color: '#fff' }}>
-                  <RXIcon name={tyy.icon} size={14} sw={2.1} color={tyy.badge} />{item.category}</span>
+                  <RXIcon name={tyy.icon} size={14} sw={2.1} color={tyy.badge} />{t(`today.tags.${focusTagKey(item.category)}`)}</span>
                 {item.time && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600,
                     color: item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.74)' }}>
                     <RXIcon name="clock" size={13} color={item.urgent ? '#F7B0AA' : 'rgba(255,255,255,.6)'} />{item.time}</span>
                 )}
-                <span title="Priorité estimée" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.68)' }}>
-                  <RXIcon name="spark" size={13} color="#9b7cf0" />estimation · {item.displayScore}</span>
+                <span title={t('today.focus.estimatedPriority')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.68)' }}>
+                  <RXIcon name="spark" size={13} color="#9b7cf0" />{t('today.focus.estimate')} · {item.displayScore}</span>
               </div>
 
               <h1 style={{ margin: 0, fontSize: 46, fontWeight: 800, letterSpacing: -1.4, lineHeight: 1.02, color: '#fff' }}>{item.contact}</h1>
@@ -317,14 +320,14 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
                         <span style={{ position: 'absolute', inset: 0, borderRadius: 999, background: FM_DARK.okDot, animation: 'focus-ping 1.4s cubic-bezier(0,0,.2,1) infinite' }} />
                         <span style={{ position: 'relative', width: 10, height: 10, borderRadius: 999, background: FM_DARK.okDot }} />
                       </span>
-                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>Terminer · {mmss}</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>{t('today.focus.finish')} · {mmss}</span>
                     </>
                   ) : (
-                    <><RXIcon name={tyy.icon} size={20} sw={1.9} />{tyy.label(item.contact)}</>
+                    <><RXIcon name={tyy.icon} size={20} sw={1.9} />{t(tyy.labelKey, { name: item.contact.split(' ')[0] })}</>
                   )}
                 </motion.button>
-                <FmGlassBtn onClick={snooze} title="Replanifier" meName="calendar" />
-                <FmGlassBtn onClick={done} title="Marquer fait" meName="check" />
+                <FmGlassBtn onClick={snooze} title={t('today.focus.reschedule')} meName="calendar" />
+                <FmGlassBtn onClick={done} title={t('today.focus.markDone')} meName="check" />
               </div>
             </div>
           </div>
@@ -332,11 +335,11 @@ export function FocusMode({ onClose, baseQueue, onDone, onSnooze }: {
           {/* À SUIVRE — capsules */}
           <aside style={{ width: 338, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16, paddingLeft: 4 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: FM.n400, whiteSpace: 'nowrap' }}>À suivre</span>
+              <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: FM.n400, whiteSpace: 'nowrap' }}>{t('today.focus.upNext')}</span>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: FM.n500, fontVariantNumeric: 'tabular-nums' }}>{upcoming.length}</span>
             </div>
             {upcoming.length === 0 ? (
-              <div style={{ fontSize: 13.5, color: FM.n500, paddingLeft: 4 }}>Dernière priorité de la file.</div>
+              <div style={{ fontSize: 13.5, color: FM.n500, paddingLeft: 4 }}>{t('today.focus.lastPriority')}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', marginRight: -6, paddingRight: 6 }}>
                 {upcoming.map((it, k) => (

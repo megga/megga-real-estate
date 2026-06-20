@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo, type MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   CRM_TOKENS, CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette,
   type DarkTone, type StageId,
@@ -32,6 +33,7 @@ import { NewDealDrawer } from '@/components/crm-sugar/pipeline/NewDealDrawer'
 const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function PipelineSugarV2Page() {
+  const { t } = useTranslation('pipeline')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -60,8 +62,8 @@ export default function PipelineSugarV2Page() {
     }
   }, [dark])
 
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const tk = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const sp = crmSugarPalette(tk, dark, DARK_TONE)
 
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
@@ -122,8 +124,8 @@ export default function PipelineSugarV2Page() {
       { id: dealId, stage: stageIdToTransactionStage(targetStage) },
       {
         onError: () => {
-          toast.error('Impossible de déplacer le deal', {
-            description: "Le changement d'étape n'a pas été enregistré. Vérifiez votre connexion, puis réessayez.",
+          toast.error(t('board.toast.moveFailedTitle'), {
+            description: t('board.toast.moveFailedDescription'),
           })
         },
         onSettled: () => {
@@ -299,7 +301,7 @@ export default function PipelineSugarV2Page() {
   }, [localDeals])
 
   // ── Cmd palette + nav (shared with Today) ────────────────────────────
-  const onCmd = () => window.alert('Recherche — ⌘K (à venir)')
+  const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
       case 'today':     navigate('/dashboard'); break
@@ -326,7 +328,7 @@ export default function PipelineSugarV2Page() {
     }}>
       <style>{SUGAR_KEYFRAMES}</style>
 
-      <SugarTopNav active="pipeline" t={t} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+      <SugarTopNav active="pipeline" t={tk} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
 
       <div style={{ display: 'flex' }}>
         <SugarIconRail
@@ -343,7 +345,7 @@ export default function PipelineSugarV2Page() {
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 28 }}>
             <h1 style={{
               margin: 0, fontSize: 38, fontWeight: 800, letterSpacing: -1.2, color: sp.ink, lineHeight: 1,
-            }}>Pipeline</h1>
+            }}>{t('title')}</h1>
             <span style={{
               fontSize: 13, color: sp.sub, fontWeight: 500, marginBottom: 6,
             }}>
@@ -354,7 +356,7 @@ export default function PipelineSugarV2Page() {
             {/* Sprint 3 — Bouton ✨ Importer un lead (Sugar Pure : ghost à gauche du CTA noir) */}
             <button
               onClick={() => navigate('/dashboard/import-lead?returnTo=/dashboard/pipeline')}
-              title="Importer un lead via MEGGA AI"
+              title={t('board.importLeadHint')}
               style={{
                 height: 44, padding: '0 18px', borderRadius: 999, border: 0,
                 background: sp.cardBg, color: sp.ink, fontWeight: 600, fontSize: 13,
@@ -364,7 +366,7 @@ export default function PipelineSugarV2Page() {
               }}
             >
               <MEIcon name="sparkle" size={14} color={sp.ink} />
-              Importer un lead
+              {t('board.importLead')}
             </button>
             <button onClick={() => setNewDealOpen(true)} style={{
               height: 44, padding: '0 22px', borderRadius: 999, border: 0,
@@ -374,7 +376,7 @@ export default function PipelineSugarV2Page() {
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <MEIcon name="plus" size={14} color={sp.pageBg} />
-              Nouveau deal
+              {t('new_deal')}
             </button>
           </div>
 
@@ -387,17 +389,17 @@ export default function PipelineSugarV2Page() {
 
           {/* KPI tiles — source : pipeline live (usePipelineSugar) */}
           <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>
-            <SugarKpiTile sp={sp} dark={dark} label="Pipeline actif"
+            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.active')}
               value={localDeals.length}
               sub="" />
-            <SugarKpiTile sp={sp} dark={dark} label="Valeur totale"
+            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.pipeline_value')}
               value={`CHF ${(totalValue / 1e6).toFixed(2)}M`}
-              sub="" accent={t.primary} />
-            <SugarKpiTile sp={sp} dark={dark} label="À risque"
+              sub="" accent={tk.primary} />
+            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.at_risk')}
               value={atRisk}
               sub=""
               accent="#F59E0B" />
-            <SugarKpiTile sp={sp} dark={dark} label="Conversion"
+            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.conversion')}
               value={conversionPct !== null ? `${conversionPct}%` : '—'}
               sub=""
               accent="#0E9F6E" />
@@ -414,7 +416,7 @@ export default function PipelineSugarV2Page() {
               <MEIcon name="search" size={14} color={sp.sub} />
               <input
                 value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Rechercher contact, bien, note…"
+                placeholder={t('board.searchPlaceholder')}
                 style={{
                   flex: 1, background: 'transparent', border: 0, outline: 'none',
                   color: sp.ink, fontSize: 13, fontFamily: 'inherit',
@@ -427,24 +429,24 @@ export default function PipelineSugarV2Page() {
                 }}>×</button>
               )}
             </div>
-            <SugarFilterPill sp={sp} dark={dark} label="Étape"
+            <SugarFilterPill sp={sp} dark={dark} label={t('filter.stage')}
               value={filterStages.length === 0
-                ? 'Toutes'
+                ? t('board.filter.allStages')
                 : filterStages.length === 1
-                  ? CRM_STAGES[filterStages[0]].label
-                  : `${filterStages.length} étapes`}
+                  ? t(`stages.${filterStages[0]}`)
+                  : t('board.filter.stagesSelected', { count: filterStages.length })}
               active={filterStages.length > 0}>
               <SugarStageFilter sp={sp} dark={dark} value={filterStages} onChange={setFilterStages} />
             </SugarFilterPill>
-            <SugarFilterPill sp={sp} dark={dark} label="Risque"
-              value={filterRisk === 'all' ? 'Tous'
-                : filterRisk === 'healthy' ? 'Sain'
-                : filterRisk === 'at-risk' ? 'À risque' : 'Bloqué'}
+            <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.riskHeader')}
+              value={filterRisk === 'all' ? t('board.risk.all')
+                : filterRisk === 'healthy' ? t('board.risk.healthy')
+                : filterRisk === 'at-risk' ? t('board.risk.atRisk') : t('board.risk.stalled')}
               active={filterRisk !== 'all'}>
               <SugarRiskFilter sp={sp} dark={dark} value={filterRisk} onChange={setFilterRisk} />
             </SugarFilterPill>
-            <SugarFilterPill sp={sp} dark={dark} label="Période"
-              value={filterPeriod === 0 ? 'Tous' : `${filterPeriod}j`}
+            <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.periodHeader')}
+              value={filterPeriod === 0 ? t('board.filter.allTime') : t('board.filter.daysShort', { count: filterPeriod })}
               active={filterPeriod !== 30}>
               <SugarPeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
             </SugarFilterPill>
@@ -453,7 +455,7 @@ export default function PipelineSugarV2Page() {
                 height: 44, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer',
                 background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 12,
                 fontFamily: 'inherit', boxShadow: sp.focusShadow,
-              }}>Réinitialiser</button>
+              }}>{t('board.filter.reset')}</button>
             )}
           </div>
 
@@ -494,7 +496,7 @@ export default function PipelineSugarV2Page() {
       <NewDealDrawer
         open={newDealOpen}
         onClose={() => setNewDealOpen(false)}
-        sp={sp} t={t} dark={dark}
+        sp={sp} t={tk} dark={dark}
         prefill={null}
       />
       {/* DealDetailDrawer retiré : ouvrait CRM_DEALS.find qui ne matche jamais
@@ -503,7 +505,9 @@ export default function PipelineSugarV2Page() {
 
       {/* Toast verrou KYC : apparaît après drop bloqué ; "Passer outre" → modal motif */}
       {kycBlockState && !overrideOpen && (() => {
-        const stageLabel = CRM_STAGES[kycBlockState.targetStage]?.label ?? kycBlockState.targetStage
+        const stageLabel = CRM_STAGES[kycBlockState.targetStage]
+          ? t(`stages.${kycBlockState.targetStage}`)
+          : kycBlockState.targetStage
         return (
           <PipelineKycToast
             stageLabel={stageLabel}
@@ -517,7 +521,9 @@ export default function PipelineSugarV2Page() {
       {overrideOpen && kycBlockState && (() => {
         const deal = localDeals.find(d => d.id === kycBlockState.dealId)
         const contact = deal ? crmContactById(deal.contactId) : null
-        const stageLabel = CRM_STAGES[kycBlockState.targetStage]?.label ?? kycBlockState.targetStage
+        const stageLabel = CRM_STAGES[kycBlockState.targetStage]
+          ? t(`stages.${kycBlockState.targetStage}`)
+          : kycBlockState.targetStage
         const severity: 'warn' | 'critical' = kycBlockState.targetStage === 'signed' ? 'critical' : 'warn'
         if (!contact) return null
         return (

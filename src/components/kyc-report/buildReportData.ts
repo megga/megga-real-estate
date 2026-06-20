@@ -13,6 +13,13 @@ import type {
   KycCheckCategory,
   KycLatestScreeningDecision,
 } from '@/types/kyc'
+// i18n : ce builder produit le view-model TEXTE du rapport PDF. Non unit-testé
+// (le spec backend teste l'edge function, pas ce module) + rendu à l'export →
+// instance i18n singleton (lit i18n.language au moment de la génération du PDF).
+// Cf docs/i18n-conventions §6. NB produit : la LANGUE du PDF suit la langue UI
+// active de qui génère/affiche le rapport (agent à l'export ; détectée pour le
+// rendu public magic-link) — décision produit si un jour il faut la figer.
+import i18n from '@/i18n'
 
 export interface PdfTransactionMeta {
   reference: string
@@ -95,69 +102,23 @@ export interface PdfReportData {
   } | null
 }
 
-// ─── Mappings labels FR ────────────────────────────────────────────────
+// ─── Mappings labels (i18n) ────────────────────────────────────────────
+// Libellés résolus via i18n.t('kyc:report.*') au moment de la génération.
+// Helpers de lookup (fallback = clé brute jamais affichée car defaultValue donné).
 
-const CHECK_LABEL: Record<KycCheckCategory, string> = {
-  id: 'Identification du cocontractant',
-  address: "Vérification de l'adresse",
-  pep: 'Screening PEP',
-  sanctions: 'Listes de sanctions',
-  funds: 'Origine des fonds',
-}
-
-const CHECK_DEFAULT_JUSTIF: Record<KycCheckCategory, string> = {
-  id: "Pièce d'identité officielle",
-  address: 'Justificatif de domicile < 3 mois',
-  pep: 'Dilisense — clear',
-  sanctions: 'Dilisense — clear',
-  funds: 'Attestation bancaire + fiche salaire',
-}
-
-const TYPE_LABEL: Record<KycCase['type'], string> = {
-  buyer_pp: 'Acheteur · personne physique',
-  buyer_pm: 'Acheteur · personne morale',
-  seller_pp: 'Vendeur · personne physique',
-  seller_pm: 'Vendeur · personne morale',
-}
-
-const SOURCE_OF_FUNDS_LABEL: Record<string, string> = {
-  salary: 'Épargne salariale',
-  sale_property: 'Vente immobilière',
-  sale_business: "Cession d'entreprise",
-  inheritance: 'Héritage',
-  investment: 'Investissement / placements',
-  crypto: 'Crypto-actifs',
-  loan: 'Crédit hypothécaire',
-  mixed: 'Mixte (épargne + crédit)',
-  other: 'Autre',
-}
+const checkLabel = (k: KycCheckCategory): string => i18n.t('kyc:report.check.' + k)
+const checkDefaultJustif = (k: KycCheckCategory): string => i18n.t('kyc:report.checkJustif.' + k)
+const typeLabel = (t: KycCase['type']): string => i18n.t('kyc:report.contactType.' + t, { defaultValue: i18n.t('kyc:report.fallback.counterparty') })
+const sourceOfFundsLabel = (s: string): string => i18n.t('kyc:report.sourceOfFunds.' + s, { defaultValue: i18n.t('kyc:report.fallback.sourceNotDocumented') })
+const riskLabel = (r: string): string => i18n.t('kyc:report.risk.' + r, { defaultValue: i18n.t('kyc:report.risk.low') })
+const aiVigilanceLabel = (v: string): string => i18n.t('kyc:report.aiVigilance.' + v, { defaultValue: i18n.t('kyc:report.aiVigilance.standard') })
+const docCategoryLabel = (c: string): string => i18n.t('kyc:report.docCategory.' + c, { defaultValue: i18n.t('kyc:report.docCategory.other') })
 
 const RISK_DOT_MAP: Record<string, string> = {
   low: '#10B981',
   medium: '#F59E0B',
   high: '#EF4444',
   critical: '#B91C1C',
-}
-
-const RISK_LABEL_MAP: Record<string, string> = {
-  low: 'Faible',
-  medium: 'Moyen',
-  high: 'Élevé',
-  critical: 'Critique',
-}
-
-const AI_VIGILANCE_LABEL: Record<string, string> = {
-  standard: 'Vigilance standard',
-  renforced: 'Vigilance renforcée',
-  escalation_mlro: 'Escalade MLRO recommandée',
-}
-
-const DOC_CATEGORY_LABEL: Record<string, string> = {
-  identity: 'Identité',
-  domicile: 'Domicile',
-  financial: 'Source des fonds',
-  compliance: 'Conformité',
-  other: 'Annexe',
 }
 
 // ─── Référence dossier "KYC-2026-0431" depuis l'UUID ───────────────────
@@ -202,28 +163,28 @@ function buildIntegrityHash(
 // ─── Build verdict global ──────────────────────────────────────────────
 
 function buildVerdict(dossier: KycCase, checklistDone: number, checklistTotal: number): PdfVerdict {
-  const vigilance_label = dossier.vigilance === 'renforced' ? 'Renforcée' : 'Standard'
+  const vigilance_label = dossier.vigilance === 'renforced' ? i18n.t('kyc:report.verdict.vigilanceRenforced') : i18n.t('kyc:report.verdict.vigilanceStandard')
   const vigilance_sub =
-    dossier.vigilance === 'renforced' ? 'LBA art. 6' : 'LBA art. 3'
+    dossier.vigilance === 'renforced' ? i18n.t('kyc:report.verdict.vigilanceSubRenforced') : i18n.t('kyc:report.verdict.vigilanceSubStandard')
 
   const risk = (dossier.risk_level as string) || 'low'
-  const risk_label = RISK_LABEL_MAP[risk] || 'Faible'
+  const risk_label = riskLabel(risk)
   const risk_dot = RISK_DOT_MAP[risk] || '#10B981'
   const risk_score = dossier.risk_score ?? 0
-  const risk_sub = `Score interne ${risk_score}/100`
+  const risk_sub = i18n.t('kyc:report.verdict.riskSub', { score: risk_score })
 
-  let status_label = 'En cours'
-  const status_sub = `${checklistDone}/${checklistTotal} contrôles validés`
+  let status_label = i18n.t('kyc:report.verdict.statusInProgress')
+  const status_sub = i18n.t('kyc:report.verdict.statusSub', { done: checklistDone, total: checklistTotal })
   let status_icon: 'check' | 'alert' | 'dot' = 'dot'
 
   if (dossier.dossier_status === 'verified') {
-    status_label = 'Vérifié'
+    status_label = i18n.t('kyc:report.verdict.statusVerified')
     status_icon = 'check'
   } else if (dossier.dossier_status === 'failed') {
-    status_label = 'Échec'
+    status_label = i18n.t('kyc:report.verdict.statusFailed')
     status_icon = 'alert'
   } else if (dossier.dossier_status === 'stale') {
-    status_label = 'À renouveler'
+    status_label = i18n.t('kyc:report.verdict.statusStale')
     status_icon = 'alert'
   }
 
@@ -254,28 +215,28 @@ function buildLbaChecks(
     const completedAt = item?.completed_at ?? null
 
     // Justificatif : prendre le doc lié OU la valeur par défaut
-    let justificatif: string = CHECK_DEFAULT_JUSTIF[key]
+    let justificatif: string = checkDefaultJustif(key)
     if (item?.document_id) {
       const doc = documents.find((d) => d.id === item.document_id)
       if (doc) justificatif = doc.name
     }
 
     // Agent : depuis l'audit ou fallback "Système" pour pep/sanctions
-    let agent = 'Système'
+    let agent = i18n.t('kyc:report.agent.system')
     if (key !== 'pep' && key !== 'sanctions' && completed) {
       // Cherche dans audit le dernier event "Item KYC complété" pour ce check
       const event = auditEvents.find((e) =>
         (e.metadata as { item_id?: string } | null)?.item_id === item?.id &&
         e.action?.includes('complété')
       )
-      agent = event?.actor?.full_name || 'Agent'
+      agent = event?.actor?.full_name || i18n.t('kyc:report.agent.agent')
     } else if (key === 'pep' || key === 'sanctions') {
-      agent = 'Dilisense (système)'
+      agent = i18n.t('kyc:report.agent.dilisense')
     }
 
     return {
       key,
-      label: CHECK_LABEL[key],
+      label: checkLabel(key),
       justificatif,
       date: completedAt,
       agent,
@@ -293,11 +254,9 @@ function buildRiskAnalysis(
   if (!ai) return null
 
   const risk = ai.qualitative_risk as string
-  const risk_label = RISK_LABEL_MAP[risk] ?? 'Faible'
-  const risk_sub = `Risque ${risk_label.toLowerCase()}`
-  const vigilance_label =
-    AI_VIGILANCE_LABEL[ai.vigilance_recommendation as string] ??
-    'Vigilance standard'
+  const risk_label = riskLabel(risk)
+  const risk_sub = i18n.t('kyc:report.riskAnalysis.riskSub', { label: risk_label.toLowerCase() })
+  const vigilance_label = aiVigilanceLabel(ai.vigilance_recommendation as string)
   const confidence_pct =
     typeof ai.confidence === 'number' && Number.isFinite(ai.confidence)
       ? Math.round(ai.confidence * 100)
@@ -346,7 +305,7 @@ export function buildPdfReportData(input: BuildReportInput): PdfReportData {
 
   const contactName = dossier.contact
     ? `${dossier.contact.first_name} ${dossier.contact.last_name}`.trim()
-    : 'Cocontractant'
+    : i18n.t('kyc:report.fallback.counterparty')
 
   const reference = buildReference(dossier.id, dossier.created_at)
   const emitted_at = dossier.validated_at ?? new Date().toISOString()
@@ -358,7 +317,7 @@ export function buildPdfReportData(input: BuildReportInput): PdfReportData {
 
   const docs: PdfDocRow[] = documents.map((d) => ({
     filename: d.name,
-    category: DOC_CATEGORY_LABEL[d.document_category] || 'Annexe',
+    category: docCategoryLabel(d.document_category),
     date: d.created_at,
     size_bytes: d.size_bytes,
     hash_short: d.sha256_hash ?? '—',
@@ -376,7 +335,7 @@ export function buildPdfReportData(input: BuildReportInput): PdfReportData {
       full_name: contactName,
       nationality: dossier.contact_nationality,
       residence: null, // pas dispo direct, on garde null pour pas mentir
-      type_label: TYPE_LABEL[dossier.type] || 'Cocontractant',
+      type_label: typeLabel(dossier.type),
     },
     transaction: {
       reference: transactionRef ?? `M-${reference.slice(4)}`,
@@ -386,9 +345,7 @@ export function buildPdfReportData(input: BuildReportInput): PdfReportData {
     },
     verdict: buildVerdict(dossier, checklistDone, checklistTotal),
     source_of_funds: {
-      type_label:
-        SOURCE_OF_FUNDS_LABEL[dossier.source_of_funds_type ?? 'other'] ||
-        'Non documenté',
+      type_label: sourceOfFundsLabel(dossier.source_of_funds_type ?? 'other'),
       establishment: null,
       amount: transactionAmount ?? dossier.transaction_amount,
       note: dossier.source_of_funds_description,

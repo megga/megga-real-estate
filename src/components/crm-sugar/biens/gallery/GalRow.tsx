@@ -4,6 +4,7 @@
 // côté du titre. Pas de rangée specs (m²·pièces·DPE retirée, cf. §7).
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { crmContactById, type CrmBien } from '../../mockData'
@@ -21,6 +22,7 @@ interface GalRowProps {
 }
 
 export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
+  const { t } = useTranslation('listings')
   const [hov, setHov] = useState(false)
   const isRent = bien.transaction === 'location'
   const price = isRent ? bien.rent : bien.price
@@ -119,7 +121,7 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
             letterSpacing: 0.5,
           }}
         >
-          Vendeur
+          {t('biens.seller')}
         </span>
         {owner ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -160,9 +162,9 @@ export function GalRow({ bien, onOpen, sp, surf, dark }: GalRowProps) {
             whiteSpace: 'nowrap',
           }}
         >
-          {price ? galFmtCHF(price) : 'À estimer'}
+          {price ? galFmtCHF(price) : t('biens.toEstimate')}
           {isRent && price && (
-            <span style={{ fontSize: 11, color: sp.sub, fontWeight: 600 }}>/mois</span>
+            <span style={{ fontSize: 11, color: sp.sub, fontWeight: 600 }}>{t('biens.perMonth')}</span>
           )}
         </div>
       </div>

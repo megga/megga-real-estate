@@ -3,48 +3,49 @@
 // Type, surface, pièces, année, DPE, équipements.
 
 import { type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, type WizardData } from '../tokens'
 import { SgSection } from '../primitives'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
-const TYPES: { v: WizardData['type']; label: string; icon: (c: string) => ReactNode }[] = [
-  { v: 'appartement', label: 'Appartement',
+// Icônes seules ici ; libellés résolus via i18n dans le composant.
+const TYPE_ICONS: { v: WizardData['type']; icon: (c: string) => ReactNode }[] = [
+  { v: 'appartement',
     icon: (c) => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg> },
-  { v: 'maison', label: 'Maison',
+  { v: 'maison',
     icon: (c) => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg> },
-  { v: 'villa', label: 'Villa',
+  { v: 'villa',
     icon: (c) => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20"/><path d="M3 12V7l5-3 5 3v5"/><path d="M13 12V9l4-2 4 2v3"/><path d="M3 12v8h18v-8"/></svg> },
-  { v: 'terrain', label: 'Terrain',
+  { v: 'terrain',
     icon: (c) => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m3 18 6-3 6 3 6-3"/><path d="m3 14 6-3 6 3 6-3"/><path d="m3 10 6-3 6 3 6-3"/></svg> },
 ]
 
-const DPE: { v: WizardData['energy']; color: string; desc: string }[] = [
-  { v: 'A', color: '#1F8B4C', desc: 'Très performant' },
-  { v: 'B', color: '#4FAD3D', desc: 'Performant' },
-  { v: 'C', color: '#A6C13D', desc: 'Bonne performance' },
-  { v: 'D', color: '#F2C94C', desc: 'Performance moyenne' },
-  { v: 'E', color: '#F2994A', desc: 'Énergivore' },
-  { v: 'F', color: '#EB5757', desc: 'Très énergivore' },
-  { v: 'G', color: '#B92E2E', desc: 'Passoire thermique' },
+// Mapping type wizard (FR) → clé i18n listings:type.* (EN existant réutilisé).
+const TYPE_I18N: Record<NonNullable<WizardData['type']>, string> = {
+  appartement: 'apartment', maison: 'house', villa: 'villa', terrain: 'land',
+}
+
+// Couleurs DPE (codes A-G non traduits) ; descriptions via i18n.
+const DPE_COLORS: { v: WizardData['energy']; color: string }[] = [
+  { v: 'A', color: '#1F8B4C' },
+  { v: 'B', color: '#4FAD3D' },
+  { v: 'C', color: '#A6C13D' },
+  { v: 'D', color: '#F2C94C' },
+  { v: 'E', color: '#F2994A' },
+  { v: 'F', color: '#EB5757' },
+  { v: 'G', color: '#B92E2E' },
 ]
 
-const FEATURES = [
-  { v: 'balcon', label: 'Balcon' },
-  { v: 'terrasse', label: 'Terrasse' },
-  { v: 'jardin', label: 'Jardin' },
-  { v: 'garage', label: 'Garage' },
-  { v: 'parking', label: 'Place de parc' },
-  { v: 'cave', label: 'Cave' },
-  { v: 'ascenseur', label: 'Ascenseur' },
-  { v: 'piscine', label: 'Piscine' },
-  { v: 'cheminée', label: 'Cheminée' },
-  { v: 'clim', label: 'Climatisation' },
-  { v: 'buanderie', label: 'Buanderie' },
-  { v: 'vue', label: 'Vue dégagée' },
+// Valeurs persistées (NON traduites) ; libellé via i18n.
+const FEATURES: { v: string }[] = [
+  { v: 'balcon' }, { v: 'terrasse' }, { v: 'jardin' }, { v: 'garage' },
+  { v: 'parking' }, { v: 'cave' }, { v: 'ascenseur' }, { v: 'piscine' },
+  { v: 'cheminée' }, { v: 'clim' }, { v: 'buanderie' }, { v: 'vue' },
 ]
 
 export function Step3Specs({ data, set }: StepProps) {
+  const { t } = useTranslation('listings')
   const num = (v: number | null | undefined): number | null => v == null ? null : Number(v)
 
   const features = data.features || []
@@ -62,23 +63,23 @@ export function Step3Specs({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 4 sur 8 · Caractéristiques</div>
+        }}>{t('wizard.step3.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>Décrivez le bien</h1>
+        }}>{t('wizard.step3.title')}</h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          Type, surface, pièces, performance énergétique. Tout est optionnel — vous pourrez compléter plus tard.
+          {t('wizard.step3.subtitle')}
         </p>
       </div>
 
       {/* Section 1 — Type */}
-      <SgSection title="Type de bien" subtitle="Choisissez la nature du bien à publier.">
+      <SgSection title={t('wizard.step3.typeSection.title')} subtitle={t('wizard.step3.typeSection.subtitle')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-          {TYPES.map(t => {
-            const sel = data.type === t.v
+          {TYPE_ICONS.map(item => {
+            const sel = data.type === item.v
             return (
-              <button key={t.v} onClick={() => set({ type: t.v })} style={{
+              <button key={item.v} onClick={() => set({ type: item.v })} style={{
                 padding: '22px 16px', borderRadius: 18, border: 0,
                 background: sel ? SugarV2.black : SugarV2.card,
                 color: sel ? sgOn() : SugarV2.ink,
@@ -88,8 +89,8 @@ export function Step3Specs({ data, set }: StepProps) {
                 transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
                 transform: sel ? 'translateY(-3px)' : 'translateY(0)',
               }}>
-                {t.icon(sel ? sgOn() : SugarV2.ink)}
-                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>{t.label}</span>
+                {item.icon(sel ? sgOn() : SugarV2.ink)}
+                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>{item.v ? t(`type.${TYPE_I18N[item.v]}`) : ''}</span>
               </button>
             )
           })}
@@ -97,7 +98,7 @@ export function Step3Specs({ data, set }: StepProps) {
       </SgSection>
 
       {/* Section 2 — Surface */}
-      <SgSection title="Surface habitable" subtitle="Glissez le slider pour ajuster.">
+      <SgSection title={t('wizard.step3.surfaceSection.title')} subtitle={t('wizard.step3.surfaceSection.subtitle')}>
         <div style={{
           background: SugarV2.card, borderRadius: 22, padding: '28px 32px',
           boxShadow: SugarV2.shadowSm,
@@ -125,27 +126,27 @@ export function Step3Specs({ data, set }: StepProps) {
       </SgSection>
 
       {/* Section 3 — Pièces */}
-      <SgSection title="Pièces & année" subtitle="Détails sur la composition du bien.">
+      <SgSection title={t('wizard.step3.roomsSection.title')} subtitle={t('wizard.step3.roomsSection.subtitle')}>
         <div style={{
           background: SugarV2.card, borderRadius: 22, padding: '20px 24px',
           boxShadow: SugarV2.shadowSm,
           display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 22,
         }}>
-          <NumStepper label="Pièces" value={num(data.rooms) || 0}
+          <NumStepper label={t('form.fields.rooms')} value={num(data.rooms) || 0}
             onChange={v => set({ rooms: v })} step={0.5} min={1} max={20}
             format={(v) => v % 1 === 0 ? String(v) : v.toFixed(1)} />
-          <NumStepper label="Chambres" value={num(data.bedrooms) || 0}
+          <NumStepper label={t('form.fields.bedrooms')} value={num(data.bedrooms) || 0}
             onChange={v => set({ bedrooms: v })} step={1} min={0} max={15} />
-          <NumStepper label="Salles de bain" value={num(data.bathrooms) || 0}
+          <NumStepper label={t('form.fields.bathrooms')} value={num(data.bathrooms) || 0}
             onChange={v => set({ bathrooms: v })} step={1} min={0} max={10} />
-          <YearInput value={num(data.year)} onChange={v => set({ year: v })} />
+          <YearInput value={num(data.year)} onChange={v => set({ year: v })} label={t('wizard.step3.yearLabel')} placeholder={t('wizard.step3.yearPlaceholder')} />
         </div>
       </SgSection>
 
       {/* Section 4 — DPE */}
-      <SgSection title="Performance énergétique" subtitle="Classe DPE selon le canton. Visible sur l'annonce.">
+      <SgSection title={t('wizard.step3.energySection.title')} subtitle={t('wizard.step3.energySection.subtitle')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-          {DPE.map(d => {
+          {DPE_COLORS.map(d => {
             const sel = data.energy === d.v
             return (
               <button key={d.v} onClick={() => set({ energy: d.v })} style={{
@@ -170,18 +171,18 @@ export function Step3Specs({ data, set }: StepProps) {
           }}>
             <span style={{
               width: 8, height: 8, borderRadius: 999,
-              background: DPE.find(d => d.v === data.energy)!.color,
+              background: DPE_COLORS.find(d => d.v === data.energy)!.color,
             }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: SugarV2.ink }}>
-              Classe {data.energy} — {DPE.find(d => d.v === data.energy)!.desc}
+              {t('wizard.step3.energyClassLabel', { class: data.energy, desc: t(`wizard.step3.energyDesc.${data.energy}`) })}
             </span>
           </div>
         )}
       </SgSection>
 
       {/* Section 5 — Équipements */}
-      <SgSection title="Équipements & atouts"
-        subtitle="Ce qui rendra l'annonce plus attirante. Sélectionnez tout ce qui s'applique.">
+      <SgSection title={t('wizard.step3.featuresSection.title')}
+        subtitle={t('wizard.step3.featuresSection.subtitle')}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
           {FEATURES.map(f => {
             const sel = features.includes(f.v)
@@ -197,7 +198,7 @@ export function Step3Specs({ data, set }: StepProps) {
                 transition: 'all .18s cubic-bezier(.2,.8,.2,1)',
                 transform: sel ? 'translateY(-2px)' : 'translateY(0)',
               }}>
-                <span>{f.label}</span>
+                <span>{t(`wizard.step3.feature.${f.v}`)}</span>
                 {sel && (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6 9 17l-5-5"/>
@@ -254,14 +255,14 @@ function NumStepper({
   )
 }
 
-function YearInput({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
+function YearInput({ value, onChange, label, placeholder }: { value: number | null; onChange: (v: number | null) => void; label: string; placeholder: string }) {
   return (
     <div>
       <div style={{
         fontSize: 11, fontWeight: 600, color: SugarV2.muted,
         letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10,
-      }}>Année de construction</div>
-      <input type="number" value={value || ''} placeholder="Ex: 1985"
+      }}>{label}</div>
+      <input type="number" value={value || ''} placeholder={placeholder}
         onChange={e => onChange(e.target.value ? parseInt(e.target.value) : null)}
         style={{
           width: '100%', boxSizing: 'border-box',

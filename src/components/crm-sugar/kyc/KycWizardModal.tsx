@@ -8,6 +8,7 @@
 
 import { Fragment, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Avatar, BlackBtn, GhostBtn, KycIcon, SectionLabel, SP } from './atoms'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,72 +17,85 @@ import { useCreateKycCase, useScreenKycCase } from '@/hooks/useKyc'
 import type { Contact } from '@/types/contact'
 import type { KycType } from '@/types/kyc'
 
-const STEPS = ['Contexte', 'Identité', 'Origine fonds', 'Screening', 'Validation']
+// Libellés UI traduits chez le consommateur (t()) ; clés stables côté code.
+const STEP_KEYS = [
+  'wizard.legacy.steps.context',
+  'wizard.legacy.steps.identity',
+  'wizard.legacy.steps.funds',
+  'wizard.legacy.steps.screening',
+  'wizard.legacy.steps.validation',
+] as const
+const STEP_COUNT = STEP_KEYS.length
 
 interface IdentityField {
-  l: string
+  /** Clé i18n du libellé (UI). */
+  labelKey: string
+  /** Valeur de démonstration (donnée fictive — NON traduite). */
   v: string
   select?: boolean
   multi?: boolean
 }
 
 const IDENTITY_FIELDS: IdentityField[] = [
-  { l: 'Nom de famille', v: 'Schmidt' },
-  { l: 'Prénom(s)', v: 'Élodie Marie' },
-  { l: 'Date de naissance', v: '14.03.1981' },
-  { l: 'Nationalité(s)', v: 'Suisse · Française', multi: true },
-  { l: 'Type de document', v: 'Passeport', select: true },
-  { l: 'Numéro de document', v: 'X1234567' },
-  { l: "Date d'expiration", v: '22.09.2031' },
-  { l: 'Pays émetteur', v: 'Suisse', select: true },
+  { labelKey: 'wizard.legacy.identity.fields.lastName', v: 'Schmidt' },
+  { labelKey: 'wizard.legacy.identity.fields.firstName', v: 'Élodie Marie' },
+  { labelKey: 'wizard.legacy.identity.fields.birthDate', v: '14.03.1981' },
+  { labelKey: 'wizard.legacy.identity.fields.nationality', v: 'Suisse · Française', multi: true },
+  { labelKey: 'wizard.legacy.identity.fields.docType', v: 'Passeport', select: true },
+  { labelKey: 'wizard.legacy.identity.fields.docNumber', v: 'X1234567' },
+  { labelKey: 'wizard.legacy.identity.fields.expiryDate', v: '22.09.2031' },
+  { labelKey: 'wizard.legacy.identity.fields.issuingCountry', v: 'Suisse', select: true },
 ]
 
 interface VisualCheck {
-  l: string
+  /** Identifiant stable (clé d'état, indépendant de la langue). */
+  k: string
+  /** Clé i18n du libellé (UI). */
+  labelKey: string
   on: boolean
 }
 
 const VISUAL_CHECKS: VisualCheck[] = [
-  { l: 'Document officiel et non périmé', on: true },
-  { l: 'Photo correspond à la personne', on: true },
-  { l: 'Numéro de document lisible', on: true },
-  { l: "Pas de signe d'altération", on: true },
-  { l: 'Données saisies cohérentes avec le document', on: false },
+  { k: 'official', labelKey: 'wizard.legacy.checks.official', on: true },
+  { k: 'photo', labelKey: 'wizard.legacy.checks.photo', on: true },
+  { k: 'number', labelKey: 'wizard.legacy.checks.number', on: true },
+  { k: 'tamper', labelKey: 'wizard.legacy.checks.tamper', on: true },
+  { k: 'consistent', labelKey: 'wizard.legacy.checks.consistent', on: false },
 ]
 
 interface VerifMethod {
   k: string
-  label: string
-  sub: string
+  labelKey: string
+  subKey: string
 }
 
 const VERIF_METHODS: VerifMethod[] = [
-  { k: 'person', label: 'En personne', sub: 'Au bureau' },
-  { k: 'video', label: 'Visioconférence', sub: 'Lien sécurisé' },
-  { k: 'lawyer', label: 'Attestation avocat / notaire', sub: 'Joindre attestation' },
+  { k: 'person', labelKey: 'wizard.legacy.methods.person.label', subKey: 'wizard.legacy.methods.person.sub' },
+  { k: 'video', labelKey: 'wizard.legacy.methods.video.label', subKey: 'wizard.legacy.methods.video.sub' },
+  { k: 'lawyer', labelKey: 'wizard.legacy.methods.lawyer.label', subKey: 'wizard.legacy.methods.lawyer.sub' },
 ]
 
 const STEP_KICKERS: Record<number, string> = {
-  0: 'Étape 1 sur 5 · LBA art. 3 — Contexte de la relation',
-  1: 'Étape 2 sur 5 · LBA art. 3 — Identification du cocontractant',
-  2: "Étape 3 sur 5 · LBA art. 4 — Origine des fonds",
-  3: 'Étape 4 sur 5 · LBA art. 4 — Screening PEP & sanctions',
-  4: "Étape 5 sur 5 · LBA — Validation conformité",
+  0: 'wizard.legacy.kickers.0',
+  1: 'wizard.legacy.kickers.1',
+  2: 'wizard.legacy.kickers.2',
+  3: 'wizard.legacy.kickers.3',
+  4: 'wizard.legacy.kickers.4',
 }
 
 const STEP_SUBS: Record<number, string> = {
-  0: 'Sélectionnez le contact concerné, son rôle dans la transaction et un montant indicatif si déjà connu.',
-  1: "Saisissez les données du document officiel et confirmez la vérification visuelle. Le screening sanctions/PEP est lancé en arrière-plan via Dilisense.",
-  2: "Documentez l'origine des fonds (épargne, vente, héritage…) avec une attestation officielle.",
-  3: 'Vérifiez les correspondances PEP et sanctions récupérées via les 4 sources interrogées.',
-  4: 'Validation finale par le responsable conformité avant clôture du dossier.',
+  0: 'wizard.legacy.subs.0',
+  1: 'wizard.legacy.subs.1',
+  2: 'wizard.legacy.subs.2',
+  3: 'wizard.legacy.subs.3',
+  4: 'wizard.legacy.subs.4',
 }
 
-const KYC_TYPES: { k: KycType; label: string; sub: string; icon: 'user' | 'bank' }[] = [
-  { k: 'buyer_pp', label: 'Acheteur', sub: 'Personne physique', icon: 'user' },
-  { k: 'buyer_pm', label: 'Acheteur', sub: 'Personne morale', icon: 'bank' },
-  { k: 'seller_pp', label: 'Vendeur', sub: 'Personne physique', icon: 'user' },
-  { k: 'seller_pm', label: 'Vendeur', sub: 'Personne morale', icon: 'bank' },
+const KYC_TYPES: { k: KycType; labelKey: string; subKey: string; icon: 'user' | 'bank' }[] = [
+  { k: 'buyer_pp', labelKey: 'wizard.legacy.types.buyer', subKey: 'wizard.legacy.types.pp', icon: 'user' },
+  { k: 'buyer_pm', labelKey: 'wizard.legacy.types.buyer', subKey: 'wizard.legacy.types.pm', icon: 'bank' },
+  { k: 'seller_pp', labelKey: 'wizard.legacy.types.seller', subKey: 'wizard.legacy.types.pp', icon: 'user' },
+  { k: 'seller_pm', labelKey: 'wizard.legacy.types.seller', subKey: 'wizard.legacy.types.pm', icon: 'bank' },
 ]
 
 interface KycWizardModalProps {
@@ -89,6 +103,7 @@ interface KycWizardModalProps {
 }
 
 export function KycWizardModal({ onClose }: KycWizardModalProps) {
+  const { t } = useTranslation('kyc')
   const navigate = useNavigate()
   const { profile } = useAuth()
   const { contacts, isLoading: isLoadingContacts } = useContacts()
@@ -104,7 +119,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
 
   const [methodKey, setMethodKey] = useState('person')
   const [checks, setChecks] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(VISUAL_CHECKS.map(c => [c.l, c.on])),
+    Object.fromEntries(VISUAL_CHECKS.map(c => [c.k, c.on])),
   )
 
   const selectedContact = useMemo(
@@ -129,15 +144,17 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
     : 'Élodie Schmidt'
 
   const stepTitles: Record<number, string> = {
-    0: selectedContact ? `Contexte — ${fullName}` : 'Démarrer un dossier',
-    1: `Identité — ${fullName}`,
-    2: `Origine des fonds — ${fullName}`,
-    3: 'Screening PEP & sanctions',
-    4: 'Validation finale du dossier',
+    0: selectedContact
+      ? t('wizard.legacy.titles.context', { name: fullName })
+      : t('wizard.legacy.titles.start'),
+    1: t('wizard.legacy.titles.identity', { name: fullName }),
+    2: t('wizard.legacy.titles.funds', { name: fullName }),
+    3: t('wizard.legacy.titles.screening'),
+    4: t('wizard.legacy.titles.validation'),
   }
 
   const canAdvanceFromStep0 = !!contactId && !!kycType
-  const isLastStep = step === STEPS.length - 1
+  const isLastStep = step === STEP_COUNT - 1
   const submitting = createMutation.isPending
   const nextDisabled =
     submitting ||
@@ -155,7 +172,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
       return
     }
     if (step === 0 && !canAdvanceFromStep0) {
-      setErrorMsg('Sélectionnez un contact et un type de relation pour continuer.')
+      setErrorMsg(t('wizard.legacy.errors.selectContactType'))
       return
     }
     setStep(s => s + 1)
@@ -163,12 +180,12 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
 
   const handleSubmit = async () => {
     if (!profile?.agency_id) {
-      setErrorMsg('Profil agence introuvable — impossible de créer le dossier.')
+      setErrorMsg(t('wizard.legacy.errors.noAgency'))
       return
     }
     if (!contactId || !kycType) {
       setStep(0)
-      setErrorMsg('Sélectionnez un contact et un type de relation.')
+      setErrorMsg(t('wizard.legacy.errors.selectContactTypeShort'))
       return
     }
     try {
@@ -198,7 +215,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
       onClose()
       navigate(`/dashboard/kyc/${created.id}`)
     } catch (e) {
-      setErrorMsg((e as Error).message || 'Erreur lors de la création du dossier.')
+      setErrorMsg((e as Error).message || t('wizard.legacy.errors.createFailed'))
     }
   }
 
@@ -277,8 +294,8 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
               gap: 0,
             }}
           >
-            {STEPS.map((s, i) => (
-              <Fragment key={s}>
+            {STEP_KEYS.map((stepKey, i) => (
+              <Fragment key={stepKey}>
                 <div
                   style={{
                     display: 'flex',
@@ -311,10 +328,10 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
                       transition: 'color .2s ease',
                     }}
                   >
-                    {s}
+                    {t(stepKey)}
                   </span>
                 </div>
-                {i < STEPS.length - 1 && (
+                {i < STEP_COUNT - 1 && (
                   <div
                     style={{
                       width: 24,
@@ -358,7 +375,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
               marginBottom: 8,
             }}
           >
-            {STEP_KICKERS[step]}
+            {t(STEP_KICKERS[step])}
           </div>
           <div
             style={{
@@ -379,7 +396,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
               maxWidth: 640,
             }}
           >
-            {STEP_SUBS[step]}
+            {t(STEP_SUBS[step])}
           </div>
         </div>
 
@@ -473,10 +490,10 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
                 lineHeight: 1.55,
               }}
             >
-              Les données saisies sont{' '}
-              <strong style={{ color: SP.ink }}>cohérentes</strong> avec la fiche
-              contact. Pour ce profil, une vérification en personne est généralement
-              suffisante.
+              <Trans
+                i18nKey="kyc:wizard.legacy.ai.consistency"
+                components={{ 1: <strong style={{ color: SP.ink }} /> }}
+              />
             </div>
             <div
               style={{
@@ -495,7 +512,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
                   marginTop: 4,
                 }}
               >
-                Screening Dilisense
+                {t('wizard.legacy.ai.screeningTitle')}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div
@@ -507,7 +524,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
                   }}
                 />
                 <div style={{ fontSize: 12, color: SP.inkSoft }}>
-                  En cours · 4 sources interrogées
+                  {t('wizard.legacy.ai.screeningStatus')}
                 </div>
               </div>
               <div
@@ -534,7 +551,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
                   marginTop: 4,
                 }}
               >
-                Lancé automatiquement à la saisie. Résultats à l'étape Screening.
+                {t('wizard.legacy.ai.screeningHint')}
               </div>
             </div>
             <div
@@ -549,7 +566,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
               <div
                 style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}
               >
-                Conseil conformité
+                {t('wizard.legacy.ai.tipTitle')}
               </div>
               <div
                 style={{
@@ -558,8 +575,7 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
                   lineHeight: 1.5,
                 }}
               >
-                Pensez à scanner aussi le verso si CI suisse — le numéro de document
-                figure au dos.
+                {t('wizard.legacy.ai.tipBody')}
               </div>
             </div>
           </aside>
@@ -575,9 +591,9 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
             flexShrink: 0,
           }}
         >
-          <GhostBtn onClick={goBack}>← Retour</GhostBtn>
+          <GhostBtn onClick={goBack}>← {t('wizard.legacy.nav.back')}</GhostBtn>
           <div style={{ flex: 1 }} />
-          <GhostBtn>Enregistrer brouillon</GhostBtn>
+          <GhostBtn>{t('wizard.legacy.nav.saveDraft')}</GhostBtn>
           <BlackBtn
             onClick={goNext}
             icon={
@@ -593,10 +609,10 @@ export function KycWizardModal({ onClose }: KycWizardModalProps) {
             }}
           >
             {submitting
-              ? 'Création…'
+              ? t('wizard.legacy.nav.creating')
               : isLastStep
-                ? 'Terminer'
-                : 'Étape suivante'}
+                ? t('wizard.legacy.nav.finish')
+                : t('wizard.legacy.nav.next')}
           </BlackBtn>
         </div>
       </div>
@@ -618,10 +634,11 @@ function IdentityStepBody({
   checks,
   onCheckToggle,
 }: IdentityStepBodyProps) {
+  const { t } = useTranslation('kyc')
   return (
     <>
       {/* Upload */}
-      <SectionLabel>Document d'identité</SectionLabel>
+      <SectionLabel>{t('wizard.legacy.identity.docSection')}</SectionLabel>
       <div
         style={{
           padding: 18,
@@ -649,24 +666,24 @@ function IdentityStepBody({
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700 }}>
-            Glisser le passeport ou la carte d'identité
+            {t('wizard.legacy.identity.dropTitle')}
           </div>
           <div
             style={{ fontSize: 11.5, color: SP.muted, marginTop: 2 }}
           >
-            PDF/JPG · 10 Mo max
+            {t('wizard.legacy.identity.dropHint')}
           </div>
         </div>
         <GhostBtn
           style={{ height: 34, padding: '0 14px', fontSize: 12.5 }}
         >
-          Parcourir
+          {t('wizard.legacy.identity.browse')}
         </GhostBtn>
       </div>
 
       {/* Saisie manuelle */}
       <div style={{ height: 4 }} />
-      <SectionLabel>Saisie manuelle</SectionLabel>
+      <SectionLabel>{t('wizard.legacy.identity.manualSection')}</SectionLabel>
       <div
         style={{
           display: 'grid',
@@ -675,7 +692,7 @@ function IdentityStepBody({
         }}
       >
         {IDENTITY_FIELDS.map(f => (
-          <div key={f.l}>
+          <div key={f.labelKey}>
             <div
               style={{
                 fontSize: 10.5,
@@ -686,7 +703,7 @@ function IdentityStepBody({
                 textTransform: 'uppercase',
               }}
             >
-              {f.l}
+              {t(f.labelKey)}
             </div>
             <div
               style={{
@@ -714,14 +731,14 @@ function IdentityStepBody({
 
       {/* Vérification visuelle */}
       <div style={{ height: 4 }} />
-      <SectionLabel>Vérification visuelle</SectionLabel>
+      <SectionLabel>{t('wizard.legacy.identity.visualSection')}</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {VISUAL_CHECKS.map(c => {
-          const on = !!checks[c.l]
+          const on = !!checks[c.k]
           return (
             <label
-              key={c.l}
-              onClick={() => onCheckToggle(c.l)}
+              key={c.k}
+              onClick={() => onCheckToggle(c.k)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -753,7 +770,7 @@ function IdentityStepBody({
                   color: on ? SP.ink : SP.inkSoft,
                 }}
               >
-                {c.l}
+                {t(c.labelKey)}
               </div>
             </label>
           )
@@ -762,7 +779,7 @@ function IdentityStepBody({
 
       {/* Méthode de vérification */}
       <div style={{ height: 4 }} />
-      <SectionLabel>Méthode de vérification</SectionLabel>
+      <SectionLabel>{t('wizard.legacy.identity.methodSection')}</SectionLabel>
       <div
         style={{
           display: 'grid',
@@ -818,7 +835,7 @@ function IdentityStepBody({
                     />
                   )}
                 </div>
-                <div style={{ fontSize: 12.5, fontWeight: 700 }}>{o.label}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 700 }}>{t(o.labelKey)}</div>
               </div>
               <div
                 style={{
@@ -828,7 +845,7 @@ function IdentityStepBody({
                   marginLeft: 24,
                 }}
               >
-                {o.sub}
+                {t(o.subKey)}
               </div>
             </div>
           )
@@ -867,10 +884,11 @@ function ContextStepBody({
   onAmountChange,
   errorMsg,
 }: ContextStepBodyProps) {
+  const { t } = useTranslation('kyc')
   return (
     <>
       {/* Contact picker */}
-      <SectionLabel>Contact concerné</SectionLabel>
+      <SectionLabel>{t('wizard.legacy.context.contactSection')}</SectionLabel>
       {selectedContact ? (
         <SelectedContactCard
           contact={selectedContact}
@@ -888,7 +906,7 @@ function ContextStepBody({
 
       {/* Type de relation */}
       <div style={{ height: 4 }} />
-      <SectionLabel>Type de relation</SectionLabel>
+      <SectionLabel>{t('wizard.legacy.context.relationSection')}</SectionLabel>
       <div
         style={{
           display: 'grid',
@@ -896,12 +914,12 @@ function ContextStepBody({
           gap: 10,
         }}
       >
-        {KYC_TYPES.map(t => {
-          const on = kycType === t.k
+        {KYC_TYPES.map(item => {
+          const on = kycType === item.k
           return (
             <div
-              key={t.k}
-              onClick={() => onKycTypeChange(t.k)}
+              key={item.k}
+              onClick={() => onKycTypeChange(item.k)}
               style={{
                 padding: '12px 14px',
                 borderRadius: 14,
@@ -929,7 +947,7 @@ function ContextStepBody({
                 }}
               >
                 <KycIcon
-                  name={t.icon}
+                  name={item.icon}
                   size={16}
                   stroke={on ? '#fff' : SP.inkSoft}
                   sw={1.8}
@@ -937,10 +955,10 @@ function ContextStepBody({
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: SP.ink }}>
-                  {t.label}
+                  {t(item.labelKey)}
                 </div>
                 <div style={{ fontSize: 11, color: SP.muted, marginTop: 2 }}>
-                  {t.sub}
+                  {t(item.subKey)}
                 </div>
               </div>
             </div>
@@ -950,7 +968,7 @@ function ContextStepBody({
 
       {/* Montant */}
       <div style={{ height: 4 }} />
-      <SectionLabel>Montant de la transaction (optionnel)</SectionLabel>
+      <SectionLabel>{t('wizard.legacy.context.amountSection')}</SectionLabel>
       <div style={{ position: 'relative' }}>
         <span
           style={{
@@ -1029,13 +1047,14 @@ function ContactPicker({
   contacts,
   onSelect,
 }: ContactPickerProps) {
+  const { t } = useTranslation('kyc')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <input
         type="text"
         value={searchTerm}
         onChange={e => onSearchChange(e.target.value)}
-        placeholder="Rechercher un contact par nom ou email…"
+        placeholder={t('wizard.legacy.context.searchPlaceholder')}
         style={{
           width: '100%',
           height: 38,
@@ -1069,7 +1088,7 @@ function ContactPicker({
               color: SP.muted,
             }}
           >
-            Chargement des contacts…
+            {t('wizard.legacy.context.contactsLoading')}
           </div>
         ) : contacts.length === 0 ? (
           <div
@@ -1080,7 +1099,7 @@ function ContactPicker({
               color: SP.muted,
             }}
           >
-            Aucun contact trouvé
+            {t('wizard.legacy.context.contactsEmpty')}
           </div>
         ) : (
           contacts.map(c => (
@@ -1155,6 +1174,7 @@ function SelectedContactCard({
   contact: Contact
   onClear: () => void
 }) {
+  const { t } = useTranslation('kyc')
   const fullName = `${contact.first_name} ${contact.last_name}`.trim()
   const meta = [
     contact.email,
@@ -1205,7 +1225,7 @@ function SelectedContactCard({
           color: SP.muted,
           flexShrink: 0,
         }}
-        title="Changer de contact"
+        title={t('wizard.legacy.context.changeContact')}
       >
         <KycIcon name="x" size={12} sw={2} />
       </button>
@@ -1214,6 +1234,7 @@ function SelectedContactCard({
 }
 
 function PlaceholderStepBody() {
+  const { t } = useTranslation('kyc')
   return (
     <div
       style={{
@@ -1245,7 +1266,7 @@ function PlaceholderStepBody() {
             marginBottom: 8,
           }}
         >
-          Étape à compléter
+          {t('wizard.legacy.placeholder.title')}
         </div>
         <div
           style={{
@@ -1254,8 +1275,7 @@ function PlaceholderStepBody() {
             lineHeight: 1.55,
           }}
         >
-          Le contenu de cette étape sera complété dans une prochaine itération du
-          wizard.
+          {t('wizard.legacy.placeholder.body')}
         </div>
       </div>
     </div>

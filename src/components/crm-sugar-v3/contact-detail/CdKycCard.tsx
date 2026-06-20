@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v3 — Card KYC sidebar fiche contact
 // Port 1:1 de crm-screen-contact-detail-sugar.jsx lignes 500-549 (CdKycCard).
 
+import { useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycGhostPill, KycSection } from '../primitives'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function CdKycCard({ dossier, onOpenKyc }: Props) {
+  const { t } = useTranslation('contacts')
   const status = dossier?.dossier_status ?? 'none'
   const meta = KYC_STATUS_LABELS[status]
   const verified = status === 'verified'
@@ -24,15 +26,15 @@ export function CdKycCard({ dossier, onOpenKyc }: Props) {
 
   return (
     <KycSection
-      title="Conformité KYC"
-      eyebrow="LBA · obligatoire"
+      title={t('cd.kycTitle')}
+      eyebrow={t('cd.kycEyebrow')}
       action={
         <KycGhostPill
           onClick={onOpenKyc}
           size="sm"
           icon={<SgIcon name="arrowR" size={13} stroke={SugarV3.inkSoft} />}
         >
-          Ouvrir
+          {t('cd.kycOpen')}
         </KycGhostPill>
       }
     >
@@ -88,8 +90,8 @@ export function CdKycCard({ dossier, onOpenKyc }: Props) {
               {verified
                 ? (dossier && KYC_RISK_LABELS[dossier.risk_level]?.label) ?? '—'
                 : pct > 0
-                  ? `${pct} % complété`
-                  : 'Aucune pièce collectée'}
+                  ? t('cd.kycPercentComplete', { pct })
+                  : t('cd.kycNoDocuments')}
             </div>
           </div>
         </div>
@@ -109,7 +111,7 @@ export function CdKycCard({ dossier, onOpenKyc }: Props) {
             }}
           >
             <SgIcon name="lock" size={10} stroke={SugarV3.errDarker} sw={2} />
-            Bloque pipeline
+            {t('cd.kycToComplete')}
           </div>
         )}
       </div>

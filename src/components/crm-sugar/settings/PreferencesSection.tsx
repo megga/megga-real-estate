@@ -7,6 +7,8 @@
 // L'IA y est présentée comme « assistance » (suggestions), jamais automatique.
 
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
 import { useToast } from '@/components/ui/Toast'
 import { useUiPreferences } from '@/hooks/useUiPreferences'
 import type { PrefsData } from './PreferencesSection.types'
@@ -227,6 +229,7 @@ function PrefRadio({ label, value, onChange, options }: PrefRadioProps) {
 }
 
 export function PreferencesSection() {
+  const { t } = useTranslation('settings')
   // Source de vérité : profiles.preferences.ui (JSON Supabase).
   // NB : timezone et firstDayOfWeek n'ont pas de contrôle UI dans la maquette ;
   // ils restent dans PrefsData (valeurs par défaut / serveur) et sont persistés
@@ -248,16 +251,16 @@ export function PreferencesSection() {
 
   const handleSave = async () => {
     if (!hasBackend) {
-      toast.error('Session expirée — reconnectez-vous pour enregistrer')
+      toast.error(t('preferences.toast.sessionExpired'))
       return
     }
     try {
       await save(data)
       setSaved(data)
-      toast.success('Préférences enregistrées', { duration: 2400 })
+      toast.success(t('preferences.toast.saved'), { duration: 2400 })
     } catch (err) {
       console.error('[PreferencesSection] save failed', err)
-      toast.error('Erreur lors de l’enregistrement')
+      toast.error(t('preferences.toast.saveError'))
     }
   }
 
@@ -273,40 +276,46 @@ export function PreferencesSection() {
         }}
       >
         <SectionHeader
-          kicker="Préférences"
-          title="Réglages personnels du CRM"
-          sub="Spécifique à votre compte, n'affecte pas les autres membres de l'équipe."
+          kicker={t('preferences.header.kicker')}
+          title={t('preferences.header.title')}
+          sub={t('preferences.header.sub')}
         />
 
         {/* G1 — Région & langue */}
         <SetCard
-          title="Région & langue"
-          sub="Affecte la langue d'interface et les formats par défaut."
+          title={t('preferences.region.title')}
+          sub={t('preferences.region.sub')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <PrefSelect
-              label="Langue"
+              label={t('preferences.region.language')}
               value={data.language}
-              onChange={v => set({ language: v })}
+              onChange={v => {
+                set({ language: v })
+                // Bascule l'interface tout de suite (l'overlay anime la transition) ;
+                // le détecteur i18next met aussi à jour localStorage['megga-language'].
+                // « Enregistrer » persiste ensuite la préférence côté serveur.
+                void i18n.changeLanguage(v)
+              }}
               options={[
-                { id: 'fr', label: 'Français' },
-                { id: 'en', label: 'English' },
-                { id: 'de', label: 'Deutsch' },
-                { id: 'it', label: 'Italiano' },
+                { id: 'fr', label: t('common:language.fr') },
+                { id: 'en', label: t('common:language.en') },
+                { id: 'de', label: t('common:language.de') },
+                { id: 'it', label: t('common:language.it') },
               ]}
             />
             <PrefSelect
-              label="Devise"
+              label={t('preferences.region.currency')}
               value={data.currency}
               onChange={v => set({ currency: v })}
               options={[
-                { id: 'CHF', label: 'CHF · Franc suisse' },
-                { id: 'EUR', label: 'EUR · Euro' },
-                { id: 'USD', label: 'USD · Dollar US' },
+                { id: 'CHF', label: t('preferences.region.currencyOptions.CHF') },
+                { id: 'EUR', label: t('preferences.region.currencyOptions.EUR') },
+                { id: 'USD', label: t('preferences.region.currencyOptions.USD') },
               ]}
             />
             <PrefSelect
-              label="Unités"
+              label={t('preferences.region.units')}
               value={data.units}
               onChange={v => set({ units: v })}
               options={[
@@ -315,14 +324,14 @@ export function PreferencesSection() {
               ]}
             />
             <PrefSelect
-              label="Format de date"
+              label={t('preferences.region.dateFormat')}
               value={data.dateFormat}
               onChange={v => set({ dateFormat: v })}
               options={[
-                { id: 'dd.MM.yyyy', label: '03.05.2026 (CH)' },
-                { id: 'dd/MM/yyyy', label: '03/05/2026 (FR)' },
-                { id: 'MM/dd/yyyy', label: '05/03/2026 (US)' },
-                { id: 'yyyy-MM-dd', label: '2026-05-03 (ISO)' },
+                { id: 'dd.MM.yyyy', label: t('preferences.region.dateFormatOptions.ch') },
+                { id: 'dd/MM/yyyy', label: t('preferences.region.dateFormatOptions.fr') },
+                { id: 'MM/dd/yyyy', label: t('preferences.region.dateFormatOptions.us') },
+                { id: 'yyyy-MM-dd', label: t('preferences.region.dateFormatOptions.iso') },
               ]}
             />
           </div>
@@ -330,56 +339,56 @@ export function PreferencesSection() {
 
         {/* G2 — Vues par défaut */}
         <SetCard
-          title="Vues par défaut"
-          sub="Sur quel écran arriver à l'ouverture du CRM, et avec quelle vue."
+          title={t('preferences.views.title')}
+          sub={t('preferences.views.sub')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <PrefSelect
-              label="Écran d'accueil"
+              label={t('preferences.views.homeScreen')}
               value={data.defaultScreen}
               onChange={v => set({ defaultScreen: v })}
               options={[
-                { id: 'today', label: "Aujourd'hui" },
-                { id: 'pipeline', label: 'Pipeline' },
-                { id: 'matching', label: 'Matching IA' },
-                { id: 'contacts', label: 'Contacts' },
-                { id: 'biens', label: 'Mes biens' },
-                { id: 'calendar', label: 'Calendrier' },
+                { id: 'today', label: t('preferences.views.screens.today') },
+                { id: 'pipeline', label: t('preferences.views.screens.pipeline') },
+                { id: 'matching', label: t('preferences.views.screens.matching') },
+                { id: 'contacts', label: t('preferences.views.screens.contacts') },
+                { id: 'biens', label: t('preferences.views.screens.biens') },
+                { id: 'calendar', label: t('preferences.views.screens.calendar') },
               ]}
             />
             <PrefSelect
-              label="Vue pipeline par défaut"
+              label={t('preferences.views.defaultPipelineView')}
               value={data.defaultPipelineView}
               onChange={v => set({ defaultPipelineView: v })}
               options={[
-                { id: 'kanban', label: 'Kanban' },
-                { id: 'list', label: 'Liste' },
-                { id: 'timeline', label: 'Timeline' },
+                { id: 'kanban', label: t('preferences.views.pipelineViews.kanban') },
+                { id: 'list', label: t('preferences.views.pipelineViews.list') },
+                { id: 'timeline', label: t('preferences.views.pipelineViews.timeline') },
               ]}
             />
           </div>
         </SetCard>
 
         {/* G3 — Apparence */}
-        <SetCard title="Apparence" sub="Adapte l'interface à votre confort de lecture.">
+        <SetCard title={t('preferences.appearance.title')} sub={t('preferences.appearance.sub')}>
           <div style={{ display: 'grid', gap: 18 }}>
             <PrefRadio
-              label="Thème"
+              label={t('preferences.appearance.theme')}
               value={data.theme}
               onChange={v => set({ theme: v })}
               options={[
-                { id: 'light', label: 'Clair', sub: 'Recommandé en journée' },
-                { id: 'dark', label: 'Sombre', sub: 'Mode marine' },
-                { id: 'system', label: 'Système', sub: 'Suit votre OS' },
+                { id: 'light', label: t('preferences.appearance.themes.light.label'), sub: t('preferences.appearance.themes.light.sub') },
+                { id: 'dark', label: t('preferences.appearance.themes.dark.label'), sub: t('preferences.appearance.themes.dark.sub') },
+                { id: 'system', label: t('preferences.appearance.themes.system.label'), sub: t('preferences.appearance.themes.system.sub') },
               ]}
             />
             <PrefRadio
-              label="Densité"
+              label={t('preferences.appearance.density')}
               value={data.density}
               onChange={v => set({ density: v })}
               options={[
-                { id: 'comfort', label: 'Confort', sub: 'Marges aérées' },
-                { id: 'compact', label: 'Compact', sub: "Plus d'infos par écran" },
+                { id: 'comfort', label: t('preferences.appearance.densities.comfort.label'), sub: t('preferences.appearance.densities.comfort.sub') },
+                { id: 'compact', label: t('preferences.appearance.densities.compact.label'), sub: t('preferences.appearance.densities.compact.sub') },
               ]}
             />
           </div>
@@ -387,32 +396,32 @@ export function PreferencesSection() {
 
         {/* G4 — Édition & assistance */}
         <SetCard
-          title="Édition & assistance"
-          sub="Contrôle de l'aide intelligente pendant la saisie."
+          title={t('preferences.editing.title')}
+          sub={t('preferences.editing.sub')}
         >
           <div style={{ display: 'grid', gap: 14 }}>
             <ToggleRow
-              label="Vérification orthographique"
-              desc="Correcteur multilingue dans tous les champs longs."
+              label={t('preferences.editing.spellcheck.label')}
+              desc={t('preferences.editing.spellcheck.desc')}
               value={data.spellcheck}
               onChange={v => set({ spellcheck: v })}
               emphasis
             />
             <ToggleRow
-              label="Sauvegarde automatique des brouillons"
-              desc="Vos saisies sont gardées en mémoire pendant 30 jours."
+              label={t('preferences.editing.autosave.label')}
+              desc={t('preferences.editing.autosave.desc')}
               value={data.autosave}
               onChange={v => set({ autosave: v })}
               emphasis
             />
             <PrefRadio
-              label="Niveau d'assistance Julien IA"
+              label={t('preferences.editing.aiAssist.label')}
               value={data.aiAssist}
               onChange={v => set({ aiAssist: v })}
               options={[
-                { id: 'off', label: 'Désactivé', sub: 'Aucune suggestion' },
-                { id: 'balanced', label: 'Équilibré', sub: 'Suggestions à la demande' },
-                { id: 'proactif', label: 'Proactif', sub: 'Suggestions au fil de la saisie' },
+                { id: 'off', label: t('preferences.editing.aiAssist.off.label'), sub: t('preferences.editing.aiAssist.off.sub') },
+                { id: 'balanced', label: t('preferences.editing.aiAssist.balanced.label'), sub: t('preferences.editing.aiAssist.balanced.sub') },
+                { id: 'proactif', label: t('preferences.editing.aiAssist.proactif.label'), sub: t('preferences.editing.aiAssist.proactif.sub') },
               ]}
             />
           </div>

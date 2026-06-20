@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-biens-sugar.jsx` (BnFilterDropdown).
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { SugarPalette } from '../tokens'
 
 export interface FilterOption {
@@ -24,6 +25,7 @@ export function BnFilterDropdown({
   onChange,
   sp,
 }: BnFilterDropdownProps) {
+  const { t } = useTranslation('listings')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -67,7 +69,7 @@ export function BnFilterDropdown({
         >
           {label}
         </span>
-        <span>{current?.label || 'Tous'}</span>
+        <span>{current?.label || t('tab.all')}</span>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
           <path
             d="M2 4l3 3 3-3"

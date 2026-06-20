@@ -17,6 +17,7 @@
 // facturé ; ici on affiche le tarif catalogue de la maquette.
 
 import { useState, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
 import { useSubscription } from '@/hooks/useSubscription'
 import { STRIPE_PRICES } from '@/lib/constants'
@@ -34,58 +35,59 @@ type PlanId = 'free' | 'pro' | 'custom'
 
 interface PlanDef {
   id: PlanId
-  name: string
+  /** Clé i18n du nom de plan (Gratuit / Pro reste un nom propre catalogue). */
+  nameKey: string
   /** Tarif mensuel catalogue (maquette). null = sur devis. */
   monthly: number | null
-  tagline: string
-  features: string[]
+  taglineKey: string
+  featureKeys: string[]
   popular?: boolean
 }
 
 const PLANS: PlanDef[] = [
   {
     id: 'free',
-    name: 'Gratuit',
+    nameKey: 'settings.billing.plans.free.name',
     monthly: 0,
-    tagline: 'Pour démarrer en solo',
-    features: [
-      '3 biens actifs',
-      'CRM essentiel',
-      'Recherche IA',
-      'Portail vendeur',
-      'Support par email',
+    taglineKey: 'settings.billing.plans.free.tagline',
+    featureKeys: [
+      'settings.billing.plans.free.features.properties',
+      'settings.billing.plans.free.features.crm',
+      'settings.billing.plans.free.features.aiSearch',
+      'settings.billing.plans.free.features.sellerPortal',
+      'settings.billing.plans.free.features.emailSupport',
     ],
   },
   {
     id: 'pro',
-    name: 'Pro',
+    nameKey: 'settings.billing.plans.pro.name',
     monthly: 49,
-    tagline: "Pour l'agent indépendant",
-    features: [
-      'Biens illimités',
-      'CRM complet + scoring',
-      'Pipeline transaction',
-      'Conformité LAB / KYC',
-      'Génération documentaire',
-      'Publication multicanal',
-      'Copilote MEGGA AI',
-      'Support prioritaire',
+    taglineKey: 'settings.billing.plans.pro.tagline',
+    featureKeys: [
+      'settings.billing.plans.pro.features.unlimitedProperties',
+      'settings.billing.plans.pro.features.fullCrm',
+      'settings.billing.plans.pro.features.pipeline',
+      'settings.billing.plans.pro.features.compliance',
+      'settings.billing.plans.pro.features.docGeneration',
+      'settings.billing.plans.pro.features.multichannel',
+      'settings.billing.plans.pro.features.copilot',
+      'settings.billing.plans.pro.features.prioritySupport',
     ],
     popular: true,
   },
   {
     id: 'custom',
-    name: 'Custom',
+    nameKey: 'settings.billing.plans.custom.name',
     monthly: null,
-    tagline: 'Pour agences & réseaux',
-    features: [
-      'Tout Pro inclus',
-      'Multi-agences & multi-utilisateurs',
-      'API & intégrations',
-      'SSO / SAML',
-      'Branding personnalisé',
-      'Account manager dédié',
-      'SLA 99,9 %',
+    taglineKey: 'settings.billing.plans.custom.tagline',
+    featureKeys: [
+      'settings.billing.plans.custom.features.allPro',
+      'settings.billing.plans.custom.features.multiAgency',
+      'settings.billing.plans.custom.features.api',
+      'settings.billing.plans.custom.features.sso',
+      'settings.billing.plans.custom.features.branding',
+      'settings.billing.plans.custom.features.accountManager',
+      'settings.billing.plans.custom.features.sla',
     ],
   },
 ]
@@ -108,6 +110,7 @@ export function BillingSection() {
     openPortal,
     isPortalLoading,
   } = useSubscription()
+  const { t } = useTranslation('settings')
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly')
   const [selectedPlan, setSelectedPlan] = useState<PlanId | null>(null)
   const toast = useToast()
@@ -121,8 +124,8 @@ export function BillingSection() {
     try {
       await openPortal()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
-      toast.error(`Échec : ${msg}`)
+      const msg = err instanceof Error ? err.message : t('settings.billing.unknownError')
+      toast.error(t('settings.billing.failureWith', { message: msg }))
     }
   }
 
@@ -132,22 +135,22 @@ export function BillingSection() {
     const priceId =
       period === 'yearly' ? STRIPE_PRICES.pro.yearly : STRIPE_PRICES.pro.monthly
     if (!priceId) {
-      toast.error('Configuration Stripe manquante — contactez le support')
+      toast.error(t('settings.billing.stripeMissing'))
       return
     }
     try {
       await createCheckout(priceId)
       // createCheckout redirige déjà via window.location.href
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
-      toast.error(`Échec : ${msg}`)
+      const msg = err instanceof Error ? err.message : t('settings.billing.unknownError')
+      toast.error(t('settings.billing.failureWith', { message: msg }))
     }
   }
 
   if (isLoading) {
     return (
       <div style={{ padding: 40, color: SET.muted, fontSize: 13 }}>
-        Chargement de la facturation…
+        {t('settings.billing.loading')}
       </div>
     )
   }
@@ -205,7 +208,7 @@ export function BillingSection() {
                 marginBottom: 10,
               }}
             >
-              Votre abonnement
+              {t('settings.billing.yourSubscription')}
             </div>
             <div
               style={{
@@ -223,7 +226,7 @@ export function BillingSection() {
                   letterSpacing: -0.6,
                 }}
               >
-                {currentDef.name}
+                {t(currentDef.nameKey)}
               </h2>
               {heroMonthly !== null ? (
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
@@ -240,12 +243,12 @@ export function BillingSection() {
                   <span
                     style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}
                   >
-                    /mois
+                    {t('settings.billing.perMonth')}
                   </span>
                 </div>
               ) : (
                 <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.4 }}>
-                  Sur devis
+                  {t('settings.billing.onQuote')}
                 </span>
               )}
             </div>
@@ -270,8 +273,8 @@ export function BillingSection() {
                   style={{ width: 7, height: 7, borderRadius: 999, background: '#22C55E' }}
                 />
                 {subscription.cancel_at_period_end
-                  ? `Annulation prévue le ${formatPeriodDate(subscription.current_period_end)}`
-                  : `Renouvellement le ${formatPeriodDate(subscription.current_period_end)}`}
+                  ? t('settings.billing.cancellationOn', { date: formatPeriodDate(subscription.current_period_end) })
+                  : t('settings.billing.renewalOn', { date: formatPeriodDate(subscription.current_period_end) })}
               </div>
             )}
           </div>
@@ -300,7 +303,7 @@ export function BillingSection() {
             }}
           >
             <SetIcon name="card" size={15} stroke="#0B0C0E" sw={2} />
-            {isPortalLoading ? 'Ouverture…' : 'Gérer dans Stripe'}
+            {isPortalLoading ? t('settings.billing.opening') : t('settings.billing.manageInStripe')}
           </button>
         </div>
       </div>
@@ -327,10 +330,10 @@ export function BillingSection() {
                 letterSpacing: -0.3,
               }}
             >
-              Changer de plan
+              {t('settings.billing.changePlan')}
             </h3>
             <p style={{ margin: 0, fontSize: 13, color: SET.muted, fontWeight: 500 }}>
-              Mise à niveau immédiate, sans frais. Vous gardez toutes vos données.
+              {t('settings.billing.changePlanHint')}
             </p>
           </div>
           <div
@@ -342,8 +345,8 @@ export function BillingSection() {
             }}
           >
             {([
-              { id: 'monthly', label: 'Mensuel' },
-              { id: 'yearly', label: 'Annuel  −20%' },
+              { id: 'monthly', labelKey: 'settings.billing.monthly' },
+              { id: 'yearly', labelKey: 'settings.billing.yearlyDiscount' },
             ] as const).map((tg) => {
               const active = period === tg.id
               return (
@@ -366,7 +369,7 @@ export function BillingSection() {
                     transition: 'all .15s',
                   }}
                 >
-                  {tg.label}
+                  {t(tg.labelKey)}
                 </button>
               )
             })}
@@ -416,6 +419,7 @@ function PriceBento({
   onUpgrade,
   upgrading,
 }: PriceBentoProps) {
+  const { t } = useTranslation('settings')
   const isYearly = period === 'yearly' && plan.monthly !== null && plan.monthly > 0
   const price =
     plan.monthly === null
@@ -445,10 +449,10 @@ function PriceBento({
     >
       <div>
         <div style={{ fontSize: 13, fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
-          {plan.name}
+          {t(plan.nameKey)}
         </div>
         <div style={{ fontSize: 12.5, color: SET.muted, fontWeight: 500, marginTop: 3 }}>
-          {plan.tagline}
+          {t(plan.taglineKey)}
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, minHeight: 44 }}>
@@ -466,7 +470,7 @@ function PriceBento({
             >
               {price}
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: SET.muted }}>/mois</span>
+            <span style={{ fontSize: 12.5, fontWeight: 500, color: SET.muted }}>{t('settings.billing.perMonth')}</span>
           </>
         ) : (
           <span
@@ -478,15 +482,15 @@ function PriceBento({
               whiteSpace: 'nowrap',
             }}
           >
-            Sur devis
+            {t('settings.billing.onQuote')}
           </span>
         )}
       </div>
       <div style={{ height: 1, background: SET.line }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
-        {plan.features.map((f) => (
+        {plan.featureKeys.map((fk) => (
           <div
-            key={f}
+            key={fk}
             style={{
               display: 'flex',
               alignItems: 'flex-start',
@@ -500,7 +504,7 @@ function PriceBento({
             <span style={{ marginTop: 1, flexShrink: 0, display: 'inline-flex' }}>
               <SetIcon name="check" size={15} stroke={checkColor} sw={2.4} />
             </span>
-            {f}
+            {t(fk)}
           </div>
         ))}
       </div>
@@ -527,7 +531,7 @@ function PriceBento({
           }}
         >
           <SetIcon name="check" size={14} stroke={SET.muted} sw={2.6} />
-          Votre plan actuel
+          {t('settings.billing.currentPlan')}
         </button>
       ) : plan.id === 'custom' ? (
         <button
@@ -555,7 +559,7 @@ function PriceBento({
             e.currentTarget.style.background = SET.cardSubtle
           }}
         >
-          Nous contacter
+          {t('settings.billing.contactUs')}
         </button>
       ) : plan.id === 'free' ? (
         // Downgrade vers Gratuit : pas de checkout Stripe — passe par le portail
@@ -576,7 +580,7 @@ function PriceBento({
             whiteSpace: 'nowrap',
           }}
         >
-          Inclus
+          {t('settings.billing.included')}
         </button>
       ) : (
         <button
@@ -611,7 +615,7 @@ function PriceBento({
             e.currentTarget.style.background = SET.black
           }}
         >
-          {upgrading ? 'Ouverture…' : `Passer à ${plan.name}`}
+          {upgrading ? t('settings.billing.opening') : t('settings.billing.switchTo', { plan: t(plan.nameKey) })}
         </button>
       )}
     </div>

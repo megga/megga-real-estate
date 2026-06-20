@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v3 — Wizard Step 1 : Démarrer (3 portes)
 // Port 1:1 de crm-kyc-wizard.jsx lignes 200-263 (KwStepStart).
 
+import { useTranslation } from 'react-i18next'
 import { useKycPalette } from '../kyc/kycPalette'
 import { SgIcon } from '../icons'
 import { KwGateCard } from './KwGateCard'
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function KwStepStart({ data, set }: Props) {
+  const { t } = useTranslation('kyc')
   const sp = useKycPalette()
   return (
     <div
@@ -32,7 +34,7 @@ export function KwStepStart({ data, set }: Props) {
             lineHeight: 1.1,
           }}
         >
-          Comment voulez-vous ouvrir ce dossier&nbsp;?
+          {t('wizard.start.title')}
         </h1>
         <p
           style={{
@@ -43,8 +45,7 @@ export function KwStepStart({ data, set }: Props) {
             lineHeight: 1.55,
           }}
         >
-          Trois chemins pour respecter l'obligation LBA. Le plus rapide reste de
-          lier le dossier à un contact déjà connu de votre CRM.
+          {t('wizard.start.subtitle')}
         </p>
       </div>
 
@@ -66,8 +67,8 @@ export function KwStepStart({ data, set }: Props) {
               stroke={data.source === 'existing' ? sp.onAccent : sp.black}
             />
           }
-          title="Lier à un contact existant"
-          sub="Le plus courant : vous sélectionnez un acheteur, vendeur ou locataire déjà présent dans le CRM."
+          title={t('wizard.start.existing.title')}
+          sub={t('wizard.start.existing.sub')}
           onClick={() => set({ source: 'existing' })}
         />
         <KwGateCard
@@ -79,8 +80,8 @@ export function KwStepStart({ data, set }: Props) {
               stroke={data.source === 'import' ? sp.onAccent : sp.black}
             />
           }
-          title="Importer un dossier externe (bientôt)"
-          sub="L'import + parsing automatique (PDF Persona, ComplyAdvantage, rapport agence partenaire) arrive dans une prochaine release. Utilisez « Lier à un contact existant » en attendant."
+          title={t('wizard.start.import.title')}
+          sub={t('wizard.start.import.sub')}
           // Disabled — the wizard's `finish()` treats 'import' identically
           // to 'existing'; advertising AI-parsing without delivering it
           // breaks CLAUDE.md's "IA présentée comme automatique" rule.
@@ -95,8 +96,8 @@ export function KwStepStart({ data, set }: Props) {
               stroke={data.source === 'magic' ? sp.onAccent : sp.black}
             />
           }
-          title="Demander les pièces"
-          sub="Lien magique envoyé au contact pour qu'il dépose lui-même ses justificatifs en toute sécurité."
+          title={t('wizard.start.magic.title')}
+          sub={t('wizard.start.magic.sub')}
           onClick={() => set({ source: 'magic' })}
         />
       </div>

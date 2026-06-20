@@ -6,6 +6,7 @@
 // écran le cockpit ne s'étire pas).
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TK, type TkToneName } from './tk'
 import { RXIcon, Tile, TileHead, MoreLink, Orbs } from './kit'
 import { DATA, type EnsuiteItemData } from './data'
@@ -24,11 +25,25 @@ import { useAuth } from '@/hooks/useAuth'
 import { formatTodayHeader } from '@/lib/utils'
 
 // ─── « Ensuite » — file d'attente compacte ──────────────────────────────
+// `e.tag` reste un CODE stable (clé de tonalité + de libellé). La tonalité et le
+// libellé affiché sont résolus via map ; le libellé est traduit au rendu.
 const ENSUITE_TONE: Record<string, TkToneName> = { Mandat: 'info', Vendeur: 'ok', KYC: 'warn', Compromis: 'ok', Offre: 'warn', Visite: 'info', Match: 'info', Relance: 'neutral' }
+const TAG_LABEL_KEY: Record<string, string> = {
+  Offre: 'today.cockpit.tags.offer',
+  Mandat: 'today.cockpit.tags.mandate',
+  Vendeur: 'today.cockpit.tags.seller',
+  KYC: 'today.cockpit.tags.kyc',
+  Relance: 'today.cockpit.tags.relance',
+  Match: 'today.cockpit.tags.match',
+  Compromis: 'today.cockpit.tags.compromis',
+  Visite: 'today.cockpit.tags.visit',
+}
 
 function EnsuiteItem({ e }: { e: EnsuiteItemData }) {
+  const { t } = useTranslation('dashboard')
   const p = TK[ENSUITE_TONE[e.tag] || 'neutral'] || TK.neutral
   const name = (e.label.split('—').pop() || e.label).trim()
+  const tagLabel = TAG_LABEL_KEY[e.tag] ? t(TAG_LABEL_KEY[e.tag]) : e.tag
   const [h, setH] = useState(false)
   return (
     <button
@@ -49,7 +64,7 @@ function EnsuiteItem({ e }: { e: EnsuiteItemData }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 999, flexShrink: 0,
-          background: p.bg, color: p.fg, fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{e.tag}</span>
+          background: p.bg, color: p.fg, fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{tagLabel}</span>
         <span style={{ fontSize: 10.5, color: TK.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{e.time}</span>
       </div>
     </button>
@@ -57,7 +72,9 @@ function EnsuiteItem({ e }: { e: EnsuiteItemData }) {
 }
 
 // Dérive la rangée « Ensuite » des priorités qui suivent la première (la file
-// Focus sans son sommet). Tag mappé pour la pastille de tonalité.
+// Focus sans son sommet). La valeur produite est un CODE de tag (stable, clé de
+// `ENSUITE_TONE` + `TAG_LABEL_KEY`), jamais affiché tel quel : le libellé est
+// traduit au rendu dans `EnsuiteItem`.
 const ENSUITE_TAG: Record<string, string> = { OFFRE: 'Offre', MANDAT: 'Mandat', VENDEUR: 'Vendeur', KYC: 'KYC', RELANCE: 'Relance', MATCH: 'Match' }
 // « Ensuite » = aperçu des items du tier « next » (le tier « now » est en tête
 // de la colonne Focus, le tier « rest » reste masqué).
@@ -68,10 +85,11 @@ function deriveEnsuite(items: FocusItem[]): EnsuiteItemData[] {
 }
 
 function EnsuiteRow({ items }: { items: EnsuiteItemData[] }) {
+  const { t } = useTranslation('dashboard')
   if (items.length === 0) return null
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 9 }}>
-      <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: TK.sub, flexShrink: 0 }}>Ensuite</span>
+      <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: TK.sub, flexShrink: 0 }}>{t('today.cockpit.next')}</span>
       <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 0 }}>
         {items.map((e, i) => (
           <EnsuiteItem key={i} e={e} />
@@ -83,6 +101,7 @@ function EnsuiteRow({ items }: { items: EnsuiteItemData[] }) {
 
 // ─── Pilule « Mode Focus » (en-tête) ────────────────────────────────────
 function FocusPill({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation('dashboard')
   const [h, setH] = useState(false)
   return (
     <button onClick={onClick}
@@ -95,19 +114,22 @@ function FocusPill({ onClick }: { onClick: () => void }) {
         boxShadow: h ? TK.shadow : 'none', transform: h ? 'translateY(-1px)' : 'none',
         transition: 'background .2s, border-color .2s, transform .2s, box-shadow .2s',
       }}>
-      <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>Mode Focus</span>
+      <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>{t('today.cockpit.focusMode')}</span>
     </button>
   )
 }
 
 // ─── PAGE AUJOURD'HUI ───────────────────────────────────────────────────
 export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
+  const { t } = useTranslation('dashboard')
   const { navigate } = useTodayNav()
   const { profile } = useAuth()
   // En-tête réel : prénom de l'agent connecté + date du jour (FR), au lieu du
   // « Gregory / Dimanche 14 juin » figé du seed démo (cassait la crédibilité).
   const headerFirstName = profile?.full_name?.trim().split(/\s+/)[0] ?? ''
-  const headerGreeting = headerFirstName ? `Bonjour ${headerFirstName}` : 'Bonjour'
+  const headerGreeting = headerFirstName
+    ? t('today.cockpit.greeting', { name: headerFirstName })
+    : t('today.cockpit.greetingNoName')
   const headerDate = formatTodayHeader()
   const [focusMode, setFocusMode] = useState(false)
   const [relanceOpen, setRelanceOpen] = useState(false)
@@ -159,22 +181,22 @@ export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: 14, minHeight: 0 }}>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
-                <TileHead icon="cal" title="Agenda du jour" action={<MoreLink onClick={() => navigate('calendar')} />} />
+                <TileHead icon="cal" title={t('today.cockpit.tiles.agenda')} action={<MoreLink onClick={() => navigate('calendar')} />} />
                 <AgendaTile demo={demo} />
               </Tile>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
-                <TileHead icon="bolt" title="Relances IA" accent={TK.primary} />
+                <TileHead icon="bolt" title={t('today.cockpit.tiles.relances')} accent={TK.primary} />
                 <RelancesTile demo={demo} onStart={() => setRelanceOpen(true)} />
               </Tile>
             </div>
             <div style={{ flex: 0.94, display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: 14, minHeight: 0 }}>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
-                <TileHead icon="trend" title="Pipeline"
+                <TileHead icon="trend" title={t('today.cockpit.tiles.pipeline')}
                   action={<span style={{ fontSize: 13.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums' }}>{pipelineTotal}</span>} />
                 <PipelineTile demo={demo} />
               </Tile>
               <Tile style={{ display: 'flex', flexDirection: 'column' }}>
-                <TileHead icon="target" title="Objectif" />
+                <TileHead icon="target" title={t('today.cockpit.tiles.objectif')} />
                 <ObjectifTile demo={demo} />
               </Tile>
             </div>

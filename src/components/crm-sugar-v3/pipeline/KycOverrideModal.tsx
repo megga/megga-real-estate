@@ -4,6 +4,7 @@
 // Sortie sur validation : (reason: string) => void, parent logue l'AuditEvent et autorise le drop.
 
 import { useEffect, useRef, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycBlackPill, KycGhostPill } from '../primitives'
@@ -26,6 +27,7 @@ export function KycOverrideModal({
   onCancel,
   onConfirm,
 }: Props) {
+  const { t } = useTranslation('pipeline')
   const [reason, setReason] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -99,7 +101,7 @@ export function KycOverrideModal({
                 marginBottom: 4,
               }}
             >
-              Dérogation · journalisée nLPD
+              {t('kyc.override.eyebrow')}
             </div>
             <h2
               style={{
@@ -111,7 +113,7 @@ export function KycOverrideModal({
                 lineHeight: 1.2,
               }}
             >
-              Passer outre le verrou KYC ?
+              {t('kyc.override.title')}
             </h2>
           </div>
         </div>
@@ -125,10 +127,12 @@ export function KycOverrideModal({
             lineHeight: 1.55,
           }}
         >
-          Vous allez déplacer le deal de <strong>{contactName}</strong> en{' '}
-          <strong>« {stageLabel} »</strong> alors que son dossier KYC n'est pas
-          encore validé. Cette action est enregistrée dans le journal d'audit
-          nLPD pendant 10 ans.
+          <Trans
+            t={t}
+            i18nKey="kyc.override.body"
+            values={{ name: contactName, stage: stageLabel }}
+            components={{ strong: <strong /> }}
+          />
         </p>
 
         <label style={{ display: 'block', marginBottom: 6 }}>
@@ -141,7 +145,7 @@ export function KycOverrideModal({
               textTransform: 'uppercase',
             }}
           >
-            Motif de la dérogation
+            {t('kyc.override.reasonLabel')}
           </span>
           <span
             style={{
@@ -151,14 +155,14 @@ export function KycOverrideModal({
               marginLeft: 8,
             }}
           >
-            (minimum {MIN_REASON_LENGTH} caractères)
+            {t('kyc.override.reasonMinHint', { count: MIN_REASON_LENGTH })}
           </span>
         </label>
         <textarea
           ref={textareaRef}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Ex : Client de longue date, mandat de recherche actif depuis 6 mois, KYC en cours de signature. Validation provisoire en attendant la pièce d'identité."
+          placeholder={t('kyc.override.reasonPlaceholder')}
           rows={4}
           style={{
             width: '100%',
@@ -197,7 +201,10 @@ export function KycOverrideModal({
           }}
         >
           <span>
-            {reason.trim().length} / {MIN_REASON_LENGTH} caractères
+            {t('kyc.override.charCount', {
+              count: reason.trim().length,
+              min: MIN_REASON_LENGTH,
+            })}
           </span>
         </div>
 
@@ -210,7 +217,7 @@ export function KycOverrideModal({
           }}
         >
           <KycGhostPill onClick={onCancel} size="md">
-            Annuler
+            {t('common:actions.cancel')}
           </KycGhostPill>
           <KycBlackPill
             onClick={() => valid && onConfirm(reason.trim())}
@@ -218,7 +225,7 @@ export function KycOverrideModal({
             size="md"
             icon={<SgIcon name="check" size={14} stroke="#fff" sw={2} />}
           >
-            Confirmer & journaliser
+            {t('kyc.override.confirm')}
           </KycBlackPill>
         </div>
       </div>

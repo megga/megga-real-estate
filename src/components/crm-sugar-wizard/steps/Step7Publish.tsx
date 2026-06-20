@@ -2,6 +2,8 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step7.jsx).
 
 import { useState, useMemo, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { SugarV2, sgOn, sgAcc, fmtCHF, shade, type WizardData } from '../tokens'
 import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
 
@@ -12,6 +14,7 @@ interface StepProps {
 }
 
 export function Step7Publish({ data, set }: StepProps) {
+  const { t: tr } = useTranslation('listings')
   const allContacts = CRM_CONTACTS
   const owner = data.ownerContactId
     ? (allContacts.find(c => c.id === data.ownerContactId) || data._newContact)
@@ -29,11 +32,11 @@ export function Step7Publish({ data, set }: StepProps) {
   const visibility = data.visibility || 'public'
 
   const chips: string[] = []
-  if (data.type) chips.push(typeLabel(data.type))
+  if (data.type) chips.push(typeLabel(data.type, tr))
   if (data.area) chips.push(`${data.area} m²`)
-  if (data.rooms) chips.push(`${data.rooms} pièces`)
-  if (data.bedrooms) chips.push(`${data.bedrooms} ch.`)
-  if (data.energy) chips.push(`DPE ${data.energy}`)
+  if (data.rooms) chips.push(tr('wizard.step7.chip.rooms', { count: data.rooms }))
+  if (data.bedrooms) chips.push(tr('wizard.step7.chip.bedrooms', { count: data.bedrooms }))
+  if (data.energy) chips.push(tr('wizard.step7.chip.epc', { grade: data.energy }))
 
   const photos = data.photos || []
   const cover = photos[0]
@@ -48,13 +51,13 @@ export function Step7Publish({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 8 sur 8 · Publication</div>
+        }}>{tr('wizard.step7.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>Prêt à mettre en ligne&nbsp;?</h1>
+        }}>{tr('wizard.step7.title')}</h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          Voici à quoi ressemblera votre annonce. Ajustez la dernière étape avant la publication.
+          {tr('wizard.step7.intro')}
         </p>
       </div>
 
@@ -97,7 +100,7 @@ export function Step7Publish({ data, set }: StepProps) {
           }}>
             {!cover && (
               <div style={{ color: SugarV2.muted, fontSize: 13, fontWeight: 500 }}>
-                Pas de photo de couverture
+                {tr('wizard.step7.noCoverPhoto')}
               </div>
             )}
             {cover && (
@@ -118,21 +121,21 @@ export function Step7Publish({ data, set }: StepProps) {
                   background: SugarV2.black, color: sgOn(),
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
                   boxShadow: '0 4px 10px rgba(0,0,0,0.30)',
-                }}>★ En vedette</span>
+                }}>{tr('wizard.step7.badge.featured')}</span>
               )}
               {data.options?.videoTour && (
                 <span style={{
                   padding: '5px 11px', borderRadius: 999,
                   background: sgAcc(0.95), color: SugarV2.ink,
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-                }}>▶ Visite vidéo</span>
+                }}>{tr('wizard.step7.badge.video')}</span>
               )}
               {data.options?.virtualStagingUser && (
                 <span style={{
                   padding: '5px 11px', borderRadius: 999,
                   background: sgAcc(0.95), color: SugarV2.ink,
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-                }}>Staging</span>
+                }}>{tr('wizard.step7.badge.staging')}</span>
               )}
             </div>
 
@@ -154,10 +157,10 @@ export function Step7Publish({ data, set }: StepProps) {
                   fontSize: 11, fontWeight: 700, color: SugarV2.muted,
                   letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
                 }}>
-                  {tx === 'vente' ? 'À vendre' : 'À louer'} · {data.canton || 'Suisse'}
+                  {tx === 'vente' ? tr('wizard.txBadge.sale') : tr('wizard.txBadge.rent')} · {data.canton || tr('wizard.country')}
                 </div>
                 <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2 }}>
-                  {data.addr || 'Adresse à compléter'}
+                  {data.addr || tr('wizard.step7.addressPlaceholder')}
                 </h2>
                 <div style={{ fontSize: 13, color: SugarV2.muted, fontWeight: 500 }}>
                   {data.postCode ? `${data.postCode} · ` : ''}{data.canton || ''}
@@ -168,7 +171,7 @@ export function Step7Publish({ data, set }: StepProps) {
                   {fmtCHF(price) || '—'}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: SugarV2.muted, letterSpacing: 0.5, marginTop: 4 }}>
-                  CHF{tx === 'location' ? ' / mois' : ''}
+                  CHF{tx === 'location' ? tr('wizard.perMonth') : ''}
                 </div>
               </div>
             </div>
@@ -212,14 +215,14 @@ export function Step7Publish({ data, set }: StepProps) {
                   {owner ? `${owner.firstName} ${owner.lastName}` : 'Gregory Lyonnet'}
                 </div>
                 <div style={{ fontSize: 11, color: SugarV2.muted, fontWeight: 500 }}>
-                  MEGGA · {data.canton || 'Suisse'} · Présentation par l'agent
+                  {tr('wizard.step7.agentLine', { canton: data.canton || tr('wizard.country') })}
                 </div>
               </div>
               <button style={{
                 height: 32, padding: '0 14px', borderRadius: 999, border: 0,
                 background: SugarV2.black, color: sgOn(),
                 fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, cursor: 'default',
-              }}>Contacter</button>
+              }}>{tr('wizard.step7.contact')}</button>
             </div>
           </div>
         </div>
@@ -233,22 +236,22 @@ export function Step7Publish({ data, set }: StepProps) {
             <div style={{
               fontSize: 11, fontWeight: 700, color: SugarV2.muted,
               letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14,
-            }}>Quand publier</div>
+            }}>{tr('wizard.step7.whenPublish')}</div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <PubChoice mode="now" current={mode} onSelect={setMode}
-                title="Publier maintenant"
-                sub="L'annonce devient visible dans les 30 secondes."
+                title={tr('wizard.step7.publishNow.title')}
+                sub={tr('wizard.step7.publishNow.sub')}
                 icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-7"/></svg>} />
 
               <PubChoice mode="schedule" current={mode} onSelect={setMode}
-                title="Programmer"
-                sub="Choisissez la date et l'heure de mise en ligne."
+                title={tr('wizard.step7.schedule.title')}
+                sub={tr('wizard.step7.schedule.sub')}
                 icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>} />
 
               <PubChoice mode="draft" current={mode} onSelect={setMode}
-                title="Enregistrer en brouillon"
-                sub="Reprenez plus tard. Aucune date publique."
+                title={tr('wizard.step7.draft.title')}
+                sub={tr('wizard.step7.draft.sub')}
                 icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>} />
             </div>
 
@@ -261,7 +264,7 @@ export function Step7Publish({ data, set }: StepProps) {
                 <div style={{
                   fontSize: 10.5, fontWeight: 700, color: SugarV2.muted,
                   letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8,
-                }}>Date et heure (Europe/Zurich)</div>
+                }}>{tr('wizard.step7.scheduleDateLabel')}</div>
                 <input type="datetime-local" value={sched}
                   onChange={e => { setSched(e.target.value); set({ scheduledAt: e.target.value }) }}
                   style={{
@@ -282,13 +285,13 @@ export function Step7Publish({ data, set }: StepProps) {
             <div style={{
               fontSize: 11, fontWeight: 700, color: SugarV2.muted,
               letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14,
-            }}>Visibilité</div>
+            }}>{tr('wizard.step7.visibility.eyebrow')}</div>
 
             <div style={{ display: 'flex', padding: 4, borderRadius: 999, background: SugarV2.cardSubtle }}>
               {[
-                { v: 'public' as const,    l: 'Public' },
-                { v: 'network' as const,   l: 'Réseau MEGGA' },
-                { v: 'private' as const,   l: 'Privé' },
+                { v: 'public' as const,    l: tr('wizard.step7.visibility.public') },
+                { v: 'network' as const,   l: tr('wizard.step7.visibility.network') },
+                { v: 'private' as const,   l: tr('wizard.step7.visibility.private') },
               ].map(o => {
                 const sel = visibility === o.v
                 return (
@@ -308,9 +311,9 @@ export function Step7Publish({ data, set }: StepProps) {
             <div style={{
               marginTop: 12, fontSize: 12, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.5,
             }}>
-              {visibility === 'public' && 'Visible sur megga.ch et les portails partenaires.'}
-              {visibility === 'network' && 'Visible uniquement par les agents MEGGA.'}
-              {visibility === 'private' && 'Visible uniquement via lien privé.'}
+              {visibility === 'public' && tr('wizard.step7.visibility.publicDesc')}
+              {visibility === 'network' && tr('wizard.step7.visibility.networkDesc')}
+              {visibility === 'private' && tr('wizard.step7.visibility.privateDesc')}
             </div>
           </div>
 
@@ -320,15 +323,19 @@ export function Step7Publish({ data, set }: StepProps) {
             <div style={{
               fontSize: 11, fontWeight: 700, color: SugarV2.muted,
               letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10,
-            }}>Récapitulatif</div>
+            }}>{tr('wizard.step7.recap.title')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <RecapRow l="Vendeur" v={owner ? `${owner.firstName} ${owner.lastName}` : '—'} />
-              <RecapRow l="Mandat" v={
-                ({ exclusive: 'Exclusif', simple: 'Simple', co: 'Co-mandat' } as Record<string, string>)[data.mandate?.type] || '—'
+              <RecapRow l={tr('wizard.step7.recap.seller')} v={owner ? `${owner.firstName} ${owner.lastName}` : '—'} />
+              <RecapRow l={tr('wizard.step7.recap.mandate')} v={
+                ({
+                  exclusive: tr('wizard.step7.mandate.exclusive'),
+                  simple: tr('wizard.step7.mandate.simple'),
+                  co: tr('wizard.step7.mandate.co'),
+                } as Record<string, string>)[data.mandate?.type] || '—'
               } />
-              <RecapRow l="Photos" v={`${photos.length} photo${photos.length > 1 ? 's' : ''}`} />
-              <RecapRow l="Prix" v={`${fmtCHF(price) || '—'} CHF${tx === 'location' ? ' / mois' : ''}`} />
-              <RecapRow l="Description" v={`${(data.description || '').length} caractères`} />
+              <RecapRow l={tr('wizard.step7.recap.photos')} v={tr('wizard.photosCount', { count: photos.length })} />
+              <RecapRow l={tr('wizard.step7.recap.price')} v={`${fmtCHF(price) || '—'} CHF${tx === 'location' ? tr('wizard.perMonth') : ''}`} />
+              <RecapRow l={tr('wizard.step7.recap.description')} v={tr('wizard.step7.recap.charsCount', { count: (data.description || '').length })} />
             </div>
           </div>
         </div>
@@ -395,6 +402,9 @@ function RecapRow({ l, v }: { l: string; v: string }) {
   )
 }
 
-const typeLabel = (t: string) => ({
-  appartement: 'Appartement', maison: 'Maison', villa: 'Villa', terrain: 'Terrain',
+const typeLabel = (t: string, tr: TFunction) => ({
+  appartement: tr('type.apartment'),
+  maison: tr('type.house'),
+  villa: tr('type.villa'),
+  terrain: tr('type.land'),
 } as Record<string, string>)[t] || t

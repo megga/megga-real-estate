@@ -9,11 +9,42 @@
   "empty_results": "Aucun dossier trouvé",
   "create_button": "Créer un dossier KYC",
   "search_placeholder": "Rechercher par nom...",
-  "filter": { "all": "Tous", "all_risks": "Tous les risques", "all_types": "Tous les types", "clear": "Effacer les filtres" },
-  "column": { "contact": "Contact", "type": "Type", "pep": "PEP/S", "risk": "Risque", "status": "Statut", "completion": "Progression", "created": "Créé", "actions": "Actions" },
-  "action": { "view": "Voir le dossier", "screening": "Lancer le screening", "change_status": "Changer le statut", "validate": "Valider le dossier", "copy_id": "Copier l'ID" },
-  "risk": { "low": "Faible", "medium": "Moyen", "high": "Élevé", "unassessed": "Non évalué" },
-  "status": { "pending": "En attente", "in_progress": "En cours", "review": "En revue", "validated": "Validé", "rejected": "Rejeté" },
+  "filter": {
+    "all": "Tous",
+    "all_risks": "Tous les risques",
+    "all_types": "Tous les types",
+    "clear": "Effacer les filtres"
+  },
+  "column": {
+    "contact": "Contact",
+    "type": "Type",
+    "pep": "PEP/S",
+    "risk": "Risque",
+    "status": "Statut",
+    "completion": "Progression",
+    "created": "Créé",
+    "actions": "Actions"
+  },
+  "action": {
+    "view": "Voir le dossier",
+    "screening": "Lancer le screening",
+    "change_status": "Changer le statut",
+    "validate": "Valider le dossier",
+    "copy_id": "Copier l'ID"
+  },
+  "risk": {
+    "low": "Faible",
+    "medium": "Moyen",
+    "high": "Élevé",
+    "unassessed": "Non évalué"
+  },
+  "status": {
+    "pending": "En attente",
+    "in_progress": "En cours",
+    "review": "En revue",
+    "validated": "Validé",
+    "rejected": "Rejeté"
+  },
   "create_modal": {
     "title": "Nouveau dossier KYC",
     "select_contact": "Sélectionner un contact",
@@ -110,6 +141,754 @@
     "footer": {
       "legal": "Mentions légales",
       "privacy": "Confidentialité"
+    }
+  },
+  "steps": {
+    "identity": "Identité",
+    "beneficiary": "Béné.",
+    "funds": "Fonds",
+    "screening": "Screening",
+    "risk": "Risque",
+    "validation": "Validation"
+  },
+  "riskScore": {
+    "low": "Faible",
+    "moderate": "Modéré",
+    "high": "Élevé"
+  },
+  "wizard": {
+    "steps": {
+      "start": "Démarrer",
+      "contact": "Contact",
+      "vigilance": "Vigilance"
+    },
+    "header": {
+      "eyebrow": "Conformité LBA",
+      "title": "Nouveau dossier KYC"
+    },
+    "close": "Fermer",
+    "nav": {
+      "previous": "Précédent",
+      "continue": "Continuer",
+      "creating": "Création…",
+      "prepareMagicLink": "Préparer le lien magique",
+      "openDossier": "Ouvrir le dossier"
+    },
+    "errors": {
+      "missingContactVigilance": "Sélectionnez un contact et un niveau de vigilance.",
+      "createFailed": "Échec de la création"
+    },
+    "roles": {
+      "buyer": "Acheteur",
+      "seller": "Vendeur",
+      "tenant": "Locataire",
+      "landlord": "Bailleur"
+    },
+    "start": {
+      "title": "Comment voulez-vous ouvrir ce dossier ?",
+      "subtitle": "Trois chemins pour respecter l'obligation LBA. Le plus rapide reste de lier le dossier à un contact déjà connu de votre CRM.",
+      "existing": {
+        "title": "Lier à un contact existant",
+        "sub": "Le plus courant : vous sélectionnez un acheteur, vendeur ou locataire déjà présent dans le CRM."
+      },
+      "import": {
+        "title": "Importer un dossier externe (bientôt)",
+        "sub": "L'import + parsing automatique (PDF Persona, ComplyAdvantage, rapport agence partenaire) arrive dans une prochaine release. Utilisez « Lier à un contact existant » en attendant."
+      },
+      "magic": {
+        "title": "Demander les pièces",
+        "sub": "Lien magique envoyé au contact pour qu'il dépose lui-même ses justificatifs en toute sécurité."
+      }
+    },
+    "contact": {
+      "title": "Pour quel contact ?",
+      "subtitle": "Les contacts qui ont déjà un dossier KYC en cours apparaissent grisés, vous pouvez les rouvrir depuis la liste principale.",
+      "searchPlaceholder": "Rechercher un contact, un e-mail…",
+      "empty": "Aucun contact ne correspond à cette recherche.",
+      "existingDossier": "Dossier existant",
+      "typeShort": {
+        "buyer": "Ache",
+        "seller": "Vend",
+        "tenant": "Loca",
+        "landlord": "Prop",
+        "mixed": "Mixt"
+      }
+    },
+    "vigilance": {
+      "title": "Quel niveau de vigilance ?",
+      "subtitle": "La vigilance renforcée s'applique aux transactions supérieures à CHF 100'000, aux contacts PEP et aux opérations internationales.",
+      "entityTypeLabel": "Type d'entité LBA",
+      "entityTypeAria": "Type d'entité",
+      "entityPp": "Personne physique",
+      "entityPm": "Personne morale",
+      "pmHint": "Les personnes morales déclenchent l'identification des ayants droit économiques (LBA art. 4).",
+      "standard": {
+        "title": "Vigilance standard",
+        "sub": "Cinq contrôles classiques · LBA art. 3-4. Suffit pour la majorité des transactions résidentielles courantes."
+      },
+      "renforced": {
+        "title": "Vigilance renforcée",
+        "sub": "Contrôles approfondis sur l'origine des fonds, bénéficiaires effectifs et arrière-plan économique · LBA art. 6."
+      }
+    },
+    "gate": {
+      "recommended": "Recommandé",
+      "selected": "Sélectionné",
+      "choose": "Choisir"
+    },
+    "magic": {
+      "recommended": "Conseillé",
+      "eyebrow": "Lien magique · KYC",
+      "title": "Demander ses pièces à {{firstName}}",
+      "close": "Fermer",
+      "modeLabel": "Mode de collecte",
+      "modeLibre": {
+        "title": "Libre",
+        "sub": "Le client dépose ses pièces et c'est tout. Vous vérifiez vous-même côté CRM.",
+        "duration": "3 min",
+        "steps": "2 écrans"
+      },
+      "modeVerifiee": {
+        "title": "Vérifiée",
+        "sub": "Le client confirme les données détectées sur ses pièces avant envoi.",
+        "duration": "5 min",
+        "steps": "3 écrans"
+      },
+      "channelLabel": "Envoyer par",
+      "channelEmail": "Email",
+      "channelSms": "SMS",
+      "noEmail": "Aucun email renseigné",
+      "noPhone": "Aucun téléphone renseigné",
+      "messageLabel": "Message personnalisé · optionnel",
+      "messagePlaceholder": "Bonjour {{firstName}},\nComme convenu, voici le lien pour finaliser votre dossier KYC. À très vite.",
+      "expiryNote": "Le lien expire dans <1>7 jours</1>. L'envoi est consigné dans la piste d'audit LBA art. 7.",
+      "cancel": "Annuler",
+      "sending": "Envoi en cours…",
+      "sendLink": "Envoyer le lien à {{firstName}}",
+      "success": {
+        "eyebrow": "Lien magique créé",
+        "title": "Lien envoyé à {{firstName}}",
+        "body": "{{firstName}} recevra le lien dans quelques secondes. Vous serez notifié dès qu'il dépose ses pièces ou si rien n'arrive sous 3 jours.",
+        "urlLabel": "URL sécurisée · expire dans 7 jours",
+        "copy": "Copier",
+        "copied": "Copié",
+        "close": "Fermer"
+      }
+    },
+    "legacy": {
+      "steps": {
+        "context": "Contexte",
+        "identity": "Identité",
+        "funds": "Origine fonds",
+        "screening": "Screening",
+        "validation": "Validation"
+      },
+      "titles": {
+        "context": "Contexte, {{name}}",
+        "start": "Démarrer un dossier",
+        "identity": "Identité, {{name}}",
+        "funds": "Origine des fonds, {{name}}",
+        "screening": "Screening PEP & sanctions",
+        "validation": "Validation finale du dossier"
+      },
+      "kickers": {
+        "0": "Étape 1 sur 5 · LBA art. 3, Contexte de la relation",
+        "1": "Étape 2 sur 5 · LBA art. 3, Identification du cocontractant",
+        "2": "Étape 3 sur 5 · LBA art. 4, Origine des fonds",
+        "3": "Étape 4 sur 5 · LBA art. 4, Screening PEP & sanctions",
+        "4": "Étape 5 sur 5 · LBA, Validation conformité"
+      },
+      "subs": {
+        "0": "Sélectionnez le contact concerné, son rôle dans la transaction et un montant indicatif si déjà connu.",
+        "1": "Saisissez les données du document officiel et confirmez la vérification visuelle. Le screening sanctions/PEP est lancé en arrière-plan via Dilisense.",
+        "2": "Documentez l'origine des fonds (épargne, vente, héritage…) avec une attestation officielle.",
+        "3": "Vérifiez les correspondances PEP et sanctions récupérées via les 4 sources interrogées.",
+        "4": "Validation finale par le responsable conformité avant clôture du dossier."
+      },
+      "types": {
+        "buyer": "Acheteur",
+        "seller": "Vendeur",
+        "pp": "Personne physique",
+        "pm": "Personne morale"
+      },
+      "context": {
+        "contactSection": "Contact concerné",
+        "relationSection": "Type de relation",
+        "amountSection": "Montant de la transaction (optionnel)",
+        "searchPlaceholder": "Rechercher un contact par nom ou email…",
+        "contactsLoading": "Chargement des contacts…",
+        "contactsEmpty": "Aucun contact trouvé",
+        "changeContact": "Changer de contact"
+      },
+      "identity": {
+        "docSection": "Document d'identité",
+        "dropTitle": "Glisser le passeport ou la carte d'identité",
+        "dropHint": "PDF/JPG · 10 Mo max",
+        "browse": "Parcourir",
+        "manualSection": "Saisie manuelle",
+        "visualSection": "Vérification visuelle",
+        "methodSection": "Méthode de vérification",
+        "fields": {
+          "lastName": "Nom de famille",
+          "firstName": "Prénom(s)",
+          "birthDate": "Date de naissance",
+          "nationality": "Nationalité(s)",
+          "docType": "Type de document",
+          "docNumber": "Numéro de document",
+          "expiryDate": "Date d'expiration",
+          "issuingCountry": "Pays émetteur"
+        }
+      },
+      "checks": {
+        "official": "Document officiel et non périmé",
+        "photo": "Photo correspond à la personne",
+        "number": "Numéro de document lisible",
+        "tamper": "Pas de signe d'altération",
+        "consistent": "Données saisies cohérentes avec le document"
+      },
+      "methods": {
+        "person": {
+          "label": "En personne",
+          "sub": "Au bureau"
+        },
+        "video": {
+          "label": "Visioconférence",
+          "sub": "Lien sécurisé"
+        },
+        "lawyer": {
+          "label": "Attestation avocat / notaire",
+          "sub": "Joindre attestation"
+        }
+      },
+      "ai": {
+        "consistency": "Les données saisies sont <1>cohérentes</1> avec la fiche contact. Pour ce profil, une vérification en personne est généralement suffisante.",
+        "screeningTitle": "Screening Dilisense",
+        "screeningStatus": "En cours · 4 sources interrogées",
+        "screeningHint": "Lancé automatiquement à la saisie. Résultats à l'étape Screening.",
+        "tipTitle": "Conseil conformité",
+        "tipBody": "Pensez à scanner aussi le verso si CI suisse, le numéro de document figure au dos."
+      },
+      "nav": {
+        "back": "Retour",
+        "saveDraft": "Enregistrer brouillon",
+        "creating": "Création…",
+        "finish": "Terminer",
+        "next": "Étape suivante"
+      },
+      "placeholder": {
+        "title": "Étape à compléter",
+        "body": "Le contenu de cette étape sera complété dans une prochaine itération du wizard."
+      },
+      "errors": {
+        "selectContactType": "Sélectionnez un contact et un type de relation pour continuer.",
+        "selectContactTypeShort": "Sélectionnez un contact et un type de relation.",
+        "noAgency": "Profil agence introuvable, impossible de créer le dossier.",
+        "createFailed": "Erreur lors de la création du dossier."
+      }
+    }
+  },
+  "dossier": {
+    "row": {
+      "incomplete": "À compléter",
+      "incompleteHint": "Rappel doux, KYC à compléter (non bloquant pour le pipeline)"
+    },
+    "detail": {
+      "loadError": "Impossible de charger ce dossier KYC.",
+      "loadErrorHint": "Erreur réseau ou base de données.",
+      "backToList": "Retour à la liste",
+      "retry": "Réessayer",
+      "loading": "Chargement du dossier…",
+      "reviewSanctionsFirst": "Examinez d’abord le match sanctions",
+      "reviewPepFirst": "Examinez d’abord le match PEP",
+      "screeningRunning": "Screening en cours…",
+      "runScreeningFirst": "Lancez le screening avant de valider",
+      "contactNotFound": "Contact introuvable pour ce dossier.",
+      "contactNameMissing": "Nom du contact manquant.",
+      "nationalityRequired": "Nationalité requise pour le screening Dilisense. Mettez à jour le contact.",
+      "screeningRestarted": "Screening Dilisense relancé.",
+      "screeningFailed": "Échec du screening.",
+      "agencyMissing": "agency_id manquant, connexion requise.",
+      "decisionSaved": "Décision « {{verdict}} » enregistrée.",
+      "saveFailed": "Échec de l’enregistrement.",
+      "fileUploaded": "« {{name}} » téléversé.",
+      "uploadFailed": "Échec du téléversement.",
+      "fiveChecks": "5 contrôles obligatoires (LBA art. 3-7)",
+      "previewError": "Aperçu impossible : {{message}}",
+      "downloadError": "Téléchargement impossible : {{message}}"
+    },
+    "tabs": {
+      "synthese": "Synthèse",
+      "controles": "Contrôles",
+      "documents": "Documents",
+      "audit": "Audit"
+    },
+    "alert": {
+      "matchSanctions": "Match sanctions détecté · examen requis (LBA art. 9).",
+      "matchPep": "Match PEP détecté · examen requis (LBA art. 9).",
+      "lastDecision": "Dernière décision :",
+      "reExamine": "Réexaminer",
+      "examineMatch": "Examiner ce match",
+      "clearedFalsePositive": "Match Dilisense écarté par décision compliance (faux positif) · LBA art. 7 documenté."
+    },
+    "verdict": {
+      "false_positive": {
+        "label": "Faux positif",
+        "hint": "Examen humain : le match Dilisense ne correspond pas au client. Autorise la validation."
+      },
+      "true_match": {
+        "label": "Vrai match",
+        "hint": "Le client est bien la personne sanctionnée/PEP. Déclaration MROS (art. 9 LBA) obligatoire."
+      },
+      "escalated": {
+        "label": "Escaladé direction",
+        "hint": "Renvoyé au MLRO / direction compliance pour décision."
+      },
+      "awaiting_evidence": {
+        "label": "En attente d’éléments",
+        "hint": "Examen en pause, éléments complémentaires demandés au client."
+      }
+    },
+    "confirm": {
+      "eyebrow": "Validation conformité · LBA art. 7",
+      "title": "Marquer le dossier comme vérifié ?",
+      "body": "Cette action coche les 5 contrôles obligatoires et passe le dossier en statut « vérifié ». Elle est tracée dans le journal d'audit nLPD pendant 10 ans.",
+      "sanctions": "Sanctions :",
+      "pep": "PEP :",
+      "vigilance": "Vigilance :",
+      "clear": "✓ Clear",
+      "vigilanceEnhanced": "Renforcée (LBA art. 6)",
+      "vigilanceStandard": "Standard (LBA art. 3-4)",
+      "cancel": "Annuler",
+      "submit": "Confirmer la validation"
+    },
+    "upload": {
+      "eyebrow": "Téléversement de pièce",
+      "title": "Ajouter un document",
+      "categoryLabel": "Catégorie LBA",
+      "fileLabel": "Fichier (PDF, JPG, PNG, WEBP)",
+      "cancel": "Annuler",
+      "uploading": "Téléversement…",
+      "submit": "Téléverser",
+      "cat": {
+        "identity": "Pièce d’identité",
+        "domicile": "Justificatif de domicile",
+        "financial": "Document financier",
+        "compliance": "Pièce compliance (Form A, UBO…)",
+        "other": "Autre"
+      },
+      "errTooLarge": "Fichier trop volumineux (max 20 Mo).",
+      "errEmpty": "Fichier vide.",
+      "errInvalidName": "Nom de fichier invalide.",
+      "errUnknownCategory": "Catégorie inconnue.",
+      "errMimeNotAllowed": "Type de fichier non autorisé pour cette catégorie (reçu : {{mime}}).",
+      "errExtNotAllowed": "Extension non autorisée (.{{ext}}). Utilisez PDF, JPG, PNG ou WEBP."
+    },
+    "examine": {
+      "eyebrowSanctions": "Examen compliance · Sanctions · LBA art. 7",
+      "eyebrowPep": "Examen compliance · PEP · LBA art. 7",
+      "matchCount_one": "{{count}} correspondance Dilisense",
+      "matchCount_other": "{{count}} correspondances Dilisense",
+      "intro": "Examinez les éléments retournés par Dilisense, choisissez un verdict et justifiez-le (minimum 30 caractères, conservé 10 ans).",
+      "noRecords": "Aucun détail de match n’a été stocké pour ce dossier. Relancez un screening si nécessaire.",
+      "previousDecision": "Décision précédente :",
+      "willSupersede": "Une nouvelle décision écrasera celle-ci (chaînage supersedes).",
+      "verdictLabel": "Verdict",
+      "justificationLabel": "Justification ({{count}}/30 caractères min)",
+      "justificationPlaceholder": "Ex : Date de naissance différente (1985 vs 1972), pays différent (CH vs RU), homonymie confirmée par pièce d’identité.",
+      "cancel": "Annuler",
+      "saving": "Enregistrement…",
+      "submit": "Enregistrer la décision"
+    },
+    "funds": {
+      "eyebrow": "Origine économique · LBA art. 6 al. 1 lit. b",
+      "title": "Source des fonds",
+      "edit": "Modifier",
+      "document": "Documenter",
+      "notDocumented": "Non documentée. Pour les transactions à vigilance renforcée et tout montant supérieur à CHF 100'000, il est recommandé de clarifier et de conserver l'arrière-plan économique.",
+      "redFlag": "Red flag LBA",
+      "redFlagSuffix": "(red flag)",
+      "linkedDoc": "Pièce liée :",
+      "noLinkedDoc": "Aucune pièce associée, à téléverser.",
+      "errorAgencyMissing": "agency_id manquant.",
+      "errorSave": "Échec de l’enregistrement.",
+      "overlayEyebrow": "LBA art. 6 al. 1 lit. b · Arrière-plan économique",
+      "overlayTitle": "Documenter l'origine des fonds",
+      "typeLabel": "Type",
+      "descriptionLabelRequired": "Description ({{count}}/20 caractères min)",
+      "descriptionLabelOptional": "Description (optionnelle)",
+      "descriptionPlaceholder": "Précisez l’arrière-plan économique : période, instruments, contreparties.",
+      "descriptionPlaceholderCrypto": "Ex : USDT achetés en 2021 sur Kraken, exchange régulé FINMA, conservation cold wallet, attestation jointe.",
+      "docLabel": "Pièce justificative (catégorie financial ou compliance)",
+      "docNone": "Aucune pièce",
+      "cancel": "Annuler",
+      "saving": "Enregistrement…",
+      "save": "Enregistrer",
+      "types": {
+        "salary": {
+          "label": "Salaire / revenus d’activité",
+          "hint": "Fiches de paie ou attestation employeur"
+        },
+        "sale_property": {
+          "label": "Vente d’un bien immobilier",
+          "hint": "Contrat de vente notarié"
+        },
+        "sale_business": {
+          "label": "Vente d’entreprise / parts sociales",
+          "hint": "Acte de cession"
+        },
+        "inheritance": {
+          "label": "Héritage / donation",
+          "hint": "Acte notarié"
+        },
+        "investment": {
+          "label": "Revenus de placement / dividendes",
+          "hint": "Relevé bancaire ou attestation fiscale"
+        },
+        "crypto": {
+          "label": "Crypto-actifs",
+          "hint": "Red flag LBA, description détaillée recommandée"
+        },
+        "loan": {
+          "label": "Prêt bancaire",
+          "hint": "Contrat de prêt + attestation banque"
+        },
+        "mixed": {
+          "label": "Origine mixte",
+          "hint": "Red flag LBA, détailler chaque source"
+        },
+        "other": {
+          "label": "Autre",
+          "hint": "Description recommandée"
+        }
+      }
+    },
+    "synthese": {
+      "typeBuyer": "Acheteur",
+      "typeSeller": "Vendeur",
+      "stateEyebrow": "État du dossier",
+      "stateVerifiedTitle": "Dossier vérifié, transaction autorisée",
+      "stateUnverifiedTitle": "Vérifications à compléter",
+      "stateVerifiedBody": "Tous les contrôles LBA sont validés.",
+      "stateUnverifiedBody": "Vous pouvez continuer à faire avancer le deal, le KYC reste recommandé avant la signature, mais il n'est pas bloquant.",
+      "markingAll": "Validation…",
+      "markAllVerified": "Tout marquer vérifié",
+      "checksEyebrow": "Contrôles · LBA art. 3-7",
+      "seeDetail": "Voir le détail",
+      "infoEyebrow": "Informations",
+      "riskLevel": "Niveau de risque",
+      "contactType": "Type de contact",
+      "openedOn": "Dossier ouvert le",
+      "lastScreening": "Dernier screening",
+      "expiry": "Échéance",
+      "reference": "Référence",
+      "screeningRunning": "Screening en cours…",
+      "screeningUpToDate": "Screening à jour",
+      "rescreen": "Re-screener",
+      "exportRunning": "Génération…",
+      "exportDone": "Dossier exporté",
+      "export": "Exporter le dossier"
+    },
+    "audit": {
+      "eyebrow": "Conformité nLPD · LBA",
+      "title": "Piste d'audit",
+      "empty": "Aucune action enregistrée, dossier non démarré.",
+      "retention": "Traçabilité conservée 10 ans (art. 7 LBA)",
+      "exportPdf": "Exporter PDF horodaté",
+      "actorSystem": "Système",
+      "actorUnknown": "Agent inconnu"
+    },
+    "docs": {
+      "eyebrow": "Pièces du dossier",
+      "title": "Documents joints",
+      "upload": "Téléverser",
+      "emptyTitle": "Aucun document joint pour l'instant.",
+      "emptySubtitle": "Demandez les pièces au contact pour démarrer la vérification.",
+      "expired": "Expiré",
+      "expiresInDays_one": "Expire dans {{count}} j",
+      "expiresInDays_other": "Expire dans {{count}} j",
+      "validUntil": "Valide jusqu’au {{date}}",
+      "fileSize": "{{size}} Mo",
+      "addedOn": "Ajouté le {{date}}",
+      "shaPrefix": "sha {{hash}}…",
+      "shaFull": "SHA-256 : {{hash}}",
+      "preview": "Aperçu",
+      "download": "Télécharger"
+    }
+  },
+  "list": {
+    "heading": "Dossiers KYC.",
+    "intro": "Toute transaction immobilière en Suisse exige une vérification documentée de l'identité, du domicile et de l'origine des fonds. Le KYC reste recommandé avant la signature, un rappel doux, jamais bloquant.",
+    "export": "Exporter",
+    "newDossier": "Nouveau dossier",
+    "stats": {
+      "verifiedLabel": "Vérifiés",
+      "verifiedSub": "Transactions autorisées",
+      "pendingLabel": "En cours",
+      "pendingSub": "Pièces manquantes ou screening en attente",
+      "noneLabel": "À démarrer",
+      "noneSub": "Aucun document collecté",
+      "riskLabel": "Vigilance",
+      "riskSub": "Risque modéré ou élevé identifié"
+    },
+    "filters": {
+      "all": "Tous · {{count}}",
+      "pending": "En cours · {{count}}",
+      "none": "À démarrer · {{count}}",
+      "verified": "Vérifiés · {{count}}",
+      "highRisk": "Risque élevé · {{count}}"
+    },
+    "errorTitle": "Impossible de charger les dossiers KYC.",
+    "errorFallback": "Erreur réseau ou base de données.",
+    "retry": "Réessayer",
+    "loading": "Chargement des dossiers…",
+    "emptyFilter": "Aucun dossier ne correspond à ce filtre.",
+    "staleCount_one": "{{count}} dossier à re-screener (échéance dépassée).",
+    "staleCount_other": "{{count}} dossiers à re-screener (échéance dépassée)."
+  },
+  "nonBlocking": {
+    "complete": "Compléter",
+    "dismiss": "Ignorer",
+    "dealBadgeHint_one": "{{count}} pièce manquante, non bloquant",
+    "dealBadgeHint_other": "{{count}} pièces manquantes, non bloquant",
+    "availableActions": "Actions disponibles",
+    "completeBeforeSignature": "Compléter le KYC avant la signature",
+    "debtIntro": "Aucune action n'est jamais bloquée. Le responsable conformité voit ici la dette accumulée et relance.",
+    "daysShort_one": "{{count}}j",
+    "daysShort_other": "{{count}}j",
+    "followUp": "Relancer",
+    "showcase": {
+      "contactBanner": "Fiche contact, banner doux (n'empêche aucune action)",
+      "dealBadge": "Carte deal, badge persistant",
+      "debtTable": "Tableau de dette, vu par le responsable"
+    }
+  },
+  "contactBento": {
+    "heading": "Conformité KYC / LBA",
+    "kpiRisk": "Risque",
+    "kpiDocs": "Pièces",
+    "kpiLastScreening": "Dernier screening",
+    "openDossier": "Ouvrir le dossier",
+    "followUpClient": "Relancer le client"
+  },
+  "upload": {
+    "title": "Ajouter une pièce",
+    "subtitle": "PDF, JPG, PNG · 10 Mo max · Stockage chiffré",
+    "close": "Fermer",
+    "categoryLabel": "Catégorie",
+    "documentLabel": "Document",
+    "categories": {
+      "identity": "Identité",
+      "domicile": "Domicile",
+      "financial": "Revenus",
+      "compliance": "Conformité",
+      "other": "Autre"
+    },
+    "dropTitle": "Glisser un fichier ici",
+    "dropHint": "ou cliquer pour parcourir",
+    "removeFile": "Retirer le fichier",
+    "cancel": "Annuler",
+    "submit": "Téléverser",
+    "submitting": "Téléversement…",
+    "successAdded": "Document ajouté : {{name}}",
+    "errorTooLarge": "Fichier trop volumineux (10 Mo max).",
+    "errorFailed": "Échec du téléversement.",
+    "sizeBytes": "{{value}} o",
+    "sizeKb": "{{value}} Ko",
+    "sizeMb": "{{value}} Mo"
+  },
+  "export": {
+    "agentFallback": "Agent conformité",
+    "loading": "Chargement du dossier…",
+    "notFound": "Dossier introuvable.",
+    "preparing": "Préparation du rapport…",
+    "close": "Fermer",
+    "reportRef": "Rapport KYC · {{reference}}",
+    "print": "Imprimer / Enregistrer en PDF"
+  },
+  "report": {
+    "check": {
+      "id": "Identification du cocontractant",
+      "address": "Vérification de l'adresse",
+      "pep": "Screening PEP",
+      "sanctions": "Listes de sanctions",
+      "funds": "Origine des fonds"
+    },
+    "checkJustif": {
+      "id": "Pièce d'identité officielle",
+      "address": "Justificatif de domicile < 3 mois",
+      "pep": "Dilisense, clear",
+      "sanctions": "Dilisense, clear",
+      "funds": "Attestation bancaire + fiche salaire"
+    },
+    "contactType": {
+      "buyer_pp": "Acheteur · personne physique",
+      "buyer_pm": "Acheteur · personne morale",
+      "seller_pp": "Vendeur · personne physique",
+      "seller_pm": "Vendeur · personne morale"
+    },
+    "sourceOfFunds": {
+      "salary": "Épargne salariale",
+      "sale_property": "Vente immobilière",
+      "sale_business": "Cession d'entreprise",
+      "inheritance": "Héritage",
+      "investment": "Investissement / placements",
+      "crypto": "Crypto-actifs",
+      "loan": "Crédit hypothécaire",
+      "mixed": "Mixte (épargne + crédit)",
+      "other": "Autre"
+    },
+    "risk": {
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé",
+      "critical": "Critique"
+    },
+    "aiVigilance": {
+      "standard": "Vigilance standard",
+      "renforced": "Vigilance renforcée",
+      "escalation_mlro": "Escalade MLRO recommandée"
+    },
+    "docCategory": {
+      "identity": "Identité",
+      "domicile": "Domicile",
+      "financial": "Source des fonds",
+      "compliance": "Conformité",
+      "other": "Annexe"
+    },
+    "verdict": {
+      "vigilanceStandard": "Standard",
+      "vigilanceRenforced": "Renforcée",
+      "vigilanceSubStandard": "LBA art. 3",
+      "vigilanceSubRenforced": "LBA art. 6",
+      "riskSub": "Score interne {{score}}/100",
+      "statusInProgress": "En cours",
+      "statusVerified": "Vérifié",
+      "statusFailed": "Échec",
+      "statusStale": "À renouveler",
+      "statusSub": "{{done}}/{{total}} contrôles validés"
+    },
+    "agent": {
+      "system": "Système",
+      "agent": "Agent",
+      "dilisense": "Dilisense (système)"
+    },
+    "riskAnalysis": {
+      "riskSub": "Risque {{label}}"
+    },
+    "fallback": {
+      "counterparty": "Cocontractant",
+      "sourceNotDocumented": "Non documenté"
+    },
+    "pdf": {
+      "headerTag": "Rapport KYC · LBA",
+      "footerLegal": "MEGGA · legal@megga.ch · LBA art. 7 · Document à conserver 10 ans",
+      "pageAbbrev": "p.",
+      "page1": {
+        "eyebrow": "Synthèse exécutive · LBA art. 3-7",
+        "title": "Rapport KYC"
+      },
+      "section": {
+        "client": "Client",
+        "transaction": "Transaction",
+        "verdict": "Verdict global",
+        "screening": "Screening listes officielles · {{provider}}",
+        "lbaChecks": "Contrôles LBA validés · art. 3 à 7",
+        "sourceOfFunds": "Source des fonds documentée",
+        "riskAnalysis": "Analyse de risque",
+        "documents": "Documents joints au dossier · {{count}}",
+        "auditTrail": "Piste d'audit & conservation"
+      },
+      "label": {
+        "reference": "Référence",
+        "emittedOn": "Émis le",
+        "by": "Par",
+        "identity": "Identité",
+        "nationality": "Nationalité",
+        "type": "Type",
+        "taxResidence": "Résidence fiscale",
+        "property": "Bien",
+        "mandate": "Mandat",
+        "amount": "Montant",
+        "pipelineStage": "Étape pipeline",
+        "validation": "Validation",
+        "integrityHash": "Hash d'intégrité :",
+        "establishment": "Établissement",
+        "attestedAmount": "Montant attesté",
+        "retentionPeriod": "Durée de conservation",
+        "legalBasis": "Base légale"
+      },
+      "value": {
+        "notProvided": "Non renseignée",
+        "propertyUnderMandate": "Bien sous mandat"
+      },
+      "verdictCol": {
+        "vigilance": "Vigilance",
+        "risk": "Risque",
+        "status": "Statut"
+      },
+      "validatedBy": "Validé le {{date}} par {{name}}",
+      "validationPending": "Dossier en cours de validation",
+      "signatureCaption": "Signature numérique · qualifiée",
+      "confidentialNotice": "« Document interne {{agency}} · Strictement confidentiel · Diffusion restreinte »",
+      "page2": {
+        "eyebrow": "Diligence raisonnable effectuée",
+        "title": "Contrôles & pièces.",
+        "noMatch": "0 correspondance",
+        "clear": "Clear",
+        "toReview": "À examiner",
+        "list": {
+          "pep": "PEP (Personnes Exposées Politiquement)",
+          "ofac": "Sanctions OFAC (États-Unis)",
+          "seco": "Sanctions SECO (Suisse)",
+          "eu": "Sanctions UE",
+          "un": "Sanctions ONU",
+          "adverseMedia": "Listes adverse media"
+        }
+      },
+      "col": {
+        "list": "Liste",
+        "provider": "Provider",
+        "result": "Résultat",
+        "timestamp": "Horodatage",
+        "num": "#",
+        "control": "Contrôle",
+        "supportingDoc": "Pièce justificative",
+        "date": "Date",
+        "agent": "Agent",
+        "fileName": "Nom du fichier",
+        "category": "Catégorie",
+        "size": "Taille",
+        "hash": "Hash"
+      },
+      "riskLevelLabel": "Niveau de risque qualitatif",
+      "recommendationLabel": "Recommandation",
+      "confidence": "Confiance : {{pct}} %",
+      "patternsDetected": "Patterns détectés",
+      "assistedEstimateNotice": "Estimation assistée, aide à la décision, ne remplace pas l'appréciation du chargé de conformité (MLRO). À valider.",
+      "page3": {
+        "eyebrow": "Annexes",
+        "title": "Pièces justificatives.",
+        "noDocuments": "Aucun document n'est joint au dossier à ce jour."
+      },
+      "retentionValue": "10 ans à compter du {{date}}",
+      "retentionBody": "Conformément à l'art. 7 al. 3 LBA, l'intégralité du dossier (pièces, screening, piste d'audit) est conservée sous forme intègre et accessible pendant dix ans, y compris après la fin de la relation d'affaires.",
+      "legalBasisValue": "LBA · OBA-FINMA · nLPD",
+      "legalBasisBody": "Le présent rapport vaut documentation au sens de l'art. 7 LBA et de l'art. 22 OBA-FINMA. Le traitement des données personnelles respecte les principes de la nLPD (proportionnalité, finalité, sécurité). Droit d'accès garanti au client conformément à l'art. 25 nLPD.",
+      "finalAttestationLabel": "Attestation finale",
+      "finalAttestationBody": "Le présent rapport KYC est complet, daté et signé par l'intermédiaire financier soumis à la LBA. Aucune information matérielle n'a été omise."
+    },
+    "export": {
+      "agentFallback": "Agent",
+      "loading": "Chargement du dossier…",
+      "notFound": "Dossier introuvable.",
+      "preparing": "Préparation du rapport…",
+      "close": "Fermer",
+      "print": "Imprimer / Enregistrer en PDF",
+      "reportRef": "Rapport {{reference}}"
+    },
+    "render": {
+      "unavailable": "Rapport indisponible.",
+      "preparing": "Préparation du rapport…"
     }
   }
 }

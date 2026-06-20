@@ -5,6 +5,7 @@
 // ouvre la modal de motif qui logue un AuditEvent et autorise le drop.
 
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function PipelineKycToast({ stageLabel, onOverride, onDismiss }: Props) {
+  const { t } = useTranslation('pipeline')
   useEffect(() => {
     const id = window.setTimeout(onDismiss, 6000)
     return () => window.clearTimeout(id)
@@ -66,7 +68,7 @@ export function PipelineKycToast({ stageLabel, onOverride, onDismiss }: Props) {
             marginBottom: 2,
           }}
         >
-          KYC requis pour passer en « {stageLabel} »
+          {t('kyc.toast.title', { stage: stageLabel })}
         </div>
         <div
           style={{
@@ -75,7 +77,7 @@ export function PipelineKycToast({ stageLabel, onOverride, onDismiss }: Props) {
             fontWeight: 500,
           }}
         >
-          Vérifiez le dossier du contact avant de poursuivre.
+          {t('kyc.toast.subtitle')}
         </div>
       </div>
       <button
@@ -94,11 +96,11 @@ export function PipelineKycToast({ stageLabel, onOverride, onDismiss }: Props) {
           whiteSpace: 'nowrap',
         }}
       >
-        Passer outre
+        {t('kyc.toast.override')}
       </button>
       <button
         onClick={onDismiss}
-        title="Fermer"
+        title={t('common:actions.close')}
         style={{
           width: 32,
           height: 32,

@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Pipeline stage column (kanban).
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx).
 
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { CRM_STAGES, crmInitials, type SugarPalette, type StageId } from '../tokens'
 import { crmContactById, type CrmDeal } from '../mockData'
@@ -25,6 +26,7 @@ export function SugarStageColumn({
   stage, deals, sp, dark, onOpenDeal,
   draggingId, dragOver, onDragOver, onDrop, onDragLeave, onDragStart, onDragEnd,
 }: StageColumnProps) {
+  const { t } = useTranslation('pipeline')
   const s = CRM_STAGES[stage]
   const stageVal = deals.reduce((x, d) => x + (d.value || 0), 0)
   const avatars = deals.slice(0, 3)
@@ -62,7 +64,7 @@ export function SugarStageColumn({
             background: s.color, color: '#FFFFFF',
             boxShadow: `0 1px 2px ${s.color}59, inset 0 -1px 0 rgba(0,0,0,0.14)`,
             fontSize: 12, fontWeight: 700, letterSpacing: -0.2,
-          }}>{s.label}</span>
+          }}>{t(`stages.${stage}`)}</span>
           <div style={{ display: 'flex', marginLeft: 'auto', flexShrink: 0 }}>
             {avatars.map((c, i) => (
               <div key={c.id} style={{
@@ -81,7 +83,12 @@ export function SugarStageColumn({
           <div style={{
             flex: 1, minWidth: 0, fontSize: 11, color: sp.sub, fontVariantNumeric: 'tabular-nums',
           }}>
-            {deals.length} deal{deals.length > 1 ? 's' : ''}{stageVal > 0 && ` · CHF ${(stageVal / 1e6).toFixed(2)}M`}
+            {stageVal > 0
+              ? t('board.dealsCountWithValue', {
+                  count: deals.length,
+                  value: `CHF ${(stageVal / 1e6).toFixed(2)}M`,
+                })
+              : t('board.dealsCount', { count: deals.length })}
           </div>
           <button style={{
             width: 26, height: 26, borderRadius: 999, border: 0, background: sp.cardBg,
@@ -104,7 +111,9 @@ export function SugarStageColumn({
           borderRadius: 16,
           background: dragOver && draggingId ? s.color + '08' : (dark ? 'rgba(255,255,255,.025)' : sp.frameBg),
           transition: 'all .15s',
-        }}>{dragOver && draggingId ? `Déposer ici → ${s.label}` : 'Glisser un deal ici'}</div>
+        }}>{dragOver && draggingId
+          ? t('board.dropToStage', { stage: t(`stages.${stage}`) })
+          : t('board.dragDealHere')}</div>
       )}
       {deals.map((d, i) => (
         <SugarDealCard

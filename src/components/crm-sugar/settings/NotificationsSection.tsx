@@ -4,6 +4,7 @@
 // Câblage réel : profiles.preferences.notifications (JSON Supabase) via useNotifPreferences.
 
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
 import {
   SectionHeader,
@@ -19,21 +20,22 @@ const SET = SET_PALETTE
 
 interface Channel {
   id: keyof NotifData
-  label: string
+  labelKey: string
   icon: SettingsIconName
-  desc: string
+  descKey: string
 }
 
 const CHANNELS: Channel[] = [
-  { id: 'email', label: 'Email', icon: 'mail', desc: 'Notifications principales par email' },
-  { id: 'sms', label: 'SMS', icon: 'sms', desc: 'Pour les urgences (offres, signatures)' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: 'bell', desc: 'Messages clients reçus sur votre numéro pro' },
-  { id: 'inapp', label: 'Dans le CRM', icon: 'bell', desc: 'Cloche de notifications du CRM' },
+  { id: 'email', labelKey: 'notifications.channels.email.label', icon: 'mail', descKey: 'notifications.channels.email.desc' },
+  { id: 'sms', labelKey: 'notifications.channels.sms.label', icon: 'sms', descKey: 'notifications.channels.sms.desc' },
+  { id: 'whatsapp', labelKey: 'notifications.channels.whatsapp.label', icon: 'bell', descKey: 'notifications.channels.whatsapp.desc' },
+  { id: 'inapp', labelKey: 'notifications.channels.inapp.label', icon: 'bell', descKey: 'notifications.channels.inapp.desc' },
 ]
 
 export type NotifData = NotifPreferences
 
 export function NotificationsSection() {
+  const { t } = useTranslation('settings')
   // Source de vérité : profiles.preferences.notifications (JSON Supabase)
   const { preferences: serverData, isSaving, hasBackend, save } = useNotifPreferences()
   const [data, setData] = useState<NotifData>(serverData)
@@ -51,16 +53,16 @@ export function NotificationsSection() {
 
   const handleSave = async () => {
     if (!hasBackend) {
-      toast.error('Session expirée — reconnectez-vous pour enregistrer')
+      toast.error(t('notifications.toast.sessionExpired'))
       return
     }
     try {
       await save(data)
       setSaved(data)
-      toast.success('Notifications enregistrées', { duration: 2400 })
+      toast.success(t('notifications.toast.saved'), { duration: 2400 })
     } catch (err) {
       console.error('[NotificationsSection] save failed', err)
-      toast.error('Erreur lors de l’enregistrement')
+      toast.error(t('notifications.toast.saveError'))
     }
   }
 
@@ -76,9 +78,9 @@ export function NotificationsSection() {
         }}
       >
         <SectionHeader
-          kicker="Notifications"
-          title="Choisissez les canaux qui vous préviennent"
-          sub="MEGGA vous notifie sur les canaux activés ci-dessous : nouveaux messages clients, offres, visites, signatures."
+          kicker={t('notifications.header.kicker')}
+          title={t('notifications.header.title')}
+          sub={t('notifications.header.sub')}
         />
 
         <SetCard padding={0}>
@@ -117,7 +119,7 @@ export function NotificationsSection() {
                     letterSpacing: -0.1,
                   }}
                 >
-                  {c.label}
+                  {t(c.labelKey)}
                 </div>
                 <div
                   style={{
@@ -127,7 +129,7 @@ export function NotificationsSection() {
                     marginTop: 2,
                   }}
                 >
-                  {c.desc}
+                  {t(c.descKey)}
                 </div>
               </div>
               <SetSwitch value={data[c.id]} onChange={v => setCh(c.id, v)} />

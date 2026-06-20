@@ -2,7 +2,12 @@
 // Port fidèle du handoff Claude Design (crm-screen-biens-galerie.jsx).
 // Surfaces Sugar Pure (blanc opaque en clair, verre subtil en sombre) +
 // pilule de statut « façon KYC » (fond plein opaque + texte blanc).
+//
+// i18n : galStatus produit un libellé d'affichage consommé par GalStatusPill.
+// On lit la langue via l'instance i18n singleton (cf helpers.ts / bnStatus) —
+// pas de changement de signature, donc pas de modif des sites d'appel.
 
+import i18n from '@/i18n'
 import type { SugarPalette } from '../../tokens'
 
 /** « CHF 850'000 » — apostrophe suisse, valeur pleine (cartes). */
@@ -40,14 +45,16 @@ export interface GalStatusMeta {
 
 /** Statut → libellé + ton (couleur fonctionnelle, adaptatif clair/sombre). */
 export function galStatus(s: string, dark: boolean): GalStatusMeta {
-  const map: Record<string, GalStatusMeta> = {
-    active: { label: 'Actif', tone: dark ? '#0E9F6E' : '#059669' },
-    reserved: { label: 'Réservé', tone: dark ? '#D97A1E' : '#C45A00' },
-    draft: { label: 'Brouillon', tone: '#6B7280' },
-    paused: { label: 'En pause', tone: dark ? '#7C8593' : '#7A8088' },
-    sold: { label: 'Vendu', tone: dark ? '#E5E7EB' : '#0B0C0E' },
+  // Tons fonctionnels stables ; le libellé est traduit via listings:status.*.
+  const tones: Record<string, string> = {
+    active: dark ? '#0E9F6E' : '#059669',
+    reserved: dark ? '#D97A1E' : '#C45A00',
+    draft: '#6B7280',
+    paused: dark ? '#7C8593' : '#7A8088',
+    sold: dark ? '#E5E7EB' : '#0B0C0E',
   }
-  return map[s] || map.draft
+  const tone = tones[s] ?? tones.draft
+  return { label: i18n.t('listings:status.' + s, { defaultValue: s }), tone }
 }
 
 export interface GalSurfaces {

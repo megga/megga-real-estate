@@ -2,6 +2,9 @@
 // 1:1 port from the Claude Design bundle (crm-notifications.jsx).
 
 import type { MEIconName } from '@/components/propertyx/MEIcon'
+// i18n : `label` des types de notif en getter (singleton, sans changer les
+// appelants). Le reste du fichier = données démo (NOTIFS) laissées en FR.
+import i18n from '@/i18n'
 
 export type NotifKind = 'kyc' | 'visite' | 'offre' | 'mandat' | 'ai' | 'doc' | 'team' | 'system'
 export type NotifPriority = 'high' | 'med' | 'low'
@@ -21,14 +24,14 @@ export interface SugarNotif {
 }
 
 export const KIND_META: Record<NotifKind, { dot: string; icon: MEIconName; label: string }> = {
-  kyc:    { dot: '#E53935', icon: 'shield',   label: 'KYC' },
-  visite: { dot: '#0891B2', icon: 'calendar',   label: 'Visite' },
-  offre:  { dot: '#C45A00', icon: 'bolt',  label: 'Offre' },
-  mandat: { dot: '#1E5BC6', icon: 'file',  label: 'Mandat' },
-  ai:     { dot: '#0B0C0E', icon: 'sparkle', label: 'MEGGA AI' },
-  doc:    { dot: '#059669', icon: 'file',  label: 'Document' },
-  team:   { dot: '#7A4FD8', icon: 'share', label: 'Équipe' },
-  system: { dot: '#7A8088', icon: 'bell',  label: 'Système' },
+  kyc:    { dot: '#E53935', icon: 'shield',   get label() { return i18n.t('common:notifications.kind.kyc') } },
+  visite: { dot: '#0891B2', icon: 'calendar', get label() { return i18n.t('common:notifications.kind.visite') } },
+  offre:  { dot: '#C45A00', icon: 'bolt',     get label() { return i18n.t('common:notifications.kind.offre') } },
+  mandat: { dot: '#1E5BC6', icon: 'file',     get label() { return i18n.t('common:notifications.kind.mandat') } },
+  ai:     { dot: '#0B0C0E', icon: 'sparkle',  get label() { return i18n.t('common:notifications.kind.ai') } },
+  doc:    { dot: '#059669', icon: 'file',     get label() { return i18n.t('common:notifications.kind.doc') } },
+  team:   { dot: '#7A4FD8', icon: 'share',    get label() { return i18n.t('common:notifications.kind.team') } },
+  system: { dot: '#7A8088', icon: 'bell',     get label() { return i18n.t('common:notifications.kind.system') } },
 }
 
 export const SUGAR_NOTIFS: SugarNotif[] = [

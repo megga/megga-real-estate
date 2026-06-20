@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
 import {
   ConfirmModal,
@@ -80,6 +81,7 @@ function HtmlSignatureEditor({
   value: string
   onChange: (v: string) => void
 }) {
+  const { t } = useTranslation('settings')
   const [preview, setPreview] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -104,7 +106,7 @@ function HtmlSignatureEditor({
             textTransform: 'uppercase',
           }}
         >
-          Code HTML
+          {t('profile.signatureHtml.codeLabel')}
         </span>
         <div style={{ flex: 1 }} />
         <input
@@ -115,10 +117,10 @@ function HtmlSignatureEditor({
           style={{ display: 'none' }}
         />
         <SetGhostBtn size="sm" onClick={() => fileRef.current?.click()}>
-          Importer .html
+          {t('profile.signatureHtml.import')}
         </SetGhostBtn>
         <SetGhostBtn size="sm" onClick={() => setPreview(true)}>
-          Aperçu du rendu
+          {t('profile.signatureHtml.preview')}
         </SetGhostBtn>
       </div>
       <textarea
@@ -126,7 +128,7 @@ function HtmlSignatureEditor({
         onChange={e => onChange(e.target.value)}
         rows={14}
         spellCheck={false}
-        placeholder={'<table>…collez ici le code HTML de votre signature…</table>'}
+        placeholder={t('profile.signatureHtml.placeholder')}
         style={{
           width: '100%',
           border: 0,
@@ -143,8 +145,7 @@ function HtmlSignatureEditor({
         }}
       />
       <div style={{ marginTop: 8, fontSize: 12, color: SET.muted, fontWeight: 500, lineHeight: 1.45 }}>
-        Collez le HTML exporté depuis votre générateur de signature. Les emails sortants l'intègrent
-        tel quel.
+        {t('profile.signatureHtml.hint')}
       </div>
       {preview &&
         createPortal(
@@ -184,7 +185,7 @@ function HtmlSignatureEditor({
                 }}
               >
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: SET.ink, letterSpacing: -0.2 }}>
-                  Aperçu du rendu
+                  {t('profile.signatureHtml.preview')}
                 </h3>
                 <button
                   onClick={() => setPreview(false)}
@@ -215,13 +216,13 @@ function HtmlSignatureEditor({
                     marginBottom: 16,
                   }}
                 >
-                  Signature
+                  {t('profile.signatureLabel')}
                 </div>
                 <div
                   dangerouslySetInnerHTML={{
                     __html: value
                       ? sanitizeSignatureHtml(value)
-                      : "<p style='color:#9AA0AA;font-style:italic;margin:0'>Aucun contenu HTML.</p>",
+                      : `<p style='color:#9AA0AA;font-style:italic;margin:0'>${t('profile.signatureHtml.empty')}</p>`,
                   }}
                 />
               </div>
@@ -255,6 +256,7 @@ function AvatarPhotoModal({
   onApply: (dataUrl: string) => void
   onRemove: () => void
 }) {
+  const { t } = useTranslation('settings')
   const [img, setImg] = useState<{ el: HTMLImageElement; w: number; h: number; name: string } | null>(
     null,
   )
@@ -379,10 +381,10 @@ function AvatarPhotoModal({
         >
           <div>
             <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: SET.ink, letterSpacing: -0.3 }}>
-              Photo de profil
+              {t('profile.photo')}
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: 12.5, color: SET.muted, fontWeight: 500 }}>
-              {img ? 'Glissez pour cadrer, molette pour zoomer.' : 'Carré conseillé · JPG ou PNG.'}
+              {img ? t('profile.avatarModal.dragHint') : t('profile.avatarModal.formatHint')}
             </p>
           </div>
           <button
@@ -535,7 +537,7 @@ function AvatarPhotoModal({
                   flexShrink: 0,
                 }}
               >
-                Recentrer
+                {t('profile.avatarModal.recenter')}
               </button>
             </div>
           ) : (
@@ -559,7 +561,7 @@ function AvatarPhotoModal({
                 boxShadow: `inset 0 0 0 1px ${SET.line}`,
               }}
             >
-              <SetIcon name="camera" size={15} stroke={SET.ink} /> Parcourir une image
+              <SetIcon name="camera" size={15} stroke={SET.ink} /> {t('profile.avatarModal.browse')}
             </button>
           )}
         </div>
@@ -592,19 +594,19 @@ function AvatarPhotoModal({
                 padding: 0,
               }}
             >
-              Retirer la photo
+              {t('profile.avatarModal.remove')}
             </button>
           ) : (
             <span />
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <SetGhostBtn onClick={onClose}>Annuler</SetGhostBtn>
+            <SetGhostBtn onClick={onClose}>{t('common:actions.cancel')}</SetGhostBtn>
             <SetBlackBtn
               onClick={apply}
               disabled={!img}
               icon={<SetIcon name="check" size={14} stroke={SET.blackInk} sw={2.4} />}
             >
-              Appliquer
+              {t('profile.avatarModal.apply')}
             </SetBlackBtn>
           </div>
         </div>
@@ -618,6 +620,7 @@ function AvatarPhotoModal({
 //  PROFILE SECTION
 // ═══════════════════════════════════════════════════════════════════════════
 export function ProfileSection() {
+  const { t } = useTranslation('settings')
   // Source de vérité : Supabase via useAgentProfileSugar.
   const { profile: serverProfile, isLoading, isSaving, hasBackend, save } = useAgentProfileSugar()
 
@@ -653,7 +656,7 @@ export function ProfileSection() {
   const handleSave = async () => {
     if (!hasBackend) {
       // Pas de faux succès si l'utilisateur n'est pas authentifié.
-      toast.error('Session expirée — reconnectez-vous pour enregistrer')
+      toast.error(t('profile.toast.sessionExpired'))
       return
     }
     try {
@@ -661,9 +664,9 @@ export function ProfileSection() {
       // signature). La photo est gérée à part par useAvatar — voir la modale.
       await save(data)
       setSaved(data)
-      toast.success('Profil enregistré', { duration: 2400 })
+      toast.success(t('profile.toast.saved'), { duration: 2400 })
     } catch (err) {
-      toast.error("Erreur lors de l'enregistrement")
+      toast.error(t('profile.toast.saveError'))
       void err
     }
   }
@@ -714,7 +717,7 @@ export function ProfileSection() {
             fontSize: 13,
           }}
         >
-          Chargement du profil…
+          {t('profile.loading')}
         </div>
       </div>
     )
@@ -764,7 +767,7 @@ export function ProfileSection() {
               {displayAvatarUrl ? (
                 <img
                   src={displayAvatarUrl}
-                  alt="Photo de profil"
+                  alt={t('profile.photo')}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               ) : (
@@ -772,7 +775,7 @@ export function ProfileSection() {
               )}
             </div>
             <button
-              title="Changer la photo"
+              title={t('profile.changePhoto')}
               onClick={() => setPhotoOpen(true)}
               style={{
                 position: 'absolute',
@@ -833,31 +836,31 @@ export function ProfileSection() {
         >
           {/* Colonne gauche */}
           <div style={{ background: SET.card, borderRadius: 24, boxShadow: SET.shadow, overflow: 'hidden' }}>
-            <SetProfGroup icon="user" title="Identité" first>
+            <SetProfGroup icon="user" title={t('profile.identityTitle')} first>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <SetInput label="Prénom" value={data.firstName} onChange={v => set({ firstName: v })} />
-                <SetInput label="Nom" value={data.lastName} onChange={v => set({ lastName: v })} />
-                <SetInput label="Fonction" value={data.title} onChange={v => set({ title: v })} />
-                <SetInput label="Numéro RCC" value={data.rcc} onChange={v => set({ rcc: v })} />
+                <SetInput label={t('profile.firstName')} value={data.firstName} onChange={v => set({ firstName: v })} />
+                <SetInput label={t('profile.lastName')} value={data.lastName} onChange={v => set({ lastName: v })} />
+                <SetInput label={t('profile.function')} value={data.title} onChange={v => set({ title: v })} />
+                <SetInput label={t('profile.rcc')} value={data.rcc} onChange={v => set({ rcc: v })} />
               </div>
             </SetProfGroup>
 
-            <SetProfGroup icon="mail" title="Contact">
+            <SetProfGroup icon="mail" title={t('profile.contactTitle')}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div style={{ gridColumn: '1 / -1' }}>
                   {/* email : lecture seule (passe par auth.users) */}
-                  <SetInput label="Email professionnel" type="email" value={data.email} onChange={() => {}} disabled />
+                  <SetInput label={t('profile.emailPro')} type="email" value={data.email} onChange={() => {}} disabled />
                 </div>
-                <SetInput label="Téléphone mobile" type="tel" value={data.mobile} onChange={v => set({ mobile: v })} />
-                <SetInput label="Téléphone fixe" type="tel" value={data.phone} onChange={v => set({ phone: v })} />
+                <SetInput label={t('profile.mobile')} type="tel" value={data.mobile} onChange={v => set({ mobile: v })} />
+                <SetInput label={t('profile.landline')} type="tel" value={data.phone} onChange={v => set({ phone: v })} />
                 <div style={{ gridColumn: '1 / -1' }}>
                   {/* agency : lecture seule (modifiable depuis Mon agence) */}
                   <SetInput
-                    label="Agence"
+                    label={t('profile.agency')}
                     value={data.agency}
                     onChange={() => {}}
                     disabled
-                    hint="Modifiable depuis l'onglet Mon agence"
+                    hint={t('profile.agencyHint')}
                   />
                 </div>
               </div>
@@ -866,11 +869,11 @@ export function ProfileSection() {
 
           {/* Colonne droite */}
           <div style={{ background: SET.card, borderRadius: 24, boxShadow: SET.shadow, overflow: 'hidden' }}>
-            <SetProfGroup icon="globe" title="Présentation publique" first>
+            <SetProfGroup icon="globe" title={t('profile.publicPresentationTitle')} first>
               <SetTextarea
                 value={data.bio}
                 onChange={v => set({ bio: v })}
-                placeholder="Présentez-vous en quelques phrases…"
+                placeholder={t('profile.bioPlaceholder')}
                 rows={7}
                 max={500}
               />
@@ -878,7 +881,7 @@ export function ProfileSection() {
 
             <SetProfGroup
               icon="pen"
-              title="Signature email"
+              title={t('profile.signatureEmailTitle')}
               action={
                 <div style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: SET.cardSubtle }}>
                   {(['text', 'html'] as const).map(id => {
@@ -902,7 +905,7 @@ export function ProfileSection() {
                           boxShadow: on ? '0 4px 12px rgba(11,12,14,0.20)' : 'none',
                         }}
                       >
-                        {id === 'text' ? 'Texte' : 'HTML'}
+                        {id === 'text' ? t('profile.signatureMode.text') : t('profile.signatureMode.html')}
                       </button>
                     )
                   })}
@@ -915,7 +918,7 @@ export function ProfileSection() {
                 <SetTextarea
                   value={data.signature}
                   onChange={v => set({ signature: v })}
-                  placeholder={'Cordialement,\nVotre nom\nAgence · Téléphone'}
+                  placeholder={t('profile.signaturePlaceholder')}
                   rows={4}
                 />
               )}
@@ -932,9 +935,9 @@ export function ProfileSection() {
       {/* Confirmation d'annulation */}
       {confirmOpen && (
         <ConfirmModal
-          title="Annuler les modifications ?"
-          desc="Vos changements seront perdus. Cette action est irréversible."
-          confirm="Annuler les modifs"
+          title={t('profile.cancelConfirm.title')}
+          desc={t('profile.cancelConfirm.desc')}
+          confirm={t('profile.cancelConfirm.confirm')}
           tone="warn"
           icon="alert"
           onCancel={() => setConfirmOpen(false)}

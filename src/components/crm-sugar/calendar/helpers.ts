@@ -2,38 +2,25 @@
 // 1:1 port from `crm-calendar-sugar-shell.jsx` and `crm-calendar-sugar-panels.jsx`.
 
 import type { CalEvent } from './data'
+// i18n : noms de jours/mois via clés-tableaux (returnObjects), lus sur l'instance
+// i18n singleton (rendus dans des composants re-rendus au changement de langue).
+// Cf docs/i18n-conventions §6. Les anciens CAL_DAYS/CAL_MONTHS (const) deviennent
+// des fonctions calDays()/calDaysFull()/calMonths().
+import i18n from '@/i18n'
 
-export const CAL_DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
-export const CAL_DAYS_FULL = [
-  'Dimanche',
-  'Lundi',
-  'Mardi',
-  'Mercredi',
-  'Jeudi',
-  'Vendredi',
-  'Samedi',
-]
-export const CAL_MONTHS = [
-  'Janvier',
-  'Février',
-  'Mars',
-  'Avril',
-  'Mai',
-  'Juin',
-  'Juillet',
-  'Août',
-  'Septembre',
-  'Octobre',
-  'Novembre',
-  'Décembre',
-]
+export const calDays = (): string[] => i18n.t('calendar:days', { returnObjects: true }) as string[]
+export const calDaysFull = (): string[] => i18n.t('calendar:daysFull', { returnObjects: true }) as string[]
+export const calMonths = (): string[] => i18n.t('calendar:months', { returnObjects: true }) as string[]
 
 export function fmtTime(d: Date): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 export function fmtDate(d: Date): string {
-  return `${CAL_DAYS_FULL[d.getDay()]} ${d.getDate()} ${CAL_MONTHS[d.getMonth()].toLowerCase()}`
+  const month = calMonths()[d.getMonth()] ?? ''
+  // En FR le mois est en minuscules dans cette forme ; on garde la casse en EN.
+  const mShown = (i18n.language || 'fr').startsWith('fr') ? month.toLowerCase() : month
+  return `${calDaysFull()[d.getDay()]} ${d.getDate()} ${mShown}`
 }
 
 export function sameDay(a: Date, b: Date): boolean {

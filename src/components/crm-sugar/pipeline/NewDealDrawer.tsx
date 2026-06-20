@@ -4,6 +4,7 @@
 // pré-remplissage IA depuis email/message, DateTimePicker custom.
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CRM_STAGES, CRM_STAGE_ORDER, crmFmtCHF, crmInitials, type CrmTheme, type SugarPalette, type StageId } from '../tokens'
 import {
   crmContactById, crmBienById,
@@ -27,30 +28,44 @@ function isMockId(id: string | null | undefined): boolean {
   return !!id && MOCK_ID_RE.test(id)
 }
 
+// i18n: les libellés (label/sub/placeholder) ne sont plus codés en dur ici —
+// ces constantes vivent au niveau module et ne peuvent pas appeler `t()`. On
+// garde des clés stables (`labelKey`/`subKey`/`placeholderKey`) que l'UI résout
+// au rendu via `t(...)`. La forme des données et les `id`/`k` restent inchangés.
 interface Archetype {
   id: 'buyer-search' | 'buyer-bien' | 'seller-mandate' | 'tenant'
-  label: string
-  sub: string
+  labelKey: string
+  subKey: string
   contactType: 'buyer' | 'seller'
   needsBien: boolean
   initialStage: StageId
 }
 
 const ARCHETYPES: Archetype[] = [
-  { id: 'buyer-search',   label: 'Acquéreur en recherche', sub: "Pas encore de bien identifié", contactType: 'buyer',  needsBien: false, initialStage: 'searching' },
-  { id: 'buyer-bien',     label: 'Acheteur sur un bien',   sub: 'Bien déjà identifié, visite ou intérêt', contactType: 'buyer',  needsBien: true,  initialStage: 'visit-scheduled' },
-  { id: 'seller-mandate', label: 'Mandat vendeur',         sub: 'Nouveau bien à publier — mandat requis', contactType: 'seller', needsBien: true,  initialStage: 'new-lead' },
-  { id: 'tenant',         label: 'Locataire',              sub: 'Cycle court, KYC allégé',                contactType: 'buyer',  needsBien: true,  initialStage: 'visit-scheduled' },
+  { id: 'buyer-search',   labelKey: 'newDeal.archetype.buyerSearch.label', subKey: 'newDeal.archetype.buyerSearch.sub', contactType: 'buyer',  needsBien: false, initialStage: 'searching' },
+  { id: 'buyer-bien',     labelKey: 'newDeal.archetype.buyerBien.label',   subKey: 'newDeal.archetype.buyerBien.sub',   contactType: 'buyer',  needsBien: true,  initialStage: 'visit-scheduled' },
+  { id: 'seller-mandate', labelKey: 'newDeal.archetype.sellerMandate.label', subKey: 'newDeal.archetype.sellerMandate.sub', contactType: 'seller', needsBien: true,  initialStage: 'new-lead' },
+  { id: 'tenant',         labelKey: 'newDeal.archetype.tenant.label',      subKey: 'newDeal.archetype.tenant.sub',      contactType: 'buyer',  needsBien: true,  initialStage: 'visit-scheduled' },
 ]
 
-interface NextActionKindOpt { k: 'call' | 'visit' | 'match' | 'kyc' | 'doc'; label: string; placeholder: string }
+interface NextActionKindOpt { k: 'call' | 'visit' | 'match' | 'kyc' | 'doc'; labelKey: string; placeholderKey: string }
 const NEXT_ACTION_KINDS: NextActionKindOpt[] = [
-  { k: 'call',  label: 'Appel',     placeholder: 'Premier appel de qualification' },
-  { k: 'visit', label: 'Visite',    placeholder: 'Planifier la visite du bien' },
-  { k: 'match', label: 'Matching',  placeholder: 'Envoyer 3 biens du portefeuille' },
-  { k: 'kyc',   label: 'KYC',       placeholder: 'Lancer le dossier de vérification LBA' },
-  { k: 'doc',   label: 'Document',  placeholder: 'Préparer le bon de visite / mandat' },
+  { k: 'call',  labelKey: 'newDeal.action.call.label',  placeholderKey: 'newDeal.action.call.placeholder' },
+  { k: 'visit', labelKey: 'newDeal.action.visit.label', placeholderKey: 'newDeal.action.visit.placeholder' },
+  { k: 'match', labelKey: 'newDeal.action.match.label', placeholderKey: 'newDeal.action.match.placeholder' },
+  { k: 'kyc',   labelKey: 'newDeal.action.kyc.label',   placeholderKey: 'newDeal.action.kyc.placeholder' },
+  { k: 'doc',   labelKey: 'newDeal.action.doc.label',   placeholderKey: 'newDeal.action.doc.placeholder' },
 ]
+
+// Translator type for the (rare) places that resolve a key outside JSX.
+type TFunc = (key: string, params?: Record<string, unknown>) => string
+
+// Resolve a next-action kind to its translated label. Falls back to the raw
+// `k` if the kind is unknown (keeps the persisted note non-empty).
+function actionKindLabel(k: NextActionKindOpt['k'], t: TFunc): string {
+  const opt = NEXT_ACTION_KINDS.find(x => x.k === k)
+  return opt ? t(opt.labelKey) : k
+}
 
 function defaultDueAt(): string {
   const d = new Date()
@@ -71,7 +86,8 @@ interface NewDealDrawerProps {
   prefill: NewDealPrefill | null
 }
 
-export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDrawerProps) {
+export function NewDealDrawer({ open, onClose, sp, t: theme, dark, prefill }: NewDealDrawerProps) {
+  const { t } = useTranslation('pipeline')
   const [archetype, setArch] = useState<Archetype['id']>('buyer-bien')
   const [contactMode, setContactMode] = useState<'existing' | 'new'>('existing')
   const [contactId, setContactId] = useState<string | null>(null)
@@ -161,7 +177,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
         lang: 'fr',
       })
       setActionKind('call')
-      setActionNote('Premier appel suite au message reçu')
+      setActionNote(t('newDeal.ai.prefilledNote'))
       setAiThinking(false)
       setAiOpen(false)
     }, 900)
@@ -173,13 +189,11 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
 
     // 1) Guards — surface clear errors before hitting the DB
     if (!profile?.agency_id) {
-      setCreateError("Aucune agence rattachée — impossible de créer le deal")
+      setCreateError(t('newDeal.error.noAgency'))
       return
     }
     if (arch?.needsBien && isMockId(bienId)) {
-      setCreateError(
-        "Le bien sélectionné est un exemple de démo. Sélectionnez un bien réel du portefeuille agence.",
-      )
+      setCreateError(t('newDeal.error.demoBien'))
       return
     }
 
@@ -201,13 +215,11 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
         realContactId = contact.id
       } else {
         if (isMockId(contactId)) {
-          setCreateError(
-            "Le contact sélectionné est un exemple de démo. Sélectionnez un contact réel.",
-          )
+          setCreateError(t('newDeal.error.demoContact'))
           return
         }
         if (!contactId) {
-          setCreateError('Sélectionnez un contact')
+          setCreateError(t('newDeal.error.selectContact'))
           return
         }
         realContactId = contactId
@@ -224,7 +236,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
         contact_seller_id: !isBuyerSide ? realContactId : undefined,
         stage: stageIdToTransactionStage(stage),
         notes: actionNote
-          ? `[${NEXT_ACTION_KINDS.find(k => k.k === actionKind)?.label ?? actionKind} — ${actionDue}] ${actionNote}`
+          ? `[${actionKindLabel(actionKind, t)} — ${actionDue}] ${actionNote}`
           : undefined,
       })
 
@@ -232,7 +244,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
       // refreshes itself on the next render.
       setCreated(true)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Erreur inconnue'
+      const message = e instanceof Error ? e.message : t('newDeal.error.unknown')
       setCreateError(message)
     }
   }
@@ -242,7 +254,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
   return (
     <>
       <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, background: t.overlay || 'rgba(14,20,16,.42)',
+        position: 'fixed', inset: 0, background: theme.overlay || 'rgba(14,20,16,.42)',
         zIndex: 80, animation: 'ndOverlay .2s ease-out',
       }} />
       <div style={{
@@ -261,27 +273,27 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
         `}</style>
 
         {created ? (
-          <DealCreatedView sp={sp} archetype={arch}
+          <DealCreatedView sp={sp} t={t} archetype={arch}
             contact={selectedContact || newContact}
             bien={selectedBien ?? undefined}
             stage={stage} value={value}
             onClose={onClose} />
         ) : (
           <>
-            <Header sp={sp} onClose={onClose} onAi={() => setAiOpen(true)} />
+            <Header sp={sp} t={t} onClose={onClose} onAi={() => setAiOpen(true)} />
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 24px 120px' }}>
               {aiOpen && (
-                <AiPasteCard sp={sp} text={aiText} setText={setAiText}
+                <AiPasteCard sp={sp} t={t} text={aiText} setText={setAiText}
                   onCancel={() => { setAiOpen(false); setAiText('') }}
                   onRun={handleAi} thinking={aiThinking} />
               )}
 
-              <SectionHeader n="1" title="Type de deal" sp={sp} />
-              <ArchetypeGrid sp={sp} value={archetype} onChange={setArch} />
+              <SectionHeader n="1" title={t('newDeal.section.dealType')} sp={sp} />
+              <ArchetypeGrid sp={sp} value={archetype} onChange={setArch} t={t} />
 
-              <SectionHeader n="2" title="Contact" sp={sp} />
-              <ContactCard sp={sp}
+              <SectionHeader n="2" title={t('newDeal.section.contact')} sp={sp} />
+              <ContactCard sp={sp} t={t}
                 contacts={realContacts}
                 mode={contactMode} setMode={setContactMode}
                 query={contactQuery} setQuery={setContactQuery}
@@ -292,8 +304,8 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
 
               {arch?.needsBien && (
                 <>
-                  <SectionHeader n="3" title="Bien concerné" sp={sp} />
-                  <BienCard sp={sp}
+                  <SectionHeader n="3" title={t('newDeal.section.bien')} sp={sp} />
+                  <BienCard sp={sp} t={t}
                     biens={realBiens}
                     query={bienQuery} setQuery={setBienQuery}
                     bienId={bienId} setBienId={setBienId}
@@ -301,14 +313,14 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
                 </>
               )}
 
-              <SectionHeader n={arch?.needsBien ? '4' : '3'} title="Étape & valeur" sp={sp} />
-              <StageValueCard sp={sp}
+              <SectionHeader n={arch?.needsBien ? '4' : '3'} title={t('newDeal.section.stageValue')} sp={sp} />
+              <StageValueCard sp={sp} t={t}
                 stage={stage} setStage={setStage}
                 value={value} setValue={setValue}
                 bien={selectedBien ?? undefined} archetype={arch} />
 
-              <SectionHeader n={arch?.needsBien ? '5' : '4'} title="Prochaine action" sp={sp} />
-              <NextActionCard sp={sp}
+              <SectionHeader n={arch?.needsBien ? '5' : '4'} title={t('newDeal.section.nextAction')} sp={sp} />
+              <NextActionCard sp={sp} t={t}
                 kind={actionKind} setKind={setActionKind}
                 due={actionDue} setDue={setActionDue}
                 note={actionNote} setNote={setActionNote} />
@@ -317,19 +329,19 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
                 <div style={{ marginTop: 18 }}>
                   {needsMandate && (
                     <Guard sp={sp} tone="warn"
-                      title="Mandat requis avant publication"
-                      body="Un wizard mandat sera proposé après création — 3 documents à signer (mandat, conditions, état des lieux)." />
+                      title={t('newDeal.guard.mandate.title')}
+                      body={t('newDeal.guard.mandate.body')} />
                   )}
                   {needsKycBanner && (
                     <Guard sp={sp} tone="info"
-                      title="KYC recommandé à cette étape"
-                      body="Le KYC est proposé comme prochaine action, en appui de la conformité LBA. Il n'empêche aucune étape du pipeline ; la vérification finale revient au notaire." />
+                      title={t('newDeal.guard.kyc.title')}
+                      body={t('newDeal.guard.kyc.body')} />
                   )}
                 </div>
               )}
             </div>
 
-            <Footer sp={sp} canCreate={canCreate}
+            <Footer sp={sp} t={t} canCreate={canCreate}
               onCancel={onClose}
               onCreate={handleCreate}
               isPending={isPending}
@@ -342,7 +354,7 @@ export function NewDealDrawer({ open, onClose, sp, t, dark, prefill }: NewDealDr
 }
 
 // ─── Header ────────────────────────────────────────────────────────────
-function Header({ sp, onClose, onAi }: { sp: SugarPalette; onClose: () => void; onAi: () => void }) {
+function Header({ sp, t, onClose, onAi }: { sp: SugarPalette; t: TFunc; onClose: () => void; onAi: () => void }) {
   return (
     <div style={{
       padding: '20px 24px 16px', display: 'flex', alignItems: 'center', gap: 12,
@@ -352,19 +364,19 @@ function Header({ sp, onClose, onAi }: { sp: SugarPalette; onClose: () => void; 
         <div style={{
           fontSize: 11, fontWeight: 700, color: sp.sub,
           letterSpacing: 0.5, textTransform: 'uppercase',
-        }}>Pipeline</div>
+        }}>{t('title')}</div>
         <h2 style={{
           margin: '2px 0 0', fontSize: 24, fontWeight: 800, color: sp.ink, letterSpacing: -0.6,
-        }}>Nouveau deal</h2>
+        }}>{t('new_deal')}</h2>
       </div>
-      <button onClick={onAi} title="Pré-remplir depuis un email/message" style={{
+      <button onClick={onAi} title={t('newDeal.ai.buttonTitle')} style={{
         width: 38, height: 38, borderRadius: 999, border: 0, cursor: 'pointer',
         background: sp.cardBg, boxShadow: sp.shadowSm,
         display: 'grid', placeItems: 'center', fontFamily: 'inherit',
       }}>
         <SparkIcon color={sp.ink} />
       </button>
-      <button onClick={onClose} aria-label="Fermer" style={{
+      <button onClick={onClose} aria-label={t('common:actions.close')} style={{
         width: 38, height: 38, borderRadius: 999, border: 0, cursor: 'pointer',
         background: sp.cardBg, boxShadow: sp.shadowSm,
         display: 'grid', placeItems: 'center', fontFamily: 'inherit',
@@ -385,9 +397,10 @@ function SparkIcon({ color = '#0E1410' }: { color?: string }) {
 
 // ─── AI Paste card ─────────────────────────────────────────────────────
 function AiPasteCard({
-  sp, text, setText, onCancel, onRun, thinking,
+  sp, t, text, setText, onCancel, onRun, thinking,
 }: {
   sp: SugarPalette
+  t: TFunc
   text: string
   setText: (v: string) => void
   onCancel: () => void
@@ -402,7 +415,7 @@ function AiPasteCard({
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <SparkIcon color={sp.focusInk} />
-        <div style={{ flex: 1, fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>MEGGA AI · pré-remplissage</div>
+        <div style={{ flex: 1, fontSize: 13, fontWeight: 700, letterSpacing: -0.2 }}>{t('newDeal.ai.title')}</div>
         <button onClick={onCancel} style={{
           width: 26, height: 26, borderRadius: 999, border: 0, cursor: 'pointer',
           background: 'rgba(255,255,255,.10)', color: sp.focusInk, fontSize: 14,
@@ -411,7 +424,7 @@ function AiPasteCard({
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="Collez ici un email, une note vocale transcrite ou un message WhatsApp. L'IA en extrait le contact, le bien éventuel, le score et propose une prochaine action."
+        placeholder={t('newDeal.ai.placeholder')}
         style={{
           width: '100%', minHeight: 100, padding: 12, borderRadius: 12,
           background: 'rgba(255,255,255,.07)', color: sp.focusInk,
@@ -425,7 +438,7 @@ function AiPasteCard({
           padding: '9px 16px', borderRadius: 999, border: 0, cursor: 'pointer',
           background: 'transparent', color: 'rgba(255,255,255,.7)',
           fontWeight: 600, fontSize: 12.5, fontFamily: 'inherit',
-        }}>Annuler</button>
+        }}>{t('common:actions.cancel')}</button>
         <button onClick={onRun} disabled={!text || thinking} style={{
           padding: '9px 18px', borderRadius: 999, border: 0,
           cursor: text && !thinking ? 'pointer' : 'not-allowed',
@@ -433,7 +446,7 @@ function AiPasteCard({
           color: text && !thinking ? sp.focusBg : 'rgba(255,255,255,.5)',
           fontWeight: 700, fontSize: 12.5, fontFamily: 'inherit',
           animation: thinking ? 'ndPulse 1s infinite' : 'none',
-        }}>{thinking ? 'Analyse…' : 'Extraire'}</button>
+        }}>{thinking ? t('newDeal.ai.analyzing') : t('newDeal.ai.extract')}</button>
       </div>
     </div>
   )
@@ -458,8 +471,8 @@ function SectionHeader({ n, title, sp }: { n: string; title: string; sp: SugarPa
 
 // ─── Archetype grid ────────────────────────────────────────────────────
 function ArchetypeGrid({
-  sp, value, onChange,
-}: { sp: SugarPalette; value: Archetype['id']; onChange: (v: Archetype['id']) => void }) {
+  sp, t, value, onChange,
+}: { sp: SugarPalette; t: TFunc; value: Archetype['id']; onChange: (v: Archetype['id']) => void }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
       {ARCHETYPES.map(a => {
@@ -474,11 +487,11 @@ function ArchetypeGrid({
             cursor: 'pointer', fontFamily: 'inherit',
             display: 'flex', flexDirection: 'column', gap: 6,
           }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: -0.2 }}>{a.label}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: -0.2 }}>{t(a.labelKey)}</div>
             <div style={{
               fontSize: 10.5, fontWeight: 500, opacity: sel ? .7 : 1,
               color: sel ? 'rgba(255,255,255,.7)' : sp.sub, lineHeight: 1.4,
-            }}>{a.sub}</div>
+            }}>{t(a.subKey)}</div>
           </button>
         )
       })}
@@ -520,10 +533,11 @@ function InCardSegmented<T extends string>({
 
 // ─── Contact card ──────────────────────────────────────────────────────
 function ContactCard({
-  sp, mode, setMode, query, setQuery, contactId, setContactId,
+  sp, t, mode, setMode, query, setQuery, contactId, setContactId,
   contacts, newContact, setNewContact, contactType, dupContact,
 }: {
   sp: SugarPalette
+  t: TFunc
   contacts: CrmContact[]
   mode: 'existing' | 'new'
   setMode: (v: 'existing' | 'new') => void
@@ -555,10 +569,10 @@ function ContactCard({
           fontSize: 12, fontWeight: 700, color: sp.sub,
           letterSpacing: 0.4, textTransform: 'uppercase',
         }}>
-          {mode === 'existing' ? 'Sélectionner un contact' : 'Créer un contact'}
+          {mode === 'existing' ? t('newDeal.contact.selectTitle') : t('newDeal.contact.createTitle')}
         </div>
         <InCardSegmented<'existing' | 'new'> sp={sp} value={mode} onChange={setMode}
-          options={[{ value: 'existing', label: 'Existant' }, { value: 'new', label: 'Nouveau' }]} />
+          options={[{ value: 'existing', label: t('newDeal.contact.existing') }, { value: 'new', label: t('newDeal.contact.new') }]} />
       </div>
 
       {mode === 'existing' ? (
@@ -571,7 +585,7 @@ function ContactCard({
             <SearchIcon color={sp.sub} />
             <input
               value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher nom, email, téléphone…"
+              placeholder={t('newDeal.contact.searchPlaceholder')}
               style={{
                 flex: 1, background: 'transparent', border: 0, outline: 'none',
                 color: sp.ink, fontSize: 13, fontFamily: 'inherit',
@@ -608,7 +622,7 @@ function ContactCard({
                       fontSize: 11,
                       color: sel ? 'rgba(255,255,255,.65)' : sp.sub, marginTop: 1,
                     }}>
-                      {c.email} · {c.kyc?.status === 'verified' ? 'KYC ✓' : c.kyc?.status === 'pending' ? 'KYC en cours' : 'KYC à faire'}
+                      {c.email} · {c.kyc?.status === 'verified' ? t('newDeal.contact.kycVerified') : c.kyc?.status === 'pending' ? t('newDeal.contact.kycPending') : t('newDeal.contact.kycTodo')}
                     </div>
                   </div>
                   <div style={{
@@ -623,22 +637,22 @@ function ContactCard({
             })}
             {list.length === 0 && (
               <div style={{ padding: '16px 12px', fontSize: 12, color: sp.sub, textAlign: 'center' }}>
-                Aucun résultat — basculez sur "Nouveau" pour créer ce contact.
+                {t('newDeal.contact.empty')}
               </div>
             )}
           </div>
         </>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Field sp={sp} label="Prénom" value={newContact.firstName}
+          <Field sp={sp} label={t('newDeal.contact.firstName')} value={newContact.firstName}
             onChange={v => setNewContact({ ...newContact, firstName: v })} />
-          <Field sp={sp} label="Nom" value={newContact.lastName}
+          <Field sp={sp} label={t('newDeal.contact.lastName')} value={newContact.lastName}
             onChange={v => setNewContact({ ...newContact, lastName: v })} />
-          <Field sp={sp} label="Email" wide value={newContact.email}
+          <Field sp={sp} label={t('newDeal.contact.email')} wide value={newContact.email}
             onChange={v => setNewContact({ ...newContact, email: v })} />
-          <Field sp={sp} label="Téléphone" value={newContact.phone}
+          <Field sp={sp} label={t('newDeal.contact.phone')} value={newContact.phone}
             onChange={v => setNewContact({ ...newContact, phone: v })} />
-          <SelectField sp={sp} label="Langue" value={newContact.lang}
+          <SelectField sp={sp} label={t('newDeal.contact.language')} value={newContact.lang}
             onChange={v => setNewContact({ ...newContact, lang: v })}
             options={[
               { value: 'fr', label: 'Français' }, { value: 'en', label: 'English' },
@@ -653,7 +667,7 @@ function ContactCard({
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ fontSize: 13 }}>⚠</span>
-              Contact existant trouvé : {dupContact.firstName} {dupContact.lastName}. Basculez sur "Existant" pour l'utiliser.
+              {t('newDeal.contact.duplicate', { name: `${dupContact.firstName} ${dupContact.lastName}` })}
             </div>
           )}
         </div>
@@ -664,9 +678,10 @@ function ContactCard({
 
 // ─── Bien card ─────────────────────────────────────────────────────────
 function BienCard({
-  sp, biens, query, setQuery, bienId, setBienId, archetype,
+  sp, t, biens, query, setQuery, bienId, setBienId, archetype,
 }: {
   sp: SugarPalette
+  t: TFunc
   biens: CrmBien[]
   query: string
   setQuery: (v: string) => void
@@ -691,7 +706,7 @@ function BienCard({
         fontSize: 12, fontWeight: 700, color: sp.sub,
         letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 12,
       }}>
-        {archetype?.id === 'seller-mandate' ? 'Bien à publier (peut être créé après)' : 'Bien du portefeuille ou catalogue MEGGA'}
+        {archetype?.id === 'seller-mandate' ? t('newDeal.bien.toPublish') : t('newDeal.bien.fromPortfolio')}
       </div>
       <div style={{
         height: 40, padding: '0 14px', background: sp.cardSubBg,
@@ -701,7 +716,7 @@ function BienCard({
         <SearchIcon color={sp.sub} />
         <input
           value={query} onChange={e => setQuery(e.target.value)}
-          placeholder="Rechercher titre, référence MG-…, adresse"
+          placeholder={t('newDeal.bien.searchPlaceholder')}
           style={{
             flex: 1, background: 'transparent', border: 0, outline: 'none',
             color: sp.ink, fontSize: 13, fontFamily: 'inherit',
@@ -737,7 +752,7 @@ function BienCard({
                   color: sel ? 'rgba(255,255,255,.65)' : sp.sub,
                   marginTop: 1, fontVariantNumeric: 'tabular-nums',
                 }}>
-                  {b.addr} · {b.area}m² · {b.price ? crmFmtCHF(b.price) : (b.rent ? `CHF ${b.rent}/mois` : '—')}
+                  {b.addr} · {b.area}m² · {b.price ? crmFmtCHF(b.price) : (b.rent ? t('newDeal.bien.rentPerMonth', { amount: b.rent }) : '—')}
                 </div>
               </div>
             </button>
@@ -750,7 +765,7 @@ function BienCard({
             cursor: 'pointer', border: `1px dashed ${sp.cardBorder}`,
             color: sp.sub, fontSize: 12, fontWeight: 600, textAlign: 'center',
             fontFamily: 'inherit',
-          }}>Pas encore de bien identifié</button>
+          }}>{t('newDeal.bien.noneIdentified')}</button>
         )}
       </div>
     </SugarCard>
@@ -759,9 +774,10 @@ function BienCard({
 
 // ─── Stage & value ─────────────────────────────────────────────────────
 function StageValueCard({
-  sp, stage, setStage, value, setValue, bien, archetype,
+  sp, t, stage, setStage, value, setValue, bien, archetype,
 }: {
   sp: SugarPalette
+  t: TFunc
   stage: StageId
   setStage: (s: StageId) => void
   value: string
@@ -780,7 +796,7 @@ function StageValueCard({
       <div style={{
         fontSize: 12, fontWeight: 700, color: sp.sub,
         letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 12,
-      }}>Étape de départ</div>
+      }}>{t('newDeal.stage.startLabel')}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {visibleStages.map(s => {
           const sel = s === stage
@@ -795,20 +811,20 @@ function StageValueCard({
               color: sel ? sp.pageBg : sp.soft,
             }}>
               <span style={{ width: 7, height: 7, borderRadius: 999, background: stageInfo.color }} />
-              {stageInfo.label}
+              {t(`stages.${s}`)}
             </button>
           )
         })}
       </div>
       <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <Field sp={sp} label="Valeur estimée (CHF)" value={value}
+        <Field sp={sp} label={t('newDeal.stage.estimatedValue')} value={value}
           onChange={setValue}
-          hint={bien ? `Auto depuis ${bien.ref}` : 'Optionnel'} />
+          hint={bien ? t('newDeal.stage.autoFromRef', { ref: bien.ref }) : t('newDeal.stage.optional')} />
         <div>
           <div style={{
             fontSize: 10.5, fontWeight: 700, color: sp.sub,
             letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 6,
-          }}>Commission estimée</div>
+          }}>{t('newDeal.stage.estimatedCommission')}</div>
           <div style={{
             height: 40, padding: '0 14px', borderRadius: 12,
             background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`,
@@ -826,9 +842,10 @@ function StageValueCard({
 
 // ─── Next action ───────────────────────────────────────────────────────
 function NextActionCard({
-  sp, kind, setKind, due, setDue, note, setNote,
+  sp, t, kind, setKind, due, setDue, note, setNote,
 }: {
   sp: SugarPalette
+  t: TFunc
   kind: NextActionKindOpt['k']
   setKind: (k: NextActionKindOpt['k']) => void
   due: string
@@ -842,7 +859,7 @@ function NextActionCard({
       <div style={{
         fontSize: 12, fontWeight: 700, color: sp.sub,
         letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 12,
-      }}>Action à programmer</div>
+      }}>{t('newDeal.action.scheduleLabel')}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
         {NEXT_ACTION_KINDS.map(a => {
           const sel = a.k === kind
@@ -853,21 +870,21 @@ function NextActionCard({
               color: sel ? sp.pageBg : sp.soft,
               border: 0, cursor: 'pointer', fontFamily: 'inherit',
               fontSize: 11.5, fontWeight: sel ? 700 : 600,
-            }}>{a.label}</button>
+            }}>{t(a.labelKey)}</button>
           )
         })}
       </div>
       <div style={{ marginBottom: 10 }}>
-        <DateTimePicker sp={sp} label="Échéance" value={due} onChange={setDue} />
+        <DateTimePicker sp={sp} t={t} label={t('newDeal.action.dueLabel')} value={due} onChange={setDue} />
       </div>
       <div>
         <div style={{
           fontSize: 10.5, fontWeight: 700, color: sp.sub,
           letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 6,
-        }}>Note</div>
+        }}>{t('newDeal.action.noteLabel')}</div>
         <textarea
           value={note} onChange={e => setNote(e.target.value)}
-          placeholder={k?.placeholder}
+          placeholder={k ? t(k.placeholderKey) : undefined}
           style={{
             width: '100%', minHeight: 64, padding: 12, borderRadius: 12,
             background: sp.cardSubBg, color: sp.ink,
@@ -979,9 +996,10 @@ function Guard({
 
 // ─── Footer ────────────────────────────────────────────────────────────
 function Footer({
-  sp, canCreate, onCancel, onCreate, isPending = false, error = null,
+  sp, t, canCreate, onCancel, onCreate, isPending = false, error = null,
 }: {
   sp: SugarPalette
+  t: TFunc
   canCreate: boolean
   onCancel: () => void
   onCreate: () => void
@@ -1010,7 +1028,7 @@ function Footer({
           background: 'transparent', color: sp.soft,
           fontWeight: 700, fontSize: 13.5, fontFamily: 'inherit',
           opacity: isPending ? 0.5 : 1,
-        }}>Annuler</button>
+        }}>{t('common:actions.cancel')}</button>
         <button onClick={onCreate} disabled={!enabled} style={{
           flex: 2, height: 46, borderRadius: 999, border: 0,
           cursor: enabled ? 'pointer' : 'not-allowed',
@@ -1018,7 +1036,7 @@ function Footer({
           color: enabled ? sp.pageBg : sp.sub,
           fontWeight: 700, fontSize: 13.5, fontFamily: 'inherit',
           boxShadow: enabled ? sp.focusShadow : 'none',
-        }}>{isPending ? 'Création…' : 'Créer le deal'}</button>
+        }}>{isPending ? t('newDeal.footer.creating') : t('newDeal.footer.create')}</button>
       </div>
     </div>
   )
@@ -1026,9 +1044,10 @@ function Footer({
 
 // ─── Created confirmation view ─────────────────────────────────────────
 function DealCreatedView({
-  sp, archetype, contact, bien, stage, value, onClose,
+  sp, t, archetype, contact, bien, stage, value, onClose,
 }: {
   sp: SugarPalette
+  t: TFunc
   archetype: Archetype | undefined
   contact: { firstName?: string; lastName?: string }
   bien: ReturnType<typeof crmBienById>
@@ -1048,7 +1067,7 @@ function DealCreatedView({
           <div style={{
             fontSize: 11, fontWeight: 700, color: '#0E9F6E',
             letterSpacing: 0.5, textTransform: 'uppercase',
-          }}>✓ Deal créé</div>
+          }}>✓ {t('newDeal.created.badge')}</div>
           <h2 style={{
             margin: '2px 0 0', fontSize: 24, fontWeight: 800, color: sp.ink, letterSpacing: -0.6,
           }}>{fullName}</h2>
@@ -1064,7 +1083,7 @@ function DealCreatedView({
         <SugarCard sp={sp}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
             <span style={{ width: 10, height: 10, borderRadius: 999, background: stageInfo.color }} />
-            <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>{stageInfo.label}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>{t(`stages.${stage}`)}</div>
             <div style={{ flex: 1 }} />
             <div style={{
               fontSize: 16, fontWeight: 800, color: sp.ink, fontVariantNumeric: 'tabular-nums',
@@ -1073,10 +1092,10 @@ function DealCreatedView({
             </div>
           </div>
           <div style={{ fontSize: 11, color: sp.sub, fontWeight: 600 }}>
-            Bien · {bien?.title || 'Recherche active'}
+            {t('newDeal.created.bienLine', { title: bien?.title || t('newDeal.created.activeSearch') })}
           </div>
           <div style={{ fontSize: 11, color: sp.sub, fontWeight: 600, marginTop: 2 }}>
-            Type · {archetype?.label}
+            {t('newDeal.created.typeLine', { type: archetype ? t(archetype.labelKey) : '—' })}
           </div>
         </SugarCard>
 
@@ -1084,19 +1103,19 @@ function DealCreatedView({
           fontSize: 12, fontWeight: 700, color: sp.sub,
           letterSpacing: 0.4, textTransform: 'uppercase',
           margin: '24px 4px 12px',
-        }}>Continuer</div>
+        }}>{t('newDeal.created.continue')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <QuickAction sp={sp} label="Envoyer 3 biens" sub="Matching IA" />
-          <QuickAction sp={sp} label="Planifier visite" sub="Calendrier" />
-          <QuickAction sp={sp} label="Lancer KYC" sub="LBA" />
-          <QuickAction sp={sp} label="Voir le détail" sub="Fiche deal" />
+          <QuickAction sp={sp} label={t('newDeal.created.quickMatch.label')} sub={t('newDeal.created.quickMatch.sub')} />
+          <QuickAction sp={sp} label={t('newDeal.created.quickVisit.label')} sub={t('newDeal.created.quickVisit.sub')} />
+          <QuickAction sp={sp} label={t('newDeal.created.quickKyc.label')} sub={t('newDeal.created.quickKyc.sub')} />
+          <QuickAction sp={sp} label={t('newDeal.created.quickDetail.label')} sub={t('newDeal.created.quickDetail.sub')} />
         </div>
 
         <div style={{
           marginTop: 20, padding: 14, borderRadius: 14,
           background: sp.cardSubBg, fontSize: 12, color: sp.sub, lineHeight: 1.5,
         }}>
-          La timeline du deal commence ici. Les actions ci-dessus ajouteront un évènement à la fiche.
+          {t('newDeal.created.timelineNote')}
         </div>
       </div>
     </>
@@ -1126,8 +1145,8 @@ function SearchIcon({ color = '#7A8079' }: { color?: string }) {
 }
 
 // ─── DateTime picker ───────────────────────────────────────────────────
-const ND_MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
-const ND_DAYS_FR = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+// i18n: les noms de mois / initiales de jours viennent de la locale via `t`
+// (clés `newDeal.datetime.months` / `.daysShort`, tableaux `returnObjects`).
 
 function ndParseLocal(v: string): Date {
   if (!v) return new Date()
@@ -1140,15 +1159,22 @@ function ndFormatLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
-function ndFormatDisplay(v: string): string {
+function ndFormatDisplay(v: string, months: string[]): string {
   if (!v) return '—'
   const d = ndParseLocal(v)
-  return `${String(d.getDate()).padStart(2, '0')} ${ND_MONTHS_FR[d.getMonth()].slice(0, 3).toLowerCase()}. ${d.getFullYear()} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return `${String(d.getDate()).padStart(2, '0')} ${(months[d.getMonth()] || '').slice(0, 3).toLowerCase()}. ${d.getFullYear()} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 function DateTimePicker({
-  sp, label, value, onChange,
-}: { sp: SugarPalette; label: string; value: string; onChange: (v: string) => void }) {
+  sp, t, label, value, onChange,
+}: { sp: SugarPalette; t: TFunc; label: string; value: string; onChange: (v: string) => void }) {
+  // `returnObjects` yields the locale's arrays; guard against a missing key
+  // (i18next returns the key string in that case) so `.map()`/index access
+  // never crash the picker.
+  const monthsRaw = t('newDeal.datetime.months', { returnObjects: true })
+  const daysRaw = t('newDeal.datetime.daysShort', { returnObjects: true })
+  const months = (Array.isArray(monthsRaw) ? monthsRaw : []) as string[]
+  const daysShort = (Array.isArray(daysRaw) ? daysRaw : []) as string[]
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<Date>(() => ndParseLocal(value))
   const ref = useRef<HTMLDivElement>(null)
@@ -1183,10 +1209,10 @@ function DateTimePicker({
   }
 
   const quicks = [
-    { label: "Aujourd'hui 17h", days: 0, h: 17 },
-    { label: 'Demain 10h', days: 1, h: 10 },
-    { label: 'Dans 2 jours', days: 2, h: 10 },
-    { label: 'Lundi prochain', days: ((1 - today.getDay() + 7) % 7) || 7, h: 10 },
+    { label: t('newDeal.datetime.today17'), days: 0, h: 17 },
+    { label: t('newDeal.datetime.tomorrow10'), days: 1, h: 10 },
+    { label: t('newDeal.datetime.inTwoDays'), days: 2, h: 10 },
+    { label: t('newDeal.datetime.nextMonday'), days: ((1 - today.getDay() + 7) % 7) || 7, h: 10 },
   ]
 
   return (
@@ -1204,7 +1230,7 @@ function DateTimePicker({
         fontVariantNumeric: 'tabular-nums', boxSizing: 'border-box',
       }}>
         <CalIcon color={sp.sub} />
-        <span style={{ flex: 1, fontWeight: 600 }}>{ndFormatDisplay(value)}</span>
+        <span style={{ flex: 1, fontWeight: 600 }}>{ndFormatDisplay(value, months)}</span>
         <span style={{ fontSize: 10.5, color: sp.sub, fontWeight: 600 }}>{open ? '▴' : '▾'}</span>
       </button>
 
@@ -1240,7 +1266,7 @@ function DateTimePicker({
               background: sp.cardSubBg, color: sp.soft, fontFamily: 'inherit', fontWeight: 700,
             }}>‹</button>
             <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>
-              {ND_MONTHS_FR[view.getMonth()]} {view.getFullYear()}
+              {months[view.getMonth()]} {view.getFullYear()}
             </div>
             <button onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))} style={{
               width: 28, height: 28, borderRadius: 999, border: 0, cursor: 'pointer',
@@ -1251,7 +1277,7 @@ function DateTimePicker({
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 10,
           }}>
-            {ND_DAYS_FR.map((d, i) => (
+            {daysShort.map((d, i) => (
               <div key={i} style={{
                 fontSize: 10, color: sp.sub, fontWeight: 700,
                 textAlign: 'center', padding: '4px 0',
@@ -1294,7 +1320,7 @@ function DateTimePicker({
             <div style={{
               fontSize: 10.5, fontWeight: 700, color: sp.sub,
               letterSpacing: 0.3, textTransform: 'uppercase',
-            }}>Heure</div>
+            }}>{t('newDeal.datetime.time')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
               <select value={current.getHours()} onChange={e => setHM(Number(e.target.value), current.getMinutes())} style={{
                 height: 32, padding: '0 10px', borderRadius: 10,
@@ -1327,7 +1353,7 @@ function DateTimePicker({
               padding: '8px 16px', borderRadius: 999, border: 0, cursor: 'pointer',
               background: sp.ink, color: sp.pageBg, fontFamily: 'inherit',
               fontSize: 12, fontWeight: 700, boxShadow: sp.focusShadow,
-            }}>OK</button>
+            }}>{t('newDeal.datetime.ok')}</button>
           </div>
         </div>
       )}

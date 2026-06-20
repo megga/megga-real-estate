@@ -5,6 +5,7 @@
 // handles différés du parent (undo 5 s avant toute écriture).
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import SgaConfirm from './SgaConfirm'
 import { SGA_KYC } from './constants'
@@ -36,18 +37,19 @@ function SgbLRow({ m, selected, exiting, onClick }: {
 
 /* ── Col 2 · profil de recherche (pivot) ─────────────────────────────── */
 function SgbProfile({ b }: { b: AtelierBuyer }) {
+  const { t } = useTranslation('matching')
   const kyc = SGA_KYC[b.kyc]
   const c = b.criteria
   const rows: Array<{ lb: string; vl: string }> = []
-  if (c?.budget_min && c?.budget_max) rows.push({ lb: 'Budget', vl: `CHF ${fmtM(c.budget_min)} – ${fmtM(c.budget_max)}` })
-  else if (c?.budget_max) rows.push({ lb: 'Budget', vl: `≤ CHF ${fmtM(c.budget_max)}` })
-  if (c?.zones?.length) rows.push({ lb: 'Zones ciblées', vl: c.zones.join(' · ') })
-  if (c?.surface_min) rows.push({ lb: 'Surface minimum', vl: `${c.surface_min} m²` })
-  if (c?.rooms_min) rows.push({ lb: 'Pièces', vl: c.rooms_max ? `${c.rooms_min} – ${c.rooms_max}` : `${c.rooms_min}+` })
-  if (c?.type) rows.push({ lb: 'Type', vl: c.type })
+  if (c?.budget_min && c?.budget_max) rows.push({ lb: t('atelier.budget'), vl: `CHF ${fmtM(c.budget_min)} – ${fmtM(c.budget_max)}` })
+  else if (c?.budget_max) rows.push({ lb: t('atelier.budget'), vl: `≤ CHF ${fmtM(c.budget_max)}` })
+  if (c?.zones?.length) rows.push({ lb: t('atelier.targetZones'), vl: c.zones.join(' · ') })
+  if (c?.surface_min) rows.push({ lb: t('atelier.minSurface'), vl: `${c.surface_min} m²` })
+  if (c?.rooms_min) rows.push({ lb: t('atelier.specRooms'), vl: c.rooms_max ? `${c.rooms_min} – ${c.rooms_max}` : `${c.rooms_min}+` })
+  if (c?.type) rows.push({ lb: t('atelier.type'), vl: c.type })
 
   return (
-    <section className="sga-panel sga-enter d1" aria-label="Profil de recherche">
+    <section className="sga-panel sga-enter d1" aria-label={t('atelier.searchProfile')}>
       <div className="sgb-pivot-scroll">
         <div className="sgb-id">
           <div className="av" style={{ width: 72, height: 72, background: b.av, fontSize: 24, boxShadow: `0 0 0 6px ${b.av}1c` }}>
@@ -73,7 +75,7 @@ function SgbProfile({ b }: { b: AtelierBuyer }) {
 
         {rows.length > 0 && (
           <div>
-            <span className="eyebrow">Recherche active</span>
+            <span className="eyebrow">{t('atelier.activeSearch')}</span>
             <div className="sgb-crit" style={{ marginTop: 8 }}>
               {rows.map(r => (
                 <div className="row" key={r.lb}>
@@ -96,6 +98,7 @@ function SgbWhyBien({ m, onSend, onSkip, onLater }: {
   onSkip: () => void
   onLater: () => void
 }) {
+  const { t } = useTranslation('matching')
   const L = m.L
   const reasons = [...m.reasons].sort((a, z) => Number(z.ok) - Number(a.ok) || z.pts - a.pts)
   const posSum = m.reasons.filter(r => r.ok).reduce((s, r) => s + r.pts, 0)
@@ -105,7 +108,7 @@ function SgbWhyBien({ m, onSend, onSkip, onLater }: {
     <div className="sga-why-anim" key={m.lid}>
       <div className="sgb-hero">
         {ph?.url ? <img src={ph.url} alt={L.title} draggable="false" /> : null}
-        {m.current && <span className="sgb-current chip sm">Annonce en cours</span>}
+        {m.current && <span className="sgb-current chip sm">{t('atelier.currentListing')}</span>}
       </div>
       <div className="sga-why-head" style={{ paddingTop: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -113,10 +116,10 @@ function SgbWhyBien({ m, onSend, onSkip, onLater }: {
             {L.title}
           </div>
           <div className="t1 muted nums" style={{ marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {sgaFmtCHF(L.price)} · {L.rooms ?? '—'} pièces · {L.area ?? '—'} m² · {L.quartier}
+            {sgaFmtCHF(L.price)} · {L.rooms != null ? t('atelier.roomsCount', { count: L.rooms }) : t('atelier.roomsLabel', { value: '—' })} · {L.area ?? '—'} m² · {L.quartier}
           </div>
         </div>
-        <div className="sga-bigscore" title="Score de compatibilité (estimation)">
+        <div className="sga-bigscore" title={t('atelier.compatibilityScoreEst')}>
           <span className="v nums" style={{ color: sgaScoreColor(m.score) }}>{m.score}</span>
           <span className="pct">/100</span>
         </div>
@@ -127,7 +130,7 @@ function SgbWhyBien({ m, onSend, onSkip, onLater }: {
       <div className="sga-why-scroll">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
-            <span className="eyebrow">Pourquoi ça matche · {m.reasons.length} critères</span>
+            <span className="eyebrow">{t('atelier.whyMatchesCriteria', { count: m.reasons.length })}</span>
             <span style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
               <span className="sga-sumpill pos">+{posSum}</span>
               {negSum > 0 && <span className="sga-sumpill neg">−{negSum}</span>}
@@ -147,13 +150,13 @@ function SgbWhyBien({ m, onSend, onSkip, onLater }: {
       <div className="sga-triage">
         <div className="btns" data-cols="3">
           <button className="btn btn-ghost" onClick={onSkip}>
-            <SgaIcon d="close" size={16} /> Écarter
+            <SgaIcon d="close" size={16} /> {t('atelier.dismiss')}
           </button>
           <button className="btn btn-ghost" onClick={onLater}>
-            <SgaIcon d="clock" size={16} /> Plus tard
+            <SgaIcon d="clock" size={16} /> {t('atelier.later')}
           </button>
           <button className="btn btn-primary" onClick={onSend}>
-            Envoyer
+            {t('common:actions.send')}
           </button>
         </div>
       </div>
@@ -177,6 +180,7 @@ interface SgbToast {
 }
 
 export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAcheteurModeProps) {
+  const { t } = useTranslation('matching')
   const [processed, setProcessed] = useState<Record<string, TriageKind>>({})
   const [laterInfo, setLaterInfo] = useState<Record<string, string>>({})
   const [history, setHistory] = useState<string[]>([])
@@ -227,14 +231,14 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
       if (nxt) setSelLid(nxt)
       exitTimer.current = null
       showToast(
-        kind === 'sent' ? `Dossier transmis à ${b.first} · ${m.L.title} · ajouté à son dossier client`
-        : kind === 'later' ? `Plus tard · ${m.L.title} reviendra le ${ret}`
-        : `${m.L.title} écarté pour ${b.first}`,
+        kind === 'sent' ? t('atelier.toastSentBuyer', { name: b.first, title: m.L.title })
+        : kind === 'later' ? t('atelier.toastLaterListing', { title: m.L.title, date: ret })
+        : t('atelier.toastDismissedBuyer', { title: m.L.title, name: b.first }),
         kind === 'sent',
         handle,
       )
     }, 340)
-  }, [pool, open, gestes, b.first])
+  }, [pool, open, gestes, b.first, t])
 
   const requestSend = useCallback((lid: string) => {
     if (exitTimer.current) return
@@ -266,8 +270,8 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
     setLaterInfo(q => { const r = { ...q }; delete r[lid]; return r })
     setHistory(h => h.filter(x => x !== lid))
     setSelLid(lid)
-    showToast(`${m.L.title} est de retour dans la file`, false, null)
-  }, [pool, gestes])
+    showToast(t('atelier.toastBackInQueue', { title: m.L.title }), false, null)
+  }, [pool, gestes, t])
 
   const move = (dir: number) => {
     if (!open.length) return
@@ -307,12 +311,12 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
   return (
     <>
       {/* ── col 1 · biens matchés ── */}
-      <section className="sga-panel sga-enter" aria-label="Biens matchés">
+      <section className="sga-panel sga-enter" aria-label={t('atelier.matchedListings')}>
         <div className="sga-queue-h">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className="eyebrow" style={{ whiteSpace: 'nowrap' }}>Biens matchés · {open.length}</span>
+            <span className="eyebrow" style={{ whiteSpace: 'nowrap' }}>{t('atelier.matchedListingsCount', { count: open.length })}</span>
             <span className="t1 dim" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <SgaIcon d="sort" size={13} /> Score décroissant
+              <SgaIcon d="sort" size={13} /> {t('atelier.scoreDesc')}
             </span>
           </div>
         </div>
@@ -320,8 +324,8 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
           {open.length === 0 && (
             <div className="sga-empty">
               <div>
-                <div className="t4 med" style={{ marginBottom: 6, color: 'var(--ink)' }}>File traitée</div>
-                <div className="t1 muted">Tous les biens de {b.first} ont été triés.</div>
+                <div className="t4 med" style={{ marginBottom: 6, color: 'var(--ink)' }}>{t('atelier.queueProcessed')}</div>
+                <div className="t1 muted">{t('atelier.allListingsSorted', { name: b.first })}</div>
               </div>
             </div>
           )}
@@ -339,7 +343,7 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
           <div className="sga-snoozed" data-open="true">
             <button className="sga-snoozed-h" style={{ cursor: 'default' }}>
               <SgaIcon d="clock" size={13} />
-              <span>Reportés</span>
+              <span>{t('atelier.snoozed')}</span>
               <span className="cnt nums">{snoozed.length}</span>
             </button>
             <div className="sga-snoozed-body">
@@ -350,13 +354,13 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
                     key={m.lid}
                     style={{ animationDelay: `${i * 40}ms` }}
                     onClick={() => wake(m.lid)}
-                    title="Réactiver maintenant"
+                    title={t('atelier.reactivateNow')}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="nm">{m.L.title}</div>
-                      <div className="ret"><SgaIcon d="clock" size={11} /> De retour le {until}</div>
+                      <div className="ret"><SgaIcon d="clock" size={11} /> {t('atelier.backOn', { date: until })}</div>
                     </div>
-                    <button className="wake" onClick={e => { e.stopPropagation(); wake(m.lid) }}>Réactiver</button>
+                    <button className="wake" onClick={e => { e.stopPropagation(); wake(m.lid) }}>{t('atelier.reactivate')}</button>
                   </div>
                 ))}
               </div>
@@ -369,7 +373,7 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
       <SgbProfile b={b} />
 
       {/* ── col 3 · pourquoi ce bien ── */}
-      <section className="sga-panel sga-enter d2" aria-label="Pourquoi ce bien">
+      <section className="sga-panel sga-enter d2" aria-label={t('atelier.whyThisListing')}>
         {selected ? (
           <SgbWhyBien
             m={selected}
@@ -380,9 +384,9 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
         ) : (
           <div className="sga-empty">
             <div>
-              <div className="t4 semi" style={{ marginBottom: 6, color: 'var(--ink)' }}>File traitée</div>
+              <div className="t4 semi" style={{ marginBottom: 6, color: 'var(--ink)' }}>{t('atelier.queueProcessed')}</div>
               <div className="t1 muted" style={{ maxWidth: 240 }}>
-                Tous les biens de {b.first} ont été triés. Revenez à l'annonce.
+                {t('atelier.allListingsSortedBack', { name: b.first })}
               </div>
             </div>
           </div>
@@ -413,10 +417,10 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
                 void h.flushNow().then(r => onOpenDeal(r?.dealId ?? null))
               }}
             >
-              Voir le deal →
+              {t('atelier.seeDeal')}
             </button>
           )}
-          <button className="undo" onClick={undo}>Annuler</button>
+          <button className="undo" onClick={undo}>{t('common:actions.cancel')}</button>
         </div>
       )}
     </>

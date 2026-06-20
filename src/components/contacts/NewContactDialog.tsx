@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { Modal } from '@/components/ui/modal'
@@ -6,25 +7,25 @@ import { useCreateContact } from '@/hooks/useContacts'
 import type { ContactType } from '@/types/contact'
 import type { ContactScore } from '@/lib/constants'
 
-const TYPE_OPTIONS: { value: ContactType; label: string }[] = [
-  { value: 'buyer', label: 'Acheteur' },
-  { value: 'seller', label: 'Vendeur' },
-  { value: 'both', label: 'Acheteur/Vendeur' },
-  { value: 'lead', label: 'Lead' },
+const TYPE_OPTIONS: { value: ContactType; labelKey: string }[] = [
+  { value: 'buyer', labelKey: 'type.buyer' },
+  { value: 'seller', labelKey: 'type.seller' },
+  { value: 'both', labelKey: 'type.both' },
+  { value: 'lead', labelKey: 'type.lead' },
 ]
 
-const SCORE_OPTIONS: { value: ContactScore; label: string }[] = [
-  { value: 'hot', label: 'Hot' },
-  { value: 'warm', label: 'Warm' },
-  { value: 'cold', label: 'Cold' },
+const SCORE_OPTIONS: { value: ContactScore; labelKey: string }[] = [
+  { value: 'hot', labelKey: 'score.hot' },
+  { value: 'warm', labelKey: 'score.warm' },
+  { value: 'cold', labelKey: 'score.cold' },
 ]
 
-const SOURCE_OPTIONS = [
-  { value: 'manual', label: 'Manuel' },
-  { value: 'website', label: 'Site web' },
-  { value: 'referral', label: 'Recommandation' },
-  { value: 'portal', label: 'Portail' },
-  { value: 'social', label: 'Réseaux sociaux' },
+const SOURCE_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'manual', labelKey: 'editDialog.source.manual' },
+  { value: 'website', labelKey: 'editDialog.source.website' },
+  { value: 'referral', labelKey: 'editDialog.source.referral' },
+  { value: 'portal', labelKey: 'editDialog.source.portal' },
+  { value: 'social', labelKey: 'editDialog.source.social' },
 ]
 
 const inputClasses = 'w-full h-10 px-3 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors placeholder:text-theme-tertiary'
@@ -38,6 +39,7 @@ interface NewContactDialogProps {
 }
 
 export default function NewContactDialog({ open, onClose, onCreated }: NewContactDialogProps) {
+  const { t } = useTranslation('contacts')
   const createContact = useCreateContact()
 
   const [firstName, setFirstName] = useState('')
@@ -96,8 +98,8 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
     <Modal
       open={open}
       onClose={handleClose}
-      title="Nouveau contact"
-      description="Ajoutez un contact à votre CRM."
+      title={t('newDialog.title')}
+      description={t('newDialog.description')}
       size="md"
     >
       <>
@@ -106,7 +108,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
           {/* Nom */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClasses}>Prénom</label>
+              <label className={labelClasses}>{t('field.firstName')}</label>
               <input
                 type="text"
                 value={firstName}
@@ -117,7 +119,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
               />
             </div>
             <div>
-              <label className={labelClasses}>Nom</label>
+              <label className={labelClasses}>{t('field.lastName')}</label>
               <input
                 type="text"
                 value={lastName}
@@ -131,7 +133,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
 
           {/* Email */}
           <div>
-            <label className={labelClasses}>Email</label>
+            <label className={labelClasses}>{t('field.email')}</label>
             <input
               type="email"
               value={email}
@@ -143,7 +145,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
 
           {/* Type — pill buttons */}
           <div>
-            <label className={labelClasses}>Type</label>
+            <label className={labelClasses}>{t('field.type')}</label>
             <div className="flex flex-wrap gap-1.5">
               {TYPE_OPTIONS.map((opt) => (
                 <button
@@ -157,7 +159,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
                       : 'border-theme-border text-theme-tertiary hover:text-theme-secondary'
                   )}
                 >
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </button>
               ))}
             </div>
@@ -170,7 +172,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
               onClick={() => setShowDetails(true)}
               className="flex items-center gap-1 text-sm text-theme-tertiary hover:text-theme-primary transition-colors"
             >
-              + Ajouter des détails
+              {t('newDialog.addDetails')}
               <MEIcon name="chevron-right" className="w-3.5 h-3.5" />
             </button>
           ) : (
@@ -178,7 +180,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
               {/* Téléphone */}
               <div>
                 <label className={labelClasses}>
-                  Téléphone <span className="text-theme-muted font-normal">(optionnel)</span>
+                  {t('field.phone')} <span className="text-theme-muted font-normal">{t('field.optional')}</span>
                 </label>
                 <input
                   type="tel"
@@ -191,7 +193,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
 
               {/* Score — pill buttons */}
               <div>
-                <label className={labelClasses}>Score</label>
+                <label className={labelClasses}>{t('field.score')}</label>
                 <div className="flex gap-1.5">
                   {SCORE_OPTIONS.map((opt) => (
                     <button
@@ -205,7 +207,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
                           : 'border-theme-border text-theme-tertiary hover:text-theme-secondary'
                       )}
                     >
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -214,12 +216,12 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
               {/* Source */}
               <div>
                 <label className={labelClasses}>
-                  Source <span className="text-theme-muted font-normal">(optionnel)</span>
+                  {t('field.source')} <span className="text-theme-muted font-normal">{t('field.optional')}</span>
                 </label>
                 <div className="relative">
                   <select value={source} onChange={(e) => setSource(e.target.value)} className={selectClasses}>
                     {SOURCE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                     ))}
                   </select>
                   <MEIcon name="chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-theme-tertiary pointer-events-none" />
@@ -229,13 +231,13 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
               {/* Notes */}
               <div>
                 <label className={labelClasses}>
-                  Notes <span className="text-theme-muted font-normal">(optionnel)</span>
+                  {t('field.notes')} <span className="text-theme-muted font-normal">{t('field.optional')}</span>
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
-                  placeholder="Contexte, remarques..."
+                  placeholder={t('newDialog.notesPlaceholder')}
                   className="w-full px-3 py-2.5 rounded-lg border border-theme-border bg-transparent text-sm text-theme-primary focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-none placeholder:text-theme-tertiary"
                 />
               </div>
@@ -250,7 +252,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
             onClick={handleClose}
             className="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
           >
-            Annuler
+            {t('action.cancel')}
           </button>
           <button
             type="button"
@@ -262,7 +264,7 @@ export default function NewContactDialog({ open, onClose, onCreated }: NewContac
             )}
           >
             {createContact.isPending && <MEIcon name="spinner" className="h-3.5 w-3.5 animate-spin" />}
-            Créer
+            {t('newDialog.create')}
           </button>
         </div>
       </>

@@ -3,6 +3,7 @@
 // Footer LBA art. 7 (conservation 10 ans)
 
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PDF, PDF_W, PDF_H, PDF_PAD_X, PDF_PAD_TOP, PDF_PAD_BOT, pad2 } from './tokens'
 import { PdfIcon } from './PdfIcon'
 
@@ -13,6 +14,7 @@ interface PdfShellProps {
 }
 
 export function PdfShell({ pageNum, pageTotal, children }: PdfShellProps) {
+  const { t } = useTranslation('kyc')
   return (
     <div
       className="pdf-page"
@@ -64,7 +66,7 @@ export function PdfShell({ pageNum, pageTotal, children }: PdfShellProps) {
             textTransform: 'uppercase',
           }}
         >
-          Rapport KYC · LBA
+          {t('report.pdf.headerTag')}
         </div>
       </header>
 
@@ -94,11 +96,10 @@ export function PdfShell({ pageNum, pageTotal, children }: PdfShellProps) {
           letterSpacing: 0.3,
         }}
       >
-        <span>
-          MEGGA · legal@megga.ch · LBA art. 7 · Document à conserver 10 ans
-        </span>
+        <span>{t('report.pdf.footerLegal')}</span>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-          p. <span style={{ color: PDF.ink, fontWeight: 700 }}>{pad2(pageNum)}</span> / {pad2(pageTotal)}
+          {t('report.pdf.pageAbbrev')}{' '}
+          <span style={{ color: PDF.ink, fontWeight: 700 }}>{pad2(pageNum)}</span> / {pad2(pageTotal)}
         </span>
       </footer>
     </div>

@@ -2,7 +2,7 @@
 // 1:1 port from `crm-calendar-sugar-week-month.jsx` (CalWeekView).
 
 import { CAL_EVENT_TYPES, calLayout, eventTypeColors, useCalPalette, type CalEvent } from './data'
-import { CAL_DAYS, fmtTime, sameDay } from './helpers'
+import { calDays, fmtTime, sameDay } from './helpers'
 
 interface CalWeekViewProps {
   events: CalEvent[]
@@ -91,7 +91,7 @@ export function CalWeekView({
                   textTransform: 'uppercase',
                 }}
               >
-                {CAL_DAYS[d.getDay()]}
+                {calDays()[d.getDay()]}
               </div>
               <div
                 style={{

@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Calendar right panel (event detail + AI brief + actions)
 // 1:1 port from `crm-calendar-sugar-panels.jsx` (CalRightPanel + CalAction).
 
+import { useTranslation } from 'react-i18next'
 import { CalIcon, type CalIconName } from './CalIcon'
 import { CAL_EVENT_TYPES, eventTypeColors, useCalPalette, type CalEvent } from './data'
 import { fmtDate, fmtTime, shadeMix } from './helpers'
@@ -13,6 +14,7 @@ interface CalRightPanelProps {
 
 export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps) {
   const SP = useCalPalette()
+  const { t } = useTranslation('calendar')
 
   if (!event) {
     return (
@@ -46,17 +48,17 @@ export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps
           <CalIcon name="eye" size={20} stroke={SP.muted} />
         </div>
         <div style={{ fontSize: 13, fontWeight: 600, color: SP.inkSoft }}>
-          Sélectionnez un événement
+          {t('panel.emptyTitle')}
         </div>
         <div style={{ fontSize: 11, color: SP.muted, lineHeight: 1.5, maxWidth: 200 }}>
-          Cliquez sur un RDV pour voir le détail et lancer les actions.
+          {t('panel.emptyHint')}
         </div>
       </aside>
     )
   }
 
-  const t = CAL_EVENT_TYPES[event.type]
-  const tc = eventTypeColors(t, SP.isDark)
+  const et = CAL_EVENT_TYPES[event.type]
+  const tc = eventTypeColors(et, SP.isDark)
 
   return (
     <aside
@@ -89,7 +91,7 @@ export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps
             marginBottom: 8,
           }}
         >
-          {t.label}
+          {et.label}
         </div>
         <div
           style={{
@@ -118,7 +120,7 @@ export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps
               color: tc.ink,
             }}
           >
-            {event.status === 'done' ? 'Terminé' : 'Annulé'}
+            {event.status === 'done' ? t('panel.statusDone') : t('panel.statusCancelled')}
           </div>
         )}
         <div
@@ -191,7 +193,7 @@ export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps
                 marginBottom: 3,
               }}
             >
-              Bien lié
+              {t('panel.linkedProperty')}
             </div>
             <div
               style={{
@@ -320,7 +322,7 @@ export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps
               marginBottom: 6,
             }}
           >
-            Notes
+            {t('panel.notes')}
           </div>
           <div
             style={{
@@ -343,18 +345,18 @@ export function CalRightPanel({ event, onEdit, onSetStatus }: CalRightPanelProps
           gap: 8,
         }}
       >
-        {onEdit && <CalAction icon="signature" label="Modifier" onClick={() => onEdit(event.id)} />}
-        {event.contact?.phone && <CalAction icon="phone" label="Appeler" />}
-        {event.location && <CalAction icon="car" label="Itinéraire" />}
+        {onEdit && <CalAction icon="signature" label={t('common:actions.edit')} onClick={() => onEdit(event.id)} />}
+        {event.contact?.phone && <CalAction icon="phone" label={t('common:actions.call')} />}
+        {event.location && <CalAction icon="car" label={t('panel.directions')} />}
         <CalAction
           icon="check"
-          label="Marquer fait"
+          label={t('panel.markDone')}
           active={event.status === 'done'}
           onClick={() => onSetStatus?.(event.id, 'done')}
         />
         <CalAction
           icon="close"
-          label="Annuler"
+          label={t('common:actions.cancel')}
           danger
           active={event.status === 'cancelled'}
           onClick={() => onSetStatus?.(event.id, 'cancelled')}

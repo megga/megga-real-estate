@@ -9,6 +9,7 @@
 // sombre périmée. Le fond doit s'appliquer immédiatement.
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 import type { SugarPalette } from '../tokens'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
@@ -161,10 +162,11 @@ interface SugarProfileDropdownProps {
 export default function SugarProfileDropdown({
   sp, onClose, onSettings, onHelp, onLogout,
 }: SugarProfileDropdownProps) {
+  const { t } = useTranslation('common')
   const { profile, user } = useAuth()
   const { agency: agencyData, plan } = useAgencySettings()
 
-  const fullName = profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Agent'
+  const fullName = profile?.full_name?.trim() || user?.email?.split('@')[0] || t('profile.defaultName')
   const initials = fullName
     .split(/\s+/)
     .map(p => p[0])
@@ -174,8 +176,8 @@ export default function SugarProfileDropdown({
     .toUpperCase() || '??'
   const role = profile?.role
     ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
-    : 'Agent'
-  const agencyName = agencyData?.name?.trim() || 'Agence non définie'
+    : t('profile.defaultName')
+  const agencyName = agencyData?.name?.trim() || t('profile.noAgency')
   const subtitle = user?.email?.trim() || `${role} · ${agencyName}`
   const planLabel = plan ? plan.toUpperCase() : null
 
@@ -199,17 +201,17 @@ export default function SugarProfileDropdown({
       <Sep sp={sp} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Row sp={sp} icon="settings" label="Préférences"
+        <Row sp={sp} icon="settings" label={t('profile.preferences')}
           onClick={wrap(onSettings)} />
         <Row sp={sp} iconKind="inline" icon="shield"
-          label="Sécurité & sessions"
+          label={t('profile.security')}
           onClick={wrap(onSettings)} />
         <Row sp={sp} iconKind="inline" icon="card"
-          label="Facturation & abonnement"
+          label={t('profile.billing')}
           trail={<InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
           onClick={wrap(onSettings)} />
         <Row sp={sp} iconKind="inline" icon="help"
-          label="Centre d'aide"
+          label={t('profile.help')}
           onClick={wrap(onHelp)} />
       </div>
 
@@ -217,7 +219,7 @@ export default function SugarProfileDropdown({
 
       <Row sp={sp} iconKind="inline" icon="logout"
         danger
-        label="Se déconnecter"
+        label={t('nav.logout')}
         onClick={wrap(onLogout)} />
     </div>
   )

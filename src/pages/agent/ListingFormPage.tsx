@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm, type UseFormReturn } from 'react-hook-form'
+import { useTranslation, Trans } from 'react-i18next'
+import i18n from '@/i18n'
 import { z } from 'zod'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import {
@@ -61,11 +63,17 @@ const optionalNumberRange = (min: number, max: number) => z.preprocess(
 // instead of producing a Mulhouse listing tagged canton=GE.
 const optionalCHLat = z.preprocess(
   (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-  z.number().min(45.8, 'Latitude hors Suisse').max(47.85, 'Latitude hors Suisse').optional(),
+  z.number()
+    .min(45.8, { error: () => i18n.t('listings:form.validation.latOutsideSwitzerland') })
+    .max(47.85, { error: () => i18n.t('listings:form.validation.latOutsideSwitzerland') })
+    .optional(),
 )
 const optionalCHLng = z.preprocess(
   (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
-  z.number().min(5.95, 'Longitude hors Suisse').max(10.5, 'Longitude hors Suisse').optional(),
+  z.number()
+    .min(5.95, { error: () => i18n.t('listings:form.validation.lngOutsideSwitzerland') })
+    .max(10.5, { error: () => i18n.t('listings:form.validation.lngOutsideSwitzerland') })
+    .optional(),
 )
 
 // Block `javascript:`, `data:`, `file:`, etc. on contact links — `external_regie.website`
@@ -84,7 +92,7 @@ const optionalSafeUrl = z
         return false
       }
     },
-    { message: 'URL invalide (http(s) uniquement)' },
+    { error: () => i18n.t('listings:form.validation.urlInvalid') },
   )
 
 const optionalEmail = z
@@ -92,7 +100,7 @@ const optionalEmail = z
   .optional()
   .refine(
     (v) => !v || v.trim() === '' || z.string().email().safeParse(v.trim()).success,
-    { message: 'Email invalide' },
+    { error: () => i18n.t('listings:form.validation.emailInvalid') },
   )
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -121,18 +129,28 @@ function refineStep3(
       ctx.addIssue({
         code: 'custom',
         path: ['price'],
-        message: `Loyer entre CHF ${PRICE_MIN_RENT} et CHF ${PRICE_MAX_RENT.toLocaleString('fr-CH')}/mois`,
+        message: i18n.t('listings:form.validation.rentRange', {
+          min: PRICE_MIN_RENT,
+          max: PRICE_MAX_RENT.toLocaleString('fr-CH'),
+        }),
       })
     }
     if (!d.availability_date) {
-      ctx.addIssue({ code: 'custom', path: ['availability_date'], message: 'Date requise pour une location' })
+      ctx.addIssue({
+        code: 'custom',
+        path: ['availability_date'],
+        message: i18n.t('listings:form.validation.availabilityRequiredRent'),
+      })
     }
   } else {
     if (!d.price || d.price < PRICE_MIN_BUY || d.price > PRICE_MAX_BUY) {
       ctx.addIssue({
         code: 'custom',
         path: ['price'],
-        message: `Prix entre CHF ${PRICE_MIN_BUY.toLocaleString('fr-CH')} et CHF ${PRICE_MAX_BUY.toLocaleString('fr-CH')}`,
+        message: i18n.t('listings:form.validation.priceRange', {
+          min: PRICE_MIN_BUY.toLocaleString('fr-CH'),
+          max: PRICE_MAX_BUY.toLocaleString('fr-CH'),
+        }),
       })
     }
   }
@@ -154,7 +172,7 @@ function refineCecb(
     ctx.addIssue({
       code: 'custom',
       path: ['energy_class'],
-      message: `CECB obligatoire à la vente dans le canton ${d.canton}. Renseignez la classe énergétique.`,
+      message: i18n.t('listings:form.validation.cecbRequired', { canton: d.canton }),
     })
   }
 }
@@ -162,16 +180,24 @@ function refineCecb(
 const step1Schema = z.object({
   title: z
     .string()
-    .min(5, 'Le titre doit contenir au moins 5 caractères')
-    .max(200, 'Maximum 200 caractères'),
+    .min(5, { error: () => i18n.t('listings:form.validation.titleMin') })
+    .max(200, { error: () => i18n.t('listings:form.validation.max200') }),
   transaction_type: z.enum(['buy', 'rent']).default('buy'),
   type: z.enum(['apartment', 'house', 'villa', 'commercial', 'land'], {
-    message: 'Sélectionnez un type de bien',
+    error: () => i18n.t('listings:form.validation.typeRequired'),
   }),
-  rooms: z.coerce.number().min(0.5, 'Minimum 0.5 pièce').max(30, 'Maximum 30 pièces'),
-  bedrooms: z.coerce.number().min(0, 'Minimum 0').max(20, 'Maximum 20 chambres'),
-  bathrooms: z.coerce.number().min(0, 'Minimum 0').max(10, 'Maximum 10'),
-  surface_m2: z.coerce.number().min(5, 'Minimum 5 m²').max(10000, 'Maximum 10000 m²'),
+  rooms: z.coerce.number()
+    .min(0.5, { error: () => i18n.t('listings:form.validation.roomsMin') })
+    .max(30, { error: () => i18n.t('listings:form.validation.roomsMax') }),
+  bedrooms: z.coerce.number()
+    .min(0, { error: () => i18n.t('listings:form.validation.min0') })
+    .max(20, { error: () => i18n.t('listings:form.validation.bedroomsMax') }),
+  bathrooms: z.coerce.number()
+    .min(0, { error: () => i18n.t('listings:form.validation.min0') })
+    .max(10, { error: () => i18n.t('listings:form.validation.bathroomsMax') }),
+  surface_m2: z.coerce.number()
+    .min(5, { error: () => i18n.t('listings:form.validation.surfaceMin') })
+    .max(10000, { error: () => i18n.t('listings:form.validation.surfaceMax') }),
   floor: optionalNumber,
   total_floors: optionalNumber,
   year_built: optionalNumberRange(1800, CURRENT_YEAR + 5),
@@ -182,14 +208,18 @@ const step1Schema = z.object({
 })
 
 const step2Schema = z.object({
-  address: z.string().min(3, "L'adresse est requise").max(200, 'Maximum 200 caractères'),
-  city: z.string().min(2, 'La ville est requise').max(100, 'Maximum 100 caractères'),
+  address: z.string()
+    .min(3, { error: () => i18n.t('listings:form.validation.addressRequired') })
+    .max(200, { error: () => i18n.t('listings:form.validation.max200') }),
+  city: z.string()
+    .min(2, { error: () => i18n.t('listings:form.validation.cityRequired') })
+    .max(100, { error: () => i18n.t('listings:form.validation.max100') }),
   canton: z.enum(CANTONS as unknown as [string, ...string[]], {
-    message: 'Sélectionnez un canton suisse valide',
+    error: () => i18n.t('listings:form.validation.cantonRequired'),
   }),
   postal_code: z
     .string()
-    .regex(/^[1-9]\d{3}$/, 'NPA suisse invalide (4 chiffres, ne commence pas par 0)'),
+    .regex(/^[1-9]\d{3}$/, { error: () => i18n.t('listings:form.validation.postalCodeInvalid') }),
   lat: optionalCHLat,
   lng: optionalCHLng,
   // EGID — Swiss federal building identifier (9 digits). Optional at the form
@@ -197,21 +227,25 @@ const step2Schema = z.object({
   // for the acte authentique; FINMA expects it for LBA dossier reconstruction.
   egid: z.preprocess(
     (v) => (v === '' || v === undefined || v === null ? undefined : String(v).trim()),
-    z.string().regex(/^[0-9]{9}$/, 'EGID = 9 chiffres (identifiant fédéral du bâtiment)').optional(),
+    z.string()
+      .regex(/^[0-9]{9}$/, { error: () => i18n.t('listings:form.validation.egidInvalid') })
+      .optional(),
   ),
 })
 
 const step3SchemaBase = z.object({
   transaction_type: z.enum(['buy', 'rent']).default('buy'),
-  price: z.coerce.number().min(0, 'Prix négatif refusé'),
+  price: z.coerce.number().min(0, { error: () => i18n.t('listings:form.validation.priceNegative') }),
   charges_monthly: z.preprocess(
     (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
     z.number().min(0).max(10_000).optional(),
   ),
   mandate_type: z.enum(['exclusive', 'simple', 'search'], {
-    message: 'Sélectionnez un type de mandat',
+    error: () => i18n.t('listings:form.validation.mandateRequired'),
   }),
-  features: z.array(z.string().max(60)).max(50, 'Maximum 50 caractéristiques').optional(),
+  features: z.array(z.string().max(60))
+    .max(50, { error: () => i18n.t('listings:form.validation.featuresMax') })
+    .optional(),
   availability_date: z.string().optional(),
   deposit_months: z.coerce.number().int().min(1).max(3).optional(),
   is_furnished: z.boolean().optional(),
@@ -228,7 +262,9 @@ const step3SchemaBase = z.object({
 const step3Schema = step3SchemaBase.superRefine(refineStep3)
 
 const step4Schema = z.object({
-  photos: z.array(z.string().url('URL de photo invalide')).max(50, 'Maximum 50 photos').optional(),
+  photos: z.array(z.string().url({ error: () => i18n.t('listings:form.validation.photoUrlInvalid') }))
+    .max(50, { error: () => i18n.t('listings:form.validation.photosMax') })
+    .optional(),
   gallery_layout: z.enum(['hero', 'mosaic', 'carousel']).optional(),
   contact_layout: z.enum(['right', 'banner', 'floating']).optional(),
   neighborhood_variant: z.enum(['scores', 'map']).optional(),
@@ -238,9 +274,11 @@ const step4Schema = z.object({
 const step5Schema = z.object({
   description: z
     .string()
-    .min(20, 'La description doit contenir au moins 20 caractères')
-    .max(10_000, 'Description trop longue (max 10 000 caractères)'),
-  tags: z.array(z.string().max(40)).max(20, 'Maximum 20 tags').optional(),
+    .min(20, { error: () => i18n.t('listings:form.validation.descriptionMin') })
+    .max(10_000, { error: () => i18n.t('listings:form.validation.descriptionMax') }),
+  tags: z.array(z.string().max(40))
+    .max(20, { error: () => i18n.t('listings:form.validation.tagsMax') })
+    .optional(),
 })
 
 // `fullSchema` re-applies `refineStep3` so the publish path can't bypass
@@ -261,21 +299,24 @@ const fullSchema = step1Schema
 type ListingFormData = z.infer<typeof fullSchema>
 
 
+// `categoryKey` drives the i18n group header (listings:form.featureGroup.*).
+// `items` stay in French on purpose: they are persisted verbatim into
+// `properties.features` (matched as data), so they must NOT be translated.
 const FEATURES_CATEGORIZED = [
   {
-    category: 'Extérieur',
+    categoryKey: 'exterior',
     items: ['Balcon', 'Terrasse', 'Jardin', 'Piscine'],
   },
   {
-    category: 'Parking & stockage',
+    categoryKey: 'parkingStorage',
     items: ['Garage', 'Parking', 'Place de parc', 'Cave'],
   },
   {
-    category: 'Intérieur',
+    categoryKey: 'interior',
     items: ['Ascenseur', 'Cheminée', 'Climatisation', 'Buanderie', 'Meublé'],
   },
   {
-    category: 'Qualité & accessibilité',
+    categoryKey: 'qualityAccess',
     items: ['Minergie', 'Vue lac', 'Vue montagne', 'Accès PMR'],
   },
 ]
@@ -294,12 +335,14 @@ const stepShapes = [
   step5Schema.shape,
 ] as const
 
-const PROPERTY_TYPE_DESCRIPTIONS: Record<string, string> = {
-  apartment: 'PPE ou locatif',
-  house: 'Individuelle ou mitoyenne',
-  villa: 'Haut de gamme',
-  commercial: 'Bureau ou commerce',
-  land: 'Terrain constructible',
+// Display-only sub-labels for each property type, resolved at render via i18n
+// (keyed by the persisted `type` code). See listings:form.typeDesc.*.
+const PROPERTY_TYPE_DESC_KEYS: Record<string, string> = {
+  apartment: 'apartment',
+  house: 'house',
+  villa: 'villa',
+  commercial: 'commercial',
+  land: 'land',
 }
 
 const PROPERTY_TYPE_ICONS: Record<string, MEIconName> = {
@@ -313,17 +356,19 @@ const PROPERTY_TYPE_ICONS: Record<string, MEIconName> = {
   land: 'land',
 }
 
+// Value lists — labels resolved at render via i18n (listings:form.condition.*
+// and listings:form.availability.*). The `value` is the persisted/logical code.
 const CONDITION_OPTIONS = [
-  { value: 'new', label: 'Neuf' },
-  { value: 'renovated', label: 'Rénové' },
-  { value: 'good', label: 'Bon état' },
-  { value: 'to_renovate', label: 'À rénover' },
+  { value: 'new' },
+  { value: 'renovated' },
+  { value: 'good' },
+  { value: 'to_renovate' },
 ] as const
 
 const AVAILABILITY_OPTIONS = [
-  { value: 'immediate', label: 'Immédiat' },
-  { value: '3months', label: 'Dans 3 mois' },
-  { value: 'negotiable', label: 'À convenir' },
+  { value: 'immediate' },
+  { value: '3months' },
+  { value: 'negotiable' },
 ] as const
 
 
@@ -426,22 +471,23 @@ const selectClass = 'w-full h-11 px-4 text-sm bg-transparent border border-theme
 // ─── Step 1: Infos générales (refonte) ───
 
 function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
+  const { t } = useTranslation('listings')
   const { register, watch, setValue, formState: { errors } } = form
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-theme-primary">Informations générales</h2>
-        <p className="text-sm text-theme-tertiary mt-1">Décrivez votre bien immobilier.</p>
+        <h2 className="text-xl font-semibold text-theme-primary">{t('form.step1.title')}</h2>
+        <p className="text-sm text-theme-tertiary mt-1">{t('form.step1.subtitle')}</p>
       </div>
 
       {/* Title */}
       <div>
-        <FieldLabel htmlFor="title">Titre de l'annonce</FieldLabel>
+        <FieldLabel htmlFor="title">{t('form.fields.title')}</FieldLabel>
         <input
           id="title"
           {...register('title')}
-          placeholder="Ex : Appartement lumineux aux Eaux-Vives"
+          placeholder={t('form.placeholders.title')}
           className={inputClass}
         />
         <FieldError message={errors.title?.message} />
@@ -449,7 +495,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
 
       {/* Property type — icons + labels */}
       <div>
-        <FieldLabel htmlFor="type">Type de bien</FieldLabel>
+        <FieldLabel htmlFor="type">{t('form.fields.type')}</FieldLabel>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {(Object.entries(PROPERTY_TYPE_LABELS) as [PropertyType, string][]).map(([value, label]) => {
             const iconName = PROPERTY_TYPE_ICONS[value]
@@ -467,7 +513,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
                 <input type="radio" value={value} {...register('type')} className="sr-only" />
                 <MEIcon name={iconName} className={cn('h-7 w-7 mb-2', isSelected ? 'text-theme-primary' : 'text-theme-muted')} />
                 <span className="text-sm font-medium">{label}</span>
-                <span className={cn('text-xs mt-0.5', isSelected ? 'text-theme-secondary' : 'text-theme-muted')}>{PROPERTY_TYPE_DESCRIPTIONS[value]}</span>
+                <span className={cn('text-xs mt-0.5', isSelected ? 'text-theme-secondary' : 'text-theme-muted')}>{t(`form.typeDesc.${PROPERTY_TYPE_DESC_KEYS[value]}`)}</span>
               </label>
             )
           })}
@@ -475,12 +521,12 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
         <FieldError message={errors.type?.message} />
       </div>
 
-      <SectionDivider title="Caractéristiques" />
+      <SectionDivider title={t('form.step1.characteristics')} />
 
       {/* Number steppers for rooms, bedrooms, bathrooms */}
       <div className="grid grid-cols-3 gap-6">
         <NumberStepper
-          label="Pièces"
+          label={t('form.fields.rooms')}
           value={watch('rooms')}
           onChange={(v) => setValue('rooms', v, { shouldValidate: true })}
           min={0.5}
@@ -489,7 +535,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
           error={errors.rooms?.message}
         />
         <NumberStepper
-          label="Chambres"
+          label={t('form.fields.bedrooms')}
           value={watch('bedrooms')}
           onChange={(v) => setValue('bedrooms', v, { shouldValidate: true })}
           min={0}
@@ -498,7 +544,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
           error={errors.bedrooms?.message}
         />
         <NumberStepper
-          label="Salles de bain"
+          label={t('form.fields.bathrooms')}
           value={watch('bathrooms')}
           onChange={(v) => setValue('bathrooms', v, { shouldValidate: true })}
           min={0}
@@ -511,7 +557,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
       {/* Surface + floor details */}
       <div className="grid grid-cols-2 gap-5">
         <div>
-          <FieldLabel htmlFor="surface_m2">Surface</FieldLabel>
+          <FieldLabel htmlFor="surface_m2">{t('form.fields.surface')}</FieldLabel>
           <div className="relative">
             <input
               id="surface_m2"
@@ -525,22 +571,22 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
           <FieldError message={errors.surface_m2?.message} />
         </div>
         <div>
-          <FieldLabel htmlFor="floor">Étage</FieldLabel>
+          <FieldLabel htmlFor="floor">{t('form.fields.floor')}</FieldLabel>
           <input id="floor" type="number" {...register('floor')} placeholder="3" className={inputClass} />
         </div>
         <div>
-          <FieldLabel htmlFor="total_floors">Nb. étages</FieldLabel>
+          <FieldLabel htmlFor="total_floors">{t('form.fields.totalFloors')}</FieldLabel>
           <input id="total_floors" type="number" {...register('total_floors')} placeholder="5" className={inputClass} />
         </div>
         <div>
-          <FieldLabel htmlFor="year_built">Année</FieldLabel>
+          <FieldLabel htmlFor="year_built">{t('form.fields.yearBuilt')}</FieldLabel>
           <input id="year_built" type="number" {...register('year_built')} placeholder="2020" className={inputClass} />
         </div>
       </div>
 
       {/* Condition */}
       <div>
-        <FieldLabel htmlFor="condition">État du bien</FieldLabel>
+        <FieldLabel htmlFor="condition">{t('form.fields.condition')}</FieldLabel>
         <div className="flex flex-wrap gap-2">
           {CONDITION_OPTIONS.map((opt) => (
             <button
@@ -554,7 +600,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
                   : 'border-theme-border text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
               )}
             >
-              {opt.label}
+              {t(`form.condition.${opt.value}`)}
             </button>
           ))}
         </div>
@@ -563,7 +609,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
       {/* CECB — classe énergétique (obligatoire à la vente pour GE/VD/NE,
           validée côté fullSchema via refineCecb) */}
       <div>
-        <FieldLabel htmlFor="energy_class">Classe énergétique (CECB)</FieldLabel>
+        <FieldLabel htmlFor="energy_class">{t('form.fields.energyClass')}</FieldLabel>
         <div className="flex flex-wrap gap-2">
           {ENERGY_CLASS_OPTIONS.map((letter) => {
             const active = watch('energy_class') === letter
@@ -592,7 +638,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
           })}
         </div>
         <p className="text-xs text-theme-muted mt-1.5">
-          Requis à la vente dans les cantons GE, VD, NE (loi cantonale énergie).
+          {t('form.fields.energyClassHelp')}
         </p>
         <FieldError message={errors.energy_class?.message} />
       </div>
@@ -603,6 +649,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
 // ─── Step 2: Localisation (refonte avec autocomplete) ───
 
 function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
+  const { t } = useTranslation('listings')
   const { register, watch, setValue, formState: { errors } } = form
   const [isManualMode, setIsManualMode] = useState(false)
   const address = watch('address')
@@ -635,22 +682,22 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-theme-primary">Localisation</h2>
-        <p className="text-sm text-theme-tertiary mt-1">Où se situe le bien ?</p>
+        <h2 className="text-xl font-semibold text-theme-primary">{t('form.step2.title')}</h2>
+        <p className="text-sm text-theme-tertiary mt-1">{t('form.step2.subtitle')}</p>
       </div>
 
       {!isManualMode ? (
         <>
           {/* Swiss address autocomplete */}
           <div>
-            <FieldLabel htmlFor="address-search">Adresse du bien</FieldLabel>
+            <FieldLabel htmlFor="address-search">{t('form.fields.propertyAddress')}</FieldLabel>
             <SwissAddressAutocomplete
               onSelect={handleAddressSelect}
               defaultValue={address}
-              placeholder="Tapez une adresse suisse..."
+              placeholder={t('form.placeholders.addressSearch')}
             />
             <p className="text-xs text-theme-muted mt-1.5">
-              Recherche dans toutes les adresses officielles suisses
+              {t('form.step2.addressSearchHelp')}
             </p>
           </div>
 
@@ -689,19 +736,19 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
           {hasAddress && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <p className="text-xs text-theme-muted mb-1">Rue</p>
+                <p className="text-xs text-theme-muted mb-1">{t('form.fields.street')}</p>
                 <p className="text-sm text-theme-primary font-medium truncate">{address}</p>
               </div>
               <div>
-                <p className="text-xs text-theme-muted mb-1">Ville</p>
+                <p className="text-xs text-theme-muted mb-1">{t('form.fields.city')}</p>
                 <p className="text-sm text-theme-primary font-medium">{city}</p>
               </div>
               <div>
-                <p className="text-xs text-theme-muted mb-1">NPA</p>
+                <p className="text-xs text-theme-muted mb-1">{t('form.fields.postalCode')}</p>
                 <p className="text-sm text-theme-primary font-medium">{postalCode}</p>
               </div>
               <div>
-                <p className="text-xs text-theme-muted mb-1">Canton</p>
+                <p className="text-xs text-theme-muted mb-1">{t('form.fields.canton')}</p>
                 <p className="text-sm text-theme-primary font-medium">{canton}</p>
               </div>
             </div>
@@ -713,28 +760,28 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
             onClick={() => setIsManualMode(true)}
             className="text-xs text-theme-muted hover:text-theme-secondary transition-colors underline underline-offset-2"
           >
-            Saisir manuellement
+            {t('form.step2.manualEntry')}
           </button>
         </>
       ) : (
         <>
           {/* Manual mode — classic fields */}
           <div>
-            <FieldLabel htmlFor="address">Adresse</FieldLabel>
+            <FieldLabel htmlFor="address">{t('form.fields.address')}</FieldLabel>
             <input id="address" {...register('address')} placeholder="Rue du Lac 12" className={inputClass} />
             <FieldError message={errors.address?.message} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <FieldLabel htmlFor="city">Ville</FieldLabel>
+              <FieldLabel htmlFor="city">{t('form.fields.city')}</FieldLabel>
               <input id="city" {...register('city')} placeholder="Genève" className={inputClass} />
               <FieldError message={errors.city?.message} />
             </div>
             <div>
-              <FieldLabel htmlFor="canton">Canton</FieldLabel>
+              <FieldLabel htmlFor="canton">{t('form.fields.canton')}</FieldLabel>
               <select id="canton" {...register('canton')} className={selectClass}>
-                <option value="">Sélectionner...</option>
+                <option value="">{t('form.placeholders.select')}</option>
                 {CANTONS.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -742,7 +789,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
               <FieldError message={errors.canton?.message} />
             </div>
             <div>
-              <FieldLabel htmlFor="postal_code">Code postal</FieldLabel>
+              <FieldLabel htmlFor="postal_code">{t('form.fields.postalCodeFull')}</FieldLabel>
               <input id="postal_code" {...register('postal_code')} placeholder="1207" maxLength={4} className={inputClass} />
               <FieldError message={errors.postal_code?.message} />
             </div>
@@ -753,7 +800,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
             onClick={() => setIsManualMode(false)}
             className="text-xs text-theme-muted hover:text-theme-secondary transition-colors underline underline-offset-2"
           >
-            Rechercher par adresse
+            {t('form.step2.searchByAddress')}
           </button>
         </>
       )}
@@ -762,7 +809,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
           Optionnel au formulaire mais requis par le notaire pour l'acte
           authentique. Toujours visible (mode autocomplete + mode manuel). */}
       <div>
-        <FieldLabel htmlFor="egid">EGID (identifiant fédéral du bâtiment)</FieldLabel>
+        <FieldLabel htmlFor="egid">{t('form.fields.egid')}</FieldLabel>
         <input
           id="egid"
           {...register('egid')}
@@ -772,8 +819,10 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
           className={inputClass}
         />
         <p className="text-xs text-theme-muted mt-1.5">
-          9 chiffres — recherchable sur <span className="font-mono">map.geo.admin.ch</span>.
-          Optionnel ici, indispensable chez le notaire.
+          <Trans
+            i18nKey="listings:form.fields.egidHelp"
+            components={{ mono: <span className="font-mono" /> }}
+          />
         </p>
         <FieldError message={errors.egid?.message} />
       </div>
@@ -794,7 +843,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
           <div className="w-full h-full flex items-center justify-center">
             <div className="text-center">
               <MEIcon name="location" className="h-8 w-8 text-theme-muted mx-auto mb-2" />
-              <p className="text-xs text-theme-muted">Sélectionnez une adresse pour voir la localisation</p>
+              <p className="text-xs text-theme-muted">{t('form.step2.mapPlaceholder')}</p>
             </div>
           </div>
         )}
@@ -806,6 +855,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
 // ─── Step 3: Prix & détails (refonte features catégorisées) ───
 
 function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
+  const { t } = useTranslation('listings')
   const { register, watch, setValue, formState: { errors } } = form
   const features = watch('features') || []
   const price = watch('price')
@@ -843,15 +893,15 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-theme-primary">Prix & détails</h2>
-        <p className="text-sm text-theme-tertiary mt-1">Définissez le prix et les caractéristiques du bien.</p>
+        <h2 className="text-xl font-semibold text-theme-primary">{t('form.step3.title')}</h2>
+        <p className="text-sm text-theme-tertiary mt-1">{t('form.step3.subtitle')}</p>
       </div>
 
       {/* Price — prominent section */}
       <div className="rounded-xl border border-theme-border p-5 bg-theme-section/30">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <FieldLabel htmlFor="price">{isRent ? 'Loyer mensuel' : 'Prix de vente'}</FieldLabel>
+            <FieldLabel htmlFor="price">{isRent ? t('form.fields.monthlyRent') : t('form.fields.salePrice')}</FieldLabel>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-theme-muted font-medium">CHF</span>
               <input
@@ -862,13 +912,13 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
                 className={cn(inputClass, 'pl-14 text-lg font-semibold h-12')}
               />
               {isRent && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-theme-muted">/mois</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-theme-muted">{t('form.perMonth')}</span>
               )}
             </div>
             <FieldError message={errors.price?.message} />
           </div>
         <div>
-          <FieldLabel htmlFor="charges_monthly">Charges mensuelles</FieldLabel>
+          <FieldLabel htmlFor="charges_monthly">{t('form.fields.chargesMonthly')}</FieldLabel>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-theme-muted font-medium">CHF</span>
             <input
@@ -899,7 +949,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
         {/* Rental-only: deposit (caution) */}
         {isRent && (
           <div className="pt-4 border-t border-theme-border/50 mt-3">
-            <FieldLabel>Caution (mois de loyer)</FieldLabel>
+            <FieldLabel>{t('form.fields.deposit')}</FieldLabel>
             <div className="flex gap-2">
               {[1, 2, 3].map((n) => (
                 <button
@@ -914,7 +964,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
                   )}
                   aria-pressed={depositMonths === n}
                 >
-                  {n} mois
+                  {t('form.monthsCount', { count: n })}
                 </button>
               ))}
             </div>
@@ -924,11 +974,11 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
         {/* Rental-only: furnished toggle */}
         {isRent && (
           <div className="pt-4 border-t border-theme-border/50 mt-3">
-            <FieldLabel>Meublé</FieldLabel>
+            <FieldLabel>{t('form.fields.furnished')}</FieldLabel>
             <div className="flex gap-2">
               {[
-                { value: false, label: 'Non meublé' },
-                { value: true, label: 'Meublé' },
+                { value: false, labelKey: 'notFurnished' },
+                { value: true, labelKey: 'furnished' },
               ].map((opt) => (
                 <button
                   key={String(opt.value)}
@@ -942,7 +992,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
                   )}
                   aria-pressed={isFurnished === opt.value}
                 >
-                  {opt.label}
+                  {t(`form.furnishedOption.${opt.labelKey}`)}
                 </button>
               ))}
             </div>
@@ -952,25 +1002,21 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
 
       {/* Mandate type */}
       <div>
-        <FieldLabel htmlFor="mandate_type">Type de mandat</FieldLabel>
+        <FieldLabel htmlFor="mandate_type">{t('form.fields.mandateType')}</FieldLabel>
         <div className="grid grid-cols-3 gap-2">
-          {[
-            { value: 'exclusive', label: 'Exclusif', desc: 'Seul mandataire' },
-            { value: 'simple', label: 'Simple', desc: 'Multi-agences' },
-            { value: 'search', label: 'Recherche', desc: 'Mandat acheteur' },
-          ].map((opt) => (
+          {(['exclusive', 'simple', 'search'] as const).map((value) => (
             <label
-              key={opt.value}
+              key={value}
               className={cn(
                 'flex flex-col items-center justify-center p-3 rounded-lg border text-center cursor-pointer transition-all',
-                watch('mandate_type') === opt.value
+                watch('mandate_type') === value
                   ? 'border-theme-primary bg-theme-active text-theme-primary'
                   : 'border-theme-border text-theme-secondary hover:bg-theme-hover'
               )}
             >
-              <input type="radio" value={opt.value} {...register('mandate_type')} className="sr-only" />
-              <span className="text-sm font-medium">{opt.label}</span>
-              <span className="text-xs text-theme-muted mt-0.5">{opt.desc}</span>
+              <input type="radio" value={value} {...register('mandate_type')} className="sr-only" />
+              <span className="text-sm font-medium">{t(`form.mandate.${value}.label`)}</span>
+              <span className="text-xs text-theme-muted mt-0.5">{t(`form.mandate.${value}.desc`)}</span>
             </label>
           ))}
         </div>
@@ -981,18 +1027,18 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
       {isRent && (
         <details className="rounded-xl border border-theme-border p-4 group">
           <summary className="text-sm font-medium text-theme-primary cursor-pointer select-none flex items-center justify-between">
-            <span>Régie externe (optionnel — sinon l'agence publie sous son nom)</span>
+            <span>{t('form.regie.summary')}</span>
             <MEIcon name="chevron-down" className="w-4 h-4 text-theme-secondary transition-transform group-open:rotate-180" />
           </summary>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
             {[
-              { field: 'name', label: 'Nom régie', placeholder: 'Régie Bernard SA', type: 'text' },
-              { field: 'phone', label: 'Téléphone', placeholder: '+41 22 555 00 00', type: 'tel' },
-              { field: 'email', label: 'Email', placeholder: 'contact@regie.ch', type: 'email' },
-              { field: 'website', label: 'Site web', placeholder: 'https://regie.ch', type: 'url' },
+              { field: 'name', labelKey: 'name', placeholder: 'Régie Bernard SA', type: 'text' },
+              { field: 'phone', labelKey: 'phone', placeholder: '+41 22 555 00 00', type: 'tel' },
+              { field: 'email', labelKey: 'email', placeholder: 'contact@regie.ch', type: 'email' },
+              { field: 'website', labelKey: 'website', placeholder: 'https://regie.ch', type: 'url' },
             ].map((f) => (
               <div key={f.field}>
-                <FieldLabel htmlFor={`regie_${f.field}`}>{f.label}</FieldLabel>
+                <FieldLabel htmlFor={`regie_${f.field}`}>{t(`form.regie.${f.labelKey}`)}</FieldLabel>
                 <input
                   id={`regie_${f.field}`}
                   type={f.type}
@@ -1012,11 +1058,11 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
 
       {/* Features — categorized */}
       <div>
-        <FieldLabel htmlFor="features">Caractéristiques</FieldLabel>
+        <FieldLabel htmlFor="features">{t('form.fields.features')}</FieldLabel>
         <div className="space-y-4">
           {FEATURES_CATEGORIZED.map((group) => (
-            <div key={group.category}>
-              <p className="text-xs text-theme-muted mb-2">{group.category}</p>
+            <div key={group.categoryKey}>
+              <p className="text-xs text-theme-muted mb-2">{t(`form.featureGroup.${group.categoryKey}`)}</p>
               <div className="flex flex-wrap gap-2">
                 {group.items.map((feature) => (
                   <button
@@ -1039,16 +1085,16 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
           ))}
         </div>
         {features.length > 0 && (
-          <p className="text-xs text-theme-muted mt-2">{features.length} caractéristique{features.length > 1 ? 's' : ''} sélectionnée{features.length > 1 ? 's' : ''}</p>
+          <p className="text-xs text-theme-muted mt-2">{t('form.featuresSelected', { count: features.length })}</p>
         )}
       </div>
 
       {/* Availability date */}
       <div>
         <FieldLabel htmlFor="availability_date">
-          Disponibilité
+          {t('form.fields.availability')}
           {isRent && <span className="ml-1 text-red-500" aria-hidden="true">*</span>}
-          {isRent && <span className="sr-only">(requis)</span>}
+          {isRent && <span className="sr-only">{t('form.required')}</span>}
         </FieldLabel>
         <div className="flex flex-wrap gap-2 mb-3">
           {AVAILABILITY_OPTIONS.map((opt) => {
@@ -1068,7 +1114,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
                     : 'border-theme-border text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
                 )}
               >
-                {opt.label}
+                {t(`form.availability.${opt.value}`)}
               </button>
             )
           })}
@@ -1100,6 +1146,7 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
   roomTag?: string
   onRoomTagChange?: (room: string) => void
 }) {
+  const { t } = useTranslation('listings')
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
   const style = {
@@ -1119,7 +1166,7 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
       )}
     >
       <div className="aspect-[4/3]">
-        <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+        <img src={url} alt={t('form.photoAlt', { index: index + 1 })} className="w-full h-full object-cover" loading="lazy" decoding="async" />
         {/* Overlay on hover */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity">
@@ -1138,7 +1185,7 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
         {/* Badge for first photo */}
         {index === 0 && (
           <span className="absolute top-2 left-2 text-xs font-semibold bg-theme-primary text-theme-inverse px-2 py-0.5 rounded-full">
-            Couverture
+            {t('form.coverPhoto')}
           </span>
         )}
         {/* Index badge */}
@@ -1156,7 +1203,7 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
           onClick={e => e.stopPropagation()}
           className="w-full h-7 px-2 text-xs bg-theme-card border-t border-theme-border text-theme-secondary focus:outline-none focus:text-theme-primary"
         >
-          <option value="">— Pièce —</option>
+          <option value="">{t('form.roomTagPlaceholder')}</option>
           {FLOOR_PLAN_ROOMS.map(r => (
             <option key={r.key} value={r.key}>{r.label}</option>
           ))}
@@ -1185,6 +1232,7 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
     canAccess: boolean
   }
 }) {
+  const { t } = useTranslation('listings')
   const { watch, setValue } = form
   const rawPhotos = watch('photos')
   const photos = useMemo(() => rawPhotos || [], [rawPhotos])
@@ -1260,9 +1308,9 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-theme-primary">Photos</h2>
+        <h2 className="text-xl font-semibold text-theme-primary">{t('form.step4.title')}</h2>
         <p className="text-sm text-theme-tertiary mt-1">
-          Ajoutez des photos de qualité. Glissez pour réordonner. La première sera la couverture.
+          {t('form.step4.subtitle')}
         </p>
       </div>
 
@@ -1291,10 +1339,10 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
       >
         <MEIcon name="upload" className={cn('h-8 w-8 mx-auto mb-2', dragOver ? 'text-accent' : 'text-theme-muted')} />
         <p className="text-sm font-medium text-theme-primary">
-          Glissez vos photos ici ou cliquez pour parcourir
+          {t('form.step4.dropzoneTitle')}
         </p>
         <p className="text-xs text-theme-muted mt-1">
-          JPG, PNG ou WebP · Max 10 Mo · Jusqu'à 20 photos
+          {t('form.step4.dropzoneHint')}
         </p>
       </div>
 
@@ -1348,10 +1396,10 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0E1410', margin: 0 }}>
-              Disposition de la fiche publique
+              {t('form.step4.layoutTitle')}
             </h3>
             <p style={{ fontSize: 12, color: '#7A8079', marginTop: 4 }}>
-              Choisissez comment votre annonce sera mise en page sur la fiche publique du bien.
+              {t('form.step4.layoutSubtitle')}
             </p>
           </div>
 
@@ -1401,8 +1449,8 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
       {/* Floor Plan Interactif */}
       {floorPlanProps && !floorPlanProps.canAccess && (
         <UpgradePrompt
-          title="Plan interactif"
-          description="Ajoutez un plan d'étage cliquable pour permettre aux acheteurs de naviguer les photos pièce par pièce."
+          title={t('form.floorPlan.upgradeTitle')}
+          description={t('form.floorPlan.upgradeDescription')}
           className="mt-6"
         />
       )}
@@ -1428,6 +1476,7 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
 // ── C2PA Certification Section ────────────────────────────────────────────
 
 function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; photoUrls: string[] }) {
+  const { t } = useTranslation('listings')
   const signPhotos = useSignPhotos()
   const [signed, setSigned] = useState(false)
 
@@ -1442,8 +1491,8 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
             <MEIcon name="shield" className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
-            <p className="text-sm font-medium text-theme-primary">Certification C2PA</p>
-            <p className="text-xs text-theme-tertiary">Sauvegardez le bien pour certifier les photos</p>
+            <p className="text-sm font-medium text-theme-primary">{t('form.c2pa.title')}</p>
+            <p className="text-xs text-theme-tertiary">{t('form.c2pa.saveFirst')}</p>
           </div>
         </div>
       </div>
@@ -1465,12 +1514,12 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
           </div>
           <div>
             <p className="text-sm font-medium text-theme-primary">
-              {signed || signPhotos.isSuccess ? 'Photos certifiées C2PA' : 'Certification C2PA'}
+              {signed || signPhotos.isSuccess ? t('form.c2pa.titleSigned') : t('form.c2pa.title')}
             </p>
             <p className="text-xs text-theme-tertiary">
               {signed || signPhotos.isSuccess
-                ? `${photoUrls.length} photo${photoUrls.length > 1 ? 's' : ''} signée${photoUrls.length > 1 ? 's' : ''} cryptographiquement`
-                : 'Signez vos photos pour prouver leur authenticité'
+                ? t('form.c2pa.signedCount', { count: photoUrls.length })
+                : t('form.c2pa.proveAuthenticity')
               }
             </p>
           </div>
@@ -1489,12 +1538,12 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
             {signPhotos.isPending ? (
               <>
                 <MEIcon name="spinner" className="w-3.5 h-3.5 animate-spin" />
-                Certification...
+                {t('form.c2pa.certifying')}
               </>
             ) : (
               <>
                 <MEIcon name="shield" className="w-3.5 h-3.5" />
-                Certifier
+                {t('form.c2pa.certify')}
               </>
             )}
           </button>
@@ -1502,7 +1551,7 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
       </div>
       {signPhotos.isError && (
         <p className="text-xs text-red-600 mt-2">
-          Erreur lors de la certification. Réessayez ultérieurement.
+          {t('form.c2pa.error')}
         </p>
       )}
     </div>
@@ -1514,6 +1563,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
   propertyId: string
   onStagedPhoto: (url: string) => void
 }) {
+  const { t } = useTranslation('listings')
   const { generateStaging, isGenerating, error, result, reset } = useVirtualStaging()
   const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null)
   const [style, setStyle] = useState<StagingStyle>('modern')
@@ -1543,7 +1593,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
           </div>
           <div className="text-left">
             <p className="text-sm font-semibold text-theme-primary">MEGGA Staging</p>
-            <p className="text-xs text-theme-tertiary">Meublez vos pièces vides avec l'IA</p>
+            <p className="text-xs text-theme-tertiary">{t('form.staging.subtitle')}</p>
           </div>
         </div>
         <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-muted transition-transform', isOpen && 'rotate-180')} />
@@ -1553,7 +1603,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
         <div className="px-4 pb-4 space-y-4 border-t border-theme-border pt-4">
           {/* Photo selection */}
           <div>
-            <p className="text-xs font-medium text-theme-secondary mb-2">Sélectionnez une photo à meubler</p>
+            <p className="text-xs font-medium text-theme-secondary mb-2">{t('form.staging.selectPhoto')}</p>
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
               {photos.map((url, i) => (
                 <button
@@ -1574,7 +1624,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
             <>
               {/* Style selection */}
               <div>
-                <p className="text-xs font-medium text-theme-secondary mb-2">Style</p>
+                <p className="text-xs font-medium text-theme-secondary mb-2">{t('form.staging.style')}</p>
                 <div className="flex flex-wrap gap-2">
                   {STAGING_STYLES.map((s) => (
                     <button
@@ -1595,7 +1645,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
 
               {/* Room type */}
               <div>
-                <p className="text-xs font-medium text-theme-secondary mb-2">Type de pièce</p>
+                <p className="text-xs font-medium text-theme-secondary mb-2">{t('form.staging.roomType')}</p>
                 <div className="flex flex-wrap gap-2">
                   {ROOM_TYPES.map((r) => (
                     <button
@@ -1623,10 +1673,10 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
                 {isGenerating ? (
                   <>
                     <MEIcon name="spinner" className="w-4 h-4 animate-spin" />
-                    Génération en cours...
+                    {t('form.staging.generating')}
                   </>
                 ) : (
-                  'Générer la version meublée'
+                  t('form.staging.generate')
                 )}
               </button>
 
@@ -1634,7 +1684,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
               {error && (
                 <p className="text-xs text-red-500">
                   {error.error}
-                  {error.upgrade_required && ' — Passez au plan Pro pour débloquer.'}
+                  {error.upgrade_required && ` ${t('form.staging.upgradeSuffix')}`}
                 </p>
               )}
 
@@ -1643,23 +1693,23 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
                 <div className="rounded-lg border border-theme-border overflow-hidden">
                   <div className="grid grid-cols-2 gap-px bg-theme-border">
                     <div className="relative bg-theme-card">
-                      <img src={photos[selectedPhoto]} alt="Original" className="w-full aspect-[4/3] object-cover" />
-                      <span className="absolute bottom-2 left-2 text-xs font-medium bg-black/50 text-white px-2 py-0.5 rounded">Original</span>
+                      <img src={photos[selectedPhoto]} alt={t('form.staging.original')} className="w-full aspect-[4/3] object-cover" />
+                      <span className="absolute bottom-2 left-2 text-xs font-medium bg-black/50 text-white px-2 py-0.5 rounded">{t('form.staging.original')}</span>
                     </div>
                     <div className="relative bg-theme-card">
-                      <img src={result.staged_url} alt="Meublé" className="w-full aspect-[4/3] object-cover" />
+                      <img src={result.staged_url} alt={t('form.staging.furnished')} className="w-full aspect-[4/3] object-cover" />
                       <span className="absolute bottom-2 left-2 text-xs font-medium bg-accent/80 text-white px-2 py-0.5 rounded">MEGGA Staging</span>
                     </div>
                   </div>
                   <div className="p-3 flex items-center justify-between">
                     <span className="text-xs text-theme-muted">
-                      {result.usage.remaining} images restantes ce mois
+                      {t('form.staging.imagesRemaining', { count: result.usage.remaining })}
                     </span>
                     <button
                       onClick={() => { reset(); setSelectedPhoto(null) }}
                       className="text-xs text-accent hover:underline"
                     >
-                      Meubler une autre photo
+                      {t('form.staging.stageAnother')}
                     </button>
                   </div>
                 </div>
@@ -1675,6 +1725,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
 // ─── Step 5: Description & publication ───
 
 function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
+  const { t } = useTranslation('listings')
   const { register, watch, setValue, formState: { errors } } = form
   const tags = watch('tags') || []
   const title = watch('title')
@@ -1696,18 +1747,18 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-theme-primary">Description & publication</h2>
-        <p className="text-sm text-theme-tertiary mt-1">Rédigez une description attrayante et choisissez vos tags.</p>
+        <h2 className="text-xl font-semibold text-theme-primary">{t('form.step5.title')}</h2>
+        <p className="text-sm text-theme-tertiary mt-1">{t('form.step5.subtitle')}</p>
       </div>
 
       {/* Description */}
       <div>
-        <FieldLabel htmlFor="description">Description du bien</FieldLabel>
+        <FieldLabel htmlFor="description">{t('form.fields.description')}</FieldLabel>
         <textarea
           id="description"
           {...register('description')}
           rows={6}
-          placeholder="Décrivez les points forts du bien, son environnement, ses atouts..."
+          placeholder={t('form.placeholders.description')}
           className="w-full px-4 py-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-y text-theme-primary placeholder:text-theme-muted"
         />
         <FieldError message={errors.description?.message} />
@@ -1715,7 +1766,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
 
       {/* Tags */}
       <div>
-        <FieldLabel htmlFor="tags">Tags</FieldLabel>
+        <FieldLabel htmlFor="tags">{t('form.fields.tags')}</FieldLabel>
         <div className="flex flex-wrap gap-2">
           {TAG_OPTIONS.map((tag) => (
             <button
@@ -1743,7 +1794,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
 
       {/* Preview card */}
       <div>
-        <p className="text-sm font-medium text-theme-primary mb-3">Aperçu de l'annonce</p>
+        <p className="text-sm font-medium text-theme-primary mb-3">{t('form.preview.heading')}</p>
         <div className="rounded-lg border border-theme-border p-5 bg-theme-section">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
@@ -1751,10 +1802,10 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
                 {price > 0 ? formatCHF(price) : 'CHF —'}
               </p>
               <h3 className="text-sm font-semibold text-theme-primary mt-0.5">
-                {title || 'Titre de l\'annonce'}
+                {title || t('form.preview.titlePlaceholder')}
               </h3>
               <p className="text-xs text-theme-secondary mt-0.5">
-                {city || 'Ville'}{canton ? ` (${canton})` : ''}
+                {city || t('form.preview.cityPlaceholder')}{canton ? ` (${canton})` : ''}
               </p>
             </div>
             {type && (
@@ -1765,7 +1816,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
           </div>
           {(rooms > 0 || surface > 0) && (
             <p className="text-xs text-theme-secondary mb-3">
-              {rooms > 0 && `${rooms} pièces`}
+              {rooms > 0 && t('form.preview.roomsCount', { count: rooms })}
               {rooms > 0 && surface > 0 && ' · '}
               {surface > 0 && `${surface} m²`}
             </p>
@@ -1780,7 +1831,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
             </div>
           )}
           <p className="text-xs text-theme-secondary line-clamp-3">
-            {watch('description') || 'La description apparaîtra ici...'}
+            {watch('description') || t('form.preview.descriptionPlaceholder')}
           </p>
         </div>
       </div>
@@ -1794,41 +1845,42 @@ function MethodSelectionScreen({ hasProperties, onSelect }: {
   hasProperties: boolean
   onSelect: (method: 'manual' | 'duplicate' | 'url' | 'pdf') => void
 }) {
+  const { t } = useTranslation('listings')
   const methods = [
     {
       id: 'manual' as const,
       icon: 'edit',
-      title: 'Saisie manuelle',
-      desc: 'Remplir le formulaire étape par étape',
+      title: t('form.method.manual.title'),
+      desc: t('form.method.manual.desc'),
       available: true,
     },
     {
       id: 'duplicate' as const,
       icon: 'copy',
-      title: 'Dupliquer un bien existant',
-      desc: hasProperties ? 'Copier les infos d\'un de vos biens' : 'Vous n\'avez aucun bien à dupliquer',
+      title: t('form.method.duplicate.title'),
+      desc: hasProperties ? t('form.method.duplicate.desc') : t('form.method.duplicate.descEmpty'),
       available: hasProperties,
     },
     {
       id: 'url' as const,
       icon: 'link',
-      title: 'Depuis une URL',
-      desc: 'Importer depuis Homegate, ImmoScout24...',
+      title: t('form.method.url.title'),
+      desc: t('form.method.url.desc'),
       available: true,
     },
     {
       id: 'pdf' as const,
       icon: 'file',
-      title: 'Depuis un PDF',
-      desc: 'Extraire les infos d\'une fiche descriptive',
+      title: t('form.method.pdf.title'),
+      desc: t('form.method.pdf.desc'),
       available: true,
     },
   ]
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
-      <h1 className="text-xl font-semibold text-theme-primary mb-1">Ajouter un bien</h1>
-      <p className="text-sm text-theme-muted mb-8">Comment souhaitez-vous saisir ce bien ?</p>
+      <h1 className="text-xl font-semibold text-theme-primary mb-1">{t('form.method.heading')}</h1>
+      <p className="text-sm text-theme-muted mb-8">{t('form.method.subheading')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
         {methods.map((m) => (
@@ -1854,7 +1906,7 @@ function MethodSelectionScreen({ hasProperties, onSelect }: {
               </div>
             </div>
             {!m.available && m.id !== 'duplicate' && (
-              <span className="absolute top-3 right-3 text-xs text-theme-muted">Bientôt</span>
+              <span className="absolute top-3 right-3 text-xs text-theme-muted">{t('form.method.soon')}</span>
             )}
           </button>
         ))}
@@ -1869,6 +1921,7 @@ function DuplicateSelector({ onSelect, onBack }: {
   onSelect: (propertyId: string) => void
   onBack: () => void
 }) {
+  const { t } = useTranslation('listings')
   const { data: properties, isLoading } = useAgencyProperties()
   const [search, setSearch] = useState('')
 
@@ -1882,17 +1935,17 @@ function DuplicateSelector({ onSelect, onBack }: {
     <div className="min-h-[60vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
         <MEIcon name="arrow-left" className="w-4 h-4" />
-        Retour
+        {t('common:actions.back')}
       </button>
 
-      <h1 className="text-xl font-semibold text-theme-primary mb-1">Dupliquer un bien</h1>
-      <p className="text-sm text-theme-muted mb-6">Sélectionnez le bien à copier</p>
+      <h1 className="text-xl font-semibold text-theme-primary mb-1">{t('form.duplicate.heading')}</h1>
+      <p className="text-sm text-theme-muted mb-6">{t('form.duplicate.subheading')}</p>
 
       <div className="w-full max-w-lg">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher par titre, adresse, ville..."
+          placeholder={t('form.duplicate.searchPlaceholder')}
           className="w-full h-10 px-4 text-sm bg-transparent border border-theme-border rounded-xl focus:outline-none focus:border-accent/40 text-theme-primary placeholder:text-theme-muted mb-4"
         />
 
@@ -1901,7 +1954,7 @@ function DuplicateSelector({ onSelect, onBack }: {
             <MEIcon name="spinner" className="w-5 h-5 animate-spin text-theme-muted" />
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-theme-muted text-center py-8">Aucun bien trouvé</p>
+          <p className="text-sm text-theme-muted text-center py-8">{t('empty_no_results')}</p>
         ) : (
           <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-hide">
             {filtered.map((p) => (
@@ -1922,7 +1975,7 @@ function DuplicateSelector({ onSelect, onBack }: {
                     {p.title || p.address}
                   </p>
                   <p className="text-xs text-theme-muted truncate">
-                    {p.city}{p.canton ? ` (${p.canton})` : ''} · {p.rooms} pièces · {p.surface_m2} m²
+                    {p.city}{p.canton ? ` (${p.canton})` : ''} · {t('form.preview.roomsCount', { count: p.rooms })} · {p.surface_m2} m²
                   </p>
                   <p className="text-xs font-medium text-theme-secondary mt-0.5">
                     {formatCHF(p.price)}
@@ -1948,6 +2001,7 @@ function UrlImportScreen({ onExtracted, onBack }: {
   onExtracted: (data: ExtractedPropertyData & { photos?: string[] }) => void
   onBack: () => void
 }) {
+  const { t } = useTranslation('listings')
   const { extractFromUrl, isExtracting, error } = useExtractPropertyUrl()
   const [url, setUrl] = useState('')
 
@@ -1962,11 +2016,11 @@ function UrlImportScreen({ onExtracted, onBack }: {
     <div className="min-h-[60vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
         <MEIcon name="arrow-left" className="w-4 h-4" />
-        Retour
+        {t('common:actions.back')}
       </button>
 
-      <h1 className="text-xl font-semibold text-theme-primary mb-1">Importer depuis une URL</h1>
-      <p className="text-sm text-theme-muted mb-6">Collez le lien d'une annonce immobilière suisse</p>
+      <h1 className="text-xl font-semibold text-theme-primary mb-1">{t('form.url.heading')}</h1>
+      <p className="text-sm text-theme-muted mb-6">{t('form.url.subheading')}</p>
 
       <div className="w-full max-w-lg">
         {!isExtracting ? (
@@ -1992,20 +2046,20 @@ function UrlImportScreen({ onExtracted, onBack }: {
                   : 'border border-theme-border-subtle text-theme-muted cursor-not-allowed'
               )}
             >
-              Analyser l'annonce
+              {t('form.url.analyze')}
             </button>
 
             {/* Error */}
             {error && (
               <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-                <p className="text-sm text-red-500 font-medium">Erreur d'importation</p>
+                <p className="text-sm text-red-500 font-medium">{t('form.url.errorTitle')}</p>
                 <p className="text-xs text-theme-muted mt-1">{error}</p>
               </div>
             )}
 
             {/* Supported portals */}
             <div className="pt-4">
-              <p className="text-xs text-theme-muted mb-2">Portails supportés :</p>
+              <p className="text-xs text-theme-muted mb-2">{t('form.url.supportedPortals')}</p>
               <div className="flex flex-wrap gap-1.5">
                 {SUPPORTED_PORTALS.map(p => (
                   <span key={p} className="text-xs text-theme-secondary px-2 py-0.5 rounded-md bg-theme-hover">{p}</span>
@@ -2016,9 +2070,9 @@ function UrlImportScreen({ onExtracted, onBack }: {
         ) : (
           <div className="rounded-xl border border-theme-border p-8 text-center">
             <MEIcon name="spinner" className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
-            <p className="text-sm font-medium text-theme-primary">Analyse de l'annonce en cours...</p>
+            <p className="text-sm font-medium text-theme-primary">{t('form.url.analyzing')}</p>
             <p className="text-xs text-theme-muted mt-1 truncate max-w-xs mx-auto">{url}</p>
-            <p className="text-xs text-theme-muted mt-3">MEGGA AI lit la page et extrait les informations du bien</p>
+            <p className="text-xs text-theme-muted mt-3">{t('form.url.analyzingHint')}</p>
           </div>
         )}
       </div>
@@ -2032,6 +2086,7 @@ function PdfUploadScreen({ onExtracted, onBack }: {
   onExtracted: (data: ExtractedPropertyData) => void
   onBack: () => void
 }) {
+  const { t } = useTranslation('listings')
   const { extractFromPdf, isExtracting, error } = useExtractPropertyPdf()
   const [dragOver, setDragOver] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -2049,11 +2104,11 @@ function PdfUploadScreen({ onExtracted, onBack }: {
     <div className="min-h-[60vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
         <MEIcon name="arrow-left" className="w-4 h-4" />
-        Retour
+        {t('common:actions.back')}
       </button>
 
-      <h1 className="text-xl font-semibold text-theme-primary mb-1">Importer depuis un PDF</h1>
-      <p className="text-sm text-theme-muted mb-6">Uploadez une fiche descriptive, un mandat ou tout document décrivant le bien</p>
+      <h1 className="text-xl font-semibold text-theme-primary mb-1">{t('form.pdf.heading')}</h1>
+      <p className="text-sm text-theme-muted mb-6">{t('form.pdf.subheading')}</p>
 
       <div className="w-full max-w-lg">
         {/* Drop zone */}
@@ -2069,8 +2124,8 @@ function PdfUploadScreen({ onExtracted, onBack }: {
             )}
           >
             <MEIcon name="upload" className="w-8 h-8 text-theme-muted mx-auto mb-3" />
-            <p className="text-sm font-medium text-theme-primary">Glissez votre PDF ici</p>
-            <p className="text-xs text-theme-muted mt-1">ou cliquez pour sélectionner (max 20 Mo)</p>
+            <p className="text-sm font-medium text-theme-primary">{t('form.pdf.dropzoneTitle')}</p>
+            <p className="text-xs text-theme-muted mt-1">{t('form.pdf.dropzoneHint')}</p>
             <input
               ref={fileRef}
               type="file"
@@ -2085,29 +2140,29 @@ function PdfUploadScreen({ onExtracted, onBack }: {
         {isExtracting && (
           <div className="rounded-xl border border-theme-border p-8 text-center">
             <MEIcon name="spinner" className="w-6 h-6 animate-spin text-accent mx-auto mb-3" />
-            <p className="text-sm font-medium text-theme-primary">Analyse du document en cours...</p>
+            <p className="text-sm font-medium text-theme-primary">{t('form.pdf.analyzing')}</p>
             <p className="text-xs text-theme-muted mt-1">{selectedFile?.name}</p>
-            <p className="text-xs text-theme-muted mt-3">MEGGA AI lit le PDF et extrait les informations du bien</p>
+            <p className="text-xs text-theme-muted mt-3">{t('form.pdf.analyzingHint')}</p>
           </div>
         )}
 
         {/* Error */}
         {error && (
           <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-            <p className="text-sm text-red-500 font-medium">Erreur d'extraction</p>
+            <p className="text-sm text-red-500 font-medium">{t('form.pdf.errorTitle')}</p>
             <p className="text-xs text-theme-muted mt-1">{error}</p>
             <button
               onClick={() => { setSelectedFile(null) }}
               className="mt-3 text-xs text-theme-secondary hover:text-theme-primary transition-colors"
             >
-              Réessayer avec un autre fichier
+              {t('form.pdf.retry')}
             </button>
           </div>
         )}
 
         {/* Supported formats */}
         <div className="mt-6 text-center">
-          <p className="text-xs text-theme-muted">Formats supportés : fiches descriptives, mandats de vente, rapports d'estimation</p>
+          <p className="text-xs text-theme-muted">{t('form.pdf.supportedFormats')}</p>
         </div>
       </div>
     </div>
@@ -2117,6 +2172,7 @@ function PdfUploadScreen({ onExtracted, onBack }: {
 // ─── Main wizard ───
 
 export default function ListingFormPage() {
+  const { t } = useTranslation('listings')
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -2475,7 +2531,7 @@ export default function ListingFormPage() {
   async function handleSaveDraft() {
     const values = form.getValues()
     if (!isDraftSane(values)) {
-      setSaveError('Corrigez les champs invalides avant de sauvegarder (prix, canton, NPA, coordonnées Suisse).')
+      setSaveError(t('form.errors.fixInvalidFields'))
       return
     }
     setIsSaving(true)
@@ -2560,11 +2616,10 @@ export default function ListingFormPage() {
       const isHighValueBuy = txType === 'buy' && (values.price ?? 0) >= LBA_BUY_THRESHOLD
       const isRentMandate = txType === 'rent'
       if ((isHighValueBuy || isRentMandate) && !existingProperty?.mandate_signed_at) {
-        const reason = isRentMandate
-          ? `LBA art. 6 : un mandat de gérance signé est requis avant publication d'une location.`
-          : `LBA art. 6 : ce bien à CHF ${(values.price ?? 0).toLocaleString('fr-CH')} ne peut être publié sans mandat signé.`
         setSaveError(
-          `${reason} Enregistrez le mandat depuis la fiche du bien (brouillon) avant de publier.`,
+          isRentMandate
+            ? t('form.errors.lbaRent')
+            : t('form.errors.lbaBuy', { price: (values.price ?? 0).toLocaleString('fr-CH') }),
         )
         return
       }
@@ -2733,23 +2788,23 @@ export default function ListingFormPage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-semibold text-theme-primary">
-            {isEditMode ? 'Modifier le bien' : duplicateId ? 'Dupliquer le bien' : 'Nouveau bien'}
+            {isEditMode ? t('form.header.edit') : duplicateId ? t('form.header.duplicate') : t('form.header.new')}
           </h1>
           <p className="text-sm text-theme-tertiary">
-            {isEditMode ? existingProperty?.title ?? '' : `Étape ${currentStep} sur 5`}
+            {isEditMode ? existingProperty?.title ?? '' : t('form.header.stepIndicator', { current: currentStep, total: 5 })}
           </p>
         </div>
         {/* Auto-save indicator */}
         {autoSaveStatus === 'saving' && (
           <span className="text-xs text-theme-muted flex items-center gap-1.5">
             <MEIcon name="spinner" className="h-3 w-3 animate-spin" />
-            Sauvegarde...
+            {t('form.autosave.saving')}
           </span>
         )}
         {autoSaveStatus === 'saved' && (
           <span className="text-xs text-theme-secondary flex items-center gap-1.5">
             <MEIcon name="check" className="h-3 w-3" />
-            Brouillon sauvegardé
+            {t('form.autosave.saved')}
           </span>
         )}
       </div>
@@ -2791,13 +2846,13 @@ export default function ListingFormPage() {
                   )}
                   aria-pressed={isActive}
                 >
-                  {v === 'buy' ? 'Vente' : 'Location'}
+                  {v === 'buy' ? t('form.transaction.buy') : t('form.transaction.rent')}
                 </button>
               )
             })}
             {isEditMode && (
               <span className="text-xs text-theme-muted ml-2">
-                Le type de transaction est verrouillé en mode édition
+                {t('form.transaction.locked')}
               </span>
             )}
           </div>
@@ -2816,7 +2871,7 @@ export default function ListingFormPage() {
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(1) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(1) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '1'}
                   </span>
-                  <span className="text-sm font-semibold text-theme-primary">Infos générales</span>
+                  <span className="text-sm font-semibold text-theme-primary">{t('form.sections.general')}</span>
                 </div>
                 <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(1) && 'rotate-180')} />
               </button>
@@ -2842,7 +2897,7 @@ export default function ListingFormPage() {
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(2) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(2) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '2'}
                   </span>
-                  <span className="text-sm font-semibold text-theme-primary">Localisation</span>
+                  <span className="text-sm font-semibold text-theme-primary">{t('form.sections.location')}</span>
                 </div>
                 <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(2) && 'rotate-180')} />
               </button>
@@ -2867,7 +2922,7 @@ export default function ListingFormPage() {
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(3) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(3) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '3'}
                   </span>
-                  <span className="text-sm font-semibold text-theme-primary">Prix & détails</span>
+                  <span className="text-sm font-semibold text-theme-primary">{t('form.sections.priceDetails')}</span>
                 </div>
                 <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(3) && 'rotate-180')} />
               </button>
@@ -2892,9 +2947,9 @@ export default function ListingFormPage() {
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(4) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(4) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '4'}
                   </span>
-                  <span className="text-sm font-semibold text-theme-primary">Photos</span>
+                  <span className="text-sm font-semibold text-theme-primary">{t('form.sections.photos')}</span>
                   {(form.watch('photos')?.length || 0) + pendingFiles.length > 0 && (
-                    <span className="text-xs text-theme-muted">{(form.watch('photos')?.length || 0) + pendingFiles.length} photos</span>
+                    <span className="text-xs text-theme-muted">{t('form.sections.photosCount', { count: (form.watch('photos')?.length || 0) + pendingFiles.length })}</span>
                   )}
                 </div>
                 <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(4) && 'rotate-180')} />
@@ -2939,7 +2994,7 @@ export default function ListingFormPage() {
                   <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(5) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(5) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '5'}
                   </span>
-                  <span className="text-sm font-semibold text-theme-primary">Description & publication</span>
+                  <span className="text-sm font-semibold text-theme-primary">{t('form.sections.descriptionPublish')}</span>
                 </div>
                 <MEIcon name="chevron-down" className={cn('w-4 h-4 text-theme-secondary transition-transform', openSections.has(5) && 'rotate-180')} />
               </button>
@@ -2972,13 +3027,13 @@ export default function ListingFormPage() {
                 </div>
               )}
               <p className="text-base font-bold text-theme-primary truncate">
-                {form.watch('title') || 'Nouveau bien'}
+                {form.watch('title') || t('form.preview.newPropertyTitle')}
               </p>
               <p className="text-xs text-theme-secondary truncate mt-0.5">
-                {form.watch('address') || 'Adresse non renseignée'}
+                {form.watch('address') || t('form.preview.noAddress')}
               </p>
               <div className="flex items-center gap-3 mt-2 text-xs text-theme-muted">
-                {form.watch('rooms') && <span>{form.watch('rooms')}p.</span>}
+                {form.watch('rooms') && <span>{t('form.preview.roomsShort', { count: form.watch('rooms') })}</span>}
                 {form.watch('surface_m2') && <span>{form.watch('surface_m2')} m²</span>}
                 {form.watch('price') && (
                   <span className="font-medium text-theme-primary">
@@ -2989,14 +3044,14 @@ export default function ListingFormPage() {
                 )}
               </div>
               {form.watch('transaction_type') === 'rent' && form.watch('is_furnished') && (
-                <p className="text-xs text-theme-muted mt-1">· Meublé</p>
+                <p className="text-xs text-theme-muted mt-1">· {t('form.fields.furnished')}</p>
               )}
             </div>
 
             {/* Completion */}
             <div className="rounded-xl border border-theme-border p-4">
               <div className="flex items-center justify-between text-xs text-theme-secondary mb-2">
-                <span>Complétion</span>
+                <span>{t('form.completion')}</span>
                 <span>{Math.round((completedSteps.length / 5) * 100)}%</span>
               </div>
               <div className="h-1.5 bg-theme-hover rounded-full overflow-hidden">
@@ -3004,11 +3059,11 @@ export default function ListingFormPage() {
               </div>
               <div className="mt-3 space-y-1">
                 {[
-                  { num: 1, label: 'Infos générales' },
-                  { num: 2, label: 'Localisation' },
-                  { num: 3, label: 'Prix & détails' },
-                  { num: 4, label: 'Photos' },
-                  { num: 5, label: 'Description' },
+                  { num: 1, label: t('form.sections.general') },
+                  { num: 2, label: t('form.sections.location') },
+                  { num: 3, label: t('form.sections.priceDetails') },
+                  { num: 4, label: t('form.sections.photos') },
+                  { num: 5, label: t('form.sections.description') },
                 ].map(s => (
                   <button
                     key={s.num}
@@ -3033,7 +3088,7 @@ export default function ListingFormPage() {
               className="w-full h-10 rounded-lg border border-theme-border text-sm text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2"
             >
               {isSaving ? <MEIcon name="spinner" className="h-4 w-4 animate-spin" /> : <MEIcon name="save" className="h-4 w-4" />}
-              Sauver brouillon
+              {t('form.actions.saveDraft')}
             </button>
             <button
               type="button"
@@ -3042,7 +3097,7 @@ export default function ListingFormPage() {
               className="w-full h-10 rounded-lg border border-theme-border text-sm font-medium text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-2"
             >
               {isSaving ? <MEIcon name="spinner" className="h-4 w-4 animate-spin" /> : <MEIcon name="send" className="h-4 w-4" />}
-              {isEditMode ? 'Enregistrer' : 'Publier'}
+              {isEditMode ? t('form.actions.save') : t('form.actions.publish')}
             </button>
           </div>
         </div>
@@ -3058,7 +3113,7 @@ export default function ListingFormPage() {
             className="h-10 px-4 rounded-lg border border-theme-border text-sm text-theme-secondary flex items-center gap-2"
           >
             {isSaving ? <MEIcon name="spinner" className="h-4 w-4 animate-spin" /> : <MEIcon name="save" className="h-4 w-4" />}
-            Brouillon
+            {t('form.actions.draft')}
           </button>
           <button
             type="button"
@@ -3067,7 +3122,7 @@ export default function ListingFormPage() {
             className="h-10 px-6 rounded-lg border border-theme-border text-sm font-medium text-theme-primary flex items-center gap-2"
           >
             {isSaving ? <MEIcon name="spinner" className="h-4 w-4 animate-spin" /> : <MEIcon name="send" className="h-4 w-4" />}
-            {isEditMode ? 'Enregistrer' : 'Publier'}
+            {isEditMode ? t('form.actions.save') : t('form.actions.publish')}
           </button>
         </div>
       </div>

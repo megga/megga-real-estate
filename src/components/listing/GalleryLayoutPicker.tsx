@@ -4,6 +4,8 @@
 //
 // Chaque option est représentée par une mini-mockup visuelle des grilles.
 
+import { useTranslation } from 'react-i18next'
+
 const M = {
   ink: '#0E1410',
   soft: '#3F4640',
@@ -19,11 +21,9 @@ interface GalleryLayoutPickerProps {
   onChange: (layout: GalleryLayout) => void
 }
 
-const OPTIONS: Array<{ value: GalleryLayout; label: string; description: string; mock: React.ReactNode }> = [
+const OPTIONS: Array<{ value: GalleryLayout; mock: React.ReactNode }> = [
   {
     value: 'hero',
-    label: 'Hero',
-    description: '1 grande + grille 2×2',
     mock: (
       <div
         style={{
@@ -45,8 +45,6 @@ const OPTIONS: Array<{ value: GalleryLayout; label: string; description: string;
   },
   {
     value: 'mosaic',
-    label: 'Mosaïque',
-    description: '6 photos asymétriques',
     mock: (
       <div
         style={{
@@ -69,8 +67,6 @@ const OPTIONS: Array<{ value: GalleryLayout; label: string; description: string;
   },
   {
     value: 'carousel',
-    label: 'Carrousel',
-    description: 'Photo unique + flèches + miniatures',
     mock: (
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 3 }}>
         <div
@@ -101,6 +97,7 @@ const OPTIONS: Array<{ value: GalleryLayout; label: string; description: string;
 ]
 
 export default function GalleryLayoutPicker({ value, onChange }: GalleryLayoutPickerProps) {
+  const { t } = useTranslation('listings')
   return (
     <div
       style={{
@@ -112,10 +109,10 @@ export default function GalleryLayoutPicker({ value, onChange }: GalleryLayoutPi
     >
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: M.ink }}>
-          Mise en page de la galerie
+          {t('editor.gallery.title')}
         </div>
         <div style={{ fontSize: 12, color: M.muted, marginTop: 2 }}>
-          Choisissez comment vos photos seront affichées sur la fiche publique du bien.
+          {t('editor.gallery.subtitle')}
         </div>
       </div>
 
@@ -156,10 +153,10 @@ export default function GalleryLayoutPicker({ value, onChange }: GalleryLayoutPi
                     color: selected ? M.green : M.ink,
                   }}
                 >
-                  {opt.label}
+                  {t(`editor.gallery.layout.${opt.value}.label`)}
                 </div>
                 <div style={{ fontSize: 11, color: M.muted, marginTop: 2 }}>
-                  {opt.description}
+                  {t(`editor.gallery.layout.${opt.value}.description`)}
                 </div>
               </div>
             </button>

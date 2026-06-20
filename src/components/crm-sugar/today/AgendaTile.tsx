@@ -9,6 +9,8 @@
 // aujourd'hui / session non authentifiée.
 
 import { useState, useMemo, type MouseEvent } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
 import { TK } from './tk'
 import { RXIcon, Av } from './kit'
 import { DATA, type AgendaItem } from './data'
@@ -16,14 +18,25 @@ import { useCalendarSugar } from '@/hooks/useCalendarSugar'
 
 type AgendaRow = AgendaItem & { start?: Date }
 
-const AGF_TYPE: Record<string, { icon: string; c: string; label: string }> = {
-  call: { icon: 'phone', c: '#6F8CFF', label: 'Appel' },
-  shield: { icon: 'shield', c: '#39B7C9', label: 'KYC' },
-  doc: { icon: 'doc', c: '#E08A45', label: 'Mandat' },
-  home: { icon: 'home', c: '#6F8CFF', label: 'Visite' },
-  offer: { icon: 'offer', c: '#34C796', label: 'Offre' },
+// `labelKey` = clé i18n stable (namespace dashboard) ; le libellé de type de RDV
+// est traduit au rendu (cf. § conventions i18n — la donnée reste un code stable).
+const AGF_TYPE: Record<string, { icon: string; c: string; labelKey: string }> = {
+  call: { icon: 'phone', c: '#6F8CFF', labelKey: 'today.agenda.types.call' },
+  shield: { icon: 'shield', c: '#39B7C9', labelKey: 'today.agenda.types.kyc' },
+  doc: { icon: 'doc', c: '#E08A45', labelKey: 'today.agenda.types.mandate' },
+  home: { icon: 'home', c: '#6F8CFF', labelKey: 'today.agenda.types.visit' },
+  offer: { icon: 'offer', c: '#34C796', labelKey: 'today.agenda.types.offer' },
 }
 const agfTy = (k: string) => AGF_TYPE[k] || AGF_TYPE.call
+
+// Locale d'affichage dérivée de la langue active (formats horaires suisses
+// inchangés : HH:MM identique fr-CH/en-CH ; cf. § conventions i18n).
+function timeLocale(): string {
+  return i18n.language?.startsWith('en') ? 'en-CH' : 'fr-CH'
+}
+
+// Type de la fonction de traduction injectée dans les helpers purs (cf. §5A).
+type TFunc = (key: string, params?: Record<string, unknown>) => string
 
 // ─── Adaptateurs calendrier réel → ligne d'agenda ───────────────────────
 const AV_PALETTE = ['#5b6cff', '#E08A45', '#39B7C9', '#34C796', '#9b7cf0', '#8B5CF6', '#2370ff', '#74d184']
@@ -37,18 +50,19 @@ function initialsOf(name: string): string {
   return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '··'
 }
 function fmtTime(d: Date): string {
-  return d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString(timeLocale(), { hour: '2-digit', minute: '2-digit' })
 }
 function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
-// « dans X min » / « dans X h » réel — null si l'heure est passée.
-function relText(start?: Date): string | null {
+// « dans X min » / « dans X h » réel — null si l'heure est passée. `t` injecté
+// (cf. §5A des conventions i18n — helper pur, pas de hook).
+function relText(start: Date | undefined, t: TFunc): string | null {
   if (!start) return null
   const diffMin = Math.round((start.getTime() - Date.now()) / 60000)
   if (diffMin <= 0) return null
-  if (diffMin < 60) return `dans ${diffMin} min`
-  return `dans ${Math.round(diffMin / 60)} h`
+  if (diffMin < 60) return t('today.agenda.inMinutes', { count: diffMin })
+  return t('today.agenda.inHours', { count: Math.round(diffMin / 60) })
 }
 
 interface CalEventLite {
@@ -94,14 +108,15 @@ function AgfAct({ name, primary = false }: { name: string; primary?: boolean }) 
 
 // ─── Ligne dense d'un RDV (rail « Ensuite ») ────────────────────────────
 function AgfRow({ a, hovered, onHover }: { a: AgendaItem; hovered: boolean; onHover: (v: MouseEvent | null) => void }) {
-  const t = agfTy(a.kind)
+  const { t } = useTranslation('dashboard')
+  const ty = agfTy(a.kind)
   return (
     <div onMouseEnter={onHover} onMouseLeave={() => onHover(null)} style={{
       display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px', borderRadius: 10,
       background: hovered ? TK.cardHi : 'transparent', transition: 'background .15s',
     }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: TK.sub, width: 38, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{a.time}</span>
-      <span style={{ width: 8, height: 8, borderRadius: 999, background: t.c, flexShrink: 0 }} />
+      <span style={{ width: 8, height: 8, borderRadius: 999, background: ty.c, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: TK.ink }}>{a.label}</span>
         {a.meta && <span style={{ fontSize: 11.5, color: TK.sub }}> · {a.meta}</span>}
@@ -112,7 +127,7 @@ function AgfRow({ a, hovered, onHover }: { a: AgendaItem; hovered: boolean; onHo
           <AgfAct name="cal" />
         </div>
       ) : (
-        <span style={{ fontSize: 10, fontWeight: 800, color: t.c, letterSpacing: 0.4, textTransform: 'uppercase', flexShrink: 0, opacity: 0.85 }}>{t.label}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, color: ty.c, letterSpacing: 0.4, textTransform: 'uppercase', flexShrink: 0, opacity: 0.85 }}>{t(ty.labelKey)}</span>
       )}
     </div>
   )
@@ -120,6 +135,7 @@ function AgfRow({ a, hovered, onHover }: { a: AgendaItem; hovered: boolean; onHo
 
 // ─── Corps de tuile Agenda (à placer dans <Tile> après le TileHead) ─────
 export function AgendaTile({ demo = false }: { demo?: boolean } = {}) {
+  const { t } = useTranslation('dashboard')
   const [hover, setHover] = useState<number | null>(null)
   const { events } = useCalendarSugar()
 
@@ -137,7 +153,7 @@ export function AgendaTile({ demo = false }: { demo?: boolean } = {}) {
   const next = agenda.find((a) => a.now) || agenda[1] || agenda[0]
   const rest = agenda.filter((a) => !a.now && !a.done)
   const done = agenda.filter((a) => a.done)
-  const heroRel = live ? relText(next?.start) : 'dans 7 min'
+  const heroRel = live ? relText(next?.start, t) : t('today.agenda.inMinutes', { count: 7 })
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -145,7 +161,7 @@ export function AgendaTile({ demo = false }: { demo?: boolean } = {}) {
       {done.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10, opacity: 0.6, whiteSpace: 'nowrap' }}>
           <RXIcon name="check" size={12} color="#34C796" sw={2.6} />
-          <span style={{ fontSize: 11, color: TK.sub, fontWeight: 600 }}>{done.length} fait ce matin · {done.map((d) => d.time).join(', ')}</span>
+          <span style={{ fontSize: 11, color: TK.sub, fontWeight: 600 }}>{t('today.agenda.doneThisMorning', { count: done.length, times: done.map((d) => d.time).join(', ') })}</span>
         </div>
       )}
 
@@ -165,19 +181,19 @@ export function AgendaTile({ demo = false }: { demo?: boolean } = {}) {
           <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
             <button style={{ flex: 1, height: 36, borderRadius: 999, border: 0, cursor: 'pointer', background: '#F2F2F6', color: '#0A0A0F',
               fontFamily: 'inherit', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-              <RXIcon name="phone" size={15} sw={1.9} />Appeler</button>
+              <RXIcon name="phone" size={15} sw={1.9} />{t('today.agenda.call')}</button>
             <AgfAct name="cal" /><AgfAct name="user" />
           </div>
         </div>
       )}
 
       {/* ENSUITE — rail dense */}
-      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.11em', textTransform: 'uppercase', color: TK.sub, marginBottom: 5, paddingLeft: 2 }}>Ensuite</div>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.11em', textTransform: 'uppercase', color: TK.sub, marginBottom: 5, paddingLeft: 2 }}>{t('today.agenda.next')}</div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', marginRight: -6, paddingRight: 6,
         maskImage: 'linear-gradient(to bottom, #000 88%, transparent 100%)',
         WebkitMaskImage: 'linear-gradient(to bottom, #000 88%, transparent 100%)' }}>
         {rest.length === 0 ? (
-          <div style={{ fontSize: 11.5, color: TK.sub, fontWeight: 600, padding: '4px 8px' }}>Plus rien après — journée dégagée.</div>
+          <div style={{ fontSize: 11.5, color: TK.sub, fontWeight: 600, padding: '4px 8px' }}>{t('today.agenda.empty')}</div>
         ) : rest.map((a, i) => (
           <AgfRow key={i} a={a} hovered={hover === i} onHover={(v) => setHover(v === null ? null : i)} />
         ))}

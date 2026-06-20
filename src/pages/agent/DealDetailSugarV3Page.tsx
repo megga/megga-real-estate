@@ -4,8 +4,8 @@
 // Sections :
 //   1. Header retour pipeline + actions (modifier / visite / nouvelle offre)
 //   2. Hero — acheteur + bien, stepper 8 cercles, montant + sentiment
-//   3. Bannière KYC — rappel NON-BLOQUANT (si stage∈{interest-confirmed, offer,
-//      signed} ET kyc.status !== 'verified') : recommandation, jamais un verrou
+//   3. Bannière KYC bloquante (si stage∈{interest-confirmed, offer, signed}
+//      ET kyc.status !== 'verified') — réutilise verrou Sprint 1
 //   4. Grid 2 cols :
 //      Main:    Offres & contre-offres (timeline filiation) · Activité
 //      Sidebar: Acheteur · Bien · Prochaine action · Documents · Notes privées
@@ -13,6 +13,7 @@
 // Route : /dashboard/transactions/:id
 
 import { useEffect, useMemo, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { SugarV3, SUGAR_V3_KEYFRAMES, fmtDateTime } from '@/components/crm-sugar-v3/tokens'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
@@ -37,10 +38,7 @@ import { useProperty } from '@/hooks/useProperties'
 import { useOfferChain, lastOffer, useUpdateOfferStatus } from '@/hooks/useOffers'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import type { TransactionStage } from '@/lib/constants'
-import {
-  DEAL_STEPPER_LABELS,
-  mapTransactionStageToStepper,
-} from '@/components/crm-sugar-v3/dealStepper'
+import { mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
 
 interface TransactionJoined {
   id: string
@@ -68,6 +66,7 @@ interface TransactionJoined {
 }
 
 export default function DealDetailSugarV3Page() {
+  const { t } = useTranslation('pipeline')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: dealRaw, isLoading, isError, error } = useTransaction(id)
@@ -123,7 +122,7 @@ export default function DealDetailSugarV3Page() {
           fontFamily: SugarV3.font,
         }}
       >
-        Chargement du deal…
+        {t('deal.loading')}
       </div>
     )
   }
@@ -141,7 +140,7 @@ export default function DealDetailSugarV3Page() {
           textAlign: 'center',
         }}
       >
-        Erreur de chargement du deal : {error?.message ?? 'inconnue'}
+        {t('deal.load_error', { message: error?.message ?? t('deal.error_unknown') })}
       </div>
     )
   }
@@ -157,7 +156,7 @@ export default function DealDetailSugarV3Page() {
           fontFamily: SugarV3.font,
         }}
       >
-        Deal introuvable.
+        {t('deal.not_found')}
       </div>
     )
   }
@@ -166,7 +165,7 @@ export default function DealDetailSugarV3Page() {
     deal.price_offered ?? deal.price_final ?? property?.price ?? 0
   const contactName = contact
     ? `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim()
-    : 'Acheteur'
+    : t('deal.buyer_fallback')
   const initials = contact
     ? `${contact.first_name?.[0] ?? ''}${contact.last_name?.[0] ?? ''}`.toUpperCase()
     : '?'
@@ -199,7 +198,7 @@ export default function DealDetailSugarV3Page() {
             icon={<SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />}
             onClick={() => navigate('/dashboard/pipeline')}
           >
-            Pipeline
+            {t('title')}
           </SgGhostPill>
           <span
             style={{
@@ -215,11 +214,11 @@ export default function DealDetailSugarV3Page() {
           <div style={{ flex: 1 }} />
           <SgCircleBtn
             icon={<SgIcon name="pencil" size={17} stroke={SugarV3.inkSoft} />}
-            title="Modifier"
+            title={t('common:actions.edit')}
           />
           <SgCircleBtn
             icon={<SgIcon name="cal" size={17} stroke={SugarV3.inkSoft} />}
-            title="Planifier une visite"
+            title={t('deal.schedule_visit')}
             onClick={() =>
               navigate(
                 `/dashboard/visits/nouveau?bienId=${deal.property_id}&contactId=${deal.contact_buyer_id ?? ''}&dealId=${deal.id}`,
@@ -241,7 +240,7 @@ export default function DealDetailSugarV3Page() {
                 )
               }
             >
-              {last ? 'Contre-offre' : 'Nouvelle offre'}
+              {last ? t('deal.counter_offer') : t('deal.new_offer')}
             </SgBlackPill>
           )}
         </header>
@@ -260,8 +259,9 @@ export default function DealDetailSugarV3Page() {
           >
             <div style={{ flex: 1, minWidth: 280 }}>
               <DdEyebrow>
-                Pipeline ·{' '}
-                {DEAL_STEPPER_LABELS[mapTransactionStageToStepper(deal.stage)]}
+                {t('deal.pipeline_stage', {
+                  stage: t(`stages.${mapTransactionStageToStepper(deal.stage)}`),
+                })}
               </DdEyebrow>
               <h1
                 style={{
@@ -283,7 +283,7 @@ export default function DealDetailSugarV3Page() {
               </h1>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <DdKycChip status={kycStatus} />
-                <DdSentimentChip tone="healthy" label="Sain" />
+                <DdSentimentChip tone="healthy" label={t('deal.sentiment_healthy')} />
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -296,7 +296,7 @@ export default function DealDetailSugarV3Page() {
                   letterSpacing: 0.6,
                 }}
               >
-                Montant du deal
+                {t('deal.deal_amount')}
               </div>
               <div
                 style={{
@@ -321,7 +321,7 @@ export default function DealDetailSugarV3Page() {
                     fontWeight: 500,
                   }}
                 >
-                  Dernière offre : {ddFmt(last.amount)}
+                  {t('deal.last_offer', { amount: ddFmt(last.amount) })}
                 </div>
               )}
             </div>
@@ -330,7 +330,7 @@ export default function DealDetailSugarV3Page() {
           <DdStageStepper stage={deal.stage} />
         </DdCard>
 
-        {/* BANNIÈRE KYC — RAPPEL NON-BLOQUANT (recommandation, pas un verrou) */}
+        {/* BANNIÈRE KYC BLOQUANTE */}
         {kycBlocking && (
           <div
             style={{
@@ -364,7 +364,7 @@ export default function DealDetailSugarV3Page() {
               <div
                 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}
               >
-                KYC recommandé avant la signature
+                {t('deal.kyc_banner_title')}
               </div>
               <div
                 style={{
@@ -373,13 +373,19 @@ export default function DealDetailSugarV3Page() {
                   lineHeight: 1.5,
                 }}
               >
-                Un KYC vérifié pour{' '}
-                <strong style={{ color: '#fff', fontWeight: 700 }}>
-                  {contactName}
-                </strong>{' '}
-                est recommandé avant la signature, en appui de conformité LBA
-                (pas un verrou). Vous pouvez poursuivre la négociation et la
-                signature ; la vérification finale revient au notaire.
+                <Trans
+                  t={t}
+                  i18nKey="deal.kyc_banner_body"
+                  values={{
+                    name: contactName,
+                    stage: t('stages.signed'),
+                  }}
+                  components={{
+                    strong: (
+                      <strong style={{ color: '#fff', fontWeight: 700 }} />
+                    ),
+                  }}
+                />
               </div>
             </div>
             <button
@@ -404,7 +410,7 @@ export default function DealDetailSugarV3Page() {
               }}
             >
               <SgIcon name="shield" size={14} stroke={SugarV3.ink} sw={2} />
-              Ouvrir le dossier KYC
+              {t('deal.open_kyc_dossier')}
             </button>
           </div>
         )}
@@ -439,8 +445,7 @@ export default function DealDetailSugarV3Page() {
               >
                 <div>
                   <DdEyebrow>
-                    Négociation · {offers.length}{' '}
-                    {offers.length > 1 ? 'tours' : 'tour'}
+                    {t('deal.negotiation_rounds', { count: offers.length })}
                   </DdEyebrow>
                   <h2
                     style={{
@@ -451,7 +456,7 @@ export default function DealDetailSugarV3Page() {
                       letterSpacing: -0.4,
                     }}
                   >
-                    Offres & contre-offres
+                    {t('deal.offers_title')}
                   </h2>
                 </div>
                 {offers.length > 0 && deal.stage !== 'signed' && (
@@ -467,7 +472,7 @@ export default function DealDetailSugarV3Page() {
                       navigate(`/dashboard/transactions/${deal.id}/offre/contre`)
                     }
                   >
-                    Contre-offre
+                    {t('deal.counter_offer')}
                   </SgGhostPill>
                 )}
               </div>
@@ -490,7 +495,7 @@ export default function DealDetailSugarV3Page() {
                       marginBottom: 6,
                     }}
                   >
-                    Aucune offre déposée
+                    {t('deal.no_offer_title')}
                   </div>
                   <div
                     style={{
@@ -500,8 +505,7 @@ export default function DealDetailSugarV3Page() {
                       lineHeight: 1.5,
                     }}
                   >
-                    Quand l'acheteur sera prêt, vous pourrez saisir son offre
-                    formelle ici.
+                    {t('deal.no_offer_subtitle')}
                   </div>
                   <SgBlackPill
                     icon={<SgIcon name="plus" size={14} stroke="#fff" />}
@@ -511,7 +515,7 @@ export default function DealDetailSugarV3Page() {
                       )
                     }
                   >
-                    Saisir une offre
+                    {t('deal.record_offer')}
                   </SgBlackPill>
                 </div>
               ) : (
@@ -530,19 +534,14 @@ export default function DealDetailSugarV3Page() {
                       isCurrent={i === offers.length - 1}
                       onUpdateStatus={(status) => {
                         if (typeof window !== 'undefined') {
-                          const verb =
-                            status === 'accepted' ? 'accepter'
-                            : status === 'rejected' ? 'refuser'
-                            : status === 'withdrawn' ? 'retirer'
-                            : 'marquer expirée'
-                          if (!window.confirm(`Voulez-vous ${verb} cette offre ?`)) return
+                          if (!window.confirm(t(`deal.offer_confirm.${status}`))) return
                         }
                         updateOfferStatus.mutate(
                           { offerId: o.id, dealId: deal!.id, status },
                           {
                             onError: (err) => {
-                               
-                              window.alert(`Échec : ${err.message}`)
+
+                              window.alert(t('deal.offer_update_failed', { message: err.message }))
                             },
                           }
                         )
@@ -555,7 +554,7 @@ export default function DealDetailSugarV3Page() {
 
             {/* Activité récente */}
             <DdCard>
-              <DdEyebrow>Activité récente</DdEyebrow>
+              <DdEyebrow>{t('deal.recent_activity')}</DdEyebrow>
               <h2
                 style={{
                   margin: '10px 0 22px',
@@ -565,7 +564,7 @@ export default function DealDetailSugarV3Page() {
                   letterSpacing: -0.4,
                 }}
               >
-                Timeline du deal
+                {t('deal.timeline_title')}
               </h2>
               <div style={{ position: 'relative', paddingLeft: 22 }}>
                 <div
@@ -585,14 +584,14 @@ export default function DealDetailSugarV3Page() {
                     kind: o.kind,
                     label:
                       o.kind === 'counter'
-                        ? `Contre-offre de ${o.by_label}`
-                        : `Offre de ${o.by_label}`,
+                        ? t('deal.timeline_counter_offer', { by: o.by_label })
+                        : t('deal.timeline_offer', { by: o.by_label }),
                     detail: ddFmt(o.amount),
                   })),
                   {
                     at: deal.created_at,
                     kind: 'system' as const,
-                    label: 'Deal créé',
+                    label: t('deal.timeline_created'),
                     detail: '',
                   },
                 ]
@@ -675,7 +674,7 @@ export default function DealDetailSugarV3Page() {
             {/* Acheteur */}
             {contact && (
               <DdCard padding={24}>
-                <DdEyebrow>Acheteur</DdEyebrow>
+                <DdEyebrow>{t('deal.buyer')}</DdEyebrow>
                 <button
                   onClick={() => navigate(`/dashboard/contacts/${contact.id}`)}
                   style={{
@@ -726,7 +725,7 @@ export default function DealDetailSugarV3Page() {
                         fontWeight: 500,
                       }}
                     >
-                      Voir la fiche complète
+                      {t('deal.view_full_profile')}
                     </div>
                   </div>
                 </button>
@@ -740,7 +739,7 @@ export default function DealDetailSugarV3Page() {
                         stroke={SugarV3.inkSoft}
                       />
                     }
-                    title="Appeler"
+                    title={t('deal.call')}
                     size={38}
                   />
                   <SgCircleBtn
@@ -751,14 +750,14 @@ export default function DealDetailSugarV3Page() {
                         stroke={SugarV3.inkSoft}
                       />
                     }
-                    title="Email"
+                    title={t('deal.email')}
                     size={38}
                   />
                   <SgCircleBtn
                     icon={
                       <SgIcon name="msg" size={15} stroke={SugarV3.inkSoft} />
                     }
-                    title="Message"
+                    title={t('deal.message')}
                     size={38}
                   />
                 </div>
@@ -781,7 +780,7 @@ export default function DealDetailSugarV3Page() {
                         marginBottom: 4,
                       }}
                     >
-                      Capacité
+                      {t('deal.capacity')}
                     </div>
                     <div
                       style={{
@@ -821,7 +820,7 @@ export default function DealDetailSugarV3Page() {
                       stroke={SugarV3.inkSoft}
                       sw={1.8}
                     />
-                    {contact.ai_purchase_probability}% probabilité d'achat
+                    {t('deal.purchase_probability', { value: contact.ai_purchase_probability })}
                   </div>
                 )}
               </DdCard>
@@ -830,7 +829,7 @@ export default function DealDetailSugarV3Page() {
             {/* Bien */}
             {property && (
               <DdCard padding={24}>
-                <DdEyebrow>Bien</DdEyebrow>
+                <DdEyebrow>{t('column.property')}</DdEyebrow>
                 <button
                   onClick={() =>
                     navigate(`/dashboard/listings/${property.id}`)
@@ -891,7 +890,7 @@ export default function DealDetailSugarV3Page() {
                         fontWeight: 600,
                       }}
                     >
-                      {property.surface_m2} m² · {property.rooms} pièces
+                      {t('deal.surface_rooms', { surface: property.surface_m2, rooms: property.rooms })}
                     </div>
                   </div>
                 </button>
@@ -900,7 +899,7 @@ export default function DealDetailSugarV3Page() {
 
             {/* Documents */}
             <DdCard padding={24}>
-              <DdEyebrow>Documents</DdEyebrow>
+              <DdEyebrow>{t('deal.documents')}</DdEyebrow>
               <h3
                 style={{
                   margin: '10px 0 14px',
@@ -910,7 +909,7 @@ export default function DealDetailSugarV3Page() {
                   letterSpacing: -0.3,
                 }}
               >
-                Du deal
+                {t('deal.documents_subtitle')}
               </h3>
               {(() => {
                 const docs: {
@@ -920,7 +919,7 @@ export default function DealDetailSugarV3Page() {
                 }[] = []
                 if (offers.length > 0) {
                   docs.push({
-                    name: `Offre formelle — ${offers[0].by_label}`,
+                    name: t('deal.doc_formal_offer', { by: offers[0].by_label }),
                     status:
                       offers[0].status === 'accepted' ? 'signed' : 'pending',
                     pages: 4,
@@ -928,7 +927,7 @@ export default function DealDetailSugarV3Page() {
                 }
                 if (offers.length > 1) {
                   docs.push({
-                    name: `Contre-offre — ${offers[1].by_label}`,
+                    name: t('deal.doc_counter_offer', { by: offers[1].by_label }),
                     status:
                       offers[1].status === 'accepted' ? 'signed' : 'pending',
                     pages: 3,
@@ -936,14 +935,14 @@ export default function DealDetailSugarV3Page() {
                 }
                 if (kycStatus === 'verified') {
                   docs.push({
-                    name: 'KYC acheteur — dossier complet',
+                    name: t('deal.doc_kyc_complete'),
                     status: 'signed',
                     pages: 6,
                   })
                 }
                 if (deal.stage === 'notary' || deal.stage === 'signed') {
                   docs.push({
-                    name: 'Compromis de vente',
+                    name: t('deal.doc_sale_agreement'),
                     status:
                       deal.stage === 'signed' ? 'signed' : 'missing',
                     pages: null,
@@ -961,14 +960,14 @@ export default function DealDetailSugarV3Page() {
                         fontWeight: 500,
                       }}
                     >
-                      Aucun document généré pour ce deal.
+                      {t('deal.no_documents')}
                     </div>
                   )
                 }
                 const tone = {
-                  signed: { l: 'Signé', c: SugarV3.ok },
-                  pending: { l: 'En attente', c: SugarV3.warn },
-                  missing: { l: 'À générer', c: SugarV3.muted },
+                  signed: { l: t('deal.doc_status_signed'), c: SugarV3.ok },
+                  pending: { l: t('deal.doc_status_pending'), c: SugarV3.warn },
+                  missing: { l: t('deal.doc_status_missing'), c: SugarV3.muted },
                 } as const
                 return (
                   <div
@@ -979,7 +978,7 @@ export default function DealDetailSugarV3Page() {
                     }}
                   >
                     {docs.map((d, i) => {
-                      const t = tone[d.status]
+                      const toneItem = tone[d.status]
                       return (
                         <div
                           key={i}
@@ -1027,11 +1026,11 @@ export default function DealDetailSugarV3Page() {
                                   width: 5,
                                   height: 5,
                                   borderRadius: 999,
-                                  background: t.c,
+                                  background: toneItem.c,
                                 }}
                               />
-                              {t.l}
-                              {d.pages && <> · {d.pages} pages</>}
+                              {toneItem.l}
+                              {d.pages && <> · {t('deal.doc_pages', { count: d.pages })}</>}
                             </div>
                           </div>
                         </div>
@@ -1052,7 +1051,7 @@ export default function DealDetailSugarV3Page() {
                   gap: 12,
                 }}
               >
-                <DdEyebrow>Notes privées</DdEyebrow>
+                <DdEyebrow>{t('deal.private_notes')}</DdEyebrow>
                 {!notesEditing && (
                   <button
                     onClick={() => setNotesEditing(true)}
@@ -1078,7 +1077,7 @@ export default function DealDetailSugarV3Page() {
                       stroke={SugarV3.ink}
                       sw={2}
                     />
-                    Modifier
+                    {t('common:actions.edit')}
                   </button>
                 )}
               </div>
@@ -1091,7 +1090,7 @@ export default function DealDetailSugarV3Page() {
                   letterSpacing: -0.3,
                 }}
               >
-                Équipe MEGGA
+                {t('deal.notes_team', { brand: 'MEGGA' })}
               </h3>
               {notesEditing ? (
                 <div>
@@ -1140,7 +1139,7 @@ export default function DealDetailSugarV3Page() {
                         opacity: updateNotes.isPending ? 0.5 : 1,
                       }}
                     >
-                      Annuler
+                      {t('common:actions.cancel')}
                     </button>
                     <button
                       onClick={handleNotesSave}
@@ -1159,7 +1158,7 @@ export default function DealDetailSugarV3Page() {
                         opacity: updateNotes.isPending ? 0.7 : 1,
                       }}
                     >
-                      {updateNotes.isPending ? 'Enregistrement…' : 'Enregistrer'}
+                      {updateNotes.isPending ? t('deal.notes_saving') : t('common:actions.save')}
                     </button>
                   </div>
                 </div>
@@ -1175,8 +1174,7 @@ export default function DealDetailSugarV3Page() {
                     fontWeight: 500,
                   }}
                 >
-                  {privateNotes ||
-                    "Notes privées — visibles uniquement par l'équipe MEGGA."}
+                  {privateNotes || t('deal.notes_empty', { brand: 'MEGGA' })}
                 </div>
               )}
               <div
@@ -1194,7 +1192,7 @@ export default function DealDetailSugarV3Page() {
                 }}
               >
                 <SgIcon name="lock" size={10} stroke={SugarV3.muted} sw={2} />
-                Jamais visible par le client
+                {t('deal.never_visible_client')}
               </div>
             </DdCard>
           </div>

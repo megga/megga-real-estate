@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { CSSProperties, ReactNode, MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AnimatedTopIcon } from './LiquidGlassRail'
 import type { CrmTheme, SugarPalette } from './tokens'
 // CRM_AGENT mock retiré — l'avatar lit `useAuth().profile` (vrai utilisateur)
@@ -54,6 +55,7 @@ interface SugarTopNavProps {
 }
 export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false }: SugarTopNavProps) {
   const navigate = useNavigate()
+  const { t: tc } = useTranslation('common')
   const { signOut, profile, user } = useAuth()
   // Calcule initiales/affichage depuis le vrai profil. Fallback "??" pour
   // les sessions sans profil (devrait être rare — l'AuthGuard route avant).
@@ -98,13 +100,13 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
     }
   }, [notifOpen, profileOpen])
   const tabs: { id: SugarScreenId; label: string }[] = [
-    { id: 'today',     label: "Aujourd'hui" },
-    { id: 'pipeline',  label: 'Pipeline' },
-    { id: 'matching',  label: 'Matching' },
-    { id: 'parcours',  label: 'Parcours' },
-    { id: 'contacts',  label: 'Contacts' },
-    { id: 'biens',     label: 'Mes biens' },
-    { id: 'calendar',  label: 'Calendrier' },
+    { id: 'today',     label: tc('nav.today') },
+    { id: 'pipeline',  label: tc('nav.pipeline') },
+    { id: 'matching',  label: tc('nav.matching') },
+    { id: 'parcours',  label: tc('nav.journey') },
+    { id: 'contacts',  label: tc('nav.contacts') },
+    { id: 'biens',     label: tc('nav.listings') },
+    { id: 'calendar',  label: tc('nav.calendar') },
   ]
   const isJulien = active === 'julien'
 
@@ -139,7 +141,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
         {/* Bouton Megga — Agent IA (route interne inchangée : 'julien') */}
         <button
           onClick={() => onNavigate && onNavigate('julien')}
-          title="Megga — Agent IA"
+          title={tc('nav.aiAgent')}
           style={{
             width: 44, height: 44, borderRadius: 999, border: 0,
             background: isJulien ? sp.ink : sp.iconBtnBg,
@@ -154,7 +156,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
           <button
             type="button"
             onClick={() => setNotifOpen(o => !o)}
-            title="Notifications"
+            title={tc('nav.notifications')}
             style={{
               width: 44, height: 44, borderRadius: 999, border: 0,
               background: notifOpen ? sp.ink : sp.iconBtnBg,

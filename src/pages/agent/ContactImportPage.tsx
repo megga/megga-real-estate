@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useCreateContact } from '@/hooks/useContacts'
@@ -78,16 +79,20 @@ function parseVcard(text: string): ImportedContact[] {
 
 // ─── Column mapping ──────────────────────────────────────────────────────────
 
-const FIELD_OPTIONS = [
-  { value: '', label: 'Ignorer' },
-  { value: 'first_name', label: 'Prénom' },
-  { value: 'last_name', label: 'Nom' },
-  { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'Téléphone' },
-  { value: 'type', label: 'Type' },
-  { value: 'notes', label: 'Notes' },
-  { value: 'source', label: 'Source' },
-] as const
+type FieldOption = { value: string; label: string }
+
+function fieldOptions(t: (key: string) => string): FieldOption[] {
+  return [
+    { value: '', label: t('import.batch.field.ignore') },
+    { value: 'first_name', label: t('import.batch.field.firstName') },
+    { value: 'last_name', label: t('import.batch.field.lastName') },
+    { value: 'email', label: t('import.batch.field.email') },
+    { value: 'phone', label: t('import.batch.field.phone') },
+    { value: 'type', label: t('import.batch.field.type') },
+    { value: 'notes', label: t('import.batch.field.notes') },
+    { value: 'source', label: t('import.batch.field.source') },
+  ]
+}
 
 function autoMapColumn(header: string): string {
   const h = header.toLowerCase().replace(/[_\s-]/g, '')
@@ -105,17 +110,18 @@ function autoMapColumn(header: string): string {
 // ─── Method Selection Screen ─────────────────────────────────────────────────
 
 function MethodSelectionScreen({ onSelect }: { onSelect: (m: ImportMethod) => void }) {
+  const { t } = useTranslation('contacts')
   const methods = [
-    { id: 'csv' as const, icon: 'files', title: 'CSV / Excel', desc: 'Importer depuis un fichier .csv ou .tsv', available: true },
-    { id: 'vcard' as const, icon: 'users', title: 'vCard (.vcf)', desc: 'Depuis iPhone, Android, Outlook, Gmail', available: true },
-    { id: 'text' as const, icon: 'message', title: 'Texte libre (IA)', desc: 'Coller un email ou message, MEGGA AI extrait les infos', available: true },
-    { id: 'manual' as const, icon: 'edit', title: 'Saisie manuelle', desc: 'Ajouter un contact à la main', available: true },
+    { id: 'csv' as const, icon: 'files', title: t('import.csv_label'), desc: t('import.csv_desc'), available: true },
+    { id: 'vcard' as const, icon: 'users', title: t('import.vcard_label'), desc: t('import.vcard_desc'), available: true },
+    { id: 'text' as const, icon: 'message', title: t('import.text_label'), desc: t('import.text_desc'), available: true },
+    { id: 'manual' as const, icon: 'edit', title: t('import.manual_label'), desc: t('import.batch.manual_desc'), available: true },
   ]
 
   return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center px-4">
-      <h1 className="text-xl font-semibold text-theme-primary mb-1">Importer des contacts</h1>
-      <p className="text-sm text-theme-muted mb-8">Comment souhaitez-vous ajouter vos contacts ?</p>
+      <h1 className="text-xl font-semibold text-theme-primary mb-1">{t('import.batch.title')}</h1>
+      <p className="text-sm text-theme-muted mb-8">{t('import.batch.methodPrompt')}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
         {methods.map(m => (
@@ -147,6 +153,7 @@ function MethodSelectionScreen({ onSelect }: { onSelect: (m: ImportMethod) => vo
 // ─── CSV Import ──────────────────────────────────────────────────────────────
 
 function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedContact[]) => void; onBack: () => void }) {
+  const { t } = useTranslation('contacts')
   const [step, setStep] = useState<'upload' | 'map'>('upload')
   const [headers, setHeaders] = useState<string[]>([])
   const [rows, setRows] = useState<string[][]>([])
@@ -194,11 +201,11 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
   return (
     <div className="min-h-[50vh] flex flex-col items-center px-4 pt-8">
       <button onClick={step === 'map' ? () => setStep('upload') : onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <MEIcon name="arrow-left" className="w-4 h-4" /> Retour
+        <MEIcon name="arrow-left" className="w-4 h-4" /> {t('common:actions.back')}
       </button>
 
-      <h1 className="text-xl font-semibold text-theme-primary mb-1">Importer depuis un CSV</h1>
-      <p className="text-sm text-theme-muted mb-6">{step === 'upload' ? 'Glissez ou sélectionnez votre fichier' : `${rows.length} contacts trouvés — mappez les colonnes`}</p>
+      <h1 className="text-xl font-semibold text-theme-primary mb-1">{t('import.batch.csv.title')}</h1>
+      <p className="text-sm text-theme-muted mb-6">{step === 'upload' ? t('import.batch.csv.uploadPrompt') : t('import.batch.csv.mapPrompt', { count: rows.length })}</p>
 
       <div className="w-full max-w-lg">
         {step === 'upload' ? (
@@ -216,8 +223,8 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
             )}
           >
             <MEIcon name="upload" className="w-8 h-8 text-theme-muted mx-auto mb-3" />
-            <p className="text-sm font-medium text-theme-primary">Glissez votre fichier CSV ici</p>
-            <p className="text-xs text-theme-muted mt-1">ou cliquez pour sélectionner (.csv, .tsv)</p>
+            <p className="text-sm font-medium text-theme-primary">{t('import.batch.csv.dropTitle')}</p>
+            <p className="text-xs text-theme-muted mt-1">{t('import.batch.csv.dropHint')}</p>
             <input ref={fileRef} type="file" accept=".csv,.tsv,.txt" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = '' }} />
           </div>
         ) : (
@@ -232,13 +239,13 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
                     onChange={(e) => setMapping(prev => ({ ...prev, [i]: e.target.value }))}
                     className="flex-1 h-8 px-2 text-xs bg-transparent border border-theme-border rounded-lg text-theme-primary"
                   >
-                    {FIELD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {fieldOptions(t).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
               ))}
             </div>
 
-            <p className="text-xs text-theme-muted mt-3">Aperçu : {rows.slice(0, 3).map(r => `${r[0]} ${r[1] || ''}`).join(', ')}...</p>
+            <p className="text-xs text-theme-muted mt-3">{t('import.batch.csv.previewLabel')} {rows.slice(0, 3).map(r => `${r[0]} ${r[1] || ''}`).join(', ')}...</p>
 
             <button
               onClick={handleConfirm}
@@ -250,7 +257,7 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
                   : 'border border-theme-border-subtle text-theme-muted cursor-not-allowed'
               )}
             >
-              Importer {rows.length} contacts
+              {t('import.batch.importCount', { count: rows.length })}
             </button>
           </>
         )}
@@ -262,6 +269,7 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
 // ─── vCard Import ────────────────────────────────────────────────────────────
 
 function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedContact[]) => void; onBack: () => void }) {
+  const { t } = useTranslation('contacts')
   const fileRef = useRef<HTMLInputElement>(null)
   const [parsed, setParsed] = useState<ImportedContact[] | null>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -275,11 +283,11 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
   return (
     <div className="min-h-[50vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <MEIcon name="arrow-left" className="w-4 h-4" /> Retour
+        <MEIcon name="arrow-left" className="w-4 h-4" /> {t('common:actions.back')}
       </button>
 
-      <h1 className="text-xl font-semibold text-theme-primary mb-1">Importer depuis vCard</h1>
-      <p className="text-sm text-theme-muted mb-6">Export depuis iPhone, Android, Outlook ou Gmail</p>
+      <h1 className="text-xl font-semibold text-theme-primary mb-1">{t('import.batch.vcard.title')}</h1>
+      <p className="text-sm text-theme-muted mb-6">{t('import.batch.vcard.subtitle')}</p>
 
       <div className="w-full max-w-lg">
         {!parsed ? (
@@ -297,13 +305,13 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
             )}
           >
             <MEIcon name="file" className="w-8 h-8 text-theme-muted mx-auto mb-3" />
-            <p className="text-sm font-medium text-theme-primary">Glissez votre fichier .vcf ici</p>
-            <p className="text-xs text-theme-muted mt-1">ou cliquez pour sélectionner</p>
+            <p className="text-sm font-medium text-theme-primary">{t('import.batch.vcard.dropTitle')}</p>
+            <p className="text-xs text-theme-muted mt-1">{t('import.batch.vcard.dropHint')}</p>
             <input ref={fileRef} type="file" accept=".vcf,.vcard" className="hidden" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = '' }} />
           </div>
         ) : (
           <>
-            <p className="text-sm text-theme-primary font-medium mb-3">{parsed.length} contacts trouvés</p>
+            <p className="text-sm text-theme-primary font-medium mb-3">{t('import.batch.foundCount', { count: parsed.length })}</p>
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto scrollbar-hide rounded-xl border border-theme-border p-4">
               {parsed.map((c, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm py-1">
@@ -324,7 +332,7 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
               onClick={() => onImport(parsed)}
               className="w-full h-10 rounded-xl text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors mt-4"
             >
-              Importer {parsed.length} contacts
+              {t('import.batch.importCount', { count: parsed.length })}
             </button>
           </>
         )}
@@ -336,6 +344,7 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
 // ─── Text Free Import (AI) ───────────────────────────────────────────────────
 
 function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedContact[]) => void; onBack: () => void }) {
+  const { t } = useTranslation('contacts')
   const [text, setText] = useState('')
   const [isExtracting, setIsExtracting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -356,16 +365,16 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
       if (fnError) throw new Error(fnError.message)
       const content = data?.response ?? data?.content ?? ''
       const jsonMatch = content.match(/\[[\s\S]*\]/)
-      if (!jsonMatch) throw new Error('Aucun contact trouvé dans le texte')
+      if (!jsonMatch) throw new Error(t('import.batch.text.errorNotFound'))
       const contacts = JSON.parse(jsonMatch[0]) as ImportedContact[]
       const valid = contacts.filter((c: ImportedContact) => c.first_name || c.last_name).map((c: ImportedContact) => ({
         ...c,
         source: 'import_text_ai',
       }))
-      if (valid.length === 0) throw new Error('Aucun contact identifié')
+      if (valid.length === 0) throw new Error(t('import.batch.text.errorNone'))
       setExtracted(valid)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur d\'extraction')
+      setError(err instanceof Error ? err.message : t('import.batch.text.errorExtract'))
     } finally {
       setIsExtracting(false)
     }
@@ -374,11 +383,11 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
   return (
     <div className="min-h-[50vh] flex flex-col items-center px-4 pt-8">
       <button onClick={onBack} className="self-start flex items-center gap-1.5 text-sm text-theme-secondary hover:text-theme-primary mb-6 transition-colors">
-        <MEIcon name="arrow-left" className="w-4 h-4" /> Retour
+        <MEIcon name="arrow-left" className="w-4 h-4" /> {t('common:actions.back')}
       </button>
 
-      <h1 className="text-xl font-semibold text-theme-primary mb-1">Extraction IA</h1>
-      <p className="text-sm text-theme-muted mb-6">Collez un email, un message, ou tout texte contenant des coordonnées</p>
+      <h1 className="text-xl font-semibold text-theme-primary mb-1">{t('import.batch.text.title')}</h1>
+      <p className="text-sm text-theme-muted mb-6">{t('import.batch.text.subtitle')}</p>
 
       <div className="w-full max-w-lg">
         {!extracted ? (
@@ -386,7 +395,7 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={"Ex: Bonjour, je suis Marie Dupont, joignable au 079 123 45 67 ou marie.dupont@gmail.com. Je cherche un 4 pièces à Genève..."}
+              placeholder={t('import.batch.text.placeholder')}
               rows={8}
               autoFocus
               className="w-full px-4 py-3 text-sm bg-transparent border border-theme-border rounded-xl text-theme-primary placeholder:text-theme-muted resize-none focus:outline-none focus:border-accent/40"
@@ -408,13 +417,13 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
               )}
             >
               {isExtracting ? (
-                <span className="flex items-center justify-center gap-2"><MEIcon name="spinner" className="w-3.5 h-3.5 animate-spin" /> MEGGA AI analyse le texte...</span>
-              ) : 'Extraire les contacts'}
+                <span className="flex items-center justify-center gap-2"><MEIcon name="spinner" className="w-3.5 h-3.5 animate-spin" /> {t('import.batch.text.analyzing')}</span>
+              ) : t('import.batch.text.extract')}
             </button>
           </>
         ) : (
           <>
-            <p className="text-sm text-theme-primary font-medium mb-3">{extracted.length} contact{extracted.length > 1 ? 's' : ''} identifié{extracted.length > 1 ? 's' : ''}</p>
+            <p className="text-sm text-theme-primary font-medium mb-3">{t('import.batch.text.identifiedCount', { count: extracted.length })}</p>
             <div className="space-y-1.5 rounded-xl border border-theme-border p-4">
               {extracted.map((c, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm py-1">
@@ -435,7 +444,7 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
               onClick={() => onImport(extracted)}
               className="w-full h-10 rounded-xl text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors mt-4"
             >
-              Importer {extracted.length} contact{extracted.length > 1 ? 's' : ''}
+              {t('import.batch.importCount', { count: extracted.length })}
             </button>
           </>
         )}
@@ -447,16 +456,17 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
 // ─── Import Results Screen ───────────────────────────────────────────────────
 
 function ImportResultScreen({ result, onDone }: { result: ImportResult; onDone: () => void }) {
+  const { t } = useTranslation('contacts')
   return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center px-4">
       <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4">
         <MEIcon name="check" className="w-7 h-7 text-emerald-500" />
       </div>
       <h1 className="text-xl font-semibold text-theme-primary">
-        {result.imported} contact{result.imported > 1 ? 's' : ''} importé{result.imported > 1 ? 's' : ''}
+        {t('import.batch.result.importedCount', { count: result.imported })}
       </h1>
       {result.skipped > 0 && (
-        <p className="text-sm text-theme-muted mt-1">{result.skipped} ignoré{result.skipped > 1 ? 's' : ''} (doublons ou incomplets)</p>
+        <p className="text-sm text-theme-muted mt-1">{t('import.batch.result.skippedCount', { count: result.skipped })}</p>
       )}
       {result.errors.length > 0 && (
         <div className="mt-3 text-xs text-red-500 space-y-0.5">
@@ -467,7 +477,7 @@ function ImportResultScreen({ result, onDone }: { result: ImportResult; onDone: 
         onClick={onDone}
         className="mt-6 h-10 px-8 rounded-xl text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors"
       >
-        Voir mes contacts
+        {t('import.batch.result.goToContacts')}
       </button>
     </div>
   )
@@ -476,6 +486,7 @@ function ImportResultScreen({ result, onDone }: { result: ImportResult; onDone: 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function ContactImportPage() {
+  const { t } = useTranslation('contacts')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialMethod = searchParams.get('method') as ImportMethod | null
@@ -524,7 +535,7 @@ export default function ContactImportPage() {
           </Link>
           {method !== 'choose' && !result && (
             <div className="flex-1">
-              <p className="text-sm text-theme-tertiary">Importer des contacts</p>
+              <p className="text-sm text-theme-tertiary">{t('import.batch.title')}</p>
             </div>
           )}
         </div>
@@ -533,7 +544,7 @@ export default function ContactImportPage() {
         {isImporting ? (
           <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
             <MEIcon name="spinner" className="w-6 h-6 animate-spin text-accent" />
-            <p className="text-sm text-theme-primary">Import en cours...</p>
+            <p className="text-sm text-theme-primary">{t('import.batch.importing')}</p>
           </div>
         ) : result ? (
           <ImportResultScreen result={result} onDone={() => navigate('/dashboard/contacts')} />

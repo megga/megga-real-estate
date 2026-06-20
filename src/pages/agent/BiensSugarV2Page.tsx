@@ -6,6 +6,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
@@ -34,6 +35,7 @@ const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function BiensSugarV2Page() {
   const navigate = useNavigate()
+  const { t: tr } = useTranslation('listings')
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -118,21 +120,21 @@ export default function BiensSugarV2Page() {
   }, [biens, search, fStatus, sort])
 
   const statusOpts: SegOption[] = [
-    { value: 'all', label: 'Tous', count: counts.all },
-    { value: 'active', label: 'Actifs', count: counts.active },
-    { value: 'reserved', label: 'Réservés', count: counts.reserved },
-    { value: 'draft', label: 'Brouillons', count: counts.draft },
+    { value: 'all', label: tr('tab.all'), count: counts.all },
+    { value: 'active', label: tr('tab.active'), count: counts.active },
+    { value: 'reserved', label: tr('tab.reserved'), count: counts.reserved },
+    { value: 'draft', label: tr('tab.drafts'), count: counts.draft },
   ]
   const sortOpts: SortOption[] = [
-    { value: 'recent', label: 'Récents' },
-    { value: 'price-desc', label: 'Prix décroissant' },
-    { value: 'price-asc', label: 'Prix croissant' },
-    { value: 'surface', label: 'Surface' },
-    { value: 'views', label: 'Plus vus' },
+    { value: 'recent', label: tr('biens.sort.recent') },
+    { value: 'price-desc', label: tr('biens.sort.priceDesc') },
+    { value: 'price-asc', label: tr('biens.sort.priceAsc') },
+    { value: 'surface', label: tr('biens.sort.surface') },
+    { value: 'views', label: tr('biens.sort.views') },
   ]
   const viewOpts: SegOption[] = [
-    { value: 'galerie', label: 'Galerie', icon: 'gallery' },
-    { value: 'liste', label: 'Liste', icon: 'menu' },
+    { value: 'galerie', label: tr('biens.view.gallery'), icon: 'gallery' },
+    { value: 'liste', label: tr('biens.view.list'), icon: 'menu' },
   ]
 
   const onCmd = () => {
@@ -219,12 +221,12 @@ export default function BiensSugarV2Page() {
                   lineHeight: 1,
                 }}
               >
-                Mes biens
+                {tr('title')}
               </h1>
               <div style={{ fontSize: 13, color: sp.sub, marginTop: 8, fontWeight: 500 }}>
                 {isLoading
-                  ? 'Chargement…'
-                  : `${filtered.length} bien${filtered.length > 1 ? 's' : ''} sur ${biens.length} dans votre catalogue`}
+                  ? tr('biens.loading')
+                  : tr('biens.subtitle', { count: filtered.length, total: biens.length })}
               </div>
             </div>
             <div style={{ flex: 1 }} />
@@ -246,7 +248,7 @@ export default function BiensSugarV2Page() {
                 gap: 8,
               }}
             >
-              <MEIcon name="download" size={14} color={sp.soft} /> Exporter
+              <MEIcon name="download" size={14} color={sp.soft} /> {tr('biens.export')}
             </button>
             <button
               onClick={() => navigate('/dashboard/listings/new')}
@@ -267,7 +269,7 @@ export default function BiensSugarV2Page() {
                 gap: 8,
               }}
             >
-              <MEIcon name="plus" size={14} color={sp.pageBg} /> Créer un bien
+              <MEIcon name="plus" size={14} color={sp.pageBg} /> {tr('biens.create')}
             </button>
           </div>
 
@@ -285,7 +287,7 @@ export default function BiensSugarV2Page() {
               sp={sp}
               surf={surf}
               dark={dark}
-              label="Valeur du portefeuille"
+              label={tr('biens.kpi.portfolioValue')}
               value={'CHF ' + galCompact(kpi.portfolio)}
               spark={[6.2, 6.4, 6.3, 6.8, 7.0, 7.26]}
             />
@@ -293,7 +295,7 @@ export default function BiensSugarV2Page() {
               sp={sp}
               surf={surf}
               dark={dark}
-              label="Vues cumulées · 30 j"
+              label={tr('biens.kpi.viewsCumulated')}
               value={galCompact(kpi.views)}
               delta="+18%"
               spark={[2.1, 2.6, 3.0, 3.4, 3.9, 4.4]}
@@ -302,7 +304,7 @@ export default function BiensSugarV2Page() {
               sp={sp}
               surf={surf}
               dark={dark}
-              label="Demandes de visite"
+              label={tr('biens.kpi.visitRequests')}
               value={galNum(kpi.demands)}
               delta="+5"
               spark={[18, 21, 23, 26, 28, 30]}
@@ -335,7 +337,7 @@ export default function BiensSugarV2Page() {
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Rechercher un bien, une adresse, une référence…"
+                placeholder={tr('biens.searchPlaceholder')}
                 style={{
                   width: '100%',
                   height: 42,
@@ -407,15 +409,15 @@ export default function BiensSugarV2Page() {
               </div>
               <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>
                 {isError
-                  ? 'Impossible de charger vos biens'
+                  ? tr('biens.error.title')
                   : isLoading
-                    ? 'Chargement…'
-                    : 'Aucun bien ne correspond'}
+                    ? tr('biens.loading')
+                    : tr('biens.empty.noMatch')}
               </div>
               {isError && (
                 <>
                   <div style={{ fontSize: 12.5, color: sp.sub, marginTop: 6, lineHeight: 1.5 }}>
-                    Une erreur est survenue. Vérifiez votre connexion, puis réessayez.
+                    {tr('biens.error.message')}
                   </div>
                   <button
                     onClick={() => refetch()}
@@ -437,7 +439,7 @@ export default function BiensSugarV2Page() {
                       gap: 6,
                     }}
                   >
-                    <MEIcon name="refresh" size={13} color={sp.soft} /> Réessayer
+                    <MEIcon name="refresh" size={13} color={sp.soft} /> {tr('biens.error.retry')}
                   </button>
                 </>
               )}

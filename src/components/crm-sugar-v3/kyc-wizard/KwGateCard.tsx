@@ -4,6 +4,7 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useKycPalette } from '../kyc/kycPalette'
 
 interface Props {
@@ -25,6 +26,7 @@ export function KwGateCard({
   selected,
   disabled,
 }: Props) {
+  const { t } = useTranslation('kyc')
   const sp = useKycPalette()
   const [hover, setHover] = useState(false)
   return (
@@ -74,7 +76,7 @@ export function KwGateCard({
             textTransform: 'uppercase',
           }}
         >
-          Recommandé
+          {t('wizard.gate.recommended')}
         </span>
       )}
       <div
@@ -129,7 +131,7 @@ export function KwGateCard({
           transition: 'color .2s',
         }}
       >
-        {selected ? 'Sélectionné' : 'Choisir'}
+        {selected ? t('wizard.gate.selected') : t('wizard.gate.choose')}
         <span
           style={{
             display: 'inline-flex',

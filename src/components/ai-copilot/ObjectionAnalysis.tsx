@@ -1,4 +1,5 @@
 import { Sparkles, AlertTriangle, ThumbsDown, Lightbulb, BarChart3 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 interface Objection {
@@ -62,6 +63,8 @@ export default function ObjectionAnalysis({
   suggestions,
   className,
 }: ObjectionAnalysisProps) {
+  const { t } = useTranslation('messages')
+
   if (objections.length === 0) return null
 
   return (
@@ -70,15 +73,15 @@ export default function ObjectionAnalysis({
         <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center">
           <BarChart3 className="h-4 w-4 text-amber-600" />
         </div>
-        <h2 className="text-sm font-semibold text-primary-900 capitalize">Analyse des objections</h2>
+        <h2 className="text-sm font-semibold text-primary-900 capitalize">{t('copilot.objections.title')}</h2>
         <span className="text-xs font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-badge flex items-center gap-1">
           <Sparkles className="h-2.5 w-2.5" />
-          Analyse IA
+          {t('copilot.objections.aiBadge')}
         </span>
       </div>
 
       <p className="text-xs text-muted-foreground mb-4">
-        Basée sur les retours de {totalVisits} visite{totalVisits > 1 ? 's' : ''}.
+        {t('copilot.objections.basedOnVisits', { count: totalVisits })}
       </p>
 
       <div className="space-y-5">
@@ -86,7 +89,7 @@ export default function ObjectionAnalysis({
         <div>
           <div className="flex items-center gap-1.5 mb-3">
             <ThumbsDown className="h-3.5 w-3.5 text-primary-400" />
-            <span className="text-xs font-semibold text-primary-700 capitalize">Objections récurrentes</span>
+            <span className="text-xs font-semibold text-primary-700 capitalize">{t('copilot.objections.recurring')}</span>
           </div>
           <div className="space-y-2">
             {objections.map((obj, i) => (
@@ -118,7 +121,7 @@ export default function ObjectionAnalysis({
           <div className="pt-3 border-t border-border">
             <div className="flex items-center gap-1.5 mb-3">
               <AlertTriangle className="h-3.5 w-3.5 text-primary-400" />
-              <span className="text-xs font-semibold text-primary-700 capitalize">Points faibles identifiés</span>
+              <span className="text-xs font-semibold text-primary-700 capitalize">{t('copilot.objections.weaknesses')}</span>
             </div>
             <div className="space-y-2">
               {weaknesses.map((w, i) => (
@@ -126,7 +129,11 @@ export default function ObjectionAnalysis({
                   <span className={cn('w-2 h-2 rounded-full flex-shrink-0', SEVERITY_CONFIG[w.severity]?.cls?.split(' ')[0] || 'bg-theme-active')} />
                   <span className="text-sm text-primary-700">{w.label}</span>
                   <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-badge ml-auto flex-shrink-0', SEVERITY_CONFIG[w.severity]?.cls)}>
-                    {w.severity === 'high' ? 'Impact fort' : w.severity === 'medium' ? 'Impact modéré' : 'Impact faible'}
+                    {w.severity === 'high'
+                      ? t('copilot.objections.impact.high')
+                      : w.severity === 'medium'
+                        ? t('copilot.objections.impact.medium')
+                        : t('copilot.objections.impact.low')}
                   </span>
                 </div>
               ))}
@@ -139,7 +146,7 @@ export default function ObjectionAnalysis({
           <div className="pt-3 border-t border-border">
             <div className="flex items-center gap-1.5 mb-3">
               <Lightbulb className="h-3.5 w-3.5 text-primary-400" />
-              <span className="text-xs font-semibold text-primary-700 capitalize">Suggestions d'ajustement</span>
+              <span className="text-xs font-semibold text-primary-700 capitalize">{t('copilot.objections.adjustments')}</span>
             </div>
             <div className="space-y-2">
               {suggestions.map((s, i) => (
@@ -155,7 +162,7 @@ export default function ObjectionAnalysis({
 
       {/* Disclaimer */}
       <p className="text-xs text-theme-tertiary mt-4 text-center">
-        Analyse IA des retours de visite — données anonymisées.
+        {t('copilot.objections.disclaimer')}
       </p>
     </div>
   )

@@ -1,1 +1,170 @@
-{}
+{
+  "eventType": {
+    "visite": "Visite",
+    "mandate": "Mandat / Estim.",
+    "notary": "Signature notaire",
+    "task": "Tâche / Relance",
+    "publish": "Publication"
+  },
+  "days": [
+    "Dim",
+    "Lun",
+    "Mar",
+    "Mer",
+    "Jeu",
+    "Ven",
+    "Sam"
+  ],
+  "daysFull": [
+    "Dimanche",
+    "Lundi",
+    "Mardi",
+    "Mercredi",
+    "Jeudi",
+    "Vendredi",
+    "Samedi"
+  ],
+  "months": [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre"
+  ],
+  "views": {
+    "timelineCount_one": "Timeline · {{count}} événement",
+    "timelineCount_other": "Timeline · {{count}} événements",
+    "now": "MAINTENANT · {{time}}",
+    "dayEmpty": "Journée libre, bloquez du temps pour les acheteurs chauds.",
+    "heroFirst": "Premier RDV",
+    "heroInProgress": "EN COURS",
+    "heroInMinutes_one": "DANS {{count}} MIN",
+    "heroInMinutes_other": "DANS {{count}} MIN",
+    "heroAtTime": "À {{time}}",
+    "heroLast": "DERNIER RDV",
+    "warmBadge": "Chaud · {{pct}}%",
+    "moreEvents_one": "+ {{count}} autre",
+    "moreEvents_other": "+ {{count}} autres",
+    "todayBadge": "AUJOURD'HUI",
+    "eventCount_one": "{{count}} événement",
+    "eventCount_other": "{{count}} événements"
+  },
+  "panel": {
+    "miniWeekdays": [
+      "L",
+      "M",
+      "M",
+      "J",
+      "V",
+      "S",
+      "D"
+    ],
+    "filterByType": "Filtrer par type",
+    "hotBuyers": "Acheteurs chauds",
+    "cardAriaLabel": "Carte {{index}}",
+    "emptyTitle": "Sélectionnez un événement",
+    "emptyHint": "Cliquez sur un RDV pour voir le détail et lancer les actions.",
+    "statusDone": "Terminé",
+    "statusCancelled": "Annulé",
+    "linkedProperty": "Bien lié",
+    "notes": "Notes",
+    "directions": "Itinéraire",
+    "markDone": "Marquer fait",
+    "views": {
+      "day": "Jour",
+      "week": "Semaine",
+      "month": "Mois",
+      "agenda": "Agenda"
+    }
+  },
+  "edit": {
+    "newEvent": "Nouvel événement",
+    "typeLabel": "Type",
+    "titleLabel": "Titre",
+    "titlePlaceholder": "Titre de l'événement",
+    "dateLabel": "Date",
+    "startLabel": "Début",
+    "endLabel": "Fin",
+    "locationLabel": "Lieu",
+    "locationPlaceholder": "Adresse",
+    "contactLabel": "Contact",
+    "namePlaceholder": "Nom",
+    "rolePlaceholder": "Rôle",
+    "phonePlaceholder": "Téléphone",
+    "propertyLabel": "Bien",
+    "designationPlaceholder": "Désignation",
+    "areaPlaceholder": "m²",
+    "pricePlaceholder": "Prix CHF",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Notes internes",
+    "save": "Enregistrer"
+  },
+  "page": {
+    "eyebrow": "Calendrier",
+    "newEvent": "Nouvel événement",
+    "creating": "Création…",
+    "fullAgenda": "Agenda complet",
+    "weekRange": "Semaine du {{startDay}} {{startMonth}} - {{endDay}} {{endMonth}}",
+    "selectContactAndProperty": "Sélectionnez un contact ET un bien pour planifier une visite",
+    "errorUnknown": "Erreur inconnue",
+    "createFailed": "Échec : {{error}}",
+    "created": {
+      "visit": "Visite planifiée",
+      "meeting": "Rendez-vous planifié",
+      "reminder": "Relance créée",
+      "signing": "Signature planifiée",
+      "deadline": "Échéance ajoutée",
+      "personal": "Événement personnel ajouté"
+    }
+  },
+  "createVisit": {
+    "title": "Nouvel événement",
+    "description": "Planifier une visite, un rendez-vous ou une relance",
+    "eventType": {
+      "visit": "Visite",
+      "meeting": "Rendez-vous",
+      "reminder": "Relance",
+      "signing": "Signature",
+      "deadline": "Échéance",
+      "personal": "Personnel"
+    },
+    "prefix": {
+      "visit": "Visite",
+      "meeting": "RDV",
+      "reminder": "Rappel",
+      "signing": "Signature",
+      "deadline": "Échéance",
+      "personal": ""
+    },
+    "recurrence": {
+      "none": "Jamais",
+      "daily": "Chaque jour",
+      "weekly": "Chaque semaine",
+      "biweekly": "Toutes les 2 sem.",
+      "monthly": "Chaque mois"
+    },
+    "field": {
+      "type": "Type",
+      "title": "Titre",
+      "date": "Date",
+      "time": "Heure",
+      "duration": "Durée",
+      "recurrence": "Récurrence",
+      "contact": "Contact",
+      "property": "Bien",
+      "location": "Adresse",
+      "notes": "Notes"
+    },
+    "locationPlaceholder": "Adresse du rendez-vous",
+    "notesPlaceholder": "Notes optionnelles...",
+    "noContact": "Aucun contact",
+    "noProperty": "Aucun bien"
+  }
+}

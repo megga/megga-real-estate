@@ -124,7 +124,11 @@ i18n
     ns: NAMESPACES as unknown as string[],
     interpolation: { escapeValue: false },
     detection: {
-      order: ['localStorage', 'navigator'],
+      // FR par défaut (charte produit) : on n'honore QUE le choix explicite de
+      // l'agent (toggle Réglages → localStorage). Pas de 'navigator' : un
+      // navigateur en-US/de-DE ne doit pas basculer l'UI tout seul (et DE/IT
+      // n'ont aujourd'hui qu'un fallback EN). Sans préférence → fallbackLng 'fr'.
+      order: ['localStorage'],
       lookupLocalStorage: 'megga-language',
       caches: ['localStorage'],
     },

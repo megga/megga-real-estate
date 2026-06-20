@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { Trans, useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { CRM_BIENS, CRM_MATCHES, type CrmContact } from '../mockData'
 import type { SugarPalette } from '../tokens'
@@ -21,12 +22,13 @@ export interface RdvPayload {
   notes: string
 }
 
-const CT_RDV_TYPES: { id: RdvType; label: string; icon: MEIconName; color: string }[] = [
-  { id: 'visit', label: 'Visite', icon: 'home', color: '#0041D9' },
-  { id: 'phone', label: 'Téléphone', icon: 'phone', color: '#06B6D4' },
-  { id: 'video', label: 'Visio', icon: 'message', color: '#8B5CF6' },
-  { id: 'notary', label: 'Signature notaire', icon: 'check', color: '#0E9F6E' },
-  { id: 'other', label: 'Autre', icon: 'calendar', color: '#7A8079' },
+// Clés i18n stables (`labelKey`) résolues au rendu via `t(...)`.
+const CT_RDV_TYPES: { id: RdvType; labelKey: string; icon: MEIconName; color: string }[] = [
+  { id: 'visit', labelKey: 'planRdv.type.visit', icon: 'home', color: '#0041D9' },
+  { id: 'phone', labelKey: 'planRdv.type.phone', icon: 'phone', color: '#06B6D4' },
+  { id: 'video', labelKey: 'planRdv.type.video', icon: 'message', color: '#8B5CF6' },
+  { id: 'notary', labelKey: 'planRdv.type.notary', icon: 'check', color: '#0E9F6E' },
+  { id: 'other', labelKey: 'planRdv.type.other', icon: 'calendar', color: '#7A8079' },
 ]
 
 const CT_RDV_DURATIONS = [15, 30, 45, 60, 90, 120]
@@ -47,6 +49,7 @@ interface ModalPlanRdvProps {
 }
 
 export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRdvProps) {
+  const { t } = useTranslation('contacts')
   const [type, setType] = useState<RdvType>('visit')
   const today = useMemo(() => {
     const d = new Date()
@@ -184,16 +187,20 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
                 letterSpacing: -0.4,
               }}
             >
-              Planifier un rendez-vous
+              {t('planRdv.title')}
             </h2>
             <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>
-              avec{' '}
-              <strong style={{ color: sp.soft, fontWeight: 700 }}>{fullName}</strong>
+              <Trans
+                t={t}
+                i18nKey="planRdv.withContact"
+                values={{ name: fullName }}
+                components={{ strong: <strong style={{ color: sp.soft, fontWeight: 700 }} /> }}
+              />
             </div>
           </div>
           <button
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t('common:actions.close')}
             style={{
               width: 32,
               height: 32,
@@ -222,7 +229,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
           }}
         >
           <div>
-            <label style={labelStyle}>Type de rendez-vous</label>
+            <label style={labelStyle}>{t('planRdv.typeLabel')}</label>
             <div
               style={{
                 display: 'grid',
@@ -257,7 +264,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
                       size={14}
                       color={active ? sp.pageBg : rt.color}
                     />
-                    {rt.label}
+                    {t(rt.labelKey)}
                   </button>
                 )
               })}
@@ -272,7 +279,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
             }}
           >
             <div>
-              <label style={labelStyle}>Date</label>
+              <label style={labelStyle}>{t('planRdv.date')}</label>
               <input
                 type="date"
                 value={date}
@@ -281,7 +288,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
               />
             </div>
             <div>
-              <label style={labelStyle}>Heure</label>
+              <label style={labelStyle}>{t('planRdv.time')}</label>
               <input
                 type="time"
                 value={time}
@@ -290,7 +297,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
               />
             </div>
             <div>
-              <label style={labelStyle}>Durée</label>
+              <label style={labelStyle}>{t('planRdv.duration')}</label>
               <select
                 value={duration}
                 onChange={e => setDuration(Number(e.target.value))}
@@ -298,7 +305,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
               >
                 {CT_RDV_DURATIONS.map(d => (
                   <option key={d} value={d}>
-                    {d} min
+                    {t('planRdv.minutes', { count: d })}
                   </option>
                 ))}
               </select>
@@ -307,13 +314,13 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
 
           {(type === 'visit' || type === 'notary') && linkedBiens.length > 0 && (
             <div>
-              <label style={labelStyle}>Bien associé</label>
+              <label style={labelStyle}>{t('planRdv.linkedProperty')}</label>
               <select
                 value={bienId}
                 onChange={e => setBienId(e.target.value)}
                 style={inputStyle}
               >
-                <option value="">— Aucun —</option>
+                <option value="">{t('planRdv.noProperty')}</option>
                 {linkedBiens.map(b => (
                   <option key={b.id} value={b.id}>
                     {b.title || b.addr || b.id}
@@ -326,17 +333,17 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
 
           {(type === 'visit' || type === 'notary' || type === 'other') && (
             <div>
-              <label style={labelStyle}>Lieu</label>
+              <label style={labelStyle}>{t('planRdv.location')}</label>
               <input
                 type="text"
                 value={location}
                 onChange={e => setLocation(e.target.value)}
                 placeholder={
                   type === 'visit'
-                    ? 'Adresse du bien…'
+                    ? t('planRdv.locationPlaceholder.visit')
                     : type === 'notary'
-                      ? 'Étude notariale…'
-                      : 'Adresse ou lieu…'
+                      ? t('planRdv.locationPlaceholder.notary')
+                      : t('planRdv.locationPlaceholder.other')
                 }
                 style={inputStyle}
               />
@@ -344,7 +351,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
           )}
 
           <div>
-            <label style={labelStyle}>Agents invités</label>
+            <label style={labelStyle}>{t('planRdv.invitedAgents')}</label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {CT_RDV_AGENTS.map(a => {
                 const active = agents.includes(a.id)
@@ -381,11 +388,11 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
           </div>
 
           <div>
-            <label style={labelStyle}>Notes / agenda</label>
+            <label style={labelStyle}>{t('planRdv.notes')}</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Points à aborder, documents à apporter…"
+              placeholder={t('planRdv.notesPlaceholder')}
               style={{
                 ...inputStyle,
                 height: 80,
@@ -410,7 +417,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
           }}
         >
           <div style={{ fontSize: 11, color: sp.sub, fontWeight: 500 }}>
-            Esc pour fermer · ⌘⏎ pour enregistrer
+            {t('planRdv.shortcutHint')}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
@@ -428,7 +435,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
                 fontFamily: 'inherit',
               }}
             >
-              Annuler
+              {t('common:actions.cancel')}
             </button>
             <button
               onClick={handleSave}
@@ -450,7 +457,7 @@ export function ModalPlanRdv({ contact, sp, dark, onClose, onSave }: ModalPlanRd
               }}
             >
               <MEIcon name="check" size={12} color={sp.pageBg} />
-              Enregistrer
+              {t('planRdv.submit')}
             </button>
           </div>
         </div>

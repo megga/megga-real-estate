@@ -2,6 +2,7 @@
 // 1:1 port from `crm-calendar-sugar-day.jsx`.
 
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CalIcon } from './CalIcon'
 import { CAL_EVENT_TYPES, calLayout, eventTypeColors, useCalPalette, type CalEvent } from './data'
 import { fmtTime, sameDay } from './helpers'
@@ -16,6 +17,7 @@ interface CalDayViewProps {
 }
 
 export function CalDayView({ events, currentDate, now, selectedId, onSelect, onEdit }: CalDayViewProps) {
+  const { t } = useTranslation('calendar')
   const SP = useCalPalette()
   const TYPES = CAL_EVENT_TYPES
 
@@ -90,7 +92,7 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect, onE
               textTransform: 'uppercase',
             }}
           >
-            Timeline · {dayEvents.length} événement{dayEvents.length > 1 ? 's' : ''}
+            {t('views.timelineCount', { count: dayEvents.length })}
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             {Object.values(TYPES)
@@ -206,7 +208,7 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect, onE
                     borderRadius: 999,
                   }}
                 >
-                  MAINTENANT · {fmtTime(now)}
+                  {t('views.now', { time: fmtTime(now) })}
                 </div>
               </div>
             )}
@@ -329,7 +331,7 @@ export function CalDayView({ events, currentDate, now, selectedId, onSelect, onE
                   fontWeight: 500,
                 }}
               >
-                Journée libre — bloquez du temps pour les acheteurs chauds.
+                {t('views.dayEmpty')}
               </div>
             )}
           </div>
@@ -347,22 +349,23 @@ interface CalNextHeroProps {
 }
 
 function CalNextHero({ event, now, isToday, onOpen }: CalNextHeroProps) {
+  const { t } = useTranslation('calendar')
   const SP = useCalPalette()
-  const t = CAL_EVENT_TYPES[event.type]
+  const type = CAL_EVENT_TYPES[event.type]
 
   const diffMin = Math.round((event.start.getTime() - now.getTime()) / 60000)
   const inProgress = event.start <= now && event.end > now
   const upcoming = !inProgress && diffMin > 0
 
   const headline = !isToday
-    ? 'Premier RDV'
+    ? t('views.heroFirst')
     : inProgress
-      ? 'EN COURS'
+      ? t('views.heroInProgress')
       : upcoming
         ? diffMin <= 60
-          ? `DANS ${diffMin} MIN`
-          : `À ${fmtTime(event.start)}`
-        : 'DERNIER RDV'
+          ? t('views.heroInMinutes', { count: diffMin })
+          : t('views.heroAtTime', { time: fmtTime(event.start) })
+        : t('views.heroLast')
 
   return (
     <button
@@ -438,7 +441,7 @@ function CalNextHero({ event, now, isToday, onOpen }: CalNextHeroProps) {
         >
           {headline}
           <span style={{ opacity: 0.5 }}>·</span>
-          <span>{t.label}</span>
+          <span>{type.label}</span>
         </div>
         <div
           style={{
@@ -503,7 +506,7 @@ function CalNextHero({ event, now, isToday, onOpen }: CalNextHeroProps) {
                 }}
               >
                 <CalIcon name="flame" size={10} stroke="#FCD34D" sw={2} />
-                Chaud · {event.contact.warm}%
+                {t('views.warmBadge', { pct: event.contact.warm })}
               </div>
             )}
           </div>

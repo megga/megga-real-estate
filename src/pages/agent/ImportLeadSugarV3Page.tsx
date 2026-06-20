@@ -16,6 +16,7 @@
 // Spec : RED_TEAM_SPRINT_3.md §G.1 (D2 invalidé), §B.B3 (dédup), §F.F5.
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
@@ -35,10 +36,9 @@ import { useExtractLead, type ExtractedLead, type LeadIntent } from '@/hooks/use
 import { useFindContactDuplicates } from '@/hooks/useContactDuplicates'
 import { useImportLead } from '@/hooks/useImportLead'
 
-const STEPS = [
-  { id: 'message', label: 'Le message' },
-  { id: 'review',  label: 'Vérifier & créer' },
-] as const
+// Ids stables des étapes (labels résolus via i18n dans le composant).
+const STEP_IDS = ['message', 'review'] as const
+const STEP_COUNT = STEP_IDS.length
 
 const REVEAL_DELAY_MS = 280
 const FIELD_COUNT = 6  // identité, contact, intention+budget, critères, urgence, action
@@ -90,8 +90,14 @@ function clearStoredState() {
 }
 
 export default function ImportLeadSugarV3Page() {
+  const { t } = useTranslation('contacts')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
+  const steps = useMemo(
+    () => STEP_IDS.map((id) => ({ id, label: t(`import.lead.steps.${id}`) })),
+    [t],
+  )
 
   const initialText = searchParams.get('text') ?? ''
   const returnTo    = searchParams.get('returnTo') ?? '/dashboard/pipeline'
@@ -138,8 +144,8 @@ export default function ImportLeadSugarV3Page() {
     if (!hasUnsavedWork) return true
     return window.confirm(
       step > 0
-        ? "Quitter l'import perdra l'extraction en cours. Continuer ?"
-        : "Le message saisi ne sera pas conservé. Quitter ?",
+        ? t('import.lead.confirmLeave.review')
+        : t('import.lead.confirmLeave.message'),
     )
   }
 
@@ -252,7 +258,7 @@ export default function ImportLeadSugarV3Page() {
       >
         <button
           onClick={close}
-          title="Fermer"
+          title={t('common:actions.close')}
           style={{
             width: 44,
             height: 44,
@@ -283,11 +289,11 @@ export default function ImportLeadSugarV3Page() {
             }}
           >
             <SgIcon name="sparkle" size={12} stroke={SugarV3.muted} sw={1.8} />
-            Import lead · MEGGA AI
+            {t('import.lead.eyebrow')}
           </div>
         </div>
 
-        <SgStepper steps={STEPS as unknown as { id: string; label: string }[]} current={step} />
+        <SgStepper steps={steps} current={step} />
 
         {/* Crayon mode édition — Step 2 uniquement */}
         {step === 1 && extracted && !created && (
@@ -323,12 +329,12 @@ export default function ImportLeadSugarV3Page() {
                     display: 'inline-block',
                   }}
                 />
-                Édition en cours
+                {t('import.lead.editing')}
               </>
             ) : (
               <>
                 <SgIcon name="pencil" size={12} stroke={SugarV3.inkSoft} sw={2} />
-                Modifier
+                {t('common:actions.edit')}
               </>
             )}
           </button>
@@ -396,13 +402,13 @@ export default function ImportLeadSugarV3Page() {
             icon={<SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />}
             onClick={() => (step > 0 ? setStep(0) : close())}
           >
-            {step === 0 ? 'Annuler' : 'Recoller le message'}
+            {step === 0 ? t('common:actions.cancel') : t('import.lead.repaste')}
           </SgGhostPill>
 
           <div style={{ flex: 1 }} />
 
           <div style={{ fontSize: 12.5, color: SugarV3.muted, fontWeight: 600 }}>
-            Étape {step + 1} / {STEPS.length}
+            {t('import.lead.stepProgress', { current: step + 1, total: STEP_COUNT })}
           </div>
 
           {step === 0 ? (
@@ -427,7 +433,9 @@ export default function ImportLeadSugarV3Page() {
               }
               onClick={runAnalysis}
             >
-              {extractMutation.isPending ? 'Analyse en cours…' : 'Analyser avec MEGGA AI'}
+              {extractMutation.isPending
+                ? t('import.lead.analyzing')
+                : t('import.lead.analyze')}
             </SgBlackPill>
           ) : editMode ? (
             <SgBlackPill
@@ -435,7 +443,7 @@ export default function ImportLeadSugarV3Page() {
               icon={<SgIcon name="check" size={14} stroke="#fff" sw={2.5} />}
               onClick={() => setEditMode(false)}
             >
-              Terminer les modifications
+              {t('import.lead.finishEditing')}
             </SgBlackPill>
           ) : (
             <SgBlackPill
@@ -445,12 +453,12 @@ export default function ImportLeadSugarV3Page() {
               onClick={handleCreate}
             >
               {importMutation.isPending
-                ? 'Création…'
+                ? t('import.lead.creating')
                 : dedupChecking
-                  ? 'Vérification des doublons…'
+                  ? t('import.lead.checkingDuplicates')
                   : createDeal
-                    ? 'Créer le contact & le deal'
-                    : 'Créer le contact'}
+                    ? t('import.lead.createContactAndDeal')
+                    : t('import.lead.createContact')}
             </SgBlackPill>
           )}
         </footer>
@@ -474,6 +482,7 @@ function PasteStep({
   error?: string
   errorCode?: string
 }) {
+  const { t } = useTranslation('contacts')
   return (
     <div
       style={{
@@ -493,7 +502,7 @@ function PasteStep({
             marginBottom: 14,
           }}
         >
-          Étape 1 sur 2
+          {t('import.lead.stepOf', { current: 1, total: 2 })}
         </div>
         <h1
           style={{
@@ -505,7 +514,7 @@ function PasteStep({
             lineHeight: 1.1,
           }}
         >
-          Collez le message du prospect.
+          {t('import.lead.paste.title')}
         </h1>
         <p
           style={{
@@ -516,8 +525,7 @@ function PasteStep({
             lineHeight: 1.55,
           }}
         >
-          Email, SMS, formulaire web, message WhatsApp transcrit — MEGGA AI extrait l'identité,
-          l'intention et propose la prochaine action.
+          {t('import.lead.paste.subtitle')}
         </p>
       </div>
 
@@ -534,7 +542,7 @@ function PasteStep({
           autoFocus
           value={text}
           onChange={(e) => onTextChange(e.target.value)}
-          placeholder="Collez ici l'email, le SMS ou le message reçu. Plus le texte est riche, meilleure est l'extraction…"
+          placeholder={t('import.lead.paste.placeholder')}
           style={{
             width: '100%',
             minHeight: 260,
@@ -563,7 +571,7 @@ function PasteStep({
             textTransform: 'uppercase',
           }}
         >
-          Essayer avec un exemple
+          {t('import.lead.paste.tryExample')}
         </span>
         {LEAD_SAMPLES.map((s) => (
           <button
@@ -605,14 +613,14 @@ function PasteStep({
         >
           <SgIcon name="alert" size={16} stroke={SugarV3.err} sw={1.8} />
           {errorCode === 'unauthorized'
-            ? 'Session expirée — reconnectez-vous.'
+            ? t('import.lead.errors.unauthorized')
             : errorCode === 'text_too_short'
-              ? 'Le message est trop court pour être analysé (10 caractères minimum).'
+              ? t('import.lead.errors.textTooShort')
               : errorCode === 'rate_limit_exceeded'
-                ? 'Quota d\'extractions atteint pour cette heure. Réessayez plus tard ou contactez votre admin.'
+                ? t('import.lead.errors.rateLimit')
                 : errorCode === 'llm_unavailable'
-                  ? 'MEGGA AI est temporairement indisponible. Réessayez dans un instant.'
-                  : 'Une erreur est survenue. Réessayez ou contactez le support.'}
+                  ? t('import.lead.errors.llmUnavailable')
+                  : t('import.lead.errors.generic')}
         </div>
       )}
     </div>
@@ -654,6 +662,7 @@ function ReviewStep({
   onSelectDuplicate,
   error,
 }: ReviewStepProps) {
+  const { t } = useTranslation('contacts')
   return (
     <div
       style={{
@@ -673,7 +682,7 @@ function ReviewStep({
             marginBottom: 14,
           }}
         >
-          Étape 2 sur 2
+          {t('import.lead.stepOf', { current: 2, total: 2 })}
         </div>
         <h1
           style={{
@@ -685,7 +694,7 @@ function ReviewStep({
             lineHeight: 1.1,
           }}
         >
-          {editMode ? "Ajustez ce qui n'est pas correct." : "Voici ce que j'ai compris."}
+          {editMode ? t('import.lead.review.titleEdit') : t('import.lead.review.title')}
         </h1>
         <p
           style={{
@@ -697,8 +706,8 @@ function ReviewStep({
           }}
         >
           {editMode
-            ? 'Tous les champs sont modifiables. Cliquez « Terminer » pour revenir à la vue de récap.'
-            : 'Vérifiez les champs extraits puis créez le contact. Cliquez le crayon pour ajuster.'}
+            ? t('import.lead.review.subtitleEdit')
+            : t('import.lead.review.subtitle')}
         </p>
       </div>
 
@@ -706,8 +715,8 @@ function ReviewStep({
       {lowConfidence && !editMode && (
         <BannerInfo
           icon="alert"
-          title="Message court ou ambigu"
-          body="Vérifier l'extraction avant de créer — certains champs peuvent être incomplets."
+          title={t('import.lead.banner.lowConfidence.title')}
+          body={t('import.lead.banner.lowConfidence.body')}
         />
       )}
 
@@ -715,8 +724,8 @@ function ReviewStep({
       {truncated && (
         <BannerInfo
           icon="alert"
-          title="Message tronqué pour l'analyse"
-          body="Seuls les 8 premiers Ko du message ont été envoyés à MEGGA AI. Vérifier que les informations clés ont bien été extraites."
+          title={t('import.lead.banner.truncated.title')}
+          body={t('import.lead.banner.truncated.body')}
         />
       )}
 
@@ -724,8 +733,8 @@ function ReviewStep({
       {redactionSummary && (
         <BannerInfo
           icon="shieldStar"
-          title="Données sensibles retirées avant analyse"
-          body={`Filtre nLPD appliqué : ${redactionSummary}. Le message original n'a pas été envoyé à l'IA tel quel.`}
+          title={t('import.lead.banner.redaction.title')}
+          body={t('import.lead.banner.redaction.body', { summary: redactionSummary })}
         />
       )}
 
@@ -747,18 +756,18 @@ function ReviewStep({
         {revealedCount >= 1 && (
           <RevealField span={2}>
             {editMode ? (
-              <EditField icon="user" label="Identité">
+              <EditField icon="user" label={t('import.lead.field.identity')}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <input
                     value={extracted.firstName}
                     onChange={(e) => updateField('firstName', e.target.value)}
-                    placeholder="Prénom"
+                    placeholder={t('import.lead.field.firstName')}
                     style={editInputStyle}
                   />
                   <input
                     value={extracted.lastName}
                     onChange={(e) => updateField('lastName', e.target.value)}
-                    placeholder="Nom"
+                    placeholder={t('import.lead.field.lastName')}
                     style={editInputStyle}
                   />
                 </div>
@@ -766,7 +775,7 @@ function ReviewStep({
             ) : (
               <ExtractedField
                 icon="user"
-                label="Identité"
+                label={t('import.lead.field.identity')}
                 value={`${extracted.firstName} ${extracted.lastName}`.trim() || null}
               />
             )}
@@ -777,7 +786,7 @@ function ReviewStep({
         {revealedCount >= 2 && (
           <RevealField>
             {editMode ? (
-              <EditField icon="mail" label="Email">
+              <EditField icon="mail" label={t('import.lead.field.email')}>
                 <input
                   type="email"
                   value={extracted.email}
@@ -787,7 +796,7 @@ function ReviewStep({
                 />
               </EditField>
             ) : (
-              <ExtractedField icon="mail" label="Email" value={extracted.email} />
+              <ExtractedField icon="mail" label={t('import.lead.field.email')} value={extracted.email} />
             )}
           </RevealField>
         )}
@@ -796,7 +805,7 @@ function ReviewStep({
         {revealedCount >= 2 && (
           <RevealField>
             {editMode ? (
-              <EditField icon="phone" label="Téléphone">
+              <EditField icon="phone" label={t('import.lead.field.phone')}>
                 <input
                   type="tel"
                   value={extracted.phone}
@@ -806,7 +815,7 @@ function ReviewStep({
                 />
               </EditField>
             ) : (
-              <ExtractedField icon="phone" label="Téléphone" value={extracted.phone} />
+              <ExtractedField icon="phone" label={t('import.lead.field.phone')} value={extracted.phone} />
             )}
           </RevealField>
         )}
@@ -815,21 +824,21 @@ function ReviewStep({
         {revealedCount >= 3 && (
           <RevealField>
             {editMode ? (
-              <EditField icon="target" label="Intention">
+              <EditField icon="target" label={t('import.lead.field.intent')}>
                 <SegmentedChoice
                   value={extracted.intent}
                   onChange={(v) => updateField('intent', v as LeadIntent)}
                   options={[
-                    { v: 'buyer',  l: 'Acheteur' },
-                    { v: 'seller', l: 'Vendeur' },
-                    { v: 'tenant', l: 'Locataire' },
+                    { v: 'buyer',  l: t('contactType.buyer') },
+                    { v: 'seller', l: t('contactType.seller') },
+                    { v: 'tenant', l: t('contactType.tenant') },
                   ]}
                 />
               </EditField>
             ) : (
               <ExtractedField
                 icon="target"
-                label="Intention"
+                label={t('import.lead.field.intent')}
                 value={INTENT_LABELS[extracted.intent]}
               />
             )}
@@ -840,7 +849,7 @@ function ReviewStep({
         {revealedCount >= 3 && (
           <RevealField>
             {editMode ? (
-              <EditField icon="coins" label="Budget">
+              <EditField icon="coins" label={t('import.lead.field.budget')}>
                 <input
                   type="number"
                   value={extracted.budget ?? ''}
@@ -854,7 +863,7 @@ function ReviewStep({
             ) : (
               <ExtractedField
                 icon="coins"
-                label="Budget"
+                label={t('import.lead.field.budget')}
                 value={extracted.budget ? formatBudget(extracted.budget, extracted.intent) : null}
               />
             )}
@@ -865,7 +874,7 @@ function ReviewStep({
         {revealedCount >= 4 && (
           <RevealField span={2}>
             {editMode ? (
-              <EditField icon="home" label="Critères">
+              <EditField icon="home" label={t('import.lead.field.criteria')}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 8 }}>
                   <input
                     type="number"
@@ -874,13 +883,13 @@ function ReviewStep({
                     onChange={(e) =>
                       updateField('rooms', e.target.value ? Number(e.target.value) : null)
                     }
-                    placeholder="Pièces"
+                    placeholder={t('import.lead.field.rooms')}
                     style={editInputStyle}
                   />
                   <input
                     value={extracted.zone}
                     onChange={(e) => updateField('zone', e.target.value)}
-                    placeholder="Quartier / zone"
+                    placeholder={t('import.lead.field.zone')}
                     style={editInputStyle}
                   />
                 </div>
@@ -888,10 +897,10 @@ function ReviewStep({
             ) : (
               <ExtractedField
                 icon="map"
-                label="Critères"
+                label={t('import.lead.field.criteria')}
                 value={
                   [
-                    extracted.rooms ? `${extracted.rooms} pièces` : null,
+                    extracted.rooms ? t('import.lead.roomsCount', { count: extracted.rooms }) : null,
                     extracted.zone || null,
                   ]
                     .filter(Boolean)
@@ -906,21 +915,21 @@ function ReviewStep({
         {revealedCount >= 5 && (
           <RevealField>
             {editMode ? (
-              <EditField icon="flame" label="Urgence">
+              <EditField icon="flame" label={t('import.lead.field.urgency')}>
                 <SegmentedChoice
                   value={extracted.urgency}
                   onChange={(v) => updateField('urgency', v as ExtractedLead['urgency'])}
                   options={[
-                    { v: 'high',   l: 'Élevée' },
-                    { v: 'medium', l: 'Modérée' },
-                    { v: 'normal', l: 'Normale' },
+                    { v: 'high',   l: t('import.urgency.high') },
+                    { v: 'medium', l: t('import.urgency.medium') },
+                    { v: 'normal', l: t('import.urgency.normal') },
                   ]}
                 />
               </EditField>
             ) : (
               <ExtractedField
                 icon="flame"
-                label="Urgence"
+                label={t('import.lead.field.urgency')}
                 value={URGENCY_LABELS[extracted.urgency]}
                 accentTone={
                   extracted.urgency === 'high'
@@ -938,22 +947,22 @@ function ReviewStep({
         {revealedCount >= 6 && (
           <RevealField>
             {editMode ? (
-              <EditField icon="sparkle" label="Action suggérée">
+              <EditField icon="sparkle" label={t('import.lead.field.nextAction')}>
                 <select
                   value={extracted.nextAction}
                   onChange={(e) => updateField('nextAction', e.target.value as ExtractedLead['nextAction'])}
                   style={{ ...editInputStyle, padding: '0 12px', appearance: 'none', cursor: 'pointer' }}
                 >
-                  <option value="call">Appel de qualification</option>
-                  <option value="visit">Planifier une visite</option>
-                  <option value="match">Envoyer 3 biens du portefeuille</option>
-                  <option value="kyc">Lancer le KYC</option>
+                  <option value="call">{t('import.nextAction.call')}</option>
+                  <option value="visit">{t('import.nextAction.visit')}</option>
+                  <option value="match">{t('import.nextAction.match')}</option>
+                  <option value="kyc">{t('import.nextAction.kyc')}</option>
                 </select>
               </EditField>
             ) : (
               <ExtractedField
                 icon="sparkle"
-                label="Action suggérée"
+                label={t('import.lead.field.nextAction')}
                 value={NEXT_ACTION_LABELS[extracted.nextAction]}
               />
             )}
@@ -978,7 +987,7 @@ function ReviewStep({
         >
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: SugarV3.ink, marginBottom: 3 }}>
-              Créer aussi un deal dans le pipeline
+              {t('import.lead.deal.title')}
             </div>
             <div
               style={{
@@ -988,8 +997,8 @@ function ReviewStep({
                 lineHeight: 1.5,
               }}
             >
-              Un deal « {INTENT_LABELS[extracted.intent]} » sera ouvert avec la prochaine action programmée.
-              {extracted.intent !== 'tenant' && ' Le KYC sera demandé avant signature.'}
+              {t('import.lead.deal.desc', { intent: INTENT_LABELS[extracted.intent] })}
+              {extracted.intent !== 'tenant' && ` ${t('import.lead.deal.kycNote')}`}
             </div>
           </div>
           <ToggleSwitch active={createDeal} onClick={onToggleCreateDeal} />
@@ -1008,7 +1017,7 @@ function ReviewStep({
             fontWeight: 600,
           }}
         >
-          Création échouée : {error}
+          {t('import.lead.createFailed', { message: error })}
         </div>
       )}
     </div>
@@ -1043,6 +1052,7 @@ function ExtractedField({
   value: string | null
   accentTone?: string
 }) {
+  const { t } = useTranslation('contacts')
   return (
     <div
       style={{
@@ -1106,7 +1116,7 @@ function ExtractedField({
               }}
             />
           )}
-          {value || <span style={{ color: SugarV3.muted, fontWeight: 500 }}>Non détecté</span>}
+          {value || <span style={{ color: SugarV3.muted, fontWeight: 500 }}>{t('import.lead.notDetected')}</span>}
         </div>
       </div>
     </div>
@@ -1297,6 +1307,7 @@ function DuplicateBanner({
   candidates: Array<{ id: string; first_name: string; last_name: string; email: string | null; phone: string | null; match_kind: string; created_at: string }>
   onSelect: (id: string) => void
 }) {
+  const { t } = useTranslation('contacts')
   return (
     <div
       style={{
@@ -1312,7 +1323,7 @@ function DuplicateBanner({
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <SgIcon name="alert" size={16} stroke={SugarV3.warn} sw={2} />
         <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink }}>
-          {candidates.length === 1 ? 'Un contact similaire' : `${candidates.length} contacts similaires`} déjà dans votre agence
+          {t('import.lead.duplicate.title', { count: candidates.length })}
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1353,14 +1364,14 @@ function DuplicateBanner({
                 textTransform: 'uppercase',
               }}
             >
-              Match {c.match_kind}
+              {t('import.lead.duplicate.matchBadge', { kind: t(`import.lead.duplicate.kind.${c.match_kind}`) })}
             </span>
             <SgIcon name="arrowR" size={14} stroke={SugarV3.inkSoft} sw={2} />
           </button>
         ))}
       </div>
       <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500 }}>
-        Vous pouvez quand même créer un nouveau contact ci-dessous si vous êtes sûr qu'il s'agit d'une autre personne.
+        {t('import.lead.duplicate.note')}
       </div>
     </div>
   )
@@ -1385,7 +1396,8 @@ function CreatedView({
   onNavToContact: () => void
   onNavToDeal: () => void
 }) {
-  const fullName = `${extracted.firstName} ${extracted.lastName}`.trim() || 'Contact'
+  const { t } = useTranslation('contacts')
+  const fullName = `${extracted.firstName} ${extracted.lastName}`.trim() || t('import.lead.created.fallbackName')
   const initials = useMemo(
     () => `${(extracted.firstName[0] ?? '?')}${(extracted.lastName[0] ?? '')}`.toUpperCase(),
     [extracted.firstName, extracted.lastName],
@@ -1425,12 +1437,12 @@ function CreatedView({
             lineHeight: 1.15,
           }}
         >
-          {fullName} est dans votre CRM.
+          {t('import.lead.created.title', { name: fullName })}
         </h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV3.inkSoft, fontWeight: 500 }}>
           {dealId
-            ? `Un deal « ${INTENT_LABELS[extracted.intent]} » a été créé dans votre pipeline.`
-            : 'Le contact a été créé. Vous pouvez lui associer un deal plus tard.'}
+            ? t('import.lead.created.subtitleDeal', { intent: INTENT_LABELS[extracted.intent] })
+            : t('import.lead.created.subtitleContact')}
         </p>
       </div>
 
@@ -1464,7 +1476,7 @@ function CreatedView({
               {fullName}
             </div>
             <div style={{ fontSize: 13, color: SugarV3.muted, fontWeight: 500, marginTop: 2 }}>
-              {[extracted.email, extracted.phone].filter(Boolean).join(' · ') || 'Coordonnées partielles'}
+              {[extracted.email, extracted.phone].filter(Boolean).join(' · ') || t('import.lead.created.partialContact')}
             </div>
           </div>
           <span
@@ -1504,10 +1516,10 @@ function CreatedView({
                 lineHeight: 1.5,
               }}
             >
-              <strong style={{ color: SugarV3.ink, fontWeight: 700 }}>Prochaine action :</strong>{' '}
+              <strong style={{ color: SugarV3.ink, fontWeight: 700 }}>{t('import.lead.created.nextActionLabel')}</strong>{' '}
               {NEXT_ACTION_LABELS[extracted.nextAction]}
               {extracted.urgency === 'high' && (
-                <span style={{ color: SugarV3.warn, fontWeight: 600 }}> · urgence élevée</span>
+                <span style={{ color: SugarV3.warn, fontWeight: 600 }}> {t('import.lead.created.highUrgencySuffix')}</span>
               )}
             </div>
           </div>
@@ -1530,10 +1542,10 @@ function CreatedView({
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink, marginBottom: 2 }}>
-              Voir dans le pipeline →
+              {t('import.lead.created.viewPipeline')}
             </div>
             <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500 }}>
-              Ouvrir la carte deal
+              {t('import.lead.created.viewPipelineDesc')}
             </div>
           </button>
         )}
@@ -1551,10 +1563,10 @@ function CreatedView({
           }}
         >
           <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink, marginBottom: 2 }}>
-            Voir la fiche contact →
+            {t('import.lead.created.viewContact')}
           </div>
           <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500 }}>
-            Coordonnées, KYC, historique
+            {t('import.lead.created.viewContactDesc')}
           </div>
         </button>
       </div>
@@ -1576,7 +1588,7 @@ function CreatedView({
             boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
           }}
         >
-          Fermer
+          {t('common:actions.close')}
         </button>
       </div>
     </div>

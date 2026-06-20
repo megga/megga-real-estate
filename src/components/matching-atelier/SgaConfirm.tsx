@@ -4,6 +4,7 @@
 // part sans cette validation explicite de l'agent.
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import { sgaFmtCHF, sgaInitials } from './format'
 import type { AtelierBuyer, AtelierListing } from './types'
@@ -17,8 +18,10 @@ interface SgaConfirmProps {
 }
 
 export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaConfirmProps) {
+  const { t } = useTranslation('matching')
   const [done, setDone] = useState(false)
   const doneRef = useRef(false)
+  const name = `${b.first} ${b.last}`
 
   const fire = () => {
     if (doneRef.current) return
@@ -43,7 +46,7 @@ export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaCon
         className="sga-modal"
         style={{ width: 440, maxWidth: '92vw' }}
         role="dialog"
-        aria-label={relance ? 'Relancer' : 'Transmettre le dossier'}
+        aria-label={relance ? t('confirm.followUpTitle') : t('confirm.sendTitle')}
       >
         {done ? (
           <div className="sga-success">
@@ -51,12 +54,12 @@ export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaCon
               <SgaIcon d="check" size={30} />
             </div>
             <div className="t4 semi" style={{ color: 'var(--ink)' }}>
-              {relance ? 'Relance envoyée' : 'Dossier transmis'}
+              {relance ? t('confirm.successFollowUpTitle') : t('confirm.successSendTitle')}
             </div>
             <p className="t2 muted" style={{ margin: 0, lineHeight: 1.5, maxWidth: 320 }}>
               {relance
-                ? `${b.first} ${b.last} a reçu un rappel · consigné dans son dossier client.`
-                : `Déposé dans le dossier client de ${b.first} ${b.last} · notification envoyée.`}
+                ? t('confirm.successFollowUpBody', { name })
+                : t('confirm.successSendBody', { name })}
             </p>
           </div>
         ) : (
@@ -67,7 +70,7 @@ export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaCon
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="t4 semi" style={{ color: 'var(--ink)' }}>
-                  {relance ? `Relancer ${b.first} ${b.last} ?` : 'Transmettre le dossier ?'}
+                  {relance ? t('confirm.followUpQuestion', { name }) : t('confirm.sendQuestion')}
                 </div>
               </div>
             </div>
@@ -77,15 +80,15 @@ export default function SgaConfirm({ b, L, relance, onClose, onConfirm }: SgaCon
               </div>
               <p className="t2 muted" style={{ margin: 0, lineHeight: 1.55 }}>
                 {relance
-                  ? `Une relance douce sera déposée dans le dossier client de ${b.first}, avec le bien en rappel. Le tout est consigné automatiquement dans sa fiche.`
-                  : `Le dossier complet du bien sera déposé dans le dossier client de ${b.first}, avec notification. Le tout est consigné automatiquement dans sa fiche.`}
+                  ? t('confirm.followUpBody', { firstName: b.first })
+                  : t('confirm.sendBody', { firstName: b.first })}
               </p>
             </div>
             <div className="sga-modal-foot">
               <div style={{ flex: 1 }} />
-              <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
+              <button className="btn btn-ghost" onClick={onClose}>{t('common:actions.cancel')}</button>
               <button className="btn btn-primary" onClick={fire} autoFocus>
-                {relance ? 'Relancer' : 'Transmettre'}
+                {relance ? t('confirm.followUpCta') : t('confirm.sendCta')}
               </button>
             </div>
           </>

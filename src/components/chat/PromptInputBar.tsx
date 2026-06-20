@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ArrowUp, Paperclip, X, Mic, StopCircle, User, Building2, Slash } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useContacts } from '@/hooks/useContacts'
@@ -9,15 +10,17 @@ import { supabase } from '@/lib/supabase'
 
 // ─── Slash Commands ──────────────────────────────────────────────────────────
 
+// Slash command tokens stay literal (typed triggers, matched against input).
+// `descKey` / `insertKey` resolve to i18n strings at render time.
 const SLASH_COMMANDS = [
-  { command: '/résumé', desc: 'Résumer un client ou le portefeuille', insert: 'Résume-moi ' },
-  { command: '/relance', desc: 'Rédiger une relance email/message', insert: 'Rédige une relance pour ' },
-  { command: '/matching', desc: 'Trouver des biens pour un client', insert: 'Quels biens proposer à ' },
-  { command: '/analyse', desc: 'Analyser le marché ou un bien', insert: 'Analyse le marché pour ' },
-  { command: '/mandat', desc: 'Préparer un mandat de vente', insert: 'Prépare un mandat pour ' },
-  { command: '/actions', desc: 'Voir les prochaines actions', insert: 'Quelles sont les prochaines actions ?' },
-  { command: '/kyc', desc: 'Vérifier la conformité d\'un client', insert: 'Vérifie le dossier KYC de ' },
-  { command: '/offre', desc: 'Analyser ou rédiger une offre', insert: 'Analyse l\'offre pour ' },
+  { command: '/résumé', descKey: 'chat.slash.summary.desc', insertKey: 'chat.slash.summary.insert' },
+  { command: '/relance', descKey: 'chat.slash.followUp.desc', insertKey: 'chat.slash.followUp.insert' },
+  { command: '/matching', descKey: 'chat.slash.matching.desc', insertKey: 'chat.slash.matching.insert' },
+  { command: '/analyse', descKey: 'chat.slash.analysis.desc', insertKey: 'chat.slash.analysis.insert' },
+  { command: '/mandat', descKey: 'chat.slash.mandate.desc', insertKey: 'chat.slash.mandate.insert' },
+  { command: '/actions', descKey: 'chat.slash.actions.desc', insertKey: 'chat.slash.actions.insert' },
+  { command: '/kyc', descKey: 'chat.slash.kyc.desc', insertKey: 'chat.slash.kyc.insert' },
+  { command: '/offre', descKey: 'chat.slash.offer.desc', insertKey: 'chat.slash.offer.insert' },
 ] as const
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -97,11 +100,12 @@ function AutocompleteDropdown({ items, selectedIndex, onSelect }: {
 // ─── Context Pill ────────────────────────────────────────────────────────────
 
 function ContextPill({ label, onClear }: { label: string; onClear: () => void }) {
+  const { t } = useTranslation('messages')
   return (
     <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-md bg-theme-hover text-xs text-theme-secondary">
       <User className="w-3 h-3 text-theme-muted" />
       <span className="truncate max-w-[140px]">{label}</span>
-      <button onClick={onClear} aria-label="Retirer le contexte" className="h-4 w-4 rounded flex items-center justify-center hover:bg-theme-card transition-colors">
+      <button onClick={onClear} aria-label={t('chat.input.clearContext')} className="h-4 w-4 rounded flex items-center justify-center hover:bg-theme-card transition-colors">
         <X className="w-2.5 h-2.5 text-theme-muted" />
       </button>
     </span>
@@ -113,13 +117,15 @@ function ContextPill({ label, onClear }: { label: string; onClear: () => void })
 export default function PromptInputBar({
   onSend,
   isLoading = false,
-  placeholder = 'Demandez-moi quelque chose...',
+  placeholder,
   disabled = false,
   className,
   initialValue = '',
   showHints = true,
   showMic = true,
 }: PromptInputBarProps) {
+  const { t } = useTranslation('messages')
+  const resolvedPlaceholder = placeholder ?? t('chat.input.placeholder')
   const [input, setInput] = useState(initialValue)
   const [files, setFiles] = useState<File[]>([])
   const [filePreviews, setFilePreviews] = useState<Record<string, string>>({})
@@ -158,11 +164,11 @@ export default function PromptInputBar({
     (contacts || []).map(c => ({
       id: c.id,
       label: `${c.first_name} ${c.last_name}`,
-      sub: c.type === 'buyer' ? 'Acheteur' : c.type === 'seller' ? 'Vendeur' : c.type,
+      sub: c.type === 'buyer' ? t('chat.contactType.buyer') : c.type === 'seller' ? t('chat.contactType.seller') : c.type,
       type: 'contact' as const,
       insert: `${c.first_name} ${c.last_name}`,
     })),
-  [contacts])
+  [contacts, t])
 
   const propertyItems = useMemo<AutocompleteItem[]>(() =>
     (properties || []).map(p => ({
@@ -178,11 +184,11 @@ export default function PromptInputBar({
     SLASH_COMMANDS.map(c => ({
       id: c.command,
       label: c.command,
-      sub: c.desc,
+      sub: t(c.descKey),
       type: 'command' as const,
-      insert: c.insert,
+      insert: t(c.insertKey),
     })),
-  [])
+  [t])
 
   // Detect trigger based on cursor position
   function detectAutocomplete() {
@@ -372,9 +378,9 @@ export default function PromptInputBar({
       setRecordingTime(0)
       timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000)
     } catch {
-      alert('Impossible d\'accéder au microphone. Vérifiez les permissions.')
+      alert(t('chat.input.micError'))
     }
-  }, [transcribeAudio])
+  }, [transcribeAudio, t])
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -460,7 +466,7 @@ export default function PromptInputBar({
           <button
             onClick={cancelRecording}
             className="h-10 w-10 rounded-full bg-theme-hover flex items-center justify-center hover:bg-theme-active active:scale-95 transition-all flex-shrink-0"
-            aria-label="Annuler l'enregistrement"
+            aria-label={t('chat.input.cancelRecording')}
           >
             <X className="h-5 w-5 text-theme-secondary" />
           </button>
@@ -483,7 +489,7 @@ export default function PromptInputBar({
           <button
             onClick={stopRecording}
             className="h-10 w-10 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-800 active:scale-95 transition-all flex-shrink-0"
-            aria-label="Arrêter et transcrire"
+            aria-label={t('chat.input.stopAndTranscribe')}
           >
             <div className="h-4 w-4 rounded-sm bg-white" />
           </button>
@@ -521,7 +527,7 @@ export default function PromptInputBar({
                 )}
                 <button
                   onClick={() => { setFiles([]); setFilePreviews({}) }}
-                  aria-label="Retirer le fichier"
+                  aria-label={t('chat.input.removeFile')}
                   className="absolute -top-1 -right-1 rounded-full bg-theme-card border border-theme-border p-0.5"
                 >
                   <X className="h-2.5 w-2.5 text-theme-muted" />
@@ -533,7 +539,7 @@ export default function PromptInputBar({
 
         {/* File size error */}
         {fileSizeError && (
-          <p className="text-xs text-red-500 px-2 pb-1">Fichier trop volumineux (max 10 Mo)</p>
+          <p className="text-xs text-red-500 px-2 pb-1">{t('chat.input.fileTooLarge', { size: 10 })}</p>
         )}
 
         {/* Textarea */}
@@ -542,8 +548,8 @@ export default function PromptInputBar({
           value={input}
           onChange={(e) => { setInput(e.target.value); requestAnimationFrame(detectAutocomplete) }}
           onKeyDown={handleKeyDown}
-          placeholder={activeContact ? `Demandez à propos de ${activeContact.firstName}...` : placeholder}
-          aria-label="Message"
+          placeholder={activeContact ? t('chat.input.askAbout', { name: activeContact.firstName }) : resolvedPlaceholder}
+          aria-label={t('chat.input.messageAriaLabel')}
           disabled={disabled || isLoading}
           rows={1}
           className="w-full bg-transparent px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted outline-none focus:outline-none focus-visible:outline-none resize-none min-h-[36px] max-h-[120px] md:max-h-[200px] scrollbar-hide"
@@ -555,7 +561,7 @@ export default function PromptInputBar({
           <div className="flex items-center gap-1">
             <button
               onClick={() => fileInputRef.current?.click()}
-              aria-label="Joindre un fichier"
+              aria-label={t('chat.input.attachFile')}
               className="h-7 w-7 rounded-full flex items-center justify-center text-theme-muted hover:text-theme-secondary hover:bg-theme-hover transition-colors"
             >
               <Paperclip className="h-4 w-4" />
@@ -571,9 +577,9 @@ export default function PromptInputBar({
             {/* Inline hints when empty */}
             {showHints && !hasContent && (
               <div className="flex items-center gap-1.5 ml-1">
-                <span className="text-xs text-theme-muted">/commande</span>
-                <span className="text-xs text-theme-muted">@contact</span>
-                <span className="text-xs text-theme-muted">#bien</span>
+                <span className="text-xs text-theme-muted">{t('chat.input.hintCommand')}</span>
+                <span className="text-xs text-theme-muted">{t('chat.input.hintContact')}</span>
+                <span className="text-xs text-theme-muted">{t('chat.input.hintProperty')}</span>
               </div>
             )}
           </div>
@@ -584,7 +590,7 @@ export default function PromptInputBar({
             {showMic && (
               <button
                 onClick={startRecording}
-                aria-label="Mémo vocal"
+                aria-label={t('chat.input.voiceMemo')}
                 disabled={isTranscribing}
                 className={cn(
                   'h-7 w-7 rounded-full flex items-center justify-center transition-colors',
@@ -603,7 +609,7 @@ export default function PromptInputBar({
 
             {/* Send / Stop */}
             <button
-              aria-label="Envoyer"
+              aria-label={t('common:actions.send')}
               onClick={() => {
                 if (isLoading) return
                 if (hasContent) handleSubmit()

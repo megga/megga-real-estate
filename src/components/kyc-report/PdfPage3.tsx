@@ -3,6 +3,7 @@
 //   07 Documents joints au dossier (ex 09)
 //   08 Piste d'audit & conservation (ex 10)
 
+import { useTranslation } from 'react-i18next'
 import { PdfShell, PdfSectionRule, PdfDef } from './PdfShell'
 import {
   PDF,
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function PdfPage3({ data }: Props) {
+  const { t } = useTranslation('kyc')
   const docCount = data.documents.length
 
   return (
@@ -32,7 +34,7 @@ export function PdfPage3({ data }: Props) {
             textTransform: 'uppercase',
           }}
         >
-          Annexes
+          {t('report.pdf.page3.eyebrow')}
         </div>
         <h2
           style={{
@@ -44,13 +46,13 @@ export function PdfPage3({ data }: Props) {
             lineHeight: 1.05,
           }}
         >
-          Pièces justificatives.
+          {t('report.pdf.page3.title')}
         </h2>
       </div>
 
       {/* 07 — Documents joints */}
       <PdfSectionRule num={7}>
-        Documents joints au dossier · {docCount}
+        {t('report.pdf.section.documents', { count: docCount })}
       </PdfSectionRule>
       {docCount === 0 ? (
         <div
@@ -63,7 +65,7 @@ export function PdfPage3({ data }: Props) {
             textAlign: 'center',
           }}
         >
-          Aucun document n'est joint au dossier à ce jour.
+          {t('report.pdf.page3.noDocuments')}
         </div>
       ) : (
         <table
@@ -76,7 +78,14 @@ export function PdfPage3({ data }: Props) {
         >
           <thead>
             <tr>
-              {['#', 'Nom du fichier', 'Catégorie', 'Date', 'Taille', 'Hash'].map(
+              {[
+                t('report.pdf.col.num'),
+                t('report.pdf.col.fileName'),
+                t('report.pdf.col.category'),
+                t('report.pdf.col.date'),
+                t('report.pdf.col.size'),
+                t('report.pdf.col.hash'),
+              ].map(
                 (h, i) => (
                   <th
                     key={i}
@@ -180,7 +189,7 @@ export function PdfPage3({ data }: Props) {
       )}
 
       {/* 08 — Piste d'audit & conservation */}
-      <PdfSectionRule num={8}>Piste d'audit &amp; conservation</PdfSectionRule>
+      <PdfSectionRule num={8}>{t('report.pdf.section.auditTrail')}</PdfSectionRule>
       <div
         style={{
           display: 'grid',
@@ -195,24 +204,17 @@ export function PdfPage3({ data }: Props) {
       >
         <div>
           <PdfDef
-            label="Durée de conservation"
-            value={`10 ans à compter du ${fmtDateSwiss(data.retention_until)}`}
+            label={t('report.pdf.label.retentionPeriod')}
+            value={t('report.pdf.retentionValue', { date: fmtDateSwiss(data.retention_until) })}
           />
           <div style={{ marginTop: 14 }}>
-            Conformément à l'art. 7 al. 3 LBA, l'intégralité du dossier
-            (pièces, screening, piste d'audit) est conservée sous forme intègre
-            et accessible pendant dix ans, y compris après la fin de la
-            relation d'affaires.
+            {t('report.pdf.retentionBody')}
           </div>
         </div>
         <div>
-          <PdfDef label="Base légale" value="LBA · OBA-FINMA · nLPD" />
+          <PdfDef label={t('report.pdf.label.legalBasis')} value={t('report.pdf.legalBasisValue')} />
           <div style={{ marginTop: 14 }}>
-            Le présent rapport vaut documentation au sens de l'art. 7 LBA et
-            de l'art. 22 OBA-FINMA. Le traitement des données personnelles
-            respecte les principes de la nLPD (proportionnalité, finalité,
-            sécurité). Droit d'accès garanti au client conformément à l'art.
-            25 nLPD.
+            {t('report.pdf.legalBasisBody')}
           </div>
         </div>
       </div>
@@ -241,7 +243,7 @@ export function PdfPage3({ data }: Props) {
               marginBottom: 6,
             }}
           >
-            Attestation finale
+            {t('report.pdf.finalAttestationLabel')}
           </div>
           <div
             style={{
@@ -252,9 +254,7 @@ export function PdfPage3({ data }: Props) {
               lineHeight: 1.5,
             }}
           >
-            Le présent rapport KYC est complet, daté et signé par
-            l'intermédiaire financier soumis à la LBA. Aucune information
-            matérielle n'a été omise.
+            {t('report.pdf.finalAttestationBody')}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>

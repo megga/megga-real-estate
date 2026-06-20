@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Send, Calendar } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import { optimizeImageUrl, IMAGE_PRESETS } from '@/lib/imageOptimizer'
@@ -28,6 +29,7 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function MatchScoreCard({ match, onSend, onIgnore, className }: MatchScoreCardProps) {
+  const { t } = useTranslation('matching')
   // Support both shapes: match.property (MatchWithRelations) or match.listing (MatchResult)
   const property = match.property || match.listing
   if (!property) return null
@@ -53,7 +55,7 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
             />
           ) : (
             <div className="h-full w-full bg-theme-section flex items-center justify-center">
-              <span className="text-xs text-theme-muted">Pas de photo</span>
+              <span className="text-xs text-theme-muted">{t('card.noPhoto')}</span>
             </div>
           )}
         </div>
@@ -76,33 +78,33 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
           {/* Reason badges */}
           {reasons && (
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {reasons.budget && <span className="text-xs text-emerald-500">Budget</span>}
-              {reasons.zone && <span className="text-xs text-emerald-500">Zone</span>}
-              {reasons.type && <span className="text-xs text-emerald-500">Type</span>}
-              {reasons.rooms_surface && <span className="text-xs text-emerald-500">Surface</span>}
-              {reasons.features && <span className="text-xs text-emerald-500">Extras</span>}
+              {reasons.budget && <span className="text-xs text-emerald-500">{t('scoreCard.reason.budget')}</span>}
+              {reasons.zone && <span className="text-xs text-emerald-500">{t('scoreCard.reason.zone')}</span>}
+              {reasons.type && <span className="text-xs text-emerald-500">{t('scoreCard.reason.type')}</span>}
+              {reasons.rooms_surface && <span className="text-xs text-emerald-500">{t('scoreCard.reason.surface')}</span>}
+              {reasons.features && <span className="text-xs text-emerald-500">{t('scoreCard.reason.extras')}</span>}
               {reasons.distance_km != null && (
                 <span className="text-xs text-theme-secondary">{reasons.distance_km} km</span>
               )}
               {reasons.must_have_missing?.length > 0 && (
                 <span className="text-xs text-red-500">
-                  Manque : {reasons.must_have_missing.join(', ')}
+                  {t('scoreCard.missing', { list: reasons.must_have_missing.join(', ') })}
                 </span>
               )}
               {reasons.nice_to_have_matched?.length > 0 && (
                 <span className="text-xs text-blue-500">
-                  + {reasons.nice_to_have_matched.join(', ')}
+                  {t('scoreCard.niceToHave', { list: reasons.nice_to_have_matched.join(', ') })}
                 </span>
               )}
               {reasons.days_on_market > 30 && (
-                <span className="text-xs text-theme-muted">{reasons.days_on_market}j en ligne</span>
+                <span className="text-xs text-theme-muted">{t('scoreCard.daysOnMarket', { count: reasons.days_on_market })}</span>
               )}
             </div>
           )}
 
           {/* Actions */}
           {isSent ? (
-            <p className="text-xs text-theme-muted">Envoyé · {match.sent_via}</p>
+            <p className="text-xs text-theme-muted">{t('scoreCard.sentVia', { channel: match.sent_via })}</p>
           ) : (
             <div className="flex items-center gap-2">
               <button
@@ -110,14 +112,14 @@ export default function MatchScoreCard({ match, onSend, onIgnore, className }: M
                 className="inline-flex items-center gap-1 text-xs font-medium h-7 px-2.5 rounded-lg border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
               >
                 <Send className="h-3 w-3" />
-                Envoyer
+                {t('common:actions.send')}
               </button>
               <button
                 onClick={onIgnore}
                 className="inline-flex items-center gap-1 text-xs text-theme-tertiary hover:text-theme-primary h-7 px-2 rounded-lg hover:bg-theme-hover transition-colors"
               >
                 <Calendar className="h-3 w-3" />
-                Visite
+                {t('scoreCard.visit')}
               </button>
             </div>
           )}

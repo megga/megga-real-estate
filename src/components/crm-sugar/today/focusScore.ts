@@ -577,99 +577,104 @@ export function assignTier(input: FocusScoreInput, now: number, cfg: FocusConfig
   return 'rest'
 }
 
-// ── 4. raison « pourquoi #1 » (FR, déterministe, estimation) ─────────────────
-// Mappe par CLÉ vers un libellé FR contrôlé. On IGNORE le `.detail` brut des
-// reasons (non fiable : « apartment » en anglais, « 110 m² » = surface, etc.).
-const REASON_KEY_LABEL_FR: Record<string, string> = {
-  budget: 'budget',
-  zone: 'zone',
-  rooms: 'pièces',
-  type: 'type de bien',
-  features: 'critères',
-}
+// ── 4. raison « pourquoi #1 » (i18n, déterministe, estimation) ───────────────
+// Le TEXTE d'affichage est produit via un traducteur INJECTÉ `t` (cf
+// docs/i18n-conventions.md §5) : la prod passe le `t` de useTranslation, les
+// tests une instance i18next FR autonome. La LOGIQUE (quelle clé, quels params)
+// reste pure et déterministe — c'est elle que les tests asservissent.
+//
+// On IGNORE toujours le `.detail` brut des reasons (non fiable : « apartment »
+// en anglais, « 110 m² » = surface, etc.) : seules ces CLÉS de critère
+// contrôlées sont traduites (today.reasons.criteria.*).
+export type ReasonT = (key: string, params?: Record<string, unknown>) => string
+const REASON_CRITERIA_KEYS = new Set(['budget', 'zone', 'rooms', 'type', 'features'])
 
-export function buildReason(input: FocusScoreInput, now: number, cfg: FocusConfig = FOCUS_DEFAULTS): string {
+export function buildReason(input: FocusScoreInput, now: number, t: ReasonT, cfg: FocusConfig = FOCUS_DEFAULTS): string {
   let base = ''
   if (input.signalKind === 'reminder') {
     const overdue = reminderOverdueDays(input.reminderTriggerAt, now)
     if (overdue >= 1) {
       base = input.reminderType === 'missing_document'
-        ? `KYC en retard de ${overdue} j — vérification à compléter`
-        : `Relance en retard de ${overdue} j`
+        ? t('today.reasons.reminderKycOverdue', { days: overdue })
+        : t('today.reasons.reminderOverdue', { days: overdue })
     } else {
-      base = input.reminderTime ? `Relance prévue aujourd'hui (${input.reminderTime})` : "Relance prévue aujourd'hui"
+      base = input.reminderTime
+        ? t('today.reasons.reminderTodayAt', { time: input.reminderTime })
+        : t('today.reasons.reminderToday')
     }
   } else if (input.signalKind === 'seller-lead') {
-    base = input.sellerCity ? `Nouveau lead vendeur — ${input.sellerCity}` : 'Nouveau lead vendeur à réclamer'
+    base = input.sellerCity
+      ? t('today.reasons.sellerLeadCity', { city: input.sellerCity })
+      : t('today.reasons.sellerLead')
     const age = ageInDays(input.sellerCreatedAt, now)
-    if (age >= 7) base += ` · en attente depuis ${age} j`
+    if (age >= 7) base += t('today.reasons.sellerLeadWaiting', { days: age })
   } else if (input.signalKind === 'kyc') {
     // Toujours formulé comme une finalisation OPTIONNELLE (non-bloquant).
     const tail =
-      input.kycDossierStatus === 'failed' ? ' · dossier à corriger'
-      : input.kycDossierStatus === 'stale' ? ' · dossier à re-vérifier'
-      : input.kycDossierStatus === 'none' ? ' · dossier non démarré'
-      : ' · dossier en cours'
-    base = 'Closing proche — KYC du dossier à finaliser' + tail
+      input.kycDossierStatus === 'failed' ? t('today.reasons.kycTail.failed')
+      : input.kycDossierStatus === 'stale' ? t('today.reasons.kycTail.stale')
+      : input.kycDossierStatus === 'none' ? t('today.reasons.kycTail.none')
+      : t('today.reasons.kycTail.pending')
+    base = t('today.reasons.kycClosing') + tail
   } else if (input.signalKind === 'lead-cooling') {
     // Libellé HONNÊTE : NULL recency (coolingHasDate=false) → « jamais recontacté »
     // (≠ vraie décroissance). Sinon on date la dormance.
     base = input.coolingHasDate
-      ? `Lead qui refroidit — sans contact depuis ${input.coolingDormDays ?? 0} j`
-      : 'Lead jamais recontacté depuis sa création'
-    if ((input.coolingQuality ?? 0) >= 85) base += ' · lead chaud à ne pas perdre'
-    else if ((input.coolingQuality ?? 0) <= 35) base += ' · lead froid'
+      ? t('today.reasons.coolingDated', { days: input.coolingDormDays ?? 0 })
+      : t('today.reasons.coolingNever')
+    if ((input.coolingQuality ?? 0) >= 85) base += t('today.reasons.coolingHot')
+    else if ((input.coolingQuality ?? 0) <= 35) base += t('today.reasons.coolingCold')
   } else if (input.signalKind === 'offer-expiring') {
     const tt = input.offerExpiresAt ? Date.parse(input.offerExpiresAt) : NaN
     if (Number.isNaN(tt)) {
-      base = 'Offre en attente — échéance à vérifier'
+      base = t('today.reasons.offerNoDate')
     } else {
       const days = Math.floor((tt - now) / DAY)
-      base = days < 0 ? 'Offre en attente — délai dépassé, à clôturer'
-        : days === 0 ? "Offre en attente — expire aujourd'hui"
-        : `Offre en attente — expire dans ${days} j`
+      base = days < 0 ? t('today.reasons.offerOverdue')
+        : days === 0 ? t('today.reasons.offerToday')
+        : t('today.reasons.offerInDays', { days })
     }
   } else if (input.signalKind === 'visit') {
     const sub = classifyVisit(input, now)
-    base = sub === 'today' ? "Visite prévue aujourd'hui — à préparer"
-      : sub === 'no-show' ? 'Visite non honorée — à relancer'
+    base = sub === 'today' ? t('today.reasons.visitToday')
+      : sub === 'no-show' ? t('today.reasons.visitNoShow')
       : sub === 'debrief'
-        ? (input.visitStatus === 'done' ? 'Visite passée — débrief à saisir' : 'Visite passée — à clôturer')
-        : 'Visite à suivre'
+        ? (input.visitStatus === 'done' ? t('today.reasons.visitDebriefDone') : t('today.reasons.visitDebriefClose'))
+        : t('today.reasons.visitFollow')
   } else if (input.signalKind === 'property-push') {
     // Libellé d'ATTENTION (estimation) + geste HONNÊTE tiré du levier le plus faible
     // (ce qui ferait réellement monter le score ET avancer la vente). Jamais un
     // palmarès trompeur : on dit ce qui manque, pas « ce bien est chaud ».
-    base = input.propertyLabel === 'chaud' ? 'Bien à pousser — bien positionné'
-      : input.propertyLabel === 'en_veille' ? 'Bien en veille — à animer ou archiver'
-      : 'Bien à animer'
+    base = input.propertyLabel === 'chaud' ? t('today.reasons.propertyHot')
+      : input.propertyLabel === 'en_veille' ? t('today.reasons.propertyDormant')
+      : t('today.reasons.propertyActivate')
     const comp = input.propertyCompleteness ?? 100
     const pipe = input.propertyPipeline ?? 0
     const inter = input.propertyInterest ?? 0
-    if (comp < 60) base += ' · fiche à compléter'
-    else if (pipe <= 25 && inter > 35) base += ' · acheteurs croisés, à mettre en avant'
-    else if (pipe <= 25) base += ' · pas encore lié à un deal'
-    if ((input.propertyDataCompleteness ?? 1) <= 0.34) base += ' · estimation (données limitées)'
+    if (comp < 60) base += t('today.reasons.propertyIncomplete')
+    else if (pipe <= 25 && inter > 35) base += t('today.reasons.propertyBuyers')
+    else if (pipe <= 25) base += t('today.reasons.propertyNoDeal')
+    if ((input.propertyDataCompleteness ?? 1) <= 0.34) base += t('today.reasons.propertyLimited')
   } else if (input.signalKind === 'match-internal' || input.signalKind === 'match-market') {
     const brut = input.matchScore ?? 0
     const top = (input.reasonKeys ?? [])
-      .map((k) => REASON_KEY_LABEL_FR[k])
-      .filter(Boolean)
+      .filter((k) => REASON_CRITERIA_KEYS.has(k))
+      .map((k) => t('today.reasons.criteria.' + k))
       .slice(0, 2)
       .join(', ')
-    base = brut >= cfg.thresholds.match_now ? `Match fort (${brut})` : `Match à confirmer (${brut})`
-    if (top) base += ` — ${top}`
-    if (input.signalKind === 'match-internal') base += ' · mandat propre'
+    base = brut >= cfg.thresholds.match_now ? t('today.reasons.matchStrong', { score: brut }) : t('today.reasons.matchToConfirm', { score: brut })
+    if (top) base += t('today.reasons.matchCriteria', { criteria: top })
+    if (input.signalKind === 'match-internal') base += t('today.reasons.matchInternal')
   } else {
-    base = input.dealRisk === 'stalled' ? 'Deal au point mort — à débloquer'
-      : input.dealStage === 'offer' || input.dealStage === 'interest-confirmed' ? 'Offre à suivre — closing proche'
-      : input.dealRisk === 'at-risk' ? 'Deal sous tension — à relancer'
-      : 'Étape à faire avancer'
+    base = input.dealRisk === 'stalled' ? t('today.reasons.dealStalled')
+      : input.dealStage === 'offer' || input.dealStage === 'interest-confirmed' ? t('today.reasons.dealOffer')
+      : input.dealRisk === 'at-risk' ? t('today.reasons.dealAtRisk')
+      : t('today.reasons.dealAdvance')
   }
   const kyc = input.kyc
   if (kyc && kyc.riskHigh && kyc.daysToExpiry != null && kyc.daysToExpiry <= cfg.thresholds.kyc_expiry_window_days) {
     const d = kyc.daysToExpiry
-    base += d < 0 ? ' · KYC échu' : d === 0 ? " · KYC à échéance aujourd'hui" : ` · KYC à échéance dans ${d} j`
+    base += d < 0 ? t('today.reasons.kycExpired') : d === 0 ? t('today.reasons.kycDueToday') : t('today.reasons.kycDueInDays', { days: d })
   }
   return base
 }

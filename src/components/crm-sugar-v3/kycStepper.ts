@@ -11,15 +11,19 @@
 //   5 — Validation          ← dossier_status === 'verified'
 
 import type { KycDossierStatus, KycDossierSummary } from '@/types/kyc'
+// i18n : labels d'étapes via clé (traduits chez le consommateur) ; le libellé de
+// score risque via l'instance i18n singleton (formatter non-testé rendu dans des
+// composants qui re-rendent au changement de langue). Cf docs/i18n-conventions §5/§6.
+import i18n from '@/i18n'
 
-/** 6 étapes UI (handoff KYC_ENRICHISSEMENTS §1). */
+/** 6 étapes UI (handoff KYC_ENRICHISSEMENTS §1). `labelKey` traduit via t(). */
 export const KYC_UI_STEPS = [
-  { id: 'identity', label: 'Identité' },
-  { id: 'beneficiary', label: 'Béné.' },
-  { id: 'funds', label: 'Fonds' },
-  { id: 'screening', label: 'Screening' },
-  { id: 'risk', label: 'Risque' },
-  { id: 'validation', label: 'Validation' },
+  { id: 'identity', labelKey: 'kyc:steps.identity' },
+  { id: 'beneficiary', labelKey: 'kyc:steps.beneficiary' },
+  { id: 'funds', labelKey: 'kyc:steps.funds' },
+  { id: 'screening', labelKey: 'kyc:steps.screening' },
+  { id: 'risk', labelKey: 'kyc:steps.risk' },
+  { id: 'validation', labelKey: 'kyc:steps.validation' },
 ] as const
 
 /**
@@ -119,7 +123,7 @@ export function getRiskScoreColor(score: number | null | undefined): string {
 
 export function getRiskScoreLabel(score: number | null | undefined): string {
   if (score == null) return '—'
-  if (score < 25) return 'Faible'
-  if (score < 60) return 'Modéré'
-  return 'Élevé'
+  if (score < 25) return i18n.t('kyc:riskScore.low')
+  if (score < 60) return i18n.t('kyc:riskScore.moderate')
+  return i18n.t('kyc:riskScore.high')
 }

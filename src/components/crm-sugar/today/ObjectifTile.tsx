@@ -8,6 +8,7 @@
 // fausse jauge). Fallback démo (prototype) quand aucune donnée live (session non
 // authentifiée / agence absente).
 
+import { useTranslation } from 'react-i18next'
 import { TK } from './tk'
 import { DATA, fmtCHF } from './data'
 import { useAxDashboardData } from '@/hooks/useAxDashboardData'
@@ -25,6 +26,7 @@ const objArc = (cx: number, cy: number, r: number, s: number, e: number): string
 }
 
 export function ObjectifTile({ demo = false }: { demo?: boolean } = {}) {
+  const { t } = useTranslation('dashboard')
   const { data: d } = useAxDashboardData('year', 'me')
   const seed = DATA.objectif
   // Agent réel → données live (même partielles) ; le seed démo ne sert que derrière
@@ -76,7 +78,7 @@ export function ObjectifTile({ demo = false }: { demo?: boolean } = {}) {
           {noTarget ? (
             <>
               <div style={{ fontSize: 23, fontWeight: 800, color: TK.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtCHF(realise)}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: TK.sub, marginTop: 2 }}>réalisé · objectif non défini</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: TK.sub, marginTop: 2 }}>{t('today.objectif.realizedNoTarget')}</div>
             </>
           ) : (
             <div style={{ fontSize: 23, fontWeight: 800, color: TK.ink, letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtCHF(projete)}</div>
@@ -85,10 +87,10 @@ export function ObjectifTile({ demo = false }: { demo?: boolean } = {}) {
       </div>
       {/* pied : réalisé / cible */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto', paddingTop: 12, borderTop: `1px solid ${TK.border}` }}>
-        <div><div style={{ fontSize: 13.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums' }}>{fmtCHF(realise).replace('CHF ', '')}</div><div style={{ fontSize: 10, color: TK.sub }}>réalisé</div></div>
+        <div><div style={{ fontSize: 13.5, fontWeight: 800, color: TK.ink, fontVariantNumeric: 'tabular-nums' }}>{fmtCHF(realise).replace('CHF ', '')}</div><div style={{ fontSize: 10, color: TK.sub }}>{t('today.objectif.realized')}</div></div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: TK.inkDim, fontVariantNumeric: 'tabular-nums' }}>{noTarget ? '—' : fmtCHF(objectif).replace('CHF ', '')}</div>
-          <div style={{ fontSize: 10, color: TK.sub }}>cible</div>
+          <div style={{ fontSize: 10, color: TK.sub }}>{t('today.objectif.target')}</div>
         </div>
       </div>
     </div>

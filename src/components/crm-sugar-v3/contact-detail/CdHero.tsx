@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v3 — Hero fiche contact
 // Port 1:1 de crm-screen-contact-detail-sugar.jsx lignes 216-305 (CdHero).
 
+import { useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycAvatar, KycBlackPill, KycCircleBtn, KycNeutralPill } from '../primitives'
@@ -20,19 +21,14 @@ interface Props {
 }
 
 export function CdHero({ contact, onBack, agentName, onSchedule, onNewAction }: Props) {
+  const { t } = useTranslation('contacts')
   const phoneDigits = (contact.phone ?? '').replace(/[^\d]/g, '')
   const { scores: contactScores } = useContactScores()
   const contactHealth = contactScores.get(contact.id)
-  const typeLabel =
-    {
-      buyer: 'Acheteur',
-      seller: 'Vendeur',
-      tenant: 'Locataire',
-      landlord: 'Propriétaire',
-      investor: 'Investisseur',
-      both: 'Mixte',
-      lead: 'Lead',
-    }[contact.type] ?? contact.type
+  // Libellé type de contact via la famille contactType.* (clés partagées avec
+  // ctTypeLabel). `both` → clé `mixed` (Mixte). Fallback = type brut.
+  const typeKey = contact.type === 'both' ? 'mixed' : contact.type
+  const typeLabel = t(`contactType.${typeKey}`, { defaultValue: contact.type })
 
   const score = contact.score
   const scoreTone =
@@ -79,7 +75,7 @@ export function CdHero({ contact, onBack, agentName, onSchedule, onNewAction }: 
         }}
       >
         <SgIcon name="arrowL" size={14} stroke={SugarV3.muted} />
-        Retour aux contacts
+        {t('cd.backToContacts')}
       </button>
 
       <div
@@ -133,12 +129,18 @@ export function CdHero({ contact, onBack, agentName, onSchedule, onNewAction }: 
               {score && (
                 <KycNeutralPill
                   tone={scoreTone}
-                  label={`Score ${score === 'hot' ? 'Chaud' : score === 'warm' ? 'Tiède' : 'Froid'}`}
+                  label={
+                    score === 'hot'
+                      ? t('cd.scoreHot')
+                      : score === 'warm'
+                        ? t('cd.scoreWarm')
+                        : t('cd.scoreCold')
+                  }
                 />
               )}
               {contactHealth && <CtScoreBadge health={contactHealth} size="md" />}
               {contact.source && (
-                <KycNeutralPill label={`Source : ${contact.source}`} />
+                <KycNeutralPill label={t('cd.sourceLabel', { source: contact.source })} />
               )}
               {contact.tags?.slice(0, 3).map((tg) => (
                 <KycNeutralPill key={tg} label={tg} />
@@ -149,21 +151,21 @@ export function CdHero({ contact, onBack, agentName, onSchedule, onNewAction }: 
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <KycCircleBtn
-            title={contact.phone ? `Appeler ${contact.phone}` : 'Aucun numéro'}
+            title={contact.phone ? t('cd.callTitle', { phone: contact.phone }) : t('cd.noPhone')}
             onClick={() => {
               if (contact.phone) window.location.href = `tel:${contact.phone}`
             }}
             icon={<SgIcon name="phone" size={17} stroke={SugarV3.inkSoft} />}
           />
           <KycCircleBtn
-            title={contact.email ? `Écrire à ${contact.email}` : 'Aucun e-mail'}
+            title={contact.email ? t('cd.emailTitle', { email: contact.email }) : t('cd.noEmail')}
             onClick={() => {
               if (contact.email) window.location.href = `mailto:${contact.email}`
             }}
             icon={<SgIcon name="mail" size={17} stroke={SugarV3.inkSoft} />}
           />
           <KycCircleBtn
-            title={phoneDigits ? 'Message WhatsApp' : 'Aucun numéro'}
+            title={phoneDigits ? t('cd.whatsappTitle') : t('cd.noPhone')}
             onClick={() => {
               if (phoneDigits)
                 window.open(`https://wa.me/${phoneDigits}`, '_blank', 'noopener,noreferrer')
@@ -171,7 +173,7 @@ export function CdHero({ contact, onBack, agentName, onSchedule, onNewAction }: 
             icon={<SgIcon name="msg" size={17} stroke={SugarV3.inkSoft} />}
           />
           <KycCircleBtn
-            title="Planifier"
+            title={t('cd.scheduleTitle')}
             onClick={onSchedule}
             icon={<SgIcon name="cal" size={17} stroke={SugarV3.inkSoft} />}
           />
@@ -180,7 +182,7 @@ export function CdHero({ contact, onBack, agentName, onSchedule, onNewAction }: 
             onClick={onNewAction}
             icon={<SgIcon name="plus" size={14} stroke="#fff" sw={2} />}
           >
-            Nouvelle action
+            {t('cd.newAction')}
           </KycBlackPill>
         </div>
       </div>
@@ -197,10 +199,10 @@ export function CdHero({ contact, onBack, agentName, onSchedule, onNewAction }: 
           gap: 24,
         }}
       >
-        <KvBlock label="E-mail" value={contact.email ?? '—'} />
-        <KvBlock label="Téléphone" value={contact.phone ?? '—'} mono />
-        <KvBlock label="Langue" value={langLabel} />
-        <KvBlock label="Agent référent" value={agentName || 'Non assigné'} />
+        <KvBlock label={t('cd.kvEmail')} value={contact.email ?? '—'} />
+        <KvBlock label={t('cd.kvPhone')} value={contact.phone ?? '—'} mono />
+        <KvBlock label={t('cd.kvLanguage')} value={langLabel} />
+        <KvBlock label={t('cd.kvAgent')} value={agentName || t('cd.unassigned')} />
       </div>
     </div>
   )

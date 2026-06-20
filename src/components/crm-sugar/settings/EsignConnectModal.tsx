@@ -4,16 +4,18 @@
 // clé par un login live et la chiffre dans Supabase Vault.
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Modal, SetInput, SetBlackBtn, SetGhostBtn, SetIcon } from './atoms'
 import { SET_PALETTE } from './data'
 import { useEsignSignature, type SignatureQuality } from '@/hooks/useEsignSignature'
 
 const SET = SET_PALETTE
 
-const QUALITIES: { id: SignatureQuality; label: string; sub: string }[] = [
-  { id: 'QES', label: 'QES', sub: "Qualifiée — même valeur qu'une signature manuscrite (ZertES/eIDAS)." },
-  { id: 'AES', label: 'AES', sub: 'Avancée — identité du signataire vérifiée.' },
-  { id: 'SES', label: 'SES', sub: 'Simple — accord rapide, sans identification forte.' },
+// label = code de niveau (proper noun, non traduit) ; subKey = clé i18n du descriptif.
+const QUALITIES: { id: SignatureQuality; label: string; subKey: string }[] = [
+  { id: 'QES', label: 'QES', subKey: 'integrations.esign.qualities.QES' },
+  { id: 'AES', label: 'AES', subKey: 'integrations.esign.qualities.AES' },
+  { id: 'SES', label: 'SES', subKey: 'integrations.esign.qualities.SES' },
 ]
 
 interface Props {
@@ -23,6 +25,7 @@ interface Props {
 }
 
 export function EsignConnectModal({ onClose, onConnected }: Props) {
+  const { t } = useTranslation('settings')
   const { connect, isConnecting } = useEsignSignature()
   const [username, setUsername] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -44,32 +47,31 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
       })
       onConnected(username.trim())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Connexion impossible')
+      setError(e instanceof Error ? e.message : t('integrations.esign.connectFailed'))
     }
   }
 
   return (
-    <Modal title="Connecter Skribble" onClose={onClose}>
+    <Modal title={t('integrations.esign.title')} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <p style={{ margin: 0, fontSize: 13.5, color: SET.inkSoft, lineHeight: 1.55 }}>
-          Signature électronique qualifiée suisse (QES/AES), conforme ZertES et eIDAS. Connectez le
-          compte API de votre agence pour signer vos mandats et contrats en un clic.
+          {t('integrations.esign.intro')}
         </p>
 
         <SetInput
-          label="Identifiant API"
+          label={t('integrations.esign.apiUser')}
           value={username}
           onChange={setUsername}
           placeholder="api-user@votre-agence.ch"
           autoFocus
         />
         <SetInput
-          label="Clé API"
+          label={t('integrations.esign.apiKey')}
           type="password"
           value={apiKey}
           onChange={setApiKey}
           placeholder="••••••••••••••••"
-          hint="Skribble → Administration → Clés API."
+          hint={t('integrations.esign.apiKeyHint')}
         />
 
         <div>
@@ -83,7 +85,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
               marginBottom: 8,
             }}
           >
-            Niveau de signature par défaut
+            {t('integrations.esign.defaultLevel')}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {QUALITIES.map((q) => {
@@ -114,7 +116,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
             })}
           </div>
           <div style={{ marginTop: 6, fontSize: 12, color: SET.muted, lineHeight: 1.5 }}>
-            {QUALITIES.find((q) => q.id === quality)?.sub}
+            {t(QUALITIES.find((q) => q.id === quality)?.subKey ?? '')}
           </div>
         </div>
 
@@ -131,7 +133,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
         >
           <SetIcon name="shield" size={15} stroke={SET.ok} sw={2} />
           <span style={{ fontSize: 12.5, color: SET.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
-            Votre clé est chiffrée (Supabase Vault), jamais exposée, et validée à la connexion.
+            {t('integrations.esign.trustNote')}
           </span>
         </div>
 
@@ -153,14 +155,14 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
         )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
-          <SetGhostBtn onClick={onClose}>Annuler</SetGhostBtn>
+          <SetGhostBtn onClick={onClose}>{t('common:actions.cancel')}</SetGhostBtn>
           <SetBlackBtn
             onClick={submit}
             disabled={!canSubmit}
             loading={isConnecting}
             icon={<SetIcon name="shield" size={14} stroke={SET.blackInk} sw={2.2} />}
           >
-            Connecter Skribble
+            {t('integrations.esign.connectButton')}
           </SetBlackBtn>
         </div>
       </div>

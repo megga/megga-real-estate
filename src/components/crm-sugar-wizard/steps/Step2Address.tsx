@@ -3,6 +3,7 @@
 // Mapbox Light + geocoding live, autocomplete, accordion "Affiner".
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, sgAcc, cantonShortFromName, type WizardData } from '../tokens'
 import { SgInput } from '../primitives'
 import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
@@ -37,6 +38,7 @@ declare global {
 }
 
 export function Step2Address({ data, set }: StepProps) {
+  const { t } = useTranslation('listings')
   const allContacts = CRM_CONTACTS
   const linkedOwner = data.ownerContactId
     ? (allContacts.find(c => c.id === data.ownerContactId) || data._newContact)
@@ -137,13 +139,13 @@ export function Step2Address({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 3 sur 8 · Adresse</div>
+        }}>{t('wizard.step2.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>Où se situe le bien&nbsp;?</h1>
+        }}>{t('wizard.step2.title')}</h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          Tapez une adresse, MEGGA AI complète le code postal, le canton et les coordonnées.
+          {t('wizard.step2.subtitle')}
         </p>
 
         {linkedOwner && (
@@ -160,7 +162,7 @@ export function Step2Address({ data, set }: StepProps) {
               fontSize: 10, fontWeight: 700, flexShrink: 0,
             }}>{(linkedOwner.firstName?.[0] || '') + (linkedOwner.lastName?.[0] || '')}</div>
             <span style={{ fontSize: 12, fontWeight: 600, color: SugarV2.ink }}>
-              Pour {linkedOwner.firstName} {linkedOwner.lastName}
+              {t('wizard.forOwner', { name: `${linkedOwner.firstName} ${linkedOwner.lastName}` })}
             </span>
           </div>
         )}
@@ -188,7 +190,7 @@ export function Step2Address({ data, set }: StepProps) {
             value={query}
             onChange={e => onChangeQuery(e.target.value)}
             onFocus={() => setShowSuggestions(suggestions.length > 0)}
-            placeholder="Rue, numéro, ville…"
+            placeholder={t('wizard.step2.searchPlaceholder')}
             style={{
               flex: 1, height: 56, border: 0, background: 'transparent',
               outline: 'none', fontFamily: 'inherit',
@@ -207,7 +209,7 @@ export function Step2Address({ data, set }: StepProps) {
               background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
               fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer',
               marginRight: 6,
-            }}>Modifier</button>
+            }}>{t('common:actions.edit')}</button>
           )}
         </div>
 
@@ -275,7 +277,7 @@ export function Step2Address({ data, set }: StepProps) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
-                  Adresse confirmée
+                  {t('wizard.step2.confirmedTitle')}
                 </span>
                 <span style={{
                   padding: '3px 9px', borderRadius: 999,
@@ -285,17 +287,17 @@ export function Step2Address({ data, set }: StepProps) {
                 }}>MEGGA AI</span>
               </div>
               <div style={{ fontSize: 12, color: SugarV2.muted, fontWeight: 500 }}>
-                Code postal, canton et coordonnées détectés automatiquement.
+                {t('wizard.step2.confirmedSubtitle')}
               </div>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
             {[
-              { label: 'Code postal', value: data.postCode || '—' },
-              { label: 'Ville', value: data.city || '—' },
-              { label: 'Canton', value: data.canton ? `${data.canton} (${data.cantonShort || '—'})` : '—' },
-              { label: 'Coordonnées', value: coords ? `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}` : '—' },
+              { label: t('form.fields.postalCodeFull'), value: data.postCode || '—' },
+              { label: t('form.fields.city'), value: data.city || '—' },
+              { label: t('form.fields.canton'), value: data.canton ? `${data.canton} (${data.cantonShort || '—'})` : '—' },
+              { label: t('wizard.step2.coordinates'), value: coords ? `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}` : '—' },
             ].map((f, i) => (
               <div key={i} style={{
                 padding: '12px 14px', borderRadius: 12,
@@ -324,7 +326,7 @@ export function Step2Address({ data, set }: StepProps) {
                 style={{ transform: showRefine ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform .2s ease' }}>
                 <path d="m9 18 6-6-6-6"/>
               </svg>
-              Affiner les détails (étage, lot, parcelle…)
+              {t('wizard.step2.refineToggle')}
             </button>
 
             {showRefine && (
@@ -334,15 +336,15 @@ export function Step2Address({ data, set }: StepProps) {
                 animation: 'sgFadeUp .3s cubic-bezier(.2,.8,.2,1) both',
               }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 14 }}>
-                  <SgInput label="N° d'appartement / lot" value={data.unit || ''} onChange={v => set({ unit: v })} placeholder="Ex: 3B" />
+                  <SgInput label={t('wizard.step2.refine.unit')} value={data.unit || ''} onChange={v => set({ unit: v })} placeholder={t('wizard.step2.refine.unitPlaceholder')} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <SgInput label="Étage" value={data.floor != null ? String(data.floor) : ''} onChange={v => set({ floor: v ? parseInt(v) : null })} placeholder="3" />
-                    <SgInput label="Sur" value={data.floorsTotal != null ? String(data.floorsTotal) : ''} onChange={v => set({ floorsTotal: v ? parseInt(v) : null })} placeholder="5" />
+                    <SgInput label={t('form.fields.floor')} value={data.floor != null ? String(data.floor) : ''} onChange={v => set({ floor: v ? parseInt(v) : null })} placeholder="3" />
+                    <SgInput label={t('wizard.step2.refine.outOf')} value={data.floorsTotal != null ? String(data.floorsTotal) : ''} onChange={v => set({ floorsTotal: v ? parseInt(v) : null })} placeholder="5" />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-                  <SgInput label="N° parcelle cadastrale" value={data.cadastralId || ''} onChange={v => set({ cadastralId: v })} placeholder="Ex: 1234-567" />
-                  <SgInput label="Code postal (ajuster)" value={data.postCode || ''} onChange={v => set({ postCode: v })} />
+                  <SgInput label={t('wizard.step2.refine.cadastral')} value={data.cadastralId || ''} onChange={v => set({ cadastralId: v })} placeholder={t('wizard.step2.refine.cadastralPlaceholder')} />
+                  <SgInput label={t('wizard.step2.refine.postalAdjust')} value={data.postCode || ''} onChange={v => set({ postCode: v })} />
                 </div>
               </div>
             )}
@@ -355,6 +357,7 @@ export function Step2Address({ data, set }: StepProps) {
 
 // ─── Composant Mapbox (avec fallback élégant) ────────────────────────
 function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; confirmed: boolean }) {
+  const { t } = useTranslation('listings')
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<ReturnType<NonNullable<Window['mapboxgl']>['Map']['prototype']['constructor']> | null>(null)
   const markerRef = useRef<{ setLngLat: (c: [number, number]) => { addTo: (m: object) => unknown }; remove: () => void } | null>(null)
@@ -442,7 +445,7 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             fontSize: 12, fontWeight: 600, color: SugarV2.muted,
             letterSpacing: 0.4, textTransform: 'uppercase',
-          }}>Tapez une adresse pour voir la carte</div>
+          }}>{t('wizard.step2.mapPrompt')}</div>
         </div>
       )}
     </div>
@@ -450,6 +453,7 @@ function SgMapbox({ coords, confirmed }: { coords: [number, number] | null; conf
 }
 
 function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean }) {
+  const { t } = useTranslation('listings')
   const grid1 = SugarV2.isDark ? 'rgba(255,255,255,0.07)' : '#c5cdd9'
   const grid2 = SugarV2.isDark ? 'rgba(255,255,255,0.04)' : '#dbe1ea'
   return (
@@ -499,7 +503,7 @@ function SgMapFallback({ error, confirmed }: { error: string; confirmed: boolean
           fontSize: 11, fontWeight: 500, color: SugarV2.muted,
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}>
-          ⚠ Carte indisponible — token Mapbox à configurer
+          {t('wizard.step2.mapUnavailable')}
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@
 // + 3 KPIs + 2 CTA. À glisser tel quel dans crm-screen-contacts-sugar.jsx.
 
 import { Fragment } from 'react'
+import { useTranslation } from 'react-i18next'
 import { BlackBtn, GhostBtn, KycIcon, Pill, SP } from './atoms'
 
 export interface KycContactBentoData {
@@ -19,7 +20,15 @@ export interface KycContactBentoData {
   stepActive: number
 }
 
-const STEPS_LABELS = ['Identité', 'Béné.', 'Fonds', 'Screening', 'Risque', 'Validation']
+// Réutilise les libellés d'étapes partagés (kyc:steps.*) — pas de nouvelle clé.
+const STEP_KEYS = [
+  'steps.identity',
+  'steps.beneficiary',
+  'steps.funds',
+  'steps.screening',
+  'steps.risk',
+  'steps.validation',
+] as const
 
 interface KycContactBentoProps {
   data?: KycContactBentoData
@@ -39,12 +48,13 @@ const DEFAULT_DATA: KycContactBentoData = {
 }
 
 export function KycContactBento({ data = DEFAULT_DATA, onOpen, onRelance }: KycContactBentoProps) {
+  const { t } = useTranslation('kyc')
   const statusPill =
     data.status === 'valid'
-      ? { tone: 'ok' as const, label: 'Validé' }
+      ? { tone: 'ok' as const, label: t('status.validated') }
       : data.status === 'in'
-        ? { tone: 'pending' as const, label: 'En cours' }
-        : { tone: 'warn' as const, label: 'En revue' }
+        ? { tone: 'pending' as const, label: t('status.in_progress') }
+        : { tone: 'warn' as const, label: t('status.review') }
 
   return (
     <div
@@ -67,7 +77,7 @@ export function KycContactBento({ data = DEFAULT_DATA, onOpen, onRelance }: KycC
       >
         <KycIcon name="shield" size={16} stroke={SP.ink} sw={2} />
         <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: -0.2 }}>
-          Conformité KYC / LBA
+          {t('contactBento.heading')}
         </div>
         <div style={{ flex: 1 }} />
         <Pill tone={statusPill.tone} dot>
@@ -84,11 +94,11 @@ export function KycContactBento({ data = DEFAULT_DATA, onOpen, onRelance }: KycC
           marginBottom: 16,
         }}
       >
-        {STEPS_LABELS.map((l, i) => {
+        {STEP_KEYS.map((stepKey, i) => {
           const done = i < data.stepDone
           const active = i === data.stepActive
           return (
-            <Fragment key={l}>
+            <Fragment key={stepKey}>
               <div
                 style={{
                   display: 'flex',
@@ -122,10 +132,10 @@ export function KycContactBento({ data = DEFAULT_DATA, onOpen, onRelance }: KycC
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {l}
+                  {t(stepKey)}
                 </div>
               </div>
-              {i < STEPS_LABELS.length - 1 && (
+              {i < STEP_KEYS.length - 1 && (
                 <div
                   style={{
                     height: 2,
@@ -167,7 +177,7 @@ export function KycContactBento({ data = DEFAULT_DATA, onOpen, onRelance }: KycC
               color: SP.muted,
             }}
           >
-            Risque
+            {t('contactBento.kpiRisk')}
           </div>
           <div
             style={{
@@ -199,7 +209,7 @@ export function KycContactBento({ data = DEFAULT_DATA, onOpen, onRelance }: KycC
               color: SP.muted,
             }}
           >
-            Pièces
+            {t('contactBento.kpiDocs')}
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>
             {data.docsDone}
@@ -225,7 +235,7 @@ export function KycContactBento({ data = DEFAULT_DATA, onOpen, onRelance }: KycC
               color: SP.muted,
             }}
           >
-            Dernier screening
+            {t('contactBento.kpiLastScreening')}
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>
             {data.lastScreening}
@@ -238,13 +248,13 @@ export function KycContactBento({ data = DEFAULT_DATA, onOpen, onRelance }: KycC
           onClick={onOpen}
           style={{ height: 36, padding: '0 16px', fontSize: 12.5 }}
         >
-          Ouvrir le dossier
+          {t('contactBento.openDossier')}
         </BlackBtn>
         <GhostBtn
           onClick={onRelance}
           style={{ height: 36, padding: '0 14px', fontSize: 12.5 }}
         >
-          Relancer client
+          {t('contactBento.followUpClient')}
         </GhostBtn>
       </div>
     </div>

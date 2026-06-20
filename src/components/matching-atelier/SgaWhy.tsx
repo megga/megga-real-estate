@@ -2,6 +2,7 @@
 // Critères au format « groupé » (Atouts / Points d'attention) — seul format
 // retenu en prod (handoff §6.4). KYC = rappel doux, JAMAIS bloquant.
 
+import { useTranslation } from 'react-i18next'
 import SgaIcon from './SgaIcon'
 import { SGA_ENGAGE_TONE, SGA_KYC } from './constants'
 import { sgaInitials, sgaScoreColor } from './format'
@@ -9,6 +10,7 @@ import type { AtelierBuyer, AtelierReason } from './types'
 
 // ── Critères · format « groupé » (Atouts / Points d'attention) ──────────
 function SgaReasonsGroupes({ reasons }: { reasons: AtelierReason[] }) {
+  const { t } = useTranslation('matching')
   const pos = reasons.filter(r => r.ok)
   const neg = reasons.filter(r => !r.ok)
   const group = (title: string, items: AtelierReason[], tone: 'pos' | 'neg', delay: string) => (
@@ -28,8 +30,8 @@ function SgaReasonsGroupes({ reasons }: { reasons: AtelierReason[] }) {
   )
   return (
     <div className="sga-rgroups">
-      {pos.length > 0 && group('Atouts', pos, 'pos', '0.03s')}
-      {neg.length > 0 && group("Points d'attention", neg, 'neg', '0.12s')}
+      {pos.length > 0 && group(t('atelier.strengths'), pos, 'pos', '0.03s')}
+      {neg.length > 0 && group(t('atelier.attentionPoints'), neg, 'neg', '0.12s')}
     </div>
   )
 }
@@ -50,6 +52,7 @@ interface SgaWhyProps {
 }
 
 export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater, onVisit, onRelance, onInterested, onNotInterested, onPivot, onStartKyc }: SgaWhyProps) {
+  const { t } = useTranslation('matching')
   const kyc = SGA_KYC[b.kyc]
   const softKyc = b.kyc === 'none' || b.kyc === 'stale'
   const showVisit = b.status === 'engaged' && canVisit
@@ -67,7 +70,7 @@ export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater
             {b.first} {b.last}
           </div>
         </div>
-        <div className="sga-bigscore" title="Score de compatibilité (estimation)">
+        <div className="sga-bigscore" title={t('atelier.compatibilityScoreEst')}>
           <span className="v nums" style={{ color: sgaScoreColor(b.score) }}>{b.score}</span>
           <span className="pct">/100</span>
         </div>
@@ -89,7 +92,7 @@ export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater
           <button className="sga-morebtn" onClick={onPivot}>
             <SgaIcon d="layers" size={13} />
             <span>
-              {poolCount - 1} autre{poolCount > 2 ? 's' : ''} bien{poolCount > 2 ? 's' : ''} matche{poolCount > 2 ? 'nt' : ''} ce profil
+              {t('atelier.otherListingsMatch', { count: poolCount - 1 })}
             </span>
             <SgaIcon d="chevron-right" size={13} />
           </button>
@@ -105,7 +108,7 @@ export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater
 
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
-            <span className="eyebrow">Pourquoi ça matche</span>
+            <span className="eyebrow">{t('atelier.whyMatches')}</span>
           </div>
           <SgaReasonsGroupes reasons={reasons} />
         </div>
@@ -114,10 +117,10 @@ export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater
           <div className="sga-aicard">
             <span className="spark kyc"><SgaIcon d="shield" size={15} /></span>
             <div style={{ flex: 1 }}>
-              <div className="t1 semi" style={{ marginBottom: 2, color: 'var(--ink)' }}>KYC à compléter — optionnel à ce stade</div>
-              <div className="t1 muted" style={{ lineHeight: 1.5 }}>Rappel doux, non bloquant. À finaliser avant une offre.</div>
+              <div className="t1 semi" style={{ marginBottom: 2, color: 'var(--ink)' }}>{t('atelier.kycToComplete')}</div>
+              <div className="t1 muted" style={{ lineHeight: 1.5 }}>{t('atelier.kycSoftReminder')}</div>
             </div>
-            <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'center' }} onClick={onStartKyc}>Démarrer</button>
+            <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'center' }} onClick={onStartKyc}>{t('atelier.start')}</button>
           </div>
         )}
       </div>
@@ -127,31 +130,31 @@ export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater
           <>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onInterested}>
-                <SgaIcon d="check" size={16} /> Intéressé
+                <SgaIcon d="check" size={16} /> {t('atelier.interested')}
               </button>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onNotInterested}>
-                <SgaIcon d="close" size={16} /> Pas intéressé
+                <SgaIcon d="close" size={16} /> {t('atelier.notInterested')}
               </button>
             </div>
             <button className="btn btn-ghost" onClick={onRelance}>
-              <SgaIcon d="refresh" size={15} /> Relancer · autre canal
+              <SgaIcon d="refresh" size={15} /> {t('atelier.followUpOtherChannel')}
             </button>
           </>
         )}
         {showVisit && (
           <button className="btn btn-ghost" onClick={onVisit}>
-            <SgaIcon d="calendar" size={16} /> Proposer une visite
+            <SgaIcon d="calendar" size={16} /> {t('atelier.proposeVisit')}
           </button>
         )}
         <div className="btns" data-cols="3">
           <button className="btn btn-ghost" onClick={onSkip}>
-            <SgaIcon d="close" size={16} /> Écarter
+            <SgaIcon d="close" size={16} /> {t('atelier.dismiss')}
           </button>
           <button className="btn btn-ghost" onClick={onLater}>
-            <SgaIcon d="clock" size={16} /> Plus tard
+            <SgaIcon d="clock" size={16} /> {t('atelier.later')}
           </button>
           <button className="btn btn-primary" onClick={onSend}>
-            Envoyer
+            {t('common:actions.send')}
           </button>
         </div>
       </div>

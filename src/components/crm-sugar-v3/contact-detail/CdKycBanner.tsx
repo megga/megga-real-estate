@@ -3,6 +3,7 @@
 //
 // Affichée tant que dossier.status ≠ 'verified'. CTA "Lancer le KYC" ou "Continuer".
 
+import { Trans, useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import type { KycDossierSummary } from '@/types/kyc'
@@ -13,16 +14,17 @@ interface Props {
 }
 
 export function CdKycBanner({ dossier, onOpenKyc }: Props) {
+  const { t } = useTranslation('contacts')
   if (dossier?.dossier_status === 'verified') return null
 
   const isNone = !dossier || dossier.dossier_status === 'none'
   const isPending = dossier?.dossier_status === 'pending'
 
   const statusText = isNone
-    ? "Aucun dossier KYC n'a été ouvert"
+    ? t('cd.kycBannerNoneStatus')
     : isPending
-      ? 'Le dossier KYC est en cours — pièces manquantes'
-      : 'Le dossier KYC doit être re-vérifié'
+      ? t('cd.kycBannerPendingStatus')
+      : t('cd.kycBannerReviewStatus')
 
   const pct =
     dossier && dossier.checks_total > 0
@@ -67,7 +69,7 @@ export function CdKycBanner({ dossier, onOpenKyc }: Props) {
             marginBottom: 2,
           }}
         >
-          Pipeline bloqué — {statusText}.
+          {t('cd.kycBannerTitle', { status: statusText })}
         </div>
         <div
           style={{
@@ -76,9 +78,8 @@ export function CdKycBanner({ dossier, onOpenKyc }: Props) {
             fontWeight: 500,
           }}
         >
-          Ce contact ne pourra pas passer en <em>Intérêt confirmé</em> tant que
-          le KYC n'est pas validé.
-          {isPending && pct > 0 && ` Avancement : ${pct} %.`}
+          <Trans i18nKey="contacts:cd.kycBannerDesc" components={{ 1: <em /> }} />
+          {isPending && pct > 0 && ` ${t('cd.kycBannerProgress', { pct })}`}
         </div>
       </div>
       <button
@@ -101,7 +102,7 @@ export function CdKycBanner({ dossier, onOpenKyc }: Props) {
           boxShadow: '0 6px 16px rgba(0,0,0,0.20)',
         }}
       >
-        {isNone ? 'Lancer le KYC' : 'Continuer le dossier'}
+        {isNone ? t('cd.kycStart') : t('cd.kycContinue')}
         <SgIcon name="arrowR" size={14} stroke={SugarV3.ink} sw={2} />
       </button>
     </div>

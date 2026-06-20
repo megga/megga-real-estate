@@ -14,6 +14,8 @@
 // `bare` : rend le corps sans la carte extérieure (pour l'embarquer dans une modale Sugar).
 
 import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { SET_PALETTE } from './data'
 import { SetIcon } from './atoms'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
@@ -68,7 +70,7 @@ function WAHeadTile() {
 }
 
 // ── En-tête commun ────────────────────────────────────────────────────────
-function WAHeader({ status }: { status?: ReactNode }) {
+function WAHeader({ status, t }: { status?: ReactNode; t: TFunction }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
       <WAHeadTile />
@@ -82,10 +84,10 @@ function WAHeader({ status }: { status?: ReactNode }) {
             lineHeight: 1.25,
           }}
         >
-          Connecter WhatsApp
+          {t('integrations.whatsapp.title')}
         </div>
         <div style={{ fontSize: 13, fontWeight: 500, color: SET.muted, marginTop: 1 }}>
-          MEGGA AI sur votre téléphone
+          {t('integrations.whatsapp.subtitle')}
         </div>
       </div>
       {status}
@@ -94,7 +96,7 @@ function WAHeader({ status }: { status?: ReactNode }) {
 }
 
 // ── Statut « Lié » — texte vert sans fond ─────────────────────────────────
-function WALinkedBadge() {
+function WALinkedBadge({ t }: { t: TFunction }) {
   return (
     <span
       style={{
@@ -117,13 +119,14 @@ function WALinkedBadge() {
           boxShadow: `0 0 0 3px ${SET.ok}22`,
         }}
       />
-      Lié
+      {t('integrations.whatsapp.linked')}
     </span>
   )
 }
 
 // ── Corps par état ────────────────────────────────────────────────────────
 function WABody() {
+  const { t } = useTranslation('settings')
   const { status, generateCode } = useWhatsAppPairing()
   const link = status.data
 
@@ -165,7 +168,7 @@ function WABody() {
   if (status.isError) {
     return (
       <div style={{ display: 'grid', gap: 16 }}>
-        <WAHeader />
+        <WAHeader t={t} />
         <div
           style={{
             display: 'flex',
@@ -182,7 +185,7 @@ function WABody() {
           </span>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: SET.ink, letterSpacing: -0.1 }}>
-              Statut indisponible
+              {t('integrations.whatsapp.error.title')}
             </div>
             <div
               style={{
@@ -193,7 +196,7 @@ function WABody() {
                 marginTop: 2,
               }}
             >
-              Impossible de vérifier la connexion WhatsApp pour le moment.
+              {t('integrations.whatsapp.error.desc')}
             </div>
           </div>
         </div>
@@ -201,7 +204,7 @@ function WABody() {
           icon={<SetIcon name="arrowR" size={16} stroke={SET.inkSoft} sw={2} />}
           onClick={() => status.refetch()}
         >
-          Réessayer
+          {t('integrations.whatsapp.error.retry')}
         </WAGhostButton>
       </div>
     )
@@ -209,10 +212,10 @@ function WABody() {
 
   // — linked —
   if (link?.verified) {
-    const examples = ['Mes RDV demain ?', 'Mes relances en retard ?']
+    const examples = t('integrations.whatsapp.examples', { returnObjects: true }) as string[]
     return (
       <div style={{ display: 'grid', gap: 18 }}>
-        <WAHeader status={<WALinkedBadge />} />
+        <WAHeader status={<WALinkedBadge t={t} />} t={t} />
         <div
           style={{
             display: 'flex',
@@ -235,7 +238,7 @@ function WABody() {
                 textTransform: 'uppercase',
               }}
             >
-              Numéro lié
+              {t('integrations.whatsapp.linkedNumber')}
             </div>
             <div
               style={{
@@ -260,7 +263,7 @@ function WABody() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
             <SetIcon name="sparkle" size={14} stroke={SET.muted} />
             <span style={{ fontSize: 12.5, fontWeight: 500, color: SET.muted, whiteSpace: 'nowrap' }}>
-              Écrivez à MEGGA AI comme à un collègue
+              {t('integrations.whatsapp.writeLikeColleague')}
             </span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -293,7 +296,7 @@ function WABody() {
   if (link?.pairing_code) {
     return (
       <div style={{ display: 'grid', gap: 18 }}>
-        <WAHeader />
+        <WAHeader t={t} />
         {/* Code à 6 chiffres à envoyer */}
         <div
           style={{
@@ -317,8 +320,12 @@ function WABody() {
             {link.pairing_code}
           </div>
           <div style={{ fontSize: 12.5, color: SET.muted, fontWeight: 500, marginTop: 8, lineHeight: 1.5 }}>
-            Envoyez ce code à <strong style={{ color: SET.inkSoft }}>{MEGGA_WA_NUMBER}</strong> sur
-            WhatsApp (valable 15 min).
+            <Trans
+              i18nKey="integrations.whatsapp.waiting.sendCode"
+              t={t}
+              values={{ number: MEGGA_WA_NUMBER }}
+              components={{ strong: <strong style={{ color: SET.inkSoft }} /> }}
+            />
           </div>
         </div>
         {/* Bandeau d'attente */}
@@ -347,10 +354,10 @@ function WABody() {
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: SET.ink, letterSpacing: -0.1 }}>
-              En attente de votre message…
+              {t('integrations.whatsapp.waiting.title')}
             </div>
             <div style={{ fontSize: 12.5, fontWeight: 500, color: SET.muted, marginTop: 1 }}>
-              Le lien s'active dès réception du code.
+              {t('integrations.whatsapp.waiting.desc')}
             </div>
           </div>
         </div>
@@ -359,7 +366,9 @@ function WABody() {
           onClick={() => generateCode.mutate()}
           disabled={generateCode.isPending}
         >
-          {generateCode.isPending ? 'Génération…' : 'Régénérer un code'}
+          {generateCode.isPending
+            ? t('integrations.whatsapp.generating')
+            : t('integrations.whatsapp.regenerateCode')}
         </WAGhostButton>
       </div>
     )
@@ -368,7 +377,7 @@ function WABody() {
   // — unlinked (défaut) —
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      <WAHeader />
+      <WAHeader t={t} />
       <p
         style={{
           margin: 0,
@@ -379,16 +388,21 @@ function WABody() {
           maxWidth: 420,
         }}
       >
-        Pilotez MEGGA depuis WhatsApp. Vos RDV, vos relances et vos contacts directement par message,
-        sans ouvrir le CRM. Générez un code, puis envoyez-le à MEGGA au{' '}
-        <strong style={{ color: SET.ink }}>{MEGGA_WA_NUMBER}</strong>.
+        <Trans
+          i18nKey="integrations.whatsapp.unlinked.body"
+          t={t}
+          values={{ number: MEGGA_WA_NUMBER }}
+          components={{ strong: <strong style={{ color: SET.ink }} /> }}
+        />
       </p>
       <WAGhostButton
         icon={<WAGlyphSolid size={18} />}
         onClick={() => generateCode.mutate()}
         disabled={generateCode.isPending}
       >
-        {generateCode.isPending ? 'Génération…' : 'Générer un code'}
+        {generateCode.isPending
+          ? t('integrations.whatsapp.generating')
+          : t('integrations.whatsapp.generateCode')}
       </WAGhostButton>
     </div>
   )

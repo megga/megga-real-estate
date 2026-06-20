@@ -2,6 +2,10 @@
 // 1:1 port from `crm-calendar-sugar-data.jsx`.
 
 import { createContext, useContext } from 'react'
+// i18n : le `label` des types d'événement est un GETTER (lu via l'instance i18n
+// singleton à l'accès → traduit + réactif au changement de langue, sans changer
+// les sites d'appel `CAL_EVENT_TYPES[x].label`). Cf docs/i18n-conventions §6.
+import i18n from '@/i18n'
 
 export interface CalEventTypeColors {
   bg: string
@@ -20,15 +24,15 @@ export interface CalEventType extends CalEventTypeColors {
 }
 
 export const CAL_EVENT_TYPES: Record<string, CalEventType> = {
-  visite: { id: 'visite', label: 'Visite', short: 'V', bg: '#E8E0D2', ink: '#5C4F3C', accent: '#8A7654', icon: 'home',
+  visite: { id: 'visite', get label() { return i18n.t('calendar:eventType.visite') }, short: 'V', bg: '#E8E0D2', ink: '#5C4F3C', accent: '#8A7654', icon: 'home',
     darkColors: { bg: '#2A2417', ink: '#E7D7B7', accent: '#C9A86A' } },
-  mandate: { id: 'mandate', label: 'Mandat / Estim.', short: 'M', bg: '#DCE5DA', ink: '#3F5044', accent: '#5F7A66', icon: 'signature',
+  mandate: { id: 'mandate', get label() { return i18n.t('calendar:eventType.mandate') }, short: 'M', bg: '#DCE5DA', ink: '#3F5044', accent: '#5F7A66', icon: 'signature',
     darkColors: { bg: '#17271D', ink: '#BBDDC4', accent: '#6FB585' } },
-  notary: { id: 'notary', label: 'Signature notaire', short: 'N', bg: '#E5D9E0', ink: '#4F3C48', accent: '#7A5C70', icon: 'stamp',
+  notary: { id: 'notary', get label() { return i18n.t('calendar:eventType.notary') }, short: 'N', bg: '#E5D9E0', ink: '#4F3C48', accent: '#7A5C70', icon: 'stamp',
     darkColors: { bg: '#261C26', ink: '#DCC0D4', accent: '#B083A6' } },
-  task: { id: 'task', label: 'Tâche / Relance', short: 'T', bg: '#DCE0E8', ink: '#3F4554', accent: '#5F6A82', icon: 'check',
+  task: { id: 'task', get label() { return i18n.t('calendar:eventType.task') }, short: 'T', bg: '#DCE0E8', ink: '#3F4554', accent: '#5F6A82', icon: 'check',
     darkColors: { bg: '#1B2230', ink: '#BFCBE2', accent: '#7E92BE' } },
-  publish: { id: 'publish', label: 'Publication', short: 'P', bg: '#0B0C0E', ink: '#FFFFFF', accent: '#FFFFFF', icon: 'upload', dark: true,
+  publish: { id: 'publish', get label() { return i18n.t('calendar:eventType.publish') }, short: 'P', bg: '#0B0C0E', ink: '#FFFFFF', accent: '#FFFFFF', icon: 'upload', dark: true,
     darkColors: { bg: '#ECEDF3', ink: '#14141D', accent: '#14141D', dark: true } },
 }
 

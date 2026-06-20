@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-biens-sugar.jsx` (BnRow).
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { crmContactById, type CrmBien } from '../mockData'
@@ -19,6 +20,7 @@ interface BnRowProps {
 }
 
 export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
+  const { t } = useTranslation('listings')
   const [hov, setHov] = useState(false)
   const meta = bnStatus(bien.status)
   const isRent = bien.transaction === 'location'
@@ -120,10 +122,10 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
         )}
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
           <BnSpec value={bien.area} label="m²" sp={sp} />
-          <BnSpec value={bien.rooms} label="pièces" sp={sp} />
-          <BnSpec value={bien.beds} label="ch." sp={sp} />
-          <BnSpec value={bien.baths} label="sdb" sp={sp} />
-          <BnSpec value={bien.energy || '—'} label="DPE" sp={sp} />
+          <BnSpec value={bien.rooms} label={t('biens.spec.rooms')} sp={sp} />
+          <BnSpec value={bien.beds} label={t('biens.spec.beds')} sp={sp} />
+          <BnSpec value={bien.baths} label={t('biens.spec.baths')} sp={sp} />
+          <BnSpec value={bien.energy || '—'} label={t('biens.spec.epc')} sp={sp} />
           {bien.year && <BnSpec value={bien.year} label="" sp={sp} />}
         </div>
       </div>
@@ -140,7 +142,7 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
             marginBottom: 4,
           }}
         >
-          Vendeur
+          {t('biens.seller')}
         </div>
         {owner ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -176,7 +178,7 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
           </div>
         ) : (
           <span style={{ fontSize: 12, color: sp.sub, fontStyle: 'italic' }}>
-            Non lié
+            {t('biens.unlinked')}
           </span>
         )}
       </div>
@@ -196,7 +198,7 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
           {priceLabel}
           {isRent && (
             <span style={{ fontSize: 11, color: sp.sub, fontWeight: 600 }}>
-              /mois
+              {t('biens.perMonth')}
             </span>
           )}
         </div>
@@ -230,7 +232,7 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
       >
         <button
           onClick={e => e.stopPropagation()}
-          title="Modifier"
+          title={t('common:actions.edit')}
           style={{
             width: 32,
             height: 32,
@@ -247,7 +249,7 @@ export function BnRow({ bien, onOpen, sp, isFirst }: BnRowProps) {
         </button>
         <button
           onClick={e => e.stopPropagation()}
-          title="Supprimer"
+          title={t('common:actions.delete')}
           style={{
             width: 32,
             height: 32,

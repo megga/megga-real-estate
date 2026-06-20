@@ -12,6 +12,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import {
   SugarTopNav,
@@ -45,6 +46,8 @@ export default function ContactDetailSugarV3Page() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { profile } = useAuth()
+  // `t` est déjà pris par les tokens de thème (CRM_TOKENS) plus bas → alias `tr`.
+  const { t: tr } = useTranslation('contacts')
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -125,7 +128,7 @@ export default function ContactDetailSugarV3Page() {
           placeItems: 'center',
         }}
       >
-        Chargement du contact…
+        {tr('cd.loading')}
       </div>
     )
   }
