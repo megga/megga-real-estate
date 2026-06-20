@@ -1378,5 +1378,8 @@
         "p8": "Floor plan"
       }
     }
+  },
+  "gallery": {
+    "sort": "Sort"
   }
 }

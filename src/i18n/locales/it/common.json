@@ -76,7 +76,8 @@
     "showMore": "Mostra di più",
     "showLess": "Mostra di meno",
     "viewAll": "Vedi tutto",
-    "options": "Options"
+    "options": "Options",
+    "later": "Later"
   },
   "time": {
     "ago": "fa",
@@ -557,7 +558,12 @@
       "deal": {
         "untitled": "Deal"
       },
-      "roomsShort": "{{count}} rm"
+      "roomsShort": "{{count}} rm",
+      "aiPrompts": {
+        "buyersReady": "Buyers ready to sign this week",
+        "staleListings": "Listings stalled for 30+ days",
+        "exclusiveMandate": "Draft an exclusive mandate"
+      }
     }
   },
   "listing": {

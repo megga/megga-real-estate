@@ -398,6 +398,9 @@
         "otherMatches_one": "other match",
         "otherMatches_other": "other matches",
         "viewWhole": "View whole catalogue"
+      },
+      "place": {
+        "fallback": "Property"
       }
     },
     "relance": {

@@ -1378,5 +1378,8 @@
         "p8": "Plan"
       }
     }
+  },
+  "gallery": {
+    "sort": "Trier"
   }
 }
