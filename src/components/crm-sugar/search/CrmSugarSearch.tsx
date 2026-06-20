@@ -20,13 +20,6 @@ import { crmBienById, crmContactById } from '@/components/crm-sugar/mockData'
 import { formatCHF } from '@/lib/utils'
 
 // ─── Données utilitaires (proto) ─────────────────────────────────────────────
-const RECENTS: { q: string }[] = [
-  { q: 'Marie Bertrand' },
-  { q: '3.5 pièces Rive droite' },
-  { q: 'acheteurs Cologny > 3M' },
-  { q: 'biens en attente de signature' },
-]
-
 const SCOPES = [
   { id: 'all', labelKey: 'search.command.scope.all' },
   { id: 'contacts', labelKey: 'search.command.scope.contacts' },
@@ -41,40 +34,6 @@ const AI_PROMPTS = [
   'Biens stagnants depuis +30 jours',
   'Rédiger un mandat exclusif',
 ]
-
-// ─── Historique sémantique des conversations Megga (mock — proto) ────────────
-interface MeggaConvo {
-  id: string
-  title: string
-  snippet: string
-  time: string
-  timeRaw: number
-  pinned: boolean
-  entities: { type: string; label: string }[]
-  messages: number
-}
-
-const MEGGA_HISTORY: MeggaConvo[] = [
-  { id: 'j-001', title: 'Stratégie pour signer Bertrand sur le 6P Cologny', snippet: 'On peut argumenter sur la rareté des 6P avec vue lac < 9M. Trois comparables en 18 mois.', time: 'il y a 2 h', timeRaw: 2 * 3600, pinned: true, entities: [{ type: 'contact', label: 'M. Bertrand' }, { type: 'bien', label: 'Villa Cologny' }], messages: 14 },
-  { id: 'j-002', title: 'Acheteurs sérieux pour le 4P Champel', snippet: 'Filtré sur capacité > 3.5M et délai < 60j : 4 candidats, dont Loreau (déjà visité 2x).', time: 'il y a 5 h', timeRaw: 5 * 3600, pinned: false, entities: [{ type: 'bien', label: '4P Champel' }], messages: 9 },
-  { id: 'j-003', title: 'Analyse marché Carouge T1 2026', snippet: 'Prix médian +3.8% YoY. Stock en baisse de 12%. Opportunité côté Acacias.', time: 'hier', timeRaw: 28 * 3600, pinned: false, entities: [{ type: 'zone', label: 'Carouge' }], messages: 22 },
-  { id: 'j-004', title: 'Relance pipeline — deals stagnants', snippet: '5 deals dormants > 30j. Prio 1 : Müller (offre verbale jamais formalisée).', time: 'hier', timeRaw: 30 * 3600, pinned: false, entities: [{ type: 'deal', label: '5 deals' }], messages: 7 },
-  { id: 'j-005', title: 'Rédaction mandat exclusif Catherine Loreau', snippet: "Brouillon prêt. Clause d'exclusivité 6 mois, commission 3.5%, hors démarchage personnel.", time: 'il y a 2 j', timeRaw: 2 * 86400, pinned: true, entities: [{ type: 'contact', label: 'C. Loreau' }], messages: 11 },
-  { id: 'j-006', title: 'Comparables vendus Vandœuvres 2025', snippet: "8 transactions cette année. Médiane CHF 14'500/m². Pic à 18'200/m² pour les vues panoramiques.", time: 'il y a 3 j', timeRaw: 3 * 86400, pinned: false, entities: [{ type: 'zone', label: 'Vandœuvres' }], messages: 16 },
-  { id: 'j-007', title: 'Préparation visite Müller — argumentaire', snippet: 'Points forts : rénovation 2023, taxe foncière basse. Points sensibles : nuisance route à anticiper.', time: 'il y a 4 j', timeRaw: 4 * 86400, pinned: false, entities: [{ type: 'contact', label: 'Müller' }, { type: 'bien', label: '3P Plainpalais' }], messages: 6 },
-  { id: 'j-008', title: 'Évaluation duplex Eaux-Vives', snippet: 'Estimation entre 4.2M et 4.6M selon état finitions. Recommande visite expert avant publication.', time: 'il y a 5 j', timeRaw: 5 * 86400, pinned: false, entities: [{ type: 'bien', label: 'Duplex Eaux-Vives' }], messages: 12 },
-  { id: 'j-009', title: 'Profil financier acheteurs Cologny > 5M', snippet: '12 contacts qualifiés. 4 avec accord bancaire pré-validé. Top 3 : Schmid, Rey, Vianney.', time: 'la semaine dernière', timeRaw: 7 * 86400, pinned: false, entities: [{ type: 'zone', label: 'Cologny' }], messages: 19 },
-  { id: 'j-010', title: 'Synthèse rendez-vous notaire — affaire Dubois', snippet: 'Acte signé 15 mai. Conditions suspensives levées. Commission encaissée le 22.', time: 'il y a 12 j', timeRaw: 12 * 86400, pinned: false, entities: [{ type: 'contact', label: 'Dubois' }], messages: 8 },
-]
-
-function searchMegga(q: string): MeggaConvo[] {
-  if (!q.trim()) return []
-  const ql = q.toLowerCase()
-  return MEGGA_HISTORY.filter(h => {
-    const hay = `${h.title} ${h.snippet} ${h.entities.map(e => e.label).join(' ')}`.toLowerCase()
-    return hay.includes(ql)
-  }).slice(0, 4)
-}
 
 // ─── Icônes inline (stroke linéaire — remplacent window.CRMIcon) ─────────────
 function IconSpark({ size = 15, stroke = 'currentColor' }: { size?: number; stroke?: string }) {
@@ -202,38 +161,8 @@ function Section({ title, count, children, sp, accent, badge }: {
   )
 }
 
-// ─── Ligne de conversation Megga ─────────────────────────────────────────────
-function MeggaConvoRow({ convo, q, sp, dark, active, onHover, onSelect }: {
-  convo: MeggaConvo; q: string; sp: SugarPalette; dark: boolean; active: boolean; onHover: () => void; onSelect: () => void
-}) {
-  const meta = convo.entities.map(e => e.label).join('  ·  ')
-  return (
-    <button onMouseEnter={onHover} onClick={onSelect} style={{ ...ROW_BASE, padding: '12px 14px', gap: 14, color: sp.ink, ...activeRowStyle(active, dark) }}>
-      <div style={{ width: 16, flexShrink: 0, display: 'grid', placeItems: 'center', position: 'relative' }}>
-        <IconSpark stroke={active ? sp.ink : sp.sub} />
-        {convo.pinned && (
-          <span style={{ position: 'absolute', top: -1, right: 0, width: 5, height: 5, borderRadius: 999, background: sp.ink }} />
-        )}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: sp.ink, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          <Hi text={convo.title} q={q} sp={sp} />
-        </div>
-        {meta && (
-          <div style={{ fontSize: 12, color: sp.sub, marginTop: 2, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {meta}
-          </div>
-        )}
-      </div>
-      <span style={{ fontSize: 11, color: sp.sub, fontWeight: 500, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{convo.time}</span>
-    </button>
-  )
-}
-
 // ─── Item plat pour la navigation clavier ─────────────────────────────────────
 type FlatItem =
-  | { kind: 'megga-convo' }
-  | { kind: 'recent'; q: string }
   | { kind: 'ai' }
   | { kind: 'ai-query' }
   | { kind: 'contact'; id: string }
@@ -305,31 +234,22 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
     return list.slice(0, scope === 'deals' ? 20 : 3)
   }, [deals, ql, scope, tr])
 
-  const meggaResults = useMemo(() => searchMegga(q), [q])
-  const meggaRecent = useMemo(
-    () => [...MEGGA_HISTORY].sort((a, b) => (a.pinned !== b.pinned ? (a.pinned ? -1 : 1) : a.timeRaw - b.timeRaw)).slice(0, 4),
-    [],
-  )
-
   const showEmpty = !q.trim()
-  const totalResults = meggaResults.length + contactResults.length + bienResults.length + dealResults.length
+  const totalResults = contactResults.length + bienResults.length + dealResults.length
 
   // ── Liste plate (ordre = sections affichées) ──
   const flatItems = useMemo<FlatItem[]>(() => {
     const out: FlatItem[] = []
     if (showEmpty) {
-      meggaRecent.forEach(() => out.push({ kind: 'megga-convo' }))
-      RECENTS.forEach(r => out.push({ kind: 'recent', q: r.q }))
       AI_PROMPTS.forEach(() => out.push({ kind: 'ai' }))
     } else {
-      meggaResults.forEach(() => out.push({ kind: 'megga-convo' }))
       contactResults.forEach(c => out.push({ kind: 'contact', id: c.id }))
       bienResults.forEach(b => out.push({ kind: 'bien', id: b.id }))
       dealResults.forEach(d => out.push({ kind: 'deal', id: d.id }))
       out.push({ kind: 'ai-query' })
     }
     return out
-  }, [showEmpty, meggaRecent, meggaResults, contactResults, bienResults, dealResults])
+  }, [showEmpty, contactResults, bienResults, dealResults])
 
   const goJulien = useCallback(() => {
     onClose()
@@ -339,8 +259,6 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
   const runItem = useCallback((item: FlatItem | undefined) => {
     if (!item) return
     switch (item.kind) {
-      case 'recent': setQ(item.q); setActiveIdx(0); break
-      case 'megga-convo':
       case 'ai':
       case 'ai-query': goJulien(); break
       case 'contact': onClose(); navigate(`/dashboard/contacts/${item.id}`); break
@@ -387,12 +305,10 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
     ? '0 30px 80px -20px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.04) inset'
     : '0 30px 80px -20px rgba(30,32,38,0.30), 0 1px 0 rgba(255,255,255,0.6) inset'
 
-  const offEmptyConvos = 0
-  const offEmptyRecents = meggaRecent.length
-  const offEmptyPrompts = meggaRecent.length + RECENTS.length
-  const offContacts = meggaResults.length
-  const offBiens = meggaResults.length + contactResults.length
-  const offDeals = meggaResults.length + contactResults.length + bienResults.length
+  const offEmptyPrompts = 0
+  const offContacts = 0
+  const offBiens = contactResults.length
+  const offDeals = contactResults.length + bienResults.length
 
   return (
     <div
@@ -508,34 +424,6 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
           {/* ── État vide ── */}
           {showEmpty && (
             <>
-              <Section title={tr('search.command.section.resumeMegga')} count={meggaRecent.length} sp={sp}>
-                {meggaRecent.map((j, i) => (
-                  <MeggaConvoRow
-                    key={j.id} convo={j} q={q} sp={sp} dark={dark}
-                    active={activeIdx === offEmptyConvos + i}
-                    onHover={() => setActiveIdx(offEmptyConvos + i)}
-                    onSelect={goJulien}
-                  />
-                ))}
-              </Section>
-
-              <Section title={tr('search.command.section.recents')} sp={sp}>
-                {RECENTS.map((r, i) => {
-                  const idx = offEmptyRecents + i
-                  const isActive = activeIdx === idx
-                  return (
-                    <button key={r.q} onClick={() => { setQ(r.q); setActiveIdx(0) }} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
-                      <div style={{ width: 16, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={sp.sub} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
-                        </svg>
-                      </div>
-                      <div style={{ flex: 1, fontSize: 13.5, color: sp.ink, fontWeight: 500 }}>{r.q}</div>
-                    </button>
-                  )
-                })}
-              </Section>
-
               <Section title={tr('search.command.section.askMegga')} sp={sp}>
                 {AI_PROMPTS.map((p, i) => {
                   const idx = offEmptyPrompts + i
@@ -574,20 +462,6 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 {tr('search.command.askMeggaQuery', { query: q })}
               </button>
             </div>
-          )}
-
-          {/* ── Conversations Megga (sémantique) ── */}
-          {!showEmpty && meggaResults.length > 0 && (
-            <Section title={tr('search.command.section.meggaConvos')} count={meggaResults.length} sp={sp} accent={accentBlue} badge={tr('search.command.badge.semantic')}>
-              {meggaResults.map((j, i) => (
-                <MeggaConvoRow
-                  key={j.id} convo={j} q={q} sp={sp} dark={dark}
-                  active={activeIdx === offEmptyConvos + i}
-                  onHover={() => setActiveIdx(offEmptyConvos + i)}
-                  onSelect={goJulien}
-                />
-              ))}
-            </Section>
           )}
 
           {/* ── Contacts ── */}
