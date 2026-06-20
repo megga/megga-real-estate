@@ -8,6 +8,7 @@
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   SugarTopNav,
   SugarIconRail,
@@ -37,6 +38,7 @@ const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function AuditSugarPage() {
   const navigate = useNavigate()
+  const { t: tr } = useTranslation('common')
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem('megga.sugar.dark') === '1'
@@ -168,7 +170,7 @@ export default function AuditSugarPage() {
                     marginBottom: 14,
                   }}
                 >
-                  Conformité · nouvelle Loi sur la Protection des Données
+                  {tr('audit.eyebrow')}
                 </div>
                 <h1
                   style={{
@@ -180,7 +182,7 @@ export default function AuditSugarPage() {
                     lineHeight: 1.05,
                   }}
                 >
-                  Journal d'audit.
+                  {tr('audit.title')}
                 </h1>
                 <p
                   style={{
@@ -192,9 +194,7 @@ export default function AuditSugarPage() {
                     maxWidth: 620,
                   }}
                 >
-                  Toutes les actions sur les contacts, biens, deals et documents
-                  sont enregistrées de manière immuable. Cette trace satisfait
-                  l'obligation d'audit nLPD (art. 12) et LBA (art. 7), conservée 10 ans.
+                  {tr('audit.subtitle')}
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
@@ -202,7 +202,7 @@ export default function AuditSugarPage() {
                   onClick={() => downloadAuditCsv(events)}
                   icon={<SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />}
                 >
-                  Export CSV
+                  {tr('audit.export.csv')}
                 </KycGhostPill>
                 <KycBlackPill
                   size="lg"
@@ -225,7 +225,7 @@ export default function AuditSugarPage() {
                       setPdfError(
                         err instanceof Error
                           ? err.message
-                          : 'Export PDF échoué',
+                          : tr('audit.export.pdfFailed'),
                       )
                     } finally {
                       setPdfBusy(false)
@@ -233,7 +233,7 @@ export default function AuditSugarPage() {
                   }}
                   icon={<SgIcon name="download" size={15} stroke="#fff" />}
                 >
-                  {pdfBusy ? 'Génération…' : 'Export PDF horodaté'}
+                  {pdfBusy ? tr('audit.export.generating') : tr('audit.export.pdf')}
                 </KycBlackPill>
               </div>
               {pdfError && (
@@ -249,7 +249,7 @@ export default function AuditSugarPage() {
                     marginTop: 12,
                   }}
                 >
-                  Export PDF : {pdfError}
+                  {tr('audit.export.pdfErrorPrefix')} {pdfError}
                 </div>
               )}
             </div>
@@ -266,28 +266,28 @@ export default function AuditSugarPage() {
               }}
             >
               <KycStatCard
-                label="Évènements"
+                label={tr('audit.stats.events')}
                 value={stats.total}
                 accent={SugarV3.black}
-                sub={`Sur les ${filterDays >= 3650 ? 'derniers' : filterDays} ${filterDays >= 3650 ? 'mois' : 'jours'}`}
+                sub={filterDays >= 3650 ? tr('audit.stats.eventsRangeAll') : tr('audit.stats.eventsRangeDays', { days: filterDays })}
               />
               <KycStatCard
-                label="Critiques"
+                label={tr('audit.stats.critical')}
                 value={stats.critical}
                 accent={SugarV3.err}
-                sub="Verrous, échecs auth, refus"
+                sub={tr('audit.stats.criticalSub')}
               />
               <KycStatCard
-                label="Attention"
+                label={tr('audit.stats.warning')}
                 value={stats.warn}
                 accent={SugarV3.warn}
-                sub="Re-screening, export données"
+                sub={tr('audit.stats.warningSub')}
               />
               <KycStatCard
-                label="Actions MEGGA AI"
+                label={tr('audit.stats.aiActions')}
                 value={stats.ai}
                 accent="#7A4FD8"
-                sub="Suggestions et matching automatique"
+                sub={tr('audit.stats.aiActionsSub')}
               />
             </div>
 
@@ -324,7 +324,7 @@ export default function AuditSugarPage() {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Rechercher une action, un objet…"
+                  placeholder={tr('audit.searchPlaceholder')}
                   style={{
                     flex: 1,
                     border: 0,
@@ -344,28 +344,28 @@ export default function AuditSugarPage() {
                   onClick={() => setFilterDays(7)}
                   size="sm"
                 >
-                  7 jours
+                  {tr('audit.period.days7')}
                 </KycGhostPill>
                 <KycGhostPill
                   active={filterDays === 30}
                   onClick={() => setFilterDays(30)}
                   size="sm"
                 >
-                  30 jours
+                  {tr('audit.period.days30')}
                 </KycGhostPill>
                 <KycGhostPill
                   active={filterDays === 90}
                   onClick={() => setFilterDays(90)}
                   size="sm"
                 >
-                  90 jours
+                  {tr('audit.period.days90')}
                 </KycGhostPill>
                 <KycGhostPill
                   active={filterDays === 3650}
                   onClick={() => setFilterDays(3650)}
                   size="sm"
                 >
-                  Tout
+                  {tr('audit.period.all')}
                 </KycGhostPill>
               </div>
             </div>
@@ -386,7 +386,7 @@ export default function AuditSugarPage() {
                 onClick={() => setFilterCat('all')}
                 size="sm"
               >
-                Toutes catégories
+                {tr('audit.filter.allCategories')}
               </KycGhostPill>
               {Object.entries(AUDIT_CATEGORIES).map(([key, c]) => (
                 <KycGhostPill
@@ -418,7 +418,7 @@ export default function AuditSugarPage() {
                 onClick={() => setFilterSev('all')}
                 size="sm"
               >
-                Toute sévérité
+                {tr('audit.filter.allSeverities')}
               </KycGhostPill>
               <KycGhostPill
                 active={filterSev === 'critical'}
@@ -435,7 +435,7 @@ export default function AuditSugarPage() {
                   />
                 }
               >
-                Critique
+                {tr('audit.severity.critical')}
               </KycGhostPill>
               <KycGhostPill
                 active={filterSev === 'warn'}
@@ -452,7 +452,7 @@ export default function AuditSugarPage() {
                   />
                 }
               >
-                Attention
+                {tr('audit.severity.warning')}
               </KycGhostPill>
             </div>
 
@@ -476,7 +476,7 @@ export default function AuditSugarPage() {
                     fontWeight: 500,
                   }}
                 >
-                  Chargement du journal…
+                  {tr('audit.loading')}
                 </div>
               ) : events.length === 0 ? (
                 <div
@@ -488,7 +488,7 @@ export default function AuditSugarPage() {
                     fontWeight: 500,
                   }}
                 >
-                  Aucun évènement ne correspond à ces filtres.
+                  {tr('audit.empty')}
                 </div>
               ) : (
                 groupKeys.map((key) => (
@@ -529,11 +529,9 @@ export default function AuditSugarPage() {
                 <SgIcon name="lock" size={14} stroke={SugarV3.inkSoft} />
               </div>
               <div>
-                Les évènements sont signés cryptographiquement et conservés 10 ans
-                (nLPD art. 12 · LBA art. 7).
+                {tr('audit.footer.retention')}
                 <br />
-                Toute tentative de suppression ou modification est elle-même
-                journalisée.
+                {tr('audit.footer.tamperLogged')}
               </div>
             </div>
           </div>
