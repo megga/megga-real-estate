@@ -87,7 +87,8 @@ export function Step7Publish({ data, set }: StepProps) {
                 <rect x="3" y="11" width="18" height="11" rx="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              megga.ch / annonce / {(data.addr || tr('wizard.step7.urlSlugFallback')).toLowerCase().replace(/\s+/g, '-').slice(0, 30)}
+              {/* Aperçu d'URL (slug technique) — hors catalogue i18n. */}
+              {'megga.ch / annonce / '}{(data.addr || tr('wizard.step7.urlSlugFallback')).toLowerCase().replace(/\s+/g, '-').slice(0, 30)}
             </div>
           </div>
 

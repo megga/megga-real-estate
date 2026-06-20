@@ -696,7 +696,8 @@ export default function StagingStudio({ photo, onClose, onSaveVariant }: Staging
               fontFamily: 'ui-monospace, Menlo, monospace',
               fontSize: 10.5, lineHeight: 1.5, color: SugarV2.muted,
             }}>
-              <span style={{ color: SugarV2.ink, fontWeight: 700 }}>prompt&nbsp;›</span>{' '}
+              {/* « prompt » = terme technique identique FR/EN — hors catalogue i18n. */}
+              <span style={{ color: SugarV2.ink, fontWeight: 700 }}>{'prompt'}&nbsp;›</span>{' '}
               {styleMode === 'preset'
                 ? t('wizard.staging.promptRecap', {
                     style: t(`wizard.staging.presets.${activeStyle.v}.label`).toLowerCase(),

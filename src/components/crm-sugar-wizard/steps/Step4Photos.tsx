@@ -523,7 +523,10 @@ function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
           padding: '4px 10px', borderRadius: 8,
           background: SugarV2.card,
-        }}>MGA-7K2P-9X</div>
+        }}>
+          {/* Code d'appairage d'exemple (démo) — hors catalogue i18n. */}
+          {'MGA-7K2P-9X'}
+        </div>
       </div>
 
       <div>

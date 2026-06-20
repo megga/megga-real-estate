@@ -32,7 +32,7 @@ export default function SgaListing({ L, onOpenPhoto, onOpenListing }: SgaListing
             <img className="sga-hero-img" src={G[0].url} alt={G[0].label} draggable="false" />
           ) : (
             <div className="sga-ph">
-              <div className="ph-lbl"><SgaIcon d="camera" size={26} /><span>photo principale</span></div>
+              <div className="ph-lbl"><SgaIcon d="camera" size={26} /><span>{t('atelier.mainPhoto')}</span></div>
             </div>
           )}
           <button

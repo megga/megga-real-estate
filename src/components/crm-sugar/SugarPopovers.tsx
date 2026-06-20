@@ -303,8 +303,9 @@ export function SugarMiniCalendar({ sp }: { sp: SugarPalette; dark?: boolean }) 
           fontSize: 11, fontWeight: 800,
         }}>1</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.ink }}>Aujourd'hui · 6 actions</div>
-          <div style={{ fontSize: 10, color: sp.sub, marginTop: 1 }}>2 relances · 3 qualifs · 1 offre</div>
+          {/* Aperçu illustratif (nombres d'exemple, pas de données live) — hors catalogue i18n. */}
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.ink }}>{"Aujourd'hui · 6 actions"}</div>
+          <div style={{ fontSize: 10, color: sp.sub, marginTop: 1 }}>{'2 relances · 3 qualifs · 1 offre'}</div>
         </div>
         <button style={{
           height: 28, padding: '0 10px', borderRadius: 999, border: 0, cursor: 'pointer',

@@ -128,7 +128,12 @@
     "whatUsersSay": "What our users say",
     "everythingYouNeed": "Everything you need",
     "completePlatform": "A complete platform to manage your real estate activity",
-    "integrationsPartners": "Integrations & partners"
+    "integrationsPartners": "Integrations & partners",
+    "trustTitle": "Built in Switzerland, open to the rest of the world.",
+    "trustSms": "Certified Swiss software",
+    "trustC2pa": "Authenticated listing photos",
+    "trustGcal": "Visits synced with Google Calendar",
+    "trustOutlook": "Works with Outlook & Microsoft 365"
   },
   "footer": {
     "certifiedRecognized": "Certified and recognized",
