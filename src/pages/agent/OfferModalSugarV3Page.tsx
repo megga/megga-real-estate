@@ -13,6 +13,7 @@
 // Au submit : useCreateOffer → trigger DB AuditEvent → close + back to fiche Deal.
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
@@ -29,7 +30,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { EMPTY_OFFER_CONDITIONS, countActiveConditions } from '@/types/offer'
 import type { OfferConditions, OfferKind } from '@/types/offer'
 
-const STEPS = ['Montant', 'Conditions', 'Délai & envoi'] as const
+const STEP_KEYS = ['amount', 'conditions', 'delay'] as const
 
 function fmt(n: number | string | null | undefined): string {
   if (n == null || n === '') return '—'
@@ -198,6 +199,7 @@ function ConditionToggle({
 }
 
 export default function OfferModalSugarV3Page() {
+  const { t } = useTranslation('pipeline')
   const { id, kind: rawKind } = useParams<{ id: string; kind: string }>()
   const navigate = useNavigate()
   const kind: OfferKind = rawKind === 'contre' ? 'counter' : 'offer'
@@ -300,7 +302,7 @@ export default function OfferModalSugarV3Page() {
       ? 'MEGGA · Agent'
       : buyer
         ? `${buyer.first_name ?? ''} ${buyer.last_name ?? ''}`.trim()
-        : 'Acheteur'
+        : t('offerModal.label.buyerFallback')
     createOffer(
       {
         dealId: deal.id,
@@ -362,7 +364,7 @@ export default function OfferModalSugarV3Page() {
       >
         <button
           onClick={close}
-          title="Fermer"
+          title={t('offerModal.cta.close')}
           style={{
             width: 44,
             height: 44,
@@ -388,7 +390,9 @@ export default function OfferModalSugarV3Page() {
               letterSpacing: 0.6,
             }}
           >
-            {isCounter ? 'Contre-offre · vendeur' : 'Nouvelle offre · acheteur'}
+            {isCounter
+              ? t('offerModal.eyebrow.counter')
+              : t('offerModal.eyebrow.offer')}
             {bien && <> · {bien.title}</>}
           </div>
         </div>
@@ -400,7 +404,7 @@ export default function OfferModalSugarV3Page() {
             gap: 0,
           }}
         >
-          {STEPS.map((s, i) => {
+          {STEP_KEYS.map((s, i) => {
             const done = i < step
             const active = i === step
             return (
@@ -450,10 +454,10 @@ export default function OfferModalSugarV3Page() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {s}
+                    {t(`offerModal.step.${s}`)}
                   </div>
                 </div>
-                {i < STEPS.length - 1 && (
+                {i < STEP_KEYS.length - 1 && (
                   <div
                     style={{
                       width: 48,
@@ -499,7 +503,7 @@ export default function OfferModalSugarV3Page() {
                     marginBottom: 14,
                   }}
                 >
-                  Étape 1 sur 3 · Montant
+                  {t('offerModal.step0.eyebrow')}
                 </div>
                 <h1
                   style={{
@@ -512,8 +516,8 @@ export default function OfferModalSugarV3Page() {
                   }}
                 >
                   {isCounter
-                    ? 'Quel montant proposez-vous en retour ?'
-                    : "Quel montant l'acheteur propose-t-il ?"}
+                    ? t('offerModal.step0.title.counter')
+                    : t('offerModal.step0.title.offer')}
                 </h1>
                 <p
                   style={{
@@ -525,8 +529,8 @@ export default function OfferModalSugarV3Page() {
                   }}
                 >
                   {isCounter
-                    ? 'Vous pouvez ajuster le montant, repositionner les conditions et fixer un nouveau délai.'
-                    : "Saisissez le montant principal, un éventuel acompte et la date de signature souhaitée."}
+                    ? t('offerModal.step0.subtitle.counter')
+                    : t('offerModal.step0.subtitle.offer')}
                 </p>
               </div>
 
@@ -574,7 +578,9 @@ export default function OfferModalSugarV3Page() {
                           marginBottom: 2,
                         }}
                       >
-                        Offre de {parentOffer.by_label}
+                        {t('offerModal.field.offerFrom', {
+                          label: parentOffer.by_label,
+                        })}
                       </div>
                       <div
                         style={{
@@ -598,8 +604,14 @@ export default function OfferModalSugarV3Page() {
                   }}
                 >
                   <Field
-                    label="Montant proposé"
-                    hint={askingPrice ? `Prix demandé : ${fmt(askingPrice)}` : null}
+                    label={t('offerModal.field.amount')}
+                    hint={
+                      askingPrice
+                        ? t('offerModal.field.askingPriceHint', {
+                            price: fmt(askingPrice),
+                          })
+                        : null
+                    }
                   >
                     <input
                       type="number"
@@ -608,7 +620,10 @@ export default function OfferModalSugarV3Page() {
                       style={inputStyle}
                     />
                   </Field>
-                  <Field label="Acompte" hint="À la signature du compromis">
+                  <Field
+                    label={t('offerModal.field.deposit')}
+                    hint={t('offerModal.field.depositHint')}
+                  >
                     <input
                       type="number"
                       value={deposit}
@@ -616,7 +631,7 @@ export default function OfferModalSugarV3Page() {
                       style={inputStyle}
                     />
                   </Field>
-                  <Field label="Date de signature souhaitée">
+                  <Field label={t('offerModal.field.closingDate')}>
                     <input
                       type="date"
                       value={closingDate}
@@ -624,7 +639,7 @@ export default function OfferModalSugarV3Page() {
                       style={{ ...inputStyle, fontSize: 15 }}
                     />
                   </Field>
-                  <Field label="Écart">
+                  <Field label={t('offerModal.field.gap')}>
                     <div
                       style={{
                         ...inputStyle,
@@ -643,7 +658,7 @@ export default function OfferModalSugarV3Page() {
                           fontWeight: 500,
                         }}
                       >
-                        vs prix demandé
+                        {t('offerModal.field.gapVsAsking')}
                       </span>
                     </div>
                   </Field>
@@ -666,7 +681,7 @@ export default function OfferModalSugarV3Page() {
                     marginBottom: 14,
                   }}
                 >
-                  Étape 2 sur 3 · Conditions suspensives
+                  {t('offerModal.step1.eyebrow')}
                 </div>
                 <h1
                   style={{
@@ -678,7 +693,7 @@ export default function OfferModalSugarV3Page() {
                     lineHeight: 1.1,
                   }}
                 >
-                  Sous quelles conditions&nbsp;?
+                  {t('offerModal.step1.title')}
                 </h1>
                 <p
                   style={{
@@ -689,8 +704,7 @@ export default function OfferModalSugarV3Page() {
                     lineHeight: 1.55,
                   }}
                 >
-                  Activez uniquement les conditions qui s'appliquent. Chacune
-                  devra être levée avant la signature.
+                  {t('offerModal.step1.subtitle')}
                 </p>
               </div>
 
@@ -706,8 +720,8 @@ export default function OfferModalSugarV3Page() {
                   active={conditions.financing.active}
                   onToggle={() => toggleCond('financing')}
                   icon="shield"
-                  title="Financement bancaire"
-                  sub="L'offre est subordonnée à l'obtention d'un prêt immobilier."
+                  title={t('offerModal.condition.financing.title')}
+                  sub={t('offerModal.condition.financing.sub')}
                 >
                   <div
                     style={{
@@ -716,7 +730,7 @@ export default function OfferModalSugarV3Page() {
                       gap: 14,
                     }}
                   >
-                    <Field label="Délai (jours)">
+                    <Field label={t('offerModal.condition.financing.daysLabel')}>
                       <input
                         type="number"
                         value={conditions.financing.days ?? 45}
@@ -726,11 +740,11 @@ export default function OfferModalSugarV3Page() {
                         style={{ ...inputStyle, height: 46, fontSize: 15 }}
                       />
                     </Field>
-                    <Field label="Précision (banque, taux…)">
+                    <Field label={t('offerModal.condition.financing.noteLabel')}>
                       <input
                         type="text"
                         value={conditions.financing.note ?? ''}
-                        placeholder="Ex. BCGE, 80%, taux fixe 10 ans"
+                        placeholder={t('offerModal.condition.financing.notePlaceholder')}
                         onChange={(e) =>
                           setCondField('financing', 'note', e.target.value)
                         }
@@ -744,22 +758,22 @@ export default function OfferModalSugarV3Page() {
                   active={conditions.sale.active}
                   onToggle={() => toggleCond('sale')}
                   icon="home"
-                  title="Vente d'un autre bien"
-                  sub="L'acquisition dépend de la vente préalable d'un bien existant."
+                  title={t('offerModal.condition.sale.title')}
+                  sub={t('offerModal.condition.sale.sub')}
                 />
 
                 <ConditionToggle
                   active={conditions.diagnostic.active}
                   onToggle={() => toggleCond('diagnostic')}
                   icon="file"
-                  title="Expertise / Diagnostic"
-                  sub="Expertise indépendante (toit, structure, énergie) à la charge de l'acheteur."
+                  title={t('offerModal.condition.diagnostic.title')}
+                  sub={t('offerModal.condition.diagnostic.sub')}
                 >
-                  <Field label="Périmètre de l'expertise">
+                  <Field label={t('offerModal.condition.diagnostic.noteLabel')}>
                     <input
                       type="text"
                       value={conditions.diagnostic.note ?? ''}
-                      placeholder="Ex. Toit + façade"
+                      placeholder={t('offerModal.condition.diagnostic.notePlaceholder')}
                       onChange={(e) =>
                         setCondField('diagnostic', 'note', e.target.value)
                       }
@@ -772,10 +786,10 @@ export default function OfferModalSugarV3Page() {
                   active={conditions.occupancy.active}
                   onToggle={() => toggleCond('occupancy')}
                   icon="cal"
-                  title="Libération du logement"
-                  sub="Le bien doit être libre d'occupant à une date précise."
+                  title={t('offerModal.condition.occupancy.title')}
+                  sub={t('offerModal.condition.occupancy.sub')}
                 >
-                  <Field label="Date de libération">
+                  <Field label={t('offerModal.condition.occupancy.dateLabel')}>
                     <input
                       type="date"
                       value={conditions.occupancy.note ?? ''}
@@ -796,15 +810,15 @@ export default function OfferModalSugarV3Page() {
                   }}
                 >
                   <Field
-                    label="Autre — texte libre"
-                    hint="Visible dans l'offre formelle (PDF). Restez factuel."
+                    label={t('offerModal.condition.other.label')}
+                    hint={t('offerModal.condition.other.hint')}
                   >
                     <textarea
                       value={conditions.other}
                       onChange={(e) =>
                         setConditions((c) => ({ ...c, other: e.target.value }))
                       }
-                      placeholder="Ex. Acquisition à titre personnel, paiement comptant à hauteur de 35%."
+                      placeholder={t('offerModal.condition.other.placeholder')}
                       rows={3}
                       style={{
                         ...inputStyle,
@@ -837,7 +851,7 @@ export default function OfferModalSugarV3Page() {
                     marginBottom: 14,
                   }}
                 >
-                  Étape 3 sur 3 · Délai & confirmation
+                  {t('offerModal.step2.eyebrow')}
                 </div>
                 <h1
                   style={{
@@ -849,7 +863,7 @@ export default function OfferModalSugarV3Page() {
                     lineHeight: 1.1,
                   }}
                 >
-                  Validité de l'offre
+                  {t('offerModal.step2.title')}
                 </h1>
                 <p
                   style={{
@@ -860,8 +874,7 @@ export default function OfferModalSugarV3Page() {
                     lineHeight: 1.55,
                   }}
                 >
-                  Au-delà de cette date, l'offre passera automatiquement en
-                  statut « expirée ».
+                  {t('offerModal.step2.subtitle')}
                 </p>
               </div>
 
@@ -882,7 +895,7 @@ export default function OfferModalSugarV3Page() {
                     gap: 22,
                   }}
                 >
-                  <Field label="Date d'expiration">
+                  <Field label={t('offerModal.field.expiryDate')}>
                     <input
                       type="date"
                       value={expDate}
@@ -890,7 +903,7 @@ export default function OfferModalSugarV3Page() {
                       style={{ ...inputStyle, fontSize: 15 }}
                     />
                   </Field>
-                  <Field label="Heure">
+                  <Field label={t('offerModal.field.expiryTime')}>
                     <input
                       type="time"
                       value={expTime}
@@ -908,13 +921,13 @@ export default function OfferModalSugarV3Page() {
                   }}
                 >
                   {[
-                    { l: '48h', d: 2 },
-                    { l: '5 jours', d: 5 },
-                    { l: '10 jours', d: 10 },
-                    { l: '30 jours', d: 30 },
+                    { l: t('offerModal.delay.h48'), d: 2 },
+                    { l: t('offerModal.delay.days', { count: 5 }), d: 5 },
+                    { l: t('offerModal.delay.days', { count: 10 }), d: 10 },
+                    { l: t('offerModal.delay.days', { count: 30 }), d: 30 },
                   ].map((p) => (
                     <button
-                      key={p.l}
+                      key={p.d}
                       onClick={() => {
                         const d = new Date()
                         d.setDate(d.getDate() + p.d)
@@ -960,7 +973,7 @@ export default function OfferModalSugarV3Page() {
                     marginBottom: 18,
                   }}
                 >
-                  Récapitulatif
+                  {t('offerModal.summary.title')}
                 </div>
                 <div
                   style={{
@@ -977,7 +990,9 @@ export default function OfferModalSugarV3Page() {
                       color: 'rgba(255,255,255,0.7)',
                     }}
                   >
-                    {isCounter ? 'Contre-offre vendeur' : 'Offre acheteur'}
+                    {isCounter
+                      ? t('offerModal.summary.counterLabel')
+                      : t('offerModal.summary.offerLabel')}
                   </div>
                   <div
                     style={{
@@ -1001,9 +1016,10 @@ export default function OfferModalSugarV3Page() {
                   }}
                 >
                   {[
-                    { l: 'Acompte', v: fmt(deposit) },
+                    { id: 'deposit', l: t('offerModal.summary.deposit'), v: fmt(deposit) },
                     {
-                      l: 'Signature visée',
+                      id: 'closing',
+                      l: t('offerModal.summary.closing'),
                       v: new Date(closingDate).toLocaleDateString('fr-CH', {
                         day: '2-digit',
                         month: 'long',
@@ -1011,19 +1027,24 @@ export default function OfferModalSugarV3Page() {
                       }),
                     },
                     {
-                      l: 'Conditions actives',
+                      id: 'activeConditions',
+                      l: t('offerModal.summary.activeConditions'),
                       v: String(countActiveConditions(conditions)),
                     },
                     {
-                      l: 'Expire le',
-                      v: `${new Date(expDate).toLocaleDateString('fr-CH', {
-                        day: '2-digit',
-                        month: 'long',
-                      })} à ${expTime}`,
+                      id: 'expires',
+                      l: t('offerModal.summary.expires'),
+                      v: t('offerModal.summary.expiresValue', {
+                        date: new Date(expDate).toLocaleDateString('fr-CH', {
+                          day: '2-digit',
+                          month: 'long',
+                        }),
+                        time: expTime,
+                      }),
                     },
                   ].map((r) => (
                     <div
-                      key={r.l}
+                      key={r.id}
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -1094,7 +1115,7 @@ export default function OfferModalSugarV3Page() {
           }}
         >
           <SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />
-          {step === 0 ? 'Annuler' : 'Retour'}
+          {step === 0 ? t('offerModal.cta.cancel') : t('offerModal.cta.back')}
         </button>
         <div style={{ flex: 1 }} />
         {saveError && (
@@ -1117,9 +1138,12 @@ export default function OfferModalSugarV3Page() {
             fontWeight: 600,
           }}
         >
-          Étape {step + 1} / {STEPS.length}
+          {t('offerModal.footer.stepCount', {
+            current: step + 1,
+            total: STEP_KEYS.length,
+          })}
         </div>
-        {step < STEPS.length - 1 ? (
+        {step < STEP_KEYS.length - 1 ? (
           <button
             onClick={() => setStep(step + 1)}
             style={{
@@ -1139,7 +1163,7 @@ export default function OfferModalSugarV3Page() {
               boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
             }}
           >
-            Continuer
+            {t('offerModal.cta.continue')}
             <SgIcon name="arrowR" size={14} stroke="#fff" />
           </button>
         ) : (
@@ -1164,7 +1188,7 @@ export default function OfferModalSugarV3Page() {
             }}
           >
             <SgIcon name="check" size={14} stroke="#fff" sw={2.5} />
-            {isSaving ? 'Envoi…' : 'Enregistrer & envoyer'}
+            {isSaving ? t('offerModal.cta.submitting') : t('offerModal.cta.submit')}
           </button>
         )}
       </footer>

@@ -166,5 +166,145 @@
     "notesPlaceholder": "Notes optionnelles...",
     "noContact": "Aucun contact",
     "noProperty": "Aucun bien"
+  },
+  "visit": {
+    "sentiment": {
+      "hot": "Très intéressé",
+      "warm": "Intéressé",
+      "cool": "Tiède",
+      "cold": "Pas intéressé"
+    }
+  },
+  "visitModal": {
+    "title": "Planifier une visite",
+    "stepper": {
+      "propertyVisitor": "Bien & visiteur",
+      "dateTime": "Date & heure",
+      "confirmation": "Confirmation"
+    },
+    "action": {
+      "close": "Fermer",
+      "cancel": "Annuler",
+      "back": "Retour",
+      "continue": "Continuer"
+    },
+    "step1": {
+      "eyebrow": "Étape 1 sur 3 · Quoi & qui",
+      "title": "Quel bien fait-on visiter, et à qui ?",
+      "subtitle": "Lisez la liste, vous pouvez aussi rechercher par nom, adresse ou ville."
+    },
+    "field": {
+      "property": "Bien à visiter",
+      "visitor": "Visiteur",
+      "date": "Date",
+      "time": "Heure",
+      "duration": "Durée"
+    },
+    "placeholder": {
+      "propertySearch": "Titre, adresse, ville…",
+      "visitorSearch": "Nom, email, téléphone…"
+    },
+    "empty": {
+      "noProperty": "Aucun bien actif ne correspond."
+    },
+    "step2": {
+      "eyebrow": "Étape 2 sur 3 · Quand",
+      "title": "Quel jour, quelle heure ?",
+      "subtitle": "Le bon de visite sera prêt à signer dès la confirmation."
+    },
+    "duration": {
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "oneHour": "1 heure",
+      "oneHourThirty": "1h30"
+    },
+    "step3": {
+      "eyebrow": "Étape 3 sur 3 · Détails & confirmation",
+      "title": "Tout est prêt ?",
+      "subtitle": "Choisissez ce qu'on automatise pour vous."
+    },
+    "recap": {
+      "title": "Récapitulatif",
+      "property": "Bien",
+      "visitor": "Visiteur",
+      "date": "Date",
+      "timeDuration": "{{time}} ({{duration}} min)"
+    },
+    "automation": {
+      "emailVisitor": {
+        "label": "Email au visiteur",
+        "desc": "Confirmation avec adresse + accès + photo du bien."
+      },
+      "generateBon": {
+        "label": "Générer le bon de visite",
+        "desc": "PDF MEGGA pré-rempli avec engagement du visiteur."
+      },
+      "askSignature": {
+        "label": "Demander signature avant",
+        "desc": "Lien sécurisé envoyé au visiteur 24h avant."
+      }
+    },
+    "footer": {
+      "stepCounter": "Étape {{current}} / {{total}}"
+    },
+    "cta": {
+      "scheduling": "Planification…",
+      "schedule": "Planifier la visite"
+    }
+  },
+  "visitDetail": {
+    "loading": "Chargement de la visite…",
+    "loadError": "Erreur de chargement de la visite : {{message}}",
+    "unknownError": "inconnue",
+    "notFound": "Visite introuvable.",
+    "backToCalendar": "Calendrier",
+    "statusUpdateError": "Impossible de mettre à jour le statut : {{message}}",
+    "cta": {
+      "visitDone": "Visite effectuée",
+      "markDone": "Marquer effectuée",
+      "confirm": "Confirmer la visite"
+    },
+    "eyebrow": {
+      "prefix": "Visite",
+      "done": "Effectuée",
+      "planned": "Planifiée"
+    },
+    "propertyFallback": "Bien",
+    "withContact": "avec {{name}}",
+    "bon": {
+      "eyebrowPrefix": "Bon de visite",
+      "signed": "Signé",
+      "toSign": "À signer",
+      "documentTitle": "Document de visite",
+      "pdfTitle": "Bon de visite",
+      "fieldProperty": "Bien",
+      "fieldVisitor": "Visiteur",
+      "fieldAgent": "Agent",
+      "fieldDateTime": "Date & heure",
+      "plannedDuration": "Durée prévue : {{minutes}} min",
+      "commitmentLabel": "Engagement du visiteur",
+      "commitmentText": "Le visiteur reconnaît avoir été informé de l'existence du mandat liant le vendeur à MEGGA et s'engage à ne pas contacter directement le vendeur. Toute transaction réalisée dans les 24 mois suivant cette visite sera due à l'agence selon les termes du mandat.",
+      "signatureVisitor": "Signature visiteur",
+      "signatureAgent": "Signature agent",
+      "signedElectronically": "Signé électroniquement",
+      "awaitingSignature": "En attente de signature",
+      "signNow": "Faire signer maintenant"
+    },
+    "report": {
+      "eyebrowPrefix": "Rapport",
+      "awaitingVisit": "En attente de la visite",
+      "title": "Rapport de visite",
+      "emptyTitle": "Le rapport sera disponible après la visite",
+      "emptyHint": "Pendant la visite, utilisez la vue mobile compagnon pour prendre des notes vocales, photos et impressions. Le rapport se remplira automatiquement.",
+      "sentimentFallback": "Tiède",
+      "score": "Score",
+      "highlights": "Points positifs",
+      "objections": "Objections",
+      "nextStep": "Prochaine étape",
+      "voiceNote": "Note vocale agent · {{time}}",
+      "autoTranscript": "Transcription automatique disponible",
+      "photoCount_one": "{{count}} photo",
+      "photoCount_other": "{{count}} photos"
+    }
   }
 }

@@ -377,5 +377,107 @@
     "last_update": "Last update",
     "no_offer_recorded": "No offer recorded for this transaction.",
     "view_contact": "View contact"
+  },
+  "offerModal": {
+    "cta": {
+      "close": "Close",
+      "cancel": "Cancel",
+      "back": "Back",
+      "continue": "Continue",
+      "submit": "Save & send",
+      "submitting": "Sending…"
+    },
+    "label": {
+      "buyerFallback": "Buyer"
+    },
+    "eyebrow": {
+      "counter": "Counter-offer · seller",
+      "offer": "New offer · buyer"
+    },
+    "step": {
+      "amount": "Amount",
+      "conditions": "Conditions",
+      "delay": "Deadline & send"
+    },
+    "step0": {
+      "eyebrow": "Step 1 of 3 · Amount",
+      "title": {
+        "counter": "What amount are you proposing in return?",
+        "offer": "What amount is the buyer offering?"
+      },
+      "subtitle": {
+        "counter": "You can adjust the amount, reposition the conditions and set a new deadline.",
+        "offer": "Enter the main amount, any deposit and the desired signing date."
+      }
+    },
+    "field": {
+      "offerFrom": "Offer from {{label}}",
+      "amount": "Proposed amount",
+      "askingPriceHint": "Asking price: {{price}}",
+      "deposit": "Deposit",
+      "depositHint": "On signing the preliminary agreement",
+      "closingDate": "Desired signing date",
+      "gap": "Gap",
+      "gapVsAsking": "vs asking price",
+      "expiryDate": "Expiry date",
+      "expiryTime": "Time"
+    },
+    "step1": {
+      "eyebrow": "Step 2 of 3 · Conditions precedent",
+      "title": "Under what conditions?",
+      "subtitle": "Enable only the conditions that apply. Each must be lifted before signing."
+    },
+    "condition": {
+      "financing": {
+        "title": "Bank financing",
+        "sub": "The offer is conditional on obtaining a mortgage loan.",
+        "daysLabel": "Deadline (days)",
+        "noteLabel": "Details (bank, rate…)",
+        "notePlaceholder": "E.g. BCGE, 80%, 10-year fixed rate"
+      },
+      "sale": {
+        "title": "Sale of another property",
+        "sub": "The purchase depends on first selling an existing property."
+      },
+      "diagnostic": {
+        "title": "Survey / Inspection",
+        "sub": "Independent survey (roof, structure, energy) at the buyer's expense.",
+        "noteLabel": "Scope of the survey",
+        "notePlaceholder": "E.g. Roof + facade"
+      },
+      "occupancy": {
+        "title": "Vacant possession",
+        "sub": "The property must be vacant by a specific date.",
+        "dateLabel": "Vacancy date"
+      },
+      "other": {
+        "label": "Other: free text",
+        "hint": "Visible in the formal offer (PDF). Keep it factual.",
+        "placeholder": "E.g. Purchase in a personal capacity, cash payment of 35%."
+      }
+    },
+    "step2": {
+      "eyebrow": "Step 3 of 3 · Deadline & confirmation",
+      "title": "Offer validity",
+      "subtitle": "After this date, the offer will move to « expired » status."
+    },
+    "delay": {
+      "h48": "48h",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days"
+    },
+    "summary": {
+      "title": "Summary",
+      "counterLabel": "Seller counter-offer",
+      "offerLabel": "Buyer offer",
+      "deposit": "Deposit",
+      "closing": "Target signing",
+      "activeConditions": "Active conditions",
+      "expires": "Expires on",
+      "expiresValue": "{{date}} at {{time}}"
+    },
+    "footer": {
+      "stepCount": "Step {{current}} / {{total}}"
+    }
   }
 }

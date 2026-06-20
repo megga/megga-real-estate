@@ -10,6 +10,7 @@
 // Au submit : useCreateAgentVisit → redirect /dashboard/visits/:newId
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
@@ -17,7 +18,11 @@ import { useAgencyProperties } from '@/hooks/useProperties'
 import { useContacts } from '@/hooks/useContacts'
 import { useCreateAgentVisit } from '@/hooks/useVisitDetail'
 
-const STEPS = ['Bien & visiteur', 'Date & heure', 'Confirmation'] as const
+const STEP_KEYS = [
+  'visitModal.stepper.propertyVisitor',
+  'visitModal.stepper.dateTime',
+  'visitModal.stepper.confirmation',
+] as const
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -76,6 +81,7 @@ function Field({
 }
 
 export default function VisitModalSugarV3Page() {
+  const { t } = useTranslation('calendar')
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const defaultBienId = params.get('bienId') ?? null
@@ -207,7 +213,7 @@ export default function VisitModalSugarV3Page() {
       >
         <button
           onClick={close}
-          title="Fermer"
+          title={t('visitModal.action.close')}
           style={{
             width: 44,
             height: 44,
@@ -233,12 +239,12 @@ export default function VisitModalSugarV3Page() {
               letterSpacing: 0.6,
             }}
           >
-            Planifier une visite
+            {t('visitModal.title')}
           </div>
         </div>
         {/* Stepper compact */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-          {STEPS.map((s, i) => {
+          {STEP_KEYS.map((s, i) => {
             const done = i < step
             const active = i === step
             return (
@@ -282,10 +288,10 @@ export default function VisitModalSugarV3Page() {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {s}
+                    {t(s)}
                   </div>
                 </div>
-                {i < STEPS.length - 1 && (
+                {i < STEP_KEYS.length - 1 && (
                   <div
                     style={{
                       width: 48,
@@ -330,7 +336,7 @@ export default function VisitModalSugarV3Page() {
                     marginBottom: 14,
                   }}
                 >
-                  Étape 1 sur 3 · Quoi & qui
+                  {t('visitModal.step1.eyebrow')}
                 </div>
                 <h1
                   style={{
@@ -342,7 +348,7 @@ export default function VisitModalSugarV3Page() {
                     lineHeight: 1.1,
                   }}
                 >
-                  Quel bien fait-on visiter, et à qui&nbsp;?
+                  {t('visitModal.step1.title')}
                 </h1>
                 <p
                   style={{
@@ -353,8 +359,7 @@ export default function VisitModalSugarV3Page() {
                     lineHeight: 1.55,
                   }}
                 >
-                  Lisez la liste — vous pouvez aussi rechercher par nom,
-                  adresse ou ville.
+                  {t('visitModal.step1.subtitle')}
                 </p>
               </div>
 
@@ -367,13 +372,13 @@ export default function VisitModalSugarV3Page() {
               >
                 {/* Bien */}
                 <div>
-                  <Field label="Bien à visiter">
+                  <Field label={t('visitModal.field.property')}>
                     <div style={{ position: 'relative', marginBottom: 14 }}>
                       <input
                         type="text"
                         value={bienQuery}
                         onChange={(e) => setBienQuery(e.target.value)}
-                        placeholder="Titre, adresse, ville…"
+                        placeholder={t('visitModal.placeholder.propertySearch')}
                         style={{ ...inputStyle, paddingLeft: 44 }}
                       />
                       <span
@@ -476,7 +481,7 @@ export default function VisitModalSugarV3Page() {
                           textAlign: 'center',
                         }}
                       >
-                        Aucun bien actif ne correspond.
+                        {t('visitModal.empty.noProperty')}
                       </div>
                     )}
                   </div>
@@ -484,13 +489,13 @@ export default function VisitModalSugarV3Page() {
 
                 {/* Contact */}
                 <div>
-                  <Field label="Visiteur">
+                  <Field label={t('visitModal.field.visitor')}>
                     <div style={{ position: 'relative', marginBottom: 14 }}>
                       <input
                         type="text"
                         value={contactQuery}
                         onChange={(e) => setContactQuery(e.target.value)}
-                        placeholder="Nom, email, téléphone…"
+                        placeholder={t('visitModal.placeholder.visitorSearch')}
                         style={{ ...inputStyle, paddingLeft: 44 }}
                       />
                       <span
@@ -599,7 +604,7 @@ export default function VisitModalSugarV3Page() {
                     marginBottom: 14,
                   }}
                 >
-                  Étape 2 sur 3 · Quand
+                  {t('visitModal.step2.eyebrow')}
                 </div>
                 <h1
                   style={{
@@ -611,7 +616,7 @@ export default function VisitModalSugarV3Page() {
                     lineHeight: 1.1,
                   }}
                 >
-                  Quel jour, quelle heure&nbsp;?
+                  {t('visitModal.step2.title')}
                 </h1>
                 <p
                   style={{
@@ -622,7 +627,7 @@ export default function VisitModalSugarV3Page() {
                     lineHeight: 1.55,
                   }}
                 >
-                  Le bon de visite sera prêt à signer dès la confirmation.
+                  {t('visitModal.step2.subtitle')}
                 </p>
               </div>
 
@@ -642,7 +647,7 @@ export default function VisitModalSugarV3Page() {
                     gap: 22,
                   }}
                 >
-                  <Field label="Date">
+                  <Field label={t('visitModal.field.date')}>
                     <input
                       type="date"
                       value={date}
@@ -650,7 +655,7 @@ export default function VisitModalSugarV3Page() {
                       style={inputStyle}
                     />
                   </Field>
-                  <Field label="Heure">
+                  <Field label={t('visitModal.field.time')}>
                     <input
                       type="time"
                       value={time}
@@ -658,16 +663,16 @@ export default function VisitModalSugarV3Page() {
                       style={inputStyle}
                     />
                   </Field>
-                  <Field label="Durée">
+                  <Field label={t('visitModal.field.duration')}>
                     <select
                       value={duration}
                       onChange={(e) => setDuration(+e.target.value)}
                       style={{ ...inputStyle, appearance: 'none', paddingRight: 36 }}
                     >
-                      <option value={30}>30 minutes</option>
-                      <option value={45}>45 minutes</option>
-                      <option value={60}>1 heure</option>
-                      <option value={90}>1h30</option>
+                      <option value={30}>{t('visitModal.duration.minutes', { count: 30 })}</option>
+                      <option value={45}>{t('visitModal.duration.minutes', { count: 45 })}</option>
+                      <option value={60}>{t('visitModal.duration.oneHour')}</option>
+                      <option value={90}>{t('visitModal.duration.oneHourThirty')}</option>
                     </select>
                   </Field>
                 </div>
@@ -695,7 +700,7 @@ export default function VisitModalSugarV3Page() {
                     marginBottom: 14,
                   }}
                 >
-                  Étape 3 sur 3 · Détails & confirmation
+                  {t('visitModal.step3.eyebrow')}
                 </div>
                 <h1
                   style={{
@@ -707,7 +712,7 @@ export default function VisitModalSugarV3Page() {
                     lineHeight: 1.1,
                   }}
                 >
-                  Tout est prêt&nbsp;?
+                  {t('visitModal.step3.title')}
                 </h1>
                 <p
                   style={{
@@ -718,7 +723,7 @@ export default function VisitModalSugarV3Page() {
                     lineHeight: 1.55,
                   }}
                 >
-                  Choisissez ce qu'on automatise pour vous.
+                  {t('visitModal.step3.subtitle')}
                 </p>
               </div>
 
@@ -750,18 +755,18 @@ export default function VisitModalSugarV3Page() {
                       marginBottom: 22,
                     }}
                   >
-                    Récapitulatif
+                    {t('visitModal.recap.title')}
                   </div>
                   {(
                     [
                       {
-                        l: 'Bien',
+                        l: t('visitModal.recap.property'),
                         icon: 'home',
                         v: bien?.title ?? '—',
                         sub: bien?.address,
                       },
                       {
-                        l: 'Visiteur',
+                        l: t('visitModal.recap.visitor'),
                         icon: 'user',
                         v: contact
                           ? `${contact.first_name} ${contact.last_name}`
@@ -769,14 +774,14 @@ export default function VisitModalSugarV3Page() {
                         sub: contact?.email ?? undefined,
                       },
                       {
-                        l: 'Date',
+                        l: t('visitModal.recap.date'),
                         icon: 'cal',
                         v: new Date(date).toLocaleDateString('fr-CH', {
                           weekday: 'long',
                           day: '2-digit',
                           month: 'long',
                         }),
-                        sub: `${time} (${duration} min)`,
+                        sub: t('visitModal.recap.timeDuration', { time, duration }),
                       },
                     ] as Array<{
                       l: string
@@ -786,7 +791,7 @@ export default function VisitModalSugarV3Page() {
                     }>
                   ).map((r) => (
                     <div
-                      key={r.l}
+                      key={r.icon}
                       style={{
                         marginBottom: 18,
                         display: 'flex',
@@ -853,26 +858,29 @@ export default function VisitModalSugarV3Page() {
                 >
                   {[
                     {
-                      l: 'Email au visiteur',
-                      sub: 'Confirmation avec adresse + accès + photo du bien.',
+                      key: 'emailVisitor',
+                      l: t('visitModal.automation.emailVisitor.label'),
+                      sub: t('visitModal.automation.emailVisitor.desc'),
                       v: emailVisitor,
                       set: setEmailVisitor,
                     },
                     {
-                      l: 'Générer le bon de visite',
-                      sub: "PDF MEGGA pré-rempli avec engagement du visiteur.",
+                      key: 'generateBon',
+                      l: t('visitModal.automation.generateBon.label'),
+                      sub: t('visitModal.automation.generateBon.desc'),
                       v: genBon,
                       set: setGenBon,
                     },
                     {
-                      l: 'Demander signature avant',
-                      sub: 'Lien sécurisé envoyé au visiteur 24h avant.',
+                      key: 'askSignature',
+                      l: t('visitModal.automation.askSignature.label'),
+                      sub: t('visitModal.automation.askSignature.desc'),
                       v: askSignature,
                       set: setAskSignature,
                     },
                   ].map((opt) => (
                     <button
-                      key={opt.l}
+                      key={opt.key}
                       onClick={() => opt.set(!opt.v)}
                       style={{
                         width: '100%',
@@ -972,7 +980,7 @@ export default function VisitModalSugarV3Page() {
           }}
         >
           <SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />
-          {step === 0 ? 'Annuler' : 'Retour'}
+          {step === 0 ? t('visitModal.action.cancel') : t('visitModal.action.back')}
         </button>
         <div style={{ flex: 1 }} />
         {saveError && (
@@ -991,9 +999,12 @@ export default function VisitModalSugarV3Page() {
         <div
           style={{ fontSize: 12.5, color: SugarV3.muted, fontWeight: 600 }}
         >
-          Étape {step + 1} / {STEPS.length}
+          {t('visitModal.footer.stepCounter', {
+            current: step + 1,
+            total: STEP_KEYS.length,
+          })}
         </div>
-        {step < STEPS.length - 1 ? (
+        {step < STEP_KEYS.length - 1 ? (
           <button
             disabled={!canContinue}
             onClick={() => canContinue && setStep(step + 1)}
@@ -1016,7 +1027,7 @@ export default function VisitModalSugarV3Page() {
                 : 'none',
             }}
           >
-            Continuer
+            {t('visitModal.action.continue')}
             <SgIcon name="arrowR" size={14} stroke="#fff" />
           </button>
         ) : (
@@ -1041,7 +1052,7 @@ export default function VisitModalSugarV3Page() {
             }}
           >
             <SgIcon name="check" size={14} stroke="#fff" sw={2.5} />
-            {isSaving ? 'Planification…' : 'Planifier la visite'}
+            {isSaving ? t('visitModal.cta.scheduling') : t('visitModal.cta.schedule')}
           </button>
         )}
       </footer>

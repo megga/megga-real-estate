@@ -8,6 +8,7 @@
 //  uniquement des contrôles non-fonctionnels — voir l'historique git.)
 
 import type { CSSProperties, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { VISIT_SENTIMENT_LABELS, type VisitSentiment } from '@/types/visit'
@@ -75,6 +76,7 @@ export function VdBonPanel({
   visit: VisitDetail
   onSign?: () => void
 }) {
+  const { t } = useTranslation('calendar')
   const signed = !!visit.bon?.signedAt
   return (
     <VdCard>
@@ -88,7 +90,12 @@ export function VdBonPanel({
         }}
       >
         <div>
-          <VdEyebrow>Bon de visite · {signed ? 'Signé' : 'À signer'}</VdEyebrow>
+          <VdEyebrow>
+            {t('visitDetail.bon.eyebrowPrefix')} ·{' '}
+            {signed
+              ? t('visitDetail.bon.signed')
+              : t('visitDetail.bon.toSign')}
+          </VdEyebrow>
           <h2
             style={{
               margin: '10px 0 0',
@@ -98,7 +105,7 @@ export function VdBonPanel({
               letterSpacing: -0.4,
             }}
           >
-            Document de visite
+            {t('visitDetail.bon.documentTitle')}
           </h2>
         </div>
         {/* Header download/email icon buttons removed — both were no-op
@@ -137,7 +144,7 @@ export function VdBonPanel({
               letterSpacing: -0.3,
             }}
           >
-            Bon de visite
+            {t('visitDetail.bon.pdfTitle')}
           </div>
         </div>
 
@@ -165,7 +172,7 @@ export function VdBonPanel({
                 marginBottom: 6,
               }}
             >
-              Bien
+              {t('visitDetail.bon.fieldProperty')}
             </div>
             <div
               style={{ fontWeight: 700, color: SugarV3.ink, fontSize: 14 }}
@@ -202,7 +209,7 @@ export function VdBonPanel({
                   marginBottom: 6,
                 }}
               >
-                Visiteur
+                {t('visitDetail.bon.fieldVisitor')}
               </div>
               <div
                 style={{
@@ -228,7 +235,7 @@ export function VdBonPanel({
                   marginBottom: 6,
                 }}
               >
-                Agent
+                {t('visitDetail.bon.fieldAgent')}
               </div>
               <div
                 style={{
@@ -257,7 +264,7 @@ export function VdBonPanel({
                 marginBottom: 6,
               }}
             >
-              Date & heure
+              {t('visitDetail.bon.fieldDateTime')}
             </div>
             <div
               style={{
@@ -275,7 +282,9 @@ export function VdBonPanel({
                 marginTop: 2,
               }}
             >
-              Durée prévue : {visit.duration_minutes} min
+              {t('visitDetail.bon.plannedDuration', {
+                minutes: visit.duration_minutes,
+              })}
             </div>
           </div>
           <div>
@@ -289,7 +298,7 @@ export function VdBonPanel({
                 marginBottom: 8,
               }}
             >
-              Engagement du visiteur
+              {t('visitDetail.bon.commitmentLabel')}
             </div>
             <p
               style={{
@@ -300,11 +309,7 @@ export function VdBonPanel({
                 fontWeight: 500,
               }}
             >
-              Le visiteur reconnaît avoir été informé de l'existence du mandat
-              liant le vendeur à MEGGA et s'engage à ne pas contacter
-              directement le vendeur. Toute transaction réalisée dans les 24
-              mois suivant cette visite sera due à l'agence selon les termes du
-              mandat.
+              {t('visitDetail.bon.commitmentText')}
             </p>
           </div>
         </div>
@@ -320,12 +325,12 @@ export function VdBonPanel({
         >
           {[
             {
-              l: 'Signature visiteur',
+              l: t('visitDetail.bon.signatureVisitor'),
               signed,
               name: visit.bon?.visitorNames?.[0],
             },
             {
-              l: 'Signature agent',
+              l: t('visitDetail.bon.signatureAgent'),
               signed,
               name: visit.agent?.full_name ?? 'Grégory L.',
             },
@@ -372,7 +377,7 @@ export function VdBonPanel({
                       fontWeight: 600,
                     }}
                   >
-                    Signé électroniquement
+                    {t('visitDetail.bon.signedElectronically')}
                     {visit.bon?.signedAt
                       ? ` ${new Date(visit.bon.signedAt).toLocaleString('fr-CH', {
                           day: '2-digit',
@@ -391,7 +396,7 @@ export function VdBonPanel({
                     fontWeight: 500,
                   }}
                 >
-                  En attente de signature
+                  {t('visitDetail.bon.awaitingSignature')}
                 </div>
               )}
             </div>
@@ -432,7 +437,7 @@ export function VdBonPanel({
             }}
           >
             <SgIcon name="pen" size={14} stroke="#fff" sw={2} />
-            Faire signer maintenant
+            {t('visitDetail.bon.signNow')}
           </button>
         )}
       </div>
@@ -444,13 +449,17 @@ export function VdBonPanel({
 //  Panneau Rapport de visite (après)
 // ═══════════════════════════════════════════════════════════════════════
 export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
+  const { t } = useTranslation('calendar')
   const r = visit.rapport
   const done = visit.kind === 'done' && r
 
   if (!done) {
     return (
       <VdCard>
-        <VdEyebrow>Rapport · En attente de la visite</VdEyebrow>
+        <VdEyebrow>
+          {t('visitDetail.report.eyebrowPrefix')} ·{' '}
+          {t('visitDetail.report.awaitingVisit')}
+        </VdEyebrow>
         <h2
           style={{
             margin: '10px 0 16px',
@@ -460,7 +469,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             letterSpacing: -0.4,
           }}
         >
-          Rapport de visite
+          {t('visitDetail.report.title')}
         </h2>
         <div
           style={{
@@ -493,7 +502,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               marginBottom: 6,
             }}
           >
-            Le rapport sera disponible après la visite
+            {t('visitDetail.report.emptyTitle')}
           </div>
           <div
             style={{
@@ -503,9 +512,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               lineHeight: 1.5,
             }}
           >
-            Pendant la visite, utilisez la vue mobile compagnon pour prendre
-            des notes vocales, photos et impressions. Le rapport se remplira
-            automatiquement.
+            {t('visitDetail.report.emptyHint')}
           </div>
         </div>
       </VdCard>
@@ -513,7 +520,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
   }
 
   const sent = VISIT_SENTIMENT_LABELS[r.sentiment as VisitSentiment] ?? {
-    label: 'Tiède',
+    label: t('visitDetail.report.sentimentFallback'),
     tone: SugarV3.muted,
   }
 
@@ -530,7 +537,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
       >
         <div>
           <VdEyebrow>
-            Rapport ·{' '}
+            {t('visitDetail.report.eyebrowPrefix')} ·{' '}
             {new Date(r.savedAt).toLocaleDateString('fr-CH', {
               day: '2-digit',
               month: 'short',
@@ -545,7 +552,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               letterSpacing: -0.4,
             }}
           >
-            Rapport de visite
+            {t('visitDetail.report.title')}
           </h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -582,7 +589,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
                 letterSpacing: 0.5,
               }}
             >
-              Score
+              {t('visitDetail.report.score')}
             </div>
             <div
               style={{
@@ -637,7 +644,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             }}
           >
             <SgIcon name="smile" size={13} stroke={SugarV3.muted} sw={1.8} />
-            Points positifs
+            {t('visitDetail.report.highlights')}
           </div>
           <ul
             style={{
@@ -702,7 +709,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             }}
           >
             <SgIcon name="flame" size={13} stroke={SugarV3.muted} sw={1.8} />
-            Objections
+            {t('visitDetail.report.objections')}
           </div>
           <ul
             style={{
@@ -762,7 +769,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             marginBottom: 8,
           }}
         >
-          Prochaine étape
+          {t('visitDetail.report.nextStep')}
         </div>
         <div
           style={{
@@ -822,8 +829,13 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
                   marginBottom: 2,
                 }}
               >
-                Note vocale agent · {Math.floor(r.voiceNote.duration / 60)}:
-                {(r.voiceNote.duration % 60).toString().padStart(2, '0')}
+                {t('visitDetail.report.voiceNote', {
+                  time: `${Math.floor(r.voiceNote.duration / 60)}:${(
+                    r.voiceNote.duration % 60
+                  )
+                    .toString()
+                    .padStart(2, '0')}`,
+                })}
               </div>
               <div
                 style={{
@@ -832,7 +844,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
                   fontWeight: 500,
                 }}
               >
-                Transcription automatique disponible
+                {t('visitDetail.report.autoTranscript')}
               </div>
             </div>
             <SgIcon
@@ -863,7 +875,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             <span
               style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink }}
             >
-              {r.photos} photo{r.photos > 1 ? 's' : ''}
+              {t('visitDetail.report.photoCount', { count: r.photos })}
             </span>
           </div>
         )}
