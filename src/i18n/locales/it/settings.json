@@ -1127,5 +1127,9 @@
       "desc": "Your contacts and profile will be anonymised, your non-KYC documents deleted. Ongoing KYC files must be finalised first. This action is irreversible.",
       "confirm": "Delete permanently"
     }
+  },
+  "banner": {
+    "eyebrow": "Settings",
+    "more": "More"
   }
 }

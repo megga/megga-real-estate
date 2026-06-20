@@ -625,6 +625,10 @@
       "shaFull": "SHA-256 : {{hash}}",
       "preview": "Aperçu",
       "download": "Télécharger"
+    },
+    "check": {
+      "awaiting": "En attente",
+      "markVerified": "Marquer vérifié"
     }
   },
   "list": {
@@ -948,5 +952,10 @@
   "detail": {
     "backToList": "Retour aux dossiers",
     "eyebrow": "Dossier KYC · LBA"
+  },
+  "gauge": {
+    "riskFallback": "Risque",
+    "checksCount": "{{done}}/{{total}} contrôles",
+    "checksLabel": "contrôles"
   }
 }

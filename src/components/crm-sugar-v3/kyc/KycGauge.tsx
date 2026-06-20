@@ -9,6 +9,7 @@
 // Un dossier risqué se repère donc même à 0/5. Remplace l'ancien anneau noir
 // + la pilule de risque redondante en ligne.
 
+import { useTranslation } from 'react-i18next'
 import { useKycPalette, KYC_RISK_TONE } from './kycPalette'
 import { KYC_RISK_LABELS } from '../tokens'
 import type { KycRiskLevel } from '@/lib/constants'
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function KycGauge({ done, total, risk, size = 60 }: Props) {
+  const { t } = useTranslation('kyc')
   const sp = useKycPalette()
   const frac = total > 0 ? done / total : 0
 
@@ -31,7 +33,7 @@ export function KycGauge({ done, total, risk, size = 60 }: Props) {
   const color = KYC_RISK_TONE[riskKey]
   const isHigh = risk === 'high'
   const isMed = risk === 'medium'
-  const riskLabel = KYC_RISK_LABELS[risk as keyof typeof KYC_RISK_LABELS]?.label ?? 'Risque'
+  const riskLabel = KYC_RISK_LABELS[risk as keyof typeof KYC_RISK_LABELS]?.label ?? t('gauge.riskFallback')
 
   const stroke = Math.max(5, Math.round(size * 0.12))
   const r = (size - stroke) / 2
@@ -42,7 +44,7 @@ export function KycGauge({ done, total, risk, size = 60 }: Props) {
   return (
     <div
       className={isHigh ? 'kyc-halo-high' : undefined}
-      title={`${riskLabel} · ${done}/${total} contrôles`}
+      title={`${riskLabel} · ${t('gauge.checksCount', { done, total })}`}
       style={{
         position: 'relative',
         width: size,
@@ -102,7 +104,7 @@ export function KycGauge({ done, total, risk, size = 60 }: Props) {
                 marginTop: 5,
               }}
             >
-              contrôles
+              {t('gauge.checksLabel')}
             </div>
           )}
         </div>

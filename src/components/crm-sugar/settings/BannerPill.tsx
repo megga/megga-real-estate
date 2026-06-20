@@ -4,6 +4,7 @@
 // via les props `active` / `onChange`).
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SetIcon } from './atoms'
 import { SETTINGS_SECTIONS, SET_PALETTE, type SectionId } from './data'
 
@@ -17,6 +18,7 @@ interface BannerPillProps {
 }
 
 export function BannerPill({ active, onChange }: BannerPillProps) {
+  const { t } = useTranslation('settings')
   const [moreOpen, setMoreOpen] = useState(false)
   const PRIMARY = SETTINGS_SECTIONS.slice(0, 5)
   const SECONDARY = SETTINGS_SECTIONS.slice(5)
@@ -46,7 +48,7 @@ export function BannerPill({ active, onChange }: BannerPillProps) {
             lineHeight: 1,
           }}
         >
-          Paramètres
+          {t('banner.eyebrow')}
         </div>
         <div
           style={{
@@ -129,7 +131,7 @@ export function BannerPill({ active, onChange }: BannerPillProps) {
               >
                 {isInSecondary
                   ? SECONDARY.find(s => s.id === active)?.short
-                  : 'Plus'}
+                  : t('banner.more')}
                 <svg
                   width="11"
                   height="11"

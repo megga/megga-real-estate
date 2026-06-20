@@ -489,7 +489,8 @@
       "inbox": "Seller inbox",
       "count_one": "{{count}} submission",
       "count_other": "{{count}} submissions",
-      "receivedAgo": "Received {{time}}"
+      "receivedAgo": "Received {{time}}",
+      "roomsArea": "{{rooms}} rms · {{area}}m²"
     },
     "transaction": {
       "rent": "Rental",

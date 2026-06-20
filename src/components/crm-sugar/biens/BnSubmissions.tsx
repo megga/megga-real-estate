@@ -293,7 +293,10 @@ export function BnSubmissionsDrawer({
                     }}
                   >
                     <span>
-                      {s.rooms}p · {s.area}m²
+                      {t('biens.submissions.roomsArea', {
+                        rooms: s.rooms,
+                        area: s.area,
+                      })}
                     </span>
                     <span>·</span>
                     <span>

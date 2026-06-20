@@ -625,6 +625,10 @@
       "shaFull": "SHA-256: {{hash}}",
       "preview": "Preview",
       "download": "Download"
+    },
+    "check": {
+      "awaiting": "Pending",
+      "markVerified": "Mark verified"
     }
   },
   "list": {
@@ -948,5 +952,10 @@
   "detail": {
     "backToList": "Back to cases",
     "eyebrow": "KYC case · AMLA"
+  },
+  "gauge": {
+    "riskFallback": "Risk",
+    "checksCount": "{{done}}/{{total}} checks",
+    "checksLabel": "checks"
   }
 }
