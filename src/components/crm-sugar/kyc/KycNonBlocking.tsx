@@ -386,6 +386,7 @@ export function KycNonBlockingShowcase({
             >
               <Avatar name="S Volkov" size={48} />
               <div style={{ flex: 1 }}>
+                {/* Persona fictif d'aperçu (données fabriquées) — hors catalogue i18n. */}
                 <div
                   style={{
                     fontSize: 18,
@@ -393,14 +394,14 @@ export function KycNonBlockingShowcase({
                     letterSpacing: -0.3,
                   }}
                 >
-                  Sergey Volkov
+                  {'Sergey Volkov'}
                 </div>
                 <div style={{ fontSize: 12, color: SP.muted }}>
-                  Acheteur · CHF 2.75M · Cologny
+                  {'Acheteur · CHF 2.75M · Cologny'}
                 </div>
               </div>
               <Pill tone="warn" dot>
-                KYC incomplet · 6j
+                {'KYC incomplet · 6j'}
               </Pill>
             </div>
             {bannerVisible && (

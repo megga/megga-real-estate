@@ -48,6 +48,17 @@ jobs:
         # Bloquant (contrairement à eslint dans deploy.yml qui est en `|| true`).
         run: npm run lint:prose
 
+      - name: Lint i18n (texte FR en dur — surfaces agent verrouillées)
+        # Garde-fou i18n : échoue si du texte FR est réintroduit en dur sur une
+        # surface agent migrée (règle no-literal-string en ERROR). Cible la règle
+        # seule → ignore les ~45 erreurs eslint préexistantes hors-i18n (masquées
+        # par `|| true` dans deploy.yml).
+        run: npm run lint:i18n
+
+      - name: i18n key parity (FR↔EN)
+        # Garde-fou i18n : échoue si une clé FR n'a pas sa contrepartie EN (ou inverse).
+        run: npm run i18n:parity:ci
+
       - name: Run unit tests
         # No --coverage: keep this step fast (it is the PR's quickest check).
         run: npm run test:unit
