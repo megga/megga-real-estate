@@ -4,6 +4,11 @@
 // (inversé en presque-blanc #ECEDF3 en dark). Aucune bordure 1px décorative : la
 // séparation se fait à l'ombre douce.
 
+// i18n : le parcours vendeur (étapes, phrases, prochaine étape) est traduit au
+// render (clés common:portal.*). SELLER_STEPS devient la fonction sellerSteps() ;
+// SELLER_STEP_SENTENCES / SELLER_NEXT gardent leur forme mais via getters.
+import i18n from '@/i18n'
+
 export interface SellerSP {
   bg: string
   bgGradient: string
@@ -120,25 +125,27 @@ export const sellerFmtNum = (n: number): string =>
 
 // ── Parcours de vente — 6 étapes, vocabulaire VENDEUR ────────────────────
 // (relabellé depuis le pipeline agent ; cf. viewModel.mandateStepToIndex)
-export const SELLER_STEPS = [
-  'Mandat signé',
-  'En ligne',
-  'Visites',
-  'Offres',
-  'Négociation',
-  'Signé',
-] as const
+export function sellerSteps(): string[] {
+  return [
+    i18n.t('common:portal.step.mandateSigned'),
+    i18n.t('common:portal.step.online'),
+    i18n.t('common:portal.step.visits'),
+    i18n.t('common:portal.step.offers'),
+    i18n.t('common:portal.step.negotiation'),
+    i18n.t('common:portal.step.signed'),
+  ]
+}
 
 // Un concept = une couleur (data-viz uniquement, alignée DB_SP du CRM).
 export const SELLER_STEP_COLORS = ['#1E5BC6', '#0891B2', '#0E9F6E', '#C45A00', '#A0521E', '#059669']
 
 export const SELLER_STEP_SENTENCES: Record<number, string> = {
-  0: 'Votre mandat est signé. Votre bien se prépare à entrer en ligne.',
-  1: "Votre bien vient d'être mis en ligne. Les premières visites s'organisent.",
-  2: 'Votre bien est en ligne. Les visites sont en cours.',
-  3: 'Vous avez reçu vos premières offres. Votre agent les étudie avec vous.',
-  4: 'La négociation est en cours. Votre agent défend le meilleur prix pour vous.',
-  5: 'La vente est signée. Félicitations — tout est finalisé.',
+  get 0() { return i18n.t('common:portal.stepSentence.0') },
+  get 1() { return i18n.t('common:portal.stepSentence.1') },
+  get 2() { return i18n.t('common:portal.stepSentence.2') },
+  get 3() { return i18n.t('common:portal.stepSentence.3') },
+  get 4() { return i18n.t('common:portal.stepSentence.4') },
+  get 5() { return i18n.t('common:portal.stepSentence.5') },
 }
 
 export interface SellerNextStep {
@@ -148,11 +155,11 @@ export interface SellerNextStep {
 
 // Prochaine étape + délai estimé selon l'étape courante.
 export const SELLER_NEXT: Record<number, SellerNextStep | null> = {
-  0: { eta: 'Sous 3–5 jours', hint: 'Photos et annonce en préparation.' },
-  1: { eta: 'Cette semaine', hint: 'Les premières demandes de visite arrivent.' },
-  2: { eta: '1 à 2 semaines', hint: 'Les visites qualifiées mènent aux premières offres.' },
-  3: { eta: 'Quelques jours', hint: 'Votre agent analyse chaque offre reçue.' },
-  4: { eta: 'Sous 48 heures', hint: 'Votre agent défend votre prix.' },
+  0: { get eta() { return i18n.t('common:portal.next.0.eta') }, get hint() { return i18n.t('common:portal.next.0.hint') } },
+  1: { get eta() { return i18n.t('common:portal.next.1.eta') }, get hint() { return i18n.t('common:portal.next.1.hint') } },
+  2: { get eta() { return i18n.t('common:portal.next.2.eta') }, get hint() { return i18n.t('common:portal.next.2.hint') } },
+  3: { get eta() { return i18n.t('common:portal.next.3.eta') }, get hint() { return i18n.t('common:portal.next.3.hint') } },
+  4: { get eta() { return i18n.t('common:portal.next.4.eta') }, get hint() { return i18n.t('common:portal.next.4.hint') } },
   5: null,
 }
 

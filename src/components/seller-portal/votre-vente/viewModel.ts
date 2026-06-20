@@ -2,6 +2,7 @@
 // Projette le `SellerPortalData` (issu du hook useSellerPortal / contexte) vers le
 // view-model attendu par la page « Votre vente » (porté de la shape mock du handoff).
 // Lecture seule : aucune écriture, aucune nouvelle entité.
+import i18n from '@/i18n' // libellés traduits au render (clés common:portal.* / listings:type.*) ; le consommateur (VotreVentePage) ajoute i18n.language aux deps du useMemo qui appelle toVenteVM
 import type { SellerPortalData, MandateStep, SellerOffer } from '@/lib/mockSellerData'
 
 export type VenteOfferStatus = 'pending' | 'counter' | 'accepted'
@@ -66,30 +67,24 @@ export function mandateStepToIndex(step: MandateStep): number {
   return STEP_INDEX[step] ?? 0
 }
 
-// ── Libellés ──────────────────────────────────────────────────────────────
-const TYPE_LABELS: Record<string, string> = {
-  apartment: 'Appartement',
-  house: 'Maison',
-  villa: 'Villa',
-  studio: 'Studio',
-  commercial: 'Commercial',
-  office: 'Bureau',
-  parking: 'Parking',
-  storage: 'Dépôt',
-  land: 'Terrain',
-}
+// ── Libellés (traduits) ────────────────────────────────────────────────────
+// Types de bien : réutilise les clés canoniques listings:type.* (+ studio propre
+// au portail). Fallback : capitalise le code, sinon « Bien ».
+const REUSED_TYPES = ['apartment', 'house', 'villa', 'commercial', 'office', 'parking', 'storage', 'land']
 
 function typeLabel(type: string): string {
-  return TYPE_LABELS[type] ?? (type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Bien')
+  if (type === 'studio') return i18n.t('common:portal.type.studio')
+  if (REUSED_TYPES.includes(type)) return i18n.t(`listings:type.${type}`)
+  return type ? type.charAt(0).toUpperCase() + type.slice(1) : i18n.t('common:portal.propertyFallback')
 }
 
 function roomsLabel(rooms: number): string {
   if (!rooms || rooms <= 0) return ''
-  return `${rooms} ${rooms < 2 ? 'pièce' : 'pièces'}`
+  return i18n.t('common:portal.rooms', { count: rooms })
 }
 
 function mandateLabel(t: 'exclusive' | 'simple'): string {
-  return t === 'exclusive' ? 'Mandat exclusif' : 'Mandat simple'
+  return t === 'exclusive' ? i18n.t('common:portal.mandate.exclusive') : i18n.t('common:portal.mandate.simple')
 }
 
 // ── Dates ───────────────────────────────────────────────────────────────
@@ -107,14 +102,14 @@ function relativeWhen(iso: string | null | undefined): string {
   if (Number.isNaN(d.getTime())) return ''
   const diffMs = Date.now() - d.getTime()
   const mins = Math.floor(diffMs / 60000)
-  if (mins < 60) return "à l'instant"
+  if (mins < 60) return i18n.t('common:portal.rel.now')
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `il y a ${hours} h`
+  if (hours < 24) return i18n.t('common:portal.rel.hours', { count: hours })
   const days = Math.floor(hours / 24)
-  if (days === 0) return "aujourd'hui"
-  if (days < 30) return `il y a ${days} j`
+  if (days === 0) return i18n.t('common:portal.rel.today')
+  if (days < 30) return i18n.t('common:portal.rel.days', { count: days })
   const months = Math.floor(days / 30)
-  if (months < 12) return `il y a ${months} mois`
+  if (months < 12) return i18n.t('common:portal.rel.months', { count: months })
   return fmtDateLong(iso)
 }
 
@@ -151,7 +146,9 @@ export function toVenteVM(data: SellerPortalData): VenteVM {
     .filter((o): o is VenteOfferVM => o !== null)
 
   const visitsSub =
-    k.visits_this_month > 0 ? `dont ${k.visits_this_month} ce mois-ci` : 'ce mois-ci'
+    k.visits_this_month > 0
+      ? i18n.t('common:portal.visitsSubThisMonth', { count: k.visits_this_month })
+      : i18n.t('common:portal.visitsSubDefault')
 
   return {
     property: {
@@ -181,7 +178,7 @@ export function toVenteVM(data: SellerPortalData): VenteVM {
     })),
     agent: {
       name: data.agent.name,
-      role: 'Votre agent',
+      role: i18n.t('common:portal.agentRole'),
       whatsapp: waLink(data.agent.phone),
       phone: data.agent.phone ? `tel:${data.agent.phone.replace(/\s/g, '')}` : '#',
       email: data.agent.email ? `mailto:${data.agent.email}` : '#',

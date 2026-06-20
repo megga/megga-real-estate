@@ -5,11 +5,12 @@
 // présentes mais leur transmission/persistance réelle est en Phase 2 (props onSubmit/onSave).
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import type { Ref, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSellerPortalData } from '@/hooks/useSellerPortalContext'
 import {
   SELLER_SP_LIGHT,
   SELLER_SP_DARK,
-  SELLER_STEPS,
+  sellerSteps,
   SELLER_STEP_COLORS,
   SELLER_STEP_SENTENCES,
   SELLER_NEXT,
@@ -31,6 +32,7 @@ const DARK_PREF_KEY = 'megga-seller-dark'
 // ── 0. Barre d'en-tête ─────────────────────────────────────────────────
 function SvHeader({ agent, onAgentClick, onSettingsClick }: { agent: VenteAgentVM; onAgentClick: () => void; onSettingsClick: () => void }) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   return (
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, marginBottom: 36 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -40,7 +42,7 @@ function SvHeader({ agent, onAgentClick, onSettingsClick }: { agent: VenteAgentV
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
           onClick={onSettingsClick}
-          aria-label="Paramètres"
+          aria-label={t('portal.header.settings')}
           style={{
             width: 44,
             height: 44,
@@ -91,7 +93,7 @@ function SvHeader({ agent, onAgentClick, onSettingsClick }: { agent: VenteAgentV
             e.currentTarget.style.transform = 'translateY(0)'
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 600, color: SP.inkSoft, whiteSpace: 'nowrap' }}>Votre agent</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: SP.inkSoft, whiteSpace: 'nowrap' }}>{t('portal.header.yourAgent')}</span>
           <SvAvatarCircle name={agent.name} size={32} photo={agent.photo} />
         </button>
       </div>
@@ -171,6 +173,7 @@ function PhotoBox({ src, radius, minHeight, height }: { src?: string; radius: nu
 // ── 1. Carte BIEN — horizontale ──────────────────────────────────────────
 function SvPropertyCard({ property, delay, onOpenGallery }: { property: VentePropertyVM; delay: number; onOpenGallery: () => void }) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   const photos = property.photos
   const extra = photos.length - 4
   return (
@@ -217,7 +220,7 @@ function SvPropertyCard({ property, delay, onOpenGallery }: { property: VentePro
             }}
           >
             <SvIcon name="grid" size={15} stroke="#fff" sw={1.8} />
-            Voir les photos
+            {t('portal.property.viewPhotos')}
           </button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, minWidth: 0 }}>
@@ -282,7 +285,7 @@ function SvPropertyCard({ property, delay, onOpenGallery }: { property: VentePro
         </div>
 
         <div className="sg-tnum" style={{ fontSize: 13, fontWeight: 500, color: SP.muted }}>
-          En ligne depuis {property.daysOnline} jours
+          {t('portal.property.onlineSince', { count: property.daysOnline })}
         </div>
       </div>
     </div>
@@ -292,8 +295,9 @@ function SvPropertyCard({ property, delay, onOpenGallery }: { property: VentePro
 // ── 2. Carte OÙ ON EN EST — arc maître segmenté ──────────────────────────
 function SvJourneyCard({ current, sentence, delay }: { current: number; sentence: string; delay: number }) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   const [hovered, setHovered] = useState<number | null>(null)
-  const steps = SELLER_STEPS
+  const steps = sellerSteps()
   const next = SELLER_NEXT[current]
   const nextIdx = current + 1
   const nextName = nextIdx < steps.length ? steps[nextIdx] : null
@@ -311,7 +315,7 @@ function SvJourneyCard({ current, sentence, delay }: { current: number; sentence
       className="sg-enter sv-journey"
       style={{ animationDelay: `${delay}ms`, background: SP.card, borderRadius: 26, boxShadow: SP.shadow, padding: '32px 38px 34px', marginBottom: 28 }}
     >
-      <h2 style={{ margin: '0 0 24px', fontSize: 19, fontWeight: 700, color: SP.ink, letterSpacing: -0.3 }}>Où en est votre vente</h2>
+      <h2 style={{ margin: '0 0 24px', fontSize: 19, fontWeight: 700, color: SP.ink, letterSpacing: -0.3 }}>{t('portal.journey.title')}</h2>
 
       <div className="sv-journeyrow" style={{ display: 'flex', alignItems: 'center', gap: 40, flexWrap: 'wrap' }}>
         {/* Arc segmenté coloré */}
@@ -360,7 +364,7 @@ function SvJourneyCard({ current, sentence, delay }: { current: number; sentence
           <div style={{ position: 'absolute', left: 0, right: 0, bottom: 12, textAlign: 'center' }}>
             <div style={{ fontSize: 30, fontWeight: 800, color: SP.ink, letterSpacing: -1, lineHeight: 1 }}>{steps[current]}</div>
             <div className="sg-tnum" style={{ fontSize: 12.5, fontWeight: 600, color: SP.muted, marginTop: 6 }}>
-              Étape {current + 1}/{n} · reste {remaining} étape{remaining > 1 ? 's' : ''}
+              {t('portal.journey.stepCounter', { current: current + 1, total: n, count: remaining })}
             </div>
           </div>
         </div>
@@ -403,7 +407,7 @@ function SvJourneyCard({ current, sentence, delay }: { current: number; sentence
                 </span>
                 {active && (
                   <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: colorAt(i), textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>
-                    en cours
+                    {t('portal.journey.inProgress')}
                   </span>
                 )}
               </div>
@@ -427,7 +431,7 @@ function SvJourneyCard({ current, sentence, delay }: { current: number; sentence
         >
           {nextName ? (
             <>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: SP.muted }}>Prochaine étape</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: SP.muted }}>{t('portal.journey.nextStep')}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 12 }}>
                 <span style={{ width: 11, height: 11, borderRadius: 999, background: colorAt(nextIdx), flexShrink: 0 }} />
                 <span style={{ fontSize: 22, fontWeight: 700, color: SP.ink, letterSpacing: -0.4, lineHeight: 1.1 }}>{nextName}</span>
@@ -454,15 +458,15 @@ function SvJourneyCard({ current, sentence, delay }: { current: number; sentence
             </>
           ) : (
             <>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: SP.muted }}>Félicitations</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: SP.muted }}>{t('portal.journey.congrats')}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 12 }}>
                 <span style={{ width: 30, height: 30, borderRadius: 999, flexShrink: 0, background: '#059669', display: 'grid', placeItems: 'center' }}>
                   <SvIcon name="check" size={17} stroke="#fff" sw={2.4} />
                 </span>
-                <span style={{ fontSize: 22, fontWeight: 700, color: SP.ink, letterSpacing: -0.4, lineHeight: 1.1 }}>Vente finalisée</span>
+                <span style={{ fontSize: 22, fontWeight: 700, color: SP.ink, letterSpacing: -0.4, lineHeight: 1.1 }}>{t('portal.journey.saleComplete')}</span>
               </div>
               <p style={{ margin: '14px 0 0', fontSize: 13.5, fontWeight: 500, color: SP.inkSoft, lineHeight: 1.5 }}>
-                Votre bien est vendu. Votre agent reste disponible pour l'après-vente.
+                {t('portal.journey.saleCompleteHint')}
               </p>
             </>
           )}
@@ -519,10 +523,11 @@ function SvDonut({ value, total, color, track, label, sub }: { value: number; to
 function SvStatsRow({ stats, delay }: { stats: VenteVM['stats']; delay: number }) {
   const SP = useSP()
   const { dark } = useSellerTheme()
+  const { t } = useTranslation('common')
   const items = [
-    { value: stats.visits.value, total: 12, color: '#0E9F6E', track: dark ? '#10332A' : '#E1F5EC', label: 'Visites', sub: stats.visits.sub },
-    { value: stats.offers, total: 3, color: '#C45A00', track: dark ? '#3A2614' : '#F8EBDC', label: 'Offres', sub: 'objectif 3' },
-    { value: stats.days, total: stats.medianDays, color: '#1E5BC6', track: dark ? '#15243F' : '#E8EFFE', label: 'Jours', sub: `médiane GE · ${stats.medianDays} j` },
+    { value: stats.visits.value, total: 12, color: '#0E9F6E', track: dark ? '#10332A' : '#E1F5EC', label: t('portal.stats.visits'), sub: stats.visits.sub },
+    { value: stats.offers, total: 3, color: '#C45A00', track: dark ? '#3A2614' : '#F8EBDC', label: t('portal.stats.offers'), sub: t('portal.stats.offersTarget', { count: 3 }) },
+    { value: stats.days, total: stats.medianDays, color: '#1E5BC6', track: dark ? '#15243F' : '#E8EFFE', label: t('portal.stats.days'), sub: t('portal.stats.medianDays', { days: stats.medianDays }) },
   ]
   return (
     <div
@@ -550,10 +555,11 @@ function SvStatsRow({ stats, delay }: { stats: VenteVM['stats']; delay: number }
 // ── 3b. Carte OFFRES ─────────────────────────────────────────────────────
 function SvOfferStatus({ status }: { status: VenteOfferVM['status'] }) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   const map: Record<VenteOfferVM['status'], { label: string; strong: boolean; bg?: string }> = {
-    pending: { label: 'En attente', strong: false },
-    counter: { label: 'Contre-offre', strong: true, bg: '#C45A00' },
-    accepted: { label: 'Acceptée', strong: true, bg: '#059669' },
+    pending: { label: t('portal.offers.statusPending'), strong: false },
+    counter: { label: t('portal.offers.statusCounter'), strong: true, bg: '#C45A00' },
+    accepted: { label: t('portal.offers.statusAccepted'), strong: true, bg: '#059669' },
   }
   const m = map[status]
   if (!m.strong) {
@@ -601,15 +607,16 @@ function SvOfferStatus({ status }: { status: VenteOfferVM['status'] }) {
 
 function SvOffersCard({ offers, onRespond, delay }: { offers: VenteOfferVM[]; onRespond: (o: VenteOfferVM) => void; delay: number }) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   const empty = !offers || offers.length === 0
   return (
     <div className="sg-enter" style={{ animationDelay: `${delay}ms`, background: SP.card, borderRadius: 24, boxShadow: SP.shadow, padding: '26px 28px', marginBottom: 22 }}>
-      <h2 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: SP.ink, letterSpacing: -0.3 }}>Offres</h2>
+      <h2 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: SP.ink, letterSpacing: -0.3 }}>{t('portal.offers.title')}</h2>
 
       {empty ? (
         <div style={{ padding: '26px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: SP.inkSoft, lineHeight: 1.5, marginBottom: 4 }}>Pas encore d'offre — c'est normal à ce stade.</div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: SP.muted, lineHeight: 1.5 }}>Les visites font leur travail.</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: SP.inkSoft, lineHeight: 1.5, marginBottom: 4 }}>{t('portal.offers.emptyTitle')}</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: SP.muted, lineHeight: 1.5 }}>{t('portal.offers.emptyHint')}</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -655,7 +662,7 @@ function SvOffersCard({ offers, onRespond, delay }: { offers: VenteOfferVM[]; on
                       e.currentTarget.style.boxShadow = '0 4px 12px rgba(11,12,14,0.16)'
                     }}
                   >
-                    Répondre à l'offre
+                    {t('portal.offers.respond')}
                   </button>
                 )}
               </div>
@@ -679,9 +686,10 @@ function sellerEventColor(text: string): string {
 
 function SvActivityCard({ events, delay }: { events: { text: string; when: string }[]; delay: number }) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   return (
     <div className="sg-enter" style={{ animationDelay: `${delay}ms`, background: SP.card, borderRadius: 24, boxShadow: SP.shadow, padding: '26px 28px' }}>
-      <h2 style={{ margin: '0 0 22px', fontSize: 18, fontWeight: 700, color: SP.ink, letterSpacing: -0.3 }}>Dernières nouvelles</h2>
+      <h2 style={{ margin: '0 0 22px', fontSize: 18, fontWeight: 700, color: SP.ink, letterSpacing: -0.3 }}>{t('portal.activity.title')}</h2>
 
       <div style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', left: 5, top: 6, bottom: 6, width: 2, background: SP.hairline, borderRadius: 999 }} />
@@ -749,6 +757,7 @@ function SvSecondaryBtn({ icon, label, href }: { icon: ReactNode; label: string;
 
 function SvAgentCard({ agent, anchorRef, delay }: { agent: VenteAgentVM; anchorRef: Ref<HTMLDivElement>; delay: number }) {
   const SP = useSP()
+  const { t } = useTranslation('common')
   const [hover, setHover] = useState(false)
   return (
     <div
@@ -797,12 +806,12 @@ function SvAgentCard({ agent, anchorRef, delay }: { agent: VenteAgentVM; anchorR
         }}
       >
         <SvIcon name="whatsapp" size={20} stroke="#fff" />
-        Écrire sur WhatsApp
+        {t('portal.agent.whatsapp')}
       </a>
 
       <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 12 }}>
-        <SvSecondaryBtn icon={<SvIcon name="phone" size={16} stroke={SP.inkSoft} />} label="Appeler" href={agent.phone} />
-        <SvSecondaryBtn icon={<SvIcon name="mail" size={16} stroke={SP.inkSoft} />} label="Email" href={agent.email} />
+        <SvSecondaryBtn icon={<SvIcon name="phone" size={16} stroke={SP.inkSoft} />} label={t('portal.agent.call')} href={agent.phone} />
+        <SvSecondaryBtn icon={<SvIcon name="mail" size={16} stroke={SP.inkSoft} />} label={t('portal.agent.email')} href={agent.email} />
       </div>
     </div>
   )
@@ -810,8 +819,9 @@ function SvAgentCard({ agent, anchorRef, delay }: { agent: VenteAgentVM; anchorR
 
 // ── Page ───────────────────────────────────────────────────────────────
 export default function VotreVentePage({ token }: { token?: string }) {
+  const { i18n } = useTranslation('common')
   const data = useSellerPortalData()
-  const vm = useMemo(() => toVenteVM(data), [data])
+  const vm = useMemo(() => toVenteVM(data), [data, i18n.language])
 
   const [dark, setDarkState] = useState<boolean>(() => {
     try {
@@ -845,15 +855,22 @@ export default function VotreVentePage({ token }: { token?: string }) {
     langue: 'fr',
     canal: 'whatsapp',
   })
-  const updateSetting = <K extends keyof SellerSettings>(k: K, v: SellerSettings[K]) =>
+  const updateSetting = <K extends keyof SellerSettings>(k: K, v: SellerSettings[K]) => {
     setSettings((s) => ({ ...s, [k]: v }))
+    // La langue choisie pilote la langue du portail (FR/EN).
+    if (k === 'langue' && (v === 'fr' || v === 'en')) void i18n.changeLanguage(v)
+  }
 
   // Hydrate les préférences enregistrées (si lien token ; le mock dev n'en a pas).
   useEffect(() => {
     if (!token) return
     let alive = true
     void fetchSellerPreferences(token).then((prefs) => {
-      if (alive && prefs) setSettings((s) => ({ ...s, ...prefs }))
+      if (alive && prefs) {
+        setSettings((s) => ({ ...s, ...prefs }))
+        // Applique la langue stockée du vendeur au chargement.
+        if (prefs.langue === 'fr' || prefs.langue === 'en') void i18n.changeLanguage(prefs.langue)
+      }
     })
     return () => {
       alive = false
