@@ -611,8 +611,8 @@ function Bubble({ msg, s, dark }: BubbleProps) {
         >
           <JIcon name="sparkle" size={11} color={s.selInk} sw={2} />
         </div>
-        {/* Nom propre de l'assistant — hors catalogue i18n (à câbler sur le profil agent le cas échéant). */}
-        {'Julien'}
+        {/* Nom de l'assistant MEGGA AI (marque) — cohérent avec « Megga » partout ailleurs. */}
+        {'Megga'}
       </div>
       <div style={{ fontSize: 15.5, lineHeight: 1.8, color: s.ink, fontWeight: 400, paddingLeft: 30 }}>
         {msg.loading && !msg.content ? (
