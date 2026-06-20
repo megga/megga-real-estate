@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v3 — Wizard Step Success
 // Port 1:1 de crm-kyc-wizard.jsx lignes 470-507 (KwStepSuccess).
 
+import { useTranslation } from 'react-i18next'
 import { SgIcon } from '../icons'
 import { KycBlackPill, KycGhostPill } from '../kyc/kycPrimitives'
 import { useKycPalette } from '../kyc/kycPalette'
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function KwStepSuccess({ data, onOpen, onClose }: Props) {
+  const { t } = useTranslation('kyc')
   const sp = useKycPalette()
   const { contacts = [] } = useContacts()
   const c = data.contactId ? contacts.find((x) => x.id === data.contactId) : null
@@ -51,7 +53,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
           marginBottom: 12,
         }}
       >
-        Dossier ouvert
+        {t('wizard.success.eyebrow')}
       </div>
       <h1
         style={{
@@ -63,7 +65,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
           lineHeight: 1.1,
         }}
       >
-        {c ? `${c.first_name} ${c.last_name}` : 'Dossier KYC'}
+        {c ? `${c.first_name} ${c.last_name}` : t('wizard.success.fallbackTitle')}
       </h1>
       <p
         style={{
@@ -77,19 +79,18 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
           marginRight: 'auto',
         }}
       >
-        Cinq contrôles sont en attente. Démarrez par téléverser les pièces
-        d'identité ou envoyez la demande de pièces au contact.
+        {t('wizard.success.description')}
       </p>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
         <KycGhostPill onClick={onClose} size="md">
-          Fermer
+          {t('wizard.success.close')}
         </KycGhostPill>
         <KycBlackPill
           onClick={onOpen}
           size="lg"
           icon={<SgIcon name="arrowR" size={16} stroke={sp.onAccent} />}
         >
-          Ouvrir le dossier
+          {t('wizard.success.open')}
         </KycBlackPill>
       </div>
     </div>

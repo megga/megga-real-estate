@@ -313,7 +313,39 @@
       "video": "Visio",
       "notary": "Signature notaire",
       "other": "RDV"
-    }
+    },
+    "docs": {
+      "title": "Documents",
+      "count": "{{count}} pièce",
+      "upload": "Téléverser",
+      "empty": "Aucun document joint pour ce contact.",
+      "addedOn": "Ajouté le {{date}}"
+    },
+    "type": {
+      "buyer": "Acheteur",
+      "seller": "Vendeur",
+      "lead": "Lead"
+    },
+    "new": "Nouveau",
+    "via": "Via {{source}}",
+    "unknownSource": "Source inconnue",
+    "action": {
+      "call": "Appeler",
+      "email": "Email",
+      "schedule": "Planifier",
+      "note": "Note"
+    },
+    "score": {
+      "label": "Score MEGGA",
+      "hot": "Lead chaud",
+      "nurture": "À nourrir",
+      "qualify": "À qualifier",
+      "hotHint": "Forte intention d'achat",
+      "nurtureHint": "Engagement modéré",
+      "qualifyHint": "Données insuffisantes"
+    },
+    "contactInfo": "Coordonnées",
+    "openFullProfile": "Ouvrir la fiche complète"
   },
   "timeline": {
     "stageChange": "Pipeline : {{from}} → {{to}}",

@@ -385,6 +385,13 @@
         "noAgency": "Profil agence introuvable, impossible de créer le dossier.",
         "createFailed": "Erreur lors de la création du dossier."
       }
+    },
+    "success": {
+      "eyebrow": "Dossier ouvert",
+      "fallbackTitle": "Dossier KYC",
+      "description": "Cinq contrôles sont en attente. Démarrez par téléverser les pièces d'identité ou envoyez la demande de pièces au contact.",
+      "close": "Fermer",
+      "open": "Ouvrir le dossier"
     }
   },
   "dossier": {
@@ -937,5 +944,9 @@
     "none": "KYC à faire",
     "stale": "KYC périmé",
     "failed": "KYC échec"
+  },
+  "detail": {
+    "backToList": "Retour aux dossiers",
+    "eyebrow": "Dossier KYC · LBA"
   }
 }

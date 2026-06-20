@@ -313,7 +313,39 @@
       "video": "Video call",
       "notary": "Notary signing",
       "other": "Appointment"
-    }
+    },
+    "docs": {
+      "title": "Documents",
+      "count": "{{count}} item",
+      "upload": "Upload",
+      "empty": "No document attached to this contact.",
+      "addedOn": "Added on {{date}}"
+    },
+    "type": {
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "lead": "Lead"
+    },
+    "new": "New",
+    "via": "Via {{source}}",
+    "unknownSource": "Unknown source",
+    "action": {
+      "call": "Call",
+      "email": "Email",
+      "schedule": "Schedule",
+      "note": "Note"
+    },
+    "score": {
+      "label": "MEGGA score",
+      "hot": "Hot lead",
+      "nurture": "To nurture",
+      "qualify": "To qualify",
+      "hotHint": "Strong purchase intent",
+      "nurtureHint": "Moderate engagement",
+      "qualifyHint": "Insufficient data"
+    },
+    "contactInfo": "Contact details",
+    "openFullProfile": "Open full profile"
   },
   "timeline": {
     "stageChange": "Pipeline: {{from}} → {{to}}",

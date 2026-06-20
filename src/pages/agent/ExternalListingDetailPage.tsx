@@ -140,7 +140,7 @@ export default function ExternalListingDetailPage() {
         {photos.length > 0 ? (
           <div className="relative rounded-xl overflow-hidden border border-theme-border">
             <div className="aspect-[16/9] bg-black">
-              <img src={photos[photoIdx]} alt={listing.title || 'Bien immobilier'} className="w-full h-full object-cover" />
+              <img src={photos[photoIdx]} alt={listing.title || t('external.photoAlt')} className="w-full h-full object-cover" />
             </div>
             {photos.length > 1 && (
               <>
@@ -278,7 +278,7 @@ export default function ExternalListingDetailPage() {
                 {/* Comparable listings */}
                 {priceComparison.comparable_listings.length > 0 && (
                   <div className="mt-3">
-                    <p className="text-xs text-theme-muted mb-2">{priceComparison.internal_count} bien{priceComparison.internal_count > 1 ? 's' : ''} comparé{priceComparison.internal_count > 1 ? 's' : ''}</p>
+                    <p className="text-xs text-theme-muted mb-2">{t('external.comparedCount', { count: priceComparison.internal_count })}</p>
                     {priceComparison.comparable_listings.map((comp, i) => (
                       <div key={i} className="flex items-center justify-between py-1.5 border-b border-theme-border-subtle last:border-0">
                         <div className="min-w-0">
@@ -397,7 +397,7 @@ export default function ExternalListingDetailPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-theme-secondary">{t('external.aggregator')}</span>
-                  <span className="text-xs font-medium text-theme-primary">RealAdvisor (14 portails)</span>
+                  <span className="text-xs font-medium text-theme-primary">{t('external.aggregatorValue', { count: 14 })}</span>
                 </div>
               </div>
             </div>
@@ -516,7 +516,7 @@ export default function ExternalListingDetailPage() {
                     <div key={send.id} className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-theme-secondary">{send.contact_name}</p>
-                        <p className="text-xs text-theme-muted">{send.channel === 'email' ? 'Email' : 'Messagerie'}</p>
+                        <p className="text-xs text-theme-muted">{send.channel === 'email' ? t('external.channelEmail') : t('external.channelMessaging')}</p>
                       </div>
                       <p className="text-xs text-theme-muted">{formatRelativeDate(send.sent_at)}</p>
                     </div>
