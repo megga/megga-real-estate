@@ -46,12 +46,6 @@ const R2_SECRET_ACCESS_KEY = (Deno.env.get('R2_SECRET_ACCESS_KEY') ?? '').trim()
 //      R2_PUBLIC_BASE=https://pub-xxxxxx.r2.dev
 const R2_PUBLIC_BASE = (Deno.env.get('R2_PUBLIC_BASE') ?? '').replace(/\/$/, '')
 const R2_BUCKET = Deno.env.get('R2_BUCKET') ?? 'megga-market'
-// Current sb_secret_ service key — used by the token-equality auth branch below.
-// Was REFERENCED but never declared (latent ReferenceError); only masked because
-// pg_cron callers forward a legacy service_role JWT (role-claim branch). The new
-// property-photo-r2 broker forwards app_config.service_role_key (sb_secret_), so
-// the equality branch fires and this must exist.
-const SERVICE_ROLE_KEY = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
 
 // Service key for string-equality auth (line ~197). With the sb_secret_ key
 // roll-out, callers forward get_app_config('service_role_key') — a raw token,
