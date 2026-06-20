@@ -156,5 +156,12 @@ export function useCopilot() {
     conversationIdRef.current = null
   }, [])
 
-  return { sendMessage, sendMessageStream, isLoading, detectAction, clearHistory }
+  // Reprendre une conversation persistée (chantier B · phase 4) : seed l'id + le
+  // contexte LLM pour que les tours suivants s'ajoutent à la bonne conversation.
+  const resumeConversation = useCallback((id: string, history: ChatMessage[]) => {
+    conversationIdRef.current = id
+    historyRef.current = history.slice(-20)
+  }, [])
+
+  return { sendMessage, sendMessageStream, isLoading, detectAction, clearHistory, resumeConversation }
 }
