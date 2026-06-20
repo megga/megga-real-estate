@@ -627,5 +627,37 @@
       "projected": "projected",
       "vsPace": "vs pace"
     }
+  },
+  "task": {
+    "markRedo": "Mark as to redo",
+    "markDone": "Mark as done"
+  },
+  "action": {
+    "reschedule": "Reschedule",
+    "moreActions": "More actions"
+  },
+  "create": {
+    "added": "Added · {{value}}",
+    "submit": "Create",
+    "suggested": "Suggested"
+  },
+  "knowledge": {
+    "col": {
+      "subject": "Subject",
+      "status": "Status",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "assignedUser": "Assigned user"
+    },
+    "favRemove": "Remove from favorites",
+    "favAdd": "Add to favorites",
+    "favRemoved": "Removed from favorites, {{subject}}",
+    "favAdded": "Added to favorites, {{subject}}",
+    "statusChanged": "Status → {{status}}",
+    "changeStatus": "Change status"
+  },
+  "focus": {
+    "heading": "3 must-do priorities for today",
+    "subtitle": "Everything else can wait. Breathe, do these three things well."
   }
 }

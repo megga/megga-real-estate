@@ -768,14 +768,14 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
           {/* Manual mode — classic fields */}
           <div>
             <FieldLabel htmlFor="address">{t('form.fields.address')}</FieldLabel>
-            <input id="address" {...register('address')} placeholder="Rue du Lac 12" className={inputClass} />
+            <input id="address" {...register('address')} placeholder={t('form.placeholders.addressManual')} className={inputClass} />
             <FieldError message={errors.address?.message} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <FieldLabel htmlFor="city">{t('form.fields.city')}</FieldLabel>
-              <input id="city" {...register('city')} placeholder="Genève" className={inputClass} />
+              <input id="city" {...register('city')} placeholder={t('form.placeholders.cityExample')} className={inputClass} />
               <FieldError message={errors.city?.message} />
             </div>
             <div>
@@ -1032,7 +1032,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
           </summary>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
             {[
-              { field: 'name', labelKey: 'name', placeholder: 'Régie Bernard SA', type: 'text' },
+              { field: 'name', labelKey: 'name', placeholder: t('form.regie.namePlaceholder'), type: 'text' },
               { field: 'phone', labelKey: 'phone', placeholder: '+41 22 555 00 00', type: 'tel' },
               { field: 'email', labelKey: 'email', placeholder: 'contact@regie.ch', type: 'email' },
               { field: 'website', labelKey: 'website', placeholder: 'https://regie.ch', type: 'url' },
@@ -2283,7 +2283,7 @@ export default function ListingFormPage() {
     // From existing property (edit or duplicate)
     if (!existingProperty) return undefined
     return {
-      title: duplicateId ? `${existingProperty.title ?? ''} (copie)` : existingProperty.title ?? '',
+      title: duplicateId ? t('form.duplicate.copySuffix', { title: existingProperty.title ?? '' }) : existingProperty.title ?? '',
       transaction_type: (existingProperty.transaction_type ?? 'buy') as 'buy' | 'rent',
       type: existingProperty.type as ListingFormData['type'],
       rooms: existingProperty.rooms ?? 0,
@@ -2314,7 +2314,7 @@ export default function ListingFormPage() {
       description: existingProperty.description ?? '',
       tags: [],
     }
-  }, [existingProperty, pdfData, duplicateId])
+  }, [existingProperty, pdfData, duplicateId, t])
 
   const form = useForm<ListingFormData>({
     defaultValues: {

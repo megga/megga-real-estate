@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Contact detail side drawer
 // 1:1 port from the Claude Design bundle (crm-screen-today-sugar.jsx).
 
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { crmInitials, type SugarPalette } from './tokens'
 import type { CrmContact } from './mockData'
@@ -22,6 +23,7 @@ interface SugarContactDetailProps {
 }
 
 export default function SugarContactDetail({ contact, onClose, sp, dark }: SugarContactDetailProps) {
+  const { t } = useTranslation('contacts')
   if (!contact) return null
 
   const fullName = `${contact.firstName} ${contact.lastName}`
@@ -29,7 +31,7 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
   const isLead = contact.status === 'lead'
   const score = contact.score || 0
   const scoreColor = score >= 75 ? '#0E9F6E' : score >= 50 ? '#F59E0B' : '#E53935'
-  const typeLabel = contact.type === 'buyer' ? 'Acheteur' : contact.type === 'seller' ? 'Vendeur' : 'Lead'
+  const typeLabel = contact.type === 'buyer' ? t('detail.type.buyer') : contact.type === 'seller' ? t('detail.type.seller') : t('detail.type.lead')
 
   const activity: ActivityItem[] = [
     { kind: 'call',  label: 'Appel de qualification',    when: 'Hier · 16:42', dur: '12 min' },
@@ -101,13 +103,13 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
                 fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
                 padding: '3px 10px', borderRadius: 999,
                 background: 'rgba(14,159,110,0.12)', color: '#0E9F6E',
-              }}>Nouveau</span>}
+              }}>{t('detail.new')}</span>}
             </div>
             <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.15 }}>
               {fullName}
             </h2>
             <div style={{ fontSize: 12, color: sp.sub, marginTop: 4, fontWeight: 500 }}>
-              {contact.source ? `Via ${contact.source}` : 'Source inconnue'} · {contact.lang ? contact.lang.toUpperCase() : '—'}
+              {contact.source ? t('detail.via', { source: contact.source }) : t('detail.unknownSource')} · {contact.lang ? contact.lang.toUpperCase() : '—'}
             </div>
           </div>
 
@@ -149,13 +151,13 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: sp.sub, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                Score MEGGA
+                {t('detail.score.label')}
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: sp.ink, marginTop: 2 }}>
-                {score >= 75 ? 'Lead chaud' : score >= 50 ? 'À nourrir' : 'À qualifier'}
+                {score >= 75 ? t('detail.score.hot') : score >= 50 ? t('detail.score.nurture') : t('detail.score.qualify')}
               </div>
               <div style={{ fontSize: 11, color: sp.sub, marginTop: 2 }}>
-                {score >= 75 ? "Forte intention d'achat" : score >= 50 ? 'Engagement modéré' : 'Données insuffisantes'}
+                {score >= 75 ? t('detail.score.hotHint') : score >= 50 ? t('detail.score.nurtureHint') : t('detail.score.qualifyHint')}
               </div>
             </div>
           </div>
@@ -163,10 +165,10 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
           {/* Quick actions */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
             {([
-              { icon: 'phone', label: 'Appeler', color: '#0E9F6E' },
-              { icon: 'mail',  label: 'Email',   color: '#0041D9' },
-              { icon: 'calendar',   label: 'Planifier', color: '#F59E0B' },
-              { icon: 'plus',  label: 'Note',   color: sp.ink },
+              { icon: 'phone', label: t('detail.action.call'), color: '#0E9F6E' },
+              { icon: 'mail',  label: t('detail.action.email'),   color: '#0041D9' },
+              { icon: 'calendar',   label: t('detail.action.schedule'), color: '#F59E0B' },
+              { icon: 'plus',  label: t('detail.action.note'),   color: sp.ink },
             ] as const).map(a => (
               <button key={a.label} style={{
                 flex: 1, height: 60, borderRadius: 16, cursor: 'pointer',
@@ -194,7 +196,7 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
 
           {/* Coordonnées */}
           <div style={{ marginBottom: 22 }}>
-            <h3 style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: sp.sub, marginBottom: 10 }}>Coordonnées</h3>
+            <h3 style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: sp.sub, marginBottom: 10 }}>{t('detail.contactInfo')}</h3>
             <div style={{
               background: sp.cardBg, border: `1px solid ${sp.cardBorder}`, borderRadius: 18,
               boxShadow: sp.shadowSm,
@@ -218,7 +220,7 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
 
           {/* Activité récente */}
           <div>
-            <h3 style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: sp.sub, marginBottom: 10 }}>Activité récente</h3>
+            <h3 style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: sp.sub, marginBottom: 10 }}>{t('detail.recentActivity')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {activity.map((a, i) => (
                 <div key={i} style={{
@@ -257,7 +259,7 @@ export default function SugarContactDetail({ contact, onClose, sp, dark }: Sugar
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
           >
-            Ouvrir la fiche complète
+            {t('detail.openFullProfile')}
             <span style={{ fontSize: 14 }}>→</span>
           </button>
         </div>

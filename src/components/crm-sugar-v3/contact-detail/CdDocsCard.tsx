@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v3 — Card Documents
 // Port 1:1 de crm-screen-contact-detail-sugar.jsx lignes 625-662 (CdDocsCard).
 
+import { useTranslation } from 'react-i18next'
 import { SugarV3, fmtDateShort } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycCircleBtn, KycGhostPill, KycSection } from '../primitives'
@@ -18,16 +19,17 @@ interface Props {
 }
 
 export function CdDocsCard({ docs }: Props) {
+  const { t } = useTranslation('contacts')
   return (
     <KycSection
-      title="Documents"
-      eyebrow={`${docs.length} pièce${docs.length > 1 ? 's' : ''}`}
+      title={t('detail.docs.title')}
+      eyebrow={t('detail.docs.count', { count: docs.length })}
       action={
         <KycGhostPill
           size="sm"
           icon={<SgIcon name="upload" size={13} stroke={SugarV3.inkSoft} />}
         >
-          Téléverser
+          {t('detail.docs.upload')}
         </KycGhostPill>
       }
     >
@@ -43,7 +45,7 @@ export function CdDocsCard({ docs }: Props) {
             fontWeight: 500,
           }}
         >
-          Aucun document joint pour ce contact.
+          {t('detail.docs.empty')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -94,7 +96,7 @@ export function CdDocsCard({ docs }: Props) {
                     fontWeight: 500,
                   }}
                 >
-                  Ajouté le {fmtDateShort(d.created_at)}
+                  {t('detail.docs.addedOn', { date: fmtDateShort(d.created_at) })}
                 </div>
               </div>
               <KycCircleBtn

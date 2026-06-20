@@ -115,7 +115,12 @@
       "apartment_studio": "Studio",
       "apartment_loft": "Loft",
       "apartment_terrasse_flat": "Garden-level apartment"
-    }
+    },
+    "photoAlt": "Property",
+    "comparedCount": "{{count}} compared property",
+    "aggregatorValue": "RealAdvisor ({{count}} portals)",
+    "channelEmail": "Email",
+    "channelMessaging": "Messaging"
   },
   "status": {
     "active": "Active",
@@ -197,7 +202,9 @@
       "title": "e.g. Bright apartment in Eaux-Vives",
       "addressSearch": "Type a Swiss address...",
       "select": "Select...",
-      "description": "Describe the property's highlights, surroundings and assets..."
+      "description": "Describe the property's highlights, surroundings and assets...",
+      "addressManual": "Rue du Lac 12",
+      "cityExample": "Geneva"
     },
     "typeDesc": {
       "apartment": "Condominium or rental",
@@ -243,7 +250,8 @@
       "name": "Manager name",
       "phone": "Phone",
       "email": "Email",
-      "website": "Website"
+      "website": "Website",
+      "namePlaceholder": "Bernard Property Management Ltd"
     },
     "featureGroup": {
       "exterior": "Exterior",
@@ -311,7 +319,8 @@
     "duplicate": {
       "heading": "Duplicate a property",
       "subheading": "Select the property to copy",
-      "searchPlaceholder": "Search by title, address, city..."
+      "searchPlaceholder": "Search by title, address, city...",
+      "copySuffix": "{{title}} (copy)"
     },
     "url": {
       "heading": "Import from a URL",
@@ -1204,7 +1213,8 @@
         "exclusive": "Exclusive",
         "simple": "Simple",
         "co": "Co-mandate"
-      }
+      },
+      "urlSlugFallback": "new-listing"
     },
     "step8": {
       "eyebrow": {

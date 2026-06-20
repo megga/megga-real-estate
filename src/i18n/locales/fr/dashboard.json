@@ -627,5 +627,37 @@
       "projected": "projeté",
       "vsPace": "vs rythme"
     }
+  },
+  "task": {
+    "markRedo": "Marquer à refaire",
+    "markDone": "Marquer exécutée"
+  },
+  "action": {
+    "reschedule": "Replanifier",
+    "moreActions": "Plus d'actions"
+  },
+  "create": {
+    "added": "Ajouté · {{value}}",
+    "submit": "Créer",
+    "suggested": "Suggéré"
+  },
+  "knowledge": {
+    "col": {
+      "subject": "Sujet",
+      "status": "Statut",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "assignedUser": "Utilisateur assigné"
+    },
+    "favRemove": "Retirer des favoris",
+    "favAdd": "Ajouter aux favoris",
+    "favRemoved": "Retiré des favoris, {{subject}}",
+    "favAdded": "Ajouté aux favoris, {{subject}}",
+    "statusChanged": "Statut → {{status}}",
+    "changeStatus": "Changer le statut"
+  },
+  "focus": {
+    "heading": "3 priorités absolues pour aujourd'hui",
+    "subtitle": "Tout le reste peut attendre. Respire, fais ces trois choses bien."
   }
 }

@@ -115,7 +115,12 @@
       "apartment_studio": "Studio",
       "apartment_loft": "Loft",
       "apartment_terrasse_flat": "Rez-jardin"
-    }
+    },
+    "photoAlt": "Bien immobilier",
+    "comparedCount": "{{count}} bien comparé",
+    "aggregatorValue": "RealAdvisor ({{count}} portails)",
+    "channelEmail": "Email",
+    "channelMessaging": "Messagerie"
   },
   "status": {
     "active": "Actif",
@@ -197,7 +202,9 @@
       "title": "Ex : Appartement lumineux aux Eaux-Vives",
       "addressSearch": "Tapez une adresse suisse...",
       "select": "Sélectionner...",
-      "description": "Décrivez les points forts du bien, son environnement, ses atouts..."
+      "description": "Décrivez les points forts du bien, son environnement, ses atouts...",
+      "addressManual": "Rue du Lac 12",
+      "cityExample": "Genève"
     },
     "typeDesc": {
       "apartment": "PPE ou locatif",
@@ -243,7 +250,8 @@
       "name": "Nom régie",
       "phone": "Téléphone",
       "email": "Email",
-      "website": "Site web"
+      "website": "Site web",
+      "namePlaceholder": "Régie Bernard SA"
     },
     "featureGroup": {
       "exterior": "Extérieur",
@@ -311,7 +319,8 @@
     "duplicate": {
       "heading": "Dupliquer un bien",
       "subheading": "Sélectionnez le bien à copier",
-      "searchPlaceholder": "Rechercher par titre, adresse, ville..."
+      "searchPlaceholder": "Rechercher par titre, adresse, ville...",
+      "copySuffix": "{{title}} (copie)"
     },
     "url": {
       "heading": "Importer depuis une URL",
@@ -1204,7 +1213,8 @@
         "exclusive": "Exclusif",
         "simple": "Simple",
         "co": "Co-mandat"
-      }
+      },
+      "urlSlugFallback": "nouveau-bien"
     },
     "step8": {
       "eyebrow": {

@@ -9,6 +9,7 @@ import {
   useState, useEffect, useRef, type ReactNode, type CSSProperties,
   type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { crmInitials, type SugarPalette } from './tokens'
 import { type CrmContact, crmContactById } from './mockData'
@@ -105,6 +106,7 @@ export function SugarTaskCard({
   contact, label, checked = true, sub, focused = false, dueLabel,
   sp, dark = false, onClick, onCheck, onSchedule, doneState = false,
 }: SugarTaskCardProps) {
+  const { t } = useTranslation('dashboard')
   const [hover, setHover] = useState(false)
   const isDone = doneState
   return (
@@ -140,7 +142,7 @@ export function SugarTaskCard({
           {checked && (
             <button
               onClick={e => { e.stopPropagation(); onCheck?.(e) }}
-              title={isDone ? 'Marquer à refaire' : 'Marquer exécutée'}
+              title={isDone ? t('task.markRedo') : t('task.markDone')}
               style={{
                 width: 24, height: 24, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
                 background: isDone ? '#0E9F6E' : (focused ? sp.focusSurface : sp.cardSubBg),
@@ -152,7 +154,7 @@ export function SugarTaskCard({
           )}
           <button
             onClick={e => { e.stopPropagation(); onSchedule?.(e) }}
-            title="Replanifier"
+            title={t('action.reschedule')}
             style={{
               width: 24, height: 24, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
               background: focused ? sp.focusSurface : sp.cardSubBg,
@@ -207,6 +209,7 @@ export function SugarMiniRow({
   contact, label, prefix, hasMenu, dueColor, sp, dark = false,
   onClick, onSchedule, onMenu, doneState = false,
 }: SugarMiniRowProps) {
+  const { t } = useTranslation('dashboard')
   const [hover, setHover] = useState(false)
   const isDone = doneState
   return (
@@ -253,7 +256,7 @@ export function SugarMiniRow({
       {hasMenu ? (
         <button
           onClick={e => { e.stopPropagation(); onMenu?.(e) }}
-          title="Plus d'actions"
+          title={t('action.moreActions')}
           style={{
             width: 22, height: 22, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
             background: 'transparent',
@@ -268,7 +271,7 @@ export function SugarMiniRow({
       ) : (
         <button
           onClick={e => { e.stopPropagation(); onSchedule?.(e) }}
-          title="Replanifier"
+          title={t('action.reschedule')}
           style={{
             width: 22, height: 22, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
             background: sp.cardSubBg,
@@ -293,6 +296,7 @@ interface SugarMiniRowCreateProps {
   onCreate?: (v: string) => void
 }
 export function SugarMiniRowCreate({ suggestion, sp, dark = false, onCreate }: SugarMiniRowCreateProps) {
+  const { t } = useTranslation('dashboard')
   const [editing, setEditing] = useState(false)
   const [hover, setHover] = useState(false)
   const [value, setValue] = useState('')
@@ -344,7 +348,7 @@ export function SugarMiniRowCreate({ suggestion, sp, dark = false, onCreate }: S
           <MEIcon name="check" size={12} color="#0E9F6E" />
         </div>
         <div style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: '#0E9F6E', lineHeight: 1.3 }}>
-          Ajouté · {created}
+          {t('create.added', { value: created })}
         </div>
       </div>
     )
@@ -394,7 +398,7 @@ export function SugarMiniRowCreate({ suggestion, sp, dark = false, onCreate }: S
       {editing ? (
         <button
           onMouseDown={e => { e.preventDefault(); submit() }}
-          title="Créer"
+          title={t('create.submit')}
           style={{
             width: 22, height: 22, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
             background: sp.ink, color: sp.pageBg,
@@ -409,7 +413,7 @@ export function SugarMiniRowCreate({ suggestion, sp, dark = false, onCreate }: S
           fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
           color: sp.soft, opacity: hover ? 1 : 0.6,
           transition: 'opacity 200ms ease',
-        }}>Suggéré</span>
+        }}>{t('create.suggested')}</span>
       )}
     </div>
   )
@@ -498,17 +502,18 @@ interface SugarKnowledgeTableProps {
   flashToast?: (msg: string) => void
 }
 export function SugarKnowledgeTable({ sp, onOpenStatus, onOpenRow, flashToast }: SugarKnowledgeTableProps) {
+  const { t } = useTranslation('dashboard')
   const [rows, setRows] = useState<KnowledgeRow[]>(INITIAL_KNOWLEDGE)
   const [hoverId, setHoverId] = useState<string | null>(null)
 
   const toggleFav = (id: string) => {
     setRows(rs => rs.map(r => r.id === id ? { ...r, fav: !r.fav } : r))
     const r = rows.find(x => x.id === id)
-    if (r && flashToast) flashToast(r.fav ? `Retiré des favoris — ${r.subject}` : `Ajouté aux favoris — ${r.subject}`)
+    if (r && flashToast) flashToast(r.fav ? t('knowledge.favRemoved', { subject: r.subject }) : t('knowledge.favAdded', { subject: r.subject }))
   }
   const setStatus = (id: string, status: KnowledgeRow['status']) => {
     setRows(rs => rs.map(r => r.id === id ? { ...r, status } : r))
-    if (flashToast) flashToast(`Statut → ${status}`)
+    if (flashToast) flashToast(t('knowledge.statusChanged', { status }))
   }
 
   return (
@@ -519,11 +524,11 @@ export function SugarKnowledgeTable({ sp, onOpenStatus, onOpenRow, flashToast }:
         borderBottom: `1px solid ${sp.cardBorder}`,
       }}>
         <span></span>
-        <span>Subject</span>
-        <span>Status</span>
-        <span>Start Date</span>
-        <span>End Date</span>
-        <span>Assigned User</span>
+        <span>{t('knowledge.col.subject')}</span>
+        <span>{t('knowledge.col.status')}</span>
+        <span>{t('knowledge.col.startDate')}</span>
+        <span>{t('knowledge.col.endDate')}</span>
+        <span>{t('knowledge.col.assignedUser')}</span>
       </div>
       {rows.map((r, i) => {
         const style = STATUS_STYLES[r.status]
@@ -544,7 +549,7 @@ export function SugarKnowledgeTable({ sp, onOpenStatus, onOpenRow, flashToast }:
             }}>
             <button
               onClick={e => { e.stopPropagation(); toggleFav(r.id) }}
-              title={r.fav ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+              title={r.fav ? t('knowledge.favRemove') : t('knowledge.favAdd')}
               style={{
                 width: 24, height: 24, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
                 background: 'transparent',
@@ -560,7 +565,7 @@ export function SugarKnowledgeTable({ sp, onOpenStatus, onOpenRow, flashToast }:
             <span>
               <button
                 onClick={e => { e.stopPropagation(); onOpenStatus(e, r.id, r.status, s => setStatus(r.id, s)) }}
-                title="Changer le statut"
+                title={t('knowledge.changeStatus')}
                 style={{
                   padding: '3px 10px', borderRadius: 999, fontSize: 10.5, fontWeight: 700,
                   background: style.bg, color: style.color,
@@ -765,6 +770,7 @@ export function SugarFocusView({ sp, contacts, onContactClick }: {
   contacts: CrmContact[]
   onContactClick?: (c: CrmContact) => void
 }) {
+  const { t } = useTranslation('dashboard')
   const priorities: FocusPriority[] = [
     {
       contact: contacts[0],
@@ -808,10 +814,10 @@ export function SugarFocusView({ sp, contacts, onContactClick }: {
           margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -0.8,
           color: sp.ink, lineHeight: 1.15,
         }}>
-          3 priorités absolues pour aujourd'hui
+          {t('focus.heading')}
         </h2>
         <p style={{ margin: '10px 0 0', fontSize: 14, color: sp.sub, lineHeight: 1.5 }}>
-          Tout le reste peut attendre. Respire, fais ces trois choses bien.
+          {t('focus.subtitle')}
         </p>
       </div>
 

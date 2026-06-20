@@ -385,6 +385,13 @@
         "noAgency": "Agency profile not found, the case can't be created.",
         "createFailed": "Error while creating the case."
       }
+    },
+    "success": {
+      "eyebrow": "File opened",
+      "fallbackTitle": "KYC file",
+      "description": "Five checks are pending. Start by uploading the identity documents or send the document request to the contact.",
+      "close": "Close",
+      "open": "Open the file"
     }
   },
   "dossier": {
@@ -937,5 +944,9 @@
     "none": "KYC to do",
     "stale": "KYC expired",
     "failed": "KYC failed"
+  },
+  "detail": {
+    "backToList": "Back to cases",
+    "eyebrow": "KYC case · AMLA"
   }
 }
