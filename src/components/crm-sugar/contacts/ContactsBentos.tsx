@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (CtBento, CtCard, CtKv, CtChip, CtAiBubble).
 
 import type { CSSProperties, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../tokens'
 
@@ -188,6 +189,7 @@ interface CtAiBubbleProps {
 }
 
 export function CtAiBubble({ title, body, cta, sp, dark }: CtAiBubbleProps) {
+  const { t } = useTranslation('common')
   return (
     <div
       style={{
@@ -254,7 +256,7 @@ export function CtAiBubble({ title, body, cta, sp, dark }: CtAiBubbleProps) {
               fontFamily: 'inherit',
             }}
           >
-            Plus tard
+            {t('actions.later')}
           </button>
         </div>
       </div>

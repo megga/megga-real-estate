@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { TK } from './tk'
 import { RXIcon, Av, Orbs } from './kit'
@@ -98,10 +99,10 @@ function featuresArr(f: Record<string, string> | null | undefined): string[] {
   if (!f) return []
   return Object.values(f).filter((v): v is string => typeof v === 'string' && v.length > 0).slice(0, 8)
 }
-function matchToCatItem(m: MatchResult, idx: number): CatItem {
+function matchToCatItem(m: MatchResult, idx: number, t: TFunction): CatItem {
   const L = m.listing
   const isVilla = /villa|maison/i.test(L.type || '')
-  const place = L.city || L.canton || 'Bien'
+  const place = L.city || L.canton || t('today.catalogue.place.fallback')
   return {
     id: hashInt(m.id) || idx + 1,
     matchId: m.id,
@@ -843,8 +844,8 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
   // Agent réel → vrais matchs (état vide « Aucun match » si aucun) ; le seed démo
   // ne sert que derrière `demo`.
   const catalogue = useMemo<CatItem[]>(
-    () => (demo ? SEED_CATA : matches.map(matchToCatItem)),
-    [matches, demo],
+    () => (demo ? SEED_CATA : matches.map((m, i) => matchToCatItem(m, i, t))),
+    [matches, demo, t],
   )
 
   const f = CATA_FILTERS.find((x) => x.key === filter) || CATA_FILTERS[0]

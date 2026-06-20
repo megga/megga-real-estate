@@ -76,7 +76,8 @@
     "showMore": "Voir plus",
     "showLess": "Voir moins",
     "viewAll": "Voir tout",
-    "options": "Options"
+    "options": "Options",
+    "later": "Plus tard"
   },
   "time": {
     "ago": "il y a",
@@ -562,7 +563,12 @@
       "deal": {
         "untitled": "Transaction"
       },
-      "roomsShort": "{{count}} p."
+      "roomsShort": "{{count}} p.",
+      "aiPrompts": {
+        "buyersReady": "Acheteurs prêts à signer cette semaine",
+        "staleListings": "Biens stagnants depuis +30 jours",
+        "exclusiveMandate": "Rédiger un mandat exclusif"
+      }
     }
   },
   "listing": {

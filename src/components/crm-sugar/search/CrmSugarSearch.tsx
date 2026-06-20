@@ -31,11 +31,8 @@ const SCOPES = [
 ] as const
 type ScopeId = (typeof SCOPES)[number]['id']
 
-const AI_PROMPTS = [
-  'Acheteurs prêts à signer cette semaine',
-  'Biens stagnants depuis +30 jours',
-  'Rédiger un mandat exclusif',
-]
+// Clés i18n (common:search.command.aiPrompts.*) — résolues à l'affichage via tr().
+const AI_PROMPTS = ['buyersReady', 'staleListings', 'exclusiveMandate'] as const
 
 // ─── Icônes inline (stroke linéaire — remplacent window.CRMIcon) ─────────────
 function IconSpark({ size = 15, stroke = 'currentColor' }: { size?: number; stroke?: string }) {
@@ -501,7 +498,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                       <div style={{ width: 16, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
                         <IconSpark stroke={isActive ? sp.ink : sp.sub} />
                       </div>
-                      <div style={{ flex: 1, fontSize: 13.5, color: sp.ink, fontWeight: 500 }}>{p}</div>
+                      <div style={{ flex: 1, fontSize: 13.5, color: sp.ink, fontWeight: 500 }}>{tr(`search.command.aiPrompts.${p}`)}</div>
                     </button>
                   )
                 })}

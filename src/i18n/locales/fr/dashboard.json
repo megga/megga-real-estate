@@ -398,6 +398,9 @@
         "otherMatches_one": "autre match",
         "otherMatches_other": "autres matchs",
         "viewWhole": "Voir tout le catalogue"
+      },
+      "place": {
+        "fallback": "Bien"
       }
     },
     "relance": {

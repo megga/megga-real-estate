@@ -5,6 +5,7 @@
 // GalSortDropdown (tri en surface opaque).
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../../tokens'
 import { galStatus, type GalSurfaces } from './galHelpers'
@@ -346,6 +347,7 @@ export function GalSortDropdown({
   sp: SugarPalette
   surf: GalSurfaces
 }) {
+  const { t } = useTranslation('listings')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -379,7 +381,7 @@ export function GalSortDropdown({
         }}
       >
         <MEIcon name="filter" size={13} color={sp.sub} />
-        <span style={{ color: sp.sub, fontWeight: 500 }}>Trier</span>
+        <span style={{ color: sp.sub, fontWeight: 500 }}>{t('gallery.sort')}</span>
         <span>{cur?.label}</span>
         <MEIcon name="chevron-down" size={12} color={sp.sub} />
       </button>
