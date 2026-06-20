@@ -1355,7 +1355,17 @@
       "pickPrompt": "Tick the variants to keep",
       "addSigned_one": "Add {{count}} signed variant",
       "addSigned_other": "Add {{count}} signed variants",
-      "saveFootnote": "The selected variants will be added as <strong>signed variants</strong> of this photo. The original stays unchanged."
+      "saveFootnote": "The selected variants will be added as <strong>signed variants</strong> of this photo. The original stays unchanged.",
+      "stock": {
+        "p1": "Living room",
+        "p2": "Kitchen",
+        "p3": "Bedroom",
+        "p4": "Bathroom",
+        "p5": "Facade",
+        "p6": "Garden",
+        "p7": "View",
+        "p8": "Floor plan"
+      }
     }
   }
 }

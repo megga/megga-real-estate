@@ -494,7 +494,7 @@
       "mandateLine": "{{ref}} · {{type}} mandate · {{commission}}%",
       "stat": {
         "views": "Views",
-        "favorites": "Favourites",
+        "favorites": "Favorites",
         "visits": "Viewings"
       }
     },
