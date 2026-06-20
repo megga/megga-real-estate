@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (`crm-screen-parcours-sugar.jsx`).
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
@@ -20,6 +21,7 @@ import { useParcoursSugar } from '@/hooks/useParcoursSugar'
 const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function JourneySugarV2Page() {
+  const { t: tr } = useTranslation('pipeline')
   const navigate = useNavigate()
 
   const [dark, setDark] = useState<boolean>(() => {
@@ -145,7 +147,7 @@ export default function JourneySugarV2Page() {
                 lineHeight: 1,
               }}
             >
-              Parcours équipe
+              {tr('journey.title')}
             </h1>
             <span
               style={{
@@ -155,7 +157,7 @@ export default function JourneySugarV2Page() {
                 marginLeft: 6,
               }}
             >
-              Suivi temps réel de chaque dossier · vue panoramique
+              {tr('journey.subtitle')}
             </span>
           </div>
 
@@ -193,7 +195,7 @@ export default function JourneySugarV2Page() {
                   fontWeight: 500,
                 }}
               >
-                Aucun dossier ne correspond aux filtres choisis.
+                {tr('journey.emptyState')}
               </div>
             ) : (
               dossiers.map(d => (

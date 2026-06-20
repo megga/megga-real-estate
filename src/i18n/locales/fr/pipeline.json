@@ -479,5 +479,59 @@
     "footer": {
       "stepCount": "Étape {{current}} / {{total}}"
     }
+  },
+  "journey": {
+    "stages": {
+      "mandat": "Réception mandat",
+      "market": "Mise en marché",
+      "nego": "Négociation",
+      "closing": "Closing"
+    },
+    "urgency": {
+      "high": "Urgence haute",
+      "medium": "Moyenne",
+      "low": "Sereine"
+    },
+    "task": {
+      "mandatSigned": "Mandat signé",
+      "kycSeller": "KYC vendeur",
+      "commercialBrief": "Brief commercial",
+      "photosVideo": "Photos & vidéo",
+      "listingPublished": "Annonce publiée",
+      "visitsScheduled": "Visites planifiées",
+      "offersReceived": "Offres reçues",
+      "negotiation": "Négociation",
+      "preliminaryAgreement": "Compromis",
+      "notarialDeed": "Acte authentique",
+      "actions": {
+        "markDone": "Marquer exécutée",
+        "reschedule": "Replanifier",
+        "more": "Plus"
+      }
+    },
+    "roomsAbbr": "p",
+    "dossierFallback": "Dossier",
+    "title": "Parcours équipe",
+    "subtitle": "Suivi temps réel de chaque dossier · vue panoramique",
+    "emptyState": "Aucun dossier ne correspond aux filtres choisis.",
+    "filters": {
+      "stageLabel": "Stade",
+      "allStages": "Tous",
+      "urgencyLabel": "Urgence",
+      "allUrgencies": "Toutes",
+      "activeCount_one": "{{count}} dossier actif",
+      "activeCount_other": "{{count}} dossiers actifs"
+    },
+    "actions": {
+      "addMember": "Ajouter un membre",
+      "addTask": "Ajouter une tâche",
+      "shareToNetwork": "Partager au réseau",
+      "schedule": "Planifier"
+    },
+    "avatar": {
+      "title": "{{firstName}} {{lastName}}, {{role}}",
+      "tasksInProgress_one": "{{count}} tâche en cours",
+      "tasksInProgress_other": "{{count}} tâches en cours"
+    }
   }
 }

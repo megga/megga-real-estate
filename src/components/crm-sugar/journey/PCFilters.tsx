@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Parcours filters (Agent / Stade / Urgence)
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCFilters).
 
+import { useTranslation } from 'react-i18next'
 import type { SugarPalette } from '../tokens'
 import {
   PARCOURS_STAGES,
@@ -30,6 +31,7 @@ export function PCFilters({
   setUrgencyFilter,
   count,
 }: PCFiltersProps) {
+  const { t: tr } = useTranslation('pipeline')
   const pillBase = {
     height: 36,
     padding: '0 14px',
@@ -76,13 +78,13 @@ export function PCFilters({
             letterSpacing: 0.6,
           }}
         >
-          Stade
+          {tr('journey.filters.stageLabel')}
         </span>
         <button
           style={activePill(stageFilter === 'all')}
           onClick={() => setStageFilter('all')}
         >
-          Tous
+          {tr('journey.filters.allStages')}
         </button>
         {PARCOURS_STAGES.map(s => (
           <button
@@ -122,13 +124,13 @@ export function PCFilters({
             letterSpacing: 0.6,
           }}
         >
-          Urgence
+          {tr('journey.filters.urgencyLabel')}
         </span>
         <button
           style={activePill(urgencyFilter === 'all')}
           onClick={() => setUrgencyFilter('all')}
         >
-          Toutes
+          {tr('journey.filters.allUrgencies')}
         </button>
         {(['high', 'medium', 'low'] as const).map(u => (
           <button
@@ -161,7 +163,7 @@ export function PCFilters({
           background: dark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.5)',
         }}
       >
-        {count} dossier{count > 1 ? 's' : ''} actif{count > 1 ? 's' : ''}
+        {tr('journey.filters.activeCount', { count })}
       </span>
     </div>
   )

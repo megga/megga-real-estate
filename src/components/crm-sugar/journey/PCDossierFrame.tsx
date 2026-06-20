@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCDossierFrame + PCBigAvatar + RoundBtn).
 
 import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../tokens'
 import { PCBentoShape } from './PCBentoShape'
@@ -28,6 +29,7 @@ export function PCDossierFrame({
   dark,
   onTaskClick,
 }: PCDossierFrameProps) {
+  const { t: tr } = useTranslation('pipeline')
   const u = URGENCY_MAP[dossier.urgency]
 
   const HEADER_H = 96
@@ -169,7 +171,7 @@ export function PCDossierFrame({
             })}
             {/* "+" placeholder */}
             <div
-              title="Ajouter un membre"
+              title={tr('journey.actions.addMember')}
               style={{
                 position: 'relative',
                 width: AVATAR,
@@ -222,13 +224,13 @@ export function PCDossierFrame({
 
         {/* Right actions */}
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-          <RoundBtn sp={sp} title="Ajouter une tâche">
+          <RoundBtn sp={sp} title={tr('journey.actions.addTask')}>
             <MEIcon name="plus" size={16} color={sp.soft} />
           </RoundBtn>
-          <RoundBtn sp={sp} title="Partager au réseau">
+          <RoundBtn sp={sp} title={tr('journey.actions.shareToNetwork')}>
             <MEIcon name="share" size={16} color={sp.soft} />
           </RoundBtn>
-          <RoundBtn sp={sp} title="Planifier">
+          <RoundBtn sp={sp} title={tr('journey.actions.schedule')}>
             <MEIcon name="calendar" size={16} color={sp.soft} />
           </RoundBtn>
         </div>
@@ -269,12 +271,19 @@ interface PCBigAvatarProps {
 }
 
 export function PCBigAvatar({ agent, count, badgeColor, sp }: PCBigAvatarProps) {
+  const { t: tr } = useTranslation('pipeline')
   const [hover, setHover] = useState(false)
+  const baseTitle = tr('journey.avatar.title', {
+    firstName: agent.firstName,
+    lastName: agent.lastName,
+    role: agent.role,
+  })
+  const title = count
+    ? `${baseTitle} · ${tr('journey.avatar.tasksInProgress', { count })}`
+    : baseTitle
   return (
     <div
-      title={`${agent.firstName} ${agent.lastName} — ${agent.role}${
-        count ? ` · ${count} tâches en cours` : ''
-      }`}
+      title={title}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
