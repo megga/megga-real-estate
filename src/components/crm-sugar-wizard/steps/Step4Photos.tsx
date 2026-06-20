@@ -386,7 +386,7 @@ export function Step4Photos({ data, set }: StepProps) {
                     letterSpacing: 0.2,
                     opacity: isHover ? 0 : 1,
                     transition: 'opacity .2s',
-                  }}>{p.label}</div>
+                  }}>{p.id.length === 2 && p.id[0] === 'p' ? tr('wizard.staging.stock.' + p.id) : p.label}</div>
                 </div>
               )
             })}

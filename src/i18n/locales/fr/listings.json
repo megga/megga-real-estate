@@ -1355,7 +1355,17 @@
       "pickPrompt": "Cochez les variantes à conserver",
       "addSigned_one": "Ajouter {{count}} variante signée",
       "addSigned_other": "Ajouter {{count}} variantes signées",
-      "saveFootnote": "Les variantes sélectionnées seront ajoutées comme <strong>variantes signées</strong> de cette photo. L'original reste inchangé."
+      "saveFootnote": "Les variantes sélectionnées seront ajoutées comme <strong>variantes signées</strong> de cette photo. L'original reste inchangé.",
+      "stock": {
+        "p1": "Salon",
+        "p2": "Cuisine",
+        "p3": "Chambre",
+        "p4": "Salle de bain",
+        "p5": "Façade",
+        "p6": "Jardin",
+        "p7": "Vue",
+        "p8": "Plan"
+      }
     }
   }
 }

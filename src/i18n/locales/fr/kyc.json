@@ -459,7 +459,12 @@
       "vigilanceEnhanced": "Renforcée (LBA art. 6)",
       "vigilanceStandard": "Standard (LBA art. 3-4)",
       "cancel": "Annuler",
-      "submit": "Confirmer la validation"
+      "submit": "Confirmer la validation",
+      "status": {
+        "match": "Correspondance",
+        "pending": "En attente",
+        "not_checked": "Non vérifié"
+      }
     },
     "upload": {
       "eyebrow": "Téléversement de pièce",

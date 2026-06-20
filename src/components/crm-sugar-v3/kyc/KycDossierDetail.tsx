@@ -723,11 +723,11 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
         >
           <div>
             <strong style={{ color: sp.ink }}>{t('dossier.confirm.sanctions')}</strong>{' '}
-            {dossier.sanctions_status === 'clear' ? t('dossier.confirm.clear') : dossier.sanctions_status}
+            {dossier.sanctions_status === 'clear' ? t('dossier.confirm.clear') : t('dossier.confirm.status.' + dossier.sanctions_status)}
           </div>
           <div>
             <strong style={{ color: sp.ink }}>{t('dossier.confirm.pep')}</strong>{' '}
-            {dossier.pep_status === 'clear' ? t('dossier.confirm.clear') : dossier.pep_status}
+            {dossier.pep_status === 'clear' ? t('dossier.confirm.clear') : t('dossier.confirm.status.' + dossier.pep_status)}
           </div>
           <div>
             <strong style={{ color: sp.ink }}>{t('dossier.confirm.vigilance')}</strong>{' '}
