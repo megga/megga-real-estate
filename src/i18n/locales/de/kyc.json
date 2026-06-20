@@ -130,7 +130,7 @@
       "invalid_title": "Ungültiger Link",
       "invalid_body": "Der geöffnete Link wird nicht erkannt. Überprüfen Sie, ob Sie die vollständige URL aus Ihrer E-Mail kopiert haben.",
       "loading_title": "Link wird geladen…",
-      "loading_body": "Einen Moment — wir prüfen die Gültigkeit Ihres gesicherten Links.",
+      "loading_body": "Einen Moment - wir prüfen die Gültigkeit Ihres gesicherten Links.",
       "network_title": "Verbindung nicht möglich",
       "network_body": "Server nicht erreichbar. Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
       "expired_link_body": "Dieser Link ist nicht mehr gültig. Bitten Sie Ihren Makler um einen neuen Link.",

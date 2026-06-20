@@ -36,7 +36,7 @@
   "search": "Cerca...",
   "clear": "Cancella",
   "filter_type": "Tipo",
-  "pagination": "{{from}}–{{to}} di {{total}}",
+  "pagination": "{{from}}-{{to}} di {{total}}",
   "external": {
     "notFound": "Immobile non trovato",
     "backToMatching": "Torna al matching",

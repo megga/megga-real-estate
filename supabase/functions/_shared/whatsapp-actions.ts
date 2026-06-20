@@ -20,6 +20,7 @@ import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
+import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from './agent-style.ts'
 
@@ -1913,9 +1914,9 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
     return failMsg
   }
 
-  let titre = typeof parsed.titre === 'string' ? parsed.titre.trim() : ''
-  let descFr = typeof parsed.description_fr === 'string' ? parsed.description_fr.trim() : ''
-  let descEn = typeof parsed.description_en === 'string' ? parsed.description_en.trim() : ''
+  let titre = typeof parsed.titre === 'string' ? meggaProse(parsed.titre.trim()) : ''
+  let descFr = typeof parsed.description_fr === 'string' ? meggaProse(parsed.description_fr.trim()) : ''
+  let descEn = typeof parsed.description_en === 'string' ? meggaProse(parsed.description_en.trim()) : ''
   if (!titre && !descFr && !descEn) return failMsg
   // Variante confidentielle : filet déterministe par-dessus la consigne molle (confidentialClause).
   if (variant === 'confidential') {
@@ -1952,7 +1953,7 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
   const out: string[] = []
   if (titre) out.push(`*${titre}*`)
   if (descFr) { out.push(''); out.push(descFr) }
-  if (descEn) { out.push(''); out.push(`— EN —`); out.push(descEn) }
+  if (descEn) { out.push(''); out.push(`*EN*`); out.push(descEn) }
   if (details.length > 0) {
     out.push('')
     out.push(lang === 'en' ? '*Details*' : '*Détails*')

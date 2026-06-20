@@ -27,6 +27,7 @@ import {
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
+import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -159,7 +160,7 @@ serve(async (req) => {
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.${styleBlock}${voiceBlock}${groupBlock}${listingBlock}${antiFabBlock}` },
+    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${groupBlock}${listingBlock}${antiFabBlock}` },
     ...history,
     { role: 'user', content: message },
   ]

@@ -118,7 +118,7 @@
     "buyDesc": "Trovate il vostro immobile ideale tra migliaia di annunci verificati in tutta la Svizzera.",
     "buyCta": "Cerca un immobile",
     "rentTitle": "Affittare",
-    "rentDesc": "Appartamenti, case, coabitazioni — sfogliate le offerte di locazione disponibili.",
+    "rentDesc": "Appartamenti, case, coabitazioni - sfogliate le offerte di locazione disponibili.",
     "rentCta": "Vedi gli affitti",
     "estimateTitle": "Stimare",
     "estimateDesc": "Ottenete una stima del vostro immobile in pochi secondi grazie alla nostra analisi di mercato.",
@@ -149,7 +149,7 @@
     "terms": "Condizioni generali",
     "madeInSwitzerland": "Made in Switzerland",
     "lpd": "Conforme LPD",
-    "disclaimer": "Piattaforma tecnologica — le stime sono indicative. Dati cartografici swisstopo."
+    "disclaimer": "Piattaforma tecnologica - le stime sono indicative. Dati cartografici swisstopo."
   },
   "auth": {
     "professionalSpace": "Area professionale",
@@ -210,28 +210,28 @@
         "basis": "Base legale"
       },
       "items": {
-        "anthropic": "Anthropic (Claude API) — Assistenza IA — Stati Uniti — SCCs / DPF",
-        "google": "Google Cloud (Calendar API, Gemini) — Integrazione calendario, IA — Stati Uniti — DPF",
-        "stripe": "Stripe — Pagamenti e abbonamenti — Stati Uniti — DPF",
-        "resend": "Resend — Email transazionali — Stati Uniti — SCCs",
-        "mapbox": "Mapbox — Mappe e geolocalizzazione — Stati Uniti — SCCs",
-        "posthog": "PostHog — Analytics di prodotto — Unione Europea (eu.posthog.com)",
-        "supabase": "Supabase — Hosting, database, autenticazione — Unione Europea (eu-west-1, Irlanda)",
-        "dilisense": "Dilisense — Screening PEP/Sanzioni (LRD) — Unione Europea"
+        "anthropic": "Anthropic (Claude API) - Assistenza IA - Stati Uniti - SCCs / DPF",
+        "google": "Google Cloud (Calendar API, Gemini) - Integrazione calendario, IA - Stati Uniti - DPF",
+        "stripe": "Stripe - Pagamenti e abbonamenti - Stati Uniti - DPF",
+        "resend": "Resend - Email transazionali - Stati Uniti - SCCs",
+        "mapbox": "Mapbox - Mappe e geolocalizzazione - Stati Uniti - SCCs",
+        "posthog": "PostHog - Analytics di prodotto - Unione Europea (eu.posthog.com)",
+        "supabase": "Supabase - Hosting, database, autenticazione - Unione Europea (eu-west-1, Irlanda)",
+        "dilisense": "Dilisense - Screening PEP/Sanzioni (LRD) - Unione Europea"
       }
     },
     "subprocessors": {
       "extraIntro": "Elenco completo dei nostri responsabili del trattamento e delle loro finalità:",
-      "anthropic": "Anthropic (Claude API) — Assistenza IA, copilota professionale",
-      "supabase": "Supabase — Hosting, database, autenticazione",
-      "cloudflare": "Cloudflare — CDN, protezione DDoS",
-      "stripe": "Stripe — Pagamenti e abbonamenti",
-      "resend": "Resend — Email transazionali",
-      "google": "Google (Calendar API, Gemini) — Sincronizzazione calendario, IA",
-      "dilisense": "Dilisense — Screening PEP/Sanzioni (finalità: conformità LRD)",
-      "mapbox": "Mapbox — Mappe e ricerca immobili",
-      "posthog": "PostHog — Analytics di prodotto (soggetto a consenso)",
-      "microsoft": "Microsoft Outlook — Sincronizzazione calendario (integrazione strumenti agente)"
+      "anthropic": "Anthropic (Claude API) - Assistenza IA, copilota professionale",
+      "supabase": "Supabase - Hosting, database, autenticazione",
+      "cloudflare": "Cloudflare - CDN, protezione DDoS",
+      "stripe": "Stripe - Pagamenti e abbonamenti",
+      "resend": "Resend - Email transazionali",
+      "google": "Google (Calendar API, Gemini) - Sincronizzazione calendario, IA",
+      "dilisense": "Dilisense - Screening PEP/Sanzioni (finalità: conformità LRD)",
+      "mapbox": "Mapbox - Mappe e ricerca immobili",
+      "posthog": "PostHog - Analytics di prodotto (soggetto a consenso)",
+      "microsoft": "Microsoft Outlook - Sincronizzazione calendario (integrazione strumenti agente)"
     },
     "complaint": {
       "heading": "Diritto di reclamo all'autorità di controllo",
@@ -331,7 +331,7 @@
       "addManually": "Aggiungi manualmente",
       "addManuallyDesc": "Crei da 1 a 10 contatti rapidamente.",
       "seedDemo": "Esplora con dati demo",
-      "seedDemoDesc": "10 contatti, 5 immobili, 3 transazioni — dati svizzeri realistici.",
+      "seedDemoDesc": "10 contatti, 5 immobili, 3 transazioni - dati svizzeri realistici.",
       "seeding": "Creazione in corso...",
       "skip": "Salta questo passaggio →",
       "addTitle": "Aggiungere contatti",
@@ -347,7 +347,7 @@
     },
     "done": {
       "title": "Il Suo spazio è pronto",
-      "subtitle": "Il Suo Action Board La guida quotidianamente — follow-up, match, visite, tutto centralizzato.",
+      "subtitle": "Il Suo Action Board La guida quotidianamente - follow-up, match, visite, tutto centralizzato.",
       "dataEurope": "Dati in Europa",
       "compliant": "Conforme nFADP",
       "loading": "Caricamento...",
@@ -433,7 +433,7 @@
       "understood": "Capito",
       "lowConfidence": "Non ho capito bene. Prova: «3 locali balcone Lugano max 2000».",
       "onboardingTitle": "Ricerca intelligente",
-      "onboardingBody": "Descrivi in linguaggio naturale quello che cerchi — prezzo, locali, città, servizi…",
+      "onboardingBody": "Descrivi in linguaggio naturale quello che cerchi - prezzo, locali, città, servizi…",
       "onboardingExample": "villa piscina Lugano max 3M",
       "onboardingBadge": "Novità",
       "onboardingDismiss": "Ho capito"
@@ -534,7 +534,7 @@
     "emailLabel": "Email",
     "phoneLabel": "Telefono",
     "prepareVisitTitle": "Alcune informazioni per preparare la visita",
-    "prepareVisitOptional": "Facoltativo — aiuta l'agente ad assistervi meglio",
+    "prepareVisitOptional": "Facoltativo - aiuta l'agente ad assistervi meglio",
     "estimatedBudget": "Budget stimato",
     "mortgageFinancing": "Finanziamento ipotecario",
     "financingNotYet": "Non ancora",
@@ -572,7 +572,7 @@
       },
       "2": {
         "title": "IA predittiva",
-        "description": "Algoritmo addestrato sulle specificità del mercato immobiliare svizzero — cantone per cantone."
+        "description": "Algoritmo addestrato sulle specificità del mercato immobiliare svizzero - cantone per cantone."
       },
       "3": {
         "title": "Aggiornamento trimestrale",
@@ -582,7 +582,7 @@
     },
     "priceTable": {
       "title": "Prezzi medi al m² in Svizzera",
-      "updated": "Dati aggiornati — Marzo 2026",
+      "updated": "Dati aggiornati - Marzo 2026",
       "canton": "Cantone",
       "apartment": "Appartamento (CHF/m²)",
       "house": "Casa (CHF/m²)",
@@ -631,14 +631,14 @@
     "hero": {
       "badge": "Piattaforma tutto-in-uno",
       "title": "La piattaforma immobiliare svizzera che pensa come un agente",
-      "subtitle": "Ricerca IA, stima, CRM, conformità LAB/KYC, portale venditore — tutto in una piattaforma.",
+      "subtitle": "Ricerca IA, stima, CRM, conformità LAB/KYC, portale venditore - tutto in una piattaforma.",
       "individual": "Sono un privato",
       "professional": "Sono un professionista"
     },
     "individuals": {
       "0": {
         "title": "Ricerca conversazionale",
-        "description": "Descrivete il vostro immobile ideale in linguaggio naturale. La nostra IA comprende i vostri criteri e vi propone i migliori immobili — senza toccare un singolo filtro.",
+        "description": "Descrivete il vostro immobile ideale in linguaggio naturale. La nostra IA comprende i vostri criteri e vi propone i migliori immobili - senza toccare un singolo filtro.",
         "features": {
           "0": "Ricerca multilingue FR/DE/EN/IT",
           "1": "Mappa Mapbox interattiva con pin",
@@ -667,7 +667,7 @@
         "cta": "Vendi il mio immobile"
       },
       "badge": "Per i privati",
-      "title": "Comprate, affittate, vendete — semplicemente.",
+      "title": "Comprate, affittate, vendete - semplicemente.",
       "subtitle": "Strumenti potenti, esperienza intuitiva."
     },
     "professionals": {
@@ -699,7 +699,7 @@
       },
       "4": {
         "title": "Generazione documenti",
-        "desc": "Mandati, buoni visita, offerte — generati in 1 clic.",
+        "desc": "Mandati, buoni visita, offerte - generati in 1 clic.",
         "tags": "Modelli,PDF/DOCX,Precompilazione"
       },
       "5": {
@@ -714,7 +714,7 @@
       },
       "7": {
         "title": "Copilota IA",
-        "desc": "IA contestuale sui vostri veri dossier — non un gadget.",
+        "desc": "IA contestuale sui vostri veri dossier - non un gadget.",
         "tags": "Prossima azione,Redazione,Scoring lead"
       },
       "8": {
@@ -746,11 +746,11 @@
       },
       "5": {
         "before": "Stima approssimativa",
-        "after": "Stima IA — 47'000 transazioni"
+        "after": "Stima IA - 47'000 transazioni"
       },
       "6": {
         "before": "CHF 200-800/mese/annuncio",
-        "after": "Da CHF 0 — piano gratuito"
+        "after": "Da CHF 0 - piano gratuito"
       },
       "badge": "Il cambiamento",
       "title": "Prima di MEGGA vs Con MEGGA",
@@ -937,7 +937,7 @@
       },
       "step3": {
         "title": "Aggiungete delle foto",
-        "subtitle": "Opzionale — le foto migliorano la precisione del {{percent}}%",
+        "subtitle": "Opzionale - le foto migliorano la precisione del {{percent}}%",
         "dropzone": "Trascinate le vostre foto qui",
         "dropzoneSubtitle": "o cliccate per selezionare (max 10)",
         "photosCount": "{{count}}/10 foto",
@@ -1151,7 +1151,7 @@
     "cta": {
       "badge": "Visita & contatto",
       "title": "Interessato a questo immobile?",
-      "subtitle": "Richieda una visita o riceva il dossier completo — l'agenzia risponde entro 24 ore.",
+      "subtitle": "Richieda una visita o riceva il dossier completo - l'agenzia risponde entro 24 ore.",
       "button": "Richiedere una visita",
       "imageAlt": "Anteprima della scheda immobile su tablet"
     },

@@ -130,7 +130,7 @@
       "invalid_title": "Lien invalide",
       "invalid_body": "Le lien que vous avez ouvert n'est pas reconnu. Vérifiez que vous avez bien copié l'URL complète depuis votre email.",
       "loading_title": "Chargement du lien…",
-      "loading_body": "Quelques secondes — nous vérifions la validité de votre lien sécurisé.",
+      "loading_body": "Quelques secondes - nous vérifions la validité de votre lien sécurisé.",
       "network_title": "Connexion impossible",
       "network_body": "Impossible de joindre le serveur. Vérifiez votre connexion internet et réessayez.",
       "expired_link_body": "Ce lien n'est plus valable. Demandez à votre agent un nouveau lien.",

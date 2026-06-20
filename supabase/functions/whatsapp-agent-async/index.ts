@@ -13,6 +13,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { execRunKycScreening, execSendKycReport, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, asyncFailed } from '../_shared/whatsapp-i18n.ts'
+import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
+import { meggaProse } from '../_shared/megga-prose.ts'
 
 // Jobs lourds (~50-60s chacun) : on en réclame UN par tick. Le cron tourne chaque minute,
 // donc un backlog se draine à 1/min — largement suffisant pour du KYC déclenché par l'agent,
@@ -41,7 +43,7 @@ async function sendToAgent(
 ): Promise<void> {
   if (!metaToken || !metaPhoneNumberId || !toPhone) return
   try {
-    const sreq = provider.buildSendTextRequest({ toPhone, body }, cfg)
+    const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(meggaProse(body)) }, cfg)
     const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
     if (!sres.ok) console.error('wa-agent-async agent send not ok:', sres.status)
   } catch (e) {

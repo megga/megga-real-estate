@@ -4,6 +4,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
+import { meggaProse, MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -260,6 +261,10 @@ serve(async (req: Request) => {
     // Build system prompt — switch to buyer search mode if requested
     // (isPublicSearch déjà déclaré dans le bloc auth ci-dessus — réutilisé ici)
     let systemPrompt = isPublicSearch ? MEGGA_SEARCH_SYSTEM : MEGGA_SYSTEM
+    // Style maison (ban em dash / puces, ton sobre suisse) — couche prompt. La
+    // même règle est appliquée en aval par meggaProse() sur la sortie, car le
+    // modèle ignore parfois la consigne (même logique que whatsapp-format).
+    systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
     if (language !== 'fr') {
       systemPrompt += `\n\nLangue de réponse : ${language}`
     }
@@ -358,7 +363,7 @@ serve(async (req: Request) => {
     }
 
     const deepseekData = await deepseekResponse.json()
-    const result = deepseekData.choices?.[0]?.message?.content || ''
+    const result = meggaProse(deepseekData.choices?.[0]?.message?.content || '')
 
     // LBA/IA audit trail — log toute interaction liée à une entité CRM
     await logAiCopilotInteraction({

@@ -36,7 +36,7 @@
   "search": "Search...",
   "clear": "Clear",
   "filter_type": "Type",
-  "pagination": "{{from}}–{{to}} of {{total}}",
+  "pagination": "{{from}}-{{to}} of {{total}}",
   "external": {
     "notFound": "Property not found",
     "backToMatching": "Back to matching",
