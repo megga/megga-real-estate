@@ -464,5 +464,168 @@
         "backToDashboard": "Retour au dashboard"
       }
     }
+  },
+  "analytics": {
+    "period": {
+      "year": {
+        "label": "cette année",
+        "granularity": "Cumul mensuel",
+        "pointWord": "Mois"
+      },
+      "quarter": {
+        "label": "ce trimestre",
+        "granularity": "Cumul hebdomadaire",
+        "pointWord": "Semaine"
+      },
+      "month": {
+        "label": "ce mois",
+        "granularity": "Cumul journalier",
+        "pointWord": "Jour"
+      }
+    },
+    "source": {
+      "website": "Site agence",
+      "onboarding": "Marketplace MEGGA",
+      "referral": "Recommandations",
+      "manual": "Importé manuel"
+    },
+    "composition": {
+      "secured": {
+        "label": "Sécurisé",
+        "hint": "Actes + compromis"
+      },
+      "probable": {
+        "label": "Probable",
+        "hint": "Offres en cours"
+      },
+      "possible": {
+        "label": "Possible",
+        "hint": "Mandats & visites"
+      },
+      "title": "De quoi est fait le projeté",
+      "total": "{{amount}} au total",
+      "empty": "Aucune commission projetée sur la période"
+    },
+    "kpi": {
+      "volume": "Volume transacté",
+      "transactions": "Transactions",
+      "avgCommission": "Commission moy.",
+      "conversionRate": "Taux conversion"
+    },
+    "insufficientData": "Données insuffisantes",
+    "qualifiedPct": "{{pct}} % qualifiés",
+    "scope": {
+      "me": "Vue personnelle",
+      "agency": "Vue agence"
+    },
+    "stage": {
+      "signed": "Signé",
+      "compromis": "Compromis",
+      "offer": "Offre"
+    },
+    "dealFallback": "Deal",
+    "title": "Performance",
+    "estimateTooltip": "Estimation pondérée par probabilité de réalisation",
+    "selector": {
+      "month": "Mois",
+      "quarter": "Trimestre",
+      "year": "Année"
+    },
+    "toolbar": {
+      "lightMode": "Mode clair",
+      "darkMode": "Mode sombre",
+      "refresh": "Rafraîchir",
+      "exportPdf": "Exporter PDF"
+    },
+    "error": {
+      "title": "Impossible de charger vos performances",
+      "body": "Une erreur est survenue lors du calcul des indicateurs. Réessayez dans un instant.",
+      "retry": "Réessayer"
+    },
+    "pace": {
+      "realized": "Réalisé",
+      "projected": "Projeté",
+      "target": "Objectif",
+      "tempo": "rythme"
+    },
+    "hero": {
+      "eyebrow": "Commission projetée",
+      "ahead": "En avance",
+      "behind": "En retard",
+      "vsTempo": "vs rythme",
+      "projectionLead": "À ce rythme, tu finis {{period}} à",
+      "projectionMid": "soit",
+      "projectionTail": "de ton objectif.",
+      "noTarget": "Aucun objectif commercial n'est défini pour {{period}}.",
+      "setInSettings": "Le fixer dans Réglages",
+      "setInSettingsAgency": "Le fixer dans Réglages › Agence.",
+      "targetSetByAgency": "Objectif fixé par l'agence",
+      "editInSettings": "Modifier dans Réglages",
+      "targetUnsetHint": "Objectif non défini · le fixer dans Réglages"
+    },
+    "fallback": {
+      "defaultRate_one": "{{count}} bien au taux 3 % par défaut",
+      "defaultRate_other": "{{count}} biens au taux 3 % par défaut",
+      "missingPrice_one": "{{count}} sans prix",
+      "missingPrice_other": "{{count}} sans prix",
+      "summary": "Commission estimée : {{parts}}. Renseigne le taux de mandat sur tes biens pour affiner."
+    },
+    "chart": {
+      "title": "Trajectoire vers l'objectif",
+      "realized": "Réalisé",
+      "target": "Objectif"
+    },
+    "deal": {
+      "commission": "commission",
+      "missingPrice": "prix manquant"
+    },
+    "closing": {
+      "title": "Ce qui se signe bientôt",
+      "empty": "Aucun deal en cours"
+    },
+    "sources": {
+      "title": "Sources des leads",
+      "subtitle": "D'où viennent tes contacts · périmètre agence",
+      "bestChannel": "= ton meilleur canal",
+      "empty": "Aucune source sur la période",
+      "leadCount_one": "lead",
+      "leadCount_other": "leads"
+    },
+    "drawer": {
+      "bucket": {
+        "secured": {
+          "label": "Sécurisé",
+          "hint": "Actes signés + compromis fermes"
+        },
+        "probable": {
+          "label": "Probable",
+          "hint": "Offres déposées en cours de négociation"
+        },
+        "possible": {
+          "label": "Possible",
+          "hint": "Mandats actifs & visites en cours"
+        }
+      },
+      "compositionEyebrow": "Composition · {{label}}",
+      "dealEyebrow": "Deal · {{stage}}",
+      "comparableDeals": "Autres deals comparables",
+      "fileCount_one": "{{count}} dossier · commission",
+      "fileCount_other": "{{count}} dossiers · commission",
+      "close": "Fermer",
+      "field": {
+        "commission": "Commission",
+        "probability": "Probabilité",
+        "stage": "Étape"
+      },
+      "detailsUnavailable": "Détails indisponibles",
+      "detailsUnavailableHint": "Le détail par dossier arrive bientôt, ouvre le Pipeline filtré pour le suivi.",
+      "openInPipeline": "Ouvrir dans le Pipeline filtré"
+    },
+    "trajectory": {
+      "goalLabel": "objectif",
+      "pointFallback": "Point {{n}}",
+      "projected": "projeté",
+      "vsPace": "vs rythme"
+    }
   }
 }

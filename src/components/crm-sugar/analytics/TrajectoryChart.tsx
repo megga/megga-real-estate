@@ -2,6 +2,7 @@
 // Port 1:1 du handoff `analytics-chart.jsx`. SVG viewBox fixe scalé à 100%.
 
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAX, axShort, axCHF, type AxPeriodData } from './tokens'
 
 const AX_VB_W = 1000
@@ -10,6 +11,7 @@ const AX_PAD = { l: 60, r: 16, t: 18, b: 30 }
 
 export function TrajectoryChart({ d }: { d: AxPeriodData }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const s = d.series
   const plotW = AX_VB_W - AX_PAD.l - AX_PAD.r
   const plotH = AX_VB_H - AX_PAD.t - AX_PAD.b
@@ -79,7 +81,7 @@ export function TrajectoryChart({ d }: { d: AxPeriodData }) {
 
         {/* goal pace line */}
         <path d={goalPath} fill="none" stroke={A.goal} strokeWidth="2" strokeDasharray="3 6" strokeLinecap="round" />
-        <text x={x(s.n - 1)} y={y(s.goal[s.n - 1]) - 8} textAnchor="end" fontSize="12.5" fontWeight="700" fill={A.muted} fontFamily="Manrope">objectif</text>
+        <text x={x(s.n - 1)} y={y(s.goal[s.n - 1]) - 8} textAnchor="end" fontSize="12.5" fontWeight="700" fill={A.muted} fontFamily="Manrope">{tr('analytics.trajectory.goalLabel')}</text>
 
         {/* realized area + line */}
         <path d={areaPath} fill={A.area} stroke="none" />
@@ -113,7 +115,7 @@ export function TrajectoryChart({ d }: { d: AxPeriodData }) {
           }}
         >
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}>
-            {d.axisLabels[hi] || (d.pointWord ? `${d.pointWord} ${hi + 1}` : `Point ${hi + 1}`)}{hi > s.elapsed ? ' · projeté' : ''}
+            {d.axisLabels[hi] || (d.pointWord ? `${d.pointWord} ${hi + 1}` : tr('analytics.trajectory.pointFallback', { n: hi + 1 }))}{hi > s.elapsed ? ` · ${tr('analytics.trajectory.projected')}` : ''}
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, marginTop: 2, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{axCHF(hiVal)}</div>
           <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 2, fontVariantNumeric: 'tabular-nums', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -121,7 +123,7 @@ export function TrajectoryChart({ d }: { d: AxPeriodData }) {
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d={hiDiff >= 0 ? 'M5 15l7-7 7 7' : 'M5 9l7 7 7-7'} /></svg>
               {hiDiff >= 0 ? '+' : '−'}{axCHF(Math.abs(hiDiff))}
             </span>
-            <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>vs rythme</span>
+            <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{tr('analytics.trajectory.vsPace')}</span>
           </div>
         </div>
       )}
