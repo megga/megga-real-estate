@@ -454,7 +454,9 @@
         "label": "Autre, texte libre",
         "hint": "Visible dans l'offre formelle (PDF). Restez factuel.",
         "placeholder": "Ex. Acquisition à titre personnel, paiement comptant à hauteur de 35%."
-      }
+      },
+      "financingShort": "Financement · {{days}}j",
+      "diagnosticShort": "Expertise"
     },
     "step2": {
       "eyebrow": "Étape 3 sur 3 · Délai & confirmation",
@@ -478,6 +480,17 @@
     },
     "footer": {
       "stepCount": "Étape {{current}} / {{total}}"
+    },
+    "eyebrowOffer": "Offre · acheteur",
+    "statusCurrent": "En cours",
+    "depositSuffix": "+ {{amount}} d'acompte",
+    "expiresAt": "Expire {{date}}",
+    "attachments_one": "{{count}} pièce jointe",
+    "attachments_other": "{{count}} pièces jointes",
+    "action": {
+      "accept": "Accepter",
+      "reject": "Refuser",
+      "withdraw": "Retirer"
     }
   },
   "journey": {

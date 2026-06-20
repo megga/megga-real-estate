@@ -2,6 +2,7 @@
 // Port pixel-près du canon crm-screen-deal-detail-sugar.jsx (handoff Sprint 2).
 
 import type { CSSProperties, ReactNode } from 'react'
+import i18n from '@/i18n' // libellés KYC + conditions traduits au render (clés kyc:* / pipeline:offerModal.condition.*)
 import { SugarV3, fmtDateTime } from '../tokens'
 import { SgIcon } from '../icons'
 import {
@@ -166,11 +167,11 @@ export function DdKycChip({
   status: 'none' | 'pending' | 'verified' | 'stale' | 'failed' | string
 }) {
   const map: Record<string, { label: string; tone: string }> = {
-    verified: { label: 'KYC vérifié', tone: SugarV3.ok },
-    pending: { label: 'KYC en cours', tone: SugarV3.warn },
-    none: { label: 'KYC à faire', tone: SugarV3.muted },
-    stale: { label: 'KYC périmé', tone: SugarV3.warn },
-    failed: { label: 'KYC échec', tone: SugarV3.err },
+    verified: { label: i18n.t('kyc:dealBadge.verified'), tone: SugarV3.ok },
+    pending: { label: i18n.t('kyc:dealBadge.pending'), tone: SugarV3.warn },
+    none: { label: i18n.t('kyc:dealBadge.none'), tone: SugarV3.muted },
+    stale: { label: i18n.t('kyc:dealBadge.stale'), tone: SugarV3.warn },
+    failed: { label: i18n.t('kyc:dealBadge.failed'), tone: SugarV3.err },
   }
   const m = map[status] ?? map.none
   return (
@@ -372,7 +373,7 @@ export function DdOfferCard({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {isCounter ? 'Contre-offre · vendeur' : 'Offre · acheteur'}
+                {isCounter ? i18n.t('pipeline:offerModal.eyebrow.counter') : i18n.t('pipeline:offerModal.eyebrowOffer')}
               </span>
               {isCurrent && (
                 <span
@@ -388,7 +389,7 @@ export function DdOfferCard({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  En cours
+                  {i18n.t('pipeline:offerModal.statusCurrent')}
                 </span>
               )}
               <span
@@ -443,7 +444,7 @@ export function DdOfferCard({
                     fontWeight: 500,
                   }}
                 >
-                  + {ddFmt(offer.deposit)} d'acompte
+                  {i18n.t('pipeline:offerModal.depositSuffix', { amount: ddFmt(offer.deposit) })}
                 </div>
               )}
             </div>
@@ -461,17 +462,17 @@ export function DdOfferCard({
                 {offer.conditions.financing?.active && (
                   <DdConditionPill
                     icon="shield"
-                    label={`Financement · ${offer.conditions.financing.days ?? 45}j`}
+                    label={i18n.t('pipeline:offerModal.condition.financingShort', { days: offer.conditions.financing.days ?? 45 })}
                   />
                 )}
                 {offer.conditions.sale?.active && (
-                  <DdConditionPill icon="home" label="Vente d'un autre bien" />
+                  <DdConditionPill icon="home" label={i18n.t('pipeline:offerModal.condition.sale.title')} />
                 )}
                 {offer.conditions.diagnostic?.active && (
-                  <DdConditionPill icon="file" label="Expertise" />
+                  <DdConditionPill icon="file" label={i18n.t('pipeline:offerModal.condition.diagnosticShort')} />
                 )}
                 {offer.conditions.occupancy?.active && (
-                  <DdConditionPill icon="cal" label="Libération du logement" />
+                  <DdConditionPill icon="cal" label={i18n.t('pipeline:offerModal.condition.occupancy.title')} />
                 )}
               </div>
             )}
@@ -514,7 +515,7 @@ export function DdOfferCard({
                   }}
                 >
                   <SgIcon name="cal" size={12} stroke={SugarV3.muted} sw={1.8} />
-                  Expire {fmtDateTime(offer.expires_at)}
+                  {i18n.t('pipeline:offerModal.expiresAt', { date: fmtDateTime(offer.expires_at) })}
                 </div>
               )}
               {offer.attachments?.length > 0 && (
@@ -529,9 +530,7 @@ export function DdOfferCard({
                   }}
                 >
                   <SgIcon name="file" size={12} stroke={SugarV3.muted} sw={1.8} />
-                  {offer.attachments.length} pièce
-                  {offer.attachments.length > 1 ? 's' : ''} jointe
-                  {offer.attachments.length > 1 ? 's' : ''}
+                  {i18n.t('pipeline:offerModal.attachments', { count: offer.attachments.length })}
                 </div>
               )}
             </div>
@@ -556,7 +555,7 @@ export function DdOfferCard({
                     boxShadow: '0 4px 12px rgba(16,170,113,0.25)',
                   }}
                 >
-                  Accepter
+                  {i18n.t('pipeline:offerModal.action.accept')}
                 </button>
                 <button
                   onClick={() => onUpdateStatus?.('rejected')}
@@ -567,7 +566,7 @@ export function DdOfferCard({
                     cursor: 'pointer',
                   }}
                 >
-                  Refuser
+                  {i18n.t('pipeline:offerModal.action.reject')}
                 </button>
                 <button
                   onClick={() => onUpdateStatus?.('withdrawn')}
@@ -578,7 +577,7 @@ export function DdOfferCard({
                     cursor: 'pointer',
                   }}
                 >
-                  Retirer
+                  {i18n.t('pipeline:offerModal.action.withdraw')}
                 </button>
               </div>
             )}

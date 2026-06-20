@@ -890,5 +890,47 @@
       "unavailable": "Report unavailable.",
       "preparing": "Preparing the report…"
     }
+  },
+  "check": {
+    "id": {
+      "title": "Identity document",
+      "sub": "Passport or official ID card, both sides."
+    },
+    "address": {
+      "title": "Proof of address",
+      "sub": "Named bill < 3 months (rent, electricity, bank)."
+    },
+    "pep": {
+      "title": "PEP screening",
+      "sub": "Check against Politically Exposed Persons lists."
+    },
+    "sanctions": {
+      "title": "Sanctions lists",
+      "sub": "Cross-check OFAC, SECO, UN, European Union."
+    },
+    "funds": {
+      "title": "Source of funds",
+      "sub": "Declaration and proof of origin for transactions > CHF 100'000."
+    }
+  },
+  "dossierStatus": {
+    "none": "Not started",
+    "pending": "In progress",
+    "verified": "Verified",
+    "failed": "Failed",
+    "stale": "Re-screening due"
+  },
+  "riskBadge": {
+    "low": "Low risk",
+    "medium": "Moderate risk",
+    "high": "High risk",
+    "unassessed": "Unassessed"
+  },
+  "dealBadge": {
+    "verified": "KYC verified",
+    "pending": "KYC in progress",
+    "none": "KYC to do",
+    "stale": "KYC expired",
+    "failed": "KYC failed"
   }
 }

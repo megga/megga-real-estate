@@ -454,7 +454,9 @@
         "label": "Other: free text",
         "hint": "Visible in the formal offer (PDF). Keep it factual.",
         "placeholder": "E.g. Purchase in a personal capacity, cash payment of 35%."
-      }
+      },
+      "financingShort": "Financing · {{days}}d",
+      "diagnosticShort": "Survey"
     },
     "step2": {
       "eyebrow": "Step 3 of 3 · Deadline & confirmation",
@@ -478,6 +480,17 @@
     },
     "footer": {
       "stepCount": "Step {{current}} / {{total}}"
+    },
+    "eyebrowOffer": "Offer · buyer",
+    "statusCurrent": "Current",
+    "depositSuffix": "+ {{amount}} deposit",
+    "expiresAt": "Expires {{date}}",
+    "attachments_one": "{{count}} attachment",
+    "attachments_other": "{{count}} attachments",
+    "action": {
+      "accept": "Accept",
+      "reject": "Decline",
+      "withdraw": "Withdraw"
     }
   },
   "journey": {
