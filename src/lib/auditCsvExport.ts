@@ -3,20 +3,21 @@
 // Référence : KYC_ENRICHISSEMENTS §4 — export CSV + PDF horodaté.
 // Le PDF horodaté hash-chain est traité Sprint 2 (Edge Function dédié).
 
+import i18n from '@/i18n' // en-têtes CSV traduits au moment de l'export (clés common:audit.csv.*)
 import type { AuditEvent } from '@/types/kyc'
 
-const COLUMNS = [
-  { key: 'created_at', label: 'Date/heure' },
-  { key: 'category', label: 'Catégorie' },
-  { key: 'severity', label: 'Sévérité' },
-  { key: 'action', label: 'Action' },
-  { key: 'object_label', label: 'Objet' },
-  { key: 'entity_type', label: 'Type entité' },
-  { key: 'entity_id', label: 'ID entité' },
-  { key: 'actor_id', label: 'Acteur (ID)' },
-  { key: 'ip_address', label: 'IP' },
-  { key: 'metadata', label: 'Métadonnées (JSON)' },
-] as const
+const COLUMNS: { key: string; label: string }[] = [
+  { key: 'created_at', get label() { return i18n.t('common:audit.csv.createdAt') } },
+  { key: 'category', get label() { return i18n.t('common:audit.csv.category') } },
+  { key: 'severity', get label() { return i18n.t('common:audit.csv.severity') } },
+  { key: 'action', get label() { return i18n.t('common:audit.csv.action') } },
+  { key: 'object_label', get label() { return i18n.t('common:audit.csv.objectLabel') } },
+  { key: 'entity_type', get label() { return i18n.t('common:audit.csv.entityType') } },
+  { key: 'entity_id', get label() { return i18n.t('common:audit.csv.entityId') } },
+  { key: 'actor_id', get label() { return i18n.t('common:audit.csv.actorId') } },
+  { key: 'ip_address', get label() { return i18n.t('common:audit.csv.ip') } },
+  { key: 'metadata', get label() { return i18n.t('common:audit.csv.metadata') } },
+]
 
 function escapeCsvCell(v: unknown): string {
   if (v == null) return ''

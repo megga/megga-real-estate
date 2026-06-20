@@ -235,7 +235,7 @@
     },
     "complaint": {
       "heading": "Diritto di reclamo all'autorità di controllo",
-      "body": "In conformità all'art. 49 nLPD, hai il diritto di presentare un reclamo all'Incaricato federale della protezione dei dati e della trasparenza (IFPDT) se ritieni che il trattamento dei tuoi dati violi la legge.",
+      "body": "Pursuant to art. 49 nFADP, you have the right to file a complaint with the Federal Data Protection and Information Commissioner (FDPIC) if you believe that the processing of your data violates the law.",
       "address": "Indirizzo: Feldeggweg 1, 3003 Berna",
       "website": "Sito web: "
     }
@@ -1342,5 +1342,78 @@
     "security": "Security & sessions",
     "billing": "Billing & subscription",
     "help": "Help center"
+  },
+  "audit": {
+    "category": {
+      "kyc": "KYC",
+      "deal": "Pipeline",
+      "contact": "Contact",
+      "bien": "Property",
+      "doc": "Document",
+      "auth": "Sign-in",
+      "settings": "Settings",
+      "ai": "MEGGA AI"
+    },
+    "csv": {
+      "createdAt": "Date/time",
+      "category": "Category",
+      "severity": "Severity",
+      "action": "Action",
+      "objectLabel": "Object",
+      "entityType": "Entity type",
+      "entityId": "Entity ID",
+      "actorId": "Actor (ID)",
+      "ip": "IP",
+      "metadata": "Metadata (JSON)"
+    },
+    "severity": {
+      "critical": "Critical",
+      "warning": "Warning"
+    },
+    "actor": {
+      "agent": "Agent",
+      "system": "System"
+    },
+    "details": "Details",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events",
+    "eyebrow": "Compliance · nFADP",
+    "title": "Audit trail.",
+    "subtitle": "Every action on contacts, properties, deals and documents is recorded immutably. This trail meets the audit obligation under the nFADP (art. 12) and the AMLA (art. 7), retained for 10 years.",
+    "export": {
+      "csv": "Export CSV",
+      "pdf": "Timestamped PDF export",
+      "generating": "Generating…",
+      "pdfFailed": "PDF export failed",
+      "pdfErrorPrefix": "PDF export:"
+    },
+    "stats": {
+      "events": "Events",
+      "eventsRangeAll": "Across recent months",
+      "eventsRangeDays": "Across the last {{days}} days",
+      "critical": "Critical",
+      "criticalSub": "Locks, auth failures, denials",
+      "warning": "Warnings",
+      "warningSub": "Re-screening, data export",
+      "aiActions": "MEGGA AI actions",
+      "aiActionsSub": "Suggestions and automated matching"
+    },
+    "searchPlaceholder": "Search an action or an entity…",
+    "period": {
+      "days7": "7 days",
+      "days30": "30 days",
+      "days90": "90 days",
+      "all": "All"
+    },
+    "filter": {
+      "allCategories": "All categories",
+      "allSeverities": "All severities"
+    },
+    "loading": "Loading the audit trail…",
+    "empty": "No event matches these filters.",
+    "footer": {
+      "retention": "Events are cryptographically signed and retained for 10 years (nFADP art. 12 · AMLA art. 7).",
+      "tamperLogged": "Any attempt to delete or alter a record is itself logged."
+    }
   }
 }

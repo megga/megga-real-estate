@@ -1347,5 +1347,78 @@
     "security": "Sécurité & sessions",
     "billing": "Facturation & abonnement",
     "help": "Centre d'aide"
+  },
+  "audit": {
+    "category": {
+      "kyc": "KYC",
+      "deal": "Pipeline",
+      "contact": "Contact",
+      "bien": "Bien",
+      "doc": "Document",
+      "auth": "Connexion",
+      "settings": "Réglages",
+      "ai": "MEGGA AI"
+    },
+    "csv": {
+      "createdAt": "Date/heure",
+      "category": "Catégorie",
+      "severity": "Sévérité",
+      "action": "Action",
+      "objectLabel": "Objet",
+      "entityType": "Type entité",
+      "entityId": "ID entité",
+      "actorId": "Acteur (ID)",
+      "ip": "IP",
+      "metadata": "Métadonnées (JSON)"
+    },
+    "severity": {
+      "critical": "Critique",
+      "warning": "Attention"
+    },
+    "actor": {
+      "agent": "Agent",
+      "system": "Système"
+    },
+    "details": "Détails",
+    "eventCount_one": "{{count}} évènement",
+    "eventCount_other": "{{count}} évènements",
+    "eyebrow": "Conformité · nLPD",
+    "title": "Journal d'audit.",
+    "subtitle": "Toutes les actions sur les contacts, biens, deals et documents sont enregistrées de manière immuable. Cette trace satisfait l'obligation d'audit nLPD (art. 12) et LBA (art. 7), conservée 10 ans.",
+    "export": {
+      "csv": "Export CSV",
+      "pdf": "Export PDF horodaté",
+      "generating": "Génération…",
+      "pdfFailed": "Export PDF échoué",
+      "pdfErrorPrefix": "Export PDF :"
+    },
+    "stats": {
+      "events": "Évènements",
+      "eventsRangeAll": "Sur les derniers mois",
+      "eventsRangeDays": "Sur les {{days}} jours",
+      "critical": "Critiques",
+      "criticalSub": "Verrous, échecs auth, refus",
+      "warning": "Attention",
+      "warningSub": "Re-screening, export données",
+      "aiActions": "Actions MEGGA AI",
+      "aiActionsSub": "Suggestions et matching automatique"
+    },
+    "searchPlaceholder": "Rechercher une action, un objet…",
+    "period": {
+      "days7": "7 jours",
+      "days30": "30 jours",
+      "days90": "90 jours",
+      "all": "Tout"
+    },
+    "filter": {
+      "allCategories": "Toutes catégories",
+      "allSeverities": "Toute sévérité"
+    },
+    "loading": "Chargement du journal…",
+    "empty": "Aucun évènement ne correspond à ces filtres.",
+    "footer": {
+      "retention": "Les évènements sont signés cryptographiquement et conservés 10 ans (nLPD art. 12 · LBA art. 7).",
+      "tamperLogged": "Toute tentative de suppression ou modification est elle-même journalisée."
+    }
   }
 }

@@ -8,9 +8,9 @@
 // — CHF avec apostrophes : CHF 1'250'000
 
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
-// i18n : les libellés des maps KYC (contrôles, statuts dossier, niveaux de risque)
-// sont traduits au render via getter singleton (clés kyc:*). Les tonalités/icônes
-// restent fixes. AUDIT_CATEGORIES reste FR (surface Audit pas encore i18n'd).
+// i18n : les libellés des maps (contrôles/statuts/risque KYC + catégories audit)
+// sont traduits au render via getter singleton (clés kyc:* / common:audit.category.*).
+// Les tonalités/icônes restent fixes.
 import i18n from '@/i18n'
 
 export const SugarV3 = {
@@ -174,14 +174,14 @@ export const AUDIT_CATEGORIES: Record<
   string,
   { label: string; tone: string }
 > = {
-  kyc: { label: 'KYC', tone: '#1E5BC6' },
-  deal: { label: 'Pipeline', tone: '#0891B2' },
-  contact: { label: 'Contact', tone: SugarV3.muted },
-  bien: { label: 'Bien', tone: '#C45A00' },
-  doc: { label: 'Document', tone: SugarV3.okDark },
-  auth: { label: 'Connexion', tone: SugarV3.black },
-  settings: { label: 'Réglages', tone: SugarV3.muted },
-  ai: { label: 'MEGGA AI', tone: '#7A4FD8' },
+  kyc: { get label() { return i18n.t('common:audit.category.kyc') }, tone: '#1E5BC6' },
+  deal: { get label() { return i18n.t('common:audit.category.deal') }, tone: '#0891B2' },
+  contact: { get label() { return i18n.t('common:audit.category.contact') }, tone: SugarV3.muted },
+  bien: { get label() { return i18n.t('common:audit.category.bien') }, tone: '#C45A00' },
+  doc: { get label() { return i18n.t('common:audit.category.doc') }, tone: SugarV3.okDark },
+  auth: { get label() { return i18n.t('common:audit.category.auth') }, tone: SugarV3.black },
+  settings: { get label() { return i18n.t('common:audit.category.settings') }, tone: SugarV3.muted },
+  ai: { get label() { return i18n.t('common:audit.category.ai') }, tone: '#7A4FD8' },
 }
 
 /** Icônes audit par catégorie. */

@@ -2,6 +2,7 @@
 // Port 1:1 de crm-screen-audit-sugar.jsx lignes 136-241 (AudEventRow).
 
 import { useState } from 'react'
+import i18n from '@/i18n' // libellés acteur/sévérité/détails traduits au render (common:audit.*) ; event.action reste la valeur DB stockée
 import { SugarV3, AUDIT_CATEGORIES, AUDIT_CAT_ICONS } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycCircleBtn } from '../primitives'
@@ -24,14 +25,14 @@ export function AudEventRow({ event, last }: Props) {
 
   const actor = event.actor_id
     ? {
-        name: 'Agent',
+        name: i18n.t('common:audit.actor.agent'),
         initials: 'AG',
         // Avatar > 7x7 px → reste neutre Sugar Pure (zero bleu marketplace #0041D9)
         avatarBg: SugarV3.inkSoft,
         isSystem: false,
       }
     : {
-        name: 'Système',
+        name: i18n.t('common:audit.actor.system'),
         initials: 'AI',
         avatarBg: SugarV3.black,
         isSystem: true,
@@ -136,7 +137,7 @@ export function AudEventRow({ event, last }: Props) {
                 textTransform: 'uppercase',
               }}
             >
-              {sev === 'critical' ? 'Critique' : 'Attention'}
+              {sev === 'critical' ? i18n.t('common:audit.severity.critical') : i18n.t('common:audit.severity.warning')}
             </span>
           )}
         </div>
@@ -229,7 +230,7 @@ export function AudEventRow({ event, last }: Props) {
         )}
         <KycCircleBtn
           size={32}
-          title="Détails"
+          title={i18n.t('common:audit.details')}
           icon={<SgIcon name="arrowR" size={13} stroke={SugarV3.inkSoft} />}
         />
       </div>
