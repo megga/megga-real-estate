@@ -10,6 +10,7 @@
 // Route : /dashboard/visits/:id
 
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
 import {
@@ -39,6 +40,7 @@ function vdDateLong(iso: string): string {
 }
 
 export default function VisitDetailSugarV3Page() {
+  const { t } = useTranslation('calendar')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: visit, isLoading, isError, error } = useVisitDetail(id)
@@ -57,7 +59,7 @@ export default function VisitDetailSugarV3Page() {
           fontFamily: SugarV3.font,
         }}
       >
-        Chargement de la visite…
+        {t('visitDetail.loading')}
       </div>
     )
   }
@@ -75,7 +77,9 @@ export default function VisitDetailSugarV3Page() {
           textAlign: 'center',
         }}
       >
-        Erreur de chargement de la visite : {error?.message ?? 'inconnue'}
+        {t('visitDetail.loadError', {
+          message: error?.message ?? t('visitDetail.unknownError'),
+        })}
       </div>
     )
   }
@@ -91,7 +95,7 @@ export default function VisitDetailSugarV3Page() {
           fontFamily: SugarV3.font,
         }}
       >
-        Visite introuvable.
+        {t('visitDetail.notFound')}
       </div>
     )
   }
@@ -129,7 +133,7 @@ export default function VisitDetailSugarV3Page() {
             icon={<SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />}
             onClick={() => navigate('/dashboard/calendar')}
           >
-            Calendrier
+            {t('visitDetail.backToCalendar')}
           </SgGhostPill>
           <span
             style={{
@@ -171,15 +175,15 @@ export default function VisitDetailSugarV3Page() {
                 .eq('id', visit.id)
               if (updErr) {
                  
-                window.alert(`Impossible de mettre à jour le statut : ${updErr.message}`)
+                window.alert(t('visitDetail.statusUpdateError', { message: updErr.message }))
               }
             }}
           >
             {isDone
-              ? 'Visite effectuée'
+              ? t('visitDetail.cta.visitDone')
               : visit.status === 'confirmed'
-                ? 'Marquer effectuée'
-                : 'Confirmer la visite'}
+                ? t('visitDetail.cta.markDone')
+                : t('visitDetail.cta.confirm')}
           </SgBlackPill>
         </header>
 
@@ -196,7 +200,10 @@ export default function VisitDetailSugarV3Page() {
           >
             <div style={{ flex: 1, minWidth: 280 }}>
               <VdEyebrow>
-                Visite · {isDone ? 'Effectuée' : 'Planifiée'}
+                {t('visitDetail.eyebrow.prefix')} ·{' '}
+                {isDone
+                  ? t('visitDetail.eyebrow.done')
+                  : t('visitDetail.eyebrow.planned')}
               </VdEyebrow>
               <h1
                 style={{
@@ -208,13 +215,14 @@ export default function VisitDetailSugarV3Page() {
                   lineHeight: 1.15,
                 }}
               >
-                {visit.property?.title ?? 'Bien'}
+                {visit.property?.title ?? t('visitDetail.propertyFallback')}
                 <span style={{ color: SugarV3.muted, fontWeight: 500 }}>
                   {' '}
-                  avec{' '}
-                  {visit.contact
-                    ? `${visit.contact.first_name} ${visit.contact.last_name}`
-                    : '—'}
+                  {t('visitDetail.withContact', {
+                    name: visit.contact
+                      ? `${visit.contact.first_name} ${visit.contact.last_name}`
+                      : '—',
+                  })}
                 </span>
               </h1>
               <div

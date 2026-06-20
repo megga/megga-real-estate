@@ -377,5 +377,107 @@
     "last_update": "Dernière mise à jour",
     "no_offer_recorded": "Aucune offre enregistrée pour cette transaction.",
     "view_contact": "Voir le contact"
+  },
+  "offerModal": {
+    "cta": {
+      "close": "Fermer",
+      "cancel": "Annuler",
+      "back": "Retour",
+      "continue": "Continuer",
+      "submit": "Enregistrer & envoyer",
+      "submitting": "Envoi…"
+    },
+    "label": {
+      "buyerFallback": "Acheteur"
+    },
+    "eyebrow": {
+      "counter": "Contre-offre · vendeur",
+      "offer": "Nouvelle offre · acheteur"
+    },
+    "step": {
+      "amount": "Montant",
+      "conditions": "Conditions",
+      "delay": "Délai & envoi"
+    },
+    "step0": {
+      "eyebrow": "Étape 1 sur 3 · Montant",
+      "title": {
+        "counter": "Quel montant proposez-vous en retour ?",
+        "offer": "Quel montant l'acheteur propose-t-il ?"
+      },
+      "subtitle": {
+        "counter": "Vous pouvez ajuster le montant, repositionner les conditions et fixer un nouveau délai.",
+        "offer": "Saisissez le montant principal, un éventuel acompte et la date de signature souhaitée."
+      }
+    },
+    "field": {
+      "offerFrom": "Offre de {{label}}",
+      "amount": "Montant proposé",
+      "askingPriceHint": "Prix demandé : {{price}}",
+      "deposit": "Acompte",
+      "depositHint": "À la signature du compromis",
+      "closingDate": "Date de signature souhaitée",
+      "gap": "Écart",
+      "gapVsAsking": "vs prix demandé",
+      "expiryDate": "Date d'expiration",
+      "expiryTime": "Heure"
+    },
+    "step1": {
+      "eyebrow": "Étape 2 sur 3 · Conditions suspensives",
+      "title": "Sous quelles conditions ?",
+      "subtitle": "Activez uniquement les conditions qui s'appliquent. Chacune devra être levée avant la signature."
+    },
+    "condition": {
+      "financing": {
+        "title": "Financement bancaire",
+        "sub": "L'offre est subordonnée à l'obtention d'un prêt immobilier.",
+        "daysLabel": "Délai (jours)",
+        "noteLabel": "Précision (banque, taux…)",
+        "notePlaceholder": "Ex. BCGE, 80%, taux fixe 10 ans"
+      },
+      "sale": {
+        "title": "Vente d'un autre bien",
+        "sub": "L'acquisition dépend de la vente préalable d'un bien existant."
+      },
+      "diagnostic": {
+        "title": "Expertise / Diagnostic",
+        "sub": "Expertise indépendante (toit, structure, énergie) à la charge de l'acheteur.",
+        "noteLabel": "Périmètre de l'expertise",
+        "notePlaceholder": "Ex. Toit + façade"
+      },
+      "occupancy": {
+        "title": "Libération du logement",
+        "sub": "Le bien doit être libre d'occupant à une date précise.",
+        "dateLabel": "Date de libération"
+      },
+      "other": {
+        "label": "Autre, texte libre",
+        "hint": "Visible dans l'offre formelle (PDF). Restez factuel.",
+        "placeholder": "Ex. Acquisition à titre personnel, paiement comptant à hauteur de 35%."
+      }
+    },
+    "step2": {
+      "eyebrow": "Étape 3 sur 3 · Délai & confirmation",
+      "title": "Validité de l'offre",
+      "subtitle": "Au-delà de cette date, l'offre passera automatiquement en statut « expirée »."
+    },
+    "delay": {
+      "h48": "48h",
+      "days_one": "{{count}} jour",
+      "days_other": "{{count}} jours"
+    },
+    "summary": {
+      "title": "Récapitulatif",
+      "counterLabel": "Contre-offre vendeur",
+      "offerLabel": "Offre acheteur",
+      "deposit": "Acompte",
+      "closing": "Signature visée",
+      "activeConditions": "Conditions actives",
+      "expires": "Expire le",
+      "expiresValue": "{{date}} à {{time}}"
+    },
+    "footer": {
+      "stepCount": "Étape {{current}} / {{total}}"
+    }
   }
 }

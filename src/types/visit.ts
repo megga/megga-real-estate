@@ -2,6 +2,11 @@
 // Source : HANDOFF_SPRINT_2_CLAUDE_CODE.md §Modèle de données
 // Migration DB : 20260517_001_sprint2_crm_offers_visits.sql (étend visits)
 
+// i18n : le label de sentiment est traduit au render (getter singleton, sans
+// changer la forme `VISIT_SENTIMENT_LABELS[x].label` côté consommateur). La
+// tonalité (couleur) reste fixe. Clés : calendar:visit.sentiment.*.
+import i18n from '@/i18n'
+
 /** Sentiment du visiteur capturé pendant/après la visite. */
 export type VisitSentiment = 'hot' | 'warm' | 'cool' | 'cold'
 
@@ -59,8 +64,8 @@ export const VISIT_SENTIMENT_LABELS: Record<
   VisitSentiment,
   { label: string; tone: string }
 > = {
-  hot: { label: 'Très intéressé', tone: '#EF4444' },
-  warm: { label: 'Intéressé', tone: '#F59E0B' },
-  cool: { label: 'Tiède', tone: '#7A8088' },
-  cold: { label: 'Pas intéressé', tone: '#B5BAC2' },
+  hot: { get label() { return i18n.t('calendar:visit.sentiment.hot') }, tone: '#EF4444' },
+  warm: { get label() { return i18n.t('calendar:visit.sentiment.warm') }, tone: '#F59E0B' },
+  cool: { get label() { return i18n.t('calendar:visit.sentiment.cool') }, tone: '#7A8088' },
+  cold: { get label() { return i18n.t('calendar:visit.sentiment.cold') }, tone: '#B5BAC2' },
 }
