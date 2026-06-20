@@ -4,6 +4,7 @@
 //  - pilule de statut opaque (kycPrimitives)
 //  - tout ce qui est posé sur l'accent utilise sp.onAccent (lisible en sombre)
 
+import { useTranslation } from 'react-i18next'
 import { KYC_CHECK_LABELS, KYC_CHECK_ICONS, fmtDateTime } from '../tokens'
 import { SgIcon } from '../icons'
 import { useKycPalette } from './kycPalette'
@@ -20,6 +21,7 @@ interface Props {
 
 export function KycCheckCard({ category, check, onMarkVerified, actorName }: Props) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
   const label = KYC_CHECK_LABELS[category]
   // is_completed (DB) → mappé sur 'verified' (UI). Un check non required + non completed = 'na'.
   const uiStatus: KycDossierStatus = check?.is_completed
@@ -129,7 +131,7 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
         }}
       >
         <span>
-          {check?.completed_at ? fmtDateTime(check.completed_at) : 'En attente'}
+          {check?.completed_at ? fmtDateTime(check.completed_at) : t('dossier.check.awaiting')}
           {actorName && check?.completed_at && ' · ' + actorName}
         </span>
         {!verified && (
@@ -162,7 +164,7 @@ export function KycCheckCard({ category, check, onMarkVerified, actorName }: Pro
             }}
           >
             <SgIcon name="check" size={12} stroke={sp.onAccent} sw={2.2} />
-            Marquer vérifié
+            {t('dossier.check.markVerified')}
           </button>
         )}
       </div>

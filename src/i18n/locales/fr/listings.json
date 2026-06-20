@@ -489,7 +489,8 @@
       "inbox": "Inbox vendeurs",
       "count_one": "{{count}} soumission",
       "count_other": "{{count}} soumissions",
-      "receivedAgo": "Reçu {{time}}"
+      "receivedAgo": "Reçu {{time}}",
+      "roomsArea": "{{rooms}}p · {{area}}m²"
     },
     "transaction": {
       "rent": "Location",

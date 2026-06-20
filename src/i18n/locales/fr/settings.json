@@ -1127,5 +1127,9 @@
       "desc": "Vos contacts et profil seront anonymisés, vos documents non-KYC supprimés. Les dossiers KYC en cours doivent être finalisés avant. Cette action est irréversible.",
       "confirm": "Supprimer définitivement"
     }
+  },
+  "banner": {
+    "eyebrow": "Paramètres",
+    "more": "Plus"
   }
 }
