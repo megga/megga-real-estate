@@ -1,3 +1,13 @@
+// i18n : la SEULE map de libellés rendue en live depuis ce module est
+// PROPERTY_TYPE_LABELS (ListingFormPage) → getters singleton vers les clés
+// canoniques listings:type.*. Toutes les autres maps de libellés ici sont du
+// CODE MORT (aucun import de la valeur) et restent en FR : PROPERTY_STATUS_LABELS,
+// TRANSACTION_STAGE_LABELS, KYC_RISK_LABELS, KYC_STATUS_LABELS, KYC_TYPE_LABELS
+// (seul consommateur = kyc/mapping.ts, lui-même mort), PEP/SANCTIONS_STATUS_LABELS.
+// NB : les libellés KYC risque/statut RÉELLEMENT rendus vivent dans
+// crm-sugar-v3/tokens.ts (forme {label,tone}), pas ici.
+import i18n from '@/i18n'
+
 export const CANTONS = [
   'GE', 'VD', 'VS', 'NE', 'FR', 'BE', 'JU',
   'BS', 'BL', 'AG', 'SO', 'ZH', 'LU', 'ZG',
@@ -20,15 +30,16 @@ export const PROPERTY_TYPES = [
 
 export type PropertyType = typeof PROPERTY_TYPES[number]
 
+// Libellés rendus en live (ListingForm, fiches) → clés canoniques listings:type.*.
 export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
-  apartment: 'Appartement',
-  house: 'Maison',
-  villa: 'Villa',
-  commercial: 'Commercial',
-  office: 'Bureau',
-  parking: 'Parking / Garage',
-  storage: 'Dépôt / Cave',
-  land: 'Terrain',
+  get apartment()  { return i18n.t('listings:type.apartment') },
+  get house()      { return i18n.t('listings:type.house') },
+  get villa()      { return i18n.t('listings:type.villa') },
+  get commercial() { return i18n.t('listings:type.commercial') },
+  get office()     { return i18n.t('listings:type.office') },
+  get parking()    { return i18n.t('listings:type.parking') },
+  get storage()    { return i18n.t('listings:type.storage') },
+  get land()       { return i18n.t('listings:type.land') },
 }
 
 export const PROPERTY_STATUSES = [
@@ -95,6 +106,7 @@ export const LEGACY_STAGE_MAP: Record<string, TransactionStage> = {
 export const KYC_RISK_LEVELS = ['low', 'medium', 'high', 'unassessed'] as const
 export type KycRiskLevel = typeof KYC_RISK_LEVELS[number]
 
+// CODE MORT (aucun import de la valeur ; le vivant = crm-sugar-v3/tokens.ts) → FR.
 export const KYC_RISK_LABELS: Record<KycRiskLevel, string> = {
   low: 'Faible',
   medium: 'Moyen',
@@ -105,6 +117,7 @@ export const KYC_RISK_LABELS: Record<KycRiskLevel, string> = {
 export const KYC_STATUSES = ['pending', 'in_progress', 'review', 'validated', 'rejected'] as const
 export type KycStatus = typeof KYC_STATUSES[number]
 
+// CODE MORT (aucun import de la valeur ; le vivant = crm-sugar-v3/tokens.ts) → FR.
 export const KYC_STATUS_LABELS: Record<KycStatus, string> = {
   pending: 'En attente',
   in_progress: 'En cours',
