@@ -66,6 +66,13 @@ const SWEEP_WINDOW_DAYS = 8       // un canton est re-crawlé 1×/7j → fenêtr
 const SWEEP_CAP_ABS = 1200        // jamais > 1200 retraits en une passe
 const SWEEP_CAP_PCT = 0.03        // ni > 3% du vivant (au-delà = anomalie → on s'abstient)
 
+// ─── Mode PROBE : oracle id_in (détection de disparition SANS énumération) ───
+// On n'énumère plus le catalogue (throttlé). On DEMANDE « sur ces 36 ids, combien
+// existent encore ? » → GET /api/listings?offerType_eq=buy&id_in=<36 ids>. absent =
+// 36 − total_count. Requête légère/peu profonde → échappe au throttle des requêtes
+// filtrées+paginées (hypothèse mesurée). Détails : runProbe.
+const PROBE_BATCH = 36            // ids distincts par requête id_in (= cap d'une page)
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -103,12 +110,13 @@ interface SyncRequest {
   cantons?: string[]               // override (run de test scopé) ; absent = les 26
   slice_index?: number             // curseur de reprise dans la work-list
   sync_start_at?: string
-  mode?: 'chunk' | 'sweep' | 'fresh' | 'sweep_enum'
+  mode?: 'chunk' | 'sweep' | 'fresh' | 'sweep_enum' | 'probe'
   total_expected?: number
   stats?: SyncStats
   run_id?: string
   trigger_source?: string
   handoff_count?: number
+  max_batches?: number             // mode probe : nb de batchs id_in à sonder
 }
 
 interface SyncStats {
@@ -922,6 +930,103 @@ async function runSweepEnum(body: SyncRequest, supabase: any): Promise<void> {
   }
 }
 
+// ─── Oracle id_in : « sur ces ids, lesquels existent encore ? » ────
+// 1 requête légère pour jusqu'à 36 ids. Renvoie ok=false sur throttle (non-JSON/5xx)
+// → le batch est SAUTÉ (jamais compté comme absent). total_count = nb encore en ligne ;
+// presentIds = ids renvoyés (page 1, non tronquée tant que batch ≤ 36).
+async function fetchIdIn(offerType: string, ids: string[], ident: Identity): Promise<{ ok: boolean; total_count: number; presentIds: string[] }> {
+  const sp = new URLSearchParams()
+  sp.set('offerType_eq', offerType)
+  sp.set('id_in', ids.join(','))
+  sp.set('page', '1')
+  const url = `${RA_BASE}/api/listings?${sp.toString()}`
+  let attempt = 0
+  while (true) {
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json', 'User-Agent': ident.ua, 'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8', ...(ident.from ? { From: ident.from } : {}) },
+      })
+    } catch { return { ok: false, total_count: -1, presentIds: [] } }
+    if (res.ok) {
+      const text = await res.text()
+      try {
+        const body = JSON.parse(text)
+        const listings = (body.listings ?? []) as Array<{ id: number | string }>
+        return { ok: true, total_count: body.total_count ?? 0, presentIds: listings.map((l) => String(l.id)) }
+      } catch {
+        if (attempt < BACKOFF_RETRIES) { await sleep(BACKOFF_BASE_MS * 2 ** attempt); attempt++; continue }
+        return { ok: false, total_count: -1, presentIds: [] } // 200 non-JSON = throttle silencieux
+      }
+    }
+    await res.text().catch(() => {})
+    if (BACKOFF_ON.has(res.status) && attempt < BACKOFF_RETRIES) { await sleep(BACKOFF_BASE_MS * 2 ** attempt); attempt++; continue }
+    return { ok: false, total_count: -1, presentIds: [] }
+  }
+}
+
+// ─── Mode PROBE (DRY-RUN, mesure pure) : valide l'oracle id_in en volume ───────
+// Lecture seule : AUCUNE écriture sur market_listings. Sonde les biens vus il y a le
+// plus longtemps (rolling last_seen ASC), mesure la résistance au throttle (% de
+// batchs nets vs ambigus, dérive début→fin) et la sémantique présent/absent. Garde
+// dure : un batch dont l'array et total_count ne concordent PAS (tronc./throttle) est
+// compté 'ambigu', jamais 'absent'. C'est le test qui décide si on construit le retrait.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runProbe(body: SyncRequest, supabase: any): Promise<void> {
+  const offerType = body.offer_type || 'buy'
+  const maxBatches = body.max_batches ?? 40
+  const triggerSource = body.trigger_source || 'probe-test'
+  const ident = await loadIdentity(supabase)
+  const startedMs = Date.now()
+  try {
+    const { data: rows } = await supabase.from('market_listings')
+      .select('source_id')
+      .eq('source_portal', 'realadvisor').eq('transaction_type', offerType)
+      .in('status', ['active', 'price_reduced'])
+      .order('last_seen_at', { ascending: true })
+      .limit(maxBatches * PROBE_BATCH)
+    const allIds = (rows || []).map((r: { source_id: string }) => String(r.source_id))
+
+    let batches = 0, ok = 0, ambiguous = 0, present = 0, absent = 0
+    const okFlags: boolean[] = []
+    for (let i = 0; i < allIds.length; i += PROBE_BATCH) {
+      if (Date.now() - startedMs > TIME_BUDGET_MS) break
+      if (i > 0) await sleep(PACE_MS)
+      const batch = allIds.slice(i, i + PROBE_BATCH)
+      const res = await fetchIdIn(offerType, batch, ident)
+      batches++
+      // Ambigu = throttle/troncature : ok=false, total_count hors [0..batch], ou array
+      // et count qui ne concordent pas → on NE compte PAS d'absence (sécurité).
+      if (!res.ok || res.total_count < 0 || res.total_count > batch.length) { ambiguous++; okFlags.push(false); continue }
+      const presentSet = new Set(res.presentIds)
+      const absentIds = batch.filter((id) => !presentSet.has(id))
+      if (absentIds.length !== (batch.length - res.total_count)) { ambiguous++; okFlags.push(false); continue }
+      ok++; okFlags.push(true)
+      present += (batch.length - absentIds.length)
+      absent += absentIds.length
+    }
+    const ratio = (a: boolean[]) => (a.length ? Math.round((a.filter(Boolean).length / a.length) * 100) : 0)
+    const summary = `probe(measure) batches=${batches} ok=${ok} ambiguous=${ambiguous} present=${present} absent=${absent} firstOk%=${ratio(okFlags.slice(0, 10))} lastOk%=${ratio(okFlags.slice(-10))} secs=${Math.round((Date.now() - startedMs) / 1000)}`
+    console.log('[probe]', summary)
+    await supabase.from('realadvisor_sync_runs').insert({
+      offer_type: offerType, trigger_source: triggerSource,
+      status: ambiguous > ok ? 'throttled' : 'completed',
+      ended_at: new Date().toISOString(),
+      total_seen: present + absent, total_errors: ambiguous, pages_fetched: batches,
+      error_message: summary,
+    })
+  } catch (err) {
+    console.error('[probe] error:', err)
+    try {
+      await supabase.from('realadvisor_sync_runs').insert({
+        offer_type: offerType, trigger_source: triggerSource, status: 'failed',
+        ended_at: new Date().toISOString(), error_message: String(err).slice(0, 500),
+      })
+    } catch { /* noop */ }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   try {
@@ -930,6 +1035,7 @@ serve(async (req) => {
 
     const work = body.mode === 'fresh' ? runFresh(body, supabase)
       : body.mode === 'sweep_enum' ? runSweepEnum(body, supabase)
+      : body.mode === 'probe' ? runProbe(body, supabase)
       : runBackground(body, supabase)
     // @ts-expect-error EdgeRuntime is a Supabase-specific Deno global
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
