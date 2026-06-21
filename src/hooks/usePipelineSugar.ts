@@ -164,13 +164,16 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
     [transactions],
   )
 
-  // 11. Side effect : remplir le registry runtime après commit.
-  // Les composants UI (SugarStageColumn, DealDetailDrawer, etc.) appellent
-  // `crmContactById(d.contactId)` et `crmBienById(d.bienId)` sans changement.
-  useEffect(() => {
-    for (const c of crmContacts) registerLiveContact(c)
-    for (const b of crmBiens) registerLiveBien(b)
-  }, [crmContacts, crmBiens])
+  // 11. Hydrate le registry runtime SYNCHRONEMENT pendant le render (et non dans
+  // un effet post-commit). Les composants enfants (SugarStageColumn, SugarDealCard,
+  // PipelineList) résolvent les contacts/biens via `crmContactById`/`crmBienById`
+  // au moment où ils montent ; une hydratation post-commit laissait le board collé
+  // vide — `filteredDeals` écarte les deals dont le contact n'est pas encore résolu,
+  // et un contact chargé APRÈS les transactions ne déclenchait aucun recompute.
+  // registerLive* est un Map.set idempotent : sûr à ré-exécuter à chaque render,
+  // sous StrictMode, ou sur un render concurrent abandonné.
+  for (const c of crmContacts) registerLiveContact(c)
+  for (const b of crmBiens) registerLiveBien(b)
 
   // 12. Cleanup au démontage : on libère les overrides pour ne pas polluer
   // les autres pages Sugar v2 encore non câblées (Today, Biens, etc.).

@@ -8,11 +8,9 @@ import {
   CRM_TOKENS, CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette,
   type DarkTone, type StageId,
 } from '@/components/crm-sugar/tokens'
-import { crmBienById, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
+import { type CrmDeal } from '@/components/crm-sugar/mockData'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { SugarPipelineKycLock } from '@/components/crm-sugar-v3/pipeline/SugarPipelineKycLock'
-import { PipelineKycToast } from '@/components/crm-sugar-v3/pipeline/PipelineKycToast'
-import { KycOverrideModal } from '@/components/crm-sugar-v3/pipeline/KycOverrideModal'
 import { useLogAudit } from '@/hooks/useAuditLog'
 import { useToast } from '@/components/ui/Toast'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
@@ -79,9 +77,14 @@ export default function PipelineSugarV2Page() {
   const toast = useToast()
 
   // ── Source de vérité : Supabase via usePipelineSugar ────────────────
-  // Le hook remplit le registry runtime ; crmContactById/crmBienById ci-dessous
-  // renvoient automatiquement les contacts/biens Supabase.
-  const { deals: liveDeals, updateStage, isError: pipelineError, refetch: pipelineRefetch } = usePipelineSugar()
+  // On lit les contacts/biens via les index réactifs `contactsById`/`biensById`
+  // exposés par le hook (et non le registry global, rempli en post-commit) : un
+  // contact qui charge APRÈS les transactions invalide bien `filteredDeals`, qui
+  // ne reste donc plus collé sur un board vide.
+  const {
+    deals: liveDeals, updateStage, isError: pipelineError, refetch: pipelineRefetch,
+    contactsById, biensById,
+  } = usePipelineSugar()
 
   // ── Optimistic overlay (drag-drop fluide) ────────────────────────────
   // React Query invalide après mutation → léger délai. On overlay le stage
@@ -101,16 +104,6 @@ export default function PipelineSugarV2Page() {
   // ── Drag & drop ──────────────────────────────────────────────────────
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<StageId | null>(null)
-
-  // ── KYC override flow (toast + modal motif + audit) ─────────────────
-  // Arbitrage README #2 : drop sur stage sensible bloqué par toast,
-  // bouton "Passer outre" ouvre la modal de motif (min 20 chars),
-  // validation → AuditEvent + drop autorisé.
-  const [kycBlockState, setKycBlockState] = useState<{
-    dealId: string
-    targetStage: StageId
-  } | null>(null)
-  const [overrideOpen, setOverrideOpen] = useState(false)
 
   const applyDrop = (dealId: string, targetStage: StageId) => {
     // Optimistic overlay
@@ -147,13 +140,10 @@ export default function PipelineSugarV2Page() {
     if (!draggingId) return
     const deal = localDeals.find(d => d.id === draggingId)
     if (!deal || deal.stage === targetStage) { handleDragEnd(); return }
-    const kycRequired = ['interest-confirmed', 'offer', 'signed'].includes(targetStage)
-    const contact = crmContactById(deal.contactId)
-    if (kycRequired && contact?.kyc?.status !== 'verified') {
-      // Drop bloqué — affiche toast avec option "Passer outre"
-      setKycBlockState({ dealId: deal.id, targetStage })
-      handleDragEnd(); return
-    }
+    // KYC = compliance-enabling, JAMAIS bloquant : aucun stade ne verrouille le
+    // drag. Le rappel KYC reste affiché en pilule douce (SugarPipelineKycLock),
+    // mais le deal avance toujours. Le notaire finalise (cf KYC non-bloquant).
+    const contact = contactsById.get(deal.contactId)
     applyDrop(deal.id, targetStage)
     // AuditEvent normal : Étape changée (info)
     logAudit.mutate({
@@ -168,42 +158,15 @@ export default function PipelineSugarV2Page() {
     handleDragEnd()
   }
 
-  const handleOverrideConfirm = (reason: string) => {
-    if (!kycBlockState) return
-    const { dealId, targetStage } = kycBlockState
-    const deal = localDeals.find(d => d.id === dealId)
-    const contact = deal ? crmContactById(deal.contactId) : null
-    if (!deal || !contact) {
-      setKycBlockState(null); setOverrideOpen(false); return
-    }
-    applyDrop(dealId, targetStage)
-    // AuditEvent : passage outre verrou KYC
-    // severity = critical si stage 'signed', sinon warn (KYC_ENRICHISSEMENTS §7)
-    const severity = targetStage === 'signed' ? 'critical' : 'warn'
-    logAudit.mutate({
-      category: 'deal',
-      severity,
-      action: 'Passage outre verrou KYC',
-      entityType: 'deal',
-      entityId: deal.id,
-      objectLabel: `${contact.firstName} ${contact.lastName}`,
-      metadata: {
-        from: deal.stage,
-        to: targetStage,
-        reason,
-        contactId: contact.id,
-        kycStatus: contact.kyc?.status ?? 'none',
-      },
-    })
-    setKycBlockState(null)
-    setOverrideOpen(false)
-  }
-
   // ── Filter state ─────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
   const [filterStages, setFilterStages] = useState<StageId[]>(initialFilterStages)
   const [filterRisk, setFilterRisk] = useState<RiskFilterValue>('all')
-  const [filterPeriod, setFilterPeriod] = useState(30)
+  // Défaut = « tout » (0). Un défaut à 30j masquait silencieusement tout deal
+  // dont la dernière activité datait de plus d'un mois (financement en attente,
+  // dossier qui dort) → board vide à l'ouverture. Sur un pipeline transactionnel,
+  // on montre tous les deals par défaut ; l'agent peut restreindre à 7/30/60/90j.
+  const [filterPeriod, setFilterPeriod] = useState(0)
 
   // Consume the `?stage=` query param : on l'a injecté dans filterStages,
   // on retire le param de l'URL pour que F5 ne re-applique pas.
@@ -218,9 +181,9 @@ export default function PipelineSugarV2Page() {
 
   const filteredDeals = useMemo(() => {
     return localDeals.filter(d => {
-      const c = crmContactById(d.contactId)
+      const c = contactsById.get(d.contactId)
       if (!c) return false
-      const b = d.bienId ? crmBienById(d.bienId) : null
+      const b = d.bienId ? biensById.get(d.bienId) ?? null : null
       if (search) {
         const q = search.toLowerCase()
         const inContact = `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
@@ -236,7 +199,9 @@ export default function PipelineSugarV2Page() {
       }
       return true
     })
-  }, [search, filterStages, filterRisk, filterPeriod, localDeals])
+    // contactsById/biensById en deps : recompute dès que les contacts hydratent
+    // (sinon le board reste collé vide, voir note du destructuring usePipelineSugar).
+  }, [search, filterStages, filterRisk, filterPeriod, localDeals, contactsById, biensById])
 
   // Pré-calculé une seule fois par render : un Map de stage → deals filtrés.
   // Évite 9 .filter() séparés appelés inline dans la boucle render des colonnes
@@ -252,9 +217,9 @@ export default function PipelineSugarV2Page() {
     return map
   }, [filteredDeals])
   const filteredByStage = (stage: StageId) => dealsByStage.get(stage) ?? []
-  const activeFilters = (filterStages.length > 0 ? 1 : 0) + (filterRisk !== 'all' ? 1 : 0) + (filterPeriod !== 30 ? 1 : 0)
+  const activeFilters = (filterStages.length > 0 ? 1 : 0) + (filterRisk !== 'all' ? 1 : 0) + (filterPeriod !== 0 ? 1 : 0)
   const resetFilters = () => {
-    setFilterStages([]); setFilterRisk('all'); setFilterPeriod(30); setSearch('')
+    setFilterStages([]); setFilterRisk('all'); setFilterPeriod(0); setSearch('')
   }
 
   // Agrégations basées sur le pipeline complet (non filtré) — memoïsées pour
@@ -288,7 +253,7 @@ export default function PipelineSugarV2Page() {
     return localDeals
       .filter(d => sensitive.includes(d.stage))
       .map(d => {
-        const c = crmContactById(d.contactId)
+        const c = contactsById.get(d.contactId)
         if (!c) return null
         const verified = c.kyc?.status === 'verified'
         if (verified) return null
@@ -298,7 +263,7 @@ export default function PipelineSugarV2Page() {
         }
       })
       .filter((x): x is { id: string; contactFullName: string } => x !== null)
-  }, [localDeals])
+  }, [localDeals, contactsById])
 
   // ── Cmd palette + nav (shared with Today) ────────────────────────────
   const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
@@ -447,7 +412,7 @@ export default function PipelineSugarV2Page() {
             </SugarFilterPill>
             <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.periodHeader')}
               value={filterPeriod === 0 ? t('board.filter.allTime') : t('board.filter.daysShort', { count: filterPeriod })}
-              active={filterPeriod !== 30}>
+              active={filterPeriod !== 0}>
               <SugarPeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
             </SugarFilterPill>
             {activeFilters > 0 && (
@@ -458,8 +423,6 @@ export default function PipelineSugarV2Page() {
               }}>{t('board.filter.reset')}</button>
             )}
           </div>
-
-          {/* KYC block flow : géré hors du <main> via PipelineKycToast + KycOverrideModal */}
 
           {/* Bandeau d'erreur NON bloquant — le board garde ses colonnes affichées (jamais
               masquées), on signale seulement l'échec de fetch + un Réessayer. Un état plein écran
@@ -519,43 +482,6 @@ export default function PipelineSugarV2Page() {
       {/* DealDetailDrawer retiré : ouvrait CRM_DEALS.find qui ne matche jamais
           un UUID réel. openDeal() navigue vers /dashboard/transactions/:id
           (page wired sur transactions). 0 perte de feature. */}
-
-      {/* Toast verrou KYC : apparaît après drop bloqué ; "Passer outre" → modal motif */}
-      {kycBlockState && !overrideOpen && (() => {
-        const stageLabel = CRM_STAGES[kycBlockState.targetStage]
-          ? t(`stages.${kycBlockState.targetStage}`)
-          : kycBlockState.targetStage
-        return (
-          <PipelineKycToast
-            stageLabel={stageLabel}
-            onOverride={() => setOverrideOpen(true)}
-            onDismiss={() => setKycBlockState(null)}
-          />
-        )
-      })()}
-
-      {/* Modal "Passer outre verrou KYC" — motif min 20 chars + audit nLPD */}
-      {overrideOpen && kycBlockState && (() => {
-        const deal = localDeals.find(d => d.id === kycBlockState.dealId)
-        const contact = deal ? crmContactById(deal.contactId) : null
-        const stageLabel = CRM_STAGES[kycBlockState.targetStage]
-          ? t(`stages.${kycBlockState.targetStage}`)
-          : kycBlockState.targetStage
-        const severity: 'warn' | 'critical' = kycBlockState.targetStage === 'signed' ? 'critical' : 'warn'
-        if (!contact) return null
-        return (
-          <KycOverrideModal
-            stageLabel={stageLabel}
-            contactName={`${contact.firstName} ${contact.lastName}`}
-            severity={severity}
-            onCancel={() => {
-              setOverrideOpen(false)
-              setKycBlockState(null)
-            }}
-            onConfirm={handleOverrideConfirm}
-          />
-        )
-      })()}
     </div>
   )
 }

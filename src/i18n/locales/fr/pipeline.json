@@ -278,21 +278,6 @@
     }
   },
   "kyc": {
-    "override": {
-      "eyebrow": "Dérogation · journalisée nLPD",
-      "title": "Passer outre le verrou KYC ?",
-      "body": "Vous allez déplacer le deal de <strong>{{name}}</strong> en <strong>« {{stage}} »</strong> alors que son dossier KYC n'est pas encore validé. Cette action est enregistrée dans le journal d'audit nLPD pendant 10 ans.",
-      "reasonLabel": "Motif de la dérogation",
-      "reasonMinHint": "(minimum {{count}} caractères)",
-      "reasonPlaceholder": "Ex : Client de longue date, mandat de recherche actif depuis 6 mois, KYC en cours de signature. Validation provisoire en attendant la pièce d'identité.",
-      "charCount": "{{count}} / {{min}} caractères",
-      "confirm": "Confirmer & journaliser"
-    },
-    "toast": {
-      "title": "KYC requis pour passer en « {{stage}} »",
-      "subtitle": "Vérifiez le dossier du contact avant de poursuivre.",
-      "override": "Passer outre"
-    },
     "lock": {
       "title": "Rappel non-bloquant, ouvrir les dossiers KYC",
       "pending_one": "<strong>{{count}}</strong> dossier KYC à compléter",

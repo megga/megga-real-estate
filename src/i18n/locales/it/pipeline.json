@@ -273,21 +273,6 @@
     }
   },
   "kyc": {
-    "override": {
-      "eyebrow": "Override · logged under nLPD",
-      "title": "Override the KYC checkpoint?",
-      "body": "You're about to move <strong>{{name}}</strong>'s deal to <strong>\"{{stage}}\"</strong> while their KYC file isn't validated yet. This action is recorded in the nLPD audit log for 10 years.",
-      "reasonLabel": "Reason for the override",
-      "reasonMinHint": "(minimum {{count}} characters)",
-      "reasonPlaceholder": "E.g. Long-standing client, active search mandate for 6 months, KYC pending signature. Provisional approval while we wait for the ID document.",
-      "charCount": "{{count}} / {{min}} characters",
-      "confirm": "Confirm & log"
-    },
-    "toast": {
-      "title": "KYC recommended before moving to \"{{stage}}\"",
-      "subtitle": "Review the contact's file before continuing.",
-      "override": "Override"
-    },
     "lock": {
       "title": "Non-blocking reminder, open the KYC files",
       "pending_one": "<strong>{{count}}</strong> KYC file to complete",
