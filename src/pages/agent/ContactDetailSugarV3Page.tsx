@@ -59,7 +59,7 @@ export default function ContactDetailSugarV3Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
 
-  const { data: contact, isLoading } = useContact(id)
+  const { data: contact, isLoading, isError, refetch } = useContact(id)
   const { data: dossier } = useKycDossierByContact(id)
 
   // Activity events filtrés sur cet entity_id
@@ -114,6 +114,32 @@ export default function ContactDetailSugarV3Page() {
   const onOpenKyc = () => {
     // Deep-link via query param (KYC_ENRICHISSEMENTS §6)
     if (id) navigate(`/dashboard/kyc?openContactId=${encodeURIComponent(id)}`)
+  }
+
+  if (isError && !contact) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: SugarV3.bgGradient,
+          fontFamily: SugarV3.font,
+          color: SugarV3.muted,
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        <div style={{ textAlign: 'center', padding: '0 24px' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: SugarV3.ink, marginBottom: 6 }}>{tr('cd.error.title')}</div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.5, marginBottom: 14 }}>{tr('cd.error.message')}</div>
+          <button
+            onClick={() => refetch()}
+            style={{ height: 34, padding: '0 16px', borderRadius: 999, background: 'transparent', color: SugarV3.ink, border: `1px solid ${SugarV3.muted}`, cursor: 'pointer', fontFamily: SugarV3.font, fontSize: 12.5, fontWeight: 700 }}
+          >
+            {tr('cd.error.retry')}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (isLoading || !contact) {

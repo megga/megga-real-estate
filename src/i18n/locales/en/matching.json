@@ -204,6 +204,11 @@
       "scanCta": "Run a scan",
       "scanning": "Scanning…"
     },
+    "error": {
+      "title": "Couldn't load matches",
+      "desc": "Something went wrong while loading the workshop. Try again.",
+      "retry": "Try again"
+    },
     "queueDone": {
       "title": "Queue cleared",
       "desc": "Every buyer in this tab has been triaged. Switch tabs."

@@ -15,7 +15,7 @@
 //   { token, action: 'get_preferences' }
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -179,7 +179,7 @@ serve(async (req) => {
 // service_role, strictement scopé au property_id/contact_id du token validé.
 // Renvoie les lignes brutes ; l'assemblage final (KPIs, mapping) reste côté hook.
 async function loadPortalData(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   portal: {
     id: string
     contact_id: string

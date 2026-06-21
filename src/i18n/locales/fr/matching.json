@@ -204,6 +204,11 @@
       "scanCta": "Lancer un scan",
       "scanning": "Scan en cours…"
     },
+    "error": {
+      "title": "Impossible de charger les matchs",
+      "desc": "Une erreur est survenue lors du chargement de l'atelier. Réessayez.",
+      "retry": "Réessayer"
+    },
     "queueDone": {
       "title": "File traitée",
       "desc": "Tous les acheteurs de cet onglet ont été triés. Changez d'onglet."

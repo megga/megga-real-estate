@@ -1,4 +1,10 @@
 {
+  "errorBoundary": {
+    "title": "Une erreur est survenue",
+    "body": "Quelque chose s'est mal passé de notre côté. Vous pouvez recharger la page ou revenir à votre tableau de bord.",
+    "reload": "Recharger",
+    "dashboard": "Retour au tableau de bord"
+  },
   "nav": {
     "today": "Aujourd'hui",
     "dashboard": "Dashboard",

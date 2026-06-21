@@ -75,8 +75,8 @@ serve(async (req) => {
       })
     }
 
-    const agency = invitation.agency as { id: string; name: string } | null
-    const inviter = invitation.inviter as { full_name: string } | null
+    const agency = invitation.agency as unknown as { id: string; name: string } | null
+    const inviter = invitation.inviter as unknown as { full_name: string } | null
 
     // ─── PREVIEW: return invitation details ───
     if (!body.action || body.action === 'preview') {

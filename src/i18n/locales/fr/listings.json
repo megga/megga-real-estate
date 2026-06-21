@@ -49,15 +49,6 @@
     "priceOnRequest": "Prix sur demande",
     "addressUnavailable": "Adresse non disponible",
     "description": "Description",
-    "comparison": "Comparaison avec le portefeuille",
-    "aboveMarket": "au-dessus du marché interne",
-    "belowMarket": "en-dessous du marché interne",
-    "aligned": "aligné avec le marché interne",
-    "thisProperty": "Ce bien",
-    "portfolioAvg": "Moy. portefeuille",
-    "range": "Fourchette",
-    "compared": "{{count}} bien comparé",
-    "compared_plural": "{{count}} biens comparés",
     "rooms": "Pièces",
     "surface": "Surface hab.",
     "bathrooms": "SdB",
@@ -117,7 +108,6 @@
       "apartment_terrasse_flat": "Rez-jardin"
     },
     "photoAlt": "Bien immobilier",
-    "comparedCount": "{{count}} bien comparé",
     "aggregatorValue": "RealAdvisor ({{count}} portails)",
     "channelEmail": "Email",
     "channelMessaging": "Messagerie"

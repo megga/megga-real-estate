@@ -27,7 +27,7 @@ const objArc = (cx: number, cy: number, r: number, s: number, e: number): string
 
 export function ObjectifTile({ demo = false }: { demo?: boolean } = {}) {
   const { t } = useTranslation('dashboard')
-  const { data: d } = useAxDashboardData('year', 'me')
+  const { data: d, isError } = useAxDashboardData('year', 'me')
   const seed = DATA.objectif
   // Agent réel → données live (même partielles) ; le seed démo ne sert que derrière
   // `demo`. Réel sans donnée (chargement / agence sans objectif) → « non défini »,
@@ -50,6 +50,14 @@ export function ObjectifTile({ demo = false }: { demo?: boolean } = {}) {
   const ticks = [0, 25, 50, 75, 100]
   const [mx1, my1] = objPol(cx, cy, r + 8, ang(100))
   const [mx2, my2] = objPol(cx, cy, r - 8, ang(100))
+
+  if (!demo && isError && !d) {
+    return (
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 12px' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: TK.ink }}>{t('today.objectif.error.title')}</div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

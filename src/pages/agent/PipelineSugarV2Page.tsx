@@ -81,7 +81,7 @@ export default function PipelineSugarV2Page() {
   // ── Source de vérité : Supabase via usePipelineSugar ────────────────
   // Le hook remplit le registry runtime ; crmContactById/crmBienById ci-dessous
   // renvoient automatiquement les contacts/biens Supabase.
-  const { deals: liveDeals, updateStage } = usePipelineSugar()
+  const { deals: liveDeals, updateStage, isError: pipelineError, refetch: pipelineRefetch } = usePipelineSugar()
 
   // ── Optimistic overlay (drag-drop fluide) ────────────────────────────
   // React Query invalide après mutation → léger délai. On overlay le stage
@@ -461,6 +461,23 @@ export default function PipelineSugarV2Page() {
 
           {/* KYC block flow : géré hors du <main> via PipelineKycToast + KycOverrideModal */}
 
+          {/* Bandeau d'erreur NON bloquant — le board garde ses colonnes affichées (jamais
+              masquées), on signale seulement l'échec de fetch + un Réessayer. Un état plein écran
+              cacherait la structure même quand seul le fetch échoue en arrière-plan. */}
+          {pipelineError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, background: sp.cardBg, boxShadow: sp.shadowSm, color: sp.ink, marginBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{t('board.error.title')}</div>
+                <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>{t('board.error.message')}</div>
+              </div>
+              <button
+                onClick={() => pipelineRefetch()}
+                style={{ height: 30, padding: '0 14px', borderRadius: 999, background: 'transparent', color: sp.ink, border: `1px solid ${sp.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+              >
+                {t('board.error.retry')}
+              </button>
+            </div>
+          )}
           {/* Views */}
           {view === 'kanban' && (
             <div style={{

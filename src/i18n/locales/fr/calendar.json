@@ -107,6 +107,11 @@
     "save": "Enregistrer"
   },
   "page": {
+    "error": {
+      "title": "Impossible de charger l'agenda",
+      "message": "Une erreur est survenue lors du chargement de vos visites et relances. Réessayez dans un instant.",
+      "retry": "Réessayer"
+    },
     "eyebrow": "Calendrier",
     "newEvent": "Nouvel événement",
     "creating": "Création…",
