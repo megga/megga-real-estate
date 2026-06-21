@@ -110,7 +110,7 @@ interface SyncRequest {
   cantons?: string[]               // override (run de test scopé) ; absent = les 26
   slice_index?: number             // curseur de reprise dans la work-list
   sync_start_at?: string
-  mode?: 'chunk' | 'sweep' | 'fresh' | 'sweep_enum' | 'probe'
+  mode?: 'chunk' | 'sweep' | 'fresh' | 'sweep_enum' | 'probe' | 'probe_sweep'
   total_expected?: number
   stats?: SyncStats
   run_id?: string
@@ -966,58 +966,95 @@ async function fetchIdIn(offerType: string, ids: string[], ident: Identity): Pro
   }
 }
 
-// ─── Mode PROBE (DRY-RUN, mesure pure) : valide l'oracle id_in en volume ───────
-// Lecture seule : AUCUNE écriture sur market_listings. Sonde les biens vus il y a le
-// plus longtemps (rolling last_seen ASC), mesure la résistance au throttle (% de
-// batchs nets vs ambigus, dérive début→fin) et la sémantique présent/absent. Garde
-// dure : un batch dont l'array et total_count ne concordent PAS (tronc./throttle) est
-// compté 'ambigu', jamais 'absent'. C'est le test qui décide si on construit le retrait.
+// ─── Mode PROBE : bookkeeping de disparition par oracle id_in ──────────────────
+// Sonde les biens DUS (last_probe_at NULL ou > 20h, absents prioritaires), par batchs
+// de 36. présent → RPC refresh + reset compteur ; absent → RPC incrément espacé. Garde
+// dure : un batch dont l'array et total_count ne concordent PAS (throttle/troncature)
+// est 'ambigu' → AUCUNE écriture (jamais compté absent). Ne supprime RIEN (cf
+// runProbeSweep). Kill-switch realadvisor_probe_enabled.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runProbe(body: SyncRequest, supabase: any): Promise<void> {
   const offerType = body.offer_type || 'buy'
   const maxBatches = body.max_batches ?? 40
-  const triggerSource = body.trigger_source || 'probe-test'
+  const triggerSource = body.trigger_source || 'cron-probe'
+  if ((await getConfigValue(supabase, 'realadvisor_probe_enabled')) === 'false') {
+    console.warn('[probe] kill-switch off (realadvisor_probe_enabled=false) — abort'); return
+  }
   const ident = await loadIdentity(supabase)
   const startedMs = Date.now()
+  // Cutoff sans millisecondes (les '.' casseraient le filtre .or() PostgREST).
+  const gapCutoff = new Date(Date.now() - 20 * 3600 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
   try {
     const { data: rows } = await supabase.from('market_listings')
       .select('source_id')
       .eq('source_portal', 'realadvisor').eq('transaction_type', offerType)
       .in('status', ['active', 'price_reduced'])
-      .order('last_seen_at', { ascending: true })
+      .or(`last_probe_at.is.null,last_probe_at.lt.${gapCutoff}`)
+      .order('absent_probe_count', { ascending: false })
+      .order('last_probe_at', { ascending: true, nullsFirst: true })
       .limit(maxBatches * PROBE_BATCH)
     const allIds = (rows || []).map((r: { source_id: string }) => String(r.source_id))
 
     let batches = 0, ok = 0, ambiguous = 0, present = 0, absent = 0
-    const okFlags: boolean[] = []
     for (let i = 0; i < allIds.length; i += PROBE_BATCH) {
       if (Date.now() - startedMs > TIME_BUDGET_MS) break
       if (i > 0) await sleep(PACE_MS)
       const batch = allIds.slice(i, i + PROBE_BATCH)
       const res = await fetchIdIn(offerType, batch, ident)
       batches++
-      // Ambigu = throttle/troncature : ok=false, total_count hors [0..batch], ou array
-      // et count qui ne concordent pas → on NE compte PAS d'absence (sécurité).
-      if (!res.ok || res.total_count < 0 || res.total_count > batch.length) { ambiguous++; okFlags.push(false); continue }
+      if (!res.ok || res.total_count < 0 || res.total_count > batch.length) { ambiguous++; continue }
       const presentSet = new Set(res.presentIds)
       const absentIds = batch.filter((id) => !presentSet.has(id))
-      if (absentIds.length !== (batch.length - res.total_count)) { ambiguous++; okFlags.push(false); continue }
-      ok++; okFlags.push(true)
-      present += (batch.length - absentIds.length)
-      absent += absentIds.length
+      if (absentIds.length !== (batch.length - res.total_count)) { ambiguous++; continue }
+      const presentIds = batch.filter((id) => presentSet.has(id))
+      ok++; present += presentIds.length; absent += absentIds.length
+      const { error } = await supabase.rpc('realadvisor_probe_bookkeep', {
+        p_present: presentIds, p_absent: absentIds, p_min_gap_hours: 20,
+      })
+      if (error) console.error('[probe] bookkeep error:', error.message)
     }
-    const ratio = (a: boolean[]) => (a.length ? Math.round((a.filter(Boolean).length / a.length) * 100) : 0)
-    const summary = `probe(measure) batches=${batches} ok=${ok} ambiguous=${ambiguous} present=${present} absent=${absent} firstOk%=${ratio(okFlags.slice(0, 10))} lastOk%=${ratio(okFlags.slice(-10))} secs=${Math.round((Date.now() - startedMs) / 1000)}`
+    const summary = `probe batches=${batches} ok=${ok} ambiguous=${ambiguous} present=${present} absent=${absent} secs=${Math.round((Date.now() - startedMs) / 1000)}`
     console.log('[probe]', summary)
     await supabase.from('realadvisor_sync_runs').insert({
       offer_type: offerType, trigger_source: triggerSource,
-      status: ambiguous > ok ? 'throttled' : 'completed',
+      status: (batches > 0 && ambiguous >= batches) ? 'throttled' : 'completed',
       ended_at: new Date().toISOString(),
-      total_seen: present + absent, total_errors: ambiguous, pages_fetched: batches,
+      total_seen: present + absent, total_updated: present, total_errors: ambiguous, pages_fetched: batches,
       error_message: summary,
     })
   } catch (err) {
     console.error('[probe] error:', err)
+    try {
+      await supabase.from('realadvisor_sync_runs').insert({
+        offer_type: offerType, trigger_source: triggerSource, status: 'failed',
+        ended_at: new Date().toISOString(), error_message: String(err).slice(0, 500),
+      })
+    } catch { /* noop */ }
+  }
+}
+
+// ─── Mode PROBE_SWEEP : retrait des absents CONFIRMÉS (délègue à la RPC) ────────
+// Retire (status='removed') les biens absent_probe_count≥3 ET absent≥48h, plafonds
+// 1200/3%. DRY-RUN tant que realadvisor_probe_apply ≠ 'true'. Pas de verrou singleton.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function runProbeSweep(body: SyncRequest, supabase: any): Promise<void> {
+  const offerType = body.offer_type || 'buy'
+  const triggerSource = body.trigger_source || 'cron-probe-sweep'
+  const apply = (await getConfigValue(supabase, 'realadvisor_probe_apply')) === 'true'
+  try {
+    const { data, error } = await supabase.rpc('realadvisor_probe_sweep', { p_offer_type: offerType, p_apply: apply })
+    if (error) throw error
+    const r = (data ?? {}) as { status?: string; candidates?: number; live?: number; removed?: number }
+    const status = r.status === 'completed' ? 'completed' : r.status === 'safety_skipped' ? 'safety_skipped' : 'dry_run'
+    await supabase.from('realadvisor_sync_runs').insert({
+      offer_type: offerType, trigger_source: triggerSource, status,
+      ended_at: new Date().toISOString(),
+      total_removed: r.removed ?? 0, total_seen: r.live ?? 0,
+      error_message: `probe_sweep apply=${apply} candidates=${r.candidates ?? 0} live=${r.live ?? 0} removed=${r.removed ?? 0} rpc=${r.status}`,
+    })
+    console.log(`[probe_sweep] apply=${apply}`, r)
+  } catch (err) {
+    console.error('[probe_sweep] error:', err)
     try {
       await supabase.from('realadvisor_sync_runs').insert({
         offer_type: offerType, trigger_source: triggerSource, status: 'failed',
@@ -1036,6 +1073,7 @@ serve(async (req) => {
     const work = body.mode === 'fresh' ? runFresh(body, supabase)
       : body.mode === 'sweep_enum' ? runSweepEnum(body, supabase)
       : body.mode === 'probe' ? runProbe(body, supabase)
+      : body.mode === 'probe_sweep' ? runProbeSweep(body, supabase)
       : runBackground(body, supabase)
     // @ts-expect-error EdgeRuntime is a Supabase-specific Deno global
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
