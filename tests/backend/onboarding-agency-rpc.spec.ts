@@ -36,6 +36,15 @@ describe.skipIf(!HAS_KEYS)('regression — onboarding agency RPCs (create_agency
     if (error) throw new Error(`createUser ${label}: ${error.message}`)
     const id = data.user!.id
     userIds.push(id)
+    // Le profil n'est pas garanti auto-créé par handle_new_user dans l'env de test
+    // (cf helpers/two-agencies qui upsert explicitement). On le pose en agency_id NULL
+    // (état pré-onboarding) pour que create_agency_and_join / join_agency aient bien une
+    // ligne à mettre à jour (UPDATE profiles ... WHERE id = auth.uid()).
+    const { error: pErr } = await svc.from('profiles').upsert(
+      { id, email, full_name: `Onb ${label}`, role: 'agent', agency_id: null },
+      { onConflict: 'id' },
+    )
+    if (pErr) throw new Error(`profile upsert ${label}: ${pErr.message}`)
     const client = createClient(URL, ANON, { auth: { persistSession: false, autoRefreshToken: false } })
     const { error: sErr } = await client.auth.signInWithPassword({ email, password: PW })
     if (sErr) throw new Error(`signin ${label}: ${sErr.message}`)
