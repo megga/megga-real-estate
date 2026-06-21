@@ -57,9 +57,12 @@ serve(async (req: Request) => {
     let manifest: C2paManifest | null = null
 
     try {
-      // Tentative de chargement c2pa-wasm (peut échouer si non supporté)
-      // @ts-expect-error — dynamic import conditionnel, c2pa-wasm peut ne pas être disponible
-      const c2pa = await import('npm:c2pa-wasm')
+      // Tentative de chargement c2pa-wasm (peut échouer si non supporté).
+      // Spécifieur indirect : dépendance optionnelle (Phase 2), non publiée sur npm
+      // aujourd'hui → non résolue statiquement par `deno check`. Chargement best-effort
+      // au runtime, protégé par le try/catch + fallback JUMBF ci-dessous.
+      const c2paSpecifier = 'npm:c2pa-wasm'
+      const c2pa = await import(c2paSpecifier)
       if (c2pa && typeof c2pa.read === 'function') {
         const result = await c2pa.read(new Uint8Array(photoBuffer))
         if (result && result.manifests && result.manifests.length > 0) {
