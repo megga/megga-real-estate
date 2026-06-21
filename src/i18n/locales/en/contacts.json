@@ -757,7 +757,12 @@
     "insightNextAction": "Suggested next action",
     "insightFooter_one": "AI estimate · {{count}} message analyzed · {{date}}",
     "insightFooter_other": "AI estimate · {{count}} messages analyzed · {{date}}",
-    "loading": "Loading contact…"
+    "loading": "Loading contact…",
+    "error": {
+      "title": "Couldn't load this contact",
+      "message": "Something went wrong. Check your connection, then try again.",
+      "retry": "Try again"
+    }
   },
   "ctKyc": {
     "title": "KYC / AML compliance",

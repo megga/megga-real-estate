@@ -59,7 +59,7 @@ export default function CalendarSugarV2Page() {
   const SP = buildCalPalette(dark, t)
 
   // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
-  const { events, hotBuyers } = useCalendarSugar()
+  const { events, hotBuyers, isError: calendarError, refetch: calendarRefetch } = useCalendarSugar()
   const { createVisit, isCreating: isCreatingVisit } = useVisits()
   const { createReminder, isCreating: isCreatingReminder } = useReminders()
   const queryClient = useQueryClient()
@@ -468,6 +468,22 @@ export default function CalendarSugarV2Page() {
               {isCreating ? tr('page.creating') : tr('page.newEvent')}
             </button>
           </div>
+
+          {/* Bandeau d'erreur — visites/relances non chargées (les vues restent affichées vides) */}
+          {calendarError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, background: SP.card, boxShadow: SP.shadowSm, color: SP.ink, marginBottom: 14 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{tr('page.error.title')}</div>
+                <div style={{ fontSize: 12, color: SP.muted, marginTop: 2 }}>{tr('page.error.message')}</div>
+              </div>
+              <button
+                onClick={() => calendarRefetch()}
+                style={{ height: 30, padding: '0 14px', borderRadius: 999, border: `1px solid ${SP.line}`, background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+              >
+                {tr('page.error.retry')}
+              </button>
+            </div>
+          )}
 
           {/* Body */}
           <div

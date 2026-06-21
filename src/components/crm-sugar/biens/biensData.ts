@@ -9,6 +9,10 @@ export interface CrmSubmission {
   id: string
   submittedAt: string
   contactId: string | null
+  /** Real seller name from seller_leads.contact_name (never mockData) */
+  contactName: string
+  /** Real seller email from seller_leads.contact_email (honest fallback) */
+  contactEmail: string
   contactDraft?: {
     firstName: string
     lastName: string

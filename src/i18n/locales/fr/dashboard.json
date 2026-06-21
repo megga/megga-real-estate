@@ -250,6 +250,7 @@
       }
     },
     "agenda": {
+      "error": { "title": "Données indisponibles" },
       "next": "Ensuite",
       "empty": "Plus rien après, journée dégagée.",
       "call": "Appeler",
@@ -276,6 +277,7 @@
       "tempCold": "froids"
     },
     "pipeline": {
+      "error": { "title": "Données indisponibles" },
       "stages": {
         "searching": "Recherche active",
         "visit": "Visite planifiée",
@@ -287,6 +289,7 @@
       "riskOverdue": "Échéance dépassée"
     },
     "objectif": {
+      "error": { "title": "Données indisponibles" },
       "realized": "réalisé",
       "realizedNoTarget": "réalisé · objectif non défini",
       "target": "cible"

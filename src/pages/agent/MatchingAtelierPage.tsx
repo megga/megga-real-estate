@@ -41,7 +41,7 @@ export default function MatchingAtelierPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const dark = useSugarDark()
   const { user, profile } = useAuth()
-  const { isLoading, pivots, pivotByKey, defaultPivotKey, poolFor, buyerFor, refresh } = useAtelierMatching()
+  const { isLoading, isError, pivots, pivotByKey, defaultPivotKey, poolFor, buyerFor, refresh } = useAtelierMatching()
 
   // ── pivots (annonce ?annonce= · acheteur ?contact=) ─────────────────────
   const annonceParam = searchParams.get('annonce')
@@ -162,6 +162,8 @@ export default function MatchingAtelierPage() {
       key={errorKey /* une erreur post-flush rafraîchit l'étage (rows réelles) */}
       dark={dark}
       isLoading={isLoading}
+      isError={isError}
+      onRetry={refresh}
       pivot={pivot}
       pivotBuyer={pivotBuyer}
       pool={pool}

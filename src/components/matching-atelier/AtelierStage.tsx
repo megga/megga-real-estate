@@ -32,6 +32,10 @@ interface AtelierToast {
 export interface AtelierStageProps {
   dark: boolean
   isLoading: boolean
+  /** true si la query a échoué — affiche l'état d'erreur au lieu de l'empty */
+  isError?: boolean
+  /** relance le scan/refresh depuis l'état d'erreur */
+  onRetry?: () => void
   /** pivot annonce courant (null = aucun match) */
   pivot: AtelierPivot | null
   /** pivot acheteur (mode « Par acheteur ») */
@@ -49,7 +53,7 @@ export interface AtelierStageProps {
 }
 
 export default function AtelierStage({
-  dark, isLoading, pivot, pivotBuyer, pool, poolCountFor, gestes,
+  dark, isLoading, isError, onRetry, pivot, pivotBuyer, pool, poolCountFor, gestes,
   onClose, onOpenDeal, onOpenBuyerPivot, onCloseBuyerPivot, onStartKyc, emptyAction,
 }: AtelierStageProps) {
   const { t } = useTranslation('matching')
@@ -256,6 +260,20 @@ export default function AtelierStage({
             <section className="sga-panel sga-enter d1" />
             <section className="sga-panel sga-enter d2" />
           </>
+        ) : isError ? (
+          <section className="sga-panel sga-enter" style={{ gridColumn: '1 / -1' }}>
+            <div className="sga-empty">
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                <div className="t4 semi" style={{ color: 'var(--ink)' }}>{t('atelier.error.title')}</div>
+                <div className="t1 muted" style={{ maxWidth: 320 }}>{t('atelier.error.desc')}</div>
+                {onRetry && (
+                  <button className="btn btn-ghost" onClick={onRetry}>
+                    <SgaIcon d="refresh" size={15} /> {t('atelier.error.retry')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
         ) : !pivot ? (
           <section className="sga-panel sga-enter" style={{ gridColumn: '1 / -1' }}>
             <div className="sga-empty">

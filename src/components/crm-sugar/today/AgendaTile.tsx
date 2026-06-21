@@ -137,7 +137,7 @@ function AgfRow({ a, hovered, onHover }: { a: AgendaItem; hovered: boolean; onHo
 export function AgendaTile({ demo = false }: { demo?: boolean } = {}) {
   const { t } = useTranslation('dashboard')
   const [hover, setHover] = useState<number | null>(null)
-  const { events } = useCalendarSugar()
+  const { events, isError } = useCalendarSugar()
 
   const today = useMemo<AgendaRow[]>(() => {
     const now = new Date()
@@ -154,6 +154,14 @@ export function AgendaTile({ demo = false }: { demo?: boolean } = {}) {
   const rest = agenda.filter((a) => !a.now && !a.done)
   const done = agenda.filter((a) => a.done)
   const heroRel = live ? relText(next?.start, t) : t('today.agenda.inMinutes', { count: 7 })
+
+  if (live && isError) {
+    return (
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center', padding: '0 12px' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: TK.ink }}>{t('today.agenda.error.title')}</div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

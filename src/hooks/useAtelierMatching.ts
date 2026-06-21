@@ -279,6 +279,8 @@ const MATCH_SELECT =
 
 export interface UseAtelierMatchingReturn {
   isLoading: boolean
+  /** true si la query matches ou kyc a échoué — état d'erreur de l'atelier. */
+  isError: boolean
   pivots: AtelierPivot[]
   pivotByKey: Map<string, AtelierPivot>
   defaultPivotKey: string | null
@@ -293,7 +295,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
 
-  const { data: rawMatches = [], isLoading: matchesLoading } = useQuery({
+  const { data: rawMatches = [], isLoading: matchesLoading, isError: matchesError } = useQuery({
     queryKey: ['atelier-matches', agencyId],
     queryFn: async (): Promise<RawMatch[]> => {
       if (!agencyId) return []
@@ -313,7 +315,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
     [rawMatches],
   )
 
-  const { data: kycCases = [], isLoading: kycLoading } = useQuery({
+  const { data: kycCases = [], isLoading: kycLoading, isError: kycError } = useQuery({
     queryKey: ['atelier-kyc', agencyId, buyerIds],
     queryFn: async (): Promise<KycCase[]> => {
       if (!agencyId || buyerIds.length === 0) return []
@@ -420,11 +422,13 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   const queryClient = useQueryClient()
   const refresh = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['atelier-matches'] })
+    void queryClient.invalidateQueries({ queryKey: ['atelier-kyc'] })
     void queryClient.invalidateQueries({ queryKey: ['matches'] })
   }, [queryClient])
 
   return {
     isLoading: matchesLoading || kycLoading,
+    isError: matchesError || kycError,
     pivots,
     pivotByKey,
     defaultPivotKey: pivots[0]?.listing.key ?? null,

@@ -4,7 +4,6 @@
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { crmContactById } from '../mockData'
 import type { SugarPalette } from '../tokens'
 import { BnPhoto } from './BnPhoto'
 import { bnFmtCHF, bnRelative } from './helpers'
@@ -209,13 +208,7 @@ export function BnSubmissionsDrawer({
           }}
         >
           {subs.map(s => {
-            const c = s.contactId ? crmContactById(s.contactId) : null
-            const draft = s.contactDraft
-            const fullName = c
-              ? c.firstName + ' ' + c.lastName
-              : draft
-                ? draft.firstName + ' ' + draft.lastName
-                : t('biens.seller')
+            const fullName = s.contactName || s.contactEmail || t('biens.seller')
             const isUrgent = s.sla && s.sla.includes('24h')
             return (
               <button
