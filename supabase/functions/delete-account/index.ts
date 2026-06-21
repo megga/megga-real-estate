@@ -160,7 +160,6 @@ serve(async (req) => {
     for (const ownerCol of ['user_id', 'assigned_to', 'created_by']) {
       const { error: contactsErr } = await admin
         .from('contacts')
-        // @ts-expect-error dynamic column
         .update({
           first_name: 'Supprimé',
           last_name: '',

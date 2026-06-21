@@ -59,6 +59,23 @@ jobs:
         # Garde-fou i18n : échoue si une clé FR n'a pas sa contrepartie EN (ou inverse).
         run: npm run i18n:parity:ci
 
+      - name: Setup Deno
+        # Edge Functions (supabase/functions/**) tournent sur Deno, pas Node : elles
+        # échappent à tsc (exclu du build front) et à vitest (imports https: non résolus).
+        # Épinglé 2.x, aligné sur supabase/config.toml (deno_version = 2).
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type-check Edge Functions (deno check)
+        # Garde-fou backend : `deno check` sur toutes les Edge Functions hors *.test.ts.
+        # Seul filet de type sur le code Deno → BLOQUANT (jamais `|| true`).
+        # mapfile + find -print0 : robuste aux espaces/caractères spéciaux (bash 5 sur ubuntu).
+        run: |
+          mapfile -d '' files < <(find supabase/functions -name '*.ts' ! -name '*.test.ts' -print0)
+          echo "Type-checking ${#files[@]} Edge Function files…"
+          deno check --no-lock "${files[@]}"
+
       - name: Run unit tests
         # No --coverage: keep this step fast (it is the PR's quickest check).
         run: npm run test:unit
