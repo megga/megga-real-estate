@@ -118,7 +118,7 @@ async function r2Put(key: string, body: Uint8Array, contentType: string): Promis
   try {
     const res = await r2.fetch(url, {
       method: 'PUT',
-      body,
+      body: body as unknown as BodyInit,
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000, immutable',

@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import {
   calculateScoreV2,
@@ -65,7 +65,7 @@ serve(async (req) => {
     const body = (await req.json()) as RequestBody & { agency_id?: string }
     const { mode, property_id, contact_id, include_market = true } = body
 
-    let supabase: ReturnType<typeof createClient>
+    let supabase: SupabaseClient
     let agency_id: string
 
     if (isServiceRole) {
