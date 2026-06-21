@@ -1,0 +1,51 @@
+<!-- @dsCard group="Foundations" -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Typographie — MEGGA Vitrine</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="../css/styles.css" rel="stylesheet" type="text/css" />
+  <style>
+    /* thème sombre vitrine — les samples utilisent les vraies classes .display-* de styles.css */
+    body { font-family: "Inter Tight", sans-serif; margin: 0; padding: 40px; background: var(--neutral-colors--100); color: #ececef; }
+    h1.t { font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; color: #fff; }
+    .sub { color: #8e8e96; font-size: 14px; margin: 0 0 32px; }
+    .sub code { color: #b2cdff; } .sub strong { color: #ececef; }
+    h2.s { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #8e8e96; margin: 32px 0 16px; }
+    .line { display: flex; align-items: baseline; gap: 20px; padding: 10px 0; border-bottom: 1px solid #1e1e21; }
+    .tag { flex: 0 0 130px; font-size: 12px; color: #8e8e96; font-family: "Inter", monospace; }
+    .sample { color: #fff; letter-spacing: -0.02em; }
+    .weights { display: flex; gap: 28px; flex-wrap: wrap; font-size: 22px; color: #ececef; }
+    .weights span { display: block; font-size: 11px; color: #8e8e96; font-family: "Inter", monospace; margin-top: 4px; letter-spacing: 0; }
+  </style>
+</head>
+<body>
+  <h1 class="t">Typographie</h1>
+  <p class="sub">Police de marque <strong>Inter Tight</strong> · échelle <code>.display-1 → .display-10</code> (line-height 1.25 / 1.15)</p>
+
+  <h2 class="s">Échelle d'affichage</h2>
+  <div class="line"><div class="tag">display-10 · 72px</div><div class="sample display-10">Megga</div></div>
+  <div class="line"><div class="tag">display-9 · 60px</div><div class="sample display-9">Le CRM immobilier</div></div>
+  <div class="line"><div class="tag">display-8 · 48px</div><div class="sample display-8">Piloté depuis WhatsApp</div></div>
+  <div class="line"><div class="tag">display-7 · 36px</div><div class="sample display-7">Compliance-first</div></div>
+  <div class="line"><div class="tag">display-6 · 30px</div><div class="sample display-6">Transaction OS immobilier</div></div>
+  <div class="line"><div class="tag">display-5 · 24px</div><div class="sample display-5">Contacts, agenda, relances</div></div>
+  <div class="line"><div class="tag">display-4 · 20px</div><div class="sample display-4">Tout le métier de courtier réuni</div></div>
+  <div class="line"><div class="tag">display-3 · 18px</div><div class="sample display-3">Un outil suisse, conforme LBA, assisté par l'IA</div></div>
+  <div class="line"><div class="tag">display-2 · 16px</div><div class="sample display-2">Essai gratuit, sans carte bancaire</div></div>
+  <div class="line"><div class="tag">display-1 · 14px</div><div class="sample display-1">Légende, métadonnées, libellés secondaires</div></div>
+
+  <h2 class="s">Graisses — Inter Tight</h2>
+  <div class="weights">
+    <div style="font-weight:400">Regular<span>400</span></div>
+    <div style="font-weight:500">Medium<span>500</span></div>
+    <div style="font-weight:600">Semibold<span>600</span></div>
+    <div style="font-weight:700">Bold<span>700</span></div>
+    <div style="font-weight:800">Extrabold<span>800</span></div>
+  </div>
+</body>
+</html>

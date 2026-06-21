@@ -1,0 +1,65 @@
+<!-- @dsCard group="Foundations" -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radius &amp; Spacing — MEGGA Vitrine</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="../css/styles.css" rel="stylesheet" type="text/css" />
+  <style>
+    /* thème sombre vitrine — les formes lisent les vrais tokens --main-border-radius / --main-spacers */
+    body { font-family: "Inter Tight", sans-serif; margin: 0; padding: 40px; background: var(--neutral-colors--100); color: #ececef; }
+    h1 { font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; color: #fff; }
+    .sub { color: #8e8e96; font-size: 14px; margin: 0 0 32px; }
+    .sub code { color: #b2cdff; }
+    h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #8e8e96; margin: 32px 0 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+    .r { text-align: center; }
+    .r .box { height: 80px; background: #161618; border: 1.5px solid var(--primary-colors--100); }
+    .r .name { font-size: 12px; font-weight: 600; margin-top: 8px; color: #ececef; }
+    .r .val { font-size: 11px; color: #8e8e96; font-family: "Inter", monospace; }
+    .stack { display: flex; flex-direction: column; gap: 10px; }
+    .sp { display: flex; align-items: center; gap: 12px; }
+    .sp .bar { height: 16px; background: var(--primary-colors--100); border-radius: 3px; }
+    .sp .lbl { font-size: 12px; color: #ececef; }
+    .sp .lbl b { font-weight: 600; } .sp .lbl span { color:#8e8e96; font-family:"Inter",monospace; }
+  </style>
+</head>
+<body>
+  <h1>Radius &amp; Spacing</h1>
+  <p class="sub">Tokens <code>--main-border-radius--*</code> et <code>--main-spacers--*</code></p>
+
+  <h2>Border radius</h2>
+  <div class="grid">
+    <div class="r"><div class="box" style="border-radius:var(--main-border-radius--br-3x-extra-small)"></div><div class="name">br-3x-extra-small</div><div class="val">6px</div></div>
+    <div class="r"><div class="box" style="border-radius:var(--main-border-radius--br-2x-extra-small)"></div><div class="name">br-2x-extra-small</div><div class="val">8px</div></div>
+    <div class="r"><div class="box" style="border-radius:var(--main-border-radius--br-extra-small)"></div><div class="name">br-extra-small</div><div class="val">12px</div></div>
+    <div class="r"><div class="box" style="border-radius:var(--main-border-radius--br-small)"></div><div class="name">br-small</div><div class="val">16px</div></div>
+    <div class="r"><div class="box" style="border-radius:var(--main-border-radius--br-medium)"></div><div class="name">br-medium</div><div class="val">20px</div></div>
+    <div class="r"><div class="box" style="border-radius:var(--main-border-radius--br-large)"></div><div class="name">br-large</div><div class="val">24px</div></div>
+    <div class="r"><div class="box" style="border-radius:var(--main-border-radius--br-extra-large)"></div><div class="name">br-extra-large</div><div class="val">32px</div></div>
+    <div class="r"><div class="box" style="border-radius:var(--main-border-radius--br-2x-extra-large)"></div><div class="name">br-2x-extra-large</div><div class="val">200px (pill)</div></div>
+  </div>
+
+  <h2>Spacing</h2>
+  <div class="stack">
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--5x-extra-small)"></div><div class="lbl"><b>5x-extra-small</b> <span>4px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--4x-extra-small)"></div><div class="lbl"><b>4x-extra-small</b> <span>8px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--3x-extra-small)"></div><div class="lbl"><b>3x-extra-small</b> <span>12px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--2x-extra-small)"></div><div class="lbl"><b>2x-extra-small</b> <span>16px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--extra-small)"></div><div class="lbl"><b>extra-small</b> <span>20px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--small)"></div><div class="lbl"><b>small</b> <span>24px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--regular)"></div><div class="lbl"><b>regular</b> <span>32px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--medium)"></div><div class="lbl"><b>medium</b> <span>40px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--large)"></div><div class="lbl"><b>large</b> <span>48px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--extra-large)"></div><div class="lbl"><b>extra-large</b> <span>56px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--2x-extra-large)"></div><div class="lbl"><b>2x-extra-large</b> <span>64px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--3x-extra-large)"></div><div class="lbl"><b>3x-extra-large</b> <span>72px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--4x-extra-large)"></div><div class="lbl"><b>4x-extra-large</b> <span>80px</span></div></div>
+    <div class="sp"><div class="bar" style="width:var(--main-spacers--5x-extra-large)"></div><div class="lbl"><b>5x-extra-large</b> <span>90px</span></div></div>
+  </div>
+</body>
+</html>
