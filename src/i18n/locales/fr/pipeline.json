@@ -213,6 +213,11 @@
     }
   },
   "board": {
+    "error": {
+      "title": "Impossible de charger le pipeline",
+      "message": "Une erreur est survenue. Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer"
+    },
     "noPropertyYet": "Recherche active",
     "dealsCount_one": "{{count}} deal",
     "dealsCount_other": "{{count}} deals",

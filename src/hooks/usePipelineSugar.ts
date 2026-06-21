@@ -35,6 +35,10 @@ import {
 export interface UsePipelineSugarReturn {
   deals: CrmDeal[]
   isLoading: boolean
+  /** true si l'une des 4 queries (transactions/contacts/kyc/properties) a échoué. */
+  isError: boolean
+  /** relance les 4 queries du pipeline (bouton « Réessayer » des surfaces). */
+  refetch: () => void
   updateStage: ReturnType<typeof useUpdateTransactionStage>
   /** Index contact/bien résolus (Supabase) — items Focus auto-suffisants
    *  sans dépendre du registry runtime global (fragile au démontage). */
@@ -50,7 +54,7 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
   const agencyId = profile?.agency_id
 
   // 1. Transactions de l'agence (RLS agency-scopée)
-  const { data: transactions = [], isLoading: txLoading } = useTransactions()
+  const { data: transactions = [], isLoading: txLoading, isError: txError, refetch: refetchTx } = useTransactions()
 
   // 2. IDs contacts (buyer + seller) à hydrater
   const contactIds = useMemo(() => {
@@ -70,7 +74,7 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
   }, [transactions])
 
   // 4. Contacts complets (la jointure useTransactions ne ramène que first/last_name)
-  const { data: rawContacts = [], isLoading: contactsLoading } = useQuery({
+  const { data: rawContacts = [], isLoading: contactsLoading, isError: contactsError, refetch: refetchContacts } = useQuery({
     queryKey: ['pipeline-sugar-contacts', agencyId, contactIds],
     queryFn: async (): Promise<Contact[]> => {
       if (!agencyId || contactIds.length === 0) return []
@@ -85,7 +89,7 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
   })
 
   // 5. KYC dossiers acheteurs (verrou pipeline §SugarPipelineKycLock)
-  const { data: kycCases = [], isLoading: kycLoading } = useQuery({
+  const { data: kycCases = [], isLoading: kycLoading, isError: kycError, refetch: refetchKyc } = useQuery({
     queryKey: ['pipeline-sugar-kyc', agencyId, contactIds],
     queryFn: async (): Promise<KycCase[]> => {
       if (!agencyId || contactIds.length === 0) return []
@@ -102,7 +106,7 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
   })
 
   // 6. Properties complètes (la jointure useTransactions est légère)
-  const { data: rawProperties = [], isLoading: propsLoading } = useQuery({
+  const { data: rawProperties = [], isLoading: propsLoading, isError: propsError, refetch: refetchProps } = useQuery({
     queryKey: ['pipeline-sugar-properties', agencyId, propertyIds],
     queryFn: async (): Promise<Property[]> => {
       if (!agencyId || propertyIds.length === 0) return []
@@ -192,6 +196,13 @@ export function usePipelineSugar(): UsePipelineSugarReturn {
   return {
     deals,
     isLoading: txLoading || contactsLoading || kycLoading || propsLoading,
+    isError: txError || contactsError || kycError || propsError,
+    refetch: () => {
+      void refetchTx()
+      void refetchContacts()
+      void refetchKyc()
+      void refetchProps()
+    },
     updateStage,
     contactsById,
     biensById,

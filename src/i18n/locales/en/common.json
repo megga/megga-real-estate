@@ -1,4 +1,10 @@
 {
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "Something broke on our side. You can reload the page or go back to your dashboard.",
+    "reload": "Reload",
+    "dashboard": "Back to dashboard"
+  },
   "nav": {
     "today": "Today",
     "dashboard": "Dashboard",

@@ -48,7 +48,7 @@ function computeBuckets(deals: { stage: StageId; value: number }[]): Bucket[] {
 export function PipelineTile({ demo = false }: { demo?: boolean } = {}) {
   const { t } = useTranslation('dashboard')
   const [hover, setHover] = useState<number | null>(null)
-  const { deals } = usePipelineSugar()
+  const { deals, isError } = usePipelineSugar()
   // Agent réel → vrai pipeline (entonnoir à 0 si aucun deal) ; seed démo derrière `demo`.
   const live = !demo
 
@@ -73,6 +73,14 @@ export function PipelineTile({ demo = false }: { demo?: boolean } = {}) {
   } else {
     const d = DATA.dealRisk
     risk = { initials: d.initials, av: d.av, bien: d.bien, why: d.why, value: d.value }
+  }
+
+  if (live && isError) {
+    return (
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 12px' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: TK.ink }}>{t('today.pipeline.error.title')}</div>
+      </div>
+    )
   }
 
   return (

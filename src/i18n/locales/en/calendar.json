@@ -107,6 +107,11 @@
     "save": "Save"
   },
   "page": {
+    "error": {
+      "title": "Couldn't load the calendar",
+      "message": "Something went wrong while loading your visits and reminders. Try again in a moment.",
+      "retry": "Try again"
+    },
     "eyebrow": "Calendar",
     "newEvent": "New event",
     "creating": "Creating…",

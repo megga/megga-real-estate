@@ -757,7 +757,12 @@
     "insightNextAction": "Prochaine action suggérée",
     "insightFooter_one": "Estimation IA · {{count}} message analysé · {{date}}",
     "insightFooter_other": "Estimation IA · {{count}} messages analysés · {{date}}",
-    "loading": "Chargement du contact…"
+    "loading": "Chargement du contact…",
+    "error": {
+      "title": "Impossible de charger ce contact",
+      "message": "Une erreur est survenue. Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer"
+    }
   },
   "ctKyc": {
     "title": "Conformité KYC / LBA",

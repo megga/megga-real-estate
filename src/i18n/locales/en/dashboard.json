@@ -250,6 +250,7 @@
       }
     },
     "agenda": {
+      "error": { "title": "Data unavailable" },
       "next": "Next",
       "empty": "Nothing more after this, your day is clear.",
       "call": "Call",
@@ -276,6 +277,7 @@
       "tempCold": "cold"
     },
     "pipeline": {
+      "error": { "title": "Data unavailable" },
       "stages": {
         "searching": "Active search",
         "visit": "Viewing scheduled",
@@ -287,6 +289,7 @@
       "riskOverdue": "Deadline overdue"
     },
     "objectif": {
+      "error": { "title": "Data unavailable" },
       "realized": "achieved",
       "realizedNoTarget": "achieved · no target set",
       "target": "target"
