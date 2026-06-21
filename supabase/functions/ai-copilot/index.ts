@@ -6,6 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { meggaProse, MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { persistCopilotTurn, persistenceFlagOn, type ConversationMessage, type ConversationStore } from '../_shared/copilot-persistence.ts'
+import { buildUserContent, resolveAuditEntity } from '../_shared/ai-copilot-request.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,23 +24,13 @@ async function logAiCopilotInteraction(params: {
 }) {
   try {
     const { context } = params
-    const contactId = context?.contact_id as string | undefined
-    const kycCaseId = context?.kyc_case_id as string | undefined
-    const propertyId = context?.property_id as string | undefined
-    const transactionId = context?.transaction_id as string | undefined
     const agencyId = context?.agency_id as string | undefined
 
-    // Only log if interaction is tied to a real CRM entity (otherwise free chat)
-    const entityId = kycCaseId || contactId || propertyId || transactionId
-    if (!entityId) return
-
-    const entityType = kycCaseId
-      ? 'kyc'
-      : contactId
-      ? 'contact'
-      : propertyId
-      ? 'property'
-      : 'transaction'
+    // Only log if interaction is tied to a real CRM entity (otherwise free chat).
+    // Routage pur extrait dans _shared/ai-copilot-request.ts (testé en unité).
+    const resolved = resolveAuditEntity(context)
+    if (!resolved) return
+    const { entityType, entityId } = resolved
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -407,24 +398,8 @@ serve(async (req: Request) => {
       messages.push({ role: msg.role, content: msg.content })
     }
 
-    // Build the current user message
-    let userContent = message || ''
-
-    // Add action-specific instruction if not free chat
-    if (action !== 'chat' && ACTION_PROMPTS[action]) {
-      userContent = `**Instruction :** ${ACTION_PROMPTS[action]}\n\n**Message :** ${message || 'Exécute cette action.'}`
-    }
-
-    // Add context if available
-    if (context && Object.keys(context).length > 0) {
-      const contextStr = Object.entries(context)
-        .filter(([, v]) => v != null && v !== '')
-        .map(([k, v]) => `- ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
-        .join('\n')
-      if (contextStr) {
-        userContent += `\n\n**Contexte CRM actuel :**\n${contextStr}`
-      }
-    }
+    // Build the current user message (helper pur ai-copilot-request.ts, testé en unité)
+    const userContent = buildUserContent({ action, message: message || '', context, actionPrompts: ACTION_PROMPTS })
 
     messages.push({ role: 'user', content: userContent })
 
