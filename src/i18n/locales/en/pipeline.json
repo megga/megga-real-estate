@@ -218,7 +218,6 @@
       "message": "Something went wrong. Check your connection, then try again.",
       "retry": "Try again"
     },
-    "loading": "Loading the pipeline…",
     "noPropertyYet": "Active search",
     "dealsCount_one": "{{count}} deal",
     "dealsCount_other": "{{count}} deals",

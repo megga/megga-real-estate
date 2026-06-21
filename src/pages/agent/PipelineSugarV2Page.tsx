@@ -81,7 +81,7 @@ export default function PipelineSugarV2Page() {
   // ── Source de vérité : Supabase via usePipelineSugar ────────────────
   // Le hook remplit le registry runtime ; crmContactById/crmBienById ci-dessous
   // renvoient automatiquement les contacts/biens Supabase.
-  const { deals: liveDeals, updateStage, isLoading: pipelineLoading, isError: pipelineError, refetch: pipelineRefetch } = usePipelineSugar()
+  const { deals: liveDeals, updateStage, isError: pipelineError, refetch: pipelineRefetch } = usePipelineSugar()
 
   // ── Optimistic overlay (drag-drop fluide) ────────────────────────────
   // React Query invalide après mutation → léger délai. On overlay le stage
@@ -461,22 +461,23 @@ export default function PipelineSugarV2Page() {
 
           {/* KYC block flow : géré hors du <main> via PipelineKycToast + KycOverrideModal */}
 
-          {/* État d'erreur / chargement — court-circuite kanban + liste */}
-          {pipelineError ? (
-            <div style={{ textAlign: 'center', padding: '64px 20px', color: sp.ink }}>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{t('board.error.title')}</div>
-              <div style={{ fontSize: 12.5, color: sp.sub, marginBottom: 14, lineHeight: 1.5 }}>{t('board.error.message')}</div>
+          {/* Bandeau d'erreur NON bloquant — le board garde ses colonnes affichées (jamais
+              masquées), on signale seulement l'échec de fetch + un Réessayer. Un état plein écran
+              cacherait la structure même quand seul le fetch échoue en arrière-plan. */}
+          {pipelineError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, background: sp.cardBg, boxShadow: sp.shadowSm, color: sp.ink, marginBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{t('board.error.title')}</div>
+                <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>{t('board.error.message')}</div>
+              </div>
               <button
                 onClick={() => pipelineRefetch()}
-                style={{ height: 34, padding: '0 16px', borderRadius: 999, background: 'transparent', color: sp.ink, border: `1px solid ${sp.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}
+                style={{ height: 30, padding: '0 14px', borderRadius: 999, background: 'transparent', color: sp.ink, border: `1px solid ${sp.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
               >
                 {t('board.error.retry')}
               </button>
             </div>
-          ) : pipelineLoading && liveDeals.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '64px 20px', color: sp.sub, fontSize: 12.5 }}>{t('board.loading')}</div>
-          ) : (
-          <>
+          )}
           {/* Views */}
           {view === 'kanban' && (
             <div style={{
@@ -506,8 +507,6 @@ export default function PipelineSugarV2Page() {
           {/* 'timeline' view retirée — PipelineTimeline iterait CRM_DEALS mock.
               Le toggle est aussi retiré de PipelineFilters.SugarSegmentedView.
               Réintroductible quand on aura des dates start/end par deal. */}
-          </>
-          )}
         </main>
       </div>
 

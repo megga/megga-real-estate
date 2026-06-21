@@ -218,7 +218,6 @@
       "message": "Une erreur est survenue. Vérifiez votre connexion, puis réessayez.",
       "retry": "Réessayer"
     },
-    "loading": "Chargement du pipeline…",
     "noPropertyYet": "Recherche active",
     "dealsCount_one": "{{count}} deal",
     "dealsCount_other": "{{count}} deals",
