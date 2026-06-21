@@ -18,6 +18,8 @@ import { TK } from './tk'
 import { RXIcon, Av } from './kit'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import type { Json } from '@/types/database'
+import { uuidOrNull } from './focusAudit'
 import { useRelanceLeads } from '@/hooks/useRelanceLeads'
 
 // La couleur reste un token de présentation ; le libellé de température est une
@@ -225,7 +227,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { t } = useTranslation('dashboard')
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const { leads: realLeads, isLoading, isEmpty } = useRelanceLeads()
   const agentName = profile?.full_name?.trim() || t('today.relance.agentFallback')
 
@@ -340,6 +342,25 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
       })
       if (error) throw error
       setSent(true)
+      // Audit HITL de l'envoi RÉEL (jamais en simulation démo, garde-fou ci-dessus) :
+      // consigne la relance dans la timeline contact. lead.id non garanti uuid → metadata.
+      const agencyId = profile?.agency_id
+      const actorId = profile?.id ?? user?.id // actor_id FK → profiles(id) (convention Atelier)
+      if (agencyId && actorId) {
+        const leadUuid = uuidOrNull(lead.id)
+        void supabase.from('activity_events').insert({
+          agency_id: agencyId,
+          actor_id: actorId,
+          actor_kind: 'user',
+          action: 'relance_sent',
+          entity_type: 'contact',
+          entity_id: leadUuid,
+          category: 'contact',
+          severity: 'info',
+          object_label: lead.name,
+          metadata: { source: 'relance_session', channel: 'email', lead_id: lead.id ?? null, subject } as Json,
+        }).then(({ error: logErr }) => { if (logErr) console.error('[relance] activity_events insert failed', logErr) })
+      }
     } catch {
       setSendError(true)
     } finally {
