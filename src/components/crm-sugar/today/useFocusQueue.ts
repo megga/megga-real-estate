@@ -18,6 +18,10 @@
 import { useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
+import { focusAuditTarget } from './focusAudit'
+import type { Json } from '@/types/database'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useReminders } from '@/hooks/useReminders'
 import { useSellerLeads } from '@/hooks/useSellerLeads'
@@ -97,6 +101,7 @@ export interface UseFocusQueueResult {
 
 export function useFocusQueue(): UseFocusQueueResult {
   const { t } = useTranslation('dashboard')
+  const { user, profile } = useAuth()
   const { deals, contactsById, biensById, kycByContact, isLoading: dealsLoading } = usePipelineSugar()
   const { reminders, isLoading: remLoading, markAsDone, snooze } = useReminders()
   const { matches, isLoading: matchesLoading } = useFocusMatches()
@@ -497,14 +502,52 @@ export function useFocusQueue(): UseFocusQueueResult {
   // offre (offer-…) / visite (visit-…) = UI-only (réclamer un lead exige le flux
   // d'acceptation complet ; le KYC reste non-bloquant ; l'offre se traite dans la
   // fiche, la visite dans l'agenda). Fire-and-forget : le refetch rafraîchit la file.
+  // Consignation HITL du geste Focus dans la timeline (activity_events) — règle
+  // CLAUDE.md §5 « audit pour toute action ». Même pattern que useAtelierMatching
+  // (actor_kind 'user', actor_id = l'agent connecté, agency_id = son agence → RLS
+  // events_insert). Fire-and-forget : ne bloque jamais le geste ; une erreur RLS est
+  // tracée en console. N'effectue AUCUNE mutation métier — pur audit du clic agent.
+  const logFocusGesture = useCallback((item: FocusItem, action: string) => {
+    const agencyId = profile?.agency_id
+    const actorId = profile?.id ?? user?.id // actor_id FK → profiles(id) (convention Atelier)
+    if (!agencyId || !actorId) return // pas d'agence/agent résolu → jamais d'orphelin
+    const tgt = focusAuditTarget(item.id)
+    // Défense en profondeur : on n'audite QUE des entités réelles (entityId = uuid). Un
+    // item démo (id non-préfixé → entityId null) ne fabrique jamais d'event compliance.
+    if (!tgt.entityId) return
+    void supabase.from('activity_events').insert({
+      agency_id: agencyId,
+      actor_id: actorId,
+      actor_kind: 'user',
+      action,
+      entity_type: tgt.entityType,
+      entity_id: tgt.entityId,
+      category: tgt.category,
+      severity: 'info',
+      object_label: item.contact,
+      metadata: {
+        source: 'today_focus',
+        signal_kind: item.signalKind,
+        focus_category: item.category,
+        item_id: item.id,
+        raw_id: tgt.rawId,
+        display_score: item.displayScore,
+      } as Json,
+    }).then(({ error }) => {
+      if (error) console.error('[focus] activity_events insert failed', error)
+    })
+  }, [profile?.agency_id, profile?.id, user?.id])
+
   const completeItem = useCallback((item: FocusItem) => {
     if (item.id.startsWith('rem-')) markAsDone(item.id.slice(4))
-  }, [markAsDone])
+    logFocusGesture(item, 'focus_done') // audit du geste « Fait » (toutes familles, HITL)
+  }, [markAsDone, logFocusGesture])
 
   const snoozeItem = useCallback((item: FocusItem) => {
     if (item.id.startsWith('rem-')) void snooze(item.id.slice(4))
     else if (item.id.startsWith('match-')) void snoozeMatch(item.id.slice(6))
-  }, [snooze])
+    logFocusGesture(item, 'focus_snooze') // audit du geste « Replanifier », HITL
+  }, [snooze, logFocusGesture])
 
   return { items, isLive, isLoading, completeItem, snoozeItem }
 }
