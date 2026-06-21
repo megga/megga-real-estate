@@ -164,7 +164,10 @@ export function listingToBien(m: MatchResult): CrmBien {
 // Mock utilise des dashes ('new-lead'), DB utilise des underscores ('new_lead').
 // Plusieurs stages DB collapsent sur un seul StageId mock (negotiation/financing/
 // notary/reserved → 'offer' faute d'équivalent UI granulaire).
-function mapStage(s: TransactionStage): StageId {
+// Exporté pour être pinné par tests/unit/pipeline-stages.spec.ts (machine à états
+// du Kanban, mapping 14 stades DB → 8 colonnes). transactionToCrmDeal reste le seul
+// appelant runtime — élargir la visibilité ne change aucun comportement.
+export function mapStage(s: TransactionStage): StageId {
   switch (s) {
     case 'new_lead':           return 'new-lead'
     case 'to_qualify':         return 'to-qualify'
