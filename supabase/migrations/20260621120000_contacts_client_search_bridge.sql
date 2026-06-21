@@ -22,6 +22,58 @@
 -- le pipeline WhatsApp peut créer plusieurs recherches par contact. On fait donc un
 -- upsert MANUEL (UPDATE puis INSERT-si-absent) plutôt qu'un ON CONFLICT.
 
+-- ── Durcissement préalable des notifiers de matching ───────────────────────
+-- Créer une client_searches déclenche on_new_client_search / on_search_criteria_updated
+-- qui font net.http_post(url := get_app_config('supabase_url') || '/functions/v1/matching-engine').
+-- Si `supabase_url` (ou `service_role_key`) n'est pas configuré (stack CI `supabase start`,
+-- ou env mal configuré), `base_url` est NULL → l'url enfilée dans http_request_queue est NULL
+-- → viole le NOT NULL → ABORTE l'insert client_searches ET le contact qui le déclenche.
+-- Comme ce pont matérialise désormais des client_searches dans bien plus de contextes (dont
+-- le backfill ci-dessous, exécuté à l'apply de la migration), on rend ces notifiers défensifs :
+-- ils sautent silencieusement l'enqueue quand base_url/svc_key manquent (même pattern que la
+-- migration 20260526180000 pour le notifier properties). En prod (config présente) le
+-- comportement est inchangé. On NE recrée PAS les triggers, seulement le corps des fonctions.
+
+create or replace function public.trigger_matching_on_new_search()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp'
+as $$
+declare base_url text; svc_key text;
+begin
+  if NEW.is_active = true then
+    base_url := get_app_config('supabase_url');
+    svc_key  := get_app_config('service_role_key');
+    if base_url is not null and base_url <> '' and svc_key is not null and svc_key <> '' then
+      perform net.http_post(
+        url := base_url || '/functions/v1/matching-engine',
+        headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || svc_key),
+        body := jsonb_build_object('mode', 'match-contact', 'contact_id', NEW.contact_id, 'agency_id', NEW.agency_id)
+      );
+    end if;
+  end if;
+  return NEW;
+end;
+$$;
+
+create or replace function public.trigger_matching_on_search_updated()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp'
+as $$
+declare base_url text; svc_key text;
+begin
+  if NEW.is_active = true and (NEW.criteria is distinct from OLD.criteria) then
+    base_url := get_app_config('supabase_url');
+    svc_key  := get_app_config('service_role_key');
+    if base_url is not null and base_url <> '' and svc_key is not null and svc_key <> '' then
+      perform net.http_post(
+        url := base_url || '/functions/v1/matching-engine',
+        headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || svc_key),
+        body := jsonb_build_object('mode', 'match-contact', 'contact_id', NEW.contact_id, 'agency_id', NEW.agency_id)
+      );
+    end if;
+  end if;
+  return NEW;
+end;
+$$;
+
 create or replace function public.sync_contact_client_search()
 returns trigger
 language plpgsql
