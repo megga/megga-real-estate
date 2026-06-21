@@ -18,7 +18,6 @@ import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
 import { ContactsListPane } from '@/components/crm-sugar/contacts/ContactsListPane'
-import { ContactsDetailPane } from '@/components/crm-sugar/contacts/ContactsDetailPane'
 import {
   ModalNewContact, type NewContactPayload,
 } from '@/components/crm-sugar/contacts/ModalNewContact'
@@ -106,9 +105,6 @@ export default function ContactsSugarV2Page() {
   }, [rawTransactions])
 
   // ── Page state ──────────────────────────────────────────────────────
-  // selectedId vide au démarrage → l'useEffect ci-dessous picke le premier
-  // contact filtré dès que la liste est chargée.
-  const [selectedId, setSelectedId] = useState<string>('')
   const [segment, setSegment] = useState<SegmentId>('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortMode>('activity')
@@ -164,19 +160,6 @@ export default function ContactsSugarV2Page() {
 
     return list
   }, [segment, search, sort, contacts])
-
-  // Auto-select first if current isn't in filtered (gère aussi le premier
-  // load : selectedId='' au mount → dès que filtered non vide, on prend [0]).
-  useEffect(() => {
-    if (filtered.length > 0 && !filtered.find(c => c.id === selectedId)) {
-      setSelectedId(filtered[0].id)
-    }
-  }, [filtered, selectedId])
-
-  const selected = useMemo(
-    () => contacts.find(c => c.id === selectedId),
-    [contacts, selectedId],
-  )
 
   // ── Cmd palette / navigation ────────────────────────────────────────
   const flashToast = (msg: string) => setToast(msg)
@@ -241,7 +224,6 @@ export default function ContactsSugarV2Page() {
         form_data: {
           civility: data.civility,
           lang: data.lang,
-          assigned_to: data.assignedTo,
           source_slug_ui: data.source,
           linked_bien: data.linkedBien ?? null,
         },
@@ -282,10 +264,7 @@ export default function ContactsSugarV2Page() {
             flex: 1,
             minWidth: 0,
             padding: '112px 40px 80px 0',
-            display: 'grid',
-            gridTemplateColumns: '360px 1fr',
-            gap: 24,
-            alignItems: 'start',
+            maxWidth: 960,
           }}
         >
           {sourceFilter && (
@@ -293,10 +272,10 @@ export default function ContactsSugarV2Page() {
               role="status"
               aria-live="polite"
               style={{
-                gridColumn: '1 / -1',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
+                marginBottom: 16,
                 padding: '12px 16px',
                 borderRadius: 14,
                 background: '#FFFFFF',
@@ -350,8 +329,8 @@ export default function ContactsSugarV2Page() {
             isError={isError}
             onRetry={refetch}
             dealsByContactId={dealsByContactId}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
+            selectedId={null}
+            onSelect={(id) => navigate(`/dashboard/contacts/${id}`)}
             segment={segment}
             setSegment={setSegment}
             search={search}
@@ -362,12 +341,6 @@ export default function ContactsSugarV2Page() {
             dark={dark}
             onNewContact={() => setNewContactOpen(true)}
             onImportLead={() => navigate('/dashboard/import-lead?returnTo=/dashboard/contacts')}
-          />
-          <ContactsDetailPane
-            contact={selected}
-            sp={sp}
-            dark={dark}
-            onPlanRdv={flashToast}
           />
         </main>
       </div>

@@ -18,7 +18,6 @@ export interface NewContactPayload {
   phone: string
   lang: string
   source: string
-  assignedTo: string
   tags: string[]
   notes: string
   criteria?: {
@@ -74,13 +73,6 @@ const NC_SOURCES = [
   { id: 'other', labelKey: 'newContact.source.other' },
 ]
 
-const NC_AGENTS = [
-  { id: 'agt-1', name: 'Gregory Lyonnet' },
-  { id: 'agt-2', name: 'Mathilde Laurent' },
-  { id: 'agt-3', name: 'Romain Saulnier' },
-  { id: 'agt-4', name: 'Élodie Chen' },
-]
-
 // Valeurs de tags persistées telles quelles (deviennent la donnée stockée) —
 // non traduites.
 const NC_TAG_SUGGESTIONS = [
@@ -127,7 +119,6 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
   const [phone, setPhone] = useState('')
   const [lang, setLang] = useState('fr')
   const [source, setSource] = useState('website')
-  const [assignedTo, setAssigned] = useState('agt-1')
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [notes, setNotes] = useState('')
@@ -164,7 +155,6 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
       phone,
       lang,
       source,
-      assignedTo,
       tags,
       notes,
       criteria: isBuyerSide
@@ -570,37 +560,20 @@ export function ModalNewContact({ sp, dark, onClose, onSave, isPending = false, 
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div>
-                <label style={labelStyle}>{t('newContact.leadSource')}</label>
-                <select
-                  className="nc-input"
-                  value={source}
-                  onChange={e => setSource(e.target.value)}
-                  style={inputStyle}
-                >
-                  {NC_SOURCES.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {t(s.labelKey)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>{t('newContact.assignedAgent')}</label>
-                <select
-                  className="nc-input"
-                  value={assignedTo}
-                  onChange={e => setAssigned(e.target.value)}
-                  style={inputStyle}
-                >
-                  {NC_AGENTS.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label style={labelStyle}>{t('newContact.leadSource')}</label>
+              <select
+                className="nc-input"
+                value={source}
+                onChange={e => setSource(e.target.value)}
+                style={inputStyle}
+              >
+                {NC_SOURCES.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {t(s.labelKey)}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
