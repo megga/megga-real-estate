@@ -49,15 +49,6 @@
     "priceOnRequest": "Prezzo su richiesta",
     "addressUnavailable": "Indirizzo non disponibile",
     "description": "Descrizione",
-    "comparison": "Confronto con il portafoglio",
-    "aboveMarket": "sopra il mercato interno",
-    "belowMarket": "sotto il mercato interno",
-    "aligned": "allineato con il mercato interno",
-    "thisProperty": "Questo immobile",
-    "portfolioAvg": "Media portafoglio",
-    "range": "Fascia",
-    "compared": "{{count}} immobile confrontato",
-    "compared_plural": "{{count}} immobili confrontati",
     "rooms": "Locali",
     "surface": "Superficie ab.",
     "bathrooms": "Bagni",
@@ -117,7 +108,6 @@
       "apartment_terrasse_flat": "Appartamento con giardino"
     },
     "photoAlt": "Property",
-    "comparedCount": "{{count}} compared property",
     "aggregatorValue": "RealAdvisor ({{count}} portals)",
     "channelEmail": "Email",
     "channelMessaging": "Messaging"

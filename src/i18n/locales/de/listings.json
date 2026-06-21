@@ -49,15 +49,6 @@
     "priceOnRequest": "Preis auf Anfrage",
     "addressUnavailable": "Adresse nicht verfügbar",
     "description": "Beschreibung",
-    "comparison": "Vergleich mit dem Portfolio",
-    "aboveMarket": "über dem internen Markt",
-    "belowMarket": "unter dem internen Markt",
-    "aligned": "an den internen Markt angepasst",
-    "thisProperty": "Dieses Objekt",
-    "portfolioAvg": "Portfolio-Durchschnitt",
-    "range": "Spanne",
-    "compared": "{{count}} vergleichbares Objekt",
-    "compared_plural": "{{count}} vergleichbare Objekte",
     "rooms": "Zimmer",
     "surface": "Wohnfläche",
     "bathrooms": "Badezimmer",
@@ -117,7 +108,6 @@
       "apartment_terrasse_flat": "Gartenwohnung"
     },
     "photoAlt": "Property",
-    "comparedCount": "{{count}} compared property",
     "aggregatorValue": "RealAdvisor ({{count}} portals)",
     "channelEmail": "Email",
     "channelMessaging": "Messaging"

@@ -100,7 +100,6 @@ function CreateVisitForm({
   const { t } = useTranslation('calendar')
   const d = initialDate ?? new Date()
 
-  // Real Supabase data — replaces MOCK_CONTACTS / MOCK_AGENT_LISTINGS
   const { contacts } = useContacts()
   const { data: agencyProperties = [] } = useAgencyProperties()
   const properties = useMemo(
