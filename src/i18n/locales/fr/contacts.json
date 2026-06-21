@@ -617,7 +617,6 @@
     "phone": "Téléphone",
     "language": "Langue",
     "leadSource": "Source du lead",
-    "assignedAgent": "Agent assigné",
     "tags": "Tags / segment",
     "tagPlaceholder": "Ajouter un tag puis Entrée…",
     "note": "Note libre",
