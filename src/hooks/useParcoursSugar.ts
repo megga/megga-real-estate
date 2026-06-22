@@ -9,6 +9,8 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { TransactionStage } from '@/lib/constants'
@@ -88,9 +90,9 @@ function formatPrice(n: number | null): string {
   return "CHF " + s.replace(/\B(?=(\d{3})+(?!\d))/g, "'")
 }
 
-function subtitleFor(rooms: number | null, surface: number | null, price: number | null): string {
+function subtitleFor(rooms: number | null, surface: number | null, price: number | null, t: TFunction): string {
   const parts: string[] = []
-  if (rooms) parts.push(`${rooms} p`)
+  if (rooms) parts.push(`${rooms} ${t('journey.roomsAbbr')}`)
   if (surface) parts.push(`${surface} m²`)
   const priceStr = formatPrice(price)
   if (priceStr) parts.push(priceStr)
@@ -104,6 +106,7 @@ function buildColumns(
   current: StageId,
   agentId: string,
   dossierId: string,
+  t: TFunction,
 ): Record<StageId, ParcoursTask[]> {
   const mkTask = (
     key: string,
@@ -122,22 +125,22 @@ function buildColumns(
 
   return {
     mandat: [
-      mkTask('m1', 'Mandat signé', 'mandat', undefined, true),
-      mkTask('m2', 'KYC vendeur', 'mandat'),
-      mkTask('m3', 'Brief commercial', 'mandat'),
+      mkTask('m1', t('journey.task.mandatSigned'), 'mandat', undefined, true),
+      mkTask('m2', t('journey.task.kycSeller'), 'mandat'),
+      mkTask('m3', t('journey.task.commercialBrief'), 'mandat'),
     ],
     market: [
-      mkTask('mk1', 'Photos & vidéo', 'market', undefined, true),
-      mkTask('mk2', 'Annonce publiée', 'market'),
-      mkTask('mk3', 'Visites planifiées', 'market'),
+      mkTask('mk1', t('journey.task.photosVideo'), 'market', undefined, true),
+      mkTask('mk2', t('journey.task.listingPublished'), 'market'),
+      mkTask('mk3', t('journey.task.visitsScheduled'), 'market'),
     ],
     nego: [
-      mkTask('n1', 'Offres reçues', 'nego', undefined, true),
-      mkTask('n2', 'Négociation', 'nego'),
+      mkTask('n1', t('journey.task.offersReceived'), 'nego', undefined, true),
+      mkTask('n2', t('journey.task.negotiation'), 'nego'),
     ],
     closing: [
-      mkTask('c1', 'Compromis', 'closing', undefined, true),
-      mkTask('c2', 'Acte authentique', 'closing'),
+      mkTask('c1', t('journey.task.preliminaryAgreement'), 'closing', undefined, true),
+      mkTask('c2', t('journey.task.notarialDeed'), 'closing'),
     ],
   }
 }
@@ -149,6 +152,7 @@ export interface UseParcoursSugarReturn {
 
 export function useParcoursSugar(): UseParcoursSugarReturn {
   const { profile } = useAuth()
+  const { t, i18n } = useTranslation('pipeline')
   const agencyId = profile?.agency_id
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -169,27 +173,29 @@ export function useParcoursSugar(): UseParcoursSugarReturn {
   })
 
   const dossiers = useMemo<ParcoursDossier[]>(() => {
-    return transactions.map(t => {
-      const property = unwrap(t.property)
-      const stageActive = stageToParcours(t.stage)
-      const cityTitle = property?.city ? `${property.city} — ${property.address ?? ''}`.trim() : property?.address ?? 'Dossier'
+    return transactions.map(tx => {
+      const property = unwrap(tx.property)
+      const stageActive = stageToParcours(tx.stage)
+      const cityTitle = property?.city ? `${property.city} — ${property.address ?? ''}`.trim() : property?.address ?? t('journey.dossierFallback')
       const title = property?.title || cityTitle
-      const agentId = t.assigned_to ?? 't-greg'   // fallback team mock id si pas assigné
-      const columns = buildColumns(stageActive, agentId, t.id)
+      const agentId = tx.assigned_to ?? 't-greg'   // fallback team mock id si pas assigné
+      const columns = buildColumns(stageActive, agentId, tx.id, t)
       const activeTaskId = columns[stageActive].find(task => task.state === 'active')?.id
-        ?? `t-${t.id}-m1`
+        ?? `t-${tx.id}-m1`
       return {
-        id: t.id,
+        id: tx.id,
         title,
-        subtitle: subtitleFor(property?.rooms ?? null, property?.surface_m2 ?? null, property?.price ?? null),
-        urgency: urgencyFor(t.stage, t.updated_at),
+        subtitle: subtitleFor(property?.rooms ?? null, property?.surface_m2 ?? null, property?.price ?? null, t),
+        urgency: urgencyFor(tx.stage, tx.updated_at),
         stageActive,
         activeTaskId,
         team: [],                  // équipe agence laissée vide (chantier RBAC dédié)
         columns,
       }
     })
-  }, [transactions])
+    // i18n.language dans les deps : recalcule les libellés au changement de langue.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, i18n.language])
 
   return { dossiers, isLoading }
 }

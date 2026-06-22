@@ -2,11 +2,13 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step5.jsx).
 
 import { useState, useRef } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, fmtCHF, type WizardData } from '../tokens'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
 export function Step5PriceDesc({ data, set }: StepProps) {
+  const { t: tr } = useTranslation('listings')
   const transaction = data.transaction || 'vente'
 
   const setTx = (v: 'vente' | 'location') => set({ transaction: v })
@@ -34,10 +36,10 @@ export function Step5PriceDesc({ data, set }: StepProps) {
   const [tone, setTone] = useState<NonNullable<WizardData['descTone']>>(data.descTone || 'neutre')
 
   const TONES: { v: NonNullable<WizardData['descTone']>; l: string }[] = [
-    { v: 'neutre',  l: 'Neutre' },
-    { v: 'premium', l: 'Premium' },
-    { v: 'famille', l: 'Famille' },
-    { v: 'invest',  l: 'Investisseur' },
+    { v: 'neutre',  l: tr('wizard.step5.tone.neutre') },
+    { v: 'premium', l: tr('wizard.step5.tone.premium') },
+    { v: 'famille', l: tr('wizard.step5.tone.famille') },
+    { v: 'invest',  l: tr('wizard.step5.tone.invest') },
   ]
 
   const generate = () => {
@@ -78,13 +80,13 @@ export function Step5PriceDesc({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 6 sur 8 · Prix &amp; Description</div>
+        }}>{tr('wizard.step5.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>D'abord le prix.</h1>
+        }}>{tr('wizard.step5.title')}</h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          C'est l'élément qui décidera 80&nbsp;% des visites. Vous pourrez l'ajuster plus tard.
+          {tr('wizard.step5.intro')}
         </p>
       </div>
 
@@ -100,8 +102,8 @@ export function Step5PriceDesc({ data, set }: StepProps) {
             background: SugarV2.cardSubtle,
           }}>
             {[
-              { v: 'vente' as const,    l: 'Vente' },
-              { v: 'location' as const, l: 'Location' },
+              { v: 'vente' as const,    l: tr('form.transaction.buy') },
+              { v: 'location' as const, l: tr('form.transaction.rent') },
             ].map(t => {
               const sel = transaction === t.v
               return (
@@ -124,7 +126,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
             fontSize: 11, fontWeight: 700, color: SugarV2.muted,
             letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16,
           }}>
-            {transaction === 'vente' ? 'Prix de vente' : 'Loyer mensuel'}
+            {transaction === 'vente' ? tr('form.fields.salePrice') : tr('form.fields.monthlyRent')}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
@@ -145,7 +147,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
             <span style={{
               fontSize: 32, fontWeight: 700, color: SugarV2.muted,
               letterSpacing: -0.5,
-            }}>CHF{transaction === 'location' && <span style={{ fontSize: 18, color: SugarV2.muted, fontWeight: 600 }}> / mois</span>}</span>
+            }}>CHF{transaction === 'location' && <span style={{ fontSize: 18, color: SugarV2.muted, fontWeight: 600 }}>{tr('wizard.perMonth')}</span>}</span>
           </div>
 
           {transaction === 'location' && (
@@ -155,7 +157,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
               background: SugarV2.cardSubtle,
             }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: SugarV2.muted, letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                + Charges mensuelles
+                {tr('wizard.step5.chargesLabel')}
               </span>
               <input
                 type="text" inputMode="numeric"
@@ -195,12 +197,14 @@ export function Step5PriceDesc({ data, set }: StepProps) {
               <div style={{
                 fontSize: 11, fontWeight: 700, color: SugarV2.muted,
                 letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4,
-              }}>MEGGA AI · Estimation marché</div>
+              }}>{tr('wizard.step5.estimation.eyebrow')}</div>
               <div style={{ fontSize: 14, color: SugarV2.ink, fontWeight: 600, letterSpacing: -0.2 }}>
-                Pour un {estim.label}, la fourchette habituelle se situe entre{' '}
-                <span style={{ fontWeight: 800 }}>{fmtCHF(estim.low)} CHF</span> et{' '}
-                <span style={{ fontWeight: 800 }}>{fmtCHF(estim.high)} CHF</span>
-                {transaction === 'location' && ' / mois'}.
+                <Trans
+                  t={tr}
+                  i18nKey={transaction === 'location' ? 'wizard.step5.estimation.rangeRent' : 'wizard.step5.estimation.range'}
+                  values={{ label: estim.label, low: `${fmtCHF(estim.low)} CHF`, high: `${fmtCHF(estim.high)} CHF` }}
+                  components={{ b: <span style={{ fontWeight: 800 }} /> }}
+                />
               </div>
             </div>
             <button
@@ -211,7 +215,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 fontFamily: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 boxShadow: SugarV2.shadowSm, flexShrink: 0,
               }}>
-              Utiliser {fmtCHF(estim.mid)} CHF
+              {tr('wizard.step5.estimation.use', { amount: `${fmtCHF(estim.mid)} CHF` })}
             </button>
           </div>
         )}
@@ -231,9 +235,9 @@ export function Step5PriceDesc({ data, set }: StepProps) {
         <h2 style={{
           margin: '0 0 6px', fontSize: 26, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.5,
-        }}>Puis la description.</h2>
+        }}>{tr('wizard.step5.descTitle')}</h2>
         <p style={{ margin: 0, fontSize: 14, color: SugarV2.inkSoft, fontWeight: 500 }}>
-          Quelques lignes qui donnent envie. Laissez MEGGA AI rédiger un premier jet, ou écrivez à la main.
+          {tr('wizard.step5.descSubtitle')}
         </p>
       </div>
 
@@ -256,17 +260,17 @@ export function Step5PriceDesc({ data, set }: StepProps) {
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
-              MEGGA AI rédige pour vous
+              {tr('wizard.step5.ai.title')}
             </span>
             <span style={{
               padding: '2px 7px', borderRadius: 999,
               background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
               fontSize: 9.5, fontWeight: 700, letterSpacing: 0.5,
               textTransform: 'uppercase',
-            }}>{tone}</span>
+            }}>{tr(`wizard.step5.tone.${tone}`)}</span>
           </div>
           <div style={{ fontSize: 12.5, color: SugarV2.muted, fontWeight: 500 }}>
-            Utilise le type, la surface, les pièces, les équipements et la commune.
+            {tr('wizard.step5.ai.hint')}
           </div>
         </div>
 
@@ -306,14 +310,14 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 borderTopColor: sgOn(),
                 animation: 'sgSpin .8s linear infinite', display: 'inline-block',
               }} />
-              {aiPhase === 'thinking' ? 'Réflexion…' : 'Rédaction…'}
+              {aiPhase === 'thinking' ? tr('wizard.step5.ai.thinking') : tr('wizard.step5.ai.writing')}
             </>
           ) : (
             <>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
               </svg>
-              {(data.description || '').length > 0 ? 'Régénérer' : 'Générer'}
+              {(data.description || '').length > 0 ? tr('wizard.step5.ai.regenerate') : tr('wizard.step5.ai.generate')}
             </>
           )}
         </button>
@@ -328,7 +332,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
           value={visibleDesc}
           onChange={e => onManualEdit(e.target.value)}
           readOnly={aiPhase === 'streaming' || aiPhase === 'thinking'}
-          placeholder="Écrivez ici la description du bien… ou cliquez sur Générer."
+          placeholder={tr('wizard.step5.descPlaceholder')}
           style={{
             width: '100%', minHeight: 220, boxSizing: 'border-box',
             padding: 24, border: 0, outline: 'none', resize: 'vertical',
@@ -348,10 +352,10 @@ export function Step5PriceDesc({ data, set }: StepProps) {
               color: charCount >= idealChars ? SugarV2.ok :
                      charCount >= minChars ? SugarV2.warn : SugarV2.muted,
             }}>
-              {charCount} caractère{charCount > 1 ? 's' : ''}
-              {charCount < minChars && ` · ${minChars - charCount} avant le minimum`}
-              {charCount >= minChars && charCount < idealChars && ` · objectif ${idealChars}`}
-              {charCount >= idealChars && ' · longueur idéale ✓'}
+              {tr('wizard.step5.counter.chars', { count: charCount })}
+              {charCount < minChars && tr('wizard.step5.counter.beforeMin', { count: minChars - charCount })}
+              {charCount >= minChars && charCount < idealChars && tr('wizard.step5.counter.target', { target: idealChars })}
+              {charCount >= idealChars && tr('wizard.step5.counter.ideal')}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: SugarV2.muted }}>
@@ -363,10 +367,10 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
               }}>
                 <span style={{ width: 5, height: 5, borderRadius: 999, background: SugarV2.black }} />
-                Rédigé par MEGGA AI
+                {tr('wizard.step5.writtenByAi')}
               </span>
             )}
-            <span>Vous pouvez librement éditer le texte généré.</span>
+            <span>{tr('wizard.step5.editHint')}</span>
           </div>
         </div>
       </div>
@@ -389,6 +393,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
 }
 
 function PriceBar({ value, low, high }: { value: number; low: number; high: number }) {
+  const { t: tr } = useTranslation('listings')
   const range = high - low
   const padding = range * 0.4
   const min = low - padding
@@ -396,11 +401,11 @@ function PriceBar({ value, low, high }: { value: number; low: number; high: numb
   const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
 
   let label: string, color: string
-  if (value < low * 0.92)        { label = 'Très en-dessous';  color = '#3B82F6' }
-  else if (value < low)          { label = 'En-dessous';       color = '#10B981' }
-  else if (value <= high)        { label = 'Dans la fourchette'; color = SugarV2.ok }
-  else if (value <= high * 1.08) { label = 'Au-dessus';        color = SugarV2.warn }
-  else                            { label = 'Très au-dessus';   color = SugarV2.err }
+  if (value < low * 0.92)        { label = tr('wizard.step5.position.farBelow');  color = '#3B82F6' }
+  else if (value < low)          { label = tr('wizard.step5.position.below');       color = '#10B981' }
+  else if (value <= high)        { label = tr('wizard.step5.position.inRange'); color = SugarV2.ok }
+  else if (value <= high * 1.08) { label = tr('wizard.step5.position.above');        color = SugarV2.warn }
+  else                            { label = tr('wizard.step5.position.farAbove');   color = SugarV2.err }
 
   return (
     <div>
@@ -408,7 +413,7 @@ function PriceBar({ value, low, high }: { value: number; low: number; high: numb
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginBottom: 8, fontSize: 11, fontWeight: 700, letterSpacing: 0.4,
       }}>
-        <span style={{ color: SugarV2.muted, textTransform: 'uppercase' }}>Positionnement</span>
+        <span style={{ color: SugarV2.muted, textTransform: 'uppercase' }}>{tr('wizard.step5.position.eyebrow')}</span>
         <span style={{ color }}>{label}</span>
       </div>
       <div style={{

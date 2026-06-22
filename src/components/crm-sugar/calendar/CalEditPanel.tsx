@@ -3,6 +3,7 @@
 // (320px, scrollable). Tous les champs éditables ; footer Créer/Enregistrer + Annuler.
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CalIcon } from './CalIcon'
 import {
   CAL_EVENT_TYPES,
@@ -160,6 +161,7 @@ function CalTimeSelect({
 
 export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
   const SP = useCalPalette()
+  const { t } = useTranslation('calendar')
   const [d, setD] = useState<CalEvent>(editing.draft)
   const set = (patch: Partial<CalEvent>) => setD(prev => ({ ...prev, ...patch }))
   const isCreate = editing.mode === 'create'
@@ -213,12 +215,12 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
         }}
       >
         <div style={{ fontSize: 15, fontWeight: 800, color: SP.ink, letterSpacing: -0.3 }}>
-          {isCreate ? 'Nouvel événement' : 'Modifier'}
+          {isCreate ? t('edit.newEvent') : t('common:actions.edit')}
         </div>
 
         {/* Type */}
         <div>
-          <span style={labelStyle}>Type</span>
+          <span style={labelStyle}>{t('edit.typeLabel')}</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {Object.values(CAL_EVENT_TYPES).map(t => {
               const active = d.type === t.id
@@ -250,18 +252,18 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
 
         {/* Title */}
         <div>
-          <span style={labelStyle}>Titre</span>
+          <span style={labelStyle}>{t('edit.titleLabel')}</span>
           <input
             style={inputStyle}
             value={d.title}
             onChange={e => set({ title: e.target.value })}
-            placeholder="Titre de l'événement"
+            placeholder={t('edit.titlePlaceholder')}
           />
         </div>
 
         {/* Date */}
         <div>
-          <span style={labelStyle}>Date</span>
+          <span style={labelStyle}>{t('edit.dateLabel')}</span>
           <input
             type="date"
             style={inputStyle}
@@ -281,34 +283,34 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
         {/* Start / End */}
         <div style={{ display: 'flex', gap: 10 }}>
           <CalTimeSelect
-            label="Début"
+            label={t('edit.startLabel')}
             value={d.start}
             onChange={ns => set({ start: ns, end: d.end <= ns ? new Date(ns.getTime() + 3600000) : d.end })}
           />
-          <CalTimeSelect label="Fin" value={d.end} onChange={ne => set({ end: ne })} />
+          <CalTimeSelect label={t('edit.endLabel')} value={d.end} onChange={ne => set({ end: ne })} />
         </div>
 
         {/* Location */}
         <div>
-          <span style={labelStyle}>Lieu</span>
+          <span style={labelStyle}>{t('edit.locationLabel')}</span>
           <input
             style={inputStyle}
             value={d.location ?? ''}
             onChange={e => set({ location: e.target.value })}
-            placeholder="Adresse"
+            placeholder={t('edit.locationPlaceholder')}
           />
         </div>
 
         {/* Contact */}
         <div>
-          <span style={labelStyle}>Contact</span>
+          <span style={labelStyle}>{t('edit.contactLabel')}</span>
           <input
             style={{ ...inputStyle, marginBottom: 6 }}
             value={d.contact?.name ?? ''}
             onChange={e =>
               set({ contact: { name: e.target.value, role: d.contact?.role ?? 'Contact', phone: d.contact?.phone } })
             }
-            placeholder="Nom"
+            placeholder={t('edit.namePlaceholder')}
           />
           <div style={{ display: 'flex', gap: 6 }}>
             <input
@@ -317,7 +319,7 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
               onChange={e =>
                 set({ contact: { name: d.contact?.name ?? '', role: e.target.value, phone: d.contact?.phone } })
               }
-              placeholder="Rôle"
+              placeholder={t('edit.rolePlaceholder')}
             />
             <input
               style={inputStyle}
@@ -325,21 +327,21 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
               onChange={e =>
                 set({ contact: { name: d.contact?.name ?? '', role: d.contact?.role ?? 'Contact', phone: e.target.value } })
               }
-              placeholder="Téléphone"
+              placeholder={t('edit.phonePlaceholder')}
             />
           </div>
         </div>
 
         {/* Property */}
         <div>
-          <span style={labelStyle}>Bien</span>
+          <span style={labelStyle}>{t('edit.propertyLabel')}</span>
           <input
             style={{ ...inputStyle, marginBottom: 6 }}
             value={d.property?.title ?? ''}
             onChange={e =>
               set({ property: { id: pid, title: e.target.value, area: d.property?.area ?? 0, price: d.property?.price ?? null, tone } })
             }
-            placeholder="Désignation"
+            placeholder={t('edit.designationPlaceholder')}
           />
           <div style={{ display: 'flex', gap: 6 }}>
             <input
@@ -349,7 +351,7 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
               onChange={e =>
                 set({ property: { id: pid, title: d.property?.title ?? '', area: Number(e.target.value) || 0, price: d.property?.price ?? null, tone } })
               }
-              placeholder="m²"
+              placeholder={t('edit.areaPlaceholder')}
             />
             <input
               style={inputStyle}
@@ -358,19 +360,19 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
               onChange={e =>
                 set({ property: { id: pid, title: d.property?.title ?? '', area: d.property?.area ?? 0, price: e.target.value ? Number(e.target.value) : null, tone } })
               }
-              placeholder="Prix CHF"
+              placeholder={t('edit.pricePlaceholder')}
             />
           </div>
         </div>
 
         {/* Notes */}
         <div>
-          <span style={labelStyle}>Notes</span>
+          <span style={labelStyle}>{t('edit.notesLabel')}</span>
           <textarea
             style={{ ...inputStyle, height: 72, padding: '8px 12px', resize: 'vertical', lineHeight: 1.4 }}
             value={d.notes ?? ''}
             onChange={e => set({ notes: e.target.value })}
-            placeholder="Notes internes"
+            placeholder={t('edit.notesPlaceholder')}
           />
         </div>
 
@@ -392,7 +394,7 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
               color: SP.onAccent,
             }}
           >
-            {isCreate ? 'Créer' : 'Enregistrer'}
+            {isCreate ? t('common:actions.create') : t('edit.save')}
           </button>
           <button
             type="button"
@@ -410,7 +412,7 @@ export function CalEditPanel({ editing, onSave, onCancel }: CalEditPanelProps) {
               color: SP.ink,
             }}
           >
-            Annuler
+            {t('common:actions.cancel')}
           </button>
         </div>
       </div>

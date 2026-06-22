@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx).
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { CRM_STAGES, CRM_STAGE_ORDER, type SugarPalette, type StageId } from '../tokens'
 
@@ -48,6 +49,7 @@ export type PipelineView = 'kanban' | 'list'
 export function SugarSegmentedView({
   value, onChange, sp,
 }: { value: PipelineView; onChange?: (v: PipelineView) => void; sp: SugarPalette }) {
+  const { t } = useTranslation('pipeline')
   return (
     <div style={{
       display: 'flex', padding: 4, background: sp.cardBg,
@@ -55,8 +57,8 @@ export function SugarSegmentedView({
       boxShadow: sp.shadowSm,
     }}>
       {([
-        { k: 'kanban' as const,   label: 'Kanban' },
-        { k: 'list' as const,     label: 'Liste' },
+        { k: 'kanban' as const,   label: t('view.kanban') },
+        { k: 'list' as const,     label: t('view.list') },
       ]).map(v => (
         <button key={v.k} onClick={() => onChange?.(v.k)} style={{
           padding: '9px 18px', borderRadius: 999, border: 0, cursor: 'pointer',
@@ -81,6 +83,7 @@ interface FilterPillProps {
   dark: boolean
 }
 export function SugarFilterPill({ sp, label, value, active, children, dark }: FilterPillProps) {
+  const { t } = useTranslation('pipeline')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -128,7 +131,7 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
             <button onClick={() => setOpen(false)} style={{
               width: '100%', padding: '8px 0', borderRadius: 10, border: 0, cursor: 'pointer',
               background: sp.focusBg, color: sp.focusInk, fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
-            }}>Appliquer</button>
+            }}>{t('board.filter.apply')}</button>
           </div>
         </div>
       )}
@@ -140,12 +143,13 @@ export function SugarFilterPill({ sp, label, value, active, children, dark }: Fi
 export function SugarStageFilter({
   sp, value, onChange, dark,
 }: { sp: SugarPalette; value: StageId[]; onChange: (v: StageId[]) => void; dark: boolean }) {
+  const { t } = useTranslation('pipeline')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{
         fontSize: 10.5, fontWeight: 700, color: sp.sub,
         letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4, padding: '0 4px',
-      }}>Étapes</div>
+      }}>{t('board.filter.stagesHeader')}</div>
       {CRM_STAGE_ORDER.map(s => {
         const info = CRM_STAGES[s]
         const sel = value.includes(s)
@@ -166,7 +170,7 @@ export function SugarStageFilter({
               {sel && <svg width="9" height="9" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5 4-4" stroke={sp.focusInk} strokeWidth="1.6" strokeLinecap="round" fill="none"/></svg>}
             </span>
             <span style={{ width: 8, height: 8, borderRadius: 999, background: info.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12.5, fontWeight: sel ? 700 : 500, color: sp.ink }}>{info.label}</span>
+            <span style={{ fontSize: 12.5, fontWeight: sel ? 700 : 500, color: sp.ink }}>{t(`stages.${s}`)}</span>
           </button>
         )
       })}
@@ -175,7 +179,7 @@ export function SugarStageFilter({
           marginTop: 4, padding: '5px 8px', borderRadius: 8, border: 0, cursor: 'pointer',
           background: 'transparent', color: sp.sub,
           fontSize: 11, fontWeight: 600, fontFamily: 'inherit', textAlign: 'left',
-        }}>Tout déselectionner</button>
+        }}>{t('board.filter.deselectAll')}</button>
       )}
     </div>
   )
@@ -187,18 +191,19 @@ export type RiskFilterValue = 'all' | 'healthy' | 'at-risk' | 'stalled'
 export function SugarRiskFilter({
   sp, value, onChange, dark,
 }: { sp: SugarPalette; value: RiskFilterValue; onChange: (v: RiskFilterValue) => void; dark: boolean }) {
+  const { t } = useTranslation('pipeline')
   const opts: { k: RiskFilterValue; label: string; dot: string }[] = [
-    { k: 'all',      label: 'Tous',      dot: sp.sub },
-    { k: 'healthy',  label: 'Sain',      dot: '#0E9F6E' },
-    { k: 'at-risk',  label: 'À risque',  dot: '#F59E0B' },
-    { k: 'stalled',  label: 'Bloqué',    dot: '#E53935' },
+    { k: 'all',      label: t('board.risk.all'),     dot: sp.sub },
+    { k: 'healthy',  label: t('board.risk.healthy'), dot: '#0E9F6E' },
+    { k: 'at-risk',  label: t('board.risk.atRisk'),  dot: '#F59E0B' },
+    { k: 'stalled',  label: t('board.risk.stalled'), dot: '#E53935' },
   ]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{
         fontSize: 10.5, fontWeight: 700, color: sp.sub,
         letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4, padding: '0 4px',
-      }}>Risque</div>
+      }}>{t('board.filter.riskHeader')}</div>
       {opts.map(o => (
         <button key={o.k} onClick={() => onChange(o.k)} style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px',
@@ -225,19 +230,20 @@ export function SugarRiskFilter({
 export function SugarPeriodFilter({
   sp, value, onChange, dark,
 }: { sp: SugarPalette; value: number; onChange: (v: number) => void; dark: boolean }) {
+  const { t } = useTranslation('pipeline')
   const opts = [
-    { k: 7,  label: '7 derniers jours' },
-    { k: 30, label: '30 derniers jours' },
-    { k: 60, label: '60 derniers jours' },
-    { k: 90, label: '90 derniers jours' },
-    { k: 0,  label: 'Tous' },
+    { k: 7,  label: t('board.filter.lastDays', { count: 7 }) },
+    { k: 30, label: t('board.filter.lastDays', { count: 30 }) },
+    { k: 60, label: t('board.filter.lastDays', { count: 60 }) },
+    { k: 90, label: t('board.filter.lastDays', { count: 90 }) },
+    { k: 0,  label: t('board.filter.allTime') },
   ]
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{
         fontSize: 10.5, fontWeight: 700, color: sp.sub,
         letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4, padding: '0 4px',
-      }}>Période</div>
+      }}>{t('board.filter.periodHeader')}</div>
       {opts.map(o => (
         <button key={o.k} onClick={() => onChange(o.k)} style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px',

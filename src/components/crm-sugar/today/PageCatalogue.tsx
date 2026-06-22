@@ -7,14 +7,27 @@
 // Quick wins : état « Proposé » persistant, filtres quantifiés, tri.
 
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { TK } from './tk'
 import { RXIcon, Av, Orbs } from './kit'
 import { PHOTO } from './data'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 
+// Type du traducteur i18next injecté dans les helpers de module (non-composants).
+type TFunc = (key: string, params?: Record<string, unknown>) => string
+
 // Critères = les 5 VRAIES raisons du moteur de matching (pas de KYC fabriqué).
-const CATA_CRIT = ['Budget', 'Zone', 'Type', 'Pièces', 'Souhaits']
+// Clés i18n stables (résolues à l'affichage) — l'ordre reste budget/zone/type/rooms/features.
+const CATA_CRIT = ['budget', 'zone', 'type', 'rooms', 'features'] as const
+const CATA_CRIT_KEY: Record<(typeof CATA_CRIT)[number], string> = {
+  budget: 'today.catalogue.criteria.budget',
+  zone: 'today.catalogue.criteria.zone',
+  type: 'today.catalogue.criteria.type',
+  rooms: 'today.catalogue.criteria.rooms',
+  features: 'today.catalogue.criteria.features',
+}
 
 interface CatAnnonceur { type: string; name: string; agent?: string; role?: string; phone?: string; initials: string; mandat?: string }
 interface CatDetailData {
@@ -61,32 +74,35 @@ function catInitials(name: string): string {
 function fmtApos(n: number): string {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")
 }
-function tagOf(status: MatchResult['status']): string {
+// Libellé de statut (affichage seul) — clé i18n stable résolue au rendu via `tag`.
+function tagKeyOf(status: MatchResult['status']): string {
   switch (status) {
-    case 'sent': return 'Dossier envoyé'
-    case 'visit_planned': return 'Visite prévue'
-    case 'interested': return 'Intéressé'
-    default: return 'Nouveau'
+    case 'sent': return 'today.catalogue.status.sent'
+    case 'visit_planned': return 'today.catalogue.status.visitPlanned'
+    case 'interested': return 'today.catalogue.status.interested'
+    default: return 'today.catalogue.status.new'
   }
 }
+// Catégorie = clé de LOGIQUE (filtres) — ne pas traduire.
 function catOf(status: MatchResult['status']): string {
   return status === 'suggested' ? 'nouveau' : 'relance'
 }
 function criteriaBits(r: MatchResult['reasons']): string {
   return [r.budget, r.zone, r.type, r.rooms, r.features].map((x) => (x?.match ? '1' : '0')).join('')
 }
+// Raison principale : detail vient du moteur (donnée), sinon clé de repli traduite.
 function topWhy(r: MatchResult['reasons']): string {
   const matched = Object.values(r).filter((x) => x?.match && x.detail).sort((a, b) => b.score - a.score)
-  return matched[0]?.detail || 'Nouveau match — premier contact à initier.'
+  return matched[0]?.detail || 'today.catalogue.why.fallback'
 }
 function featuresArr(f: Record<string, string> | null | undefined): string[] {
   if (!f) return []
   return Object.values(f).filter((v): v is string => typeof v === 'string' && v.length > 0).slice(0, 8)
 }
-function matchToCatItem(m: MatchResult, idx: number): CatItem {
+function matchToCatItem(m: MatchResult, idx: number, t: TFunction): CatItem {
   const L = m.listing
   const isVilla = /villa|maison/i.test(L.type || '')
-  const place = L.city || L.canton || 'Bien'
+  const place = L.city || L.canton || t('today.catalogue.place.fallback')
   return {
     id: hashInt(m.id) || idx + 1,
     matchId: m.id,
@@ -99,7 +115,7 @@ function matchToCatItem(m: MatchResult, idx: number): CatItem {
     bi: catInitials(m.contactName),
     av: CAT_AV[hashInt(m.contactId) % CAT_AV.length],
     score: m.score,
-    tag: tagOf(m.status),
+    tag: tagKeyOf(m.status),
     cat: catOf(m.status),
     days: L.days_on_market ?? 0,
     c: criteriaBits(m.reasons),
@@ -113,10 +129,11 @@ function matchToCatItem(m: MatchResult, idx: number): CatItem {
       charges: L.charges_monthly ?? 0,
       drop: 0, // pas d'historique de prix exposé — pas de prix barré inventé
       annonceur: {
-        type: m.source === 'market' ? 'Veille marché' : 'Mandat interne',
-        name: L.agency_name || L.source_portal || (m.source === 'market' ? 'Annonceur externe' : 'Votre agence'),
+        // type/role = clés i18n stables (résolues au rendu) ; name = donnée réelle.
+        type: m.source === 'market' ? 'today.catalogue.advertiser.marketWatch' : 'today.catalogue.advertiser.internalMandate',
+        name: L.agency_name || L.source_portal || 'today.catalogue.advertiser.' + (m.source === 'market' ? 'externalAdvertiser' : 'yourAgency'),
         agent: L.source_portal ? `via ${L.source_portal}` : undefined,
-        role: m.source === 'market' ? 'Source' : undefined,
+        role: m.source === 'market' ? 'today.catalogue.advertiser.source' : undefined,
         initials: catInitials(L.agency_name || L.source_portal || 'AN'),
       },
       features: featuresArr(L.features),
@@ -135,24 +152,32 @@ const SEED_CATA: CatItem[] = [
   { id: 8, photo: PHOTO.cologny, place: 'Cologny', price: "3'850'000", pn: 3850000, specs: 'Villa · 245 m²', buyer: 'Julie Sturm', bi: 'JS', av: '#c0566b', score: 72, tag: 'Investisseuse', cat: 'nouveau', days: 4, c: '01100', why: 'Angle rendement locatif à présenter pour convaincre.' },
 ]
 
-const critArr = (m: CatItem) => CATA_CRIT.map((k, i) => ({ k, ok: m.c[i] === '1' }))
+// Chaque critère porte sa clé i18n (`labelKey`) — résolue au rendu.
+const critArr = (m: CatItem) => CATA_CRIT.map((k, i) => ({ k, labelKey: CATA_CRIT_KEY[k], ok: m.c[i] === '1' }))
 const critCount = (m: CatItem) => m.c.split('').filter((x) => x === '1').length
 const fmtCHFk = (n: number) => 'CHF ' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")
 
+// Résout un libellé qui peut être SOIT une clé i18n du catalogue (donnée match
+// réelle), SOIT une chaîne de démo littérale (CAT_META) à laisser telle quelle.
+const tLabel = (t: TFunc, v: string | undefined): string =>
+  v && v.startsWith('today.catalogue.') ? t(v) : (v || '')
+
+// `labelKey` = clé i18n (résolue au rendu). La clé de logique reste `key`.
 const CATA_FILTERS = [
-  { key: 'tous', label: 'Tous', test: () => true },
-  { key: 'relance', label: 'À relancer', test: (m: CatItem) => m.cat === 'relance' },
-  { key: 'nouveau', label: 'Nouveaux', test: (m: CatItem) => m.cat === 'nouveau' },
+  { key: 'tous', labelKey: 'today.catalogue.filters.all', test: () => true },
+  { key: 'relance', labelKey: 'today.catalogue.filters.followUp', test: (m: CatItem) => m.cat === 'relance' },
+  { key: 'nouveau', labelKey: 'today.catalogue.filters.new', test: (m: CatItem) => m.cat === 'nouveau' },
 ]
 
 const CATA_SORTS = [
-  { key: 'score', label: 'Score', cmp: (a: CatItem, b: CatItem) => b.score - a.score },
-  { key: 'valeur', label: 'Valeur', cmp: (a: CatItem, b: CatItem) => b.pn - a.pn },
-  { key: 'recence', label: 'Récence', cmp: (a: CatItem, b: CatItem) => a.days - b.days },
+  { key: 'score', labelKey: 'today.catalogue.sorts.score', cmp: (a: CatItem, b: CatItem) => b.score - a.score },
+  { key: 'valeur', labelKey: 'today.catalogue.sorts.value', cmp: (a: CatItem, b: CatItem) => b.pn - a.pn },
+  { key: 'recence', labelKey: 'today.catalogue.sorts.recency', cmp: (a: CatItem, b: CatItem) => a.days - b.days },
 ]
 
 // ─── Tuile ──────────────────────────────────────────────────────────────
 function CatalogTile({ m, big = false, onOpen, delay = 0, shown, proposed }: { m: CatItem; big?: boolean; onOpen: (m: CatItem) => void; delay?: number; shown: boolean; proposed: boolean }) {
+  const { t } = useTranslation('dashboard')
   const [h, setH] = useState(false)
   return (
     <div onClick={() => onOpen(m)} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
@@ -169,7 +194,7 @@ function CatalogTile({ m, big = false, onOpen, delay = 0, shown, proposed }: { m
       {proposed && (
         <div style={{ position: 'absolute', top: 13, right: 13, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 999,
           background: 'rgba(21,100,63,.9)', border: '1px solid rgba(52,199,150,.6)' }}>
-          <RXIcon name="check" size={big ? 14 : 12} color="#9be9c1" sw={2.6} /><span style={{ fontSize: big ? 13 : 11.5, fontWeight: 800, color: '#DBF4E6' }}>Proposé</span>
+          <RXIcon name="check" size={big ? 14 : 12} color="#9be9c1" sw={2.6} /><span style={{ fontSize: big ? 13 : 11.5, fontWeight: 800, color: '#DBF4E6' }}>{t('today.catalogue.proposed')}</span>
         </div>
       )}
       <div style={{ position: 'absolute', top: 14, left: 14 }}>
@@ -228,11 +253,19 @@ const CAT_META: Record<string, CatMeta> = {
     desc: 'Appartement lumineux à deux pas du lac et des Eaux-Vives. Séjour orienté sud, cuisine équipée, balcon. Idéal premier achat ou pied-à-terre, transports immédiats.' },
 }
 
-function catDetail(m: CatItem) {
+// Transforme "3.5 p" (donnée specs) en libellé localisé "3,5 pièces" / "3.5 rooms".
+// Le nombre vient de la donnée ; seul le mot « pièces » est traduit (interpolation).
+function roomsLabel(roomsRaw: string, t: TFunc): string {
+  if (/villa/i.test(roomsRaw)) return t('today.catalogue.spec.villa')
+  const num = roomsRaw.replace(/\s*\bp\b/, '').trim().replace('.', ',')
+  return t('today.catalogue.spec.roomsCount', { rooms: num })
+}
+
+function catDetail(m: CatItem, t: TFunc) {
   const roomsRaw = m.specs.split('·')[0].trim()
   const surfaceM = (m.specs.match(/(\d+)\s*m²/) || [])[1]
   const surface = surfaceM ? parseInt(surfaceM, 10) : null
-  const title = (/villa/i.test(roomsRaw) ? 'Villa' : roomsRaw.replace(/\bp\b/, 'pièces').replace('.', ',')) + ' — ' + m.place
+  const title = roomsLabel(roomsRaw, t) + ' — ' + m.place
   const ppm2 = surface ? Math.round(m.pn / surface) : null
   // Détail réel (match live) si attaché, sinon CAT_META (démo). Les images
   // intérieures décoratives ne complètent que si l'annonce a < 2 photos réelles.
@@ -285,6 +318,7 @@ function CatDFeature({ children }: { children: ReactNode }) {
 
 // Ligne de critère épurée (ledger) — coche custom MEIcon, pas de sous-texte.
 function CatMatchLine({ label, ok, first }: { label: string; ok: boolean; first: boolean }) {
+  const { t } = useTranslation('dashboard')
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 0',
       borderTop: first ? 'none' : `1px solid ${TK.border}` }}>
@@ -292,7 +326,7 @@ function CatMatchLine({ label, ok, first }: { label: string; ok: boolean; first:
         <MEIcon name={ok ? 'check' : 'minus'} size={15} color={ok ? '#34C796' : TK.faint} strokeWidth={2.4} />
       </span>
       <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: ok ? TK.ink : TK.sub, letterSpacing: -0.1 }}>{label}</span>
-      {!ok && <span style={{ fontSize: 11, fontWeight: 600, color: TK.sub, whiteSpace: 'nowrap' }}>à affiner</span>}
+      {!ok && <span style={{ fontSize: 11, fontWeight: 600, color: TK.sub, whiteSpace: 'nowrap' }}>{t('today.catalogue.criteria.toRefine')}</span>}
     </div>
   )
 }
@@ -334,6 +368,7 @@ function CatPriceRow({ icon, label, value, accent, last }: { icon: string; label
 
 // ─── Galerie photo « épouse la modale » — lightbox hi-fi contenue ───────
 function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; start?: number; title: string; onClose: () => void }) {
+  const { t } = useTranslation('dashboard')
   const [i, setI] = useState(start)
   const n = photos.length
   const lightMode = TK.frameSolid === '#FFFFFF'
@@ -382,13 +417,13 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
             <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,.88)', fontVariantNumeric: 'tabular-nums',
               whiteSpace: 'nowrap', background: 'rgba(12,13,17,.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               padding: '7px 13px', borderRadius: 999, border: '1px solid rgba(255,255,255,.14)' }}>{i + 1} / {n}</span>
-            <button onClick={onClose} title="Fermer (Échap)" style={{ width: 40, height: 40, borderRadius: 999,
+            <button onClick={onClose} title={t('today.catalogue.gallery.closeHint')} style={{ width: 40, height: 40, borderRadius: 999,
               border: '1px solid rgba(255,255,255,.16)', background: 'rgba(12,13,17,.5)', color: '#fff', cursor: 'pointer',
               display: 'grid', placeItems: 'center', fontSize: 20, lineHeight: 1, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>×</button>
           </div>
         </div>
-        <button onClick={prev} aria-label="Précédente" style={{ ...navBtn, left: 18 }}><CatDIcon name="prev" size={22} color="#fff" /></button>
-        <button onClick={next} aria-label="Suivante" style={{ ...navBtn, right: 18 }}><CatDIcon name="next" size={22} color="#fff" /></button>
+        <button onClick={prev} aria-label={t('today.catalogue.gallery.previous')} style={{ ...navBtn, left: 18 }}><CatDIcon name="prev" size={22} color="#fff" /></button>
+        <button onClick={next} aria-label={t('today.catalogue.gallery.next')} style={{ ...navBtn, right: 18 }}><CatDIcon name="next" size={22} color="#fff" /></button>
       </div>
       {/* pellicule */}
       <div ref={stripRef} className="cat-gal-strip" style={{ flexShrink: 0, display: 'flex', gap: 9, padding: '13px 16px', background: lightMode ? '#FFFFFF' : '#0C0D11',
@@ -407,19 +442,20 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
 }
 
 function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; proposed: boolean; onPropose: (m: CatItem) => void; onClose: () => void }) {
+  const { t } = useTranslation('dashboard')
   const [active, setActive] = useState(0)
   const [galOpen, setGalOpen] = useState(false)
-  const D = catDetail(m)
+  const D = catDetail(m, t)
   const g = D.gallery, n = g.length
   const okN = critCount(m)
   const first = m.buyer.split(' ')[0]
   const reasons = critArr(m).slice().sort((a, b) => Number(b.ok) - Number(a.ok))
   const tileA = g[(active + 1) % n], tileB = g[(active + 2) % n]
   const compatTone = okN >= 4 ? '#34C796' : '#F2B855'
-  const compatLabel = okN >= 5 ? 'Profil parfaitement aligné'
-    : okN >= 4 ? 'Bien aligné avec sa recherche'
-      : okN >= 3 ? 'Aligné — quelques écarts'
-        : 'Plusieurs écarts à lever'
+  const compatLabel = okN >= 5 ? t('today.catalogue.compat.perfect')
+    : okN >= 4 ? t('today.catalogue.compat.aligned')
+      : okN >= 3 ? t('today.catalogue.compat.someGaps')
+        : t('today.catalogue.compat.manyGaps')
   const lightMode = TK.frameSolid === '#FFFFFF'
 
   useEffect(() => {
@@ -438,7 +474,7 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
         {/* ── header ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '16px 20px', borderBottom: `1px solid ${TK.border}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: TK.sub, whiteSpace: 'nowrap' }}>Détail du match</span>
+            <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: TK.sub, whiteSpace: 'nowrap' }}>{t('today.catalogue.detail.eyebrow')}</span>
           </div>
           <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 999, border: `1px solid ${TK.border}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 18, lineHeight: 1, flexShrink: 0 }}>×</button>
         </div>
@@ -466,7 +502,7 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
                       <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#fff' }}>
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>+{n - 3}</div>
-                          <div style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,.8)', marginTop: 2 }}>photos</div>
+                          <div style={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,.8)', marginTop: 2 }}>{t('today.catalogue.detail.photos')}</div>
                         </div>
                       </div>
                     </>
@@ -484,20 +520,20 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
 
               {/* caractéristiques (grille de cellules) */}
               <div>
-                <CatEyebrow>Caractéristiques</CatEyebrow>
+                <CatEyebrow>{t('today.catalogue.section.specs')}</CatEyebrow>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 9 }}>
-                  <CatSpecCell icon="rooms" label="Pièces" value={D.roomsRaw.replace(/\bp\b/, 'pièces').replace('.', ',')} />
-                  {D.surface && <CatSpecCell icon="area" label="Surface" value={`${D.surface} m²`} />}
-                  <CatSpecCell icon="bed" label="Chambres" value={D.beds} />
-                  <CatSpecCell icon="bath" label="Salles d'eau" value={D.baths ?? '—'} />
-                  <CatSpecCell icon="year" label="Année" value={D.year} />
-                  <CatSpecCell icon="floor" label="Étage" value={D.floor === '—' ? 'Villa' : D.floor} />
+                  <CatSpecCell icon="rooms" label={t('today.catalogue.spec.rooms')} value={roomsLabel(D.roomsRaw, t)} />
+                  {D.surface && <CatSpecCell icon="area" label={t('today.catalogue.spec.surface')} value={`${D.surface} m²`} />}
+                  <CatSpecCell icon="bed" label={t('today.catalogue.spec.bedrooms')} value={D.beds} />
+                  <CatSpecCell icon="bath" label={t('today.catalogue.spec.bathrooms')} value={D.baths ?? '—'} />
+                  <CatSpecCell icon="year" label={t('today.catalogue.spec.year')} value={D.year} />
+                  <CatSpecCell icon="floor" label={t('today.catalogue.spec.floor')} value={D.floor === '—' ? t('today.catalogue.spec.villa') : D.floor} />
                 </div>
               </div>
 
               {/* atouts */}
               <div>
-                <CatEyebrow>Atouts</CatEyebrow>
+                <CatEyebrow>{t('today.catalogue.section.highlights')}</CatEyebrow>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {D.features.map((ft, i) => <CatDFeature key={i}>{ft}</CatDFeature>)}
                 </div>
@@ -505,13 +541,13 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
 
               {/* description */}
               <div>
-                <CatEyebrow>Description</CatEyebrow>
+                <CatEyebrow>{t('today.catalogue.section.description')}</CatEyebrow>
                 <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: TK.inkDim, textWrap: 'pretty' }}>{D.desc}</p>
               </div>
 
               {/* localisation — emplacement carte (intégration Mapbox à venir) */}
               <div>
-                <CatEyebrow>Localisation</CatEyebrow>
+                <CatEyebrow>{t('today.catalogue.section.location')}</CatEyebrow>
                 <div style={{ position: 'relative', height: 172, borderRadius: 16, overflow: 'hidden', border: `1px solid ${TK.cardBorder}`,
                   background: `
                     linear-gradient(90deg, rgba(255,255,255,.05) 0 2px, transparent 2px) 18px 0/96px 100%,
@@ -548,34 +584,34 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
 
               {/* prix */}
               <CatRailCard pad={18}>
-                <CatEyebrow>Prix de vente</CatEyebrow>
+                <CatEyebrow>{t('today.catalogue.section.salePrice')}</CatEyebrow>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ fontSize: 30, fontWeight: 800, color: TK.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1, whiteSpace: 'nowrap' }}>CHF {m.price}</div>
                   {D.priceWas && <span style={{ fontSize: 13, color: TK.faint, textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>CHF {fmtCHFk(D.priceWas).replace('CHF ', '')}</span>}
                 </div>
                 <div style={{ marginTop: 13 }}>
-                  {D.charges > 0 && <CatPriceRow icon="doc" label="Charges" value={`CHF ${fmtCHFk(D.charges).replace('CHF ', '')} / mois`} />}
-                  <CatPriceRow icon="clock" label="Sur le marché" value={m.days === 0 ? "Aujourd'hui" : `${m.days} jours`} last />
+                  {D.charges > 0 && <CatPriceRow icon="doc" label={t('today.catalogue.price.charges')} value={t('today.catalogue.price.perMonth', { amount: fmtCHFk(D.charges).replace('CHF ', '') })} />}
+                  <CatPriceRow icon="clock" label={t('today.catalogue.price.onMarket')} value={m.days === 0 ? t('today.catalogue.price.today') : t('today.catalogue.price.days', { count: m.days })} last />
                 </div>
               </CatRailCard>
 
               {/* acheteur + preuve du match */}
               <CatRailCard pad={18}>
-                <CatEyebrow>Acheteur</CatEyebrow>
+                <CatEyebrow>{t('today.catalogue.section.buyer')}</CatEyebrow>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <Av initials={m.bi} av={m.av} size={46} ring />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 16, fontWeight: 800, color: TK.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.buyer}</div>
-                    <div style={{ fontSize: 12, color: TK.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.tag} · cherche {m.specs}</div>
+                    <div style={{ fontSize: 12, color: TK.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('today.catalogue.buyer.searching', { tag: tLabel(t, m.tag), specs: m.specs })}</div>
                   </div>
                 </div>
                 {/* compatibilité — concept épuré : verdict qualitatif + ledger */}
                 <div style={{ marginTop: 18, paddingTop: 18, borderTop: `1px solid ${TK.border}` }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: TK.sub, marginBottom: 5 }}>Compatibilité</div>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: TK.sub, marginBottom: 5 }}>{t('today.catalogue.section.compatibility')}</div>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: compatTone, letterSpacing: -0.3, marginBottom: 13 }}>{compatLabel}</div>
                   <div>
                     {reasons.map((r, i) => (
-                      <CatMatchLine key={r.k} label={r.k} ok={r.ok} first={i === 0} />
+                      <CatMatchLine key={r.k} label={t(r.labelKey)} ok={r.ok} first={i === 0} />
                     ))}
                   </div>
                 </div>
@@ -583,13 +619,13 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
 
               {/* annonceur — source de l'annonce (veille marché) */}
               <CatRailCard pad={18}>
-                <CatEyebrow>Annonceur</CatEyebrow>
+                <CatEyebrow>{t('today.catalogue.section.advertiser')}</CatEyebrow>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 46, height: 46, borderRadius: 13, flexShrink: 0, display: 'grid', placeItems: 'center',
                     background: TK.frameHi, border: `1px solid ${TK.border}`, fontSize: 14, fontWeight: 800,
                     color: TK.ink, letterSpacing: -0.3 }}>{D.annonceur.initials}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: TK.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{D.annonceur.name}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: TK.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tLabel(t, D.annonceur.name)}</div>
                   </div>
                 </div>
                 <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${TK.border}`, display: 'flex', flexDirection: 'column', gap: 11 }}>
@@ -597,7 +633,7 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
                     <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                       <CatDIcon name="pin" size={15} color={TK.sub} />
                       <span style={{ flex: 1, fontSize: 13, color: TK.ink, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{D.annonceur.agent}</span>
-                      {D.annonceur.role && <span style={{ fontSize: 12, color: TK.sub, fontWeight: 500, flexShrink: 0 }}>{D.annonceur.role}</span>}
+                      {D.annonceur.role && <span style={{ fontSize: 12, color: TK.sub, fontWeight: 500, flexShrink: 0 }}>{tLabel(t, D.annonceur.role)}</span>}
                     </div>
                   )}
                   {D.annonceur.phone ? (
@@ -608,7 +644,7 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                       <RXIcon name="spark" size={15} sw={1.7} color={TK.sub} />
-                      <span style={{ flex: 1, fontSize: 13, color: TK.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{D.annonceur.type}{D.annonceur.mandat ? ` · ${D.annonceur.mandat}` : ''}</span>
+                      <span style={{ flex: 1, fontSize: 13, color: TK.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tLabel(t, D.annonceur.type)}{D.annonceur.mandat ? ` · ${D.annonceur.mandat}` : ''}</span>
                     </div>
                   )}
                 </div>
@@ -625,7 +661,7 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
             color: '#FFFFFF',
             fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap',
             transition: 'background-color .25s ease' }}>
-            {proposed ? <>Ajouté au dossier de {first}</> : <>Mettre dans le dossier de {first}</>}
+            {proposed ? t('today.catalogue.action.added', { name: first }) : t('today.catalogue.action.addToFile', { name: first })}
           </button>
         </div>
 
@@ -638,6 +674,7 @@ function CatalogDetail({ m, proposed, onPropose, onClose }: { m: CatItem; propos
 
 // ─── Tuile « +N autres » (débordement du mur) ───────────────────────────
 function CatalogMoreTile({ items, onOpen, delay = 0, shown }: { items: (CatItem & { proposed: boolean })[]; onOpen: () => void; delay?: number; shown: boolean }) {
+  const { t } = useTranslation('dashboard')
   const [h, setH] = useState(false)
   const n = items.length
   const lightMode = TK.frameSolid === '#FFFFFF'
@@ -674,10 +711,10 @@ function CatalogMoreTile({ items, onOpen, delay = 0, shown }: { items: (CatItem 
       </div>
       <div style={{ position: 'relative' }}>
         <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1, color: bigCol, fontVariantNumeric: 'tabular-nums' }}>+{n}</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: TK.inkDim, marginTop: 4 }}>autre{n > 1 ? 's' : ''} match{n > 1 ? 's' : ''}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: TK.inkDim, marginTop: 4 }}>{t('today.catalogue.more.otherMatches', { count: n })}</div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 11, padding: '7px 13px', borderRadius: 999,
           background: pillBg, color: pillFg, fontSize: 12, fontWeight: 700 }}>
-          Voir tout le catalogue <RXIcon name="arrow" size={13} sw={2.2} color={pillFg} />
+          {t('today.catalogue.more.viewWhole')} <RXIcon name="arrow" size={13} sw={2.2} color={pillFg} />
         </div>
       </div>
     </div>
@@ -686,6 +723,7 @@ function CatalogMoreTile({ items, onOpen, delay = 0, shown }: { items: (CatItem 
 
 // ─── Overlay « tout le catalogue » (galerie dense scrollable) ───────────
 function CatalogGalleryCard({ m, proposed, onOpen }: { m: CatItem; proposed: boolean; onOpen: (m: CatItem) => void }) {
+  const { t } = useTranslation('dashboard')
   const [h, setH] = useState(false)
   return (
     <div onClick={() => onOpen(m)} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
@@ -706,7 +744,7 @@ function CatalogGalleryCard({ m, proposed, onOpen }: { m: CatItem; proposed: boo
       {proposed && (
         <div style={{ position: 'absolute', top: 11, right: 11, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 999,
           background: 'rgba(21,100,63,.9)', border: '1px solid rgba(52,199,150,.6)' }}>
-          <RXIcon name="check" size={11} sw={2.6} color="#9be9c1" /><span style={{ fontSize: 10.5, fontWeight: 800, color: '#DBF4E6' }}>Proposé</span>
+          <RXIcon name="check" size={11} sw={2.6} color="#9be9c1" /><span style={{ fontSize: 10.5, fontWeight: 800, color: '#DBF4E6' }}>{t('today.catalogue.proposed')}</span>
         </div>
       )}
       <div style={{ position: 'absolute', left: 12, right: 12, bottom: 11, display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -720,6 +758,7 @@ function CatalogGalleryCard({ m, proposed, onOpen }: { m: CatItem; proposed: boo
 }
 
 function CatalogGalleryOverlay({ list, proposedSet, sortLabel, onCycleSort, onOpen, onClose }: { list: CatItem[]; proposedSet: Set<number>; sortLabel: string; onCycleSort: () => void; onOpen: (m: CatItem) => void; onClose: () => void }) {
+  const { t } = useTranslation('dashboard')
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
     window.addEventListener('keydown', onKey, true)
@@ -733,19 +772,19 @@ function CatalogGalleryOverlay({ list, proposedSet, sortLabel, onCycleSort, onOp
       <div style={{ position: 'relative', zIndex: 1, padding: '28px 34px 18px', borderBottom: `1px solid ${TK.border}`, flexShrink: 0 }}>
         <button onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px 7px 10px', borderRadius: 999, marginBottom: 14,
           border: `1px solid ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>
-          <span style={{ display: 'inline-flex', transform: 'scaleX(-1)' }}><RXIcon name="arrow" size={14} sw={2.2} color={TK.inkDim} /></span>Retour au mur</button>
+          <span style={{ display: 'inline-flex', transform: 'scaleX(-1)' }}><RXIcon name="arrow" size={14} sw={2.2} color={TK.inkDim} /></span>{t('today.catalogue.gallery.backToWall')}</button>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>Tout le catalogue</h1>
+              <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>{t('today.catalogue.gallery.title')}</h1>
               <span style={{ fontSize: 13, fontWeight: 800, color: lightMode ? '#FFFFFF' : '#0A0A0F', background: lightMode ? '#0B0C0E' : '#F2F2F6', padding: '4px 11px', borderRadius: 999, fontVariantNumeric: 'tabular-nums' }}>{list.length}</span>
             </div>
-            <div style={{ fontSize: 13, color: TK.sub, marginTop: 8 }}>Galerie complète</div>
+            <div style={{ fontSize: 13, color: TK.sub, marginTop: 8 }}>{t('today.catalogue.gallery.subtitle')}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <button onClick={onCycleSort} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 15px', borderRadius: 999,
               border: `1px solid ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
-              <RXIcon name="trend" size={13} sw={1.9} />Trier · {sortLabel}</button>
+              <RXIcon name="trend" size={13} sw={1.9} />{t('today.catalogue.sort.byDot', { label: sortLabel })}</button>
             <button onClick={onClose} style={{ width: 40, height: 40, borderRadius: 999, border: `1px solid ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 20, lineHeight: 1 }}>×</button>
           </div>
         </div>
@@ -774,7 +813,8 @@ function EnjeuStat({ icon, children, accent }: { icon: string; children: ReactNo
 }
 
 // ─── PAGE ─────────────────────────────────────────────────────────────
-export function PageCatalogue() {
+export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
+  const { t } = useTranslation('dashboard')
   const [filter, setFilter] = useState('tous')
   const [sortI, setSortI] = useState(0)
   const [sel, setSel] = useState<CatItem | null>(null)
@@ -786,7 +826,7 @@ export function PageCatalogue() {
 
   // Matches réels de l'agence (score desc) → items de catalogue ; fallback démo
   // (seed) si aucun match ou session non authentifiée.
-  const { matches, isLoading, sendMatch } = useMatching()
+  const { matches, sendMatch } = useMatching()
   // Matches déjà marqués « proposés » en base (évite un double envoi sur re-toggle).
   const sentRef = useRef<Set<string>>(new Set())
 
@@ -801,9 +841,11 @@ export function PageCatalogue() {
       sendMatch(m.matchId, 'email')
     }
   }
+  // Agent réel → vrais matchs (état vide « Aucun match » si aucun) ; le seed démo
+  // ne sert que derrière `demo`.
   const catalogue = useMemo<CatItem[]>(
-    () => (!isLoading && matches.length > 0 ? matches.map(matchToCatItem) : SEED_CATA),
-    [matches, isLoading],
+    () => (demo ? SEED_CATA : matches.map((m, i) => matchToCatItem(m, i, t))),
+    [matches, demo, t],
   )
 
   const f = CATA_FILTERS.find((x) => x.key === filter) || CATA_FILTERS[0]
@@ -825,18 +867,18 @@ export function PageCatalogue() {
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14, flexShrink: 0, gap: 20 }}>
           <div style={{ minWidth: 0 }}>
-            <h1 style={{ margin: '0', fontSize: 32, fontWeight: 800, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>Catalogue de matchs</h1>
+            <h1 style={{ margin: '0', fontSize: 32, fontWeight: 800, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>{t('today.catalogue.title')}</h1>
             {proposed.size > 0 && (
               <div style={{ display: 'flex', gap: 9, marginTop: 11, flexWrap: 'wrap' }}>
-                <EnjeuStat icon="check" accent="#34C796">{proposed.size} proposé{proposed.size > 1 ? 's' : ''}</EnjeuStat>
+                <EnjeuStat icon="check" accent="#34C796">{t('today.catalogue.proposedCount', { count: proposed.size })}</EnjeuStat>
               </div>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <button onClick={() => setSortI((i) => (i + 1) % CATA_SORTS.length)} title="Changer le tri"
+            <button onClick={() => setSortI((i) => (i + 1) % CATA_SORTS.length)} title={t('today.catalogue.sort.change')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 999, border: 0, cursor: 'pointer',
                 boxShadow: `inset 0 0 0 1px ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
-              <RXIcon name="trend" size={13} sw={1.9} color={TK.inkDim} />Trier {sort.label}</button>
+              <RXIcon name="trend" size={13} sw={1.9} color={TK.inkDim} />{t('today.catalogue.sort.by', { label: t(sort.labelKey) })}</button>
             <span style={{ width: 1, height: 22, background: TK.cardBorder, flexShrink: 0 }} />
             <div style={{ display: 'flex', gap: 8 }}>
               {CATA_FILTERS.map((c) => {
@@ -847,7 +889,7 @@ export function PageCatalogue() {
                     fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
                     background: on ? (lightMode ? '#0B0C0E' : '#F2F2F6') : TK.card, color: on ? (lightMode ? '#FFFFFF' : '#0A0A0F') : TK.inkDim,
                     boxShadow: on ? 'none' : `inset 0 0 0 1px ${TK.cardBorder}`, transition: 'background .18s, color .18s' }}>
-                    {c.label}<span style={{ fontSize: 11, fontWeight: 800, color: on ? (lightMode ? 'rgba(255,255,255,.55)' : '#797D90') : TK.faint, fontVariantNumeric: 'tabular-nums' }}>{n}</span></button>
+                    {t(c.labelKey)}<span style={{ fontSize: 11, fontWeight: 800, color: on ? (lightMode ? 'rgba(255,255,255,.55)' : '#797D90') : TK.faint, fontVariantNumeric: 'tabular-nums' }}>{n}</span></button>
                 )
               })}
             </div>
@@ -856,7 +898,7 @@ export function PageCatalogue() {
 
         {/* grille */}
         {list.length === 0 ? (
-          <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: TK.sub, fontSize: 14 }}>Aucun match dans ce filtre.</div>
+          <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: TK.sub, fontSize: 14 }}>{t('today.catalogue.empty')}</div>
         ) : (
           <div style={{ flex: 1, minHeight: 0, display: 'grid',
             gridTemplateColumns: '1.55fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 15 }}>
@@ -878,7 +920,7 @@ export function PageCatalogue() {
       </div>
 
       {sel && <CatalogDetail m={sel} proposed={proposed.has(sel.id)} onPropose={togglePropose} onClose={() => setSel(null)} />}
-      {showAll && <CatalogGalleryOverlay list={list} proposedSet={proposed} sortLabel={sort.label}
+      {showAll && <CatalogGalleryOverlay list={list} proposedSet={proposed} sortLabel={t(sort.labelKey)}
         onCycleSort={() => setSortI((i) => (i + 1) % CATA_SORTS.length)}
         onOpen={(m) => { setShowAll(false); setSel(m) }} onClose={() => setShowAll(false)} />}
     </div>

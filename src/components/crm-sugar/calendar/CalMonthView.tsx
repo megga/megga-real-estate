@@ -1,8 +1,9 @@
 // MEGGA CRM Sugar v2 — Calendar Month view
 // 1:1 port from `crm-calendar-sugar-week-month.jsx` (CalMonthView).
 
+import { useTranslation } from 'react-i18next'
 import { CAL_EVENT_TYPES, eventTypeColors, useCalPalette, type CalEvent } from './data'
-import { fmtTime, sameDay } from './helpers'
+import { calDaysFull, fmtTime, sameDay } from './helpers'
 
 interface CalMonthViewProps {
   events: CalEvent[]
@@ -12,8 +13,11 @@ interface CalMonthViewProps {
 }
 
 export function CalMonthView({ events, currentDate, now, onDateChange }: CalMonthViewProps) {
+  const { t } = useTranslation('calendar')
   const SP = useCalPalette()
   const TYPES = CAL_EVENT_TYPES
+  // En-tête lundi→dimanche : on réordonne calDaysFull() (dimanche→samedi).
+  const weekdayHeaders = [1, 2, 3, 4, 5, 6, 0].map(i => calDaysFull()[i])
 
   const first = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
   const last = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
@@ -60,7 +64,7 @@ export function CalMonthView({ events, currentDate, now, onDateChange }: CalMont
           borderBottom: `1px solid ${SP.line}`,
         }}
       >
-        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].map(d => (
+        {weekdayHeaders.map(d => (
           <div
             key={d}
             style={{
@@ -171,7 +175,7 @@ export function CalMonthView({ events, currentDate, now, onDateChange }: CalMont
                       fontWeight: 600,
                     }}
                   >
-                    + {dayEvents.length - 3} autres
+                    {t('views.moreEvents', { count: dayEvents.length - 3 })}
                   </div>
                 )}
               </div>

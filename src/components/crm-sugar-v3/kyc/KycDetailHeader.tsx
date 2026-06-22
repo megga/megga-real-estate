@@ -3,6 +3,7 @@
 // Remplace l'ancien KycDossierHero (hero géant). Compact : avatar, statut +
 // risque, jauge 76px. L'échéance migre dans l'onglet Synthèse > Informations.
 
+import { useTranslation } from 'react-i18next'
 import { KycAvatar } from '../primitives'
 import { SgIcon } from '../icons'
 import { useKycPalette } from './kycPalette'
@@ -21,6 +22,7 @@ interface Props {
 
 export function KycDetailHeader({ dossier, contact, done, total, onBack }: Props) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
   if (!contact) return null
   return (
     <div
@@ -52,7 +54,7 @@ export function KycDetailHeader({ dossier, contact, done, total, onBack }: Props
         }}
       >
         <SgIcon name="arrowL" size={14} stroke={sp.muted} />
-        Retour aux dossiers
+        {t('detail.backToList')}
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -75,7 +77,7 @@ export function KycDetailHeader({ dossier, contact, done, total, onBack }: Props
               marginBottom: 6,
             }}
           >
-            Dossier KYC · LBA
+            {t('detail.eyebrow')}
           </div>
           <h1
             style={{

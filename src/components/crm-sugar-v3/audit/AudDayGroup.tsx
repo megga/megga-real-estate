@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v3 — Groupe d'évènements par jour
 // Port 1:1 de crm-screen-audit-sugar.jsx lignes 244-268 (AudDayGroup).
 
+import i18n from '@/i18n'
 import { SugarV3 } from '../tokens'
 import { AudEventRow } from './AudEventRow'
 import type { AuditEvent } from '@/types/kyc'
@@ -46,7 +47,7 @@ export function AudDayGroup({ dateLabel, events }: Props) {
               boxShadow: SugarV3.shadowSm,
             }}
           >
-            {count} évènement{count > 1 ? 's' : ''}
+            {i18n.t('common:audit.eventCount', { count })}
           </span>
         </div>
       </div>

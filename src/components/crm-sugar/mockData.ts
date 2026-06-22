@@ -116,7 +116,7 @@ export interface CrmActivity {
 }
 
 export interface CrmMatch {
-  /** Real Supabase match.id when sourced from `useMatchingSugar`. Absent for mock. */
+  /** Real Supabase match.id when sourced from a live matching hook. Absent for mock. */
   id?: string
   contactId: string
   bienId: string

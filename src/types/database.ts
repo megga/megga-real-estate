@@ -773,6 +773,50 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_copilot_conversations: {
+        Row: {
+          agency_id: string
+          archived: boolean
+          created_at: string
+          id: string
+          last_message_at: string
+          messages: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          archived?: boolean
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          messages?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          archived?: boolean
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          messages?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_copilot_conversations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_logs: {
         Row: {
           created_at: string
@@ -3703,6 +3747,8 @@ export type Database = {
           partner_agency: string | null
           photo_tags: Json | null
           photos: string[] | null
+          photos_cf: Json | null
+          photos_cf_processed_at: string | null
           postal_code: string | null
           price: number | null
           published_at: string | null
@@ -3763,6 +3809,8 @@ export type Database = {
           partner_agency?: string | null
           photo_tags?: Json | null
           photos?: string[] | null
+          photos_cf?: Json | null
+          photos_cf_processed_at?: string | null
           postal_code?: string | null
           price?: number | null
           published_at?: string | null
@@ -3823,6 +3871,8 @@ export type Database = {
           partner_agency?: string | null
           photo_tags?: Json | null
           photos?: string[] | null
+          photos_cf?: Json | null
+          photos_cf_processed_at?: string | null
           postal_code?: string | null
           price?: number | null
           published_at?: string | null

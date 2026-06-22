@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef, useCallback, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { AnimatedTopIcon } from '@/components/crm-sugar/LiquidGlassRail'
 import { TrajectoryChart, Sparkline } from './TrajectoryChart'
 import { useAxDashboardData } from '@/hooks/useAxDashboardData'
@@ -107,13 +108,14 @@ function AxDelta({ v, pts, abs }: { v: number; pts?: boolean; abs?: boolean }) {
 // ── Pace bar ─────────────────────────────────────────────────────────────────
 function AxPaceBar({ d }: { d: AxPeriodData }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const realW = Math.min(100, (d.realizedNow / d.target) * 100)
   const projW = Math.min(100, (d.projectedEnd / d.target) * 100)
   const paceX = Math.min(100, d.paceFrac * 100)
   const legend: { sw: string | null | 'hatch'; t: string; v: string }[] = [
-    { sw: A.ink, t: 'Réalisé', v: axCHF(d.realizedNow) },
-    { sw: 'hatch', t: 'Projeté', v: axCHF(d.projectedEnd) },
-    { sw: null, t: 'Objectif', v: axCHF(d.target) },
+    { sw: A.ink, t: tr('analytics.pace.realized'), v: axCHF(d.realizedNow) },
+    { sw: 'hatch', t: tr('analytics.pace.projected'), v: axCHF(d.projectedEnd) },
+    { sw: null, t: tr('analytics.pace.target'), v: axCHF(d.target) },
   ]
   return (
     <div>
@@ -121,7 +123,7 @@ function AxPaceBar({ d }: { d: AxPeriodData }) {
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${projW}%`, borderRadius: 999, backgroundImage: `repeating-linear-gradient(45deg, ${A.probable} 0 5px, ${A.cardSubtle} 5px 10px)`, opacity: 0.55 }} />
         <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${realW}%`, borderRadius: 999, background: A.ink, transition: 'width .8s cubic-bezier(.2,.8,.2,1)' }} />
         <div style={{ position: 'absolute', left: `${paceX}%`, top: -6, bottom: -6, width: 2, background: A.inkSoft, transform: 'translateX(-1px)', borderRadius: 2 }} />
-        <div style={{ position: 'absolute', left: `${paceX}%`, top: -22, transform: 'translateX(-50%)', fontSize: 9.5, fontWeight: 700, color: A.muted, letterSpacing: 0.3, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>rythme</div>
+        <div style={{ position: 'absolute', left: `${paceX}%`, top: -22, transform: 'translateX(-50%)', fontSize: 9.5, fontWeight: 700, color: A.muted, letterSpacing: 0.3, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{tr('analytics.pace.tempo')}</div>
       </div>
       <div style={{ marginTop: 14, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         {legend.map((l, i) => (
@@ -144,6 +146,7 @@ function AxPaceBar({ d }: { d: AxPeriodData }) {
 // ── Hero ─────────────────────────────────────────────────────────────────────
 function AxHero({ d, onGoSettings }: { d: AxPeriodData; onGoSettings: (() => void) | null }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const targetIsSet = d.targetIsSet ?? d.target > 0
   const pace = axPace(d)
   const num = useCountUp(d.projectedEnd)
@@ -152,9 +155,9 @@ function AxHero({ d, onGoSettings }: { d: AxPeriodData; onGoSettings: (() => voi
     <div style={{ background: A.card, borderRadius: 26, padding: '30px 34px', boxShadow: A.shadowLg, display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.95fr)', gap: 30, alignItems: 'center' }}>
       <div>
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.3, textTransform: 'uppercase', color: A.muted, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-          Commission projetée · {d.label}
+          {tr('analytics.hero.eyebrow')} · {d.label}
           {/* estimation : projection pondérée par probabilité de réalisation */}
-          <span title="Estimation pondérée par probabilité de réalisation" style={{ display: 'inline-flex' }}>
+          <span title={tr('analytics.estimateTooltip')} style={{ display: 'inline-flex' }}>
             <AxIcon name="spark" size={12} stroke={A.muted} sw={1.6} />
           </span>
         </div>
@@ -166,22 +169,22 @@ function AxHero({ d, onGoSettings }: { d: AxPeriodData; onGoSettings: (() => voi
             <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 12, fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                 <AxIcon name={pace.ahead ? 'up' : 'down'} size={11} stroke="#fff" sw={2.6} />
-                {pace.ahead ? 'En avance' : 'En retard'} {axCHF(Math.abs(pace.diff))} vs rythme
+                {pace.ahead ? tr('analytics.hero.ahead') : tr('analytics.hero.behind')} {axCHF(Math.abs(pace.diff))} {tr('analytics.hero.vsTempo')}
               </span>
             </div>
             <p style={{ margin: '16px 0 0', fontSize: 14.5, color: A.inkSoft, fontWeight: 500, lineHeight: 1.5, maxWidth: 440 }}>
-              À ce rythme, tu finis {d.period} à <strong style={{ color: A.ink, fontWeight: 800 }}>{axCHF(d.projectedEnd)}</strong><br />soit <strong style={{ color: A.ink, fontWeight: 800 }}>{pace.projPct} %</strong> de ton objectif.
+              {tr('analytics.hero.projectionLead', { period: d.period })} <strong style={{ color: A.ink, fontWeight: 800 }}>{axCHF(d.projectedEnd)}</strong><br />{tr('analytics.hero.projectionMid')} <strong style={{ color: A.ink, fontWeight: 800 }}>{pace.projPct} %</strong> {tr('analytics.hero.projectionTail')}
             </p>
           </>
         ) : (
           <p style={{ margin: '16px 0 0', fontSize: 14.5, color: A.inkSoft, fontWeight: 500, lineHeight: 1.5, maxWidth: 440 }}>
-            Aucun objectif commercial n'est défini pour {d.period}.{' '}
+            {tr('analytics.hero.noTarget', { period: d.period })}{' '}
             {onGoSettings ? (
               <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                Le fixer dans Réglages
+                {tr('analytics.hero.setInSettings')}
               </button>
             ) : (
-              <strong style={{ color: A.ink, fontWeight: 800 }}>Le fixer dans Réglages › Agence.</strong>
+              <strong style={{ color: A.ink, fontWeight: 800 }}>{tr('analytics.hero.setInSettingsAgency')}</strong>
             )}
           </p>
         )}
@@ -192,10 +195,10 @@ function AxHero({ d, onGoSettings }: { d: AxPeriodData; onGoSettings: (() => voi
             <AxPaceBar d={d} />
             <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: A.muted }}>
               <AxIcon name="lock" size={12} stroke={A.muted} />
-              <span>Objectif fixé par l'agence</span>
+              <span>{tr('analytics.hero.targetSetByAgency')}</span>
               {onGoSettings && (
                 <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                  Modifier dans Réglages
+                  {tr('analytics.hero.editInSettings')}
                 </button>
               )}
             </div>
@@ -204,7 +207,7 @@ function AxHero({ d, onGoSettings }: { d: AxPeriodData; onGoSettings: (() => voi
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 96, borderRadius: 16, background: A.cardSubtle, boxShadow: `inset 0 0 0 1px ${A.hairline}`, padding: '20px 22px', textAlign: 'center' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: A.muted }}>
               <AxIcon name="target" size={16} stroke={A.muted} />
-              <span>Objectif non défini · le fixer dans Réglages</span>
+              <span>{tr('analytics.hero.targetUnsetHint')}</span>
             </div>
           </div>
         )}
@@ -216,16 +219,17 @@ function AxHero({ d, onGoSettings }: { d: AxPeriodData; onGoSettings: (() => voi
 // ── Bandeau d'honnêteté commission (fallback taux 3% / prix manquant) ────────
 function AxFallbackBanner({ d }: { d: AxPeriodData }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const flags = d.commissionFlags
   if (!flags || (flags.nDefaultPct === 0 && flags.nMissingPrice === 0)) return null
   const parts: string[] = []
-  if (flags.nDefaultPct > 0) parts.push(`${flags.nDefaultPct} bien${flags.nDefaultPct > 1 ? 's' : ''} au taux 3 % par défaut`)
-  if (flags.nMissingPrice > 0) parts.push(`${flags.nMissingPrice} sans prix`)
+  if (flags.nDefaultPct > 0) parts.push(tr('analytics.fallback.defaultRate', { count: flags.nDefaultPct }))
+  if (flags.nMissingPrice > 0) parts.push(tr('analytics.fallback.missingPrice', { count: flags.nMissingPrice }))
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: A.cardSubtle, borderRadius: 14, padding: '12px 16px', boxShadow: `inset 0 0 0 1px ${A.hairline}` }}>
       <AxIcon name="spark" size={14} stroke={A.muted} sw={1.6} />
       <span style={{ fontSize: 12.5, fontWeight: 600, color: A.inkSoft }}>
-        Commission estimée : {parts.join(' · ')}. Renseigne le taux de mandat sur tes biens pour affiner.
+        {tr('analytics.fallback.summary', { parts: parts.join(' · ') })}
       </span>
     </div>
   )
@@ -265,6 +269,7 @@ function AxKpiStrip({ d }: { d: AxPeriodData }) {
 // ── Ce qui se signe bientôt ──────────────────────────────────────────────────
 function AxDealRow({ dl, onDrill }: { dl: AxDeal; onDrill: (x: Drill) => void }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const [h, setH] = useState(false)
   return (
     <button onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} onClick={() => onDrill({ type: 'deal', deal: dl })} style={{
@@ -280,7 +285,7 @@ function AxDealRow({ dl, onDrill }: { dl: AxDeal; onDrill: (x: Drill) => void })
       </div>
       <div>
         <div style={{ fontSize: 14.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{dl.comm > 0 ? axCHF(dl.comm) : 'CHF —'}</div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, marginTop: 2 }}>{dl.comm > 0 ? 'commission' : 'prix manquant'}</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, marginTop: 2 }}>{dl.comm > 0 ? tr('analytics.deal.commission') : tr('analytics.deal.missingPrice')}</div>
       </div>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -300,14 +305,15 @@ function AxDealRow({ dl, onDrill }: { dl: AxDeal; onDrill: (x: Drill) => void })
 
 function AxClosing({ deals, onDrill }: { deals: AxDeal[]; onDrill: (x: Drill) => void }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   return (
     <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>Ce qui se signe bientôt</h3>
+        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.closing.title')}</h3>
       </div>
       {deals.length === 0 ? (
         <div style={{ padding: '28px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
-          Aucun deal en cours
+          {tr('analytics.closing.empty')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -345,20 +351,21 @@ function AxCompRow({ c, total, color, onDrill }: { c: AxCompositionItem; total: 
 
 function AxComposition({ d, onDrill }: { d: AxPeriodData; onDrill: (x: Drill) => void }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const total = d.composition.reduce((s, c) => s + c.v, 0)
   const colOf: Record<AxBucketId, string> = { secured: A.secured, probable: A.probable, possible: A.possible }
   return (
     <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
       <h3 style={{ margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 7, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>
-        De quoi est fait le projeté
-        <span title="Estimation pondérée par probabilité de réalisation" style={{ display: 'inline-flex' }}>
+        {tr('analytics.composition.title')}
+        <span title={tr('analytics.estimateTooltip')} style={{ display: 'inline-flex' }}>
           <AxIcon name="spark" size={12} stroke={A.muted} sw={1.6} />
         </span>
       </h3>
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: A.muted, marginBottom: 16 }}>{axCHF(total)} au total</div>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: A.muted, marginBottom: 16 }}>{tr('analytics.composition.total', { amount: axCHF(total) })}</div>
       {total === 0 ? (
         <div style={{ padding: '22px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
-          Aucune commission projetée sur la période
+          {tr('analytics.composition.empty')}
         </div>
       ) : (
         <>
@@ -379,18 +386,19 @@ function AxComposition({ d, onDrill }: { d: AxPeriodData; onDrill: (x: Drill) =>
 // ── Carte graphe ─────────────────────────────────────────────────────────────
 function AxChartCard({ d, chartKey }: { d: AxPeriodData; chartKey: number }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   return (
     <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px 16px', boxShadow: A.shadow }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 6 }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>Trajectoire vers l'objectif</h3>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.chart.title')}</h3>
         </div>
         <div style={{ display: 'flex', gap: 16 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: A.inkSoft }}>
-            <span style={{ width: 16, height: 3, borderRadius: 2, background: A.ink }} /> Réalisé
+            <span style={{ width: 16, height: 3, borderRadius: 2, background: A.ink }} /> {tr('analytics.chart.realized')}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: A.inkSoft }}>
-            <span style={{ width: 16, height: 0, borderTop: `2px dashed ${A.goal}` }} /> Objectif
+            <span style={{ width: 16, height: 0, borderTop: `2px dashed ${A.goal}` }} /> {tr('analytics.chart.target')}
           </span>
         </div>
       </div>
@@ -404,6 +412,7 @@ const SRC_OPAC = [1, 0.74, 0.54, 0.4, 0.3]
 
 function AxSourceRow({ s, rank }: { s: AxSource; rank: number }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const [h, setH] = useState(false)
   return (
     <div onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{
@@ -427,7 +436,7 @@ function AxSourceRow({ s, rank }: { s: AxSource; rank: number }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{s.deals}</div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, whiteSpace: 'nowrap' }}>lead{s.deals > 1 ? 's' : ''}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, whiteSpace: 'nowrap' }}>{tr('analytics.sources.leadCount', { count: s.deals })}</div>
         </div>
         <AxDelta v={s.delta} />
       </div>
@@ -437,25 +446,26 @@ function AxSourceRow({ s, rank }: { s: AxSource; rank: number }) {
 
 function AxSources({ d }: { d: AxPeriodData }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const srcs = d.sources || []
   const top = srcs[0]
   return (
     <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>Sources des leads</h3>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.sources.title')}</h3>
           {/* commission par canal non stockée en DB → on affiche le volume de leads */}
-          <div style={{ fontSize: 12, fontWeight: 600, color: A.muted, marginTop: 3 }}>D'où viennent tes contacts · périmètre agence · {d.label}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: A.muted, marginTop: 3 }}>{tr('analytics.sources.subtitle')} · {d.label}</div>
         </div>
         {top && (
           <span style={{ fontSize: 12.5, fontWeight: 600, color: A.inkSoft }}>
-            <strong style={{ color: A.ink, fontWeight: 800 }}>{top.label}</strong> = ton meilleur canal
+            <strong style={{ color: A.ink, fontWeight: 800 }}>{top.label}</strong> {tr('analytics.sources.bestChannel')}
           </span>
         )}
       </div>
       {srcs.length === 0 ? (
         <div style={{ padding: '24px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
-          Aucune source sur la période
+          {tr('analytics.sources.empty')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -498,10 +508,10 @@ function AxRecRow({ r }: { r: AxRecord }) {
   )
 }
 
-const AX_BUCKET_META: Record<AxBucketId, { label: string; hint: string }> = {
-  secured: { label: 'Sécurisé', hint: 'Actes signés + compromis fermes' },
-  probable: { label: 'Probable', hint: 'Offres déposées en cours de négociation' },
-  possible: { label: 'Possible', hint: 'Mandats actifs & visites en cours' },
+const AX_BUCKET_META: Record<AxBucketId, { labelKey: string; hintKey: string }> = {
+  secured: { labelKey: 'analytics.drawer.bucket.secured.label', hintKey: 'analytics.drawer.bucket.secured.hint' },
+  probable: { labelKey: 'analytics.drawer.bucket.probable.label', hintKey: 'analytics.drawer.bucket.probable.hint' },
+  possible: { labelKey: 'analytics.drawer.bucket.possible.label', hintKey: 'analytics.drawer.bucket.possible.hint' },
 }
 
 function AxDrawer({ drill, records: recordsByBucket, onClose }: {
@@ -510,6 +520,7 @@ function AxDrawer({ drill, records: recordsByBucket, onClose }: {
   onClose: () => void
 }) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const [closing, setClosing] = useState(false)
   const close = useCallback(() => { setClosing(true); window.setTimeout(onClose, 240) }, [onClose])
   useEffect(() => {
@@ -528,18 +539,19 @@ function AxDrawer({ drill, records: recordsByBucket, onClose }: {
   if (drill.type === 'bucket') {
     const meta = AX_BUCKET_META[drill.bucket]
     const b = recordsByBucket?.[drill.bucket] ?? null
-    eyebrow = 'Composition · ' + (b?.label ?? meta.label)
-    title = b?.label ?? meta.label
+    const bucketLabel = b?.label ?? tr(meta.labelKey)
+    eyebrow = tr('analytics.drawer.compositionEyebrow', { label: bucketLabel })
+    title = bucketLabel
     records = b?.items ?? []
-    hint = b?.hint ?? meta.hint
+    hint = b?.hint ?? tr(meta.hintKey)
     total = records.reduce((s, x) => s + x.comm, 0)
     count = records.length
   } else {
     const dl = drill.deal
-    eyebrow = 'Deal · ' + dl.stage
+    eyebrow = tr('analytics.drawer.dealEyebrow', { stage: dl.stage })
     title = dl.loc ? `${dl.prop} ${dl.loc}` : dl.prop
     records = []
-    hint = 'Autres deals comparables'
+    hint = tr('analytics.drawer.comparableDeals')
     total = dl.comm
     count = null
   }
@@ -563,10 +575,10 @@ function AxDrawer({ drill, records: recordsByBucket, onClose }: {
             <h3 style={{ margin: '8px 0 0', fontSize: 24, fontWeight: 800, letterSpacing: -0.7, color: A.ink, lineHeight: 1.1 }}>{title}</h3>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 20, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{total > 0 ? axCHF(total) : 'CHF —'}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: A.muted }}>{isDeal ? 'commission' : `${count ?? 0} dossier${(count ?? 0) > 1 ? 's' : ''} · commission`}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: A.muted }}>{isDeal ? tr('analytics.deal.commission') : tr('analytics.drawer.fileCount', { count: count ?? 0 })}</span>
             </div>
           </div>
-          <button onClick={close} title="Fermer" style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: A.cardSubtle, cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          <button onClick={close} title={tr('analytics.drawer.close')} style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: A.cardSubtle, cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
             <AxIcon name="close" size={16} stroke={A.inkSoft} />
           </button>
         </div>
@@ -575,9 +587,9 @@ function AxDrawer({ drill, records: recordsByBucket, onClose }: {
           <div style={{ padding: '0 26px 6px' }}>
             <div style={{ background: A.cardSubtle, borderRadius: 16, padding: '16px 18px', display: 'flex', flexWrap: 'wrap', gap: 18 }}>
               {[
-                { l: 'Commission', v: drill.deal.comm > 0 ? axCHF(drill.deal.comm) : 'CHF —' },
-                { l: 'Probabilité', v: drill.deal.prob + ' %' },
-                { l: 'Étape', v: drill.deal.stage },
+                { l: tr('analytics.drawer.field.commission'), v: drill.deal.comm > 0 ? axCHF(drill.deal.comm) : 'CHF —' },
+                { l: tr('analytics.drawer.field.probability'), v: drill.deal.prob + ' %' },
+                { l: tr('analytics.drawer.field.stage'), v: drill.deal.stage },
               ].map((x, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: A.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>{x.l}</div>
@@ -591,8 +603,8 @@ function AxDrawer({ drill, records: recordsByBucket, onClose }: {
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 18px 18px' }}>
           {detailsUnavailable ? (
             <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted, lineHeight: 1.5 }}>
-              Détails indisponibles<br />
-              <span style={{ fontSize: 12, fontWeight: 500, color: A.muted }}>Le détail par dossier arrive bientôt — ouvre le Pipeline filtré pour le suivi.</span>
+              {tr('analytics.drawer.detailsUnavailable')}<br />
+              <span style={{ fontSize: 12, fontWeight: 500, color: A.muted }}>{tr('analytics.drawer.detailsUnavailableHint')}</span>
             </div>
           ) : (
             <>
@@ -608,7 +620,7 @@ function AxDrawer({ drill, records: recordsByBucket, onClose }: {
             fontFamily: 'inherit', fontSize: 13.5, fontWeight: 800, cursor: 'pointer', letterSpacing: -0.1,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: A.shadow,
           }}>
-            Ouvrir dans le Pipeline filtré
+            {tr('analytics.drawer.openInPipeline')}
             <AxIcon name="arrow" size={15} stroke={A.onAccent} />
           </button>
         </div>
@@ -738,10 +750,10 @@ function AxToolBtn({ name, title, onClick, disabled, iconRef, A }: {
 }
 
 // ── Body du dashboard (partagé standalone / embed CRM) ───────────────────────
-const AX_PERIODS: { id: AxPeriodId; label: string }[] = [
-  { id: 'month', label: 'Mois' },
-  { id: 'quarter', label: 'Trimestre' },
-  { id: 'year', label: 'Année' },
+const AX_PERIODS: { id: AxPeriodId; labelKey: string }[] = [
+  { id: 'month', labelKey: 'analytics.selector.month' },
+  { id: 'quarter', labelKey: 'analytics.selector.quarter' },
+  { id: 'year', labelKey: 'analytics.selector.year' },
 ]
 
 export interface AxDashboardBodyProps {
@@ -753,6 +765,7 @@ export interface AxDashboardBodyProps {
 
 export default function AxDashboardBody({ embedded = false, dark = false, setDark, onNavigate }: AxDashboardBodyProps) {
   const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
   const [period, setPeriod] = useState<AxPeriodId>('year')
   const [chartKey, setChartKey] = useState(0)
   const [spin, setSpin] = useState(false)
@@ -761,7 +774,7 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
 
   // Données live via les 3 RPC d'agrégation (scope figé 'me' en V1 — la page est
   // le cockpit de l'agent ; toggle scope = backlog quand l'agence devient multi-agents).
-  const { data: d, isLoading } = useAxDashboardData(period, 'me')
+  const { data: d, isLoading, isError, refetch } = useAxDashboardData(period, 'me')
 
   useEffect(() => { axEnsureKeyframes() }, [])
 
@@ -770,6 +783,7 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
     const el = spinRef.current
     if (el && el.animate) el.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-720deg)' }], { duration: 1100, easing: 'cubic-bezier(.2,.8,.2,1)' })
     setSpin(true); setChartKey(k => k + 1)
+    refetch()
     window.setTimeout(() => setSpin(false), 1100)
   }
   const onPeriod = (p: AxPeriodId) => {
@@ -783,22 +797,50 @@ export default function AxDashboardBody({ embedded = false, dark = false, setDar
       <div style={{ position: embedded ? 'static' : 'sticky', top: 0, zIndex: 30, background: embedded ? 'transparent' : A.appBlur, backdropFilter: embedded ? 'none' : 'saturate(160%) blur(14px)', WebkitBackdropFilter: embedded ? 'none' : 'saturate(160%) blur(14px)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? '0 0 16px' : '20px 36px 16px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.6, color: A.ink }}>Performance</h1>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.6, color: A.ink }}>{tr('analytics.title')}</h1>
           </div>
           <div style={{ flex: 1 }} />
-          <AxSeg items={AX_PERIODS} value={period} onChange={onPeriod} />
+          <AxSeg items={AX_PERIODS.map(p => ({ id: p.id, label: tr(p.labelKey) }))} value={period} onChange={onPeriod} />
           <div style={{ display: 'inline-flex', gap: 6 }}>
             {!embedded && (
-              <AxToolBtn name={dark ? 'sun' : 'moon'} title={dark ? 'Mode clair' : 'Mode sombre'} onClick={() => setDark && setDark(v => !v)} A={A} />
+              <AxToolBtn name={dark ? 'sun' : 'moon'} title={dark ? tr('analytics.toolbar.lightMode') : tr('analytics.toolbar.darkMode')} onClick={() => setDark && setDark(v => !v)} A={A} />
             )}
-            <AxToolBtn name="refresh" title="Rafraîchir" onClick={refresh} disabled={spin} iconRef={spinRef} A={A} />
-            <AxToolBtn name="download" title="Exporter PDF" A={A} />
+            <AxToolBtn name="refresh" title={tr('analytics.toolbar.refresh')} onClick={refresh} disabled={spin} iconRef={spinRef} A={A} />
+            <AxToolBtn name="download" title={tr('analytics.toolbar.exportPdf')} A={A} />
           </div>
         </div>
       </div>
 
       {/* content */}
-      {isLoading || !d ? (
+      {isError && !d ? (
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0' }}>
+          <div style={{ textAlign: 'center', padding: '64px 20px', color: A.ink }}>
+            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
+              {tr('analytics.error.title')}
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, marginBottom: 16 }}>
+              {tr('analytics.error.body')}
+            </div>
+            <button
+              onClick={() => refetch()}
+              style={{
+                height: 36,
+                padding: '0 18px',
+                borderRadius: 999,
+                background: 'transparent',
+                color: A.ink,
+                border: `1px solid ${A.ink}33`,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              {tr('analytics.error.retry')}
+            </button>
+          </div>
+        </div>
+      ) : isLoading || !d ? (
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0' }}>
           <AxSkeleton />
         </div>

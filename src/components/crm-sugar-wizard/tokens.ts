@@ -1,5 +1,6 @@
 // MEGGA CRM Sugar v2 Wizard — Design tokens (palette unique, distinct from Today).
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx).
+import i18nSg from '@/i18n' // labels d'étapes i18n (getters SG_STEPS)
 //
 // Deux thèmes (light + dark). `SugarV2` n'est PAS un objet figé : c'est un Proxy
 // qui lit le thème actif (`__sgActive`) au moment de l'accès. Le shell réassigne
@@ -297,15 +298,17 @@ export const EMPTY_WIZARD: WizardData = {
 }
 
 // ─── Wizard steps definition ────────────────────────────────────────────
+// label en getter (i18n singleton) : traduit + réactif, sans changer les
+// appelants `step.label`. Cf docs/i18n-conventions §6. (i18nSg importé ci-dessous.)
 export const SG_STEPS = [
-  { id: 'start',    label: 'Démarrer' },
-  { id: 'mandate',  label: 'Vendeur' },
-  { id: 'address',  label: 'Adresse' },
-  { id: 'specs',    label: 'Caractéristiques' },
-  { id: 'photos',   label: 'Photos' },
-  { id: 'desc',     label: 'Description' },
-  { id: 'options',  label: 'Options' },
-  { id: 'publish',  label: 'Publication' },
+  { id: 'start',    get label() { return i18nSg.t('listings:wizard.steps.start') } },
+  { id: 'mandate',  get label() { return i18nSg.t('listings:wizard.steps.mandate') } },
+  { id: 'address',  get label() { return i18nSg.t('listings:wizard.steps.address') } },
+  { id: 'specs',    get label() { return i18nSg.t('listings:wizard.steps.specs') } },
+  { id: 'photos',   get label() { return i18nSg.t('listings:wizard.steps.photos') } },
+  { id: 'desc',     get label() { return i18nSg.t('listings:wizard.steps.desc') } },
+  { id: 'options',  get label() { return i18nSg.t('listings:wizard.steps.options') } },
+  { id: 'publish',  get label() { return i18nSg.t('listings:wizard.steps.publish') } },
 ] as const
 
 // ─── Sugar wizard global keyframes ─────────────────────────────────────

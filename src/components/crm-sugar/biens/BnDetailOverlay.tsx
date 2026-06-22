@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { crmContactById, type CrmBien } from '../mockData'
@@ -38,12 +39,13 @@ interface BnDetailOverlayProps {
 }
 
 export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProps) {
+  const { t } = useTranslation('listings')
   const owner = bien.ownerContactId ? crmContactById(bien.ownerContactId) : null
   const meta = bnStatus(bien.status)
   const isRent = bien.transaction === 'location'
   const priceLabel = isRent
     ? bien.rent
-      ? bnFmtCHF(bien.rent) + '/mois'
+      ? bnFmtCHF(bien.rent) + t('biens.perMonth')
       : '—'
     : bien.price
       ? bnFmtCHF(bien.price)
@@ -56,10 +58,10 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
 
   const [tab, setTab] = useState<DetailTab>('infos')
   const tabs: { id: DetailTab; label: string; count?: number }[] = [
-    { id: 'infos', label: "Vue d'ensemble" },
-    { id: 'perf', label: 'Performance', count: bien.stats?.views || 0 },
-    { id: 'demand', label: 'Demandes', count: matches.length },
-    { id: 'history', label: 'Historique', count: history.length },
+    { id: 'infos', label: t('biens.detail.tabs.overview') },
+    { id: 'perf', label: t('biens.detail.tabs.performance'), count: bien.stats?.views || 0 },
+    { id: 'demand', label: t('biens.detail.tabs.requests'), count: matches.length },
+    { id: 'history', label: t('biens.detail.tabs.history'), count: history.length },
   ]
 
   useEffect(() => {
@@ -124,7 +126,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
               strokeLinejoin="round"
             />
           </svg>
-          Retour aux biens
+          {t('biens.detail.back')}
         </button>
         <span
           style={{
@@ -154,7 +156,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
           }}
         >
           <MEIcon name="file" size={12} color={sp.ink} />
-          Modifier
+          {t('common:actions.edit')}
         </button>
         <button
           style={{
@@ -170,7 +172,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
             cursor: 'pointer',
           }}
         >
-          Supprimer
+          {t('common:actions.delete')}
         </button>
         <button
           style={{
@@ -187,7 +189,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
             boxShadow: sp.focusShadow,
           }}
         >
-          {bien.status === 'draft' ? 'Publier' : 'Mettre à jour'}
+          {bien.status === 'draft' ? t('biens.detail.publish') : t('biens.detail.update')}
         </button>
       </header>
 
@@ -243,7 +245,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                 }}
               >
                 <MEIcon name="eye" size={12} color="#fff" />
-                Voir les {bien.photoCount} photos
+                {t('biens.detail.viewPhotos', { count: bien.photoCount })}
               </span>
             )}
           </motion.div>
@@ -287,7 +289,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                   border: `1px solid ${sp.cardBorder}`,
                 }}
               >
-                {isRent ? 'Location' : 'Vente'}
+                {isRent ? t('biens.transaction.rent') : t('biens.transaction.sale')}
               </span>
               {bien.mandat?.type === 'exclusif' && (
                 <span
@@ -300,7 +302,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                     color: '#0041D9',
                   }}
                 >
-                  Mandat exclusif
+                  {t('biens.detail.exclusiveMandate')}
                 </span>
               )}
             </div>
@@ -353,7 +355,9 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                 }}
               >
                 CHF {ppm2.toLocaleString('fr-CH').replace(/,/g, "'")}/m²
-                {bien.charges && ` · + CHF ${bien.charges} charges`}
+                {bien.charges
+                  ? ' · ' + t('biens.detail.charges', { amount: bien.charges })
+                  : ''}
               </div>
             )}
             {/* Specs en grille */}
@@ -369,12 +373,12 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
               }}
             >
               {[
-                { l: 'Surface', v: bien.area + ' m²' },
-                { l: 'Pièces', v: String(bien.rooms) },
-                { l: 'DPE', v: bien.energy || '—' },
-                { l: 'Cham.', v: String(bien.beds) },
-                { l: 'S. de bain', v: String(bien.baths) },
-                { l: 'Année', v: String(bien.year) },
+                { l: t('biens.detail.specs.surface'), v: bien.area + ' m²' },
+                { l: t('biens.detail.specs.rooms'), v: String(bien.rooms) },
+                { l: t('biens.detail.specs.epc'), v: bien.energy || '—' },
+                { l: t('biens.detail.specs.bedrooms'), v: String(bien.beds) },
+                { l: t('biens.detail.specs.bathrooms'), v: String(bien.baths) },
+                { l: t('biens.detail.specs.year'), v: String(bien.year) },
               ].map(s => (
                 <div key={s.l}>
                   <div
@@ -476,7 +480,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                   letterSpacing: -0.3,
                 }}
               >
-                Mandat
+                {t('biens.detail.mandate.heading')}
               </h3>
               <div
                 style={{
@@ -494,14 +498,14 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                   }}
                 >
                   {[
-                    { l: 'Type', v: bien.mandat?.type || '—', cap: true },
+                    { l: t('biens.detail.mandate.type'), v: bien.mandat?.type || '—', cap: true },
                     {
-                      l: 'Commission',
+                      l: t('biens.detail.mandate.commission'),
                       v: bien.mandat?.commission ? bien.mandat.commission + '%' : '—',
                       mono: true,
                     },
-                    { l: 'Signé le', v: bnFmtDate(bien.mandat?.signedAt) },
-                    { l: 'Expire le', v: bnFmtDate(bien.mandat?.expiresAt) },
+                    { l: t('biens.detail.mandate.signedOn'), v: bnFmtDate(bien.mandat?.signedAt) },
+                    { l: t('biens.detail.mandate.expiresOn'), v: bnFmtDate(bien.mandat?.expiresAt) },
                   ].map(item => (
                     <div key={item.l}>
                       <div
@@ -541,7 +545,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                   letterSpacing: -0.3,
                 }}
               >
-                Diffusion
+                {t('biens.detail.distribution')}
               </h3>
               <div
                 style={{
@@ -591,7 +595,9 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                             fontWeight: 500,
                           }}
                         >
-                          {on ? 'Actif' : 'Non publié'}
+                          {on
+                            ? t('biens.detail.channelActive')
+                            : t('biens.detail.channelInactive')}
                         </span>
                       </div>
                     )
@@ -610,7 +616,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                   letterSpacing: -0.3,
                 }}
               >
-                Vendeur
+                {t('biens.seller')}
               </h3>
               {owner ? (
                 <div
@@ -685,7 +691,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                       }}
                     >
                       <MEIcon name="phone" size={11} color={sp.pageBg} />
-                      Appeler
+                      {t('biens.detail.call')}
                     </button>
                     <button
                       style={{
@@ -706,7 +712,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                       }}
                     >
                       <MEIcon name="mail" size={11} color={sp.ink} />
-                      Email
+                      {t('biens.detail.email')}
                     </button>
                   </div>
                 </div>
@@ -722,7 +728,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                     color: sp.sub,
                   }}
                 >
-                  Aucun vendeur rattaché
+                  {t('biens.detail.noSeller')}
                 </div>
               )}
             </div>
@@ -739,9 +745,9 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
           >
             {(
               [
-                { l: 'Vues', v: bien.stats?.views || 0, icon: 'eye', c: '#0041D9' },
-                { l: 'Favoris', v: bien.stats?.favorites || 0, icon: 'star', c: '#F59E0B' },
-                { l: 'Demandes', v: bien.stats?.visitRequests || 0, icon: 'home', c: '#0E9F6E' },
+                { l: t('biens.detail.perf.views'), v: bien.stats?.views || 0, icon: 'eye', c: '#0041D9' },
+                { l: t('biens.detail.perf.favorites'), v: bien.stats?.favorites || 0, icon: 'star', c: '#F59E0B' },
+                { l: t('biens.detail.perf.requests'), v: bien.stats?.visitRequests || 0, icon: 'home', c: '#0E9F6E' },
               ] as { l: string; v: number; icon: MEIconName; c: string }[]
             ).map(k => (
               <div
@@ -809,7 +815,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                   color: sp.sub,
                 }}
               >
-                Aucune demande ni match pour ce bien.
+                {t('biens.detail.noRequests')}
               </div>
             ) : (
               matches.map((m, i) => {
@@ -910,7 +916,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                   color: sp.sub,
                 }}
               >
-                Aucun événement enregistré.
+                {t('biens.detail.noHistory')}
               </div>
             ) : (
               [...history].reverse().map((a, i, arr) => (
@@ -946,7 +952,7 @@ export function BnDetailOverlay({ bien, onClose, sp, dark }: BnDetailOverlayProp
                         fontWeight: 500,
                       }}
                     >
-                      {bnFmtDate(a.at)} · il y a {bnRelative(a.at)}
+                      {bnFmtDate(a.at)} · {bnRelative(a.at)}
                     </div>
                   </div>
                 </div>

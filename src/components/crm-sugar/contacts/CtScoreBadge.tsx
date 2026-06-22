@@ -7,13 +7,14 @@
 // tooltip signale « données limitées » quand le score repose sur peu de signaux.
 // health null → rien (pas encore calculé). Calque de BnScoreBadge (score de bien).
 
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { ContactHealth } from '@/hooks/useContactScores'
 
-const LABELS: Record<string, { text: string; color: string }> = {
-  serieux: { text: 'Sérieux', color: '#2FB389' },
-  a_qualifier: { text: 'À qualifier', color: '#D98A2B' },
-  froid: { text: 'Froid', color: '#8A93A6' },
+const LABEL_COLORS: Record<string, string> = {
+  serieux: '#2FB389',
+  a_qualifier: '#D98A2B',
+  froid: '#8A93A6',
 }
 
 interface CtScoreBadgeProps {
@@ -23,10 +24,17 @@ interface CtScoreBadgeProps {
 }
 
 export function CtScoreBadge({ health, size = 'sm' }: CtScoreBadgeProps) {
+  const { t } = useTranslation('contacts')
   if (!health) return null
-  const meta = LABELS[health.label] ?? { text: 'Estimation', color: '#8A93A6' }
+  const color = LABEL_COLORS[health.label] ?? '#8A93A6'
+  const text = t(`widgets.scoreBadge.label.${health.label}`, {
+    defaultValue: t('widgets.scoreBadge.estimation'),
+  })
+  const meta = { text, color }
   const limited = health.dataCompleteness != null && health.dataCompleteness <= 0.34
-  const title = `Score de contact — estimation${limited ? ' · données limitées' : ''}`
+  const title = limited
+    ? t('widgets.scoreBadge.titleLimited')
+    : t('widgets.scoreBadge.title')
   const fs = size === 'sm' ? 10.5 : 11
   return (
     <span

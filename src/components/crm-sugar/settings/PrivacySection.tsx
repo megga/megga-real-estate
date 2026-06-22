@@ -17,6 +17,7 @@
 //   Le sticky save bar disparaît avec eux — plus rien à "enregistrer".
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -45,6 +46,7 @@ interface RightCardProps {
 }
 
 function RightCard({ icon, title, desc, cta, onClick, danger, loading }: RightCardProps) {
+  const { t } = useTranslation('settings')
   const [hover, setHover] = useState(false)
   return (
     <div
@@ -117,13 +119,14 @@ function RightCard({ icon, title, desc, cta, onClick, danger, loading }: RightCa
           opacity: loading ? 0.7 : 1,
         }}
       >
-        {loading ? 'Envoi…' : cta}
+        {loading ? t('privacy.sending') : cta}
       </button>
     </div>
   )
 }
 
 export function PrivacySection() {
+  const { t } = useTranslation('settings')
   const navigate = useNavigate()
   const { user } = useAuth()
   const toast = useToast()
@@ -138,24 +141,24 @@ export function PrivacySection() {
       })
       if (error) {
         // Edge Function HTTP error (network / 500)
-        toast.error(`Échec suppression : ${error.message}`)
+        toast.error(t('privacy.deleteError', { message: error.message }))
         setDeleteOpen(false)
         return
       }
       // Edge Function may return business-error JSON with 400
       const payload = data as { error?: string; message?: string } | null
       if (payload?.error) {
-        toast.error(payload.message || 'Suppression refusée')
+        toast.error(payload.message || t('privacy.deleteRefused'))
         setDeleteOpen(false)
         return
       }
       // Success — session is invalidated server-side. Sign out client-side and redirect.
       await supabase.auth.signOut()
-      toast.success('Compte supprimé. À bientôt.', { duration: 4000 })
+      toast.success(t('privacy.deleteSuccess'), { duration: 4000 })
       navigate('/auth/login', { replace: true })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
-      toast.error(`Échec suppression : ${msg}`)
+      const msg = err instanceof Error ? err.message : t('privacy.unknownError')
+      toast.error(t('privacy.deleteError', { message: msg }))
     } finally {
       setDeleting(false)
     }
@@ -164,17 +167,17 @@ export function PrivacySection() {
   // mailto: ouvre le client mail de l'utilisateur — solution intérim avant
   // l'Edge Function dsar-export dédiée.
   const handleExportData = () => {
-    const subject = encodeURIComponent('Demande d\'export de mes données (RGPD art. 15)')
+    const subject = encodeURIComponent(t('privacy.export.mailSubject'))
     const body = encodeURIComponent(
-      `Bonjour,\n\nConformément à l'article 15 du RGPD, je demande une copie de toutes mes données personnelles traitées par MEGGA.\n\nMon compte : ${user?.email ?? '(non identifié)'}\n\nMerci.`,
+      t('privacy.export.mailBody', { account: user?.email ?? t('privacy.notIdentified') }),
     )
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
   }
 
   const handleRectification = () => {
-    const subject = encodeURIComponent('Demande de rectification de mes données (RGPD art. 16)')
+    const subject = encodeURIComponent(t('privacy.rectification.mailSubject'))
     const body = encodeURIComponent(
-      `Bonjour,\n\nConformément à l'article 16 du RGPD, je demande la rectification des données suivantes :\n\n[Décrivez ici les données à corriger]\n\nMon compte : ${user?.email ?? '(non identifié)'}\n\nMerci.`,
+      t('privacy.rectification.mailBody', { account: user?.email ?? t('privacy.notIdentified') }),
     )
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
   }
@@ -195,9 +198,9 @@ export function PrivacySection() {
         }}
       >
         <SectionHeader
-          kicker="Confidentialité & RGPD"
-          title="Vos données, vos règles"
-          sub="MEGGA est conforme au RGPD européen et à la nLPD suisse. Exercez vos droits à tout moment, sans frais."
+          kicker={t('privacy.header.kicker')}
+          title={t('privacy.header.title')}
+          sub={t('privacy.header.sub')}
         />
 
         {/* Bandeau conformité — informationnel uniquement */}
@@ -236,7 +239,7 @@ export function PrivacySection() {
                   marginBottom: 3,
                 }}
               >
-                Compte conforme · RGPD · nLPD suisse
+                {t('privacy.banner.title')}
               </div>
               <div
                 style={{
@@ -246,7 +249,7 @@ export function PrivacySection() {
                   lineHeight: 1.5,
                 }}
               >
-                Données hébergées en Europe (eu-west-1) · Chiffrement AES-256 au repos et TLS 1.3 en transit
+                {t('privacy.banner.desc')}
               </div>
             </div>
             <SetGhostBtn
@@ -254,15 +257,15 @@ export function PrivacySection() {
               onClick={handleViewPolicy}
               icon={<SetIcon name="external" size={13} stroke={SET.inkSoft} />}
             >
-              Politique
+              {t('privacy.banner.policyCta')}
             </SetGhostBtn>
           </div>
         </SetCard>
 
         {/* Mes droits RGPD / nLPD */}
         <SetCard
-          title="Mes droits"
-          sub="Articles 15 à 21 du règlement européen — exerçables à tout moment, sans frais."
+          title={t('privacy.rights.title')}
+          sub={t('privacy.rights.sub')}
         >
           <div
             style={{
@@ -273,30 +276,30 @@ export function PrivacySection() {
           >
             <RightCard
               icon="download"
-              title="Exporter mes données"
-              desc="Demande d'export ZIP (JSON + PDF). Délai légal : 30 jours."
-              cta="Envoyer la demande"
+              title={t('privacy.cards.export.title')}
+              desc={t('privacy.cards.export.desc')}
+              cta={t('privacy.cards.export.cta')}
               onClick={handleExportData}
             />
             <RightCard
               icon="doc"
-              title="Politique de confidentialité"
-              desc="Détail des traitements, sous-traitants et durées de conservation."
-              cta="Lire la politique"
+              title={t('privacy.cards.policy.title')}
+              desc={t('privacy.cards.policy.desc')}
+              cta={t('privacy.cards.policy.cta')}
               onClick={handleViewPolicy}
             />
             <RightCard
               icon="alert"
-              title="Demander une rectification"
-              desc="Corriger ou compléter une information personnelle inexacte."
-              cta="Envoyer la demande"
+              title={t('privacy.cards.rectification.title')}
+              desc={t('privacy.cards.rectification.desc')}
+              cta={t('privacy.cards.rectification.cta')}
               onClick={handleRectification}
             />
             <RightCard
               icon="trash"
-              title="Supprimer mon compte"
-              desc="Effacement définitif. Conservation légale de 10 ans pour pièces comptables (LBA art. 7 al. 3)."
-              cta="Supprimer mon compte"
+              title={t('privacy.cards.delete.title')}
+              desc={t('privacy.cards.delete.desc')}
+              cta={t('privacy.cards.delete.cta')}
               danger
               loading={deleting}
               onClick={() => setDeleteOpen(true)}
@@ -317,18 +320,18 @@ export function PrivacySection() {
         >
           <SetIcon name="info" size={14} stroke={SET.warn} sw={2.2} />
           <span style={{ fontSize: 12.5, color: SET.inkSoft, lineHeight: 1.55, fontWeight: 500 }}>
-            Les pièces comptables et mandats signés sont conservés{' '}
-            <strong style={{ color: SET.ink }}>10 ans</strong> indépendamment de votre
-            choix — obligation légale CO art. 958f et LBA art. 7 al. 3.
+            {t('privacy.legalNote.before')}{' '}
+            <strong style={{ color: SET.ink }}>{t('privacy.legalNote.duration')}</strong>{' '}
+            {t('privacy.legalNote.after')}
           </span>
         </div>
       </div>
 
       {deleteOpen && (
         <ConfirmModal
-          title="Supprimer définitivement votre compte ?"
-          desc="Vos contacts et profil seront anonymisés, vos documents non-KYC supprimés. Les dossiers KYC en cours doivent être finalisés avant. Cette action est irréversible."
-          danger="Supprimer définitivement"
+          title={t('privacy.deleteModal.title')}
+          desc={t('privacy.deleteModal.desc')}
+          danger={t('privacy.deleteModal.confirm')}
           onCancel={() => !deleting && setDeleteOpen(false)}
           onConfirm={handleDeleteAccount}
         />

@@ -36,7 +36,12 @@
     "adminNps": "Zufriedenheit",
     "adminAutonomy": "Agenten-Autonomie",
     "adminLearning": "Gelernte Stile",
-    "adminToolUsage": "Tool-Nutzung"
+    "adminToolUsage": "Tool-Nutzung",
+    "journey": "Journey",
+    "aiAgent": "Megga, AI agent",
+    "notifications": "Notifications",
+    "callbacksToday": "Today's callbacks",
+    "importLeads": "Import leads"
   },
   "sections": {
     "main": "Hauptmenü",
@@ -70,7 +75,9 @@
     "noResults": "Keine Ergebnisse",
     "showMore": "Mehr anzeigen",
     "showLess": "Weniger anzeigen",
-    "viewAll": "Alle anzeigen"
+    "viewAll": "Alle anzeigen",
+    "options": "Options",
+    "later": "Later"
   },
   "time": {
     "ago": "vor",
@@ -112,7 +119,7 @@
     "buyDesc": "Finden Sie Ihre ideale Immobilie unter Tausenden von geprüften Inseraten in der ganzen Schweiz.",
     "buyCta": "Immobilie suchen",
     "rentTitle": "Mieten",
-    "rentDesc": "Wohnungen, Häuser, WGs — durchsuchen Sie jetzt verfügbare Mietangebote.",
+    "rentDesc": "Wohnungen, Häuser, WGs - durchsuchen Sie jetzt verfügbare Mietangebote.",
     "rentCta": "Mietobjekte ansehen",
     "estimateTitle": "Schätzen",
     "estimateDesc": "Erhalten Sie eine Schätzung Ihrer Immobilie in Sekunden dank unserer Marktanalyse.",
@@ -121,7 +128,12 @@
     "whatUsersSay": "Was unsere Nutzer sagen",
     "everythingYouNeed": "Alles was Sie brauchen",
     "completePlatform": "Eine vollständige Plattform zur Verwaltung Ihrer Immobilienaktivität",
-    "integrationsPartners": "Integrationen & Partner"
+    "integrationsPartners": "Integrationen & Partner",
+    "trustTitle": "Built in Switzerland, open to the rest of the world.",
+    "trustSms": "Certified Swiss software",
+    "trustC2pa": "Authenticated listing photos",
+    "trustGcal": "Visits synced with Google Calendar",
+    "trustOutlook": "Works with Outlook & Microsoft 365"
   },
   "footer": {
     "certifiedRecognized": "Zertifiziert und anerkannt",
@@ -143,7 +155,7 @@
     "terms": "AGB",
     "madeInSwitzerland": "Made in Switzerland",
     "lpd": "DSG-konform",
-    "disclaimer": "Technologieplattform — Schätzungen sind indikativ. Kartendaten swisstopo."
+    "disclaimer": "Technologieplattform - Schätzungen sind indikativ. Kartendaten swisstopo."
   },
   "auth": {
     "professionalSpace": "Profibereich",
@@ -204,32 +216,32 @@
         "basis": "Rechtsgrundlage"
       },
       "items": {
-        "anthropic": "Anthropic (Claude API) — KI-Assistenz — Vereinigte Staaten — SCCs / DPF",
-        "google": "Google Cloud (Calendar API, Gemini) — Kalenderintegration, KI — Vereinigte Staaten — DPF",
-        "stripe": "Stripe — Zahlungen und Abonnements — Vereinigte Staaten — DPF",
-        "resend": "Resend — Transaktions-E-Mails — Vereinigte Staaten — SCCs",
-        "mapbox": "Mapbox — Karten und Geolokalisierung — Vereinigte Staaten — SCCs",
-        "posthog": "PostHog — Produkt-Analytik — Europäische Union (eu.posthog.com)",
-        "supabase": "Supabase — Hosting, Datenbank, Authentifizierung — Europäische Union (eu-west-1, Irland)",
-        "dilisense": "Dilisense — PEP-/Sanktions-Screening (GwG) — Europäische Union"
+        "anthropic": "Anthropic (Claude API) - KI-Assistenz - Vereinigte Staaten - SCCs / DPF",
+        "google": "Google Cloud (Calendar API, Gemini) - Kalenderintegration, KI - Vereinigte Staaten - DPF",
+        "stripe": "Stripe - Zahlungen und Abonnements - Vereinigte Staaten - DPF",
+        "resend": "Resend - Transaktions-E-Mails - Vereinigte Staaten - SCCs",
+        "mapbox": "Mapbox - Karten und Geolokalisierung - Vereinigte Staaten - SCCs",
+        "posthog": "PostHog - Produkt-Analytik - Europäische Union (eu.posthog.com)",
+        "supabase": "Supabase - Hosting, Datenbank, Authentifizierung - Europäische Union (eu-west-1, Irland)",
+        "dilisense": "Dilisense - PEP-/Sanktions-Screening (GwG) - Europäische Union"
       }
     },
     "subprocessors": {
       "extraIntro": "Vollständige Liste unserer Auftragsverarbeiter und ihrer Zwecke:",
-      "anthropic": "Anthropic (Claude API) — KI-Assistenz, Fachcopilot",
-      "supabase": "Supabase — Hosting, Datenbank, Authentifizierung",
-      "cloudflare": "Cloudflare — CDN, DDoS-Schutz",
-      "stripe": "Stripe — Zahlungen und Abonnements",
-      "resend": "Resend — Transaktions-E-Mails",
-      "google": "Google (Calendar API, Gemini) — Kalendersynchronisation, KI",
-      "dilisense": "Dilisense — PEP-/Sanktions-Screening (Zweck: GwG-Compliance)",
-      "mapbox": "Mapbox — Karten und Immobiliensuche",
-      "posthog": "PostHog — Produkt-Analytik (einwilligungsbasiert)",
-      "microsoft": "Microsoft Outlook — Kalendersynchronisation (Agent-Tools-Integration)"
+      "anthropic": "Anthropic (Claude API) - KI-Assistenz, Fachcopilot",
+      "supabase": "Supabase - Hosting, Datenbank, Authentifizierung",
+      "cloudflare": "Cloudflare - CDN, DDoS-Schutz",
+      "stripe": "Stripe - Zahlungen und Abonnements",
+      "resend": "Resend - Transaktions-E-Mails",
+      "google": "Google (Calendar API, Gemini) - Kalendersynchronisation, KI",
+      "dilisense": "Dilisense - PEP-/Sanktions-Screening (Zweck: GwG-Compliance)",
+      "mapbox": "Mapbox - Karten und Immobiliensuche",
+      "posthog": "PostHog - Produkt-Analytik (einwilligungsbasiert)",
+      "microsoft": "Microsoft Outlook - Kalendersynchronisation (Agent-Tools-Integration)"
     },
     "complaint": {
       "heading": "Beschwerderecht bei der Aufsichtsbehörde",
-      "body": "Gemäss Art. 49 revDSG haben Sie das Recht, eine Beschwerde beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) einzureichen, wenn Sie der Ansicht sind, dass die Verarbeitung Ihrer Daten gegen das Gesetz verstösst.",
+      "body": "Pursuant to art. 49 nFADP, you have the right to file a complaint with the Federal Data Protection and Information Commissioner (FDPIC) if you believe that the processing of your data violates the law.",
       "address": "Adresse: Feldeggweg 1, 3003 Bern",
       "website": "Webseite: "
     }
@@ -298,7 +310,72 @@
     "browseGuides": "Anleitungen durchsuchen",
     "sendTicket": "Ticket senden",
     "iAmSellerOwner": "Ich bin Eigentümer oder Verkäufer",
-    "iAmBuyerTenant": "Ich bin Käufer oder Mieter"
+    "iAmBuyerTenant": "Ich bin Käufer oder Mieter",
+    "helpCenter": "Help center",
+    "categoryAgent": "Agent guides",
+    "categorySeller": "Seller guides",
+    "categoryBuyer": "Buyer guides",
+    "readingTime_one": "{{count}} min read",
+    "readingTime_other": "{{count}} min read",
+    "onThisPage": "On this page",
+    "relatedArticles": "Related articles",
+    "articleNotFound": "Article not found.",
+    "feedbackPrompt": "Was this article helpful?",
+    "feedbackYes": "Yes",
+    "feedbackNo": "No",
+    "feedbackThanks": "Thank you for your feedback!",
+    "feedbackPlaceholder": "What could be improved?",
+    "feedbackSend": "Send",
+    "categoryNotFound": "Category not found.",
+    "articleCount_one": "{{count}} article",
+    "articleCount_other": "{{count}} articles",
+    "categoryAgentLabel": "Real estate agent guides",
+    "categoryAgentDescription": "CRM, pipeline, KYC, matching, communication, AI · everything you need.",
+    "categorySellerLabel": "Seller guides",
+    "categorySellerDescription": "Valuation, mandate, sale tracking, seller portal, market analysis.",
+    "categoryBuyerLabel": "Buyer guides",
+    "categoryBuyerDescription": "Search, viewings, financing, comparison, alerts.",
+    "categoryAgentShort": "Agent",
+    "categorySellerShort": "Seller",
+    "categoryBuyerShort": "Buyer",
+    "searchPlaceholder": "Search for a topic...",
+    "noResults": "No results for \"{{query}}\"",
+    "askMeggaAi": "Ask MEGGA AI",
+    "changelog": {
+      "breadcrumb": "What's new",
+      "title": "What's new",
+      "subtitle": "The latest improvements to MEGGA."
+    },
+    "compliance": {
+      "breadcrumb": "Compliance",
+      "title": "Compliance and security",
+      "subtitle": "Frequently asked questions about data protection and compliance."
+    },
+    "limits": {
+      "breadcrumb": "Limits and quotas",
+      "title": "Limits and quotas by plan",
+      "subtitle": "Compare the features available with each subscription.",
+      "feature": "Feature",
+      "free": "Free",
+      "pricePerMonth": "{{price}}/month",
+      "customPlanPrompt": "Need a custom plan?"
+    },
+    "shortcuts": {
+      "breadcrumb": "Keyboard shortcuts",
+      "title": "Keyboard shortcuts",
+      "subtitle": "Save time with MEGGA keyboard shortcuts."
+    },
+    "status": {
+      "breadcrumb": "Service status",
+      "title": "Service status",
+      "allOperational": "All systems operational",
+      "operational": "Operational",
+      "degraded": "Degraded",
+      "incident": "Incident",
+      "lastChecked": "Last checked: {{date}} · 30-day uptime: {{uptime}}",
+      "recentIncidents": "Recent incidents",
+      "noIncidents": "No incidents reported in the last 30 days."
+    }
   },
   "onboarding": {
     "steps": {
@@ -325,7 +402,7 @@
       "addManually": "Manuell hinzufügen",
       "addManuallyDesc": "1 bis 10 Kontakte schnell erstellen.",
       "seedDemo": "Mit Demodaten erkunden",
-      "seedDemoDesc": "10 Kontakte, 5 Objekte, 3 Transaktionen — realistische Schweizer Daten.",
+      "seedDemoDesc": "10 Kontakte, 5 Objekte, 3 Transaktionen - realistische Schweizer Daten.",
       "seeding": "Wird erstellt...",
       "skip": "Diesen Schritt überspringen →",
       "addTitle": "Kontakte hinzufügen",
@@ -341,7 +418,7 @@
     },
     "done": {
       "title": "Ihr Arbeitsbereich ist bereit",
-      "subtitle": "Ihr Action Board führt Sie täglich — Nachfassen, Matches, Besichtigungen, alles zentralisiert.",
+      "subtitle": "Ihr Action Board führt Sie täglich - Nachfassen, Matches, Besichtigungen, alles zentralisiert.",
       "dataEurope": "Daten in Europa",
       "compliant": "nFADP-konform",
       "loading": "Wird geladen...",
@@ -427,7 +504,7 @@
       "understood": "Verstanden",
       "lowConfidence": "Ich habe es nicht verstanden. Versuche: «3 Zimmer Balkon Zürich bis 2500».",
       "onboardingTitle": "Intelligente Suche",
-      "onboardingBody": "Beschreibe einfach was du suchst — Preis, Zimmer, Stadt, Ausstattung…",
+      "onboardingBody": "Beschreibe einfach was du suchst - Preis, Zimmer, Stadt, Ausstattung…",
       "onboardingExample": "Villa Pool Zürich bis 3M",
       "onboardingBadge": "Neu",
       "onboardingDismiss": "Verstanden"
@@ -456,7 +533,43 @@
     "loadMore": "Mehr Ergebnisse laden",
     "typeConfirmed": "Typ ✓",
     "clearSearch": "Suche löschen",
-    "reset": "Zurücksetzen"
+    "reset": "Zurücksetzen",
+    "command": {
+      "placeholder": "Search or ask Megga…",
+      "clear": "Clear",
+      "scope": {
+        "all": "All",
+        "contacts": "Contacts",
+        "biens": "Properties",
+        "deals": "Deals",
+        "docs": "Documents"
+      },
+      "section": {
+        "resumeMegga": "Resume with Megga",
+        "recents": "Recent",
+        "askMegga": "Ask Megga",
+        "meggaConvos": "Megga conversations",
+        "biens": "Properties",
+        "deals": "Deals"
+      },
+      "badge": {
+        "semantic": "semantic"
+      },
+      "empty": {
+        "title": "No results for “{{query}}”",
+        "body": "Ask Megga instead, it knows your entire CRM."
+      },
+      "askMeggaQuery": "Ask Megga: “{{query}}”",
+      "deal": {
+        "untitled": "Deal"
+      },
+      "roomsShort": "{{count}} rm",
+      "aiPrompts": {
+        "buyersReady": "Buyers ready to sign this week",
+        "staleListings": "Listings stalled for 30+ days",
+        "exclusiveMandate": "Draft an exclusive mandate"
+      }
+    }
   },
   "listing": {
     "contactAgent": "Makler kontaktieren",
@@ -497,7 +610,7 @@
     "emailLabel": "E-Mail",
     "phoneLabel": "Telefon",
     "prepareVisitTitle": "Einige Infos zur Vorbereitung der Besichtigung",
-    "prepareVisitOptional": "Optional — hilft dem Makler, Sie besser zu beraten",
+    "prepareVisitOptional": "Optional - hilft dem Makler, Sie besser zu beraten",
     "estimatedBudget": "Geschätztes Budget",
     "mortgageFinancing": "Hypothekenfinanzierung",
     "financingNotYet": "Noch nicht",
@@ -535,7 +648,7 @@
       },
       "2": {
         "title": "Prädiktive KI",
-        "description": "Algorithmus trainiert auf die Besonderheiten des Schweizer Immobilienmarktes — Kanton für Kanton."
+        "description": "Algorithmus trainiert auf die Besonderheiten des Schweizer Immobilienmarktes - Kanton für Kanton."
       },
       "3": {
         "title": "Vierteljährliche Aktualisierung",
@@ -545,7 +658,7 @@
     },
     "priceTable": {
       "title": "Durchschnittliche Preise pro m² in der Schweiz",
-      "updated": "Aktualisierte Daten — März 2026",
+      "updated": "Aktualisierte Daten - März 2026",
       "canton": "Kanton",
       "apartment": "Wohnung (CHF/m²)",
       "house": "Haus (CHF/m²)",
@@ -594,14 +707,14 @@
     "hero": {
       "badge": "All-in-one-Plattform",
       "title": "Die Schweizer Immobilienplattform, die wie ein Makler denkt",
-      "subtitle": "KI-Suche, Schätzung, CRM, LAB/KYC-Compliance, Verkäuferportal — alles in einer Plattform.",
+      "subtitle": "KI-Suche, Schätzung, CRM, LAB/KYC-Compliance, Verkäuferportal - alles in einer Plattform.",
       "individual": "Ich bin eine Privatperson",
       "professional": "Ich bin ein Profi"
     },
     "individuals": {
       "0": {
         "title": "Konversationssuche",
-        "description": "Beschreiben Sie Ihr Wunschobjekt in natürlicher Sprache. Unsere KI versteht Ihre Kriterien und schlägt die besten Objekte vor — ohne einen einzigen Filter zu berühren.",
+        "description": "Beschreiben Sie Ihr Wunschobjekt in natürlicher Sprache. Unsere KI versteht Ihre Kriterien und schlägt die besten Objekte vor - ohne einen einzigen Filter zu berühren.",
         "features": {
           "0": "Mehrsprachige Suche FR/DE/EN/IT",
           "1": "Interaktive Mapbox-Karte mit Pins",
@@ -630,7 +743,7 @@
         "cta": "Mein Objekt verkaufen"
       },
       "badge": "Für Privatpersonen",
-      "title": "Kaufen, mieten, verkaufen — einfach.",
+      "title": "Kaufen, mieten, verkaufen - einfach.",
       "subtitle": "Leistungsstarke Werkzeuge, intuitive Erfahrung."
     },
     "professionals": {
@@ -662,7 +775,7 @@
       },
       "4": {
         "title": "Dokumentenerstellung",
-        "desc": "Mandate, Besichtigungsscheine, Angebote — in 1 Klick generiert.",
+        "desc": "Mandate, Besichtigungsscheine, Angebote - in 1 Klick generiert.",
         "tags": "Vorlagen,PDF/DOCX,Automatische Befüllung"
       },
       "5": {
@@ -677,7 +790,7 @@
       },
       "7": {
         "title": "KI-Copilot",
-        "desc": "Kontextuelle KI auf Ihren echten Dossiers — kein Gimmick.",
+        "desc": "Kontextuelle KI auf Ihren echten Dossiers - kein Gimmick.",
         "tags": "Nächste Aktion,Texterstellung,Lead-Scoring"
       },
       "8": {
@@ -709,11 +822,11 @@
       },
       "5": {
         "before": "Ungefähre Schätzung",
-        "after": "KI-Schätzung — 47'000 Transaktionen"
+        "after": "KI-Schätzung - 47'000 Transaktionen"
       },
       "6": {
         "before": "CHF 200-800/Monat/Inserat",
-        "after": "Ab CHF 0 — Gratis-Plan"
+        "after": "Ab CHF 0 - Gratis-Plan"
       },
       "badge": "Der Wandel",
       "title": "Vor MEGGA vs Mit MEGGA",
@@ -900,7 +1013,7 @@
       },
       "step3": {
         "title": "Fotos hinzufügen",
-        "subtitle": "Optional — Fotos verbessern die Genauigkeit um {{percent}}%",
+        "subtitle": "Optional - Fotos verbessern die Genauigkeit um {{percent}}%",
         "dropzone": "Ziehen Sie Ihre Fotos hierher",
         "dropzoneSubtitle": "oder klicken Sie zum Auswählen (max 10)",
         "photosCount": "{{count}}/10 Fotos",
@@ -1114,7 +1227,7 @@
     "cta": {
       "badge": "Besichtigung & Kontakt",
       "title": "Interessieren Sie sich für diese Immobilie?",
-      "subtitle": "Vereinbaren Sie eine Besichtigung oder erhalten Sie das vollständige Dossier – die Agentur meldet sich innerhalb von 24 Stunden.",
+      "subtitle": "Vereinbaren Sie eine Besichtigung oder erhalten Sie das vollständige Dossier - die Agentur meldet sich innerhalb von 24 Stunden.",
       "button": "Besichtigung anfragen",
       "imageAlt": "Vorschau des Inserats auf einem Tablet"
     },
@@ -1137,6 +1250,467 @@
       "furnished": "Möbliert",
       "minergie": "Minergie",
       "newBuilding": "Neubau"
+    }
+  },
+  "notifications": {
+    "kind": {
+      "kyc": "KYC",
+      "visite": "Viewing",
+      "offre": "Offer",
+      "mandat": "Mandate",
+      "ai": "MEGGA AI",
+      "doc": "Document",
+      "team": "Team",
+      "system": "System"
+    },
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread",
+    "hideOne": "Hide this notification",
+    "muteKind": "Turn off “{{kind}}”",
+    "toastMarkedRead": "Marked as read",
+    "toastMarkedUnread": "Marked as unread",
+    "toastHidden": "Notification hidden",
+    "toastMuted": "“{{kind}}” notifications turned off",
+    "unreadCount_one": "{{count}} unread",
+    "unreadCount_other": "{{count}} unread",
+    "allClear": "You're all caught up",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications yet.",
+    "pause2h": "Pause for 2h",
+    "seeAll": "See all notifications"
+  },
+  "popovers": {
+    "quickAdd": {
+      "title": "Quick add",
+      "task": {
+        "label": "New task",
+        "sub": "Quick action to schedule"
+      },
+      "visit": {
+        "label": "Schedule viewing",
+        "sub": "Property · buyer · slot"
+      },
+      "contact": {
+        "label": "New contact",
+        "sub": "Lead, buyer or seller"
+      },
+      "deal": {
+        "label": "New offer",
+        "sub": "Start a deal"
+      },
+      "note": {
+        "label": "Internal note",
+        "sub": "Memo for the day"
+      }
+    },
+    "reschedule": {
+      "title": "Reschedule",
+      "current": "Currently · {{label}}",
+      "slots": {
+        "now": {
+          "label": "Now",
+          "sub": "Start the task"
+        },
+        "later": {
+          "label": "+ 2 hours",
+          "sub": "Push back slightly"
+        },
+        "tomorrow": {
+          "label": "Tomorrow morning"
+        },
+        "monday": {
+          "label": "Monday"
+        },
+        "week": {
+          "label": "This week",
+          "sub": "AI auto-placement"
+        }
+      }
+    },
+    "miniCalendar": {
+      "open": "Open"
+    },
+    "rowMenu": {
+      "title": "Actions",
+      "open": {
+        "label": "Open record",
+        "sub": "View full details"
+      },
+      "reschedule": {
+        "label": "Reschedule",
+        "sub": "Pick a new slot"
+      },
+      "priority": {
+        "label": "Mark as priority",
+        "sub": "Moves to the top of the journey"
+      },
+      "assign": {
+        "label": "Assign to…",
+        "sub": "Delegate to a teammate"
+      },
+      "complete": {
+        "label": "Mark as done",
+        "sub": "Close this action"
+      },
+      "delete": {
+        "label": "Delete",
+        "sub": "Remove from the journey"
+      }
+    },
+    "aiLeads": {
+      "title": "MEGGA AI · Processing request",
+      "caption_one": "{{count}} lead waiting · qualify or delegate",
+      "caption_other": "{{count}} leads waiting · qualify or delegate",
+      "reject": "Reject",
+      "accept": "Accept and qualify",
+      "qualifyAll": "Qualify all with AI",
+      "reviewOneByOne": "Review one by one"
+    },
+    "statusMenu": {
+      "title": "Change status",
+      "current": "Currently · {{status}}",
+      "items": {
+        "planned": {
+          "label": "Planned",
+          "sub": "Slot booked"
+        },
+        "todo": {
+          "label": "To do",
+          "sub": "Awaiting action"
+        },
+        "inProgress": {
+          "label": "In progress",
+          "sub": "Action underway"
+        },
+        "blocked": {
+          "label": "Blocked",
+          "sub": "Depends on a third party"
+        },
+        "done": {
+          "label": "Done",
+          "sub": "Completed · to archive"
+        }
+      }
+    },
+    "pipelineDrill": {
+      "executed": {
+        "title": "Completed tasks · week"
+      },
+      "active": {
+        "title": "Active deals"
+      },
+      "pipeline": {
+        "title": "Pipeline volume"
+      },
+      "matches": {
+        "title": "New matches · 24h"
+      },
+      "risk": {
+        "title": "Deals at risk"
+      },
+      "openFull": "Open full pipeline"
+    }
+  },
+  "profile": {
+    "defaultName": "Agent",
+    "noAgency": "No agency set",
+    "preferences": "Preferences",
+    "security": "Security & sessions",
+    "billing": "Billing & subscription",
+    "help": "Help center"
+  },
+  "audit": {
+    "category": {
+      "kyc": "KYC",
+      "deal": "Pipeline",
+      "contact": "Contact",
+      "bien": "Property",
+      "doc": "Document",
+      "auth": "Sign-in",
+      "settings": "Settings",
+      "ai": "MEGGA AI"
+    },
+    "csv": {
+      "createdAt": "Date/time",
+      "category": "Category",
+      "severity": "Severity",
+      "action": "Action",
+      "objectLabel": "Object",
+      "entityType": "Entity type",
+      "entityId": "Entity ID",
+      "actorId": "Actor (ID)",
+      "ip": "IP",
+      "metadata": "Metadata (JSON)"
+    },
+    "severity": {
+      "critical": "Critical",
+      "warning": "Warning"
+    },
+    "actor": {
+      "agent": "Agent",
+      "system": "System"
+    },
+    "details": "Details",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events",
+    "eyebrow": "Compliance · nFADP",
+    "title": "Audit trail.",
+    "subtitle": "Every action on contacts, properties, deals and documents is recorded immutably. This trail meets the audit obligation under the nFADP (art. 12) and the AMLA (art. 7), retained for 10 years.",
+    "export": {
+      "csv": "Export CSV",
+      "pdf": "Timestamped PDF export",
+      "generating": "Generating…",
+      "pdfFailed": "PDF export failed",
+      "pdfErrorPrefix": "PDF export:"
+    },
+    "stats": {
+      "events": "Events",
+      "eventsRangeAll": "Across recent months",
+      "eventsRangeDays": "Across the last {{days}} days",
+      "critical": "Critical",
+      "criticalSub": "Locks, auth failures, denials",
+      "warning": "Warnings",
+      "warningSub": "Re-screening, data export",
+      "aiActions": "MEGGA AI actions",
+      "aiActionsSub": "Suggestions and automated matching"
+    },
+    "searchPlaceholder": "Search an action or an entity…",
+    "period": {
+      "days7": "7 days",
+      "days30": "30 days",
+      "days90": "90 days",
+      "all": "All"
+    },
+    "filter": {
+      "allCategories": "All categories",
+      "allSeverities": "All severities"
+    },
+    "loading": "Loading the audit trail…",
+    "empty": "No event matches these filters.",
+    "footer": {
+      "retention": "Events are cryptographically signed and retained for 10 years (nFADP art. 12 · AMLA art. 7).",
+      "tamperLogged": "Any attempt to delete or alter a record is itself logged."
+    }
+  },
+  "portal": {
+    "type": {
+      "studio": "Studio"
+    },
+    "propertyFallback": "Property",
+    "rooms_one": "{{count}} room",
+    "rooms_other": "{{count}} rooms",
+    "mandate": {
+      "exclusive": "Exclusive mandate",
+      "simple": "Simple mandate"
+    },
+    "rel": {
+      "now": "just now",
+      "hours": "{{count}}h ago",
+      "today": "today",
+      "days": "{{count}}d ago",
+      "months": "{{count}} months ago"
+    },
+    "agentRole": "Your agent",
+    "visitsSubThisMonth": "incl. {{count}} this month",
+    "visitsSubDefault": "this month",
+    "step": {
+      "mandateSigned": "Mandate signed",
+      "online": "Online",
+      "visits": "Viewings",
+      "offers": "Offers",
+      "negotiation": "Negotiation",
+      "signed": "Signed"
+    },
+    "stepSentence": {
+      "0": "Your mandate is signed. Your property is getting ready to go online.",
+      "1": "Your property has just gone online. The first viewings are being arranged.",
+      "2": "Your property is online. Viewings are under way.",
+      "3": "You have received your first offers. Your agent is reviewing them with you.",
+      "4": "Negotiation is under way. Your agent is securing the best price for you.",
+      "5": "The sale is signed. Congratulations, everything is finalized."
+    },
+    "next": {
+      "0": {
+        "eta": "Within 3-5 days",
+        "hint": "Photos and listing in preparation."
+      },
+      "1": {
+        "eta": "This week",
+        "hint": "The first viewing requests are coming in."
+      },
+      "2": {
+        "eta": "1 to 2 weeks",
+        "hint": "Qualified viewings lead to the first offers."
+      },
+      "3": {
+        "eta": "A few days",
+        "hint": "Your agent reviews every offer received."
+      },
+      "4": {
+        "eta": "Within 48 hours",
+        "hint": "Your agent is defending your price."
+      }
+    },
+    "header": {
+      "settings": "Settings",
+      "yourAgent": "Your agent"
+    },
+    "property": {
+      "viewPhotos": "View photos",
+      "onlineSince_one": "Online for {{count}} day",
+      "onlineSince_other": "Online for {{count}} days"
+    },
+    "journey": {
+      "title": "Where your sale stands",
+      "stepCounter_one": "Step {{current}}/{{total}} · {{count}} step left",
+      "stepCounter_other": "Step {{current}}/{{total}} · {{count}} steps left",
+      "inProgress": "in progress",
+      "nextStep": "Next step",
+      "congrats": "Congratulations",
+      "saleComplete": "Sale completed",
+      "saleCompleteHint": "Your property is sold. Your agent remains available for post-sale matters."
+    },
+    "stats": {
+      "visits": "Visits",
+      "offers": "Offers",
+      "days": "Days",
+      "offersTarget": "target {{count}}",
+      "medianDays": "GE median · {{days}} d"
+    },
+    "offers": {
+      "statusPending": "Pending",
+      "statusCounter": "Counter-offer",
+      "statusAccepted": "Accepted",
+      "title": "Offers",
+      "emptyTitle": "No offer yet, which is normal at this stage.",
+      "emptyHint": "The viewings are doing their work.",
+      "respond": "Respond to the offer"
+    },
+    "activity": {
+      "title": "Latest news"
+    },
+    "agent": {
+      "whatsapp": "Message on WhatsApp",
+      "call": "Call",
+      "email": "Email"
+    },
+    "offer": {
+      "eyebrow": "Offer received",
+      "heading": "What would you like to do?",
+      "recap": {
+        "amount": "Amount offered",
+        "gap": "Gap to listed price"
+      },
+      "choice": {
+        "accept": {
+          "title": "Accept the offer",
+          "desc": "You confirm the amount offered."
+        },
+        "counter": {
+          "title": "Make a counter-offer",
+          "desc": "Propose your price in return."
+        },
+        "refuse": {
+          "title": "Decline the offer",
+          "desc": "You decline this proposal."
+        }
+      },
+      "counter": {
+        "label": "Your desired price"
+      },
+      "reassurance": "{{name}} confirms every decision with you before it is sent. Nothing goes out without your agreement.",
+      "cancel": "Cancel",
+      "submit": "Send to my agent",
+      "submitting": "Sending…",
+      "error": {
+        "send": "Sending failed. Check your connection, or contact your agent directly."
+      },
+      "sent": {
+        "title": "It's on its way",
+        "accept": "Your agreement has been sent. Your agent will get back to you for the next steps (sale agreement, notary).",
+        "counter": "Your counter-offer of {{amount}} has been sent to your agent, who will present it to the buyer.",
+        "refuse": "Your decline has been sent to your agent, who will keep you informed of the next steps.",
+        "back": "Back to my sale"
+      }
+    },
+    "settings": {
+      "eyebrow": "Settings",
+      "title": "Settings",
+      "notif": {
+        "title": "Notifications",
+        "sub": "You are notified by email.",
+        "offer": "New offer received",
+        "visit": "Viewing scheduled",
+        "feedback": "Feedback after viewing"
+      },
+      "availability": {
+        "title": "Viewing availability",
+        "sub": "When your property can be viewed.",
+        "day": {
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat",
+          "sun": "Sun"
+        },
+        "slotsLabel": "Time slots",
+        "slot": {
+          "morning": "Morning",
+          "afternoon": "Afternoon",
+          "evening": "Evening"
+        },
+        "noticeLabel": "Preferred notice",
+        "notice": {
+          "sameDay": "Same day",
+          "24h": "24 h",
+          "48h": "48 h"
+        }
+      },
+      "langContact": {
+        "title": "Language & contact",
+        "langLabel": "Interface language",
+        "channelLabel": "How your agent contacts you",
+        "channel": {
+          "phone": "Phone",
+          "email": "Email"
+        }
+      },
+      "appearance": {
+        "title": "Appearance",
+        "darkMode": "Dark mode",
+        "darkModeSub": "Easier reading in low light"
+      },
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving…"
+    },
+    "gallery": {
+      "close": "Close",
+      "previous": "Previous",
+      "next": "Next",
+      "photoAlt": "Photo {{index}}",
+      "emptyTitle": "No photos yet",
+      "emptyHint": "Photos of your property will appear here."
+    },
+    "modal": {
+      "close": "Close"
+    },
+    "invalid": {
+      "notFound": {
+        "title": "Portal not found",
+        "description": "This link does not match any seller portal. Please check the link your real estate agent sent you."
+      },
+      "expired": {
+        "title": "Portal expired",
+        "description": "This seller portal has expired. Please contact your real estate agent to obtain a new link."
+      },
+      "revoked": {
+        "title": "Access revoked",
+        "description": "Access to this portal has been disabled. Please contact your real estate agent for more information."
+      },
+      "backHome": "Back to home"
     }
   }
 }

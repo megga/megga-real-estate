@@ -40,7 +40,6 @@ export default function ExternalListingDetailPage() {
   const {
     notes, sends, imported, importedAt,
     addNote, deleteNote, recordSend, markImported,
-    priceComparison,
   } = useExternalListingActions(listing)
 
   const sendPropertyEmail = useSendPropertyEmail()
@@ -140,7 +139,7 @@ export default function ExternalListingDetailPage() {
         {photos.length > 0 ? (
           <div className="relative rounded-xl overflow-hidden border border-theme-border">
             <div className="aspect-[16/9] bg-black">
-              <img src={photos[photoIdx]} alt={listing.title || 'Bien immobilier'} className="w-full h-full object-cover" />
+              <img src={photos[photoIdx]} alt={listing.title || t('external.photoAlt')} className="w-full h-full object-cover" />
             </div>
             {photos.length > 1 && (
               <>
@@ -228,76 +227,8 @@ export default function ExternalListingDetailPage() {
               </div>
             )}
 
-            {/* ── NIVEAU 3 : Comparaison prix/m² ────────────────────────── */}
-            {priceComparison && (
-              <div className="rounded-xl border border-theme-border p-5">
-                <h3 className="text-xs text-theme-tertiary capitalize mb-4">
-                  {t('external.comparison')}
-                </h3>
-
-                {/* Headline metric */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={cn(
-                    'flex items-center gap-1 text-sm font-semibold',
-                    priceComparison.diff_pct > 10 ? 'text-red-500' :
-                    priceComparison.diff_pct < -10 ? 'text-emerald-500' :
-                    'text-theme-primary'
-                  )}>
-                    {priceComparison.diff_pct > 5 ? <MEIcon name="trending-up" className="w-4 h-4" /> :
-                     priceComparison.diff_pct < -5 ? <MEIcon name="trending-down" className="w-4 h-4" /> :
-                     <MEIcon name="minus" className="w-4 h-4" />}
-                    {priceComparison.diff_pct > 0 ? '+' : ''}{priceComparison.diff_pct}%
-                  </div>
-                  <p className="text-xs text-theme-secondary">
-                    {priceComparison.diff_pct > 10 ? t('external.aboveMarket') :
-                     priceComparison.diff_pct < -10 ? t('external.belowMarket') :
-                     t('external.aligned')}
-                  </p>
-                </div>
-
-                {/* Stats row */}
-                <div className="flex flex-wrap gap-6 py-3 border-y border-theme-border-subtle">
-                  <div>
-                    <p className="text-xs text-theme-tertiary">{t('external.thisProperty')}</p>
-                    <p className="text-sm font-semibold text-theme-primary">{formatCHF(priceComparison.external_price_per_m2)}/m²</p>
-                  </div>
-                  <div className="h-8 w-px bg-theme-border" />
-                  <div>
-                    <p className="text-xs text-theme-tertiary">{t('external.portfolioAvg')}</p>
-                    <p className="text-sm font-medium text-theme-primary">{formatCHF(priceComparison.internal_avg_price_per_m2)}/m²</p>
-                  </div>
-                  <div className="h-8 w-px bg-theme-border" />
-                  <div>
-                    <p className="text-xs text-theme-tertiary">{t('external.range')}</p>
-                    <p className="text-sm font-medium text-theme-primary">
-                      {formatCHF(priceComparison.internal_min_price_per_m2)} – {formatCHF(priceComparison.internal_max_price_per_m2)}/m²
-                    </p>
-                  </div>
-                </div>
-
-                {/* Comparable listings */}
-                {priceComparison.comparable_listings.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-xs text-theme-muted mb-2">{priceComparison.internal_count} bien{priceComparison.internal_count > 1 ? 's' : ''} comparé{priceComparison.internal_count > 1 ? 's' : ''}</p>
-                    {priceComparison.comparable_listings.map((comp, i) => (
-                      <div key={i} className="flex items-center justify-between py-1.5 border-b border-theme-border-subtle last:border-0">
-                        <div className="min-w-0">
-                          <p className="text-xs text-theme-secondary truncate">{comp.title}</p>
-                          <p className="text-xs text-theme-muted">{comp.city} · {comp.surface_m2} m²</p>
-                        </div>
-                        <div className="text-right shrink-0 ml-3">
-                          <p className="text-xs font-medium text-theme-primary">{formatCHF(comp.price_per_m2)}/m²</p>
-                          <p className="text-xs text-theme-muted">{formatCHF(comp.price)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Price analysis (simple — without comparison) */}
-            {pricePerM2 && listing.price > 0 && !priceComparison && (
+            {/* Price analysis (honnête — prix/m² propre à l'annonce, sans comparables fabriqués) */}
+            {pricePerM2 && listing.price > 0 && (
               <div className="rounded-xl border border-theme-border p-5">
                 <h3 className="text-xs text-theme-tertiary capitalize mb-3">{t('external.priceAnalysis')}</h3>
                 <div className="flex flex-wrap items-center gap-6">
@@ -397,7 +328,7 @@ export default function ExternalListingDetailPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-theme-secondary">{t('external.aggregator')}</span>
-                  <span className="text-xs font-medium text-theme-primary">RealAdvisor (14 portails)</span>
+                  <span className="text-xs font-medium text-theme-primary">{t('external.aggregatorValue', { count: 14 })}</span>
                 </div>
               </div>
             </div>
@@ -516,7 +447,7 @@ export default function ExternalListingDetailPage() {
                     <div key={send.id} className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-theme-secondary">{send.contact_name}</p>
-                        <p className="text-xs text-theme-muted">{send.channel === 'email' ? 'Email' : 'Messagerie'}</p>
+                        <p className="text-xs text-theme-muted">{send.channel === 'email' ? t('external.channelEmail') : t('external.channelMessaging')}</p>
                       </div>
                       <p className="text-xs text-theme-muted">{formatRelativeDate(send.sent_at)}</p>
                     </div>

@@ -1,6 +1,7 @@
 // Atelier Matching — COL 2 · annonce pivot (hero photo, vignettes, prix,
 // pilules specs, description, mini-carte placeholder). Port hi-fi du handoff.
 
+import { useTranslation } from 'react-i18next'
 import SgaIcon, { type SgaIconName } from './SgaIcon'
 import SgaMiniMap from './SgaMiniMap'
 import { sgaFmtCHF } from './format'
@@ -13,35 +14,36 @@ interface SgaListingProps {
 }
 
 export default function SgaListing({ L, onOpenPhoto, onOpenListing }: SgaListingProps) {
+  const { t } = useTranslation('matching')
   const G = L.gallery
   const specs: Array<{ i: SgaIconName; t: string }> = []
-  if (L.rooms != null) specs.push({ i: 'home', t: `${L.rooms} pièces` })
+  if (L.rooms != null) specs.push({ i: 'home', t: t('atelier.roomsCount', { count: L.rooms }) })
   if (L.area != null) specs.push({ i: 'surface', t: `${L.area} m²` })
-  if (L.beds != null) specs.push({ i: 'bed', t: `${L.beds} ch.` })
-  if (L.baths != null) specs.push({ i: 'bath', t: `${L.baths} sdb` })
+  if (L.beds != null) specs.push({ i: 'bed', t: t('atelier.bedsAbbr', { count: L.beds }) })
+  if (L.baths != null) specs.push({ i: 'bath', t: t('atelier.bathsAbbr', { count: L.baths }) })
   if (L.year != null) specs.push({ i: 'calendar', t: `${L.year}` })
-  if (L.floor != null && L.floor > 0) specs.push({ i: 'lift', t: `${L.floor}ᵉ étage` })
+  if (L.floor != null && L.floor > 0) specs.push({ i: 'lift', t: t('atelier.floorOrdinal', { floor: L.floor }) })
 
   return (
-    <section className="sga-panel sga-enter d1" aria-label="Annonce">
+    <section className="sga-panel sga-enter d1" aria-label={t('atelier.listing')}>
       <div className="sga-listing-scroll">
         <div className="sga-hero sga-photo-trigger" onClick={() => onOpenPhoto(0)}>
           {G[0]?.url ? (
             <img className="sga-hero-img" src={G[0].url} alt={G[0].label} draggable="false" />
           ) : (
             <div className="sga-ph">
-              <div className="ph-lbl"><SgaIcon d="camera" size={26} /><span>photo principale</span></div>
+              <div className="ph-lbl"><SgaIcon d="camera" size={26} /><span>{t('atelier.mainPhoto')}</span></div>
             </div>
           )}
           <button
             className="sga-hero-cta"
-            title="Voir l'annonce complète"
+            title={t('atelier.viewFullListing')}
             onClick={e => { e.stopPropagation(); onOpenListing() }}
           >
-            Voir l'annonce
+            {t('atelier.viewListing')}
           </button>
-          <div className="count"><SgaIcon d="layers" size={13} /> {L.photos} photos</div>
-          <div className="sga-zoomcue"><SgaIcon d="search" size={13} /> Ouvrir la galerie</div>
+          <div className="count"><SgaIcon d="layers" size={13} /> {t('atelier.photosCount', { count: L.photos })}</div>
+          <div className="sga-zoomcue"><SgaIcon d="search" size={13} /> {t('atelier.openGallery')}</div>
         </div>
 
         <div className="sga-thumbs">
@@ -77,7 +79,7 @@ export default function SgaListing({ L, onOpenPhoto, onOpenListing }: SgaListing
             {L.priceWas ? (
               <div className="t1 dim nums" style={{ textDecoration: 'line-through' }}>{sgaFmtCHF(L.priceWas)}</div>
             ) : L.charges != null ? (
-              <div className="t1 dim nums">+ {sgaFmtCHF(L.charges)} charges / mois</div>
+              <div className="t1 dim nums">{t('atelier.chargesPerMonth', { value: sgaFmtCHF(L.charges) })}</div>
             ) : null}
           </div>
         </div>
@@ -96,7 +98,7 @@ export default function SgaListing({ L, onOpenPhoto, onOpenListing }: SgaListing
           lat={L.lat}
           lng={L.lng}
           address={L.addr}
-          label={`quartier ${L.quartier || L.canton}`}
+          label={t('atelier.neighborhoodLabel', { area: L.quartier || L.canton })}
           className="sga-map"
           style={{ flex: 1 }}
         />

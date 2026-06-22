@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `SgStepVendor`).
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, type WizardData } from '../tokens'
 import { SgAvatar, SgKycChip, SgInput } from '../primitives'
 import { CRM_CONTACTS, type CrmContact } from '@/components/crm-sugar/mockData'
@@ -9,6 +10,7 @@ import { CRM_CONTACTS, type CrmContact } from '@/components/crm-sugar/mockData'
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
 export function Step1Vendor({ data, set }: StepProps) {
+  const { t } = useTranslation('listings')
   const [q, setQ] = useState('')
   const [creating, setCreating] = useState(false)
   const [newContact, setNewContact] = useState({ firstName: '', lastName: '', email: '', phone: '' })
@@ -59,13 +61,13 @@ export function Step1Vendor({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 2 sur 8 · Vendeur (1/2)</div>
+        }}>{t('wizard.step1.vendor.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>Qui est le propriétaire&nbsp;?</h1>
+        }}>{t('wizard.step1.vendor.title')}</h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          Liez ce bien à un contact existant ou créez-en un nouveau.
+          {t('wizard.step1.vendor.subtitle')}
         </p>
       </div>
 
@@ -94,7 +96,7 @@ export function Step1Vendor({ data, set }: StepProps) {
             height: 36, padding: '0 16px', borderRadius: 999, border: 0,
             background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-          }}>Changer</button>
+          }}>{t('wizard.step1.vendor.change')}</button>
         </div>
       )}
 
@@ -112,7 +114,7 @@ export function Step1Vendor({ data, set }: StepProps) {
               <path d="m20 20-3.5-3.5" />
             </svg>
             <input autoFocus value={q} onChange={e => setQ(e.target.value)}
-              placeholder="Tapez le nom, l'email ou le téléphone du vendeur…"
+              placeholder={t('wizard.step1.vendor.searchPlaceholder')}
               style={{
                 flex: 1, height: 56, border: 0, background: 'transparent',
                 outline: 'none', fontFamily: 'inherit',
@@ -125,7 +127,7 @@ export function Step1Vendor({ data, set }: StepProps) {
                 fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 6,
                 boxShadow: '0 6px 16px rgba(0,0,0,0.18)',
-              }}>+ Nouveau</button>
+              }}>{t('wizard.step1.vendor.newButton')}</button>
             )}
           </div>
 
@@ -135,7 +137,7 @@ export function Step1Vendor({ data, set }: StepProps) {
                 fontSize: 11.5, fontWeight: 600, color: SugarV2.muted,
                 letterSpacing: 1, textTransform: 'uppercase',
                 padding: '6px 4px',
-              }}>Vos vendeurs récents</div>
+              }}>{t('wizard.step1.vendor.recentSellers')}</div>
             )}
             {matches.length === 0 ? (
               <div style={{
@@ -143,16 +145,16 @@ export function Step1Vendor({ data, set }: StepProps) {
                 boxShadow: SugarV2.shadowSm, textAlign: 'center',
               }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: SugarV2.ink, marginBottom: 6 }}>
-                  Aucun contact trouvé pour « {q} »
+                  {t('wizard.step1.vendor.noMatchTitle', { query: q })}
                 </div>
                 <div style={{ fontSize: 13, color: SugarV2.muted, marginBottom: 16 }}>
-                  Créez un nouveau contact vendeur.
+                  {t('wizard.step1.vendor.noMatchBody')}
                 </div>
                 <button onClick={startCreate} style={{
                   height: 42, padding: '0 22px', borderRadius: 999, border: 0,
                   background: SugarV2.black, color: sgOn(),
                   fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                }}>+ Créer « {q} »</button>
+                }}>{t('wizard.step1.vendor.createNamed', { query: q })}</button>
               </div>
             ) : (
               matches.slice(0, 6).map(c => (
@@ -177,7 +179,7 @@ export function Step1Vendor({ data, set }: StepProps) {
                           fontSize: 9.5, fontWeight: 700, color: SugarV2.inkSoft,
                           padding: '2px 7px', borderRadius: 999, background: SugarV2.cardSubtle,
                           letterSpacing: 0.4, textTransform: 'uppercase',
-                        }}>Vendeur</span>
+                        }}>{t('wizard.step1.vendor.sellerTag')}</span>
                       )}
                       <SgKycChip status={c.kyc?.status} />
                     </div>
@@ -204,23 +206,23 @@ export function Step1Vendor({ data, set }: StepProps) {
             <div style={{
               fontSize: 11, fontWeight: 600, color: SugarV2.muted,
               letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
-            }}>Nouveau vendeur</div>
+            }}>{t('wizard.step1.vendor.newSeller')}</div>
             <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
-              Quelques informations rapides
+              {t('wizard.step1.vendor.quickInfo')}
             </h3>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-            <SgInput label="Prénom" value={newContact.firstName}
+            <SgInput label={t('wizard.step1.vendor.firstName')} value={newContact.firstName}
               onChange={v => setNewContact(p => ({ ...p, firstName: v }))} autoFocus />
-            <SgInput label="Nom" value={newContact.lastName}
+            <SgInput label={t('wizard.step1.vendor.lastName')} value={newContact.lastName}
               onChange={v => setNewContact(p => ({ ...p, lastName: v }))} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <SgInput label="Email" type="email" value={newContact.email}
+            <SgInput label={t('wizard.step1.vendor.email')} type="email" value={newContact.email}
               onChange={v => setNewContact(p => ({ ...p, email: v }))} />
-            <SgInput label="Téléphone" type="tel" value={newContact.phone}
-              onChange={v => setNewContact(p => ({ ...p, phone: v }))} placeholder="+41 79 …" />
+            <SgInput label={t('wizard.step1.vendor.phone')} type="tel" value={newContact.phone}
+              onChange={v => setNewContact(p => ({ ...p, phone: v }))} placeholder={t('wizard.step1.vendor.phonePlaceholder')} />
           </div>
 
           <div style={{
@@ -229,7 +231,7 @@ export function Step1Vendor({ data, set }: StepProps) {
             display: 'flex', alignItems: 'center', gap: 12,
           }}>
             <div style={{ fontSize: 13, color: SugarV2.inkSoft, fontWeight: 500, flex: 1, lineHeight: 1.4 }}>
-              Le KYC sera demandé après signature du mandat. MEGGA enverra automatiquement la procédure au vendeur.
+              {t('wizard.step1.vendor.kycNote')}
             </div>
           </div>
 
@@ -238,7 +240,7 @@ export function Step1Vendor({ data, set }: StepProps) {
               height: 40, padding: '0 18px', borderRadius: 999, border: 0,
               background: 'transparent', color: SugarV2.inkSoft,
               fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            }}>Annuler</button>
+            }}>{t('common:actions.cancel')}</button>
             <button onClick={saveNew}
               disabled={!newContact.firstName || !newContact.lastName}
               style={{
@@ -248,7 +250,7 @@ export function Step1Vendor({ data, set }: StepProps) {
                 fontSize: 13, fontWeight: 600,
                 cursor: (!newContact.firstName || !newContact.lastName) ? 'not-allowed' : 'pointer',
                 boxShadow: '0 6px 16px rgba(0,0,0,0.18)',
-              }}>Créer le contact</button>
+              }}>{t('wizard.step1.vendor.createContact')}</button>
           </div>
         </div>
       )}

@@ -13,6 +13,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode, type CSSProperties } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
 import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
@@ -24,11 +25,12 @@ import {
   VxSpark, VxAvatar, VxEditInput, type VxIconName, type VxPalette,
 } from '@/components/crm-sugar-v3/vitrine/vitrineKit'
 import { fmtDateShort } from '@/components/crm-sugar-v3/tokens'
-import { BD_STAGE_LABEL } from '@/components/crm-sugar-v3/bien-detail/BdShared'
+import { bdStageLabel } from '@/components/crm-sugar-v3/bien-detail/BdShared'
 import {
   useProperty, useUpdateProperty, type CreatePropertyInput,
 } from '@/hooks/useProperties'
 import { usePropertyStats } from '@/hooks/usePropertyStats'
+import { PropertyStaticMap } from '@/components/map/PropertyStaticMap'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useContacts } from '@/hooks/useContacts'
 import { useLogAudit } from '@/hooks/useAuditLog'
@@ -242,13 +244,14 @@ function BvStat({ icon, label, value, sp }: { icon: VxIconName; label: string; v
 
 // ─── Ligne de diffusion (portail) ─────────────────────────────────────────
 function BvPortal({ name, online, sp, dark }: { name: string; online: boolean; sp: VxPalette; dark: boolean }) {
+  const { t: tr } = useTranslation('listings')
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', borderRadius: 13, background: sp.cardSub }}>
       <div style={{ width: 30, height: 30, borderRadius: 8, background: dark ? 'rgba(255,255,255,.08)' : '#fff', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: sp.ink, boxShadow: sp.shadowSm }}>{name[0]}</div>
       <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: sp.ink }}>{name}</span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: online ? sp.ok : sp.muted, whiteSpace: 'nowrap' }}>
         <span style={{ width: 6, height: 6, borderRadius: 9, background: online ? sp.ok : sp.muted }} />
-        {online ? 'En ligne' : 'Hors ligne'}
+        {online ? tr('detail.distributionSection.online') : tr('detail.distributionSection.offline')}
       </span>
     </div>
   )
@@ -295,6 +298,7 @@ function BvVisitModal({
   contacts: VisitContact[]
   onConfirm: (date: Date, time: string, contact: VisitContact | null) => void
 }) {
+  const { t: tr } = useTranslation('listings')
   const [day, setDay] = useState(0)
   const [time, setTime] = useState('14:00')
   const [who, setWho] = useState<string | null>(contacts[0]?.id ?? null)
@@ -319,13 +323,13 @@ function BvVisitModal({
       <div onClick={e => e.stopPropagation()} style={{ width: 460, maxWidth: '100%', background: dark ? '#22242F' : '#fff', borderRadius: 26, boxShadow: '0 40px 100px rgba(15,23,42,.4)', padding: 28, animation: 'vxScaleIn .22s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 1, textTransform: 'uppercase' }}>Planifier une visite</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 1, textTransform: 'uppercase' }}>{tr('detail.visitModal.title')}</div>
             <h3 style={{ margin: '6px 0 0', fontSize: 21, fontWeight: 800, color: sp.ink, letterSpacing: -0.5 }}>{title}</h3>
           </div>
           <div style={{ flex: 1 }} />
           <BvCircleBtn icon="close" onClick={onClose} sp={sp} />
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>Jour</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>{tr('detail.visitModal.day')}</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
           {days.map((d, i) => {
             const on = i === day
@@ -337,7 +341,7 @@ function BvVisitModal({
             )
           })}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>Heure</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>{tr('detail.visitModal.time')}</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
           {times.map(tm => {
             const on = tm === time
@@ -348,7 +352,7 @@ function BvVisitModal({
         </div>
         {contacts.length > 0 && (
           <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>Visiteur</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: sp.muted, marginBottom: 9, textTransform: 'uppercase', letterSpacing: 0.4 }}>{tr('detail.visitModal.visitor')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
               {contacts.map(c => {
                 const on = c.id === who
@@ -364,7 +368,7 @@ function BvVisitModal({
           </>
         )}
         <BvBlackBtn sp={sp} size="lg" onClick={() => { onConfirm(days[day], time, contacts.find(c => c.id === who) ?? null); onClose() }}>
-          <span style={{ flex: 1 }}>Confirmer la visite</span>
+          <span style={{ flex: 1 }}>{tr('detail.visitModal.confirm')}</span>
         </BvBlackBtn>
       </div>
     </div>
@@ -377,6 +381,7 @@ function BvVisitModal({
 export default function BienDetailSugarV3Page() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { t: tr } = useTranslation('listings')
 
   // Dark mode (partagé avec la galerie via la même clé localStorage)
   const [dark, setDark] = useState<boolean>(() => {
@@ -495,16 +500,31 @@ export default function BienDetailSugarV3Page() {
   // ── États transitoires (avant les returns conditionnels : aucun hook après) ──
   const fullBg = dark ? sp.bg : sp.bgGradient
   if (isLoading) {
-    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.muted, fontFamily: "'Inter Tight', system-ui, sans-serif" }}>Chargement du bien…</div>
+    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.muted, fontFamily: "'Inter Tight', system-ui, sans-serif" }}>{tr('detail.loading')}</div>
   }
   if (isError) {
-    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.warn, fontFamily: "'Inter Tight', system-ui, sans-serif", padding: 40, textAlign: 'center' }}>Erreur de chargement du bien : {error?.message ?? 'inconnue'}</div>
+    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.warn, fontFamily: "'Inter Tight', system-ui, sans-serif", padding: 40, textAlign: 'center' }}>{tr('detail.loadError', { message: error?.message ?? tr('detail.unknownError') })}</div>
   }
   if (!bien) {
-    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.muted, fontFamily: "'Inter Tight', system-ui, sans-serif" }}>Bien introuvable.</div>
+    return <div style={{ minHeight: '100vh', background: fullBg, display: 'grid', placeItems: 'center', color: sp.muted, fontFamily: "'Inter Tight', system-ui, sans-serif" }}>{tr('detail.notFound')}</div>
   }
 
   // ── Dérivés réels ──
+  // Libellé de type de bien : réutilise listings:type.* (mappe le code), sinon
+  // capitalise le code brut (compat valeurs hors mapping).
+  const TYPE_KEYS = new Set(['apartment', 'house', 'villa', 'commercial', 'land'])
+  const typeLabel = (code: string | null | undefined): string => {
+    if (!code) return '—'
+    if (TYPE_KEYS.has(code)) return tr(`type.${code}`)
+    return code.charAt(0).toUpperCase() + code.slice(1)
+  }
+  // Libellé de type de mandat : mappe les codes connus, sinon code brut (capitalize).
+  const MANDATE_KEYS = new Set(['exclusive', 'simple', 'semi_exclusive'])
+  const mandateTypeLabel = (code: string | null | undefined): string => {
+    if (!code) return '—'
+    if (MANDATE_KEYS.has(code)) return tr(`detail.mandate.type.${code}`)
+    return code.charAt(0).toUpperCase() + code.slice(1)
+  }
   const ref = bien.id.slice(0, 12).toUpperCase()
   const isRent = bien.transaction_type === 'rent'
   const price = bien.price
@@ -517,8 +537,13 @@ export default function BienDetailSugarV3Page() {
   const publishedTo = bien.published_at ? ['MEGGA'] : []
   const publicDesc =
     bien.description ||
-    `Bien de ${bien.rooms || '—'} pièces (${bien.surface_m2 || '—'} m²) situé ${bien.address || ''}. ` +
-      `Construit en ${bien.year_built || '—'}, classe énergétique ${bien.energy_class || 'non renseignée'}.`
+    tr('detail.autoDescription', {
+      rooms: bien.rooms || '—',
+      surface: bien.surface_m2 || '—',
+      address: bien.address || '',
+      year: bien.year_built || '—',
+      energyClass: bien.energy_class || tr('detail.energyClassUnknown'),
+    })
 
   // Vendeur (owner) : dérivé du contact_seller_id d'un deal, si présent.
   const sellerId = dealsForBien.map(d => d.contact_seller_id).find(Boolean) ?? null
@@ -536,9 +561,9 @@ export default function BienDetailSugarV3Page() {
 
   // Historique réel (créé / publié / modifié) — pas de mock.
   const history: { at: string; text: string; kind: string }[] = [
-    { at: bien.created_at, text: 'Bien créé dans le CRM', kind: 'created' },
-    bien.published_at ? { at: bien.published_at, text: 'Annonce publiée', kind: 'published' } : null,
-    bien.updated_at && bien.updated_at !== bien.created_at ? { at: bien.updated_at, text: 'Annonce mise à jour', kind: 'updated' } : null,
+    { at: bien.created_at, text: tr('detail.history.created'), kind: 'created' },
+    bien.published_at ? { at: bien.published_at, text: tr('detail.history.published'), kind: 'published' } : null,
+    bien.updated_at && bien.updated_at !== bien.created_at ? { at: bien.updated_at, text: tr('detail.history.updated'), kind: 'updated' } : null,
   ].filter((e): e is { at: string; text: string; kind: string } => !!e)
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 
@@ -601,10 +626,10 @@ export default function BienDetailSugarV3Page() {
         })
         setEditing(false)
         setToast({
-          title: wasDraft ? 'Annonce publiée' : 'Annonce mise à jour',
+          title: wasDraft ? tr('detail.toast.publishedTitle') : tr('detail.toast.updatedTitle'),
           lines: [
-            wasDraft ? 'Statut passé en actif' : null,
-            "Entrée ajoutée au journal d'audit nLPD",
+            wasDraft ? tr('detail.toast.statusActive') : null,
+            tr('detail.toast.auditAdded'),
           ].filter((x): x is string => !!x),
         })
       },
@@ -619,12 +644,12 @@ export default function BienDetailSugarV3Page() {
   } as CSSProperties
 
   const mandatRows = [
-    { l: 'Commission', v: bien.mandate_commission_pct ? bien.mandate_commission_pct + ' %' : '—' },
-    { l: 'Signé le', v: bien.mandate_signed_at ? fmtDateShort(bien.mandate_signed_at) : '—' },
+    { l: tr('detail.mandate.commission'), v: bien.mandate_commission_pct ? bien.mandate_commission_pct + ' %' : '—' },
+    { l: tr('detail.mandate.signedOn'), v: bien.mandate_signed_at ? fmtDateShort(bien.mandate_signed_at) : '—' },
     {
-      l: 'Expire le',
+      l: tr('detail.mandate.expiresOn'),
       v: bien.mandate_expires_at ? fmtDateShort(bien.mandate_expires_at) : '—',
-      note: daysToExp != null ? (daysToExp > 0 ? `dans ${daysToExp} j` : `${Math.abs(daysToExp)} j de retard`) : null,
+      note: daysToExp != null ? (daysToExp > 0 ? tr('detail.mandate.expiresIn', { count: daysToExp }) : tr('detail.mandate.overdue', { count: Math.abs(daysToExp) })) : null,
       warn: daysToExp != null && daysToExp <= 30,
     },
   ]
@@ -649,19 +674,19 @@ export default function BienDetailSugarV3Page() {
         <main style={{ flex: 1, padding: '40px 40px 90px', minWidth: 0, maxWidth: 1300 }}>
           {/* Header */}
           <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
-            <BvGhostBtn icon="arrowL" sp={sp} onClick={() => onNavigate('biens')}>Mes biens</BvGhostBtn>
+            <BvGhostBtn icon="arrowL" sp={sp} onClick={() => onNavigate('biens')}>{tr('title')}</BvGhostBtn>
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: sp.muted, letterSpacing: 0.3 }}>{ref}</span>
             <div style={{ flex: 1 }} />
             {editing && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 13px', borderRadius: 999, background: sp.black, color: sp.onAccent, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                 <span style={{ width: 6, height: 6, borderRadius: 9, background: sp.warn, animation: 'vxFade 1s ease-in-out infinite alternate' }} />
-                Édition
+                {tr('detail.editingBadge')}
               </span>
             )}
-            <BvCircleBtn icon={editing ? 'close' : 'pencil'} sp={sp} title={editing ? 'Annuler' : "Modifier l'annonce"} onClick={() => { if (editing) cancelEditing(); else setEditing(true) }} />
-            {!editing && <BvGhostBtn sp={sp} onClick={() => setVisitOpen(true)}>Planifier une visite</BvGhostBtn>}
-            <BvBlackBtn sp={sp} onClick={editing ? saveAndPublish : () => flash('Diffusion', [publishedTo.length ? 'Annonce en ligne sur ' + publishedTo.join(', ') : 'Bien non encore publié'])}>
-              {editing ? 'Enregistrer & publier' : bien.published_at ? 'Gérer la diffusion' : 'Publier le bien'}
+            <BvCircleBtn icon={editing ? 'close' : 'pencil'} sp={sp} title={editing ? tr('detail.cancelEdit') : tr('detail.editListing')} onClick={() => { if (editing) cancelEditing(); else setEditing(true) }} />
+            {!editing && <BvGhostBtn sp={sp} onClick={() => setVisitOpen(true)}>{tr('detail.scheduleVisit')}</BvGhostBtn>}
+            <BvBlackBtn sp={sp} onClick={editing ? saveAndPublish : () => flash(tr('detail.distribution'), [publishedTo.length ? tr('detail.onlineOn', { portals: publishedTo.join(', ') }) : tr('detail.notPublishedYet')])}>
+              {editing ? tr('detail.saveAndPublish') : bien.published_at ? tr('detail.manageDistribution') : tr('detail.publishProperty')}
             </BvBlackBtn>
           </header>
 
@@ -669,7 +694,7 @@ export default function BienDetailSugarV3Page() {
           <div style={{ background: sp.card, border: '1px solid ' + sp.hairline, borderRadius: 24, overflow: 'hidden', boxShadow: sp.shadow, marginBottom: 22, animation: 'vxFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
             <div style={{ position: 'relative' }} className="vx-hero-gallery">
               <VxGallery photos={photos} count={photoCount} dark={dark} onOpen={i => setLb({ open: true, i })} />
-              <button onClick={() => setLb({ open: true, i: 0 })} title={`Voir les ${photoCount} photos`} style={{ position: 'absolute', right: 16, bottom: 16, width: 46, height: 46, borderRadius: 999, border: 0, cursor: 'pointer', background: 'rgba(255,255,255,.94)', color: '#15171C', display: 'grid', placeItems: 'center', boxShadow: '0 6px 18px -6px rgba(0,0,0,.4)' }}>
+              <button onClick={() => setLb({ open: true, i: 0 })} title={tr('detail.viewPhotos', { count: photoCount })} style={{ position: 'absolute', right: 16, bottom: 16, width: 46, height: 46, borderRadius: 999, border: 0, cursor: 'pointer', background: 'rgba(255,255,255,.94)', color: '#15171C', display: 'grid', placeItems: 'center', boxShadow: '0 6px 18px -6px rgba(0,0,0,.4)' }}>
                 <MEIcon name="gallery" size={20} color="#15171C" strokeWidth={1.8} />
               </button>
             </div>
@@ -680,10 +705,10 @@ export default function BienDetailSugarV3Page() {
                 <div style={{ flex: 1, minWidth: 260 }}>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
                     <VxStatusPill status={bien.status} dark={dark} />
-                    {bien.c2pa_verified && <VxMetaPill icon="shieldCheck" dark={dark}>Provenance vérifiée · C2PA</VxMetaPill>}
+                    {bien.c2pa_verified && <VxMetaPill icon="shieldCheck" dark={dark}>{tr('detail.c2paVerified')}</VxMetaPill>}
                   </div>
                   <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 1, textTransform: 'uppercase' }}>
-                    {[bien.canton, isRent ? 'Location' : 'Vente', bien.type].filter(Boolean).join(' · ')}
+                    {[bien.canton, isRent ? tr('detail.transactionRent') : tr('detail.transactionSale'), typeLabel(bien.type)].filter(Boolean).join(' · ')}
                   </div>
                   <h1 style={{ margin: '9px 0 8px', fontSize: 34, fontWeight: 800, color: sp.ink, letterSpacing: -0.9, lineHeight: 1.1 }}>
                     {editing ? <VxEditInput dark={dark} value={draft.title} onChange={v => setField('title', v)} block style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.9 }} /> : bien.title}
@@ -694,28 +719,33 @@ export default function BienDetailSugarV3Page() {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>{isRent ? 'Loyer' : 'Prix de vente'}</div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.muted, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>{isRent ? tr('detail.rentLabel') : tr('detail.salePriceLabel')}</div>
                   <div style={{ fontSize: 40, fontWeight: 800, color: sp.ink, letterSpacing: -1.4, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                     {editing ? <VxEditInput dark={dark} type="number" prefix="CHF" value={draft.price} onChange={v => setField('price', v)} style={{ fontSize: 30, fontWeight: 800, width: 190, letterSpacing: -1 }} /> : vxFmtCHF(price)}
-                    {isRent && <span style={{ fontSize: 15, color: sp.muted, fontWeight: 600 }}>/mois</span>}
+                    {isRent && <span style={{ fontSize: 15, color: sp.muted, fontWeight: 600 }}>{tr('detail.perMonth')}</span>}
                   </div>
                   {bien.charges_monthly ? (
-                    <div style={{ marginTop: 7, fontSize: 13, color: sp.muted, fontWeight: 500 }}>+ CHF {bien.charges_monthly} charges{isRent ? '/mois' : ''}</div>
+                    <div style={{ marginTop: 7, fontSize: 13, color: sp.muted, fontWeight: 500 }}>{tr('detail.chargesLine', { amount: bien.charges_monthly, suffix: isRent ? tr('detail.perMonth') : '' })}</div>
                   ) : null}
                 </div>
               </div>
 
               {/* ruban specs */}
               <div style={{ marginTop: 24, paddingTop: 22, paddingBottom: 24, borderTop: '1px solid ' + sp.hairline, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 18 }}>
-                <BvSpec icon="surface" label="Surface" value={(bien.surface_m2 ?? '—') + ' m²'} sp={sp} />
-                <BvSpec icon="home" label="Pièces" value={bien.rooms ?? '—'} sp={sp} />
-                <BvSpec icon="bed" label="Chambres" value={bien.bedrooms ?? '—'} sp={sp} />
-                <BvSpec icon="bath" label="SdB" value={bien.bathrooms ?? '—'} sp={sp} />
-                <BvSpec icon="calendar" label="Année" value={bien.year_built ?? '—'} sp={sp} />
-                <BvSpec icon="bolt" label="DPE" value={bien.energy_class ?? '—'} sp={sp} />
+                <BvSpec icon="surface" label={tr('detail.spec.surface')} value={(bien.surface_m2 ?? '—') + ' m²'} sp={sp} />
+                <BvSpec icon="home" label={tr('detail.spec.rooms')} value={bien.rooms ?? '—'} sp={sp} />
+                <BvSpec icon="bed" label={tr('detail.spec.bedrooms')} value={bien.bedrooms ?? '—'} sp={sp} />
+                <BvSpec icon="bath" label={tr('detail.spec.bathrooms')} value={bien.bathrooms ?? '—'} sp={sp} />
+                <BvSpec icon="calendar" label={tr('detail.spec.year')} value={bien.year_built ?? '—'} sp={sp} />
+                <BvSpec icon="bolt" label={tr('detail.spec.energyClass')} value={bien.energy_class ?? '—'} sp={sp} />
                 <BvSpec icon="trending-up" label="CHF/m²" value={ppm2 ? vxCompact(ppm2) : '—'} sp={sp} />
               </div>
             </div>
+          </div>
+
+          {/* Localisation — carte statique (Mapbox Static Images, lazy ; coords du bien) */}
+          <div style={{ borderRadius: 18, overflow: 'hidden', border: '1px solid ' + sp.hairline, height: 220, position: 'relative', marginBottom: 22 }}>
+            <PropertyStaticMap lat={bien.lat} lng={bien.lng} address={bien.address} className="w-full h-full" emptyHint={tr('detail.locationUnavailable')} />
           </div>
 
           {/* BODY : 2 colonnes */}
@@ -726,14 +756,14 @@ export default function BienDetailSugarV3Page() {
               <VxCard index={0}>
                 <VxSectionHead
                   dark={dark}
-                  eyebrow="Description"
-                  title={descTab === 'public' ? 'Annonce visible par les acheteurs' : 'Notes équipe MEGGA'}
+                  eyebrow={tr('detail.description.eyebrow')}
+                  title={descTab === 'public' ? tr('detail.description.publicTitle') : tr('detail.description.privateTitle')}
                   right={
                     <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: sp.cardSub }}>
-                      {([{ id: 'public', l: 'Publique', icon: 'globe' }, { id: 'private', l: 'Privée', icon: 'lock' }] as const).map(o => {
+                      {([{ id: 'public', l: tr('detail.description.tabPublic'), icon: 'globe' }, { id: 'private', l: tr('detail.description.tabPrivate'), icon: 'lock' }] as const).map(o => {
                         const a = descTab === o.id
                         return (
-                          <button key={o.id} onClick={() => setDescTab(o.id)} style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: a ? sp.card : 'transparent', color: a ? sp.ink : sp.muted, fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: a ? sp.shadowSm : 'none', transition: 'all .15s' }}>
+                          <button key={o.id} onClick={() => setDescTab(o.id as 'public' | 'private')} style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: a ? sp.card : 'transparent', color: a ? sp.ink : sp.muted, fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: a ? sp.shadowSm : 'none', transition: 'all .15s' }}>
                             <VxIcon name={o.icon} size={11} stroke={a ? sp.ink : sp.muted} sw={1.9} />{o.l}
                           </button>
                         )
@@ -748,37 +778,37 @@ export default function BienDetailSugarV3Page() {
                     <p className="vx-desc-text" style={{ margin: 0 }}>{publicDesc}</p>
                   )
                 ) : editing ? (
-                  <textarea value={draft.private_notes} onChange={e => setField('private_notes', e.target.value)} rows={5} placeholder="Notes internes (jamais publiées) : disponibilités du vendeur, marge de négociation, préférences acheteurs…" style={{ width: '100%', padding: 15, borderRadius: 14, background: sp.cardSub, border: 0, fontFamily: 'inherit', fontSize: 14.5, color: sp.ink, lineHeight: 1.7, resize: 'vertical', outline: 'none', boxSizing: 'border-box', boxShadow: 'inset 0 0 0 2px ' + sp.ink }} />
+                  <textarea value={draft.private_notes} onChange={e => setField('private_notes', e.target.value)} rows={5} placeholder={tr('detail.description.privatePlaceholder')} style={{ width: '100%', padding: 15, borderRadius: 14, background: sp.cardSub, border: 0, fontFamily: 'inherit', fontSize: 14.5, color: sp.ink, lineHeight: 1.7, resize: 'vertical', outline: 'none', boxSizing: 'border-box', boxShadow: 'inset 0 0 0 2px ' + sp.ink }} />
                 ) : bien.private_notes ? (
                   <>
                     <p className="vx-desc-text" style={{ margin: 0 }}>{bien.private_notes}</p>
                     <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: sp.cardSub, color: sp.muted, fontSize: 11, fontWeight: 600 }}>
-                      <VxIcon name="lock" size={11} stroke={sp.muted} sw={2} /> Visible uniquement par l'équipe MEGGA · jamais publié
+                      <VxIcon name="lock" size={11} stroke={sp.muted} sw={2} /> {tr('detail.description.privateOnly')}
                     </div>
                   </>
                 ) : (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 14, background: sp.cardSub, color: sp.muted, fontSize: 12.5, fontWeight: 600 }}>
-                    <VxIcon name="lock" size={13} stroke={sp.muted} sw={1.9} /> Aucune note d'équipe — passe en édition (✎) pour en ajouter. Visible MEGGA seulement.
+                    <VxIcon name="lock" size={13} stroke={sp.muted} sw={1.9} /> {tr('detail.description.privateEmpty')}
                   </div>
                 )}
               </VxCard>
 
               {/* Caractéristiques */}
               <VxCard index={1}>
-                <VxSectionHead dark={dark} eyebrow="Caractéristiques" title="Le détail du bien" />
+                <VxSectionHead dark={dark} eyebrow={tr('detail.specs.eyebrow')} title={tr('detail.specs.title')} />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                   {[
-                    { l: 'Type de bien', v: bien.type ? bien.type.charAt(0).toUpperCase() + bien.type.slice(1) : '—' },
-                    { l: 'Transaction', v: isRent ? 'Location' : 'Vente' },
-                    { l: 'Surface habitable', v: (bien.surface_m2 ?? '—') + ' m²' },
-                    { l: 'Pièces', v: bien.rooms ?? '—' },
-                    { l: 'Chambres', v: bien.bedrooms ?? '—' },
-                    { l: 'Salles de bain', v: bien.bathrooms ?? '—' },
-                    { l: 'Année', v: bien.year_built ?? '—' },
-                    { l: 'Classe énergétique', v: bien.energy_class ? 'DPE ' + bien.energy_class : '—' },
-                    { l: 'Charges', v: bien.charges_monthly ? 'CHF ' + bien.charges_monthly + (isRent ? '/mois' : '') : '—' },
+                    { k: 'type', l: tr('detail.specs.propertyType'), v: typeLabel(bien.type) },
+                    { k: 'transaction', l: tr('detail.specs.transaction'), v: isRent ? tr('detail.transactionRent') : tr('detail.transactionSale') },
+                    { k: 'surface', l: tr('detail.specs.livingArea'), v: (bien.surface_m2 ?? '—') + ' m²' },
+                    { k: 'rooms', l: tr('detail.spec.rooms'), v: bien.rooms ?? '—' },
+                    { k: 'bedrooms', l: tr('detail.spec.bedrooms'), v: bien.bedrooms ?? '—' },
+                    { k: 'bathrooms', l: tr('detail.specs.bathrooms'), v: bien.bathrooms ?? '—' },
+                    { k: 'year', l: tr('detail.spec.year'), v: bien.year_built ?? '—' },
+                    { k: 'energy', l: tr('detail.specs.energyClass'), v: bien.energy_class ? tr('detail.specs.energyClassValue', { grade: bien.energy_class }) : '—' },
+                    { k: 'charges', l: tr('detail.specs.charges'), v: bien.charges_monthly ? 'CHF ' + bien.charges_monthly + (isRent ? tr('detail.perMonth') : '') : '—' },
                   ].map(s => (
-                    <div key={s.l} style={{ padding: 15, borderRadius: 15, background: sp.cardSub }}>
+                    <div key={s.k} style={{ padding: 15, borderRadius: 15, background: sp.cardSub }}>
                       <div style={{ fontSize: 11, color: sp.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3 }}>{s.l}</div>
                       <div style={{ marginTop: 7, fontSize: 16, fontWeight: 700, color: sp.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{s.v}</div>
                     </div>
@@ -800,9 +830,9 @@ export default function BienDetailSugarV3Page() {
                 <VxCard index={2}>
                   <VxSectionHead
                     dark={dark}
-                    eyebrow={`Pipeline acheteur${dealsForBien.length > 1 ? 's' : ''} sur ce bien`}
-                    title="Acheteurs en cours"
-                    right={<BvGhostBtn sp={sp} icon="arrowR" onClick={() => onNavigate('pipeline')}>Pipeline</BvGhostBtn>}
+                    eyebrow={tr('detail.buyers.eyebrow', { count: dealsForBien.length })}
+                    title={tr('detail.buyers.title')}
+                    right={<BvGhostBtn sp={sp} icon="arrowR" onClick={() => onNavigate('pipeline')}>{tr('detail.buyers.pipeline')}</BvGhostBtn>}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {dealsForBien.map(d => {
@@ -812,9 +842,9 @@ export default function BienDetailSugarV3Page() {
                         <div key={d.id} onClick={() => navigate(`/dashboard/transactions/${d.id}`)} style={{ padding: '14px 16px', background: sp.cardSub, borderRadius: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 13 }}>
                           {c && <VxAvatar name={c.first_name + ' ' + c.last_name} size={40} dark={dark} />}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: sp.ink }}>{c ? c.first_name + ' ' + c.last_name : 'Acheteur'}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: sp.ink }}>{c ? c.first_name + ' ' + c.last_name : tr('detail.buyers.buyerFallback')}</div>
                             <div style={{ fontSize: 12, color: sp.muted, fontWeight: 500, marginTop: 1 }}>
-                              {BD_STAGE_LABEL[d.stage] ?? d.stage}{offer ? ` · offre ${vxFmtCHF(offer)}` : ''}
+                              {bdStageLabel(d.stage)}{offer ? tr('detail.buyers.offerSuffix', { amount: vxFmtCHF(offer) }) : ''}
                             </div>
                           </div>
                           <VxIcon name="chevR" size={16} stroke={sp.muted} sw={1.8} />
@@ -826,9 +856,9 @@ export default function BienDetailSugarV3Page() {
                         <VxAvatar name={m.contactName} size={36} dark={dark} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>{m.contactName}</div>
-                          <div style={{ fontSize: 12, color: sp.muted, fontWeight: 500, marginTop: 1 }}>Match MEGGA AI · {m.score}% d'affinité</div>
+                          <div style={{ fontSize: 12, color: sp.muted, fontWeight: 500, marginTop: 1 }}>{tr('detail.buyers.matchAffinity', { score: m.score })}</div>
                         </div>
-                        <BvGhostBtn sp={sp} icon="send" onClick={() => onNavigate('matching')}>Proposer</BvGhostBtn>
+                        <BvGhostBtn sp={sp} icon="send" onClick={() => onNavigate('matching')}>{tr('detail.buyers.propose')}</BvGhostBtn>
                       </div>
                     ))}
                   </div>
@@ -838,9 +868,11 @@ export default function BienDetailSugarV3Page() {
                         <VxIcon name="shield" size={14} stroke={sp.muted} sw={1.8} />
                       </span>
                       <div style={{ flex: 1, fontSize: 12.5, color: sp.inkSoft, lineHeight: 1.5 }}>
-                        <b style={{ color: sp.ink }}>KYC à compléter</b> pour un acheteur — optionnel à ce stade, requis avant signature.
+                        <Trans i18nKey="detail.buyers.kycNotice" t={tr}>
+                          <b style={{ color: sp.ink }}>KYC à compléter</b> pour un acheteur — optionnel à ce stade, requis avant signature.
+                        </Trans>
                       </div>
-                      <BvGhostBtn sp={sp} onClick={() => onNavigate('kyc')}>Lancer</BvGhostBtn>
+                      <BvGhostBtn sp={sp} onClick={() => onNavigate('kyc')}>{tr('detail.buyers.startKyc')}</BvGhostBtn>
                     </div>
                   )}
                 </VxCard>
@@ -855,7 +887,7 @@ export default function BienDetailSugarV3Page() {
                 const vc = nextVisit.contactId ? contactsById.get(nextVisit.contactId) : null
                 return (
                   <VxCard index={0} padding={22}>
-                    <VxSectionHead dark={dark} eyebrow="Prochaine visite" />
+                    <VxSectionHead dark={dark} eyebrow={tr('detail.nextVisit.eyebrow')} />
                     <div style={{ fontSize: 21, fontWeight: 800, color: sp.ink, letterSpacing: -0.5, textTransform: 'capitalize', lineHeight: 1.15 }}>
                       {vd.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </div>
@@ -865,13 +897,13 @@ export default function BienDetailSugarV3Page() {
                         <VxAvatar name={vc.first_name + ' ' + vc.last_name} size={36} dark={dark} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>{vc.first_name} {vc.last_name}</div>
-                          <div style={{ fontSize: 11.5, color: sp.muted, fontWeight: 500 }}>Visiteur</div>
+                          <div style={{ fontSize: 11.5, color: sp.muted, fontWeight: 500 }}>{tr('detail.nextVisit.visitor')}</div>
                         </div>
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                      <BvGhostBtn sp={sp} icon="cal" onClick={() => setVisitOpen(true)}>Déplacer</BvGhostBtn>
-                      <BvGhostBtn sp={sp} onClick={() => { saveNextVisit(null); flash('Visite annulée', ['Retirée de votre planning']) }}>Annuler</BvGhostBtn>
+                      <BvGhostBtn sp={sp} icon="cal" onClick={() => setVisitOpen(true)}>{tr('detail.nextVisit.reschedule')}</BvGhostBtn>
+                      <BvGhostBtn sp={sp} onClick={() => { saveNextVisit(null); flash(tr('detail.nextVisit.cancelledTitle'), [tr('detail.nextVisit.cancelledLine')]) }}>{tr('detail.nextVisit.cancel')}</BvGhostBtn>
                     </div>
                   </VxCard>
                 )
@@ -879,28 +911,28 @@ export default function BienDetailSugarV3Page() {
 
               {/* Performance */}
               <VxCard index={1} padding={22}>
-                <VxSectionHead dark={dark} eyebrow="Performance · 30 jours" />
+                <VxSectionHead dark={dark} eyebrow={tr('detail.performance.eyebrow')} />
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <BvStat icon="eye" label="Vues" value={vxFmtNum(stats.views)} sp={sp} />
-                  <BvStat icon="heart" label="Favoris" value={vxFmtNum(stats.favorites)} sp={sp} />
-                  <BvStat icon="cal" label="Demandes" value={vxFmtNum(stats.visitRequests)} sp={sp} />
+                  <BvStat icon="eye" label={tr('detail.performance.views')} value={vxFmtNum(stats.views)} sp={sp} />
+                  <BvStat icon="heart" label={tr('detail.performance.favorites')} value={vxFmtNum(stats.favorites)} sp={sp} />
+                  <BvStat icon="cal" label={tr('detail.performance.requests')} value={vxFmtNum(stats.visitRequests)} sp={sp} />
                 </div>
                 <div style={{ marginTop: 16 }}><VxSpark points={[210, 260, 240, 320, 360, 410, 480]} color={sp.ok} /></div>
                 <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: sp.ok }}>
-                  <VxIcon name="trend" size={13} stroke={sp.ok} sw={2} /> +18 % vs. mois précédent
+                  <VxIcon name="trend" size={13} stroke={sp.ok} sw={2} /> {tr('detail.performance.trend', { percent: 18 })}
                 </div>
               </VxCard>
 
               {/* Mandat */}
               <VxCard index={2} padding={22}>
-                <VxSectionHead dark={dark} eyebrow="Mandat" />
-                <h3 style={{ margin: '-8px 0 16px', fontSize: 18, fontWeight: 800, color: sp.ink, letterSpacing: -0.4, textTransform: 'capitalize' }}>Mandat {bien.mandate_type || '—'}</h3>
+                <VxSectionHead dark={dark} eyebrow={tr('detail.mandate.eyebrow')} />
+                <h3 style={{ margin: '-8px 0 16px', fontSize: 18, fontWeight: 800, color: sp.ink, letterSpacing: -0.4, textTransform: 'capitalize' }}>{tr('detail.mandate.heading', { type: mandateTypeLabel(bien.mandate_type) })}</h3>
                 {owner && (
                   <button onClick={() => navigate(`/dashboard/contacts/${owner.id}`)} style={{ width: '100%', textAlign: 'left', padding: 13, background: sp.cardSub, border: 0, borderRadius: 15, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                     <VxAvatar name={owner.first_name + ' ' + owner.last_name} size={40} dark={dark} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>{owner.first_name} {owner.last_name}</div>
-                      <div style={{ fontSize: 11.5, color: sp.muted, fontWeight: 500 }}>Vendeur · voir la fiche</div>
+                      <div style={{ fontSize: 11.5, color: sp.muted, fontWeight: 500 }}>{tr('detail.mandate.sellerViewProfile')}</div>
                     </div>
                     <VxIcon name="chevR" size={16} stroke={sp.muted} sw={1.8} />
                   </button>
@@ -920,15 +952,15 @@ export default function BienDetailSugarV3Page() {
 
               {/* Diffusion */}
               <VxCard index={3} padding={22}>
-                <VxSectionHead dark={dark} eyebrow="Diffusion" />
+                <VxSectionHead dark={dark} eyebrow={tr('detail.distributionSection.eyebrow')} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(publishedTo.length ? publishedTo : ['Non publié']).map(p => <BvPortal key={p} name={p} online={!!publishedTo.length} sp={sp} dark={dark} />)}
+                  {(publishedTo.length ? publishedTo : [tr('detail.distributionSection.notPublished')]).map(p => <BvPortal key={p} name={p} online={!!publishedTo.length} sp={sp} dark={dark} />)}
                 </div>
               </VxCard>
 
               {/* Historique */}
               <VxCard index={4} padding={22}>
-                <VxSectionHead dark={dark} eyebrow="Historique" />
+                <VxSectionHead dark={dark} eyebrow={tr('detail.historySection.eyebrow')} />
                 <div>
                   {history.map((ev, i) => <BvEvent key={i} ev={ev} last={i === history.length - 1} sp={sp} />)}
                 </div>
@@ -953,7 +985,7 @@ export default function BienDetailSugarV3Page() {
         contacts={visitContacts}
         onConfirm={(d, tm, contact) => {
           saveNextVisit({ dateISO: d.toISOString(), time: tm, contactId: contact ? contact.id : null })
-          flash('Visite planifiée', [`${d.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' })} à ${tm}`, 'Ajoutée à votre planning local'])
+          flash(tr('detail.visitModal.scheduledTitle'), [tr('detail.visitModal.scheduledLine', { date: d.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' }), time: tm }), tr('detail.visitModal.scheduledHint')])
         }}
       />
 

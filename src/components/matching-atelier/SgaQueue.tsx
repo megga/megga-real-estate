@@ -2,6 +2,7 @@
 // Port hi-fi du handoff (SgaQueue / SgaQueueRow / parking snooze repliable).
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import SgaIcon from './SgaIcon'
 import { sgaInitials, sgaScoreColor } from './format'
@@ -53,6 +54,7 @@ const rowV = {
 }
 
 export default function SgaQueue({ filtered, selectedId, exiting, query, setQuery, onPick, snoozed, onWake, tab }: SgaQueueProps) {
+  const { t } = useTranslation('matching')
   const [snzOpen, setSnzOpen] = useState(true)
   const prevSnz = useRef(snoozed.length)
 
@@ -62,14 +64,14 @@ export default function SgaQueue({ filtered, selectedId, exiting, query, setQuer
   }, [snoozed.length])
 
   return (
-    <section className="sga-panel sga-enter" aria-label="File d'acheteurs">
+    <section className="sga-panel sga-enter" aria-label={t('atelier.buyerQueue')}>
       <div className="sga-queue-h">
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <SgaIcon d="search" size={16} style={{ position: 'absolute', left: 15, color: 'var(--ink-dim)' }} />
           <input
             className="field"
             style={{ paddingLeft: 40 }}
-            placeholder="Rechercher un acheteur…"
+            placeholder={t('atelier.searchBuyer')}
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
@@ -79,8 +81,8 @@ export default function SgaQueue({ filtered, selectedId, exiting, query, setQuer
         {filtered.length === 0 && (
           <div className="sga-empty">
             <div>
-              <div className="t4 med" style={{ marginBottom: 6, color: 'var(--ink)' }}>File vidée</div>
-              <div className="t1 muted">Plus aucun acheteur à traiter ici.</div>
+              <div className="t4 med" style={{ marginBottom: 6, color: 'var(--ink)' }}>{t('atelier.queueEmpty')}</div>
+              <div className="t1 muted">{t('atelier.noBuyerLeft')}</div>
             </div>
           </div>
         )}
@@ -103,10 +105,10 @@ export default function SgaQueue({ filtered, selectedId, exiting, query, setQuer
             className="sga-snoozed-h"
             onClick={() => setSnzOpen(o => !o)}
             aria-expanded={snzOpen}
-            aria-label={`Reportés · ${snoozed.length}`}
+            aria-label={t('atelier.snoozedCount', { count: snoozed.length })}
           >
             <SgaIcon d="clock" size={13} />
-            <span>Reportés</span>
+            <span>{t('atelier.snoozed')}</span>
             <span className="cnt nums">{snoozed.length}</span>
             <SgaIcon d="chevron-down" size={14} className="chev" />
           </button>
@@ -118,17 +120,17 @@ export default function SgaQueue({ filtered, selectedId, exiting, query, setQuer
                   key={b.matchId}
                   style={{ animationDelay: `${i * 40}ms` }}
                   onClick={() => onWake(b.matchId)}
-                  title="Réactiver maintenant"
+                  title={t('atelier.reactivateNow')}
                 >
                   <div className="av" style={{ width: 32, height: 32, background: b.av, fontSize: 11.5 }}>
                     {sgaInitials(b.first, b.last)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="nm">{b.first} {b.last}</div>
-                    <div className="ret"><SgaIcon d="clock" size={11} /> De retour le {until}</div>
+                    <div className="ret"><SgaIcon d="clock" size={11} /> {t('atelier.backOn', { date: until })}</div>
                   </div>
                   <button className="wake" onClick={e => { e.stopPropagation(); onWake(b.matchId) }}>
-                    Réactiver
+                    {t('atelier.reactivate')}
                   </button>
                 </div>
               ))}

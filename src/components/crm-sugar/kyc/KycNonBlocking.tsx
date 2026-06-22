@@ -2,9 +2,9 @@
 // 1:1 port from `megga-kyc-variations.jsx` VariationENonBlocking (lines 817-950).
 // 3 composants : Banner doux fiche contact + Badge persistant carte deal + Tableau de dette.
 
-import { useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
-  Avatar, GhostBtn, KycIcon, Pill, SectionLabel, SP,
+  Avatar, GhostBtn, KycIcon, Pill, SP,
   type KycIconName, type KycTone,
 } from './atoms'
 
@@ -17,6 +17,7 @@ export interface KycSoftBannerProps {
 }
 
 export function KycSoftBanner({ title, desc, onComplete, onDismiss }: KycSoftBannerProps) {
+  const { t } = useTranslation('kyc')
   return (
     <div
       style={{
@@ -46,10 +47,12 @@ export function KycSoftBanner({ title, desc, onComplete, onDismiss }: KycSoftBan
         onClick={onComplete}
         style={{ height: 28, padding: '0 10px', fontSize: 11.5 }}
       >
-        Compléter
+        {t('nonBlocking.complete')}
       </GhostBtn>
       <button
         onClick={onDismiss}
+        aria-label={t('nonBlocking.dismiss')}
+        title={t('nonBlocking.dismiss')}
         style={{
           height: 28,
           width: 28,
@@ -75,9 +78,10 @@ export interface KycDealBadgeProps {
 }
 
 export function KycDealBadge({ done, total, hint }: KycDealBadgeProps) {
+  const { t } = useTranslation('kyc')
   return (
     <span
-      title={hint || `${total - done} pièces manquantes — non bloquant`}
+      title={hint || t('nonBlocking.dealBadgeHint', { count: total - done })}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -108,6 +112,7 @@ interface KycContactActionsProps {
 }
 
 export function KycContactActions({ actions }: KycContactActionsProps) {
+  const { t } = useTranslation('kyc')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div
@@ -119,7 +124,7 @@ export function KycContactActions({ actions }: KycContactActionsProps) {
           color: SP.muted,
         }}
       >
-        Actions disponibles
+        {t('nonBlocking.availableActions')}
       </div>
       {actions.map(a => (
         <div
@@ -169,6 +174,7 @@ interface KycDealCardProps {
 }
 
 export function KycDealCard({ data }: KycDealCardProps) {
+  const { t } = useTranslation('kyc')
   return (
     <div
       style={{
@@ -215,7 +221,7 @@ export function KycDealCard({ data }: KycDealCardProps) {
         >
           <KycIcon name="clock" size={12} stroke={SP.warn} />
           <span style={{ fontSize: 11, color: SP.inkSoft }}>
-            {data.dueLabel || 'Compléter KYC avant signature'}
+            {data.dueLabel || t('nonBlocking.completeBeforeSignature')}
           </span>
           <div style={{ flex: 1 }} />
           <span
@@ -243,6 +249,7 @@ interface KycDebtTableProps {
 }
 
 export function KycDebtTable({ rows, onRelance }: KycDebtTableProps) {
+  const { t } = useTranslation('kyc')
   return (
     <div
       style={{
@@ -260,8 +267,7 @@ export function KycDebtTable({ rows, onRelance }: KycDebtTableProps) {
       <div
         style={{ fontSize: 12, color: SP.muted, marginBottom: 10 }}
       >
-        Aucune action n'est jamais bloquée. Le responsable conformité voit ici la dette
-        accumulée et relance.
+        {t('nonBlocking.debtIntro')}
       </div>
       {rows.map(r => (
         <div
@@ -284,7 +290,7 @@ export function KycDebtTable({ rows, onRelance }: KycDebtTableProps) {
               {r.info}
             </div>
           </div>
-          <Pill tone={r.tone}>{r.days}j</Pill>
+          <Pill tone={r.tone}>{t('nonBlocking.daysShort', { count: r.days })}</Pill>
           <button
             onClick={() => onRelance?.(r.name)}
             style={{
@@ -300,140 +306,10 @@ export function KycDebtTable({ rows, onRelance }: KycDebtTableProps) {
               fontFamily: SP.font,
             }}
           >
-            Relancer
+            {t('nonBlocking.followUp')}
           </button>
         </div>
       ))}
-    </div>
-  )
-}
-
-// ─── Showcase combiné (3 contextes) — utilisé dans la page démo ──────────
-const SHOWCASE_DEBT_ROWS: KycDebtRow[] = [
-  { name: 'S. Volkov', info: '2 pièces manquantes', days: 6, tone: 'warn' },
-  { name: 'ATR Holding SA', info: 'Bénéf. effectif à signer', days: 4, tone: 'warn' },
-  { name: 'A. Reinhardt', info: 'Screening > 12 mois', days: 12, tone: 'pending' },
-  { name: 'C. Loreau', info: 'Identité non saisie', days: 5, tone: 'warn' },
-  { name: 'P. Vionnet', info: 'Validation en attente', days: 3, tone: 'pending' },
-]
-
-const SHOWCASE_ACTIONS: ContactActionRow[] = [
-  { l: 'Planifier une visite', icon: 'clock' },
-  { l: 'Envoyer 3 nouveaux matchs', icon: 'spark' },
-  {
-    l: 'Préparer une offre',
-    icon: 'doc',
-    hint: '⚠ KYC requis avant signature finale',
-  },
-  {
-    l: 'Lancer compromis (signature)',
-    icon: 'flag',
-    hint: '⚠ Validation conformité requise — sera demandée à la signature',
-  },
-]
-
-export function KycNonBlockingShowcase({
-  fiche,
-  pipeline,
-  debt,
-}: {
-  fiche?: ReactNode
-  pipeline?: ReactNode
-  debt?: ReactNode
-}) {
-  const [bannerVisible, setBannerVisible] = useState(true)
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1.1fr 1fr',
-        gap: 18,
-        flex: 1,
-        minHeight: 0,
-      }}
-    >
-      {/* Gauche — fiche contact avec banner doux */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <SectionLabel>
-          Fiche contact — banner doux (n'empêche aucune action)
-        </SectionLabel>
-        {fiche || (
-          <div
-            style={{
-              background: SP.surface,
-              borderRadius: 22,
-              padding: 20,
-              boxShadow: SP.shadow,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                marginBottom: 14,
-              }}
-            >
-              <Avatar name="S Volkov" size={48} />
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                    letterSpacing: -0.3,
-                  }}
-                >
-                  Sergey Volkov
-                </div>
-                <div style={{ fontSize: 12, color: SP.muted }}>
-                  Acheteur · CHF 2.75M · Cologny
-                </div>
-              </div>
-              <Pill tone="warn" dot>
-                KYC incomplet · 6j
-              </Pill>
-            </div>
-            {bannerVisible && (
-              <div style={{ marginBottom: 14 }}>
-                <KycSoftBanner
-                  title="2 pièces manquantes au dossier KYC"
-                  desc="Justificatif de domicile · attestation d'origine des fonds. Vous pouvez continuer à travailler ce dossier — pensez à compléter avant la signature."
-                  onDismiss={() => setBannerVisible(false)}
-                />
-              </div>
-            )}
-            <KycContactActions actions={SHOWCASE_ACTIONS} />
-          </div>
-        )}
-      </div>
-      {/* Droite — pipeline + dette */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          minHeight: 0,
-        }}
-      >
-        <SectionLabel>Carte deal — badge persistant</SectionLabel>
-        {pipeline || (
-          <KycDealCard
-            data={{
-              stage: 'Intérêt confirmé',
-              stageTone: 'warn',
-              name: 'Sergey Volkov — Cologny 7p',
-              amount: "CHF 2'750'000",
-              scoreText: 'score 88',
-              due: '06/05',
-              dueLabel: 'Compléter KYC avant signature',
-              kycDone: 4,
-              kycTotal: 6,
-            }}
-          />
-        )}
-        <SectionLabel>Tableau de dette — vu par le responsable</SectionLabel>
-        {debt || <KycDebtTable rows={SHOWCASE_DEBT_ROWS} />}
-      </div>
     </div>
   )
 }

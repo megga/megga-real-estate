@@ -18,6 +18,8 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { SectionHeader, SetGhostBtn, SetIcon, Toast } from './atoms'
 import { SET_PALETTE } from './data'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
@@ -124,14 +126,18 @@ function WhatsAppLogo({ size = 18 }: { size?: number }) {
 
 // ─── Types ────────────────────────────────────────────────────────────────
 type ProviderId = 'google' | 'microsoft' | 'docusign' | 'skribble' | 'whatsapp'
-type Category = 'Productivité' | 'Signature' | 'Messagerie'
+// Catégorie = clé canonique (sert de discriminant de filtre) ; le libellé visible
+// est résolu via i18n (catLabel).
+type Category = 'productivity' | 'signature' | 'messaging'
 
 interface Integration {
   id: string
   category: Category
   provider: ProviderId
+  /** Nom de marque (proper noun) — non traduit. */
   name: string
-  desc: string
+  /** Clé i18n de la description. */
+  descKey: string
   logoBg: string
   logo: ReactNode
   /** true uniquement si un wire OAuth/pairing réel existe (Google / Microsoft / WhatsApp). */
@@ -142,15 +148,20 @@ interface Integration {
   account?: string
 }
 
+// Libellé i18n d'une catégorie (la valeur reste la clé canonique pour le filtre).
+function catLabel(t: TFunction, c: Category): string {
+  return t(`integrations.categories.${c}`)
+}
+
 // Catalogue figé (5 services). connected/account sont surchargés depuis les hooks
 // réels au render pour Google / Microsoft / WhatsApp.
 const CATALOGUE: Integration[] = [
   {
     id: 'google',
-    category: 'Productivité',
+    category: 'productivity',
     provider: 'google',
     name: 'Google',
-    desc: 'Synchronisez Google Calendar, Gmail et Contacts en un seul branchement OAuth.',
+    descKey: 'integrations.catalogue.google.desc',
     logoBg: '#FFFFFF',
     logo: <GoogleG size={22} />,
     connectable: true,
@@ -158,10 +169,10 @@ const CATALOGUE: Integration[] = [
   },
   {
     id: 'microsoft',
-    category: 'Productivité',
+    category: 'productivity',
     provider: 'microsoft',
     name: 'Microsoft 365',
-    desc: "Outlook Calendar, Outlook Mail et carnet d'adresses Exchange.",
+    descKey: 'integrations.catalogue.microsoft.desc',
     logoBg: '#FFFFFF',
     logo: <MsLogo size={22} />,
     connectable: true,
@@ -169,10 +180,10 @@ const CATALOGUE: Integration[] = [
   },
   {
     id: 'docusign',
-    category: 'Signature',
+    category: 'signature',
     provider: 'docusign',
     name: 'DocuSign',
-    desc: 'Signature électronique conforme eIDAS pour mandats et offres.',
+    descKey: 'integrations.catalogue.docusign.desc',
     logoBg: '#FFFFFF',
     logo: <DocuSignLogo size={24} />,
     connectable: false,
@@ -181,10 +192,10 @@ const CATALOGUE: Integration[] = [
   },
   {
     id: 'skribble',
-    category: 'Signature',
+    category: 'signature',
     provider: 'skribble',
     name: 'Skribble',
-    desc: 'Signature qualifiée suisse, conformité ZertES.',
+    descKey: 'integrations.catalogue.skribble.desc',
     logoBg: '#FFFFFF',
     logo: <SkribbleLogo size={22} />,
     connectable: false,
@@ -193,10 +204,10 @@ const CATALOGUE: Integration[] = [
   },
   {
     id: 'whatsapp',
-    category: 'Messagerie',
+    category: 'messaging',
     provider: 'whatsapp',
     name: 'WhatsApp Business',
-    desc: 'Conversations clients dans le CRM, modèles certifiés.',
+    descKey: 'integrations.catalogue.whatsapp.desc',
     logoBg: '#25D366',
     logo: <WhatsAppLogo size={22} />,
     connectable: true,
@@ -225,7 +236,7 @@ function IntegrationLogo({ item, size = 44 }: { item: Integration; size?: number
 }
 
 // ─── StatusPill ───────────────────────────────────────────────────────────
-function StatusPill({ item }: { item: Integration }) {
+function StatusPill({ item, t }: { item: Integration; t: TFunction }) {
   if (item.connected) {
     return (
       <span
@@ -244,7 +255,7 @@ function StatusPill({ item }: { item: Integration }) {
         }}
       >
         <span style={{ width: 5, height: 5, borderRadius: 999, background: '#FFFFFF' }} />
-        Connecté
+        {t('integrations.status.connected')}
       </span>
     )
   }
@@ -266,7 +277,7 @@ function StatusPill({ item }: { item: Integration }) {
         }}
       >
         <SetIcon name="clock" size={10} stroke={SET.muted} sw={2.2} />
-        Sur demande
+        {t('integrations.status.onRequest')}
       </span>
     )
   }
@@ -280,9 +291,10 @@ interface IntegrationCardProps {
   onConnect: () => void
   onDisconnect: () => void
   connecting: boolean
+  t: TFunction
 }
 
-function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting }: IntegrationCardProps) {
+function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t }: IntegrationCardProps) {
   const [hover, setHover] = useState(false)
   return (
     <div
@@ -305,7 +317,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting }:
       }}
     >
       <div style={{ position: 'absolute', top: 16, right: 16 }}>
-        <StatusPill item={item} />
+        <StatusPill item={item} t={t} />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -320,7 +332,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting }:
               textTransform: 'uppercase',
             }}
           >
-            {item.category}
+            {catLabel(t, item.category)}
           </div>
           <div
             style={{
@@ -352,7 +364,7 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting }:
           overflow: 'hidden',
         }}
       >
-        {item.desc}
+        {t(item.descKey)}
       </p>
 
       <div style={{ flex: 1 }} />
@@ -380,9 +392,9 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting }:
                   textOverflow: 'ellipsis',
                 }}
               >
-                {item.account || 'Compte lié'}
+                {item.account || t('integrations.card.linkedAccount')}
               </div>
-              <div style={{ fontSize: 11, color: SET.muted, fontWeight: 500 }}>Synchronisé</div>
+              <div style={{ fontSize: 11, color: SET.muted, fontWeight: 500 }}>{t('integrations.card.synced')}</div>
             </div>
             <button
               onClick={e => {
@@ -403,14 +415,14 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting }:
                 whiteSpace: 'nowrap',
               }}
             >
-              Déconnecter
+              {t('integrations.actions.disconnect')}
             </button>
           </>
         ) : item.onRequest ? (
           // État HONNÊTE pour DocuSign / Skribble : aucun backend, pas de faux OAuth.
           <>
             <span style={{ fontSize: 11.5, color: SET.muted, fontWeight: 500, lineHeight: 1.4, maxWidth: 150 }}>
-              Activation accompagnée par MEGGA
+              {t('integrations.card.assistedActivation')}
             </span>
             <button
               onClick={e => e.stopPropagation()}
@@ -428,12 +440,12 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting }:
                 whiteSpace: 'nowrap',
               }}
             >
-              Sur demande
+              {t('integrations.status.onRequest')}
             </button>
           </>
         ) : (
           <>
-            <span style={{ fontSize: 12, color: SET.muted, fontWeight: 500 }}>Non connecté</span>
+            <span style={{ fontSize: 12, color: SET.muted, fontWeight: 500 }}>{t('integrations.status.notConnected')}</span>
             <button
               onClick={e => {
                 e.stopPropagation()
@@ -470,12 +482,12 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting }:
                       animation: 'setSpin .7s linear infinite',
                     }}
                   />
-                  Connexion…
+                  {t('integrations.actions.connecting')}
                 </>
               ) : (
                 <>
                   <SetIcon name="link" size={11} stroke={SET.blackInk} sw={2.4} />
-                  Connecter
+                  {t('integrations.actions.connect')}
                 </>
               )}
             </button>
@@ -493,21 +505,24 @@ function DetailsModal({
   onConnect,
   onDisconnect,
   onPair,
+  t,
 }: {
   item: Integration
   onClose: () => void
   onConnect: () => void
   onDisconnect: () => void
   onPair: () => void
+  t: TFunction
 }) {
-  const permissions =
+  const permKey =
     item.provider === 'google'
-      ? ['Calendar : visites, rendez-vous', 'Gmail : emails clients dans le CRM', 'Contacts : synchronisation']
+      ? 'integrations.details.permissions.google'
       : item.provider === 'microsoft'
-        ? ['Outlook Calendar : agenda', 'Outlook Mail : conversations', "Carnet d'adresses Exchange"]
+        ? 'integrations.details.permissions.microsoft'
         : item.provider === 'whatsapp'
-          ? ['Recevoir vos messages clients dans le CRM', 'Interroger MEGGA AI depuis votre téléphone']
-          : ['Préparer des dossiers de signature', 'Suivre les statuts de signature']
+          ? 'integrations.details.permissions.whatsapp'
+          : 'integrations.details.permissions.signature'
+  const permissions = t(permKey, { returnObjects: true }) as string[]
 
   return createPortal(
     <div
@@ -548,7 +563,7 @@ function DetailsModal({
                 textTransform: 'uppercase',
               }}
             >
-              {item.category}
+              {catLabel(t, item.category)}
             </div>
             <h3
               style={{
@@ -581,7 +596,7 @@ function DetailsModal({
         </div>
 
         <p style={{ margin: '0 0 22px', fontSize: 14, color: SET.inkSoft, lineHeight: 1.55 }}>
-          {item.desc}
+          {t(item.descKey)}
         </p>
 
         {item.connected ? (
@@ -596,10 +611,10 @@ function DetailsModal({
                 marginBottom: 8,
               }}
             >
-              Connexion active
+              {t('integrations.details.activeConnection')}
             </div>
             <div style={{ fontSize: 13.5, color: SET.ink, fontWeight: 600 }}>
-              {item.account || 'Compte lié'}
+              {item.account || t('integrations.card.linkedAccount')}
             </div>
           </div>
         ) : item.onRequest ? (
@@ -617,8 +632,7 @@ function DetailsModal({
           >
             <SetIcon name="info" size={16} stroke={SET.muted} />
             <span style={{ fontSize: 12.5, fontWeight: 500, color: SET.inkSoft, lineHeight: 1.5 }}>
-              Cette intégration est activée par l'équipe MEGGA sur demande. Contactez-nous pour
-              brancher votre compte.
+              {t('integrations.details.onRequestHint')}
             </span>
           </div>
         ) : null}
@@ -633,7 +647,9 @@ function DetailsModal({
             marginBottom: 10,
           }}
         >
-          {item.provider === 'whatsapp' ? 'Ce que vous pouvez faire' : 'Permissions accordées'}
+          {item.provider === 'whatsapp'
+            ? t('integrations.details.whatYouCanDo')
+            : t('integrations.details.permissionsGranted')}
         </div>
         <ul
           style={{
@@ -666,7 +682,7 @@ function DetailsModal({
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <SetGhostBtn icon={<SetIcon name="external" size={13} />} onClick={() => {}}>
-            Documentation
+            {t('integrations.details.documentation')}
           </SetGhostBtn>
           {item.connected ? (
             <button
@@ -687,7 +703,7 @@ function DetailsModal({
                 cursor: 'pointer',
               }}
             >
-              Déconnecter
+              {t('integrations.actions.disconnect')}
             </button>
           ) : item.onRequest ? (
             <button
@@ -705,7 +721,7 @@ function DetailsModal({
                 cursor: 'not-allowed',
               }}
             >
-              Sur demande
+              {t('integrations.status.onRequest')}
             </button>
           ) : (
             <button
@@ -732,7 +748,9 @@ function DetailsModal({
               }}
             >
               <SetIcon name="link" size={14} stroke={SET.blackInk} />
-              {item.provider === 'whatsapp' ? 'Lier WhatsApp' : 'Connecter'}
+              {item.provider === 'whatsapp'
+                ? t('integrations.actions.linkWhatsapp')
+                : t('integrations.actions.connect')}
             </button>
           )}
         </div>
@@ -743,7 +761,7 @@ function DetailsModal({
 }
 
 // ─── Modale liaison WhatsApp (embarque le WhatsAppPairingCard réel) ───────
-function WhatsAppPairModal({ onClose }: { onClose: () => void }) {
+function WhatsAppPairModal({ onClose, t }: { onClose: () => void; t: TFunction }) {
   return createPortal(
     <div
       onClick={onClose}
@@ -777,7 +795,7 @@ function WhatsAppPairModal({ onClose }: { onClose: () => void }) {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
           <button
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t('common:actions.close')}
             style={{
               width: 34,
               height: 34,
@@ -803,6 +821,7 @@ function WhatsAppPairModal({ onClose }: { onClose: () => void }) {
 
 // ─── Section ──────────────────────────────────────────────────────────────
 export function IntegrationsSection() {
+  const { t } = useTranslation('settings')
   // État réel Google / Microsoft via les vrais hooks OAuth.
   const google = useGoogleCalendar()
   const outlook = useOutlookCalendar()
@@ -834,7 +853,7 @@ export function IntegrationsSection() {
           return {
             ...it,
             connected: waLinked,
-            account: waLinked ? waStatus.data?.wa_number ?? 'Numéro lié' : undefined,
+            account: waLinked ? waStatus.data?.wa_number ?? t('integrations.whatsapp.linkedNumber') : undefined,
           }
         }
         // Skribble : connectable RÉEL (cle API -> edge sign-document). DocuSign
@@ -861,6 +880,7 @@ export function IntegrationsSection() {
       waLinked,
       waStatus.data?.wa_number,
       esign.connections,
+      t,
     ],
   )
 
@@ -888,11 +908,11 @@ export function IntegrationsSection() {
       else if (item.provider === 'microsoft') await outlook.disconnectOutlookCalendar()
       else if (item.provider === 'skribble') await esign.disconnect({ provider: 'skribble' })
       else return // pas de wire de déconnexion pour ce provider (WhatsApp unlink = chip future)
-      setToast(`${item.name} déconnecté`)
+      setToast(t('integrations.toast.disconnected', { name: item.name }))
       setTimeout(() => setToast(null), 2400)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
-      setToast(`Échec déconnexion : ${msg}`)
+      const msg = err instanceof Error ? err.message : t('integrations.toast.unknownError')
+      setToast(t('integrations.toast.disconnectFailed', { error: msg }))
       setTimeout(() => setToast(null), 2400)
     }
   }
@@ -909,11 +929,9 @@ export function IntegrationsSection() {
         }}
       >
         <SectionHeader
-          kicker="Intégrations"
-          title="Connectez votre stack métier"
-          sub={`${connected.length} service${connected.length > 1 ? 's' : ''} actif${
-            connected.length > 1 ? 's' : ''
-          } sur ${items.length} · agenda, email, signature, messagerie.`}
+          kicker={t('integrations.header.kicker')}
+          title={t('integrations.header.title')}
+          sub={t('integrations.header.sub', { active: connected.length, total: items.length })}
         />
 
         {/* Filtre catégories (pilules + badge count) */}
@@ -955,7 +973,7 @@ export function IntegrationsSection() {
                   if (!active) e.currentTarget.style.background = 'transparent'
                 }}
               >
-                {c === 'all' ? 'Tous' : c}
+                {c === 'all' ? t('integrations.filters.all') : catLabel(t, c as Category)}
                 <span style={{ marginLeft: 7, fontSize: 11, fontWeight: 700, opacity: 0.6 }}>
                   {c === 'all' ? items.length : items.filter(i => i.category === c).length}
                 </span>
@@ -980,6 +998,7 @@ export function IntegrationsSection() {
               onConnect={() => handleConnect(it.id)}
               onDisconnect={() => setConfirmDisc(it)}
               connecting={false}
+              t={t}
             />
           ))}
         </div>
@@ -994,17 +1013,18 @@ export function IntegrationsSection() {
           onConnect={() => handleConnect(details.id)}
           onDisconnect={() => setConfirmDisc(details)}
           onPair={() => setWaPair(true)}
+          t={t}
         />
       )}
 
-      {waPair && <WhatsAppPairModal onClose={() => setWaPair(false)} />}
+      {waPair && <WhatsAppPairModal onClose={() => setWaPair(false)} t={t} />}
 
       {esignConnect && (
         <EsignConnectModal
           onClose={() => setEsignConnect(false)}
           onConnected={() => {
             setEsignConnect(false)
-            setToast('Skribble connecté')
+            setToast(t('integrations.toast.skribbleConnected'))
             setTimeout(() => setToast(null), 2400)
           }}
         />
@@ -1048,14 +1068,13 @@ export function IntegrationsSection() {
                   letterSpacing: -0.3,
                 }}
               >
-                Déconnecter {confirmDisc.name} ?
+                {t('integrations.disconnectConfirm.title', { name: confirmDisc.name })}
               </h3>
               <p style={{ margin: '0 0 24px', fontSize: 14, color: SET.inkSoft, lineHeight: 1.55 }}>
-                La synchronisation s'arrête immédiatement. Vos données existantes restent dans le CRM,
-                mais ne seront plus mises à jour.
+                {t('integrations.disconnectConfirm.body')}
               </p>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                <SetGhostBtn onClick={() => setConfirmDisc(null)}>Garder</SetGhostBtn>
+                <SetGhostBtn onClick={() => setConfirmDisc(null)}>{t('integrations.disconnectConfirm.keep')}</SetGhostBtn>
                 <button
                   onClick={() => disconnect(confirmDisc.id)}
                   style={{
@@ -1072,7 +1091,7 @@ export function IntegrationsSection() {
                     boxShadow: '0 6px 16px rgba(239,68,68,0.30)',
                   }}
                 >
-                  Déconnecter
+                  {t('integrations.actions.disconnect')}
                 </button>
               </div>
             </div>

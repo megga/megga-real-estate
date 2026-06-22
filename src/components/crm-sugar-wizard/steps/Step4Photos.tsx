@@ -3,6 +3,8 @@
 // 3 modes : ordinateur (dropzone), téléphone (QR géant), drive (connectors).
 
 import { useState, useRef, useMemo, type ReactNode } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { SugarV2, shade, sgOn, sgAcc, type WizardData, type WizardPhoto } from '../tokens'
 import StagingStudio, { type SavedVariant } from '../StagingStudio'
 
@@ -20,6 +22,7 @@ const STOCK: WizardPhoto[] = [
 ]
 
 export function Step4Photos({ data, set }: StepProps) {
+  const { t: tr } = useTranslation('listings')
   const photos = data.photos || []
   const [mode, setMode] = useState<'pc' | 'mobile' | 'drive'>('pc')
   const [dragOver, setDragOver] = useState(false)
@@ -98,7 +101,7 @@ export function Step4Photos({ data, set }: StepProps) {
     set({ photos: next })
   }
 
-  const quality = computeQuality(photos)
+  const quality = computeQuality(photos, tr)
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto',
@@ -108,14 +111,17 @@ export function Step4Photos({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 5 sur 8 · Photos</div>
+        }}>{tr('wizard.step4.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>Ajoutez les photos du bien</h1>
+        }}>{tr('wizard.step4.title')}</h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          Les annonces avec 8 à 12 photos reçoivent <strong style={{ color: SugarV2.ink }}>3× plus de demandes</strong>.
-          La première photo sera la couverture sur MEGGA.
+          <Trans
+            t={tr}
+            i18nKey="wizard.step4.intro"
+            components={{ strong: <strong style={{ color: SugarV2.ink }} /> }}
+          />
         </p>
       </div>
 
@@ -125,9 +131,9 @@ export function Step4Photos({ data, set }: StepProps) {
         background: SugarV2.card, boxShadow: SugarV2.shadowSm, marginBottom: 24,
       }}>
         {[
-          { v: 'pc' as const,     label: 'Depuis cet ordinateur', icon: 'computer' as const },
-          { v: 'mobile' as const, label: 'Depuis votre téléphone', icon: 'phone' as const },
-          { v: 'drive' as const,  label: 'Depuis un drive',        icon: 'cloud' as const },
+          { v: 'pc' as const,     label: tr('wizard.step4.mode.pc'),     icon: 'computer' as const },
+          { v: 'mobile' as const, label: tr('wizard.step4.mode.mobile'), icon: 'phone' as const },
+          { v: 'drive' as const,  label: tr('wizard.step4.mode.drive'),  icon: 'cloud' as const },
         ].map(m => {
           const sel = mode === m.v
           return (
@@ -190,17 +196,21 @@ export function Step4Photos({ data, set }: StepProps) {
 
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.4, marginBottom: 6 }}>
-              {dragOver ? 'Déposez vos photos ici' : 'Glissez-déposez vos photos'}
+              {dragOver ? tr('wizard.step4.dropzone.titleActive') : tr('wizard.step4.dropzone.title')}
             </div>
             <div style={{ fontSize: 14, color: SugarV2.inkSoft, fontWeight: 500 }}>
-              ou <span style={{ color: SugarV2.black, fontWeight: 700, textDecoration: 'underline' }}>parcourez</span> vos fichiers
+              <Trans
+                t={tr}
+                i18nKey="wizard.step4.dropzone.browse"
+                components={{ browse: <span style={{ color: SugarV2.black, fontWeight: 700, textDecoration: 'underline' }} /> }}
+              />
             </div>
           </div>
 
           <div style={{
             display: 'flex', gap: 16, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center',
           }}>
-            {['JPG · PNG · HEIC', "Jusqu'à 30 photos", 'Max 20 Mo / photo'].map(s => (
+            {['JPG · PNG · HEIC', tr('wizard.step4.dropzone.maxPhotos', { count: 30 }), tr('wizard.step4.dropzone.maxSize', { size: 20 })].map(s => (
               <div key={s} style={{
                 padding: '6px 12px', borderRadius: 999,
                 background: SugarV2.cardSubtle,
@@ -228,10 +238,10 @@ export function Step4Photos({ data, set }: StepProps) {
             margin: 0, fontSize: 18, fontWeight: 700,
             color: SugarV2.ink, letterSpacing: -0.3,
           }}>
-            {photos.length === 0 ? "Aucune photo pour l'instant" : `${photos.length} ${photos.length > 1 ? 'photos' : 'photo'}`}
+            {photos.length === 0 ? tr('wizard.step4.grid.empty') : tr('wizard.step4.grid.count', { count: photos.length })}
             {photos.length > 0 && (
               <span style={{ color: SugarV2.muted, fontWeight: 500, marginLeft: 8 }}>
-                · glissez pour réordonner
+                {tr('wizard.step4.grid.reorderHint')}
               </span>
             )}
           </h2>
@@ -240,7 +250,7 @@ export function Step4Photos({ data, set }: StepProps) {
               border: 0, background: 'transparent', color: SugarV2.muted,
               fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
               cursor: 'pointer', padding: '6px 12px', borderRadius: 8,
-            }}>Tout effacer</button>
+            }}>{tr('wizard.step4.grid.clearAll')}</button>
           )}
         </div>
 
@@ -251,7 +261,7 @@ export function Step4Photos({ data, set }: StepProps) {
             boxShadow: SugarV2.shadowSm,
             textAlign: 'center', color: SugarV2.muted, fontSize: 14, fontWeight: 500,
           }}>
-            La grille apparaîtra ici dès que vous aurez ajouté votre première photo.
+            {tr('wizard.step4.grid.emptyHint')}
           </div>
         ) : (
           <div style={{
@@ -300,7 +310,7 @@ export function Step4Photos({ data, set }: StepProps) {
                       <svg width="10" height="10" viewBox="0 0 24 24" fill={sgOn()}>
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
                       </svg>
-                      Couverture
+                      {tr('wizard.step4.cover')}
                     </div>
                   )}
                   {!isCover && (
@@ -327,7 +337,7 @@ export function Step4Photos({ data, set }: StepProps) {
                   }}>
                     {!p.variantOf && (
                       <button onClick={e => { e.stopPropagation(); setStagingPhoto(p) }}
-                        title="Meubler virtuellement (Nano Banana 2)"
+                        title={tr('wizard.step4.action.stage')}
                         style={{
                           width: 32, height: 32, borderRadius: 999, border: 0,
                           background: SugarV2.black, color: sgOn(),
@@ -342,7 +352,7 @@ export function Step4Photos({ data, set }: StepProps) {
                     )}
                     {!isCover && (
                       <button onClick={e => { e.stopPropagation(); setCover(p.id) }}
-                        title="Définir comme couverture"
+                        title={tr('wizard.step4.action.setCover')}
                         style={{
                           width: 32, height: 32, borderRadius: 999, border: 0,
                           background: sgAcc(0.95), color: SugarV2.ink,
@@ -355,7 +365,7 @@ export function Step4Photos({ data, set }: StepProps) {
                       </button>
                     )}
                     <button onClick={e => { e.stopPropagation(); removePhoto(p.id) }}
-                      title="Supprimer"
+                      title={tr('common:actions.delete')}
                       style={{
                         width: 32, height: 32, borderRadius: 999, border: 0,
                         background: sgAcc(0.95), color: SugarV2.err,
@@ -376,7 +386,7 @@ export function Step4Photos({ data, set }: StepProps) {
                     letterSpacing: 0.2,
                     opacity: isHover ? 0 : 1,
                     transition: 'opacity .2s',
-                  }}>{p.label}</div>
+                  }}>{p.id.length === 2 && p.id[0] === 'p' ? tr('wizard.staging.stock.' + p.id) : p.label}</div>
                 </div>
               )
             })}
@@ -404,7 +414,7 @@ export function Step4Photos({ data, set }: StepProps) {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 5v14M5 12h14"/>
               </svg>
-              Ajouter
+              {tr('common:actions.add')}
             </button>
           </div>
         )}
@@ -432,7 +442,7 @@ export function Step4Photos({ data, set }: StepProps) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: SugarV2.muted, letterSpacing: 1, textTransform: 'uppercase' }}>
-                MEGGA AI · Qualité
+                {tr('wizard.step4.quality.eyebrow')}
               </span>
               <span style={{ fontSize: 12, fontWeight: 700, color: quality.color, letterSpacing: -0.1 }}>
                 {quality.label}
@@ -479,6 +489,7 @@ export function Step4Photos({ data, set }: StepProps) {
 
 // ─── Mode Phone (QR) ───────────────────────────────────────────────────
 function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
+  const { t: tr } = useTranslation('listings')
   const [pulse, setPulse] = useState(false)
   const [phase, setPhase] = useState<'waiting' | 'connected' | 'receiving'>('waiting')
 
@@ -506,13 +517,16 @@ function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
         <div style={{
           fontSize: 11, fontWeight: 700, color: SugarV2.muted,
           letterSpacing: 1, textTransform: 'uppercase',
-        }}>Code unique · 2h</div>
+        }}>{tr('wizard.step4.phone.uniqueCode')}</div>
         <div style={{
           fontSize: 13, fontWeight: 700, color: SugarV2.ink, letterSpacing: 1,
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
           padding: '4px 10px', borderRadius: 8,
           background: SugarV2.card,
-        }}>MGA-7K2P-9X</div>
+        }}>
+          {/* Code d'appairage d'exemple (démo) — hors catalogue i18n. */}
+          {'MGA-7K2P-9X'}
+        </div>
       </div>
 
       <div>
@@ -529,18 +543,17 @@ function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
             background: phase === 'waiting' ? SugarV2.muted : SugarV2.ok,
             animation: phase !== 'waiting' ? 'sgPulse 1.4s ease-in-out infinite' : 'none',
           }} />
-          {phase === 'waiting' && 'En attente'}
-          {phase === 'connected' && 'Téléphone appairé'}
-          {phase === 'receiving' && 'Réception en cours…'}
+          {phase === 'waiting' && tr('wizard.step4.phone.phase.waiting')}
+          {phase === 'connected' && tr('wizard.step4.phone.phase.connected')}
+          {phase === 'receiving' && tr('wizard.step4.phone.phase.receiving')}
         </div>
 
         <h3 style={{
           margin: '0 0 10px', fontSize: 24, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2,
-        }}>Scannez avec votre téléphone</h3>
+        }}>{tr('wizard.step4.phone.title')}</h3>
         <p style={{ margin: '0 0 22px', fontSize: 14, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55, maxWidth: 480 }}>
-          Ouvrez l'appareil photo de votre téléphone et visez le QR code.
-          Une page web s'ouvrira pour transférer vos photos directement dans ce wizard — sans installation.
+          {tr('wizard.step4.phone.intro')}
         </p>
 
         <ol style={{
@@ -548,9 +561,9 @@ function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
           display: 'flex', flexDirection: 'column', gap: 10,
         }}>
           {[
-            'Scannez le code avec votre téléphone',
-            "Autorisez l'accès aux photos",
-            'Sélectionnez et envoyez',
+            tr('wizard.step4.phone.step1'),
+            tr('wizard.step4.phone.step2'),
+            tr('wizard.step4.phone.step3'),
           ].map((t, i) => (
             <li key={i} style={{
               display: 'flex', alignItems: 'center', gap: 12,
@@ -581,7 +594,7 @@ function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
-          {phase === 'waiting' ? "Simuler l'appairage" : 'Connecté'}
+          {phase === 'waiting' ? tr('wizard.step4.phone.simulate') : tr('wizard.step4.phone.connected')}
         </button>
       </div>
     </div>
@@ -590,6 +603,7 @@ function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
 
 // ─── Mode Drive ────────────────────────────────────────────────────────
 function SgDriveConnect({ addStock }: { addStock: (n?: number) => void }) {
+  const { t: tr } = useTranslation('listings')
   const [connecting, setConnecting] = useState<string | null>(null)
 
   const SERVICES: { v: string; label: string; color: string; icon: ReactNode }[] = [
@@ -657,7 +671,7 @@ function SgDriveConnect({ addStock }: { addStock: (n?: number) => void }) {
                   {s.label}
                 </div>
                 <div style={{ fontSize: 12.5, color: SugarV2.muted, fontWeight: 500 }}>
-                  {loading ? 'Connexion en cours…' : 'Connecter mon compte'}
+                  {loading ? tr('wizard.step4.drive.connecting') : tr('wizard.step4.drive.connect')}
                 </div>
               </div>
               <div style={{ flexShrink: 0, color: loading ? SugarV2.black : SugarV2.muted }}>
@@ -687,7 +701,7 @@ function SgDriveConnect({ addStock }: { addStock: (n?: number) => void }) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
         </svg>
-        Lecture seule — MEGGA importera une copie. Vos fichiers d'origine restent intacts.
+        {tr('wizard.step4.drive.readOnlyNote')}
       </div>
     </div>
   )
@@ -786,7 +800,7 @@ function FakeQR({ pulse }: { pulse: boolean }) {
 }
 
 // ─── Quality scoring ──────────────────────────────────────────────────
-function computeQuality(photos: WizardPhoto[]) {
+function computeQuality(photos: WizardPhoto[], tr: TFunction) {
   const n = photos.length
   const interior = photos.filter(p => p.kind === 'interior').length
   const exterior = photos.filter(p => p.kind === 'exterior').length
@@ -794,28 +808,28 @@ function computeQuality(photos: WizardPhoto[]) {
 
   let score = Math.min(100, n * 10)
   const suggestions: string[] = []
-  if (n < 8) suggestions.push(`Ajoutez ${8 - n} photos pour atteindre le minimum recommandé`)
-  if (exterior === 0) suggestions.push('Ajoutez au moins une photo extérieure')
-  if (plan === 0) suggestions.push('Un plan augmente la confiance des acheteurs')
-  if (interior < 4 && n > 0) suggestions.push('Photographiez chaque pièce principale')
+  if (n < 8) suggestions.push(tr('wizard.step4.quality.suggestion.addMore', { count: 8 - n }))
+  if (exterior === 0) suggestions.push(tr('wizard.step4.quality.suggestion.exterior'))
+  if (plan === 0) suggestions.push(tr('wizard.step4.quality.suggestion.plan'))
+  if (interior < 4 && n > 0) suggestions.push(tr('wizard.step4.quality.suggestion.rooms'))
 
   let label: string, color: string, bg: string, message: string
   if (n === 0) {
-    label = 'Aucune photo'; color = SugarV2.muted; bg = SugarV2.cardSubtle
-    message = 'Commencez par ajouter au moins 8 photos.'
+    label = tr('wizard.step4.quality.label.none'); color = SugarV2.muted; bg = SugarV2.cardSubtle
+    message = tr('wizard.step4.quality.message.none')
     score = 5
   } else if (n < 4) {
-    label = 'Insuffisant'; color = '#EF4444'; bg = 'rgba(239,68,68,0.08)'
-    message = `Seulement ${n} ${n > 1 ? 'photos' : 'photo'} — l'annonce sera moins consultée.`
+    label = tr('wizard.step4.quality.label.insufficient'); color = '#EF4444'; bg = 'rgba(239,68,68,0.08)'
+    message = tr('wizard.step4.quality.message.insufficient', { count: n })
   } else if (n < 8) {
-    label = 'À compléter'; color = '#F59E0B'; bg = 'rgba(245,158,11,0.10)'
-    message = `${n} photos · presque prêt, ajoutez-en encore quelques-unes.`
+    label = tr('wizard.step4.quality.label.toComplete'); color = '#F59E0B'; bg = 'rgba(245,158,11,0.10)'
+    message = tr('wizard.step4.quality.message.toComplete', { count: n })
   } else if (n < 12) {
-    label = 'Bon'; color = '#10B981'; bg = 'rgba(16,185,129,0.10)'
-    message = `${n} photos · qualité satisfaisante.`
+    label = tr('wizard.step4.quality.label.good'); color = '#10B981'; bg = 'rgba(16,185,129,0.10)'
+    message = tr('wizard.step4.quality.message.good', { count: n })
   } else {
-    label = 'Excellent'; color = '#10B981'; bg = 'rgba(16,185,129,0.12)'
-    message = `${n} photos · annonce premium.`
+    label = tr('wizard.step4.quality.label.excellent'); color = '#10B981'; bg = 'rgba(16,185,129,0.12)'
+    message = tr('wizard.step4.quality.message.excellent', { count: n })
     score = 100
   }
   return { score, label, color, bg, message, suggestions }

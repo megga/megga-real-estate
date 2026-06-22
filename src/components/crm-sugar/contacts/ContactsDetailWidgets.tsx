@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-contacts-sugar.jsx` (CtCriteria, CtMatches, CtActivity, CtComposer, CtDeals, CtSellerStats, CtKyc).
 
 import { Fragment, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import {
   crmBienById,
@@ -25,6 +26,7 @@ export function CtCriteria({
   sp: SugarPalette
   dark: boolean
 }) {
+  const { t } = useTranslation('contacts')
   const c = contact.criteria
   if (!c) return null
 
@@ -36,22 +38,22 @@ export function CtCriteria({
     <CtCard sp={sp} padding="6px 16px">
       <CtKv
         sp={sp}
-        label="Transaction"
-        value={c.transaction === 'vente' ? 'Achat' : 'Location'}
+        label={t('widgets.criteria.transaction')}
+        value={c.transaction === 'vente' ? t('widgets.criteria.buy') : t('widgets.criteria.rent')}
       />
       <CtKv
         sp={sp}
-        label="Type"
-        value={(c.types || []).map(t => t[0].toUpperCase() + t.slice(1)).join(', ') || '—'}
+        label={t('widgets.criteria.type')}
+        value={(c.types || []).map(ty => ty[0].toUpperCase() + ty.slice(1)).join(', ') || '—'}
       />
       <CtKv
         sp={sp}
-        label="Zones"
+        label={t('widgets.criteria.zones')}
         value={[...(c.cities || []), ...(c.cantons || [])].join(' · ') || '—'}
       />
-      <CtKv sp={sp} label="Budget" value={budgetLabel} mono />
-      <CtKv sp={sp} label="Surface" value={c.areaMin ? `≥ ${c.areaMin} m²` : '—'} mono />
-      <CtKv sp={sp} label="Pièces" value={c.roomsMin ? `≥ ${c.roomsMin}` : '—'} mono />
+      <CtKv sp={sp} label={t('widgets.criteria.budget')} value={budgetLabel} mono />
+      <CtKv sp={sp} label={t('widgets.criteria.surface')} value={c.areaMin ? `≥ ${c.areaMin} m²` : '—'} mono />
+      <CtKv sp={sp} label={t('widgets.criteria.rooms')} value={c.roomsMin ? `≥ ${c.roomsMin}` : '—'} mono />
       {((c.mustHave?.length ?? 0) > 0 || (c.niceToHave?.length ?? 0) > 0) && (
         <div style={{ padding: '10px 0 12px', borderTop: `1px solid ${sp.cardBorder}` }}>
           {(c.mustHave?.length ?? 0) > 0 && (
@@ -66,7 +68,7 @@ export function CtCriteria({
                   marginBottom: 6,
                 }}
               >
-                Indispensable
+                {t('widgets.criteria.mustHave')}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {c.mustHave!.map(m => (
@@ -89,7 +91,7 @@ export function CtCriteria({
                   marginBottom: 6,
                 }}
               >
-                Souhaité
+                {t('widgets.criteria.niceToHave')}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {c.niceToHave!.map(m => (
@@ -116,13 +118,14 @@ export function CtMatches({
   matches?: CrmMatch[]
   sp: SugarPalette
 }) {
+  const { t } = useTranslation('contacts')
   const matches = (matchesProp ?? []).slice().sort((a, b) => b.score - a.score)
 
   if (matches.length === 0) {
     return (
       <CtCard sp={sp} padding="20px 16px">
         <div style={{ fontSize: 12.5, color: sp.sub, textAlign: 'center' }}>
-          Aucun match calculé pour ce contact.
+          {t('widgets.matches.empty')}
         </div>
       </CtCard>
     )
@@ -134,14 +137,7 @@ export function CtMatches({
         const b = crmBienById(m.bienId)
         if (!b) return null
         const dot = m.score >= 85 ? '#0E9F6E' : m.score >= 70 ? '#F59E0B' : '#E53935'
-        const statusLabel =
-          ({
-            'to-send': 'À envoyer',
-            sent: 'Envoyé',
-            viewed: 'Vu',
-            liked: 'Aimé',
-            rejected: 'Rejeté',
-          } as const)[m.status] || '—'
+        const statusLabel = t(`widgets.matches.status.${m.status}`, { defaultValue: '—' })
         return (
           <div
             key={`${m.contactId}-${m.bienId}`}
@@ -189,8 +185,13 @@ export function CtMatches({
                 {b.title}
               </div>
               <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1 }}>
-                {b.rooms}p · {b.area}m² ·{' '}
-                {b.price ? ctFmtCHF(b.price) : ctFmtCHF(b.rent ?? null) + '/mois'}
+                {t('widgets.matches.specs', {
+                  rooms: b.rooms,
+                  area: b.area,
+                  price: b.price
+                    ? ctFmtCHF(b.price)
+                    : t('widgets.matches.perMonth', { price: ctFmtCHF(b.rent ?? null) }),
+                })}
               </div>
             </div>
             <span
@@ -218,7 +219,7 @@ export function CtMatches({
                 flexShrink: 0,
               }}
             >
-              {m.status === 'to-send' ? 'Envoyer' : 'Ouvrir'}
+              {m.status === 'to-send' ? t('widgets.matches.send') : t('widgets.matches.open')}
             </button>
           </div>
         )
@@ -229,7 +230,7 @@ export function CtMatches({
 
 // ─── Activity timeline ────────────────────────────────────────────────
 export function CtActivity({
-  contact,
+  contact: _contact,
   activity: activityProp,
   sp,
   fill,
@@ -239,32 +240,10 @@ export function CtActivity({
   sp: SugarPalette
   fill?: boolean
 }) {
-  const items = activityProp ?? []
-  // Mock fallback si pas encore d'activité réelle (la timeline réelle est vide
-  // tant que personne n'a généré d'activity_event pour ce contact).
-  const all =
-    items.length > 0
-      ? items
-      : [
-          {
-            id: 'mock-1',
-            at: '2026-04-29T15:32:00',
-            kind: 'note',
-            text: "Notes synchronisées depuis l'agenda.",
-          },
-          {
-            id: 'mock-2',
-            at: '2026-04-25T11:00:00',
-            kind: 'call',
-            text: 'Premier appel de qualification — 12 min.',
-          },
-          {
-            id: 'mock-3',
-            at: '2026-04-20T09:00:00',
-            kind: 'lead-in',
-            text: 'Contact créé via ' + (contact.source || 'import') + '.',
-          },
-        ]
+  const { t } = useTranslation('contacts')
+  // Timeline réelle (activity_events). Pas de fallback fabriqué : tant qu'aucun
+  // événement n'existe pour ce contact, on affiche un état vide honnête.
+  const all = activityProp ?? []
 
   const iconMap: Record<string, MEIconName> = {
     'ai-action': 'sparkle',
@@ -292,6 +271,11 @@ export function CtActivity({
 
   return (
     <CtCard sp={sp} padding="6px 14px" fill={fill} style={fill ? { overflowY: 'auto' } : undefined}>
+      {all.length === 0 && (
+        <div style={{ fontSize: 12.5, color: sp.sub, textAlign: 'center', padding: '20px 8px' }}>
+          {t('widgets.activity.empty')}
+        </div>
+      )}
       {all.map((a, i) => (
         <div
           key={a.id}
@@ -326,7 +310,7 @@ export function CtActivity({
                 fontWeight: 600,
               }}
             >
-              {ctRelativeTime(a.at)}
+              {ctRelativeTime(a.at, t)}
             </div>
           </div>
         </div>
@@ -339,20 +323,21 @@ export function CtActivity({
 type ComposerTab = 'note' | 'call' | 'email' | 'task'
 
 export function CtComposer({ sp, fill }: { sp: SugarPalette; dark: boolean; fill?: boolean }) {
+  const { t } = useTranslation('contacts')
   const [tab, setTab] = useState<ComposerTab>('note')
   const [val, setVal] = useState('')
 
   const tabs: { k: ComposerTab; label: string; icon: MEIconName }[] = [
-    { k: 'note', label: 'Note', icon: 'file' },
-    { k: 'call', label: 'Appel', icon: 'phone' },
-    { k: 'email', label: 'Email', icon: 'mail' },
-    { k: 'task', label: 'Tâche', icon: 'check' },
+    { k: 'note', label: t('widgets.composer.tab.note'), icon: 'file' },
+    { k: 'call', label: t('widgets.composer.tab.call'), icon: 'phone' },
+    { k: 'email', label: t('widgets.composer.tab.email'), icon: 'mail' },
+    { k: 'task', label: t('widgets.composer.tab.task'), icon: 'check' },
   ]
   const placeholders: Record<ComposerTab, string> = {
-    note: 'Ajouter une note rapide…',
-    call: 'Résumer un appel — points clés, prochaine étape…',
-    email: "Sujet + corps de l'email…",
-    task: 'Tâche à faire — date, qui ?',
+    note: t('widgets.composer.placeholder.note'),
+    call: t('widgets.composer.placeholder.call'),
+    email: t('widgets.composer.placeholder.email'),
+    task: t('widgets.composer.placeholder.task'),
   }
 
   return (
@@ -442,7 +427,7 @@ export function CtComposer({ sp, fill }: { sp: SugarPalette; dark: boolean; fill
           }}
         >
           <MEIcon name="sparkle" size={11} color={sp.sub} />
-          Suggérer avec MEGGA AI
+          {t('widgets.composer.suggest')}
         </button>
         <button
           style={{
@@ -458,7 +443,7 @@ export function CtComposer({ sp, fill }: { sp: SugarPalette; dark: boolean; fill
             fontFamily: 'inherit',
           }}
         >
-          Enregistrer
+          {t('widgets.composer.save')}
         </button>
       </div>
     </CtCard>
@@ -477,12 +462,13 @@ export function CtDeals({
   sp: SugarPalette
   fill?: boolean
 }) {
+  const { t } = useTranslation('contacts')
   const deals = dealsProp ?? []
   if (deals.length === 0) {
     return (
       <CtCard sp={sp} padding="20px 16px">
         <div style={{ fontSize: 12.5, color: sp.sub, textAlign: 'center' }}>
-          Aucun deal en cours pour ce contact.
+          {t('widgets.deals.empty')}
           <button
             style={{
               marginTop: 10,
@@ -500,7 +486,7 @@ export function CtDeals({
               margin: '10px auto 0',
             }}
           >
-            + Nouveau deal
+            {t('widgets.deals.newDeal')}
           </button>
         </div>
       </CtCard>
@@ -551,7 +537,7 @@ export function CtDeals({
                     }}
                   />
                   <span style={{ fontSize: 11, fontWeight: 700, color: sp.soft }}>
-                    {stage.label}
+                    {t(`pipeline:stages.${d.stage}`)}
                   </span>
                   <span style={{ fontSize: 10, color: sp.sub }}>· {d.probability}%</span>
                   <span style={{ flex: 1 }} />
@@ -566,10 +552,10 @@ export function CtDeals({
                     }}
                   >
                     {d.risk === 'at-risk'
-                      ? 'À risque'
+                      ? t('widgets.deals.risk.atRisk')
                       : d.risk === 'stalled'
-                        ? 'Bloqué'
-                        : 'Sain'}
+                        ? t('widgets.deals.risk.stalled')
+                        : t('widgets.deals.risk.healthy')}
                   </span>
                 </div>
                 <div
@@ -583,7 +569,7 @@ export function CtDeals({
                     textOverflow: 'ellipsis',
                   }}
                 >
-                  {b ? b.title : 'Recherche active'}
+                  {b ? b.title : t('widgets.deals.activeSearch')}
                 </div>
                 <div
                   style={{
@@ -654,12 +640,13 @@ export function CtSellerStats({
   biensOwned?: CrmBien[]
   sp: SugarPalette
 }) {
+  const { t } = useTranslation('contacts')
   const biens = biensOwned ?? []
   if (biens.length === 0) {
     return (
       <CtCard sp={sp} padding="20px 16px">
         <div style={{ fontSize: 12.5, color: sp.sub, textAlign: 'center' }}>
-          Aucun bien actif sous mandat.
+          {t('widgets.seller.empty')}
         </div>
       </CtCard>
     )
@@ -704,7 +691,11 @@ export function CtSellerStats({
                 {b.title}
               </div>
               <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1 }}>
-                {b.ref} · Mandat {b.mandat?.type} · {b.mandat?.commission}%
+                {t('widgets.seller.mandateLine', {
+                  ref: b.ref,
+                  type: b.mandat?.type ?? '—',
+                  commission: b.mandat?.commission ?? '—',
+                })}
               </div>
             </div>
             <span
@@ -729,9 +720,9 @@ export function CtSellerStats({
             }}
           >
             {[
-              { label: 'Vues', value: b.stats.views },
-              { label: 'Favoris', value: b.stats.favorites },
-              { label: 'Visites', value: b.stats.visitRequests },
+              { label: t('widgets.seller.stat.views'), value: b.stats.views },
+              { label: t('widgets.seller.stat.favorites'), value: b.stats.favorites },
+              { label: t('widgets.seller.stat.visits'), value: b.stats.visitRequests },
             ].map(s => (
               <div key={s.label} style={{ textAlign: 'center' }}>
                 <div
@@ -777,6 +768,7 @@ export function CtKyc({
   sp: SugarPalette
   fill?: boolean
 }) {
+  const { t } = useTranslation('contacts')
   const status = contact.kyc?.status || 'none'
 
   const stepByStatus: Record<string, number> = {
@@ -786,62 +778,59 @@ export function CtKyc({
     verified: 6,
   }
   const activeStep = stepByStatus[status] ?? 0
-  const STEPS = ['Identité', 'Béné.', 'Fonds', 'Screening', 'Risque', 'Validation']
+  const STEPS = [
+    t('widgets.kyc.step.identity'),
+    t('widgets.kyc.step.beneficiary'),
+    t('widgets.kyc.step.funds'),
+    t('widgets.kyc.step.screening'),
+    t('widgets.kyc.step.risk'),
+    t('widgets.kyc.step.validation'),
+  ]
 
-  const header: Record<string, { tone: string; soft: string; label: string; hint: string }> = {
-    none: {
-      tone: '#F59E0B',
-      soft: '#FFF4E0',
-      label: 'À démarrer',
-      hint: 'Vous pouvez continuer à travailler ce dossier — pensez à le compléter avant la signature.',
-    },
-    pending: {
-      tone: '#F59E0B',
-      soft: '#FFF4E0',
-      label: 'En cours',
-      hint: 'Vérifications en attente · délai habituel 24-48h.',
-    },
-    verified: {
-      tone: '#0E9F6E',
-      soft: '#E5F4EC',
-      label: 'Validé',
-      hint: `Risque ${contact.kyc?.riskLevel || 'Faible'} · dernier screening ${
-        contact.kyc?.expiresAt?.slice(0, 10) || '—'
-      }.`,
-    },
-    stale: {
-      tone: '#F59E0B',
-      soft: '#FFF4E0',
-      label: 'À re-screener',
-      hint: 'Sanctions/PEP à rafraîchir — recommandé après 12 mois ou changement de situation.',
-    },
+  const tones: Record<string, { tone: string; soft: string }> = {
+    none: { tone: '#F59E0B', soft: '#FFF4E0' },
+    pending: { tone: '#F59E0B', soft: '#FFF4E0' },
+    verified: { tone: '#0E9F6E', soft: '#E5F4EC' },
+    stale: { tone: '#F59E0B', soft: '#FFF4E0' },
   }
-  const h = header[status]
+  const h = {
+    ...tones[status],
+    label: t(`widgets.kyc.statusLabel.${status}`),
+    hint:
+      status === 'verified'
+        ? t('widgets.kyc.hint.verified', {
+            risk: contact.kyc?.riskLevel || t('widgets.kyc.risk.low'),
+            date: contact.kyc?.expiresAt?.slice(0, 10) || '—',
+          })
+        : t(`widgets.kyc.hint.${status}`),
+  }
 
-  const cta = ({
-    none: 'Démarrer le dossier KYC',
-    pending: 'Voir le dossier',
-    verified: 'Consulter le dossier',
-    stale: 'Relancer le screening',
-  } as const)[status]
+  const cta = t(`widgets.kyc.cta.${status}`)
 
-  // KPIs
-  const docsTotal = 6
-  const docsDone = ({ none: 0, pending: 3, verified: 6, stale: 6 } as const)[status] ?? 0
-  const riskValue = status === 'verified' || status === 'stale' ? 14 : null
+  // KPIs — données réelles uniquement. Le détail complet du dossier (pièces,
+  // historique de screening) vit dans l'onglet KYC ; on n'invente ni score de
+  // risque, ni compteur de pièces, ni date de screening ici.
+  const riskLevel =
+    status === 'verified' || status === 'stale' ? contact.kyc?.riskLevel : undefined
   const riskLabel =
-    contact.kyc?.riskLevel ||
-    (riskValue != null ? (riskValue < 25 ? 'Faible' : riskValue < 60 ? 'Modéré' : 'Élevé') : '—')
+    riskLevel === 'high'
+      ? t('widgets.kyc.risk.high')
+      : riskLevel === 'medium'
+        ? t('widgets.kyc.risk.medium')
+        : riskLevel === 'low'
+          ? t('widgets.kyc.risk.low')
+          : '—'
   const riskColor =
-    riskValue == null
-      ? sp.sub
-      : riskValue < 25
-        ? '#0E9F6E'
-        : riskValue < 60
-          ? '#F59E0B'
-          : '#E53935'
-  const lastScreen =
-    status === 'verified' ? '12.04.26' : status === 'stale' ? '03.02.25' : '—'
+    riskLevel === 'high'
+      ? '#E53935'
+      : riskLevel === 'medium'
+        ? '#F59E0B'
+        : riskLevel === 'low'
+          ? '#0E9F6E'
+          : sp.sub
+  const validUntil = contact.kyc?.expiresAt
+    ? contact.kyc.expiresAt.slice(0, 10).split('-').reverse().join('.')
+    : '—'
 
   return (
     <CtCard sp={sp} padding="14px 16px" fill={fill}>
@@ -871,7 +860,7 @@ export function CtKyc({
               gap: 8,
             }}
           >
-            Conformité KYC / LBA
+            {t('detail.kycCompliance')}
             <span
               style={{
                 padding: '2px 8px',
@@ -987,7 +976,7 @@ export function CtKyc({
               color: sp.sub,
             }}
           >
-            Risque
+            {t('widgets.kyc.kpi.risk')}
           </div>
           <div
             style={{
@@ -997,17 +986,7 @@ export function CtKyc({
               marginTop: 2,
             }}
           >
-            {riskValue != null ? riskValue : '—'}
-            <span
-              style={{
-                fontSize: 10,
-                color: sp.sub,
-                fontWeight: 600,
-                marginLeft: 4,
-              }}
-            >
-              {riskValue != null ? `/ ${riskLabel}` : ''}
-            </span>
+            {riskLabel}
           </div>
         </div>
         <div style={{ padding: '8px 10px', borderRadius: 8, background: sp.cardSubBg }}>
@@ -1020,7 +999,7 @@ export function CtKyc({
               color: sp.sub,
             }}
           >
-            Pièces
+            {t('widgets.kyc.kpi.documents')}
           </div>
           <div
             style={{
@@ -1030,8 +1009,7 @@ export function CtKyc({
               marginTop: 2,
             }}
           >
-            {docsDone}
-            <span style={{ fontSize: 10, color: sp.sub, fontWeight: 600 }}> / {docsTotal}</span>
+            —
           </div>
         </div>
         <div style={{ padding: '8px 10px', borderRadius: 8, background: sp.cardSubBg }}>
@@ -1044,7 +1022,7 @@ export function CtKyc({
               color: sp.sub,
             }}
           >
-            Dernier screening
+            {t('widgets.kyc.kpi.validity')}
           </div>
           <div
             style={{
@@ -1054,7 +1032,7 @@ export function CtKyc({
               marginTop: 2,
             }}
           >
-            {lastScreen}
+            {validUntil}
           </div>
         </div>
       </div>

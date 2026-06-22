@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v3 — Card Timeline activité unifiée
 // Port 1:1 de crm-screen-contact-detail-sugar.jsx lignes 561-611 (CdTimelineCard).
 
+import { useTranslation } from 'react-i18next'
 import { SugarV3, fmtDateTime } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycGhostPill, KycSection } from '../primitives'
@@ -21,12 +22,11 @@ const CATEGORY_TO_ICON: Record<string, string> = {
   ai: 'sparkle',
 }
 
-// Libellés FR pour les actions techniques (fallback = action brute → comportement inchangé).
-const ACTION_LABELS: Record<string, string> = {
-  seller_offer_decision: 'Décision du vendeur',
-}
+// Actions techniques disposant d'un libellé traduit (fallback = action brute → comportement inchangé).
+const TRANSLATED_ACTIONS = new Set(['seller_offer_decision'])
 
 export function CdTimelineCard({ events }: Props) {
+  const { t } = useTranslation('contacts')
   const sorted = [...events].sort(
     (a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -34,21 +34,21 @@ export function CdTimelineCard({ events }: Props) {
 
   return (
     <KycSection
-      title="Activité"
-      eyebrow="Timeline unifiée"
+      title={t('cd.timelineTitle')}
+      eyebrow={t('cd.timelineEyebrow')}
       action={
         <div style={{ display: 'flex', gap: 6 }}>
           <KycGhostPill
             size="sm"
             icon={<SgIcon name="sparkle" size={13} stroke={SugarV3.inkSoft} />}
           >
-            Résumer avec MEGGA AI
+            {t('cd.timelineSummarize')}
           </KycGhostPill>
           <KycGhostPill
             size="sm"
             icon={<SgIcon name="plus" size={13} stroke={SugarV3.inkSoft} sw={2} />}
           >
-            Ajouter
+            {t('cd.timelineAdd')}
           </KycGhostPill>
         </div>
       }
@@ -65,7 +65,7 @@ export function CdTimelineCard({ events }: Props) {
             fontWeight: 500,
           }}
         >
-          Aucune activité enregistrée pour ce contact.
+          {t('cd.timelineEmpty')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -126,7 +126,9 @@ export function CdTimelineCard({ events }: Props) {
                       marginBottom: 3,
                     }}
                   >
-                    {ACTION_LABELS[ev.action] ?? ev.action}
+                    {TRANSLATED_ACTIONS.has(ev.action)
+                      ? t(`cd.timelineAction.${ev.action}`)
+                      : ev.action}
                   </div>
                   <div
                     style={{
@@ -137,7 +139,7 @@ export function CdTimelineCard({ events }: Props) {
                     }}
                   >
                     {fmtDateTime(ev.created_at)} ·{' '}
-                    {ev.actor_id ? 'Agent' : 'MEGGA AI'}
+                    {ev.actor_id ? t('cd.actorAgent') : 'MEGGA AI'}
                   </div>
                   {ev.object_label && (
                     <div

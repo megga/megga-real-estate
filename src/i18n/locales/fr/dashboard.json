@@ -106,5 +106,564 @@
       "6months": "6 mois",
       "exploring": "Exploration"
     }
+  },
+  "today": {
+    "reasons": {
+      "reminderKycOverdue": "KYC en retard de {{days}} j, vérification à compléter",
+      "reminderOverdue": "Relance en retard de {{days}} j",
+      "reminderTodayAt": "Relance prévue aujourd'hui ({{time}})",
+      "reminderToday": "Relance prévue aujourd'hui",
+      "sellerLeadCity": "Nouveau lead vendeur, {{city}}",
+      "sellerLead": "Nouveau lead vendeur à réclamer",
+      "sellerLeadWaiting": " · en attente depuis {{days}} j",
+      "kycClosing": "Closing proche, KYC du dossier à finaliser",
+      "kycTail": {
+        "failed": " · dossier à corriger",
+        "stale": " · dossier à re-vérifier",
+        "none": " · dossier non démarré",
+        "pending": " · dossier en cours"
+      },
+      "coolingDated": "Lead qui refroidit, sans contact depuis {{days}} j",
+      "coolingNever": "Lead jamais recontacté depuis sa création",
+      "coolingHot": " · lead chaud à ne pas perdre",
+      "coolingCold": " · lead froid",
+      "offerNoDate": "Offre en attente, échéance à vérifier",
+      "offerOverdue": "Offre en attente, délai dépassé, à clôturer",
+      "offerToday": "Offre en attente, expire aujourd'hui",
+      "offerInDays": "Offre en attente, expire dans {{days}} j",
+      "visitToday": "Visite prévue aujourd'hui, à préparer",
+      "visitNoShow": "Visite non honorée, à relancer",
+      "visitDebriefDone": "Visite passée, débrief à saisir",
+      "visitDebriefClose": "Visite passée, à clôturer",
+      "visitFollow": "Visite à suivre",
+      "propertyHot": "Bien à pousser, bien positionné",
+      "propertyDormant": "Bien en veille, à animer ou archiver",
+      "propertyActivate": "Bien à animer",
+      "propertyIncomplete": " · fiche à compléter",
+      "propertyBuyers": " · acheteurs croisés, à mettre en avant",
+      "propertyNoDeal": " · pas encore lié à un deal",
+      "propertyLimited": " · estimation (données limitées)",
+      "matchStrong": "Match fort ({{score}})",
+      "matchToConfirm": "Match à confirmer ({{score}})",
+      "matchCriteria": " - {{criteria}}",
+      "matchInternal": " · mandat propre",
+      "dealStalled": "Deal au point mort, à débloquer",
+      "dealOffer": "Offre à suivre, closing proche",
+      "dealAtRisk": "Deal sous tension, à relancer",
+      "dealAdvance": "Étape à faire avancer",
+      "kycExpired": " · KYC échu",
+      "kycDueToday": " · KYC à échéance aujourd'hui",
+      "kycDueInDays": " · KYC à échéance dans {{days}} j",
+      "criteria": {
+        "budget": "budget",
+        "zone": "zone",
+        "rooms": "pièces",
+        "type": "type de bien",
+        "features": "critères"
+      }
+    },
+    "queue": {
+      "contact": "Contact",
+      "kycSub": "Dossier KYC à finaliser avant le closing.",
+      "kycSubTitled": "{{title}}, dossier KYC à finaliser avant le closing.",
+      "dealSub": "Deal à faire avancer.",
+      "dealSubTitled": "{{title}}, à faire avancer.",
+      "reminderKycSub": "Vérification d'identité à compléter.",
+      "reminderSub": "À relancer.",
+      "matchSub": "Bien proposé, à présenter.",
+      "estimationValue": "estimation {{value}}",
+      "sellerSub": "Nouveau mandat vendeur à qualifier.",
+      "offerContact": "Offre",
+      "offerSub": "Offre {{amount}} en attente, réponse à suivre.",
+      "visitSub": "Visite à suivre.",
+      "untitledProperty": "Bien sans titre",
+      "propertySub": "Bien interne à travailler."
+    },
+    "tags": {
+      "offer": "Offre",
+      "mandate": "Mandat",
+      "relance": "Relance",
+      "kyc": "KYC",
+      "seller": "Vendeur",
+      "visit": "Visite",
+      "property": "Bien",
+      "match": "Match"
+    },
+    "focusTypes": {
+      "call": "Appeler {{name}}",
+      "kyc": "Vérifier le KYC",
+      "sign": "Préparer le mandat",
+      "offer": "Relancer l'offre",
+      "seller": "Contacter {{name}}",
+      "cooling": "Relancer {{name}}",
+      "visit": "Voir la visite",
+      "bien": "Voir le bien"
+    },
+    "focus": {
+      "loading": "Chargement de tes priorités…",
+      "queueDone": "File traitée",
+      "queueDoneSub": "Toutes tes priorités du moment sont gérées. Profite, ou avance sur le pipeline.",
+      "queueDoneModeSub": "Toutes tes priorités sont gérées. Enchaîne sur le mur de matchs pour placer tes biens.",
+      "statProcessed_one": "traitée",
+      "statProcessed_other": "traitées",
+      "statMinFocus": "min focus",
+      "statSnoozed_one": "reportée",
+      "statSnoozed_other": "reportées",
+      "reviewQueue": "Revoir la file",
+      "estimatedPriority": "Priorité estimée",
+      "estimate": "estimation",
+      "finish": "Terminer",
+      "reschedule": "Replanifier",
+      "markDone": "Marquer fait",
+      "modeTitle": "Mode Focus",
+      "quitEsc": "Quitter (Échap)",
+      "esc": "Échap",
+      "statPrioritiesProcessed_one": "priorité traitée",
+      "statPrioritiesProcessed_other": "priorités traitées",
+      "statMinConcentration": "min de concentration",
+      "statRescheduled_one": "replanifiée",
+      "statRescheduled_other": "replanifiées",
+      "viewCatalogue": "Voir le catalogue de matchs",
+      "upNext": "À suivre",
+      "lastPriority": "Dernière priorité de la file."
+    },
+    "cockpit": {
+      "greeting": "Bonjour {{name}}",
+      "greetingNoName": "Bonjour",
+      "focusMode": "Mode Focus",
+      "next": "Ensuite",
+      "tiles": {
+        "agenda": "Agenda du jour",
+        "relances": "Relances IA",
+        "pipeline": "Pipeline",
+        "objectif": "Objectif"
+      },
+      "tags": {
+        "offer": "Offre",
+        "mandate": "Mandat",
+        "seller": "Vendeur",
+        "kyc": "KYC",
+        "relance": "Relance",
+        "match": "Match",
+        "compromis": "Compromis",
+        "visit": "Visite"
+      }
+    },
+    "agenda": {
+      "error": { "title": "Données indisponibles" },
+      "next": "Ensuite",
+      "empty": "Plus rien après, journée dégagée.",
+      "call": "Appeler",
+      "inMinutes_one": "dans {{count}} min",
+      "inMinutes_other": "dans {{count}} min",
+      "inHours_one": "dans {{count}} h",
+      "inHours_other": "dans {{count}} h",
+      "doneThisMorning_one": "{{count}} fait ce matin · {{times}}",
+      "doneThisMorning_other": "{{count}} faits ce matin · {{times}}",
+      "types": {
+        "call": "Appel",
+        "kyc": "KYC",
+        "mandate": "Mandat",
+        "visit": "Visite",
+        "offer": "Offre"
+      }
+    },
+    "relances": {
+      "leadsToFollow": "leads à relancer",
+      "preparedByAi": "préparés par l'IA",
+      "startSession": "Démarrer la session",
+      "tempHot": "chauds",
+      "tempWarm": "tièdes",
+      "tempCold": "froids"
+    },
+    "pipeline": {
+      "error": { "title": "Données indisponibles" },
+      "stages": {
+        "searching": "Recherche active",
+        "visit": "Visite planifiée",
+        "offer": "Offre déposée",
+        "compromis": "Compromis"
+      },
+      "dealFallback": "Affaire",
+      "riskStalled": "Affaire au point mort",
+      "riskOverdue": "Échéance dépassée"
+    },
+    "objectif": {
+      "error": { "title": "Données indisponibles" },
+      "realized": "réalisé",
+      "realizedNoTarget": "réalisé · objectif non défini",
+      "target": "cible"
+    },
+    "pager": {
+      "today": "Aujourd'hui",
+      "catalogue": "Catalogue",
+      "wheelTo": "Molette pour {{label}}"
+    },
+    "catalogue": {
+      "title": "Catalogue de matchs",
+      "empty": "Aucun match dans ce filtre.",
+      "proposed": "Proposé",
+      "proposedCount_one": "{{count}} proposé",
+      "proposedCount_other": "{{count}} proposés",
+      "filters": {
+        "all": "Tous",
+        "followUp": "À relancer",
+        "new": "Nouveaux"
+      },
+      "sorts": {
+        "score": "Score",
+        "value": "Valeur",
+        "recency": "Récence"
+      },
+      "sort": {
+        "by": "Trier {{label}}",
+        "byDot": "Trier · {{label}}",
+        "change": "Changer le tri"
+      },
+      "status": {
+        "new": "Nouveau",
+        "sent": "Dossier envoyé",
+        "visitPlanned": "Visite prévue",
+        "interested": "Intéressé"
+      },
+      "why": {
+        "fallback": "Nouveau match, premier contact à initier."
+      },
+      "advertiser": {
+        "marketWatch": "Veille marché",
+        "internalMandate": "Mandat interne",
+        "externalAdvertiser": "Annonceur externe",
+        "yourAgency": "Votre agence",
+        "source": "Source"
+      },
+      "detail": {
+        "eyebrow": "Détail du match",
+        "photos": "photos"
+      },
+      "section": {
+        "specs": "Caractéristiques",
+        "highlights": "Atouts",
+        "description": "Description",
+        "location": "Localisation",
+        "salePrice": "Prix de vente",
+        "buyer": "Acheteur",
+        "compatibility": "Compatibilité",
+        "advertiser": "Annonceur"
+      },
+      "spec": {
+        "rooms": "Pièces",
+        "roomsCount": "{{rooms}} pièces",
+        "surface": "Surface",
+        "bedrooms": "Chambres",
+        "bathrooms": "Salles d'eau",
+        "year": "Année",
+        "floor": "Étage",
+        "villa": "Villa"
+      },
+      "price": {
+        "charges": "Charges",
+        "perMonth": "CHF {{amount}} / mois",
+        "onMarket": "Sur le marché",
+        "today": "Aujourd'hui",
+        "days_one": "{{count}} jour",
+        "days_other": "{{count}} jours"
+      },
+      "buyer": {
+        "searching": "{{tag}} · cherche {{specs}}"
+      },
+      "compat": {
+        "perfect": "Profil parfaitement aligné",
+        "aligned": "Bien aligné avec sa recherche",
+        "someGaps": "Aligné, quelques écarts",
+        "manyGaps": "Plusieurs écarts à lever"
+      },
+      "criteria": {
+        "budget": "Budget",
+        "zone": "Zone",
+        "type": "Type",
+        "rooms": "Pièces",
+        "features": "Souhaits",
+        "toRefine": "à affiner"
+      },
+      "action": {
+        "addToFile": "Mettre dans le dossier de {{name}}",
+        "added": "Ajouté au dossier de {{name}}"
+      },
+      "gallery": {
+        "closeHint": "Fermer (Échap)",
+        "previous": "Précédente",
+        "next": "Suivante",
+        "backToWall": "Retour au mur",
+        "title": "Tout le catalogue",
+        "subtitle": "Galerie complète"
+      },
+      "more": {
+        "otherMatches_one": "autre match",
+        "otherMatches_other": "autres matchs",
+        "viewWhole": "Voir tout le catalogue"
+      },
+      "place": {
+        "fallback": "Bien"
+      }
+    },
+    "relance": {
+      "temp": {
+        "hot": "Chaud",
+        "warm": "Tiède",
+        "cold": "Froid"
+      },
+      "header": {
+        "title": "Session de relance",
+        "closeTitle": "Retour au dashboard (Esc)"
+      },
+      "agentFallback": "Votre courtier MEGGA",
+      "generating": "MEGGA AI rédige…",
+      "demoBanner": "Mode démo, aucun lead dormant dans votre agence. Ces exemples ne sont envoyés à personne.",
+      "sendError": "L'envoi a échoué, réessayez ou copiez le message.",
+      "draft": {
+        "to": "À",
+        "emailMissing": "(email manquant)",
+        "subject": "Objet",
+        "regenerate": "Proposer une autre version",
+        "editable": "Texte modifiable",
+        "fallbackSubject": "Reprenons contact, {{name}}"
+      },
+      "empty": {
+        "prompt": "Besoin d'un message ?",
+        "help": "L'IA le rédige à partir du contexte.",
+        "cta": "Proposer un message"
+      },
+      "genError": {
+        "title": "La rédaction n'a pas abouti.",
+        "help": "Vérifiez votre connexion, puis réessayez.",
+        "retry": "Réessayer"
+      },
+      "sent": {
+        "title": "Envoyé depuis MEGGA",
+        "tracked": "La relance est tracée dans la fiche de {{name}}."
+      },
+      "actions": {
+        "copied": "Message copié",
+        "copy": "Copier le message",
+        "openInMailbox": "Ouvrir dans ma messagerie",
+        "sending": "Envoi…",
+        "sendFromMegga": "ou envoyer depuis MEGGA"
+      },
+      "nav": {
+        "later": "Plus tard",
+        "notInterested": "Pas intéressé",
+        "next": "Suivant"
+      },
+      "undo": {
+        "discarded": "{{name}} écarté de la boucle",
+        "cancel": "Annuler"
+      },
+      "done": {
+        "title": "Session terminée",
+        "contacted_one": "relancé",
+        "contacted_other": "relancés",
+        "discarded_one": "écarté",
+        "discarded_other": "écartés",
+        "postponed_one": "reporté",
+        "postponed_other": "reportés",
+        "explainer": "Les leads reportés reviendront demain ; les écartés sont sortis de la boucle.",
+        "backToDashboard": "Retour au dashboard"
+      }
+    }
+  },
+  "analytics": {
+    "period": {
+      "year": {
+        "label": "cette année",
+        "granularity": "Cumul mensuel",
+        "pointWord": "Mois"
+      },
+      "quarter": {
+        "label": "ce trimestre",
+        "granularity": "Cumul hebdomadaire",
+        "pointWord": "Semaine"
+      },
+      "month": {
+        "label": "ce mois",
+        "granularity": "Cumul journalier",
+        "pointWord": "Jour"
+      }
+    },
+    "source": {
+      "website": "Site agence",
+      "onboarding": "Marketplace MEGGA",
+      "referral": "Recommandations",
+      "manual": "Importé manuel"
+    },
+    "composition": {
+      "secured": {
+        "label": "Sécurisé",
+        "hint": "Actes + compromis"
+      },
+      "probable": {
+        "label": "Probable",
+        "hint": "Offres en cours"
+      },
+      "possible": {
+        "label": "Possible",
+        "hint": "Mandats & visites"
+      },
+      "title": "De quoi est fait le projeté",
+      "total": "{{amount}} au total",
+      "empty": "Aucune commission projetée sur la période"
+    },
+    "kpi": {
+      "volume": "Volume transacté",
+      "transactions": "Transactions",
+      "avgCommission": "Commission moy.",
+      "conversionRate": "Taux conversion"
+    },
+    "insufficientData": "Données insuffisantes",
+    "qualifiedPct": "{{pct}} % qualifiés",
+    "scope": {
+      "me": "Vue personnelle",
+      "agency": "Vue agence"
+    },
+    "stage": {
+      "signed": "Signé",
+      "compromis": "Compromis",
+      "offer": "Offre"
+    },
+    "dealFallback": "Deal",
+    "title": "Performance",
+    "estimateTooltip": "Estimation pondérée par probabilité de réalisation",
+    "selector": {
+      "month": "Mois",
+      "quarter": "Trimestre",
+      "year": "Année"
+    },
+    "toolbar": {
+      "lightMode": "Mode clair",
+      "darkMode": "Mode sombre",
+      "refresh": "Rafraîchir",
+      "exportPdf": "Exporter PDF"
+    },
+    "error": {
+      "title": "Impossible de charger vos performances",
+      "body": "Une erreur est survenue lors du calcul des indicateurs. Réessayez dans un instant.",
+      "retry": "Réessayer"
+    },
+    "pace": {
+      "realized": "Réalisé",
+      "projected": "Projeté",
+      "target": "Objectif",
+      "tempo": "rythme"
+    },
+    "hero": {
+      "eyebrow": "Commission projetée",
+      "ahead": "En avance",
+      "behind": "En retard",
+      "vsTempo": "vs rythme",
+      "projectionLead": "À ce rythme, tu finis {{period}} à",
+      "projectionMid": "soit",
+      "projectionTail": "de ton objectif.",
+      "noTarget": "Aucun objectif commercial n'est défini pour {{period}}.",
+      "setInSettings": "Le fixer dans Réglages",
+      "setInSettingsAgency": "Le fixer dans Réglages › Agence.",
+      "targetSetByAgency": "Objectif fixé par l'agence",
+      "editInSettings": "Modifier dans Réglages",
+      "targetUnsetHint": "Objectif non défini · le fixer dans Réglages"
+    },
+    "fallback": {
+      "defaultRate_one": "{{count}} bien au taux 3 % par défaut",
+      "defaultRate_other": "{{count}} biens au taux 3 % par défaut",
+      "missingPrice_one": "{{count}} sans prix",
+      "missingPrice_other": "{{count}} sans prix",
+      "summary": "Commission estimée : {{parts}}. Renseigne le taux de mandat sur tes biens pour affiner."
+    },
+    "chart": {
+      "title": "Trajectoire vers l'objectif",
+      "realized": "Réalisé",
+      "target": "Objectif"
+    },
+    "deal": {
+      "commission": "commission",
+      "missingPrice": "prix manquant"
+    },
+    "closing": {
+      "title": "Ce qui se signe bientôt",
+      "empty": "Aucun deal en cours"
+    },
+    "sources": {
+      "title": "Sources des leads",
+      "subtitle": "D'où viennent tes contacts · périmètre agence",
+      "bestChannel": "= ton meilleur canal",
+      "empty": "Aucune source sur la période",
+      "leadCount_one": "lead",
+      "leadCount_other": "leads"
+    },
+    "drawer": {
+      "bucket": {
+        "secured": {
+          "label": "Sécurisé",
+          "hint": "Actes signés + compromis fermes"
+        },
+        "probable": {
+          "label": "Probable",
+          "hint": "Offres déposées en cours de négociation"
+        },
+        "possible": {
+          "label": "Possible",
+          "hint": "Mandats actifs & visites en cours"
+        }
+      },
+      "compositionEyebrow": "Composition · {{label}}",
+      "dealEyebrow": "Deal · {{stage}}",
+      "comparableDeals": "Autres deals comparables",
+      "fileCount_one": "{{count}} dossier · commission",
+      "fileCount_other": "{{count}} dossiers · commission",
+      "close": "Fermer",
+      "field": {
+        "commission": "Commission",
+        "probability": "Probabilité",
+        "stage": "Étape"
+      },
+      "detailsUnavailable": "Détails indisponibles",
+      "detailsUnavailableHint": "Le détail par dossier arrive bientôt, ouvre le Pipeline filtré pour le suivi.",
+      "openInPipeline": "Ouvrir dans le Pipeline filtré"
+    },
+    "trajectory": {
+      "goalLabel": "objectif",
+      "pointFallback": "Point {{n}}",
+      "projected": "projeté",
+      "vsPace": "vs rythme"
+    }
+  },
+  "task": {
+    "markRedo": "Marquer à refaire",
+    "markDone": "Marquer exécutée"
+  },
+  "action": {
+    "reschedule": "Replanifier",
+    "moreActions": "Plus d'actions"
+  },
+  "create": {
+    "added": "Ajouté · {{value}}",
+    "submit": "Créer",
+    "suggested": "Suggéré"
+  },
+  "knowledge": {
+    "col": {
+      "subject": "Sujet",
+      "status": "Statut",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "assignedUser": "Utilisateur assigné"
+    },
+    "favRemove": "Retirer des favoris",
+    "favAdd": "Ajouter aux favoris",
+    "favRemoved": "Retiré des favoris, {{subject}}",
+    "favAdded": "Ajouté aux favoris, {{subject}}",
+    "statusChanged": "Statut → {{status}}",
+    "changeStatus": "Changer le statut"
+  },
+  "focus": {
+    "heading": "3 priorités absolues pour aujourd'hui",
+    "subtitle": "Tout le reste peut attendre. Respire, fais ces trois choses bien."
   }
 }

@@ -8,6 +8,10 @@
 // — CHF avec apostrophes : CHF 1'250'000
 
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
+// i18n : les libellés des maps (contrôles/statuts/risque KYC + catégories audit)
+// sont traduits au render via getter singleton (clés kyc:* / common:audit.category.*).
+// Les tonalités/icônes restent fixes.
+import i18n from '@/i18n'
 
 export const SugarV3 = {
   // Fond — radial doux du clair vers bleu-gris pâle
@@ -112,24 +116,24 @@ export const KYC_CHECK_LABELS: Record<
   { title: string; sub: string }
 > = {
   id: {
-    title: "Pièce d'identité",
-    sub: "Passeport ou carte d'identité officielle, recto-verso.",
+    get title() { return i18n.t('kyc:check.id.title') },
+    get sub() { return i18n.t('kyc:check.id.sub') },
   },
   address: {
-    title: 'Justificatif de domicile',
-    sub: 'Facture nominative < 3 mois (loyer, électricité, banque).',
+    get title() { return i18n.t('kyc:check.address.title') },
+    get sub() { return i18n.t('kyc:check.address.sub') },
   },
   pep: {
-    title: 'Screening PEP',
-    sub: 'Vérification listes Personnes Exposées Politiquement.',
+    get title() { return i18n.t('kyc:check.pep.title') },
+    get sub() { return i18n.t('kyc:check.pep.sub') },
   },
   sanctions: {
-    title: 'Listes de sanctions',
-    sub: 'Croisement OFAC, SECO, ONU, Union Européenne.',
+    get title() { return i18n.t('kyc:check.sanctions.title') },
+    get sub() { return i18n.t('kyc:check.sanctions.sub') },
   },
   funds: {
-    title: 'Source des fonds',
-    sub: "Déclaration et preuve d'origine pour transactions > CHF 100'000.",
+    get title() { return i18n.t('kyc:check.funds.title') },
+    get sub() { return i18n.t('kyc:check.funds.sub') },
   },
 }
 
@@ -147,11 +151,11 @@ export const KYC_STATUS_LABELS: Record<
   KycDossierStatus,
   { label: string; tone: string }
 > = {
-  none: { label: 'À démarrer', tone: SugarV3.muted },
-  pending: { label: 'En cours', tone: SugarV3.warn },
-  verified: { label: 'Vérifié', tone: SugarV3.ok },
-  failed: { label: 'Échec', tone: SugarV3.err },
-  stale: { label: 'À re-screener', tone: SugarV3.warn },
+  none: { get label() { return i18n.t('kyc:dossierStatus.none') }, tone: SugarV3.muted },
+  pending: { get label() { return i18n.t('kyc:dossierStatus.pending') }, tone: SugarV3.warn },
+  verified: { get label() { return i18n.t('kyc:dossierStatus.verified') }, tone: SugarV3.ok },
+  failed: { get label() { return i18n.t('kyc:dossierStatus.failed') }, tone: SugarV3.err },
+  stale: { get label() { return i18n.t('kyc:dossierStatus.stale') }, tone: SugarV3.warn },
 }
 
 /** Labels risque 3 niveaux (handoff). */
@@ -159,10 +163,10 @@ export const KYC_RISK_LABELS: Record<
   'low' | 'medium' | 'high' | 'unassessed',
   { label: string; tone: string }
 > = {
-  low: { label: 'Risque faible', tone: SugarV3.ok },
-  medium: { label: 'Risque modéré', tone: SugarV3.warn },
-  high: { label: 'Risque élevé', tone: SugarV3.err },
-  unassessed: { label: 'Non évalué', tone: SugarV3.muted },
+  low: { get label() { return i18n.t('kyc:riskBadge.low') }, tone: SugarV3.ok },
+  medium: { get label() { return i18n.t('kyc:riskBadge.medium') }, tone: SugarV3.warn },
+  high: { get label() { return i18n.t('kyc:riskBadge.high') }, tone: SugarV3.err },
+  unassessed: { get label() { return i18n.t('kyc:riskBadge.unassessed') }, tone: SugarV3.muted },
 }
 
 /** Catégories audit nLPD — 8 valeurs (KYC_ENRICHISSEMENTS §7). */
@@ -170,14 +174,14 @@ export const AUDIT_CATEGORIES: Record<
   string,
   { label: string; tone: string }
 > = {
-  kyc: { label: 'KYC', tone: '#1E5BC6' },
-  deal: { label: 'Pipeline', tone: '#0891B2' },
-  contact: { label: 'Contact', tone: SugarV3.muted },
-  bien: { label: 'Bien', tone: '#C45A00' },
-  doc: { label: 'Document', tone: SugarV3.okDark },
-  auth: { label: 'Connexion', tone: SugarV3.black },
-  settings: { label: 'Réglages', tone: SugarV3.muted },
-  ai: { label: 'MEGGA AI', tone: '#7A4FD8' },
+  kyc: { get label() { return i18n.t('common:audit.category.kyc') }, tone: '#1E5BC6' },
+  deal: { get label() { return i18n.t('common:audit.category.deal') }, tone: '#0891B2' },
+  contact: { get label() { return i18n.t('common:audit.category.contact') }, tone: SugarV3.muted },
+  bien: { get label() { return i18n.t('common:audit.category.bien') }, tone: '#C45A00' },
+  doc: { get label() { return i18n.t('common:audit.category.doc') }, tone: SugarV3.okDark },
+  auth: { get label() { return i18n.t('common:audit.category.auth') }, tone: SugarV3.black },
+  settings: { get label() { return i18n.t('common:audit.category.settings') }, tone: SugarV3.muted },
+  ai: { get label() { return i18n.t('common:audit.category.ai') }, tone: '#7A4FD8' },
 }
 
 /** Icônes audit par catégorie. */

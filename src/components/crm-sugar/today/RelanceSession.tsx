@@ -13,16 +13,21 @@
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { TK } from './tk'
 import { RXIcon, Av } from './kit'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import type { Json } from '@/types/database'
+import { uuidOrNull } from './focusAudit'
 import { useRelanceLeads } from '@/hooks/useRelanceLeads'
 
-const RS_TEMP: Record<string, { label: string; color: string }> = {
-  chaud: { label: 'Chaud', color: '#E08A45' },
-  tiede: { label: 'Tiède', color: '#F2B855' },
-  froid: { label: 'Froid', color: '#6F8CFF' },
+// La couleur reste un token de présentation ; le libellé de température est une
+// clé i18n stable (code → clé), traduite au point d'usage.
+const RS_TEMP: Record<string, { labelKey: string; color: string }> = {
+  chaud: { labelKey: 'today.relance.temp.hot', color: '#E08A45' },
+  tiede: { labelKey: 'today.relance.temp.warm', color: '#F2B855' },
+  froid: { labelKey: 'today.relance.temp.cold', color: '#6F8CFF' },
 }
 
 // Logo MEGGA (mark quatre-pétales)
@@ -119,6 +124,7 @@ function RSBtn({ children, variant = 'ghost', icon, onClick, full = false }: { c
 
 // ─── carte brouillon IA (texte librement modifiable) ───────────────────────
 function RSDraftCard({ lead, subject, draft, onSubject, onDraft, onRegen }: { lead: RSLead; subject: string; draft: string; onSubject: (v: string) => void; onDraft: (v: string) => void; onRegen: () => void }) {
+  const { t } = useTranslation('dashboard')
   const taRef = useRef<HTMLTextAreaElement>(null)
   const [focus, setFocus] = useState(false)
   const grow = (el: HTMLTextAreaElement | null) => { if (!el) return; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }
@@ -129,11 +135,11 @@ function RSDraftCard({ lead, subject, draft, onSubject, onDraft, onRegen }: { le
       {/* méta destinataire — À en haut, Objet en dessous (logique e-mail) */}
       <div style={{ display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${TK.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderBottom: `1px solid ${TK.border}` }}>
-          <span style={{ width: 42, flexShrink: 0, fontSize: 12.5, color: TK.sub, fontWeight: 700 }}>À</span>
-          <span style={{ fontSize: 13, color: lead.email ? TK.inkDim : TK.faint, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{lead.email || '(email manquant)'}</span>
+          <span style={{ width: 42, flexShrink: 0, fontSize: 12.5, color: TK.sub, fontWeight: 700 }}>{t('today.relance.draft.to')}</span>
+          <span style={{ fontSize: 13, color: lead.email ? TK.inkDim : TK.faint, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{lead.email || t('today.relance.draft.emailMissing')}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px' }}>
-          <span style={{ width: 42, flexShrink: 0, fontSize: 12.5, color: TK.sub, fontWeight: 700 }}>Objet</span>
+          <span style={{ width: 42, flexShrink: 0, fontSize: 12.5, color: TK.sub, fontWeight: 700 }}>{t('today.relance.draft.subject')}</span>
           <input value={subject} onChange={(e) => onSubject(e.target.value)} spellCheck={false}
             style={{ flex: 1, minWidth: 120, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit',
               fontSize: 13, color: TK.ink, fontWeight: 700, padding: '4px 6px', borderRadius: 7,
@@ -152,11 +158,11 @@ function RSDraftCard({ lead, subject, draft, onSubject, onDraft, onRegen }: { le
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 13px' }}>
         <button onClick={onRegen} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 0, background: 'transparent',
           color: TK.sub, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: '4px 0' }}>
-          <RXIcon name="spark" size={13} sw={2} /> Proposer une autre version
+          <RXIcon name="spark" size={13} sw={2} /> {t('today.relance.draft.regenerate')}
         </button>
         <div style={{ flex: 1 }} />
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: TK.faint, fontWeight: 700 }}>
-          <RXIcon name="edit" size={12} sw={2} /> Texte modifiable
+          <RXIcon name="edit" size={12} sw={2} /> {t('today.relance.draft.editable')}
         </span>
       </div>
     </div>
@@ -186,8 +192,11 @@ const tempFromScore = (score: number): string => (score >= 80 ? 'chaud' : score 
 
 const PALETTE = ['#5b6cff', '#8B5CF6', '#2370ff', '#E0617A', '#74d184', '#39B7C9', '#E08A45', '#9b7cf0']
 
+// Type minimal du traducteur i18next (injection §5A — fonction pure non-composant).
+type TFunc = (key: string, params?: Record<string, unknown>) => string
+
 // Sépare un « Objet : … » d'en-tête du corps du message rédigé par l'IA.
-function parseDraft(text: string, lead: RSLead): { subject: string; body: string } {
+function parseDraft(text: string, lead: RSLead, t: TFunc): { subject: string; body: string } {
   const trimmed = (text || '').trim()
   const nl = trimmed.indexOf('\n')
   const firstLine = (nl === -1 ? trimmed : trimmed.slice(0, nl)).trim()
@@ -195,7 +204,7 @@ function parseDraft(text: string, lead: RSLead): { subject: string; body: string
   if (m) {
     return { subject: m[1].trim(), body: trimmed.slice(nl + 1).replace(/^\s+/, '') }
   }
-  return { subject: `Reprenons contact, ${lead.name.split(' ')[0]}`, body: trimmed }
+  return { subject: t('today.relance.draft.fallbackSubject', { name: lead.name.split(' ')[0] }), body: trimmed }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -217,9 +226,10 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const [sendError, setSendError] = useState(false) // échec d'envoi MEGGA
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { profile } = useAuth()
+  const { t } = useTranslation('dashboard')
+  const { user, profile } = useAuth()
   const { leads: realLeads, isLoading, isEmpty } = useRelanceLeads()
-  const agentName = profile?.full_name?.trim() || 'Votre courtier MEGGA'
+  const agentName = profile?.full_name?.trim() || t('today.relance.agentFallback')
 
   // Vrais leads dormants → leads de session, UNIQUEMENT une fois la requête
   // résolue avec au moins 1 résultat. Tant qu'elle charge (ou si l'agence n'a
@@ -261,13 +271,13 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
       if (error) throw error
       const result = (data as { result?: string } | null)?.result
       if (!result) throw new Error('réponse IA vide')
-      const parsed = parseDraft(result, lead)
+      const parsed = parseDraft(result, lead, t)
       setSubject(parsed.subject)
       setDraft(parsed.body)
       setAsked(true)
     } catch {
       if (lead.draft) {
-        setSubject(lead.subject || `Reprenons contact, ${lead.name.split(' ')[0]}`)
+        setSubject(lead.subject || t('today.relance.draft.fallbackSubject', { name: lead.name.split(' ')[0] }))
         setDraft(lead.draft)
         setAsked(true)
       } else {
@@ -332,6 +342,25 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
       })
       if (error) throw error
       setSent(true)
+      // Audit HITL de l'envoi RÉEL (jamais en simulation démo, garde-fou ci-dessus) :
+      // consigne la relance dans la timeline contact. lead.id non garanti uuid → metadata.
+      const agencyId = profile?.agency_id
+      const actorId = profile?.id ?? user?.id // actor_id FK → profiles(id) (convention Atelier)
+      if (agencyId && actorId) {
+        const leadUuid = uuidOrNull(lead.id)
+        void supabase.from('activity_events').insert({
+          agency_id: agencyId,
+          actor_id: actorId,
+          actor_kind: 'user',
+          action: 'relance_sent',
+          entity_type: 'contact',
+          entity_id: leadUuid,
+          category: 'contact',
+          severity: 'info',
+          object_label: lead.name,
+          metadata: { source: 'relance_session', channel: 'email', lead_id: lead.id ?? null, subject } as Json,
+        }).then(({ error: logErr }) => { if (logErr) console.error('[relance] activity_events insert failed', logErr) })
+      }
     } catch {
       setSendError(true)
     } finally {
@@ -376,7 +405,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderBottom: `1px solid ${TK.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
             <RSLogo size={28} />
-            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>Session de relance</div>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>{t('today.relance.header.title')}</div>
           </div>
           <div style={{ flex: 1 }} />
           {!done && (
@@ -387,7 +416,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
                   const c = RS_TEMP[l.temp].color
                   const cur = k === i, past = k < i
                   return (
-                    <span key={k} title={`${l.name} · ${RS_TEMP[l.temp].label}`} style={{
+                    <span key={k} title={`${l.name} · ${t(RS_TEMP[l.temp].labelKey)}`} style={{
                       width: cur ? 22 : 11, height: 7, borderRadius: 999, background: c,
                       opacity: past ? 0.92 : cur ? 1 : 0.26,
                       boxShadow: cur ? `0 0 0 3px ${c}26` : 'none',
@@ -400,7 +429,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
               </span>
             </div>
           )}
-          <button onClick={onClose} title="Retour au dashboard (Esc)"
+          <button onClick={onClose} title={t('today.relance.header.closeTitle')}
             style={{ marginLeft: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
               borderRadius: 999, border: `1px solid ${TK.border}`, background: TK.card, color: TK.sub, cursor: 'pointer',
               fontFamily: 'inherit', fontSize: 15, flexShrink: 0 }}>
@@ -415,14 +444,14 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
             <div style={{ width: 64, height: 64, borderRadius: 999, background: '#16643F', color: '#fff', display: 'grid', placeItems: 'center' }}>
               <RXIcon name="check" size={30} sw={2.4} />
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>Session terminée</div>
+            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>{t('today.relance.done.title')}</div>
             <div style={{ fontSize: 15, color: TK.sub, fontWeight: 600, maxWidth: 400, lineHeight: 1.5 }}>
-              <b style={{ color: TK.inkDim }}>{counts.sent}</b> relancé{counts.sent > 1 ? 's' : ''}
-              {counts.discarded > 0 && <> · <b style={{ color: TK.inkDim }}>{counts.discarded}</b> écarté{counts.discarded > 1 ? 's' : ''}</>}
-              {counts.skipped > 0 && <> · <b style={{ color: TK.inkDim }}>{counts.skipped}</b> reporté{counts.skipped > 1 ? 's' : ''}</>}.
-              <br />Les leads reportés reviendront demain ; les écartés sont sortis de la boucle.
+              <b style={{ color: TK.inkDim }}>{counts.sent}</b> {t('today.relance.done.contacted', { count: counts.sent })}
+              {counts.discarded > 0 && <> · <b style={{ color: TK.inkDim }}>{counts.discarded}</b> {t('today.relance.done.discarded', { count: counts.discarded })}</>}
+              {counts.skipped > 0 && <> · <b style={{ color: TK.inkDim }}>{counts.skipped}</b> {t('today.relance.done.postponed', { count: counts.skipped })}</>}.
+              <br />{t('today.relance.done.explainer')}
             </div>
-            <div style={{ marginTop: 8 }}><RSBtn variant="primary" onClick={onClose}>Retour au dashboard</RSBtn></div>
+            <div style={{ marginTop: 8 }}><RSBtn variant="primary" onClick={onClose}>{t('today.relance.done.backToDashboard')}</RSBtn></div>
           </div>
         ) : (
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '22px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -431,7 +460,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 13px', borderRadius: 12,
                 background: 'rgba(242,184,85,0.10)', border: '1px solid rgba(242,184,85,0.28)' }}>
                 <RXIcon name="spark" size={14} color="#F2B855" sw={2.2} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: TK.inkDim }}>Mode démo — aucun lead dormant dans votre agence. Ces exemples ne sont envoyés à personne.</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: TK.inkDim }}>{t('today.relance.demoBanner')}</span>
               </div>
             )}
             {/* LEAD */}
@@ -454,9 +483,9 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
               <div style={{ border: `1.5px dashed ${TK.borderHi}`, borderRadius: 18, padding: '34px 24px', textAlign: 'center',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, background: TK.card }}>
                 <div style={{ fontSize: 15.5, color: TK.inkDim, fontWeight: 700, lineHeight: 1.4, maxWidth: 360 }}>
-                  Besoin d'un message ?<br />L'IA le rédige à partir du contexte.
+                  {t('today.relance.empty.prompt')}<br />{t('today.relance.empty.help')}
                 </div>
-                <RSBtn variant="primary" onClick={ask}>Proposer un message</RSBtn>
+                <RSBtn variant="primary" onClick={ask}>{t('today.relance.empty.cta')}</RSBtn>
               </div>
             )}
 
@@ -465,9 +494,9 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
               <div style={{ border: `1.5px dashed rgba(242,107,101,0.4)`, borderRadius: 18, padding: '30px 24px', textAlign: 'center',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, background: 'rgba(242,107,101,0.06)' }}>
                 <div style={{ fontSize: 15, color: TK.inkDim, fontWeight: 700, lineHeight: 1.4, maxWidth: 380 }}>
-                  La rédaction n'a pas abouti.<br />Vérifiez votre connexion, puis réessayez.
+                  {t('today.relance.genError.title')}<br />{t('today.relance.genError.help')}
                 </div>
-                <RSBtn variant="primary" onClick={ask}>Réessayer</RSBtn>
+                <RSBtn variant="primary" onClick={ask}>{t('today.relance.genError.retry')}</RSBtn>
               </div>
             )}
 
@@ -476,7 +505,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
                 display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: TK.primary }}>
                   <RXIcon name="spark" size={15} sw={2.2} />
-                  <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em' }}>MEGGA AI rédige…</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em' }}>{t('today.relance.generating')}</span>
                 </div>
                 {[92, 86, 94, 60].map((w, k) => (
                   <div key={k} style={{ height: 11, width: `${w}%`, borderRadius: 6, background: `linear-gradient(90deg, ${TK.cardHi}, ${TK.card}, ${TK.cardHi})`,
@@ -501,24 +530,24 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
                         <RXIcon name="check" size={18} sw={2.4} />
                       </span>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: TK.ink }}>Envoyé depuis MEGGA</div>
-                        <div style={{ fontSize: 12.5, color: TK.sub, fontWeight: 600 }}>La relance est tracée dans la fiche de {lead.name.split(' ')[0]}.</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: TK.ink }}>{t('today.relance.sent.title')}</div>
+                        <div style={{ fontSize: 12.5, color: TK.sub, fontWeight: 600 }}>{t('today.relance.sent.tracked', { name: lead.name.split(' ')[0] })}</div>
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', gap: 11, alignItems: 'center', flexWrap: 'wrap' }}>
                       {copied
-                        ? <RSBtn variant="ok" icon={<RXIcon name="check" size={17} sw={2.4} />}>Message copié</RSBtn>
-                        : <RSBtn variant="primary" onClick={copy} icon={<RSCopyIcon />}>Copier le message</RSBtn>}
+                        ? <RSBtn variant="ok" icon={<RXIcon name="check" size={17} sw={2.4} />}>{t('today.relance.actions.copied')}</RSBtn>
+                        : <RSBtn variant="primary" onClick={copy} icon={<RSCopyIcon />}>{t('today.relance.actions.copy')}</RSBtn>}
                       <a href={mailto} style={{ textDecoration: 'none' }}>
-                        <RSBtn variant="outline" icon={<RXIcon name="mail" size={16} sw={1.9} />}>Ouvrir dans ma messagerie</RSBtn>
+                        <RSBtn variant="outline" icon={<RXIcon name="mail" size={16} sw={1.9} />}>{t('today.relance.actions.openInMailbox')}</RSBtn>
                       </a>
                       <div style={{ flex: 1 }} />
-                      <RSBtn variant="ghost" onClick={sendMEGGA}>{sending ? 'Envoi…' : 'ou envoyer depuis MEGGA'}</RSBtn>
+                      <RSBtn variant="ghost" onClick={sendMEGGA}>{sending ? t('today.relance.actions.sending') : t('today.relance.actions.sendFromMegga')}</RSBtn>
                     </div>
                   )}
                   {sendError && (
-                    <div style={{ fontSize: 12.5, color: '#F26B65', fontWeight: 700 }}>L'envoi a échoué — réessayez ou copiez le message.</div>
+                    <div style={{ fontSize: 12.5, color: '#F26B65', fontWeight: 700 }}>{t('today.relance.sendError')}</div>
                   )}
                 </div>
               </>
@@ -529,12 +558,12 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
         {/* FOOTER NAV */}
         {!done && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 20px', borderTop: `1px solid ${TK.border}` }}>
-            <RSBtn variant="ghost" onClick={skip}>Plus tard</RSBtn>
-            <RSBtn variant="ghostDanger" onClick={notInterested}>Pas intéressé</RSBtn>
+            <RSBtn variant="ghost" onClick={skip}>{t('today.relance.nav.later')}</RSBtn>
+            <RSBtn variant="ghostDanger" onClick={notInterested}>{t('today.relance.nav.notInterested')}</RSBtn>
             <div style={{ flex: 1 }} />
             {(copied || sent)
-              ? <RSBtn variant="primary" onClick={next}>Suivant</RSBtn>
-              : <RSBtn variant="outline" onClick={next}>Suivant</RSBtn>}
+              ? <RSBtn variant="primary" onClick={next}>{t('today.relance.nav.next')}</RSBtn>
+              : <RSBtn variant="outline" onClick={next}>{t('today.relance.nav.next')}</RSBtn>}
           </div>
         )}
 
@@ -544,11 +573,11 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
             display: 'flex', alignItems: 'center', gap: 10, padding: '9px 9px 9px 16px', borderRadius: 999,
             background: TK.frameHi || '#1b1d24', border: `1px solid ${TK.borderHi}`, boxShadow: TK.shadowLg,
             whiteSpace: 'nowrap', animation: 'rsRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
-            <span style={{ fontSize: 13, color: TK.inkDim, fontWeight: 700 }}>{undo.name} écarté de la boucle</span>
+            <span style={{ fontSize: 13, color: TK.inkDim, fontWeight: 700 }}>{t('today.relance.undo.discarded', { name: undo.name })}</span>
             <button onClick={undoDiscard} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px',
               borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 800,
               background: '#F2F2F6', color: '#0A0A0F' }}>
-              Annuler
+              {t('today.relance.undo.cancel')}
             </button>
           </div>
         )}

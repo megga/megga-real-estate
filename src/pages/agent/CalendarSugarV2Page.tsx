@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
@@ -24,7 +25,7 @@ import {
   buildCalPalette, calBlankEvent, CalPaletteContext, type CalEvent,
 } from '@/components/crm-sugar/calendar/data'
 import {
-  CAL_MONTHS, fmtDate,
+  calMonths, fmtDate,
 } from '@/components/crm-sugar/calendar/helpers'
 import { useCalendarSugar } from '@/hooks/useCalendarSugar'
 import { useVisits } from '@/hooks/useVisits'
@@ -38,6 +39,7 @@ const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function CalendarSugarV2Page() {
   const navigate = useNavigate()
+  const { t: tr } = useTranslation('calendar')
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -57,7 +59,7 @@ export default function CalendarSugarV2Page() {
   const SP = buildCalPalette(dark, t)
 
   // Source de vérité : Supabase via useCalendarSugar (visites + reminders).
-  const { events, hotBuyers } = useCalendarSugar()
+  const { events, hotBuyers, isError: calendarError, refetch: calendarRefetch } = useCalendarSugar()
   const { createVisit, isCreating: isCreatingVisit } = useVisits()
   const { createReminder, isCreating: isCreatingReminder } = useReminders()
   const queryClient = useQueryClient()
@@ -88,18 +90,18 @@ export default function CalendarSugarV2Page() {
   const handleCreateVisit = async (event: CalendarEvent) => {
     const meggaType = event.meggaType ?? 'visit'
     const successLabels: Record<NonNullable<CalendarEvent['meggaType']>, string> = {
-      visit: 'Visite planifiée',
-      meeting: 'Rendez-vous planifié',
-      reminder: 'Relance créée',
-      signing: 'Signature planifiée',
-      deadline: 'Échéance ajoutée',
-      personal: 'Événement personnel ajouté',
+      visit: tr('page.created.visit'),
+      meeting: tr('page.created.meeting'),
+      reminder: tr('page.created.reminder'),
+      signing: tr('page.created.signing'),
+      deadline: tr('page.created.deadline'),
+      personal: tr('page.created.personal'),
     }
     try {
       if (meggaType === 'visit') {
         // Visite réelle : exige contact + bien (FK constraint table visits).
         if (!event.contactId || !event.propertyId) {
-          toast.error('Sélectionnez un contact ET un bien pour planifier une visite')
+          toast.error(tr('page.selectContactAndProperty'))
           return
         }
         await createVisit(event)
@@ -119,8 +121,8 @@ export default function CalendarSugarV2Page() {
       }
       toast.success(successLabels[meggaType], { duration: 2400 })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
-      toast.error(`Échec : ${msg}`)
+      const msg = err instanceof Error ? err.message : tr('page.errorUnknown')
+      toast.error(tr('page.createFailed', { error: msg }))
     }
   }
 
@@ -199,13 +201,17 @@ export default function CalendarSugarV2Page() {
       monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
       const sunday = new Date(monday)
       sunday.setDate(sunday.getDate() + 6)
-      return `Semaine du ${monday.getDate()} ${CAL_MONTHS[
-        monday.getMonth()
-      ].toLowerCase()} – ${sunday.getDate()} ${CAL_MONTHS[sunday.getMonth()].toLowerCase()}`
+      const months = calMonths()
+      return tr('page.weekRange', {
+        startDay: monday.getDate(),
+        startMonth: months[monday.getMonth()].toLowerCase(),
+        endDay: sunday.getDate(),
+        endMonth: months[sunday.getMonth()].toLowerCase(),
+      })
     }
     if (view === 'month')
-      return `${CAL_MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
-    return 'Agenda complet'
+      return `${calMonths()[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+    return tr('page.fullAgenda')
   })()
 
   const navDate = (delta: number) => {
@@ -369,7 +375,7 @@ export default function CalendarSugarV2Page() {
                   lineHeight: 1,
                 }}
               >
-                Calendrier
+                {tr('page.eyebrow')}
               </div>
               <div
                 style={{
@@ -398,7 +404,7 @@ export default function CalendarSugarV2Page() {
               <CalCircleBtn
                 icon={<CalIcon name="chevL" size={14} stroke={SP.inkSoft} />}
                 onClick={() => navDate(-1)}
-                title="Précédent"
+                title={tr('common:actions.previous')}
                 size={34}
               />
               <button
@@ -416,12 +422,12 @@ export default function CalendarSugarV2Page() {
                   fontFamily: 'inherit',
                 }}
               >
-                Aujourd'hui
+                {tr('common:time.today')}
               </button>
               <CalCircleBtn
                 icon={<CalIcon name="chevR" size={14} stroke={SP.inkSoft} />}
                 onClick={() => navDate(1)}
-                title="Suivant"
+                title={tr('common:actions.next')}
                 size={34}
               />
             </div>
@@ -459,9 +465,25 @@ export default function CalendarSugarV2Page() {
               }}
             >
               <CalIcon name="plus" size={14} stroke={SP.onAccent} sw={2.4} />
-              {isCreating ? 'Création…' : 'Nouvel événement'}
+              {isCreating ? tr('page.creating') : tr('page.newEvent')}
             </button>
           </div>
+
+          {/* Bandeau d'erreur — visites/relances non chargées (les vues restent affichées vides) */}
+          {calendarError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, background: SP.card, boxShadow: SP.shadowSm, color: SP.ink, marginBottom: 14 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{tr('page.error.title')}</div>
+                <div style={{ fontSize: 12, color: SP.muted, marginTop: 2 }}>{tr('page.error.message')}</div>
+              </div>
+              <button
+                onClick={() => calendarRefetch()}
+                style={{ height: 30, padding: '0 14px', borderRadius: 999, border: `1px solid ${SP.line}`, background: 'transparent', color: SP.ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+              >
+                {tr('page.error.retry')}
+              </button>
+            </div>
+          )}
 
           {/* Body */}
           <div

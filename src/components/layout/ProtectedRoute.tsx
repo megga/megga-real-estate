@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useMfaGate } from '@/hooks/useMfaGate'
+import { resolveOnboardingGate } from '@/components/layout/onboardingGate'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Carte de step-up 2FA : on réutilise l'écran de connexion existant (auth-bento),
@@ -50,16 +51,14 @@ export default function ProtectedRoute({ children, skipOnboardingCheck }: Protec
     )
   }
 
-  // 3. Gate onboarding → premier-jour → CRM.
+  // 3. Gate onboarding → agence → premier-jour → CRM (décision pure, testée :
+  //    src/components/layout/onboardingGate.ts). Inclut le garde-fou agency_id :
+  //    un agent sans agence est verrouillé par la RLS sur tout le CRM → renvoyé
+  //    à l'onboarding (qui force l'étape Agence) au lieu d'un dashboard vide muet.
   if (!skipOnboardingCheck && profile) {
-    // 3a. Onboarding wizard pas terminé → /dashboard/onboarding
-    if (profile.onboarding_completed === false) {
-      return <Navigate to="/dashboard/onboarding" replace />
-    }
-    // 3b. Onboarding terminé mais Premier jour pas joué → /dashboard/premier-jour
-    //     (one-shot après l'onboarding, avant la première vraie session CRM)
-    if (profile.first_day_done === false) {
-      return <Navigate to="/dashboard/premier-jour" replace />
+    const redirect = resolveOnboardingGate(profile)
+    if (redirect) {
+      return <Navigate to={redirect} replace />
     }
   }
 

@@ -7,6 +7,7 @@
 // Toujours un RAPPEL DOUX non-bloquant. Cachée si aucun dossier en attente.
 
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function SugarPipelineKycLock({ pending, onOpenKyc, sp }: Props) {
+  const { t } = useTranslation('pipeline')
   const [hover, setHover] = useState(false)
   if (pending.length === 0) return null
   const count = pending.length
@@ -34,7 +36,7 @@ export function SugarPipelineKycLock({ pending, onOpenKyc, sp }: Props) {
         onClick={onOpenKyc}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        title="Rappel non-bloquant — ouvrir les dossiers KYC"
+        title={t('kyc.lock.title')}
         style={{
           height: 44,
           padding: '0 10px 0 16px',
@@ -58,10 +60,19 @@ export function SugarPipelineKycLock({ pending, onOpenKyc, sp }: Props) {
       >
         <MEIcon name="shield" size={16} color={sp.ink} strokeWidth={1.7} />
         <span>
-          <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-            {count}
-          </span>{' '}
-          dossier{count > 1 ? 's' : ''} KYC à compléter
+          <Trans
+            t={t}
+            i18nKey="kyc.lock.pending"
+            count={count}
+            values={{ count }}
+            components={{
+              strong: (
+                <span
+                  style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+                />
+              ),
+            }}
+          />
         </span>
         <span
           style={{
@@ -76,7 +87,7 @@ export function SugarPipelineKycLock({ pending, onOpenKyc, sp }: Props) {
             color: sp.sub,
           }}
         >
-          Optionnel
+          {t('kyc.lock.optional')}
         </span>
         <span
           style={{

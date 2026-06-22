@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useSwissAddress, type SwissAddressSuggestion } from '@/hooks/useSwissAddress'
@@ -13,9 +14,10 @@ interface SwissAddressAutocompleteProps {
 export default function SwissAddressAutocomplete({
   onSelect,
   defaultValue = '',
-  placeholder = 'Rechercher une adresse en Suisse...',
+  placeholder,
   className,
 }: SwissAddressAutocompleteProps) {
+  const { t } = useTranslation('listings')
   const { query, setQuery, suggestions, isLoading, error } = useSwissAddress(defaultValue)
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -118,7 +120,7 @@ export default function SwissAddressAutocomplete({
             if (suggestions.length > 0 && !hasSelected) setIsOpen(true)
           }}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('editor.address.placeholder')}
           autoComplete="off"
           className={cn(
             'w-full h-11 pl-10 pr-10 text-sm bg-transparent',
@@ -176,14 +178,14 @@ export default function SwissAddressAutocomplete({
             ))
           ) : !isLoading && query.length >= 3 ? (
             <div className="px-4 py-6 text-center">
-              <p className="text-sm text-theme-muted">Aucune adresse trouvée</p>
-              <p className="text-xs text-theme-tertiary mt-1">Vérifiez l'orthographe ou essayez un autre terme</p>
+              <p className="text-sm text-theme-muted">{t('editor.address.noResults')}</p>
+              <p className="text-xs text-theme-tertiary mt-1">{t('editor.address.noResultsHint')}</p>
             </div>
           ) : null}
 
           {error && (
             <div className="px-4 py-3 text-center">
-              <p className="text-xs text-red-500">Erreur de connexion. Réessayez.</p>
+              <p className="text-xs text-red-500">{t('editor.address.error')}</p>
             </div>
           )}
         </div>

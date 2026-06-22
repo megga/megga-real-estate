@@ -12,6 +12,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import {
   SugarTopNav,
@@ -45,6 +46,8 @@ export default function ContactDetailSugarV3Page() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const { profile } = useAuth()
+  // `t` est déjà pris par les tokens de thème (CRM_TOKENS) plus bas → alias `tr`.
+  const { t: tr } = useTranslation('contacts')
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -56,7 +59,7 @@ export default function ContactDetailSugarV3Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
 
-  const { data: contact, isLoading } = useContact(id)
+  const { data: contact, isLoading, isError, refetch } = useContact(id)
   const { data: dossier } = useKycDossierByContact(id)
 
   // Activity events filtrés sur cet entity_id
@@ -113,6 +116,32 @@ export default function ContactDetailSugarV3Page() {
     if (id) navigate(`/dashboard/kyc?openContactId=${encodeURIComponent(id)}`)
   }
 
+  if (isError && !contact) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: SugarV3.bgGradient,
+          fontFamily: SugarV3.font,
+          color: SugarV3.muted,
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        <div style={{ textAlign: 'center', padding: '0 24px' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: SugarV3.ink, marginBottom: 6 }}>{tr('cd.error.title')}</div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.5, marginBottom: 14 }}>{tr('cd.error.message')}</div>
+          <button
+            onClick={() => refetch()}
+            style={{ height: 34, padding: '0 16px', borderRadius: 999, background: 'transparent', color: SugarV3.ink, border: `1px solid ${SugarV3.muted}`, cursor: 'pointer', fontFamily: SugarV3.font, fontSize: 12.5, fontWeight: 700 }}
+          >
+            {tr('cd.error.retry')}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (isLoading || !contact) {
     return (
       <div
@@ -125,7 +154,7 @@ export default function ContactDetailSugarV3Page() {
           placeItems: 'center',
         }}
       >
-        Chargement du contact…
+        {tr('cd.loading')}
       </div>
     )
   }
@@ -168,13 +197,16 @@ export default function ContactDetailSugarV3Page() {
             <CdHero
               contact={contact}
               onBack={() => navigate('/dashboard/contacts')}
+              agentName={profile?.full_name ?? undefined}
+              onSchedule={() => navigate('/dashboard/calendar')}
+              onNewAction={() => navigate('/dashboard/visits/new')}
             />
 
             <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18 }}>
               {/* COLONNE PRINCIPALE */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <CdTimelineCard events={contactEvents} />
-                <CdNotesCard notes={contact.notes} />
+                <CdNotesCard key={contact.id} contactId={contact.id} notes={contact.notes} />
                 <CdWhatsAppCard contactId={contact.id} />
                 <CdConversationInsight contactId={contact.id} />
               </div>

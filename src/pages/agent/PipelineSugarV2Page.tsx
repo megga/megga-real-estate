@@ -3,16 +3,16 @@
 
 import { useState, useEffect, useMemo, type MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   CRM_TOKENS, CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette,
   type DarkTone, type StageId,
 } from '@/components/crm-sugar/tokens'
-import { crmBienById, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
+import { type CrmDeal } from '@/components/crm-sugar/mockData'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { SugarPipelineKycLock } from '@/components/crm-sugar-v3/pipeline/SugarPipelineKycLock'
-import { PipelineKycToast } from '@/components/crm-sugar-v3/pipeline/PipelineKycToast'
-import { KycOverrideModal } from '@/components/crm-sugar-v3/pipeline/KycOverrideModal'
 import { useLogAudit } from '@/hooks/useAuditLog'
+import { useToast } from '@/components/ui/Toast'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
 import {
@@ -31,6 +31,7 @@ import { NewDealDrawer } from '@/components/crm-sugar/pipeline/NewDealDrawer'
 const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function PipelineSugarV2Page() {
+  const { t } = useTranslation('pipeline')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -59,8 +60,8 @@ export default function PipelineSugarV2Page() {
     }
   }, [dark])
 
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
-  const sp = crmSugarPalette(t, dark, DARK_TONE)
+  const tk = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const sp = crmSugarPalette(tk, dark, DARK_TONE)
 
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
@@ -73,11 +74,17 @@ export default function PipelineSugarV2Page() {
   }
 
   const logAudit = useLogAudit()
+  const toast = useToast()
 
   // ── Source de vérité : Supabase via usePipelineSugar ────────────────
-  // Le hook remplit le registry runtime ; crmContactById/crmBienById ci-dessous
-  // renvoient automatiquement les contacts/biens Supabase.
-  const { deals: liveDeals, updateStage } = usePipelineSugar()
+  // On lit les contacts/biens via les index réactifs `contactsById`/`biensById`
+  // exposés par le hook (et non le registry global, rempli en post-commit) : un
+  // contact qui charge APRÈS les transactions invalide bien `filteredDeals`, qui
+  // ne reste donc plus collé sur un board vide.
+  const {
+    deals: liveDeals, updateStage, isError: pipelineError, refetch: pipelineRefetch,
+    contactsById, biensById,
+  } = usePipelineSugar()
 
   // ── Optimistic overlay (drag-drop fluide) ────────────────────────────
   // React Query invalide après mutation → léger délai. On overlay le stage
@@ -98,16 +105,6 @@ export default function PipelineSugarV2Page() {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<StageId | null>(null)
 
-  // ── KYC override flow (toast + modal motif + audit) ─────────────────
-  // Arbitrage README #2 : drop sur stage sensible bloqué par toast,
-  // bouton "Passer outre" ouvre la modal de motif (min 20 chars),
-  // validation → AuditEvent + drop autorisé.
-  const [kycBlockState, setKycBlockState] = useState<{
-    dealId: string
-    targetStage: StageId
-  } | null>(null)
-  const [overrideOpen, setOverrideOpen] = useState(false)
-
   const applyDrop = (dealId: string, targetStage: StageId) => {
     // Optimistic overlay
     setPendingStage(prev => {
@@ -119,6 +116,11 @@ export default function PipelineSugarV2Page() {
     updateStage.mutate(
       { id: dealId, stage: stageIdToTransactionStage(targetStage) },
       {
+        onError: () => {
+          toast.error(t('board.toast.moveFailedTitle'), {
+            description: t('board.toast.moveFailedDescription'),
+          })
+        },
         onSettled: () => {
           setPendingStage(prev => {
             if (!prev.has(dealId)) return prev
@@ -138,13 +140,10 @@ export default function PipelineSugarV2Page() {
     if (!draggingId) return
     const deal = localDeals.find(d => d.id === draggingId)
     if (!deal || deal.stage === targetStage) { handleDragEnd(); return }
-    const kycRequired = ['interest-confirmed', 'offer', 'signed'].includes(targetStage)
-    const contact = crmContactById(deal.contactId)
-    if (kycRequired && contact?.kyc?.status !== 'verified') {
-      // Drop bloqué — affiche toast avec option "Passer outre"
-      setKycBlockState({ dealId: deal.id, targetStage })
-      handleDragEnd(); return
-    }
+    // KYC = compliance-enabling, JAMAIS bloquant : aucun stade ne verrouille le
+    // drag. Le rappel KYC reste affiché en pilule douce (SugarPipelineKycLock),
+    // mais le deal avance toujours. Le notaire finalise (cf KYC non-bloquant).
+    const contact = contactsById.get(deal.contactId)
     applyDrop(deal.id, targetStage)
     // AuditEvent normal : Étape changée (info)
     logAudit.mutate({
@@ -159,42 +158,15 @@ export default function PipelineSugarV2Page() {
     handleDragEnd()
   }
 
-  const handleOverrideConfirm = (reason: string) => {
-    if (!kycBlockState) return
-    const { dealId, targetStage } = kycBlockState
-    const deal = localDeals.find(d => d.id === dealId)
-    const contact = deal ? crmContactById(deal.contactId) : null
-    if (!deal || !contact) {
-      setKycBlockState(null); setOverrideOpen(false); return
-    }
-    applyDrop(dealId, targetStage)
-    // AuditEvent : passage outre verrou KYC
-    // severity = critical si stage 'signed', sinon warn (KYC_ENRICHISSEMENTS §7)
-    const severity = targetStage === 'signed' ? 'critical' : 'warn'
-    logAudit.mutate({
-      category: 'deal',
-      severity,
-      action: 'Passage outre verrou KYC',
-      entityType: 'deal',
-      entityId: deal.id,
-      objectLabel: `${contact.firstName} ${contact.lastName}`,
-      metadata: {
-        from: deal.stage,
-        to: targetStage,
-        reason,
-        contactId: contact.id,
-        kycStatus: contact.kyc?.status ?? 'none',
-      },
-    })
-    setKycBlockState(null)
-    setOverrideOpen(false)
-  }
-
   // ── Filter state ─────────────────────────────────────────────────────
   const [search, setSearch] = useState('')
   const [filterStages, setFilterStages] = useState<StageId[]>(initialFilterStages)
   const [filterRisk, setFilterRisk] = useState<RiskFilterValue>('all')
-  const [filterPeriod, setFilterPeriod] = useState(30)
+  // Défaut = « tout » (0). Un défaut à 30j masquait silencieusement tout deal
+  // dont la dernière activité datait de plus d'un mois (financement en attente,
+  // dossier qui dort) → board vide à l'ouverture. Sur un pipeline transactionnel,
+  // on montre tous les deals par défaut ; l'agent peut restreindre à 7/30/60/90j.
+  const [filterPeriod, setFilterPeriod] = useState(0)
 
   // Consume the `?stage=` query param : on l'a injecté dans filterStages,
   // on retire le param de l'URL pour que F5 ne re-applique pas.
@@ -209,9 +181,9 @@ export default function PipelineSugarV2Page() {
 
   const filteredDeals = useMemo(() => {
     return localDeals.filter(d => {
-      const c = crmContactById(d.contactId)
+      const c = contactsById.get(d.contactId)
       if (!c) return false
-      const b = d.bienId ? crmBienById(d.bienId) : null
+      const b = d.bienId ? biensById.get(d.bienId) ?? null : null
       if (search) {
         const q = search.toLowerCase()
         const inContact = `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
@@ -227,7 +199,9 @@ export default function PipelineSugarV2Page() {
       }
       return true
     })
-  }, [search, filterStages, filterRisk, filterPeriod, localDeals])
+    // contactsById/biensById en deps : recompute dès que les contacts hydratent
+    // (sinon le board reste collé vide, voir note du destructuring usePipelineSugar).
+  }, [search, filterStages, filterRisk, filterPeriod, localDeals, contactsById, biensById])
 
   // Pré-calculé une seule fois par render : un Map de stage → deals filtrés.
   // Évite 9 .filter() séparés appelés inline dans la boucle render des colonnes
@@ -243,9 +217,9 @@ export default function PipelineSugarV2Page() {
     return map
   }, [filteredDeals])
   const filteredByStage = (stage: StageId) => dealsByStage.get(stage) ?? []
-  const activeFilters = (filterStages.length > 0 ? 1 : 0) + (filterRisk !== 'all' ? 1 : 0) + (filterPeriod !== 30 ? 1 : 0)
+  const activeFilters = (filterStages.length > 0 ? 1 : 0) + (filterRisk !== 'all' ? 1 : 0) + (filterPeriod !== 0 ? 1 : 0)
   const resetFilters = () => {
-    setFilterStages([]); setFilterRisk('all'); setFilterPeriod(30); setSearch('')
+    setFilterStages([]); setFilterRisk('all'); setFilterPeriod(0); setSearch('')
   }
 
   // Agrégations basées sur le pipeline complet (non filtré) — memoïsées pour
@@ -279,7 +253,7 @@ export default function PipelineSugarV2Page() {
     return localDeals
       .filter(d => sensitive.includes(d.stage))
       .map(d => {
-        const c = crmContactById(d.contactId)
+        const c = contactsById.get(d.contactId)
         if (!c) return null
         const verified = c.kyc?.status === 'verified'
         if (verified) return null
@@ -289,10 +263,10 @@ export default function PipelineSugarV2Page() {
         }
       })
       .filter((x): x is { id: string; contactFullName: string } => x !== null)
-  }, [localDeals])
+  }, [localDeals, contactsById])
 
   // ── Cmd palette + nav (shared with Today) ────────────────────────────
-  const onCmd = () => window.alert('Recherche — ⌘K (à venir)')
+  const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
       case 'today':     navigate('/dashboard'); break
@@ -319,7 +293,7 @@ export default function PipelineSugarV2Page() {
     }}>
       <style>{SUGAR_KEYFRAMES}</style>
 
-      <SugarTopNav active="pipeline" t={t} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+      <SugarTopNav active="pipeline" t={tk} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
 
       <div style={{ display: 'flex' }}>
         <SugarIconRail
@@ -336,7 +310,7 @@ export default function PipelineSugarV2Page() {
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 28 }}>
             <h1 style={{
               margin: 0, fontSize: 38, fontWeight: 800, letterSpacing: -1.2, color: sp.ink, lineHeight: 1,
-            }}>Pipeline</h1>
+            }}>{t('title')}</h1>
             <span style={{
               fontSize: 13, color: sp.sub, fontWeight: 500, marginBottom: 6,
             }}>
@@ -347,7 +321,7 @@ export default function PipelineSugarV2Page() {
             {/* Sprint 3 — Bouton ✨ Importer un lead (Sugar Pure : ghost à gauche du CTA noir) */}
             <button
               onClick={() => navigate('/dashboard/import-lead?returnTo=/dashboard/pipeline')}
-              title="Importer un lead via MEGGA AI"
+              title={t('board.importLeadHint')}
               style={{
                 height: 44, padding: '0 18px', borderRadius: 999, border: 0,
                 background: sp.cardBg, color: sp.ink, fontWeight: 600, fontSize: 13,
@@ -357,7 +331,7 @@ export default function PipelineSugarV2Page() {
               }}
             >
               <MEIcon name="sparkle" size={14} color={sp.ink} />
-              Importer un lead
+              {t('board.importLead')}
             </button>
             <button onClick={() => setNewDealOpen(true)} style={{
               height: 44, padding: '0 22px', borderRadius: 999, border: 0,
@@ -367,7 +341,7 @@ export default function PipelineSugarV2Page() {
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <MEIcon name="plus" size={14} color={sp.pageBg} />
-              Nouveau deal
+              {t('new_deal')}
             </button>
           </div>
 
@@ -380,17 +354,17 @@ export default function PipelineSugarV2Page() {
 
           {/* KPI tiles — source : pipeline live (usePipelineSugar) */}
           <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>
-            <SugarKpiTile sp={sp} dark={dark} label="Pipeline actif"
+            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.active')}
               value={localDeals.length}
               sub="" />
-            <SugarKpiTile sp={sp} dark={dark} label="Valeur totale"
+            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.pipeline_value')}
               value={`CHF ${(totalValue / 1e6).toFixed(2)}M`}
-              sub="" accent={t.primary} />
-            <SugarKpiTile sp={sp} dark={dark} label="À risque"
+              sub="" accent={tk.primary} />
+            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.at_risk')}
               value={atRisk}
               sub=""
               accent="#F59E0B" />
-            <SugarKpiTile sp={sp} dark={dark} label="Conversion"
+            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.conversion')}
               value={conversionPct !== null ? `${conversionPct}%` : '—'}
               sub=""
               accent="#0E9F6E" />
@@ -407,7 +381,7 @@ export default function PipelineSugarV2Page() {
               <MEIcon name="search" size={14} color={sp.sub} />
               <input
                 value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Rechercher contact, bien, note…"
+                placeholder={t('board.searchPlaceholder')}
                 style={{
                   flex: 1, background: 'transparent', border: 0, outline: 'none',
                   color: sp.ink, fontSize: 13, fontFamily: 'inherit',
@@ -420,25 +394,25 @@ export default function PipelineSugarV2Page() {
                 }}>×</button>
               )}
             </div>
-            <SugarFilterPill sp={sp} dark={dark} label="Étape"
+            <SugarFilterPill sp={sp} dark={dark} label={t('filter.stage')}
               value={filterStages.length === 0
-                ? 'Toutes'
+                ? t('board.filter.allStages')
                 : filterStages.length === 1
-                  ? CRM_STAGES[filterStages[0]].label
-                  : `${filterStages.length} étapes`}
+                  ? t(`stages.${filterStages[0]}`)
+                  : t('board.filter.stagesSelected', { count: filterStages.length })}
               active={filterStages.length > 0}>
               <SugarStageFilter sp={sp} dark={dark} value={filterStages} onChange={setFilterStages} />
             </SugarFilterPill>
-            <SugarFilterPill sp={sp} dark={dark} label="Risque"
-              value={filterRisk === 'all' ? 'Tous'
-                : filterRisk === 'healthy' ? 'Sain'
-                : filterRisk === 'at-risk' ? 'À risque' : 'Bloqué'}
+            <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.riskHeader')}
+              value={filterRisk === 'all' ? t('board.risk.all')
+                : filterRisk === 'healthy' ? t('board.risk.healthy')
+                : filterRisk === 'at-risk' ? t('board.risk.atRisk') : t('board.risk.stalled')}
               active={filterRisk !== 'all'}>
               <SugarRiskFilter sp={sp} dark={dark} value={filterRisk} onChange={setFilterRisk} />
             </SugarFilterPill>
-            <SugarFilterPill sp={sp} dark={dark} label="Période"
-              value={filterPeriod === 0 ? 'Tous' : `${filterPeriod}j`}
-              active={filterPeriod !== 30}>
+            <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.periodHeader')}
+              value={filterPeriod === 0 ? t('board.filter.allTime') : t('board.filter.daysShort', { count: filterPeriod })}
+              active={filterPeriod !== 0}>
               <SugarPeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
             </SugarFilterPill>
             {activeFilters > 0 && (
@@ -446,12 +420,27 @@ export default function PipelineSugarV2Page() {
                 height: 44, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer',
                 background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 12,
                 fontFamily: 'inherit', boxShadow: sp.focusShadow,
-              }}>Réinitialiser</button>
+              }}>{t('board.filter.reset')}</button>
             )}
           </div>
 
-          {/* KYC block flow : géré hors du <main> via PipelineKycToast + KycOverrideModal */}
-
+          {/* Bandeau d'erreur NON bloquant — le board garde ses colonnes affichées (jamais
+              masquées), on signale seulement l'échec de fetch + un Réessayer. Un état plein écran
+              cacherait la structure même quand seul le fetch échoue en arrière-plan. */}
+          {pipelineError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, background: sp.cardBg, boxShadow: sp.shadowSm, color: sp.ink, marginBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{t('board.error.title')}</div>
+                <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>{t('board.error.message')}</div>
+              </div>
+              <button
+                onClick={() => pipelineRefetch()}
+                style={{ height: 30, padding: '0 14px', borderRadius: 999, background: 'transparent', color: sp.ink, border: `1px solid ${sp.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+              >
+                {t('board.error.retry')}
+              </button>
+            </div>
+          )}
           {/* Views */}
           {view === 'kanban' && (
             <div style={{
@@ -487,45 +476,12 @@ export default function PipelineSugarV2Page() {
       <NewDealDrawer
         open={newDealOpen}
         onClose={() => setNewDealOpen(false)}
-        sp={sp} t={t} dark={dark}
+        sp={sp} t={tk} dark={dark}
         prefill={null}
       />
       {/* DealDetailDrawer retiré : ouvrait CRM_DEALS.find qui ne matche jamais
           un UUID réel. openDeal() navigue vers /dashboard/transactions/:id
           (page wired sur transactions). 0 perte de feature. */}
-
-      {/* Toast verrou KYC : apparaît après drop bloqué ; "Passer outre" → modal motif */}
-      {kycBlockState && !overrideOpen && (() => {
-        const stageLabel = CRM_STAGES[kycBlockState.targetStage]?.label ?? kycBlockState.targetStage
-        return (
-          <PipelineKycToast
-            stageLabel={stageLabel}
-            onOverride={() => setOverrideOpen(true)}
-            onDismiss={() => setKycBlockState(null)}
-          />
-        )
-      })()}
-
-      {/* Modal "Passer outre verrou KYC" — motif min 20 chars + audit nLPD */}
-      {overrideOpen && kycBlockState && (() => {
-        const deal = localDeals.find(d => d.id === kycBlockState.dealId)
-        const contact = deal ? crmContactById(deal.contactId) : null
-        const stageLabel = CRM_STAGES[kycBlockState.targetStage]?.label ?? kycBlockState.targetStage
-        const severity: 'warn' | 'critical' = kycBlockState.targetStage === 'signed' ? 'critical' : 'warn'
-        if (!contact) return null
-        return (
-          <KycOverrideModal
-            stageLabel={stageLabel}
-            contactName={`${contact.firstName} ${contact.lastName}`}
-            severity={severity}
-            onCancel={() => {
-              setOverrideOpen(false)
-              setKycBlockState(null)
-            }}
-            onConfirm={handleOverrideConfirm}
-          />
-        )
-      })()}
     </div>
   )
 }

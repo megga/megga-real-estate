@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { cn, formatCHF } from '@/lib/utils'
 import { useSendMatchToClient, type MatchResult } from '@/hooks/useMatching'
@@ -15,11 +16,12 @@ interface SendMatchDialogProps {
 type Channel = 'email' | 'whatsapp'
 
 export default function SendMatchDialog({ open, match, contactName: propContactName, onSend, onClose }: SendMatchDialogProps) {
+  const { t } = useTranslation('matching')
   const [channel, setChannel] = useState<Channel>('email')
   const [message, setMessage] = useState('')
   const sendMutation = useSendMatchToClient()
 
-  const name = propContactName || match?.contactName || 'Contact'
+  const name = propContactName || match?.contactName || t('send.fallbackName')
   const listing = match?.listing
 
   const template = match && listing ? generateTemplate(channel, name, listing) : ''
@@ -30,10 +32,19 @@ export default function SendMatchDialog({ open, match, contactName: propContactN
     l: MatchResult['listing'],
   ): string {
     const firstName = n.split(' ')[0]
-    if (ch === 'whatsapp') {
-      return `Bonjour ${firstName}, j'ai un bien qui pourrait vous intéresser : ${l.title}, ${l.address} à ${l.city}. Prix : ${formatCHF(l.price)}. ${l.rooms} pièces, ${l.surface_m2} m². Souhaitez-vous planifier une visite ?`
+    const vars = {
+      firstName,
+      title: l.title,
+      address: l.address,
+      city: l.city,
+      price: formatCHF(l.price),
+      rooms: l.rooms,
+      surface: l.surface_m2,
     }
-    return `Bonjour ${firstName},\n\nSuite à notre échange, j'ai le plaisir de vous présenter un bien qui correspond à vos critères :\n\n${l.title}\n${l.address}, ${l.city}\nPrix : ${formatCHF(l.price)}\n${l.rooms} pièces · ${l.surface_m2} m²\n\nSouhaitez-vous organiser une visite ? Je reste à votre disposition.\n\nCordialement,\nGregory Lyonnet\nMEGGA Immobilier`
+    if (ch === 'whatsapp') {
+      return t('send.template.whatsapp', vars)
+    }
+    return t('send.template.email', vars)
   }
 
   function handleSend() {
@@ -56,13 +67,13 @@ export default function SendMatchDialog({ open, match, contactName: propContactN
     <Modal
       open={open}
       onClose={onClose}
-      title={`Envoyer le bien à ${name}`}
-      description={`${listing.title} — ${formatCHF(listing.price)} — Score ${match.score}%`}
+      title={t('send.title', { name })}
+      description={t('send.description', { title: listing.title, price: formatCHF(listing.price), score: match.score })}
       size="md"
     >
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Canal d&apos;envoi</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">{t('send.channelLabel')}</label>
             <div className="flex gap-1.5">
               {([
                 { value: 'email' as Channel, label: 'Email' },
@@ -86,7 +97,7 @@ export default function SendMatchDialog({ open, match, contactName: propContactN
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-theme-primary mb-1.5">Message</label>
+            <label className="block text-sm font-medium text-theme-primary mb-1.5">{t('send.messageLabel')}</label>
             <textarea
               value={message || template}
               onChange={(e) => setMessage(e.target.value)}
@@ -96,13 +107,13 @@ export default function SendMatchDialog({ open, match, contactName: propContactN
           </div>
 
           {sendMutation.isError && (
-            <p className="text-xs text-red-500">Erreur lors de l&apos;envoi. Réessayez.</p>
+            <p className="text-xs text-red-500">{t('send.error')}</p>
           )}
         </div>
 
         <div className="flex items-center justify-end gap-3 p-5 border-t border-theme-border">
           <button onClick={onClose} className="text-sm text-theme-secondary hover:text-theme-primary transition-colors">
-            Annuler
+            {t('common:actions.cancel')}
           </button>
           <button
             onClick={handleSend}
@@ -110,7 +121,7 @@ export default function SendMatchDialog({ open, match, contactName: propContactN
             className="h-9 px-4 rounded-lg text-sm font-medium border border-theme-border text-theme-primary hover:border-theme-active transition-colors disabled:opacity-50 inline-flex items-center gap-2"
           >
             {sendMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Envoyer
+            {t('common:actions.send')}
           </button>
         </div>
     </Modal>

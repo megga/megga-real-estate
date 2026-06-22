@@ -2,8 +2,8 @@
 // 1:1 port from `crm-screen-biens-sugar.jsx` (BnSubmissionsBanner, BnSubmissionsDrawer).
 
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { crmContactById } from '../mockData'
 import type { SugarPalette } from '../tokens'
 import { BnPhoto } from './BnPhoto'
 import { bnFmtCHF, bnRelative } from './helpers'
@@ -22,6 +22,7 @@ export function BnSubmissionsBanner({
   dark,
   onOpen,
 }: BnSubmissionsBannerProps) {
+  const { t } = useTranslation('listings')
   if (!subs || subs.length === 0) return null
   const urgent = subs.filter(s => s.sla && s.sla.includes('24h')).length
   return (
@@ -58,8 +59,7 @@ export function BnSubmissionsBanner({
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink }}>
-          {subs.length} nouvelle{subs.length > 1 ? 's' : ''} soumission
-          {subs.length > 1 ? 's' : ''} vendeur{subs.length > 1 ? 's' : ''}
+          {t('biens.submissions.bannerTitle', { count: subs.length })}
         </div>
         <div
           style={{
@@ -69,8 +69,12 @@ export function BnSubmissionsBanner({
             fontWeight: 500,
           }}
         >
-          {urgent > 0 ? `${urgent} à traiter sous 24h · ` : ''}
-          Particuliers ayant déposé leur bien via MEGGA Vendre
+          {urgent > 0
+            ? t('biens.submissions.subtitleWithUrgent', {
+                count: urgent,
+                urgent: t('biens.submissions.urgentClause', { count: urgent }),
+              })
+            : t('biens.submissions.subtitle')}
         </div>
       </div>
       <span
@@ -83,7 +87,7 @@ export function BnSubmissionsBanner({
           gap: 6,
         }}
       >
-        Ouvrir
+        {t('biens.submissions.open')}
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
           <path
             d="M3 2l3 3-3 3"
@@ -111,6 +115,7 @@ export function BnSubmissionsDrawer({
   subs,
   sp,
 }: BnSubmissionsDrawerProps) {
+  const { t } = useTranslation('listings')
   if (!open) return null
   return createPortal(
     <>
@@ -161,7 +166,7 @@ export function BnSubmissionsDrawer({
                 letterSpacing: 0.5,
               }}
             >
-              Inbox vendeurs
+              {t('biens.submissions.inbox')}
             </div>
             <h2
               style={{
@@ -172,7 +177,7 @@ export function BnSubmissionsDrawer({
                 letterSpacing: -0.4,
               }}
             >
-              {subs.length} soumission{subs.length > 1 ? 's' : ''}
+              {t('biens.submissions.count', { count: subs.length })}
             </h2>
           </div>
           <div style={{ flex: 1 }} />
@@ -203,13 +208,7 @@ export function BnSubmissionsDrawer({
           }}
         >
           {subs.map(s => {
-            const c = s.contactId ? crmContactById(s.contactId) : null
-            const draft = s.contactDraft
-            const fullName = c
-              ? c.firstName + ' ' + c.lastName
-              : draft
-                ? draft.firstName + ' ' + draft.lastName
-                : 'Vendeur'
+            const fullName = s.contactName || s.contactEmail || t('biens.seller')
             const isUrgent = s.sla && s.sla.includes('24h')
             return (
               <button
@@ -287,18 +286,21 @@ export function BnSubmissionsDrawer({
                     }}
                   >
                     <span>
-                      {s.rooms}p · {s.area}m²
+                      {t('biens.submissions.roomsArea', {
+                        rooms: s.rooms,
+                        area: s.area,
+                      })}
                     </span>
                     <span>·</span>
                     <span>
                       {s.askingPrice
                         ? bnFmtCHF(s.askingPrice)
                         : s.askingRent
-                          ? bnFmtCHF(s.askingRent) + '/mois'
-                          : 'À estimer'}
+                          ? bnFmtCHF(s.askingRent) + t('biens.perMonth')
+                          : t('biens.toEstimate')}
                     </span>
                     <span>·</span>
-                    <span>Reçu il y a {bnRelative(s.submittedAt)}</span>
+                    <span>{t('biens.submissions.receivedAgo', { time: bnRelative(s.submittedAt) })}</span>
                   </div>
                 </div>
               </button>

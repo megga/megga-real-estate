@@ -74,7 +74,7 @@ UI Kit :       shadcn/ui + Radix UI
 State :        React Query (TanStack Query)
 Routing :      React Router v6
 Forms :        React Hook Form + Zod
-Drag & Drop :  dnd-kit (pipeline Kanban)
+Drag & Drop :  HTML5 natif (pipeline Kanban) · dnd-kit (réordonnancement photos ListingForm)
 Maps :         Mapbox GL JS (react-map-gl)
 Icons :        Lucide React
 Charts :       Recharts
@@ -90,7 +90,7 @@ Hosting :      Cloudflare Pages
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
-               Backend conservé : market_listings ~34k Flatfox + flatfox-sync (pg_cron 04:00 UTC)
+               Backend conservé : market_listings ~90k Flatfox + flatfox-sync (pg_cron 04:00 UTC)
                sert uniquement le matching CRM, aucun affichage public dans cette app
 ```
 
@@ -218,7 +218,7 @@ useEffect(() => {
 Devise :     CHF (apostrophe : CHF 720'000)
 Surface :    120 m²
 Date :       16.03.2026 (DD.MM.YYYY) ou relatif
-Langues :    FR (défaut), DE, EN, IT — react-i18next, 12 namespaces
+Langues :    FR (défaut), DE, EN, IT — react-i18next, 15 namespaces
 Cantons :    GE VD VS NE FR BE JU BS BL AG SO ZH LU ZG SZ NW OW UR GL SH TG AR AI SG GR TI
 ```
 
@@ -272,18 +272,18 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Marketplace publique : DÉSACTIVÉE (pivot CRM-first) :**
 - `/acheter` + `/louer` (+ `/buy` `/rent` `/propriete`) → `MarketplaceDisabledRedirect` vers la vitrine `megga.ch`
-- Backend conservé intact : `market_listings` (~34k Flatfox), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
+- Backend conservé intact : `market_listings` (~90k Flatfox, ~50k active), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline 14 colonnes, Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline (14 stades DB → 8 colonnes UI), Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
 
 **Réseau inter-agences (`/dashboard/network`, `NetworkSugarV2Page`) : 🚧 EN CONSTRUCTION.** Prototype hi-fi en données d'exemple (5 vues, dont 3 « Coming soon ») — aucun backend (pas de table `agency_partners`/`shared_listings`, pas de RLS cross-agence). Un bandeau « en construction » est affiché sur la page. Le module réel (partage de biens inter-agences + RLS + modèles PDF) arrivera plus tard ; ne pas présenter cette page comme livrée.
 
 **MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. Inférence = DeepSeek par défaut (coût) ; Claude réservé à dashboard-ai-hint / extract-lead et kyc-screening.
 
-**Portail vendeur :** `/portail/:token` (6 pages), dev route `/portail` (PortalDevWrapper + mock data).
+**Portail vendeur :** `/portail/:token` — page unique « Votre vente » (VotreVentePage, lecture seule), dev route `/portail` (PortalDevWrapper + mock data).
 
-**Super-Admin :** 14 pages (accent violet), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit.
+**Super-Admin :** 16 pages (accent violet), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit.
 
 **Intégrations :** Resend, Stripe, Google/Outlook Calendar (OAuth), virtual staging (Gemini), Flatfox sync.
 

@@ -1,6 +1,8 @@
 // MEGGA CRM Sugar v3 — Section documents joints du dossier
 // Port 1:1 de crm-screen-kyc-sugar.jsx lignes 429-496 (KycDocsSection).
 
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { fmtDateShort } from '../tokens'
 import { KycCircleBtn, KycGhostPill } from './kycPrimitives'
 import { useKycPalette } from './kycPalette'
@@ -23,23 +25,24 @@ type ExpiryStatus = { kind: 'expired' | 'soon' | 'ok'; label: string }
 
 const EXPIRY_SOON_DAYS = 30
 
-function getExpiryStatus(expiresAt: string | null): ExpiryStatus | null {
+function getExpiryStatus(expiresAt: string | null, t: TFunction): ExpiryStatus | null {
   if (!expiresAt) return null
   const ts = new Date(expiresAt).getTime()
   if (Number.isNaN(ts)) return null
   const now = Date.now()
   if (ts <= now) {
-    return { kind: 'expired', label: 'Expiré' }
+    return { kind: 'expired', label: t('dossier.docs.expired') }
   }
   const daysLeft = Math.ceil((ts - now) / (1000 * 60 * 60 * 24))
   if (daysLeft <= EXPIRY_SOON_DAYS) {
-    return { kind: 'soon', label: `Expire dans ${daysLeft}j` }
+    return { kind: 'soon', label: t('dossier.docs.expiresInDays', { count: daysLeft }) }
   }
-  return { kind: 'ok', label: `Valide jusqu’au ${fmtDateShort(expiresAt)}` }
+  return { kind: 'ok', label: t('dossier.docs.validUntil', { date: fmtDateShort(expiresAt) }) }
 }
 
 export function KycDocsSection({ docs, onUpload, onPreview, onDownload }: Props) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
   return (
     <div
       style={{
@@ -70,7 +73,7 @@ export function KycDocsSection({ docs, onUpload, onPreview, onDownload }: Props)
               marginBottom: 4,
             }}
           >
-            Pièces du dossier
+            {t('dossier.docs.eyebrow')}
           </div>
           <h3
             style={{
@@ -81,14 +84,14 @@ export function KycDocsSection({ docs, onUpload, onPreview, onDownload }: Props)
               letterSpacing: -0.3,
             }}
           >
-            Documents joints
+            {t('dossier.docs.title')}
           </h3>
         </div>
         <KycGhostPill
           onClick={onUpload}
           icon={<SgIcon name="upload" size={14} stroke={sp.inkSoft} />}
         >
-          Téléverser
+          {t('dossier.docs.upload')}
         </KycGhostPill>
       </div>
 
@@ -104,14 +107,14 @@ export function KycDocsSection({ docs, onUpload, onPreview, onDownload }: Props)
             fontWeight: 500,
           }}
         >
-          Aucun document joint pour l'instant.
+          {t('dossier.docs.emptyTitle')}
           <br />
-          Demandez les pièces au contact pour démarrer la vérification.
+          {t('dossier.docs.emptySubtitle')}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {docs.map((d) => {
-            const expiry = getExpiryStatus(d.expires_at)
+            const expiry = getExpiryStatus(d.expires_at, t)
             const expiredBg = expiry?.kind === 'expired'
             return (
               <div
@@ -188,16 +191,18 @@ export function KycDocsSection({ docs, onUpload, onPreview, onDownload }: Props)
                     }}
                   >
                     {d.size_bytes
-                      ? `${(d.size_bytes / (1024 * 1024)).toFixed(1)} Mo`
+                      ? t('dossier.docs.fileSize', {
+                          size: (d.size_bytes / (1024 * 1024)).toFixed(1),
+                        })
                       : '—'}{' '}
-                    · Ajouté le {fmtDateShort(d.created_at)}
+                    · {t('dossier.docs.addedOn', { date: fmtDateShort(d.created_at) })}
                     {expiry?.kind === 'ok' && ` · ${expiry.label}`}
                     {d.sha256_hash && (
                       <span
-                        title={`SHA-256 : ${d.sha256_hash}`}
+                        title={t('dossier.docs.shaFull', { hash: d.sha256_hash })}
                         style={{ marginLeft: 6 }}
                       >
-                        · sha {d.sha256_hash.slice(0, 8)}…
+                        · {t('dossier.docs.shaPrefix', { hash: d.sha256_hash.slice(0, 8) })}
                       </span>
                     )}
                   </div>
@@ -205,7 +210,7 @@ export function KycDocsSection({ docs, onUpload, onPreview, onDownload }: Props)
                 {onPreview && (
                   <KycCircleBtn
                     size={36}
-                    title="Aperçu"
+                    title={t('dossier.docs.preview')}
                     onClick={() => onPreview(d)}
                     icon={<SgIcon name="eye" size={14} stroke={sp.inkSoft} />}
                   />
@@ -213,7 +218,7 @@ export function KycDocsSection({ docs, onUpload, onPreview, onDownload }: Props)
                 {onDownload && (
                   <KycCircleBtn
                     size={36}
-                    title="Télécharger"
+                    title={t('dossier.docs.download')}
                     onClick={() => onDownload(d)}
                     icon={
                       <SgIcon name="download" size={14} stroke={sp.inkSoft} />

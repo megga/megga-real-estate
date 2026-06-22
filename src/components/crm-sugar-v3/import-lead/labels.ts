@@ -3,24 +3,28 @@
 // "Demande de traitement - MEGGA AI - N leads en attente".
 
 import type { LeadIntent, LeadNextAction, LeadUrgency } from '@/hooks/useExtractLead'
+// i18n : libellés en getters (singleton, sans changer les appelants
+// INTENT_LABELS[x] etc.). INTENT réutilise contacts:contactType.* (mêmes codes
+// buyer/seller/tenant). Cf docs/i18n-conventions §6.
+import i18n from '@/i18n'
 
 export const INTENT_LABELS: Record<LeadIntent, string> = {
-  buyer:  'Acheteur',
-  seller: 'Vendeur',
-  tenant: 'Locataire',
+  get buyer()  { return i18n.t('contacts:contactType.buyer') },
+  get seller() { return i18n.t('contacts:contactType.seller') },
+  get tenant() { return i18n.t('contacts:contactType.tenant') },
 }
 
 export const URGENCY_LABELS: Record<LeadUrgency, string> = {
-  high:   'Élevée',
-  medium: 'Modérée',
-  normal: 'Normale',
+  get high()   { return i18n.t('contacts:import.urgency.high') },
+  get medium() { return i18n.t('contacts:import.urgency.medium') },
+  get normal() { return i18n.t('contacts:import.urgency.normal') },
 }
 
 export const NEXT_ACTION_LABELS: Record<LeadNextAction, string> = {
-  call:  'Appel de qualification',
-  visit: 'Planifier une visite',
-  match: 'Envoyer 3 biens du portefeuille',
-  kyc:   'Lancer le KYC',
+  get call()  { return i18n.t('contacts:import.nextAction.call') },
+  get visit() { return i18n.t('contacts:import.nextAction.visit') },
+  get match() { return i18n.t('contacts:import.nextAction.match') },
+  get kyc()   { return i18n.t('contacts:import.nextAction.kyc') },
 }
 
 /** Formate un budget en CHF, avec /mois si tenant. Apostrophe suisse pour les milliers. */

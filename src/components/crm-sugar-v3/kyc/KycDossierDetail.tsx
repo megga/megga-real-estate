@@ -14,6 +14,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { SgIcon } from '../icons'
 import { useKycPalette } from './kycPalette'
 import { KycBlackPill, KycGhostPill } from './kycPrimitives'
@@ -65,27 +67,33 @@ interface ScreeningDetails {
   records?: DilisenseRecordView[]
 }
 
-const VERDICT_LABELS: Record<ScreeningDecisionVerdict, { label: string; hint: string; tone: 'ok' | 'err' | 'warn' | 'neutral' }> = {
-  false_positive: {
-    label: 'Faux positif',
-    hint: 'Examen humain : le match Dilisense ne correspond pas au client. Autorise la validation.',
-    tone: 'ok',
-  },
-  true_match: {
-    label: 'Vrai match',
-    hint: 'Le client est bien la personne sanctionnée/PEP. Déclaration MROS (art. 9 LBA) obligatoire.',
-    tone: 'err',
-  },
-  escalated: {
-    label: 'Escaladé direction',
-    hint: 'Renvoyé au MLRO / direction compliance pour décision.',
-    tone: 'warn',
-  },
-  awaiting_evidence: {
-    label: 'En attente d’éléments',
-    hint: 'Examen en pause — éléments complémentaires demandés au client.',
-    tone: 'neutral',
-  },
+/** Libellés des verdicts d'examen compliance. `tone` est une donnée (couleur),
+ * seuls `label`/`hint` sont traduits via `t`. */
+function buildVerdictLabels(
+  t: TFunction
+): Record<ScreeningDecisionVerdict, { label: string; hint: string; tone: 'ok' | 'err' | 'warn' | 'neutral' }> {
+  return {
+    false_positive: {
+      label: t('dossier.verdict.false_positive.label'),
+      hint: t('dossier.verdict.false_positive.hint'),
+      tone: 'ok',
+    },
+    true_match: {
+      label: t('dossier.verdict.true_match.label'),
+      hint: t('dossier.verdict.true_match.hint'),
+      tone: 'err',
+    },
+    escalated: {
+      label: t('dossier.verdict.escalated.label'),
+      hint: t('dossier.verdict.escalated.hint'),
+      tone: 'warn',
+    },
+    awaiting_evidence: {
+      label: t('dossier.verdict.awaiting_evidence.label'),
+      hint: t('dossier.verdict.awaiting_evidence.hint'),
+      tone: 'neutral',
+    },
+  }
 }
 
 interface Props {
@@ -100,6 +108,8 @@ const CHECK_KEYS: KycCheckCategory[] = ['id', 'address', 'pep', 'sanctions', 'fu
 
 export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
+  const verdictLabels = buildVerdictLabels(t)
   const { data: dossier, isLoading, isError, error, refetch } = useKycCase(dossierId)
   const { data: docs = [] } = useKycDocuments(dossierId)
   const { data: auditEvents = [] } = useKycAuditEvents(dossierId)
@@ -189,13 +199,13 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
           fontWeight: 600,
         }}
       >
-        <div style={{ marginBottom: 8 }}>Impossible de charger ce dossier KYC.</div>
+        <div style={{ marginBottom: 8 }}>{t('dossier.detail.loadError')}</div>
         <div style={{ fontSize: 12, fontWeight: 500, color: sp.muted, marginBottom: 18 }}>
-          {(error as Error)?.message || 'Erreur réseau ou base de données.'}
+          {(error as Error)?.message || t('dossier.detail.loadErrorHint')}
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-          <KycGhostPill onClick={onBack}>Retour à la liste</KycGhostPill>
-          <KycBlackPill onClick={() => refetch()}>Réessayer</KycBlackPill>
+          <KycGhostPill onClick={onBack}>{t('dossier.detail.backToList')}</KycGhostPill>
+          <KycBlackPill onClick={() => refetch()}>{t('dossier.detail.retry')}</KycBlackPill>
         </div>
       </div>
     )
@@ -204,7 +214,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
   if (isLoading || !dossier) {
     return (
       <div style={{ maxWidth: 1000, margin: '0 auto', padding: '60px 0', textAlign: 'center', color: sp.muted, fontSize: 14, fontWeight: 500 }}>
-        Chargement du dossier…
+        {t('dossier.detail.loading')}
       </div>
     )
   }
@@ -239,11 +249,11 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
   const markAllBlockedLabel = (() => {
     if (screeningGuard.status === 'match') {
       return screeningGuard.kind === 'sanctions'
-        ? 'Examinez d’abord le match sanctions'
-        : 'Examinez d’abord le match PEP'
+        ? t('dossier.detail.reviewSanctionsFirst')
+        : t('dossier.detail.reviewPepFirst')
     }
-    if (screeningGuard.status === 'pending') return 'Screening en cours…'
-    if (screeningGuard.status === 'missing') return 'Lancez le screening avant de valider'
+    if (screeningGuard.status === 'pending') return t('dossier.detail.screeningRunning')
+    if (screeningGuard.status === 'missing') return t('dossier.detail.runScreeningFirst')
     return null
   })()
 
@@ -260,18 +270,18 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
   const handleRescreen = () => {
     setActionMessage(null)
     if (!dossier.contact) {
-      setActionMessage({ kind: 'err', text: 'Contact introuvable pour ce dossier.' })
+      setActionMessage({ kind: 'err', text: t('dossier.detail.contactNotFound') })
       return
     }
     const name = `${dossier.contact.first_name} ${dossier.contact.last_name}`.trim()
     if (!name) {
-      setActionMessage({ kind: 'err', text: 'Nom du contact manquant.' })
+      setActionMessage({ kind: 'err', text: t('dossier.detail.contactNameMissing') })
       return
     }
     if (!dossier.contact_nationality) {
       setActionMessage({
         kind: 'err',
-        text: 'Nationalité requise pour le screening Dilisense. Mettez à jour le contact.',
+        text: t('dossier.detail.nationalityRequired'),
       })
       return
     }
@@ -287,11 +297,11 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
       },
       {
         onSuccess: () =>
-          setActionMessage({ kind: 'ok', text: 'Screening Dilisense relancé.' }),
+          setActionMessage({ kind: 'ok', text: t('dossier.detail.screeningRestarted') }),
         onError: (err) =>
           setActionMessage({
             kind: 'err',
-            text: err instanceof Error ? err.message : 'Échec du screening.',
+            text: err instanceof Error ? err.message : t('dossier.detail.screeningFailed'),
           }),
       }
     )
@@ -308,7 +318,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
     justification: string
   ) => {
     if (!dossier.agency_id) {
-      setActionMessage({ kind: 'err', text: 'agency_id manquant — connexion requise.' })
+      setActionMessage({ kind: 'err', text: t('dossier.detail.agencyMissing') })
       return
     }
     const snapshot = {
@@ -338,13 +348,15 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
           setExamineTarget(null)
           setActionMessage({
             kind: 'ok',
-            text: `Décision « ${VERDICT_LABELS[decision].label} » enregistrée.`,
+            text: t('dossier.detail.decisionSaved', {
+              verdict: verdictLabels[decision].label,
+            }),
           })
         },
         onError: (err) =>
           setActionMessage({
             kind: 'err',
-            text: err instanceof Error ? err.message : 'Échec de l’enregistrement.',
+            text: err instanceof Error ? err.message : t('dossier.detail.saveFailed'),
           }),
       }
     )
@@ -353,7 +365,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
   const handleUploadFile = (file: File, category: 'identity' | 'domicile' | 'financial' | 'compliance' | 'other') => {
     setActionMessage(null)
     if (!dossier.agency_id) {
-      setActionMessage({ kind: 'err', text: 'agency_id manquant — connexion requise.' })
+      setActionMessage({ kind: 'err', text: t('dossier.detail.agencyMissing') })
       return
     }
     uploadDoc.mutate(
@@ -367,12 +379,12 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
       {
         onSuccess: () => {
           setUploadOpen(false)
-          setActionMessage({ kind: 'ok', text: `« ${file.name} » téléversé.` })
+          setActionMessage({ kind: 'ok', text: t('dossier.detail.fileUploaded', { name: file.name }) })
         },
         onError: (err) =>
           setActionMessage({
             kind: 'err',
-            text: err instanceof Error ? err.message : 'Échec du téléversement.',
+            text: err instanceof Error ? err.message : t('dossier.detail.uploadFailed'),
           }),
       }
     )
@@ -385,7 +397,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
   if (screeningGuard.status === 'match') {
     const target = screeningGuard.kind
     const decision = target === 'sanctions' ? sanctionsDecision : pepDecision
-    const verdictInfo = decision ? VERDICT_LABELS[decision.decision] : null
+    const verdictInfo = decision ? verdictLabels[decision.decision] : null
     complianceAlert = (
       <div
         role="alert"
@@ -402,10 +414,12 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
       >
         <SgIcon name="shield" size={16} stroke={sp.errDarker} />
         <div style={{ flex: 1, minWidth: 240, fontSize: 13, fontWeight: 600, color: sp.errDarker, lineHeight: 1.5 }}>
-          Match {target === 'sanctions' ? 'sanctions' : 'PEP'} détecté · examen requis (LBA art. 9).
+          {target === 'sanctions'
+            ? t('dossier.alert.matchSanctions')
+            : t('dossier.alert.matchPep')}
           {verdictInfo && (
             <div style={{ marginTop: 4, fontSize: 12, fontWeight: 500, color: sp.errDark }}>
-              Dernière décision : <strong>{verdictInfo.label}</strong> ·{' '}
+              {t('dossier.alert.lastDecision')} <strong>{verdictInfo.label}</strong> ·{' '}
               {new Date(decision!.decided_at).toLocaleDateString('fr-CH')}
             </div>
           )}
@@ -415,7 +429,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
           onClick={() => setExamineTarget(target)}
           icon={<SgIcon name="eye" size={14} stroke={sp.onAccent} />}
         >
-          {decision ? 'Réexaminer' : 'Examiner ce match'}
+          {decision ? t('dossier.alert.reExamine') : t('dossier.alert.examineMatch')}
         </KycBlackPill>
       </div>
     )
@@ -438,16 +452,16 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
         }}
       >
         <SgIcon name="check" size={14} stroke={sp.okDark} />
-        Match Dilisense écarté par décision compliance (faux positif) · LBA art. 7 documenté.
+        {t('dossier.alert.clearedFalsePositive')}
       </div>
     )
   }
 
   const tabs: KycSegTab[] = [
-    { id: 'synthese', label: 'Synthèse' },
-    { id: 'controles', label: 'Contrôles', count: total },
-    { id: 'documents', label: 'Documents', count: docs.length },
-    { id: 'audit', label: 'Audit' },
+    { id: 'synthese', label: t('dossier.tabs.synthese') },
+    { id: 'controles', label: t('dossier.tabs.controles'), count: total },
+    { id: 'documents', label: t('dossier.tabs.documents'), count: docs.length },
+    { id: 'audit', label: t('dossier.tabs.audit') },
   ]
 
   return (
@@ -530,7 +544,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
                 textTransform: 'uppercase',
               }}
             >
-              5 contrôles obligatoires (LBA art. 3-7)
+              {t('dossier.detail.fiveChecks')}
             </div>
             <div
               className="sg-grid-2"
@@ -558,7 +572,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
                 .from('kyc-documents')
                 .createSignedUrl(doc.storage_path, 60)
               if (signErr) {
-                window.alert(`Aperçu impossible : ${signErr.message}`)
+                window.alert(t('dossier.detail.previewError', { message: signErr.message }))
                 return
               }
               window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
@@ -568,7 +582,7 @@ export function KycDossierDetail({ dossierId, agentId, onBack, pageBg }: Props) 
                 .from('kyc-documents')
                 .createSignedUrl(doc.storage_path, 60, { download: doc.name ?? true })
               if (signErr) {
-                window.alert(`Téléchargement impossible : ${signErr.message}`)
+                window.alert(t('dossier.detail.downloadError', { message: signErr.message }))
                 return
               }
               window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
@@ -630,6 +644,7 @@ interface ConfirmOverlayProps {
 
 function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayProps) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
   return (
     <div
       role="dialog"
@@ -669,7 +684,7 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
             marginBottom: 10,
           }}
         >
-          Validation conformité · LBA art. 7
+          {t('dossier.confirm.eyebrow')}
         </div>
         <h2
           style={{
@@ -681,7 +696,7 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
             lineHeight: 1.25,
           }}
         >
-          Marquer le dossier comme vérifié&nbsp;?
+          {t('dossier.confirm.title')}
         </h2>
         <p
           style={{
@@ -692,8 +707,7 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
             lineHeight: 1.55,
           }}
         >
-          Cette action coche les 5 contrôles obligatoires et passe le dossier en statut
-          « vérifié ». Elle est tracée dans le journal d&apos;audit nLPD pendant 10 ans.
+          {t('dossier.confirm.body')}
         </p>
         <div
           style={{
@@ -708,26 +722,28 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
           }}
         >
           <div>
-            <strong style={{ color: sp.ink }}>Sanctions :</strong>{' '}
-            {dossier.sanctions_status === 'clear' ? '✓ Clear' : dossier.sanctions_status}
+            <strong style={{ color: sp.ink }}>{t('dossier.confirm.sanctions')}</strong>{' '}
+            {dossier.sanctions_status === 'clear' ? t('dossier.confirm.clear') : t('dossier.confirm.status.' + dossier.sanctions_status)}
           </div>
           <div>
-            <strong style={{ color: sp.ink }}>PEP :</strong>{' '}
-            {dossier.pep_status === 'clear' ? '✓ Clear' : dossier.pep_status}
+            <strong style={{ color: sp.ink }}>{t('dossier.confirm.pep')}</strong>{' '}
+            {dossier.pep_status === 'clear' ? t('dossier.confirm.clear') : t('dossier.confirm.status.' + dossier.pep_status)}
           </div>
           <div>
-            <strong style={{ color: sp.ink }}>Vigilance :</strong>{' '}
-            {dossier.vigilance === 'renforced' ? 'Renforcée (LBA art. 6)' : 'Standard (LBA art. 3-4)'}
+            <strong style={{ color: sp.ink }}>{t('dossier.confirm.vigilance')}</strong>{' '}
+            {dossier.vigilance === 'renforced'
+              ? t('dossier.confirm.vigilanceEnhanced')
+              : t('dossier.confirm.vigilanceStandard')}
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <KycGhostPill onClick={onCancel}>Annuler</KycGhostPill>
+          <KycGhostPill onClick={onCancel}>{t('dossier.confirm.cancel')}</KycGhostPill>
           <KycBlackPill
             size="md"
             onClick={onConfirm}
             icon={<SgIcon name="checkAll" size={14} stroke={sp.onAccent} />}
           >
-            Confirmer la validation
+            {t('dossier.confirm.submit')}
           </KycBlackPill>
         </div>
       </div>
@@ -737,36 +753,42 @@ function ConfirmMarkAllOverlay({ dossier, onCancel, onConfirm }: ConfirmOverlayP
 
 type DocCategory = 'identity' | 'domicile' | 'financial' | 'compliance' | 'other'
 
-const DOC_CATEGORIES: { value: DocCategory; label: string; mimes: string[] }[] = [
-  { value: 'identity',   label: 'Pièce d’identité',                 mimes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] },
-  { value: 'domicile',   label: 'Justificatif de domicile',         mimes: ['application/pdf', 'image/jpeg', 'image/png'] },
-  { value: 'financial',  label: 'Document financier',               mimes: ['application/pdf'] },
-  { value: 'compliance', label: 'Pièce compliance (Form A, UBO…)',  mimes: ['application/pdf'] },
-  { value: 'other',      label: 'Autre',                            mimes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] },
-]
+/** Catégories de pièces. `value`/`mimes` sont des données ; seul `label` est traduit. */
+function buildDocCategories(
+  t: TFunction
+): { value: DocCategory; label: string; mimes: string[] }[] {
+  return [
+    { value: 'identity',   label: t('dossier.upload.cat.identity'),   mimes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] },
+    { value: 'domicile',   label: t('dossier.upload.cat.domicile'),   mimes: ['application/pdf', 'image/jpeg', 'image/png'] },
+    { value: 'financial',  label: t('dossier.upload.cat.financial'),  mimes: ['application/pdf'] },
+    { value: 'compliance', label: t('dossier.upload.cat.compliance'), mimes: ['application/pdf'] },
+    { value: 'other',      label: t('dossier.upload.cat.other'),      mimes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] },
+  ]
+}
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024 // 20 MB
 
 function validateFileForCategory(
   file: File,
-  category: DocCategory
+  category: DocCategory,
+  t: TFunction
 ): { ok: true } | { ok: false; reason: string } {
   if (file.size > MAX_UPLOAD_BYTES) {
-    return { ok: false, reason: 'Fichier trop volumineux (max 20 Mo).' }
+    return { ok: false, reason: t('dossier.upload.errTooLarge') }
   }
   if (file.size === 0) {
-    return { ok: false, reason: 'Fichier vide.' }
+    return { ok: false, reason: t('dossier.upload.errEmpty') }
   }
   if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
-    return { ok: false, reason: 'Nom de fichier invalide.' }
+    return { ok: false, reason: t('dossier.upload.errInvalidName') }
   }
-  const meta = DOC_CATEGORIES.find((c) => c.value === category)
-  if (!meta) return { ok: false, reason: 'Catégorie inconnue.' }
+  const meta = buildDocCategories(t).find((c) => c.value === category)
+  if (!meta) return { ok: false, reason: t('dossier.upload.errUnknownCategory') }
   const mime = file.type || ''
   if (mime && !meta.mimes.includes(mime)) {
     return {
       ok: false,
-      reason: `Type de fichier non autorisé pour cette catégorie (reçu : ${mime}).`,
+      reason: t('dossier.upload.errMimeNotAllowed', { mime }),
     }
   }
   const allowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'webp']
@@ -774,7 +796,7 @@ function validateFileForCategory(
   if (!allowedExt.includes(ext)) {
     return {
       ok: false,
-      reason: `Extension non autorisée (.${ext}). Utilisez PDF, JPG, PNG ou WEBP.`,
+      reason: t('dossier.upload.errExtNotAllowed', { ext }),
     }
   }
   return { ok: true }
@@ -788,6 +810,8 @@ interface UploadOverlayProps {
 
 function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
+  const docCategories = buildDocCategories(t)
   const [category, setCategory] = useState<DocCategory>('identity')
   const [file, setFile] = useState<File | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -795,7 +819,7 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
   const handlePick = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    const v = validateFileForCategory(f, category)
+    const v = validateFileForCategory(f, category, t)
     if (!v.ok) {
       setValidationError(v.reason)
       setFile(null)
@@ -808,7 +832,7 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
 
   const handleSubmit = () => {
     if (!file) return
-    const v = validateFileForCategory(file, category)
+    const v = validateFileForCategory(file, category, t)
     if (!v.ok) {
       setValidationError(v.reason)
       return
@@ -855,7 +879,7 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
             marginBottom: 10,
           }}
         >
-          Téléversement de pièce
+          {t('dossier.upload.eyebrow')}
         </div>
         <h2
           style={{
@@ -866,11 +890,11 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
             letterSpacing: -0.4,
           }}
         >
-          Ajouter un document
+          {t('dossier.upload.title')}
         </h2>
 
         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.inkSoft, marginBottom: 6 }}>
-          Catégorie LBA
+          {t('dossier.upload.categoryLabel')}
         </label>
         <select
           value={category}
@@ -887,7 +911,7 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
             marginBottom: 18,
           }}
         >
-          {DOC_CATEGORIES.map((c) => (
+          {docCategories.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
             </option>
@@ -895,7 +919,7 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
         </select>
 
         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.inkSoft, marginBottom: 6 }}>
-          Fichier (PDF, JPG, PNG, WEBP)
+          {t('dossier.upload.fileLabel')}
         </label>
         <input
           type="file"
@@ -931,14 +955,14 @@ function UploadDocOverlay({ isPending, onCancel, onSubmit }: UploadOverlayProps)
         )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <KycGhostPill onClick={onCancel}>Annuler</KycGhostPill>
+          <KycGhostPill onClick={onCancel}>{t('dossier.upload.cancel')}</KycGhostPill>
           <KycBlackPill
             size="md"
             onClick={handleSubmit}
             disabled={!file || isPending || !!validationError}
             icon={<SgIcon name="upload" size={14} stroke={sp.onAccent} />}
           >
-            {isPending ? 'Téléversement…' : 'Téléverser'}
+            {isPending ? t('dossier.upload.uploading') : t('dossier.upload.submit')}
           </KycBlackPill>
         </div>
       </div>
@@ -964,6 +988,8 @@ function ExamineHitOverlay({
   onSubmit,
 }: ExamineOverlayProps) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
+  const verdictLabels = buildVerdictLabels(t)
   const [verdict, setVerdict] = useState<ScreeningDecisionVerdict>('false_positive')
   const [justification, setJustification] = useState('')
 
@@ -1012,7 +1038,9 @@ function ExamineHitOverlay({
             marginBottom: 10,
           }}
         >
-          Examen compliance · {target === 'sanctions' ? 'Sanctions' : 'PEP'} · LBA art. 7
+          {target === 'sanctions'
+            ? t('dossier.examine.eyebrowSanctions')
+            : t('dossier.examine.eyebrowPep')}
         </div>
         <h2
           style={{
@@ -1023,7 +1051,7 @@ function ExamineHitOverlay({
             letterSpacing: -0.4,
           }}
         >
-          {total} correspondance{total > 1 ? 's' : ''} Dilisense
+          {t('dossier.examine.matchCount', { count: total })}
         </h2>
         <p
           style={{
@@ -1034,8 +1062,7 @@ function ExamineHitOverlay({
             lineHeight: 1.55,
           }}
         >
-          Examinez les éléments retournés par Dilisense, choisissez un verdict et justifiez-le
-          (minimum 30 caractères, conservé 10 ans).
+          {t('dossier.examine.intro')}
         </p>
 
         {records.length === 0 ? (
@@ -1049,7 +1076,7 @@ function ExamineHitOverlay({
               marginBottom: 22,
             }}
           >
-            Aucun détail de match n’a été stocké pour ce dossier. Relancez un screening si nécessaire.
+            {t('dossier.examine.noRecords')}
           </div>
         ) : (
           <div
@@ -1095,23 +1122,23 @@ function ExamineHitOverlay({
               lineHeight: 1.55,
             }}
           >
-            <strong style={{ color: sp.ink }}>Décision précédente :</strong>{' '}
-            {VERDICT_LABELS[previousDecision.decision].label} · {new Date(previousDecision.decided_at).toLocaleDateString('fr-CH')}
+            <strong style={{ color: sp.ink }}>{t('dossier.examine.previousDecision')}</strong>{' '}
+            {verdictLabels[previousDecision.decision].label} · {new Date(previousDecision.decided_at).toLocaleDateString('fr-CH')}
             <br />
             <em style={{ color: sp.muted, fontStyle: 'normal' }}>{previousDecision.justification}</em>
             <br />
             <span style={{ color: sp.muted, fontSize: 11 }}>
-              Une nouvelle décision écrasera celle-ci (chaînage supersedes).
+              {t('dossier.examine.willSupersede')}
             </span>
           </div>
         )}
 
         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.inkSoft, marginBottom: 8 }}>
-          Verdict
+          {t('dossier.examine.verdictLabel')}
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
-          {(Object.keys(VERDICT_LABELS) as ScreeningDecisionVerdict[]).map((v) => {
-            const info = VERDICT_LABELS[v]
+          {(Object.keys(verdictLabels) as ScreeningDecisionVerdict[]).map((v) => {
+            const info = verdictLabels[v]
             const selected = verdict === v
             return (
               <button
@@ -1151,13 +1178,13 @@ function ExamineHitOverlay({
         </div>
 
         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.inkSoft, marginBottom: 6 }}>
-          Justification ({justification.trim().length}/30 caractères min)
+          {t('dossier.examine.justificationLabel', { count: justification.trim().length })}
         </label>
         <textarea
           value={justification}
           onChange={(e) => setJustification(e.target.value)}
           rows={4}
-          placeholder="Ex : Date de naissance différente (1985 vs 1972), pays différent (CH vs RU), homonymie confirmée par pièce d’identité."
+          placeholder={t('dossier.examine.justificationPlaceholder')}
           style={{
             width: '100%',
             padding: '12px 14px',
@@ -1174,14 +1201,14 @@ function ExamineHitOverlay({
         />
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <KycGhostPill onClick={onCancel}>Annuler</KycGhostPill>
+          <KycGhostPill onClick={onCancel}>{t('dossier.examine.cancel')}</KycGhostPill>
           <KycBlackPill
             size="md"
             onClick={() => canSubmit && onSubmit(verdict, justification)}
             disabled={!canSubmit}
             icon={<SgIcon name="check" size={14} stroke={sp.onAccent} />}
           >
-            {isPending ? 'Enregistrement…' : 'Enregistrer la décision'}
+            {isPending ? t('dossier.examine.saving') : t('dossier.examine.submit')}
           </KycBlackPill>
         </div>
       </div>

@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-notifications.jsx — SugarNotificationsPopover).
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { SugarPalette } from '../tokens'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { KIND_META, type SugarNotif, type NotifKind } from './data'
@@ -18,6 +19,7 @@ interface NotifRowProps {
 }
 
 function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRowProps) {
+  const { t } = useTranslation('common')
   const meta = KIND_META[n.kind] || KIND_META.system
   const [hover, setHover] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -100,7 +102,7 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
             <span
               role="button"
               tabIndex={0}
-              title="Options"
+              title={t('actions.options')}
               onClick={e => { e.stopPropagation(); setMenuRect(e.currentTarget.getBoundingClientRect()); setMenuOpen(o => !o) }}
               style={{
                 width: 30, height: 30, borderRadius: 999,
@@ -128,10 +130,10 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
           border: `1px solid ${dark ? 'rgba(255,255,255,0.09)' : (sp.frameBorder || 'rgba(15,23,42,0.08)')}`,
           boxShadow: '0 16px 40px -12px rgba(15,23,42,0.30), 0 4px 12px rgba(15,23,42,0.12)',
         }}>
-          {menuItem('check', n.read ? 'Marquer comme non lue' : 'Marquer comme lue', () => onMarkRead(!n.read))}
-          {menuItem('eye', 'Masquer cette notification', () => onHide())}
+          {menuItem('check', n.read ? t('notifications.markUnread') : t('notifications.markRead'), () => onMarkRead(!n.read))}
+          {menuItem('eye', t('notifications.hideOne'), () => onHide())}
           <div style={{ height: 1, background: sp.frameBorder || 'rgba(15,23,42,0.07)', margin: '5px 8px' }} />
-          {menuItem('bell', `Désactiver « ${meta.label} »`, () => onMute())}
+          {menuItem('bell', t('notifications.muteKind', { kind: meta.label }), () => onMute())}
         </div>
       )}
     </div>
@@ -152,6 +154,7 @@ interface SugarNotificationsPopoverProps {
 export default function SugarNotificationsPopover({
   sp, dark, items, onItemClick, onMarkAll, onSeeAll, onMute,
 }: SugarNotificationsPopoverProps) {
+  const { t } = useTranslation('common')
   // Copie locale : les actions du menu « ⋯ » (lu/non-lu, masquer, désactiver type)
   // s'appliquent en direct. Resynchronisée si la source `items` change.
   const [localItems, setLocalItems] = useState<SugarNotif[]>(items)
@@ -168,15 +171,15 @@ export default function SugarNotificationsPopover({
 
   const markRead = (id: string, read: boolean) => {
     setLocalItems(prev => prev.map(n => n.id === id ? { ...n, read } : n))
-    flashToast(read ? 'Marquée comme lue' : 'Marquée comme non lue')
+    flashToast(read ? t('notifications.toastMarkedRead') : t('notifications.toastMarkedUnread'))
   }
   const hide = (id: string) => {
     setLocalItems(prev => prev.filter(n => n.id !== id))
-    flashToast('Notification masquée')
+    flashToast(t('notifications.toastHidden'))
   }
   const muteKind = (kind: NotifKind) => {
     setLocalItems(prev => prev.filter(n => n.kind !== kind))
-    flashToast(`Notifications « ${KIND_META[kind]?.label || kind} » désactivées`)
+    flashToast(t('notifications.toastMuted', { kind: KIND_META[kind]?.label || kind }))
   }
 
   const top = localItems.slice(0, 5)
@@ -211,10 +214,10 @@ export default function SugarNotificationsPopover({
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: sp.ink, letterSpacing: '-0.01em' }}>
-              Notifications
+              {t('nav.notifications')}
             </div>
             <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
-              {unread > 0 ? `${unread} non lue${unread > 1 ? 's' : ''}` : 'Tout est à jour'}
+              {unread > 0 ? t('notifications.unreadCount', { count: unread }) : t('notifications.allClear')}
             </div>
           </div>
           <button
@@ -226,7 +229,7 @@ export default function SugarNotificationsPopover({
               background: 'transparent', cursor: unread === 0 ? 'default' : 'pointer',
               fontFamily: 'inherit', whiteSpace: 'nowrap',
               opacity: unread === 0 ? 0.5 : 1,
-            }}>Tout marquer lu</button>
+            }}>{t('notifications.markAllRead')}</button>
         </div>
 
         {/* Liste */}
@@ -239,7 +242,7 @@ export default function SugarNotificationsPopover({
               }}>
                 <MEIcon name="bell" size={18} color={sp.sub} />
               </div>
-              Aucune notification pour l'instant.
+              {t('notifications.empty')}
             </div>
           )}
           {top.map(n => (
@@ -259,7 +262,7 @@ export default function SugarNotificationsPopover({
         }}>
           <button
             onClick={onMute}
-            title="Pause 2 h"
+            title={t('notifications.pause2h')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 12px', borderRadius: 999, border: 0,
@@ -269,7 +272,7 @@ export default function SugarNotificationsPopover({
             onMouseEnter={e => { e.currentTarget.style.background = sp.cardSubBg }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
             <MEIcon name="calendar" size={13} color={sp.sub} />
-            Pause 2 h
+            {t('notifications.pause2h')}
           </button>
           <div style={{ flex: 1 }} />
           <button
@@ -280,7 +283,7 @@ export default function SugarNotificationsPopover({
               fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
               cursor: 'pointer', whiteSpace: 'nowrap',
               boxShadow: '0 4px 12px rgba(11,12,14,0.18)',
-            }}>Voir toutes les notifications →</button>
+            }}>{t('notifications.seeAll')} →</button>
         </div>
 
         {/* Toast de confirmation (auto-dismiss) */}

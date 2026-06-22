@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cn, formatCHF } from '@/lib/utils'
 
 interface BuyerIntelligenceProps {
@@ -10,20 +11,20 @@ interface BuyerIntelligenceProps {
   className?: string
 }
 
-const TIMING_LABELS: Record<string, string> = {
-  immediate: 'Immédiat',
-  '1-3_months': '1-3 mois',
-  '3-6_months': '3-6 mois',
-  '6-12_months': '6-12 mois',
-  long_term: 'Long terme',
+const TIMING_LABEL_KEY: Record<string, string> = {
+  immediate: 'copilot.buyer.timing.immediate',
+  '1-3_months': 'copilot.buyer.timing.months1to3',
+  '3-6_months': 'copilot.buyer.timing.months3to6',
+  '6-12_months': 'copilot.buyer.timing.months6to12',
+  long_term: 'copilot.buyer.timing.longTerm',
 }
 
-const ENGAGEMENT_LABELS: Record<string, string> = {
-  very_high: 'Très élevé',
-  high: 'Élevé',
-  medium: 'Moyen',
-  low: 'Faible',
-  dormant: 'Dormant',
+const ENGAGEMENT_LABEL_KEY: Record<string, string> = {
+  very_high: 'copilot.buyer.engagement.veryHigh',
+  high: 'copilot.buyer.engagement.high',
+  medium: 'copilot.buyer.engagement.medium',
+  low: 'copilot.buyer.engagement.low',
+  dormant: 'copilot.buyer.engagement.dormant',
 }
 
 function ScoreBar({ value }: { value: number }) {
@@ -47,6 +48,7 @@ export default function BuyerIntelligence({
   budgetEstimatedAi,
   className,
 }: BuyerIntelligenceProps) {
+  const { t } = useTranslation('messages')
   const hasData = seriousnessScore != null || purchaseProbability != null || timing || engagementLevel
 
   if (!hasData) return null
@@ -54,37 +56,37 @@ export default function BuyerIntelligence({
   return (
     <div className={cn('rounded-xl border border-theme-border p-5', className)}>
       <div className="flex items-center gap-2 mb-5">
-        <h2 className="text-sm font-semibold text-theme-primary">Buyer intelligence</h2>
-        <span className="text-xs text-theme-muted">estimation IA</span>
+        <h2 className="text-sm font-semibold text-theme-primary">{t('copilot.buyer.title')}</h2>
+        <span className="text-xs text-theme-muted">{t('copilot.aiEstimate')}</span>
       </div>
 
       <div className="space-y-4">
         {seriousnessScore != null && (
           <div>
-            <p className="text-xs text-theme-secondary mb-1.5">Niveau de sérieux</p>
+            <p className="text-xs text-theme-secondary mb-1.5">{t('copilot.buyer.seriousnessLevel')}</p>
             <ScoreBar value={seriousnessScore} />
           </div>
         )}
 
         {purchaseProbability != null && (
           <div>
-            <p className="text-xs text-theme-secondary mb-1.5">Probabilité d'achat</p>
+            <p className="text-xs text-theme-secondary mb-1.5">{t('copilot.buyer.purchaseProbability')}</p>
             <ScoreBar value={purchaseProbability} />
           </div>
         )}
 
         {(timing || engagementLevel) && (
           <div className="flex gap-6">
-            {timing && TIMING_LABELS[timing] && (
+            {timing && TIMING_LABEL_KEY[timing] && (
               <div>
-                <p className="text-xs text-theme-secondary mb-1">Timing</p>
-                <p className="text-sm font-medium text-theme-primary">{TIMING_LABELS[timing]}</p>
+                <p className="text-xs text-theme-secondary mb-1">{t('copilot.buyer.timingLabel')}</p>
+                <p className="text-sm font-medium text-theme-primary">{t(TIMING_LABEL_KEY[timing])}</p>
               </div>
             )}
-            {engagementLevel && ENGAGEMENT_LABELS[engagementLevel] && (
+            {engagementLevel && ENGAGEMENT_LABEL_KEY[engagementLevel] && (
               <div>
-                <p className="text-xs text-theme-secondary mb-1">Engagement</p>
-                <p className="text-sm font-medium text-theme-primary">{ENGAGEMENT_LABELS[engagementLevel]}</p>
+                <p className="text-xs text-theme-secondary mb-1">{t('copilot.buyer.engagementLabel')}</p>
+                <p className="text-sm font-medium text-theme-primary">{t(ENGAGEMENT_LABEL_KEY[engagementLevel])}</p>
               </div>
             )}
           </div>
@@ -94,12 +96,12 @@ export default function BuyerIntelligence({
           <div className="pt-3 border-t border-theme-border-subtle">
             <div className="flex items-baseline justify-between">
               <div>
-                <p className="text-xs text-theme-secondary mb-0.5">Budget annoncé</p>
+                <p className="text-xs text-theme-secondary mb-0.5">{t('copilot.buyer.budgetAnnounced')}</p>
                 <p className="text-sm font-semibold text-theme-primary">{formatCHF(budgetAnnounced)}</p>
               </div>
               {budgetEstimatedAi != null && budgetEstimatedAi !== budgetAnnounced && (
                 <div className="text-right">
-                  <p className="text-xs text-theme-muted mb-0.5">Estimé · estimation IA</p>
+                  <p className="text-xs text-theme-muted mb-0.5">{t('copilot.buyer.budgetEstimated')}</p>
                   <p className="text-sm font-semibold text-theme-primary">{formatCHF(budgetEstimatedAi)}</p>
                 </div>
               )}

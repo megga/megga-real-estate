@@ -4,6 +4,9 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
+import { meggaProse, MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
+import { persistCopilotTurn, persistenceFlagOn, type ConversationMessage, type ConversationStore } from '../_shared/copilot-persistence.ts'
+import { buildUserContent, resolveAuditEntity } from '../_shared/ai-copilot-request.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,23 +24,13 @@ async function logAiCopilotInteraction(params: {
 }) {
   try {
     const { context } = params
-    const contactId = context?.contact_id as string | undefined
-    const kycCaseId = context?.kyc_case_id as string | undefined
-    const propertyId = context?.property_id as string | undefined
-    const transactionId = context?.transaction_id as string | undefined
     const agencyId = context?.agency_id as string | undefined
 
-    // Only log if interaction is tied to a real CRM entity (otherwise free chat)
-    const entityId = kycCaseId || contactId || propertyId || transactionId
-    if (!entityId) return
-
-    const entityType = kycCaseId
-      ? 'kyc'
-      : contactId
-      ? 'contact'
-      : propertyId
-      ? 'property'
-      : 'transaction'
+    // Only log if interaction is tied to a real CRM entity (otherwise free chat).
+    // Routage pur extrait dans _shared/ai-copilot-request.ts (testé en unité).
+    const resolved = resolveAuditEntity(context)
+    if (!resolved) return
+    const { entityType, entityId } = resolved
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -63,6 +56,87 @@ async function logAiCopilotInteraction(params: {
   }
 }
 
+// Persistance de la conversation copilote (chantier B · phase 2). DOUBLE GATE :
+// (1) le client envoie `persist:true` — seul le CHAT copilote (useCopilot) le fait,
+// pas les actions one-shot ; (2) le flag app_config `copilot_persistence_enabled`
+// vaut 'true'. Défaut = OFF (clé absente ⇒ aucune persistance) : activer = décision
+// nLPD (stocke de la PII CRM au repos). Best-effort, jamais bloquant pour la réponse.
+// Renvoie le conversation_id (nouveau ou réutilisé), ou null si rien persisté.
+async function maybePersistConversation(params: {
+  token: string
+  conversationId: string | null
+  userMessage: string
+  assistantMessage: string
+}): Promise<string | null> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !serviceRoleKey || !params.token) return null
+
+    const admin = createClient(supabaseUrl, serviceRoleKey)
+
+    // Kill-switch (défaut OFF par absence de la clé).
+    const { data: flag } = await admin
+      .from('app_config').select('value').eq('key', 'copilot_persistence_enabled').maybeSingle()
+    if (!persistenceFlagOn(flag?.value)) return null
+
+    // Identité serveur (jamais d'ids fournis par le client).
+    const { data: u } = await admin.auth.getUser(params.token)
+    if (!u?.user) return null
+    const { data: prof } = await admin
+      .from('profiles').select('agency_id').eq('id', u.user.id).maybeSingle()
+    if (!prof?.agency_id) return null
+
+    const store: ConversationStore = {
+      async load(conversationId, userId) {
+        const { data } = await admin
+          .from('ai_copilot_conversations')
+          .select('messages')
+          .eq('id', conversationId)
+          .eq('user_id', userId)
+          .maybeSingle()
+        return data ? (data.messages as ConversationMessage[]) : null
+      },
+      async create(c) {
+        const { data, error } = await admin
+          .from('ai_copilot_conversations')
+          .insert({
+            user_id: c.userId,
+            agency_id: c.agencyId,
+            title: c.title,
+            messages: c.messages,
+            last_message_at: c.lastMessageAt,
+          })
+          .select('id')
+          .single()
+        if (error) throw error
+        return data.id as string
+      },
+      async append(conversationId, userId, messages, lastMessageAt) {
+        // Garde d'appartenance en plus du filtre id (défense en profondeur :
+        // le service client contourne la RLS).
+        const { error } = await admin
+          .from('ai_copilot_conversations')
+          .update({ messages, last_message_at: lastMessageAt })
+          .eq('id', conversationId)
+          .eq('user_id', userId)
+        if (error) throw error
+      },
+    }
+
+    return await persistCopilotTurn(store, {
+      conversationId: params.conversationId,
+      userId: u.user.id,
+      agencyId: prof.agency_id as string,
+      userMessage: params.userMessage,
+      assistantMessage: params.assistantMessage,
+      now: new Date().toISOString(),
+    })
+  } catch {
+    return null // best-effort — ne jamais bloquer la réponse IA
+  }
+}
+
 type CopilotAction =
   | 'chat'
   | 'summarize_contact'
@@ -85,6 +159,10 @@ interface CopilotRequest {
   context?: Record<string, unknown>
   history?: ChatMessage[]
   language?: 'fr' | 'de' | 'en' | 'it'
+  /** Conversation copilote à poursuivre (chantier B · phase 2). null/absent = nouvelle. */
+  conversation_id?: string | null
+  /** Demande de persistance du tour (seul le chat copilote l'envoie). */
+  persist?: boolean
 }
 
 const MEGGA_SYSTEM = `Tu es MEGGA AI, le copilote intelligent de la plateforme MEGGA Real Estate — un CRM immobilier suisse.
@@ -225,7 +303,7 @@ serve(async (req: Request) => {
 
   try {
     const body: CopilotRequest = await req.json()
-    const { action = 'chat', message, context, history = [], language = 'fr' } = body
+    const { action = 'chat', message, context, history = [], language = 'fr', conversation_id = null, persist = false } = body
 
     // ── Auth check (skip for public buyer search) ───────────────────────────
     const isPublicSearch = context?.search_mode === 'public_buyer'
@@ -260,6 +338,10 @@ serve(async (req: Request) => {
     // Build system prompt — switch to buyer search mode if requested
     // (isPublicSearch déjà déclaré dans le bloc auth ci-dessus — réutilisé ici)
     let systemPrompt = isPublicSearch ? MEGGA_SEARCH_SYSTEM : MEGGA_SYSTEM
+    // Style maison (ban em dash / puces, ton sobre suisse) — couche prompt. La
+    // même règle est appliquée en aval par meggaProse() sur la sortie, car le
+    // modèle ignore parfois la consigne (même logique que whatsapp-format).
+    systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
     if (language !== 'fr') {
       systemPrompt += `\n\nLangue de réponse : ${language}`
     }
@@ -316,24 +398,8 @@ serve(async (req: Request) => {
       messages.push({ role: msg.role, content: msg.content })
     }
 
-    // Build the current user message
-    let userContent = message || ''
-
-    // Add action-specific instruction if not free chat
-    if (action !== 'chat' && ACTION_PROMPTS[action]) {
-      userContent = `**Instruction :** ${ACTION_PROMPTS[action]}\n\n**Message :** ${message || 'Exécute cette action.'}`
-    }
-
-    // Add context if available
-    if (context && Object.keys(context).length > 0) {
-      const contextStr = Object.entries(context)
-        .filter(([, v]) => v != null && v !== '')
-        .map(([k, v]) => `- ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
-        .join('\n')
-      if (contextStr) {
-        userContent += `\n\n**Contexte CRM actuel :**\n${contextStr}`
-      }
-    }
+    // Build the current user message (helper pur ai-copilot-request.ts, testé en unité)
+    const userContent = buildUserContent({ action, message: message || '', context, actionPrompts: ACTION_PROMPTS })
 
     messages.push({ role: 'user', content: userContent })
 
@@ -358,7 +424,7 @@ serve(async (req: Request) => {
     }
 
     const deepseekData = await deepseekResponse.json()
-    const result = deepseekData.choices?.[0]?.message?.content || ''
+    const result = meggaProse(deepseekData.choices?.[0]?.message?.content || '')
 
     // LBA/IA audit trail — log toute interaction liée à une entité CRM
     await logAiCopilotInteraction({
@@ -371,10 +437,23 @@ serve(async (req: Request) => {
       success: true,
     })
 
+    // Persistance best-effort de la conversation (double gate persist + flag).
+    let persistedConversationId: string | null = null
+    if (persist && !isPublicSearch) {
+      const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim()
+      persistedConversationId = await maybePersistConversation({
+        token,
+        conversationId: conversation_id,
+        userMessage: message || '',
+        assistantMessage: result,
+      })
+    }
+
     return new Response(
       JSON.stringify({
         result,
         action,
+        conversation_id: persistedConversationId,
         usage: {
           input_tokens: deepseekData.usage?.prompt_tokens,
           output_tokens: deepseekData.usage?.completion_tokens,

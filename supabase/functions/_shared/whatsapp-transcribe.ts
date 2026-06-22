@@ -32,7 +32,7 @@ export async function transcribe(bytes: Uint8Array, mime: string | null, apiKey:
   const res = await fetch(`https://api.deepgram.com/v1/listen?${qs}`, {
     method: 'POST',
     headers: { Authorization: `Token ${apiKey}`, 'Content-Type': mime || 'audio/ogg' },
-    body: bytes,
+    body: bytes as unknown as BodyInit,
     signal: AbortSignal.timeout(20000),
   })
   if (!res.ok) throw new Error(`deepgram HTTP ${res.status}`)

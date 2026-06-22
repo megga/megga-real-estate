@@ -6,6 +6,7 @@
 //  - PAS d'onglet « Bloquants pipeline » ni de filtre `blocking`
 //  - thème dynamique clair ↔ sombre (useKycPalette)
 
+import { useTranslation } from 'react-i18next'
 import { useKycPalette } from './kycPalette'
 import { KycBlackPill, KycGhostPill, KycStatCard } from './kycPrimitives'
 import { SgIcon } from '../icons'
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) {
+  const { t } = useTranslation('kyc')
   const sp = useKycPalette()
   const { data: dossiers = [], isLoading, isError, error, refetch } = useKycDossiers()
 
@@ -72,7 +74,7 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
               lineHeight: 1.05,
             }}
           >
-            Dossiers KYC.
+            {t('list.heading')}
           </h1>
           <p
             style={{
@@ -84,23 +86,21 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
               maxWidth: 580,
             }}
           >
-            Toute transaction immobilière en Suisse exige une vérification documentée
-            de l'identité, du domicile et de l'origine des fonds. Le KYC reste
-            recommandé avant la signature — un rappel doux, jamais bloquant.
+            {t('list.intro')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <KycGhostPill
             icon={<SgIcon name="download" size={14} stroke={sp.inkSoft} />}
           >
-            Exporter
+            {t('list.export')}
           </KycGhostPill>
           <KycBlackPill
             size="lg"
             onClick={onNewDossier}
             icon={<SgIcon name="plus" size={16} stroke={sp.onAccent} sw={2} />}
           >
-            Nouveau dossier
+            {t('list.newDossier')}
           </KycBlackPill>
         </div>
       </div>
@@ -116,17 +116,25 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
           animation: 'sgFadeUp .55s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <KycStatCard label="Vérifiés" value={stats.verified} sub="Transactions autorisées" />
         <KycStatCard
-          label="En cours"
-          value={stats.pending}
-          sub="Pièces manquantes ou screening en attente"
+          label={t('list.stats.verifiedLabel')}
+          value={stats.verified}
+          sub={t('list.stats.verifiedSub')}
         />
-        <KycStatCard label="À démarrer" value={stats.none} sub="Aucun document collecté" />
         <KycStatCard
-          label="Vigilance"
+          label={t('list.stats.pendingLabel')}
+          value={stats.pending}
+          sub={t('list.stats.pendingSub')}
+        />
+        <KycStatCard
+          label={t('list.stats.noneLabel')}
+          value={stats.none}
+          sub={t('list.stats.noneSub')}
+        />
+        <KycStatCard
+          label={t('list.stats.riskLabel')}
           value={stats.risk}
-          sub="Risque modéré ou élevé identifié"
+          sub={t('list.stats.riskSub')}
         />
       </div>
 
@@ -142,19 +150,19 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
         }}
       >
         <KycGhostPill active={filter === 'all'} onClick={() => setFilter('all')}>
-          Tous · {dossiers.length}
+          {t('list.filters.all', { count: dossiers.length })}
         </KycGhostPill>
         <KycGhostPill active={filter === 'pending'} onClick={() => setFilter('pending')}>
-          En cours · {stats.pending}
+          {t('list.filters.pending', { count: stats.pending })}
         </KycGhostPill>
         <KycGhostPill active={filter === 'none'} onClick={() => setFilter('none')}>
-          À démarrer · {stats.none}
+          {t('list.filters.none', { count: stats.none })}
         </KycGhostPill>
         <KycGhostPill active={filter === 'verified'} onClick={() => setFilter('verified')}>
-          Vérifiés · {stats.verified}
+          {t('list.filters.verified', { count: stats.verified })}
         </KycGhostPill>
         <KycGhostPill active={filter === 'risk'} onClick={() => setFilter('risk')}>
-          Risque élevé · {stats.high}
+          {t('list.filters.highRisk', { count: stats.high })}
         </KycGhostPill>
       </div>
 
@@ -187,16 +195,16 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
           >
             <SgIcon name="alert" size={18} stroke={sp.err} sw={2} />
             <div style={{ flex: 1, minWidth: 200 }}>
-              Impossible de charger les dossiers KYC.
+              {t('list.errorTitle')}
               <div style={{ fontSize: 12, fontWeight: 500, color: sp.muted, marginTop: 4 }}>
-                {(error as Error)?.message || 'Erreur réseau ou base de données.'}
+                {(error as Error)?.message || t('list.errorFallback')}
               </div>
             </div>
             <KycGhostPill
               onClick={() => refetch()}
               icon={<SgIcon name="refresh" size={13} stroke={sp.inkSoft} />}
             >
-              Réessayer
+              {t('list.retry')}
             </KycGhostPill>
           </div>
         )}
@@ -214,7 +222,7 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
               fontWeight: 500,
             }}
           >
-            Chargement des dossiers…
+            {t('list.loading')}
           </div>
         )}
         {!isLoading &&
@@ -235,7 +243,7 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
               fontWeight: 500,
             }}
           >
-            Aucun dossier ne correspond à ce filtre.
+            {t('list.emptyFilter')}
           </div>
         )}
       </div>
@@ -257,7 +265,7 @@ export function KycListView({ onOpen, onNewDossier, filter, setFilter }: Props) 
           }}
         >
           <SgIcon name="alert" size={14} stroke={sp.warn} sw={2} />
-          {stats.stale} dossier{stats.stale > 1 ? 's' : ''} à re-screener (échéance dépassée).
+          {t('list.staleCount', { count: stats.stale })}
         </div>
       )}
     </div>

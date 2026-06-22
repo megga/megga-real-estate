@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { SellerPortalData, SellerVisit, SellerActivity, MandateStep } from '@/lib/mockSellerData'
+import type { SellerPortalData, SellerVisit, SellerActivity, SellerOffer, MandateStep } from '@/lib/mockSellerData'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -25,7 +25,70 @@ export interface PortalValidation {
   isRevoked: boolean
   isLoading: boolean
   data: SellerPortalData | null
-  portal: SellerPortalRow | null
+}
+
+// ── Payload de l'edge function seller-portal-action (action get_data) ───────
+// Lignes brutes renvoyées côté serveur (service_role, scopé au token) ;
+// l'assemblage final (KPIs, mapping) reste dans le hook (zéro changement de vue).
+interface PortalProperty {
+  id: string; title: string; address: string; city: string; canton: string
+  postal_code: string; price: number; rooms: number; surface_m2: number
+  type: string; photos: string[] | null; status: string; condition?: string | null; created_at: string
+}
+interface PortalTransaction {
+  id: string; stage: string; status: string; price_offered: number | null
+  price_final: number | null; mandate_type: string | null; created_at: string
+}
+interface PortalVisitRow {
+  id: string; scheduled_at: string; completed_at: string | null
+  status: string; feedback_buyer: string | null; rating: number | null
+}
+interface PortalAgentRow {
+  id: string; full_name: string | null; phone: string | null; email: string | null; avatar_url: string | null
+}
+interface PortalEventRow { id: string; action: string; metadata: unknown; created_at: string }
+interface PortalSellerLead {
+  estimation_min: number | null; estimation_max: number | null; estimation_median: number | null
+  estimation_confidence: string | null; comparable_count: number | null
+}
+interface PortalOfferRow {
+  id: string; amount: number; status: string; kind: string
+  parent_offer_id: string | null; conditions: unknown; created_at: string
+}
+interface GetDataPayload {
+  ok: boolean
+  reason?: 'invalid' | 'expired' | 'revoked'
+  portal?: { id: string; created_at: string; view_count: number; property_id: string }
+  property?: PortalProperty | null
+  transaction?: PortalTransaction | null
+  visits?: PortalVisitRow[]
+  agent?: PortalAgentRow | null
+  events?: PortalEventRow[]
+  sellerLead?: PortalSellerLead | null
+  offers?: PortalOfferRow[]
+}
+
+// ── Mapping crm_offers (réel) → SellerOffer (vue vendeur) ──────────────────
+function mapOfferStatus(o: { status: string; kind: string }): SellerOffer['status'] {
+  if (o.status === 'accepted') return 'accepted'
+  if (o.status === 'rejected' || o.status === 'withdrawn') return 'rejected'
+  if (o.status === 'expired') return 'expired'
+  return o.kind === 'counter' ? 'counter_offer' : 'pending'
+}
+
+// conditions JSONB de l'offre → texte lisible (toggles standards + 'autres') ; null si rien.
+function conditionsToText(c: unknown): string | null {
+  if (!c) return null
+  if (typeof c === 'string') return c.trim() || null
+  if (typeof c !== 'object') return null
+  const o = c as Record<string, unknown>
+  const parts: string[] = []
+  if (o.financing) parts.push('Sous réserve de financement')
+  if (o.sale) parts.push('Sous réserve de vente du bien de l\'acquéreur')
+  if (o.diagnostic) parts.push('Sous réserve de diagnostic')
+  if (o.occupancy) parts.push('Condition d\'occupation')
+  if (typeof o.autres === 'string' && o.autres.trim()) parts.push(o.autres.trim())
+  return parts.length ? parts.join(' · ') : null
 }
 
 // ── Map transaction stage to mandate step ────────────────────────────────
@@ -79,92 +142,27 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
     queryFn: async () => {
       if (!token) return null
 
-      // 1. Fetch portal by token
-      const { data: portal, error: portalErr } = await supabase
-        .from('seller_portals')
-        .select('id, agency_id, contact_id, property_id, agent_id, status, created_at, expires_at, last_viewed_at, view_count')
-        .eq('token', token)
-        .single()
-
-      if (portalErr || !portal) return { portal: null, isRevoked: false, isExpired: false }
-
-      const portalRow = portal as SellerPortalRow
-
-      if (portalRow.status === 'revoked') {
-        return { portal: portalRow, isRevoked: true, isExpired: false }
+      // Lecture via edge function token-validée (service_role côté serveur). AUCUNE
+      // requête anon directe : un lien fuité n'accède qu'aux données de SON token
+      // (blast radius minimal — cf. seller-portal-action, même pattern que les écritures).
+      const { data: res, error: invokeErr } = await supabase.functions.invoke(
+        'seller-portal-action',
+        { body: { token, action: 'get_data' } },
+      )
+      const payload = (res ?? null) as GetDataPayload | null
+      if (invokeErr || !payload) return { isRevoked: false, isExpired: false, data: null }
+      if (!payload.ok) {
+        return { isRevoked: payload.reason === 'revoked', isExpired: payload.reason === 'expired', data: null }
       }
 
-      if (portalRow.status === 'expired' || new Date(portalRow.expires_at) < new Date()) {
-        return { portal: portalRow, isRevoked: false, isExpired: true }
-      }
-
-      // 2. Record view (fire & forget)
-      supabase
-        .from('seller_portals')
-        .update({
-          last_viewed_at: new Date().toISOString(),
-          view_count: (portalRow.view_count || 0) + 1,
-        })
-        .eq('id', portalRow.id)
-        .then(() => {})
-
-      // 3. Load all related data in parallel
-      const [, propertyRes, transactionRes, visitsRes, agentRes, eventsRes, sellerLeadRes] = await Promise.all([
-        // Contact (reserved for future enrichment)
-        supabase
-          .from('contacts')
-          .select('id, first_name, last_name, email, phone')
-          .eq('id', portalRow.contact_id)
-          .single(),
-        // Property
-        supabase
-          .from('properties')
-          .select('id, title, address, city, canton, postal_code, price, rooms, surface_m2, type, photos, status, condition, created_at')
-          .eq('id', portalRow.property_id)
-          .single(),
-        // Transaction
-        supabase
-          .from('transactions')
-          .select('id, stage, status, price_offered, price_final, mandate_type, created_at')
-          .eq('property_id', portalRow.property_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single(),
-        // Visits
-        supabase
-          .from('visits')
-          .select('id, scheduled_at, completed_at, status, feedback_buyer, rating')
-          .eq('property_id', portalRow.property_id)
-          .order('scheduled_at', { ascending: false }),
-        // Agent profile
-        supabase
-          .from('profiles')
-          .select('id, full_name, phone, email, avatar_url')
-          .eq('id', portalRow.agent_id)
-          .single(),
-        // Activity events
-        supabase
-          .from('activity_events')
-          .select('id, action, metadata, created_at')
-          .or(`entity_id.eq.${portalRow.property_id},entity_id.eq.${portalRow.contact_id}`)
-          .order('created_at', { ascending: false })
-          .limit(20),
-        // Seller lead (for estimation data)
-        supabase
-          .from('seller_leads')
-          .select('estimation_min, estimation_max, estimation_median, estimation_confidence, comparable_count')
-          .eq('contact_id', portalRow.contact_id)
-          .eq('property_id', portalRow.property_id)
-          .limit(1)
-          .single(),
-      ])
-
-      const property = propertyRes.data
-      const transaction = transactionRes.data
-      const visits = visitsRes.data || []
-      const agent = agentRes.data
-      const events = eventsRes.data || []
-      const sellerLead = sellerLeadRes.data
+      const property = payload.property ?? null
+      const transaction = payload.transaction ?? null
+      const visits = payload.visits ?? []
+      const agent = payload.agent ?? null
+      const events = payload.events ?? []
+      const sellerLead = payload.sellerLead ?? null
+      const offers = payload.offers ?? []
+      const portalRow = payload.portal ?? { id: '', created_at: new Date().toISOString(), view_count: 0, property_id: '' }
 
       // 4. Build SellerPortalData
       const mandateStep = stageToMandateStep(transaction?.stage || null)
@@ -199,7 +197,7 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
             const now = new Date()
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
           }).length,
-          offers_total: transaction?.price_offered ? 1 : 0,
+          offers_total: offers.length,
           online_views: portalRow.view_count || 0,
           days_on_market: daysOnMarket,
           current_step: mandateStep,
@@ -211,16 +209,13 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
           feedback: v.feedback_buyer || null,
           rating: v.rating || null,
         })),
-        offers: transaction?.price_offered ? [{
-          id: transaction.id,
-          amount: transaction.price_offered,
-          status: transaction.stage === 'offer' ? 'pending' as const :
-                  transaction.stage === 'negotiation' ? 'counter_offer' as const :
-                  transaction.stage === 'reserved' || transaction.stage === 'signed' ? 'accepted' as const :
-                  'pending' as const,
-          received_at: transaction.created_at,
-          conditions: null,
-        }] : [],
+        offers: offers.map((o): SellerOffer => ({
+          id: o.id,
+          amount: o.amount,
+          status: mapOfferStatus(o),
+          received_at: o.created_at,
+          conditions: conditionsToText(o.conditions),
+        })),
         activities: events.map((e): SellerActivity => ({
           id: e.id,
           type: mapActivityType(e.action),
@@ -242,7 +237,7 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
         } : undefined,
       }
 
-      return { portal: portalRow, isRevoked: false, isExpired: false, data: portalData }
+      return { isRevoked: false, isExpired: false, data: portalData }
     },
     enabled: !!token,
     staleTime: 60_000,
@@ -250,19 +245,23 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
   })
 
   if (!token || isLoading) {
-    return { isValid: false, isExpired: false, isRevoked: false, isLoading, data: null, portal: null }
+    return { isValid: false, isExpired: false, isRevoked: false, isLoading, data: null }
   }
 
-  if (!data || !data.portal) {
-    return { isValid: false, isExpired: false, isRevoked: false, isLoading: false, data: null, portal: null }
+  if (!data) {
+    return { isValid: false, isExpired: false, isRevoked: false, isLoading: false, data: null }
   }
 
   if (data.isRevoked) {
-    return { isValid: false, isExpired: false, isRevoked: true, isLoading: false, data: null, portal: data.portal }
+    return { isValid: false, isExpired: false, isRevoked: true, isLoading: false, data: null }
   }
 
   if (data.isExpired) {
-    return { isValid: false, isExpired: true, isRevoked: false, isLoading: false, data: null, portal: data.portal }
+    return { isValid: false, isExpired: true, isRevoked: false, isLoading: false, data: null }
+  }
+
+  if (!data.data) {
+    return { isValid: false, isExpired: false, isRevoked: false, isLoading: false, data: null }
   }
 
   return {
@@ -270,8 +269,7 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
     isExpired: false,
     isRevoked: false,
     isLoading: false,
-    data: data.data || null,
-    portal: data.portal,
+    data: data.data,
   }
 }
 

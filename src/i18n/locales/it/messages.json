@@ -9,6 +9,486 @@
     "send": "Inviare"
   },
   "empty_state": "Selezionare una conversazione",
-  "filter": { "all": "Tutti", "unread": "Non letti", "buyers": "Acquirenti", "sellers": "Venditori" },
-  "search_placeholder": "Ricerca..."
+  "filter": {
+    "all": "Tutti",
+    "unread": "Non letti",
+    "buyers": "Acquirenti",
+    "sellers": "Venditori"
+  },
+  "search_placeholder": "Ricerca...",
+  "chat": {
+    "title": "Chat",
+    "unreadCount_one": "{{count}} unread",
+    "unreadCount_other": "{{count}} unread",
+    "searchAriaLabel": "Search a conversation",
+    "aiAssistantTagline": "Your smart assistant",
+    "noConversations": "No conversations.",
+    "conversationWith": "Conversation with {{name}}",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "compactDate": {
+      "now": "now",
+      "minutes": "{{count}}m",
+      "hours": "{{count}}h",
+      "days": "{{count}}d",
+      "weeks": "{{count}}w",
+      "months": "{{count}}mo"
+    },
+    "showProfile": "Show profile",
+    "removePin": "Remove pin",
+    "noMessagesYet": "No messages yet",
+    "sendToStart": "Send a message to start the conversation",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "cancelReply": "Cancel reply",
+    "replyToPlaceholder": "Reply to {{name}}...",
+    "messageToPlaceholder": "Message to {{name}}...",
+    "contactType": {
+      "buyer": "Buyer",
+      "seller": "Seller"
+    },
+    "score": {
+      "hot": "Hot",
+      "warm": "Warm",
+      "cold": "Cold"
+    },
+    "menu": {
+      "reply": "Reply",
+      "copyText": "Copy text",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "transferToAi": "Transfer to MEGGA AI"
+    },
+    "matchStatus": {
+      "interested": "Interested",
+      "visit": "Viewing",
+      "sent": "Sent"
+    },
+    "propertyStatus": {
+      "active": "Active",
+      "reserved": "Reserved",
+      "sold": "Sold",
+      "draft": "Draft"
+    },
+    "transferToAiPrompt": "Analyse this message from {{name}}: \"{{message}}\"",
+    "panel": {
+      "profile": "Profile",
+      "closeProfile": "Close profile",
+      "seriousnessScore": "Seriousness score",
+      "scoreOutOf": "{{score}}/100",
+      "aiEstimate": "AI estimate",
+      "contact": "Contact",
+      "phone": "Phone",
+      "email": "Email",
+      "pipeline": "Pipeline",
+      "noActiveDeal": "No active deal",
+      "lastInteraction": "Last interaction",
+      "budget": "Budget",
+      "budgetAnnounced": "Stated",
+      "budgetEstimatedAi": "AI estimate",
+      "tags": "Tags",
+      "addTag": "+ Add",
+      "removeTag": "Remove tag {{tag}}",
+      "noTag": "No tags",
+      "newTagPlaceholder": "New tag...",
+      "addTagAriaLabel": "Add a tag",
+      "addTagConfirm": "OK",
+      "notes": "Notes",
+      "saving": "Saving...",
+      "notesPlaceholder": "Notes on this contact...",
+      "nextAction": "Next action",
+      "nextActionHigh": "Offer a viewing, this contact is highly engaged",
+      "nextActionMedium": "Send similar properties to keep them interested",
+      "nextActionLow": "Follow up with a new property or a price drop",
+      "recentActivity": "Recent activity",
+      "you": "You",
+      "noActivity": "No activity",
+      "matching": "Matching",
+      "compatibleProperties_one": "{{count}} matching property",
+      "compatibleProperties_other": "{{count}} matching properties",
+      "bestMatch": "Best: {{score}}%, {{title}}",
+      "propertyFallback": "Property",
+      "sentProperties": "Properties sent",
+      "moreCount_one": "+{{count}} other",
+      "moreCount_other": "+{{count}} others",
+      "askAi": "Ask MEGGA AI",
+      "askAiPrompt": "Summarise the contact {{name}} for me",
+      "viewFullProfile": "View full profile",
+      "linkedProperty": "Linked property",
+      "propertySummary": "{{price}} · {{rooms}} rms · {{surface}} m²",
+      "roomsCount_one": "{{count}} room",
+      "roomsCount_other": "{{count}} rooms",
+      "bedroomsCount_one": "{{count}} bd",
+      "bedroomsCount_other": "{{count}} bd",
+      "floorLabel": "Floor {{floor}}",
+      "viewFullListing": "View full listing",
+      "linkedToConversation": "Property linked to this conversation",
+      "conversation": "Conversation",
+      "messagesCount": "Messages",
+      "firstMessage": "First message",
+      "lastMessage": "Last message"
+    },
+    "input": {
+      "placeholder": "Ask me anything...",
+      "clearContext": "Clear context",
+      "cancelRecording": "Cancel recording",
+      "stopAndTranscribe": "Stop and transcribe",
+      "removeFile": "Remove file",
+      "fileTooLarge": "File too large (max {{size}} MB)",
+      "askAbout": "Ask about {{name}}...",
+      "messageAriaLabel": "Message",
+      "attachFile": "Attach a file",
+      "hintCommand": "/command",
+      "hintContact": "@contact",
+      "hintProperty": "#property",
+      "voiceMemo": "Voice memo",
+      "micError": "Cannot access the microphone. Check your permissions."
+    },
+    "slash": {
+      "summary": {
+        "desc": "Summarise a contact or the portfolio",
+        "insert": "Summarise "
+      },
+      "followUp": {
+        "desc": "Draft a follow-up email/message",
+        "insert": "Draft a follow-up for "
+      },
+      "matching": {
+        "desc": "Find properties for a contact",
+        "insert": "Which properties to offer "
+      },
+      "analysis": {
+        "desc": "Analyse the market or a property",
+        "insert": "Analyse the market for "
+      },
+      "mandate": {
+        "desc": "Prepare a sales mandate",
+        "insert": "Prepare a mandate for "
+      },
+      "actions": {
+        "desc": "See the next actions",
+        "insert": "What are the next actions?"
+      },
+      "kyc": {
+        "desc": "Check a contact's compliance",
+        "insert": "Check the KYC file for "
+      },
+      "offer": {
+        "desc": "Analyse or draft an offer",
+        "insert": "Analyse the offer for "
+      }
+    }
+  },
+  "copilot": {
+    "aiEstimate": "AI estimate",
+    "negotiation": {
+      "title": "Negotiation copilot",
+      "aiBadge": "AI suggestion",
+      "askingPrice": "Asking price",
+      "gap": "Gap",
+      "offerReceived": "Offer received",
+      "recommendedStrategy": "Recommended strategy",
+      "buyerInterest": "Buyer interest:",
+      "daysOnMarket_one": "{{count}} day on market",
+      "daysOnMarket_other": "{{count}} days on market",
+      "visits_one": "{{count}} visit",
+      "visits_other": "{{count}} visits",
+      "disclaimer": "Decision support, not a formal recommendation.",
+      "interest": {
+        "veryHigh": "Very high",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "tiers": {
+        "symbolic": {
+          "strategy": "Accept or make a symbolic counter-offer",
+          "counterOffer": "Counter-offer at -1% of the asking price",
+          "reasoning": "The gap is small ({{gap}}%). With {{visits}} visits and {{days}} days on market, the market confirms the price. Negotiating too hard risks losing the buyer."
+        },
+        "moderate": {
+          "strategy": "Moderate counter-offer",
+          "counterOffer": "Counter-offer at the midpoint (-{{mid}}%)",
+          "reasoning": "The {{gap}}% gap is within the usual negotiation range. Propose a midpoint compromise to keep the buyer engaged while protecting value."
+        },
+        "hold": {
+          "strategy": "Hold the price with supporting arguments",
+          "counterOffer": "Counter-offer at -3% maximum",
+          "reasoningLong": "The {{gap}}% gap is significant. However, the property has been on the market for a while, consider an adjustment.",
+          "reasoningMarket": "The {{gap}}% gap is significant. The price is justified by the market, present the comparables."
+        },
+        "tooLow": {
+          "strategy": "Offer too low, decline politely",
+          "counterOffer": "Hold the asking price",
+          "reasoningInterest": "The {{gap}}% gap is too large. The property has drawn interest ({{visits}} visits), other buyers are possible.",
+          "reasoningBudget": "The {{gap}}% gap is too large. Suggest the buyer revisit their budget."
+        }
+      }
+    },
+    "objections": {
+      "title": "Objection analysis",
+      "aiBadge": "AI analysis",
+      "basedOnVisits_one": "Based on feedback from {{count}} visit.",
+      "basedOnVisits_other": "Based on feedback from {{count}} visits.",
+      "recurring": "Recurring objections",
+      "weaknesses": "Identified weaknesses",
+      "adjustments": "Adjustment suggestions",
+      "impact": {
+        "high": "High impact",
+        "medium": "Moderate impact",
+        "low": "Low impact"
+      },
+      "disclaimer": "AI analysis of visit feedback, anonymised data."
+    },
+    "seller": {
+      "title": "Seller intelligence",
+      "tensionLevel": "Tension level",
+      "priceReductionProbability": "Price reduction probability",
+      "dissatisfactionRisk": "Dissatisfaction risk",
+      "urgencyLabel": "Urgency",
+      "daysOnMarket": "Days on market",
+      "totalVisits": "Total visits",
+      "tension": {
+        "calm": "Calm",
+        "moderate": "Moderate",
+        "tense": "Tense",
+        "critical": "Critical"
+      },
+      "urgency": {
+        "notUrgent": "Not urgent",
+        "moderate": "Moderate",
+        "urgent": "Urgent",
+        "veryUrgent": "Very urgent"
+      }
+    },
+    "buyer": {
+      "title": "Buyer intelligence",
+      "seriousnessLevel": "Seriousness level",
+      "purchaseProbability": "Purchase probability",
+      "timingLabel": "Timing",
+      "engagementLabel": "Engagement",
+      "budgetAnnounced": "Stated budget",
+      "budgetEstimated": "Estimated · AI estimate",
+      "timing": {
+        "immediate": "Immediate",
+        "months1to3": "1-3 months",
+        "months3to6": "3-6 months",
+        "months6to12": "6-12 months",
+        "longTerm": "Long term"
+      },
+      "engagement": {
+        "veryHigh": "Very high",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low",
+        "dormant": "Dormant"
+      }
+    }
+  },
+  "julien": {
+    "greeting": {
+      "lateNight": "Still here, {{name}}?",
+      "morning": "Good morning, {{name}}",
+      "midday": "Good day, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}",
+      "night": "Good evening, {{name}}"
+    },
+    "subgreeting": {
+      "earlyMorning": "How shall we start the day?",
+      "morning": "What can I prepare for you this morning?",
+      "midday": "Taking a break? I can recap the morning.",
+      "afternoon": "Ready to tackle the afternoon?",
+      "endOfDay": "Let's wrap up the day together.",
+      "weekend": "Shall we prepare for next week?",
+      "default": "How can I help you?"
+    },
+    "promptPlaceholder": "How can I help you?",
+    "error": {
+      "failed": "Sorry, I couldn't process your request. Please try again."
+    },
+    "actions": {
+      "copy": "Copy",
+      "copied": "Copied!"
+    },
+    "email": {
+      "draftTitle": "Email draft",
+      "notSent": "Not sent",
+      "copyEmail": "Copy email",
+      "copied": "Copied",
+      "toLabel": "To",
+      "subjectLabel": "Subject",
+      "noSubject": "(no subject)"
+    },
+    "suggestions": {
+      "pipeline": {
+        "analyze": {
+          "label": "Analyze my pipeline",
+          "prompt": "Analyze my current pipeline: where are the bottlenecks, which opportunities should I prioritize?"
+        },
+        "followUp": {
+          "label": "Follow up on stalled deals",
+          "prompt": "Draft a follow-up message for my deals that have been stalled for more than 14 days."
+        },
+        "nextActions": {
+          "label": "Next actions",
+          "prompt": "What are the next 3 concrete actions to take on my pipeline?"
+        }
+      },
+      "biens": {
+        "premiumListing": {
+          "label": "Premium listing",
+          "prompt": "Write a premium listing for the property I just viewed, in the MEGGA tone, highlighting its strengths."
+        },
+        "comparableEstimate": {
+          "label": "Comparable estimate",
+          "prompt": "Give me a quick comparable estimate for this property based on recent transactions in the neighbourhood."
+        },
+        "ownerPitch": {
+          "label": "Owner pitch",
+          "prompt": "Prepare a pitch to convince the owner to sign an exclusive mandate."
+        }
+      },
+      "contacts": {
+        "checkInEmail": {
+          "label": "Check-in email",
+          "prompt": "Draft a warm check-in email for a contact I haven't followed up with in a while."
+        },
+        "prepareCall": {
+          "label": "Prepare a call",
+          "prompt": "Prepare 5 open-ended questions to qualify a new buyer contact."
+        },
+        "followUpPlan": {
+          "label": "Follow-up plan",
+          "prompt": "Build a gradual 3-week follow-up plan for my inactive contacts."
+        }
+      },
+      "matching": {
+        "email": {
+          "label": "Matching email",
+          "prompt": "Draft an email presenting a matched property to a buyer, with tailored arguments."
+        },
+        "refineCriteria": {
+          "label": "Refine criteria",
+          "prompt": "Help me refine a buyer's search criteria to improve matching."
+        },
+        "relevance": {
+          "label": "Match relevance",
+          "prompt": "Analyze the relevance of the current matches: which are the real top matches?"
+        }
+      },
+      "calendar": {
+        "prepareToday": {
+          "label": "Prepare today's appointments",
+          "prompt": "List today's appointments with a concise brief for each one."
+        },
+        "confirmVisits": {
+          "label": "Confirm viewings",
+          "prompt": "Draft a short confirmation text message for my scheduled viewings."
+        },
+        "visitRecap": {
+          "label": "Post-viewing recap",
+          "prompt": "A recap template to send after a property viewing."
+        }
+      },
+      "docs": {
+        "checklist": {
+          "label": "Sale agreement checklist",
+          "prompt": "Give me the full checklist of points to verify before signing a preliminary sale agreement in Geneva."
+        },
+        "clause": {
+          "label": "Specific clause",
+          "prompt": "Draft a conditions precedent clause for bank financing."
+        },
+        "mandateTemplate": {
+          "label": "Mandate template",
+          "prompt": "Generate an exclusive sale mandate template compliant with Swiss law."
+        }
+      },
+      "today": {
+        "summary": {
+          "label": "Summarize my deals",
+          "prompt": "Give me a summary of my currently active deals."
+        },
+        "priorities": {
+          "label": "Today's priorities",
+          "prompt": "What are my 3 top priorities today based on my schedule?"
+        },
+        "weekOutlook": {
+          "label": "Week outlook",
+          "prompt": "Week overview: what's progressing, what's blocked, what's missing."
+        }
+      },
+      "earlyMorning": {
+        "appointments": {
+          "label": "Today's appointments",
+          "prompt": "Summarize today's appointments with a brief for each one."
+        },
+        "priorities": {
+          "label": "Morning priorities",
+          "prompt": "What are my 3 priorities to tackle this morning?"
+        },
+        "emails": {
+          "label": "Emails to send",
+          "prompt": "Which emails should I send first this morning?"
+        }
+      },
+      "midday": {
+        "progress": {
+          "label": "Morning progress",
+          "prompt": "Recap what has progressed on my deals this morning."
+        },
+        "visitFollowUp": {
+          "label": "Viewing follow-up email",
+          "prompt": "Draft a professional follow-up email after a viewing for an apartment in Geneva."
+        },
+        "genevaMarket": {
+          "label": "Geneva market",
+          "prompt": "Quick analysis of the Geneva real estate market: trends, time on market, active segments."
+        }
+      },
+      "afternoon": {
+        "visitFollowUp": {
+          "label": "Viewing follow-up",
+          "prompt": "Draft a professional follow-up email after a viewing for an apartment in Geneva."
+        },
+        "summary": {
+          "label": "Summarize my deals",
+          "prompt": "Give me a summary of my currently active deals."
+        },
+        "remaining": {
+          "label": "Left to do today",
+          "prompt": "What's left for me to wrap up today?"
+        }
+      },
+      "friday": {
+        "weekReview": {
+          "label": "Week review",
+          "prompt": "Review of my week: wins, points of attention, deals to pick up on Monday."
+        },
+        "prepareMonday": {
+          "label": "Prepare for Monday",
+          "prompt": "List the key actions for a strong start on Monday morning."
+        },
+        "endOfWeekEmails": {
+          "label": "End-of-week emails",
+          "prompt": "Draft an end-of-week email to send to my active clients."
+        }
+      },
+      "evening": {
+        "dayReview": {
+          "label": "Day review",
+          "prompt": "Review my day: what progressed, what's left."
+        },
+        "prepareTomorrow": {
+          "label": "Prepare for tomorrow",
+          "prompt": "What are the 3 priority actions to prepare for tomorrow?"
+        },
+        "endOfDayEmail": {
+          "label": "End-of-day email",
+          "prompt": "Draft an end-of-day email to a client awaiting a reply."
+        }
+      }
+    }
+  }
 }

@@ -56,7 +56,53 @@
     "language": "Lingua",
     "languageHint": "Lingua dell'interfaccia MEGGA.",
     "save": "Salvare",
-    "logout": "Disconnettersi"
+    "logout": "Disconnettersi",
+    "identityTitle": "Identity",
+    "function": "Role",
+    "rcc": "RCC number",
+    "contactTitle": "Contact",
+    "emailPro": "Work email",
+    "mobile": "Mobile phone",
+    "landline": "Landline",
+    "agency": "Agency",
+    "agencyHint": "Editable from the My agency tab",
+    "publicPresentationTitle": "Public presentation",
+    "bioPlaceholder": "Introduce yourself in a few sentences…",
+    "signatureEmailTitle": "Email signature",
+    "signatureLabel": "Signature",
+    "signaturePlaceholder": "Best regards,\nYour name\nAgency · Phone",
+    "signatureMode": {
+      "text": "Text",
+      "html": "HTML"
+    },
+    "signatureHtml": {
+      "codeLabel": "HTML code",
+      "import": "Import .html",
+      "preview": "Preview",
+      "placeholder": "<table>…paste your signature HTML code here…</table>",
+      "hint": "Paste the HTML exported from your signature generator. Outgoing emails embed it as is.",
+      "empty": "No HTML content."
+    },
+    "changePhoto": "Change photo",
+    "loading": "Loading profile…",
+    "avatarModal": {
+      "dragHint": "Drag to reposition, scroll to zoom.",
+      "formatHint": "Square recommended · JPG or PNG.",
+      "recenter": "Recenter",
+      "browse": "Browse for an image",
+      "remove": "Remove photo",
+      "apply": "Apply"
+    },
+    "cancelConfirm": {
+      "title": "Discard changes?",
+      "desc": "Your changes will be lost. This action cannot be undone.",
+      "confirm": "Discard changes"
+    },
+    "toast": {
+      "sessionExpired": "Session expired, sign in again to save",
+      "saved": "Profile saved",
+      "saveError": "Error while saving"
+    }
   },
   "agency": {
     "title": "Informazioni dell'agenzia",
@@ -68,7 +114,13 @@
     "name": "Nome dell'agenzia",
     "slogan": "Slogan",
     "sloganPlaceholder": "La vostra specialità in una frase",
-    "address": "Indirizzo",
+    "address": {
+      "searchPlaceholder": "Search for an address in Switzerland…",
+      "done": "Done",
+      "adjustManually": "Adjust manually",
+      "streetAndNumber": "Street and number",
+      "npa": "Postal code"
+    },
     "city": "Città",
     "canton": "Cantone",
     "postalCode": "Codice postale",
@@ -95,7 +147,65 @@
     "saved": "Salvato",
     "saving": "Salvataggio...",
     "cancel": "Annullare",
-    "save": "Salvare"
+    "save": "Salvare",
+    "logoAlt": "Agency logo",
+    "editLogo": "Edit logo",
+    "myAgency": "My agency",
+    "nameUndefined": "Name not set",
+    "ide": "UID number",
+    "vat": "VAT no.",
+    "headquarters": "Head office",
+    "country": "Country",
+    "legalIdentityTitle": "Legal identity",
+    "commercialName": "Trade name",
+    "foundedYear": "Year founded",
+    "legalName": "Legal name",
+    "headquartersTitle": "Head office address",
+    "publicContactTitle": "Public contact details",
+    "publicPresentationTitle": "Public presentation",
+    "aboutPlaceholder": "Boutique agency specialized in…",
+    "loading": "Loading agency…",
+    "empty": {
+      "title": "No agency linked",
+      "description": "Your profile is not linked to any agency. Contact your administrator to join one."
+    },
+    "targets": {
+      "title": "Sales targets",
+      "yearlyLabel": "Annual target (commissions, CHF)",
+      "split": "Split automatically: {{monthly}}/month · {{quarterly}}/quarter",
+      "empty": "No target set, the Dashboard hides pace and projection until a target is entered.",
+      "save": "Save target",
+      "toastSaved": "Sales target saved",
+      "toastError": "Error while saving the target"
+    },
+    "logoModal": {
+      "title": "Agency logo",
+      "subtitle": "Upload an image, then adjust the crop.",
+      "dropHere": "Drag an image here",
+      "or": "or",
+      "browseFiles": "browse your files",
+      "autoFrame": "Auto-frame",
+      "autoFrameTitle": "Auto-recenter",
+      "remove": "Remove logo",
+      "apply": "Apply",
+      "successTitle": "Logo updated",
+      "successDesc": "The new logo has been saved for your agency."
+    },
+    "cancelConfirm": {
+      "title": "Discard changes?",
+      "desc": "Your changes will be lost. This action cannot be undone.",
+      "confirm": "Discard changes"
+    },
+    "toast": {
+      "noAgency": "No agency linked to your profile",
+      "saved": "Agency saved",
+      "saveError": "Error while saving",
+      "logoRemoved": "Logo removed",
+      "logoRemoveError": "Error while removing the logo",
+      "logoUploadError": "The logo could not be uploaded, local preview only",
+      "logoUpdated": "Logo updated",
+      "logoSaveError": "Error while saving the logo"
+    }
   },
   "team": {
     "title": "Team",
@@ -138,10 +248,29 @@
       "invited": "Invitato"
     },
     "permissions": {
-      "admin": ["Accesso completo alle impostazioni", "Gestione fatturazione", "Gestione del team", "Tutti i contatti e immobili"],
-      "manager": ["Supervisione agenti", "Accesso alle transazioni", "Gestione pipeline", "Report e analisi"],
-      "agent": ["Gestione dei propri contatti", "Gestione dei propri immobili", "Pipeline personale", "Messaggistica"],
-      "assistant": ["Accesso in sola lettura", "Supporto amministrativo", "Consultazione fascicoli"]
+      "admin": [
+        "Accesso completo alle impostazioni",
+        "Gestione fatturazione",
+        "Gestione del team",
+        "Tutti i contatti e immobili"
+      ],
+      "manager": [
+        "Supervisione agenti",
+        "Accesso alle transazioni",
+        "Gestione pipeline",
+        "Report e analisi"
+      ],
+      "agent": [
+        "Gestione dei propri contatti",
+        "Gestione dei propri immobili",
+        "Pipeline personale",
+        "Messaggistica"
+      ],
+      "assistant": [
+        "Accesso in sola lettura",
+        "Supporto amministrativo",
+        "Consultazione fascicoli"
+      ]
     },
     "actions": {
       "changeRole": "Modificare il ruolo",
@@ -213,6 +342,34 @@
         "label": "Promemoria calendario",
         "description": "Promemoria per gli eventi in programma"
       }
+    },
+    "header": {
+      "kicker": "Notifications",
+      "title": "Choose the channels that alert you",
+      "sub": "MEGGA notifies you on the channels enabled below: new client messages, offers, visits, signatures."
+    },
+    "channels": {
+      "email": {
+        "label": "Email",
+        "desc": "Main notifications by email"
+      },
+      "sms": {
+        "label": "SMS",
+        "desc": "For urgent matters (offers, signatures)"
+      },
+      "whatsapp": {
+        "label": "WhatsApp",
+        "desc": "Client messages received on your business number"
+      },
+      "inapp": {
+        "label": "In the CRM",
+        "desc": "CRM notification bell"
+      }
+    },
+    "toast": {
+      "sessionExpired": "Session expired, sign in again to save",
+      "saved": "Notifications saved",
+      "saveError": "Error while saving"
     }
   },
   "security": {
@@ -229,22 +386,91 @@
       "update": "Aggiornare",
       "changing": "Modifica in corso...",
       "success": "Password modificata con successo.",
-      "error": "Errore durante la modifica della password."
+      "error": "Errore durante la modifica della password.",
+      "descView": "The master key to your MEGGA account.",
+      "descEdit": "Choose a new key, at least 8 characters.",
+      "descForgot": "No need for the old one, we'll send you a secure link.",
+      "descSent": "Reset link sent.",
+      "encryptedNote": "Encrypted · never shown in plain text",
+      "currentLabel": "Current password",
+      "currentPlaceholder": "Current key",
+      "forgotLink": "Forgot your password?",
+      "newLabel": "New password",
+      "newPlaceholder": "New key",
+      "confirmLabel": "Confirm",
+      "confirmPlaceholder": "Repeat the key",
+      "keysMatch": "The keys match",
+      "keysMismatch": "The keys don't match",
+      "sentTo": "Sent to",
+      "forgotInfo": "The link expires in 1 h. For security, review your sessions after resetting.",
+      "sendLink": "Send the link",
+      "checkInbox": "Check your inbox",
+      "sentBody": "Open the link sent to <b>{{email}}</b> to set a new key. It expires in 1 h.",
+      "nothingReceived": "Nothing received?",
+      "resendIn_one": "Resend in {{count}}s",
+      "resendIn_other": "Resend in {{count}}s",
+      "resend": "Resend",
+      "done": "Done",
+      "changedTitle": "Password changed",
+      "changedSub": "End-to-end encrypted · just now.",
+      "show": "Show",
+      "hide": "Hide",
+      "strengthTooShort": "Too short",
+      "strengthWeak": "Weak",
+      "strengthMedium": "Medium",
+      "strengthGood": "Good",
+      "strengthStrong": "Strong"
     },
     "twoFactor": {
-      "title": "Autenticazione a due fattori",
-      "enabled": "Attivata — il Suo account è protetto",
-      "disabled": "Disattivata — consigliata per maggiore sicurezza",
+      "title": "Two-factor authentication",
+      "enabled": "Attivata, il Suo account è protetto",
+      "disabled": "Disattivata, consigliata per maggiore sicurezza",
       "comingSoon": "Prossimamente disponibile",
-      "recommendation": "Consigliamo di attivare la 2FA per proteggere il Suo account, soprattutto per uno strumento di conformità LRD/KYC."
+      "recommendation": "Consigliamo di attivare la 2FA per proteggere il Suo account, soprattutto per uno strumento di conformità LRD/KYC.",
+      "badgeEnabled": "Enabled",
+      "badgeRecommended": "Recommended",
+      "stepScan": "Step 1 of 2, Scan this QR code in your authenticator app.",
+      "stepVerify": "Step 2 of 2, Enter the 6-digit code shown in the app.",
+      "stepDone": "Your account is protected. A code will be required on each new sign-in.",
+      "authenticatorApp": "Authenticator app",
+      "enable": "Enable 2FA",
+      "preparing": "Preparing…",
+      "qrAlt": "2FA QR code",
+      "qrUnavailable": "QR unavailable",
+      "manualEntry": "Manual entry",
+      "scanned": "I've scanned",
+      "codeCaption": "The code changes every 30 seconds. Enter the one currently shown.",
+      "verifying": "Verifying…",
+      "verifyEnable": "Verify & enable",
+      "configuredPrimary": "Configured · primary factor",
+      "disable": "Disable"
     },
     "sessions": {
-      "title": "Sessioni attive",
+      "title": "Devices & sessions",
       "devicesConnected": "{{count}} dispositivi connessi",
       "disconnectAll": "Disconnetti tutti",
       "current": "Attuale",
       "revoke": "Revocare",
-      "comingSoon": "Prossimamente disponibile"
+      "comingSoon": "Prossimamente disponibile",
+      "loadingDevices": "Loading your devices…",
+      "activeCount_one": "{{count}} active session on your account.",
+      "activeCount_other": "{{count}} active sessions on your account.",
+      "thisDeviceOnly": "This device only. No other active session.",
+      "loadError": "Unable to load your devices right now.",
+      "empty": "No device registered yet.",
+      "thisDevice": "This device",
+      "unknownLocation": "Unknown location",
+      "unknownDevice": "Unknown device",
+      "disconnect": "Disconnect",
+      "allOthersDisconnected": "All other sessions have been disconnected.",
+      "revokeNote": "\"Disconnect\" removes the device from this list. Full remote sign-out is coming soon.",
+      "justNow": "Just now",
+      "minutesAgo_one": "{{count}} min ago",
+      "minutesAgo_other": "{{count}} min ago",
+      "hoursAgo_one": "{{count}} h ago",
+      "hoursAgo_other": "{{count}} h ago",
+      "daysAgo_one": "{{count}} d ago",
+      "daysAgo_other": "{{count}} d ago"
     },
     "log": {
       "title": "Registro di sicurezza",
@@ -285,6 +511,31 @@
         "soleAdmin": "Sei l'unico amministratore della tua agenzia. Trasferisci i tuoi diritti prima di eliminare l'account.",
         "unknown": "Si è verificato un errore durante l'eliminazione dell'account."
       }
+    },
+    "failureWith": "Failed: {{message}}",
+    "hero": {
+      "title": "Account security",
+      "subtitleLine1": "MEGGA handles sensitive transaction data.",
+      "subtitleLine2": "Keep your account locked and monitor its activity."
+    },
+    "posture": {
+      "verdictExcellent": "Excellent",
+      "verdictGood": "Good",
+      "fullyProtected": "Account fully protected",
+      "oneActionRecommended": "1 recommended action"
+    },
+    "sso": {
+      "title": "Sign-in methods",
+      "subtitle": "Sign in with one click. Your email + password always stay active.",
+      "linkedDetail": "{{account}} · Connected",
+      "linkedAccount": "Linked account",
+      "connectWith": "Sign in with your {{name}} account",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "disconnected": "{{name}} disconnected",
+      "disconnectConfirmTitle": "Disconnect {{name}}?",
+      "disconnectConfirmDesc": "You won't be able to sign in to MEGGA via {{name}} anymore. Your email + password stay active.",
+      "privacyNote": "MEGGA only receives your name, email and profile photo. No password is shared. You can revoke access here or from your Google / Microsoft account."
     }
   },
   "subscription": {
@@ -344,8 +595,8 @@
       "customBranding": "Branding personalizzato",
       "dataExport": "Esportazione dati",
       "staging": "MEGGA Staging (virtual staging IA)",
-      "staging50": "MEGGA Staging — 50 immagini/mese",
-      "staging200": "MEGGA Staging — 200 immagini/mese",
+      "staging50": "MEGGA Staging, 50 immagini/mese",
+      "staging200": "MEGGA Staging, 200 immagini/mese",
       "support247": "Supporto prioritario 24/7"
     },
     "custom": {
@@ -358,16 +609,21 @@
     "title": "Integrazioni",
     "subtitle": "Colleghi i Suoi strumenti esterni per automatizzare il Suo lavoro quotidiano.",
     "status": {
-      "connected": "Connesso",
-      "notConnected": "Non connesso",
+      "connected": "Connected",
+      "notConnected": "Not connected",
       "configure": "Configurare",
       "disconnect": "Disconnettere",
-      "comingSoon": "Prossimamente"
+      "comingSoon": "Prossimamente",
+      "onRequest": "On request",
+      "connectedDetail": "Active, domain megga.ch verified"
     },
     "categories": {
       "essential": "Essenziale",
       "recommended": "Consigliato",
-      "upcoming": "In arrivo"
+      "upcoming": "In arrivo",
+      "productivity": "Productivity",
+      "signature": "Signature",
+      "messaging": "Messaging"
     },
     "googleCalendar": {
       "name": "Google Calendar",
@@ -442,21 +698,438 @@
         "teamAccess": "Accesso condiviso del team"
       },
       "connectHint": "Colleghi il drive della Sua agenzia per centralizzare i Suoi documenti."
+    },
+    "header": {
+      "kicker": "Integrations",
+      "title": "Connect your business stack",
+      "sub": "{{active}} of {{total}} service(s) active · calendar, email, signature, messaging."
+    },
+    "filters": {
+      "all": "All"
+    },
+    "catalogue": {
+      "google": {
+        "desc": "Sync Google Calendar, Gmail and Contacts with a single OAuth connection."
+      },
+      "microsoft": {
+        "desc": "Outlook Calendar, Outlook Mail and Exchange address book."
+      },
+      "docusign": {
+        "desc": "eIDAS-compliant electronic signature for mandates and offers."
+      },
+      "skribble": {
+        "desc": "Swiss qualified signature, ZertES compliant."
+      },
+      "whatsapp": {
+        "desc": "Client conversations in the CRM, certified templates."
+      }
+    },
+    "actions": {
+      "connect": "Connect",
+      "connecting": "Connecting…",
+      "disconnect": "Disconnect",
+      "linkWhatsapp": "Link WhatsApp"
+    },
+    "card": {
+      "linkedAccount": "Linked account",
+      "synced": "Synced",
+      "assistedActivation": "Activation assisted by MEGGA"
+    },
+    "details": {
+      "activeConnection": "Active connection",
+      "onRequestHint": "This integration is activated by the MEGGA team on request. Contact us to connect your account.",
+      "whatYouCanDo": "What you can do",
+      "permissionsGranted": "Permissions granted",
+      "documentation": "Documentation",
+      "permissions": {
+        "google": "[\"Calendar: visits, appointments\",\"Gmail: client emails in the CRM\",\"Contacts: synchronization\"]",
+        "microsoft": "[\"Outlook Calendar: calendar\",\"Outlook Mail: conversations\",\"Exchange address book\"]",
+        "whatsapp": "[\"Receive your client messages in the CRM\",\"Query MEGGA AI from your phone\"]",
+        "signature": "[\"Prepare signature files\",\"Track signature statuses\"]"
+      }
+    },
+    "disconnectConfirm": {
+      "title": "Disconnect {{name}}?",
+      "body": "Synchronization stops immediately. Your existing data stays in the CRM but will no longer be updated.",
+      "keep": "Keep"
+    },
+    "toast": {
+      "disconnected": "{{name}} disconnected",
+      "disconnectFailed": "Disconnect failed: {{error}}",
+      "unknownError": "Unknown error",
+      "skribbleConnected": "Skribble connected"
+    },
+    "whatsapp": {
+      "title": "Connect WhatsApp",
+      "subtitle": "MEGGA AI on your phone",
+      "linked": "Linked",
+      "linkedNumber": "Linked number",
+      "writeLikeColleague": "Write to MEGGA AI like a colleague",
+      "examples": "[\"My appointments tomorrow?\",\"My overdue follow-ups?\"]",
+      "error": {
+        "title": "Status unavailable",
+        "desc": "Unable to verify the WhatsApp connection right now.",
+        "retry": "Retry"
+      },
+      "waiting": {
+        "sendCode": "Send this code to <strong>{{number}}</strong> on WhatsApp (valid for 15 min).",
+        "title": "Waiting for your message…",
+        "desc": "The link activates as soon as the code is received."
+      },
+      "regenerateCode": "Regenerate a code",
+      "generating": "Generating…",
+      "unlinked": {
+        "body": "Drive MEGGA from WhatsApp. Your appointments, follow-ups and contacts straight by message, without opening the CRM. Generate a code, then send it to MEGGA at <strong>{{number}}</strong>."
+      },
+      "generateCode": "Generate a code"
+    },
+    "esign": {
+      "title": "Connect Skribble",
+      "intro": "Swiss qualified electronic signature (QES/AES), compliant with ZertES and eIDAS. Connect your agency's API account to sign your mandates and contracts in one click.",
+      "apiUser": "API username",
+      "apiKey": "API key",
+      "apiKeyHint": "Skribble → Administration → API keys.",
+      "defaultLevel": "Default signature level",
+      "qualities": {
+        "QES": "Qualified, same legal value as a handwritten signature (ZertES/eIDAS).",
+        "AES": "Advanced, signer identity verified.",
+        "SES": "Simple, quick agreement, without strong identification."
+      },
+      "trustNote": "Your key is encrypted (Supabase Vault), never exposed, and validated on connection.",
+      "connectFailed": "Connection failed",
+      "connectButton": "Connect Skribble"
     }
   },
   "apps": {
-    "filters": { "all": "Tutti", "connected": "Connessi", "calendar": "Calendario", "crm": "CRM", "tools": "Strumenti", "storage": "Archiviazione" },
-    "status": { "connected": "Connesso", "notConnected": "Non connesso", "comingSoon": "Presto", "connect": "Collegare", "connectedDetail": "Attivo — dominio megga.ch verificato" },
+    "filters": {
+      "all": "Tutti",
+      "connected": "Connessi",
+      "calendar": "Calendario",
+      "crm": "CRM",
+      "tools": "Strumenti",
+      "storage": "Archiviazione"
+    },
+    "status": {
+      "connected": "Connesso",
+      "notConnected": "Non connesso",
+      "comingSoon": "Presto",
+      "connect": "Collegare"
+    },
     "empty": "Nessuna applicazione in questa categoria.",
-    "google-calendar": { "name": "Google Calendar", "desc": "Sincronizzazione visite e appuntamenti" },
-    "outlook-calendar": { "name": "Outlook Calendar", "desc": "Sincronizzazione visite e appuntamenti" },
-    "hubspot": { "name": "HubSpot", "desc": "Importazione contatti, aziende e deal" },
-    "pipedrive": { "name": "Pipedrive", "desc": "Importazione persone, organizzazioni e deal" },
-    "csv-import": { "name": "Import / Export", "desc": "Importa dati da file CSV o Excel" },
-    "posthog": { "name": "PostHog", "desc": "Analytics di utilizzo e adozione del team" },
-    "google-drive": { "name": "Google Drive", "desc": "Sincronizzazione documenti KYC e mandati" },
-    "onedrive": { "name": "OneDrive", "desc": "Sincronizzazione documenti KYC e mandati" },
-    "googleCalendar": { "lastSync": "Ultima sincronia: {{date}}", "syncNow": "Sync", "disconnect": "Scollegare", "disconnectConfirm": "Scollegare Google Calendar?" },
-    "outlookCalendar": { "lastSync": "Ultima sincronia: {{date}}", "syncNow": "Sync", "disconnect": "Scollegare", "disconnectConfirm": "Scollegare Outlook Calendar?" }
+    "google-calendar": {
+      "name": "Google Calendar",
+      "desc": "Sincronizzazione visite e appuntamenti"
+    },
+    "outlook-calendar": {
+      "name": "Outlook Calendar",
+      "desc": "Sincronizzazione visite e appuntamenti"
+    },
+    "hubspot": {
+      "name": "HubSpot",
+      "desc": "Importazione contatti, aziende e deal"
+    },
+    "pipedrive": {
+      "name": "Pipedrive",
+      "desc": "Importazione persone, organizzazioni e deal"
+    },
+    "csv-import": {
+      "name": "Import / Export",
+      "desc": "Importa dati da file CSV o Excel"
+    },
+    "posthog": {
+      "name": "PostHog",
+      "desc": "Analytics di utilizzo e adozione del team"
+    },
+    "google-drive": {
+      "name": "Google Drive",
+      "desc": "Sincronizzazione documenti KYC e mandati"
+    },
+    "onedrive": {
+      "name": "OneDrive",
+      "desc": "Sincronizzazione documenti KYC e mandati"
+    },
+    "googleCalendar": {
+      "lastSync": "Ultima sincronia: {{date}}",
+      "syncNow": "Sync",
+      "disconnect": "Scollegare",
+      "disconnectConfirm": "Scollegare Google Calendar?"
+    },
+    "outlookCalendar": {
+      "lastSync": "Ultima sincronia: {{date}}",
+      "syncNow": "Sync",
+      "disconnect": "Scollegare",
+      "disconnectConfirm": "Scollegare Outlook Calendar?"
+    }
+  },
+  "nav": {
+    "sections": {
+      "profile": {
+        "label": "My profile",
+        "short": "Profile"
+      },
+      "agency": {
+        "label": "My agency",
+        "short": "Agency"
+      },
+      "notifications": {
+        "label": "Notifications",
+        "short": "Notifications"
+      },
+      "integrations": {
+        "label": "Integrations",
+        "short": "Integrations"
+      },
+      "billing": {
+        "label": "Billing",
+        "short": "Billing"
+      },
+      "security": {
+        "label": "Security",
+        "short": "Security"
+      },
+      "preferences": {
+        "label": "Preferences",
+        "short": "Preferences"
+      }
+    },
+    "groups": {
+      "moi": "Account",
+      "produit": "Product",
+      "compte": "Billing & security"
+    }
+  },
+  "preferences": {
+    "header": {
+      "kicker": "Preferences",
+      "title": "Personal CRM settings",
+      "sub": "Specific to your account, does not affect other team members."
+    },
+    "region": {
+      "title": "Region & language",
+      "sub": "Affects the interface language and default formats.",
+      "language": "Language",
+      "currency": "Currency",
+      "currencyOptions": {
+        "CHF": "CHF · Swiss franc",
+        "EUR": "EUR · Euro",
+        "USD": "USD · US dollar"
+      },
+      "units": "Units",
+      "dateFormat": "Date format",
+      "dateFormatOptions": {
+        "ch": "03.05.2026 (CH)",
+        "fr": "03/05/2026 (FR)",
+        "us": "05/03/2026 (US)",
+        "iso": "2026-05-03 (ISO)"
+      }
+    },
+    "views": {
+      "title": "Default views",
+      "sub": "Which screen to land on when opening the CRM, and with which view.",
+      "homeScreen": "Home screen",
+      "screens": {
+        "today": "Today",
+        "pipeline": "Pipeline",
+        "matching": "AI matching",
+        "contacts": "Contacts",
+        "biens": "My properties",
+        "calendar": "Calendar"
+      },
+      "defaultPipelineView": "Default pipeline view",
+      "pipelineViews": {
+        "kanban": "Kanban",
+        "list": "List",
+        "timeline": "Timeline"
+      }
+    },
+    "appearance": {
+      "title": "Appearance",
+      "sub": "Adapts the interface to your reading comfort.",
+      "theme": "Theme",
+      "themes": {
+        "light": {
+          "label": "Light",
+          "sub": "Recommended during the day"
+        },
+        "dark": {
+          "label": "Dark",
+          "sub": "Navy mode"
+        },
+        "system": {
+          "label": "System",
+          "sub": "Follows your OS"
+        }
+      },
+      "density": "Density",
+      "densities": {
+        "comfort": {
+          "label": "Comfort",
+          "sub": "Airy margins"
+        },
+        "compact": {
+          "label": "Compact",
+          "sub": "More info per screen"
+        }
+      }
+    },
+    "editing": {
+      "title": "Editing & assistance",
+      "sub": "Controls smart help while you type.",
+      "spellcheck": {
+        "label": "Spell check",
+        "desc": "Multilingual checker in all long text fields."
+      },
+      "autosave": {
+        "label": "Automatic draft saving",
+        "desc": "Your entries are kept in memory for 30 days."
+      },
+      "aiAssist": {
+        "label": "Julien AI assistance level",
+        "off": {
+          "label": "Off",
+          "sub": "No suggestions"
+        },
+        "balanced": {
+          "label": "Balanced",
+          "sub": "Suggestions on demand"
+        },
+        "proactif": {
+          "label": "Proactive",
+          "sub": "Suggestions as you type"
+        }
+      }
+    }
+  },
+  "page": {
+    "unsavedChanges": "Unsaved changes",
+    "save": "Save",
+    "saving": "Saving…"
+  },
+  "billing": {
+    "loading": "Loading billing…",
+    "unknownError": "Unknown error",
+    "failureWith": "Failed: {{message}}",
+    "stripeMissing": "Stripe configuration missing, contact support",
+    "yourSubscription": "Your subscription",
+    "perMonth": "/month",
+    "onQuote": "On quote",
+    "cancellationOn": "Cancellation scheduled for {{date}}",
+    "renewalOn": "Renews on {{date}}",
+    "manageInStripe": "Manage in Stripe",
+    "opening": "Opening…",
+    "changePlan": "Change plan",
+    "changePlanHint": "Instant upgrade, no fees. You keep all your data.",
+    "monthly": "Monthly",
+    "yearlyDiscount": "Yearly  −20%",
+    "currentPlan": "Your current plan",
+    "contactUs": "Contact us",
+    "included": "Included",
+    "switchTo": "Switch to {{plan}}",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "tagline": "To get started solo",
+        "features": {
+          "properties": "3 active listings",
+          "crm": "Essential CRM",
+          "aiSearch": "AI search",
+          "sellerPortal": "Seller portal",
+          "emailSupport": "Email support"
+        }
+      },
+      "pro": {
+        "name": "Pro",
+        "tagline": "For the independent agent",
+        "features": {
+          "unlimitedProperties": "Unlimited listings",
+          "fullCrm": "Full CRM + scoring",
+          "pipeline": "Transaction pipeline",
+          "compliance": "AML / KYC compliance",
+          "docGeneration": "Document generation",
+          "multichannel": "Multichannel publishing",
+          "copilot": "MEGGA AI copilot",
+          "prioritySupport": "Priority support"
+        }
+      },
+      "custom": {
+        "name": "Custom",
+        "tagline": "For agencies & networks",
+        "features": {
+          "allPro": "Everything in Pro",
+          "multiAgency": "Multi-agency & multi-user",
+          "api": "API & integrations",
+          "sso": "SSO / SAML",
+          "branding": "Custom branding",
+          "accountManager": "Dedicated account manager",
+          "sla": "99.9% SLA"
+        }
+      }
+    }
+  },
+  "privacy": {
+    "sending": "Sending…",
+    "deleteError": "Deletion failed: {{message}}",
+    "deleteRefused": "Deletion refused",
+    "deleteSuccess": "Account deleted. See you soon.",
+    "unknownError": "Unknown error",
+    "notIdentified": "(not identified)",
+    "export": {
+      "mailSubject": "Request to export my data (GDPR art. 15)",
+      "mailBody": "Hello,\n\nIn accordance with article 15 of the GDPR, I request a copy of all my personal data processed by MEGGA.\n\nMy account: {{account}}\n\nThank you."
+    },
+    "rectification": {
+      "mailSubject": "Request to rectify my data (GDPR art. 16)",
+      "mailBody": "Hello,\n\nIn accordance with article 16 of the GDPR, I request the rectification of the following data:\n\n[Describe here the data to correct]\n\nMy account: {{account}}\n\nThank you."
+    },
+    "header": {
+      "kicker": "Privacy & GDPR",
+      "title": "Your data, your rules",
+      "sub": "MEGGA complies with the European GDPR and the Swiss FADP. Exercise your rights at any time, free of charge."
+    },
+    "banner": {
+      "title": "Compliant account · GDPR · Swiss FADP",
+      "desc": "Data hosted in Europe (eu-west-1) · AES-256 encryption at rest and TLS 1.3 in transit",
+      "policyCta": "Policy"
+    },
+    "rights": {
+      "title": "My rights",
+      "sub": "Articles 15 to 21 of the European regulation, exercisable at any time, free of charge."
+    },
+    "cards": {
+      "export": {
+        "title": "Export my data",
+        "desc": "Request a ZIP export (JSON + PDF). Legal deadline: 30 days.",
+        "cta": "Send request"
+      },
+      "policy": {
+        "title": "Privacy policy",
+        "desc": "Details of processing, subprocessors and retention periods.",
+        "cta": "Read the policy"
+      },
+      "rectification": {
+        "title": "Request a rectification",
+        "desc": "Correct or complete inaccurate personal information.",
+        "cta": "Send request"
+      },
+      "delete": {
+        "title": "Delete my account",
+        "desc": "Permanent erasure. Legal retention of 10 years for accounting records (AMLA art. 7 para. 3).",
+        "cta": "Delete my account"
+      }
+    },
+    "legalNote": {
+      "before": "Accounting records and signed mandates are retained",
+      "duration": "10 years",
+      "after": "regardless of your choice, legal obligation CO art. 958f and AMLA art. 7 para. 3."
+    },
+    "deleteModal": {
+      "title": "Permanently delete your account?",
+      "desc": "Your contacts and profile will be anonymised, your non-KYC documents deleted. Ongoing KYC files must be finalised first. This action is irreversible.",
+      "confirm": "Delete permanently"
+    }
+  },
+  "banner": {
+    "eyebrow": "Settings",
+    "more": "More"
   }
 }

@@ -6,14 +6,16 @@
 // (jamais « garanti »/« automatique ») ; le tooltip signale « données limitées »
 // quand le score repose sur peu de signaux. health null → rien (pas encore calculé).
 
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { BienHealth } from '../mockData'
 import type { SugarPalette } from '../tokens'
 
-const LABELS: Record<string, { text: string; color: string }> = {
-  chaud: { text: 'Chaud', color: '#2FB389' },
-  a_animer: { text: 'À animer', color: '#D98A2B' },
-  en_veille: { text: 'En veille', color: '#8A93A6' },
+// Couleurs par palier (stables) ; le libellé est traduit via listings:biens.score.*.
+const TIER_COLORS: Record<string, string> = {
+  chaud: '#2FB389',
+  a_animer: '#D98A2B',
+  en_veille: '#8A93A6',
 }
 
 interface BnScoreBadgeProps {
@@ -24,10 +26,14 @@ interface BnScoreBadgeProps {
 }
 
 export function BnScoreBadge({ health, sp, size = 'md' }: BnScoreBadgeProps) {
+  const { t } = useTranslation('listings')
   if (!health) return null
-  const meta = LABELS[health.label] ?? { text: 'Estimation', color: sp.sub }
+  const text = TIER_COLORS[health.label]
+    ? t('biens.score.' + health.label)
+    : t('biens.score.fallback')
+  const color = TIER_COLORS[health.label] ?? sp.sub
   const limited = health.dataCompleteness != null && health.dataCompleteness <= 0.34
-  const title = `Score de bien — estimation${limited ? ' · données limitées' : ''}`
+  const title = limited ? t('biens.score.tooltipLimited') : t('biens.score.tooltip')
   const fs = size === 'sm' ? 10.5 : 11
   return (
     <span
@@ -38,8 +44,8 @@ export function BnScoreBadge({ health, sp, size = 'md' }: BnScoreBadgeProps) {
         gap: 4,
         padding: size === 'sm' ? '2px 7px' : '3px 8px',
         borderRadius: 999,
-        background: meta.color + '1A', // teinte ~10% — pastille discrète, pas un fond plein
-        color: meta.color,
+        background: color + '1A', // teinte ~10% — pastille discrète, pas un fond plein
+        color,
         fontSize: fs,
         fontWeight: 700,
         lineHeight: 1,
@@ -47,8 +53,8 @@ export function BnScoreBadge({ health, sp, size = 'md' }: BnScoreBadgeProps) {
         fontVariantNumeric: 'tabular-nums',
       }}
     >
-      <MEIcon name="sparkle" size={fs} color={meta.color} />
-      {meta.text}
+      <MEIcon name="sparkle" size={fs} color={color} />
+      {text}
       <span style={{ opacity: 0.7, fontWeight: 600 }}>· {Math.round(health.overall)}</span>
     </span>
   )

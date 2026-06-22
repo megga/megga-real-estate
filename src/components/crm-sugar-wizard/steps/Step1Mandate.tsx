@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `SgStepMandate`).
 
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, sgAcc, type WizardData } from '../tokens'
 import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
 
@@ -15,6 +16,8 @@ interface ExtractedField {
 }
 
 export function Step1Mandate({ data, set }: StepProps) {
+  // `t` est déjà utilisé localement (const t = TYPES.find…) → alias `tr`.
+  const { t: tr } = useTranslation('listings')
   const m = data.mandate
   const setM = (patch: Partial<typeof m>) => set({ mandate: { ...m, ...patch } })
 
@@ -41,13 +44,15 @@ export function Step1Mandate({ data, set }: StepProps) {
     input.click()
   }
 
+  // Valeurs = données de démonstration simulées (extraction MEGGA AI) → NON traduites.
+  // Seuls les libellés de champ (UI) sont i18n.
   const MOCK_EXTRACTION: ExtractedField[] = [
-    { key: 'type',       label: 'Type de mandat',     value: 'Mandat exclusif',         apply: () => setM({ type: 'exclusive', commission: 3.5 }) },
-    { key: 'duration',   label: 'Durée',              value: '6 mois',                  apply: () => setM({ duration: 6 }) },
-    { key: 'commission', label: 'Commission',         value: '3,5 %',                   apply: () => setM({ commission: 3.5 }) },
-    { key: 'fees',       label: 'Honoraires',         value: 'À charge du vendeur',     apply: () => setM({ fees: 'owner' }) },
-    { key: 'signedAt',   label: 'Date de signature',  value: '14 mars 2026',            apply: () => setM({ signed: true, signedAt: '2026-03-14' }) },
-    { key: 'vendor',     label: 'Vendeur identifié',  value: 'Jean-Marc Aebischer',     apply: () => {} },
+    { key: 'type',       label: tr('wizard.step1.mandate.field.type'),       value: 'Mandat exclusif',         apply: () => setM({ type: 'exclusive', commission: 3.5 }) },
+    { key: 'duration',   label: tr('wizard.step1.mandate.field.duration'),   value: '6 mois',                  apply: () => setM({ duration: 6 }) },
+    { key: 'commission', label: tr('wizard.step1.mandate.field.commission'), value: '3,5 %',                   apply: () => setM({ commission: 3.5 }) },
+    { key: 'fees',       label: tr('wizard.step1.mandate.field.fees'),       value: 'À charge du vendeur',     apply: () => setM({ fees: 'owner' }) },
+    { key: 'signedAt',   label: tr('wizard.step1.mandate.field.signedAt'),   value: '14 mars 2026',            apply: () => setM({ signed: true, signedAt: '2026-03-14' }) },
+    { key: 'vendor',     label: tr('wizard.step1.mandate.field.vendor'),     value: 'Jean-Marc Aebischer',     apply: () => {} },
   ]
 
   const handleFile = (file: File) => {
@@ -88,14 +93,14 @@ export function Step1Mandate({ data, set }: StepProps) {
   }
 
   const TYPES = [
-    { v: 'exclusive' as const, title: 'Mandat exclusif',
-      sub: 'Vous êtes seul mandataire. Commission garantie, meilleur engagement.',
-      hint: 'Recommandé', defaultCom: 3.5 },
-    { v: 'simple' as const, title: 'Mandat simple',
-      sub: 'Le vendeur peut mandater plusieurs agences. Commission au premier qui vend.',
+    { v: 'exclusive' as const, title: tr('wizard.step1.mandate.type.exclusive.title'),
+      sub: tr('wizard.step1.mandate.type.exclusive.sub'),
+      hint: tr('wizard.step1.mandate.recommended'), defaultCom: 3.5 },
+    { v: 'simple' as const, title: tr('wizard.step1.mandate.type.simple.title'),
+      sub: tr('wizard.step1.mandate.type.simple.sub'),
       hint: null, defaultCom: 3.0 },
-    { v: 'co' as const, title: 'Co-mandat',
-      sub: 'Mandat partagé entre 2 agences. Commission à diviser selon entente.',
+    { v: 'co' as const, title: tr('wizard.step1.mandate.type.co.title'),
+      sub: tr('wizard.step1.mandate.type.co.sub'),
       hint: null, defaultCom: 4.0 },
   ]
 
@@ -118,15 +123,15 @@ export function Step1Mandate({ data, set }: StepProps) {
         <div style={{
           fontSize: 12, fontWeight: 600, color: SugarV2.muted,
           letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>Étape 2 sur 8 · Mandat (2/2)</div>
+        }}>{tr('wizard.step1.mandate.eyebrow')}</div>
         <h1 style={{
           margin: '0 0 14px', fontSize: 38, fontWeight: 700,
           color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>Quel type de mandat&nbsp;?</h1>
+        }}>{tr('wizard.step1.mandate.title')}</h1>
         <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
           {importMode === 'imported'
-            ? 'MEGGA AI a extrait les informations de votre mandat. Vérifiez et ajustez si nécessaire.'
-            : 'Importez un mandat signé pour gagner du temps, ou configurez-le manuellement.'}
+            ? tr('wizard.step1.mandate.subtitleImported')
+            : tr('wizard.step1.mandate.subtitle')}
         </p>
 
         {linkedOwner && (
@@ -144,10 +149,10 @@ export function Step1Mandate({ data, set }: StepProps) {
               fontSize: 10, fontWeight: 700, flexShrink: 0,
             }}>{(linkedOwner.firstName?.[0] || '') + (linkedOwner.lastName?.[0] || '')}</div>
             <span style={{ fontSize: 12, fontWeight: 600, color: SugarV2.ink }}>
-              Pour {linkedOwner.firstName} {linkedOwner.lastName}
+              {tr('wizard.forOwner', { name: `${linkedOwner.firstName} ${linkedOwner.lastName}` })}
             </span>
             <span style={{ fontSize: 11, fontWeight: 500, color: SugarV2.muted }}>
-              · {data.fromSubmissionId ? 'via soumission' : 'vendeur lié'}
+              · {data.fromSubmissionId ? tr('wizard.ownerVia.submission') : tr('wizard.ownerVia.linked')}
             </span>
           </div>
         )}
@@ -187,7 +192,7 @@ export function Step1Mandate({ data, set }: StepProps) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 16, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
-                Importer un mandat signé
+                {tr('wizard.step1.mandate.import.title')}
               </span>
               <span style={{
                 padding: '3px 9px', borderRadius: 999,
@@ -197,7 +202,7 @@ export function Step1Mandate({ data, set }: StepProps) {
               }}>MEGGA AI</span>
             </div>
             <div style={{ fontSize: 13.5, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
-              Glissez votre PDF ici. MEGGA AI extrait automatiquement le type, la durée, la commission et la date de signature.
+              {tr('wizard.step1.mandate.import.hint')}
             </div>
           </div>
           <button onClick={e => { e.stopPropagation(); triggerFilePicker() }} style={{
@@ -211,7 +216,7 @@ export function Step1Mandate({ data, set }: StepProps) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={sgOn()} strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
             </svg>
-            Choisir le PDF
+            {tr('wizard.step1.mandate.import.choosePdf')}
           </button>
         </div>
       )}
@@ -237,7 +242,7 @@ export function Step1Mandate({ data, set }: StepProps) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 2 }}>
-                {importMode === 'uploading' ? 'Lecture du fichier…' : 'MEGGA AI analyse votre mandat'}
+                {importMode === 'uploading' ? tr('wizard.step1.mandate.reading') : tr('wizard.step1.mandate.analyzing')}
               </div>
               <div style={{ fontSize: 12.5, color: SugarV2.muted, fontWeight: 500 }}>
                 {fileName}
@@ -269,7 +274,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                 background: 'transparent', border: `1px dashed ${SugarV2.ghost}`,
                 fontSize: 12.5, color: SugarV2.muted, fontStyle: 'italic',
               }}>
-                Recherche du champ suivant…
+                {tr('wizard.step1.mandate.searchingNextField')}
               </div>
             )}
           </div>
@@ -296,7 +301,7 @@ export function Step1Mandate({ data, set }: StepProps) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2 }}>
-                  Mandat importé et analysé
+                  {tr('wizard.step1.mandate.importedTitle')}
                 </span>
                 <span style={{
                   padding: '3px 9px', borderRadius: 999,
@@ -311,17 +316,17 @@ export function Step1Mandate({ data, set }: StepProps) {
               height: 36, padding: '0 16px', borderRadius: 999, border: 0,
               background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
               fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            }}>Saisir manuellement</button>
+            }}>{tr('wizard.step1.mandate.enterManually')}</button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
             {[
-              { label: 'Type de mandat', value: ({ exclusive: 'Mandat exclusif', simple: 'Mandat simple', co: 'Co-mandat' } as Record<string, string>)[m.type] || m.type },
-              { label: 'Durée', value: `${m.duration} mois` },
-              { label: 'Commission', value: `${m.commission.toFixed(1)} %` },
-              { label: 'Honoraires', value: m.fees === 'owner' ? 'À charge du vendeur' : "À charge de l'acheteur" },
-              { label: 'Date de signature', value: '14 mars 2026' },
-              { label: 'Statut', value: m.signed ? 'Signé' : 'Non signé', accent: m.signed ? SugarV2.ok : SugarV2.warn },
+              { label: tr('wizard.step1.mandate.field.type'), value: ({ exclusive: tr('wizard.step1.mandate.type.exclusive.title'), simple: tr('wizard.step1.mandate.type.simple.title'), co: tr('wizard.step1.mandate.type.co.title') } as Record<string, string>)[m.type] || m.type },
+              { label: tr('wizard.step1.mandate.field.duration'), value: tr('wizard.step1.mandate.months', { count: m.duration }) },
+              { label: tr('wizard.step1.mandate.field.commission'), value: `${m.commission.toFixed(1)} %` },
+              { label: tr('wizard.step1.mandate.field.fees'), value: m.fees === 'owner' ? tr('wizard.step1.mandate.feesOwner') : tr('wizard.step1.mandate.feesBuyer') },
+              { label: tr('wizard.step1.mandate.field.signedAt'), value: '14 mars 2026' },
+              { label: tr('wizard.step1.mandate.statusLabel'), value: m.signed ? tr('wizard.step1.mandate.signed') : tr('wizard.step1.mandate.notSigned'), accent: m.signed ? SugarV2.ok : SugarV2.warn },
             ].map((f, i) => (
               <div key={i} style={{
                 padding: '14px 16px', borderRadius: 14,
@@ -346,12 +351,12 @@ export function Step1Mandate({ data, set }: StepProps) {
             marginTop: 18, fontSize: 12.5, color: SugarV2.muted,
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            <span>Pour modifier ces valeurs, cliquez sur</span>
+            <span>{tr('wizard.step1.mandate.editHint')}</span>
             <button onClick={cancelImport} style={{
               border: 0, background: 'transparent', color: SugarV2.ink,
               fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
               textDecoration: 'underline', cursor: 'pointer', padding: 0,
-            }}>« Saisir manuellement »</button>
+            }}>{tr('wizard.step1.mandate.enterManuallyQuoted')}</button>
           </div>
         </div>
       )}
@@ -366,7 +371,7 @@ export function Step1Mandate({ data, set }: StepProps) {
             <span style={{
               fontSize: 11, fontWeight: 600, color: SugarV2.muted,
               letterSpacing: 1, textTransform: 'uppercase',
-            }}>ou configurez à la main</span>
+            }}>{tr('wizard.step1.mandate.orManual')}</span>
             <div style={{ flex: 1, height: 1, background: SugarV2.ghost }} />
           </div>
 
@@ -412,7 +417,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                     fontSize: 12, fontWeight: 600,
                     color: sel ? sgAcc(0.6) : SugarV2.muted,
                   }}>
-                    <span>Commission proposée</span>
+                    <span>{tr('wizard.step1.mandate.proposedCommission')}</span>
                     <span style={{ fontSize: 14, fontWeight: 700, color: sel ? sgOn() : SugarV2.ink }}>{t.defaultCom}%</span>
                   </div>
                 </button>
@@ -431,9 +436,9 @@ export function Step1Mandate({ data, set }: StepProps) {
                 <div style={{
                   fontSize: 11, fontWeight: 600, color: SugarV2.muted,
                   letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
-                }}>Paramètres</div>
+                }}>{tr('wizard.step1.mandate.settings')}</div>
                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
-                  Ajustez les conditions du mandat
+                  {tr('wizard.step1.mandate.settingsTitle')}
                 </h3>
               </div>
 
@@ -443,7 +448,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                   <div style={{
                     fontSize: 11, fontWeight: 600, color: SugarV2.muted,
                     letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 12,
-                  }}>Durée</div>
+                  }}>{tr('wizard.step1.mandate.field.duration')}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {[3, 6, 9, 12].map(d => (
                       <button key={d} onClick={() => setM({ duration: d })} style={{
@@ -453,7 +458,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                         fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                         boxShadow: m.duration === d ? '0 4px 12px rgba(0,0,0,0.18)' : 'none',
                         transition: 'all .18s ease',
-                      }}>{d} mois</button>
+                      }}>{tr('wizard.step1.mandate.months', { count: d })}</button>
                     ))}
                   </div>
                 </div>
@@ -464,7 +469,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                     <span style={{
                       fontSize: 11, fontWeight: 600, color: SugarV2.muted,
                       letterSpacing: 0.6, textTransform: 'uppercase',
-                    }}>Commission</span>
+                    }}>{tr('wizard.step1.mandate.field.commission')}</span>
                     <span style={{ fontSize: 17, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
                       {m.commission.toFixed(1)}%
                     </span>
@@ -485,11 +490,11 @@ export function Step1Mandate({ data, set }: StepProps) {
                   <div style={{
                     fontSize: 11, fontWeight: 600, color: SugarV2.muted,
                     letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 12,
-                  }}>Honoraires</div>
+                  }}>{tr('wizard.step1.mandate.field.fees')}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {[
-                      { v: 'owner' as const, l: 'À charge du vendeur' },
-                      { v: 'buyer' as const, l: "À charge de l'acheteur" },
+                      { v: 'owner' as const, l: tr('wizard.step1.mandate.feesOwner') },
+                      { v: 'buyer' as const, l: tr('wizard.step1.mandate.feesBuyer') },
                     ].map(o => (
                       <button key={o.v} onClick={() => setM({ fees: o.v })} style={{
                         height: 40, padding: '0 14px', borderRadius: 12, border: 0,
@@ -521,12 +526,18 @@ export function Step1Mandate({ data, set }: StepProps) {
                   </svg>
                 </div>
                 <div style={{ fontSize: 13, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
-                  <span style={{ color: SugarV2.ink, fontWeight: 600 }}>Sur un bien à 1'500'000 CHF</span>,
-                  la commission s'élèverait à{' '}
-                  <span style={{ color: SugarV2.ink, fontWeight: 700 }}>
-                    {Math.round(1500000 * m.commission / 100).toLocaleString('fr-CH').replace(/,/g, "'")} CHF
-                  </span>{' '}
-                  ({m.fees === 'owner' ? 'à charge du vendeur' : "à charge de l'acheteur"}).
+                  <Trans
+                    t={tr}
+                    i18nKey="wizard.step1.mandate.commissionExample"
+                    values={{
+                      amount: `${Math.round(1500000 * m.commission / 100).toLocaleString('fr-CH').replace(/,/g, "'")} CHF`,
+                      party: m.fees === 'owner' ? tr('wizard.step1.mandate.feesOwnerInline') : tr('wizard.step1.mandate.feesBuyerInline'),
+                    }}
+                    components={{
+                      base: <span style={{ color: SugarV2.ink, fontWeight: 600 }} />,
+                      amountStrong: <span style={{ color: SugarV2.ink, fontWeight: 700 }} />,
+                    }}
+                  />
                 </div>
               </div>
 
@@ -542,8 +553,8 @@ export function Step1Mandate({ data, set }: StepProps) {
                 }} />
                 <span style={{ fontSize: 12.5, fontWeight: 500, color: SugarV2.inkSoft, flex: 1 }}>
                   {m.signed
-                    ? 'Mandat marqué comme signé.'
-                    : "Mandat non signé — vous pourrez l'envoyer pour signature après publication."}
+                    ? tr('wizard.step1.mandate.signedNote')
+                    : tr('wizard.step1.mandate.notSignedNote')}
                 </span>
                 <button onClick={() => setM({ signed: !m.signed })} style={{
                   height: 32, padding: '0 14px', borderRadius: 999, border: 0,
@@ -551,7 +562,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                   color: m.signed ? SugarV2.inkSoft : sgOn(),
                   fontFamily: 'inherit', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 }}>
-                  {m.signed ? 'Marquer comme non signé' : 'Marquer comme signé'}
+                  {m.signed ? tr('wizard.step1.mandate.markUnsigned') : tr('wizard.step1.mandate.markSigned')}
                 </button>
               </div>
             </div>

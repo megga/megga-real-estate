@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 interface SellerIntelligenceProps {
@@ -10,11 +11,11 @@ interface SellerIntelligenceProps {
   className?: string
 }
 
-const TENSION_LABELS: Record<string, string> = {
-  calm: 'Calme',
-  moderate: 'Modéré',
-  tense: 'Tendu',
-  critical: 'Critique',
+const TENSION_LABEL_KEY: Record<string, string> = {
+  calm: 'copilot.seller.tension.calm',
+  moderate: 'copilot.seller.tension.moderate',
+  tense: 'copilot.seller.tension.tense',
+  critical: 'copilot.seller.tension.critical',
 }
 
 const TENSION_PCT: Record<string, number> = {
@@ -24,11 +25,11 @@ const TENSION_PCT: Record<string, number> = {
   critical: 100,
 }
 
-const URGENCY_LABELS: Record<string, string> = {
-  not_urgent: 'Pas pressé',
-  moderate: 'Modéré',
-  urgent: 'Urgent',
-  very_urgent: 'Très urgent',
+const URGENCY_LABEL_KEY: Record<string, string> = {
+  not_urgent: 'copilot.seller.urgency.notUrgent',
+  moderate: 'copilot.seller.urgency.moderate',
+  urgent: 'copilot.seller.urgency.urgent',
+  very_urgent: 'copilot.seller.urgency.veryUrgent',
 }
 
 function ScoreBar({ value }: { value: number }) {
@@ -52,6 +53,7 @@ export default function SellerIntelligence({
   totalVisits,
   className,
 }: SellerIntelligenceProps) {
+  const { t } = useTranslation('messages')
   const hasData = tensionLevel || priceReductionProbability != null
 
   if (!hasData) return null
@@ -59,16 +61,16 @@ export default function SellerIntelligence({
   return (
     <div className={cn('rounded-xl border border-theme-border p-5', className)}>
       <div className="flex items-center gap-2 mb-5">
-        <h2 className="text-sm font-semibold text-theme-primary">Seller intelligence</h2>
-        <span className="text-xs text-theme-muted">estimation IA</span>
+        <h2 className="text-sm font-semibold text-theme-primary">{t('copilot.seller.title')}</h2>
+        <span className="text-xs text-theme-muted">{t('copilot.aiEstimate')}</span>
       </div>
 
       <div className="space-y-4">
-        {tensionLevel && TENSION_LABELS[tensionLevel] && (
+        {tensionLevel && TENSION_LABEL_KEY[tensionLevel] && (
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-xs text-theme-secondary">Niveau de tension</p>
-              <span className="text-xs font-medium text-theme-primary">{TENSION_LABELS[tensionLevel]}</span>
+              <p className="text-xs text-theme-secondary">{t('copilot.seller.tensionLevel')}</p>
+              <span className="text-xs font-medium text-theme-primary">{t(TENSION_LABEL_KEY[tensionLevel])}</span>
             </div>
             <div className="h-1.5 bg-theme-border rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-theme-primary transition-all" style={{ width: `${TENSION_PCT[tensionLevel]}%` }} />
@@ -78,22 +80,22 @@ export default function SellerIntelligence({
 
         {priceReductionProbability != null && (
           <div>
-            <p className="text-xs text-theme-secondary mb-1.5">Probabilité de baisse de prix</p>
+            <p className="text-xs text-theme-secondary mb-1.5">{t('copilot.seller.priceReductionProbability')}</p>
             <ScoreBar value={priceReductionProbability} />
           </div>
         )}
 
         {dissatisfactionRisk != null && (
           <div>
-            <p className="text-xs text-theme-secondary mb-1.5">Risque d'insatisfaction</p>
+            <p className="text-xs text-theme-secondary mb-1.5">{t('copilot.seller.dissatisfactionRisk')}</p>
             <ScoreBar value={dissatisfactionRisk} />
           </div>
         )}
 
-        {urgencyLevel && URGENCY_LABELS[urgencyLevel] && (
+        {urgencyLevel && URGENCY_LABEL_KEY[urgencyLevel] && (
           <div>
-            <p className="text-xs text-theme-secondary mb-1">Urgence</p>
-            <p className="text-sm font-medium text-theme-primary">{URGENCY_LABELS[urgencyLevel]}</p>
+            <p className="text-xs text-theme-secondary mb-1">{t('copilot.seller.urgencyLabel')}</p>
+            <p className="text-sm font-medium text-theme-primary">{t(URGENCY_LABEL_KEY[urgencyLevel])}</p>
           </div>
         )}
 
@@ -101,13 +103,13 @@ export default function SellerIntelligence({
           <div className="pt-3 border-t border-theme-border-subtle flex gap-6">
             {daysOnMarket != null && (
               <div>
-                <p className="text-xs text-theme-secondary mb-0.5">Jours en vente</p>
+                <p className="text-xs text-theme-secondary mb-0.5">{t('copilot.seller.daysOnMarket')}</p>
                 <p className="text-sm font-semibold text-theme-primary">{daysOnMarket}</p>
               </div>
             )}
             {totalVisits != null && (
               <div>
-                <p className="text-xs text-theme-secondary mb-0.5">Visites totales</p>
+                <p className="text-xs text-theme-secondary mb-0.5">{t('copilot.seller.totalVisits')}</p>
                 <p className="text-sm font-semibold text-theme-primary">{totalVisits}</p>
               </div>
             )}

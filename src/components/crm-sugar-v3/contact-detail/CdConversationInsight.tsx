@@ -2,6 +2,7 @@
 // Lecture seule. Assistance IA — jamais automatique, jamais garantie.
 // Mirroir visuel de CdKycCard : même imports, même tokens, même KycSection.
 
+import { useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycSection } from '../primitives'
@@ -48,31 +49,32 @@ interface Props {
 }
 
 export function CdConversationInsight({ contactId }: Props) {
+  const { t } = useTranslation('contacts')
   const { data: insight, isLoading, error } = useConversationInsight(contactId)
 
   // Pas de données → ne rien afficher (empty state silencieux)
   if (!isLoading && !error && !insight) return null
 
-  const sent = insight ? sentimentTone(insight.sentiment) : null
-  const chips = insight ? entityChips(insight.entities as Record<string, unknown>) : []
+  const sent = insight ? sentimentTone(insight.sentiment, t) : null
+  const chips = insight ? entityChips(insight.entities as Record<string, unknown>, t) : []
 
   return (
     <KycSection
-      eyebrow="Assistance IA"
-      title="Compréhension MEGGA"
+      eyebrow={t('cd.insightEyebrow')}
+      title={t('cd.insightTitle')}
       action={
         <SgIcon name="sparkle" size={18} stroke={SugarV3.muted} sw={1.6} />
       }
     >
       {isLoading && (
         <div style={{ color: SugarV3.muted, fontSize: 13 }}>
-          Analyse de la conversation…
+          {t('cd.insightLoading')}
         </div>
       )}
 
       {error && (
         <div style={{ color: SugarV3.errDarker, fontSize: 13 }}>
-          Compréhension indisponible pour le moment.
+          {t('cd.insightError')}
         </div>
       )}
 
@@ -135,7 +137,7 @@ export function CdConversationInsight({ contactId }: Props) {
                   marginBottom: 6,
                 }}
               >
-                Engagements
+                {t('cd.insightCommitments')}
               </div>
               <ul
                 style={{
@@ -172,7 +174,7 @@ export function CdConversationInsight({ contactId }: Props) {
                   marginBottom: 4,
                 }}
               >
-                Prochaine action suggérée
+                {t('cd.insightNextAction')}
               </div>
               <div
                 style={{
@@ -185,15 +187,17 @@ export function CdConversationInsight({ contactId }: Props) {
                 }}
               >
                 <SgIcon name="sparkle" size={14} stroke={SugarV3.ink} sw={1.8} />
-                {insight.next_action.label || nextActionLabel(insight.next_action.type)}
+                {insight.next_action.label || nextActionLabel(insight.next_action.type, t)}
               </div>
             </div>
           )}
 
           {/* Footer IA */}
           <div style={{ fontSize: 11, color: SugarV3.muted }}>
-            Estimation IA · {insight.source_message_count} message(s) analysé(s) ·{' '}
-            {new Date(insight.generated_at).toLocaleDateString('fr-CH')}
+            {t('cd.insightFooter', {
+              count: insight.source_message_count,
+              date: new Date(insight.generated_at).toLocaleDateString('fr-CH'),
+            })}
           </div>
         </div>
       )}

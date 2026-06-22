@@ -1,5 +1,7 @@
 // MEGGA CRM Sugar v2 — Settings data + palette
 // 1:1 port from `crm-screen-settings-sugar.jsx`.
+// i18n : labels de nav (sections/groupes) via getters singleton — cf §6 conventions.
+import i18n from '@/i18n'
 
 // 'team' + 'brand' supprimés en PR #455 (BrandSection + TeamSection 100% mock,
 // pas de tables agency_branding ni agency_members en prod). Suivi via les
@@ -50,20 +52,23 @@ export type SettingsIconName =
 // Bandeau pill → 5 premières en pilules, le reste (security, preferences) sous « Plus ».
 // (Confidentialité retirée — absente de la maquette Claude Design. Le câblage
 //  delete-account + export DSAR/nLPD reste dans PrivacySection.tsx, non monté.)
+// i18n : label/short en getters (lus via l'instance i18n singleton à l'accès →
+// traduits + réactifs, sans changer les sites d'appel `.label`/`.short`).
+// Cf docs/i18n-conventions §6.
 export const SETTINGS_SECTIONS: SettingsSection[] = [
-  { id: 'profile', label: 'Mon profil', short: 'Profil', icon: 'user', group: 'moi' },
-  { id: 'agency', label: 'Mon agence', short: 'Agence', icon: 'building', group: 'moi' },
-  { id: 'notifications', label: 'Notifications', short: 'Notifications', icon: 'bell', group: 'produit' },
-  { id: 'integrations', label: 'Intégrations', short: 'Intégrations', icon: 'plug', group: 'produit' },
-  { id: 'billing', label: 'Facturation', short: 'Facturation', icon: 'card', group: 'compte' },
-  { id: 'security', label: 'Sécurité', short: 'Sécurité', icon: 'lock', group: 'compte' },
-  { id: 'preferences', label: 'Préférences', short: 'Préférences', icon: 'sliders', group: 'compte' },
+  { id: 'profile', get label() { return i18n.t('settings:nav.sections.profile.label') }, get short() { return i18n.t('settings:nav.sections.profile.short') }, icon: 'user', group: 'moi' },
+  { id: 'agency', get label() { return i18n.t('settings:nav.sections.agency.label') }, get short() { return i18n.t('settings:nav.sections.agency.short') }, icon: 'building', group: 'moi' },
+  { id: 'notifications', get label() { return i18n.t('settings:nav.sections.notifications.label') }, get short() { return i18n.t('settings:nav.sections.notifications.short') }, icon: 'bell', group: 'produit' },
+  { id: 'integrations', get label() { return i18n.t('settings:nav.sections.integrations.label') }, get short() { return i18n.t('settings:nav.sections.integrations.short') }, icon: 'plug', group: 'produit' },
+  { id: 'billing', get label() { return i18n.t('settings:nav.sections.billing.label') }, get short() { return i18n.t('settings:nav.sections.billing.short') }, icon: 'card', group: 'compte' },
+  { id: 'security', get label() { return i18n.t('settings:nav.sections.security.label') }, get short() { return i18n.t('settings:nav.sections.security.short') }, icon: 'lock', group: 'compte' },
+  { id: 'preferences', get label() { return i18n.t('settings:nav.sections.preferences.label') }, get short() { return i18n.t('settings:nav.sections.preferences.short') }, icon: 'sliders', group: 'compte' },
 ]
 
 export const SETTINGS_GROUPS: { id: 'moi' | 'produit' | 'compte'; label: string }[] = [
-  { id: 'moi', label: 'Compte' },
-  { id: 'produit', label: 'Produit' },
-  { id: 'compte', label: 'Facturation & sécurité' },
+  { id: 'moi', get label() { return i18n.t('settings:nav.groups.moi') } },
+  { id: 'produit', get label() { return i18n.t('settings:nav.groups.produit') } },
+  { id: 'compte', get label() { return i18n.t('settings:nav.groups.compte') } },
 ]
 
 export interface ProfileData {

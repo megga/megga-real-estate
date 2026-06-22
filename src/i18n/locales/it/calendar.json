@@ -1,1 +1,310 @@
-{}
+{
+  "eventType": {
+    "visite": "Viewing",
+    "mandate": "Mandate / Valuation",
+    "notary": "Notary signing",
+    "task": "Task / Follow-up",
+    "publish": "Publication"
+  },
+  "days": [
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat"
+  ],
+  "daysFull": [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ],
+  "months": [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ],
+  "views": {
+    "timelineCount_one": "Timeline · {{count}} event",
+    "timelineCount_other": "Timeline · {{count}} events",
+    "now": "NOW · {{time}}",
+    "dayEmpty": "Free day, block time for your hot buyers.",
+    "heroFirst": "First appointment",
+    "heroInProgress": "IN PROGRESS",
+    "heroInMinutes_one": "IN {{count}} MIN",
+    "heroInMinutes_other": "IN {{count}} MIN",
+    "heroAtTime": "AT {{time}}",
+    "heroLast": "LAST APPOINTMENT",
+    "warmBadge": "Hot · {{pct}}%",
+    "moreEvents_one": "+ {{count}} more",
+    "moreEvents_other": "+ {{count}} more",
+    "todayBadge": "TODAY",
+    "eventCount_one": "{{count}} event",
+    "eventCount_other": "{{count}} events"
+  },
+  "panel": {
+    "miniWeekdays": [
+      "M",
+      "T",
+      "W",
+      "T",
+      "F",
+      "S",
+      "S"
+    ],
+    "filterByType": "Filter by type",
+    "hotBuyers": "Hot buyers",
+    "cardAriaLabel": "Card {{index}}",
+    "emptyTitle": "Select an event",
+    "emptyHint": "Click an appointment to see details and take action.",
+    "statusDone": "Completed",
+    "statusCancelled": "Cancelled",
+    "linkedProperty": "Linked property",
+    "notes": "Notes",
+    "directions": "Directions",
+    "markDone": "Mark done",
+    "views": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "agenda": "Agenda"
+    }
+  },
+  "edit": {
+    "newEvent": "New event",
+    "typeLabel": "Type",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Event title",
+    "dateLabel": "Date",
+    "startLabel": "Start",
+    "endLabel": "End",
+    "locationLabel": "Location",
+    "locationPlaceholder": "Address",
+    "contactLabel": "Contact",
+    "namePlaceholder": "Name",
+    "rolePlaceholder": "Role",
+    "phonePlaceholder": "Phone",
+    "propertyLabel": "Property",
+    "designationPlaceholder": "Designation",
+    "areaPlaceholder": "m²",
+    "pricePlaceholder": "Price CHF",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Internal notes",
+    "save": "Save"
+  },
+  "page": {
+    "eyebrow": "Calendar",
+    "newEvent": "New event",
+    "creating": "Creating…",
+    "fullAgenda": "Full agenda",
+    "weekRange": "Week of {{startDay}} {{startMonth}} - {{endDay}} {{endMonth}}",
+    "selectContactAndProperty": "Select both a contact AND a property to schedule a viewing",
+    "errorUnknown": "Unknown error",
+    "createFailed": "Failed: {{error}}",
+    "created": {
+      "visit": "Viewing scheduled",
+      "meeting": "Appointment scheduled",
+      "reminder": "Follow-up created",
+      "signing": "Signing scheduled",
+      "deadline": "Deadline added",
+      "personal": "Personal event added"
+    }
+  },
+  "createVisit": {
+    "title": "New event",
+    "description": "Schedule a viewing, an appointment or a follow-up",
+    "eventType": {
+      "visit": "Viewing",
+      "meeting": "Appointment",
+      "reminder": "Follow-up",
+      "signing": "Signing",
+      "deadline": "Deadline",
+      "personal": "Personal"
+    },
+    "prefix": {
+      "visit": "Viewing",
+      "meeting": "Appt.",
+      "reminder": "Reminder",
+      "signing": "Signing",
+      "deadline": "Deadline",
+      "personal": ""
+    },
+    "recurrence": {
+      "none": "Never",
+      "daily": "Every day",
+      "weekly": "Every week",
+      "biweekly": "Every 2 weeks",
+      "monthly": "Every month"
+    },
+    "field": {
+      "type": "Type",
+      "title": "Title",
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration",
+      "recurrence": "Recurrence",
+      "contact": "Contact",
+      "property": "Property",
+      "location": "Address",
+      "notes": "Notes"
+    },
+    "locationPlaceholder": "Appointment address",
+    "notesPlaceholder": "Optional notes...",
+    "noContact": "No contact",
+    "noProperty": "No property"
+  },
+  "visit": {
+    "sentiment": {
+      "hot": "Very interested",
+      "warm": "Interested",
+      "cool": "Lukewarm",
+      "cold": "Not interested"
+    }
+  },
+  "visitModal": {
+    "title": "Schedule a viewing",
+    "stepper": {
+      "propertyVisitor": "Property & visitor",
+      "dateTime": "Date & time",
+      "confirmation": "Confirmation"
+    },
+    "action": {
+      "close": "Close",
+      "cancel": "Cancel",
+      "back": "Back",
+      "continue": "Continue"
+    },
+    "step1": {
+      "eyebrow": "Step 1 of 3 · What & who",
+      "title": "Which property are we showing, and to whom?",
+      "subtitle": "Browse the list, or search by name, address or city."
+    },
+    "field": {
+      "property": "Property to view",
+      "visitor": "Visitor",
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration"
+    },
+    "placeholder": {
+      "propertySearch": "Title, address, city…",
+      "visitorSearch": "Name, email, phone…"
+    },
+    "empty": {
+      "noProperty": "No active property matches."
+    },
+    "step2": {
+      "eyebrow": "Step 2 of 3 · When",
+      "title": "Which day, what time?",
+      "subtitle": "The viewing voucher will be ready to sign once confirmed."
+    },
+    "duration": {
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "oneHour": "1 hour",
+      "oneHourThirty": "1h30"
+    },
+    "step3": {
+      "eyebrow": "Step 3 of 3 · Details & confirmation",
+      "title": "All set?",
+      "subtitle": "Choose what we automate for you."
+    },
+    "recap": {
+      "title": "Summary",
+      "property": "Property",
+      "visitor": "Visitor",
+      "date": "Date",
+      "timeDuration": "{{time}} ({{duration}} min)"
+    },
+    "automation": {
+      "emailVisitor": {
+        "label": "Email to visitor",
+        "desc": "Confirmation with address, access and property photo."
+      },
+      "generateBon": {
+        "label": "Generate the viewing voucher",
+        "desc": "Pre-filled MEGGA PDF with the visitor's undertaking."
+      },
+      "askSignature": {
+        "label": "Request signature beforehand",
+        "desc": "Secure link sent to the visitor 24h ahead."
+      }
+    },
+    "footer": {
+      "stepCounter": "Step {{current}} / {{total}}"
+    },
+    "cta": {
+      "scheduling": "Scheduling…",
+      "schedule": "Schedule the viewing"
+    }
+  },
+  "visitDetail": {
+    "loading": "Loading the viewing…",
+    "loadError": "Error loading the viewing: {{message}}",
+    "unknownError": "unknown",
+    "notFound": "Viewing not found.",
+    "backToCalendar": "Calendar",
+    "statusUpdateError": "Unable to update the status: {{message}}",
+    "cta": {
+      "visitDone": "Viewing completed",
+      "markDone": "Mark as completed",
+      "confirm": "Confirm the viewing"
+    },
+    "eyebrow": {
+      "prefix": "Viewing",
+      "done": "Completed",
+      "planned": "Planned"
+    },
+    "propertyFallback": "Property",
+    "withContact": "with {{name}}",
+    "bon": {
+      "eyebrowPrefix": "Viewing voucher",
+      "signed": "Signed",
+      "toSign": "To sign",
+      "documentTitle": "Viewing document",
+      "pdfTitle": "Viewing voucher",
+      "fieldProperty": "Property",
+      "fieldVisitor": "Visitor",
+      "fieldAgent": "Agent",
+      "fieldDateTime": "Date and time",
+      "plannedDuration": "Planned duration: {{minutes}} min",
+      "commitmentLabel": "Visitor's commitment",
+      "commitmentText": "The visitor acknowledges having been informed of the mandate binding the seller to MEGGA and undertakes not to contact the seller directly. Any transaction completed within the 24 months following this viewing will be owed to the agency under the terms of the mandate.",
+      "signatureVisitor": "Visitor signature",
+      "signatureAgent": "Agent signature",
+      "signedElectronically": "Signed electronically",
+      "awaitingSignature": "Awaiting signature",
+      "signNow": "Get it signed now"
+    },
+    "report": {
+      "eyebrowPrefix": "Report",
+      "awaitingVisit": "Awaiting the viewing",
+      "title": "Viewing report",
+      "emptyTitle": "The report will be available after the viewing",
+      "emptyHint": "During the viewing, use the mobile companion view to capture voice notes, photos and impressions. The report will fill in automatically.",
+      "sentimentFallback": "Lukewarm",
+      "score": "Score",
+      "highlights": "Highlights",
+      "objections": "Objections",
+      "nextStep": "Next step",
+      "voiceNote": "Agent voice note · {{time}}",
+      "autoTranscript": "Automatic transcription available",
+      "photoCount_one": "{{count}} photo",
+      "photoCount_other": "{{count}} photos"
+    }
+  }
+}

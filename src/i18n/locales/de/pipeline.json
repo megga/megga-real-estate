@@ -21,7 +21,8 @@
     "property": "Objekt",
     "price": "Preis",
     "stage": "Stufe",
-    "activity": "Aktivität"
+    "activity": "Aktivität",
+    "value": "Value"
   },
   "drop_target": "Hier ablegen",
   "empty_title": "Erstellen Sie Ihren ersten Deal, um Ihre Transaktionen zu verfolgen",
@@ -53,5 +54,482 @@
     "withdrawal": "Rücktritt des Kunden",
     "price": "Preis zu hoch",
     "other": "Anderer Grund"
+  },
+  "stages": {
+    "new-lead": "New lead",
+    "to-qualify": "To qualify",
+    "searching": "Active search",
+    "visit-scheduled": "Viewing scheduled",
+    "visit-done": "Viewing done",
+    "interest-confirmed": "Interest confirmed",
+    "offer": "Offer submitted",
+    "signed": "Signed",
+    "lost": "Lost"
+  },
+  "newDeal": {
+    "archetype": {
+      "buyerSearch": {
+        "label": "Buyer searching",
+        "sub": "No property identified yet"
+      },
+      "buyerBien": {
+        "label": "Buyer on a property",
+        "sub": "Property already identified, visit or interest"
+      },
+      "sellerMandate": {
+        "label": "Seller mandate",
+        "sub": "New property to publish, mandate required"
+      },
+      "tenant": {
+        "label": "Tenant",
+        "sub": "Short cycle, light KYC"
+      }
+    },
+    "action": {
+      "call": {
+        "label": "Call",
+        "placeholder": "First qualification call"
+      },
+      "visit": {
+        "label": "Visit",
+        "placeholder": "Schedule the property visit"
+      },
+      "match": {
+        "label": "Matching",
+        "placeholder": "Send 3 properties from the portfolio"
+      },
+      "kyc": {
+        "label": "KYC",
+        "placeholder": "Start the AML verification file"
+      },
+      "doc": {
+        "label": "Document",
+        "placeholder": "Prepare the visit slip / mandate"
+      },
+      "scheduleLabel": "Action to schedule",
+      "dueLabel": "Due date",
+      "noteLabel": "Note"
+    },
+    "section": {
+      "dealType": "Deal type",
+      "contact": "Contact",
+      "bien": "Property",
+      "stageValue": "Stage & value",
+      "nextAction": "Next action"
+    },
+    "ai": {
+      "buttonTitle": "Pre-fill from an email/message",
+      "title": "MEGGA AI · pre-fill",
+      "placeholder": "Paste an email, a transcribed voice note or a WhatsApp message here. The AI extracts the contact, the property if any, the score and suggests a next action.",
+      "analyzing": "Analyzing…",
+      "extract": "Extract",
+      "prefilledNote": "First call following the message received"
+    },
+    "contact": {
+      "selectTitle": "Select a contact",
+      "createTitle": "Create a contact",
+      "existing": "Existing",
+      "new": "New",
+      "searchPlaceholder": "Search name, email, phone…",
+      "kycVerified": "KYC ✓",
+      "kycPending": "KYC in progress",
+      "kycTodo": "KYC to do",
+      "empty": "No results, switch to “New” to create this contact.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phone": "Phone",
+      "language": "Language",
+      "duplicate": "Existing contact found: {{name}}. Switch to “Existing” to use it."
+    },
+    "bien": {
+      "toPublish": "Property to publish (can be created later)",
+      "fromPortfolio": "Property from the portfolio or MEGGA catalogue",
+      "searchPlaceholder": "Search title, reference MG-…, address",
+      "rentPerMonth": "CHF {{amount}}/month",
+      "noneIdentified": "No property identified yet"
+    },
+    "stage": {
+      "startLabel": "Starting stage",
+      "estimatedValue": "Estimated value (CHF)",
+      "autoFromRef": "Auto from {{ref}}",
+      "optional": "Optional",
+      "estimatedCommission": "Estimated commission"
+    },
+    "guard": {
+      "mandate": {
+        "title": "Mandate required before publication",
+        "body": "A mandate wizard will be offered after creation, 3 documents to sign (mandate, terms, inventory of fixtures)."
+      },
+      "kyc": {
+        "title": "KYC recommended at this stage",
+        "body": "KYC is offered as the next action, supporting AML compliance. It blocks no pipeline step; final verification rests with the notary."
+      }
+    },
+    "error": {
+      "noAgency": "No agency linked, cannot create the deal",
+      "demoBien": "The selected property is a demo example. Select a real property from the agency portfolio.",
+      "demoContact": "The selected contact is a demo example. Select a real contact.",
+      "selectContact": "Select a contact",
+      "unknown": "Unknown error"
+    },
+    "footer": {
+      "creating": "Creating…",
+      "create": "Create deal"
+    },
+    "created": {
+      "badge": "Deal created",
+      "bienLine": "Property · {{title}}",
+      "activeSearch": "Active search",
+      "typeLine": "Type · {{type}}",
+      "continue": "Continue",
+      "quickMatch": {
+        "label": "Send 3 properties",
+        "sub": "AI matching"
+      },
+      "quickVisit": {
+        "label": "Schedule visit",
+        "sub": "Calendar"
+      },
+      "quickKyc": {
+        "label": "Start KYC",
+        "sub": "AML"
+      },
+      "quickDetail": {
+        "label": "View details",
+        "sub": "Deal record"
+      },
+      "timelineNote": "The deal timeline starts here. The actions above will add an event to the record."
+    },
+    "datetime": {
+      "months": "[\"January\",\"February\",\"March\",\"April\",\"May\",\"June\",\"July\",\"August\",\"September\",\"October\",\"November\",\"December\"]",
+      "daysShort": "[\"M\",\"T\",\"W\",\"T\",\"F\",\"S\",\"S\"]",
+      "today17": "Today 5pm",
+      "tomorrow10": "Tomorrow 10am",
+      "inTwoDays": "In 2 days",
+      "nextMonday": "Next Monday",
+      "time": "Time",
+      "ok": "OK"
+    }
+  },
+  "board": {
+    "noPropertyYet": "Active search",
+    "dealsCount_one": "{{count}} deal",
+    "dealsCount_other": "{{count}} deals",
+    "dealsCountWithValue_one": "{{count}} deal · {{value}}",
+    "dealsCountWithValue_other": "{{count}} deals · {{value}}",
+    "dragDealHere": "Drag a deal here",
+    "dropToStage": "Drop here → {{stage}}",
+    "searchPlaceholder": "Search contact, property, note…",
+    "importLead": "Import a lead",
+    "importLeadHint": "Import a lead via MEGGA AI",
+    "commandPaletteComingSoon": "Search, ⌘K (coming soon)",
+    "list": {
+      "dealContact": "Deal / Contact",
+      "nextAction": "Next action",
+      "status": "Status",
+      "noMatch": "No deal matches the active filters."
+    },
+    "risk": {
+      "all": "All",
+      "healthy": "Healthy",
+      "atRisk": "At risk",
+      "stalled": "Stalled"
+    },
+    "filter": {
+      "apply": "Apply",
+      "reset": "Reset",
+      "stagesHeader": "Stages",
+      "riskHeader": "Risk",
+      "periodHeader": "Period",
+      "deselectAll": "Deselect all",
+      "allStages": "All",
+      "stagesSelected_one": "{{count}} stage",
+      "stagesSelected_other": "{{count}} stages",
+      "lastDays_one": "Last {{count}} day",
+      "lastDays_other": "Last {{count}} days",
+      "daysShort": "{{count}}d",
+      "allTime": "All"
+    },
+    "card": {
+      "scheduleVisit": "Schedule a visit",
+      "moreOptions": "More options",
+      "reassign": "Reassign",
+      "archive": "Archive",
+      "markLost": "Mark as lost",
+      "reassignTo": "Reassign to",
+      "noOtherAgents": "No other agent in the agency.",
+      "archiveDemoOnly": "Archiving is available on a real deal only (demo data).",
+      "archiveConfirm": "Archive this deal?",
+      "markLostDemoOnly": "Marking as lost is available on a real deal only (demo data).",
+      "lostReasonPrompt": "Reason for loss (optional, logged in the audit trail):",
+      "reassignDemoOnly": "Reassignment is available on a real deal only (demo data).",
+      "actionFailed": "Failed: {{message}}",
+      "unknownError": "unknown error"
+    },
+    "toast": {
+      "moveFailedTitle": "Could not move the deal",
+      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again."
+    }
+  },
+  "kyc": {
+    "lock": {
+      "title": "Non-blocking reminder, open the KYC files",
+      "pending_one": "<strong>{{count}}</strong> KYC file to complete",
+      "pending_other": "<strong>{{count}}</strong> KYC files to complete",
+      "optional": "Optional"
+    }
+  },
+  "transaction": {
+    "dialog_title": "New transaction",
+    "dialog_subtitle": "Create a deal in your pipeline.",
+    "optional": "(optional)",
+    "role": "Role",
+    "role_buyer": "Buyer",
+    "role_seller": "Seller",
+    "add_details": "+ Add details",
+    "mandate_type": "Mandate type",
+    "mandate": {
+      "none": "None",
+      "simple": "Simple",
+      "exclusive": "Exclusive",
+      "semi_exclusive": "Semi-exclusive"
+    },
+    "notes": "Notes",
+    "notes_placeholder": "Context, important details..."
+  },
+  "deal": {
+    "loading": "Loading deal…",
+    "load_error": "Failed to load deal: {{message}}",
+    "error_unknown": "unknown",
+    "not_found": "Deal not found.",
+    "buyer_fallback": "Buyer",
+    "schedule_visit": "Schedule a visit",
+    "counter_offer": "Counter-offer",
+    "new_offer": "New offer",
+    "pipeline_stage": "Pipeline · {{stage}}",
+    "sentiment_healthy": "Healthy",
+    "deal_amount": "Deal amount",
+    "last_offer": "Latest offer: {{amount}}",
+    "kyc_banner_title": "KYC recommended before signing",
+    "kyc_banner_body": "A verified KYC for <strong>{{name}}</strong> is recommended before the <strong>{{stage}}</strong> stage, supporting AML compliance. It is not a blocker: you can proceed; final verification rests with the notary.",
+    "open_kyc_dossier": "Open KYC file",
+    "negotiation_rounds_one": "Negotiation · {{count}} round",
+    "negotiation_rounds_other": "Negotiation · {{count}} rounds",
+    "offers_title": "Offers & counter-offers",
+    "no_offer_title": "No offer submitted",
+    "no_offer_subtitle": "When the buyer is ready, you'll be able to record their formal offer here.",
+    "record_offer": "Record an offer",
+    "offer_confirm": {
+      "accepted": "Do you want to accept this offer?",
+      "rejected": "Do you want to reject this offer?",
+      "withdrawn": "Do you want to withdraw this offer?",
+      "expired": "Do you want to mark this offer as expired?"
+    },
+    "offer_update_failed": "Failed: {{message}}",
+    "recent_activity": "Recent activity",
+    "timeline_title": "Deal timeline",
+    "timeline_counter_offer": "Counter-offer from {{by}}",
+    "timeline_offer": "Offer from {{by}}",
+    "timeline_created": "Deal created",
+    "buyer": "Buyer",
+    "view_full_profile": "View full profile",
+    "call": "Call",
+    "email": "Email",
+    "message": "Message",
+    "capacity": "Budget",
+    "purchase_probability": "{{value}}% purchase probability",
+    "surface_rooms": "{{surface}} m² · {{rooms}} rooms",
+    "documents": "Documents",
+    "documents_subtitle": "For this deal",
+    "doc_formal_offer": "Formal offer, {{by}}",
+    "doc_counter_offer": "Counter-offer, {{by}}",
+    "doc_kyc_complete": "Buyer KYC, complete file",
+    "doc_sale_agreement": "Sale agreement",
+    "no_documents": "No document generated for this deal.",
+    "doc_status_signed": "Signed",
+    "doc_status_pending": "Pending",
+    "doc_status_missing": "To generate",
+    "doc_pages_one": "{{count}} page",
+    "doc_pages_other": "{{count}} pages",
+    "private_notes": "Private notes",
+    "notes_team": "{{brand}} team",
+    "notes_saving": "Saving…",
+    "notes_empty": "Private notes, visible only to the {{brand}} team.",
+    "never_visible_client": "Never visible to the client",
+    "asking_price": "Asking price",
+    "offer_received": "Offer received",
+    "last_update": "Last update",
+    "no_offer_recorded": "No offer recorded for this transaction.",
+    "view_contact": "View contact"
+  },
+  "offerModal": {
+    "cta": {
+      "close": "Close",
+      "cancel": "Cancel",
+      "back": "Back",
+      "continue": "Continue",
+      "submit": "Save & send",
+      "submitting": "Sending…"
+    },
+    "label": {
+      "buyerFallback": "Buyer"
+    },
+    "eyebrow": {
+      "counter": "Counter-offer · seller",
+      "offer": "New offer · buyer"
+    },
+    "step": {
+      "amount": "Amount",
+      "conditions": "Conditions",
+      "delay": "Deadline & send"
+    },
+    "step0": {
+      "eyebrow": "Step 1 of 3 · Amount",
+      "title": {
+        "counter": "What amount are you proposing in return?",
+        "offer": "What amount is the buyer offering?"
+      },
+      "subtitle": {
+        "counter": "You can adjust the amount, reposition the conditions and set a new deadline.",
+        "offer": "Enter the main amount, any deposit and the desired signing date."
+      }
+    },
+    "field": {
+      "offerFrom": "Offer from {{label}}",
+      "amount": "Proposed amount",
+      "askingPriceHint": "Asking price: {{price}}",
+      "deposit": "Deposit",
+      "depositHint": "On signing the preliminary agreement",
+      "closingDate": "Desired signing date",
+      "gap": "Gap",
+      "gapVsAsking": "vs asking price",
+      "expiryDate": "Expiry date",
+      "expiryTime": "Time"
+    },
+    "step1": {
+      "eyebrow": "Step 2 of 3 · Conditions precedent",
+      "title": "Under what conditions?",
+      "subtitle": "Enable only the conditions that apply. Each must be lifted before signing."
+    },
+    "condition": {
+      "financing": {
+        "title": "Bank financing",
+        "sub": "The offer is conditional on obtaining a mortgage loan.",
+        "daysLabel": "Deadline (days)",
+        "noteLabel": "Details (bank, rate…)",
+        "notePlaceholder": "E.g. BCGE, 80%, 10-year fixed rate"
+      },
+      "sale": {
+        "title": "Sale of another property",
+        "sub": "The purchase depends on first selling an existing property."
+      },
+      "diagnostic": {
+        "title": "Survey / Inspection",
+        "sub": "Independent survey (roof, structure, energy) at the buyer's expense.",
+        "noteLabel": "Scope of the survey",
+        "notePlaceholder": "E.g. Roof + facade"
+      },
+      "occupancy": {
+        "title": "Vacant possession",
+        "sub": "The property must be vacant by a specific date.",
+        "dateLabel": "Vacancy date"
+      },
+      "other": {
+        "label": "Other: free text",
+        "hint": "Visible in the formal offer (PDF). Keep it factual.",
+        "placeholder": "E.g. Purchase in a personal capacity, cash payment of 35%."
+      },
+      "financingShort": "Financing · {{days}}d",
+      "diagnosticShort": "Survey"
+    },
+    "step2": {
+      "eyebrow": "Step 3 of 3 · Deadline & confirmation",
+      "title": "Offer validity",
+      "subtitle": "After this date, the offer will move to « expired » status."
+    },
+    "delay": {
+      "h48": "48h",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days"
+    },
+    "summary": {
+      "title": "Summary",
+      "counterLabel": "Seller counter-offer",
+      "offerLabel": "Buyer offer",
+      "deposit": "Deposit",
+      "closing": "Target signing",
+      "activeConditions": "Active conditions",
+      "expires": "Expires on",
+      "expiresValue": "{{date}} at {{time}}"
+    },
+    "footer": {
+      "stepCount": "Step {{current}} / {{total}}"
+    },
+    "eyebrowOffer": "Offer · buyer",
+    "statusCurrent": "Current",
+    "depositSuffix": "+ {{amount}} deposit",
+    "expiresAt": "Expires {{date}}",
+    "attachments_one": "{{count}} attachment",
+    "attachments_other": "{{count}} attachments",
+    "action": {
+      "accept": "Accept",
+      "reject": "Decline",
+      "withdraw": "Withdraw"
+    }
+  },
+  "journey": {
+    "stages": {
+      "mandat": "Mandate received",
+      "market": "On the market",
+      "nego": "Negotiation",
+      "closing": "Closing"
+    },
+    "urgency": {
+      "high": "High urgency",
+      "medium": "Medium",
+      "low": "Relaxed"
+    },
+    "task": {
+      "mandatSigned": "Mandate signed",
+      "kycSeller": "Seller KYC",
+      "commercialBrief": "Sales brief",
+      "photosVideo": "Photos & video",
+      "listingPublished": "Listing published",
+      "visitsScheduled": "Viewings scheduled",
+      "offersReceived": "Offers received",
+      "negotiation": "Negotiation",
+      "preliminaryAgreement": "Preliminary agreement",
+      "notarialDeed": "Notarial deed",
+      "actions": {
+        "markDone": "Mark as done",
+        "reschedule": "Reschedule",
+        "more": "More"
+      }
+    },
+    "roomsAbbr": "rooms",
+    "dossierFallback": "File",
+    "title": "Team journey",
+    "subtitle": "Real-time tracking of every file · panoramic view",
+    "emptyState": "No file matches the selected filters.",
+    "filters": {
+      "stageLabel": "Stage",
+      "allStages": "All",
+      "urgencyLabel": "Urgency",
+      "allUrgencies": "All",
+      "activeCount_one": "{{count}} active file",
+      "activeCount_other": "{{count}} active files"
+    },
+    "actions": {
+      "addMember": "Add a member",
+      "addTask": "Add a task",
+      "shareToNetwork": "Share to the network",
+      "schedule": "Schedule"
+    },
+    "avatar": {
+      "title": "{{firstName}} {{lastName}}, {{role}}",
+      "tasksInProgress_one": "{{count}} task in progress",
+      "tasksInProgress_other": "{{count}} tasks in progress"
+    }
   }
 }

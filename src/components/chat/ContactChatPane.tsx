@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, X, Pin, Archive, CheckCheck, Phone, Mail, ExternalLink, Building2, ChevronDown, ChevronUp, MapPin as MapPinIcon, Banknote, Clock, GitBranch, Flame, StickyNote, Sparkles, Reply, Copy, Trash2, PinOff } from 'lucide-react'
@@ -91,6 +92,7 @@ function MessageContextMenu({ state, onClose, onReply, onCopy, onPin, onTransfer
   onTransferAi?: () => void
   onDelete?: () => void
 }) {
+  const { t } = useTranslation('messages')
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -113,11 +115,11 @@ function MessageContextMenu({ state, onClose, onReply, onCopy, onPin, onTransfer
   }, [state.x, state.y])
 
   const items = [
-    { label: 'Répondre', icon: Reply, action: onReply },
-    { label: 'Copier le texte', icon: Copy, action: onCopy },
-    { label: state.isPinned ? 'Désépingler' : 'Épingler', icon: state.isPinned ? PinOff : Pin, action: onPin },
-    ...(onTransferAi && state.msg.senderType === 'contact' ? [{ label: 'Transférer à MEGGA AI', icon: Sparkles, action: onTransferAi }] : []),
-    ...(onDelete && state.msg.senderType === 'agent' ? [{ label: 'Supprimer', icon: Trash2, action: onDelete, danger: true }] : []),
+    { label: t('chat.menu.reply'), icon: Reply, action: onReply },
+    { label: t('chat.menu.copyText'), icon: Copy, action: onCopy },
+    { label: state.isPinned ? t('chat.menu.unpin') : t('chat.menu.pin'), icon: state.isPinned ? PinOff : Pin, action: onPin },
+    ...(onTransferAi && state.msg.senderType === 'contact' ? [{ label: t('chat.menu.transferToAi'), icon: Sparkles, action: onTransferAi }] : []),
+    ...(onDelete && state.msg.senderType === 'agent' ? [{ label: t('common:actions.delete'), icon: Trash2, action: onDelete, danger: true }] : []),
   ]
 
   return createPortal(
@@ -162,6 +164,8 @@ interface ContactChatPaneProps {
 export default function ContactChatPane({
   thread, messages, onSendMessage, isSending, agentName, onBack, onArchive, isArchived, onSwitchToAi,
 }: ContactChatPaneProps) {
+  const { t: tr, i18n } = useTranslation('messages')
+  const dateLocale = `${i18n.language || 'fr'}-CH`
   const [showTyping, setShowTyping] = useState(false)
   const [showInfoPanel, setShowInfoPanel] = useState(false)
   const [replyTo, setReplyTo] = useState<{ id: string; content: string; senderName: string } | null>(null)
@@ -243,11 +247,11 @@ export default function ContactChatPane({
       <div className="flex-1 flex flex-col min-w-0">
       {/* Header */}
       <div className="h-14 border-b border-theme-border flex items-center gap-3 px-6 flex-shrink-0">
-        <button onClick={onBack} aria-label="Retour" className="md:hidden p-1 -ml-1 rounded-md hover:bg-theme-hover">
+        <button onClick={onBack} aria-label={tr('common:actions.back')} className="md:hidden p-1 -ml-1 rounded-md hover:bg-theme-hover">
           <ArrowLeft className="h-4 w-4 text-theme-secondary" />
         </button>
         <ThreadAvatar initials={thread.avatar_initials} type={thread.contact_type} />
-        <button onClick={() => setShowInfoPanel(p => !p)} aria-label="Afficher le profil" className="min-w-0 flex-1 text-left">
+        <button onClick={() => setShowInfoPanel(p => !p)} aria-label={tr('chat.showProfile')} className="min-w-0 flex-1 text-left">
           <p className={cn('text-sm font-semibold transition-colors', showInfoPanel ? 'text-accent' : 'text-theme-primary hover:text-accent')}>
             {thread.contact_name}
           </p>
@@ -257,9 +261,9 @@ export default function ContactChatPane({
         </button>
         <button
           onClick={() => onArchive(thread.id)}
-          aria-label={isArchived ? 'Désarchiver' : 'Archiver'}
+          aria-label={isArchived ? tr('chat.unarchive') : tr('chat.archive')}
           className="p-2 rounded-lg hover:bg-theme-hover transition-colors shrink-0"
-          title={isArchived ? 'Désarchiver' : 'Archiver'}
+          title={isArchived ? tr('chat.unarchive') : tr('chat.archive')}
         >
           <Archive className="w-4 h-4 text-theme-muted" />
         </button>
@@ -270,7 +274,7 @@ export default function ContactChatPane({
         <div className="px-6 py-2 border-b border-theme-border-subtle flex items-center gap-2">
           <Pin className="w-3.5 h-3.5 text-theme-muted rotate-45 shrink-0" />
           <p className="text-xs text-theme-secondary truncate flex-1">{pinnedMsg.content}</p>
-          <button onClick={() => { const next = new Map(pinnedMessages); next.delete(thread.id); setPinnedMessages(next) }} aria-label="Retirer l'épingle" className="p-0.5 rounded hover:bg-theme-active transition-colors shrink-0">
+          <button onClick={() => { const next = new Map(pinnedMessages); next.delete(thread.id); setPinnedMessages(next) }} aria-label={tr('chat.removePin')} className="p-0.5 rounded hover:bg-theme-active transition-colors shrink-0">
             <X className="w-3 h-3 text-theme-muted" />
           </button>
         </div>
@@ -282,8 +286,8 @@ export default function ContactChatPane({
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <img src="/illustrations/maggy/EmptyState.svg" alt="" className="w-48 h-36 mx-auto mb-4" loading="lazy" decoding="async" />
-              <p className="text-sm text-theme-muted">Aucun message pour l'instant</p>
-              <p className="text-xs text-theme-muted mt-1">Envoyez un message pour démarrer la conversation</p>
+              <p className="text-sm text-theme-muted">{tr('chat.noMessagesYet')}</p>
+              <p className="text-xs text-theme-muted mt-1">{tr('chat.sendToStart')}</p>
             </div>
           )}
           {messages.map((msg, idx) => {
@@ -302,10 +306,10 @@ export default function ContactChatPane({
             const yesterday = new Date(today)
             yesterday.setDate(yesterday.getDate() - 1)
             const dayLabel = msgDate.toDateString() === today.toDateString()
-              ? "Aujourd'hui"
+              ? tr('chat.today')
               : msgDate.toDateString() === yesterday.toDateString()
-              ? 'Hier'
-              : msgDate.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' })
+              ? tr('chat.yesterday')
+              : msgDate.toLocaleDateString(dateLocale, { day: 'numeric', month: 'long' })
 
             const isPinned = pinnedMessages.get(thread.id)?.id === msg.id
 
@@ -374,7 +378,7 @@ export default function ContactChatPane({
                     {isLastInGroup && (
                       <div className={cn('flex items-center gap-1 mt-0.5 px-1', isAgent ? 'justify-end' : 'justify-start')}>
                         <time className="text-xs text-theme-muted">
-                          {msgDate.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })}
+                          {msgDate.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
                         </time>
                         {isAgent && msg.read_at && <CheckCheck className="w-3 h-3 text-accent" />}
                         {isAgent && !msg.read_at && <CheckCheck className="w-3 h-3 text-theme-muted" />}
@@ -390,14 +394,14 @@ export default function ContactChatPane({
                     )}>
                       <button
                         onClick={() => setReplyTo({ id: msg.id, content: msg.content, senderName: msg.sender_name })}
-                        aria-label="Répondre"
+                        aria-label={tr('chat.menu.reply')}
                         className="p-1.5 rounded-md hover:bg-theme-hover text-theme-muted"
                       >
                         <Reply className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => togglePin(msg.id, msg.content)}
-                        aria-label={isPinned ? 'Désépingler' : 'Épingler'}
+                        aria-label={isPinned ? tr('chat.menu.unpin') : tr('chat.menu.pin')}
                         className={cn(
                           'p-1.5 rounded-md hover:bg-theme-hover',
                           isPinned ? 'text-theme-secondary' : 'text-theme-muted'
@@ -426,7 +430,7 @@ export default function ContactChatPane({
                 <p className="text-xs font-medium text-accent">{replyTo.senderName}</p>
                 <p className="text-xs text-theme-secondary truncate">{replyTo.content}</p>
               </div>
-              <button onClick={() => setReplyTo(null)} aria-label="Annuler la réponse" className="p-1 rounded-md hover:bg-theme-hover flex-shrink-0">
+              <button onClick={() => setReplyTo(null)} aria-label={tr('chat.cancelReply')} className="p-1 rounded-md hover:bg-theme-hover flex-shrink-0">
                 <X className="w-3 h-3 text-theme-muted" />
               </button>
             </div>
@@ -434,7 +438,7 @@ export default function ContactChatPane({
           <PromptInputBar
             onSend={(text) => handleSend(text)}
             isLoading={isSending}
-            placeholder={replyTo ? `Répondre à ${replyTo.senderName}...` : `Message à ${thread.contact_name.split(' ')[0]}...`}
+            placeholder={replyTo ? tr('chat.replyToPlaceholder', { name: replyTo.senderName }) : tr('chat.messageToPlaceholder', { name: thread.contact_name.split(' ')[0] })}
           />
         </div>
       </div>
@@ -453,8 +457,8 @@ export default function ContactChatPane({
             <div className="w-72 h-full overflow-y-auto scrollbar-hide p-4 space-y-4">
               {/* Close */}
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-theme-muted capitalize">Profil</p>
-                <button onClick={() => setShowInfoPanel(false)} aria-label="Fermer le profil" className="p-1 rounded-md hover:bg-theme-hover transition-colors">
+                <p className="text-xs font-medium text-theme-muted capitalize">{tr('chat.panel.profile')}</p>
+                <button onClick={() => setShowInfoPanel(false)} aria-label={tr('chat.panel.closeProfile')} className="p-1 rounded-md hover:bg-theme-hover transition-colors">
                   <X className="w-3.5 h-3.5 text-theme-muted" />
                 </button>
               </div>
@@ -468,7 +472,7 @@ export default function ContactChatPane({
                   {thread.avatar_initials}
                 </div>
                 <p className="text-base font-semibold text-theme-primary">{thread.contact_name}</p>
-                <p className="text-xs text-theme-muted mt-0.5 capitalize">{thread.contact_type === 'buyer' ? 'Acheteur' : 'Vendeur'}</p>
+                <p className="text-xs text-theme-muted mt-0.5 capitalize">{thread.contact_type === 'buyer' ? tr('chat.contactType.buyer') : tr('chat.contactType.seller')}</p>
 
                 {/* Score badge */}
                 {contactData?.score && (
@@ -485,7 +489,7 @@ export default function ContactChatPane({
                       contactData.score === 'warm' ? 'text-amber-500' :
                       'text-blue-400'
                     )}>
-                      {contactData.score === 'hot' ? 'Hot' : contactData.score === 'warm' ? 'Warm' : 'Cold'}
+                      {contactData.score === 'hot' ? tr('chat.score.hot') : contactData.score === 'warm' ? tr('chat.score.warm') : tr('chat.score.cold')}
                     </span>
                   </div>
                 )}
@@ -497,9 +501,9 @@ export default function ContactChatPane({
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs text-theme-muted flex items-center gap-1">
                       <Flame className="w-3 h-3" />
-                      Score sérieux
+                      {tr('chat.panel.seriousnessScore')}
                     </span>
-                    <span className="text-xs font-semibold text-theme-primary">{contactData.ai_seriousness_score}/100</span>
+                    <span className="text-xs font-semibold text-theme-primary">{tr('chat.panel.scoreOutOf', { score: contactData.ai_seriousness_score })}</span>
                   </div>
                   <div className="h-1.5 bg-theme-section rounded-full overflow-hidden">
                     <div
@@ -512,14 +516,14 @@ export default function ContactChatPane({
                       style={{ width: `${contactData.ai_seriousness_score}%` }}
                     />
                   </div>
-                  <p className="text-xs text-theme-muted mt-1 italic">estimation IA</p>
+                  <p className="text-xs text-theme-muted mt-1 italic">{tr('chat.panel.aiEstimate')}</p>
                 </div>
               )}
 
               {/* 2. Phone + Email — clickable */}
               <div className="space-y-2">
                 {(contactData?.phone || contactData?.email) && (
-                  <p className="text-xs font-medium text-theme-muted capitalize">Contact</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize">{tr('chat.panel.contact')}</p>
                 )}
                 {contactData?.phone && (
                   <a href={`tel:${contactData.phone}`} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-theme-hover transition-colors group">
@@ -528,7 +532,7 @@ export default function ContactChatPane({
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs text-theme-primary group-hover:text-accent transition-colors">{contactData.phone}</p>
-                      <p className="text-xs text-theme-muted">Téléphone</p>
+                      <p className="text-xs text-theme-muted">{tr('chat.panel.phone')}</p>
                     </div>
                   </a>
                 )}
@@ -539,7 +543,7 @@ export default function ContactChatPane({
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs text-theme-primary group-hover:text-accent transition-colors truncate">{contactData.email}</p>
-                      <p className="text-xs text-theme-muted">Email</p>
+                      <p className="text-xs text-theme-muted">{tr('chat.panel.email')}</p>
                     </div>
                   </a>
                 )}
@@ -549,13 +553,13 @@ export default function ContactChatPane({
                       <div className="h-9 w-9 rounded-full bg-theme-section flex items-center justify-center">
                         <Phone className="w-4 h-4 text-theme-secondary" />
                       </div>
-                      <span className="text-xs text-theme-muted">Appeler</span>
+                      <span className="text-xs text-theme-muted">{tr('common:actions.call')}</span>
                     </button>
                     <button className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-theme-hover transition-colors">
                       <div className="h-9 w-9 rounded-full bg-theme-section flex items-center justify-center">
                         <Mail className="w-4 h-4 text-theme-secondary" />
                       </div>
-                      <span className="text-xs text-theme-muted">Email</span>
+                      <span className="text-xs text-theme-muted">{tr('chat.panel.email')}</span>
                     </button>
                   </div>
                 )}
@@ -564,10 +568,10 @@ export default function ContactChatPane({
               {/* 3. Pipeline stage */}
               {contactData && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Pipeline</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">{tr('chat.panel.pipeline')}</p>
                   <div className="flex items-center gap-2 p-2.5 rounded-lg bg-theme-section">
                     <GitBranch className="w-3.5 h-3.5 text-theme-muted flex-shrink-0" />
-                    <span className="text-xs text-theme-secondary">Aucun deal actif</span>
+                    <span className="text-xs text-theme-secondary">{tr('chat.panel.noActiveDeal')}</span>
                   </div>
                 </div>
               )}
@@ -575,11 +579,11 @@ export default function ContactChatPane({
               {/* 4. Last interaction */}
               {contactData?.last_interaction_at && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Dernière interaction</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">{tr('chat.panel.lastInteraction')}</p>
                   <div className="flex items-center gap-2 p-2.5 rounded-lg bg-theme-section">
                     <Clock className="w-3.5 h-3.5 text-theme-muted flex-shrink-0" />
                     <span className="text-xs text-theme-secondary">
-                      {new Date(contactData.last_interaction_at).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {new Date(contactData.last_interaction_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' })}
                     </span>
                   </div>
                 </div>
@@ -588,13 +592,13 @@ export default function ContactChatPane({
               {/* 5. Budget (buyers only) */}
               {contactData && thread.contact_type === 'buyer' && (contactData.budget_announced || contactData.budget_estimated_ai) && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Budget</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">{tr('chat.panel.budget')}</p>
                   <div className="space-y-1.5">
                     {contactData.budget_announced != null && (
                       <div className="flex items-center justify-between p-2.5 rounded-lg bg-theme-section">
                         <span className="text-xs text-theme-secondary flex items-center gap-1.5">
                           <Banknote className="w-3.5 h-3.5" />
-                          Annoncé
+                          {tr('chat.panel.budgetAnnounced')}
                         </span>
                         <span className="text-xs font-semibold text-theme-primary">{formatCHF(contactData.budget_announced)}</span>
                       </div>
@@ -603,7 +607,7 @@ export default function ContactChatPane({
                       <div className="flex items-center justify-between p-2.5 rounded-lg bg-theme-section">
                         <span className="text-xs text-theme-secondary flex items-center gap-1.5">
                           <Banknote className="w-3.5 h-3.5" />
-                          Estimé IA
+                          {tr('chat.panel.budgetEstimatedAi')}
                         </span>
                         <span className="text-xs font-semibold text-theme-primary">{formatCHF(contactData.budget_estimated_ai)}</span>
                       </div>
@@ -616,25 +620,25 @@ export default function ContactChatPane({
               {contactData && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium text-theme-muted capitalize">Tags</p>
+                    <p className="text-xs font-medium text-theme-muted capitalize">{tr('chat.panel.tags')}</p>
                     <button
                       onClick={() => setShowTagInput(p => !p)}
                       className="text-xs text-theme-muted hover:text-theme-primary transition-colors"
                     >
-                      + Ajouter
+                      {tr('chat.panel.addTag')}
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(contactData.tags || []).map((tag) => (
                       <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-theme-active text-theme-primary">
                         {tag}
-                        <button onClick={() => removeTag(tag)} aria-label={`Retirer le tag ${tag}`} className="hover:text-red-500 transition-colors">
+                        <button onClick={() => removeTag(tag)} aria-label={tr('chat.panel.removeTag', { tag })} className="hover:text-red-500 transition-colors">
                           <X className="w-2.5 h-2.5" />
                         </button>
                       </span>
                     ))}
                     {(contactData.tags || []).length === 0 && !showTagInput && (
-                      <span className="text-xs text-theme-muted">Aucun tag</span>
+                      <span className="text-xs text-theme-muted">{tr('chat.panel.noTag')}</span>
                     )}
                   </div>
                   <AnimatePresence>
@@ -651,8 +655,8 @@ export default function ContactChatPane({
                             value={newTag}
                             onChange={(e) => setNewTag(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && addTag()}
-                            placeholder="Nouveau tag..."
-                            aria-label="Ajouter un tag"
+                            placeholder={tr('chat.panel.newTagPlaceholder')}
+                            aria-label={tr('chat.panel.addTagAriaLabel')}
                             className="flex-1 h-7 px-2 text-xs bg-transparent border border-theme-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-theme-primary placeholder:text-theme-muted"
                             autoFocus
                           />
@@ -661,7 +665,7 @@ export default function ContactChatPane({
                             disabled={!newTag.trim()}
                             className="h-7 px-2 rounded-md text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary disabled:opacity-40 transition-colors"
                           >
-                            OK
+                            {tr('chat.panel.addTagConfirm')}
                           </button>
                         </div>
                       </motion.div>
@@ -676,16 +680,16 @@ export default function ContactChatPane({
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-medium text-theme-muted capitalize flex items-center gap-1">
                       <StickyNote className="w-3 h-3" />
-                      Notes
+                      {tr('chat.panel.notes')}
                     </p>
-                    {isSavingNote && <span className="text-xs text-theme-muted">Sauvegarde...</span>}
+                    {isSavingNote && <span className="text-xs text-theme-muted">{tr('chat.panel.saving')}</span>}
                   </div>
                   <textarea
                     value={noteDraft ?? ''}
                     onChange={(e) => setNoteDraft(e.target.value)}
                     onBlur={saveNote}
                     rows={3}
-                    placeholder="Notes sur ce contact..."
+                    placeholder={tr('chat.panel.notesPlaceholder')}
                     className="w-full px-3 py-2 text-xs bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors resize-y text-theme-primary placeholder:text-theme-muted"
                   />
                 </div>
@@ -696,17 +700,17 @@ export default function ContactChatPane({
                 <div>
                   <p className="text-xs font-medium text-theme-muted capitalize mb-2 flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
-                    Prochaine action
+                    {tr('chat.panel.nextAction')}
                   </p>
                   <div className="rounded-lg border border-accent/20 bg-accent/5 p-3">
                     <p className="text-xs text-theme-primary">
                       {contactData.ai_seriousness_score >= 70
-                        ? 'Proposer une visite — ce contact est très engagé'
+                        ? tr('chat.panel.nextActionHigh')
                         : contactData.ai_seriousness_score >= 40
-                        ? 'Envoyer des biens similaires pour maintenir l\'intérêt'
-                        : 'Relancer avec un nouveau bien ou une baisse de prix'}
+                        ? tr('chat.panel.nextActionMedium')
+                        : tr('chat.panel.nextActionLow')}
                     </p>
-                    <p className="text-xs text-theme-muted mt-1 italic">estimation IA</p>
+                    <p className="text-xs text-theme-muted mt-1 italic">{tr('chat.panel.aiEstimate')}</p>
                   </div>
                 </div>
               )}
@@ -715,7 +719,7 @@ export default function ContactChatPane({
               <div>
                 <p className="text-xs font-medium text-theme-muted capitalize mb-2 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  Activité récente
+                  {tr('chat.panel.recentActivity')}
                 </p>
                 <div className="space-y-1">
                   {messages.slice(-3).reverse().map((msg) => (
@@ -727,15 +731,15 @@ export default function ContactChatPane({
                       <div className="min-w-0">
                         <p className="text-xs text-theme-secondary truncate">{msg.content}</p>
                         <p className="text-xs text-theme-muted">
-                          {new Date(msg.created_at).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' })}
+                          {new Date(msg.created_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}
                           {' · '}
-                          {msg.sender_type === 'agent' ? 'Vous' : thread.contact_name.split(' ')[0]}
+                          {msg.sender_type === 'agent' ? tr('chat.panel.you') : thread.contact_name.split(' ')[0]}
                         </p>
                       </div>
                     </div>
                   ))}
                   {messages.length === 0 && (
-                    <p className="text-xs text-theme-muted">Aucune activité</p>
+                    <p className="text-xs text-theme-muted">{tr('chat.panel.noActivity')}</p>
                   )}
                 </div>
               </div>
@@ -743,7 +747,7 @@ export default function ContactChatPane({
               {/* 10. Compatibilité matching */}
               {allMatches.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Matching</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">{tr('chat.panel.matching')}</p>
                   <Link
                     to={thread.contact_id ? `/dashboard/matching?contact=${thread.contact_id}` : '/dashboard/matching'}
                     className="flex items-center gap-3 p-2.5 rounded-lg bg-theme-section hover:bg-theme-hover transition-colors group"
@@ -753,11 +757,11 @@ export default function ContactChatPane({
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-theme-primary group-hover:text-accent transition-colors">
-                        {allMatches.length} bien{allMatches.length > 1 ? 's' : ''} compatible{allMatches.length > 1 ? 's' : ''}
+                        {tr('chat.panel.compatibleProperties', { count: allMatches.length })}
                       </p>
                       {allMatches[0] && (
                         <p className="text-xs text-theme-muted truncate">
-                          Meilleur : {allMatches[0].score}% — {allMatches[0].listing?.title || 'Bien'}
+                          {tr('chat.panel.bestMatch', { score: allMatches[0].score, title: allMatches[0].listing?.title || tr('chat.panel.propertyFallback') })}
                         </p>
                       )}
                     </div>
@@ -768,10 +772,10 @@ export default function ContactChatPane({
               {/* 11. Biens envoyés */}
               {sentMatches.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">Biens envoyés</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-2">{tr('chat.panel.sentProperties')}</p>
                   <div className="space-y-1.5">
                     {sentMatches.slice(0, 3).map((match) => {
-                      const title = match.listing?.title || 'Bien'
+                      const title = match.listing?.title || tr('chat.panel.propertyFallback')
                       const price = match.listing?.price
                       return (
                         <div key={match.id} className="flex items-center gap-2.5 p-2 rounded-lg bg-theme-section">
@@ -788,15 +792,15 @@ export default function ContactChatPane({
                             match.status === 'visit_planned' ? 'bg-amber-500/10 text-amber-500' :
                             'bg-theme-active text-theme-secondary'
                           )}>
-                            {match.status === 'interested' ? 'Intéressé' :
-                             match.status === 'visit_planned' ? 'Visite' :
-                             'Envoyé'}
+                            {match.status === 'interested' ? tr('chat.matchStatus.interested') :
+                             match.status === 'visit_planned' ? tr('chat.matchStatus.visit') :
+                             tr('chat.matchStatus.sent')}
                           </span>
                         </div>
                       )
                     })}
                     {sentMatches.length > 3 && (
-                      <p className="text-xs text-theme-muted text-center">+{sentMatches.length - 3} autre{sentMatches.length - 3 > 1 ? 's' : ''}</p>
+                      <p className="text-xs text-theme-muted text-center">{tr('chat.panel.moreCount', { count: sentMatches.length - 3 })}</p>
                     )}
                   </div>
                 </div>
@@ -805,11 +809,11 @@ export default function ContactChatPane({
               {/* 12. Demander à MEGGA AI */}
               {onSwitchToAi && (
                 <button
-                  onClick={() => onSwitchToAi(`Résume-moi le client ${thread.contact_name}`)}
+                  onClick={() => onSwitchToAi(tr('chat.panel.askAiPrompt', { name: thread.contact_name }))}
                   className="w-full flex items-center justify-center gap-2 h-9 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-xs font-medium text-white hover:from-blue-700 hover:to-indigo-700 transition-all"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Demander à MEGGA AI
+                  {tr('chat.panel.askAi')}
                 </button>
               )}
 
@@ -820,7 +824,7 @@ export default function ContactChatPane({
                   className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-theme-border text-xs font-medium text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  Voir le profil complet
+                  {tr('chat.panel.viewFullProfile')}
                 </Link>
               )}
 
@@ -830,7 +834,7 @@ export default function ContactChatPane({
               {/* Property info — expandable mini-fiche */}
               {thread.property_title && (
                 <div>
-                  <p className="text-xs font-medium text-theme-muted capitalize mb-3">Bien lié</p>
+                  <p className="text-xs font-medium text-theme-muted capitalize mb-3">{tr('chat.panel.linkedProperty')}</p>
                   <button
                     onClick={() => setPropertyExpanded(p => !p)}
                     className="w-full rounded-xl border border-theme-border hover:border-theme-active transition-colors overflow-hidden text-left"
@@ -844,7 +848,7 @@ export default function ContactChatPane({
                         <p className="text-sm font-medium text-theme-primary truncate">{thread.property_title}</p>
                         {propertyData && (
                           <p className="text-xs text-theme-muted mt-0.5">
-                            {formatCHF(propertyData.price)} · {propertyData.rooms}p · {propertyData.surface_m2} m²
+                            {tr('chat.panel.propertySummary', { price: formatCHF(propertyData.price), rooms: propertyData.rooms, surface: propertyData.surface_m2 })}
                           </p>
                         )}
                       </div>
@@ -895,10 +899,10 @@ export default function ContactChatPane({
                                 </div>
 
                                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-theme-secondary">
-                                  {propertyData.rooms > 0 && <span>{propertyData.rooms} pièces</span>}
+                                  {propertyData.rooms > 0 && <span>{tr('chat.panel.roomsCount', { count: propertyData.rooms })}</span>}
                                   {propertyData.surface_m2 > 0 && <span>{propertyData.surface_m2} m²</span>}
-                                  {propertyData.bedrooms > 0 && <span>{propertyData.bedrooms} ch.</span>}
-                                  {propertyData.floor != null && <span>{propertyData.floor}e étage</span>}
+                                  {propertyData.bedrooms > 0 && <span>{tr('chat.panel.bedroomsCount', { count: propertyData.bedrooms })}</span>}
+                                  {propertyData.floor != null && <span>{tr('chat.panel.floorLabel', { floor: propertyData.floor })}</span>}
                                 </div>
 
                                 {/* Status badge */}
@@ -911,10 +915,10 @@ export default function ContactChatPane({
                                     'bg-theme-muted'
                                   )} />
                                   <span className="text-xs text-theme-muted capitalize">
-                                    {propertyData.status === 'active' ? 'Actif' :
-                                     propertyData.status === 'reserved' ? 'Réservé' :
-                                     propertyData.status === 'sold' ? 'Vendu' :
-                                     propertyData.status === 'draft' ? 'Brouillon' :
+                                    {propertyData.status === 'active' ? tr('chat.propertyStatus.active') :
+                                     propertyData.status === 'reserved' ? tr('chat.propertyStatus.reserved') :
+                                     propertyData.status === 'sold' ? tr('chat.propertyStatus.sold') :
+                                     propertyData.status === 'draft' ? tr('chat.propertyStatus.draft') :
                                      propertyData.status}
                                   </span>
                                 </div>
@@ -926,13 +930,13 @@ export default function ContactChatPane({
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <ExternalLink className="w-3 h-3" />
-                                  Voir la fiche complète
+                                  {tr('chat.panel.viewFullListing')}
                                 </Link>
                               </>
                             ) : (
                               <>
                                 <p className="text-sm font-medium text-theme-primary">{thread.property_title}</p>
-                                <p className="text-xs text-theme-muted">Bien lié à cette conversation</p>
+                                <p className="text-xs text-theme-muted">{tr('chat.panel.linkedToConversation')}</p>
                                 {thread.property_id && (
                                   <Link
                                     to={`/dashboard/listings/${thread.property_id}/edit`}
@@ -940,7 +944,7 @@ export default function ContactChatPane({
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <ExternalLink className="w-3 h-3" />
-                                    Voir la fiche complète
+                                    {tr('chat.panel.viewFullListing')}
                                   </Link>
                                 )}
                               </>
@@ -955,22 +959,22 @@ export default function ContactChatPane({
 
               {/* Conversation stats */}
               <div>
-                <p className="text-xs font-medium text-theme-muted capitalize mb-3">Conversation</p>
+                <p className="text-xs font-medium text-theme-muted capitalize mb-3">{tr('chat.panel.conversation')}</p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-theme-secondary">Messages</span>
+                    <span className="text-xs text-theme-secondary">{tr('chat.panel.messagesCount')}</span>
                     <span className="text-xs font-medium text-theme-primary">{messages.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-theme-secondary">Premier message</span>
+                    <span className="text-xs text-theme-secondary">{tr('chat.panel.firstMessage')}</span>
                     <span className="text-xs font-medium text-theme-primary">
-                      {messages.length > 0 ? new Date(messages[0].created_at).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' }) : '—'}
+                      {messages.length > 0 ? new Date(messages[0].created_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' }) : '—'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-theme-secondary">Dernier message</span>
+                    <span className="text-xs text-theme-secondary">{tr('chat.panel.lastMessage')}</span>
                     <span className="text-xs font-medium text-theme-primary">
-                      {messages.length > 0 ? new Date(messages[messages.length - 1].created_at).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' }) : '—'}
+                      {messages.length > 0 ? new Date(messages[messages.length - 1].created_at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' }) : '—'}
                     </span>
                   </div>
                 </div>
@@ -988,7 +992,7 @@ export default function ContactChatPane({
           onReply={() => setReplyTo({ id: contextMenu.msg.id, content: contextMenu.msg.content, senderName: contextMenu.msg.senderName })}
           onCopy={() => navigator.clipboard.writeText(contextMenu.msg.content)}
           onPin={() => togglePin(contextMenu.msg.id, contextMenu.msg.content)}
-          onTransferAi={onSwitchToAi ? () => onSwitchToAi(`Analyse ce message de ${contextMenu.msg.senderName} : "${contextMenu.msg.content.slice(0, 200)}"`) : undefined}
+          onTransferAi={onSwitchToAi ? () => onSwitchToAi(tr('chat.transferToAiPrompt', { name: contextMenu.msg.senderName, message: contextMenu.msg.content.slice(0, 200) })) : undefined}
         />
       )}
     </div>

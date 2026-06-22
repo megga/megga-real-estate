@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { buildPdfReportData, type BuildReportInput } from '@/components/kyc-report/buildReportData'
 import { PdfPage1 } from '@/components/kyc-report/PdfPage1'
@@ -13,6 +14,7 @@ import { PdfPage3 } from '@/components/kyc-report/PdfPage3'
 import { PDF } from '@/components/kyc-report/tokens'
 
 export default function KycReportRenderPage() {
+  const { t } = useTranslation('kyc')
   const { token } = useParams<{ token: string }>()
   const [input, setInput] = useState<BuildReportInput | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -46,10 +48,10 @@ export default function KycReportRenderPage() {
 
   if (error) {
     // Sentinelle d'erreur distincte → le headless échoue proprement (pas de PDF blanc).
-    return <div id="pdf-error" style={{ fontFamily: 'system-ui', padding: 24 }}>Rapport indisponible.</div>
+    return <div id="pdf-error" style={{ fontFamily: 'system-ui', padding: 24 }}>{t('report.render.unavailable')}</div>
   }
   if (!reportData) {
-    return <div style={{ fontFamily: 'system-ui', padding: 24, color: PDF.muted }}>Préparation du rapport…</div>
+    return <div style={{ fontFamily: 'system-ui', padding: 24, color: PDF.muted }}>{t('report.render.preparing')}</div>
   }
 
   return (

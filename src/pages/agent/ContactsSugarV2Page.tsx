@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-contacts-sugar.jsx — `CRMScreenContactsSugar`).
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
@@ -17,7 +18,6 @@ import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
 import { ContactsListPane } from '@/components/crm-sugar/contacts/ContactsListPane'
-import { ContactsDetailPane } from '@/components/crm-sugar/contacts/ContactsDetailPane'
 import {
   ModalNewContact, type NewContactPayload,
 } from '@/components/crm-sugar/contacts/ModalNewContact'
@@ -27,20 +27,14 @@ import type {
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
-// Mapping inverse Sources Dashboard (slug → label humain) — sync avec
-// SOURCE_SLUGS dans DBEntonnoir.tsx. Quand le modèle Contact aura un champ
-// `source`, on filtrera réellement ici. En attendant, on affiche un banner
-// informatif et on remplit la recherche avec le label pour les contacts qui
-// portent le canal dans leur nom / note.
-const SOURCE_LABELS: Record<string, string> = {
-  marketplace: 'Marketplace MEGGA',
-  'agency-site': 'Site agence',
-  referral: 'Recommandations',
-  social: 'Réseaux sociaux',
-  manual: 'Importé manuel',
-}
+// Slugs Sources Dashboard (sync avec SOURCE_SLUGS dans DBEntonnoir.tsx). Quand le
+// modèle Contact aura un champ `source`, on filtrera réellement ici. En attendant,
+// on affiche un banner informatif. Le libellé humain est traduit via i18n
+// (`list.sourceLabel.<slug>`) au point d'affichage.
+const SOURCE_SLUGS = ['marketplace', 'agency-site', 'referral', 'social', 'manual'] as const
 
 export default function ContactsSugarV2Page() {
+  const { t: tr } = useTranslation('contacts')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -48,7 +42,7 @@ export default function ContactsSugarV2Page() {
   // Snapshot au mount pour ne pas re-déclencher au moindre setSearchParams.
   const [sourceFilter, setSourceFilter] = useState<string | null>(() => {
     const slug = searchParams.get('source')
-    return slug && slug in SOURCE_LABELS ? slug : null
+    return slug && (SOURCE_SLUGS as readonly string[]).includes(slug) ? slug : null
   })
 
   // Consomme le param une fois (URL nettoyée pour ne pas que F5 le re-applique).
@@ -79,7 +73,7 @@ export default function ContactsSugarV2Page() {
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
   // ── Data source: Supabase via adapter ───────────────────────────────
-  const { contacts, isLoading } = useContactsSugar()
+  const { contacts, isLoading, isError, refetch } = useContactsSugar()
   const { data: rawTransactions = [] } = useTransactions()
 
   // Index : un deal (le plus récent) par contactId — pour les badges de
@@ -111,9 +105,6 @@ export default function ContactsSugarV2Page() {
   }, [rawTransactions])
 
   // ── Page state ──────────────────────────────────────────────────────
-  // selectedId vide au démarrage → l'useEffect ci-dessous picke le premier
-  // contact filtré dès que la liste est chargée.
-  const [selectedId, setSelectedId] = useState<string>('')
   const [segment, setSegment] = useState<SegmentId>('all')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortMode>('activity')
@@ -169,19 +160,6 @@ export default function ContactsSugarV2Page() {
 
     return list
   }, [segment, search, sort, contacts])
-
-  // Auto-select first if current isn't in filtered (gère aussi le premier
-  // load : selectedId='' au mount → dès que filtered non vide, on prend [0]).
-  useEffect(() => {
-    if (filtered.length > 0 && !filtered.find(c => c.id === selectedId)) {
-      setSelectedId(filtered[0].id)
-    }
-  }, [filtered, selectedId])
-
-  const selected = useMemo(
-    () => contacts.find(c => c.id === selectedId),
-    [contacts, selectedId],
-  )
 
   // ── Cmd palette / navigation ────────────────────────────────────────
   const flashToast = (msg: string) => setToast(msg)
@@ -246,18 +224,17 @@ export default function ContactsSugarV2Page() {
         form_data: {
           civility: data.civility,
           lang: data.lang,
-          assigned_to: data.assignedTo,
           source_slug_ui: data.source,
           linked_bien: data.linkedBien ?? null,
         },
       })
       // Cache Helpers auto-invalidates the contacts list — UI refreshes itself.
-      flashToast(`Contact créé — ${fullName}`)
+      flashToast(tr('list.toast.created', { name: fullName }))
       setNewContactOpen(false)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Erreur inconnue'
+      const message = e instanceof Error ? e.message : tr('list.toast.unknownError')
       setCreateError(message)
-      flashToast(`Erreur — ${message}`)
+      flashToast(tr('list.toast.error', { message }))
     }
   }
 
@@ -287,10 +264,7 @@ export default function ContactsSugarV2Page() {
             flex: 1,
             minWidth: 0,
             padding: '112px 40px 80px 0',
-            display: 'grid',
-            gridTemplateColumns: '360px 1fr',
-            gap: 24,
-            alignItems: 'start',
+            maxWidth: 960,
           }}
         >
           {sourceFilter && (
@@ -298,10 +272,10 @@ export default function ContactsSugarV2Page() {
               role="status"
               aria-live="polite"
               style={{
-                gridColumn: '1 / -1',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
+                marginBottom: 16,
                 padding: '12px 16px',
                 borderRadius: 14,
                 background: '#FFFFFF',
@@ -321,14 +295,18 @@ export default function ContactsSugarV2Page() {
                   textTransform: 'uppercase',
                 }}
               >
-                Filtre Dashboard
+                {tr('list.sourceFilter.badge')}
               </span>
               <span style={{ fontSize: 12.5, fontWeight: 600, color: '#3A3D44' }}>
-                Source : <strong style={{ color: '#0B0C0E', fontWeight: 800 }}>{SOURCE_LABELS[sourceFilter]}</strong> · le filtre canal sera disponible quand les contacts auront le champ source.
+                {tr('list.sourceFilter.label')}{' '}
+                <strong style={{ color: '#0B0C0E', fontWeight: 800 }}>
+                  {tr(`list.sourceLabel.${sourceFilter}`)}
+                </strong>{' '}
+                {tr('list.sourceFilter.hint')}
               </span>
               <button
                 onClick={() => setSourceFilter(null)}
-                aria-label="Retirer le filtre source"
+                aria-label={tr('list.sourceFilter.removeAria')}
                 style={{
                   marginLeft: 'auto',
                   border: 0,
@@ -340,7 +318,7 @@ export default function ContactsSugarV2Page() {
                   padding: '4px 10px',
                 }}
               >
-                Retirer
+                {tr('list.sourceFilter.remove')}
               </button>
             </div>
           )}
@@ -348,9 +326,11 @@ export default function ContactsSugarV2Page() {
             contacts={filtered}
             allContacts={contacts}
             isLoading={isLoading}
+            isError={isError}
+            onRetry={refetch}
             dealsByContactId={dealsByContactId}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
+            selectedId={null}
+            onSelect={(id) => navigate(`/dashboard/contacts/${id}`)}
             segment={segment}
             setSegment={setSegment}
             search={search}
@@ -361,12 +341,6 @@ export default function ContactsSugarV2Page() {
             dark={dark}
             onNewContact={() => setNewContactOpen(true)}
             onImportLead={() => navigate('/dashboard/import-lead?returnTo=/dashboard/contacts')}
-          />
-          <ContactsDetailPane
-            contact={selected}
-            sp={sp}
-            dark={dark}
-            onPlanRdv={flashToast}
           />
         </main>
       </div>

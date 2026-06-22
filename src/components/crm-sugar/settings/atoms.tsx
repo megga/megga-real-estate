@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { SET_PALETTE, type SettingsIconName } from './data'
 
@@ -725,6 +726,7 @@ export function ConfirmModal({
   icon = 'alert',
   tone = 'bad',
 }: ConfirmModalProps) {
+  const { t } = useTranslation('settings')
   const toneMap = { bad: SET.bad, ok: SET.ok, warn: SET.warn }
   const c = toneMap[tone]
   return (
@@ -777,7 +779,7 @@ export function ConfirmModal({
           marginTop: 22,
         }}
       >
-        <SetGhostBtn onClick={onCancel}>Annuler</SetGhostBtn>
+        <SetGhostBtn onClick={onCancel}>{t('common:actions.cancel')}</SetGhostBtn>
         {danger ? (
           <button
             onClick={onConfirm}
@@ -906,6 +908,7 @@ interface StickySaveBarProps {
 }
 
 export function StickySaveBar({ dirty, saving, onSave, onCancel }: StickySaveBarProps) {
+  const { t } = useTranslation('settings')
   if (!dirty) return null
   return (
     <div
@@ -939,15 +942,15 @@ export function StickySaveBar({ dirty, saving, onSave, onCancel }: StickySaveBar
         <span
           style={{ width: 7, height: 7, borderRadius: 999, background: SET.warn }}
         />
-        Modifications non enregistrées
+        {t('settings.page.unsavedChanges')}
       </span>
-      <SetGhostBtn onClick={onCancel}>Annuler</SetGhostBtn>
+      <SetGhostBtn onClick={onCancel}>{t('common:actions.cancel')}</SetGhostBtn>
       <SetBlackBtn
         onClick={onSave}
         loading={saving}
         icon={!saving && <SetIcon name="check" size={14} stroke={SET.blackInk} sw={2.4} />}
       >
-        {saving ? 'Enregistrement…' : 'Enregistrer'}
+        {saving ? t('settings.page.saving') : t('settings.page.save')}
       </SetBlackBtn>
     </div>
   )

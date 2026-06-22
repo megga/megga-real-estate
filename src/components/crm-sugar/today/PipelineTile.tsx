@@ -12,6 +12,7 @@
 // risque (on ne fabrique pas). Fallback démo (prototype) si aucune transaction.
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TK, TK_STAGE } from './tk'
 import { Av } from './kit'
 import { DATA, fmtCHF } from './data'
@@ -44,10 +45,12 @@ function computeBuckets(deals: { stage: StageId; value: number }[]): Bucket[] {
   return BUCKET_ORDER.map((key) => ({ key, count: acc[key].count, value: acc[key].value }))
 }
 
-export function PipelineTile() {
+export function PipelineTile({ demo = false }: { demo?: boolean } = {}) {
+  const { t } = useTranslation('dashboard')
   const [hover, setHover] = useState<number | null>(null)
-  const { deals, isLoading } = usePipelineSugar()
-  const live = !isLoading && deals.length > 0
+  const { deals, isError } = usePipelineSugar()
+  // Agent réel → vrai pipeline (entonnoir à 0 si aucun deal) ; seed démo derrière `demo`.
+  const live = !demo
 
   const buckets: Bucket[] = live ? computeBuckets(deals) : DATA.pipeline
   const maxV = Math.max(...buckets.map((p) => p.value), 1)
@@ -62,14 +65,22 @@ export function PipelineTile() {
       risk = {
         initials: c ? `${c.firstName[0] || ''}${c.lastName[0] || ''}`.toUpperCase() : '—',
         av: c?.avatarBg || '#6F8CFF',
-        bien: b?.title || (c ? `${c.firstName} ${c.lastName}`.trim() : 'Deal'),
-        why: rd.nextAction?.note || (rd.risk === 'stalled' ? 'Deal au point mort' : 'Échéance dépassée'),
+        bien: b?.title || (c ? `${c.firstName} ${c.lastName}`.trim() : t('today.pipeline.dealFallback')),
+        why: rd.nextAction?.note || (rd.risk === 'stalled' ? t('today.pipeline.riskStalled') : t('today.pipeline.riskOverdue')),
         value: fmtCHF(rd.value),
       }
     }
   } else {
     const d = DATA.dealRisk
     risk = { initials: d.initials, av: d.av, bien: d.bien, why: d.why, value: d.value }
+  }
+
+  if (live && isError) {
+    return (
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 12px' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: TK.ink }}>{t('today.pipeline.error.title')}</div>
+      </div>
+    )
   }
 
   return (
@@ -84,7 +95,7 @@ export function PipelineTile() {
             <div key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
               style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'default' }}>
               <div style={{ width: 138, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: TK.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{st.label}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: TK.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(st.labelKey)}</span>
               </div>
               <div style={{ flex: 1, position: 'relative', height: 26 }}>
                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${w}%`, minWidth: 46,

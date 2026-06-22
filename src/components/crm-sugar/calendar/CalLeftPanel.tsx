@@ -2,12 +2,13 @@
 // 1:1 port from `crm-calendar-sugar-panels.jsx` (CalLeftPanel + sub-cards).
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CalIcon } from './CalIcon'
 import {
   CAL_EVENT_TYPES, eventTypeColors, useCalPalette,
   type CalAIInsight, type CalEvent, type CalHotBuyer,
 } from './data'
-import { CAL_MONTHS, sameDay } from './helpers'
+import { calMonths, sameDay } from './helpers'
 
 interface CalLeftPanelProps {
   currentDate: Date
@@ -64,6 +65,8 @@ interface CalMiniMonthProps {
 
 function CalMiniMonth({ currentDate, onDateChange, events }: CalMiniMonthProps) {
   const SP = useCalPalette()
+  const { t } = useTranslation('calendar')
+  const miniWeekdays = t('panel.miniWeekdays', { returnObjects: true }) as string[]
   const [viewMonth, setViewMonth] = useState(
     () => new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
   )
@@ -128,7 +131,7 @@ function CalMiniMonth({ currentDate, onDateChange, events }: CalMiniMonthProps) 
             letterSpacing: -0.2,
           }}
         >
-          {CAL_MONTHS[viewMonth.getMonth()]} {viewMonth.getFullYear()}
+          {calMonths()[viewMonth.getMonth()]} {viewMonth.getFullYear()}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           <button
@@ -161,7 +164,7 @@ function CalMiniMonth({ currentDate, onDateChange, events }: CalMiniMonthProps) 
           marginBottom: 4,
         }}
       >
-        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
+        {miniWeekdays.map((d, i) => (
           <div
             key={i}
             style={{
@@ -246,6 +249,7 @@ interface CalTypeFiltersProps {
 
 function CalTypeFilters({ filters, onFilters }: CalTypeFiltersProps) {
   const SP = useCalPalette()
+  const { t } = useTranslation('calendar')
   const TYPES = CAL_EVENT_TYPES
   return (
     <div
@@ -266,7 +270,7 @@ function CalTypeFilters({ filters, onFilters }: CalTypeFiltersProps) {
           marginBottom: 10,
         }}
       >
-        Filtrer par type
+        {t('panel.filterByType')}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {Object.values(TYPES).map(t => {
@@ -344,6 +348,7 @@ function CalStackDots({
   onPick: (i: number) => void
 }) {
   const SP = useCalPalette()
+  const { t } = useTranslation('calendar')
   if (count <= 1) return null
   return (
     <div
@@ -359,7 +364,7 @@ function CalStackDots({
         <button
           key={k}
           onClick={() => onPick(k)}
-          aria-label={`Carte ${k + 1}`}
+          aria-label={t('panel.cardAriaLabel', { index: k + 1 })}
           style={{
             width: 6,
             height: k === active ? 18 : 6,
@@ -378,6 +383,7 @@ function CalStackDots({
 
 function CalHotBuyers({ buyers }: { buyers: CalHotBuyer[] }) {
   const SP = useCalPalette()
+  const { t } = useTranslation('calendar')
   const H = 116
   const { index, setIndex, viewportRef } = useCardStack(buyers.length)
   if (buyers.length === 0) return null
@@ -408,7 +414,7 @@ function CalHotBuyers({ buyers }: { buyers: CalHotBuyer[] }) {
             textTransform: 'uppercase',
           }}
         >
-          Acheteurs chauds
+          {t('panel.hotBuyers')}
         </div>
         <div
           style={{

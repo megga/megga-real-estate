@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useWhatsAppMessages, useSendWhatsAppMessage } from '@/hooks/useWhatsAppMessages'
 
 interface Props { contactId: string }
 
 export function CdWhatsAppCard({ contactId }: Props) {
+  const { t } = useTranslation('contacts')
   const { data: messages = [], isLoading } = useWhatsAppMessages(contactId)
   const send = useSendWhatsAppMessage(contactId)
   const [draft, setDraft] = useState('')
@@ -31,13 +33,13 @@ export function CdWhatsAppCard({ contactId }: Props) {
     <div className="rounded-xl border border-theme-border bg-theme-card p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-theme-primary">WhatsApp</h3>
-        <span className="text-xs text-theme-muted">{messages.length} message{messages.length > 1 ? 's' : ''}</span>
+        <span className="text-xs text-theme-muted">{t('cd.waMessageCount', { count: messages.length })}</span>
       </div>
 
-      {isLoading && <p className="text-xs text-theme-muted">Chargement…</p>}
+      {isLoading && <p className="text-xs text-theme-muted">{t('cd.waLoading')}</p>}
 
       {!isLoading && messages.length === 0 && (
-        <p className="text-xs text-theme-muted">Aucun message WhatsApp pour ce contact.</p>
+        <p className="text-xs text-theme-muted">{t('cd.waEmpty')}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -57,14 +59,14 @@ export function CdWhatsAppCard({ contactId }: Props) {
                   ? <span>{m.transcript}</span>
                   : <span className="opacity-60 italic">
                       {m.processing_status === 'pending' || m.processing_status === 'processing'
-                        ? 'transcription en cours…'
-                        : 'transcription indisponible'}
+                        ? t('cd.waTranscribing')
+                        : t('cd.waTranscriptUnavailable')}
                     </span>}
               </span>
             ) : (
               <>
                 {m.media_type && <span className="block text-xs opacity-70 mb-0.5">[{m.media_type}]</span>}
-                {m.body || <span className="opacity-60 italic">(sans texte)</span>}
+                {m.body || <span className="opacity-60 italic">{t('cd.waNoText')}</span>}
               </>
             )}
             <span className="block text-[10px] opacity-60 mt-1">
@@ -79,7 +81,7 @@ export function CdWhatsAppCard({ contactId }: Props) {
         <textarea
           className="w-full resize-none rounded-lg border border-theme-border bg-theme-section text-sm text-theme-primary placeholder:text-theme-muted px-3 py-2 focus:outline-none focus:ring-1 focus:ring-theme-border"
           rows={2}
-          placeholder="Répondre sur WhatsApp…"
+          placeholder={t('cd.waReplyPlaceholder')}
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -87,7 +89,7 @@ export function CdWhatsAppCard({ contactId }: Props) {
         />
         {send.isError && (
           <p className="mt-1 text-xs text-red-500">
-            Échec de l'envoi. La fenêtre de 24h est peut-être expirée.
+            {t('cd.waSendError')}
           </p>
         )}
         <div className="flex justify-end mt-2">
@@ -97,7 +99,7 @@ export function CdWhatsAppCard({ contactId }: Props) {
             disabled={!canSend}
             className="text-xs border border-theme-border text-theme-secondary rounded-lg px-3 py-1.5 disabled:opacity-40 hover:bg-theme-hover transition-colors"
           >
-            {send.isPending ? 'Envoi…' : 'Envoyer'}
+            {send.isPending ? t('cd.waSending') : t('cd.waSend')}
           </button>
         </div>
       </div>

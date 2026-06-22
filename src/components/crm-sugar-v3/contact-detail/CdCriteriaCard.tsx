@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v3 — Card Critères de recherche (sidebar buyer)
 // Port pixel-près de crm-screen-contact-detail-sugar.jsx lignes 308-375 (CdCriteriaCard).
 
+import { useTranslation } from 'react-i18next'
 import { SugarV3, fmtCHF } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycGhostPill, KycSection, KycNeutralPill } from '../primitives'
@@ -17,21 +18,22 @@ interface CriteriaItem {
 }
 
 export function CdCriteriaCard({ criteria }: Props) {
+  const { t } = useTranslation('contacts')
   if (!criteria) return null
 
   const items: CriteriaItem[] = [
     {
-      label: 'Type',
+      label: t('cd.criteriaType'),
       value: criteria.type ?? '—',
       icon: 'home',
     },
     {
-      label: 'Zones',
+      label: t('cd.criteriaZones'),
       value: criteria.zones?.join(', ') ?? '—',
       icon: 'map',
     },
     {
-      label: 'Budget',
+      label: t('cd.criteriaBudget'),
       value:
         criteria.budget_min || criteria.budget_max
           ? `${fmtCHF(criteria.budget_min ?? 0) || '—'} – ${fmtCHF(criteria.budget_max ?? 0) || '—'}`
@@ -39,27 +41,27 @@ export function CdCriteriaCard({ criteria }: Props) {
       icon: 'coins',
     },
     {
-      label: 'Surface',
-      value: criteria.surface_min ? `dès ${criteria.surface_min} m²` : '—',
+      label: t('cd.criteriaSurface'),
+      value: criteria.surface_min ? t('cd.criteriaFrom', { value: `${criteria.surface_min} m²` }) : '—',
       icon: 'home',
     },
     {
-      label: 'Pièces',
-      value: criteria.rooms_min ? `dès ${criteria.rooms_min}` : '—',
+      label: t('cd.criteriaRooms'),
+      value: criteria.rooms_min ? t('cd.criteriaFrom', { value: criteria.rooms_min }) : '—',
       icon: 'bed',
     },
   ]
 
   return (
     <KycSection
-      title="Critères de recherche"
-      eyebrow="Matching IA"
+      title={t('cd.criteriaTitle')}
+      eyebrow={t('cd.criteriaEyebrow')}
       action={
         <KycGhostPill
           size="sm"
           icon={<SgIcon name="pencil" size={13} stroke={SugarV3.inkSoft} />}
         >
-          Modifier
+          {t('cd.edit')}
         </KycGhostPill>
       }
     >
@@ -129,7 +131,7 @@ export function CdCriteriaCard({ criteria }: Props) {
               marginBottom: 8,
             }}
           >
-            Indispensable
+            {t('cd.criteriaMustHave')}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {(criteria.features ?? []).map((m) => (

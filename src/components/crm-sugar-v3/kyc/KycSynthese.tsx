@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { KYC_CHECK_LABELS, KYC_CHECK_ICONS, KYC_STATUS_LABELS, KYC_RISK_LABELS, fmtDateLong } from '../tokens'
 import { SgIcon } from '../icons'
 import { useKycPalette } from './kycPalette'
@@ -61,6 +62,7 @@ export function KycSynthese({
   alert,
 }: Props) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
 
   const bento = {
     background: sp.card,
@@ -78,7 +80,9 @@ export function KycSynthese({
     marginBottom: 4,
   } as const
 
-  const typeLabel = dossier.type.startsWith('buyer') ? 'Acheteur' : 'Vendeur'
+  const typeLabel = dossier.type.startsWith('buyer')
+    ? t('dossier.synthese.typeBuyer')
+    : t('dossier.synthese.typeSeller')
   const ref = (dossier.id || '').slice(0, 8).toUpperCase() || '—'
 
   return (
@@ -97,11 +101,13 @@ export function KycSynthese({
           }}
         >
           <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={eyebrow}>État du dossier</div>
+            <div style={eyebrow}>{t('dossier.synthese.stateEyebrow')}</div>
             <div
               style={{ fontSize: 16.5, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}
             >
-              {isVerified ? 'Dossier vérifié — transaction autorisée' : 'Vérifications à compléter'}
+              {isVerified
+                ? t('dossier.synthese.stateVerifiedTitle')
+                : t('dossier.synthese.stateUnverifiedTitle')}
             </div>
             <div
               style={{
@@ -114,8 +120,8 @@ export function KycSynthese({
               }}
             >
               {isVerified
-                ? 'Tous les contrôles LBA sont validés.'
-                : 'Vous pouvez continuer à faire avancer le deal — le KYC reste recommandé avant la signature, mais il n\'est pas bloquant.'}
+                ? t('dossier.synthese.stateVerifiedBody')
+                : t('dossier.synthese.stateUnverifiedBody')}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, flexShrink: 0, alignItems: 'center' }}>
@@ -130,7 +136,9 @@ export function KycSynthese({
                 title={markAllBlockedLabel ?? undefined}
                 icon={<SgIcon name="checkAll" size={14} stroke={sp.onAccent} />}
               >
-                {markAllPending ? 'Validation…' : 'Tout marquer vérifié'}
+                {markAllPending
+                  ? t('dossier.synthese.markingAll')
+                  : t('dossier.synthese.markAllVerified')}
               </KycBlackPill>
             )}
           </div>
@@ -149,7 +157,7 @@ export function KycSynthese({
             }}
           >
             <div style={{ ...eyebrow, marginBottom: 0, whiteSpace: 'nowrap' }}>
-              Contrôles · LBA art. 3-7
+              {t('dossier.synthese.checksEyebrow')}
             </div>
             <button
               onClick={goControles}
@@ -167,7 +175,7 @@ export function KycSynthese({
                 gap: 4,
               }}
             >
-              Voir le détail
+              {t('dossier.synthese.seeDetail')}
               <SgIcon name="arrowR" size={13} stroke={sp.ink} />
             </button>
           </div>
@@ -183,15 +191,15 @@ export function KycSynthese({
         </div>
 
         <div style={bento}>
-          <div style={{ ...eyebrow, marginBottom: 8 }}>Informations</div>
-          <KycMetaRow label="Niveau de risque">
+          <div style={{ ...eyebrow, marginBottom: 8 }}>{t('dossier.synthese.infoEyebrow')}</div>
+          <KycMetaRow label={t('dossier.synthese.riskLevel')}>
             {KYC_RISK_LABELS[dossier.risk_level]?.label ?? '—'}
           </KycMetaRow>
-          <KycMetaRow label="Type de contact">{typeLabel}</KycMetaRow>
-          <KycMetaRow label="Dossier ouvert le">{fmtDateLong(dossier.created_at)}</KycMetaRow>
-          <KycMetaRow label="Dernier screening">{fmtDateLong(lastScreeningAt)}</KycMetaRow>
-          <KycMetaRow label="Échéance">{fmtDateLong(dossier.expires_at)}</KycMetaRow>
-          <KycMetaRow label="Référence" last>
+          <KycMetaRow label={t('dossier.synthese.contactType')}>{typeLabel}</KycMetaRow>
+          <KycMetaRow label={t('dossier.synthese.openedOn')}>{fmtDateLong(dossier.created_at)}</KycMetaRow>
+          <KycMetaRow label={t('dossier.synthese.lastScreening')}>{fmtDateLong(lastScreeningAt)}</KycMetaRow>
+          <KycMetaRow label={t('dossier.synthese.expiry')}>{fmtDateLong(dossier.expires_at)}</KycMetaRow>
+          <KycMetaRow label={t('dossier.synthese.reference')} last>
             <span style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: 0.2 }}>{ref}</span>
           </KycMetaRow>
         </div>
@@ -285,6 +293,7 @@ function KycCheckMini({ category, check, onClick, last }: CheckMiniProps) {
 // « Screening à jour » ~1.9s → idle. Le pending vient de screen.isPending.
 function KycReScreenButton({ pending, onClick }: { pending: boolean; onClick: () => void }) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
   const [hover, setHover] = useState(false)
   const [justDone, setJustDone] = useState(false)
   const wasPending = useRef(false)
@@ -306,7 +315,11 @@ function KycReScreenButton({ pending, onClick }: { pending: boolean; onClick: ()
   }, [pending])
 
   const done = justDone && !pending
-  const label = pending ? 'Screening en cours…' : done ? 'Screening à jour' : 'Re-screener'
+  const label = pending
+    ? t('dossier.synthese.screeningRunning')
+    : done
+      ? t('dossier.synthese.screeningUpToDate')
+      : t('dossier.synthese.rescreen')
   const tint = done ? '#10B981' : sp.inkSoft
 
   return (
@@ -351,6 +364,7 @@ function KycReScreenButton({ pending, onClick }: { pending: boolean; onClick: ()
 // ─── Bouton « Exporter le dossier » (accent, animation au clic) ─────────
 function KycExportButton({ onClick }: { onClick: () => void }) {
   const sp = useKycPalette()
+  const { t } = useTranslation('kyc')
   const [hover, setHover] = useState(false)
   const [state, setState] = useState<'idle' | 'running' | 'done'>('idle')
 
@@ -367,7 +381,11 @@ function KycExportButton({ onClick }: { onClick: () => void }) {
 
   const running = state === 'running'
   const done = state === 'done'
-  const label = running ? 'Génération…' : done ? 'Dossier exporté' : 'Exporter le dossier'
+  const label = running
+    ? t('dossier.synthese.exportRunning')
+    : done
+      ? t('dossier.synthese.exportDone')
+      : t('dossier.synthese.export')
   const bg = done ? '#10B981' : running || hover ? sp.blackHover : sp.black
 
   return (

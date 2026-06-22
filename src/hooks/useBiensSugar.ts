@@ -19,12 +19,14 @@ import {
 export interface UseBiensSugarReturn {
   biens: CrmBien[]
   isLoading: boolean
+  isError: boolean
+  refetch: () => void
 }
 
 export function useBiensSugar(): UseBiensSugarReturn {
   // useAgencyProperties renvoie un sur-ensemble de Property (joint avec
   // listings(views_count, favorites_count) — pas utile pour CrmBien).
-  const { data: rawProperties = [], isLoading } = useAgencyProperties()
+  const { data: rawProperties = [], isLoading, isError, refetch } = useAgencyProperties()
   // Score de bien (estimation) attaché par id ; absence = pas encore calculé → null.
   const { scores } = usePropertyScores()
 
@@ -60,5 +62,5 @@ export function useBiensSugar(): UseBiensSugarReturn {
     return () => { resetLiveOverrides() }
   }, [])
 
-  return { biens, isLoading }
+  return { biens, isLoading, isError, refetch }
 }

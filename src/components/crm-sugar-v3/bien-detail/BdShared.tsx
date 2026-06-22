@@ -2,6 +2,8 @@
 // Port pixel-près du canon crm-screen-bien-detail-sugar.jsx (handoff Sprint 2).
 
 import type { CSSProperties, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 
@@ -36,6 +38,7 @@ export function BdC2paAlert({
   isVerified: boolean
   onAction?: () => void
 }) {
+  const { t: tr } = useTranslation('listings')
   if (!hasPhotos || isVerified) return null
   return (
     <div
@@ -66,11 +69,10 @@ export function BdC2paAlert({
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, color: SugarV3.ink, marginBottom: 2 }}>
-          Photos sans certification d'authenticité
+          {tr('detail.c2paAlert.title')}
         </div>
         <div style={{ fontSize: 12.5, color: SugarV3.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
-          Re-uploader les photos pour fiabiliser la diffusion. La publication MEGGA Marketplace
-          attendra la certification ; les portails partenaires acceptent malgré tout.
+          {tr('detail.c2paAlert.body')}
         </div>
       </div>
       {onAction && (
@@ -91,7 +93,7 @@ export function BdC2paAlert({
             flexShrink: 0,
           }}
         >
-          Re-uploader
+          {tr('detail.c2paAlert.action')}
         </button>
       )}
     </div>
@@ -201,16 +203,28 @@ export function BdEditInput({
 }
 
 // ─── Status chip ─────────────────────────────────────────────────────────
-// Mapping aligné sur PropertyStatus (src/lib/constants).
-const STATUS_MAP: Record<string, { label: string; dot: string }> = {
-  active: { label: 'Actif', dot: SugarV3.ok },
-  draft: { label: 'Brouillon', dot: SugarV3.muted },
-  reserved: { label: 'Réservé', dot: SugarV3.warn },
-  sold: { label: 'Vendu', dot: SugarV3.inkSoft },
-  archived: { label: 'Archivé', dot: SugarV3.muted },
+// Mapping aligné sur PropertyStatus (src/lib/constants). Couleur du dot par
+// statut ; le libellé vient de i18n (listings:status.* pour les statuts
+// communs, listings:detail.status.archived pour le statut propre à la fiche).
+const STATUS_DOT: Record<string, string> = {
+  active: SugarV3.ok,
+  draft: SugarV3.muted,
+  reserved: SugarV3.warn,
+  sold: SugarV3.inkSoft,
+  archived: SugarV3.muted,
+}
+const STATUS_LABEL_KEY: Record<string, string> = {
+  active: 'status.active',
+  draft: 'status.draft',
+  reserved: 'status.reserved',
+  sold: 'status.sold',
+  archived: 'detail.status.archived',
 }
 export function BdStatusChip({ status }: { status: string }) {
-  const m = STATUS_MAP[status] ?? { label: status, dot: SugarV3.muted }
+  const { t: tr } = useTranslation('listings')
+  const dot = STATUS_DOT[status] ?? SugarV3.muted
+  const labelKey = STATUS_LABEL_KEY[status]
+  const m = { label: labelKey ? tr(labelKey) : status, dot }
   return (
     <span
       style={{
@@ -315,7 +329,7 @@ export function bdFormatPrice(
 ): string {
   if (amount == null) return '—'
   const base = `CHF ${amount.toLocaleString('fr-CH').replace(/[\u00A0\u202F,]/g, "'")}`
-  return isRent ? `${base}/mois` : base
+  return isRent ? `${base}${i18n.t('listings:detail.perMonth')}` : base
 }
 
 /** Format prix au m² depuis price + surface. Retourne null si l'un manque. */
@@ -335,19 +349,15 @@ export function bdFmtCHF(n: number | null | undefined): string {
 }
 
 // ─── Labels stage pipeline (deals liés) ─────────────────────────────────
-export const BD_STAGE_LABEL: Record<string, string> = {
-  new_lead: 'Nouveau lead',
-  to_qualify: 'À qualifier',
-  active_search: 'En recherche',
-  visit_planned: 'Visite planifiée',
-  visit_done: 'Visite effectuée',
-  interest_confirmed: 'Intérêt confirmé',
-  offer: 'Offre',
-  negotiation: 'Négociation',
-  reserved: 'Réservé',
-  financing: 'Financement',
-  notary: 'Notaire',
-  signed: 'Signé',
-  lost: 'Perdu',
-  to_recontact: 'À relancer',
+// Les 14 stades DB de la fiche bien. i18n-aware via l'instance i18n (utilisable
+// hors composant React) ; fallback sur le code brut si la clé manque ou est
+// inconnue. Clés sous listings:detail.stage.*.
+const BD_STAGE_KEYS = new Set([
+  'new_lead', 'to_qualify', 'active_search', 'visit_planned', 'visit_done',
+  'interest_confirmed', 'offer', 'negotiation', 'reserved', 'financing',
+  'notary', 'signed', 'lost', 'to_recontact',
+])
+export function bdStageLabel(stage: string): string {
+  if (BD_STAGE_KEYS.has(stage)) return i18n.t(`listings:detail.stage.${stage}`)
+  return stage
 }

@@ -1,12 +1,8 @@
 import { useState, useCallback, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 
 type CopilotAction = 'chat' | 'summarize_contact' | 'suggest_next_action' | 'draft_email' | 'draft_description' | 'analyze_kyc' | 'score_lead' | 'analyze_market' | 'detect_intent'
-
-interface CopilotResponse {
-  result: string
-  action: string
-  usage?: { input_tokens: number; output_tokens: number }
-}
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -29,37 +25,51 @@ function detectAction(message: string): CopilotAction {
 
 /* ─── Call Edge Function ─── */
 
+interface CopilotApiResult {
+  result: string
+  conversationId: string | null
+}
+
 async function callCopilotApi(
   message: string,
   action: CopilotAction,
-  context?: Record<string, unknown>,
-  history?: ChatMessage[]
-): Promise<string> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/ai-copilot`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseKey}`,
-    },
-    body: JSON.stringify({
+  context: Record<string, unknown> | undefined,
+  history: ChatMessage[] | undefined,
+  conversationId: string | null
+): Promise<CopilotApiResult> {
+  // invoke() attache automatiquement le JWT de session (Authorization) + l'apikey
+  // anon — indispensable pour que l'edge function résolve l'agent (persistance des
+  // conversations + personnalisation Day 0). `persist:true` : seul le chat copilote
+  // demande la persistance ; les actions one-shot appellent l'edge function direct.
+  const { data, error } = await supabase.functions.invoke<{
+    result?: string
+    conversation_id?: string | null
+  }>('ai-copilot', {
+    body: {
       action,
       message,
       context,
       history: history?.slice(-10),
       language: 'fr',
-    }),
+      conversation_id: conversationId,
+      persist: true,
+    },
   })
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}))
-    throw new Error(errData.error || `Erreur ${response.status}`)
+  if (error) {
+    let detail = error.message
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const body = await error.context.json()
+        if (body?.error) detail = body.error as string
+      } catch {
+        // garde le message générique
+      }
+    }
+    throw new Error(detail)
   }
 
-  const data: CopilotResponse = await response.json()
-  return data.result
+  return { result: data?.result ?? '', conversationId: data?.conversation_id ?? null }
 }
 
 /* ─── Hook ─── */
@@ -67,6 +77,10 @@ async function callCopilotApi(
 export function useCopilot() {
   const [isLoading, setIsLoading] = useState(false)
   const historyRef = useRef<ChatMessage[]>([])
+  // Conversation copilote persistée (chantier B · phase 2) : id créé au 1er tour
+  // par l'edge function (si le flag app_config est ON), réutilisé ensuite. null =
+  // volatile (flag OFF) — la conversation reste alors en mémoire seule comme avant.
+  const conversationIdRef = useRef<string | null>(null)
 
   const sendMessage = useCallback(async (
     message: string,
@@ -76,7 +90,8 @@ export function useCopilot() {
 
     setIsLoading(true)
     try {
-      const result = await callCopilotApi(message, action, context, historyRef.current)
+      const { result, conversationId } = await callCopilotApi(message, action, context, historyRef.current, conversationIdRef.current)
+      if (conversationId) conversationIdRef.current = conversationId
 
       // Update history
       const userMsg: ChatMessage = { role: 'user', content: message }
@@ -101,7 +116,8 @@ export function useCopilot() {
 
     setIsLoading(true)
     try {
-      const result = await callCopilotApi(message, action, context, historyRef.current)
+      const { result, conversationId } = await callCopilotApi(message, action, context, historyRef.current, conversationIdRef.current)
+      if (conversationId) conversationIdRef.current = conversationId
 
       // Update history
       const userMsg: ChatMessage = { role: 'user', content: message }
@@ -137,7 +153,15 @@ export function useCopilot() {
 
   const clearHistory = useCallback(() => {
     historyRef.current = []
+    conversationIdRef.current = null
   }, [])
 
-  return { sendMessage, sendMessageStream, isLoading, detectAction, clearHistory }
+  // Reprendre une conversation persistée (chantier B · phase 4) : seed l'id + le
+  // contexte LLM pour que les tours suivants s'ajoutent à la bonne conversation.
+  const resumeConversation = useCallback((id: string, history: ChatMessage[]) => {
+    conversationIdRef.current = id
+    historyRef.current = history.slice(-20)
+  }, [])
+
+  return { sendMessage, sendMessageStream, isLoading, detectAction, clearHistory, resumeConversation }
 }

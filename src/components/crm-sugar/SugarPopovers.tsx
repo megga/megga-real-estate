@@ -2,6 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-today-sugar-popovers.jsx).
 
 import { useState, Fragment, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from './tokens'
 
@@ -106,19 +107,20 @@ export function SugarToast({ message, sp }: { message: string | null; sp: SugarP
 export type QuickAddId = 'task' | 'visit' | 'contact' | 'deal' | 'note'
 
 export function SugarQuickAdd({ sp, onPick }: { sp: SugarPalette; onPick?: (id: QuickAddId) => void }) {
+  const { t } = useTranslation('common')
   const items: { id: QuickAddId; icon: MEIconName; label: string; sub: string }[] = [
-    { id: 'task',    icon: 'check', label: 'Nouvelle tâche',   sub: 'Action rapide à planifier' },
-    { id: 'visit',   icon: 'home',  label: 'Planifier visite', sub: 'Bien · acheteur · créneau' },
-    { id: 'contact', icon: 'plus',  label: 'Nouveau contact',  sub: 'Lead, acheteur ou vendeur' },
-    { id: 'deal',    icon: 'bolt',  label: 'Nouvelle offre',   sub: 'Démarrer un dossier' },
-    { id: 'note',    icon: 'file',  label: 'Note interne',     sub: 'Mémo lié au jour' },
+    { id: 'task',    icon: 'check', label: t('popovers.quickAdd.task.label'),    sub: t('popovers.quickAdd.task.sub') },
+    { id: 'visit',   icon: 'home',  label: t('popovers.quickAdd.visit.label'),   sub: t('popovers.quickAdd.visit.sub') },
+    { id: 'contact', icon: 'plus',  label: t('popovers.quickAdd.contact.label'), sub: t('popovers.quickAdd.contact.sub') },
+    { id: 'deal',    icon: 'bolt',  label: t('popovers.quickAdd.deal.label'),    sub: t('popovers.quickAdd.deal.sub') },
+    { id: 'note',    icon: 'file',  label: t('popovers.quickAdd.note.label'),    sub: t('popovers.quickAdd.note.sub') },
   ]
   return (
     <div>
       <div style={{
         fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
         color: sp.sub, padding: '4px 10px 8px',
-      }}>Ajout rapide</div>
+      }}>{t('popovers.quickAdd.title')}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {items.map(it => (
           <button
@@ -159,12 +161,13 @@ export function SugarReschedule({ sp, currentLabel, onPick, onClose }: {
   onPick?: (s: RescheduleSlot) => void
   onClose?: () => void
 }) {
+  const { t } = useTranslation('common')
   const slots: RescheduleSlot[] = [
-    { id: 'now',      label: 'Maintenant',    sub: 'Démarrer la tâche' },
-    { id: 'later',    label: '+ 2 heures',    sub: 'Repousser légèrement' },
-    { id: 'tomorrow', label: 'Demain matin',  sub: 'Sam. 09:00' },
-    { id: 'monday',   label: 'Lundi',         sub: 'Lun. 09:00' },
-    { id: 'week',     label: 'Cette semaine', sub: 'Auto-placement IA' },
+    { id: 'now',      label: t('popovers.reschedule.slots.now.label'),      sub: t('popovers.reschedule.slots.now.sub') },
+    { id: 'later',    label: t('popovers.reschedule.slots.later.label'),    sub: t('popovers.reschedule.slots.later.sub') },
+    { id: 'tomorrow', label: t('popovers.reschedule.slots.tomorrow.label'), sub: 'Sam. 09:00' },
+    { id: 'monday',   label: t('popovers.reschedule.slots.monday.label'),   sub: 'Lun. 09:00' },
+    { id: 'week',     label: t('popovers.reschedule.slots.week.label'),     sub: t('popovers.reschedule.slots.week.sub') },
   ]
   return (
     <div>
@@ -178,10 +181,10 @@ export function SugarReschedule({ sp, currentLabel, onPick, onClose }: {
           <MEIcon name="calendar" size={14} color={sp.ink} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>Replanifier</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>{t('popovers.reschedule.title')}</div>
           {currentLabel && (
             <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Actuellement · {currentLabel}
+              {t('popovers.reschedule.current', { label: currentLabel })}
             </div>
           )}
         </div>
@@ -212,105 +215,6 @@ export function SugarReschedule({ sp, currentLabel, onPick, onClose }: {
   )
 }
 
-// ─── Mini calendar ────────────────────────────────────────────────────
-const miniNavBtn = (sp: SugarPalette) => ({
-  width: 24, height: 24, borderRadius: 999, border: 0, cursor: 'pointer',
-  background: sp.cardSubBg, display: 'grid', placeItems: 'center',
-} as const)
-
-export function SugarMiniCalendar({ sp }: { sp: SugarPalette; dark?: boolean }) {
-  const month = 'Mai 2026'
-  const startWeekday = 4 // 1 mai 2026 = vendredi (Mon=0)
-  const daysInMonth = 31
-  const today = 1
-  const dotsByDay: Record<number, number> = {
-    1: 6, 2: 0, 4: 4, 5: 3, 6: 2, 7: 5, 8: 3,
-    11: 4, 12: 2, 13: 6, 14: 1, 15: 3,
-    18: 2, 19: 4, 20: 3, 21: 5, 22: 2,
-    25: 3, 26: 4, 27: 1, 28: 6, 29: 2,
-  }
-  const cells: (number | null)[] = []
-  for (let i = 0; i < startWeekday; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-
-  const dayLabels = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
-
-  return (
-    <div>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '4px 10px 10px',
-      }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{month}</div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          <button style={miniNavBtn(sp)}><MEIcon name="chevron-left" size={11} color={sp.soft} /></button>
-          <button style={miniNavBtn(sp)}><MEIcon name="chevron-right" size={11} color={sp.soft} /></button>
-        </div>
-      </div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2,
-        padding: '0 6px 6px',
-      }}>
-        {dayLabels.map((l, i) => (
-          <div key={'h' + i} style={{
-            textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: sp.sub,
-            letterSpacing: 0.4, padding: '4px 0',
-          }}>{l}</div>
-        ))}
-        {cells.map((d, i) => {
-          if (d == null) return <div key={'e' + i} />
-          const isToday = d === today
-          const dots = dotsByDay[d] || 0
-          return (
-            <button key={'d' + d} style={{
-              aspectRatio: '1 / 1', border: 0, cursor: 'pointer', padding: 0,
-              borderRadius: 10,
-              background: isToday ? sp.focusBg : 'transparent',
-              color: isToday ? sp.focusInk : sp.ink,
-              boxShadow: isToday ? sp.focusShadow : 'none',
-              fontFamily: 'inherit', fontWeight: isToday ? 800 : 600, fontSize: 11.5,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 140ms ease',
-              gap: 2,
-            }}
-            onMouseEnter={e => { if (!isToday) e.currentTarget.style.background = sp.cardSubBg }}
-            onMouseLeave={e => { if (!isToday) e.currentTarget.style.background = 'transparent' }}
-            >
-              <span>{d}</span>
-              {dots > 0 && (
-                <span style={{
-                  width: Math.min(4 + dots, 10), height: 3, borderRadius: 999,
-                  background: isToday ? 'rgba(255,255,255,0.7)' : (dots >= 5 ? '#E53935' : '#0041D9'),
-                  opacity: isToday ? 1 : 0.85,
-                }} />
-              )}
-            </button>
-          )
-        })}
-      </div>
-      <div style={{
-        margin: '6px 8px 4px', padding: '10px 12px', borderRadius: 14,
-        background: sp.cardSubBg, display: 'flex', alignItems: 'center', gap: 10,
-      }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 999, background: sp.focusBg,
-          display: 'grid', placeItems: 'center', color: sp.focusInk,
-          fontSize: 11, fontWeight: 800,
-        }}>1</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: sp.ink }}>Aujourd'hui · 6 actions</div>
-          <div style={{ fontSize: 10, color: sp.sub, marginTop: 1 }}>2 relances · 3 qualifs · 1 offre</div>
-        </div>
-        <button style={{
-          height: 28, padding: '0 10px', borderRadius: 999, border: 0, cursor: 'pointer',
-          background: sp.ink, color: sp.pageBg,
-          fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
-        }}>Ouvrir</button>
-      </div>
-    </div>
-  )
-}
-
 // ─── Row context menu ─────────────────────────────────────────────────
 export type RowMenuItemId = 'open' | 'reschedule' | 'priority' | 'assign' | 'complete' | 'delete'
 export interface RowMenuItem {
@@ -327,13 +231,14 @@ export function SugarRowMenu({ sp, label, onPick, onClose }: {
   onPick?: (it: RowMenuItem) => void
   onClose?: () => void
 }) {
+  const { t } = useTranslation('common')
   const items: RowMenuItem[] = [
-    { id: 'open',       icon: 'eye',   label: 'Ouvrir la fiche',     sub: 'Voir le détail complet' },
-    { id: 'reschedule', icon: 'calendar',   label: 'Replanifier',         sub: 'Choisir un nouveau créneau' },
-    { id: 'priority',   icon: 'sparkle', label: 'Marquer prioritaire', sub: 'Remonte en haut du parcours' },
-    { id: 'assign',     icon: 'plus',  label: 'Assigner à…',         sub: 'Déléguer à un collaborateur' },
-    { id: 'complete',   icon: 'check', label: 'Marquer comme fait',  sub: 'Cloturer cette action', tone: 'good' },
-    { id: 'delete',     icon: 'close',     label: 'Supprimer',           sub: 'Retirer du parcours',   tone: 'bad' },
+    { id: 'open',       icon: 'eye',     label: t('popovers.rowMenu.open.label'),       sub: t('popovers.rowMenu.open.sub') },
+    { id: 'reschedule', icon: 'calendar', label: t('popovers.rowMenu.reschedule.label'), sub: t('popovers.rowMenu.reschedule.sub') },
+    { id: 'priority',   icon: 'sparkle', label: t('popovers.rowMenu.priority.label'),   sub: t('popovers.rowMenu.priority.sub') },
+    { id: 'assign',     icon: 'plus',    label: t('popovers.rowMenu.assign.label'),     sub: t('popovers.rowMenu.assign.sub') },
+    { id: 'complete',   icon: 'check',   label: t('popovers.rowMenu.complete.label'),   sub: t('popovers.rowMenu.complete.sub'), tone: 'good' },
+    { id: 'delete',     icon: 'close',   label: t('popovers.rowMenu.delete.label'),     sub: t('popovers.rowMenu.delete.sub'),   tone: 'bad' },
   ]
   return (
     <div>
@@ -347,7 +252,7 @@ export function SugarRowMenu({ sp, label, onPick, onClose }: {
           <span style={{ fontSize: 16, color: sp.ink, letterSpacing: 0, lineHeight: 0.5 }}>···</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>Actions</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>{t('popovers.rowMenu.title')}</div>
           {label && (
             <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {label}
@@ -406,6 +311,8 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
   onReject?: (l: AILead) => void
   onClose?: () => void
 }) {
+  const { t } = useTranslation('common')
+  // Demo data — leads d'exemple (noms/intentions/budgets fictifs).
   const leads: AILead[] = [
     { id: 'l1', name: 'Sophie Mercier',  source: 'Site web',           intent: 'Achat', budget: 'CHF 1.2M',  score: 88, hint: 'Match: 5 biens · Carouge / Champel' },
     { id: 'l2', name: 'Marc Tornay',     source: 'Référent agent',     intent: 'Vente', budget: 'CHF 2.4M',  score: 74, hint: 'Mandat exclusif possible · Cologny' },
@@ -439,8 +346,8 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
           <MEIcon name="sparkle" size={14} color="#fff" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>MEGGA AI · Demande de traitement</div>
-          <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1 }}>4 leads en attente · qualifie ou délègue</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink }}>{t('popovers.aiLeads.title')}</div>
+          <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1 }}>{t('popovers.aiLeads.caption', { count: leads.length })}</div>
         </div>
       </div>
 
@@ -478,7 +385,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <button
                   onClick={() => { setBusy(`reject-${l.id}`); setTimeout(() => { onReject?.(l); setBusy(null) }, 260) }}
-                  title="Rejeter"
+                  title={t('popovers.aiLeads.reject')}
                   style={{
                     width: 26, height: 26, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
                     background: 'transparent', color: sp.sub,
@@ -492,7 +399,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
                 </button>
                 <button
                   onClick={() => { setBusy(`accept-${l.id}`); setTimeout(() => { onAccept?.(l); setBusy(null) }, 320) }}
-                  title="Accepter et qualifier"
+                  title={t('popovers.aiLeads.accept')}
                   style={{
                     width: 26, height: 26, borderRadius: 999, border: 0, padding: 0, cursor: 'pointer',
                     background: sp.ink, color: sp.pageBg,
@@ -524,7 +431,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
           }}
         >
           <MEIcon name="sparkle" size={11} color={sp.pageBg} />
-          Tout qualifier avec l'IA
+          {t('popovers.aiLeads.qualifyAll')}
         </button>
         <button
           onClick={() => { onPickLead?.({ id: 'review' }); onClose?.() }}
@@ -534,7 +441,7 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
             fontFamily: 'inherit', fontWeight: 600, fontSize: 11.5,
           }}
         >
-          Examiner un par un
+          {t('popovers.aiLeads.reviewOneByOne')}
         </button>
       </div>
     </div>
@@ -545,18 +452,28 @@ export function SugarAILeads({ sp, onPickLead, onAccept, onReject, onClose }: {
 export type StatusId = 'Planifié' | 'À faire' | 'En cours' | 'Bloqué' | 'Exécuté'
 export interface StatusItem { id: StatusId; color: string; bg: string; sub: string }
 
+// Cle i18n stable par statut (id = contrat de donnees, inchange ; label/sub traduits).
+const STATUS_KEY: Record<StatusId, string> = {
+  'Planifié': 'planned',
+  'À faire':  'todo',
+  'En cours': 'inProgress',
+  'Bloqué':   'blocked',
+  'Exécuté':  'done',
+}
+
 export function SugarStatusMenu({ sp, currentStatus, onPick, onClose }: {
   sp: SugarPalette
   currentStatus?: StatusId
   onPick?: (it: StatusItem) => void
   onClose?: () => void
 }) {
+  const { t } = useTranslation('common')
   const items: StatusItem[] = [
-    { id: 'Planifié', color: '#0041D9', bg: 'rgba(0,65,217,0.12)',   sub: 'Créneau réservé' },
-    { id: 'À faire',  color: '#E53935', bg: 'rgba(229,57,53,0.10)',  sub: "En attente d'action" },
-    { id: 'En cours', color: '#F59E0B', bg: 'rgba(245,158,11,0.16)', sub: "Action en train d'avancer" },
-    { id: 'Bloqué',   color: '#E53935', bg: 'rgba(229,57,53,0.10)',  sub: "Dépend d'un externe" },
-    { id: 'Exécuté',  color: '#0E9F6E', bg: 'rgba(14,159,110,0.12)', sub: 'Terminé · à archiver' },
+    { id: 'Planifié', color: '#0041D9', bg: 'rgba(0,65,217,0.12)',   sub: t('popovers.statusMenu.items.planned.sub') },
+    { id: 'À faire',  color: '#E53935', bg: 'rgba(229,57,53,0.10)',  sub: t('popovers.statusMenu.items.todo.sub') },
+    { id: 'En cours', color: '#F59E0B', bg: 'rgba(245,158,11,0.16)', sub: t('popovers.statusMenu.items.inProgress.sub') },
+    { id: 'Bloqué',   color: '#E53935', bg: 'rgba(229,57,53,0.10)',  sub: t('popovers.statusMenu.items.blocked.sub') },
+    { id: 'Exécuté',  color: '#0E9F6E', bg: 'rgba(14,159,110,0.12)', sub: t('popovers.statusMenu.items.done.sub') },
   ]
   return (
     <div>
@@ -570,10 +487,10 @@ export function SugarStatusMenu({ sp, currentStatus, onPick, onClose }: {
           <MEIcon name="sparkle" size={14} color={sp.ink} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>Changer le statut</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>{t('popovers.statusMenu.title')}</div>
           {currentStatus && (
             <div style={{ fontSize: 10.5, color: sp.sub, marginTop: 1 }}>
-              Actuellement · {currentStatus}
+              {t('popovers.statusMenu.current', { status: t(`popovers.statusMenu.items.${STATUS_KEY[currentStatus]}.label`) })}
             </div>
           )}
         </div>
@@ -598,7 +515,7 @@ export function SugarStatusMenu({ sp, currentStatus, onPick, onClose }: {
               <span style={{
                 padding: '3px 10px', borderRadius: 999, fontSize: 10.5, fontWeight: 700,
                 background: it.bg, color: it.color, flexShrink: 0,
-              }}>{it.id}</span>
+              }}>{t(`popovers.statusMenu.items.${STATUS_KEY[it.id]}.label`)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, color: sp.sub, marginTop: 1 }}>{it.sub}</div>
               </div>
@@ -621,9 +538,11 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
   onPickItem?: (it: { id: string; label?: string }) => void
   onClose?: () => void
 }) {
+  const { t } = useTranslation('common')
+  // Les `title` sont du chrome (traduits) ; `caption` + `items` = donnees d'exemple (chiffres/deals figes).
   const DATA: Record<PipelineDrillKind, { title: string; caption: string; accent: string; items: PipelineDrillItem[] }> = {
     executed: {
-      title: 'Tâches exécutées · semaine',
+      title: t('popovers.pipelineDrill.executed.title'),
       caption: '5 sur 6 — bonne cadence',
       accent: '#0041D9',
       items: [
@@ -635,7 +554,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
       ],
     },
     active: {
-      title: 'Deals actifs',
+      title: t('popovers.pipelineDrill.active.title'),
       caption: '7 deals sur 10 mouvements',
       accent: '#E53935',
       items: [
@@ -649,7 +568,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
       ],
     },
     pipeline: {
-      title: 'Volume du pipeline',
+      title: t('popovers.pipelineDrill.pipeline.title'),
       caption: 'CHF 7.6M répartis sur 7 deals actifs',
       accent: sp.ink,
       items: [
@@ -661,7 +580,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
       ],
     },
     matches: {
-      title: 'Nouveaux matchs · 24h',
+      title: t('popovers.pipelineDrill.matches.title'),
       caption: '3 leads avec biens correspondants',
       accent: '#0E9F6E',
       items: [
@@ -671,7 +590,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
       ],
     },
     risk: {
-      title: 'Deals à risque',
+      title: t('popovers.pipelineDrill.risk.title'),
       caption: '1 deal nécessite une action rapide',
       accent: '#F59E0B',
       items: [
@@ -739,7 +658,7 @@ export function SugarPipelineDrill({ sp, kind, onPickItem, onClose }: {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
           <MEIcon name="eye" size={12} color={sp.pageBg} />
-          Ouvrir le pipeline complet
+          {t('popovers.pipelineDrill.openFull')}
         </button>
       </div>
     </div>

@@ -62,6 +62,8 @@ function leadToSubmission(lead: SellerLeadRow): CrmSubmission {
     id: lead.id,
     submittedAt: lead.created_at,
     contactId: lead.contact_id,
+    contactName: (lead.contact_name ?? '').trim(),
+    contactEmail: lead.contact_email,
     contactDraft: lead.contact_id ? undefined : {
       firstName,
       lastName,

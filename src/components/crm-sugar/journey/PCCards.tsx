@@ -2,6 +2,7 @@
 // 1:1 port from `crm-screen-parcours-sugar.jsx`.
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { SugarPalette } from '../tokens'
 import type { ParcoursAgent, ParcoursTask } from './journeyData'
@@ -15,6 +16,7 @@ interface CardProps {
 }
 
 export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
+  const { t: tr } = useTranslation('pipeline')
   const [hover, setHover] = useState(false)
   const isActive = task.state === 'active'
   const isDone = task.state === 'done'
@@ -77,7 +79,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
         <div style={{ display: 'flex', gap: 6 }}>
           <button
             onClick={e => e.stopPropagation()}
-            title="Marquer exécutée"
+            title={tr('journey.task.actions.markDone')}
             style={{
               width: 26,
               height: 26,
@@ -110,7 +112,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
           </button>
           <button
             onClick={e => e.stopPropagation()}
-            title="Replanifier"
+            title={tr('journey.task.actions.reschedule')}
             style={{
               width: 26,
               height: 26,
@@ -186,6 +188,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
 }
 
 export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
+  const { t: tr } = useTranslation('pipeline')
   const [hover, setHover] = useState(false)
   const isActive = task.state === 'active'
   const isDone = task.state === 'done'
@@ -263,7 +266,7 @@ export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
       </div>
       <button
         onClick={e => e.stopPropagation()}
-        title="Plus"
+        title={tr('journey.task.actions.more')}
         style={{
           width: 22,
           height: 22,

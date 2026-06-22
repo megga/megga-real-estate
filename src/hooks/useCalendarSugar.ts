@@ -100,6 +100,10 @@ export interface UseCalendarSugarReturn {
   events: CalEvent[]
   hotBuyers: CalHotBuyer[]
   isLoading: boolean
+  /** true si l'une des 3 queries (visits/reminders/hotBuyers) a échoué. */
+  isError: boolean
+  /** relance les 3 queries du calendrier (bouton « Réessayer »). */
+  refetch: () => void
 }
 
 interface HotBuyerRow {
@@ -145,7 +149,7 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
     return { from: from.toISOString(), to: to.toISOString() }
   }, [])
 
-  const { data: visits = [], isLoading: visitsLoading } = useQuery({
+  const { data: visits = [], isLoading: visitsLoading, isError: visitsError, refetch: refetchVisits } = useQuery({
     queryKey: ['calendar-sugar-visits', agencyId, range.from, range.to],
     queryFn: async (): Promise<VisitJoin[]> => {
       if (!agencyId) return []
@@ -163,7 +167,7 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
     staleTime: 60_000,
   })
 
-  const { data: reminders = [], isLoading: remindersLoading } = useQuery({
+  const { data: reminders = [], isLoading: remindersLoading, isError: remindersError, refetch: refetchReminders } = useQuery({
     queryKey: ['calendar-sugar-reminders', agencyId, range.from, range.to],
     queryFn: async (): Promise<ReminderJoin[]> => {
       if (!agencyId) return []
@@ -191,7 +195,7 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
 
   // Hot buyers : contacts.score IN ('hot','warm') ordonnés par last_interaction_at,
   // top 5 affichés dans CalRightPanel.
-  const { data: hotBuyerRows = [], isLoading: hotLoading } = useQuery({
+  const { data: hotBuyerRows = [], isLoading: hotLoading, isError: hotError, refetch: refetchHot } = useQuery({
     queryKey: ['calendar-sugar-hot-buyers', agencyId],
     queryFn: async (): Promise<HotBuyerRow[]> => {
       if (!agencyId) return []
@@ -225,5 +229,11 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
     events,
     hotBuyers,
     isLoading: visitsLoading || remindersLoading || hotLoading,
+    isError: visitsError || remindersError || hotError,
+    refetch: () => {
+      void refetchVisits()
+      void refetchReminders()
+      void refetchHot()
+    },
   }
 }

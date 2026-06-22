@@ -2,6 +2,7 @@
 // 1:1 port from `crm-calendar-sugar-shell.jsx`.
 
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalPalette } from './data'
 
 interface CalCircleBtnProps {
@@ -54,11 +55,12 @@ interface CalViewToggleProps {
 
 export function CalViewToggle({ value, onChange }: CalViewToggleProps) {
   const SP = useCalPalette()
+  const { t } = useTranslation('calendar')
   const opts: { id: CalViewId; label: string }[] = [
-    { id: 'day', label: 'Jour' },
-    { id: 'week', label: 'Semaine' },
-    { id: 'month', label: 'Mois' },
-    { id: 'agenda', label: 'Agenda' },
+    { id: 'day', label: t('panel.views.day') },
+    { id: 'week', label: t('panel.views.week') },
+    { id: 'month', label: t('panel.views.month') },
+    { id: 'agenda', label: t('panel.views.agenda') },
   ]
   return (
     <div

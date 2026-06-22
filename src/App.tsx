@@ -18,6 +18,7 @@ import { AuthProvider } from '@/hooks/useAuth'
 // Shells/guards qui wrappent toutes les routes — doivent être disponibles
 // avant le premier render pour éviter un flash de chargement.
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
+import ErrorBoundary from '@/components/layout/ErrorBoundary'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import CookieBanner from '@/components/CookieBanner'
 import { ToastProvider } from '@/components/ui/Toast'
@@ -86,21 +87,16 @@ const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugar
 // visit capture is a separate sprint.
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
 const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
-const MatchingSugarV2Page = lazy(() => import('@/pages/agent/MatchingSugarV2Page'))
 const MatchingAtelierPage = lazy(() => import('@/pages/agent/MatchingAtelierPage'))
 const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
-const KycListSugarV2Page = lazy(() => import('@/pages/agent/KycListSugarV2Page'))
-const KycDetailSugarV2Page = lazy(() => import('@/pages/agent/KycDetailSugarV2Page'))
 const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
 // Sprint 4.4 — Export PDF dossier KYC (route print-friendly, hors layout agent)
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
-const KycShowcasePage = lazy(() => import('@/pages/agent/KycShowcasePage'))
-const NetworkSugarV2Page = lazy(() => import('@/pages/agent/NetworkSugarV2Page'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
@@ -503,8 +499,6 @@ function AnimatedRoutes() {
                 {/* Atelier Matching — triptyque plein écran (handoff juin 2026).
                     Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id> */}
                 <Route path="matching" element={<MatchingAtelierPage />} />
-                {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
-                <Route path="matching/v2" element={<MatchingSugarV2Page />} />
                 <Route path="journey" element={<JourneySugarV2Page />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />
@@ -512,12 +506,9 @@ function AnimatedRoutes() {
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
                 <Route path="kyc" element={<KycSugarV3Page />} />
                 <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
-                {/* Legacy V2 — gardé temporairement pour comparaison, à supprimer phase finale */}
-                <Route path="kyc/showcase" element={<KycShowcasePage />} />
-                <Route path="kyc/v2" element={<KycListSugarV2Page />} />
-                <Route path="kyc/v2/:id" element={<KycDetailSugarV2Page />} />
-                <Route path="network" element={<NetworkSugarV2Page />} />
-                <Route path="reseau" element={<Navigate to="/dashboard/network" replace />} />
+                {/* Réseau inter-agences — hors périmètre v1 (page conservée, route neutralisée) */}
+                <Route path="network" element={<Navigate to="/dashboard" replace />} />
+                <Route path="reseau" element={<Navigate to="/dashboard" replace />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
                 <Route path="audit" element={<AuditSugarPage />} />
                 <Route path="julien" element={<JulienSugarV2Page />} />
@@ -579,9 +570,11 @@ export default function App() {
             {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
                 frosted-glass shimmer overlay, listens to languageChanged event. */}
             <LanguageChangeOverlay />
-            <Suspense fallback={<SmartPageLoader />}>
-              <AnimatedRoutes />
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<SmartPageLoader />}>
+                <AnimatedRoutes />
+              </Suspense>
+            </ErrorBoundary>
             {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
             <Suspense fallback={null}>
               <FavoritesLoginPrompt />

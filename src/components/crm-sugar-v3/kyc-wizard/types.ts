@@ -19,10 +19,12 @@ export interface WizardData {
   smartReco: KycVigilance
 }
 
+// i18n : libellés d'étapes via clé (traduits chez le consommateur avec t()),
+// même grammaire que KYC_UI_STEPS (kycStepper.ts). Cf docs/i18n-conventions §5.
 export const WIZARD_STEPS = [
-  { id: 'start', label: 'Démarrer' },
-  { id: 'contact', label: 'Contact' },
-  { id: 'vigilance', label: 'Vigilance' },
+  { id: 'start', labelKey: 'kyc:wizard.steps.start' },
+  { id: 'contact', labelKey: 'kyc:wizard.steps.contact' },
+  { id: 'vigilance', labelKey: 'kyc:wizard.steps.vigilance' },
 ] as const
 
 export type WizardStepId = (typeof WIZARD_STEPS)[number]['id']
