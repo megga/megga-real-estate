@@ -106,7 +106,12 @@ end $$;
 revoke all on function public.realadvisor_probe_collect() from public;
 grant execute on function public.realadvisor_probe_collect() to service_role;
 
--- 4) Crons. On retire le probe edge (throttlé) ; fire/collect/sweep tournent en pur SQL.
+-- 4) Crons. On retire le crawl par énumération (rolling+sweep-enum, throttlé+inerte) ET
+--    le probe edge (IP edge flaggée) ; fire/collect/sweep tournent en pur SQL (pg_net).
+--    Ces unschedule rendent la SÉQUENCE de migrations idempotente : sans eux, un re-apply
+--    CI ressusciterait les crons rolling/sweep-enum posés par 20260619140000.
+do $$ begin perform cron.unschedule('realadvisor-rolling-daily'); exception when others then null; end $$;
+do $$ begin perform cron.unschedule('realadvisor-sweep-enum-daily'); exception when others then null; end $$;
 do $$ begin perform cron.unschedule('realadvisor-probe-hourly'); exception when others then null; end $$;
 do $$ begin perform cron.unschedule('realadvisor-probe-sweep-daily'); exception when others then null; end $$;
 do $$ begin perform cron.unschedule('realadvisor-probe-fire'); exception when others then null; end $$;
