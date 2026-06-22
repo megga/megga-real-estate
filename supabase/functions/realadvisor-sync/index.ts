@@ -1004,9 +1004,9 @@ async function runProbe(body: SyncRequest, supabase: any): Promise<void> {
       batches++
       if (!res.ok || res.total_count < 0 || res.total_count > batch.length) { ambiguous++; continue }
       const presentSet = new Set(res.presentIds)
-      const absentIds = batch.filter((id) => !presentSet.has(id))
+      const absentIds = batch.filter((id: string) => !presentSet.has(id))
       if (absentIds.length !== (batch.length - res.total_count)) { ambiguous++; continue }
-      const presentIds = batch.filter((id) => presentSet.has(id))
+      const presentIds = batch.filter((id: string) => presentSet.has(id))
       ok++; present += presentIds.length; absent += absentIds.length
       const { error } = await supabase.rpc('realadvisor_probe_bookkeep', {
         p_present: presentIds, p_absent: absentIds, p_min_gap_hours: 20,
