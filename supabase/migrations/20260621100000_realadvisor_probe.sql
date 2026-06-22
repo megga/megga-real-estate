@@ -91,19 +91,27 @@ grant execute on function public.realadvisor_probe_sweep(text, int, int, int, nu
 
 -- 6) Crons. Probe horaire (couverture ~quotidienne du catalogue) ; removal 01:30.
 do $$ begin perform cron.unschedule('realadvisor-probe-hourly'); exception when others then null; end $$;
-select cron.schedule('realadvisor-probe-hourly', '0 * * * *', $cron$
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule('realadvisor-probe-hourly', '0 * * * *', $cron$
   select net.http_post(
     url := 'https://eayczugyrvmtqnnmvjod.supabase.co/functions/v1/realadvisor-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
       'Authorization', 'Bearer ' || public.get_app_config('service_role_key')),
     body := jsonb_build_object('mode', 'probe', 'offer_type', 'buy', 'trigger_source', 'cron-probe', 'max_batches', 40)
   ) $cron$);
+  end if;
+end $$;
 
 do $$ begin perform cron.unschedule('realadvisor-probe-sweep-daily'); exception when others then null; end $$;
-select cron.schedule('realadvisor-probe-sweep-daily', '30 1 * * *', $cron$
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule('realadvisor-probe-sweep-daily', '30 1 * * *', $cron$
   select net.http_post(
     url := 'https://eayczugyrvmtqnnmvjod.supabase.co/functions/v1/realadvisor-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
       'Authorization', 'Bearer ' || public.get_app_config('service_role_key')),
     body := jsonb_build_object('mode', 'probe_sweep', 'offer_type', 'buy', 'trigger_source', 'cron-probe-sweep')
   ) $cron$);
+  end if;
+end $$;

@@ -147,7 +147,9 @@ on conflict (key) do nothing;
 --    Rolling 22:00 : crawl scopé du bucket du jour (rafraîchit last_seen + écrit les reçus).
 --    Sweep 01:30 : lit les reçus de toutes les nuits du cycle (age-based, ordre intra-nuit indifférent).
 do $$ begin perform cron.unschedule('realadvisor-rolling-daily'); exception when others then null; end $$;
-select cron.schedule('realadvisor-rolling-daily', '0 22 * * *', $cron$
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule('realadvisor-rolling-daily', '0 22 * * *', $cron$
   select net.http_post(
     url := 'https://eayczugyrvmtqnnmvjod.supabase.co/functions/v1/realadvisor-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
@@ -156,12 +158,18 @@ select cron.schedule('realadvisor-rolling-daily', '0 22 * * *', $cron$
       'cantons', (public.get_app_config('realadvisor_shard_map')::jsonb)
                    -> (extract(dow from (now() at time zone 'UTC'))::int))
   ) $cron$);
+  end if;
+end $$;
 
 do $$ begin perform cron.unschedule('realadvisor-sweep-enum-daily'); exception when others then null; end $$;
-select cron.schedule('realadvisor-sweep-enum-daily', '30 1 * * *', $cron$
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule('realadvisor-sweep-enum-daily', '30 1 * * *', $cron$
   select net.http_post(
     url := 'https://eayczugyrvmtqnnmvjod.supabase.co/functions/v1/realadvisor-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
       'Authorization', 'Bearer ' || public.get_app_config('service_role_key')),
     body := jsonb_build_object('mode', 'sweep_enum', 'offer_type', 'buy', 'trigger_source', 'cron-sweep')
   ) $cron$);
+  end if;
+end $$;

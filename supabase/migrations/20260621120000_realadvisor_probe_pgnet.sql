@@ -1,3 +1,5 @@
+set local check_function_bodies = off;  -- net.* absent en CI local (resolu au runtime prod)
+
 -- realadvisor : le probe id_in tourne désormais depuis POSTGRES (pg_net), pas l'edge
 -- function. Raison : l'IP de sortie de l'edge est flaggée par RA pour id_in (6 runs
 -- 100% throttlés), alors que l'IP de la base (pg_net) passe (30/30, 10/10). On déplace
@@ -118,10 +120,20 @@ do $$ begin perform cron.unschedule('realadvisor-probe-fire'); exception when ot
 do $$ begin perform cron.unschedule('realadvisor-probe-collect'); exception when others then null; end $$;
 do $$ begin perform cron.unschedule('realadvisor-probe-sweep'); exception when others then null; end $$;
 
-select cron.schedule('realadvisor-probe-fire',   '0 * * * *',  $cron$ select public.realadvisor_probe_fire('buy', 40); $cron$);
-select cron.schedule('realadvisor-probe-collect', '10 * * * *', $cron$ select public.realadvisor_probe_collect(); $cron$);
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule('realadvisor-probe-fire',   '0 * * * *',  $cron$ select public.realadvisor_probe_fire('buy', 40); $cron$);
+  end if;
+end $$;
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule('realadvisor-probe-collect', '10 * * * *', $cron$ select public.realadvisor_probe_collect(); $cron$);
+  end if;
+end $$;
 -- probe-sweep : appelle la RPC en direct ET logge une ligne de run (observabilité).
-select cron.schedule('realadvisor-probe-sweep', '30 1 * * *', $cron$
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule('realadvisor-probe-sweep', '30 1 * * *', $cron$
   insert into realadvisor_sync_runs(offer_type, trigger_source, status, ended_at, total_removed, total_seen, error_message)
   select 'buy', 'cron-probe-sweep', coalesce(r->>'status','?'), now(),
          coalesce((r->>'removed')::int,0), coalesce((r->>'live')::int,0),
@@ -129,3 +141,5 @@ select cron.schedule('realadvisor-probe-sweep', '30 1 * * *', $cron$
   from (select public.realadvisor_probe_sweep('buy',3,48,1200,0.03,
           public.get_app_config('realadvisor_probe_apply') = 'true') as r) x;
 $cron$);
+  end if;
+end $$;

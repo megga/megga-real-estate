@@ -12,7 +12,9 @@ on conflict (key) do nothing;
 -- Cron quotidien 03:30 UTC (heure creuse, séparé de flatfox-sync 04:00).
 do $$ begin perform cron.unschedule('realadvisor-fresh-daily'); exception when others then null; end $$;
 
-select cron.schedule(
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.schedule(
   'realadvisor-fresh-daily',
   '30 3 * * *',
   $cron$ select net.http_post(
@@ -24,3 +26,5 @@ select cron.schedule(
     body := jsonb_build_object('mode', 'fresh', 'offer_type', 'buy', 'trigger_source', 'cron-fresh')
   ) $cron$
 );
+  end if;
+end $$;
