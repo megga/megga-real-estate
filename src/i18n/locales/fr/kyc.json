@@ -959,6 +959,31 @@
     "checksLabel": "contrôles"
   },
   "mobile": {
-    "back": "Plus"
+    "back": "Plus",
+    "detail": {
+      "seeContact": "Voir le contact",
+      "examineOnDesktop": "Examen du match à finaliser sur le bureau."
+    },
+    "check": {
+      "done": "Vérifié",
+      "na": "Non requis",
+      "pending": "À vérifier",
+      "markVerified": "Marquer vérifié",
+      "completedBy": "par {{name}}"
+    },
+    "docs": {
+      "empty": "Aucune pièce jointe pour l’instant."
+    },
+    "audit": {
+      "title": "Piste d’audit",
+      "empty": "Aucune action enregistrée.",
+      "timeline": "Fil",
+      "registre": "Registre",
+      "colTime": "Horodatage",
+      "colAction": "Action",
+      "colActor": "Auteur",
+      "actorSystem": "Système",
+      "actorAi": "Assistant MEGGA"
+    }
   }
 }

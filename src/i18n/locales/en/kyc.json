@@ -959,6 +959,31 @@
     "checksLabel": "checks"
   },
   "mobile": {
-    "back": "More"
+    "back": "More",
+    "detail": {
+      "seeContact": "View contact",
+      "examineOnDesktop": "Finish reviewing this match on desktop."
+    },
+    "check": {
+      "done": "Verified",
+      "na": "Not required",
+      "pending": "To verify",
+      "markVerified": "Mark verified",
+      "completedBy": "by {{name}}"
+    },
+    "docs": {
+      "empty": "No documents attached yet."
+    },
+    "audit": {
+      "title": "Audit trail",
+      "empty": "No action recorded yet.",
+      "timeline": "Feed",
+      "registre": "Register",
+      "colTime": "Timestamp",
+      "colAction": "Action",
+      "colActor": "Author",
+      "actorSystem": "System",
+      "actorAi": "MEGGA Assistant"
+    }
   }
 }

@@ -21,6 +21,7 @@ import { MobileContactDetailScreen } from '@/components/crm-mobile/contacts/Mobi
 import { MobileAnalyticsScreen } from '@/components/crm-mobile/analytics/MobileAnalyticsScreen'
 import { MobileJourneyScreen } from '@/components/crm-mobile/journey/MobileJourneyScreen'
 import { MobileKycListScreen } from '@/components/crm-mobile/kyc/MobileKycListScreen'
+import { MobileKycDetailScreen } from '@/components/crm-mobile/kyc/MobileKycDetailScreen'
 import { MobileSettingsScreen } from '@/components/crm-mobile/settings/MobileSettingsScreen'
 import { MobileDealDetailScreen, type DealData } from '@/components/crm-mobile/deal/MobileDealDetailScreen'
 import { EMPTY_OFFER_CONDITIONS, type Offer } from '@/types/offer'
@@ -110,6 +111,8 @@ function ShowcaseInner() {
       <MobileJourneyScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileKycListScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileKycDetailScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileSettingsScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />

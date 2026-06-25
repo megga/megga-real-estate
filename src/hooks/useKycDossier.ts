@@ -62,7 +62,9 @@ export function useKycDossiers(filters?: KycDossiersFilter, opts?: { enabled?: b
       const rows: KycDossierRow[] = (data ?? []).map((raw) => {
         const checks = (raw as { checks?: Array<{ is_completed: boolean; is_required: boolean }> }).checks ?? []
         const checksTotal = checks.length
-        const checksCompleted = checks.filter((c) => c.is_completed).length
+        // « Fait » = complété OU non requis (règle canonique LBA, miroir du détail
+        // KycDossierDetail.tsx:223-226) — sinon la jauge de la liste diverge du détail.
+        const checksCompleted = checks.filter((c) => c.is_completed || c.is_required === false).length
         // Strip nested checks from the returned row (UI consumes counters only).
         const { checks: _omit, ...rest } = raw as unknown as KycDossierRow & {
           checks?: unknown

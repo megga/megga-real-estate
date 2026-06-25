@@ -959,6 +959,31 @@
     "checksLabel": "checks"
   },
   "mobile": {
-    "back": "Mehr"
+    "back": "Mehr",
+    "detail": {
+      "seeContact": "Kontakt ansehen",
+      "examineOnDesktop": "Prüfung dieses Treffers am Desktop abschliessen."
+    },
+    "check": {
+      "done": "Verifiziert",
+      "na": "Nicht erforderlich",
+      "pending": "Zu prüfen",
+      "markVerified": "Als verifiziert markieren",
+      "completedBy": "von {{name}}"
+    },
+    "docs": {
+      "empty": "Noch keine Dokumente angehängt."
+    },
+    "audit": {
+      "title": "Audit-Trail",
+      "empty": "Noch keine Aktion erfasst.",
+      "timeline": "Verlauf",
+      "registre": "Register",
+      "colTime": "Zeitstempel",
+      "colAction": "Aktion",
+      "colActor": "Autor",
+      "actorSystem": "System",
+      "actorAi": "MEGGA Assistent"
+    }
   }
 }

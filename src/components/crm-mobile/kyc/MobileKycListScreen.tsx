@@ -32,9 +32,9 @@ function riskTone(level: KycRiskLevel, tk: MobileTokens): string {
  * KYC mobile (P9) — liste des dossiers, read-focused v1. Câblé `useKycDossiers`
  * (RÉEL, RLS agence). Filtres tous/en cours/à démarrer/vérifiés/risque, gauge de
  * progression (contrôles), statut + risque NON-bloquants (jamais rouge/alarmant).
- * Tap → fiche contact (qui porte le bloc KYC inline + lien vers le dossier).
- * Détail dossier complet (onglets, marquage avec garde LBA art.9, read-log) =
- * passe dédiée. `demo` alimente le harnais sans Supabase.
+ * Tap → détail du dossier (`/dashboard/kyc/:id` : 4 onglets, marquage avec garde
+ * LBA art.9, read-log nLPD). Deep-link `?openContactId` → fiche contact (bloc KYC
+ * inline). `demo` alimente le harnais sans Supabase.
  */
 export function MobileKycListScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
@@ -124,7 +124,7 @@ export function MobileKycListScreen({ demo = false }: { demo?: boolean }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map((d) => <Row key={d.id} d={d} t={t} tk={tk} onOpen={() => { if (live && d.contact) navigate(`/dashboard/contacts/${d.contact.id}`) }} />)}
+            {filtered.map((d) => <Row key={d.id} d={d} t={t} tk={tk} onOpen={() => { if (live) navigate(`/dashboard/kyc/${d.id}`) }} />)}
           </div>
         )}
       </div>
