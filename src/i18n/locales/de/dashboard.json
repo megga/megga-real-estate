@@ -667,5 +667,13 @@
   "focus": {
     "heading": "3 must-do priorities for today",
     "subtitle": "Everything else can wait. Breathe, do these three things well."
+  },
+  "mobile": {
+    "analytics": {
+      "title": "Dein Provisions-Cockpit",
+      "back": "Mehr",
+      "noData": "Derzeit keine Daten verfügbar",
+      "sourcesSubtitle": "Woher deine Kontakte kommen"
+    }
   }
 }

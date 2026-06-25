@@ -65,6 +65,7 @@ const MobileWizardPage = lazy(() => import('@/components/crm-mobile/wizard/Mobil
 const MobileContactsListPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactsListPage'))
 const MobileNewContactPage = lazy(() => import('@/components/crm-mobile/contacts/MobileNewContactPage'))
 const MobileContactDetailPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactDetailPage'))
+const MobileAnalyticsPage = lazy(() => import('@/components/crm-mobile/analytics/MobileAnalyticsPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -537,7 +538,8 @@ function AnimatedRoutes() {
                 <Route path="audit" element={<AuditSugarPage />} />
                 <Route path="julien" element={<JulienSugarV2Page />} />
                 {/* Sprint 4 — Dashboard Analytics Sugar v4 (Cockpit / Entonnoir / Objectif) */}
-                <Route path="analytics" element={<DashboardSugarV4Page />} />
+                {/* Analytics — mobile (< 768px) : cockpit commission (P9). */}
+                <Route path="analytics" element={<ResponsiveRoute desktop={<DashboardSugarV4Page />} mobile={<MobileAnalyticsPage />} />} />
                 {/* Hub « Plus » mobile-only — desktop redirige vers Réglages */}
                 <Route
                   path="more"

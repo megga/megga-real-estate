@@ -667,5 +667,13 @@
   "focus": {
     "heading": "3 must-do priorities for today",
     "subtitle": "Everything else can wait. Breathe, do these three things well."
+  },
+  "mobile": {
+    "analytics": {
+      "title": "Il tuo cockpit commissioni",
+      "back": "Altro",
+      "noData": "Nessun dato da mostrare per ora",
+      "sourcesSubtitle": "Da dove arrivano i tuoi contatti"
+    }
   }
 }
