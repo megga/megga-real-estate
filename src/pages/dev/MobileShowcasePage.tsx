@@ -9,6 +9,7 @@ import SgToast from '@/components/crm-mobile/primitives/SgToast'
 import { useSgToast } from '@/components/crm-mobile/primitives/useSgToast'
 import MobileMoreScreen from '@/components/crm-mobile/more/MobileMoreScreen'
 import { MobileTodayScreen } from '@/components/crm-mobile/today/MobileTodayScreen'
+import { MobilePipelineScreen } from '@/components/crm-mobile/pipeline/MobilePipelineScreen'
 
 /**
  * Harnais de prévisualisation no-auth des écrans + primitives mobiles —
@@ -46,6 +47,8 @@ function ShowcaseInner() {
 
   return (
     <div style={{ minHeight: '100dvh', background: tk.canvas, color: tk.ink, fontFamily: MOBILE_FONT }}>
+      <MobilePipelineScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileTodayScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <div style={{ padding: '24px 16px 8px' }}>

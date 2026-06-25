@@ -55,6 +55,7 @@ const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout
 // CRM mobile (responsive < 768px) — branché par écran via ResponsiveRoute
 const MobileMorePage = lazy(() => import('@/components/crm-mobile/more/MobileMorePage'))
 const MobileTodayPage = lazy(() => import('@/components/crm-mobile/today/MobileTodayPage'))
+const MobilePipelinePage = lazy(() => import('@/components/crm-mobile/pipeline/MobilePipelinePage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -485,7 +486,7 @@ function AnimatedRoutes() {
                 }
               >
                 <Route index element={<ResponsiveRoute desktop={<TodaySugarPage />} mobile={<MobileTodayPage />} />} />
-                <Route path="pipeline" element={<PipelineSugarV2Page />} />
+                <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
                 <Route path="contacts" element={<ContactsSugarV2Page />} />
                 <Route path="listings" element={<BiensSugarV2Page />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}

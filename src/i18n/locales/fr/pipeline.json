@@ -536,5 +536,21 @@
       "tasksInProgress_one": "{{count}} tâche en cours",
       "tasksInProgress_other": "{{count}} tâches en cours"
     }
-  }
+  },
+  "actions": {
+    "changeStage": "Changer d'étape",
+    "scheduleRdv": "Programmer un RDV",
+    "markLost": "Marquer perdue"
+  },
+  "stagePick": {
+    "current": "Actuelle"
+  },
+  "toast": {
+    "movedTo": "{{name}} déplacée vers « {{stage}} »",
+    "markedLost": "{{name}} marquée perdue"
+  },
+  "dealsCount_one": "{{count}} affaire",
+  "dealsCount_other": "{{count}} affaires",
+  "toEstimate": "À estimer",
+  "kycSoft": "KYC à compléter — optionnel"
 }
