@@ -59,6 +59,8 @@ const MobilePipelinePage = lazy(() => import('@/components/crm-mobile/pipeline/M
 const MobileDealDetailPage = lazy(() => import('@/components/crm-mobile/deal/MobileDealDetailPage'))
 const MobileMatchingPage = lazy(() => import('@/components/crm-mobile/matching/MobileMatchingPage'))
 const MobileAgendaPage = lazy(() => import('@/components/crm-mobile/agenda/MobileAgendaPage'))
+const MobileBiensPage = lazy(() => import('@/components/crm-mobile/biens/MobileBiensPage'))
+const MobileBienVitrinePage = lazy(() => import('@/components/crm-mobile/bien/MobileBienVitrinePage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -491,9 +493,11 @@ function AnimatedRoutes() {
                 <Route index element={<ResponsiveRoute desktop={<TodaySugarPage />} mobile={<MobileTodayPage />} />} />
                 <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
                 <Route path="contacts" element={<ContactsSugarV2Page />} />
-                <Route path="listings" element={<BiensSugarV2Page />} />
-                {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}
-                <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
+                {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
+                <Route path="listings" element={<ResponsiveRoute desktop={<BiensSugarV2Page />} mobile={<MobileBiensPage />} />} />
+                {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
+                    Mobile (< 768px) : fiche lecture seule (P7). */}
+                <Route path="listings/:id" element={<ResponsiveRoute desktop={<BienDetailSugarV3Page />} mobile={<MobileBienVitrinePage />} />} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
                 <Route path="transactions/:id" element={<ResponsiveRoute desktop={<DealDetailSugarV3Page />} mobile={<MobileDealDetailPage />} />} />
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}

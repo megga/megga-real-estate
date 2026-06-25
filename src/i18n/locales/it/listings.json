@@ -117,7 +117,8 @@
     "reserved": "Reserved",
     "draft": "Draft",
     "paused": "Paused",
-    "sold": "Sold"
+    "sold": "Sold",
+    "archived": "Archiviato"
   },
   "relativeTime": {
     "min": "{{n}} min",
@@ -1371,5 +1372,52 @@
   },
   "gallery": {
     "sort": "Sort"
+  },
+  "mobile": {
+    "subtitle": "{{count}} su {{total}}",
+    "searchPlaceholder": "Immobile, indirizzo, riferimento…",
+    "errorTitle": "Impossibile caricare gli immobili",
+    "detailError": "Impossibile caricare l'immobile",
+    "retry": "Riprova",
+    "emptyTitle": "Nessun immobile",
+    "emptyDesc": "Nessun immobile corrisponde. Modifica la ricerca o i filtri.",
+    "viewListing": "Apri la scheda",
+    "edit": "Modifica",
+    "scheduleVisit": "Pianifica una visita",
+    "txRent": "Affitto",
+    "txSale": "Vendita",
+    "roomsShort_one": "{{count}} loc.",
+    "roomsShort_other": "{{count}} loc.",
+    "c2pa": "Foto verificate",
+    "photosCount_one": "{{count}} foto",
+    "photosCount_other": "{{count}} foto",
+    "chargesLine": "+ {{value}} / mese",
+    "perM2": "{{value}}/m²",
+    "descriptionTitle": "Descrizione",
+    "performanceTitle": "Performance",
+    "mandateTitle": "Mandato",
+    "diffusionTitle": "Diffusione",
+    "diffusionOnline": "Online dal {{date}}",
+    "diffusionOffline": "Non ancora pubblicato",
+    "spec": {
+      "surface": "Superficie",
+      "rooms": "Locali",
+      "beds": "Camere",
+      "baths": "Bagni",
+      "year": "Anno",
+      "energy": "Energia"
+    },
+    "stat": {
+      "views": "Visualizzazioni",
+      "favorites": "Preferiti",
+      "visits": "Visite"
+    },
+    "mandate": {
+      "type": "Tipo",
+      "commission": "Commissione",
+      "signedAt": "Firmato il",
+      "expiresAt": "Scade il"
+    },
+    "photoIndex": "Foto {{i}} / {{total}}"
   }
 }
