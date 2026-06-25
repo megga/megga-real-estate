@@ -408,6 +408,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
           reasons: mapReasons(m.reasons),
           current: currentKey != null && L.key === currentKey,
           snoozedUntil: m.snoozed_until ?? null,
+          status: mapStatus(m).status,
         }
       })
       .filter((x): x is AtelierPoolMatch => x !== null)

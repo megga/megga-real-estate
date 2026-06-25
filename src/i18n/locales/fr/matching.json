@@ -277,5 +277,46 @@
     "daysOnMarket_other": "{{count}}j en ligne",
     "sentVia": "Envoyé · {{channel}}",
     "visit": "Visite"
+  },
+  "mobile": {
+    "activeBuyers_one": "{{count}} acheteur actif",
+    "activeBuyers_other": "{{count}} acheteurs actifs",
+    "bienCount_one": "{{count}} bien",
+    "bienCount_other": "{{count}} biens",
+    "back": "Retour",
+    "schedule": "Planifier",
+    "visitPlanned": "Visite planifiée",
+    "visitProposed": "Visite proposée",
+    "send": "Envoyer",
+    "sent": "Envoyé",
+    "surfaceSuffix": "m²",
+    "roomsSuffix": "pces",
+    "channelEmail": "Par e-mail · {{email}}",
+    "channelNone": "Transmis au dossier client",
+    "viewContact": "Voir le contact",
+    "refine": "Affiner les critères",
+    "removeFromList": "Retirer de la liste",
+    "removeTitle": "Retirer de la liste ?",
+    "removeBody": "{{name}} ne recevra plus de propositions issues de cette recherche.",
+    "emptyFilter": "Aucun acheteur dans ce filtre.",
+    "verdict": {
+      "excellent": "Excellent",
+      "veryGood": "Très bon",
+      "good": "Bon",
+      "explore": "À explorer"
+    },
+    "settings": {
+      "title": "Réglages du matching",
+      "sub": "Quels matchs MEGGA vous propose",
+      "question": "Combien de biens proposer ?",
+      "wide": "Large",
+      "wideDesc": "Beaucoup de biens",
+      "balanced": "Équilibré",
+      "balancedDesc": "Le bon compromis",
+      "precise": "Précis",
+      "preciseDesc": "Les meilleurs uniquement",
+      "recommended": "Conseillé",
+      "save": "Enregistrer"
+    }
   }
 }

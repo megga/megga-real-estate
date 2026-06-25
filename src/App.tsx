@@ -57,6 +57,14 @@ const MobileMorePage = lazy(() => import('@/components/crm-mobile/more/MobileMor
 const MobileTodayPage = lazy(() => import('@/components/crm-mobile/today/MobileTodayPage'))
 const MobilePipelinePage = lazy(() => import('@/components/crm-mobile/pipeline/MobilePipelinePage'))
 const MobileDealDetailPage = lazy(() => import('@/components/crm-mobile/deal/MobileDealDetailPage'))
+const MobileMatchingPage = lazy(() => import('@/components/crm-mobile/matching/MobileMatchingPage'))
+const MobileAgendaPage = lazy(() => import('@/components/crm-mobile/agenda/MobileAgendaPage'))
+const MobileBiensPage = lazy(() => import('@/components/crm-mobile/biens/MobileBiensPage'))
+const MobileBienVitrinePage = lazy(() => import('@/components/crm-mobile/bien/MobileBienVitrinePage'))
+const MobileWizardPage = lazy(() => import('@/components/crm-mobile/wizard/MobileWizardPage'))
+const MobileContactsListPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactsListPage'))
+const MobileNewContactPage = lazy(() => import('@/components/crm-mobile/contacts/MobileNewContactPage'))
+const MobileContactDetailPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactDetailPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -488,10 +496,15 @@ function AnimatedRoutes() {
               >
                 <Route index element={<ResponsiveRoute desktop={<TodaySugarPage />} mobile={<MobileTodayPage />} />} />
                 <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
-                <Route path="contacts" element={<ContactsSugarV2Page />} />
-                <Route path="listings" element={<BiensSugarV2Page />} />
-                {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}
-                <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
+                {/* Contacts — mobile (< 768px) : liste (P8). */}
+                <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsSugarV2Page />} mobile={<MobileContactsListPage />} />} />
+                {/* Création contact — mobile only (desktop : drawer dans la liste). */}
+                <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
+                {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
+                <Route path="listings" element={<ResponsiveRoute desktop={<BiensSugarV2Page />} mobile={<MobileBiensPage />} />} />
+                {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
+                    Mobile (< 768px) : fiche lecture seule (P7). */}
+                <Route path="listings/:id" element={<ResponsiveRoute desktop={<BienDetailSugarV3Page />} mobile={<MobileBienVitrinePage />} />} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
                 <Route path="transactions/:id" element={<ResponsiveRoute desktop={<DealDetailSugarV3Page />} mobile={<MobileDealDetailPage />} />} />
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
@@ -506,11 +519,13 @@ function AnimatedRoutes() {
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
                 {/* Atelier Matching — triptyque plein écran (handoff juin 2026).
-                    Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id> */}
-                <Route path="matching" element={<MatchingAtelierPage />} />
+                    Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id>.
+                    Mobile (< 768px) : inbox acheteurs + focus (P5). */}
+                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingAtelierPage />} mobile={<MobileMatchingPage />} />} />
                 <Route path="journey" element={<JourneySugarV2Page />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
-                <Route path="calendar" element={<CalendarSugarV2Page />} />
+                {/* Agenda — mobile (< 768px) : jour liste + time-block (P6). */}
+                <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarSugarV2Page />} mobile={<MobileAgendaPage />} />} />
                 <Route path="settings" element={<SettingsSugarV2Page />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
                 <Route path="kyc" element={<KycSugarV3Page />} />
@@ -546,11 +561,12 @@ function AnimatedRoutes() {
                 }
               >
                 <Route path="contacts/import" element={<ContactImportPage />} />
-                {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) */}
-                <Route path="contacts/:id" element={<ContactDetailSugarV3Page />} />
+                {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) ; mobile = fiche détail P8/2 */}
+                <Route path="contacts/:id" element={<ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} />} />
                 <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
-                <Route path="listings/new" element={<WizardSugarV2Page />} />
+                {/* Créer un bien — mobile (< 768px) : wizard 4 étapes (P7/2). */}
+                <Route path="listings/new" element={<ResponsiveRoute desktop={<WizardSugarV2Page />} mobile={<MobileWizardPage />} />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
 
                 {/* Super-Admin routes */}

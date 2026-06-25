@@ -95,6 +95,8 @@ export interface AtelierPoolMatch {
   reasons: AtelierReason[]
   current: boolean
   snoozedUntil: string | null
+  /** statut d'engagement (mobile : « Envoyé » déjà transmis vs « Envoyer ») */
+  status: AtelierStatus
 }
 
 // Pivot affichable dans la file (groupe annonce → acheteurs)

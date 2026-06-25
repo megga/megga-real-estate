@@ -833,5 +833,147 @@
     "addDetails": "+ Add details",
     "notesPlaceholder": "Context, remarks...",
     "create": "Create"
+  },
+  "mobile": {
+    "title": "Contacts",
+    "subtitle": "{{count}} of {{total}}",
+    "searchPlaceholder": "Name, email, phone…",
+    "errorTitle": "Couldn't load contacts",
+    "retry": "Retry",
+    "emptyTitle": "No contact",
+    "emptyDesc": "No contact matches. Adjust the search or filter.",
+    "add": "New contact",
+    "kycVerified": "KYC verified",
+    "seg": {
+      "all": "All",
+      "buyer": "Buyers",
+      "seller": "Sellers"
+    },
+    "type": {
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "tenant": "Tenant",
+      "landlord": "Landlord",
+      "mixed": "Mixed"
+    },
+    "act": {
+      "open": "View contact",
+      "call": "Call",
+      "email": "Send an email"
+    },
+    "new": {
+      "title": "New contact",
+      "identity": "Identity",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "contact": "Contact details",
+      "phone": "Phone",
+      "phonePlaceholder": "+41 79 000 00 00",
+      "email": "Email",
+      "emailPlaceholder": "contact@email.ch",
+      "origin": "Origin",
+      "source": "Source",
+      "sources": {
+        "manual": "Manual entry",
+        "website": "Website",
+        "referral": "Referral"
+      },
+      "create": "Create contact",
+      "creating": "Creating…",
+      "error": "Creation failed. Try again.",
+      "doneTitle": "Contact created",
+      "doneDesc": "{{name}} has been added to your contacts.",
+      "openContact": "Open contact"
+    },
+    "detail": {
+      "phone": "Phone",
+      "email": "Email",
+      "tab": {
+        "overview": "Overview",
+        "activity": "Activity",
+        "matching": "Matching",
+        "docs": "Docs"
+      },
+      "source": {
+        "manual": "Manual",
+        "website": "Website",
+        "referral": "Referral",
+        "onboarding": "Onboarding",
+        "csv": "CSV import",
+        "call": "Inbound call",
+        "walk-in": "Walk-in",
+        "vcard": "vCard",
+        "ai": "AI extraction"
+      },
+      "kyc": {
+        "title": "KYC compliance",
+        "lba": "AML file",
+        "compliant": "Compliant file",
+        "verify": "Verify",
+        "progress": "{{done}}/{{total}} checks",
+        "status": {
+          "none": "To start",
+          "pending": "In progress",
+          "verified": "Verified",
+          "stale": "To renew",
+          "failed": "To review"
+        }
+      },
+      "criteria": {
+        "eyebrow": "AI matching",
+        "title": "Search criteria",
+        "buy": "Buy",
+        "rent": "Rent",
+        "indispensable": "Must-have",
+        "refine": "Refine in Matching",
+        "empty": "No search criteria"
+      },
+      "infos": {
+        "title": "Information",
+        "language": "Language",
+        "nationality": "Nationality",
+        "created": "Created on",
+        "lastInteraction": "Last activity"
+      },
+      "timeline": {
+        "empty": "No activity yet",
+        "by": "by {{name}}",
+        "cat": {
+          "created": "Created",
+          "call": "Call",
+          "email": "Email",
+          "message": "Message",
+          "visit": "Visit",
+          "document": "Document",
+          "kyc": "KYC",
+          "match": "Matching",
+          "offer": "Offer",
+          "stage": "Pipeline",
+          "note": "Note",
+          "activity": "Activity"
+        }
+      },
+      "matching": {
+        "eyebrow": "AI estimate",
+        "title": "Suggested properties",
+        "empty": "No suggested property",
+        "emptyDesc": "Run matching from the workspace to suggest properties.",
+        "openAtelier": "Open matching",
+        "rooms": "{{n}} rm",
+        "status": {
+          "suggested": "Suggested",
+          "sent": "Sent",
+          "visit_planned": "Visit planned",
+          "interested": "Interested",
+          "rejected": "Rejected",
+          "ignored": "Dismissed"
+        }
+      },
+      "docs": {
+        "title": "Documents",
+        "empty": "No document",
+        "emptyDesc": "Files added to the record will appear here."
+      }
+    }
   }
 }

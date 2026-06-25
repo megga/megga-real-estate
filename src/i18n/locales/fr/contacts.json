@@ -833,5 +833,147 @@
     "addDetails": "+ Ajouter des détails",
     "notesPlaceholder": "Contexte, remarques...",
     "create": "Créer"
+  },
+  "mobile": {
+    "title": "Contacts",
+    "subtitle": "{{count}} sur {{total}}",
+    "searchPlaceholder": "Nom, e-mail, téléphone…",
+    "errorTitle": "Impossible de charger les contacts",
+    "retry": "Réessayer",
+    "emptyTitle": "Aucun contact",
+    "emptyDesc": "Aucun contact ne correspond. Ajustez la recherche ou le filtre.",
+    "add": "Nouveau contact",
+    "kycVerified": "KYC vérifié",
+    "seg": {
+      "all": "Tous",
+      "buyer": "Acheteurs",
+      "seller": "Vendeurs"
+    },
+    "type": {
+      "buyer": "Acheteur",
+      "seller": "Vendeur",
+      "tenant": "Locataire",
+      "landlord": "Bailleur",
+      "mixed": "Mixte"
+    },
+    "act": {
+      "open": "Voir le contact",
+      "call": "Appeler",
+      "email": "Envoyer un e-mail"
+    },
+    "new": {
+      "title": "Nouveau contact",
+      "identity": "Identité",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "contact": "Coordonnées",
+      "phone": "Téléphone",
+      "phonePlaceholder": "+41 79 000 00 00",
+      "email": "E-mail",
+      "emailPlaceholder": "contact@email.ch",
+      "origin": "Origine",
+      "source": "Source",
+      "sources": {
+        "manual": "Saisie manuelle",
+        "website": "Site web",
+        "referral": "Recommandation"
+      },
+      "create": "Créer le contact",
+      "creating": "Création…",
+      "error": "Échec de la création. Réessayez.",
+      "doneTitle": "Contact créé",
+      "doneDesc": "{{name}} a été ajouté à vos contacts.",
+      "openContact": "Ouvrir la fiche"
+    },
+    "detail": {
+      "phone": "Téléphone",
+      "email": "E-mail",
+      "tab": {
+        "overview": "Aperçu",
+        "activity": "Activité",
+        "matching": "Matching",
+        "docs": "Docs"
+      },
+      "source": {
+        "manual": "Manuel",
+        "website": "Site web",
+        "referral": "Recommandation",
+        "onboarding": "Onboarding",
+        "csv": "Import CSV",
+        "call": "Appel entrant",
+        "walk-in": "Visite agence",
+        "vcard": "vCard",
+        "ai": "Extraction IA"
+      },
+      "kyc": {
+        "title": "Conformité KYC",
+        "lba": "Dossier LBA",
+        "compliant": "Dossier conforme",
+        "verify": "Vérifier",
+        "progress": "{{done}}/{{total}} contrôles",
+        "status": {
+          "none": "À démarrer",
+          "pending": "En cours",
+          "verified": "Vérifié",
+          "stale": "À renouveler",
+          "failed": "À revoir"
+        }
+      },
+      "criteria": {
+        "eyebrow": "Matching IA",
+        "title": "Critères de recherche",
+        "buy": "Achat",
+        "rent": "Location",
+        "indispensable": "Indispensable",
+        "refine": "Affiner dans Matching",
+        "empty": "Aucun critère de recherche"
+      },
+      "infos": {
+        "title": "Informations",
+        "language": "Langue",
+        "nationality": "Nationalité",
+        "created": "Créé le",
+        "lastInteraction": "Dernière activité"
+      },
+      "timeline": {
+        "empty": "Aucune activité pour l'instant",
+        "by": "par {{name}}",
+        "cat": {
+          "created": "Création",
+          "call": "Appel",
+          "email": "E-mail",
+          "message": "Message",
+          "visit": "Visite",
+          "document": "Document",
+          "kyc": "KYC",
+          "match": "Matching",
+          "offer": "Offre",
+          "stage": "Pipeline",
+          "note": "Note",
+          "activity": "Activité"
+        }
+      },
+      "matching": {
+        "eyebrow": "Estimation IA",
+        "title": "Biens proposés",
+        "empty": "Aucun bien proposé",
+        "emptyDesc": "Lancez le matching depuis l'atelier pour proposer des biens.",
+        "openAtelier": "Ouvrir le matching",
+        "rooms": "{{n}} p.",
+        "status": {
+          "suggested": "Suggéré",
+          "sent": "Envoyé",
+          "visit_planned": "Visite prévue",
+          "interested": "Intéressé",
+          "rejected": "Refusé",
+          "ignored": "Écarté"
+        }
+      },
+      "docs": {
+        "title": "Documents",
+        "empty": "Aucun document",
+        "emptyDesc": "Les pièces ajoutées à la fiche apparaîtront ici."
+      }
+    }
   }
 }

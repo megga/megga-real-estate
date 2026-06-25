@@ -117,7 +117,8 @@
     "reserved": "Reserved",
     "draft": "Draft",
     "paused": "Paused",
-    "sold": "Sold"
+    "sold": "Sold",
+    "archived": "Archiviert"
   },
   "relativeTime": {
     "min": "{{n}} min",
@@ -1371,5 +1372,91 @@
   },
   "gallery": {
     "sort": "Sort"
+  },
+  "mobile": {
+    "subtitle": "{{count}} von {{total}}",
+    "searchPlaceholder": "Objekt, Adresse, Referenz…",
+    "errorTitle": "Objekte konnten nicht geladen werden",
+    "detailError": "Objekt konnte nicht geladen werden",
+    "retry": "Erneut versuchen",
+    "emptyTitle": "Kein Objekt",
+    "emptyDesc": "Kein Objekt entspricht. Suche oder Filter anpassen.",
+    "viewListing": "Objekt öffnen",
+    "edit": "Bearbeiten",
+    "scheduleVisit": "Besichtigung planen",
+    "txRent": "Miete",
+    "txSale": "Verkauf",
+    "roomsShort_one": "{{count}} Zi.",
+    "roomsShort_other": "{{count}} Zi.",
+    "c2pa": "Geprüfte Fotos",
+    "photosCount_one": "{{count}} Foto",
+    "photosCount_other": "{{count}} Fotos",
+    "chargesLine": "+ {{value}} / Monat",
+    "perM2": "{{value}}/m²",
+    "descriptionTitle": "Beschreibung",
+    "performanceTitle": "Leistung",
+    "mandateTitle": "Mandat",
+    "diffusionTitle": "Verbreitung",
+    "diffusionOnline": "Online seit {{date}}",
+    "diffusionOffline": "Noch nicht veröffentlicht",
+    "spec": {
+      "surface": "Fläche",
+      "rooms": "Zimmer",
+      "beds": "Schlafzimmer",
+      "baths": "Bäder",
+      "year": "Jahr",
+      "energy": "Energie"
+    },
+    "stat": {
+      "views": "Aufrufe",
+      "favorites": "Favoriten",
+      "visits": "Besichtigungen"
+    },
+    "mandate": {
+      "type": "Typ",
+      "commission": "Provision",
+      "signedAt": "Unterzeichnet am",
+      "expiresAt": "Läuft ab am"
+    },
+    "photoIndex": "Foto {{i}} / {{total}}",
+    "surfaceSuffix": "m²"
+  },
+  "wizardMobile": {
+    "continue": "Weiter",
+    "publish": "Veröffentlichen",
+    "publishing": "Wird veröffentlicht…",
+    "saveDraft": "Als Entwurf speichern",
+    "publishError": "Veröffentlichung fehlgeschlagen. Erneut versuchen.",
+    "doneTitle": "Objekt erstellt",
+    "doneDesc": "Ihr Objekt ist gespeichert. Fotos in der Objektseite hinzufügen.",
+    "typeTitle": "Welcher Objekttyp?",
+    "transaction": "Transaktion",
+    "locationTitle": "Wo liegt das Objekt?",
+    "addr": "Strasse und Nummer",
+    "postCode": "PLZ",
+    "city": "Ort",
+    "canton": "Kanton",
+    "specsTitle": "Merkmale",
+    "energy": "Energieklasse",
+    "features": "Ausstattung",
+    "priceTitle": "Preis & Veröffentlichung",
+    "priceLabel": "Verkaufspreis",
+    "rentLabel": "Monatsmiete",
+    "charges": "Nebenkosten",
+    "descPlaceholder": "Beschreiben Sie das Objekt…",
+    "mandate": "Mandat",
+    "mandateExclusive": "Exklusiv",
+    "mandateSimple": "Einfach",
+    "publishWhen": "Veröffentlichung",
+    "publishNow": "Jetzt veröffentlichen",
+    "draft": "Entwurf",
+    "photosLater": "Fotos können auf der Objektseite hinzugefügt werden",
+    "step": {
+      "type": "Typ",
+      "location": "Lage",
+      "specs": "Merkmale",
+      "price": "Preis & Veröffentlichung"
+    },
+    "chargesUnit": "CHF / Monat"
   }
 }
