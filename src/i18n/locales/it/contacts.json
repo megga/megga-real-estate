@@ -879,6 +879,96 @@
       "doneTitle": "Contatto creato",
       "doneDesc": "{{name}} è stato aggiunto ai tuoi contatti.",
       "openContact": "Apri la scheda"
+    },
+    "detail": {
+      "phone": "Telefono",
+      "email": "E-mail",
+      "tab": {
+        "overview": "Panoramica",
+        "activity": "Attività",
+        "matching": "Matching",
+        "docs": "Doc."
+      },
+      "source": {
+        "manual": "Manuale",
+        "website": "Sito web",
+        "referral": "Raccomandazione",
+        "onboarding": "Onboarding",
+        "csv": "Importazione CSV",
+        "call": "Chiamata in entrata",
+        "walk-in": "Visita agenzia",
+        "vcard": "vCard",
+        "ai": "Estrazione IA"
+      },
+      "kyc": {
+        "title": "Conformità KYC",
+        "lba": "Pratica LRD",
+        "compliant": "Pratica conforme",
+        "verify": "Verifica",
+        "progress": "{{done}}/{{total}} controlli",
+        "status": {
+          "none": "Da avviare",
+          "pending": "In corso",
+          "verified": "Verificato",
+          "stale": "Da rinnovare",
+          "failed": "Da rivedere"
+        }
+      },
+      "criteria": {
+        "eyebrow": "Matching IA",
+        "title": "Criteri di ricerca",
+        "buy": "Acquisto",
+        "rent": "Affitto",
+        "indispensable": "Indispensabile",
+        "refine": "Affina nel Matching",
+        "empty": "Nessun criterio di ricerca"
+      },
+      "infos": {
+        "title": "Informazioni",
+        "language": "Lingua",
+        "nationality": "Nazionalità",
+        "created": "Creato il",
+        "lastInteraction": "Ultima attività"
+      },
+      "timeline": {
+        "empty": "Nessuna attività per ora",
+        "by": "da {{name}}",
+        "cat": {
+          "created": "Creazione",
+          "call": "Chiamata",
+          "email": "E-mail",
+          "message": "Messaggio",
+          "visit": "Visita",
+          "document": "Documento",
+          "kyc": "KYC",
+          "match": "Matching",
+          "offer": "Offerta",
+          "stage": "Pipeline",
+          "note": "Nota",
+          "activity": "Attività"
+        }
+      },
+      "matching": {
+        "eyebrow": "Stima IA",
+        "title": "Immobili proposti",
+        "empty": "Nessun immobile proposto",
+        "emptyDesc": "Avvia il matching dall'area di lavoro per proporre immobili.",
+        "openAtelier": "Apri il matching",
+        "rooms": "{{n}} loc.",
+        "status": {
+          "suggested": "Suggerito",
+          "sent": "Inviato",
+          "visit_planned": "Visita prevista",
+          "interested": "Interessato",
+          "rejected": "Rifiutato",
+          "ignored": "Scartato"
+        }
+      },
+      "docs": {
+        "title": "Documenti",
+        "empty": "Nessun documento",
+        "emptyDesc": "I file aggiunti alla scheda appariranno qui."
+      }
     }
   }
 }

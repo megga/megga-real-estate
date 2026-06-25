@@ -64,6 +64,7 @@ const MobileBienVitrinePage = lazy(() => import('@/components/crm-mobile/bien/Mo
 const MobileWizardPage = lazy(() => import('@/components/crm-mobile/wizard/MobileWizardPage'))
 const MobileContactsListPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactsListPage'))
 const MobileNewContactPage = lazy(() => import('@/components/crm-mobile/contacts/MobileNewContactPage'))
+const MobileContactDetailPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactDetailPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -560,8 +561,8 @@ function AnimatedRoutes() {
                 }
               >
                 <Route path="contacts/import" element={<ContactImportPage />} />
-                {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) */}
-                <Route path="contacts/:id" element={<ContactDetailSugarV3Page />} />
+                {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) ; mobile = fiche détail P8/2 */}
+                <Route path="contacts/:id" element={<ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} />} />
                 <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
                 {/* Créer un bien — mobile (< 768px) : wizard 4 étapes (P7/2). */}

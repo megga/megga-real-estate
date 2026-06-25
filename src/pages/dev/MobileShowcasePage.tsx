@@ -17,6 +17,7 @@ import { MobileBienVitrineScreen } from '@/components/crm-mobile/bien/MobileBien
 import { MobileWizardScreen } from '@/components/crm-mobile/wizard/MobileWizardScreen'
 import { MobileContactsListScreen } from '@/components/crm-mobile/contacts/MobileContactsListScreen'
 import { MobileNewContactScreen } from '@/components/crm-mobile/contacts/MobileNewContactScreen'
+import { MobileContactDetailScreen } from '@/components/crm-mobile/contacts/MobileContactDetailScreen'
 import { MobileDealDetailScreen, type DealData } from '@/components/crm-mobile/deal/MobileDealDetailScreen'
 import { EMPTY_OFFER_CONDITIONS, type Offer } from '@/types/offer'
 import type { Property } from '@/types/listing'
@@ -97,6 +98,8 @@ function ShowcaseInner() {
       <MobileContactsListScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileNewContactScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileContactDetailScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileDealDetailScreen demoData={DEMO_DEAL} />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />

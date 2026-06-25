@@ -204,7 +204,7 @@ function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
-export function useMatching(contactId?: string) {
+export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
   const { profile } = useAuth()
   const queryClient = useQueryClient()
   const agencyId = profile?.agency_id
@@ -233,7 +233,10 @@ export function useMatching(contactId?: string) {
       const supabaseMatches = (data || []) as unknown as SupabaseMatchResult[]
       return supabaseMatches.map(supabaseToMatch)
     },
-    enabled: true,
+    // Rétro-compatible : `enabled` vaut true par défaut (comportement inchangé
+    // pour tous les appelants existants). Permet aux surfaces démo de rester
+    // inertes (aucun fetch Supabase) en passant `{ enabled: false }`.
+    enabled: opts?.enabled ?? true,
   })
 
   // ── Update match status ──

@@ -879,6 +879,96 @@
       "doneTitle": "Kontakt erstellt",
       "doneDesc": "{{name}} wurde zu Ihren Kontakten hinzugefügt.",
       "openContact": "Kontakt öffnen"
+    },
+    "detail": {
+      "phone": "Telefon",
+      "email": "E-Mail",
+      "tab": {
+        "overview": "Übersicht",
+        "activity": "Aktivität",
+        "matching": "Matching",
+        "docs": "Dok."
+      },
+      "source": {
+        "manual": "Manuell",
+        "website": "Website",
+        "referral": "Empfehlung",
+        "onboarding": "Onboarding",
+        "csv": "CSV-Import",
+        "call": "Eingehender Anruf",
+        "walk-in": "Besuch Agentur",
+        "vcard": "vCard",
+        "ai": "KI-Extraktion"
+      },
+      "kyc": {
+        "title": "KYC-Konformität",
+        "lba": "GwG-Dossier",
+        "compliant": "Konformes Dossier",
+        "verify": "Prüfen",
+        "progress": "{{done}}/{{total}} Prüfungen",
+        "status": {
+          "none": "Zu starten",
+          "pending": "Laufend",
+          "verified": "Verifiziert",
+          "stale": "Zu erneuern",
+          "failed": "Zu prüfen"
+        }
+      },
+      "criteria": {
+        "eyebrow": "KI-Matching",
+        "title": "Suchkriterien",
+        "buy": "Kauf",
+        "rent": "Miete",
+        "indispensable": "Unverzichtbar",
+        "refine": "Im Matching verfeinern",
+        "empty": "Keine Suchkriterien"
+      },
+      "infos": {
+        "title": "Informationen",
+        "language": "Sprache",
+        "nationality": "Nationalität",
+        "created": "Erstellt am",
+        "lastInteraction": "Letzte Aktivität"
+      },
+      "timeline": {
+        "empty": "Noch keine Aktivität",
+        "by": "von {{name}}",
+        "cat": {
+          "created": "Erstellung",
+          "call": "Anruf",
+          "email": "E-Mail",
+          "message": "Nachricht",
+          "visit": "Besichtigung",
+          "document": "Dokument",
+          "kyc": "KYC",
+          "match": "Matching",
+          "offer": "Angebot",
+          "stage": "Pipeline",
+          "note": "Notiz",
+          "activity": "Aktivität"
+        }
+      },
+      "matching": {
+        "eyebrow": "KI-Schätzung",
+        "title": "Vorgeschlagene Objekte",
+        "empty": "Kein vorgeschlagenes Objekt",
+        "emptyDesc": "Starten Sie das Matching im Arbeitsbereich, um Objekte vorzuschlagen.",
+        "openAtelier": "Matching öffnen",
+        "rooms": "{{n}} Zi.",
+        "status": {
+          "suggested": "Vorgeschlagen",
+          "sent": "Gesendet",
+          "visit_planned": "Besichtigung geplant",
+          "interested": "Interessiert",
+          "rejected": "Abgelehnt",
+          "ignored": "Verworfen"
+        }
+      },
+      "docs": {
+        "title": "Dokumente",
+        "empty": "Kein Dokument",
+        "emptyDesc": "Zur Akte hinzugefügte Dateien erscheinen hier."
+      }
     }
   }
 }
