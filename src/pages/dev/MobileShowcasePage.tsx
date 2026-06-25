@@ -1,0 +1,122 @@
+import { useState, type CSSProperties } from 'react'
+import { ThemeProvider } from '@/hooks/useTheme'
+import { MOBILE_FONT } from '@/components/crm-mobile/tokens'
+import { useMobileTokens } from '@/components/crm-mobile/useMobileTokens'
+import SgActionMenu from '@/components/crm-mobile/primitives/SgActionMenu'
+import SgConfirmDestructive from '@/components/crm-mobile/primitives/SgConfirmDestructive'
+import SgSheet from '@/components/crm-mobile/primitives/SgSheet'
+import SgToast from '@/components/crm-mobile/primitives/SgToast'
+import { useSgToast } from '@/components/crm-mobile/primitives/useSgToast'
+import MobileMoreScreen from '@/components/crm-mobile/more/MobileMoreScreen'
+import { MobileTodayScreen } from '@/components/crm-mobile/today/MobileTodayScreen'
+
+/**
+ * Harnais de prévisualisation no-auth des écrans + primitives mobiles —
+ * vérification de fidélité Sugar Pure sans passer par l'auth /dashboard. Le
+ * ThemeProvider est par-layout (pas global), on l'enveloppe donc ici.
+ * Route : /dev/mobile. Les écrans des phases suivantes viendront s'y ajouter.
+ */
+export default function MobileShowcasePage() {
+  return (
+    <ThemeProvider>
+      <ShowcaseInner />
+    </ThemeProvider>
+  )
+}
+
+function ShowcaseInner() {
+  const { tk } = useMobileTokens()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const { toast, showToast } = useSgToast()
+
+  const cta: CSSProperties = {
+    height: 46,
+    borderRadius: 999,
+    border: 0,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 14.5,
+    fontWeight: 700,
+    background: tk.accent,
+    color: tk.accentInk,
+    boxShadow: tk.shadow,
+  }
+
+  return (
+    <div style={{ minHeight: '100dvh', background: tk.canvas, color: tk.ink, fontFamily: MOBILE_FONT }}>
+      <MobileTodayScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <div style={{ padding: '24px 16px 8px' }}>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: tk.ink }}>
+          Mobile — Primitives (P1)
+        </h1>
+        <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
+          <button style={cta} onClick={() => setMenuOpen(true)}>Menu d'actions •••</button>
+          <button style={cta} onClick={() => setConfirmOpen(true)}>Confirmation destructive</button>
+          <button style={cta} onClick={() => setSheetOpen(true)}>Feuille de détail</button>
+          <button style={cta} onClick={() => showToast('Bien dupliqué (brouillon)')}>Toast</button>
+        </div>
+      </div>
+
+      <MobileMoreScreen />
+
+      <SgActionMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title="Bien · Réf MG-2026-101"
+        items={[
+          { id: 'duplicate', icon: 'copy', label: 'Dupliquer le bien' },
+          { id: 'status', icon: 'refresh', label: 'Changer le statut' },
+          { id: 'unpublish', icon: 'eye', label: 'Retirer de la diffusion', divider: true },
+          { id: 'delete', icon: 'trash', label: 'Supprimer le bien', danger: true },
+        ]}
+        onAction={(id) => {
+          setMenuOpen(false)
+          if (id === 'delete') setConfirmOpen(true)
+          else showToast(`Action : ${id}`)
+        }}
+      />
+
+      <SgConfirmDestructive
+        open={confirmOpen}
+        title="Supprimer le bien ?"
+        message="Cette action est définitive. L'annonce et ses statistiques de diffusion seront retirées."
+        confirmLabel="Supprimer"
+        onConfirm={() => {
+          setConfirmOpen(false)
+          showToast('Bien supprimé')
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
+
+      <SgSheet open={sheetOpen} onClose={() => setSheetOpen(false)} ariaLabel="Détail" bottomGap={24}>
+        <div style={{ padding: '4px 18px 22px' }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
+            Filtrer les biens
+          </h2>
+          {['Tous les statuts', 'Actifs', 'Réservés', 'Brouillons'].map((label, i) => (
+            <div
+              key={label}
+              style={{
+                marginTop: 12,
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: tk.cardSubtle,
+                fontSize: 14.5,
+                fontWeight: i === 1 ? 800 : 600,
+                color: tk.ink,
+                boxShadow: i === 1 ? `0 0 0 2px ${tk.accent} inset` : undefined,
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+      </SgSheet>
+
+      <SgToast toast={toast} />
+    </div>
+  )
+}

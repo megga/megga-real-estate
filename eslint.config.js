@@ -96,6 +96,7 @@ export default defineConfig([
       },
     }
     const lockedFamilies = [
+      'src/components/crm-mobile/**/*.{ts,tsx}',
       'src/components/crm-sugar/**/*.{ts,tsx}',
       'src/components/crm-sugar-v3/**/*.{ts,tsx}',
       'src/components/crm-sugar-wizard/**/*.{ts,tsx}',

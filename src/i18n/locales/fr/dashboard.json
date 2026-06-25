@@ -247,10 +247,16 @@
         "match": "Match",
         "compromis": "Compromis",
         "visit": "Visite"
-      }
+      },
+      "pipelineDeals_one": "{{count}} affaire",
+      "pipelineDeals_other": "{{count}} affaires",
+      "pipelineAtRisk": "{{count}} à risque",
+      "objectifUnset": "Non défini"
     },
     "agenda": {
-      "error": { "title": "Données indisponibles" },
+      "error": {
+        "title": "Données indisponibles"
+      },
       "next": "Ensuite",
       "empty": "Plus rien après, journée dégagée.",
       "call": "Appeler",
@@ -266,7 +272,8 @@
         "mandate": "Mandat",
         "visit": "Visite",
         "offer": "Offre"
-      }
+      },
+      "nowBadge": "Maintenant"
     },
     "relances": {
       "leadsToFollow": "leads à relancer",
@@ -277,7 +284,9 @@
       "tempCold": "froids"
     },
     "pipeline": {
-      "error": { "title": "Données indisponibles" },
+      "error": {
+        "title": "Données indisponibles"
+      },
       "stages": {
         "searching": "Recherche active",
         "visit": "Visite planifiée",
@@ -289,7 +298,9 @@
       "riskOverdue": "Échéance dépassée"
     },
     "objectif": {
-      "error": { "title": "Données indisponibles" },
+      "error": {
+        "title": "Données indisponibles"
+      },
       "realized": "réalisé",
       "realizedNoTarget": "réalisé · objectif non défini",
       "target": "cible"

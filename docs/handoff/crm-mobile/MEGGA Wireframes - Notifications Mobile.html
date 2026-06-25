@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notifications mobile — wireframes</title>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink: #1c1c1c; --line: #2a2a2a; --paper: #fbfaf7; --muted: #8a857c;
+    --accent: #E0533F; --blue: #3b6fd4; --green: #2e9e6b; --wash: #efece5;
+  }
+  body { background: #e8e4dc; font-family: 'Kalam', cursive; color: var(--ink); padding: 40px 28px 80px; }
+  .hd { max-width: 1400px; margin: 0 auto 30px; }
+  .hd h1 { font-family: 'Caveat', cursive; font-size: 44px; font-weight: 700; let-spacing: -0.5px; }
+  .hd p { font-size: 17px; color: #555; max-width: 720px; margin-top: 4px; line-height: 1.5; }
+  .grid { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; align-items: start; }
+  @media (max-width: 1200px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .tag { display: inline-flex; align-items: center; gap: 7px; font-family: 'Caveat', cursive; font-size: 26px; font-weight: 700; }
+  .tag .n { width: 30px; height: 30px; border: 2.5px solid var(--line); border-radius: 50%; display: grid; place-items: center; font-size: 19px; background: #fff; }
+  .desc { font-size: 14.5px; color: #5a5650; line-height: 1.45; min-height: 60px; }
+  .desc b { color: var(--ink); }
+  /* phone */
+  .phone { width: 100%; aspect-ratio: 300/620; background: var(--paper); border: 2.5px solid var(--line); border-radius: 30px; padding: 14px 12px; box-shadow: 5px 6px 0 rgba(0,0,0,0.12); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 70px; height: 7px; border-radius: 99px; background: #d8d3ca; }
+  .sb { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 2px 8px 8px; }
+  .scrim { position: absolute; inset: 0; background: rgba(20,20,20,0.18); }
+  .ttl { font-family: 'Caveat', cursive; font-size: 28px; font-weight: 700; line-height: 1; }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .hand { stroke: var(--line); stroke-width: 2; fill: none; stroke-linecap: round; }
+  .ph-line { height: 8px; background: #e2ddd4; border-radius: 5px; }
+  .ph-line.s { width: 55%; } .ph-line.m { width: 78%; } .ph-line.l { width: 92%; }
+  .card { border: 2px solid var(--line); border-radius: 14px; background: #fff; padding: 10px 11px; display: flex; gap: 9px; align-items: flex-start; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .ic { width: 30px; height: 30px; border-radius: 9px; border: 2px solid var(--line); flex-shrink: 0; display: grid; place-items: center; background: var(--wash); font-size: 14px; }
+  .icr { border-radius: 50%; }
+  .cc { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .chip { border: 2px solid var(--line); border-radius: 99px; padding: 4px 11px; font-size: 12px; background: #fff; white-space: nowrap; }
+  .chip.on { background: var(--ink); color: #fff; }
+  .row { display: flex; gap: 6px; }
+  .datelabel { font-family: 'Caveat', cursive; font-size: 19px; color: var(--muted); margin: 4px 2px 0; }
+  .redbadge { background: var(--accent); color: #fff; border-radius: 99px; font-size: 11px; padding: 1px 7px; font-family: 'Caveat', cursive; font-weight: 700; }
+  .note { font-size: 12px; color: var(--muted); font-style: italic; }
+  .ai { border: 2px dashed var(--line); border-radius: 14px; background: #f3f0e8; padding: 11px; }
+  .ailbl { font-family:'Caveat',cursive; font-weight:700; font-size:16px; display:flex; align-items:center; gap:6px; }
+  .btnrow { display:flex; gap:6px; margin-top:2px; }
+  .minibtn { border:2px solid var(--line); border-radius:99px; font-size:11px; padding:3px 9px; background:#fff; }
+  .minidark { background: var(--ink); color:#fff; }
+  .sweep { position:relative; overflow:hidden; }
+  .swept { position:absolute; right:0; top:0; bottom:0; width:64px; background:var(--accent); border-radius:0 12px 12px 0; display:grid; place-items:center; color:#fff; font-family:'Caveat',cursive; font-size:14px; }
+  .feedwrap { flex:1; display:flex; flex-direction:column; gap:9px; overflow:hidden; }
+  .legend { max-width:1400px; margin: 34px auto 0; font-size:13.5px; color:#6a655d; display:flex; gap:22px; flex-wrap:wrap; align-items:center; }
+  .legend span { display:inline-flex; align-items:center; gap:7px; }
+  .sw { width:13px; height:13px; border-radius:50%; }
+</style>
+</head>
+<body>
+  <div class="hd">
+    <h1>Notifications mobile — 4 directions</h1>
+    <p>Wireframes low-fi pour décider du format avant de construire. Cloche dans l'écran « Plus » → ouvre l'une de ces vues. Toutes réutilisent les types d'événements du centre de notifications PC (deals, KYC, visites, messages, MEGGA AI).</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- ─── A · Bottom sheet timeline ─── -->
+    <div class="col">
+      <div class="tag"><span class="n">A</span> Feuille du bas</div>
+      <div class="desc"><b>Bottom sheet</b> qui glisse du bas, comme « Nouvel événement ». Groupé par jour, fil vertical. Familier, rapide, ne quitte pas l'écran Plus.</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scrim"></div>
+        <div style="position:absolute; left:10px; right:10px; bottom:0; background:var(--paper); border:2.5px solid var(--line); border-bottom:0; border-radius:22px 22px 0 0; padding:12px 12px 0; height:74%; display:flex; flex-direction:column; gap:9px;">
+          <div style="width:38px;height:5px;border-radius:99px;background:#d8d3ca;margin:0 auto 4px;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="ttl">Notifications</div>
+            <div class="chip">Tout lu</div>
+          </div>
+          <div class="datelabel">Aujourd'hui</div>
+          <div class="card"><span class="dot" style="background:var(--accent)"></span><div class="ic icr">●</div><div class="cc"><div class="ph-line l"></div><div class="ph-line s"></div></div></div>
+          <div class="card"><span class="dot" style="background:var(--blue)"></span><div class="ic icr">●</div><div class="cc"><div class="ph-line m"></div><div class="ph-line s"></div></div></div>
+          <div class="datelabel">Hier</div>
+          <div class="card" style="opacity:.6"><span class="dot" style="background:#cfcabf"></span><div class="ic icr">●</div><div class="cc"><div class="ph-line l"></div><div class="ph-line s"></div></div></div>
+          <div class="card" style="opacity:.6"><span class="dot" style="background:#cfcabf"></span><div class="ic icr">●</div><div class="cc"><div class="ph-line m"></div></div></div>
+        </div>
+      </div>
+      <div class="note">+ Simple, cohérent · − Hauteur limitée pour les longues listes</div>
+    </div>
+
+    <!-- ─── B · Full screen + filtres ─── -->
+    <div class="col">
+      <div class="tag"><span class="n">B</span> Plein écran filtré</div>
+      <div class="desc"><b>Panneau plein écran</b> qui glisse de la droite. Filtres segmentés en haut (Tout · Non lus · Deals · Système). Le plus extensible, façon « boîte de réception ».</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:2px 4px 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" class="hand"><path d="M15 5l-7 7 7 7"/></svg>
+          <div class="ttl">Notifications</div>
+        </div>
+        <div class="row" style="padding:0 2px 8px; overflow:hidden;">
+          <span class="chip on">Tout</span><span class="chip">Non lus <span class="redbadge">5</span></span><span class="chip">Deals</span>
+        </div>
+        <div class="feedwrap">
+          <div class="card"><span class="dot" style="background:var(--accent)"></span><div class="ic">▣</div><div class="cc"><div class="ph-line l"></div><div class="ph-line m"></div><div class="ph-line s"></div></div></div>
+          <div class="card"><span class="dot" style="background:var(--green)"></span><div class="ic">▣</div><div class="cc"><div class="ph-line m"></div><div class="ph-line s"></div></div></div>
+          <div class="card" style="opacity:.6"><span class="dot" style="background:#cfcabf"></span><div class="ic">▣</div><div class="cc"><div class="ph-line l"></div><div class="ph-line s"></div></div></div>
+          <div class="card" style="opacity:.6"><span class="dot" style="background:#cfcabf"></span><div class="ic">▣</div><div class="cc"><div class="ph-line m"></div><div class="ph-line s"></div></div></div>
+        </div>
+      </div>
+      <div class="note">+ Extensible, scalable · − Plus lourd à ouvrir/fermer</div>
+    </div>
+
+    <!-- ─── C · Feed swipe ─── -->
+    <div class="col">
+      <div class="tag"><span class="n">C</span> Fil + actions swipe</div>
+      <div class="desc"><b>Cartes riches</b> facon écran Aujourd'hui, avec <b>swipe</b> pour lire/archiver et boutons d'action inline (Rappeler, Voir le deal). Actionnable directement.</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 4px 10px;">
+          <div class="ttl">À traiter</div><div class="sub" style="font-size:14px">5 nouvelles</div>
+        </div>
+        <div class="feedwrap">
+          <div class="card sweep"><div class="ic icr">●</div><div class="cc"><div class="ph-line m"></div><div class="ph-line l"></div><div class="btnrow"><span class="minibtn minidark">Rappeler</span><span class="minibtn">Voir</span></div></div><div class="swept">archiver →</div></div>
+          <div class="card"><div class="ic icr">●</div><div class="cc"><div class="ph-line l"></div><div class="ph-line s"></div><div class="btnrow"><span class="minibtn minidark">Ouvrir KYC</span></div></div></div>
+          <div class="card" style="opacity:.6"><div class="ic icr">●</div><div class="cc"><div class="ph-line m"></div><div class="ph-line s"></div></div></div>
+        </div>
+      </div>
+      <div class="note">+ Très actionnable · − Plus de travail, gestes à apprendre</div>
+    </div>
+
+    <!-- ─── D · Digest IA ─── -->
+    <div class="col">
+      <div class="tag"><span class="n">D</span> Digest MEGGA AI</div>
+      <div class="desc"><b>Résumé IA en tête</b> (« 3 choses importantes aujourd'hui ») puis la liste en dessous. MEGGA priorise pour toi. Différenciant, dans l'esprit de la barre AI.</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 4px 10px;">
+          <div class="ttl">Notifications</div>
+        </div>
+        <div class="ai">
+          <div class="ailbl">✦ MEGGA — l'essentiel</div>
+          <div style="margin-top:7px;display:flex;flex-direction:column;gap:6px;">
+            <div class="ph-line l"></div><div class="ph-line m"></div><div class="ph-line s"></div>
+          </div>
+          <div class="btnrow" style="margin-top:9px;"><span class="minibtn minidark">Traiter</span><span class="minibtn">Tout voir</span></div>
+        </div>
+        <div class="datelabel">Tout le reste</div>
+        <div class="feedwrap">
+          <div class="card" style="opacity:.85"><span class="dot" style="background:var(--blue)"></span><div class="ic icr">●</div><div class="cc"><div class="ph-line l"></div><div class="ph-line s"></div></div></div>
+          <div class="card" style="opacity:.6"><span class="dot" style="background:#cfcabf"></span><div class="ic icr">●</div><div class="cc"><div class="ph-line m"></div></div></div>
+        </div>
+      </div>
+      <div class="note">+ Différenciant, gain de temps · − Dépend de la qualité du tri IA</div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <b style="font-family:'Caveat',cursive;font-size:18px;">Légende points :</b>
+    <span><i class="sw" style="background:var(--accent)"></i> urgent / non lu</span>
+    <span><i class="sw" style="background:var(--blue)"></i> deal · visite</span>
+    <span><i class="sw" style="background:var(--green)"></i> validé · signé</span>
+    <span><i class="sw" style="background:#cfcabf"></i> lu</span>
+  </div>
+</body>
+</html>

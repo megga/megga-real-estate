@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
+import ResponsiveRoute from '@/components/crm-mobile/shell/ResponsiveRoute'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AnimatePresence } from 'motion/react'
 import { AuthProvider } from '@/hooks/useAuth'
@@ -50,6 +51,10 @@ const AuthSetNewPasswordPage = lazy(() =>
 // Layout shells agent — lazy car ils ne wrappent que les routes dashboard
 const AgentLayout = lazy(() => import('@/components/layout/AgentLayout'))
 const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout'))
+
+// CRM mobile (responsive < 768px) — branché par écran via ResponsiveRoute
+const MobileMorePage = lazy(() => import('@/components/crm-mobile/more/MobileMorePage'))
+const MobileTodayPage = lazy(() => import('@/components/crm-mobile/today/MobileTodayPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -105,6 +110,7 @@ const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const D0ConfiguringDemoPage = lazy(() => import('@/pages/dev/D0ConfiguringDemoPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const D0ActivationDemoPage = lazy(() => import('@/pages/dev/D0ActivationDemoPage'))
+const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
 const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
 const OnboardingWizardPage = lazy(() => import('@/pages/agent/OnboardingWizardPage'))
 const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
@@ -423,6 +429,7 @@ function AnimatedRoutes() {
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/configuring" element={<D0ConfiguringDemoPage />} />
               <Route path="/dev/activation" element={<D0ActivationDemoPage />} />
+              <Route path="/dev/mobile" element={<MobileShowcasePage />} />
 
               {/* Seller portal — accès tokenisé (production), page unique « Votre vente ».
                   Les anciens sous-chemins (visits/offers/…) retombent sur la page. */}
@@ -477,7 +484,7 @@ function AnimatedRoutes() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<TodaySugarPage />} />
+                <Route index element={<ResponsiveRoute desktop={<TodaySugarPage />} mobile={<MobileTodayPage />} />} />
                 <Route path="pipeline" element={<PipelineSugarV2Page />} />
                 <Route path="contacts" element={<ContactsSugarV2Page />} />
                 <Route path="listings" element={<BiensSugarV2Page />} />
@@ -514,6 +521,16 @@ function AnimatedRoutes() {
                 <Route path="julien" element={<JulienSugarV2Page />} />
                 {/* Sprint 4 — Dashboard Analytics Sugar v4 (Cockpit / Entonnoir / Objectif) */}
                 <Route path="analytics" element={<DashboardSugarV4Page />} />
+                {/* Hub « Plus » mobile-only — desktop redirige vers Réglages */}
+                <Route
+                  path="more"
+                  element={
+                    <ResponsiveRoute
+                      desktop={<Navigate to="/dashboard/settings" replace />}
+                      mobile={<MobileMorePage />}
+                    />
+                  }
+                />
               </Route>
 
               {/* Agent dashboard (protected) — AgentLayout chrome pour les routes

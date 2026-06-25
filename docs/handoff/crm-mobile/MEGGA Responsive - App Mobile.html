@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MEGGA CRM — App Mobile · Navigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(130% 100% at 50% 0%, #C8D5E0 0%, #DDE2EA 48%, #EDEFF3 100%) fixed;
+    font-family: "Manrope", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #0B0C0E;
+  }
+  #app { min-height: 100vh; }
+  /* Concept D : la barre de navigation fonctionnelle est la pilule flottante
+     (overlay sans blur). On masque les barres d'onglets décoratives internes
+     de chaque écran (toujours des <nav> avec blur(18px)). Les barres d'action
+     CTA des écrans secondaires sont des <div> → préservées. On garde leur
+     boîte (visibility:hidden) pour réserver l'espace bas : la pilule flotte
+     dans cette bande, le contenu ne passe pas dessous. */
+  nav[style*="blur(18px)"] { visibility: hidden !important; }
+</style>
+</head>
+<body>
+  <div id="app" style="height: 1000px; font-size: 16px"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- ── Dépendances partagées (today AVANT les écrans) ── -->
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="crm-meicon.jsx"></script>
+  <script type="text/babel" src="crm-tokens.jsx"></script>
+  <script type="text/babel" src="crm-data.jsx"></script>
+  <script type="text/babel" src="crm-biens-data.jsx"></script>
+  <script type="text/babel" src="crm-kyc-data.jsx"></script>
+  <script type="text/babel" src="crm-parcours-data.jsx"></script>
+  <script type="text/babel" src="crm-sprint2-data.jsx"></script>
+  <script type="text/babel" src="analytics/analytics-tokens.jsx"></script>
+  <script type="text/babel" src="crm-bien-vitrine-kit.jsx"></script>
+  <script type="text/babel" src="crm-mobile-today.jsx"></script>
+  <script type="text/babel" src="crm-action-menu.jsx"></script>
+
+  <!-- ── Écrans ── -->
+  <script type="text/babel" src="crm-pipeline-mobile.jsx"></script>
+  <script type="text/babel" src="crm-matching-mobile.jsx"></script>
+  <script type="text/babel" src="crm-matching-settings-mobile.jsx"></script>
+  <script type="text/babel" src="crm-matching-newsearch-mobile.jsx"></script>
+  <script type="text/babel" src="crm-dashboard-relance-data.jsx"></script>
+  <script type="text/babel" src="crm-relance-session-mobile.jsx"></script>
+  <script type="text/babel" src="crm-agenda-mobile.jsx"></script>
+  <script type="text/babel" src="crm-agenda-mobile-timeblock.jsx"></script>
+  <script type="text/babel" src="crm-more-mobile.jsx"></script>
+  <script type="text/babel" src="crm-notif-mobile.jsx"></script>
+  <script type="text/babel" src="crm-biens-mobile.jsx"></script>
+  <script type="text/babel" src="crm-bien-vitrine-mobile.jsx"></script>
+  <script type="text/babel" src="crm-kyc-mobile.jsx"></script>
+  <script type="text/babel" src="crm-analytics-mobile.jsx"></script>
+  <script type="text/babel" src="crm-parcours-mobile.jsx"></script>
+  <script type="text/babel" src="crm-settings-mobile-sections.jsx"></script>
+  <script type="text/babel" src="crm-settings-mobile.jsx"></script>
+  <script type="text/babel" src="crm-contact-detail-mobile-v2.jsx"></script>
+  <script type="text/babel" src="crm-contact-new-mobile.jsx"></script>
+  <script type="text/babel" src="crm-contacts-list-mobile.jsx"></script>
+  <script type="text/babel" src="crm-deal-detail-mobile.jsx"></script>
+
+  <!-- ── Wizard « Créer un bien » mobile ── -->
+  <script type="text/babel" src="crm-mobile-wizard-core.jsx"></script>
+  <script type="text/babel" src="crm-mobile-wizard-steps.jsx"></script>
+  <script type="text/babel" src="crm-mobile-wizard-final.jsx"></script>
+
+  <!-- ── Shell de navigation ── -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const L = window.MT_LIGHT, D = window.MT_DARK, MIcon = window.MIcon;
+
+    // Registre des écrans mobile
+    const SCREENS = {
+      today:     { comp: "MobileTodayScreen",        label: "Aujourd'hui",   group: "Onglets" },
+      pipeline:  { comp: "MobilePipelineScreen",     label: "Pipeline",      group: "Onglets" },
+      matching:  { comp: "MobileMatchingScreen",     label: "Matching",      group: "Onglets" },
+      agenda:    { comp: "MobileAgendaScreen",        label: "Agenda",        group: "Onglets" },
+      more:      { comp: "MobileMoreScreen",          label: "Plus",          group: "Onglets" },
+      contacts:  { comp: "MobileContactsFlow",        label: "Contacts",      group: "Depuis « Plus »" },
+      biens:     { comp: "MobileBiensScreen",         label: "Mes biens",     group: "Depuis « Plus »" },
+      parcours:  { comp: "MobileParcoursScreen",      label: "Parcours",      group: "Depuis « Plus »" },
+      kyc:       { comp: "MobileKycScreen",           label: "KYC / LBA",     group: "Depuis « Plus »" },
+      analytics: { comp: "MobileAnalyticsScreen",     label: "Analytics",     group: "Depuis « Plus »" },
+      settings:  { comp: "SettingsMobileScreen",      label: "Paramètres",    group: "Depuis « Plus »" },
+      "biens-new": { comp: "MobileWizardScreen",      label: "Créer un bien",  group: "Depuis « Plus »" },
+      "contact-new": { comp: "NcCreateScreen",         label: "Nouveau contact", group: "Vues détaillées" },
+      timeblock: { comp: "MobileAgendaTimeblockScreen", label: "Agenda · time-blocking", group: "Vues détaillées" },
+      relance:   { comp: "MobileRelanceSessionScreen", label: "Session de relance", group: "Vues détaillées" },
+      fichebien: { comp: "MobileBienVitrineScreen",   label: "Fiche bien (vitrine)",   group: "Vues détaillées" },
+      deal:      { comp: "MobileDealDetailScreen",    label: "Détail affaire", group: "Vues détaillées" },
+      contact:   { comp: "MobileContactScreenV2",     label: "Fiche contact", group: "Vues détaillées" },
+    };
+
+    // Onglets de la barre du bas (la grammaire mobile)
+    const TABS = [
+      { id: "today",    label: "Aujourd'hui", icon: "home" },
+      { id: "pipeline", label: "Pipeline",    icon: "trend" },
+      { id: "matching", label: "Matching",    icon: "spark" },
+      { id: "agenda",   label: "Agenda",      icon: "cal" },
+      { id: "more",     label: "Plus",        icon: "menu" },
+    ];
+    const TAB_IDS = TABS.map(t => t.id);
+
+    // Barre d'onglets fonctionnelle (recouvre la barre interne non-cliquable)
+    function NavTabBar({ active, dark, onGo }) {
+      const T = dark ? D : L;
+      // si on est sur un écran secondaire, on éclaire « Plus »
+      const eff = TAB_IDS.includes(active) ? active : "more";
+      const pillBg = dark ? "#F2F2F6" : "#0B0C0E";
+      const pillInk = dark ? "#0B0C0E" : "#FFFFFF";
+      return (
+        <nav style={{
+          position: "absolute", left: 14, right: 14, bottom: 22, zIndex: 55,
+          display: "flex", alignItems: "center", gap: 6, padding: 8, borderRadius: 26,
+          background: dark ? "#17181A" : "#FFFFFF",
+          boxShadow: dark
+            ? "0 18px 44px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.4)"
+            : "0 18px 44px rgba(15,23,42,0.16), 0 4px 14px rgba(15,23,42,0.07)",
+        }}>
+          {TABS.map((tb) => {
+            const on = tb.id === eff;
+            return (
+              <button key={tb.id} onClick={() => onGo(tb.id)} aria-label={tb.label} style={{
+                border: 0, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                height: 48, borderRadius: 18, flexGrow: on ? 3 : 1, flexBasis: 0, minWidth: 34, overflow: "hidden",
+                background: on ? pillBg : "transparent", color: on ? pillInk : T.muted,
+                transition: "flex-grow .36s cubic-bezier(.2,.8,.2,1), background .26s ease",
+              }}>
+                <MIcon name={tb.icon} size={21} sw={on ? 2.1 : 1.9} color={on ? pillInk : T.muted} />
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap", maxWidth: on ? 120 : 0, opacity: on ? 1 : 0, overflow: "hidden", transition: "max-width .36s cubic-bezier(.2,.8,.2,1), opacity .24s ease" }}>{tb.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      );
+    }
+
+    function Phone({ screenId, dark, onGo, setDark }) {
+      const Comp = window[SCREENS[screenId].comp];
+      const W = 390, H = 844;
+      return (
+        <div style={{ position: "relative", width: W, height: H, borderRadius: 48, overflow: "hidden", flexShrink: 0 }}>
+          <window.IOSDevice width={W} height={H} dark={dark}>
+            {Comp ? <Comp dark={dark} onGo={onGo} setDark={setDark} onBack={() => onGo("more")} onClose={() => onGo("today")} key={screenId} /> : (
+              <div style={{ padding: 40, fontFamily: "Manrope", color: dark ? "#fff" : "#0B0C0E" }}>
+                Écran « {screenId} » introuvable.
+              </div>
+            )}
+          </window.IOSDevice>
+          {screenId !== "biens-new" && screenId !== "contact-new" && screenId !== "relance" && <NavTabBar active={screenId} dark={dark} onGo={onGo} />}
+        </div>
+      );
+    }
+
+    // ── Launcher latéral ──
+    function Launcher({ current, dark, onGo, onToggleDark }) {
+      const groups = ["Onglets", "Depuis « Plus »", "Vues détaillées"];
+      const itemBase = {
+        display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
+        border: 0, cursor: "pointer", fontFamily: "inherit", borderRadius: 12,
+        padding: "11px 14px", fontSize: 14, fontWeight: 600, letterSpacing: -0.2,
+        transition: "background .15s, color .15s",
+      };
+      return (
+        <aside style={{
+          width: 268, flexShrink: 0, alignSelf: "stretch",
+          background: "#FFFFFF", borderRadius: 24, padding: "22px 18px",
+          boxShadow: "0 22px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04)",
+          display: "flex", flexDirection: "column", gap: 6, position: "sticky", top: 28, maxHeight: "calc(100vh - 56px)", overflowY: "auto",
+        }}>
+          <div style={{ padding: "0 4px 4px" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: "#7A8088" }}>MEGGA CRM · Mobile</div>
+            <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: -0.6, color: "#0B0C0E", marginTop: 4 }}>Navigation</div>
+            <div style={{ fontSize: 12.5, fontWeight: 500, color: "#3A3D44", marginTop: 4, lineHeight: 1.45 }}>
+              Barre d'onglets en bas pour les 5 destinations. Le reste se rejoint depuis « Plus ».
+            </div>
+          </div>
+
+          <button onClick={onToggleDark} style={{
+            ...itemBase, justifyContent: "space-between", background: "#0B0C0E", color: "#fff", marginTop: 8, fontWeight: 700,
+          }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <MIcon name="bolt" size={17} color="#fff" sw={1.9} />
+              {dark ? "Mode sombre" : "Mode clair"}
+            </span>
+            <span style={{
+              width: 38, height: 22, borderRadius: 999, background: dark ? "#3A3D44" : "rgba(255,255,255,0.28)",
+              position: "relative", flexShrink: 0,
+            }}>
+              <span style={{ position: "absolute", top: 3, left: dark ? 19 : 3, width: 16, height: 16, borderRadius: 999, background: "#fff", transition: "left .2s" }} />
+            </span>
+          </button>
+
+          {groups.map((g) => (
+            <div key={g} style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase", color: "#AEB3BC", padding: "0 4px 6px" }}>{g}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {Object.entries(SCREENS).filter(([, s]) => s.group === g).map(([id, s]) => {
+                  const on = id === current;
+                  return (
+                    <button key={id} onClick={() => onGo(id)} style={{
+                      ...itemBase,
+                      background: on ? "#0B0C0E" : "transparent",
+                      color: on ? "#fff" : "#3A3D44",
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: on ? "#fff" : "#C7CCD3", flexShrink: 0 }} />
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </aside>
+      );
+    }
+
+    function App() {
+      const [screen, setScreen] = useState("today");
+      const [dark, setDark] = useState(() => { try { return localStorage.getItem("megga-mobile-dark") === "1"; } catch (e) { return false; } });
+      useEffect(() => { try { localStorage.setItem("megga-mobile-dark", dark ? "1" : "0"); } catch (e) {} }, [dark]);
+      return (
+        <div style={{ display: "flex", gap: 48, alignItems: "flex-start", justifyContent: "center", padding: "28px 28px 60px", maxWidth: 1100, margin: "0 auto" }}>
+          <Launcher current={screen} dark={dark} onGo={setScreen} onToggleDark={() => setDark(d => !d)} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, paddingTop: 4 }}>
+            <Phone screenId={screen} dark={dark} onGo={setScreen} setDark={setDark} />
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: "#7A8088", textAlign: "center", maxWidth: 360 }}>
+              {SCREENS[screen].label} — tape les onglets du bas pour naviguer.
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("app")).render(<App />);
+  </script>
+</body>
+</html>
