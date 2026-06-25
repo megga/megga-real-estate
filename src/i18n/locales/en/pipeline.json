@@ -559,5 +559,5 @@
   "dealsCount_one": "{{count}} deal",
   "dealsCount_other": "{{count}} deals",
   "toEstimate": "To estimate",
-  "kycSoft": "KYC to complete — optional"
+  "kycSoft": "KYC to complete, optional"
 }
