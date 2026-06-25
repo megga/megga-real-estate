@@ -554,5 +554,13 @@
   "dealsCount_one": "{{count}} Deal",
   "dealsCount_other": "{{count}} Deals",
   "toEstimate": "Zu schätzen",
-  "kycSoft": "KYC ausstehend, optional"
+  "kycSoft": "KYC ausstehend, optional",
+  "mobile": {
+    "journey": {
+      "back": "Mehr",
+      "inProgress": "Laufend",
+      "error": "Laden fehlgeschlagen",
+      "retry": "Erneut versuchen"
+    }
+  }
 }

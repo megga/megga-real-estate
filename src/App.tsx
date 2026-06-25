@@ -66,6 +66,7 @@ const MobileContactsListPage = lazy(() => import('@/components/crm-mobile/contac
 const MobileNewContactPage = lazy(() => import('@/components/crm-mobile/contacts/MobileNewContactPage'))
 const MobileContactDetailPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactDetailPage'))
 const MobileAnalyticsPage = lazy(() => import('@/components/crm-mobile/analytics/MobileAnalyticsPage'))
+const MobileJourneyPage = lazy(() => import('@/components/crm-mobile/journey/MobileJourneyPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -523,7 +524,8 @@ function AnimatedRoutes() {
                     Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id>.
                     Mobile (< 768px) : inbox acheteurs + focus (P5). */}
                 <Route path="matching" element={<ResponsiveRoute desktop={<MatchingAtelierPage />} mobile={<MobileMatchingPage />} />} />
-                <Route path="journey" element={<JourneySugarV2Page />} />
+                {/* Parcours — mobile (< 768px) : dossiers en vue panoramique (P9). */}
+                <Route path="journey" element={<ResponsiveRoute desktop={<JourneySugarV2Page />} mobile={<MobileJourneyPage />} />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 {/* Agenda — mobile (< 768px) : jour liste + time-block (P6). */}
                 <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarSugarV2Page />} mobile={<MobileAgendaPage />} />} />
