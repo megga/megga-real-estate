@@ -61,6 +61,7 @@ const MobileMatchingPage = lazy(() => import('@/components/crm-mobile/matching/M
 const MobileAgendaPage = lazy(() => import('@/components/crm-mobile/agenda/MobileAgendaPage'))
 const MobileBiensPage = lazy(() => import('@/components/crm-mobile/biens/MobileBiensPage'))
 const MobileBienVitrinePage = lazy(() => import('@/components/crm-mobile/bien/MobileBienVitrinePage'))
+const MobileWizardPage = lazy(() => import('@/components/crm-mobile/wizard/MobileWizardPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -558,7 +559,8 @@ function AnimatedRoutes() {
                 <Route path="contacts/:id" element={<ContactDetailSugarV3Page />} />
                 <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
-                <Route path="listings/new" element={<WizardSugarV2Page />} />
+                {/* Créer un bien — mobile (< 768px) : wizard 4 étapes (P7/2). */}
+                <Route path="listings/new" element={<ResponsiveRoute desktop={<WizardSugarV2Page />} mobile={<MobileWizardPage />} />} />
                 <Route path="listings/:id/edit" element={<ListingFormPage />} />
 
                 {/* Super-Admin routes */}

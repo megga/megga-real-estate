@@ -1418,6 +1418,45 @@
       "signedAt": "Signé le",
       "expiresAt": "Expire le"
     },
-    "photoIndex": "Photo {{i}} / {{total}}"
+    "photoIndex": "Photo {{i}} / {{total}}",
+    "surfaceSuffix": "m²"
+  },
+  "wizardMobile": {
+    "continue": "Continuer",
+    "publish": "Publier",
+    "publishing": "Publication…",
+    "saveDraft": "Enregistrer en brouillon",
+    "publishError": "Échec de la publication. Réessayez.",
+    "doneTitle": "Bien créé",
+    "doneDesc": "Votre bien est enregistré. Ajoutez les photos depuis sa fiche.",
+    "typeTitle": "Quel type de bien ?",
+    "transaction": "Transaction",
+    "locationTitle": "Où se situe le bien ?",
+    "addr": "Rue et numéro",
+    "postCode": "NPA",
+    "city": "Ville",
+    "canton": "Canton",
+    "specsTitle": "Caractéristiques",
+    "energy": "Classe énergétique",
+    "features": "Atouts",
+    "priceTitle": "Prix & publication",
+    "priceLabel": "Prix de vente",
+    "rentLabel": "Loyer mensuel",
+    "charges": "Charges",
+    "descPlaceholder": "Décrivez le bien…",
+    "mandate": "Mandat",
+    "mandateExclusive": "Exclusif",
+    "mandateSimple": "Simple",
+    "publishWhen": "Publication",
+    "publishNow": "Publier maintenant",
+    "draft": "Brouillon",
+    "photosLater": "Photos à ajouter depuis la fiche du bien",
+    "step": {
+      "type": "Type",
+      "location": "Localisation",
+      "specs": "Caractéristiques",
+      "price": "Prix & publication"
+    },
+    "chargesUnit": "CHF / mois"
   }
 }

@@ -14,6 +14,7 @@ import { MobileMatchingScreen } from '@/components/crm-mobile/matching/MmMatchin
 import { MobileAgendaScreen } from '@/components/crm-mobile/agenda/MobileAgendaScreen'
 import { MobileBiensScreen } from '@/components/crm-mobile/biens/MobileBiensScreen'
 import { MobileBienVitrineScreen } from '@/components/crm-mobile/bien/MobileBienVitrineScreen'
+import { MobileWizardScreen } from '@/components/crm-mobile/wizard/MobileWizardScreen'
 import { MobileDealDetailScreen, type DealData } from '@/components/crm-mobile/deal/MobileDealDetailScreen'
 import { EMPTY_OFFER_CONDITIONS, type Offer } from '@/types/offer'
 import type { Property } from '@/types/listing'
@@ -86,6 +87,8 @@ function ShowcaseInner() {
       <MobileAgendaScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileBiensScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileWizardScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileBienVitrineScreen demoData={DEMO_LISTING} />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />

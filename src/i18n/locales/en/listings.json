@@ -1418,6 +1418,45 @@
       "signedAt": "Signed on",
       "expiresAt": "Expires on"
     },
-    "photoIndex": "Photo {{i}} / {{total}}"
+    "photoIndex": "Photo {{i}} / {{total}}",
+    "surfaceSuffix": "m²"
+  },
+  "wizardMobile": {
+    "continue": "Continue",
+    "publish": "Publish",
+    "publishing": "Publishing…",
+    "saveDraft": "Save as draft",
+    "publishError": "Publishing failed. Try again.",
+    "doneTitle": "Property created",
+    "doneDesc": "Your property is saved. Add photos from its listing.",
+    "typeTitle": "What type of property?",
+    "transaction": "Transaction",
+    "locationTitle": "Where is the property?",
+    "addr": "Street and number",
+    "postCode": "ZIP",
+    "city": "City",
+    "canton": "Canton",
+    "specsTitle": "Characteristics",
+    "energy": "Energy class",
+    "features": "Features",
+    "priceTitle": "Price & publishing",
+    "priceLabel": "Sale price",
+    "rentLabel": "Monthly rent",
+    "charges": "Charges",
+    "descPlaceholder": "Describe the property…",
+    "mandate": "Mandate",
+    "mandateExclusive": "Exclusive",
+    "mandateSimple": "Simple",
+    "publishWhen": "Publishing",
+    "publishNow": "Publish now",
+    "draft": "Draft",
+    "photosLater": "Photos can be added from the listing",
+    "step": {
+      "type": "Type",
+      "location": "Location",
+      "specs": "Characteristics",
+      "price": "Price & publishing"
+    },
+    "chargesUnit": "CHF / month"
   }
 }
