@@ -14,6 +14,7 @@
 import { ESLint } from 'eslint'
 
 const LOCKED_GLOBS = [
+  'src/components/crm-mobile/**/*.{ts,tsx}',
   'src/components/crm-sugar/**/*.{ts,tsx}',
   'src/components/crm-sugar-v3/**/*.{ts,tsx}',
   'src/components/crm-sugar-wizard/**/*.{ts,tsx}',

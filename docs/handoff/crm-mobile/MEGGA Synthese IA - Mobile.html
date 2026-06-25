@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MEGGA — Synthèse IA · Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    min-height:100vh;
+    background: radial-gradient(120% 90% at 50% 0%, #C8D5E0 0%, #DDE2EA 48%, #EDEFF3 100%) fixed;
+    font-family:'Manrope', system-ui, sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    padding:40px 24px 72px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .caption { text-align:center; margin-bottom:30px; max-width:640px; }
+  .caption .ey { font-size:11px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:#7A8088; }
+  .caption h1 { margin:9px 0 7px; font-size:26px; font-weight:800; letter-spacing:-1px; color:#0B0C0E; }
+  .caption p { margin:0; font-size:14px; font-weight:500; color:#3A3D44; line-height:1.55; }
+  .caption p b { font-weight:700; color:#0B0C0E; }
+  .pair { display:flex; gap:56px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
+  .col { display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .tag { display:inline-flex; align-items:center; gap:8px; padding:7px 16px; border-radius:999px; font-size:12.5px; font-weight:700; }
+  .tag .d { width:8px; height:8px; border-radius:999px; }
+  .tag.light { background:#fff; color:#0B0C0E; box-shadow:0 4px 16px rgba(15,23,42,0.06); }
+  .tag.light .d { background:#0B0C0E; }
+  .tag.dark { background:#14161C; color:#fff; }
+  .tag.dark .d { background:#fff; }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#0B0C0E"/>
+    <rect x="36" y="18" width="28" height="64" rx="7" fill="#FFFFFF"/>
+    <circle cx="43" cy="30" r="3" fill="#0B0C0E"/>
+    <rect x="40" y="40" width="20" height="2.4" rx="1.2" fill="#E2E5EB"/>
+    <rect x="40" y="48" width="20" height="2.4" rx="1.2" fill="#E2E5EB"/>
+    <rect x="40" y="56" width="20" height="2.4" rx="1.2" fill="#E2E5EB"/>
+    <rect x="40" y="69" width="20" height="5" rx="2.5" fill="#0B0C0E"/>
+  </svg>
+</template>
+
+<div class="caption">
+  <div class="ey">MEGGA CRM · Importer un mandat · Synthèse IA</div>
+  <h1>Synthèse IA — Mobile</h1>
+  <p>Portage de la <b>liste éditoriale</b> (C2) au format 390px : icône + label/valeur empilés, <b>édition inline au tap</b> (valider ✓ / annuler ✕), rappel doux des champs à confirmer, CTA collé en bas. Clair &amp; sombre.</p>
+</div>
+
+<div class="pair">
+  <div class="col">
+    <span class="tag light"><span class="d"></span>Clair</span>
+    <div id="root-light"></div>
+  </div>
+  <div class="col">
+    <span class="tag dark"><span class="d"></span>Sombre</span>
+    <div id="root-dark"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="mandat-synthese-mobile.jsx"></script>
+<script type="text/babel">
+  const { IOSDevice, MSMobileScreen } = window;
+  ReactDOM.createRoot(document.getElementById("root-light")).render(
+    <IOSDevice width={390} height={844}><MSMobileScreen dark={false}/></IOSDevice>
+  );
+  ReactDOM.createRoot(document.getElementById("root-dark")).render(
+    <IOSDevice width={390} height={844} dark><MSMobileScreen dark={true}/></IOSDevice>
+  );
+</script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" id="theme-color-meta" content="#0B0C0E" />
+<title>MEGGA CRM — Mobile (plein écran)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; height:100%; overflow:hidden; background:#030303; }
+  html{ height:-webkit-fill-available; }
+  body{
+    font-family:"Manrope", system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    color:#0B0C0E;
+    overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  /* Conteneur app = tout le viewport, en dvh pour suivre la barre d'URL mobile */
+  #app{
+    position:fixed; inset:0;
+    height:100dvh; width:100vw;
+    height:100svh;            /* fallback bas pour les barres mobiles */
+  }
+  /* Au-delà d'une largeur de téléphone (desktop / tablette), on borne l'app à
+     une largeur d'appareil centrée plutôt que de tout étirer. Sur un vrai
+     mobile (≤ 480px) elle reste plein écran. */
+  @media (min-width:481px){
+    body{ display:flex; align-items:center; justify-content:center; }
+    #app{
+      position:relative; inset:auto;
+      width:390px; max-width:100vw;
+      height:min(844px, 100dvh); height:min(844px, 100svh);
+      border-radius:0;
+      overflow:hidden;
+      box-shadow:0 30px 80px rgba(15,23,42,0.22);
+    }
+  }
+  /* Les écrans embarquent une barre d'onglets décorative (nav floue, non cliquable).
+     On la masque mais on garde sa boîte pour réserver l'espace : notre vraie
+     tab bar flotte par-dessus. */
+  nav[style*="blur(18px)"]{ visibility:hidden !important; }
+  /* Évite le rubber-band horizontal */
+  #app *{ -webkit-overflow-scrolling:touch; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" fill="#0B0C0E"/>
+      <rect x="34" y="22" width="32" height="56" rx="7" fill="#F3F4F6"/>
+      <rect x="40" y="62" width="20" height="4" rx="2" fill="#0B0C0E"/>
+    </svg>
+  </template>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- ── Dépendances partagées ── -->
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="crm-meicon.jsx"></script>
+  <script type="text/babel" src="crm-tokens.jsx"></script>
+  <script type="text/babel" src="crm-data.jsx"></script>
+  <script type="text/babel" src="crm-biens-data.jsx"></script>
+  <script type="text/babel" src="crm-kyc-data.jsx"></script>
+  <script type="text/babel" src="crm-parcours-data.jsx"></script>
+  <script type="text/babel" src="crm-sprint2-data.jsx"></script>
+  <script type="text/babel" src="analytics/analytics-tokens.jsx"></script>
+  <script type="text/babel" src="crm-bien-vitrine-kit.jsx"></script>
+  <script type="text/babel" src="crm-mobile-today.jsx"></script>
+  <script type="text/babel" src="crm-action-menu.jsx"></script>
+
+  <!-- ── Écrans ── -->
+  <script type="text/babel" src="crm-pipeline-mobile.jsx"></script>
+  <script type="text/babel" src="crm-matching-mobile.jsx"></script>
+  <script type="text/babel" src="crm-matching-settings-mobile.jsx"></script>
+  <script type="text/babel" src="crm-matching-newsearch-mobile.jsx"></script>
+  <script type="text/babel" src="crm-dashboard-relance-data.jsx"></script>
+  <script type="text/babel" src="crm-relance-session-mobile.jsx"></script>
+  <script type="text/babel" src="crm-agenda-mobile.jsx"></script>
+  <script type="text/babel" src="crm-agenda-mobile-timeblock.jsx"></script>
+  <script type="text/babel" src="crm-more-mobile.jsx"></script>
+  <script type="text/babel" src="crm-notif-mobile.jsx"></script>
+  <script type="text/babel" src="crm-biens-mobile.jsx"></script>
+  <script type="text/babel" src="crm-bien-vitrine-mobile.jsx"></script>
+  <script type="text/babel" src="crm-kyc-mobile.jsx"></script>
+  <script type="text/babel" src="crm-analytics-mobile.jsx"></script>
+  <script type="text/babel" src="crm-parcours-mobile.jsx"></script>
+  <script type="text/babel" src="crm-settings-mobile-sections.jsx"></script>
+  <script type="text/babel" src="crm-settings-mobile.jsx"></script>
+  <script type="text/babel" src="crm-contact-detail-mobile-v2.jsx"></script>
+  <script type="text/babel" src="crm-contact-new-mobile.jsx"></script>
+  <script type="text/babel" src="crm-contacts-list-mobile.jsx"></script>
+  <script type="text/babel" src="crm-deal-detail-mobile.jsx"></script>
+  <script type="text/babel" src="crm-mobile-wizard-core.jsx"></script>
+  <script type="text/babel" src="crm-mobile-wizard-steps.jsx"></script>
+  <script type="text/babel" src="crm-mobile-wizard-final.jsx"></script>
+
+  <!-- ── Shell plein écran ── -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const L = window.MT_LIGHT, D = window.MT_DARK, MIcon = window.MIcon;
+
+    const SCREENS = {
+      today:     "MobileTodayScreen",
+      pipeline:  "MobilePipelineScreen",
+      matching:  "MobileMatchingScreen",
+      agenda:    "MobileAgendaScreen",
+      more:      "MobileMoreScreen",
+      contacts:  "MobileContactsFlow",
+      biens:     "MobileBiensScreen",
+      parcours:  "MobileParcoursScreen",
+      kyc:       "MobileKycScreen",
+      analytics: "MobileAnalyticsScreen",
+      settings:  "SettingsMobileScreen",
+      fichebien: "MobileBienVitrineScreen",
+      deal:      "MobileDealDetailScreen",
+      contact:   "MobileContactScreenV2",
+    };
+
+    const TABS = [
+      { id: "today",    label: "Aujourd'hui", icon: "home" },
+      { id: "pipeline", label: "Pipeline",    icon: "trend" },
+      { id: "matching", label: "Matching",    icon: "spark" },
+      { id: "agenda",   label: "Agenda",      icon: "cal" },
+      { id: "more",     label: "Plus",        icon: "menu" },
+    ];
+    const TAB_IDS = TABS.map(t => t.id);
+
+    function TabBar({ active, dark, onGo }) {
+      const T = dark ? D : L;
+      const eff = TAB_IDS.includes(active) ? active : "more";
+      const pillBg = dark ? "#F2F2F6" : "#0B0C0E";
+      const pillInk = dark ? "#0B0C0E" : "#FFFFFF";
+      return (
+        <nav style={{
+          position: "absolute", left: "max(14px, env(safe-area-inset-left))",
+          right: "max(14px, env(safe-area-inset-right))",
+          bottom: "calc(env(safe-area-inset-bottom) + 12px)", zIndex: 80,
+          display: "flex", alignItems: "center", gap: 6, padding: 8, borderRadius: 26,
+          background: dark ? "#17181A" : "#FFFFFF",
+          boxShadow: dark
+            ? "0 18px 44px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.4)"
+            : "0 18px 44px rgba(15,23,42,0.16), 0 4px 14px rgba(15,23,42,0.07)",
+        }}>
+          {TABS.map((tb) => {
+            const on = tb.id === eff;
+            return (
+              <button key={tb.id} onClick={() => onGo(tb.id)} aria-label={tb.label} style={{
+                border: 0, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                height: 50, borderRadius: 18, flexGrow: on ? 3 : 1, flexBasis: 0, minWidth: 40, overflow: "hidden",
+                background: on ? pillBg : "transparent", color: on ? pillInk : T.muted,
+                transition: "flex-grow .36s cubic-bezier(.2,.8,.2,1), background .26s ease",
+              }}>
+                <MIcon name={tb.icon} size={22} sw={on ? 2.1 : 1.9} color={on ? pillInk : T.muted} />
+                <span style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap", maxWidth: on ? 120 : 0, opacity: on ? 1 : 0, overflow: "hidden", transition: "max-width .36s cubic-bezier(.2,.8,.2,1), opacity .24s ease" }}>{tb.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      );
+    }
+
+    function App() {
+      const [screen, setScreen] = useState(() => {
+        try { return localStorage.getItem("megga-fs-screen") || "today"; } catch (e) { return "today"; }
+      });
+      const [dark, setDark] = useState(() => { try { return localStorage.getItem("megga-mobile-dark") === "1"; } catch (e) { return false; } });
+      useEffect(() => { try { localStorage.setItem("megga-mobile-dark", dark ? "1" : "0"); } catch (e) {} }, [dark]);
+      useEffect(() => { try { localStorage.setItem("megga-fs-screen", screen); } catch (e) {} }, [screen]);
+
+      // fond de page = MÊME dégradé canvas que l'écran, pour une continuité
+      // parfaite derrière la Dynamic Island et sous la barre Safari (pas de
+      // couture). theme-color = teinte du HAUT du dégradé (zone Île).
+      useEffect(() => {
+        const canvas = dark ? "#030303" : "radial-gradient(ellipse 120% 65% at 50% 0%, #CFDAE4 0%, #DFE3EA 46%, #EEF0F3 100%)";
+        const topColor = dark ? "#030303" : "#CFDAE4";
+        document.documentElement.style.background = canvas;
+        document.body.style.background = canvas;
+        const meta = document.getElementById("theme-color-meta");
+        if (meta) meta.setAttribute("content", topColor);
+      }, [dark]);
+
+      const go = (id) => setScreen(SCREENS[id] ? id : "more");
+      const Comp = window[SCREENS[screen]];
+      const showTabs = !["fichebien", "deal", "contact", "contact-new"].includes(screen);
+
+      return (
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+            {Comp
+              ? <Comp dark={dark} onGo={go} setDark={setDark} onBack={() => go("more")} onClose={() => go("today")} key={screen} />
+              : <div style={{ padding: 40, color: dark ? "#fff" : "#0B0C0E" }}>Écran « {screen} » introuvable.</div>}
+          </div>
+          {showTabs && <TabBar active={screen} dark={dark} onGo={go} />}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("app")).render(<App />);
+  </script>
+</body>
+</html>

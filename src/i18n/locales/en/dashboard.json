@@ -247,10 +247,16 @@
         "match": "Match",
         "compromis": "Sale agreement",
         "visit": "Viewing"
-      }
+      },
+      "pipelineDeals_one": "{{count}} deal",
+      "pipelineDeals_other": "{{count}} deals",
+      "pipelineAtRisk": "{{count}} at risk",
+      "objectifUnset": "Not set"
     },
     "agenda": {
-      "error": { "title": "Data unavailable" },
+      "error": {
+        "title": "Data unavailable"
+      },
       "next": "Next",
       "empty": "Nothing more after this, your day is clear.",
       "call": "Call",
@@ -266,18 +272,21 @@
         "mandate": "Mandate",
         "visit": "Viewing",
         "offer": "Offer"
-      }
+      },
+      "nowBadge": "Now"
     },
     "relances": {
       "leadsToFollow": "leads to follow up",
       "preparedByAi": "prepared by AI",
-      "startSession": "Start session",
+      "startSession": "Start the session",
       "tempHot": "hot",
       "tempWarm": "warm",
       "tempCold": "cold"
     },
     "pipeline": {
-      "error": { "title": "Data unavailable" },
+      "error": {
+        "title": "Data unavailable"
+      },
       "stages": {
         "searching": "Active search",
         "visit": "Viewing scheduled",
@@ -289,7 +298,9 @@
       "riskOverdue": "Deadline overdue"
     },
     "objectif": {
-      "error": { "title": "Data unavailable" },
+      "error": {
+        "title": "Data unavailable"
+      },
       "realized": "achieved",
       "realizedNoTarget": "achieved · no target set",
       "target": "target"

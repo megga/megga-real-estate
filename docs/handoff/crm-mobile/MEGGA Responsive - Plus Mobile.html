@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MEGGA CRM — Plus · Mobile · 3 directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(120% 90% at 50% 0%, #C8D5E0 0%, #DDE2EA 48%, #EDEFF3 100%) fixed;
+    font-family: "Manrope", system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 44px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .caption { text-align: center; margin-bottom: 40px; max-width: 680px; }
+  .caption .ey { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: #7A8088; }
+  .caption h1 { margin: 9px 0 7px; font-size: 27px; font-weight: 800; letter-spacing: -1px; color: #0B0C0E; }
+  .caption p { margin: 0; font-size: 14px; font-weight: 500; color: #3A3D44; line-height: 1.55; }
+  .caption p b { font-weight: 700; color: #0B0C0E; }
+
+  .stage { display: flex; gap: 64px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  .variant { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .vhead { text-align: center; max-width: 320px; }
+  .vhead .tag {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 999px;
+    background: #fff; box-shadow: 0 4px 16px rgba(15,23,42,0.06); margin-bottom: 10px;
+  }
+  .vhead .tag .n { width: 22px; height: 22px; border-radius: 999px; background: #0B0C0E; color: #fff;
+    display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+  .vhead .tag .l { font-size: 12.5px; font-weight: 800; letter-spacing: -0.1px; color: #0B0C0E; }
+  .vhead p { margin: 0; font-size: 12.5px; font-weight: 600; color: #7A8088; line-height: 1.5; }
+  .pair { display: flex; gap: 26px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .col .mode { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: -0.1px; }
+  .col .mode .d { width: 7px; height: 7px; border-radius: 999px; }
+  .col .mode.light { background: #fff; color: #0B0C0E; box-shadow: 0 4px 16px rgba(15,23,42,0.06); }
+  .col .mode.light .d { background: #0B0C0E; }
+  .col .mode.dark { background: #14161C; color: #fff; }
+  .col .mode.dark .d { background: #fff; }
+</style>
+</head>
+<body>
+  <div class="caption">
+    <div class="ey">MEGGA CRM · Responsive · Onglet « Plus »</div>
+    <h1>Hub « Plus »</h1>
+    <p>Le 5ᵉ onglet rassemble tout ce qui n'est pas dans la barre : <b>profil compact</b>, <b>préférences</b> (thème live + langue) et les destinations <b>Mes biens, Contacts, Dashboard, Créer un bien, KYC, Paramètres</b>. Le <b>sélecteur thème est interactif</b> — touchez-le sur n'importe quel écran.</p>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="crm-meicon.jsx"></script>
+  <script type="text/babel" src="crm-mobile-today.jsx"></script>
+  <script type="text/babel" src="crm-more-mobile.jsx"></script>
+  <script type="text/babel">
+    const { IOSDevice, MobileMoreScreen } = window;
+
+    const VARIANTS = [
+      { id: "grid",     n: "B", title: "Grille de tuiles", desc: "2 colonnes visuelles, « Créer un bien » en tuile noire accent." },
+    ];
+
+    const Frame = ({ variant, dark }) => (
+      <div className="col">
+        <span className={"mode " + (dark ? "dark" : "light")}><span className="d"></span>{dark ? "Sombre" : "Clair"}</span>
+        <IOSDevice width={390} height={844} dark={dark}>
+          <MobileMoreScreen variant={variant} dark={dark} />
+        </IOSDevice>
+      </div>
+    );
+
+    const Stage = () => (
+      <React.Fragment>
+        {VARIANTS.map((v) => (
+          <div className="variant" key={v.id}>
+            <div className="vhead">
+              <div className="tag"><span className="n">{v.n}</span><span className="l">{v.title}</span></div>
+              <p>{v.desc}</p>
+            </div>
+            <div className="pair">
+              <Frame variant={v.id} dark={false} />
+              <Frame variant={v.id} dark={true} />
+            </div>
+          </div>
+        ))}
+      </React.Fragment>
+    );
+
+    ReactDOM.createRoot(document.getElementById("stage")).render(<Stage />);
+  </script>
+</body>
+</html>

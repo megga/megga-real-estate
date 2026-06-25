@@ -6,7 +6,12 @@
     "dashboard": "Back to dashboard"
   },
   "nav": {
+    "appearance": "Appearance",
+    "language": "Language",
+    "light": "Light",
+    "dark": "Dark",
     "today": "Today",
+    "more": "More",
     "dashboard": "Dashboard",
     "contacts": "Contacts",
     "pipeline": "Pipeline",
@@ -1259,6 +1264,12 @@
     }
   },
   "notifications": {
+    "essential": "Essentials",
+    "digestPriorities_one": "{{count}} priority to handle today",
+    "digestPriorities_other": "{{count}} priorities to handle today",
+    "groupToday": "Today",
+    "groupYesterday": "Yesterday",
+    "groupOlder": "Earlier",
     "kind": {
       "kyc": "KYC",
       "visite": "Viewing",

@@ -247,7 +247,11 @@
         "match": "Match",
         "compromis": "Sale agreement",
         "visit": "Viewing"
-      }
+      },
+      "pipelineDeals_one": "{{count}} affare",
+      "pipelineDeals_other": "{{count}} affari",
+      "pipelineAtRisk": "{{count}} a rischio",
+      "objectifUnset": "Non definito"
     },
     "agenda": {
       "next": "Next",
@@ -265,12 +269,13 @@
         "mandate": "Mandate",
         "visit": "Viewing",
         "offer": "Offer"
-      }
+      },
+      "nowBadge": "Adesso"
     },
     "relances": {
       "leadsToFollow": "leads to follow up",
       "preparedByAi": "prepared by AI",
-      "startSession": "Start session",
+      "startSession": "Avvia la sessione",
       "tempHot": "hot",
       "tempWarm": "warm",
       "tempCold": "cold"

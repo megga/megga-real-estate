@@ -361,7 +361,14 @@
     "offer_received": "Offer received",
     "last_update": "Last update",
     "no_offer_recorded": "No offer recorded for this transaction.",
-    "view_contact": "View contact"
+    "view_contact": "View contact",
+    "offer_status": {
+      "pending": "Ausstehend",
+      "accepted": "Angenommen",
+      "rejected": "Abgelehnt",
+      "expired": "Abgelaufen",
+      "withdrawn": "Zurückgezogen"
+    }
   },
   "offerModal": {
     "cta": {
@@ -531,5 +538,21 @@
       "tasksInProgress_one": "{{count}} task in progress",
       "tasksInProgress_other": "{{count}} tasks in progress"
     }
-  }
+  },
+  "actions": {
+    "changeStage": "Phase ändern",
+    "scheduleRdv": "Termin planen",
+    "markLost": "Als verloren markieren"
+  },
+  "stagePick": {
+    "current": "Aktuell"
+  },
+  "toast": {
+    "movedTo": "{{name}} verschoben nach „{{stage}}\"",
+    "markedLost": "{{name}} als verloren markiert"
+  },
+  "dealsCount_one": "{{count}} Deal",
+  "dealsCount_other": "{{count}} Deals",
+  "toEstimate": "Zu schätzen",
+  "kycSoft": "KYC ausstehend, optional"
 }

@@ -1,6 +1,11 @@
 {
   "nav": {
+    "appearance": "Darstellung",
+    "language": "Sprache",
+    "light": "Hell",
+    "dark": "Dunkel",
     "today": "Heute",
+    "more": "Mehr",
     "dashboard": "Dashboard",
     "contacts": "Kontakte",
     "pipeline": "Pipeline",
@@ -1253,6 +1258,12 @@
     }
   },
   "notifications": {
+    "essential": "Das Wichtigste",
+    "digestPriorities_one": "{{count}} Priorität für heute",
+    "digestPriorities_other": "{{count}} Prioritäten für heute",
+    "groupToday": "Heute",
+    "groupYesterday": "Gestern",
+    "groupOlder": "Früher",
     "kind": {
       "kyc": "KYC",
       "visite": "Viewing",

@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MEGGA — Wireframes Fiche Contact Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#E7E9ED; --paper:#FBFBFC; --screen:#F1F2F4;
+    --card:#FFFFFF; --line:#DDE0E5; --line2:#E7E9ED;
+    --fill:#E1E4E9; --fill2:#EAECF0; --dash:#CDD1D8;
+    --ink:#23262C; --ink2:#5A606A; --ghost:#A7ADB6; --place:#B6BBC3;
+    --accent:#0B0C0E; --hi:#FFF4E2; --hiInk:#9A5A00; --hiLine:#F0DCB6;
+    --jade:#3F7A5E; --blue:#3B5FA6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    font-family:"Manrope",system-ui,sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding:46px 40px 80px;
+  }
+  .mono{font-family:"Space Mono",ui-monospace,monospace;}
+
+  /* ── Page head ───────────────────────────────────── */
+  .head{max-width:1180px;margin:0 auto 38px;}
+  .ey{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ghost);}
+  .head h1{margin:10px 0 10px;font-size:30px;font-weight:800;letter-spacing:-1px;color:var(--accent);}
+  .head p{margin:0;font-size:14.5px;font-weight:500;line-height:1.6;color:var(--ink2);max-width:760px;}
+  .head p b{color:var(--ink);font-weight:700;}
+  .legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:18px;}
+  .legend span{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:var(--ink2);}
+  .sw{width:22px;height:13px;border-radius:4px;border:1px solid var(--line);}
+
+  /* ── Rail of phones ─────────────────────────────── */
+  .rail{display:flex;gap:30px;align-items:flex-start;overflow-x:auto;padding:6px 4px 24px;}
+  .lane{flex:0 0 auto;width:316px;display:flex;flex-direction:column;align-items:center;}
+  .laneTag{display:flex;align-items:center;gap:9px;margin-bottom:6px;align-self:stretch;}
+  .laneTag .n{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800;flex-shrink:0;}
+  .laneTag .t{font-size:15px;font-weight:800;letter-spacing:-.3px;color:var(--accent);}
+  .laneSub{align-self:stretch;font-size:12px;font-weight:600;color:var(--ink2);line-height:1.45;margin:0 0 16px;min-height:34px;}
+
+  /* ── Phone ──────────────────────────────────────── */
+  .phone{width:316px;height:648px;border-radius:42px;background:#15171B;padding:9px;box-shadow:0 26px 60px rgba(20,26,38,.22),0 4px 14px rgba(20,26,38,.10);flex-shrink:0;}
+  .screen{width:100%;height:100%;border-radius:34px;background:var(--screen);overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:108px;height:24px;background:#15171B;border-radius:0 0 16px 16px;z-index:30;}
+
+  /* sticky chrome */
+  .topbar{flex-shrink:0;padding:30px 16px 11px;display:flex;align-items:center;gap:10px;background:var(--screen);border-bottom:1px solid var(--line2);}
+  .iconbtn{width:30px;height:30px;border-radius:9px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;flex-shrink:0;}
+  .iconbtn svg{width:15px;height:15px;}
+  .topttl{flex:1;min-width:0;text-align:center;}
+  .topttl .k{font-size:8px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--ghost);}
+  .topttl .v{font-size:12.5px;font-weight:800;color:var(--ink);letter-spacing:-.2px;}
+
+  .body{flex:1;overflow:hidden;position:relative;}
+  .scroll{position:absolute;inset:0;overflow:hidden;padding:13px 14px;display:flex;flex-direction:column;gap:11px;}
+
+  /* generic wf atoms */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;}
+  .av{border-radius:50%;background:var(--fill);border:1px dashed var(--dash);display:grid;place-items:center;flex-shrink:0;font-size:11px;font-weight:800;color:var(--place);}
+  .bar{height:9px;border-radius:5px;background:var(--fill);}
+  .bar.d{background:var(--fill2);}
+  .bar.ink{background:#C4C8CE;}
+  .lbl{font-size:7.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--ghost);}
+  .txt{font-size:11px;font-weight:700;color:var(--ink);letter-spacing:-.2px;}
+  .txt.sm{font-size:9.5px;font-weight:600;color:var(--ink2);letter-spacing:0;}
+  .imgph{background:var(--fill2);border:1px dashed var(--dash);border-radius:10px;display:grid;place-items:center;color:var(--place);font-size:8px;font-weight:700;letter-spacing:.3px;}
+  .pill{display:inline-flex;align-items:center;height:18px;padding:0 9px;border-radius:999px;background:var(--fill2);font-size:8.5px;font-weight:800;color:var(--ink2);letter-spacing:.2px;}
+  .row{display:flex;align-items:center;gap:9px;}
+
+  /* next-action highlight */
+  .next{background:var(--hi);border:1px solid var(--hiLine);border-radius:16px;padding:13px;}
+  .next .tag{font-size:7.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--hiInk);}
+
+  /* tabs / segments / chips */
+  .seg{display:flex;background:var(--fill2);border-radius:12px;padding:3px;gap:2px;}
+  .seg .s{flex:1;text-align:center;font-size:10px;font-weight:800;color:var(--ink2);padding:8px 0;border-radius:9px;letter-spacing:-.2px;}
+  .seg .s.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(20,26,38,.10);}
+  .chips{display:flex;gap:7px;overflow:hidden;}
+  .chip{flex-shrink:0;height:27px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:10px;font-weight:800;color:var(--ink2);letter-spacing:-.2px;}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* bottom bars */
+  .actbar{flex-shrink:0;display:flex;gap:8px;padding:11px 14px 16px;background:var(--card);border-top:1px solid var(--line);}
+  .actbar .a{flex:1;height:38px;border-radius:11px;background:var(--fill2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink2);}
+  .actbar .a.cta{background:var(--accent);color:#fff;}
+  .actbar .a svg{width:15px;height:15px;}
+  .actbar .a .t{font-size:7.5px;font-weight:800;letter-spacing:-.1px;}
+
+  .tabbar{flex-shrink:0;display:flex;padding:9px 8px 16px;background:var(--card);border-top:1px solid var(--line);}
+  .tabbar .t{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ghost);}
+  .tabbar .t.on{color:var(--accent);}
+  .tabbar .t svg{width:18px;height:18px;}
+  .tabbar .t .l{font-size:7.5px;font-weight:800;letter-spacing:-.1px;}
+
+  /* drill-in summary tiles */
+  .tile{display:flex;align-items:center;gap:11px;padding:11px 12px;background:var(--card);border:1px solid var(--line);border-radius:14px;}
+  .tile .ic{width:30px;height:30px;border-radius:9px;background:var(--fill2);display:grid;place-items:center;flex-shrink:0;}
+  .tile .ic svg{width:15px;height:15px;}
+  .tile .ch{width:14px;height:14px;flex-shrink:0;color:var(--ghost);}
+  .count{margin-left:auto;font-size:10px;font-weight:800;color:var(--ink);background:var(--fill2);border-radius:999px;padding:2px 8px;}
+
+  /* timeline */
+  .tl{display:flex;gap:10px;}
+  .tl .dotcol{display:flex;flex-direction:column;align-items:center;}
+  .tl .dot{width:22px;height:22px;border-radius:7px;background:var(--fill2);flex-shrink:0;}
+  .tl .ln{width:2px;flex:1;background:var(--line2);margin-top:3px;}
+
+  svg{width:14px;height:14px;display:block;stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+
+  /* annotations under each lane */
+  .ann{align-self:stretch;margin-top:16px;}
+  .ann h4{margin:0 0 9px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--accent);}
+  .ann ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;}
+  .ann li{position:relative;padding-left:16px;font-size:11.5px;font-weight:500;line-height:1.45;color:var(--ink2);}
+  .ann li::before{content:"";position:absolute;left:0;top:6px;width:7px;height:7px;border-radius:2px;background:var(--ghost);}
+  .ann li.pro::before{background:var(--jade);}
+  .ann li.con::before{background:#C9774A;}
+  .ann li b{color:var(--ink);font-weight:700;}
+
+  .footnote{max-width:1180px;margin:30px auto 0;font-size:12px;color:var(--ink2);font-weight:500;line-height:1.6;}
+  .footnote .mono{color:var(--ink);}
+
+  /* ── entry (contacts list) ─────────────────────── */
+  .stepttl{max-width:1180px;margin:0 auto 16px;display:flex;align-items:center;gap:11px;}
+  .stepttl .b{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800;}
+  .stepttl h2{margin:0;font-size:18px;font-weight:800;letter-spacing:-.4px;color:var(--accent);}
+  .stepttl span{font-size:12.5px;font-weight:600;color:var(--ink2);}
+  .entry{max-width:1180px;margin:0 auto;display:flex;gap:34px;align-items:center;}
+  .entryNote{max-width:330px;}
+  .entryNote h4{margin:0 0 10px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--accent);}
+  .entryNote ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;}
+  .entryNote li{position:relative;padding-left:16px;font-size:12.5px;font-weight:500;line-height:1.5;color:var(--ink2);}
+  .entryNote li::before{content:"";position:absolute;left:0;top:6px;width:7px;height:7px;border-radius:2px;background:var(--ghost);}
+  .entryNote li.pro::before{background:var(--jade);}
+  .entryNote li b{color:var(--ink);font-weight:700;}
+  .flowdown{max-width:1180px;margin:24px auto 26px;display:flex;align-items:center;gap:13px;color:var(--ink2);font-size:12.5px;font-weight:700;}
+  .flowdown .ar{width:30px;height:30px;border-radius:9px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--accent);}
+  .flowdown .ar svg{width:16px;height:16px;}
+  .flowdown .ln{flex:1;height:1px;background:var(--line);}
+  /* contacts list rows */
+  .crow{display:flex;align-items:center;gap:11px;padding:9px 4px;}
+  .crow + .crow{border-top:1px solid var(--line2);}
+  .crow.sel{background:var(--card);border:1px solid var(--accent);border-radius:13px;padding:9px 10px;box-shadow:0 2px 8px rgba(20,26,38,.10);}
+  .grp{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--ghost);margin:4px 2px 2px;}
+  .scorep{margin-left:auto;font-size:9.5px;font-weight:800;color:var(--ink);background:var(--fill2);border-radius:999px;padding:3px 8px;flex-shrink:0;}
+  .fab{position:absolute;right:16px;bottom:18px;width:48px;height:48px;border-radius:16px;background:var(--accent);color:#fff;display:grid;place-items:center;box-shadow:0 10px 22px rgba(20,26,38,.28);z-index:20;}
+  .fab svg{width:20px;height:20px;}
+  .srch{display:flex;align-items:center;gap:9px;height:38px;padding:0 13px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--ghost);}
+  .srch svg{width:16px;height:16px;}
+  .srch .ph{font-size:11px;font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="ey">MEGGA CRM · Refonte · Wireframes basse fidélité</div>
+  <h1>Fiche contact — 4 directions de navigation</h1>
+  <p>La fiche actuelle empile <b>9 sections sur un seul scroll</b>. On compare ici quatre façons de structurer la même information pour qu'elle soit <b>plus simple à parcourir</b>. Priorités communes aux 4 : identité + coordonnées + actions de contact, et la <b>prochaine action à faire</b> mise en avant. <b>Blocs gris = contenu réel</b> ; on juge la structure, pas le style. Le design haute-fidélité Sugar Pure vient après validation d'une direction.</p>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--fill)"></span>Bloc de contenu</span>
+    <span><span class="sw" style="background:var(--hi);border-color:var(--hiLine)"></span>Prochaine action (priorité)</span>
+    <span><span class="sw" style="background:var(--accent);border-color:var(--accent)"></span>Élément actif / sélectionné</span>
+    <span><span class="sw imgph" style="height:13px"></span>Visuel à fournir</span>
+  </div>
+</div>
+
+<div class="stepttl">
+  <span class="b">0</span>
+  <h2>Avant la fiche — la liste des contacts</h2>
+  <span>le point d'entrée quand il y a plusieurs contacts</span>
+</div>
+<div class="entry" id="entry"></div>
+
+<div class="flowdown">
+  <span class="ar" id="flowarrow"></span>
+  <b style="color:var(--accent)">Tap une ligne</b> ouvre la fiche du contact — voici 4 façons de la structurer
+  <span class="ln"></span>
+</div>
+
+<div class="rail" id="rail"></div>
+
+<div class="footnote">
+  Toutes les pistes conservent les <b>9 contenus</b> de la fiche (identité, coordonnées, prochaine action, KYC doux, activité, biens proposés, critères, deals, notes, documents) — elles diffèrent uniquement par <span class="mono">la manière de les atteindre</span>. Dis-moi la direction (ou le mélange) qui te parle et je passe au design Sugar Pure haute fidélité.
+</div>
+
+<script>
+// ── tiny svg icon set ───────────────────────────────
+const I = {
+  back:'<path d="M13 5l-6 6 6 6"/>',
+  edit:'<path d="M4 13.5V16h2.5L14 8.5 11.5 6 4 13.5z"/>',
+  more:'<circle cx="5" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/>',
+  phone:'<path d="M5 4h3l1.5 4-2 1.5a9 9 0 004 4l1.5-2 4 1.5v3a2 2 0 01-2 2A13 13 0 013 6a2 2 0 012-2z"/>',
+  mail:'<rect x="3" y="5" width="14" height="11" rx="2"/><path d="M4 6l6 4.5L16 6"/>',
+  msg:'<path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-4 3V5a1 1 0 011-1z"/>',
+  cal:'<rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 3v3M13 3v3"/>',
+  chev:'<path d="M8 5l5 5-5 5"/>',
+  home:'<path d="M4 9l6-5 6 5v7a1 1 0 01-1 1h-3v-5H8v5H5a1 1 0 01-1-1z"/>',
+  clock:'<circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/>',
+  doc:'<path d="M6 3h6l3 3v11a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M12 3v3h3"/>',
+  shield:'<path d="M10 3l6 2v5c0 4-3 6-6 7-3-1-6-3-6-7V5z"/>',
+  user:'<circle cx="10" cy="7" r="3"/><path d="M4 17c0-3 3-5 6-5s6 2 6 5"/>',
+  target:'<circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.5"/>',
+  spark:'<path d="M10 3l1.7 4.3L16 9l-4.3 1.7L10 15l-1.7-4.3L4 9l4.3-1.7z"/>',
+  note:'<path d="M5 3h10a1 1 0 011 1v9l-4 4H5a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M12 17v-4h4"/>',
+  grid:'<rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5"/><rect x="11" y="11" width="6" height="6" rx="1.5"/>',
+  list:'<path d="M4 6h12M4 10h12M4 14h12"/>',
+  plus:'<path d="M10 4v12M4 10h12"/>',
+  search:'<circle cx="9" cy="9" r="5.5"/><path d="M13 13l3.5 3.5"/>',
+  filter:'<path d="M3 5h14M6 10h8M9 15h2"/>',
+  arrowdown:'<path d="M10 4v12M5 11l5 5 5-5"/>'
+};
+const svg=(p,c='currentColor')=>`<svg viewBox="0 0 20 20" style="color:${c}">${p}</svg>`;
+
+// reusable wireframe fragments ──────────────────────
+const heroFull=()=>`
+  <div class="card">
+    <div class="row">
+      <div class="av" style="width:50px;height:50px">ML</div>
+      <div style="flex:1;min-width:0">
+        <div class="lbl" style="margin-bottom:4px">Acheteur · Qualifié</div>
+        <div class="bar ink" style="width:72%;height:13px;border-radius:6px"></div>
+        <div class="row" style="gap:5px;margin-top:8px">
+          <span class="pill">Score 86</span><span class="pill">Site web</span><span class="pill">Genève</span>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <div style="flex:1;background:var(--fill2);border-radius:10px;padding:8px 9px">
+        <div class="lbl">Téléphone</div><div class="bar" style="width:80%;margin-top:5px"></div>
+      </div>
+      <div style="flex:1;background:var(--fill2);border-radius:10px;padding:8px 9px">
+        <div class="lbl">E-mail</div><div class="bar" style="width:90%;margin-top:5px"></div>
+      </div>
+    </div>
+  </div>`;
+
+const heroCompact=()=>`
+  <div class="row" style="padding:2px 2px 0">
+    <div class="av" style="width:42px;height:42px">ML</div>
+    <div style="flex:1;min-width:0">
+      <div class="bar ink" style="width:66%;height:12px;border-radius:6px"></div>
+      <div class="lbl" style="margin-top:5px">Acheteur · Qualifié · Score 86</div>
+    </div>
+    <div class="row" style="gap:6px">
+      <div class="iconbtn">${svg(I.phone)}</div>
+      <div class="iconbtn">${svg(I.msg)}</div>
+    </div>
+  </div>`;
+
+const nextAction=(compact)=>`
+  <div class="next">
+    <div class="row" style="justify-content:space-between">
+      <span class="tag">Prochaine action</span>
+      <span class="mono" style="font-size:8px;color:var(--hiInk);font-weight:700">DEMAIN · 14:00</span>
+    </div>
+    <div class="txt" style="margin-top:7px">Appel de relance — retour visite Carouge</div>
+    ${compact?'':'<div class="txt sm" style="margin-top:4px">Confirmer l\'intérêt et caler une 2ᵉ visite.</div>'}
+    <div class="row" style="gap:7px;margin-top:10px">
+      <div style="flex:1;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;gap:6px">${svg(I.phone,'#fff')}<span style="font-size:9.5px;font-weight:800">Appeler</span></div>
+      <div style="width:30px;height:30px;border-radius:9px;background:#fff;border:1px solid var(--hiLine);display:grid;place-items:center;color:var(--hiInk)">${svg(I.cal)}</div>
+    </div>
+  </div>`;
+
+const sectionBlock=(title,lines=3,img=false)=>`
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px">
+      <div class="txt">${title}</div><div style="width:14px;height:14px;color:var(--ghost)">${svg(I.chev)}</div>
+    </div>
+    ${img?'<div class="imgph" style="height:60px;margin-bottom:9px">3 biens proposés</div>':''}
+    ${Array.from({length:lines}).map((_,i)=>`<div class="bar ${i%2?'d':''}" style="width:${[92,74,84,66][i%4]}%;margin-bottom:7px"></div>`).join('')}
+  </div>`;
+
+const timelineMini=(n=3)=>`
+  <div class="card">
+    <div class="txt" style="margin-bottom:11px">Activité récente</div>
+    ${Array.from({length:n}).map((_,i)=>`
+      <div class="tl" style="padding-bottom:${i===n-1?0:12}px">
+        <div class="dotcol"><div class="dot"></div>${i<n-1?'<div class="ln"></div>':''}</div>
+        <div style="flex:1;padding-top:1px">
+          <div class="bar ink" style="width:${[70,82,60][i]}%;height:10px"></div>
+          <div class="lbl" style="margin-top:6px">12 mai · Gregory</div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+
+const tileRow=(ic,label,count)=>`
+  <div class="tile">
+    <div class="ic">${svg(ic)}</div>
+    <div style="min-width:0">
+      <div class="txt">${label}</div>
+      <div class="bar d" style="width:64px;height:7px;margin-top:5px"></div>
+    </div>
+    <span class="count">${count}</span>
+    <div class="ch">${svg(I.chev)}</div>
+  </div>`;
+
+const actbar=()=>`
+  <div class="actbar">
+    <div class="a cta">${svg(I.phone,'#fff')}<span class="t">Appeler</span></div>
+    <div class="a">${svg(I.mail)}<span class="t">E-mail</span></div>
+    <div class="a">${svg(I.msg)}<span class="t">Message</span></div>
+    <div class="a">${svg(I.cal)}<span class="t">Planifier</span></div>
+  </div>`;
+
+const topbar=(showActions)=>`
+  <div class="topbar">
+    <div class="iconbtn">${svg(I.back)}</div>
+    <div class="topttl"><div class="k">Fiche contact</div><div class="v">Marie Leclerc</div></div>
+    <div class="iconbtn">${svg(I.more)}</div>
+  </div>`;
+
+// ── Direction builders ─────────────────────────────
+function phone(inner){return `<div class="phone"><div class="screen"><div class="notch"></div>${inner}</div></div>`;}
+
+// contact row for the list
+const crow=(initials,sub,score,sel)=>`
+  <div class="crow ${sel?'sel':''}">
+    <div class="av" style="width:38px;height:38px;font-size:10px">${initials}</div>
+    <div style="flex:1;min-width:0">
+      <div class="bar ink" style="width:${sel?70:[58,64,52,68,60][score%5]}%;height:11px;border-radius:5px"></div>
+      <div class="lbl" style="margin-top:6px">${sub}</div>
+    </div>
+    <span class="scorep">${score}</span>
+    <div style="width:13px;height:13px;color:var(--ghost)">${svg(I.chev)}</div>
+  </div>`;
+
+// 0 — Contacts list (entry point)
+const LIST = phone(`
+  <div class="topbar" style="justify-content:space-between">
+    <div class="iconbtn">${svg(I.list)}</div>
+    <div class="topttl"><div class="k">MEGGA CRM</div><div class="v">Contacts · 248</div></div>
+    <div class="iconbtn">${svg(I.filter)}</div>
+  </div>
+  <div style="flex-shrink:0;padding:11px 14px 9px;background:var(--screen);display:flex;flex-direction:column;gap:10px">
+    <div class="srch">${svg(I.search)}<span class="ph">Rechercher un contact…</span></div>
+    <div class="chips">
+      <div class="chip on">Tous</div><div class="chip">Acheteurs</div><div class="chip">Vendeurs</div><div class="chip">À relancer</div>
+    </div>
+  </div>
+  <div class="body"><div class="scroll" style="gap:4px;padding-top:6px">
+    <div class="grp">À relancer · aujourd'hui</div>
+    ${crow('ML','Acheteur · Genève',86,true)}
+    ${crow('PD','Vendeur · Carouge',74,false)}
+    <div class="grp" style="margin-top:10px">Tous les contacts</div>
+    ${crow('SR','Acheteur · Lancy',61,false)}
+    ${crow('JB','Locataire · Plainpalais',48,false)}
+    ${crow('AC','Mixte · Versoix',55,false)}
+    ${crow('TM','Acheteur · Meyrin',39,false)}
+  </div></div>
+  <div class="fab">${svg(I.plus,'#fff')}</div>
+`);
+
+// A — Tab bar native (onglets en bas)
+const A = phone(`
+  ${topbar()}
+  <div class="body"><div class="scroll">
+    ${heroCompact()}
+    ${nextAction(false)}
+    ${timelineMini(2)}
+    ${sectionBlock('Deal en cours',2)}
+  </div></div>
+  <div class="tabbar">
+    <div class="t on">${svg(I.grid)}<span class="l">Aperçu</span></div>
+    <div class="t">${svg(I.clock)}<span class="l">Activité</span></div>
+    <div class="t">${svg(I.home)}<span class="l">Biens</span></div>
+    <div class="t">${svg(I.doc)}<span class="l">Docs</span></div>
+  </div>
+`);
+
+// B — Segmented control sous le hero + barre d'actions
+const B = phone(`
+  ${topbar()}
+  <div class="body"><div class="scroll" style="gap:11px">
+    ${heroFull()}
+    <div class="seg">
+      <div class="s on">Aperçu</div><div class="s">Activité</div><div class="s">Biens</div><div class="s">Docs</div>
+    </div>
+    ${nextAction(true)}
+    ${sectionBlock('Critères de recherche',3)}
+  </div></div>
+  ${actbar()}
+`);
+
+// C — Aperçu dashboard + drill-in
+const C = phone(`
+  ${topbar()}
+  <div class="body"><div class="scroll" style="gap:10px">
+    ${heroCompact()}
+    ${nextAction(true)}
+    <div class="lbl" style="margin:2px 2px -2px">Explorer la fiche</div>
+    ${tileRow(I.clock,'Activité','6')}
+    ${tileRow(I.home,'Biens proposés','3')}
+    ${tileRow(I.target,'Critères','·')}
+    ${tileRow(I.grid,'Deals','1')}
+    ${tileRow(I.shield,'KYC · optionnel','—')}
+    ${tileRow(I.doc,'Documents','3')}
+  </div></div>
+  ${actbar()}
+`);
+
+// D — Scroll guidé / ancres sticky
+const D = phone(`
+  ${topbar()}
+  <div style="flex-shrink:0;padding:9px 14px;background:var(--screen);border-bottom:1px solid var(--line2)">
+    <div class="chips">
+      <div class="chip on">Aperçu</div><div class="chip">Activité</div><div class="chip">Biens</div><div class="chip">Critères</div>
+    </div>
+  </div>
+  <div class="body"><div class="scroll" style="gap:11px">
+    ${heroCompact()}
+    ${nextAction(true)}
+    ${sectionBlock('Biens proposés',2,true)}
+    ${timelineMini(2)}
+  </div></div>
+  ${actbar()}
+`);
+
+// ── annotations ────────────────────────────────────
+const lanes = [
+  {n:'A', title:'Tab bar native', sub:'Onglets fixes en bas — modèle d\'app iOS/Android. Le hero reste compact en tête.',
+   phone:A, ann:[
+     ['pro','<b>Navigation familière</b> : 4 onglets toujours visibles, le pouce y accède.'],
+     ['pro','Chaque onglet = un écran respirant, zéro mur d\'infos.'],
+     ['con','Les <b>actions de contact</b> doivent vivre dans le hero (la barre du bas sert à naviguer).'],
+     ['','Bon si on assume une logique “mini-app” par contact.'],
+   ]},
+  {n:'B', title:'Segmented + barre d\'actions', sub:'Hero complet, puis onglets segmentés. Barre Appeler/E-mail/Message/Planifier fixée en bas.',
+   phone:B, ann:[
+     ['pro','<b>Identité + coordonnées complètes</b> visibles d\'entrée (priorité respectée).'],
+     ['pro','Actions de contact <b>toujours sous le pouce</b>, séparées de la navigation.'],
+     ['pro','Le segment reste collé en haut pendant le scroll.'],
+     ['con','Le hero mange de la place : moins de contenu “above the fold”.'],
+   ]},
+  {n:'C', title:'Aperçu + drill-in', sub:'Un tableau de bord synthétique. Chaque section = une tuile résumée qui ouvre son propre écran.',
+   phone:C, ann:[
+     ['pro','<b>Vue d\'ensemble en un coup d\'œil</b> : compteurs, prochaine action, tout est lisible sans scroller loin.'],
+     ['pro','On ne charge une section que si on la touche → écrans ultra-ciblés.'],
+     ['pro','Très scalable : ajouter une section = ajouter une tuile.'],
+     ['con','Un tap de plus pour atteindre le détail d\'une section.'],
+   ]},
+  {n:'D', title:'Scroll guidé · ancres', sub:'Scroll continu d\'origine, mais une barre de chips sticky permet de sauter à une section et situe où on est.',
+   phone:D, ann:[
+     ['pro','<b>Le moins de rupture</b> avec la fiche actuelle : on garde le scroll, on l\'outille.'],
+     ['pro','Aperçu de chaque section sans changer d\'écran (bon pour comparer).'],
+     ['con','Reste un long scroll — le risque de densité n\'est qu\'atténué, pas supprimé.'],
+     ['con','Le suivi d\'ancre au scroll est plus fragile à exécuter proprement.'],
+   ]},
+];
+
+document.getElementById('flowarrow').innerHTML = svg(I.arrowdown);
+document.getElementById('entry').innerHTML = `
+  ${LIST}
+  <div class="entryNote">
+    <h4>Le point d'entrée</h4>
+    <ul>
+      <li>Liste filtrable : <b>recherche</b>, segments (Acheteurs / Vendeurs / À relancer), regroupement par priorité.</li>
+      <li class="pro">Chaque ligne montre l'essentiel pour <b>choisir</b> : nom, type · ville, score.</li>
+      <li class="pro">Le groupe <b>« À relancer »</b> remonte les contacts qui ont une prochaine action due — cohérent avec la fiche.</li>
+      <li>Un <b>tap</b> ouvre la fiche du contact → c'est là que les 4 directions ci-dessous s'appliquent.</li>
+    </ul>
+  </div>
+`;
+
+document.getElementById('rail').innerHTML = lanes.map(L=>`
+  <div class="lane">
+    <div class="laneTag"><span class="n">${L.n}</span><span class="t">${L.title}</span></div>
+    <p class="laneSub">${L.sub}</p>
+    ${L.phone}
+    <div class="ann">
+      <h4>Ce que ça change</h4>
+      <ul>${L.ann.map(([k,t])=>`<li class="${k}">${t}</li>`).join('')}</ul>
+    </div>
+  </div>
+`).join('');
+</script>
+</body>
+</html>

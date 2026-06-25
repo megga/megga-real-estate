@@ -1,0 +1,151 @@
+// MEGGA CRM — Tokens « Sugar Pure » mobile (clair + sombre).
+//
+// Source de vérité : MT_LIGHT/MT_DARK promus depuis la maquette
+// docs/handoff/crm-mobile/crm-mobile-today.jsx (déjà Sugar Pure : accent noir
+// #0B0C0E, surfaces blanches pures, ombres douces seules, zéro bordure déco).
+// Consolidations vs maquettes : un seul jeu de phases pipeline (MT_PHASES),
+// tokens destructifs (danger), sceau KYC (kycSeal). Ce module est le point
+// UNIQUE — aucune dérivation locale de tokens ailleurs.
+//
+// ⚠ Ne PAS baser sur src/components/crm-sugar/tokens.ts (accent bleu desktop).
+
+export interface MobileTokens {
+  mode: 'light' | 'dark'
+  /** Fond de page (gradient radial en clair, quasi-noir en sombre). */
+  canvas: string
+  /** Fond aplati (surfaces solides qui ne veulent pas du gradient). */
+  pageBg: string
+  card: string
+  cardSubtle: string
+  ink: string
+  inkSoft: string
+  muted: string
+  ghost: string
+  hair: string
+  /** Accent unique Sugar Pure : noir en clair, blanc cassé en sombre. */
+  accent: string
+  accentInk: string
+  headerBg: string
+  tabBg: string
+  /** Voile des overlays (feuilles, menus, confirmations). */
+  overlay: string
+  /** Fond des feuilles groupées (notifications) — surface sur laquelle flottent les cartes. */
+  sheetBg: string
+  tabBarBg: string
+  tabBarShadow: string
+  pillBg: string
+  pillInk: string
+  shadowSm: string
+  shadow: string
+  shadowLg: string
+  relanceBg: string
+  relanceBorder: string
+  relanceInk: string
+  relanceMuted: string
+  ctaBg: string
+  ctaInk: string
+  riskBg: string
+  riskFg: string
+  goal: string
+  cardBorder: string
+  /** CTA / confirmation destructive (rouge foncé opaque, texte blanc). */
+  danger: string
+  dangerInk: string
+  /** Sceau KYC vérifié (bluecheck). */
+  kycSeal: string
+}
+
+export const MT_LIGHT: MobileTokens = {
+  mode: 'light',
+  canvas: 'radial-gradient(ellipse 120% 65% at 50% 0%, #CFDAE4 0%, #DFE3EA 46%, #EEF0F3 100%)',
+  pageBg: '#EEF1F5',
+  card: '#FFFFFF',
+  cardSubtle: '#F6F7F9',
+  ink: '#0B0C0E',
+  inkSoft: '#3A3D44',
+  muted: '#7A8088',
+  ghost: '#AEB3BC',
+  hair: '#ECEEF1',
+  accent: '#0B0C0E',
+  accentInk: '#FFFFFF',
+  headerBg: 'rgba(255,255,255,0.92)',
+  tabBg: 'rgba(255,255,255,0.92)',
+  overlay: 'rgba(11,12,14,0.32)',
+  sheetBg: '#EDEFF2',
+  tabBarBg: '#FFFFFF',
+  tabBarShadow: '0 18px 44px rgba(15,23,42,0.16), 0 4px 14px rgba(15,23,42,0.07)',
+  pillBg: '#0B0C0E',
+  pillInk: '#FFFFFF',
+  shadowSm: '0 4px 16px rgba(15,23,42,0.05)',
+  shadow: '0 12px 34px rgba(15,23,42,0.07), 0 2px 8px rgba(15,23,42,0.04)',
+  shadowLg: '0 22px 50px rgba(15,23,42,0.12), 0 6px 18px rgba(15,23,42,0.06)',
+  relanceBg: '#0B0C0E',
+  relanceBorder: 'transparent',
+  relanceInk: '#FFFFFF',
+  relanceMuted: '#9CA0AC',
+  ctaBg: '#FFFFFF',
+  ctaInk: '#0B0C0E',
+  riskBg: '#FAEAD7',
+  riskFg: '#B4570A',
+  goal: '#059669',
+  cardBorder: 'transparent',
+  danger: '#8E1F3D',
+  dangerInk: '#FFFFFF',
+  kycSeal: '#0041D9',
+}
+
+export const MT_DARK: MobileTokens = {
+  mode: 'dark',
+  canvas: '#030303',
+  pageBg: '#030303',
+  card: '#17181A',
+  cardSubtle: '#1F2023',
+  ink: '#ECEDF3',
+  inkSoft: '#B5B7C4',
+  muted: '#878B99',
+  ghost: '#54576A',
+  hair: 'rgba(255,255,255,0.08)',
+  accent: '#F2F2F6',
+  accentInk: '#0B0C0E',
+  headerBg: 'rgba(15,15,16,0.82)',
+  tabBg: 'rgba(17,17,18,0.86)',
+  overlay: 'rgba(0,0,4,0.5)',
+  sheetBg: '#0E0F11',
+  tabBarBg: '#17181A',
+  tabBarShadow: '0 18px 44px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.4)',
+  pillBg: '#F2F2F6',
+  pillInk: '#0B0C0E',
+  shadowSm: '0 2px 10px rgba(0,0,0,0.4)',
+  shadow: '0 12px 34px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4)',
+  shadowLg: '0 24px 56px rgba(0,0,0,0.62), 0 6px 18px rgba(0,0,0,0.5)',
+  relanceBg: '#1F2023',
+  relanceBorder: 'rgba(255,255,255,0.08)',
+  relanceInk: '#ECEDF3',
+  relanceMuted: '#878B99',
+  ctaBg: '#F2F2F6',
+  ctaInk: '#0B0C0E',
+  riskBg: 'rgba(180,87,10,0.20)',
+  riskFg: '#F0B27A',
+  goal: '#34C796',
+  cardBorder: 'rgba(255,255,255,0.07)',
+  danger: '#E0738C',
+  dangerInk: '#FFFFFF',
+  kycSeal: '#6F8CFF',
+}
+
+// Couleurs fonctionnelles métier — pilules/pastilles UNIQUEMENT, jamais accent
+// UI. Identiques clair/sombre (reconnaissance). Canoniques : résout les
+// divergences Offre (#C45A00) / Compromis (#059669) des maquettes.
+export const MT_PHASES = {
+  mandat: '#1E5BC6',
+  preparation: '#0891B2',
+  visites: '#0891B2',
+  offre: '#C45A00',
+  compromis: '#059669',
+  acte: '#0B0C0E',
+} as const
+export type MobilePhase = keyof typeof MT_PHASES
+
+// Manrope chargé globalement (index.html). Fallback système si indisponible.
+export const MOBILE_FONT =
+  "'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
