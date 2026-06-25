@@ -957,5 +957,8 @@
     "riskFallback": "Risque",
     "checksCount": "{{done}}/{{total}} contrôles",
     "checksLabel": "contrôles"
+  },
+  "mobile": {
+    "back": "Plus"
   }
 }

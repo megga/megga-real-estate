@@ -41,7 +41,7 @@ interface KycDossiersFilter {
   status?: KycDossierStatus | 'all' | 'blocking' | 'risk'
 }
 
-export function useKycDossiers(filters?: KycDossiersFilter) {
+export function useKycDossiers(filters?: KycDossiersFilter, opts?: { enabled?: boolean }) {
   return useQuery<KycDossierRow[]>({
     queryKey: ['kyc-dossiers', filters],
     queryFn: async () => {
@@ -83,6 +83,9 @@ export function useKycDossiers(filters?: KycDossiersFilter) {
         return rows.filter((r) => r.risk_level === 'high' || r.risk_level === 'medium')
       return rows.filter((r) => r.dossier_status === filters.status)
     },
+    // Rétro-compatible : enabled=true par défaut (appelants existants inchangés).
+    // Permet aux surfaces démo de rester inertes (aucun fetch KYC PII).
+    enabled: opts?.enabled ?? true,
   })
 }
 

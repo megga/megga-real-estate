@@ -67,6 +67,7 @@ const MobileNewContactPage = lazy(() => import('@/components/crm-mobile/contacts
 const MobileContactDetailPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactDetailPage'))
 const MobileAnalyticsPage = lazy(() => import('@/components/crm-mobile/analytics/MobileAnalyticsPage'))
 const MobileJourneyPage = lazy(() => import('@/components/crm-mobile/journey/MobileJourneyPage'))
+const MobileKycListPage = lazy(() => import('@/components/crm-mobile/kyc/MobileKycListPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -531,7 +532,8 @@ function AnimatedRoutes() {
                 <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarSugarV2Page />} mobile={<MobileAgendaPage />} />} />
                 <Route path="settings" element={<SettingsSugarV2Page />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
-                <Route path="kyc" element={<KycSugarV3Page />} />
+                {/* KYC — mobile (< 768px) : liste des dossiers (P9) ; détail = desktop. */}
+                <Route path="kyc" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycListPage />} />} />
                 <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
                 {/* Réseau inter-agences — hors périmètre v1 (page conservée, route neutralisée) */}
                 <Route path="network" element={<Navigate to="/dashboard" replace />} />
