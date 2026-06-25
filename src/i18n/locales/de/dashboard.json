@@ -674,6 +674,15 @@
       "back": "Mehr",
       "noData": "Derzeit keine Daten verfügbar",
       "sourcesSubtitle": "Woher deine Kontakte kommen"
+    },
+    "settings": {
+      "completion": "Profil zu {{pct}} % ausgefüllt",
+      "unnamed": "Kein Name",
+      "channelWord_one": "aktiver Kanal",
+      "channelWord_other": "aktive Kanäle",
+      "billingDesktop": "Die Abo-Verwaltung ist am Desktop verfügbar.",
+      "signedOut": "Melde dich an, um deine Einstellungen zu bearbeiten.",
+      "noPlan": "Kein aktives Abo"
     }
   }
 }

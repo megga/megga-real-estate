@@ -101,7 +101,8 @@ export interface UseAgentProfileSugarReturn {
   save: (next: ProfileData) => Promise<void>
 }
 
-export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
+export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentProfileSugarReturn {
+  const enabled = options?.enabled ?? true
   const { profile: authProfile } = useAuth()
   const profileId = authProfile?.id
   const queryClient = useQueryClient()
@@ -118,7 +119,7 @@ export function useAgentProfileSugar(): UseAgentProfileSugarReturn {
       if (error) throw error
       return data as unknown as ProfileJoinRow
     },
-    enabled: !!profileId,
+    enabled: enabled && !!profileId,
     staleTime: 60_000,
   })
 

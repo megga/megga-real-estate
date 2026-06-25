@@ -674,6 +674,15 @@
       "back": "Altro",
       "noData": "Nessun dato da mostrare per ora",
       "sourcesSubtitle": "Da dove arrivano i tuoi contatti"
+    },
+    "settings": {
+      "completion": "Profilo completato al {{pct}} %",
+      "unnamed": "Senza nome",
+      "channelWord_one": "canale attivo",
+      "channelWord_other": "canali attivi",
+      "billingDesktop": "La gestione dell’abbonamento è disponibile da desktop.",
+      "signedOut": "Accedi per modificare le tue impostazioni.",
+      "noPlan": "Nessun piano attivo"
     }
   }
 }

@@ -683,6 +683,15 @@
       "back": "More",
       "noData": "No data to show right now",
       "sourcesSubtitle": "Where your contacts come from"
+    },
+    "settings": {
+      "completion": "Profile {{pct}} % complete",
+      "unnamed": "No name",
+      "channelWord_one": "active channel",
+      "channelWord_other": "active channels",
+      "billingDesktop": "Subscription management is available on desktop.",
+      "signedOut": "Sign in to edit your settings.",
+      "noPlan": "No active plan"
     }
   }
 }
