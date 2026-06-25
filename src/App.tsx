@@ -57,6 +57,7 @@ const MobileMorePage = lazy(() => import('@/components/crm-mobile/more/MobileMor
 const MobileTodayPage = lazy(() => import('@/components/crm-mobile/today/MobileTodayPage'))
 const MobilePipelinePage = lazy(() => import('@/components/crm-mobile/pipeline/MobilePipelinePage'))
 const MobileDealDetailPage = lazy(() => import('@/components/crm-mobile/deal/MobileDealDetailPage'))
+const MobileMatchingPage = lazy(() => import('@/components/crm-mobile/matching/MobileMatchingPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -506,8 +507,9 @@ function AnimatedRoutes() {
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
                 {/* Atelier Matching — triptyque plein écran (handoff juin 2026).
-                    Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id> */}
-                <Route path="matching" element={<MatchingAtelierPage />} />
+                    Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id>.
+                    Mobile (< 768px) : inbox acheteurs + focus (P5). */}
+                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingAtelierPage />} mobile={<MobileMatchingPage />} />} />
                 <Route path="journey" element={<JourneySugarV2Page />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 <Route path="calendar" element={<CalendarSugarV2Page />} />

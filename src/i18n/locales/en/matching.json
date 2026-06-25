@@ -277,5 +277,46 @@
     "daysOnMarket_other": "{{count}}d online",
     "sentVia": "Sent · {{channel}}",
     "visit": "Viewing"
+  },
+  "mobile": {
+    "activeBuyers_one": "{{count}} active buyer",
+    "activeBuyers_other": "{{count}} active buyers",
+    "bienCount_one": "{{count}} property",
+    "bienCount_other": "{{count}} properties",
+    "back": "Back",
+    "schedule": "Schedule",
+    "visitPlanned": "Visit scheduled",
+    "visitProposed": "Visit proposed",
+    "send": "Send",
+    "sent": "Sent",
+    "surfaceSuffix": "m²",
+    "roomsSuffix": "rooms",
+    "channelEmail": "By email · {{email}}",
+    "channelNone": "Filed in the client folder",
+    "viewContact": "View contact",
+    "refine": "Refine criteria",
+    "removeFromList": "Remove from list",
+    "removeTitle": "Remove from list?",
+    "removeBody": "{{name}} will no longer receive proposals from this search.",
+    "emptyFilter": "No buyer in this filter.",
+    "verdict": {
+      "excellent": "Excellent",
+      "veryGood": "Very good",
+      "good": "Good",
+      "explore": "To explore"
+    },
+    "settings": {
+      "title": "Matching settings",
+      "sub": "Which matches MEGGA suggests",
+      "question": "How many properties to propose?",
+      "wide": "Wide",
+      "wideDesc": "Many properties",
+      "balanced": "Balanced",
+      "balancedDesc": "The right compromise",
+      "precise": "Precise",
+      "preciseDesc": "Only the best",
+      "recommended": "Recommended",
+      "save": "Save"
+    }
   }
 }
