@@ -590,11 +590,53 @@ function listingAmount(l: { transaction_type: string | null; price: number | nul
   return l.transaction_type === 'rent' ? (l.rent_chf ?? l.rent ?? l.price ?? 0) : (l.price ?? 0)
 }
 
-/** Recherche d'annonces (market_listings). Perf-safe : eq(status)+eq(transaction_type) sur
- *  index, tri quality_score (indexé, pas de sort full table). Renvoie le total ESTIMÉ
- *  (count: 'estimated', sans scan complet — conforme CLAUDE.md §7, jamais 'exact') reflétant
- *  les filtres et ignorant le .limit, plus un échantillon de 6 biens. Budget filtré EN SQL
- *  sur `price` (loyer réel des actifs rent ; rent/rent_chf sont NULL en base). */
+// Cantons suisses : code ISO + variantes de nom (FR/DE/IT, sans accents) → code 2 lettres.
+// Permet de filtrer une zone « canton » via `canton = code` (INDEXÉ : idx_ml_active_tx_canton_type)
+// au lieu d'un `canton ILIKE '%nom%'` plein-texte — inutile (canton = code 2 lettres) ET qui
+// empêchait le planificateur d'utiliser le trigram, forçant un scan de ~34k lignes (timeout 24/06).
+const CANTON_BY_NAME: Record<string, string> = {
+  ge: 'GE', geneve: 'GE', geneva: 'GE', genf: 'GE',
+  vd: 'VD', vaud: 'VD', waadt: 'VD',
+  vs: 'VS', valais: 'VS', wallis: 'VS', vallese: 'VS',
+  ne: 'NE', neuchatel: 'NE', neuenburg: 'NE',
+  fr: 'FR', fribourg: 'FR', freiburg: 'FR', friburgo: 'FR',
+  be: 'BE', berne: 'BE', bern: 'BE', berna: 'BE',
+  ju: 'JU', jura: 'JU',
+  bs: 'BS', baleville: 'BS', baselstadt: 'BS', bale: 'BS', basel: 'BS',
+  bl: 'BL', balecampagne: 'BL', basellandschaft: 'BL', baselland: 'BL',
+  ag: 'AG', argovie: 'AG', aargau: 'AG',
+  so: 'SO', soleure: 'SO', solothurn: 'SO',
+  zh: 'ZH', zurich: 'ZH',
+  lu: 'LU', lucerne: 'LU', luzern: 'LU',
+  zg: 'ZG', zoug: 'ZG', zug: 'ZG',
+  sz: 'SZ', schwytz: 'SZ', schwyz: 'SZ',
+  nw: 'NW', nidwald: 'NW', nidwalden: 'NW',
+  ow: 'OW', obwald: 'OW', obwalden: 'OW',
+  ur: 'UR', uri: 'UR',
+  gl: 'GL', glaris: 'GL', glarus: 'GL',
+  sh: 'SH', schaffhouse: 'SH', schaffhausen: 'SH',
+  tg: 'TG', thurgovie: 'TG', thurgau: 'TG',
+  ar: 'AR', appenzellrhodesexterieures: 'AR', appenzellausserrhoden: 'AR',
+  ai: 'AI', appenzellrhodesinterieures: 'AI', appenzellinnerrhoden: 'AI',
+  sg: 'SG', saintgall: 'SG', stgall: 'SG', stgallen: 'SG', sangallo: 'SG',
+  gr: 'GR', grisons: 'GR', graubunden: 'GR', grigioni: 'GR',
+  ti: 'TI', tessin: 'TI', ticino: 'TI',
+}
+
+/** Un libellé de zone est-il un CANTON ? Renvoie son code ISO 2 lettres, sinon null (= commune). */
+function zoneToCantonCode(zone: string): string | null {
+  const k = zone.toLowerCase()
+    .replace(/[àâäáã]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[îïíì]/g, 'i')
+    .replace(/[ôöóò]/g, 'o').replace(/[ûüúù]/g, 'u').replace(/ç/g, 'c')
+    .replace(/[^a-z]/g, '')
+  return CANTON_BY_NAME[k] ?? null
+}
+
+/** Recherche d'annonces (market_listings). Perf-safe (CLAUDE.md §7) : eq(status)+eq(transaction_type)
+ *  sur index, tri quality_score (indexé). Géo INDEXÉE : une zone reconnue comme canton → `canton IN`
+ *  (idx_ml_active_tx_canton_type) ; une commune → `city ILIKE` servi par le GIN trigram
+ *  idx_ml_city_trgm (sinon scan de ~34k lignes = timeout). Total via count:'estimated' (jamais
+ *  'exact'). Budget filtré EN SQL sur `price` (loyer réel des actifs rent ; rent/rent_chf NULL). */
 export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
   const txType = s(a.transaction_type) === 'buy' ? 'buy' : 'rent'
@@ -618,15 +660,33 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   // gonfleraient le total et sortiraient avec un montant null (préserve l'ancienne sémantique amt>0).
   if (budget && budget > 0) q = q.lte('price', budget).gt('price', 0)
 
-  // Zones : OR d'ilike sur city/canton (matche n'importe laquelle). Neutralise les
-  // caractères qui casseraient le filtre PostgREST .or(). Max 5 zones (anti-abus).
+  // Zones : on sépare les CANTONS (→ `canton IN`, indexé) des COMMUNES (→ `city ILIKE`, servi par
+  // le GIN trigram). On NE filtre JAMAIS par `canton ILIKE` : canton = code 2 lettres, un ILIKE y est
+  // inutile ET, dans un OR, il prive le planificateur du trigram → scan de ~34k lignes (timeout 24/06).
+  // Neutralise les caractères qui casseraient le filtre PostgREST .or(). Max 5 zones (anti-abus).
   let zones: string[] = []
   if (Array.isArray(a.zones)) zones = (a.zones as unknown[]).filter((z): z is string => typeof z === 'string' && z.trim().length > 0)
   else if (typeof a.zones === 'string' && a.zones.trim()) zones = a.zones.split(',').map((z) => z.trim()).filter(Boolean)
   const safeZones = zones.map((z) => normalizeZone(z).replace(/[,()%*]/g, ' ').trim()).filter(Boolean).slice(0, 5)
-  if (safeZones.length) {
-    q = q.or(safeZones.flatMap((z) => [`city.ilike.%${z}%`, `canton.ilike.%${z}%`]).join(','))
+  const cantonCodes: string[] = []
+  const cityTerms: string[] = []
+  for (const z of safeZones) {
+    const code = zoneToCantonCode(z)
+    if (code) { if (!cantonCodes.includes(code)) cantonCodes.push(code) }
+    else cityTerms.push(z)
   }
+  const cityOr = cityTerms.map((z) => `city.ilike.%${z}%`)
+  if (cantonCodes.length && cityOr.length) {
+    // union « l'une OU l'autre des zones », canton.in (indexé) bitmap-OR city.ilike (trigram)
+    q = q.or([`canton.in.(${cantonCodes.join(',')})`, ...cityOr].join(','))
+  } else if (cantonCodes.length) {
+    q = q.in('canton', cantonCodes)
+  } else if (cityOr.length === 1) {
+    q = q.ilike('city', `%${cityTerms[0]}%`)
+  } else if (cityOr.length) {
+    q = q.or(cityOr.join(','))
+  }
+  const hasGeo = cantonCodes.length > 0 || cityTerms.length > 0
 
   q = q.order('quality_score', { ascending: false, nullsFirst: false }).limit(24)
   const { data, count, error } = await q
@@ -641,7 +701,13 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   }))
   // total = count estimé (reflète les filtres, ignore le .limit) ; garde-fou : au moins l'échantillon affiché.
   const total = (typeof count === 'number' && count >= biens.length) ? count : biens.length
-  return JSON.stringify({ total, shown: biens.length, biens })
+  // Requête sans aucun critère restrictif (ni zone, ni type, ni budget, ni pièces) → nudge l'agent à affiner.
+  const noNarrowing = !hasGeo && !type && !(budget && budget > 0) && !(Number.isFinite(roomsMin) && roomsMin > 0)
+  const out: Record<string, unknown> = { total, shown: biens.length, biens }
+  if (noNarrowing && total > 200) {
+    out.astuce = "Recherche très large : propose à l'agent d'affiner (zone ou canton, budget, type de bien) pour une sélection plus pertinente."
+  }
+  return JSON.stringify(out)
 }
 
 /** État du dossier KYC d'un contact (lecture). KYC FACULTATIF : aucun dossier ≠ blocage. */
