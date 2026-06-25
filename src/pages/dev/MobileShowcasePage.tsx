@@ -10,6 +10,27 @@ import { useSgToast } from '@/components/crm-mobile/primitives/useSgToast'
 import MobileMoreScreen from '@/components/crm-mobile/more/MobileMoreScreen'
 import { MobileTodayScreen } from '@/components/crm-mobile/today/MobileTodayScreen'
 import { MobilePipelineScreen } from '@/components/crm-mobile/pipeline/MobilePipelineScreen'
+import { MobileDealDetailScreen, type DealData } from '@/components/crm-mobile/deal/MobileDealDetailScreen'
+import { EMPTY_OFFER_CONDITIONS, type Offer } from '@/types/offer'
+
+const DEMO_OFFER: Offer = {
+  id: 'o1', deal_id: 'd5', agency_id: 'ag', parent_offer_id: null,
+  kind: 'offer', from_party: 'buyer', by_id: 'bx', by_label: 'Antoine Picard',
+  amount: 3700000, currency: 'CHF', conditions: EMPTY_OFFER_CONDITIONS,
+  deposit: 370000, closing_date: null, expires_at: '2026-07-02T00:00:00.000Z',
+  status: 'pending', created_at: '2026-06-24T10:00:00.000Z', responded_at: null,
+  attachments: [], notes: '',
+}
+const DEMO_DEAL: DealData = {
+  id: 'd5', stage: 'offer', value: 3850000,
+  buyerName: 'Antoine Picard', buyerInitials: 'AP', buyerId: 'bx',
+  buyerBudgetMin: 3000000, buyerBudgetMax: 4200000, buyerProb: 70,
+  propertyTitle: 'Villa contemporaine · Cologny', propertyAddr: 'Route de la Capite · Genève',
+  propertyPrice: 3850000, propertySurface: 240, propertyRooms: 7, propertyId: 'px',
+  photo: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1000&q=80',
+  kycStatus: 'pending', offers: [DEMO_OFFER], notes: 'Vendeur attend la réponse sous 48 h.',
+  createdAt: '2026-06-20T09:00:00.000Z',
+}
 
 /**
  * Harnais de prévisualisation no-auth des écrans + primitives mobiles —
@@ -47,6 +68,8 @@ function ShowcaseInner() {
 
   return (
     <div style={{ minHeight: '100dvh', background: tk.canvas, color: tk.ink, fontFamily: MOBILE_FONT }}>
+      <MobileDealDetailScreen demoData={DEMO_DEAL} />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobilePipelineScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileTodayScreen demo />

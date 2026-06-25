@@ -361,7 +361,14 @@
     "offer_received": "Offer received",
     "last_update": "Last update",
     "no_offer_recorded": "No offer recorded for this transaction.",
-    "view_contact": "View contact"
+    "view_contact": "View contact",
+    "offer_status": {
+      "pending": "Ausstehend",
+      "accepted": "Angenommen",
+      "rejected": "Abgelehnt",
+      "expired": "Abgelaufen",
+      "withdrawn": "Zurückgezogen"
+    }
   },
   "offerModal": {
     "cta": {

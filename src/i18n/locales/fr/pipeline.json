@@ -366,7 +366,14 @@
     "offer_received": "Offre reçue",
     "last_update": "Dernière mise à jour",
     "no_offer_recorded": "Aucune offre enregistrée pour cette transaction.",
-    "view_contact": "Voir le contact"
+    "view_contact": "Voir le contact",
+    "offer_status": {
+      "pending": "En attente",
+      "accepted": "Acceptée",
+      "rejected": "Refusée",
+      "expired": "Expirée",
+      "withdrawn": "Retirée"
+    }
   },
   "offerModal": {
     "cta": {

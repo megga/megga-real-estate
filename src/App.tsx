@@ -56,6 +56,7 @@ const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout
 const MobileMorePage = lazy(() => import('@/components/crm-mobile/more/MobileMorePage'))
 const MobileTodayPage = lazy(() => import('@/components/crm-mobile/today/MobileTodayPage'))
 const MobilePipelinePage = lazy(() => import('@/components/crm-mobile/pipeline/MobilePipelinePage'))
+const MobileDealDetailPage = lazy(() => import('@/components/crm-mobile/deal/MobileDealDetailPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -492,7 +493,7 @@ function AnimatedRoutes() {
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent) */}
                 <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
-                <Route path="transactions/:id" element={<DealDetailSugarV3Page />} />
+                <Route path="transactions/:id" element={<ResponsiveRoute desktop={<DealDetailSugarV3Page />} mobile={<MobileDealDetailPage />} />} />
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
                 <Route path="transactions/:id/offre/:kind" element={<OfferModalSugarV3Page />} />
                 {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}
