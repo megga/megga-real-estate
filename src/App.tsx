@@ -62,6 +62,8 @@ const MobileAgendaPage = lazy(() => import('@/components/crm-mobile/agenda/Mobil
 const MobileBiensPage = lazy(() => import('@/components/crm-mobile/biens/MobileBiensPage'))
 const MobileBienVitrinePage = lazy(() => import('@/components/crm-mobile/bien/MobileBienVitrinePage'))
 const MobileWizardPage = lazy(() => import('@/components/crm-mobile/wizard/MobileWizardPage'))
+const MobileContactsListPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactsListPage'))
+const MobileNewContactPage = lazy(() => import('@/components/crm-mobile/contacts/MobileNewContactPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
 const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
@@ -493,7 +495,10 @@ function AnimatedRoutes() {
               >
                 <Route index element={<ResponsiveRoute desktop={<TodaySugarPage />} mobile={<MobileTodayPage />} />} />
                 <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
-                <Route path="contacts" element={<ContactsSugarV2Page />} />
+                {/* Contacts — mobile (< 768px) : liste (P8). */}
+                <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsSugarV2Page />} mobile={<MobileContactsListPage />} />} />
+                {/* Création contact — mobile only (desktop : drawer dans la liste). */}
+                <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
                 {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
                 <Route path="listings" element={<ResponsiveRoute desktop={<BiensSugarV2Page />} mobile={<MobileBiensPage />} />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).

@@ -833,5 +833,57 @@
     "addDetails": "+ Add details",
     "notesPlaceholder": "Context, remarks...",
     "create": "Create"
+  },
+  "mobile": {
+    "title": "Contacts",
+    "subtitle": "{{count}} of {{total}}",
+    "searchPlaceholder": "Name, email, phone…",
+    "errorTitle": "Couldn't load contacts",
+    "retry": "Retry",
+    "emptyTitle": "No contact",
+    "emptyDesc": "No contact matches. Adjust the search or filter.",
+    "add": "New contact",
+    "kycVerified": "KYC verified",
+    "seg": {
+      "all": "All",
+      "buyer": "Buyers",
+      "seller": "Sellers"
+    },
+    "type": {
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "tenant": "Tenant",
+      "landlord": "Landlord",
+      "mixed": "Mixed"
+    },
+    "act": {
+      "open": "View contact",
+      "call": "Call",
+      "email": "Send an email"
+    },
+    "new": {
+      "title": "New contact",
+      "identity": "Identity",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "contact": "Contact details",
+      "phone": "Phone",
+      "phonePlaceholder": "+41 79 000 00 00",
+      "email": "Email",
+      "emailPlaceholder": "contact@email.ch",
+      "origin": "Origin",
+      "source": "Source",
+      "sources": {
+        "manual": "Manual entry",
+        "website": "Website",
+        "referral": "Referral"
+      },
+      "create": "Create contact",
+      "creating": "Creating…",
+      "error": "Creation failed. Try again.",
+      "doneTitle": "Contact created",
+      "doneDesc": "{{name}} has been added to your contacts.",
+      "openContact": "Open contact"
+    }
   }
 }

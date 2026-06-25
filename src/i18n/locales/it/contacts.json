@@ -828,5 +828,57 @@
     "addDetails": "+ Add details",
     "notesPlaceholder": "Context, remarks...",
     "create": "Create"
+  },
+  "mobile": {
+    "title": "Contatti",
+    "subtitle": "{{count}} su {{total}}",
+    "searchPlaceholder": "Nome, e-mail, telefono…",
+    "errorTitle": "Impossibile caricare i contatti",
+    "retry": "Riprova",
+    "emptyTitle": "Nessun contatto",
+    "emptyDesc": "Nessun contatto corrisponde. Modifica la ricerca o il filtro.",
+    "add": "Nuovo contatto",
+    "kycVerified": "KYC verificato",
+    "seg": {
+      "all": "Tutti",
+      "buyer": "Acquirenti",
+      "seller": "Venditori"
+    },
+    "type": {
+      "buyer": "Acquirente",
+      "seller": "Venditore",
+      "tenant": "Inquilino",
+      "landlord": "Locatore",
+      "mixed": "Misto"
+    },
+    "act": {
+      "open": "Vedi il contatto",
+      "call": "Chiama",
+      "email": "Invia un'e-mail"
+    },
+    "new": {
+      "title": "Nuovo contatto",
+      "identity": "Identità",
+      "firstName": "Nome",
+      "lastName": "Cognome",
+      "contact": "Recapiti",
+      "phone": "Telefono",
+      "phonePlaceholder": "+41 79 000 00 00",
+      "email": "E-mail",
+      "emailPlaceholder": "contact@email.ch",
+      "origin": "Origine",
+      "source": "Fonte",
+      "sources": {
+        "manual": "Inserimento manuale",
+        "website": "Sito web",
+        "referral": "Segnalazione"
+      },
+      "create": "Crea il contatto",
+      "creating": "Creazione…",
+      "error": "Creazione non riuscita. Riprova.",
+      "doneTitle": "Contatto creato",
+      "doneDesc": "{{name}} è stato aggiunto ai tuoi contatti.",
+      "openContact": "Apri la scheda"
+    }
   }
 }

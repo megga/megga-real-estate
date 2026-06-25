@@ -828,5 +828,57 @@
     "addDetails": "+ Add details",
     "notesPlaceholder": "Context, remarks...",
     "create": "Create"
+  },
+  "mobile": {
+    "title": "Kontakte",
+    "subtitle": "{{count}} von {{total}}",
+    "searchPlaceholder": "Name, E-Mail, Telefon…",
+    "errorTitle": "Kontakte konnten nicht geladen werden",
+    "retry": "Erneut versuchen",
+    "emptyTitle": "Kein Kontakt",
+    "emptyDesc": "Kein Kontakt entspricht. Suche oder Filter anpassen.",
+    "add": "Neuer Kontakt",
+    "kycVerified": "KYC verifiziert",
+    "seg": {
+      "all": "Alle",
+      "buyer": "Käufer",
+      "seller": "Verkäufer"
+    },
+    "type": {
+      "buyer": "Käufer",
+      "seller": "Verkäufer",
+      "tenant": "Mieter",
+      "landlord": "Vermieter",
+      "mixed": "Gemischt"
+    },
+    "act": {
+      "open": "Kontakt ansehen",
+      "call": "Anrufen",
+      "email": "E-Mail senden"
+    },
+    "new": {
+      "title": "Neuer Kontakt",
+      "identity": "Identität",
+      "firstName": "Vorname",
+      "lastName": "Name",
+      "contact": "Kontaktdaten",
+      "phone": "Telefon",
+      "phonePlaceholder": "+41 79 000 00 00",
+      "email": "E-Mail",
+      "emailPlaceholder": "contact@email.ch",
+      "origin": "Herkunft",
+      "source": "Quelle",
+      "sources": {
+        "manual": "Manuelle Eingabe",
+        "website": "Website",
+        "referral": "Empfehlung"
+      },
+      "create": "Kontakt erstellen",
+      "creating": "Wird erstellt…",
+      "error": "Erstellung fehlgeschlagen. Erneut versuchen.",
+      "doneTitle": "Kontakt erstellt",
+      "doneDesc": "{{name}} wurde zu Ihren Kontakten hinzugefügt.",
+      "openContact": "Kontakt öffnen"
+    }
   }
 }
