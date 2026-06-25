@@ -306,5 +306,18 @@
       "photoCount_one": "{{count}} photo",
       "photoCount_other": "{{count}} photos"
     }
+  },
+  "mobile": {
+    "viewList": "Liste",
+    "viewBlock": "Raster",
+    "durMin": "{{count}} Min.",
+    "durH": "{{count}} Std.",
+    "durHM": "{{h}} Std. {{m}}",
+    "call": "Anrufen",
+    "note": "Notiz",
+    "openVisit": "Besichtigung öffnen",
+    "dayFreeTitle": "Freier Tag",
+    "dayFreeDesc": "Blockieren Sie Zeit für heisse Käufer oder bringen Sie die Pipeline voran.",
+    "retry": "Erneut versuchen"
   }
 }

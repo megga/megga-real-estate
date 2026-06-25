@@ -11,6 +11,7 @@ import MobileMoreScreen from '@/components/crm-mobile/more/MobileMoreScreen'
 import { MobileTodayScreen } from '@/components/crm-mobile/today/MobileTodayScreen'
 import { MobilePipelineScreen } from '@/components/crm-mobile/pipeline/MobilePipelineScreen'
 import { MobileMatchingScreen } from '@/components/crm-mobile/matching/MmMatchingScreen'
+import { MobileAgendaScreen } from '@/components/crm-mobile/agenda/MobileAgendaScreen'
 import { MobileDealDetailScreen, type DealData } from '@/components/crm-mobile/deal/MobileDealDetailScreen'
 import { EMPTY_OFFER_CONDITIONS, type Offer } from '@/types/offer'
 
@@ -70,6 +71,8 @@ function ShowcaseInner() {
   return (
     <div style={{ minHeight: '100dvh', background: tk.canvas, color: tk.ink, fontFamily: MOBILE_FONT }}>
       <MobileMatchingScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileAgendaScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileDealDetailScreen demoData={DEMO_DEAL} />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
