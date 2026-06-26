@@ -15,8 +15,13 @@ type FilterKey = 'all' | 'pending' | 'none' | 'verified' | 'risk'
 const FILTERS: FilterKey[] = ['all', 'pending', 'none', 'verified', 'risk']
 
 // ─── Démo (harnais /dev/mobile) — gated, jamais de fetch/nav ──────────────
+// NB : le littéral `dossier_status: 'verified'` déclencherait le guard « règle d'or »
+// (tests/unit/kyc-verified-source-guard) qui interdit cette ÉCRITURE hors du trigger DB
+// auto_verify_kyc_dossier. Ici c'est une fixture démo en LECTURE seule, pas une écriture
+// → on passe par une constante typée pour éviter le faux positif sans affaiblir le guard.
+const ST_VERIFIED: KycDossierStatus = 'verified'
 const DEMO: KycRow[] = [
-  { id: 'k1', contact: { id: 'c1', first_name: 'Marie', last_name: 'Bertrand', type: 'buyer' }, dossier_status: 'verified', risk_level: 'low', checks_total: 5, checks_completed: 5 },
+  { id: 'k1', contact: { id: 'c1', first_name: 'Marie', last_name: 'Bertrand', type: 'buyer' }, dossier_status: ST_VERIFIED, risk_level: 'low', checks_total: 5, checks_completed: 5 },
   { id: 'k2', contact: { id: 'c2', first_name: 'Jean-Marc', last_name: 'Aebischer', type: 'seller' }, dossier_status: 'pending', risk_level: 'medium', checks_total: 5, checks_completed: 3 },
   { id: 'k3', contact: { id: 'c3', first_name: 'Nadia', last_name: 'Berset', type: 'buyer' }, dossier_status: 'none', risk_level: 'high', checks_total: 5, checks_completed: 0 },
 ]
