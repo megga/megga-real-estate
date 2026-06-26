@@ -82,7 +82,8 @@ export interface UseAgencySettingsReturn {
   save: (next: AgencySettingsData) => Promise<void>
 }
 
-export function useAgencySettings(): UseAgencySettingsReturn {
+export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySettingsReturn {
+  const enabled = options?.enabled ?? true
   const { profile } = useAuth()
   const agencyId = profile?.agency_id ?? null
   const queryClient = useQueryClient()
@@ -119,7 +120,7 @@ export function useAgencySettings(): UseAgencySettingsReturn {
         plan: row?.plan ?? null,
       }
     },
-    enabled: !!agencyId,
+    enabled: enabled && !!agencyId,
     staleTime: 60_000,
   })
 

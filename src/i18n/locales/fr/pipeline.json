@@ -559,5 +559,13 @@
   "dealsCount_one": "{{count}} affaire",
   "dealsCount_other": "{{count}} affaires",
   "toEstimate": "À estimer",
-  "kycSoft": "KYC à compléter, optionnel"
+  "kycSoft": "KYC à compléter, optionnel",
+  "mobile": {
+    "journey": {
+      "back": "Plus",
+      "inProgress": "En cours",
+      "error": "Chargement impossible",
+      "retry": "Réessayer"
+    }
+  }
 }

@@ -34,7 +34,8 @@ export interface UseNotifPreferencesReturn {
   save: (next: NotifPreferences) => Promise<void>
 }
 
-export function useNotifPreferences(): UseNotifPreferencesReturn {
+export function useNotifPreferences(options?: { enabled?: boolean }): UseNotifPreferencesReturn {
+  const enabled = options?.enabled ?? true
   const { profile } = useAuth()
   const profileId = profile?.id
   const queryClient = useQueryClient()
@@ -54,7 +55,7 @@ export function useNotifPreferences(): UseNotifPreferencesReturn {
       const notifs = (prefs as { notifications?: Partial<NotifPreferences> }).notifications ?? {}
       return { ...DEFAULT_NOTIFS, ...notifs }
     },
-    enabled: !!profileId,
+    enabled: enabled && !!profileId,
     staleTime: 60_000,
   })
 

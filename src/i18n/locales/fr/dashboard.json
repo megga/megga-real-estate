@@ -676,5 +676,22 @@
   "focus": {
     "heading": "3 priorités absolues pour aujourd'hui",
     "subtitle": "Tout le reste peut attendre. Respire, fais ces trois choses bien."
+  },
+  "mobile": {
+    "analytics": {
+      "title": "Ton cockpit commission",
+      "back": "Plus",
+      "noData": "Aucune donnée à afficher pour le moment",
+      "sourcesSubtitle": "D'où viennent tes contacts"
+    },
+    "settings": {
+      "completion": "Profil complété à {{pct}} %",
+      "unnamed": "Sans nom",
+      "channelWord_one": "canal actif",
+      "channelWord_other": "canaux actifs",
+      "billingDesktop": "Gestion de l’abonnement disponible sur le bureau.",
+      "signedOut": "Connectez-vous pour modifier vos réglages.",
+      "noPlan": "Aucun plan actif"
+    }
   }
 }

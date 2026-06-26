@@ -18,6 +18,11 @@ import { MobileWizardScreen } from '@/components/crm-mobile/wizard/MobileWizardS
 import { MobileContactsListScreen } from '@/components/crm-mobile/contacts/MobileContactsListScreen'
 import { MobileNewContactScreen } from '@/components/crm-mobile/contacts/MobileNewContactScreen'
 import { MobileContactDetailScreen } from '@/components/crm-mobile/contacts/MobileContactDetailScreen'
+import { MobileAnalyticsScreen } from '@/components/crm-mobile/analytics/MobileAnalyticsScreen'
+import { MobileJourneyScreen } from '@/components/crm-mobile/journey/MobileJourneyScreen'
+import { MobileKycListScreen } from '@/components/crm-mobile/kyc/MobileKycListScreen'
+import { MobileKycDetailScreen } from '@/components/crm-mobile/kyc/MobileKycDetailScreen'
+import { MobileSettingsScreen } from '@/components/crm-mobile/settings/MobileSettingsScreen'
 import { MobileDealDetailScreen, type DealData } from '@/components/crm-mobile/deal/MobileDealDetailScreen'
 import { EMPTY_OFFER_CONDITIONS, type Offer } from '@/types/offer'
 import type { Property } from '@/types/listing'
@@ -100,6 +105,16 @@ function ShowcaseInner() {
       <MobileNewContactScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileContactDetailScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileAnalyticsScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileJourneyScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileKycListScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileKycDetailScreen demo />
+      <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      <MobileSettingsScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileDealDetailScreen demoData={DEMO_DEAL} />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
