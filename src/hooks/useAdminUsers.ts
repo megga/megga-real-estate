@@ -46,7 +46,9 @@ export function useAdminUsers() {
 
   const updateRole = useMutation({
     mutationFn: async ({ id, role }: { id: string; role: string }) => {
-      const { error } = await supabase.from('profiles').update({ role }).eq('id', id)
+      // profiles.role is no longer writable by the client — goes through the
+      // admin_set_user_role SECURITY DEFINER RPC (guarded by is_super_admin()).
+      const { error } = await supabase.rpc('admin_set_user_role', { p_user_id: id, p_role: role })
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),

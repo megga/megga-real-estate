@@ -188,13 +188,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     if (error) return { error: error.message }
 
-    // Fix role mismatch: if user_metadata has a role but profile still has default
+    // Self-claim a pending signup role (buyer/particulier → agent/manager/admin/
+    // assistant). Goes through the claim_pending_role SECURITY DEFINER RPC — the
+    // client can no longer write profiles.role directly (privilege-escalation
+    // lockdown, migration 20260627120000). The RPC re-checks the current role
+    // and the JWT metadata server-side; super_admin is never claimable.
     const metaRole = data.user?.user_metadata?.role as UserRole | undefined
     if (data.user && metaRole && ['agent', 'manager', 'admin', 'assistant'].includes(metaRole)) {
-      const { data: prof } = await supabase.from('profiles').select('role').eq('id', data.user.id).single()
-      if (prof && (prof.role === 'buyer' || prof.role === 'particulier') && prof.role !== metaRole) {
-        await supabase.from('profiles').update({ role: metaRole }).eq('id', data.user.id)
-      }
+      await supabase.rpc('claim_pending_role')
     }
 
     return { error: null }

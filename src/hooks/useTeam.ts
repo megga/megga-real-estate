@@ -172,11 +172,13 @@ export function useChangeTeamRole() {
 
   return useMutation({
     mutationFn: async (input: { memberId: string; newRole: string }) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: input.newRole })
-        .eq('id', input.memberId)
-        .eq('agency_id', profile!.agency_id!)
+      // profiles.role is no longer writable by the client — goes through the
+      // team_set_member_role SECURITY DEFINER RPC (super_admin or same-agency
+      // admin/manager; authorization enforced server-side).
+      const { error } = await supabase.rpc('team_set_member_role', {
+        p_member_id: input.memberId,
+        p_role: input.newRole,
+      })
 
       if (error) throw error
 
@@ -211,11 +213,10 @@ export function useRemoveTeamMember() {
         .eq('id', memberId)
         .single()
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({ agency_id: null, role: 'buyer' })
-        .eq('id', memberId)
-        .eq('agency_id', profile!.agency_id!)
+      // profiles.role / agency_id are no longer writable by the client — goes
+      // through the team_remove_member SECURITY DEFINER RPC (super_admin or
+      // same-agency admin/manager; authorization enforced server-side).
+      const { error } = await supabase.rpc('team_remove_member', { p_member_id: memberId })
 
       if (error) throw error
 
