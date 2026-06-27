@@ -125,3 +125,30 @@ describe.skipIf(!HAS_KEYS)('Edge Functions contract — integrations', () => {
     })
   })
 })
+
+// Régression du trou « auth = préfixe Bearer seulement » : send-relance-email ne
+// vérifiait que la présence de « Bearer », donc un faux jeton déclenchait un envoi
+// Resend réel depuis noreply@megga.ch (usurpation d'expéditeur). requireAgentAuth
+// valide désormais le JWT (auth.getUser) ET exige un profil avec agency_id.
+describe.skipIf(!HAS_KEYS)('send-relance-email — valide le JWT, pas juste le préfixe Bearer', () => {
+  const endpoint = `${URL}/functions/v1/send-relance-email`
+
+  it('rejette un Bearer falsifié (401, aucun envoi Resend)', async () => {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer not-a-real-jwt',
+      },
+      body: JSON.stringify({
+        to: 'someone@example.com',
+        subject: 'Test',
+        body: 'Test body',
+      }),
+    })
+    expect(
+      res.status,
+      `un Bearer falsifié doit être rejeté avant tout envoi (got ${res.status})`
+    ).toBe(401)
+  })
+})
