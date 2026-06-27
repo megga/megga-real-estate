@@ -6,7 +6,6 @@ import { useState, useRef, useMemo, type ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { SugarV2, shade, sgOn, sgAcc, type WizardData, type WizardPhoto } from '../tokens'
-import StagingStudio, { type SavedVariant } from '../StagingStudio'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
@@ -34,31 +33,7 @@ export function Step4Photos({ data, set }: StepProps) {
   const [hoverPhoto, setHoverPhoto] = useState<string | null>(null)
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
   const [overIdx, setOverIdx] = useState<number | null>(null)
-  const [stagingPhoto, setStagingPhoto] = useState<WizardPhoto | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const onSaveVariant = (variants: SavedVariant[]) => {
-    const srcId = variants[0]?.sourcePhotoId
-    if (!srcId) return
-    const all = [...photos]
-    const srcIdx = all.findIndex(p => p.id === srcId)
-    if (srcIdx === -1) return
-    const inserted: WizardPhoto[] = variants.map(v => ({
-      id: `staged-${v.id}`,
-      label: `${all[srcIdx].label} · ${v.label}`,
-      kind: all[srcIdx].kind,
-      tone: v.tone,
-      uploadedAt: v.signedAt,
-      variantOf: srcId,
-      style: v.style,
-      prompt: v.prompt,
-      model: v.model,
-      provenance: v.provenance,
-      seed: v.seed,
-    }))
-    all.splice(srcIdx + 1, 0, ...inserted)
-    set({ photos: all })
-  }
 
   const addStock = (n = 1) => {
     const taken = photos.length
@@ -363,21 +338,6 @@ export function Step4Photos({ data, set }: StepProps) {
                     padding: 10, gap: 6,
                     pointerEvents: isHover ? 'auto' : 'none',
                   }}>
-                    {!p.variantOf && (
-                      <button onClick={e => { e.stopPropagation(); setStagingPhoto(p) }}
-                        title={tr('wizard.step4.action.stage')}
-                        style={{
-                          width: 32, height: 32, borderRadius: 999, border: 0,
-                          background: SugarV2.black, color: sgOn(),
-                          cursor: 'pointer', display: 'grid', placeItems: 'center',
-                          boxShadow: '0 6px 14px rgba(0,0,0,0.30)',
-                        }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="m12 3 1.9 5.8L20 11l-5.8 1.9L12 19l-1.9-5.8L4 11l5.8-2L12 3Z"/>
-                        </svg>
-                      </button>
-                    )}
                     {!isCover && (
                       <button onClick={e => { e.stopPropagation(); setCover(p.id) }}
                         title={tr('wizard.step4.action.setCover')}
@@ -503,14 +463,6 @@ export function Step4Photos({ data, set }: StepProps) {
         </div>
       )}
 
-      {/* Staging Studio modal — opens from spark button on each photo */}
-      {stagingPhoto && (
-        <StagingStudio
-          photo={stagingPhoto}
-          onClose={() => setStagingPhoto(null)}
-          onSaveVariant={onSaveVariant}
-        />
-      )}
     </div>
   )
 }

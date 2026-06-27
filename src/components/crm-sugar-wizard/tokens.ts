@@ -228,22 +228,14 @@ export interface WizardPhoto {
   // Vraie photo ajoutée par l'agent (dropzone PC). `file` est consommé à la
   // publication (upload bucket + miroir R2) ; `previewUrl` (object URL) sert
   // à l'aperçu dans le wizard ; `url` = URL persistée après upload réel. Une
-  // tuile sans `file` ni `url` (placeholder/variante staging) n'est JAMAIS
+  // tuile sans `file` ni `url` (placeholder mobile/drive) n'est JAMAIS
   // persistée — aucune photo fabriquée sur l'annonce.
   file?: File
   previewUrl?: string
   url?: string
-  variantOf?: string
-  style?: string
-  prompt?: string
-  model?: string
-  provenance?: string
-  seed?: string
 }
 
 export interface WizardOptions {
-  virtualStagingUser: boolean
-  virtualStagingAgent: string[]
   featured: boolean
   videoTour: boolean
 }
@@ -301,7 +293,7 @@ export const EMPTY_WIZARD: WizardData = {
   year: null, energy: null, features: [],
   photos: [], description: '', aiAssist: false,
   transaction: 'vente', price: null, rent: null, charges: null,
-  options: { virtualStagingUser: false, virtualStagingAgent: [], featured: false, videoTour: false },
+  options: { featured: false, videoTour: false },
   visibility: 'public', publishMode: 'now',
 }
 

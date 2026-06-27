@@ -34,7 +34,6 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
   const price = tx === 'vente' ? data.price : data.rent
   const cover = (data.photos || [])[0]
   const photoCount = (data.photos || []).length
-  const stagedCount = (data.photos || []).filter(p => p.variantOf).length
 
   const slug = (data.addr || 'nouveau-bien').toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -162,19 +161,6 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
             </span>
             <span style={{ color: SugarV2.muted }}>·</span>
             <span>{tr('wizard.photosCount', { count: photoCount })}</span>
-            {stagedCount > 0 && (
-              <>
-                <span style={{ color: SugarV2.muted }}>·</span>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '2px 8px', borderRadius: 999,
-                  background: SugarV2.cardSubtle, color: SugarV2.ink,
-                  fontSize: 11, fontWeight: 700,
-                }}>
-                  {tr('wizard.step8.stagedCount', { count: stagedCount })}
-                </span>
-              </>
-            )}
           </div>
         </div>
 
