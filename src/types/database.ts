@@ -5045,6 +5045,16 @@ export type Database = {
           type: string
         }[]
       }
+      admin_set_user_role: {
+        Args: { p_user_id: string; p_role: string }
+        Returns: undefined
+      }
+      claim_pending_role: { Args: never; Returns: string }
+      team_set_member_role: {
+        Args: { p_member_id: string; p_role: string }
+        Returns: undefined
+      }
+      team_remove_member: { Args: { p_member_id: string }; Returns: undefined }
       create_agency_and_join: {
         Args: {
           p_canton: string
