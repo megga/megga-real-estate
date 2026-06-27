@@ -421,6 +421,11 @@
       "agentFallback": "Your MEGGA broker",
       "generating": "MEGGA AI is writing…",
       "demoBanner": "Demo mode, no dormant lead in your agency. These examples are sent to no one.",
+      "loading": "Loading…",
+      "noLeads": {
+        "title": "No follow-ups pending",
+        "body": "No dormant contact to follow up today. Your follow-ups will appear here as soon as a contact goes cold."
+      },
       "sendError": "Sending failed, try again or copy the message.",
       "draft": {
         "to": "To",

@@ -57,34 +57,6 @@ interface RSLead {
   draft?: string
 }
 
-const SEED_LEADS: RSLead[] = [
-  { initials: 'PV', av: '#9b7cf0', name: 'Pierre Vionnet', temp: 'froid', age: '12 j',
-    email: 'pierre.vionnet@email.ch',
-    why: '3 nouveaux biens correspondent à sa recherche (Carouge, 3.5p).',
-    subject: '3 biens pour votre recherche à Carouge',
-    draft: "Bonjour Pierre,\n\nDepuis notre dernier échange, trois biens correspondant à vos critères sont arrivés sur le marché à Carouge — dont un 3.5 pièces avec balcon que je pense tout à fait dans votre cible.\n\nSouhaitez-vous que je vous organise une visite cette semaine ? Je peux m'adapter à vos disponibilités.\n\nBien à vous,\nGregory Lenoir — MEGGA" },
-  { initials: 'SM', av: '#8B5CF6', name: 'Sophie Marchand', temp: 'chaud', age: '4 j',
-    email: 'sophie.marchand@email.ch',
-    why: "A rouvert l'annonce de Carouge 4 fois cette semaine.",
-    subject: 'Toujours intéressée par le 3.5p de Carouge ?',
-    draft: "Bonjour Sophie,\n\nJ'ai vu que le 3.5 pièces de Carouge retenait votre attention. C'est un bien qui part vite — il a déjà plusieurs demandes de visite.\n\nVoulez-vous que je vous réserve un créneau avant le week-end pour le voir tranquillement ?\n\nBien à vous,\nGregory Lenoir — MEGGA" },
-  { initials: 'DR', av: '#2370ff', name: 'David Rey', temp: 'tiede', age: '8 j',
-    email: 'david.rey@email.ch',
-    why: "Le critère « balcon sud » qu'il voulait est désormais disponible.",
-    subject: 'Un balcon sud, comme vous le cherchiez',
-    draft: "Bonjour David,\n\nVous m'aviez parlé de l'importance d'un balcon orienté sud. Un bien qui coche exactement ce critère vient de se libérer, et je crois qu'il pourrait vraiment vous plaire.\n\nDispo pour une visite cette semaine ? Je vous envoie le dossier complet si vous le souhaitez.\n\nBien à vous,\nGregory Lenoir — MEGGA" },
-  { initials: 'LF', av: '#E0617A', name: 'Léa Fontaine', temp: 'chaud', age: '3 j',
-    email: 'lea.fontaine@email.ch',
-    why: 'A demandé une estimation la semaine dernière.',
-    subject: 'Votre estimation est prête',
-    draft: "Bonjour Léa,\n\nMerci pour votre demande d'estimation. J'ai finalisé l'analyse de votre bien et j'ai quelques pistes concrètes à vous partager pour valoriser au mieux la vente.\n\nAuriez-vous 20 minutes cette semaine pour en discuter, par téléphone ou autour d'un café ?\n\nBien à vous,\nGregory Lenoir — MEGGA" },
-  { initials: 'TB', av: '#74d184', name: 'Thomas Berger', temp: 'froid', age: '15 j',
-    email: 'thomas.berger@email.ch',
-    why: 'Profil investisseur — 2 biens au rendement visé sont arrivés.',
-    subject: '2 opportunités au rendement que vous visiez',
-    draft: "Bonjour Thomas,\n\nDeux biens correspondant à votre stratégie d'investissement viennent d'arriver, avec un rendement brut dans la fourchette que vous m'aviez indiquée.\n\nJe peux vous transmettre les chiffres détaillés (loyers, charges, rendement net). Souhaitez-vous que je vous les envoie ?\n\nBien à vous,\nGregory Lenoir — MEGGA" },
-]
-
 // petit glyphe « copier » (deux rectangles) — atome simple
 function RSCopyIcon({ size = 17, sw = 2 }: { size?: number; sw?: number }) {
   return (
@@ -231,13 +203,10 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const { leads: realLeads, isLoading, isEmpty } = useRelanceLeads()
   const agentName = profile?.full_name?.trim() || t('today.relance.agentFallback')
 
-  // Vrais leads dormants → leads de session, UNIQUEMENT une fois la requête
-  // résolue avec au moins 1 résultat. Tant qu'elle charge (ou si l'agence n'a
-  // aucun lead dormant / session non authentifiée) on garde le seed de démo —
-  // ainsi `leads` n'est jamais vide (pas de `lead` undefined au render).
-  // `demoMode` (confirmé vide) affiche une bannière honnête.
+  // Vrais leads dormants UNIQUEMENT (plus aucun persona de démo fabriqué). Tant
+  // que la requête charge, ou si l'agence n'a aucun lead dormant, `leads` est
+  // VIDE → on rend un état honnête « rien à relancer » (jamais de faux contacts).
   const live = !isLoading && !isEmpty
-  const demoMode = !isLoading && isEmpty
   const leads: RSLead[] = live
     ? realLeads.map((l, idx) => ({
         id: l.id,
@@ -248,8 +217,8 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
         email: l.email,
         why: l.reason,
       }))
-    : SEED_LEADS
-  const lead = leads[i] || leads[0]
+    : []
+  const lead: RSLead | undefined = leads[i] ?? leads[0]
 
   useEffect(() => { ensureKeyframes() }, [])
 
@@ -257,6 +226,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   // à la demande. Human-in-the-loop : l'agent relit, édite, copie/envoie.
   // Repli sur le brouillon de démo du seed si la génération échoue (lead seed).
   const generate = async () => {
+    if (!lead) return
     setGenError(false)
     setGen(true)
     try {
@@ -276,13 +246,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
       setDraft(parsed.body)
       setAsked(true)
     } catch {
-      if (lead.draft) {
-        setSubject(lead.subject || t('today.relance.draft.fallbackSubject', { name: lead.name.split(' ')[0] }))
-        setDraft(lead.draft)
-        setAsked(true)
-      } else {
-        setGenError(true)
-      }
+      setGenError(true)
     } finally {
       setGen(false)
     }
@@ -304,6 +268,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
 
   // « Pas intéressé » : action définitive, mais avec un undo de 5 s (filet de sécurité).
   const notInterested = () => {
+    if (!lead) return
     const from = i, wasLast = i >= leads.length - 1
     setCounts((c) => ({ ...c, discarded: c.discarded + 1 }))
     setUndo({ index: from, name: lead.name.split(' ')[0] })
@@ -325,13 +290,12 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   // GARDE-FOU : en mode démo (leads fictifs) on SIMULE — rien n'est envoyé à de
   // vrais destinataires. Human-in-the-loop : c'est l'agent qui déclenche.
   const sendMEGGA = async () => {
-    if (sending || sent) return
+    if (!lead || sending || sent) return
     setSendError(false)
     setSending(true)
     // GARDE-FOU robuste : on n'envoie POUR DE VRAI que sur de vrais leads chargés
-    // (`live`). Sinon (leads seed / requête non résolue / pas d'email) on SIMULE —
-    // jamais d'envoi à un destinataire fictif. (demoMode seul est insuffisant : si
-    // la requête ne se résout pas, isEmpty reste false alors que les leads sont seed.)
+    // (`live`) avec un email. Sinon on SIMULE — jamais d'envoi à un destinataire
+    // sans email valide. (`lead` est garanti défini ici par la garde ci-dessus.)
     if (!live || !lead.email) {
       setTimeout(() => { setSending(false); setSent(true) }, 800)
       return
@@ -372,7 +336,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
     try { if (navigator.clipboard) navigator.clipboard.writeText(draft) } catch { /* clipboard indispo */ }
     setCopied(true)
   }
-  const mailto = `mailto:${lead.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(draft)}`
+  const mailto = lead ? `mailto:${lead.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(draft)}` : ''
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -408,7 +372,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.2, whiteSpace: 'nowrap' }}>{t('today.relance.header.title')}</div>
           </div>
           <div style={{ flex: 1 }} />
-          {!done && (
+          {!done && lead && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
               {/* mini-barre de progression colorée par température (cohérence widget) */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -453,16 +417,25 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
             </div>
             <div style={{ marginTop: 8 }}><RSBtn variant="primary" onClick={onClose}>{t('today.relance.done.backToDashboard')}</RSBtn></div>
           </div>
-        ) : (
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '22px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {/* Mode démo — aucun lead réel : honnêteté, rien n'est envoyé à de vrais destinataires */}
-            {demoMode && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 13px', borderRadius: 12,
-                background: 'rgba(242,184,85,0.10)', border: '1px solid rgba(242,184,85,0.28)' }}>
-                <RXIcon name="spark" size={14} color="#F2B855" sw={2.2} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: TK.inkDim }}>{t('today.relance.demoBanner')}</span>
+        ) : !lead ? (
+          /* ── AUCUN LEAD À RELANCER ── état honnête : ni persona fabriqué, ni envoi */
+          <div style={{ padding: '56px 28px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+            animation: 'rsRise .4s cubic-bezier(.2,.8,.2,1) both' }}>
+            <div style={{ width: 60, height: 60, borderRadius: 999, background: TK.card, border: `1px solid ${TK.border}`, color: TK.sub, display: 'grid', placeItems: 'center' }}>
+              <RXIcon name="check" size={26} sw={2.2} />
+            </div>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.4 }}>
+              {isLoading ? t('today.relance.loading') : t('today.relance.noLeads.title')}
+            </div>
+            {!isLoading && (
+              <div style={{ fontSize: 14, color: TK.sub, fontWeight: 600, maxWidth: 380, lineHeight: 1.5 }}>
+                {t('today.relance.noLeads.body')}
               </div>
             )}
+            <div style={{ marginTop: 6 }}><RSBtn variant="primary" onClick={onClose}>{t('today.relance.done.backToDashboard')}</RSBtn></div>
+          </div>
+        ) : (
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '22px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
             {/* LEAD */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <Av initials={lead.initials} av={lead.av} size={48} ring />
@@ -556,7 +529,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
         )}
 
         {/* FOOTER NAV */}
-        {!done && (
+        {!done && lead && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 20px', borderTop: `1px solid ${TK.border}` }}>
             <RSBtn variant="ghost" onClick={skip}>{t('today.relance.nav.later')}</RSBtn>
             <RSBtn variant="ghostDanger" onClick={notInterested}>{t('today.relance.nav.notInterested')}</RSBtn>
