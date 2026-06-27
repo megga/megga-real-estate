@@ -466,31 +466,12 @@ export function useCreateKycCase() {
         .single()
       if (error) throw error
 
-      // Create default checklist items
-      const isPM = input.type.includes('_pm')
-      const defaultItems = [
-        { label: isPM ? 'Extrait du Registre du Commerce' : 'Pièce d\'identité (passeport ou CI)', category: 'Identité', is_required: true },
-        { label: isPM ? 'Statuts de la société' : 'Extrait du registre des poursuites', category: 'Identité', is_required: true },
-        ...(isPM ? [{ label: 'Identification des ayants droit économiques (UBO)', category: 'Identité', is_required: true }] : []),
-        { label: isPM ? 'Attestation de domicile du siège' : 'Attestation de domicile', category: 'Domicile', is_required: true },
-        { label: isPM ? 'Rapport de révision / comptes annuels' : 'Dernière déclaration fiscale', category: 'Revenus', is_required: true },
-        { label: isPM ? 'Bilan et compte de résultat' : 'Attestation bancaire (preuve de fonds)', category: 'Revenus', is_required: false },
-        { label: 'Déclaration d\'origine des fonds', category: 'Origine des fonds', is_required: true },
-        ...(isPM ? [{ label: 'Formulaire A / T', category: 'Origine des fonds', is_required: true }] : []),
-        { label: 'Screening PEP/Sanctions effectué', category: 'Compliance', is_required: true },
-      ]
-
+      // La checklist LBA est posée par le trigger DB seed_kyc_lba_checks (source
+      // UNIQUE, server-side, jeu PP/PM détaillé) — plus d'insert frontend, qui
+      // doublonnait la checklist (trigger + cet insert = deux jeux côte à côte
+      // sous les yeux de l'agent). Tout writer (CRM, WhatsApp, insert direct)
+      // reçoit désormais une checklist unique et identique.
       const kycCase = data as KycCase
-      await supabase.from('kyc_checklist_items').insert(
-        defaultItems.map(item => ({
-          kyc_case_id: kycCase.id,
-          label: item.label,
-          category: item.category,
-          is_required: item.is_required,
-          is_completed: false,
-        }))
-      )
-
       return kycCase
     },
     onSuccess: () => {
