@@ -156,7 +156,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
       {!showError ? (
         <button
           type="button"
-          onClick={() => navigate('/dashboard/listings/new')}
+          onClick={() => { if (!demo) navigate('/dashboard/listings/new') }}
           aria-label={t('add_button', { defaultValue: 'Ajouter un bien' })}
           style={{ position: 'fixed', right: 18, bottom: 'calc(100px + env(safe-area-inset-bottom))', zIndex: 54, width: 56, height: 56, borderRadius: 999, border: 0, cursor: 'pointer', background: tk.accent, color: tk.accentInk, boxShadow: tk.shadowLg, display: 'grid', placeItems: 'center' }}
         >

@@ -270,7 +270,8 @@
     "toast": {
       "moveFailedTitle": "Could not move the deal",
       "moveFailedDescription": "The stage change was not saved. Check your connection, then try again."
-    }
+    },
+    "empty": "Nessuna trattativa nella pipeline per ora."
   },
   "kyc": {
     "lock": {
@@ -368,7 +369,9 @@
       "rejected": "Rifiutata",
       "expired": "Scaduta",
       "withdrawn": "Ritirata"
-    }
+    },
+    "notes_cancel": "Annulla",
+    "notes_save": "Salva"
   },
   "offerModal": {
     "cta": {

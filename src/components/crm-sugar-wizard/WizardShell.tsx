@@ -116,6 +116,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
       const created = await createProperty.mutateAsync({
         title,
         type: data.type,
+        transaction_type: data.transaction === 'location' ? 'rent' : 'buy',
         status,
         price: data.transaction === 'vente' ? (data.price ?? 0) : (data.rent ?? 0),
         rooms: data.rooms ?? 0,

@@ -8,7 +8,7 @@ import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
 import { formatCHF } from '@/lib/utils'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
-import { MOBILE_FONT } from '../tokens'
+import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import MeggaWordmark from '../shell/MeggaWordmark'
 import SgActionMenu from '../primitives/SgActionMenu'
@@ -114,12 +114,14 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation('pipeline')
   const { tk, isDark } = useMobileTokens()
-  const { deals, updateStage } = usePipelineSugar()
+  const { deals, updateStage, isLoading, isError, refetch } = usePipelineSugar()
   const { toast, showToast } = useSgToast()
 
   const vms = useMemo<DealVM[]>(() => (demo ? DEMO_VMS : deals.filter((d) => d.stage !== 'lost').map(dealToVM)), [demo, deals])
   const totalValue = demo ? 'CHF 7.6M' : `CHF ${(vms.reduce((s, v) => s + (v.value || 0), 0) / 1e6).toFixed(1)}M`
   const totalCount = vms.length
+  const showLoading = !demo && isLoading && deals.length === 0
+  const showError = !demo && isError
 
   const firstWithDeals = CRM_STAGE_ORDER.find((s) => vms.some((v) => v.stage === s))
   const [active, setActive] = useState<StageId>(() => firstWithDeals ?? 'offer')
@@ -150,7 +152,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
         <MeggaWordmark color={tk.ink} height={22} />
         <button
           type="button"
-          onClick={() => openSugarSearch()}
+          onClick={() => { if (!demo) openSugarSearch() }}
           aria-label={t('common:nav.search')}
           style={{ width: 38, height: 38, borderRadius: 999, border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
         >
@@ -162,10 +164,19 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
         <h1 style={{ margin: '4px 0 0', fontSize: 28, fontWeight: 800, letterSpacing: -1, color: tk.ink, lineHeight: 1.05 }}>
           {t('common:nav.pipeline')}
         </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 7, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 14.5, fontWeight: 800, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{totalValue}</span>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: tk.inkSoft }}>{t('dealsCount', { count: totalCount })}</span>
-        </div>
+      </div>
+
+      {showLoading ? (
+        <PipelineSkeleton tk={tk} />
+      ) : showError ? (
+        <PipelineState tk={tk} title={t('board.error.title')} body={t('board.error.message')} retryLabel={t('board.error.retry')} onRetry={() => refetch()} />
+      ) : vms.length === 0 ? (
+        <PipelineState tk={tk} title={t('board.empty')} />
+      ) : (
+        <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, margin: '7px 18px 0', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 14.5, fontWeight: 800, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{totalValue}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: tk.inkSoft }}>{t('dealsCount', { count: totalCount })}</span>
       </div>
 
       {/* Onglets de stade */}
@@ -215,7 +226,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
             key={d.id}
             role="button"
             tabIndex={0}
-            onClick={() => navigate(`/dashboard/transactions/${d.id}`)}
+            onClick={() => { if (!demo) navigate(`/dashboard/transactions/${d.id}`) }}
             style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 18, boxShadow: tk.shadowSm, padding: '14px 15px 13px', cursor: 'pointer' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -270,6 +281,8 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
           </div>
         ))}
       </div>
+        </>
+      )}
 
       {/* ••• menu */}
       <SgActionMenu
@@ -286,7 +299,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
           setMenuDeal(null)
           if (!d) return
           if (id === 'stage') setStagePick(d)
-          else if (id === 'rdv') navigate('/dashboard/visits/new')
+          else if (id === 'rdv') { if (!demo) navigate('/dashboard/visits/new') }
           else if (id === 'lost') setConfirmLost(d)
         }}
       />
@@ -336,6 +349,30 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
       />
 
       <SgToast toast={toast} />
+    </div>
+  )
+}
+
+// États honnêtes (chargement / erreur+réessayer / vide) — sinon un échec RLS
+// s'affiche comme un pipeline vide silencieux indiscernable d'un vrai vide.
+function PipelineSkeleton({ tk }: { tk: MobileTokens }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 11, padding: '18px 18px 0' }}>
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} style={{ height: 96, borderRadius: 18, background: tk.cardSubtle, boxShadow: tk.shadowSm }} />
+      ))}
+    </div>
+  )
+}
+
+function PipelineState({ tk, title, body, onRetry, retryLabel }: { tk: MobileTokens; title: string; body?: string; onRetry?: () => void; retryLabel?: string }) {
+  return (
+    <div style={{ margin: '22px 18px 0', textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 20, boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
+      <div style={{ fontSize: 15, fontWeight: 800, color: tk.ink }}>{title}</div>
+      {body ? <div style={{ fontSize: 13, fontWeight: 600, color: tk.muted, marginTop: 6, lineHeight: 1.45, maxWidth: 280, marginInline: 'auto' }}>{body}</div> : null}
+      {onRetry ? (
+        <button type="button" onClick={onRetry} style={{ marginTop: 16, height: 44, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 800, background: tk.accent, color: tk.accentInk }}>{retryLabel}</button>
+      ) : null}
     </div>
   )
 }
