@@ -14,20 +14,12 @@ interface SuccessProps {
 export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
   const { t: tr } = useTranslation('listings')
   const [phase, setPhase] = useState<'entering' | 'settled'>('entering')
-  const [views, setViews] = useState(0)
-  const [saves, setSaves] = useState(0)
-  const [contacts, setContacts] = useState(0)
   const [showConfetti, setShowConfetti] = useState(true)
 
   useEffect(() => {
     const t1 = window.setTimeout(() => setPhase('settled'), 900)
-    const incrementer = window.setInterval(() => {
-      setViews(v => Math.min(v + Math.floor(Math.random() * 3) + 1, 47))
-      setSaves(s => Math.random() > 0.65 ? Math.min(s + 1, 4) : s)
-      setContacts(c => Math.random() > 0.85 ? Math.min(c + 1, 2) : c)
-    }, 380)
     const t2 = window.setTimeout(() => setShowConfetti(false), 2400)
-    return () => { window.clearTimeout(t1); window.clearTimeout(t2); window.clearInterval(incrementer) }
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
   }, [])
 
   const tx = data.transaction || 'vente'
@@ -218,53 +210,13 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
         </div>
       )}
 
-      {/* STATS LIVE */}
-      {mode === 'now' && (
-        <div style={{
-          background: SugarV2.card, borderRadius: 24, padding: 24,
-          boxShadow: SugarV2.shadow, marginBottom: 24,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-            <div>
-              <div style={{
-                fontSize: 11, fontWeight: 700, color: SugarV2.muted,
-                letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4,
-              }}>{tr('wizard.step8.liveActivity')}</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>
-                {tr('wizard.step8.firstSeconds')}
-              </div>
-            </div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 7,
-              padding: '5px 11px', borderRadius: 999,
-              background: SugarV2.cardSubtle,
-            }}>
-              <span style={{
-                width: 7, height: 7, borderRadius: 999, background: '#10B981',
-                animation: 'sgLivePulse 1.6s ease-in-out infinite',
-              }} />
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: SugarV2.ink, letterSpacing: 0.4 }}>LIVE</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            <Stat icon="eye" label={tr('wizard.step8.stat.views')} value={views} />
-            <Stat icon="bookmark" label={tr('wizard.step8.stat.saves')} value={saves} />
-            <Stat icon="message" label={tr('wizard.step8.stat.contactRequests')} value={contacts} />
-          </div>
-        </div>
-      )}
-
       {/* ACTIONS NEXT */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24,
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24,
       }}>
         <NextCard icon="plus" title={tr('wizard.step8.next.createAnother.title')}
           subtitle={tr('wizard.step8.next.createAnother.subtitle')}
           onClick={onClose} />
-        <NextCard icon="contacts" title={tr('wizard.step8.next.seeBuyers.title')}
-          subtitle={tr('wizard.step8.next.seeBuyers.subtitle', { count: 3 })}
-          tag={tr('wizard.step8.next.seeBuyers.tag', { count: 3 })} onClick={onBackToCRM} />
         <NextCard icon="dashboard" title={tr('wizard.step8.next.backToCrm.title')}
           subtitle={tr('wizard.step8.next.backToCrm.subtitle')}
           onClick={onBackToCRM} />
@@ -279,48 +231,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
           values={{ email: 'gregory@megga.ch' }}
           components={{ strong: <strong style={{ color: SugarV2.ink }} /> }}
         />
-        <br/>
-        <Trans
-          t={tr}
-          i18nKey="wizard.step8.c2paNote"
-          components={{ strong: <strong style={{ color: SugarV2.ink }} /> }}
-        />
       </div>
-    </div>
-  )
-}
-
-function Stat({ icon, label, value }: { icon: 'eye' | 'bookmark' | 'message'; label: string; value: number }) {
-  const ICON: Record<string, ReactNode> = {
-    eye:      <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></>,
-    bookmark: <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/>,
-    message:  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>,
-  }
-  return (
-    <div style={{
-      padding: '16px 18px', borderRadius: 16, background: SugarV2.cardSubtle,
-    }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10,
-      }}>
-        <div style={{
-          width: 26, height: 26, borderRadius: 8,
-          background: SugarV2.card, display: 'grid', placeItems: 'center', color: SugarV2.ink,
-        }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            {ICON[icon]}
-          </svg>
-        </div>
-        <div style={{
-          fontSize: 11, fontWeight: 700, color: SugarV2.muted,
-          letterSpacing: 0.5, textTransform: 'uppercase',
-        }}>{label}</div>
-      </div>
-      <div key={value} style={{
-        fontSize: 32, fontWeight: 800, color: SugarV2.ink, letterSpacing: -1,
-        animation: 'sgCount .25s cubic-bezier(.2,.8,.2,1)',
-        lineHeight: 1,
-      }}>{value}</div>
     </div>
   )
 }
