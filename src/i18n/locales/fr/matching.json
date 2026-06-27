@@ -202,7 +202,8 @@
       "title": "Aucun match à trier",
       "desc": "Le moteur n'a proposé aucun rapprochement annonce ↔ acheteur pour l'instant. Ajoutez des recherches actives à vos contacts ou relancez un scan.",
       "scanCta": "Lancer un scan",
-      "scanning": "Scan en cours…"
+      "scanning": "Scan en cours…",
+      "scanError": "Le scan a échoué — réessayez dans un instant."
     },
     "error": {
       "title": "Impossible de charger les matchs",

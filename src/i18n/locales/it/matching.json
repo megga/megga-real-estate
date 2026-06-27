@@ -202,7 +202,8 @@
       "title": "No matches to triage",
       "desc": "The engine hasn't suggested any listing ↔ buyer match yet. Add active searches to your contacts or run a new scan.",
       "scanCta": "Run a scan",
-      "scanning": "Scanning…"
+      "scanning": "Scanning…",
+      "scanError": "Scan failed — try again in a moment."
     },
     "queueDone": {
       "title": "Queue cleared",
