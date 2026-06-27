@@ -21,6 +21,11 @@ const STOCK: WizardPhoto[] = [
   { id: 'p8', label: 'Plan',          kind: 'plan',     tone: '#EAEAEA' },
 ]
 
+// Formats acceptés côté upload (useUploadPropertyPhotos refuse le reste) + plafond
+// aligné sur le texte de la dropzone.
+const ACCEPTED_PHOTO_MIME = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_WIZARD_PHOTOS = 30
+
 export function Step4Photos({ data, set }: StepProps) {
   const { t: tr } = useTranslation('listings')
   const photos = data.photos || []
@@ -64,14 +69,29 @@ export function Step4Photos({ data, set }: StepProps) {
     set({ photos: [...photos, ...next] })
   }
 
+  // Dropzone PC = SEUL chemin qui porte de vrais fichiers. On les capture pour de
+  // bon (object URL d'aperçu + File conservé jusqu'à la publication où il est
+  // uploadé bucket + miroir R2). Les modes téléphone (QR) et drive restent
+  // simulés (addStock) faute de backend de transfert — leurs tuiles, sans `file`,
+  // ne sont jamais persistées.
   const handleFiles = (files: FileList | null) => {
     if (!files || !files.length) return
-    const remaining = STOCK.length - photos.length
-    if (remaining <= 0) {
-      addStock(Math.min(files.length, 4))
-      return
-    }
-    addStock(Math.min(files.length, remaining))
+    const room = Math.max(0, MAX_WIZARD_PHOTOS - photos.length)
+    if (room <= 0) return
+    const accepted = Array.from(files)
+      .filter(f => ACCEPTED_PHOTO_MIME.includes(f.type))
+      .slice(0, room)
+    if (!accepted.length) return
+    const mapped: WizardPhoto[] = accepted.map((file, i) => ({
+      id: `up-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      label: file.name.replace(/\.[^.]+$/, ''),
+      kind: 'interior',
+      tone: '#D4DDE3',
+      uploadedAt: new Date().toISOString(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }))
+    set({ photos: [...photos, ...mapped] })
   }
 
   const onDrop = (e: React.DragEvent) => {
@@ -91,7 +111,15 @@ export function Step4Photos({ data, set }: StepProps) {
     setDraggedIdx(null); setOverIdx(null)
   }
 
-  const removePhoto = (id: string) => set({ photos: photos.filter(p => p.id !== id) })
+  const removePhoto = (id: string) => {
+    const gone = photos.find(p => p.id === id)
+    if (gone?.previewUrl) URL.revokeObjectURL(gone.previewUrl)
+    set({ photos: photos.filter(p => p.id !== id) })
+  }
+  const clearPhotos = () => {
+    photos.forEach(p => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl) })
+    set({ photos: [] })
+  }
   const setCover = (id: string) => {
     const idx = photos.findIndex(p => p.id === id)
     if (idx <= 0) return
@@ -246,7 +274,7 @@ export function Step4Photos({ data, set }: StepProps) {
             )}
           </h2>
           {photos.length > 0 && (
-            <button onClick={() => set({ photos: [] })} style={{
+            <button onClick={clearPhotos} style={{
               border: 0, background: 'transparent', color: SugarV2.muted,
               fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
               cursor: 'pointer', padding: '6px 12px', borderRadius: 8,
@@ -723,6 +751,18 @@ function PhotoIcon({ name, size = 16, stroke = 'currentColor' }: { name: 'comput
 }
 
 function FakePhoto({ p }: { p: WizardPhoto }) {
+  // Vraie photo (dropzone PC) ou URL déjà persistée → on affiche l'image réelle.
+  const realSrc = p.previewUrl || p.url
+  if (realSrc) {
+    return (
+      <img
+        src={realSrc}
+        alt={p.label}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        draggable={false}
+      />
+    )
+  }
   const stripes = `repeating-linear-gradient(135deg, ${p.tone} 0 14px, ${shade(p.tone, -0.03)} 14px 28px)`
   return (
     <div style={{

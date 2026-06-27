@@ -225,6 +225,14 @@ export interface WizardPhoto {
   kind: 'interior' | 'exterior' | 'plan'
   tone: string
   uploadedAt?: string
+  // Vraie photo ajoutée par l'agent (dropzone PC). `file` est consommé à la
+  // publication (upload bucket + miroir R2) ; `previewUrl` (object URL) sert
+  // à l'aperçu dans le wizard ; `url` = URL persistée après upload réel. Une
+  // tuile sans `file` ni `url` (placeholder/variante staging) n'est JAMAIS
+  // persistée — aucune photo fabriquée sur l'annonce.
+  file?: File
+  previewUrl?: string
+  url?: string
   variantOf?: string
   style?: string
   prompt?: string
