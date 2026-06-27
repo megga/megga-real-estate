@@ -207,8 +207,10 @@
       "result": {
         "importedCount_one": "{{count}} contact imported",
         "importedCount_other": "{{count}} contacts imported",
-        "skippedCount_one": "{{count}} skipped (duplicate or incomplete)",
-        "skippedCount_other": "{{count}} skipped (duplicates or incomplete)",
+        "skippedCount_one": "{{count}} skipped (incomplete)",
+        "skippedCount_other": "{{count}} skipped (incomplete)",
+        "duplicatesCount_one": "{{count}} duplicate skipped",
+        "duplicatesCount_other": "{{count}} duplicates skipped",
         "goToContacts": "View my contacts"
       }
     }
