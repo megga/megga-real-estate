@@ -206,12 +206,13 @@ describe.skipIf(!HAS_KEYS)('SÉCURITÉ — profiles : pas d’escalade role/agen
 // Vérifie que les RPC SECURITY DEFINER qui remplacent les updates client directs
 // fonctionnent (admin/manager de la même agence) ET refusent les non-autorisés.
 describe.skipIf(!HAS_KEYS)('SÉCURITÉ — RPC gestion d’équipe agence', () => {
+  // admin reste l'appelant privilégié et n'est JAMAIS ciblé/muté par un test.
+  // Chaque test qui mute un rôle crée ses propres membres FRAIS → tests
+  // indépendants de l'ordre d'exécution.
   let agencyId: string
-  let adminId: string
-  let memberId: string
-  let outsiderId: string
+  let agency2Id: string
   let adminClient: SupabaseClient
-  let memberClient: SupabaseClient
+  let outsiderId: string
   const ids: string[] = []
   const agencies: string[] = []
 
@@ -245,13 +246,12 @@ describe.skipIf(!HAS_KEYS)('SÉCURITÉ — RPC gestion d’équipe agence', () =
     agencies.push(agencyId)
     const a2 = await svc.from('agencies').insert({ name: `Outsider Agency ${stamp}`, slug: `outsider-agency-${stamp}` }).select('id').single()
     if (a2.error) throw new Error(`agency2: ${a2.error.message}`)
-    agencies.push(a2.data.id)
+    agency2Id = a2.data.id
+    agencies.push(agency2Id)
 
     const admin = await seedUser('admin', 'admin', agencyId)
-    adminId = admin.id; adminClient = admin.client
-    const member = await seedUser('member', 'agent', agencyId)
-    memberId = member.id; memberClient = member.client
-    const outsider = await seedUser('outsider', 'agent', a2.data.id)
+    adminClient = admin.client
+    const outsider = await seedUser('outsider', 'agent', agency2Id)
     outsiderId = outsider.id
   })
 
@@ -261,11 +261,12 @@ describe.skipIf(!HAS_KEYS)('SÉCURITÉ — RPC gestion d’équipe agence', () =
     for (const id of agencies) await svc.from('agencies').delete().eq('id', id).then(() => {}, () => {})
   })
 
-  it('un admin d’agence change le rôle d’un membre de SA propre agence', async () => {
-    const { error } = await adminClient.rpc('team_set_member_role', { p_member_id: memberId, p_role: 'manager' })
+  it('un admin d’agence change le rôle d’un membre FRAIS de SA propre agence', async () => {
+    const member = await seedUser('m1', 'agent', agencyId)
+    const { error } = await adminClient.rpc('team_set_member_role', { p_member_id: member.id, p_role: 'manager' })
     expect(error, `team_set_member_role a échoué: ${error?.message}`).toBeNull()
     const svc = serviceRoleClient()
-    const { data } = await svc.from('profiles').select('role').eq('id', memberId).single()
+    const { data } = await svc.from('profiles').select('role').eq('id', member.id).single()
     expect(data?.role).toBe('manager')
   })
 
@@ -278,15 +279,22 @@ describe.skipIf(!HAS_KEYS)('SÉCURITÉ — RPC gestion d’équipe agence', () =
   })
 
   it('un membre simple (agent) NE PEUT PAS changer de rôle dans l’équipe', async () => {
-    const { error } = await memberClient.rpc('team_set_member_role', { p_member_id: adminId, p_role: 'agent' })
+    // Appelant ET cible FRAIS : l'appelant reste un agent (jamais promu).
+    const caller = await seedUser('caller', 'agent', agencyId)
+    const target = await seedUser('target', 'agent', agencyId)
+    const { error } = await caller.client.rpc('team_set_member_role', { p_member_id: target.id, p_role: 'manager' })
     expect(error, 'un agent a pu utiliser team_set_member_role').not.toBeNull()
+    const svc = serviceRoleClient()
+    const { data } = await svc.from('profiles').select('role').eq('id', target.id).single()
+    expect(data?.role, 'la cible n’aurait pas dû changer').toBe('agent')
   })
 
   it('team_remove_member détache l’agence et remet le rôle buyer', async () => {
-    const { error } = await adminClient.rpc('team_remove_member', { p_member_id: memberId })
+    const member = await seedUser('m4', 'agent', agencyId)
+    const { error } = await adminClient.rpc('team_remove_member', { p_member_id: member.id })
     expect(error, `team_remove_member a échoué: ${error?.message}`).toBeNull()
     const svc = serviceRoleClient()
-    const { data } = await svc.from('profiles').select('role, agency_id').eq('id', memberId).single()
+    const { data } = await svc.from('profiles').select('role, agency_id').eq('id', member.id).single()
     expect(data?.role).toBe('buyer')
     expect(data?.agency_id).toBeNull()
   })
