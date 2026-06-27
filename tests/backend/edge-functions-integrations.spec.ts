@@ -126,29 +126,33 @@ describe.skipIf(!HAS_KEYS)('Edge Functions contract — integrations', () => {
   })
 })
 
-// Régression du trou « auth = préfixe Bearer seulement » : send-relance-email ne
-// vérifiait que la présence de « Bearer », donc un faux jeton déclenchait un envoi
-// Resend réel depuis noreply@megga.ch (usurpation d'expéditeur). requireAgentAuth
-// valide désormais le JWT (auth.getUser) ET exige un profil avec agency_id.
-describe.skipIf(!HAS_KEYS)('send-relance-email — valide le JWT, pas juste le préfixe Bearer', () => {
-  const endpoint = `${URL}/functions/v1/send-relance-email`
+// Régression du trou « auth = préfixe Bearer seulement » sur les fonctions Resend
+// AGENT-ONLY : elles ne vérifiaient que la présence de « Bearer » → un faux jeton
+// déclenchait un envoi Resend réel (usurpation d'expéditeur megga.ch).
+// requireAgentAuth valide désormais le JWT (auth.getUser) ET exige un profil agency_id.
+// NB volontairement absentes : send-email (appelant anon légitime = form de contact
+// public) et send-visit-email (appelant cron service_role) → durcissement différent.
+const AGENT_ONLY_RESEND = ['send-relance-email', 'send-property-email'] as const
 
-  it('rejette un Bearer falsifié (401, aucun envoi Resend)', async () => {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer not-a-real-jwt',
-      },
-      body: JSON.stringify({
-        to: 'someone@example.com',
-        subject: 'Test',
-        body: 'Test body',
-      }),
+describe.skipIf(!HAS_KEYS)('Fonctions Resend agent-only — valident le JWT, pas juste le préfixe Bearer', () => {
+  for (const fn of AGENT_ONLY_RESEND) {
+    it(`${fn} rejette un Bearer falsifié (401, aucun envoi Resend)`, async () => {
+      const res = await fetch(`${URL}/functions/v1/${fn}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer not-a-real-jwt',
+        },
+        body: JSON.stringify({
+          to: 'someone@example.com',
+          subject: 'Test',
+          body: 'Test body',
+        }),
+      })
+      expect(
+        res.status,
+        `${fn}: un Bearer falsifié doit être rejeté avant tout envoi (got ${res.status})`
+      ).toBe(401)
     })
-    expect(
-      res.status,
-      `un Bearer falsifié doit être rejeté avant tout envoi (got ${res.status})`
-    ).toBe(401)
-  })
+  }
 })
