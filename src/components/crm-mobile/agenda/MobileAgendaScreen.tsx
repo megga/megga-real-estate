@@ -64,8 +64,8 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
   const nowMin = minutesOf(now)
   const nowIdx = isTodaySel ? dayVMs.findIndex((v) => v.startMin >= nowMin) : -1
 
-  const openVisit = (id: string) => { setDetail(null); navigate(`/dashboard/visits/${id}`) }
-  const openProperty = (id: string) => { setDetail(null); navigate(`/dashboard/listings/${id}`) }
+  const openVisit = (id: string) => { setDetail(null); if (!demo) navigate(`/dashboard/visits/${id}`) }
+  const openProperty = (id: string) => { setDetail(null); if (!demo) navigate(`/dashboard/listings/${id}`) }
 
   const showLoading = !demo && isLoading && allVMs.length === 0
   const showError = !demo && isError
@@ -173,7 +173,7 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
       {!showError ? (
         <button
           type="button"
-          onClick={() => navigate('/dashboard/visits/new')}
+          onClick={() => { if (!demo) navigate('/dashboard/visits/new') }}
           aria-label={t('createVisit.title')}
           style={{ position: 'fixed', right: 18, bottom: 'calc(100px + env(safe-area-inset-bottom))', zIndex: 54, width: 56, height: 56, borderRadius: 999, border: 0, cursor: 'pointer', background: tk.accent, color: tk.accentInk, boxShadow: tk.shadowLg, display: 'grid', placeItems: 'center' }}
         >

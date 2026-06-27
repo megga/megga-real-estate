@@ -310,10 +310,10 @@ export function MobileDealDetailScreen({ demoData }: { demoData?: DealData }) {
             />
             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
               <button type="button" onClick={() => setNotesEditing(false)} style={{ flex: 1, height: 42, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: tk.inkSoft, background: tk.cardSubtle }}>
-                {t('offerModal.footer.cancel')}
+                {t('deal.notes_cancel')}
               </button>
               <button type="button" onClick={saveNotes} style={{ flex: 1, height: 42, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 800, color: tk.accentInk, background: tk.accent }}>
-                {updateNotes.isPending ? t('deal.notes_saving') : t('offerModal.footer.save')}
+                {updateNotes.isPending ? t('deal.notes_saving') : t('deal.notes_save')}
               </button>
             </div>
           </>

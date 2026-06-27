@@ -106,6 +106,7 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
       const created = await createProperty.mutateAsync({
         title: titleParts.join(' '),
         type: d.type ? WTYPE_TO_ENUM[d.type] : 'apartment',
+        transaction_type: d.transaction === 'location' ? 'rent' : 'buy',
         status,
         price: (d.transaction === 'vente' ? d.price : d.rent) ?? 0,
         rooms: d.rooms ?? 0,

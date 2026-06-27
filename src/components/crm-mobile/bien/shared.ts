@@ -13,7 +13,8 @@ export type BienType = CrmBien['type']
 /** Tons de statut (fond plein de pastille, texte blanc — lisibles sur photo). */
 export const STATUS_TONE: Record<BienStatus, string> = {
   active: '#0E9F6E',
-  reserved: '#D97706',
+  // Réservé = bleu, fidèle au proto (crm-biens-mobile.jsx bmStatus) — pas d'ambre.
+  reserved: '#1E5BC6',
   draft: '#6B7280',
   paused: '#6B7280',
   sold: '#111827',
