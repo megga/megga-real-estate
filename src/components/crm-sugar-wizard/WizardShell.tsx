@@ -31,6 +31,17 @@ import { useAuth } from '@/hooks/useAuth'
 // before linking it via a transaction row.
 const NEW_CONTACT_PREFIX = 'c-new-'
 
+// Wizard type (FR) → enum DB `property_type` (EN only : apartment|house|villa|
+// commercial|land). Sans ce mapping, 3 tuiles sur 4 ('appartement'/'maison'/
+// 'terrain') violent l'enum → l'insert échoue (22P02) et le bien n'est jamais
+// créé. Même fix que le wizard mobile (WTYPE_TO_ENUM).
+const TYPE_TO_ENUM: Record<WizardData['type'], 'apartment' | 'house' | 'villa' | 'land'> = {
+  appartement: 'apartment',
+  maison: 'house',
+  villa: 'villa',
+  terrain: 'land',
+}
+
 interface WizardShellProps {
   onClose: () => void
 }
@@ -125,7 +136,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
       // a transactions row below). Photos uploadées juste après (besoin de l'id).
       const created = await createProperty.mutateAsync({
         title,
-        type: data.type,
+        type: TYPE_TO_ENUM[data.type] ?? 'apartment',
         transaction_type: data.transaction === 'location' ? 'rent' : 'buy',
         status,
         price: data.transaction === 'vente' ? (data.price ?? 0) : (data.rent ?? 0),
