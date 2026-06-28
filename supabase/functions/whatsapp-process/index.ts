@@ -3,8 +3,10 @@
 //   1. Média/voix : téléchargement Meta → R2 + transcription Deepgram (file durable).
 //   2. Compréhension : insight MEGGA par contact (DeepSeek), péremption dérivée.
 //   3. Compliance : avis LPD une fois par numéro client.
-// Appelé UNIQUEMENT par pg_cron en service-role. DÉPLOYER verify_jwt=true
-// (config.toml + allowlist deploy.yml) — NE JAMAIS --no-verify-jwt.
+// Appelé UNIQUEMENT par pg_cron en service-role. verify_jwt=false (config.toml + déploiement
+// --no-verify-jwt) : la plateforme rejette la clé service-role legacy quand verify_jwt=true
+// (UNAUTHORIZED_LEGACY_JWT). La garde se fait DANS la fonction (Bearer comparé à
+// app_config.service_role_key, cf. ci-dessous).
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'

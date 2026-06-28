@@ -3335,6 +3335,8 @@ export type Database = {
           transcript: string | null
           transcript_lang: string | null
           transcript_confidence: number | null
+          status_updated_at: string | null
+          delivery_error: string | null
         }
         Insert: {
           agency_id?: string | null
@@ -3363,6 +3365,8 @@ export type Database = {
           transcript?: string | null
           transcript_lang?: string | null
           transcript_confidence?: number | null
+          status_updated_at?: string | null
+          delivery_error?: string | null
         }
         Update: {
           agency_id?: string | null
@@ -3391,6 +3395,8 @@ export type Database = {
           transcript?: string | null
           transcript_lang?: string | null
           transcript_confidence?: number | null
+          status_updated_at?: string | null
+          delivery_error?: string | null
         }
         Relationships: []
       }
