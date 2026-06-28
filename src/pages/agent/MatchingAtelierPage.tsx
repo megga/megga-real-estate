@@ -33,10 +33,12 @@ import AtelierStage from '@/components/matching-atelier/AtelierStage'
 import { useSugarDark } from '@/components/matching-atelier/useSugarDark'
 import { PendingRegistry, type AtelierGestes } from '@/components/matching-atelier/pendingTriage'
 import type { AtelierBuyer, AtelierListing } from '@/components/matching-atelier/types'
+import { useToast } from '@/components/ui/Toast'
 import '@/components/matching-atelier/atelier.css'
 
 export default function MatchingAtelierPage() {
   const { t } = useTranslation('matching')
+  const toast = useToast()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const dark = useSugarDark()
@@ -146,14 +148,20 @@ export default function MatchingAtelierPage() {
     if (!ctx || scanning) return
     setScanning(true)
     try {
-      await supabase.functions.invoke('matching-engine', {
+      // `invoke` ne THROW pas sur une erreur de la fonction : il renvoie { error }.
+      // Avant, on l'ignorait et on rafraîchissait quand même → un scan en échec
+      // laissait l'agent sur l'état vide « aucun match » au lieu d'une vraie erreur.
+      const { error } = await supabase.functions.invoke('matching-engine', {
         body: { mode: 'scan-all', agency_id: ctx.agencyId },
       })
+      if (error) throw error
       refresh()
+    } catch {
+      toast.error(t('atelier.empty.scanError'))
     } finally {
       setScanning(false)
     }
-  }, [ctx, scanning, refresh])
+  }, [ctx, scanning, refresh, toast, t])
 
   const pool = pivotBuyer ? poolFor(pivotBuyer.id, pivotKey) : []
 
