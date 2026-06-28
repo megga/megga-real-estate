@@ -20,7 +20,7 @@ import { Step5PriceDesc } from './steps/Step5PriceDesc'
 import { Step6Options } from './steps/Step6Options'
 import { Step7Publish } from './steps/Step7Publish'
 import { Step8Success } from './steps/Step8Success'
-import { useCreateProperty } from '@/hooks/useProperties'
+import { useCreateProperty, useUpdateProperty, useUploadPropertyPhotos } from '@/hooks/useProperties'
 import { useCreateContact } from '@/hooks/useContacts'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 import { useAuth } from '@/hooks/useAuth'
@@ -52,11 +52,14 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   const [subStep, setSubStep] = useState(0)        // 0 = Vendeur, 1 = Mandat
   const [published, setPublished] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState(false)
   const [data, setDataRaw] = useState<WizardData>(EMPTY_WIZARD)
   const set = (patch: Partial<WizardData>) => setDataRaw(prev => ({ ...prev, ...patch }))
 
   const { profile } = useAuth()
   const createProperty = useCreateProperty()
+  const updateProperty = useUpdateProperty()
+  const uploadPhotos = useUploadPropertyPhotos()
   const createContact = useCreateContact()
   const createTransaction = useCreateTransaction()
 
@@ -65,7 +68,8 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   // so 'schedule' is persisted as 'draft' — separate chip to wire a real
   // cron-based publication when the feature is designed.
   async function handlePublish() {
-    if (createProperty.isPending || createContact.isPending || createTransaction.isPending) return
+    if (publishing) return
+    setPublishing(true)
     setPublishError(null)
 
     const status =
@@ -111,8 +115,14 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         sellerContactId = data.ownerContactId
       }
 
+      // Photos réelles ajoutées par l'agent (dropzone PC) vs URLs déjà
+      // persistées. Les tuiles sans `file` ni `url` (placeholders mobile/drive,
+      // variantes staging) ne sont PAS persistées — aucune photo fabriquée.
+      const photoFiles = data.photos.map(p => p.file).filter((f): f is File => !!f)
+      const existingPhotoUrls = data.photos.map(p => p.url).filter((u): u is string => !!u)
+
       // 2) Create the property (no direct vendor column — link comes via
-      // a transactions row below).
+      // a transactions row below). Photos uploadées juste après (besoin de l'id).
       const created = await createProperty.mutateAsync({
         title,
         type: data.type,
@@ -139,10 +149,30 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         city: data.city ?? '',
         canton: data.cantonShort ?? data.canton,
         postal_code: data.postCode,
-        photos: data.photos.map(p => (typeof p === 'string' ? p : '')).filter(Boolean),
+        photos: existingPhotoUrls,
         features: data.features,
         // published_at posé par le trigger DB set_property_published_at (1er passage en 'active')
       })
+
+      // 2b) Upload des vraies photos maintenant qu'on a l'id, puis persistance
+      // de leurs URLs (bucket property-photos + miroir R2, ownership server-side).
+      // Échec d'upload = warning souple (le bien existe ; l'agent complète les
+      // photos depuis la fiche) — même posture que l'échec de liaison vendeur,
+      // jamais un upload silencieusement perdu sur le chemin nominal.
+      if (photoFiles.length && profile?.agency_id) {
+        try {
+          const uploadedUrls = await uploadPhotos.mutateAsync({
+            propertyId: created.id,
+            files: photoFiles,
+          })
+          await updateProperty.mutateAsync({
+            id: created.id,
+            photos: [...existingPhotoUrls, ...uploadedUrls],
+          })
+        } catch (photoErr) {
+          console.warn('[wizard] photo upload failed:', photoErr)
+        }
+      }
 
       // 3) Link the vendor — properties has no contact_seller_id column;
       // the relationship lives in `transactions` (same model the deal
@@ -181,6 +211,8 @@ export default function WizardShell({ onClose }: WizardShellProps) {
     } catch (e) {
       const message = e instanceof Error ? e.message : t('wizard.shell.unknownError')
       setPublishError(message)
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -325,8 +357,8 @@ export default function WizardShell({ onClose }: WizardShellProps) {
               {t('wizard.shell.continue')}
             </SgBlackPill>
           ) : (
-            <SgBlackPill onClick={handlePublish} disabled={createProperty.isPending}>
-              {createProperty.isPending
+            <SgBlackPill onClick={handlePublish} disabled={publishing}>
+              {publishing
                 ? t('wizard.shell.publishing')
                 : data.publishMode === 'schedule' ? t('wizard.shell.schedulePublish')
                 : data.publishMode === 'draft' ? t('wizard.shell.saveDraft')

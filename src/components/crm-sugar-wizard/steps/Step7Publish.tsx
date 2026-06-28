@@ -131,13 +131,6 @@ export function Step7Publish({ data, set }: StepProps) {
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
                 }}>{tr('wizard.step7.badge.video')}</span>
               )}
-              {data.options?.virtualStagingUser && (
-                <span style={{
-                  padding: '5px 11px', borderRadius: 999,
-                  background: sgAcc(0.95), color: SugarV2.ink,
-                  fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-                }}>{tr('wizard.step7.badge.staging')}</span>
-              )}
             </div>
 
             {photos.length > 1 && (
