@@ -27,7 +27,7 @@ Byline type : **« {Nom} · {Rôle} chez MEGGA »**.
 - `blog-posts/fin-valeur-locative-proprietaires.html` → **Aline Cretton**
 - `blog-posts/vendre-son-bien-etapes-pieges.html` → **Aline Cretton**
 - `blog-posts/relancer-sans-harceler.html` → **Aline Cretton**
-- `blog-posts/photos-qui-vendent-un-bien.html` → **Inès Grandjean**
+- `blog-posts/photos-immobilieres-annonce-vendre.html` → **Inès Grandjean**
 - `blog-posts/marche-romand-alemanique.html` → **Nadine Keller** (1ʳᵉ byline)
 
 ## Page À propos
