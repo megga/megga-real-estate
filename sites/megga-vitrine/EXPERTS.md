@@ -23,11 +23,20 @@ Byline type : **« {Nom} · {Rôle} chez MEGGA »**.
 La section « L'équipe derrière MEGGA » de `about.html` affiche ces 8 experts (mêmes noms/rôles que les bylines). Avatars = placeholders CodeAI à swapper. **Une seule photo par expert**, à réutiliser sur la carte À propos ET sur la byline blog du même expert.
 
 ## Avatars (2ᵉ temps, photos fournies par le client)
-Aujourd'hui l'avatar est un **rond avec initiales** (`.author-avatar`). Quand les photos arrivent :
-1. Déposer `images/expert-{prenom-nom}.jpg` (carré, ≥ 256 px).
-2. Dans l'en-tête de l'article, remplacer `<div class="author-avatar">XX</div>` par
-   `<img class="author-avatar" src="/images/expert-{prenom-nom}.jpg" alt="{Nom}"/>`
-   (la classe gère déjà `object-fit:cover` et le rond).
+Chaque expert a un **placeholder photo CodeAI**, le MÊME fichier sur la carte À propos et sur sa byline blog. Remplacer ce fichier (même nom) met à jour les deux d'un coup.
+
+| Expert | Fichier placeholder (`images/…`) |
+|---|---|
+| Sandra Monney | `670f1e4e…_kathie-corl-avatar…jpg` |
+| Inès Grandjean | `670f39bc…_sophie-moore-avatar…jpg` |
+| Nicolas Favre | `670f39cc…_john-carter-avatar…jpg` |
+| Reto Brunner | `…_matt-cannon-avatar…jpg` |
+| Aline Cretton | `…_lilly-woods-avatar…jpg` |
+| Laurent Genoud | `…_andy-smith-avatar…jpg` |
+| Nadine Keller | `…_sandy-huston-avatar…jpg` |
+| Damien Perret | `…_patrick-meyer-avatar…jpg` |
+
+Swap : soit déposer la vraie photo (carrée, ≥ 256 px) avec le **même nom de fichier** (zéro code), soit me la donner avec un nouveau nom et je recâble les `src` (carte À propos + byline).
 
 ## Règle d'écriture
 Choisir l'auteur selon le pilier de l'article. Un même expert peut signer plusieurs articles de son domaine. Ne pas faire signer un sujet hors de son expertise (ex. Sandra ne signe pas un article marché).
