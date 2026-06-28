@@ -18,6 +18,17 @@ Byline type : **« {Nom} · {Rôle} chez MEGGA »**.
 ## Attribution des articles publiés
 - `blog-posts/lba-2026-courtier-romand.html` → **Sandra Monney**
 - `blog-posts/ia-agence-immobiliere-realite.html` → **Inès Grandjean**
+- `blog-posts/crm-tout-en-un-vs-outils-eparpilles.html` → **Nicolas Favre**
+- `blog-posts/whatsapp-clients-immobilier.html` → **Nicolas Favre**
+- `blog-posts/decrocher-plus-de-mandats.html` → **Nicolas Favre**
+- `blog-posts/estimer-prix-bien-immobilier.html` → **Damien Perret**
+- `blog-posts/taux-hypothecaires-acheter-attendre.html` → **Laurent Genoud**
+- `blog-posts/automatiser-taches-agence-immobiliere.html` → **Reto Brunner**
+- `blog-posts/fin-valeur-locative-proprietaires.html` → **Aline Cretton**
+- `blog-posts/vendre-son-bien-etapes-pieges.html` → **Aline Cretton**
+- `blog-posts/relancer-sans-harceler.html` → **Aline Cretton**
+- `blog-posts/photos-qui-vendent-un-bien.html` → **Inès Grandjean**
+- `blog-posts/marche-romand-alemanique.html` → **Nadine Keller** (1ʳᵉ byline)
 
 ## Page À propos
 La section « L'équipe derrière MEGGA » de `about.html` affiche ces 8 experts (mêmes noms/rôles que les bylines). Avatars = placeholders CodeAI à swapper. **Une seule photo par expert**, à réutiliser sur la carte À propos ET sur la byline blog du même expert.
