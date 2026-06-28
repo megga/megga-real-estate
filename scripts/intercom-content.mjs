@@ -367,6 +367,51 @@ async function articlesPublish() {
   if (failed) process.exitCode = 1
 }
 
+// ───────────────────────── Déclaration des CDAs (MT4) ─────────────────────────
+// Déclare les Custom Data Attributes déjà ENVOYÉS au boot (src/lib/intercom.ts) mais
+// jamais déclarés → invisibles en ciblage tant qu'ils ne sont pas créés. Les `name`
+// DOIVENT être identiques aux clés du boot, sinon doublon non relié.
+// NB : déclarer ≠ recevoir — l'attribut devient sélectionnable dans le builder, mais
+// reste sans valeurs tant qu'un VRAI user ne les a pas transmises en prod.
+// Frontière LPD : uniquement des attributs de l'agent / de l'agence SaaS.
+
+const CDA_DEFS = [
+  { name: 'role', model: 'contact', data_type: 'string', description: "Rôle de l'agent MEGGA (agent, admin, …)" },
+  { name: 'canton', model: 'contact', data_type: 'string', description: "Canton suisse de l'agent" },
+  { name: 'onboarding_completed', model: 'contact', data_type: 'boolean', description: "L'agent a terminé l'onboarding MEGGA" },
+  { name: 'stripe_customer_id', model: 'company', data_type: 'string', description: "ID client Stripe de l'agence (facturation)" },
+]
+
+async function attributesDeclare() {
+  console.log(`→ Déclaration des Custom Data Attributes (${BASE}, API ${API_VERSION})\n`)
+  const body = await api('/data_attributes')
+  const existing = new Set(
+    (Array.isArray(body?.data) ? body.data : []).map((a) => `${a.model}:${a.name}`),
+  )
+
+  let done = 0
+  let skipped = 0
+  let failed = 0
+  for (const def of CDA_DEFS) {
+    if (existing.has(`${def.model}:${def.name}`)) {
+      console.log(`= ${def.model}.${def.name} déjà déclaré (skip)`)
+      skipped++
+      continue
+    }
+    try {
+      await api('/data_attributes', { method: 'POST', body: JSON.stringify(def) })
+      console.log(`✓ ${def.model}.${def.name} (${def.data_type}) déclaré`)
+      done++
+    } catch (err) {
+      console.error(`✗ ${def.model}.${def.name} — ${err.message}`)
+      failed++
+    }
+  }
+  console.log(`\n──────── Résultat ────────\nDéclarés : ${done} | déjà présents : ${skipped} | échecs : ${failed}`)
+  console.log('Rappel : un attribut déclaré devient sélectionnable mais reste vide tant qu\'un vrai user ne l\'a pas transmis.')
+  if (failed) process.exitCode = 1
+}
+
 async function main() {
   switch (mode) {
     case 'audit':
@@ -374,6 +419,9 @@ async function main() {
       break
     case 'articles-publish':
       await articlesPublish()
+      break
+    case 'attributes-declare':
+      await attributesDeclare()
       break
     case 'migrate-dry':
       await migrateDry()
@@ -388,7 +436,7 @@ async function main() {
       await deleteDemo()
       break
     default:
-      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | articles-publish | migrate-dry | migrate | migrate-collections | delete-demo`)
+      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | articles-publish | attributes-declare | migrate-dry | migrate | migrate-collections | delete-demo`)
       process.exit(2)
   }
 }
