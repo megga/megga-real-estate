@@ -1,4 +1,7 @@
 -- WhatsApp « outbound fiable » — statuts de livraison Meta (sent/delivered/read/failed).
+-- NOTE : re-datée de 20260614120000 → 20260628150000 au merge (28.06). L'ancien
+-- timestamp collisionnait avec 20260614120000_property_private_notes ET aurait été
+-- sauté par le date-guard du deploy.yml (qui n'applique que les migrations du jour).
 -- Le webhook ingère désormais les events `statuses` et fait progresser
 -- whatsapp_messages.status de façon monotone : received < sent < delivered < read ;
 -- failed est terminal (et n'écrase jamais read).
