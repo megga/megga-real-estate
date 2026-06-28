@@ -10,16 +10,17 @@ interface Props { contactId: string }
 // Coches de livraison d'un sortant (events `statuses` Meta ingérés par le webhook).
 // received/sent = ✓ (parti), delivered = ✓✓, read = ✓✓ bleu, failed = non délivré.
 function DeliveryStatus({ status, error }: { status: string; error: string | null }) {
+  const { t } = useTranslation('contacts')
   if (status === 'failed') {
     return (
-      <span className="font-medium text-red-200" title={error ?? 'Échec de livraison'}>
-        ⚠ non délivré
+      <span className="font-medium text-red-200" title={error ?? t('cd.waDeliveryFailedTitle')}>
+        ⚠ {t('cd.waDeliveryFailed')}
       </span>
     )
   }
-  if (status === 'read') return <span className="text-sky-300" title="Lu">✓✓</span>
-  if (status === 'delivered') return <span className="opacity-60" title="Délivré">✓✓</span>
-  return <span className="opacity-60" title="Envoyé">✓</span>
+  if (status === 'read') return <span className="text-sky-300" title={t('cd.waDeliveryRead')}>✓✓</span>
+  if (status === 'delivered') return <span className="opacity-60" title={t('cd.waDeliveryDelivered')}>✓✓</span>
+  return <span className="opacity-60" title={t('cd.waDeliverySent')}>✓</span>
 }
 
 export function CdWhatsAppCard({ contactId }: Props) {
