@@ -430,6 +430,11 @@
       "agentFallback": "Votre courtier MEGGA",
       "generating": "MEGGA AI rédige…",
       "demoBanner": "Mode démo, aucun lead dormant dans votre agence. Ces exemples ne sont envoyés à personne.",
+      "loading": "Chargement…",
+      "noLeads": {
+        "title": "Aucune relance en attente",
+        "body": "Aucun contact dormant à relancer aujourd'hui. Vos relances apparaîtront ici dès qu'un contact se refroidira."
+      },
       "sendError": "L'envoi a échoué, réessayez ou copiez le message.",
       "draft": {
         "to": "À",
