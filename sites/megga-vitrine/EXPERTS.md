@@ -12,7 +12,7 @@ Byline type : **« {Nom} · {Rôle} chez MEGGA »**.
 | LG | **Laurent Genoud** | Analyste marché | Valais · terrain lémanique et valaisan | Actualité | Prix, taux, marché romand |
 | DP | **Damien Perret** | Expert estimation | Neuchâtel · ex-courtier-estimateur | Méthode | Estimation, « combien vaut mon bien » |
 | AC | **Aline Cretton** | Customer success & formation | Vaud (Vevey) · ex-conseillère vente | Actualité / client | Valeur locative, fiscalité, accompagnement vendeur |
-| RB | **Reto Brunner** | Expert produit & automatisation | Zurich · ex-courtier | Produit / Méthode | Automatisation, intégrations, productivité |
+| RB | **Reto Brunner** | Expert produit | Zurich · ex-courtier | Produit / Méthode | Automatisation, intégrations, productivité |
 | NK | **Nadine Keller** | Analyste marché | Bâle · ex-régie | Actualité | Marché alémanique, lecture nationale |
 
 ## Attribution des articles publiés
