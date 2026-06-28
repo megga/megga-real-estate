@@ -19,6 +19,9 @@ Byline type : **« {Nom} · {Rôle} chez MEGGA »**.
 - `blog-posts/lba-2026-courtier-romand.html` → **Sandra Monney**
 - `blog-posts/ia-agence-immobiliere-realite.html` → **Inès Grandjean**
 
+## Page À propos
+La section « L'équipe derrière MEGGA » de `about.html` affiche ces 8 experts (mêmes noms/rôles que les bylines). Avatars = placeholders CodeAI à swapper. **Une seule photo par expert**, à réutiliser sur la carte À propos ET sur la byline blog du même expert.
+
 ## Avatars (2ᵉ temps, photos fournies par le client)
 Aujourd'hui l'avatar est un **rond avec initiales** (`.author-avatar`). Quand les photos arrivent :
 1. Déposer `images/expert-{prenom-nom}.jpg` (carré, ≥ 256 px).
