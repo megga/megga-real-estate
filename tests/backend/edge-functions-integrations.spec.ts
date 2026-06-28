@@ -125,3 +125,34 @@ describe.skipIf(!HAS_KEYS)('Edge Functions contract — integrations', () => {
     })
   })
 })
+
+// Régression du trou « auth = préfixe Bearer seulement » sur les fonctions Resend
+// AGENT-ONLY : elles ne vérifiaient que la présence de « Bearer » → un faux jeton
+// déclenchait un envoi Resend réel (usurpation d'expéditeur megga.ch).
+// requireAgentAuth valide désormais le JWT (auth.getUser) ET exige un profil agency_id.
+// NB volontairement absentes : send-email (appelant anon légitime = form de contact
+// public) et send-visit-email (appelant cron service_role) → durcissement différent.
+const AGENT_ONLY_RESEND = ['send-relance-email', 'send-property-email'] as const
+
+describe.skipIf(!HAS_KEYS)('Fonctions Resend agent-only — valident le JWT, pas juste le préfixe Bearer', () => {
+  for (const fn of AGENT_ONLY_RESEND) {
+    it(`${fn} rejette un Bearer falsifié (401, aucun envoi Resend)`, async () => {
+      const res = await fetch(`${URL}/functions/v1/${fn}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer not-a-real-jwt',
+        },
+        body: JSON.stringify({
+          to: 'someone@example.com',
+          subject: 'Test',
+          body: 'Test body',
+        }),
+      })
+      expect(
+        res.status,
+        `${fn}: un Bearer falsifié doit être rejeté avant tout envoi (got ${res.status})`
+      ).toBe(401)
+    })
+  }
+})
