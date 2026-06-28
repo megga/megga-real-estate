@@ -1,6 +1,14 @@
 -- =====================================================================
 -- SÉCURITÉ — Fuite cross-agence sur public.properties (confirmée LIVE)
 --
+-- NOTE (renommage 28.06.2026) : ce fichier était daté 20260627130000, en
+-- collision de version avec 20260627130000_fix_realadvisor_health_check_array_append
+-- (deux PR branchées le même jour ont choisi le même timestamp 14 chiffres).
+-- Effet : `supabase start` (CI DB fraîche) plantait sur schema_migrations_pkey
+-- duplicate, et en prod incrémental le DROP était silencieusement sauté
+-- (version déjà enregistrée par l'autre fichier). Renommé en 20260628140000
+-- (version unique). DDL idempotente (DROP ... IF EXISTS) → réapplication sûre.
+--
 -- Trou (vérifié en prod via pg_policy) :
 --   properties_select_public : FOR SELECT, roles = PUBLIC (anon + authenticated),
 --     USING (status = 'active' AND deleted_at IS NULL)
