@@ -12,7 +12,12 @@ import { useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useImpersonate } from '@/hooks/useImpersonate'
 import { supabase } from '@/lib/supabase'
-import { bootIntercom, shutdownIntercom, isIntercomEnabled } from '@/lib/intercom'
+import { bootIntercom, shutdownIntercom, updateIntercom, isIntercomEnabled } from '@/lib/intercom'
+
+// Le JWT « Messenger Security » expire après 1h (cf. edge `intercom-identity`).
+// On le rafraîchit avant l'échéance pour qu'une session ouverte toute la journée
+// (cas normal d'un agent) garde son identité vérifiée. 45 min = marge sous l'heure.
+const JWT_REFRESH_MS = 45 * 60 * 1000
 
 async function fetchUserJwt(): Promise<string | null> {
   try {
@@ -29,6 +34,8 @@ export default function IntercomMessenger() {
   const { impersonating } = useImpersonate()
   // Évite les re-boots inutiles + protège du double-mount StrictMode.
   const bootedFor = useRef<string | null>(null)
+  // Dernier rafraîchissement JWT (évite un rafraîchissement redondant au retour d'onglet).
+  const lastJwtRefresh = useRef(0)
 
   useEffect(() => {
     if (!isIntercomEnabled() || loading) return
@@ -90,6 +97,36 @@ export default function IntercomMessenger() {
     void run()
     return () => {
       cancelled = true
+    }
+  }, [user, profile, loading, impersonating])
+
+  // Rafraîchissement du JWT avant expiration (1h), sans re-booter le Messenger :
+  // on pousse le nouveau JWT via updateIntercom. Intervalle régulier + filet au
+  // retour sur l'onglet (laptop en veille / timer throttlé en arrière-plan).
+  useEffect(() => {
+    if (!isIntercomEnabled() || loading) return
+    if (!(user && profile && !impersonating)) return
+    // Le boot identifié vient de fournir un JWT frais → on part de maintenant.
+    lastJwtRefresh.current = Date.now()
+
+    let cancelled = false
+    async function refresh() {
+      const jwt = await fetchUserJwt()
+      if (cancelled || !jwt) return
+      updateIntercom({ intercom_user_jwt: jwt })
+      lastJwtRefresh.current = Date.now()
+    }
+    const interval = window.setInterval(() => { void refresh() }, JWT_REFRESH_MS)
+    function onVisible() {
+      if (document.visibilityState === 'visible' && Date.now() - lastJwtRefresh.current >= JWT_REFRESH_MS) {
+        void refresh()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [user, profile, loading, impersonating])
 
