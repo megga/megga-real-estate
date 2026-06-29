@@ -84,6 +84,9 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // update_property : complète/corrige les champs d'un bien (saisie de données CRM
   // interne, réversible, aucun envoi client) → auto, comme qualify_lead/add_note.
   update_property: 'auto',
+  // create_property : crée un brouillon de bien (état CRM interne, jamais publié
+  // sans le publish confirm dédié) → auto, comme create_contact/create_deal.
+  create_property: 'auto',
 }
 
 export function toolTier(name: string): ToolTier {

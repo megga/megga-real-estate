@@ -2460,6 +2460,10 @@ export async function execFileDocument(ctx: ActionCtx, a: Args): Promise<string>
 const VALID_PORTALS = new Set(['immobilier_ch'])
 const DEFAULT_PORTAL = 'immobilier_ch'
 
+// Statuts hors-marché (impubliables) → libellé FR. draft/active sont publiables
+// (publier active un brouillon, comme le wizard).
+const OFFMARKET_LABEL_FR: Record<string, string> = { reserved: 'réservé', sold: 'vendu', archived: 'archivé' }
+
 const SYND_FIELDS =
   'id, title, type, status, transaction_type, price, currency, charges_monthly, rooms, ' +
   'surface_m2, description, address, postal_code, city, photos, deleted_at'
@@ -2596,12 +2600,14 @@ export async function preparePublishToPortals(ctx: ActionCtx, a: Args): Promise<
   const portals = parsePortals(a)
   const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
 
-  // Le bien doit être actif (jamais un brouillon publié à l'extérieur). Le MANDAT
+  // Statut : on accepte un BROUILLON (publier l'activera, comme le wizard) ou un
+  // bien actif. On refuse seulement hors-marché (réservé/vendu/archivé). Le MANDAT
   // n'est PAS contrôlé : optionnel, jamais bloquant (comme le KYC).
-  if (p.status !== 'active') {
+  const offmarket = OFFMARKET_LABEL_FR[p.status ?? '']
+  if (offmarket) {
     return { ok: false, error: lang === 'en'
-      ? `"${title}" isn't active yet — set it live before publishing.`
-      : `« ${title} » n’est pas encore actif — passe-le en ligne avant de publier.` }
+      ? `"${title}" is ${p.status} — can't publish it.`
+      : `« ${title} » est ${offmarket} — impossible de le publier.` }
   }
   // Préflight données IDX (validité d'annonce, pas de la compliance) : sans ces
   // champs on ne peut pas produire un enregistrement IDX valide.
@@ -2667,8 +2673,8 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
     .select('id, title, status')
     .eq('id', propertyId).eq('agency_id', ctx.agencyId).is('deleted_at', null).maybeSingle()
   if (!prop) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
-  if (prop.status !== 'active') {
-    return lang === 'en' ? 'Property no longer active, nothing published.' : 'Bien plus actif, rien publié.'
+  if (OFFMARKET_LABEL_FR[prop.status ?? '']) {
+    return lang === 'en' ? 'Property is off-market (reserved/sold/archived), nothing published.' : 'Bien hors marché (réservé/vendu/archivé), rien publié.'
   }
 
   const nowIso = new Date().toISOString()
@@ -2677,6 +2683,14 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
   }))
   const { error } = await ctx.supabase.from('property_syndications').upsert(rows, { onConflict: 'property_id,portal' })
   if (error) return (lang === 'en' ? 'Error publishing: ' : 'Erreur publication: ') + error.message
+
+  // Publier ACTIVE un brouillon (draft → active), comme le wizard. published_at est
+  // posé par le trigger set_property_published_at au 1er passage en active.
+  if (prop.status === 'draft') {
+    await ctx.supabase.from('properties')
+      .update({ status: 'active', updated_at: nowIso })
+      .eq('id', propertyId).eq('agency_id', ctx.agencyId)
+  }
 
   try {
     await ctx.supabase.from('activity_events').insert({
@@ -2915,6 +2929,89 @@ const PROPERTY_TYPE_ENUM_MAP: Record<string, string> = {
   local: 'commercial', office: 'commercial', dépôt: 'commercial', depot: 'commercial', arcade: 'commercial',
 }
 
+interface CollectedPropertyFields { fields: Record<string, unknown>; applied: string[]; notes: string[] }
+
+/** Coercion PARTAGÉE (create_property + update_property) : args libres → colonnes
+ *  properties. Ne pose QUE les champs donnés explicitement (anti-fabrication). */
+function collectPropertyFields(a: Args, lang: WaLang): CollectedPropertyFields {
+  const fields: Record<string, unknown> = {}
+  const applied: string[] = []
+  const notes: string[] = []
+
+  const pushText = (col: string, argKey: string, label: string, max: number) => {
+    const v = s(a[argKey])
+    if (!v) return
+    const val = v.slice(0, max)
+    fields[col] = val
+    applied.push(`${label} ${val}`)
+  }
+  pushText('title', 'title', lang === 'en' ? 'title' : 'titre', 200)
+  pushText('address', 'address', lang === 'en' ? 'address' : 'adresse', 300)
+  pushText('city', 'city', lang === 'en' ? 'city' : 'localité', 120)
+  pushText('canton', 'canton', 'canton', 40)
+  pushText('description', 'description', 'description', 4000)
+
+  const npa = s(a.postal_code)
+  if (npa) {
+    const val = npa.slice(0, 12)
+    fields.postal_code = val
+    applied.push(`${lang === 'en' ? 'postal code' : 'NPA'} ${val}`)
+  }
+
+  if (a.property_type != null) {
+    const mapped = PROPERTY_TYPE_ENUM_MAP[String(a.property_type).toLowerCase().trim()]
+    if (mapped) { fields.type = mapped; applied.push(`type ${mapped}`) }
+    else notes.push(lang === 'en'
+      ? `(type "${a.property_type}" not recognized)`
+      : `(type « ${a.property_type} » non reconnu : appartement/maison/villa/terrain/commercial)`)
+  }
+
+  if (a.transaction_type != null) {
+    const t = String(a.transaction_type).toLowerCase().trim()
+    const tt = ['rent', 'location', 'louer', 'à louer', 'a louer'].includes(t) ? 'rent'
+      : ['buy', 'sale', 'vente', 'achat', 'vendre', 'à vendre', 'a vendre'].includes(t) ? 'buy' : null
+    if (tt) { fields.transaction_type = tt; applied.push(tt === 'rent' ? (lang === 'en' ? 'for rent' : 'à louer') : (lang === 'en' ? 'for sale' : 'à vendre')) }
+    else notes.push(lang === 'en'
+      ? `(transaction "${a.transaction_type}" not recognized)`
+      : `(transaction « ${a.transaction_type} » non reconnue : vente ou location)`)
+  }
+
+  const price = parseAmount(a.price)
+  if (price != null && price > 0) { fields.price = price; applied.push(`${lang === 'en' ? 'price' : 'prix'} ${fmtCHF(price)}`) }
+  const charges = parseAmount(a.charges_monthly)
+  if (charges != null && charges >= 0) { fields.charges_monthly = charges; applied.push(`${lang === 'en' ? 'charges' : 'charges'} ${fmtCHF(charges)}`) }
+
+  const rooms = toNum(a.rooms)
+  if (rooms != null && rooms > 0) { fields.rooms = rooms; applied.push(`${rooms} ${lang === 'en' ? 'rooms' : 'pièces'}`) }
+  const surface = toNum(a.surface_m2)
+  if (surface != null && surface > 0) { fields.surface_m2 = Math.round(surface * 100) / 100; applied.push(`${Math.round(surface)} m²`) }
+  const yb = toNum(a.year_built)
+  if (yb != null && yb > 1000 && yb < 2100) { fields.year_built = Math.round(yb); applied.push(`${lang === 'en' ? 'year' : 'année'} ${Math.round(yb)}`) }
+
+  return { fields, applied, notes }
+}
+
+const PROPERTY_TYPE_TITLE: Record<string, { fr: string; en: string }> = {
+  apartment: { fr: 'Appartement', en: 'Apartment' },
+  house: { fr: 'Maison', en: 'House' },
+  villa: { fr: 'Villa', en: 'Villa' },
+  commercial: { fr: 'Local commercial', en: 'Commercial space' },
+  land: { fr: 'Terrain', en: 'Land' },
+}
+
+/** Titre synthétisé depuis les champs donnés (type / pièces / localité) — composé
+ *  de vraies entrées de l'agent, jamais inventé. Null si rien d'exploitable. */
+function synthesizeTitle(fields: Record<string, unknown>, lang: WaLang): string | null {
+  const parts: string[] = []
+  const t = typeof fields.type === 'string' ? PROPERTY_TYPE_TITLE[fields.type] : null
+  if (t) parts.push(lang === 'en' ? t.en : t.fr)
+  if (typeof fields.rooms === 'number') parts.push(`${fields.rooms} ${lang === 'en' ? 'rooms' : 'pièces'}`)
+  const head = parts.join(' ')
+  const city = typeof fields.city === 'string' ? fields.city : ''
+  if (head && city) return `${head} — ${city}`
+  return head || city || null
+}
+
 export async function execUpdateProperty(ctx: ActionCtx, a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
   const lang = ctx.lang ?? 'fr'
@@ -2928,59 +3025,7 @@ export async function execUpdateProperty(ctx: ActionCtx, a: Args): Promise<strin
   const p = found.property
   const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
 
-  const patch: Record<string, unknown> = {}
-  const applied: string[] = []
-  const notes: string[] = []
-
-  const pushText = (col: string, argKey: string, label: string, max: number) => {
-    const v = s(a[argKey])
-    if (!v) return
-    const val = v.slice(0, max)
-    patch[col] = val
-    applied.push(`${label} ${val}`)
-  }
-  pushText('title', 'title', lang === 'en' ? 'title' : 'titre', 200)
-  pushText('address', 'address', lang === 'en' ? 'address' : 'adresse', 300)
-  pushText('city', 'city', lang === 'en' ? 'city' : 'localité', 120)
-  pushText('canton', 'canton', 'canton', 40)
-  pushText('description', 'description', 'description', 4000)
-
-  const npa = s(a.postal_code)
-  if (npa) {
-    const val = npa.slice(0, 12)
-    patch.postal_code = val
-    applied.push(`${lang === 'en' ? 'postal code' : 'NPA'} ${val}`)
-  }
-
-  if (a.property_type != null) {
-    const mapped = PROPERTY_TYPE_ENUM_MAP[String(a.property_type).toLowerCase().trim()]
-    if (mapped) { patch.type = mapped; applied.push(`type ${mapped}`) }
-    else notes.push(lang === 'en'
-      ? `(type "${a.property_type}" not recognized)`
-      : `(type « ${a.property_type} » non reconnu : appartement/maison/villa/terrain/commercial)`)
-  }
-
-  if (a.transaction_type != null) {
-    const t = String(a.transaction_type).toLowerCase().trim()
-    const tt = ['rent', 'location', 'louer', 'à louer', 'a louer'].includes(t) ? 'rent'
-      : ['buy', 'sale', 'vente', 'achat', 'vendre', 'à vendre', 'a vendre'].includes(t) ? 'buy' : null
-    if (tt) { patch.transaction_type = tt; applied.push(tt === 'rent' ? (lang === 'en' ? 'for rent' : 'à louer') : (lang === 'en' ? 'for sale' : 'à vendre')) }
-    else notes.push(lang === 'en'
-      ? `(transaction "${a.transaction_type}" not recognized)`
-      : `(transaction « ${a.transaction_type} » non reconnue : vente ou location)`)
-  }
-
-  const price = parseAmount(a.price)
-  if (price != null && price > 0) { patch.price = price; applied.push(`${lang === 'en' ? 'price' : 'prix'} ${fmtCHF(price)}`) }
-  const charges = parseAmount(a.charges_monthly)
-  if (charges != null && charges >= 0) { patch.charges_monthly = charges; applied.push(`${lang === 'en' ? 'charges' : 'charges'} ${fmtCHF(charges)}`) }
-
-  const rooms = toNum(a.rooms)
-  if (rooms != null && rooms > 0) { patch.rooms = rooms; applied.push(`${rooms} ${lang === 'en' ? 'rooms' : 'pièces'}`) }
-  const surface = toNum(a.surface_m2)
-  if (surface != null && surface > 0) { patch.surface_m2 = Math.round(surface * 100) / 100; applied.push(`${Math.round(surface)} m²`) }
-  const yb = toNum(a.year_built)
-  if (yb != null && yb > 1000 && yb < 2100) { patch.year_built = Math.round(yb); applied.push(`${lang === 'en' ? 'year' : 'année'} ${Math.round(yb)}`) }
+  const { fields: patch, applied, notes } = collectPropertyFields(a, lang)
 
   if (Object.keys(patch).length === 0) {
     if (notes.length) return notes.join(' ')
@@ -3007,4 +3052,55 @@ export async function execUpdateProperty(ctx: ActionCtx, a: Args): Promise<strin
   return lang === 'en'
     ? `Updated "${title}": ${changed}.${note}${suffix}`
     : `C'est noté pour « ${title} » : ${changed}.${note}${suffix}`
+}
+
+// ── Créer un bien de zéro par WhatsApp : create_property (tier auto) ──────────
+// Crée un BROUILLON depuis ce que l'agent dicte. Le titre est synthétisé des
+// champs donnés s'il n'est pas fourni. Publier l'activera ensuite (draft → active).
+export async function execCreateProperty(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+
+  const { fields, applied, notes } = collectPropertyFields(a, lang)
+
+  // Titre : explicite, sinon synthétisé (type/pièces/localité). Sans rien → on demande.
+  if (!fields.title) {
+    const synth = synthesizeTitle(fields, lang)
+    if (synth) fields.title = synth
+  }
+  if (!fields.title) {
+    const head = notes.length ? notes.join(' ') + ' ' : ''
+    return head + (lang === 'en'
+      ? 'Give me at least a title, or the type and city.'
+      : 'Donne-moi au moins un titre, ou le type et la localité.')
+  }
+
+  const { data: created, error } = await ctx.supabase.from('properties').insert({
+    agency_id: ctx.agencyId,
+    status: 'draft',
+    currency: 'CHF',
+    created_by: ctx.profileId,
+    ...fields,
+  }).select('id, title').single()
+  if (error) return (lang === 'en' ? 'Error creating the property: ' : 'Erreur création du bien: ') + error.message
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_created', entity_type: 'property', entity_id: created.id, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(fields) },
+    })
+  } catch { /* non bloquant */ }
+
+  // `applied` peut contenir « titre X » (titre explicite) → on l'écarte du détail,
+  // le titre est déjà montré séparément.
+  const titlePrefix = lang === 'en' ? 'title ' : 'titre '
+  const details = applied.filter((x) => !x.startsWith(titlePrefix)).join(', ')
+  const note = notes.length ? ' ' + notes.join(' ') : ''
+  const tail = lang === 'en'
+    ? ' Send me photos or say "publish it" when ready.'
+    : ' Envoie-moi des photos ou dis « publie-le » quand c\'est prêt.'
+  return (lang === 'en'
+    ? `Draft created: "${created.title}"${details ? ` (${details})` : ''}.`
+    : `Brouillon créé : « ${created.title} »${details ? ` (${details})` : ''}.`) + note + tail
 }
