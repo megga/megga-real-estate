@@ -379,7 +379,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'draft_listing_copy',
-      description: "Rédige le CONTENU d'une annonce immobilière (titre marketing + description bilingue FR/EN + grille de détails) pour un bien des mandats de l'agence, à partir de ses VRAIES données. Deux variantes : 'confidential' (sans coordonnées ni adresse exacte) ou 'public' (avec l'agence + l'agent). Si la variante n'est pas précisée, DEMANDE-la avant d'appeler. Pour « rédige l'annonce du 3 pièces de Champel », « fais le descriptif du bien X ». NE l'envoie pas au client — c'est pour l'agent.",
+      description: "Rédige le CONTENU d'une annonce immobilière (titre marketing + description bilingue FR/EN + grille de détails) pour un bien des mandats de l'agence, à partir de ses VRAIES données. Deux variantes : 'confidential' (sans coordonnées ni adresse exacte) ou 'public' (avec l'agence + l'agent). Si la variante n'est pas précisée, DEMANDE-la avant d'appeler. Pour « rédige l'annonce du 3 pièces de Champel », « fais le descriptif du bien X ». NE l'envoie pas au client — c'est pour l'agent. Si l'agent veut l'ENREGISTRER / l'utiliser sur le bien, appelle ensuite update_property avec le titre et la description que tu viens de rédiger.",
       parameters: {
         type: 'object',
         properties: {
