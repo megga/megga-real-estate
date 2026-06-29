@@ -17,6 +17,8 @@ import {
   kycDateShort,
   projectMatchListing,
   stripExactAddress,
+  portalLabel,
+  normalizePortal,
 } from './whatsapp-agent-router'
 
 describe('buildHistoryMessages', () => {
@@ -244,12 +246,31 @@ describe('canLeaveConfirm — invariant socle légal (Palier 3)', () => {
     expect(canLeaveConfirm('update_pipeline')).toBe(true)
   })
   it('le socle légal ne quitte JAMAIS confirm', () => {
-    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case', 'send_client_email']) {
+    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case', 'send_client_email', 'publish_to_portals', 'withdraw_from_portals']) {
       expect(canLeaveConfirm(t)).toBe(false)
     }
   })
   it('un outil inconnu ne quitte pas confirm', () => {
     expect(canLeaveConfirm('outil_inconnu')).toBe(false)
+  })
+})
+
+describe('syndication portails (Phase 2) — tiers + libellés', () => {
+  it('publish/withdraw sont confirm (jamais sans le « oui » de l\'agent)', () => {
+    expect(toolTier('publish_to_portals')).toBe('confirm')
+    expect(toolTier('withdraw_from_portals')).toBe('confirm')
+  })
+  it('get_publication_status est read (lecture seule)', () => {
+    expect(toolTier('get_publication_status')).toBe('read')
+  })
+  it('portalLabel rend un libellé humain (jamais l\'enum brut)', () => {
+    expect(portalLabel('immobilier_ch')).toBe('immobilier.ch')
+    expect(portalLabel('portail_inconnu')).toBe('portail_inconnu')
+  })
+  it('normalizePortal mappe la saisie libre vers la clé interne', () => {
+    expect(normalizePortal('immobilier.ch')).toBe('immobilier_ch')
+    expect(normalizePortal('Immobilier-CH')).toBe('immobilier_ch')
+    expect(normalizePortal('  immobilier ch ')).toBe('immobilier_ch')
   })
 })
 

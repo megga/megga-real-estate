@@ -15,7 +15,8 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount, canonicalPropertyType, normalizeZone } from './whatsapp-lead.ts'
-import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, stripExactAddress, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
+import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, stripExactAddress, portalLabel, normalizePortal, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
+import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
@@ -2447,4 +2448,329 @@ export async function execFileDocument(ctx: ActionCtx, a: Args): Promise<string>
   return lang === 'en'
     ? `Filed under ${name}'s timeline.\n\n${r.digest}\n\n(AI read — please check it in the CRM.)${truncNote}`
     : `Classé dans la fiche de ${name}.\n\n${r.digest}\n\n(Lecture IA — vérifie dans le CRM.)${truncNote}`
+}
+
+// ── Syndication portails (Phase 2) ──────────────────────────────────────────
+// publish_to_portals / withdraw_from_portals (tier confirm) + get_publication_status
+// (read). Modèle « feed » : on inscrit/retire un bien du feed IDX de l'agence
+// (table property_syndications) ; immobilier.ch va chercher le feed et importe.
+// Préflight = mêmes règles que le sérialiseur (validateIdxProperty) + garde-fou
+// compliance MANDAT SIGNÉ : on ne syndique jamais un bien sans mandat.
+
+const VALID_PORTALS = new Set(['immobilier_ch'])
+const DEFAULT_PORTAL = 'immobilier_ch'
+
+const SYND_FIELDS =
+  'id, title, type, status, transaction_type, price, currency, charges_monthly, rooms, ' +
+  'surface_m2, description, address, postal_code, city, photos, deleted_at'
+type SyndPropertyRow = {
+  id: string; title: string | null; type: string | null; status: string | null
+  transaction_type: string | null; price: number | string | null
+  currency: string | null; charges_monthly: number | string | null
+  rooms: number | string | null; surface_m2: number | string | null; description: string | null
+  address: string | null; postal_code: string | null; city: string | null
+  photos: string[] | null; deleted_at: string | null
+}
+
+type PropLookup =
+  | { kind: 'one'; property: SyndPropertyRow }
+  | { kind: 'none' }
+  | { kind: 'many'; labels: string }
+  | { kind: 'error' }
+
+/** Résout UN bien des mandats de l'agence par requête libre (titre/adresse), scopé
+ *  agency_id + non supprimé. Même filtre ilike que draft_listing_copy (échappe %,()). */
+async function lookupAgencyProperty(ctx: ActionCtx, query: string, lang: WaLang): Promise<PropLookup> {
+  const term = query.slice(0, 80).replace(/[%,()]/g, ' ').trim()
+  if (!term) return { kind: 'none' }
+  const { data, error } = await ctx.supabase.from('properties')
+    .select(SYND_FIELDS)
+    .eq('agency_id', ctx.agencyId)
+    .is('deleted_at', null)
+    .or(`title.ilike.%${term}%,address.ilike.%${term}%`)
+    .limit(5)
+  if (error) {
+    console.error('syndication property lookup', error.code ?? 'unknown')
+    return { kind: 'error' }
+  }
+  const rows = (data ?? []) as unknown as SyndPropertyRow[]
+  if (rows.length === 0) return { kind: 'none' }
+  if (rows.length >= 2) {
+    const labels = rows
+      .map((p) => `- ${p.title ?? (lang === 'en' ? 'Untitled' : 'Sans titre')}${p.city ? ` (${p.city})` : ''}`)
+      .join('\n')
+    return { kind: 'many', labels }
+  }
+  return { kind: 'one', property: rows[0] }
+}
+
+function toIdxInput(p: SyndPropertyRow): IdxProperty {
+  return {
+    id: p.id, type: p.type, transactionType: p.transaction_type, title: p.title,
+    price: toNum(p.price), address: p.address, postalCode: p.postal_code, city: p.city,
+    photos: p.photos ?? [],
+  }
+}
+
+// Libellés FR/EN de type de bien pour l'aperçu (déterministe).
+const PUBLISH_TYPE_LABEL: Record<string, { fr: string; en: string }> = {
+  apartment: { fr: 'Appartement', en: 'Apartment' },
+  house: { fr: 'Maison', en: 'House' },
+  villa: { fr: 'Villa', en: 'Villa' },
+  commercial: { fr: 'Commercial', en: 'Commercial' },
+  land: { fr: 'Terrain', en: 'Land' },
+}
+
+/** Aperçu DÉTERMINISTE de l'annonce telle qu'elle partira au portail (vraies
+ *  données du bien, aucun appel IA). L'agent valide le CONTENU, pas juste l'action. */
+function buildPublishPreview(p: SyndPropertyRow, lang: WaLang): string {
+  const en = lang === 'en'
+  const lines: string[] = []
+  lines.push(`« ${p.title ?? (en ? 'Untitled' : 'Sans titre')} »`)
+
+  const typeLabel = p.type ? (PUBLISH_TYPE_LABEL[p.type.toLowerCase()] ?? { fr: p.type, en: p.type }) : null
+  const isRent = (p.transaction_type ?? 'buy') === 'rent'
+  const txn = isRent ? (en ? 'Rent' : 'Location') : (en ? 'Sale' : 'Vente')
+  const price = toNum(p.price)
+  const charges = toNum(p.charges_monthly)
+  const cur = (p.currency ?? 'CHF').toString().toUpperCase()
+  let priceStr = ''
+  if (price != null && price > 0) {
+    priceStr = cur === 'CHF' ? (isRent ? `${fmtCHF(price)}${en ? '/mo' : '/mois'}` : fmtCHF(price)) : `${cur} ${Math.round(price)}`
+    if (isRent && charges != null && charges > 0) priceStr += en ? ` (+ ${fmtCHF(charges)} charges)` : ` (+ ${fmtCHF(charges)} charges)`
+  }
+  lines.push([typeLabel ? (en ? typeLabel.en : typeLabel.fr) : null, txn, priceStr || null].filter(Boolean).join(' · '))
+
+  const rooms = toNum(p.rooms)
+  const surface = toNum(p.surface_m2)
+  const place = [p.postal_code, p.city].filter(Boolean).join(' ')
+  const geo = [
+    rooms != null ? `${rooms}${en ? ' rooms' : ' pièces'}` : null,
+    surface != null ? `${Math.round(surface)} m²` : null,
+    place || null,
+  ].filter(Boolean).join(' · ')
+  if (geo) lines.push(geo)
+
+  const photoCount = (p.photos ?? []).filter((u) => typeof u === 'string' && u.trim() !== '').length
+  lines.push(`${photoCount} photo${photoCount > 1 ? 's' : ''}`)
+
+  const desc = (p.description ?? '').trim()
+  if (desc) lines.push(desc.length > 160 ? desc.slice(0, 160).trimEnd() + '…' : desc)
+
+  return lines.join('\n')
+}
+
+/** Libellés humains des champs manquants au préflight IDX. */
+const MISSING_LABELS: Record<string, { fr: string; en: string }> = {
+  type: { fr: 'le type de bien', en: 'property type' },
+  transaction_type: { fr: 'vente ou location', en: 'sale or rent' },
+  title: { fr: 'un titre', en: 'a title' },
+  price: { fr: 'le prix', en: 'the price' },
+  address: { fr: "l'adresse", en: 'the address' },
+  postal_code: { fr: 'le NPA', en: 'the postal code' },
+  city: { fr: 'la localité', en: 'the city' },
+  photos: { fr: 'au moins une photo', en: 'at least one photo' },
+}
+
+/** Portails demandés (normalisés + filtrés au catalogue supporté). Défaut immobilier.ch. */
+function parsePortals(a: Args, fallback: string[] = [DEFAULT_PORTAL]): string[] {
+  const raw = Array.isArray(a.portals) ? a.portals.filter((x): x is string => typeof x === 'string') : []
+  const cleaned = raw.map(normalizePortal).filter((p) => VALID_PORTALS.has(p))
+  return cleaned.length ? Array.from(new Set(cleaned)) : fallback
+}
+
+/** Confirm-tier : valide que le bien est actif + données IDX complètes (le MANDAT
+ *  n'est PAS requis — optionnel, jamais bloquant, cf. KYC), puis construit l'APERÇU
+ *  de l'annonce + le prompt de confirmation. */
+export async function preparePublishToPortals(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const query = s(a.query)
+  if (!query) return { ok: false, error: lang === 'en' ? 'Which property should I publish?' : 'Quel bien veux-tu publier ?' }
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return { ok: false, error: lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.' }
+  if (found.kind === 'none') return { ok: false, error: lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.' }
+  if (found.kind === 'many') return { ok: false, error: (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels }
+  const p = found.property
+  const portals = parsePortals(a)
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // Le bien doit être actif (jamais un brouillon publié à l'extérieur). Le MANDAT
+  // n'est PAS contrôlé : optionnel, jamais bloquant (comme le KYC).
+  if (p.status !== 'active') {
+    return { ok: false, error: lang === 'en'
+      ? `"${title}" isn't active yet — set it live before publishing.`
+      : `« ${title} » n’est pas encore actif — passe-le en ligne avant de publier.` }
+  }
+  // Préflight données IDX (validité d'annonce, pas de la compliance) : sans ces
+  // champs on ne peut pas produire un enregistrement IDX valide.
+  const missing = validateIdxProperty(toIdxInput(p))
+  if (missing.length) {
+    const human = missing.map((k) => (lang === 'en' ? MISSING_LABELS[k]?.en : MISSING_LABELS[k]?.fr) ?? k)
+    return { ok: false, error: lang === 'en'
+      ? `Before publishing "${title}", it's missing: ${human.join(', ')}.`
+      : `Avant de publier « ${title} », il manque : ${human.join(', ')}.` }
+  }
+
+  // Aperçu de l'annonce (contenu réel) dans le confirm → l'agent valide ce qui part.
+  const names = portals.map(portalLabel).join(', ')
+  const preview = buildPublishPreview(p, lang)
+  const prompt = lang === 'en'
+    ? `${preview}\n\nPublish this on ${names}? ("yes" / "no")`
+    : `${preview}\n\nJe publie ça sur ${names} ? (« oui » / « non »)`
+  return { ok: true, prompt, payload: { property_id: p.id, portals, title } }
+}
+
+// Déclenche le push FTP du feed tout de suite (au lieu d'attendre le cron 05h30).
+// idx-syndicate ACK vite (202) puis bosse en arrière-plan ; no-op tant que le FTP
+// n'est pas configuré. Best-effort : toute erreur est avalée (le cron rattrape).
+async function triggerImmediateSyndication(agencyId: string): Promise<void> {
+  const url = Deno.env.get('SUPABASE_URL')
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!url || !key) return
+  try {
+    await fetch(`${url}/functions/v1/idx-syndicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ agency_id: agencyId }),
+      signal: AbortSignal.timeout(4000),
+    })
+  } catch { /* best-effort */ }
+}
+
+/** Post-« oui » : inscrit le bien au feed (upsert property_syndications status='queued')
+ *  puis déclenche le push immédiat. */
+export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const propertyId = s(payload.property_id)
+  const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
+  if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing published.' : 'Action incomplète, rien n’a été publié.'
+
+  // Re-garde (défense en profondeur) : bien de l'agence, actif. PAS de mandat
+  // (optionnel, jamais bloquant).
+  const { data: prop } = await ctx.supabase.from('properties')
+    .select('id, title, status')
+    .eq('id', propertyId).eq('agency_id', ctx.agencyId).is('deleted_at', null).maybeSingle()
+  if (!prop) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
+  if (prop.status !== 'active') {
+    return lang === 'en' ? 'Property no longer active, nothing published.' : 'Bien plus actif, rien publié.'
+  }
+
+  const nowIso = new Date().toISOString()
+  const rows = portals.map((portal) => ({
+    property_id: propertyId, agency_id: ctx.agencyId, portal, status: 'queued', error: null, updated_at: nowIso,
+  }))
+  const { error } = await ctx.supabase.from('property_syndications').upsert(rows, { onConflict: 'property_id,portal' })
+  if (error) return (lang === 'en' ? 'Error publishing: ' : 'Erreur publication: ') + error.message
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_published_to_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
+    })
+  } catch { /* non bloquant */ }
+
+  // Livraison immédiate : déclenche le push du feed (no-op tant que FTP non
+  // configuré), au lieu d'attendre le cron. Best-effort, ne bloque pas la réponse.
+  if (ctx.agencyId) await triggerImmediateSyndication(ctx.agencyId)
+
+  const names = portals.map(portalLabel).join(', ')
+  const title = s(payload.title) ?? prop.title ?? (lang === 'en' ? 'the property' : 'le bien')
+  return lang === 'en'
+    ? `"${title}" published on ${names} — it goes to the portal at the next feed deposit.`
+    : `« ${title} » publié sur ${names} — il part au portail au prochain dépôt du feed.`
+}
+
+/** Confirm-tier : retire un bien des portails où il est actuellement publié. */
+export async function prepareWithdrawFromPortals(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const query = s(a.query)
+  if (!query) return { ok: false, error: lang === 'en' ? 'Which property should I withdraw?' : 'Quel bien veux-tu retirer ?' }
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return { ok: false, error: lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.' }
+  if (found.kind === 'none') return { ok: false, error: lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.' }
+  if (found.kind === 'many') return { ok: false, error: (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels }
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // Portails où le bien est actuellement actif (queued/published).
+  const { data: synd } = await ctx.supabase.from('property_syndications')
+    .select('portal, status').eq('property_id', p.id).eq('agency_id', ctx.agencyId).in('status', ['queued', 'published'])
+  const active = (synd ?? []).map((r) => r.portal as string)
+  const requested = Array.isArray(a.portals) && a.portals.length ? parsePortals(a, active) : active
+  const targets = requested.filter((portal) => active.includes(portal))
+  if (targets.length === 0) {
+    return { ok: false, error: lang === 'en' ? `"${title}" isn't published on any portal.` : `« ${title} » n’est sur aucun portail.` }
+  }
+
+  const names = targets.map(portalLabel).join(', ')
+  const prompt = lang === 'en'
+    ? `I'll withdraw "${title}" from ${names}. Confirm? ("yes" / "no")`
+    : `Je retire « ${title} » de ${names}. Tu confirmes ? (« oui » / « non »)`
+  return { ok: true, prompt, payload: { property_id: p.id, portals: targets, title } }
+}
+
+/** Post-« oui » : passe les lignes ciblées en status='withdrawn' (sortent du feed). */
+export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const propertyId = s(payload.property_id)
+  const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
+  if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing withdrawn.' : 'Action incomplète, rien n’a été retiré.'
+
+  const { error } = await ctx.supabase.from('property_syndications')
+    .update({ status: 'withdrawn', updated_at: new Date().toISOString() })
+    .eq('property_id', propertyId).eq('agency_id', ctx.agencyId).in('portal', portals).in('status', ['queued', 'published'])
+  if (error) return (lang === 'en' ? 'Error withdrawing: ' : 'Erreur retrait: ') + error.message
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_withdrawn_from_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
+    })
+  } catch { /* non bloquant */ }
+
+  const names = portals.map(portalLabel).join(', ')
+  const title = s(payload.title) ?? (lang === 'en' ? 'the property' : 'le bien')
+  return lang === 'en'
+    ? `"${title}" withdrawn from ${names} — it drops off at the portal's next import.`
+    : `« ${title} » retiré de ${names} — il disparaîtra au prochain import du portail.`
+}
+
+/** Read-tier : sur quels portails un bien est publié + état (en ligne / en file). */
+export async function execGetPublicationStatus(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const query = s(a.query)
+  if (!query) return lang === 'en' ? 'Which property?' : 'Quel bien ?'
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.'
+  if (found.kind === 'none') return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.'
+  if (found.kind === 'many') return (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  const { data: synd, error } = await ctx.supabase.from('property_syndications')
+    .select('portal, status').eq('property_id', p.id).eq('agency_id', ctx.agencyId)
+  if (error) return lang === 'en' ? "I couldn't read the publication status." : 'Je n’ai pas pu lire le statut de publication.'
+
+  const live = (synd ?? []).filter((r) => r.status === 'queued' || r.status === 'published')
+  if (live.length === 0) {
+    return lang === 'en' ? `"${title}" isn't on any portal.` : `« ${title} » n’est sur aucun portail.`
+  }
+  const lines = live.map((r) => {
+    const name = portalLabel(r.portal as string)
+    const st = r.status === 'published'
+      ? (lang === 'en' ? 'live' : 'en ligne')
+      : (lang === 'en' ? 'queued (next import)' : 'en file (prochain import)')
+    return `- ${name} : ${st}`
+  }).join('\n')
+  return (lang === 'en' ? `"${title}" — publication:\n` : `« ${title} » — publication :\n`) + lines
 }

@@ -24,6 +24,7 @@ import {
   execSummarizeGroupThread, execCheckGroupLeak,
   execDraftListingCopy, execPrepareMeeting,
   execReadDocument, execFileDocument,
+  execGetPublicationStatus, preparePublishToPortals, prepareWithdrawFromPortals,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
@@ -396,6 +397,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'prepare_meeting': return execPrepareMeeting(ctx, args)
     case 'read_document': return execReadDocument(ctx, args)
     case 'file_document': return execFileDocument(ctx, args)
+    case 'get_publication_status': return execGetPublicationStatus(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }
@@ -438,6 +440,14 @@ async function stashPending(
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'record_offer') {
     const p = await prepareRecordOffer(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'publish_to_portals') {
+    const p = await preparePublishToPortals(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'withdraw_from_portals') {
+    const p = await prepareWithdrawFromPortals(ctx, args)
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'send_client_message') {

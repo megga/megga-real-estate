@@ -433,4 +433,48 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'publish_to_portals',
+      description: "Publie un bien de l'agence sur les portails immobiliers externes (syndication IDX). Pour « publie le 3 pièces des Eaux-Vives sur immobilier.ch », « mets ce bien en ligne ». Le bien est cherché dans les biens de l'agence (par titre/adresse). Nécessite un bien actif avec des données complètes (titre, prix, adresse, ≥1 photo) ; le mandat n'est PAS requis. Avant de publier, l'outil montre un aperçu de l'annonce puis demande confirmation. Appelle directement l'outil.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien à publier (cherché dans les mandats de l'agence)." },
+          portals: { type: 'array', items: { type: 'string' }, description: "Portails cibles. Optionnel : par défaut immobilier.ch. Valeurs : immobilier_ch." },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'withdraw_from_portals',
+      description: "Retire un bien de la publication sur les portails externes (le bien disparaîtra au prochain import du portail). Pour « retire le bien de Champel d'immobilier.ch », « dépublie ce bien ». Le bien est cherché dans les mandats de l'agence. Appelle directement l'outil ; il demande confirmation avant de retirer.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien à retirer (cherché dans les mandats de l'agence)." },
+          portals: { type: 'array', items: { type: 'string' }, description: "Portails à retirer. Optionnel : par défaut, tous ceux où le bien est publié. Valeurs : immobilier_ch." },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_publication_status',
+      description: "Indique sur quels portails externes un bien des mandats est publié (et son état : en ligne / en file pour le prochain import). Lecture seule. Pour « où est publié le bien de Champel ? », « ce bien est-il sur immobilier.ch ? ». Le bien est cherché dans les mandats de l'agence.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien (cherché dans les mandats de l'agence)." },
+        },
+        required: ['query'],
+      },
+    },
+  },
 ]

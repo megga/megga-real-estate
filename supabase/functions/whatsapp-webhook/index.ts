@@ -14,7 +14,7 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { meggaProse } from '../_shared/megga-prose.ts'
-import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, detectLang, t, type WaLang, undoneStage, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
@@ -792,6 +792,14 @@ async function executePending(
   if (pending.tool === 'send_client_email') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return executeSendClientEmail(ctx, pending.args)
+  }
+  if (pending.tool === 'publish_to_portals') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executePublishToPortals(ctx, pending.args)
+  }
+  if (pending.tool === 'withdraw_from_portals') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executeWithdrawFromPortals(ctx, pending.args)
   }
   return t(lang, 'unknownAction')
 }
