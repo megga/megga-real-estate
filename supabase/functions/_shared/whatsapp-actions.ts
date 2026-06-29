@@ -2860,7 +2860,11 @@ export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise
   const serviceKey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
   if (!baseUrl || !serviceKey) return lang === 'en' ? 'Photo pipeline not configured.' : 'Pipeline photo non configuré.'
   const ext = extFromMime(mime)
-  const stagePath = `wa/${ctx.agencyId}/${p.id}/${ctx.inboundMedia.messageId}.${ext}`
+  // Assainit le message-id avant de l'utiliser comme clé de stockage : défense en
+  // profondeur contre une injection de clé d'objet (les ids WhatsApp sont sûrs en
+  // pratique, mais on ne fait pas confiance à une valeur entrante).
+  const safeMsgId = ctx.inboundMedia.messageId.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 128)
+  const stagePath = `wa/${ctx.agencyId}/${p.id}/${safeMsgId}.${ext}`
   const { error: upErr } = await ctx.supabase.storage
     .from('property-photos')
     .upload(stagePath, bytes, { contentType: mime, upsert: true })

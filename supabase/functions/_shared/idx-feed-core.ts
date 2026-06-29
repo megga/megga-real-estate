@@ -9,6 +9,7 @@ import {
   buildIdxFeed,
   propertyRowToIdxInput,
   agencyRowToIdxAgency,
+  validateIdxProperty,
   type IdxProperty,
   type IdxPropertyRow,
   type IdxAgencyRow,
@@ -24,6 +25,9 @@ export interface AgencyFeed {
   agencyFound: boolean
   csv: string
   propertyIds: string[]
+  /** Biens syndiqués (queued/published) considérés, AVANT filtrage validité.
+   *  Sert à distinguer « rien à publier » (0) d'« anomalie : tout filtré » (>0). */
+  candidateCount: number
 }
 
 /** Construit le feed IDX d'une agence : biens inscrits (queued/published) au portail,
@@ -40,7 +44,7 @@ export async function buildAgencyIdxFeed(
     .eq('id', agencyId)
     .maybeSingle()
   if (agencyErr) throw new Error(`agency load: ${agencyErr.message}`)
-  if (!agencyRow) return { agencyFound: false, csv: '', propertyIds: [] }
+  if (!agencyRow) return { agencyFound: false, csv: '', propertyIds: [], candidateCount: 0 }
 
   const { data: syndRows, error: syndErr } = await supabase
     .from('property_syndications')
@@ -50,24 +54,32 @@ export async function buildAgencyIdxFeed(
     .in('status', ['queued', 'published'])
   if (syndErr) throw new Error(`syndications load: ${syndErr.message}`)
 
+  const candidates = (syndRows ?? []) as Array<Record<string, unknown>>
   const properties: IdxProperty[] = []
   const propertyIds: string[] = []
-  for (const s of (syndRows ?? []) as Array<Record<string, unknown>>) {
+  for (const s of candidates) {
     const p = s.properties as (IdxPropertyRow & { status?: string; deleted_at?: string | null }) | null
     if (!p) continue
     // Ne syndiquer que les biens actifs non supprimés.
     if (p.status !== 'active' || p.deleted_at != null) continue
-    properties.push(
-      propertyRowToIdxInput(p, {
-        externalRef: (s.external_ref as string | null) ?? null,
-        listingBaseUrl: opts.listingBaseUrl ?? null,
-      }),
-    )
+    const input = propertyRowToIdxInput(p, {
+      externalRef: (s.external_ref as string | null) ?? null,
+      listingBaseUrl: opts.listingBaseUrl ?? null,
+    })
+    // Ne JAMAIS émettre un enregistrement IDX incomplet : le gate de complétude du
+    // publish ne couvre pas une dégradation ultérieure (édition web d'un bien publié).
+    // On saute le bien invalide (logué) plutôt que d'envoyer une ligne cassée au portail.
+    const missing = validateIdxProperty(input)
+    if (missing.length > 0) {
+      console.warn(`idx-feed skip incomplete property ${p.id}: ${missing.join(',')}`)
+      continue
+    }
+    properties.push(input)
     propertyIds.push(p.id)
   }
 
   const csv = buildIdxFeed(properties, agencyRowToIdxAgency(agencyRow as IdxAgencyRow), {
     senderId: opts.senderId,
   })
-  return { agencyFound: true, csv, propertyIds }
+  return { agencyFound: true, csv, propertyIds, candidateCount: candidates.length }
 }
