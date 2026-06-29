@@ -441,3 +441,9 @@ verify_jwt = false
 # admin.getUser, puis RPC service_role revoke_user_session (invalide auth.sessions).
 [functions.revoke-device-session]
 verify_jwt = false
+
+# Feed IDX (syndication sortante) : endpoint PULL appelé par un portail tiers
+# (immobilier.ch), sans JWT Supabase. L'auth se fait DANS la fonction via le
+# token de feed par agence (agency_syndication_config.idx_feed_token).
+[functions.idx-feed]
+verify_jwt = false
