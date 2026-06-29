@@ -27,7 +27,7 @@ export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
   { name: 'prepare_meeting', tier: 'read' },
   { name: 'read_document', tier: 'read' },
   { name: 'get_publication_status', tier: 'read' },
-  // auto (9)
+  // auto (10)
   { name: 'file_document', tier: 'auto' },
   { name: 'create_contact', tier: 'auto' },
   { name: 'add_note', tier: 'auto' },
@@ -37,6 +37,7 @@ export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
   { name: 'create_deal', tier: 'auto' },
   { name: 'attach_kyc_document', tier: 'auto' },
   { name: 'attach_property_photos', tier: 'auto' },
+  { name: 'update_property', tier: 'auto' },
   // confirm (9)
   { name: 'send_kyc_link', tier: 'confirm' },
   { name: 'send_client_email', tier: 'confirm' },

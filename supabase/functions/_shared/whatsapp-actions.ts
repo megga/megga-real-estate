@@ -2883,3 +2883,111 @@ export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise
     ? `Photo added to "${title}" (${n} photo${n > 1 ? 's' : ''} now).`
     : `Photo ajoutée à « ${title} » (${n} photo${n > 1 ? 's' : ''} maintenant).`
 }
+
+// ── Compléter / corriger un bien par WhatsApp : update_property (tier auto) ───
+// Met à jour SEULEMENT les champs explicitement donnés par l'agent (jamais
+// d'invention). Sert à finir une annonce avant publication, ou corriger une info.
+
+// Map stricte vers l'enum property_type (apartment|house|villa|commercial|land).
+// canonicalPropertyType (recherche) renvoie un vocabulaire plus large → inutilisable ici.
+const PROPERTY_TYPE_ENUM_MAP: Record<string, string> = {
+  appartement: 'apartment', appart: 'apartment', apartment: 'apartment', flat: 'apartment',
+  studio: 'apartment', loft: 'apartment', duplex: 'apartment', attique: 'apartment', pph: 'apartment',
+  maison: 'house', house: 'house', individuelle: 'house', mitoyenne: 'house', chalet: 'house',
+  villa: 'villa',
+  terrain: 'land', land: 'land', parcelle: 'land',
+  commercial: 'commercial', commerce: 'commercial', bureau: 'commercial', bureaux: 'commercial',
+  local: 'commercial', office: 'commercial', dépôt: 'commercial', depot: 'commercial', arcade: 'commercial',
+}
+
+export async function execUpdateProperty(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const query = s(a.query)
+  if (!query) return lang === 'en' ? 'Which property should I update?' : 'Quel bien veux-tu compléter ?'
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.'
+  if (found.kind === 'none') return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.'
+  if (found.kind === 'many') return (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  const patch: Record<string, unknown> = {}
+  const applied: string[] = []
+  const notes: string[] = []
+
+  const pushText = (col: string, argKey: string, label: string, max: number) => {
+    const v = s(a[argKey])
+    if (!v) return
+    const val = v.slice(0, max)
+    patch[col] = val
+    applied.push(`${label} ${val}`)
+  }
+  pushText('title', 'title', lang === 'en' ? 'title' : 'titre', 200)
+  pushText('address', 'address', lang === 'en' ? 'address' : 'adresse', 300)
+  pushText('city', 'city', lang === 'en' ? 'city' : 'localité', 120)
+  pushText('canton', 'canton', 'canton', 40)
+  pushText('description', 'description', 'description', 4000)
+
+  const npa = s(a.postal_code)
+  if (npa) {
+    const val = npa.slice(0, 12)
+    patch.postal_code = val
+    applied.push(`${lang === 'en' ? 'postal code' : 'NPA'} ${val}`)
+  }
+
+  if (a.property_type != null) {
+    const mapped = PROPERTY_TYPE_ENUM_MAP[String(a.property_type).toLowerCase().trim()]
+    if (mapped) { patch.type = mapped; applied.push(`type ${mapped}`) }
+    else notes.push(lang === 'en'
+      ? `(type "${a.property_type}" not recognized)`
+      : `(type « ${a.property_type} » non reconnu : appartement/maison/villa/terrain/commercial)`)
+  }
+
+  if (a.transaction_type != null) {
+    const t = String(a.transaction_type).toLowerCase().trim()
+    const tt = ['rent', 'location', 'louer', 'à louer', 'a louer'].includes(t) ? 'rent'
+      : ['buy', 'sale', 'vente', 'achat', 'vendre', 'à vendre', 'a vendre'].includes(t) ? 'buy' : null
+    if (tt) { patch.transaction_type = tt; applied.push(tt === 'rent' ? (lang === 'en' ? 'for rent' : 'à louer') : (lang === 'en' ? 'for sale' : 'à vendre')) }
+    else notes.push(lang === 'en'
+      ? `(transaction "${a.transaction_type}" not recognized)`
+      : `(transaction « ${a.transaction_type} » non reconnue : vente ou location)`)
+  }
+
+  const price = parseAmount(a.price)
+  if (price != null && price > 0) { patch.price = price; applied.push(`${lang === 'en' ? 'price' : 'prix'} ${fmtCHF(price)}`) }
+  const charges = parseAmount(a.charges_monthly)
+  if (charges != null && charges >= 0) { patch.charges_monthly = charges; applied.push(`${lang === 'en' ? 'charges' : 'charges'} ${fmtCHF(charges)}`) }
+
+  const rooms = toNum(a.rooms)
+  if (rooms != null && rooms > 0) { patch.rooms = rooms; applied.push(`${rooms} ${lang === 'en' ? 'rooms' : 'pièces'}`) }
+  const surface = toNum(a.surface_m2)
+  if (surface != null && surface > 0) { patch.surface_m2 = Math.round(surface * 100) / 100; applied.push(`${Math.round(surface)} m²`) }
+  const yb = toNum(a.year_built)
+  if (yb != null && yb > 1000 && yb < 2100) { patch.year_built = Math.round(yb); applied.push(`${lang === 'en' ? 'year' : 'année'} ${Math.round(yb)}`) }
+
+  if (Object.keys(patch).length === 0) {
+    if (notes.length) return notes.join(' ')
+    return lang === 'en' ? 'Tell me which field to update (price, postal code, surface…).' : 'Dis-moi quel champ compléter (prix, NPA, surface…).'
+  }
+
+  patch.updated_at = new Date().toISOString()
+  const { error } = await ctx.supabase.from('properties')
+    .update(patch).eq('id', p.id).eq('agency_id', ctx.agencyId).is('deleted_at', null)
+  if (error) return (lang === 'en' ? 'Update error: ' : 'Erreur mise à jour: ') + error.message
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_updated', entity_type: 'property', entity_id: p.id, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(patch).filter((k) => k !== 'updated_at') },
+    })
+  } catch { /* non bloquant */ }
+
+  const changed = applied.join(', ')
+  const note = notes.length ? ' ' + notes.join(' ') : ''
+  return lang === 'en'
+    ? `Updated "${title}": ${changed}.${note}`
+    : `C'est noté pour « ${title} » : ${changed}.${note}`
+}

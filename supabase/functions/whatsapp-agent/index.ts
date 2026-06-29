@@ -25,7 +25,7 @@ import {
   execDraftListingCopy, execPrepareMeeting,
   execReadDocument, execFileDocument,
   execGetPublicationStatus, preparePublishToPortals, prepareWithdrawFromPortals,
-  execAttachPropertyPhotos,
+  execAttachPropertyPhotos, execUpdateProperty,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
@@ -400,6 +400,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'file_document': return execFileDocument(ctx, args)
     case 'get_publication_status': return execGetPublicationStatus(ctx, args)
     case 'attach_property_photos': return execAttachPropertyPhotos(ctx, args)
+    case 'update_property': return execUpdateProperty(ctx, args)
     default: return `Outil inconnu: ${name}`
   }
 }

@@ -81,6 +81,9 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // attach_property_photos : ajoute une photo entrante à la galerie d'un bien (état
   // CRM interne, réversible, aucun envoi client) → auto, comme attach_kyc_document.
   attach_property_photos: 'auto',
+  // update_property : complète/corrige les champs d'un bien (saisie de données CRM
+  // interne, réversible, aucun envoi client) → auto, comme qualify_lead/add_note.
+  update_property: 'auto',
 }
 
 export function toolTier(name: string): ToolTier {

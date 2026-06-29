@@ -480,6 +480,33 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
   {
     type: 'function',
     function: {
+      name: 'update_property',
+      description: "Met à jour ou complète les champs d'un bien de l'agence (pour finir une annonce avant publication, ou corriger une info). NE passe QUE les champs que l'agent te donne EXPLICITEMENT — n'invente JAMAIS de valeur. Le bien est cherché par titre/adresse. Exemples : « pour le 3 pièces des Eaux-Vives, le NPA c'est 1207 et le loyer 2400 », « corrige la surface du bien de Champel à 95 m² », « le bien de Cologny est une villa ». Utile quand publier échoue faute d'une info (l'agent la donne, tu complètes, puis il republie).",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien à compléter (cherché dans les biens de l'agence)." },
+          title: { type: 'string', description: "Titre de l'annonce." },
+          property_type: { type: 'string', description: 'Type : appartement, maison, villa, terrain, commercial (bureau/local).' },
+          transaction_type: { type: 'string', enum: ['rent', 'buy'], description: 'location (rent) ou vente (buy).' },
+          price: { type: 'string', description: 'Prix de vente, ou loyer mensuel si location. Ex « 2400 », « 1.2M ».' },
+          charges_monthly: { type: 'string', description: 'Charges mensuelles (location).' },
+          rooms: { type: 'number', description: 'Nombre de pièces (ex. 3.5).' },
+          surface_m2: { type: 'number', description: 'Surface habitable en m².' },
+          address: { type: 'string', description: 'Adresse (rue + numéro).' },
+          postal_code: { type: 'string', description: 'NPA (code postal suisse, 4 chiffres).' },
+          city: { type: 'string', description: 'Localité.' },
+          canton: { type: 'string', description: 'Canton (ex. GE, VD).' },
+          year_built: { type: 'number', description: 'Année de construction.' },
+          description: { type: 'string', description: "Description de l'annonce, SEULEMENT si l'agent la dicte (sinon ne pas remplir)." },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'attach_property_photos',
       description: "Ajoute la PHOTO que TU viens d'envoyer dans CE message à un bien de l'agence (sa galerie). Pour « voici les photos du 3 pièces des Eaux-Vives », « ajoute cette photo au bien de Champel ». Une photo par message : si l'agent envoie plusieurs photos d'affilée pour le même bien, rappelle le même `query` à chaque appel (déduit du contexte récent). N'appelle cet outil QUE si une image est jointe à ce message. Utile avant de publier un bien qui n'a pas encore de photos.",
       parameters: {
