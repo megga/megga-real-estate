@@ -1269,6 +1269,7 @@
       "schedulePublish": "Schedule publication",
       "saveDraft": "Save as draft",
       "publish": "Publish on MEGGA",
+      "photoRequired": "Add at least one photo to publish. Without a photo, save the listing as a draft and complete it later.",
       "publishError": "Publication failed: {{message}}",
       "unknownError": "Unknown error",
       "recommended": "Recommended",

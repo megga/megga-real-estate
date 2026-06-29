@@ -1269,6 +1269,7 @@
       "schedulePublish": "Programmer la publication",
       "saveDraft": "Enregistrer en brouillon",
       "publish": "Publier sur MEGGA",
+      "photoRequired": "Ajoutez au moins une photo pour publier. Sans photo, enregistrez l'annonce en brouillon et complétez-la plus tard.",
       "publishError": "Échec de la publication : {{message}}",
       "unknownError": "Erreur inconnue",
       "recommended": "Recommandé",

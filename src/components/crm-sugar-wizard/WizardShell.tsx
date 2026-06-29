@@ -67,6 +67,18 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   const [data, setDataRaw] = useState<WizardData>(EMPTY_WIZARD)
   const set = (patch: Partial<WizardData>) => setDataRaw(prev => ({ ...prev, ...patch }))
 
+  // Garde-fou photo. Un bien publié (status 'active') sans AUCUNE photo persistable
+  // n'est jamais diffusé, et la syndication IDX le rejette en silence
+  // (validateIdxProperty exige ≥1 photo). Les tuiles des modes téléphone/drive sont
+  // du stock sans `file` ni `url` : elles ne sont PAS persistées (cf handlePublish),
+  // donc elles ne comptent pas ici — seules valent les vraies photos (fichier déposé
+  // ou URL déjà persistée). Un brouillon, lui, peut rester sans photo.
+  const persistablePhotoCount = data.photos.filter(p => p.file || p.url).length
+  // 'schedule' est persisté en 'draft' (pas de backend de publication programmée) ;
+  // seule la publication immédiate met le bien en 'active'.
+  const willGoLive = data.publishMode !== 'draft' && data.publishMode !== 'schedule'
+  const blockedNoPhoto = willGoLive && persistablePhotoCount === 0
+
   const { profile } = useAuth()
   const createProperty = useCreateProperty()
   const updateProperty = useUpdateProperty()
@@ -80,6 +92,13 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   // cron-based publication when the feature is designed.
   async function handlePublish() {
     if (publishing) return
+    // Filet de sécurité : le bouton est déjà désactivé dans ce cas, mais on ne crée
+    // jamais une annonce 'active' sans photo persistable, même si l'appel arrivait par
+    // un autre chemin. Un brouillon sans photo reste autorisé (willGoLive=false).
+    if (blockedNoPhoto) {
+      setPublishError(t('wizard.shell.photoRequired'))
+      return
+    }
     setPublishing(true)
     setPublishError(null)
 
@@ -368,7 +387,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
               {t('wizard.shell.continue')}
             </SgBlackPill>
           ) : (
-            <SgBlackPill onClick={handlePublish} disabled={publishing}>
+            <SgBlackPill onClick={handlePublish} disabled={publishing || blockedNoPhoto}>
               {publishing
                 ? t('wizard.shell.publishing')
                 : data.publishMode === 'schedule' ? t('wizard.shell.schedulePublish')
@@ -378,6 +397,21 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           )}
         </div>
       </footer>}
+
+      {/* Garde-fou photo — explique pourquoi « Publier » est désactivé tant qu'aucune
+          photo réelle n'est ajoutée (la dernière étape porte le bouton Publier). */}
+      {blockedNoPhoto && !published && step === SG_STEPS.length - 1 && (
+        <div role="status" style={{
+          position: 'absolute', bottom: 92, left: 32, right: 32, zIndex: 21,
+          padding: '10px 14px', borderRadius: 12,
+          background: dark ? 'rgba(245,158,11,0.12)' : '#FFFBEB',
+          color: dark ? '#FBBF24' : '#B45309',
+          border: `1px solid ${dark ? 'rgba(245,158,11,0.35)' : '#FCD34D'}`,
+          fontSize: 12.5, fontWeight: 600,
+        }}>
+          {t('wizard.shell.photoRequired')}
+        </div>
+      )}
 
       {/* Inline publish error — sits above the footer so the agent sees
           exactly what went wrong without losing their wizard state. */}
