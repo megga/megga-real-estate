@@ -96,6 +96,11 @@ const RAIL_ICONS: Record<string, RailIconDef> = {
     { tag: 'path', d: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9' },
     { tag: 'path', d: 'M10 21a2 2 0 0 0 4 0' },
   ] },
+  help: { line: true, kids: [
+    { tag: 'circle', cx: 12, cy: 12, r: 10 },
+    { tag: 'path', d: 'M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3' },
+    { tag: 'path', d: 'M12 17h.01' },
+  ] },
 }
 
 // Signature d'entrée par icône (amplitude du pop) — donne du caractère à chacune.
@@ -113,6 +118,7 @@ const SIGNATURES: Record<string, Signature> = {
   // TopNav (cluster droit)
   sparkle:   { scale: 0.3,  rotate: 90 },
   bell:      { scale: 0.62, rotate: 10, y: -3 },
+  help:      { scale: 0.55, rotate: -12 },
 }
 
 const SUB_STYLE: CSSProperties = { transformBox: 'fill-box', transformOrigin: 'center' }
