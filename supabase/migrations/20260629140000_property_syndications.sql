@@ -35,19 +35,25 @@ create index if not exists idx_property_syndications_property
 
 alter table public.property_syndications enable row level security;
 
+-- Idempotence : le deploy ré-applique les migrations du jour → drop avant create
+-- (CREATE POLICY n'a pas de IF NOT EXISTS).
+drop policy if exists "ps_select_own_agency" on public.property_syndications;
 create policy "ps_select_own_agency" on public.property_syndications
   for select to authenticated
   using (agency_id = public.get_my_agency_id());
 
+drop policy if exists "ps_insert_own_agency" on public.property_syndications;
 create policy "ps_insert_own_agency" on public.property_syndications
   for insert to authenticated
   with check (agency_id = public.get_my_agency_id());
 
+drop policy if exists "ps_update_own_agency" on public.property_syndications;
 create policy "ps_update_own_agency" on public.property_syndications
   for update to authenticated
   using (agency_id = public.get_my_agency_id())
   with check (agency_id = public.get_my_agency_id());
 
+drop policy if exists "ps_delete_own_agency" on public.property_syndications;
 create policy "ps_delete_own_agency" on public.property_syndications
   for delete to authenticated
   using (agency_id = public.get_my_agency_id());
@@ -74,6 +80,7 @@ alter table public.agency_syndication_config enable row level security;
 -- Lecture par les membres de l'agence ; écriture réservée au service_role
 -- (pas de policy insert/update pour authenticated → RLS refuse, le setup passe
 -- par la clé service-role).
+drop policy if exists "asc_select_own_agency" on public.agency_syndication_config;
 create policy "asc_select_own_agency" on public.agency_syndication_config
   for select to authenticated
   using (agency_id = public.get_my_agency_id());
