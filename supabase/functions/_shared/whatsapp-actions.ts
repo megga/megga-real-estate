@@ -2708,3 +2708,112 @@ export async function execGetPublicationStatus(ctx: ActionCtx, a: Args): Promise
   }).join('\n')
   return (lang === 'en' ? `"${title}" — publication:\n` : `« ${title} » — publication :\n`) + lines
 }
+
+// ── Photos de bien par WhatsApp : attach_property_photos (tier auto) ──────────
+// L'agent envoie une photo (1 par message) → on la met sur la galerie du bien.
+// Réutilise le pipeline R2 : stage dans le bucket public property-photos →
+// photo-processor (service role, 3 variantes JPEG → R2) → append atomique.
+
+const MAX_PHOTO_BYTES = 15 * 1024 * 1024
+
+/** Hash déterministe (djb2 → base36), comme property-photo-r2 (keyPrefix idempotent). */
+function hash36(str: string): string {
+  let h = 5381
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0
+  return h.toString(36)
+}
+
+export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  if (!ctx.inboundMedia) {
+    return lang === 'en'
+      ? "I don't see a photo in this message. Send the photo with the property name."
+      : 'Je ne vois pas de photo dans ce message. Envoie la photo avec le nom du bien.'
+  }
+  const query = s(a.query)
+  if (!query) return lang === 'en' ? 'Which property are these photos for?' : 'Ces photos sont pour quel bien ?'
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.'
+  if (found.kind === 'none') return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.'
+  if (found.kind === 'many') return (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // 1. Récupère les bytes de l'image (lien Meta éphémère).
+  let bytes: Uint8Array, mime: string | null
+  try {
+    const media = await fetchMetaMedia(ctx.inboundMedia.mediaId, {
+      metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
+      apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+    })
+    bytes = media.bytes; mime = media.mime
+  } catch {
+    return lang === 'en' ? "I couldn't fetch the photo (Meta link expired?). Resend it." : 'Je n’ai pas pu récupérer la photo (lien Meta expiré ?). Renvoie-la.'
+  }
+
+  // 2. Valide : image uniquement + taille.
+  if (!mime || !mime.startsWith('image/')) {
+    return lang === 'en' ? "That file isn't a photo (image only)." : "Ce fichier n'est pas une photo (image uniquement)."
+  }
+  if (bytes.byteLength <= 0 || bytes.byteLength > MAX_PHOTO_BYTES) {
+    return lang === 'en' ? 'The photo is too large (15 MB max).' : 'La photo est trop lourde (15 Mo max).'
+  }
+
+  // 3. Stage dans le bucket PUBLIC property-photos (photo-processor fetchera l'URL ;
+  //    le lien Meta direct exige l'auth Meta, donc on passe par le staging public).
+  const baseUrl = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '')
+  const serviceKey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
+  if (!baseUrl || !serviceKey) return lang === 'en' ? 'Photo pipeline not configured.' : 'Pipeline photo non configuré.'
+  const ext = extFromMime(mime)
+  const stagePath = `wa/${ctx.agencyId}/${p.id}/${ctx.inboundMedia.messageId}.${ext}`
+  const { error: upErr } = await ctx.supabase.storage
+    .from('property-photos')
+    .upload(stagePath, bytes, { contentType: mime, upsert: true })
+  if (upErr) return (lang === 'en' ? 'Photo storage error: ' : 'Erreur de stockage de la photo: ') + upErr.message
+  const stageUrl = `${baseUrl}/storage/v1/object/public/property-photos/${stagePath}`
+
+  // 4. Mirror R2 via photo-processor (service role) ; keyPrefix dérivé server-side.
+  const keyPrefix = `properties/${p.id.toLowerCase()}/photos/${hash36(stageUrl)}`
+  let r2Url: string | null = null
+  try {
+    const res = await fetch(`${baseUrl}/functions/v1/photo-processor`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId: p.id, photoUrls: [stageUrl], keyPrefix }),
+      signal: AbortSignal.timeout(30000),
+    })
+    const j = (await res.json()) as { success?: boolean; photos_cf?: Array<{ detail?: string; hero?: string; thumb?: string }> }
+    const v = j.photos_cf?.[0]
+    r2Url = v ? (v.detail ?? v.hero ?? v.thumb ?? null) : null
+  } catch { /* géré ci-dessous */ }
+
+  // Nettoie le staging (best-effort, évite les orphelins).
+  await ctx.supabase.storage.from('property-photos').remove([stagePath]).then(() => {}, () => {})
+
+  if (!r2Url) {
+    return lang === 'en' ? "I couldn't process that photo — try another one." : 'Je n’ai pas pu traiter cette photo — essaie-en une autre.'
+  }
+
+  // 5. Append ATOMIQUE (RPC) — robuste à une rafale de photos en parallèle.
+  const { data: count, error: rpcErr } = await ctx.supabase.rpc('append_property_photo', {
+    p_property_id: p.id, p_agency_id: ctx.agencyId, p_url: r2Url,
+  })
+  if (rpcErr) return (lang === 'en' ? 'Error saving the photo: ' : 'Erreur enregistrement de la photo: ') + rpcErr.message
+  if (count == null) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
+
+  // 6. Audit.
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_photo_added', entity_type: 'property', entity_id: p.id, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId },
+    })
+  } catch { /* non bloquant */ }
+
+  const n = typeof count === 'number' ? count : 0
+  return lang === 'en'
+    ? `Photo added to "${title}" (${n} photo${n > 1 ? 's' : ''} now).`
+    : `Photo ajoutée à « ${title} » (${n} photo${n > 1 ? 's' : ''} maintenant).`
+}

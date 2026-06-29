@@ -78,6 +78,9 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   publish_to_portals: 'confirm',
   withdraw_from_portals: 'confirm',
   get_publication_status: 'read',
+  // attach_property_photos : ajoute une photo entrante à la galerie d'un bien (état
+  // CRM interne, réversible, aucun envoi client) → auto, comme attach_kyc_document.
+  attach_property_photos: 'auto',
 }
 
 export function toolTier(name: string): ToolTier {

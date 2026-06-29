@@ -477,4 +477,18 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'attach_property_photos',
+      description: "Ajoute la PHOTO que TU viens d'envoyer dans CE message à un bien de l'agence (sa galerie). Pour « voici les photos du 3 pièces des Eaux-Vives », « ajoute cette photo au bien de Champel ». Une photo par message : si l'agent envoie plusieurs photos d'affilée pour le même bien, rappelle le même `query` à chaque appel (déduit du contexte récent). N'appelle cet outil QUE si une image est jointe à ce message. Utile avant de publier un bien qui n'a pas encore de photos.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien auquel ajouter la photo (cherché dans les biens de l'agence)." },
+        },
+        required: ['query'],
+      },
+    },
+  },
 ]
