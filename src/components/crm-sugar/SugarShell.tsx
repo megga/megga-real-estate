@@ -13,6 +13,7 @@ import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import SugarProfileDropdown from './profile/SugarProfileDropdown'
 import { useAuth } from '@/hooks/useAuth'
 import { showIntercomSpace, isIntercomEnabled } from '@/lib/intercom'
+import { openHelpFor } from '@/lib/help-articles'
 import { openSugarSearch } from './search/openSearch'
 
 // ─── Round icon button (44x44, glass) ──────────────────────────────────
@@ -21,10 +22,11 @@ interface SugarRoundIconBtnProps {
   dot?: boolean
   onClick?: (e: ReactMouseEvent<HTMLButtonElement>) => void
   sp: SugarPalette
+  title?: string
 }
-export function SugarRoundIconBtn({ children, dot, onClick, sp }: SugarRoundIconBtnProps) {
+export function SugarRoundIconBtn({ children, dot, onClick, sp, title }: SugarRoundIconBtnProps) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} title={title} aria-label={title} style={{
       width: 44, height: 44, borderRadius: 999, border: 0, background: sp.iconBtnBg,
       boxShadow: sp.shadow, display: 'grid', placeItems: 'center', cursor: 'pointer',
       position: 'relative',
@@ -137,7 +139,10 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
         })}
       </nav>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SugarRoundIconBtn sp={sp} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
+        <SugarRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
+        {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
+            Centre d'aide à défaut). Fallback /help si Intercom n'est pas configuré. */}
+        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => { if (!openHelpFor(active)) navigate('/help') }}><AnimatedTopIcon name="help" color={sp.soft} size={18} /></SugarRoundIconBtn>
         {/* Bouton Megga — Agent IA (route interne inchangée : 'julien') */}
         <button
           onClick={() => onNavigate && onNavigate('julien')}
