@@ -17,6 +17,8 @@ on:
         options:
           - audit
           - articles-publish
+          - articles-promote-dry
+          - articles-promote
           - attributes-declare
           - migrate-dry
           - migrate
@@ -24,6 +26,11 @@ on:
           - delete-demo
           - news-audit
           - news-publish
+      promote_ids:
+        description: 'articles-promote : IDs ciblés (CSV, vide = tous les brouillons hors démo)'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   run:
@@ -44,6 +51,7 @@ jobs:
         env:
           INTERCOM_ACCESS_TOKEN: ${{ secrets.INTERCOM_ACCESS_TOKEN }}
           MODE: ${{ inputs.mode }}
+          PROMOTE_IDS: ${{ inputs.promote_ids }}
         run: |
           if [[ "$MODE" == news-* ]]; then
             node scripts/intercom-news.mjs "$MODE"
