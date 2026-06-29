@@ -380,6 +380,20 @@ async function processAgentMessage(
           tool: pendingAction.tool as string, outcome: 'no',
         })
       } catch { /* journal non bloquant */ }
+      // Apprentissage T2 : un brouillon client REJETÉ → on le mémorise (1 par
+      // agent×contact, upsert) pour l'apparier au prochain message envoyé à ce
+      // contact (paire contrastive). Best-effort, non bloquant.
+      if (pendingAction.tool === 'send_client_message') {
+        const pargs = pendingAction.args as Record<string, unknown>
+        const rcid = String(pargs.contact_id ?? '')
+        const rdraft = String(pargs.body ?? '').trim()
+        if (rcid && rdraft) {
+          await admin.from('whatsapp_rejected_drafts').upsert({
+            profile_id: agentLink.profile_id, agency_id: agentLink.agency_id,
+            contact_id: rcid, draft: rdraft, created_at: new Date().toISOString(),
+          }, { onConflict: 'profile_id,contact_id' }).then(() => {}, () => {})
+        }
+      }
       reply = t(lang, 'cancelled')
     } else if (!valid) {
       reply = t(lang, 'expired')
@@ -726,6 +740,26 @@ async function executePending(
         action: 'whatsapp_ai_send_client_message', entity_type: 'contact', entity_id: contactId, category: 'contact',
         severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
       })
+    } catch { /* non bloquant */ }
+    // Apprentissage T2 : si un brouillon a été REJETÉ récemment (<1h) pour ce contact
+    // et que le message envoyé DIFFÈRE → apparie (rejeté → envoyé) comme correction.
+    // Consomme le brouillon dans tous les cas. Best-effort, non bloquant.
+    try {
+      const { data: rej } = await admin.from('whatsapp_rejected_drafts')
+        .select('draft, created_at')
+        .eq('profile_id', agentLink.profile_id).eq('contact_id', contactId).maybeSingle()
+      if (rej) {
+        const fresh = Date.now() - Date.parse(rej.created_at as string) < 60 * 60 * 1000
+        const draft = String(rej.draft ?? '').trim()
+        if (fresh && draft && draft !== text.trim()) {
+          await admin.from('whatsapp_message_corrections').insert({
+            profile_id: agentLink.profile_id, agency_id: agentLink.agency_id,
+            contact_id: contactId, megga_draft: draft, agent_final: text,
+          })
+        }
+        await admin.from('whatsapp_rejected_drafts').delete()
+          .eq('profile_id', agentLink.profile_id).eq('contact_id', contactId)
+      }
     } catch { /* non bloquant */ }
     return t(lang, 'clientMsgSent')
   }
