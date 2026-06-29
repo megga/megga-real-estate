@@ -437,7 +437,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'publish_to_portals',
-      description: "Publie un bien des mandats de l'agence sur les portails immobiliers externes (syndication IDX). Pour « publie le 3 pièces des Eaux-Vives sur immobilier.ch », « mets ce bien en ligne sur immobilier.ch ». Le bien est cherché dans les mandats de l'agence (par titre/adresse). Nécessite un mandat signé, un bien actif et des données complètes (sinon l'outil le dit). Appelle directement l'outil ; il demande confirmation avant de publier.",
+      description: "Publie un bien de l'agence sur les portails immobiliers externes (syndication IDX). Pour « publie le 3 pièces des Eaux-Vives sur immobilier.ch », « mets ce bien en ligne ». Le bien est cherché dans les biens de l'agence (par titre/adresse). Nécessite un bien actif avec des données complètes (titre, prix, adresse, ≥1 photo) ; le mandat n'est PAS requis. Avant de publier, l'outil montre un aperçu de l'annonce puis demande confirmation. Appelle directement l'outil.",
       parameters: {
         type: 'object',
         properties: {

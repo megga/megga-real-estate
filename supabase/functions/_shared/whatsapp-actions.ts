@@ -16,7 +16,7 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount, canonicalPropertyType, normalizeZone } from './whatsapp-lead.ts'
 import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, stripExactAddress, portalLabel, normalizePortal, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
-import { validateIdxProperty, type IdxProperty } from './idx-mapper.ts'
+import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
@@ -2395,12 +2395,15 @@ const VALID_PORTALS = new Set(['immobilier_ch'])
 const DEFAULT_PORTAL = 'immobilier_ch'
 
 const SYND_FIELDS =
-  'id, title, type, status, transaction_type, price, address, postal_code, city, photos, mandate_signed_at, deleted_at'
+  'id, title, type, status, transaction_type, price, currency, charges_monthly, rooms, ' +
+  'surface_m2, description, address, postal_code, city, photos, deleted_at'
 type SyndPropertyRow = {
   id: string; title: string | null; type: string | null; status: string | null
-  transaction_type: string | null; price: number | null; address: string | null
-  postal_code: string | null; city: string | null; photos: string[] | null
-  mandate_signed_at: string | null; deleted_at: string | null
+  transaction_type: string | null; price: number | string | null
+  currency: string | null; charges_monthly: number | string | null
+  rooms: number | string | null; surface_m2: number | string | null; description: string | null
+  address: string | null; postal_code: string | null; city: string | null
+  photos: string[] | null; deleted_at: string | null
 }
 
 type PropLookup =
@@ -2438,9 +2441,57 @@ async function lookupAgencyProperty(ctx: ActionCtx, query: string, lang: WaLang)
 function toIdxInput(p: SyndPropertyRow): IdxProperty {
   return {
     id: p.id, type: p.type, transactionType: p.transaction_type, title: p.title,
-    price: p.price, address: p.address, postalCode: p.postal_code, city: p.city,
+    price: toNum(p.price), address: p.address, postalCode: p.postal_code, city: p.city,
     photos: p.photos ?? [],
   }
+}
+
+// Libellés FR/EN de type de bien pour l'aperçu (déterministe).
+const PUBLISH_TYPE_LABEL: Record<string, { fr: string; en: string }> = {
+  apartment: { fr: 'Appartement', en: 'Apartment' },
+  house: { fr: 'Maison', en: 'House' },
+  villa: { fr: 'Villa', en: 'Villa' },
+  commercial: { fr: 'Commercial', en: 'Commercial' },
+  land: { fr: 'Terrain', en: 'Land' },
+}
+
+/** Aperçu DÉTERMINISTE de l'annonce telle qu'elle partira au portail (vraies
+ *  données du bien, aucun appel IA). L'agent valide le CONTENU, pas juste l'action. */
+function buildPublishPreview(p: SyndPropertyRow, lang: WaLang): string {
+  const en = lang === 'en'
+  const lines: string[] = []
+  lines.push(`« ${p.title ?? (en ? 'Untitled' : 'Sans titre')} »`)
+
+  const typeLabel = p.type ? (PUBLISH_TYPE_LABEL[p.type.toLowerCase()] ?? { fr: p.type, en: p.type }) : null
+  const isRent = (p.transaction_type ?? 'buy') === 'rent'
+  const txn = isRent ? (en ? 'Rent' : 'Location') : (en ? 'Sale' : 'Vente')
+  const price = toNum(p.price)
+  const charges = toNum(p.charges_monthly)
+  const cur = (p.currency ?? 'CHF').toString().toUpperCase()
+  let priceStr = ''
+  if (price != null && price > 0) {
+    priceStr = cur === 'CHF' ? (isRent ? `${fmtCHF(price)}${en ? '/mo' : '/mois'}` : fmtCHF(price)) : `${cur} ${Math.round(price)}`
+    if (isRent && charges != null && charges > 0) priceStr += en ? ` (+ ${fmtCHF(charges)} charges)` : ` (+ ${fmtCHF(charges)} charges)`
+  }
+  lines.push([typeLabel ? (en ? typeLabel.en : typeLabel.fr) : null, txn, priceStr || null].filter(Boolean).join(' · '))
+
+  const rooms = toNum(p.rooms)
+  const surface = toNum(p.surface_m2)
+  const place = [p.postal_code, p.city].filter(Boolean).join(' ')
+  const geo = [
+    rooms != null ? `${rooms}${en ? ' rooms' : ' pièces'}` : null,
+    surface != null ? `${Math.round(surface)} m²` : null,
+    place || null,
+  ].filter(Boolean).join(' · ')
+  if (geo) lines.push(geo)
+
+  const photoCount = (p.photos ?? []).filter((u) => typeof u === 'string' && u.trim() !== '').length
+  lines.push(`${photoCount} photo${photoCount > 1 ? 's' : ''}`)
+
+  const desc = (p.description ?? '').trim()
+  if (desc) lines.push(desc.length > 160 ? desc.slice(0, 160).trimEnd() + '…' : desc)
+
+  return lines.join('\n')
 }
 
 /** Libellés humains des champs manquants au préflight IDX. */
@@ -2462,7 +2513,9 @@ function parsePortals(a: Args, fallback: string[] = [DEFAULT_PORTAL]): string[] 
   return cleaned.length ? Array.from(new Set(cleaned)) : fallback
 }
 
-/** Confirm-tier : valide le bien + le mandat + les données IDX, construit le prompt + payload. */
+/** Confirm-tier : valide que le bien est actif + données IDX complètes (le MANDAT
+ *  n'est PAS requis — optionnel, jamais bloquant, cf. KYC), puis construit l'APERÇU
+ *  de l'annonce + le prompt de confirmation. */
 export async function preparePublishToPortals(ctx: ActionCtx, a: Args): Promise<Prepared> {
   if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
   const lang = ctx.lang ?? 'fr'
@@ -2477,19 +2530,15 @@ export async function preparePublishToPortals(ctx: ActionCtx, a: Args): Promise<
   const portals = parsePortals(a)
   const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
 
-  // Garde-fou compliance : mandat signé OBLIGATOIRE avant toute syndication.
-  if (!p.mandate_signed_at) {
-    return { ok: false, error: lang === 'en'
-      ? `I can't publish "${title}" — no signed mandate on file. Get the mandate signed first.`
-      : `Je ne peux pas publier « ${title} » — aucun mandat signé au dossier. Fais d’abord signer le mandat.` }
-  }
-  // Le bien doit être actif (jamais un brouillon).
+  // Le bien doit être actif (jamais un brouillon publié à l'extérieur). Le MANDAT
+  // n'est PAS contrôlé : optionnel, jamais bloquant (comme le KYC).
   if (p.status !== 'active') {
     return { ok: false, error: lang === 'en'
       ? `"${title}" isn't active yet — set it live before publishing.`
       : `« ${title} » n’est pas encore actif — passe-le en ligne avant de publier.` }
   }
-  // Préflight données IDX (mêmes règles que le feed).
+  // Préflight données IDX (validité d'annonce, pas de la compliance) : sans ces
+  // champs on ne peut pas produire un enregistrement IDX valide.
   const missing = validateIdxProperty(toIdxInput(p))
   if (missing.length) {
     const human = missing.map((k) => (lang === 'en' ? MISSING_LABELS[k]?.en : MISSING_LABELS[k]?.fr) ?? k)
@@ -2498,14 +2547,34 @@ export async function preparePublishToPortals(ctx: ActionCtx, a: Args): Promise<
       : `Avant de publier « ${title} », il manque : ${human.join(', ')}.` }
   }
 
+  // Aperçu de l'annonce (contenu réel) dans le confirm → l'agent valide ce qui part.
   const names = portals.map(portalLabel).join(', ')
+  const preview = buildPublishPreview(p, lang)
   const prompt = lang === 'en'
-    ? `I'll publish "${title}" on ${names}. Confirm? ("yes" / "no")`
-    : `Je publie « ${title} » sur ${names}. Tu confirmes ? (« oui » / « non »)`
+    ? `${preview}\n\nPublish this on ${names}? ("yes" / "no")`
+    : `${preview}\n\nJe publie ça sur ${names} ? (« oui » / « non »)`
   return { ok: true, prompt, payload: { property_id: p.id, portals, title } }
 }
 
-/** Post-« oui » : inscrit le bien au feed (upsert property_syndications status='queued'). */
+// Déclenche le push FTP du feed tout de suite (au lieu d'attendre le cron 05h30).
+// idx-syndicate ACK vite (202) puis bosse en arrière-plan ; no-op tant que le FTP
+// n'est pas configuré. Best-effort : toute erreur est avalée (le cron rattrape).
+async function triggerImmediateSyndication(agencyId: string): Promise<void> {
+  const url = Deno.env.get('SUPABASE_URL')
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!url || !key) return
+  try {
+    await fetch(`${url}/functions/v1/idx-syndicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ agency_id: agencyId }),
+      signal: AbortSignal.timeout(4000),
+    })
+  } catch { /* best-effort */ }
+}
+
+/** Post-« oui » : inscrit le bien au feed (upsert property_syndications status='queued')
+ *  puis déclenche le push immédiat. */
 export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
   const lang = ctx.lang ?? 'fr'
@@ -2513,13 +2582,14 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
   const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
   if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing published.' : 'Action incomplète, rien n’a été publié.'
 
-  // Re-garde (défense en profondeur) : bien de l'agence, mandat signé, actif.
+  // Re-garde (défense en profondeur) : bien de l'agence, actif. PAS de mandat
+  // (optionnel, jamais bloquant).
   const { data: prop } = await ctx.supabase.from('properties')
-    .select('id, title, status, mandate_signed_at')
+    .select('id, title, status')
     .eq('id', propertyId).eq('agency_id', ctx.agencyId).is('deleted_at', null).maybeSingle()
   if (!prop) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
-  if (!prop.mandate_signed_at || prop.status !== 'active') {
-    return lang === 'en' ? 'Property no longer eligible (mandate/active), nothing published.' : 'Bien non éligible (mandat/actif), rien publié.'
+  if (prop.status !== 'active') {
+    return lang === 'en' ? 'Property no longer active, nothing published.' : 'Bien plus actif, rien publié.'
   }
 
   const nowIso = new Date().toISOString()
@@ -2537,11 +2607,15 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
     })
   } catch { /* non bloquant */ }
 
+  // Livraison immédiate : déclenche le push du feed (no-op tant que FTP non
+  // configuré), au lieu d'attendre le cron. Best-effort, ne bloque pas la réponse.
+  if (ctx.agencyId) await triggerImmediateSyndication(ctx.agencyId)
+
   const names = portals.map(portalLabel).join(', ')
   const title = s(payload.title) ?? prop.title ?? (lang === 'en' ? 'the property' : 'le bien')
   return lang === 'en'
-    ? `"${title}" queued for ${names} — it goes live at the portal's next import (within ~24h).`
-    : `« ${title} » mis en file pour ${names} — il apparaîtra au prochain import du portail (sous ~24h).`
+    ? `"${title}" published on ${names} — it goes to the portal at the next feed deposit.`
+    : `« ${title} » publié sur ${names} — il part au portail au prochain dépôt du feed.`
 }
 
 /** Confirm-tier : retire un bien des portails où il est actuellement publié. */
