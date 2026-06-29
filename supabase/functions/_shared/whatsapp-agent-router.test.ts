@@ -83,6 +83,7 @@ describe('toolTier', () => {
     expect(toolTier('qualify_lead')).toBe('auto')
     expect(toolTier('create_deal')).toBe('auto')
     expect(toolTier('attach_property_photos')).toBe('auto')
+    expect(toolTier('update_property')).toBe('auto')
   })
   it('search_listings et get_kyc_status sont read (lecture seule)', () => {
     expect(toolTier('search_listings')).toBe('read')
