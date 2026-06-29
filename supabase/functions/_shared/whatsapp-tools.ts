@@ -480,6 +480,32 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
   {
     type: 'function',
     function: {
+      name: 'create_property',
+      description: "Crée un NOUVEAU bien (brouillon) dans l'agence à partir de ce que l'agent dicte. Pour « crée un 3 pièces aux Eaux-Vives en location à 2400 », « ajoute un nouveau bien : villa à Cologny ». NE remplis QUE les champs que l'agent donne — n'invente JAMAIS. Sans titre fourni, il sera composé du type + pièces + localité. Le bien est créé en BROUILLON ; ensuite l'agent ajoute des photos (attach_property_photos), complète (update_property) puis « publie-le » (publish_to_portals active automatiquement le brouillon).",
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: "Titre de l'annonce (sinon composé du type + pièces + localité)." },
+          property_type: { type: 'string', description: 'Type : appartement, maison, villa, terrain, commercial (bureau/local).' },
+          transaction_type: { type: 'string', enum: ['rent', 'buy'], description: 'location (rent) ou vente (buy).' },
+          price: { type: 'string', description: 'Prix de vente, ou loyer mensuel si location. Ex « 2400 », « 1.2M ».' },
+          charges_monthly: { type: 'string', description: 'Charges mensuelles (location).' },
+          rooms: { type: 'number', description: 'Nombre de pièces (ex. 3.5).' },
+          surface_m2: { type: 'number', description: 'Surface habitable en m².' },
+          address: { type: 'string', description: 'Adresse (rue + numéro).' },
+          postal_code: { type: 'string', description: 'NPA (code postal suisse).' },
+          city: { type: 'string', description: 'Localité.' },
+          canton: { type: 'string', description: 'Canton (ex. GE, VD).' },
+          year_built: { type: 'number', description: 'Année de construction.' },
+          description: { type: 'string', description: "Description, SEULEMENT si l'agent la dicte." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'update_property',
       description: "Met à jour ou complète les champs d'un bien de l'agence (pour finir une annonce avant publication, ou corriger une info). NE passe QUE les champs que l'agent te donne EXPLICITEMENT — n'invente JAMAIS de valeur. Le bien est cherché par titre/adresse. Exemples : « pour le 3 pièces des Eaux-Vives, le NPA c'est 1207 et le loyer 2400 », « corrige la surface du bien de Champel à 95 m² », « le bien de Cologny est une villa ». Utile quand publier échoue faute d'une info (l'agent la donne, tu complètes, puis il republie).",
       parameters: {
