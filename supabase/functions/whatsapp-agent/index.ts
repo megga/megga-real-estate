@@ -28,7 +28,7 @@ import {
   execAttachPropertyPhotos, execUpdateProperty, execCreateProperty,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
-import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
+import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
@@ -114,6 +114,11 @@ serve(async (req) => {
         : `\n\nQuand tu rédiges un message POUR UN CLIENT (send_client_message), copie ce ton ; avec l'agent, garde ton style habituel.${rawVoice}`)
     : ''
 
+  // Apprentissage T2 (par l'exemple) : corrections passées de l'agent sur tes
+  // brouillons client (brouillon rejeté → message envoyé), réinjectées pour ne pas
+  // refaire la même erreur. Par agent, auto (ne façonne qu'un brouillon validé).
+  const correctionsBlock = formatCorrectionExamples(await fetchCorrectionExamples(supabase, profileId), voiceLang)
+
   // Comportement GROUPE (v1) : le brain aide l'agent À PROPOS d'un groupe ; il ne poste jamais lui-même.
   const groupBlock = lang === 'en'
     ? `\n\nGroup behavior: when the agent asks for a message "for the group", draft a GROUP-SAFE version in their voice — never include data belonging to only one party (a party's max budget/floor, motivation, KYC). Offer to run check_group_leak before they post. Anything meant for ONE party must go to that party's 1:1 thread, never the shared group. You draft; the agent posts. Market figures only if grounded by a tool; otherwise stay general and "à titre indicatif".`
@@ -163,7 +168,7 @@ serve(async (req) => {
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${groupBlock}${listingBlock}${antiFabBlock}` },
+    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${correctionsBlock}${groupBlock}${listingBlock}${antiFabBlock}` },
     ...history,
     { role: 'user', content: message },
   ]

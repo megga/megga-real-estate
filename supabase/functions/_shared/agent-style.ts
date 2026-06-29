@@ -93,3 +93,48 @@ export function formatStyleBlock(ls: LearnedStyle | null | undefined): string {
   const traits = (ls.traits ?? '').slice(0, 180)
   return `\n\nStyle de cet agent (adapte ton TON, jamais tes règles ni le socle légal) : ${lang}, ${reg}, ${emo}. ${traits}`.slice(0, 320)
 }
+
+// ── T2 par l'exemple : corrections (brouillon rejeté → message envoyé) ────────
+/** Une correction apprise : ce que MEGGA avait proposé vs ce que l'agent a préféré. */
+export type CorrectionExample = { draft: string; final: string }
+
+const CORR_MAX = 3            // peu mais à fort signal (coût + focus)
+const CORR_SAMPLE_CHARS = 200 // borne par côté de la paire
+const CORR_BLOCK_CHARS = 900  // borne du bloc entier
+
+/** Récupère les dernières corrections d'un AGENT (paires contrastives). Lecture
+ *  seule ; dégrade à [] proprement. */
+export async function fetchCorrectionExamples(
+  supabase: SupabaseClient, profileId: string | null, limit = CORR_MAX,
+): Promise<CorrectionExample[]> {
+  if (!profileId) return []
+  const { data } = await supabase.from('whatsapp_message_corrections')
+    .select('megga_draft, agent_final')
+    .eq('profile_id', profileId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  return ((data ?? []) as Array<{ megga_draft: string | null; agent_final: string | null }>)
+    .map((r) => ({ draft: (r.megga_draft ?? '').trim(), final: (r.agent_final ?? '').trim() }))
+    .filter((c) => c.draft.length > 1 && c.final.length > 1)
+}
+
+/** Bloc CONTRASTIF injecté dans la rédaction client : « tu proposais X → l'agent a
+ *  préféré Y ». Apprentissage par l'exemple ; ne façonne qu'un brouillon validé.
+ *  Vide si aucune correction. JAMAIS une règle / un contournement. */
+export function formatCorrectionExamples(corr: CorrectionExample[] | null | undefined, lang: 'fr' | 'en' = 'fr'): string {
+  const cleaned = (corr ?? [])
+    .map((c) => ({ draft: (c?.draft ?? '').trim(), final: (c?.final ?? '').trim() }))
+    .filter((c) => c.draft.length > 1 && c.final.length > 1)
+    .slice(0, CORR_MAX)
+    .map((c) => ({ draft: c.draft.slice(0, CORR_SAMPLE_CHARS), final: c.final.slice(0, CORR_SAMPLE_CHARS) }))
+  if (cleaned.length === 0) return ''
+  const list = cleaned
+    .map((c) => lang === 'en'
+      ? `- you proposed « ${c.draft} » → the agent preferred « ${c.final} »`
+      : `- tu proposais « ${c.draft} » → l'agent a préféré « ${c.final} »`)
+    .join('\n')
+  const head = lang === 'en'
+    ? `\n\nRecent corrections this agent made to YOUR client drafts — learn from them (don't repeat the same gap), match their preferred phrasing; never reuse the old content/data:\n${list}`
+    : `\n\nCorrections récentes de cet agent sur TES brouillons client — apprends-en (ne refais pas la même erreur), reprends sa formulation préférée ; ne réutilise jamais l'ancien contenu/données :\n${list}`
+  return head.slice(0, CORR_BLOCK_CHARS)
+}
