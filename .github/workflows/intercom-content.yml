@@ -19,6 +19,8 @@ on:
           - articles-publish
           - articles-promote-dry
           - articles-promote
+          - articles-update-dry
+          - articles-update
           - attributes-declare
           - migrate-dry
           - migrate
