@@ -15,6 +15,9 @@ import {
   formatNum,
   formatIdxDate,
   validateIdxProperty,
+  toNum,
+  propertyRowToIdxInput,
+  agencyRowToIdxAgency,
   type IdxProperty,
   type IdxAgency,
 } from './idx-mapper'
@@ -215,5 +218,64 @@ describe('validateIdxProperty', () => {
 
   it('prix ≤ 0 est invalide', () => {
     expect(validateIdxProperty(baseProperty({ price: 0 }))).toContain('price')
+  })
+})
+
+describe('mappers ligne DB → contrat IDX', () => {
+  it('toNum coerce les numeric PostgREST (string) et écarte les invalides', () => {
+    expect(toNum('720000.00')).toBe(720000)
+    expect(toNum(3.5)).toBe(3.5)
+    expect(toNum('')).toBeNull()
+    expect(toNum(null)).toBeNull()
+    expect(toNum('abc')).toBeNull()
+  })
+
+  it('propertyRowToIdxInput coerce les prix/surfaces et mappe mandate_expires_at → publishUntil', () => {
+    const input = propertyRowToIdxInput({
+      id: 'p1',
+      type: 'apartment',
+      transaction_type: 'rent',
+      title: 'T3',
+      price: '2400.00',
+      charges_monthly: '200',
+      rooms: '3.5',
+      surface_m2: '92.00',
+      address: 'Rue 1',
+      postal_code: '1200',
+      city: 'Genève',
+      photos: ['https://a/1.jpg'],
+      mandate_expires_at: '2026-12-31',
+      updated_at: '2026-06-29T10:00:00Z',
+    })
+    expect(input.price).toBe(2400)
+    expect(input.chargesMonthly).toBe(200)
+    expect(input.rooms).toBe(3.5)
+    expect(input.surfaceM2).toBe(92)
+    expect(input.transactionType).toBe('rent')
+    expect(input.publishUntil).toBe('2026-12-31')
+    expect(input.photos).toEqual(['https://a/1.jpg'])
+  })
+
+  it('propertyRowToIdxInput construit listingUrl seulement si base fournie', () => {
+    expect(propertyRowToIdxInput({ id: 'p1' }).listingUrl).toBeNull()
+    expect(
+      propertyRowToIdxInput({ id: 'p1' }, { listingBaseUrl: 'https://x/listing' }).listingUrl,
+    ).toBe('https://x/listing/p1')
+  })
+
+  it('le résultat est sérialisable en ligne 183 colonnes valide', () => {
+    const input = propertyRowToIdxInput({
+      id: 'p1', type: 'villa', transaction_type: 'buy', title: 'V', price: '1200000',
+      address: 'A', postal_code: '1000', city: 'C', photos: ['https://a/1.jpg'],
+    })
+    const agency = agencyRowToIdxAgency({ id: 'a', name: 'Régie', address: 'R', city: 'C', phone: '0', email: 'e@x.ch', logo_url: 'l' })
+    const feed = buildIdxFeed([input], agency)
+    expect(feed.split('\r\n')[0].split(';')).toHaveLength(IDX_COLUMN_COUNT)
+  })
+
+  it('agencyRowToIdxAgency mappe address → street', () => {
+    const a = agencyRowToIdxAgency({ id: 'a', name: 'Régie SA', address: 'Rue 9', city: 'GE' })
+    expect(a.street).toBe('Rue 9')
+    expect(a.name).toBe('Régie SA')
   })
 })

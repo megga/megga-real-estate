@@ -291,3 +291,92 @@ export function validateIdxProperty(p: IdxProperty): string[] {
   if (photos.length === 0) missing.push('photos')
   return missing
 }
+
+// ─── Mappers ligne DB → contrat IDX (PURS, partagés pull + push FTP) ──────────
+// PostgREST renvoie les `numeric` en CHAÎNE → on coerce. Champ absent = null
+// (jamais inventé). Réutilisés par idx-feed (pull) et idx-syndicate (push).
+
+/** Coerce number | string | null → number | null (NaN/'' → null). */
+export function toNum(v: unknown): number | null {
+  if (v == null || v === '') return null
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+export interface IdxPropertyRow {
+  id: string
+  type?: string | null
+  transaction_type?: string | null
+  title?: string | null
+  description?: string | null
+  price?: number | string | null
+  charges_monthly?: number | string | null
+  currency?: string | null
+  rooms?: number | string | null
+  surface_m2?: number | string | null
+  floor?: number | null
+  year_built?: number | null
+  address?: string | null
+  postal_code?: string | null
+  city?: string | null
+  canton?: string | null
+  availability_date?: string | null
+  photos?: string[] | null
+  mandate_expires_at?: string | null
+  updated_at?: string | null
+}
+
+export interface IdxAgencyRow {
+  id: string
+  name: string
+  address?: string | null
+  city?: string | null
+  canton?: string | null
+  phone?: string | null
+  email?: string | null
+  logo_url?: string | null
+}
+
+export function propertyRowToIdxInput(
+  row: IdxPropertyRow,
+  opts: { externalRef?: string | null; listingBaseUrl?: string | null } = {},
+): IdxProperty {
+  return {
+    id: row.id,
+    ref: row.id,
+    type: row.type ?? null,
+    transactionType: row.transaction_type ?? null,
+    title: row.title ?? null,
+    description: row.description ?? null,
+    price: toNum(row.price),
+    chargesMonthly: toNum(row.charges_monthly),
+    currency: row.currency ?? null,
+    rooms: toNum(row.rooms),
+    surfaceM2: toNum(row.surface_m2),
+    floor: row.floor ?? null,
+    yearBuilt: row.year_built ?? null,
+    address: row.address ?? null,
+    postalCode: row.postal_code ?? null,
+    city: row.city ?? null,
+    canton: row.canton ?? null,
+    availabilityDate: row.availability_date ?? null,
+    photos: row.photos ?? [],
+    publishUntil: row.mandate_expires_at ?? null,
+    updatedAt: row.updated_at ?? null,
+    externalRef: opts.externalRef ?? null,
+    listingUrl: opts.listingBaseUrl ? `${opts.listingBaseUrl}/${row.id}` : null,
+  }
+}
+
+export function agencyRowToIdxAgency(row: IdxAgencyRow): IdxAgency {
+  return {
+    id: row.id,
+    name: row.name,
+    street: row.address ?? null,
+    city: row.city ?? null,
+    canton: row.canton ?? null,
+    phone: row.phone ?? null,
+    email: row.email ?? null,
+    logoUrl: row.logo_url ?? null,
+  }
+}

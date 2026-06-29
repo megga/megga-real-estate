@@ -447,3 +447,9 @@ verify_jwt = false
 # token de feed par agence (agency_syndication_config.idx_feed_token).
 [functions.idx-feed]
 verify_jwt = false
+
+# Push FTP du feed IDX : déclenché par pg_cron (envoie la clé service-role en
+# Bearer). verify_jwt=false → l'auth se fait DANS la fonction (Bearer == service
+# role, comparaison à temps constant). cf. flatfox-sync / learn-agent-style.
+[functions.idx-syndicate]
+verify_jwt = false

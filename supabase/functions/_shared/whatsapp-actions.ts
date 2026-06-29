@@ -2532,7 +2532,7 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
   try {
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
-      action: 'property_published_to_portal', entity_type: 'property', entity_id: propertyId, category: 'property',
+      action: 'property_published_to_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
       severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
     })
   } catch { /* non bloquant */ }
@@ -2591,7 +2591,7 @@ export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args):
   try {
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
-      action: 'property_withdrawn_from_portal', entity_type: 'property', entity_id: propertyId, category: 'property',
+      action: 'property_withdrawn_from_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
       severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
     })
   } catch { /* non bloquant */ }
