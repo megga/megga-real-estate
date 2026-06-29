@@ -16,7 +16,8 @@ import { showIntercomArticle, showIntercomSpace, isIntercomEnabled } from './int
  * Clé d'aide → ID d'article Help Center publié. Les clés reprennent les `SugarScreenId`
  * de la TopNav, plus quelques surfaces secondaires (kyc / settings / billing / whatsapp / portail).
  *
- * Surfaces SANS article publié dédié (→ fallback Centre d'aide) : parcours, biens (à rédiger).
+ * Tous les écrans de la TopNav ont désormais un article ; toute surface non mappée
+ * retombe sur le Centre d'aide (`showIntercomSpace('help')`).
  */
 export const HELP_ARTICLES: Record<string, string> = {
   today: '15424904', // Démarrer avec MEGGA
@@ -25,6 +26,8 @@ export const HELP_ARTICLES: Record<string, string> = {
   matching: '15492029', // Lire un score de matching et proposer un bien
   calendar: '15424986', // Connecter Google, Outlook et la signature
   julien: '15492030', // Le copilote MEGGA AI : ce qu'il fait, ses limites
+  parcours: '15692113', // Suivre l'avancement de vos dossiers avec le Parcours
+  biens: '15692114', // Gérer votre portefeuille de biens
   // Surfaces secondaires (hors TopNav) — utilisables par les pages dédiées :
   kyc: '15424977', // Le KYC, une aide à la conformité (LBA)
   settings: '15424986', // Intégrations (Google / Outlook / signature)
