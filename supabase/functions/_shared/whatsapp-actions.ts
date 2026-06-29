@@ -2573,6 +2573,19 @@ async function triggerImmediateSyndication(agencyId: string): Promise<void> {
   } catch { /* best-effort */ }
 }
 
+/** Si le bien est actuellement publié sur un portail (queued/published), redéploie
+ *  le feed tout de suite pour refléter une modif (photo, prix…). Renvoie true si un
+ *  push a été lancé — sinon (bien non syndiqué) ne fait rien. */
+async function maybeRepushOnChange(ctx: ActionCtx, propertyId: string): Promise<boolean> {
+  if (!ctx.agencyId) return false
+  const { data } = await ctx.supabase.from('property_syndications')
+    .select('id').eq('property_id', propertyId).eq('agency_id', ctx.agencyId)
+    .in('status', ['queued', 'published']).limit(1)
+  if (!Array.isArray(data) || data.length === 0) return false
+  await triggerImmediateSyndication(ctx.agencyId)
+  return true
+}
+
 /** Post-« oui » : inscrit le bien au feed (upsert property_syndications status='queued')
  *  puis déclenche le push immédiat. */
 export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Promise<string> {
@@ -2813,9 +2826,11 @@ export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise
   } catch { /* non bloquant */ }
 
   const n = typeof count === 'number' ? count : 0
+  const live = await maybeRepushOnChange(ctx, p.id)
+  const suffix = live ? (lang === 'en' ? ' Portal updated.' : ' Le portail est mis à jour.') : ''
   return lang === 'en'
-    ? `Photo added to "${title}" (${n} photo${n > 1 ? 's' : ''} now).`
-    : `Photo ajoutée à « ${title} » (${n} photo${n > 1 ? 's' : ''} maintenant).`
+    ? `Photo added to "${title}" (${n} photo${n > 1 ? 's' : ''} now).${suffix}`
+    : `Photo ajoutée à « ${title} » (${n} photo${n > 1 ? 's' : ''} maintenant).${suffix}`
 }
 
 // ── Compléter / corriger un bien par WhatsApp : update_property (tier auto) ───
@@ -2921,7 +2936,9 @@ export async function execUpdateProperty(ctx: ActionCtx, a: Args): Promise<strin
 
   const changed = applied.join(', ')
   const note = notes.length ? ' ' + notes.join(' ') : ''
+  const live = await maybeRepushOnChange(ctx, p.id)
+  const suffix = live ? (lang === 'en' ? ' Portal updated.' : ' Je mets le portail à jour.') : ''
   return lang === 'en'
-    ? `Updated "${title}": ${changed}.${note}`
-    : `C'est noté pour « ${title} » : ${changed}.${note}`
+    ? `Updated "${title}": ${changed}.${note}${suffix}`
+    : `C'est noté pour « ${title} » : ${changed}.${note}${suffix}`
 }
