@@ -412,6 +412,88 @@ async function attributesDeclare() {
   if (failed) process.exitCode = 1
 }
 
+// ───────────────────────── Promotion brouillon → publié (MT2) ─────────────────────────
+// Publie des articles DÉJÀ rédigés mais en brouillon (lot articles-publish). Pour qu'un
+// article soit visible (Messenger côté agent + Help Center public + corpus Fin), il faut
+// que l'article ET chacune de ses locales soient `published` — le mode `migrate` ne touche
+// QUE la locale fr, pas l'état top-level. Ici on passe les DEUX à published.
+//
+// Cible par défaut : tous les brouillons SAUF l'article démo (auto-maintenu, pas de liste
+// codée en dur). Restreignable via PROMOTE_IDS="id1,id2" (sécurité / publication ciblée).
+// Toujours faire un `articles-promote-dry` d'abord pour relire la liste exacte.
+
+const PROMOTE_IDS = (process.env.PROMOTE_IDS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+async function buildPromotePlans() {
+  const articles = await listAll('/articles')
+  const plans = []
+  for (const a of articles) {
+    if (DEMO_ARTICLE_IDS.has(String(a.id))) continue
+    if (a.state === 'published') continue // déjà live
+    if (PROMOTE_IDS.length && !PROMOTE_IDS.includes(String(a.id))) continue
+    const full = await api(`/articles/${a.id}`) // GET complet (locales + body)
+    const tc = full.translated_content || {}
+    const locales = Object.keys(tc).filter((k) => k !== 'type' && tc[k] && typeof tc[k] === 'object')
+    const hasBody =
+      locales.some((loc) => tc[loc].body && tc[loc].body.trim()) || (full.body && full.body.trim())
+    plans.push({ id: String(a.id), title: full.title, state: a.state, locales, hasBody, full })
+  }
+  return plans
+}
+
+async function articlesPromote(dry) {
+  console.log(`→ Articles promote (brouillon → publié)${dry ? ' [DRY-RUN]' : ''} (${BASE}, API ${API_VERSION})`)
+  console.log(PROMOTE_IDS.length ? `  cible: ${PROMOTE_IDS.join(', ')}\n` : '  cible: tous les brouillons (hors démo)\n')
+  const plans = await buildPromotePlans()
+  if (!plans.length) {
+    console.log('Aucun brouillon à publier (hors démo). Rien à faire.')
+    return
+  }
+  for (const p of plans) {
+    console.log(`• [${p.id}] ${p.title}`)
+    console.log(`    état: ${p.state} → published   locales: ${p.locales.join(', ') || '—'}${p.hasBody ? '' : '   ⚠ pas de body'}`)
+  }
+  if (dry) {
+    console.log(`\nDRY-RUN : aucune écriture (${plans.length} article(s) seraient publiés).`)
+    console.log('Lance le mode "articles-promote" (scope Write content data) pour appliquer.')
+    return
+  }
+  let done = 0
+  let skipped = 0
+  let failed = 0
+  for (const p of plans) {
+    if (!p.hasBody) {
+      console.log(`= [${p.id}] ${p.title} — pas de body exploitable, SKIP`)
+      skipped++
+      continue
+    }
+    // Reconstruit chaque locale existante en la passant à published (préserve titre/desc/body/author).
+    const tc = p.full.translated_content || {}
+    const out = {}
+    for (const [loc, content] of Object.entries(tc)) {
+      if (loc === 'type' || !content || typeof content !== 'object') continue
+      out[loc] = writableLocale(content, { state: 'published' })
+    }
+    try {
+      await api(`/articles/${p.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ state: 'published', translated_content: out }),
+      })
+      console.log(`✓ [${p.id}] ${p.title} — publié (${Object.keys(out).join(', ')})`)
+      done++
+    } catch (err) {
+      console.error(`✗ [${p.id}] ${p.title} — ${err.message}`)
+      failed++
+    }
+  }
+  console.log(`\n──────── Résultat ────────\nPubliés: ${done} | ignorés: ${skipped} | échecs: ${failed}`)
+  console.log('Vérif : https://intercom.help/megga/fr (+ bouton « ? » in-app + corpus Fin).')
+  if (failed) process.exitCode = 1
+}
+
 async function main() {
   switch (mode) {
     case 'audit':
@@ -419,6 +501,12 @@ async function main() {
       break
     case 'articles-publish':
       await articlesPublish()
+      break
+    case 'articles-promote-dry':
+      await articlesPromote(true)
+      break
+    case 'articles-promote':
+      await articlesPromote(false)
       break
     case 'attributes-declare':
       await attributesDeclare()
@@ -436,7 +524,7 @@ async function main() {
       await deleteDemo()
       break
     default:
-      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | articles-publish | attributes-declare | migrate-dry | migrate | migrate-collections | delete-demo`)
+      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | articles-publish | articles-promote-dry | articles-promote | attributes-declare | migrate-dry | migrate | migrate-collections | delete-demo`)
       process.exit(2)
   }
 }
