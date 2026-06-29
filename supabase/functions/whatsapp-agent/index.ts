@@ -105,7 +105,7 @@ serve(async (req) => {
   // Mimétisme de voix (few-shot) : vrais messages clients de l'agence, pour les messages DESTINÉS À UN CLIENT.
   // NB: fetché à chaque tour (le corps de send_client_message est composé inline) ; TODO lazy si le budget requêtes se tend.
   const voiceLang = lang === 'en' ? 'en' : 'fr'
-  const voiceSamples = await fetchClientVoiceSamples(supabase, ctx.agencyId)
+  const voiceSamples = await fetchClientVoiceSamples(supabase, ctx.agencyId, { profileId })
   const rawVoice = formatVoiceExamples(voiceSamples, voiceLang)
   // Cadrage : la voix ne s'applique QU'aux messages client (send_client_message), jamais au chat avec l'agent.
   const voiceBlock = rawVoice

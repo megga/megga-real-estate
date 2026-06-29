@@ -710,12 +710,15 @@ async function executePending(
       outId = provider.parseSendResult(sres.status, sbody).providerMessageId
     } catch { return t(lang, 'sendFailNet') }
     // Persiste le message client envoyé (fil + corpus de voix). Idempotent, non bloquant.
+    // sent_by_profile_id = l'agent qui a validé l'envoi → mimétisme de voix PAR AGENT
+    // (apprentissage T2 par l'exemple ; cf. agent-style.ts fetchClientVoiceSamples).
     await admin.from('whatsapp_messages').upsert({
       provider: provider.name,
       provider_message_id: outId ?? `local-clientmsg-${contactId}-${Date.now()}`,
       direction: 'outbound', wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
       wa_to: String(contact.phone).replace(/\D/g, ''), contact_id: contactId,
       agency_id: agentLink.agency_id, body: text, status: 'received', is_agent_error: false,
+      sent_by_profile_id: agentLink.profile_id,
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
     try {
       await admin.from('activity_events').insert({

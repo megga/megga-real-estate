@@ -27,13 +27,41 @@ export function formatVoiceExamples(samples: VoiceSample[] | null | undefined, l
   return head.slice(0, VOICE_BLOCK_CHARS)
 }
 
-/** Récupère de vrais messages clients récents de l'agence (mimétisme de voix).
- *  Agence-scopé au SQL (`whatsapp_messages` ne trace pas l'agent émetteur — limite v1).
+/** Récupère de vrais messages clients récents pour le mimétisme de voix.
+ *  T2 « par agent » : si `opts.profileId` est fourni et que cet agent a ASSEZ de
+ *  messages prose à lui (>= VOICE_MIN, tagués `sent_by_profile_id`), on apprend SA
+ *  voix (ses messages validés = ses corrections) ; sinon repli sur le ton de l'agence.
  *  Lecture seule ; dégrade à [] proprement (jamais d'exception qui casse la rédaction). */
 export async function fetchClientVoiceSamples(
-  supabase: SupabaseClient, agencyId: string | null, limit = 8,
+  supabase: SupabaseClient,
+  agencyId: string | null,
+  opts: { profileId?: string | null; limit?: number } = {},
 ): Promise<VoiceSample[]> {
   if (!agencyId) return []
+  const limit = opts.limit ?? 8
+
+  const toSamples = (data: unknown): VoiceSample[] =>
+    ((data ?? []) as Array<{ body: string | null }>)
+      .map((r) => ({ body: (r.body ?? '').trim() }))
+      .filter((s) => s.body.length > 1)
+
+  // 1. PAR AGENT : ses propres messages clients (= ses corrections, validées au fil
+  //    de l'eau). Le plus sur-mesure ; utilisé seulement s'il y a assez de signal.
+  if (opts.profileId) {
+    const { data } = await supabase.from('whatsapp_messages')
+      .select('body')
+      .eq('agency_id', agencyId)
+      .eq('direction', 'outbound')
+      .eq('sent_by_profile_id', opts.profileId)
+      .not('contact_id', 'is', null)
+      .not('body', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    const perAgent = toSamples(data)
+    if (perAgent.length >= VOICE_MIN) return perAgent
+  }
+
+  // 2. REPLI AGENCE : ton de la maison (agent sans historique propre suffisant).
   const { data } = await supabase.from('whatsapp_messages')
     .select('body')
     .eq('agency_id', agencyId)
@@ -42,9 +70,7 @@ export async function fetchClientVoiceSamples(
     .not('body', 'is', null)
     .order('created_at', { ascending: false })
     .limit(limit)
-  return ((data ?? []) as Array<{ body: string | null }>)
-    .map((r) => ({ body: (r.body ?? '').trim() }))
-    .filter((s) => s.body.length > 1)
+  return toSamples(data)
 }
 
 export type LearnedStyle = {

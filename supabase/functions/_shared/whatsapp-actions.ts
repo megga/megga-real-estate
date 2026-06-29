@@ -1372,7 +1372,7 @@ export async function prepareSendClientEmail(ctx: ActionCtx, a: Args): Promise<P
   const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
 
   // Mimétisme de voix : vrais messages clients récents de l'agence (few-shot). Vide si < 2.
-  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId)
+  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId, { profileId: ctx.profileId })
   const voiceBlock = formatVoiceExamples(voiceSamples, lang === 'en' ? 'en' : 'fr')
 
   // 4. Appel DeepSeek (JSON mode) pour rédiger le brouillon.
@@ -1922,7 +1922,7 @@ export async function execDraftListingCopy(ctx: ActionCtx, a: Args): Promise<str
     .eq('agent_id', ctx.profileId)
     .maybeSingle()
   const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
-  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId)
+  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId, { profileId: ctx.profileId })
   const voiceBlock = formatVoiceExamples(voiceSamples, lang === 'en' ? 'en' : 'fr')
 
   const confidentialClause = variant === 'confidential'

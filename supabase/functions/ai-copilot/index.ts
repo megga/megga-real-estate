@@ -376,7 +376,7 @@ serve(async (req: Request) => {
             if (styleBlock) systemPrompt += styleBlock
             // Mimétisme de voix : vrais messages clients de l'agence (few-shot), pour les brouillons client.
             const agencyId = (aiProfile as { agency_id?: string | null } | null)?.agency_id ?? null
-            const rawVoice = formatVoiceExamples(await fetchClientVoiceSamples(sb, agencyId), language === 'en' ? 'en' : 'fr')
+            const rawVoice = formatVoiceExamples(await fetchClientVoiceSamples(sb, agencyId, { profileId: u.user.id }), language === 'en' ? 'en' : 'fr')
             if (rawVoice) {
               systemPrompt += language === 'en'
                 ? `\n\nWhen you draft a CLIENT-FACING message (email/listing), mirror this tone; for internal analysis keep your usual style.${rawVoice}`
