@@ -3983,6 +3983,63 @@ export type Database = {
           },
         ]
       }
+      property_syndications: {
+        Row: {
+          agency_id: string
+          created_at: string
+          error: string | null
+          external_ref: string | null
+          id: string
+          last_imported_at: string | null
+          last_pushed_at: string | null
+          portal: string
+          property_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          error?: string | null
+          external_ref?: string | null
+          id?: string
+          last_imported_at?: string | null
+          last_pushed_at?: string | null
+          portal?: string
+          property_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          error?: string | null
+          external_ref?: string | null
+          id?: string
+          last_imported_at?: string | null
+          last_pushed_at?: string | null
+          portal?: string
+          property_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_syndications_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_syndications_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminders: {
         Row: {
           agency_id: string

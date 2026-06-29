@@ -243,7 +243,7 @@ function BvStat({ icon, label, value, sp }: { icon: VxIconName; label: string; v
 }
 
 // ─── Ligne de diffusion (portail) ─────────────────────────────────────────
-function BvPortal({ name, online, sp, dark }: { name: string; online: boolean; sp: VxPalette; dark: boolean }) {
+function BvPortal({ name, online, label, sp, dark }: { name: string; online: boolean; label?: string; sp: VxPalette; dark: boolean }) {
   const { t: tr } = useTranslation('listings')
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', borderRadius: 13, background: sp.cardSub }}>
@@ -251,7 +251,7 @@ function BvPortal({ name, online, sp, dark }: { name: string; online: boolean; s
       <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: sp.ink }}>{name}</span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: online ? sp.ok : sp.muted, whiteSpace: 'nowrap' }}>
         <span style={{ width: 6, height: 6, borderRadius: 9, background: online ? sp.ok : sp.muted }} />
-        {online ? tr('detail.distributionSection.online') : tr('detail.distributionSection.offline')}
+        {label ?? (online ? tr('detail.distributionSection.online') : tr('detail.distributionSection.offline'))}
       </span>
     </div>
   )
@@ -439,6 +439,21 @@ export default function BienDetailSugarV3Page() {
     },
     enabled: buyerIds.length > 0,
   })
+  // Syndication portails externes (Phase 2) — reflète property_syndications.
+  // Résilient : si la table n'est pas encore déployée, on dégrade en liste vide
+  // (la fiche ne casse pas). La publication se pilote via le copilote WhatsApp.
+  const { data: syndications = [] } = useQuery({
+    queryKey: ['property-syndications', id],
+    queryFn: async (): Promise<{ portal: string; status: string }[]> => {
+      const { data, error } = await supabase
+        .from('property_syndications')
+        .select('portal, status')
+        .eq('property_id', id ?? '')
+      if (error) return []
+      return (data ?? []) as { portal: string; status: string }[]
+    },
+    enabled: !!id,
+  })
 
   // ── État UI ──
   const [editing, setEditing] = useState(false)
@@ -535,6 +550,14 @@ export default function BienDetailSugarV3Page() {
   const daysToExp = mandatExp ? Math.round((mandatExp.getTime() - Date.now()) / 86_400_000) : null
   const features = bien.features ?? []
   const publishedTo = bien.published_at ? ['MEGGA'] : []
+  // État de syndication immobilier.ch (queued/published/withdrawn/error ou absent).
+  const idxStatus = syndications.find(x => x.portal === 'immobilier_ch')?.status ?? null
+  const idxOnline = idxStatus === 'published' || idxStatus === 'queued'
+  const idxLabel = idxStatus === 'published'
+    ? tr('detail.distributionSection.online')
+    : idxStatus === 'queued'
+      ? tr('detail.distributionSection.queued')
+      : tr('detail.distributionSection.offline')
   const publicDesc =
     bien.description ||
     tr('detail.autoDescription', {
@@ -954,7 +977,15 @@ export default function BienDetailSugarV3Page() {
               <VxCard index={3} padding={22}>
                 <VxSectionHead dark={dark} eyebrow={tr('detail.distributionSection.eyebrow')} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {(publishedTo.length ? publishedTo : [tr('detail.distributionSection.notPublished')]).map(p => <BvPortal key={p} name={p} online={!!publishedTo.length} sp={sp} dark={dark} />)}
+                  {(() => {
+                    const rows: { name: string; online: boolean; label?: string }[] = []
+                    if (bien.published_at) rows.push({ name: 'MEGGA', online: true })
+                    if (idxStatus) rows.push({ name: 'immobilier.ch', online: idxOnline, label: idxLabel })
+                    if (rows.length === 0) {
+                      return <BvPortal name={tr('detail.distributionSection.notPublished')} online={false} sp={sp} dark={dark} />
+                    }
+                    return rows.map(p => <BvPortal key={p.name} name={p.name} online={p.online} label={p.label} sp={sp} dark={dark} />)
+                  })()}
                 </div>
               </VxCard>
 

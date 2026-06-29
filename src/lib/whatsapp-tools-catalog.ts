@@ -12,7 +12,7 @@ export interface WaToolCatalogEntry {
 }
 
 export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
-  // read (13)
+  // read (14)
   { name: 'get_my_agenda', tier: 'read' },
   { name: 'search_contacts', tier: 'read' },
   { name: 'get_contact_brief', tier: 'read' },
@@ -26,6 +26,7 @@ export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
   { name: 'draft_listing_copy', tier: 'read' },
   { name: 'prepare_meeting', tier: 'read' },
   { name: 'read_document', tier: 'read' },
+  { name: 'get_publication_status', tier: 'read' },
   // auto (8)
   { name: 'file_document', tier: 'auto' },
   { name: 'create_contact', tier: 'auto' },
@@ -35,7 +36,7 @@ export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
   { name: 'qualify_lead', tier: 'auto' },
   { name: 'create_deal', tier: 'auto' },
   { name: 'attach_kyc_document', tier: 'auto' },
-  // confirm (7)
+  // confirm (9)
   { name: 'send_kyc_link', tier: 'confirm' },
   { name: 'send_client_email', tier: 'confirm' },
   { name: 'update_pipeline', tier: 'confirm' },
@@ -43,6 +44,8 @@ export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
   { name: 'send_listings', tier: 'confirm' },
   { name: 'record_offer', tier: 'confirm' },
   { name: 'open_kyc_case', tier: 'confirm' },
+  { name: 'publish_to_portals', tier: 'confirm' },
+  { name: 'withdraw_from_portals', tier: 'confirm' },
   // slow_async (2)
   { name: 'run_kyc_screening', tier: 'slow_async' },
   { name: 'send_kyc_report', tier: 'slow_async' },
