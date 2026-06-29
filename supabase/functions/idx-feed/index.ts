@@ -54,6 +54,13 @@ serve(async (req) => {
       listingBaseUrl: LISTING_BASE_URL || null,
     })
     if (!feed.agencyFound) return txt('Internal Error', 500)
+    // Garde anti-feed-vide : ne JAMAIS servir un feed vide si des biens sont syndiqués
+    // (tous filtrés = anomalie) — un feed vide dépublierait tout côté portail. Un feed
+    // légitimement vide (aucun bien syndiqué) reste servi.
+    if (feed.propertyIds.length === 0 && feed.candidateCount > 0) {
+      console.error(`idx-feed: ${feed.candidateCount} syndicated listing(s) but feed empty (all filtered) — refusing to serve empty`)
+      return txt('Feed temporarily unavailable: no publishable listings', 409)
+    }
     return txt(feed.csv)
   } catch (err) {
     console.error('idx-feed build failed:', (err as Error)?.message ?? 'error')
