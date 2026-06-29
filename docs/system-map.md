@@ -17,7 +17,7 @@
 ## 🧠 Le cerveau : comment ça marche & comment le maintenir
 
 Ce document **+** [`.claude-flow/knowledge/megga-memory.seed.json`](../.claude-flow/knowledge/megga-memory.seed.json)
-(160 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
+(~172 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
 **local** (embeddings ONNX, recherche HNSW) et **gratuit** (0 appel API).
 
 **Ce qui est automatique :**
@@ -61,7 +61,7 @@ avoir livré une feature ou changé l'architecture :
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
 CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin.
 Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~90k
-`market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, ~63 edge functions,
+`market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, ~69 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
 humaine obligatoire).
 
@@ -77,12 +77,13 @@ fragmenté.
 Frontend   React 18 / TS / Vite / Tailwind · React Router v6 · React Query (+ supabase-cache-helpers)
            i18n react-i18next (FR/DE/EN/IT) · Mapbox GL (lazy) · Recharts · Sentry · PostHog
 Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 15, Auth, Storage,
-           Realtime, pgvector, pg_cron, pg_net · ~63 Edge Functions (Deno)
+           Realtime, pgvector, pg_cron, pg_net · ~69 Edge Functions (Deno)
 IA         Claude (Sonnet/Haiku, côté agent) + DeepSeek V3 (côté public + fallback)
            via abstraction _shared/ai-provider.ts (tracking coût → ai_usage_logs)
 Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · Google AI (staging)
-           Deepgram (STT) · Cloudflare R2 (photos) · Flatfox + RealAdvisor (sync marché)
-           Intercom (support unique : Messenger + Fin IA LIVE + Inbox + Help Center public ; région US, flag nLPD)
+           Deepgram (STT) · Cloudflare R2 (photos) · Flatfox + RealAdvisor (sync marché entrant)
+           immobilier.ch (syndication IDX 3.01 SORTANTE, juin 2026 — cf §5 + brain megga/syndication-idx)
+           Intercom (support unique : Messenger + Fin IA LIVE + Inbox + Help Center public + aide « ? » par écran ; région US, flag nLPD)
 Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge auto-deploy
 ```
 
@@ -167,7 +168,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, setti
 ### Tables par domaine
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`.
 - **Contacts & leads** : `contacts`, `seller_leads`, `contact_scores`.
-- **Biens** : `properties` (internes), `property_scores` (score de bien, RPC `calculate_property_scores`), `listings` (publiées), `market_listings` (marché : **Flatfox=location** ~34k + **RealAdvisor=vente** ~36k), `external_listings` (legacy). Ingestion marché = **2 surfaces séparées** : `flatfox-sync` (location, partenaire sanctionné, cron 04:00) et **`realadvisor-sync`** (vente only, `realadvisor_sync_runs`). RealAdvisor : accès accordé (Gregory), throttle Cloudflare sur les requêtes **filtrées** → détection de disparition par **oracle `id_in` en pg_net** (crons `probe-fire`/`probe-collect` + `probe-sweep`, dry-run) + `fresh` quotidien (national) + trigger `price_reduced`. Cf. brain `realadvisor-ingestion`.
+- **Biens** : `properties` (internes), `property_scores` (score de bien, RPC `calculate_property_scores`), `listings` (publiées), `market_listings` (marché : **Flatfox=location** ~34k + **RealAdvisor=vente** ~36k), `external_listings` (legacy). Ingestion marché = **2 surfaces séparées** : `flatfox-sync` (location, partenaire sanctionné, cron 04:00) et **`realadvisor-sync`** (vente only, `realadvisor_sync_runs`). RealAdvisor : accès accordé (Gregory), throttle Cloudflare sur les requêtes **filtrées** → détection de disparition par **oracle `id_in` en pg_net** (crons `probe-fire`/`probe-collect` + `probe-sweep`, dry-run) + `fresh` quotidien (national) + trigger `price_reduced`. Cf. brain `realadvisor-ingestion`. **Syndication SORTANTE** (juin 2026) : `property_syndications` (1 ligne par bien×portail, status `queued/published/error/withdrawn`, UNIQUE`(property_id,portal)`, RLS agence) + `agency_syndication_config` (kill-switch `idx_enabled`, token pull, transport `pull`/`ftp`, creds FTP ; write `service_role` seul) — publie les `properties` au format IDX 3.01 sur immobilier.ch. Cf. §5 + brain `megga/syndication-idx`.
 - **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` (offres/contre-offres ; historique via `parent_offer_id` + audit `activity_events`, pas de table `crm_offers_history`), `visits`, `client_searches`, `matches`.
 - **KYC / compliance** : `kyc_cases`, `kyc_checklist_items`, `kyc_magic_links` + `kyc_magic_link_uploads`, `kyc_screening_decisions`, `documents` (sha256, retention).
 - **Portail vendeur** : `seller_portals` (token 6 mois), `vendor_dossiers`.
@@ -177,7 +178,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, setti
 - **Audit & monitoring** : `activity_events` (immutable, `actor_kind` user/system/ai), `auth_events`, `ticket_events`, `platform_metrics`, `flatfox_sync_runs`.
 - **Admin** : `admin_feature_flags`, `admin_nps_responses`, `admin_notes`, `admin_changelog`.
 - **Support** : `support_tickets`, `ticket_messages`, `ticket_canned_responses`, `chat_conversations`, `chat_messages` — ⚠️ **DORMANTES** depuis le passage à Intercom (support maison décommissionné ; tables conservées, réversibles ; `admin-monitoring` lit encore `open_tickets`→0). Cf. brain `intercom-support`.
-- **IA** : `ai_usage_logs`, `ai_balance_snapshots`, `ai_photo_labels`, `ai_generated_photos`, `translation_cache`.
+- **IA** : `ai_usage_logs`, `ai_balance_snapshots`, `ai_photo_labels`, `ai_generated_photos`, `translation_cache`, `ai_copilot_conversations` (persistance copilote web OPTIONNELLE double-gatée — flag `app_config.copilot_persistence_enabled` + `persist:true` client ; RLS owner-scoped ; cf. brain `megga/copilot-persistence`).
 
 ### RLS (modèle agency-first)
 - **Agents** : visibilité `WHERE agency_id IN (SELECT agency_id FROM profiles WHERE id = auth.uid())`.
@@ -228,9 +229,13 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > ci-dessous reste valable pour ce dossier en sommeil (phase ultérieure = Sprint 7).
 
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
-> (25 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
-> auto-hébergés — 0 CDN). CTA → `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
-> `megga`/`preview` seul, pas de proxy Supabase). **Reste** : image hero encore CodeAI (à remplacer).
+> (~40 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
+> auto-hébergés — 0 CDN sauf Finsweet filter.js). CTA → `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
+> `megga`/`preview` seul, pas de proxy Supabase).
+> **Blog + SEO + légal (28-29 juin 2026, cf. brain `megga/vitrine-content-seo`)** : `blog.html` + 13 articles
+> dans `blog-posts/` (filtrable + recherche câblée + FAQ accordéon, angle **demand-led** avec byline experts MEGGA) ·
+> fondations SEO (`sitemap.xml` 21 URLs, `robots.txt`, canonical, JSON-LD) · pages légales `mentions-legales.html`
+> (12 sections) + `confidentialite.html` · About refondu (rôle Reto Brunner). **Reste** : image hero encore CodeAI.
 
 > **Marketplace (en sommeil)** : un site **Webflow Property X V3** statique dans [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/), distinct de la SPA React (app.megga.ch, §2). Overlay sur `dist/` au build via `scripts/overlay-storefront.mjs` (`MEGGA_BUILD_TARGET`).
 
@@ -248,7 +253,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
-## 5. Edge functions (67) — catalogue par domaine
+## 5. Edge functions (69) — catalogue par domaine
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
 
@@ -264,12 +269,13 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (cron) |
 | **Calendrier** | `google-calendar-sync` · `outlook-calendar-sync` (OAuth) |
 | **Marketplace / scraping** | `flatfox-sync` (cron) · `market-scraper(-batch)` · `external-matching` |
+| **Syndication IDX (sortant)** | `idx-feed` (GET, pull token, CSV IDX 3.01) · `idx-syndicate` (POST push FTP, cron `idx-syndicate-daily` 05:30 + on-demand WhatsApp) — cœur `_shared/idx-feed-core.ts` / `idx-mapper.ts` / `idx-ftp.ts` ; cf. brain `megga/syndication-idx` |
 | **Matching / scoring** | `matching-engine` · `search-alert` (cron) — _score de contact = RPC `calculate_contact_scores` + cron nocturne ; score de bien = RPC `calculate_property_scores` + cron nocturne (santé/chaleur d'un bien interne, 4 axes, PR #654), surfacé dans Focus (famille « bien à pousser », #656) + galerie Mes biens (pastille estimation, #657) ; l'edge `score-engine` a été supprimée (PR #652) ; **référence de loyer marché** = MV `market_rent_stats` + module pur `rent-reference.ts` → axe bonus `pricePosition` du matching en location (position du loyer vs marché, PR #673/#674) ; cf `megga/contact-score`, `megga/property-score`, `megga/market-rent-reference`_ |
 | **Documents / media** | `extract-lead` · `extract-property-pdf` · `extract-property-url` · `photo-labeler` (Vision) · `photo-processor` (R2) · `backfill-cf-images` · `c2pa-sign` / `c2pa-verify` |
 | **Media IA** | `public-staging` (Gemini, rate-limit IP) · `virtual-staging` (garde-fous LPD : Vision gate + quota plan) |
 | **Divers** | `translate-on-demand` (DeepSeek + cache) · `deepgram-token` / `speech-to-text` · `intercom-identity` (JWT Messenger Security Intercom) · `accept-team-invite` · `automation-engine` (cron) · `webhooks` |
 
-**Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), `contact-score-nightly` (03:00 UTC, `calculate_contact_scores`), `property-score-nightly` (03:50 UTC, `calculate_property_scores`), `market-rent-stats-refresh` (04:45 UTC, `REFRESH MATERIALIZED VIEW CONCURRENTLY market_rent_stats` — après le sync Flatfox), + automation-engine / ai-billing-monitor / weekly-report / search-alert.
+**Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), `contact-score-nightly` (03:00 UTC, `calculate_contact_scores`), `property-score-nightly` (03:50 UTC, `calculate_property_scores`), `market-rent-stats-refresh` (04:45 UTC, `REFRESH MATERIALIZED VIEW CONCURRENTLY market_rent_stats` — après le sync Flatfox), `idx-syndicate-daily` (`30 5 * * *`, 05:30 UTC, push FTP des feeds IDX agence), + automation-engine / ai-billing-monitor / weekly-report / search-alert.
 
 **Auth cron→edge (service-key)** : les crons s'authentifient via `Bearer app_config.service_role_key`, qui DOIT égaler l'env edge `SUPABASE_SERVICE_ROLE_KEY` (format `sb_secret_…`, **jamais** le JWT legacy du dashboard). Edge `sync-service-key` (`--no-verify-jwt`, garde `x-sync-token`) recopie env→table ; resync **manuel** (cron horaire + wrapper SQL pas encore en prod). Symptôme d'une clé périmée : crons en 401, 0 match. `get_app_config` non exposée à anon. Cf. `megga/service-key-self-heal`.
 
@@ -306,6 +312,7 @@ Vision : l'agent est toujours sur WhatsApp → chaque message remonte dans le CR
 - **Données** : `whatsapp_messages` (provider, direction, wa_from/to, contact_id, agency_id, body, media_*, status, `raw` à purger Ph.4) ; `contact_messages` (form public `/contact`). RLS : un agent ne voit que son agence (`get_my_agency_id()`), non-mappés réservés super_admin (test `whatsapp-messages-rls.spec.ts`).
 - **CRM** : `useWhatsAppMessages(contactId)` → `CdWhatsAppCard` (bulles + transcript notes vocales) dans `ContactDetailSugarV3Page` ; `PxWhatsAppButton` (lien `wa.me`) + page publique `/contact`. **Compréhension MEGGA visible (4 juin 2026)** : `CdConversationInsight` affiche résumé/intention/sentiment/critères/engagements/prochaine action depuis `whatsapp_conversation_insights` (lecture seule, cadre assistance/estimation).
 - **Statuts de livraison (10 juin 2026, sprint « outbound fiable »)** : le webhook ingère les events `statuses` Meta (`parseStatusUpdates` gateway) → progression **monotone** de `whatsapp_messages.status` (`received < sent < delivered < read` ; `failed` terminal, n'écrase jamais `read` ; rejeu/hors-ordre = no-op via `allowedPriorStatuses`). `failed` → `delivery_error` (ex. 131047 = fenêtre 24h), audit `whatsapp_delivery_failed` + alerte WhatsApp à l'agent lié si le message visait un client. CRM : coches ✓/✓✓/lu dans `CdWhatsAppCard`. Migration `20260614120000`.
+- **Créer & publier un bien depuis WhatsApp (29 juin 2026, LIVRÉ — cf. brain `megga/whatsapp-listing-tools`)** : 6 nouveaux outils copilote (catalogue total **36** dans `_shared/whatsapp-tools.ts`) ferment le parcours créer→compléter→photographier→publier sans ouvrir l'app : `create_property`/`update_property`/`attach_property_photos` (tier *auto*, brouillon `properties` + RPC atomique `append_property_photo` → R2) puis `publish_to_portals`/`withdraw_from_portals` (tier *confirm*, HITL) + `get_publication_status` (*read*). « Publier » active le brouillon (draft→active) et déclenche la **syndication IDX** (§5 + `megga/syndication-idx`) ; `maybeRepushOnChange` re-pousse le feed sur édition d'un bien déjà publié. DeepSeek-only.
 - **Roadmap** : suite « outbound fiable » = template Meta de relance (écrire hors fenêtre 24h, approbation Meta Business) + proactif (morning brief) ; puis triage numéros inconnus → leads ; médias sortants (photos `send_listings`) ; DE/IT. Ph.3 sync temps réel ; purge `raw` (cron quotidien actif). Secrets : `WHATSAPP_WEBHOOK_SECRET`, `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_PROVIDER`.
 
 ---
@@ -329,6 +336,8 @@ npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/a
 ```
 CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy.
 Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA — accès restreint"`, pré-lancement).
+
+**Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
 
 ---
 
