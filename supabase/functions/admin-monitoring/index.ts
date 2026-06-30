@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkMetaToken, tokenDaysMetric, tokenNeedsAlert } from '../_shared/whatsapp-token.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -143,6 +144,26 @@ serve(async (req) => {
       { metric_type: 'flatfox_active_count', metric_value: flatfoxActiveCount },
       { metric_type: 'open_tickets', metric_value: openTickets },
     ]
+
+    // ── Santé du token Meta WhatsApp (expiration → panne silencieuse des envois) ──
+    // Best-effort (non-critique) : métrique de tendance + état courant dans app_config
+    // + log d'alerte si invalide ou expire bientôt. Réutilise ce cron horaire.
+    try {
+      const metaToken = Deno.env.get('META_WHATSAPP_TOKEN') ?? ''
+      if (metaToken) {
+        const apiVersion = Deno.env.get('META_API_VERSION') ?? 'v22.0'
+        const health = await checkMetaToken(metaToken, apiVersion, now.getTime())
+        metrics.push({ metric_type: 'whatsapp_token_days_left', metric_value: tokenDaysMetric(health) })
+        await supabaseAdmin.from('app_config').upsert(
+          { key: 'whatsapp_token_health', value: JSON.stringify({ ...health, checked_at: now.toISOString() }) },
+          { onConflict: 'key' },
+        )
+        if (tokenNeedsAlert(health)) {
+          console.error('[whatsapp] ALERTE token Meta:',
+            health.isValid ? `expire dans ${health.daysLeft} j` : `INVALIDE (${health.error})`)
+        }
+      }
+    } catch (e) { console.error('whatsapp token check failed:', (e as Error)?.name ?? 'error') }
 
     await supabaseAdmin.from('platform_metrics').insert(metrics)
 
