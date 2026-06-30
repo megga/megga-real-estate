@@ -527,7 +527,18 @@ async function articlesUpdateRun(dry) {
           author_id: (tc.fr && tc.fr.author_id) || full.author_id || AUTHOR_ID,
           state: 'published',
         }
-        console.log(`• MAJ [${a.id}] ${a.title}  (${a.body_html.length} car. FR)`)
+        // Locale EN : écrite seulement si la traduction est fournie (préserve l'existant sinon).
+        if (a.body_html_en) {
+          out.en = {
+            type: 'article_content',
+            title: a.title_en || a.title,
+            description: a.summary_en || a.summary,
+            body: a.body_html_en,
+            author_id: (tc.en && tc.en.author_id) || full.author_id || AUTHOR_ID,
+            state: 'published',
+          }
+        }
+        console.log(`• MAJ [${a.id}] ${a.title}  (FR ${a.body_html.length}${a.body_html_en ? ' + EN ' + a.body_html_en.length : ''} car.)`)
         if (!dry) {
           await api(`/articles/${a.id}`, { method: 'PUT', body: JSON.stringify({ translated_content: out }) })
           updated++
