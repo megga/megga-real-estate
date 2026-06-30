@@ -16,7 +16,7 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { describeInboundMedia, threadTextFor, isReadableDocMime } from '../_shared/vision.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
-import { mapCriteria, computeMissing, isSearchable } from '../_shared/whatsapp-lead.ts'
+import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
 import { deriveFollowups, persistFollowups } from '../_shared/whatsapp-followups.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -275,13 +275,21 @@ async function qualifyLead(
     }
   }
 
-  // 2. Idempotence : déjà qualifié par MEGGA ?
-  const { data: cRow } = await admin.from('contacts').select('tags, phone, email').eq('id', leadContactId).maybeSingle()
+  // 2. Critères extraits de CE fil + état du contact.
+  const { data: cRow } = await admin.from('contacts').select('tags, phone, email, search_criteria').eq('id', leadContactId).maybeSingle()
   const tags: string[] = Array.isArray(cRow?.tags) ? (cRow!.tags as string[]) : []
-  if (!created && tags.includes('whatsapp_ai_qualified')) return
-
-  // 3. Critères + champs manquants.
   const criteria = mapCriteria(insight.intent, insight.entities, digest)
+
+  // 2b. Déjà qualifié → ENRICHISSEMENT continu (fusion non destructive) puis stop.
+  //     On ne re-crée pas, on RAFFINE : nouvelles zones/prestations, champs comblés.
+  if (!created && tags.includes('whatsapp_ai_qualified')) {
+    await enrichQualifiedLead(admin, agencyId, leadContactId, tags,
+      (cRow?.search_criteria ?? null) as LeadCriteria | null, criteria,
+      { phone: cRow?.phone ?? lead.phone, email: cRow?.email ?? lead.email })
+    return
+  }
+
+  // 3. Première qualification : champs manquants.
   const missing = computeMissing(criteria, { phone: cRow?.phone ?? lead.phone, email: cRow?.email ?? lead.email })
 
   // 4. MAJ contact : tags + critères structurés.
@@ -324,5 +332,56 @@ async function qualifyLead(
     category: 'contact',
     severity: 'info',
     metadata: { via: 'whatsapp', phase: '4b' },
+  })
+}
+
+// ── Enrichissement continu d'un lead déjà qualifié ──────────────────────────
+// Fusion NON DESTRUCTIVE des nouveaux critères dans la fiche + la recherche active
+// (jamais d'écrasement d'une valeur posée par l'agent). Écrit SEULEMENT s'il y a du
+// neuf ; la MAJ de client_searches.criteria relance le matching (trigger DB
+// on_search_criteria_updated). Audit du delta. Best-effort (appelé dans un try).
+async function enrichQualifiedLead(
+  admin: SupabaseClient,
+  agencyId: string,
+  contactId: string,
+  tags: string[],
+  current: LeadCriteria | null,
+  incoming: LeadCriteria,
+  contact: { phone?: string | null; email?: string | null },
+): Promise<void> {
+  const merged = mergeCriteria(current, incoming)
+  const delta = criteriaDelta(current, merged)
+  if (delta.length === 0) return // rien de neuf → aucune écriture, aucun bruit
+
+  // Fiche : critères enrichis + recalcul du flag « à compléter ».
+  const missing = computeMissing(merged, contact)
+  const base = tags.filter((t) => t !== 'à_compléter')
+  const newTags = Array.from(new Set(missing.length ? [...base, 'à_compléter'] : base))
+  await admin.from('contacts').update({ search_criteria: merged, tags: newTags }).eq('id', contactId)
+
+  // Recherche active : on fusionne AUSSI dans SES critères (jamais perdre ce que
+  // l'agent y aurait ajouté), ce qui déclenche le re-matching si ça change.
+  if (isSearchable(merged)) {
+    const { data: active } = await admin.from('client_searches')
+      .select('id, criteria').eq('contact_id', contactId).eq('is_active', true).limit(1).maybeSingle()
+    if (active) {
+      const searchMerged = mergeCriteria((active.criteria ?? null) as LeadCriteria | null, merged)
+      if (criteriaDelta((active.criteria ?? null) as LeadCriteria | null, searchMerged).length > 0) {
+        await admin.from('client_searches').update({ criteria: searchMerged }).eq('id', active.id)
+      }
+    } else {
+      await admin.from('client_searches').insert({
+        agency_id: agencyId, contact_id: contactId,
+        label: `WhatsApp — ${merged.transaction_type === 'rent' ? 'location' : 'achat'}`,
+        criteria: merged, is_active: true,
+      })
+    }
+  }
+
+  await admin.from('activity_events').insert({
+    agency_id: agencyId, actor_id: null, actor_kind: 'ai',
+    action: 'Fiche enrichie (WhatsApp)', entity_type: 'contact', entity_id: contactId,
+    object_label: `MEGGA a enrichi la recherche depuis WhatsApp : ${delta.join(' · ')}.`.slice(0, 500),
+    category: 'contact', severity: 'info', metadata: { via: 'whatsapp', phase: '4b-enrich' },
   })
 }

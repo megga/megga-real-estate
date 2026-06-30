@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { detectTransactionType, parseAmount, mapCriteria, isSearchable, computeMissing, normalizeZone, canonicalPropertyType } from './whatsapp-lead'
+import { detectTransactionType, parseAmount, mapCriteria, isSearchable, computeMissing, normalizeZone, canonicalPropertyType, mergeCriteria, criteriaDelta, type LeadCriteria } from './whatsapp-lead'
 
 describe('normalizeZone', () => {
   it('corrige les coquilles STT connues', () => {
@@ -90,5 +90,47 @@ describe('canonicalPropertyType', () => {
     expect(canonicalPropertyType('')).toBeUndefined()
     expect(canonicalPropertyType(null)).toBeUndefined()
     expect(canonicalPropertyType(undefined)).toBeUndefined()
+  })
+})
+
+describe('mergeCriteria — fusion NON destructive (enrichissement continu)', () => {
+  it('remplit les champs absents sans toucher au reste', () => {
+    const cur: LeadCriteria = { transaction_type: 'buy', zones: ['Carouge'] }
+    const out = mergeCriteria(cur, { type: 'apartment', budget_max: 1000000 })
+    expect(out).toEqual({ transaction_type: 'buy', zones: ['Carouge'], type: 'apartment', budget_max: 1000000 })
+  })
+  it('n’ÉCRASE JAMAIS une valeur déjà posée (agent)', () => {
+    const cur: LeadCriteria = { type: 'house', budget_max: 800000, transaction_type: 'buy' }
+    const out = mergeCriteria(cur, { type: 'apartment', budget_max: 2000000, transaction_type: 'rent' })
+    expect(out.type).toBe('house')           // gardé
+    expect(out.budget_max).toBe(800000)      // pas élargi
+    expect(out.transaction_type).toBe('buy') // gardé
+  })
+  it('fait l’UNION des zones et prestations (jamais de retrait, dédup casse-insensible)', () => {
+    const cur: LeadCriteria = { zones: ['Carouge'], features: ['balcon'] }
+    const out = mergeCriteria(cur, { zones: ['carouge', 'Champel'], features: ['parking'] })
+    expect(out.zones).toEqual(['Carouge', 'Champel'])
+    expect(out.features).toEqual(['balcon', 'parking'])
+  })
+  it('gère current null (1re fusion) et ne crée pas de tableaux vides', () => {
+    expect(mergeCriteria(null, { type: 'villa' })).toEqual({ type: 'villa' })
+    expect(mergeCriteria({}, {}).zones).toBeUndefined()
+  })
+})
+
+describe('criteriaDelta — décrit ce qui est ajouté', () => {
+  it('liste les nouveautés (champ comblé + zone ajoutée)', () => {
+    const before: LeadCriteria = { transaction_type: 'buy', zones: ['Carouge'] }
+    const after: LeadCriteria = { transaction_type: 'buy', zones: ['Carouge', 'Champel'], type: 'apartment', budget_max: 1000000 }
+    const d = criteriaDelta(before, after)
+    expect(d).toContain('type apartment')
+    expect(d).toContain('budget 1000000')
+    expect(d).toContain('secteur Champel')
+    expect(d.some((x) => x.includes('Carouge'))).toBe(false) // pas re-listée
+  })
+  it('vide si rien de neuf', () => {
+    const c: LeadCriteria = { transaction_type: 'buy', type: 'apartment', zones: ['Carouge'] }
+    expect(criteriaDelta(c, c)).toEqual([])
+    expect(criteriaDelta(c, mergeCriteria(c, { zones: ['carouge'] }))).toEqual([]) // doublon CI → aucun ajout
   })
 })
