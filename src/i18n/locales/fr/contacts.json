@@ -772,7 +772,7 @@
     "followupTitle": "Suivis suggérés",
     "followupAccept": "Créer le rappel",
     "followupDismiss": "Ignorer",
-    "followupFooter": "Suggestions de MEGGA — validez ou ignorez.",
+    "followupFooter": "Suggestions de MEGGA, à valider ou à ignorer.",
     "followupKind_commitment": "Engagement",
     "followupKind_next_action": "Action",
     "followupKind_client_availability": "Dispo client"

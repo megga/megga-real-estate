@@ -767,7 +767,7 @@
     "followupTitle": "Suggested follow-ups",
     "followupAccept": "Create reminder",
     "followupDismiss": "Dismiss",
-    "followupFooter": "MEGGA suggestions — accept or dismiss.",
+    "followupFooter": "MEGGA suggestions to accept or dismiss.",
     "followupKind_commitment": "Commitment",
     "followupKind_next_action": "Next action",
     "followupKind_client_availability": "Client availability"
