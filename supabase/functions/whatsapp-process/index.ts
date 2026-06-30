@@ -13,6 +13,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.17'
 import { fetchMetaMedia, buildMediaKey } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
+import { describeInboundMedia, threadTextFor, isReadableDocMime } from '../_shared/vision.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { mapCriteria, computeMissing, isSearchable } from '../_shared/whatsapp-lead.ts'
@@ -21,6 +22,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BATCH = 10            // messages média réclamés / tick (chaque op peut être lente)
 const MAX_RETRIES = 3
+const MAX_VISION_BYTES = 12 * 1024 * 1024  // au-delà : on garde le média mais on ne le lit pas (coût/latence)
 const INSIGHT_BATCH = 5     // contacts ré-analysés / tick (borne coût DeepSeek + temps)
 const NOTICE_BATCH = 10     // avis LPD envoyés / tick
 const BUDGET_MS = 90_000    // budget temps : on rend la main avant la limite edge (~150s)
@@ -62,6 +64,7 @@ serve(async (req) => {
   const metaPhoneNumberId = Deno.env.get('META_PHONE_NUMBER_ID') ?? ''
   const deepgramKey = Deno.env.get('DEEPGRAM_API_KEY') ?? ''
   const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY') ?? ''
+  const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? ''
 
   const r2 = new AwsClient({
     accessKeyId: (Deno.env.get('R2_ACCESS_KEY_ID') ?? '').trim(),
@@ -94,6 +97,15 @@ serve(async (req) => {
           patch.transcript = t.transcript
           patch.transcript_lang = t.lang
           patch.transcript_confidence = t.confidence
+        } else if (geminiKey && isReadableDocMime(mime) && bytes.length <= MAX_VISION_BYTES) {
+          // Image/PDF entrant : Gemini Vision classe + résume → rangé dans `transcript`
+          // (le digest le lit → l'insight « voit » le média). Garde-fou résidence : une
+          // pièce d'identité n'est jamais recopiée (threadTextFor redacte). Best-effort.
+          const u = await describeInboundMedia(bytes, mime, geminiKey)
+          if (u.ok && u.data) {
+            patch.transcript = threadTextFor(u.data)
+            patch.media_kind = u.data.kind
+          }
         }
       }
       await admin.from('whatsapp_messages').update(patch).eq('id', id)

@@ -74,3 +74,80 @@ export async function readDocument(
     return { ok: false, text: '', error: (e as Error)?.name ?? 'fetch_error' }
   }
 }
+
+// ── Compréhension d'un média ENTRANT (image/PDF reçu d'un client) ─────────────
+// Différent de `readDocument` (OCR brut, agent → KYC) : ici on CLASSE + résume une
+// image/un doc reçu pour qu'il nourrisse la compréhension du fil, SANS exfiltrer de
+// PII d'identité. Garde-fou résidence : une pièce d'identité n'est JAMAIS recopiée
+// (kind=id_document → texte vide + libellé neutre, cf. threadTextFor).
+
+export type MediaKind = 'property_photo' | 'listing' | 'document' | 'id_document' | 'other'
+export interface MediaUnderstanding { kind: MediaKind; caption: string; text: string }
+
+const MEDIA_KINDS: MediaKind[] = ['property_photo', 'listing', 'document', 'id_document', 'other']
+const CAPTION_MAX = 200
+const MEDIA_TEXT_MAX = 3000
+/** Libellé neutre rangé dans le fil pour une pièce d'identité (0 PII, jamais l'OCR). */
+export const ID_DOC_REDACTION_FR = "[Document d'identité reçu — à traiter via le dossier KYC]"
+
+const DESCRIBE_PROMPT =
+  "Tu analyses une image ou un document qu'un CLIENT a envoyé à un agent immobilier. " +
+  'Réponds UNIQUEMENT en JSON : {"kind":"property_photo|listing|document|id_document|other",' +
+  '"caption":"une phrase factuelle décrivant le contenu (en français)","text":"texte lisible (OCR), ou vide"}. ' +
+  "RÈGLE STRICTE : si c'est une pièce d'identité, passeport, permis de conduire ou de séjour " +
+  "(kind=id_document), mets caption=\"Document d'identité\" et text=\"\" — ne recopie JAMAIS " +
+  'les données personnelles (nom, n°, date de naissance). N\'invente rien.'
+
+/** Parse + valide la réponse JSON de Gemini. Repli sûr (null si inexploitable). */
+export function parseMediaUnderstanding(raw: string): MediaUnderstanding | null {
+  let obj: unknown
+  try { obj = JSON.parse(raw) } catch { return null }
+  if (!obj || typeof obj !== 'object') return null
+  const o = obj as Record<string, unknown>
+  const kRaw = typeof o.kind === 'string' ? o.kind.trim() : ''
+  const kind: MediaKind = (MEDIA_KINDS as string[]).includes(kRaw) ? (kRaw as MediaKind) : 'other'
+  const caption = (typeof o.caption === 'string' ? o.caption : '').trim().slice(0, CAPTION_MAX)
+  const text = (typeof o.text === 'string' ? o.text : '').trim().slice(0, MEDIA_TEXT_MAX)
+  if (!caption && !text) return null
+  return { kind, caption, text }
+}
+
+/** Texte à ranger dans le fil (champ transcript). Redaction DURE des pièces d'identité. */
+export function threadTextFor(u: MediaUnderstanding): string {
+  if (u.kind === 'id_document') return ID_DOC_REDACTION_FR
+  return [u.caption, u.text].filter(Boolean).join('\n').slice(0, MEDIA_TEXT_MAX)
+}
+
+/** Classe + résume un média entrant via Gemini (JSON). Ne lève jamais. */
+export async function describeInboundMedia(
+  bytes: Uint8Array,
+  mime: string | null,
+  apiKey: string,
+  opts?: { model?: string },
+): Promise<{ ok: boolean; data?: MediaUnderstanding; error?: string }> {
+  if (!apiKey) return { ok: false, error: 'no_api_key' }
+  if (!isReadableDocMime(mime)) return { ok: false, error: `unsupported_mime:${mime ?? 'none'}` }
+  const model = opts?.model || DEFAULT_MODEL
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [
+            { inlineData: { mimeType: mime, data: toBase64(bytes) } },
+            { text: DESCRIBE_PROMPT },
+          ] }],
+          generationConfig: { temperature: 0, maxOutputTokens: 1024, responseMimeType: 'application/json' },
+        }),
+        signal: AbortSignal.timeout(30000),
+      },
+    )
+    if (!res.ok) return { ok: false, error: `gemini HTTP ${res.status}` } // jamais de corps loggé (PII)
+    const data = parseMediaUnderstanding(parseGemini(await res.json()))
+    return data ? { ok: true, data } : { ok: false, error: 'unparseable' }
+  } catch (e) {
+    return { ok: false, error: (e as Error)?.name ?? 'fetch_error' }
+  }
+}
