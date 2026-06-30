@@ -32,6 +32,9 @@ describe.skipIf(!HAS_KEYS)('engagements actionnables — table + RLS + accept', 
         action: 'Rappeler le client', due_at: '2026-07-02T07:00:00.000Z', kind: 'commitment', dedup_key: `k-${setup.stamp}-1` },
       { agency_id: setup.agencyBId, contact_id: contactAId, owner: 'agent',
         action: 'Envoyer le dossier', due_at: null, kind: 'commitment', dedup_key: `k-${setup.stamp}-2` },
+      // exerce le CHECK élargi (fast-follow dispo client)
+      { agency_id: setup.agencyAId, contact_id: contactAId, owner: 'agent',
+        action: 'Planifier avec le client (dispo : samedi 14h)', due_at: '2026-07-04T12:00:00.000Z', kind: 'client_availability', dedup_key: `k-${setup.stamp}-3` },
     ]).select('id')
     if (error) throw new Error(`followups: ${error.message}`) // attrape colonne/RLS/CHECK manquante
     for (const r of data ?? []) suggIds.push(r.id)
