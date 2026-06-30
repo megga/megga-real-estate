@@ -763,7 +763,14 @@
     "insightNextAction": "Suggested next action",
     "insightFooter_one": "AI estimate · {{count}} message analyzed · {{date}}",
     "insightFooter_other": "AI estimate · {{count}} messages analyzed · {{date}}",
-    "loading": "Loading contact…"
+    "loading": "Loading contact…",
+    "followupTitle": "Suggested follow-ups",
+    "followupAccept": "Create reminder",
+    "followupDismiss": "Dismiss",
+    "followupFooter": "MEGGA suggestions to accept or dismiss.",
+    "followupKind_commitment": "Commitment",
+    "followupKind_next_action": "Next action",
+    "followupKind_client_availability": "Client availability"
   },
   "ctKyc": {
     "title": "KYC / AML compliance",
