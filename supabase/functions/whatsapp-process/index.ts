@@ -18,6 +18,7 @@ import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type 
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
 import { deriveFollowups, persistFollowups } from '../_shared/whatsapp-followups.ts'
+import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BATCH = 10            // messages média réclamés / tick (chaque op peut être lente)
@@ -56,6 +57,9 @@ serve(async (req) => {
     const providedKey = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
     if (!expectedKey || !safeEqual(providedKey, expectedKey)) return json({ error: 'Forbidden' }, 403)
   }
+
+  // Kill-switch : coupé → on rend la main sans rien traiter (média/insight/avis).
+  if (!(await isWhatsAppEnabled(admin))) return json({ ok: true, disabled: true }, 200)
 
   const t0 = Date.now()
   const overBudget = () => Date.now() - t0 > BUDGET_MS

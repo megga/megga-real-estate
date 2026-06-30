@@ -12,6 +12,7 @@ import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingAct
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
+import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { meggaProse } from '../_shared/megga-prose.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, type ActionCtx } from '../_shared/whatsapp-actions.ts'
@@ -78,6 +79,14 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
+
+  // Kill-switch : si MEGGA WhatsApp est coupé (app_config.whatsapp_enabled='false'),
+  // on ACK 200 (pas de rejeu Meta) mais on ne traite/stocke/répond rien.
+  if (!(await isWhatsAppEnabled(admin))) {
+    return new Response(JSON.stringify({ ok: true, disabled: true }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
 
   const msg = provider.parseInbound(payload)
   if (!msg) {
