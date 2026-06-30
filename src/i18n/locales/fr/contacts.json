@@ -768,7 +768,14 @@
       "title": "Impossible de charger ce contact",
       "message": "Une erreur est survenue. Vérifiez votre connexion, puis réessayez.",
       "retry": "Réessayer"
-    }
+    },
+    "followupTitle": "Suivis suggérés",
+    "followupAccept": "Créer le rappel",
+    "followupDismiss": "Ignorer",
+    "followupFooter": "Suggestions de MEGGA — validez ou ignorez.",
+    "followupKind_commitment": "Engagement",
+    "followupKind_next_action": "Action",
+    "followupKind_client_availability": "Dispo client"
   },
   "ctKyc": {
     "title": "Conformité KYC / LBA",
