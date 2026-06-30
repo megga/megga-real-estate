@@ -89,12 +89,12 @@ describe('deriveFollowups', () => {
     next_action: { type: 'planifier_visite', label: 'Planifier une visite' },
   }
 
-  it('ne garde que les engagements de l’agent + la next_action', () => {
+  it('garde engagements agent + next_action + dispo client (créneau)', () => {
     const out = deriveFollowups(insight, { nowISO: NOW })
-    expect(out).toHaveLength(3)
+    expect(out).toHaveLength(4)
     const kinds = out.map((f) => f.kind).sort()
-    expect(kinds).toEqual(['commitment', 'commitment', 'next_action'])
-    expect(out.every((f) => f.owner === 'agent')).toBe(true)
+    expect(kinds).toEqual(['client_availability', 'commitment', 'commitment', 'next_action'])
+    expect(out.every((f) => f.owner === 'agent')).toBe(true) // tous = todos de l'agent
   })
 
   it('date l’engagement avec repère, laisse null sinon', () => {
@@ -127,6 +127,27 @@ describe('deriveFollowups', () => {
     const out = deriveFollowups({ commitments: [], next_action: { type: 'relancer', label: '' } }, { nowISO: NOW })
     expect(out).toHaveLength(1)
     expect(out[0].action).toBe('Relancer le contact')
+  })
+})
+
+describe('deriveFollowups — dispos client (fast-follow)', () => {
+  it('dispo client avec créneau → suggestion client_availability datée', () => {
+    const out = deriveFollowups({ commitments: ['Client: dispo samedi 14h'], next_action: null }, { nowISO: NOW })
+    expect(out).toHaveLength(1)
+    expect(out[0].kind).toBe('client_availability')
+    expect(out[0].owner).toBe('agent')                       // todo de l'agent
+    expect(out[0].dueAt).toBe('2026-07-04T12:00:00.000Z')    // samedi 14h Zurich
+    expect(out[0].action).toContain('Planifier avec le client')
+  })
+  it('variantes de disponibilité reconnues (libre / je peux / disponible)', () => {
+    expect(deriveFollowups({ commitments: ['Client: je suis libre demain 10h'], next_action: null }, { nowISO: NOW })[0]?.kind).toBe('client_availability')
+    expect(deriveFollowups({ commitments: ['Client: je peux jeudi'], next_action: null }, { nowISO: NOW })[0]?.kind).toBe('client_availability')
+  })
+  it('dispo client SANS créneau concret → ignorée', () => {
+    expect(deriveFollowups({ commitments: ['Client: je suis dispo cette semaine'], next_action: null }, { nowISO: NOW })).toEqual([])
+  })
+  it('ligne client SANS disponibilité → ignorée (reste du contexte)', () => {
+    expect(deriveFollowups({ commitments: ['Client: attend le dossier'], next_action: null }, { nowISO: NOW })).toEqual([])
   })
 })
 

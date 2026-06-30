@@ -11,7 +11,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { ConversationInsight } from './whatsapp-comprehend.ts'
 
 export type FollowupOwner = 'agent' | 'client'
-export type FollowupKind = 'commitment' | 'next_action'
+export type FollowupKind = 'commitment' | 'next_action' | 'client_availability'
 
 export interface DerivedFollowup {
   owner: FollowupOwner
@@ -170,10 +170,19 @@ function isActionable(text: string): boolean {
   return normalizeAction(text).replace(/\s/g, '').length >= 3
 }
 
+// Une ligne « Client: … » qui exprime une DISPONIBILITÉ (créneau à exploiter par l'agent).
+const AVAILABILITY_RE = /\b(dispo(?:nible|nibilit\w*)?|libre|available|free|je peux|je suis (?:la|present|dispo|libre))\b/
+
+function isClientAvailability(text: string): boolean {
+  return AVAILABILITY_RE.test(stripDiacritics((text ?? '').toLowerCase()))
+}
+
 /**
- * Dérive les suggestions de suivi d'un insight. Pur. v1 :
- *  - chaque `commitment` dont le propriétaire est l'AGENT → un todo daté ;
- *  - la `next_action` (hors « rien »/« répondre ») → un todo non daté.
+ * Dérive les suggestions de suivi d'un insight. Pur :
+ *  - chaque `commitment` de l'AGENT → un todo (daté si repère temporel) ;
+ *  - une `next_action` (hors « rien »/« répondre ») → un todo non daté ;
+ *  - une dispo CLIENT avec créneau concret (« Client: dispo samedi 14h ») →
+ *    suggestion de planification pour l'agent (kind `client_availability`).
  */
 export function deriveFollowups(
   insight: Pick<ConversationInsight, 'commitments' | 'next_action'> | null | undefined,
@@ -191,12 +200,21 @@ export function deriveFollowups(
   for (const raw of (insight.commitments ?? [])) {
     if (typeof raw !== 'string') continue
     const { owner, text } = parseOwner(raw)
-    if (owner !== 'agent') continue          // v1 : engagements de l'agent uniquement
     if (!isActionable(text)) continue
-    const action = text.slice(0, ACTION_MAX)
-    const dueAt = resolveDueAt(text, opts.nowISO)
-    const dayKey = dueAt ? dueAt.slice(0, 10) : 'nodate'
-    push({ owner: 'agent', action, dueAt, kind: 'commitment', dedupKey: hashKey('c', normalizeAction(action), dayKey) })
+    if (owner === 'agent') {
+      // Engagement de l'agent = son todo (daté si repère temporel, sinon non daté).
+      const action = text.slice(0, ACTION_MAX)
+      const dueAt = resolveDueAt(text, opts.nowISO)
+      const dayKey = dueAt ? dueAt.slice(0, 10) : 'nodate'
+      push({ owner: 'agent', action, dueAt, kind: 'commitment', dedupKey: hashKey('c', normalizeAction(action), dayKey) })
+    } else if (owner === 'client' && isClientAvailability(text)) {
+      // Dispo client → suggestion de planification, UNIQUEMENT si un créneau concret
+      // est résolu (pas de « dispo cette semaine » vague). L'action reste à l'agent.
+      const dueAt = resolveDueAt(text, opts.nowISO)
+      if (!dueAt) continue
+      const action = `Planifier avec le client (dispo : ${text})`.slice(0, ACTION_MAX)
+      push({ owner: 'agent', action, dueAt, kind: 'client_availability', dedupKey: hashKey('av', normalizeAction(text), dueAt.slice(0, 10)) })
+    }
   }
 
   const na = insight.next_action
