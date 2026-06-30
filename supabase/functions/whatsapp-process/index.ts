@@ -16,6 +16,7 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { mapCriteria, computeMissing, isSearchable } from '../_shared/whatsapp-lead.ts'
+import { deriveFollowups, persistFollowups } from '../_shared/whatsapp-followups.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BATCH = 10            // messages média réclamés / tick (chaque op peut être lente)
@@ -137,6 +138,14 @@ serve(async (req) => {
         if (insight.lead) {
           try { await qualifyLead(admin, c.agency_id, c.contact_id, insight, digest) }
           catch (e) { console.error('whatsapp lead qualify failed:', String((e as Error)?.message ?? 'error').slice(0, 120)) }
+        }
+        // Engagements actionnables : transforme les commitments/next_action en
+        // suggestions de suivi datées (l'agent accepte → vrai rappel). Best-effort.
+        try {
+          const followups = deriveFollowups(insight, { nowISO: new Date().toISOString() })
+          if (followups.length) await persistFollowups(admin, c.agency_id, c.contact_id, followups, c.last_message_at)
+        } catch (e) {
+          console.error('whatsapp followups failed:', String((e as Error)?.message ?? 'error').slice(0, 120))
         }
       } catch (e) {
         console.error('whatsapp insight failed:', String((e as Error)?.message ?? 'error').slice(0, 120))
