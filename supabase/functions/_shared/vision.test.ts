@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isReadableDocMime, parseGemini } from './vision'
+import { isReadableDocMime, parseGemini, parseMediaUnderstanding, threadTextFor, ID_DOC_REDACTION_FR } from './vision'
 
 describe('isReadableDocMime', () => {
   it('accepte images et PDF', () => {
@@ -28,5 +28,37 @@ describe('parseGemini', () => {
     expect(parseGemini({ candidates: [] })).toBe('')
     expect(parseGemini(null)).toBe('')
     expect(parseGemini({ candidates: [{ content: {} }] })).toBe('')
+  })
+})
+
+describe('parseMediaUnderstanding', () => {
+  it('parse un JSON valide', () => {
+    const u = parseMediaUnderstanding('{"kind":"property_photo","caption":"Salon lumineux","text":""}')
+    expect(u).toEqual({ kind: 'property_photo', caption: 'Salon lumineux', text: '' })
+  })
+  it('kind inconnu → other', () => {
+    expect(parseMediaUnderstanding('{"kind":"selfie","caption":"x"}')?.kind).toBe('other')
+  })
+  it('JSON cassé ou vide → null', () => {
+    expect(parseMediaUnderstanding('pas du json')).toBeNull()
+    expect(parseMediaUnderstanding('{"kind":"other","caption":"","text":""}')).toBeNull() // rien d'exploitable
+  })
+  it('borne caption et texte', () => {
+    const u = parseMediaUnderstanding(JSON.stringify({ kind: 'document', caption: 'C'.repeat(500), text: 'T'.repeat(5000) }))
+    expect(u!.caption.length).toBeLessThanOrEqual(200)
+    expect(u!.text.length).toBeLessThanOrEqual(3000)
+  })
+})
+
+describe('threadTextFor — garde-fou résidence', () => {
+  it('pièce d’identité → libellé neutre, JAMAIS l’OCR', () => {
+    const out = threadTextFor({ kind: 'id_document', caption: 'CNI de Jean Dupont 12.03.1980', text: 'No 123456 né le…' })
+    expect(out).toBe(ID_DOC_REDACTION_FR)
+    expect(out).not.toContain('Dupont')
+    expect(out).not.toContain('123456')
+  })
+  it('média normal → caption + texte combinés', () => {
+    expect(threadTextFor({ kind: 'listing', caption: 'Annonce 3.5p Carouge', text: 'CHF 1’200’000' }))
+      .toBe('Annonce 3.5p Carouge\nCHF 1’200’000')
   })
 })
