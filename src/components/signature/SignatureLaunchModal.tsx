@@ -176,7 +176,7 @@ export function SignatureLaunchModal({
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={onClose}>Fermer</Button>
-            <Button onClick={() => navigate('/settings?tab=applications')}>
+            <Button onClick={() => navigate('/dashboard/settings?tab=integrations')}>
               Connecter Skribble
             </Button>
           </div>

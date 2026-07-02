@@ -31,6 +31,7 @@ import { CdKycCard } from '@/components/crm-sugar-v3/contact-detail/CdKycCard'
 import { CdTimelineCard } from '@/components/crm-sugar-v3/contact-detail/CdTimelineCard'
 import { CdNotesCard } from '@/components/crm-sugar-v3/contact-detail/CdNotesCard'
 import { CdDocsCard } from '@/components/crm-sugar-v3/contact-detail/CdDocsCard'
+import { CdSignatureCard } from '@/components/crm-sugar-v3/contact-detail/CdSignatureCard'
 import { CdCriteriaCard } from '@/components/crm-sugar-v3/contact-detail/CdCriteriaCard'
 import { CdWhatsAppCard } from '@/components/crm-sugar-v3/contact-detail/CdWhatsAppCard'
 import { CdConversationInsight } from '@/components/crm-sugar-v3/contact-detail/CdConversationInsight'
@@ -220,6 +221,7 @@ export default function ContactDetailSugarV3Page() {
                   <CdCriteriaCard criteria={contact.search_criteria} />
                 )}
                 <CdDocsCard docs={docs} />
+                <CdSignatureCard contact={contact} />
               </div>
             </div>
           </div>

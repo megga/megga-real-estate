@@ -3,7 +3,7 @@
 // Bandeau pill par défaut. 9 sections placeholder, Profile en plein.
 
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CRM_TOKENS, crmSugarPalette, type DarkTone,
 } from '@/components/crm-sugar/tokens'
@@ -51,7 +51,14 @@ export default function SettingsSugarV2Page() {
   // donc le thème sans threading de props. Idempotent (Object.assign mêmes valeurs).
   applySetTheme(dark)
 
-  const [active, setActive] = useState<SectionId>('profile')
+  // Deep-link ?tab=<section> (ex. la modale e-signature → tab=integrations).
+  // Validé contre les sections réellement câblées, sinon fallback 'profile'.
+  const [searchParams] = useSearchParams()
+  const [active, setActive] = useState<SectionId>(() => {
+    const tab = searchParams.get('tab') ?? ''
+    const allowed = ['profile', 'agency', 'notifications', 'preferences', 'integrations', 'security', 'billing']
+    return (allowed.includes(tab) ? tab : 'profile') as SectionId
+  })
 
   const onCmd = () => {
     /* placeholder */
