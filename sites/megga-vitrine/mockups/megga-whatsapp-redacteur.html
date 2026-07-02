@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEGGA · Conversation</title>
+<style>
+  :root {
+    --ai: #00DA5F;
+    --ai-text: #FFFFFF;
+    --ai-time: rgba(255,255,255,0.78);
+    --agent: #F1F3F5;
+    --agent-text: #1A1A1A;
+    --agent-time: #8A929D;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  }
+  .canvas {
+    width: 1166px;
+    height: 730px;
+    background: #FFFFFF;
+    position: relative;
+    overflow: hidden;
+  }
+  .thread {
+    position: absolute;
+    inset: 0;
+    padding: 12px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .row {
+    display: flex;
+    width: 100%;
+    margin-top: 5px;
+  }
+  .row.left { justify-content: flex-start; }
+  .row.right { justify-content: flex-end; }
+  /* bulles consécutives du même interlocuteur : rapprochées */
+  .row.cont { margin-top: 2px; }
+
+  .bubble {
+    position: relative;
+    max-width: 600px;
+    padding: 11px 19px 8px;
+    border-radius: 22px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.06);
+    font-size: 18px;
+    line-height: 1.4;
+    letter-spacing: -0.1px;
+  }
+
+  /* AI — left, green : ergot WhatsApp en haut à gauche */
+  .bubble.ai {
+    background: var(--ai);
+    color: var(--ai-text);
+    border-top-left-radius: 0;
+  }
+  .bubble.ai::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -8px;
+    width: 9px;
+    height: 14px;
+    background: var(--ai);
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+  }
+
+  /* Agent — right, gray : ergot WhatsApp en haut à droite */
+  .bubble.agent {
+    background: var(--agent);
+    color: var(--agent-text);
+    border-top-right-radius: 0;
+  }
+  .bubble.agent::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -8px;
+    width: 9px;
+    height: 14px;
+    background: var(--agent);
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+  }
+
+  /* bulle de continuation : pas d'ergot, coin plein */
+  .bubble.notail { border-radius: 20px; }
+  .bubble.notail::before,
+  .bubble.notail::after { display: none; }
+
+  .bubble p { margin: 0; }
+  .bubble .lead { font-weight: 700; }
+  .bubble .quote { margin-top: 6px; }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 15px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .ai .meta { color: var(--ai-time); }
+  .agent .meta { color: var(--agent-time); }
+
+  .ticks { display: inline-flex; align-items: center; }
+  .ticks svg { display: block; }
+
+  /* ---- indicateur de saisie ---- */
+  .typing-pill {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--ai);
+    padding: 16px 18px;
+    border-radius: 20px;
+    border-top-left-radius: 0;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.06);
+  }
+  .typing-pill::before {
+    content: "";
+    position: absolute;
+    top: 0; left: -8px;
+    width: 9px; height: 14px;
+    background: var(--ai);
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+  }
+  .typing-pill span {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: rgba(255,255,255,0.92);
+    animation: tdot 1.2s infinite ease-in-out;
+  }
+  .typing-pill span:nth-child(2) { animation-delay: .16s; }
+  .typing-pill span:nth-child(3) { animation-delay: .32s; }
+  @keyframes tdot {
+    0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+    30%           { transform: translateY(-5px); opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .typing-pill span { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="thread" id="thread">
+
+      <!-- 1 — agent -->
+      <div class="row right">
+        <div class="bubble agent">
+          <p>Salut MEGGA 👋 tu peux me préparer l'annonce du 4,5 pièces à Genève ?</p>
+          <div class="meta">
+            <span>14:30</span>
+            <span class="ticks">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
+                <path d="M1 5.8 4 8.8 9.4 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.6 5.8 9.6 8.8 15 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 — ai -->
+      <div class="row left">
+        <div class="bubble ai">
+          <p>Bien sûr 🙂 Plutôt sobre ou prestige ?</p>
+          <div class="meta"><span>14:30</span></div>
+        </div>
+      </div>
+
+      <!-- 3 — agent -->
+      <div class="row right">
+        <div class="bubble agent">
+          <p>Prestige</p>
+          <div class="meta">
+            <span>14:31</span>
+            <span class="ticks">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
+                <path d="M1 5.8 4 8.8 9.4 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.6 5.8 9.6 8.8 15 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 — ai -->
+      <div class="row left">
+        <div class="bubble ai notail">
+          <p>Parfait, je vous prépare ça.</p>
+          <div class="meta"><span>14:31</span></div>
+        </div>
+      </div>
+
+      <!-- 5 — ai (suite) -->
+      <div class="row left cont">
+        <div class="bubble ai" style="max-width: 680px;">
+          <p class="lead">« Genève · 4,5 pièces d'exception, 118 m² »</p>
+          <p class="quote">« Réception traversante et lumineuse, deux terrasses, à deux pas du parc Bertrand. Une adresse rare au cœur de la ville. »</p>
+          <div class="meta"><span>14:32</span></div>
+        </div>
+      </div>
+
+      <!-- 6 — agent -->
+      <div class="row right">
+        <div class="bubble agent">
+          <p>Nickel 🙌 ajoute juste la proximité des écoles</p>
+          <div class="meta">
+            <span>14:32</span>
+            <span class="ticks">
+              <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
+                <path d="M1 5.8 4 8.8 9.4 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.6 5.8 9.6 8.8 15 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 — ai -->
+      <div class="row left">
+        <div class="bubble ai notail">
+          <p>C'est ajouté. Je l'ai aussi adaptée pour les réseaux et en SMS.</p>
+          <div class="meta"><span>14:33</span></div>
+        </div>
+      </div>
+
+      <!-- 8 — ai (suite) -->
+      <div class="row left cont">
+        <div class="bubble ai">
+          <p>Vous validez quand vous voulez 👍</p>
+          <div class="meta"><span>14:33</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var thread = document.getElementById('thread');
+  var rows = Array.prototype.slice.call(thread.querySelectorAll('.row'));
+  var EASE = 'cubic-bezier(.22,.61,.36,1)';
+
+  function marginFor(r) { return r.classList.contains('cont') ? '4px' : '14px'; }
+
+  function setHidden(r) {
+    r.style.overflow = 'hidden';
+    r.style.transition = 'none';
+    r.style.height = '0px';
+    r.style.opacity = '0';
+    r.style.marginTop = '0px';
+    r.style.transform = 'translateY(6px)';
+  }
+  function showStatic() {
+    rows.forEach(function (r, i) {
+      r.style.height = 'auto';
+      r.style.opacity = '1';
+      r.style.overflow = 'visible';
+      r.style.transform = 'none';
+      r.style.marginTop = i === 0 ? '0px' : marginFor(r);
+    });
+  }
+
+  if (reduce) { showStatic(); return; }
+
+  function sleep(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+
+  function reveal(r) {
+    return new Promise(function (res) {
+      r.style.transition = 'none';
+      r.style.height = 'auto';
+      var h = r.scrollHeight;
+      r.style.height = '0px';
+      void r.offsetHeight;
+      r.style.transition = 'height .34s ' + EASE + ', opacity .3s ease, transform .34s ' + EASE + ', margin-top .34s ' + EASE;
+      r.style.marginTop = marginFor(r);
+      r.style.height = h + 'px';
+      r.style.opacity = '1';
+      r.style.transform = 'none';
+      setTimeout(function () { r.style.height = 'auto'; r.style.overflow = 'visible'; res(); }, 360);
+    });
+  }
+  function collapse(r) {
+    return new Promise(function (res) {
+      r.style.transition = 'height .24s ease, opacity .18s ease, margin-top .24s ease';
+      r.style.height = r.scrollHeight + 'px';
+      void r.offsetHeight;
+      r.style.overflow = 'hidden';
+      r.style.height = '0px';
+      r.style.opacity = '0';
+      r.style.marginTop = '0px';
+      setTimeout(res, 250);
+    });
+  }
+
+  function makeTyping() {
+    var row = document.createElement('div');
+    row.className = 'row left typing';
+    row.innerHTML = '<div class="typing-pill"><span></span><span></span><span></span></div>';
+    setHidden(row);
+    return row;
+  }
+
+  async function run() {
+    await sleep(450);
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var isAI = r.classList.contains('left');
+      if (isAI) {
+        var t = makeTyping();
+        thread.insertBefore(t, r);
+        await reveal(t);
+        var len = (r.textContent || '').trim().length;
+        await sleep(Math.min(1700, 550 + len * 9));
+        await collapse(t);
+        if (t.parentNode) t.parentNode.removeChild(t);
+        await reveal(r);
+      } else {
+        if (i !== 0) await sleep(680);
+        await reveal(r);
+      }
+    }
+    await sleep(4200);
+  }
+
+  var running = false;
+  async function loop() {
+    if (running) return;
+    running = true;
+    rows.forEach(setHidden);
+    while (true) {
+      await run();
+      thread.style.transition = 'opacity .5s ease';
+      thread.style.opacity = '0';
+      await sleep(520);
+      Array.prototype.slice.call(thread.querySelectorAll('.typing')).forEach(function (n) { n.remove(); });
+      rows.forEach(setHidden);
+      thread.style.opacity = '1';
+      await sleep(260);
+    }
+  }
+
+  var started = false;
+  function start() { if (started) return; started = true; loop(); }
+
+  // Démarre quand le parent signale l'entrée dans l'écran, sinon repli autonome.
+  window.addEventListener('message', function (e) { if (e && e.data === 'megga:play') start(); });
+  setTimeout(start, 1500);
+})();
+</script>
+</body>
+</html>
