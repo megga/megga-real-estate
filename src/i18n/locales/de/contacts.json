@@ -347,7 +347,17 @@
       "qualifyHint": "Insufficient data"
     },
     "contactInfo": "Contact details",
-    "openFullProfile": "Open full profile"
+    "openFullProfile": "Open full profile",
+    "signature": {
+      "title": "Electronic signature",
+      "description": "Upload a document (PDF) for {{name}} to sign. The signing link is sent by email or WhatsApp, validated by you.",
+      "thisContact": "this contact",
+      "send": "Send a document for signature",
+      "errPdfOnly": "Only PDF files are accepted.",
+      "errTooLarge": "PDF too large (max 20 MB).",
+      "errRead": "Unable to read the file.",
+      "defaultTitle": "Document to sign"
+    }
   },
   "timeline": {
     "stageChange": "Pipeline: {{from}} → {{to}}",

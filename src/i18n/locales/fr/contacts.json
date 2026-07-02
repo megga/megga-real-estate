@@ -347,7 +347,17 @@
       "qualifyHint": "Données insuffisantes"
     },
     "contactInfo": "Coordonnées",
-    "openFullProfile": "Ouvrir la fiche complète"
+    "openFullProfile": "Ouvrir la fiche complète",
+    "signature": {
+      "title": "Signature électronique",
+      "description": "Téléversez un document (PDF) à faire signer par {{name}}. Le lien de signature part par email ou WhatsApp, validé par vous.",
+      "thisContact": "ce contact",
+      "send": "Envoyer un document en signature",
+      "errPdfOnly": "Seuls les fichiers PDF sont acceptés.",
+      "errTooLarge": "PDF trop volumineux (max 20 Mo).",
+      "errRead": "Lecture du fichier impossible.",
+      "defaultTitle": "Document à signer"
+    }
   },
   "timeline": {
     "stageChange": "Pipeline : {{from}} → {{to}}",

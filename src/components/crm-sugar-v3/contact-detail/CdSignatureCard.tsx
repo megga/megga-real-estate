@@ -9,10 +9,11 @@
 // sans ressusciter le studio de templates. Le PDF signé revient via webhook
 // dans le bucket `signed-documents`.
 //
-// Libellés FR en dur : on s'aligne sur SignatureLaunchModal (même feature,
-// même convention) plutôt que sur l'i18n de la fiche contact.
+// Surface agent VERROUILLÉE (garde-fou i18n) : tout le texte visible passe par
+// t() (namespace contacts). « Skribble » = nom de marque, laissé verbatim.
 
 import { useRef, useState, type ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycSection } from '../primitives'
@@ -40,7 +41,7 @@ function readBase64(file: File): Promise<string> {
       const comma = res.indexOf(',')
       resolve(comma >= 0 ? res.slice(comma + 1) : res)
     }
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'))
+    reader.onerror = () => reject(new Error('read_error'))
     reader.readAsDataURL(file)
   })
 }
@@ -48,6 +49,7 @@ function readBase64(file: File): Promise<string> {
 const MAX_PDF_BYTES = 20 * 1024 * 1024 // 20 Mo — garde-fou upload
 
 export function CdSignatureCard({ contact }: Props) {
+  const { t } = useTranslation('contacts')
   const fileRef = useRef<HTMLInputElement>(null)
   const [pdfBase64, setPdfBase64] = useState<string | null>(null)
   const [title, setTitle] = useState('')
@@ -69,11 +71,11 @@ export function CdSignatureCard({ contact }: Props) {
     if (!file) return
     setErr(null)
     if (file.type !== 'application/pdf') {
-      setErr('Seuls les fichiers PDF sont acceptés.')
+      setErr(t('detail.signature.errPdfOnly'))
       return
     }
     if (file.size > MAX_PDF_BYTES) {
-      setErr('PDF trop volumineux (max 20 Mo).')
+      setErr(t('detail.signature.errTooLarge'))
       return
     }
     try {
@@ -82,17 +84,15 @@ export function CdSignatureCard({ contact }: Props) {
       setTitle(file.name.replace(/\.pdf$/i, ''))
       setOpen(true)
     } catch {
-      setErr('Lecture du fichier impossible.')
+      setErr(t('detail.signature.errRead'))
     }
   }
 
   return (
     <KycSection
-      title="Signature électronique"
+      title={t('detail.signature.title')}
       eyebrow="Skribble"
-      action={
-        <SgIcon name="shieldStar" size={16} stroke={SugarV3.inkSoft} />
-      }
+      action={<SgIcon name="shieldStar" size={16} stroke={SugarV3.inkSoft} />}
     >
       <input
         ref={fileRef}
@@ -111,8 +111,9 @@ export function CdSignatureCard({ contact }: Props) {
           fontWeight: 500,
         }}
       >
-        Téléversez un document (PDF) à faire signer par {fullName || 'ce contact'}.
-        Le lien de signature part par email ou WhatsApp, validé par vous.
+        {t('detail.signature.description', {
+          name: fullName || t('detail.signature.thisContact'),
+        })}
       </p>
 
       <button
@@ -136,7 +137,7 @@ export function CdSignatureCard({ contact }: Props) {
         }}
       >
         <SgIcon name="send" size={15} stroke="#fff" />
-        Envoyer un document en signature
+        {t('detail.signature.send')}
       </button>
 
       {err && (
@@ -162,7 +163,7 @@ export function CdSignatureCard({ contact }: Props) {
             setPdfBase64(null)
           }}
           pdfBase64={pdfBase64}
-          defaultTitle={title || 'Document à signer'}
+          defaultTitle={title || t('detail.signature.defaultTitle')}
           defaultSigners={signers}
           contextType="contract"
           contact={{ id: contact.id, phone: contact.phone }}
