@@ -379,7 +379,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'draft_listing_copy',
-      description: "Rédige le CONTENU d'une annonce immobilière (titre marketing + description bilingue FR/EN + grille de détails) pour un bien des mandats de l'agence, à partir de ses VRAIES données. Deux variantes : 'confidential' (sans coordonnées ni adresse exacte) ou 'public' (avec l'agence + l'agent). Si la variante n'est pas précisée, DEMANDE-la avant d'appeler. Pour « rédige l'annonce du 3 pièces de Champel », « fais le descriptif du bien X ». NE l'envoie pas au client — c'est pour l'agent.",
+      description: "Rédige le CONTENU d'une annonce immobilière (titre marketing + description bilingue FR/EN + grille de détails) pour un bien des mandats de l'agence, à partir de ses VRAIES données. Deux variantes : 'confidential' (sans coordonnées ni adresse exacte) ou 'public' (avec l'agence + l'agent). Si la variante n'est pas précisée, DEMANDE-la avant d'appeler. Pour « rédige l'annonce du 3 pièces de Champel », « fais le descriptif du bien X ». NE l'envoie pas au client — c'est pour l'agent. Si l'agent veut l'ENREGISTRER / l'utiliser sur le bien, appelle ensuite update_property avec le titre et la description que tu viens de rédiger.",
       parameters: {
         type: 'object',
         properties: {
@@ -430,6 +430,117 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
           focus: { type: 'string', description: "Optionnel : ce qu'il faut surtout retenir du document." },
         },
         required: ['contact_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'publish_to_portals',
+      description: "Publie un bien de l'agence sur les portails immobiliers externes (syndication IDX). Pour « publie le 3 pièces des Eaux-Vives sur immobilier.ch », « mets ce bien en ligne ». Le bien est cherché dans les biens de l'agence (par titre/adresse). Nécessite un bien actif avec des données complètes (titre, prix, adresse, ≥1 photo) ; le mandat n'est PAS requis. Avant de publier, l'outil montre un aperçu de l'annonce puis demande confirmation. Appelle directement l'outil.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien à publier (cherché dans les mandats de l'agence)." },
+          portals: { type: 'array', items: { type: 'string' }, description: "Portails cibles. Optionnel : par défaut immobilier.ch. Valeurs : immobilier_ch." },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'withdraw_from_portals',
+      description: "Retire un bien de la publication sur les portails externes (le bien disparaîtra au prochain import du portail). Pour « retire le bien de Champel d'immobilier.ch », « dépublie ce bien ». Le bien est cherché dans les mandats de l'agence. Appelle directement l'outil ; il demande confirmation avant de retirer.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien à retirer (cherché dans les mandats de l'agence)." },
+          portals: { type: 'array', items: { type: 'string' }, description: "Portails à retirer. Optionnel : par défaut, tous ceux où le bien est publié. Valeurs : immobilier_ch." },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_publication_status',
+      description: "Indique sur quels portails externes un bien des mandats est publié (et son état : en ligne / en file pour le prochain import). Lecture seule. Pour « où est publié le bien de Champel ? », « ce bien est-il sur immobilier.ch ? ». Le bien est cherché dans les mandats de l'agence.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien (cherché dans les mandats de l'agence)." },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_property',
+      description: "Crée un NOUVEAU bien (brouillon) dans l'agence à partir de ce que l'agent dicte. Pour « crée un 3 pièces aux Eaux-Vives en location à 2400 », « ajoute un nouveau bien : villa à Cologny ». NE remplis QUE les champs que l'agent donne — n'invente JAMAIS. Sans titre fourni, il sera composé du type + pièces + localité. Le bien est créé en BROUILLON ; ensuite l'agent ajoute des photos (attach_property_photos), complète (update_property) puis « publie-le » (publish_to_portals active automatiquement le brouillon).",
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: "Titre de l'annonce (sinon composé du type + pièces + localité)." },
+          property_type: { type: 'string', description: 'Type : appartement, maison, villa, terrain, commercial (bureau/local).' },
+          transaction_type: { type: 'string', enum: ['rent', 'buy'], description: 'location (rent) ou vente (buy).' },
+          price: { type: 'string', description: 'Prix de vente, ou loyer mensuel si location. Ex « 2400 », « 1.2M ».' },
+          charges_monthly: { type: 'string', description: 'Charges mensuelles (location).' },
+          rooms: { type: 'number', description: 'Nombre de pièces (ex. 3.5).' },
+          surface_m2: { type: 'number', description: 'Surface habitable en m².' },
+          address: { type: 'string', description: 'Adresse (rue + numéro).' },
+          postal_code: { type: 'string', description: 'NPA (code postal suisse).' },
+          city: { type: 'string', description: 'Localité.' },
+          canton: { type: 'string', description: 'Canton (ex. GE, VD).' },
+          year_built: { type: 'number', description: 'Année de construction.' },
+          description: { type: 'string', description: "Description, SEULEMENT si l'agent la dicte." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'update_property',
+      description: "Met à jour ou complète les champs d'un bien de l'agence (pour finir une annonce avant publication, ou corriger une info). NE passe QUE les champs que l'agent te donne EXPLICITEMENT — n'invente JAMAIS de valeur. Le bien est cherché par titre/adresse. Exemples : « pour le 3 pièces des Eaux-Vives, le NPA c'est 1207 et le loyer 2400 », « corrige la surface du bien de Champel à 95 m² », « le bien de Cologny est une villa ». Utile quand publier échoue faute d'une info (l'agent la donne, tu complètes, puis il republie).",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien à compléter (cherché dans les biens de l'agence)." },
+          title: { type: 'string', description: "Titre de l'annonce." },
+          property_type: { type: 'string', description: 'Type : appartement, maison, villa, terrain, commercial (bureau/local).' },
+          transaction_type: { type: 'string', enum: ['rent', 'buy'], description: 'location (rent) ou vente (buy).' },
+          price: { type: 'string', description: 'Prix de vente, ou loyer mensuel si location. Ex « 2400 », « 1.2M ».' },
+          charges_monthly: { type: 'string', description: 'Charges mensuelles (location).' },
+          rooms: { type: 'number', description: 'Nombre de pièces (ex. 3.5).' },
+          surface_m2: { type: 'number', description: 'Surface habitable en m².' },
+          address: { type: 'string', description: 'Adresse (rue + numéro).' },
+          postal_code: { type: 'string', description: 'NPA (code postal suisse, 4 chiffres).' },
+          city: { type: 'string', description: 'Localité.' },
+          canton: { type: 'string', description: 'Canton (ex. GE, VD).' },
+          year_built: { type: 'number', description: 'Année de construction.' },
+          description: { type: 'string', description: "Description de l'annonce, SEULEMENT si l'agent la dicte (sinon ne pas remplir)." },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'attach_property_photos',
+      description: "Ajoute la PHOTO que TU viens d'envoyer dans CE message à un bien de l'agence (sa galerie). Pour « voici les photos du 3 pièces des Eaux-Vives », « ajoute cette photo au bien de Champel ». Une photo par message : si l'agent envoie plusieurs photos d'affilée pour le même bien, rappelle le même `query` à chaque appel (déduit du contexte récent). N'appelle cet outil QUE si une image est jointe à ce message. Utile avant de publier un bien qui n'a pas encore de photos.",
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: "Nom / adresse / référence du bien auquel ajouter la photo (cherché dans les biens de l'agence)." },
+        },
+        required: ['query'],
       },
     },
   },

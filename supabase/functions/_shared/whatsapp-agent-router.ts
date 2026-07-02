@@ -72,10 +72,35 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   attach_kyc_document: 'auto',          // reste synchrone (P2b : async + R2)
   run_kyc_screening: 'slow_async',      // ~50s Dilisense → hors boucle (file + cron)
   send_kyc_report: 'slow_async',        // ~60s render PDF + envoi → hors boucle
+  // Syndication sortante (Phase 2). publish/withdraw modifient ce qui est PUBLIÉ vers
+  // l'extérieur (portails) → confirm obligatoire (jamais sans le « oui » de l'agent),
+  // au même titre que le socle client/offre. get_publication_status = pure lecture.
+  publish_to_portals: 'confirm',
+  withdraw_from_portals: 'confirm',
+  get_publication_status: 'read',
+  // attach_property_photos : ajoute une photo entrante à la galerie d'un bien (état
+  // CRM interne, réversible, aucun envoi client) → auto, comme attach_kyc_document.
+  attach_property_photos: 'auto',
+  // update_property : complète/corrige les champs d'un bien (saisie de données CRM
+  // interne, réversible, aucun envoi client) → auto, comme qualify_lead/add_note.
+  update_property: 'auto',
+  // create_property : crée un brouillon de bien (état CRM interne, jamais publié
+  // sans le publish confirm dédié) → auto, comme create_contact/create_deal.
+  create_property: 'auto',
 }
 
 export function toolTier(name: string): ToolTier {
   return TOOL_TIERS[name] ?? 'confirm'
+}
+
+// Portails de syndication supportés + libellé humain (jamais l'enum brut à l'agent).
+export const PORTAL_LABELS: Record<string, string> = { immobilier_ch: 'immobilier.ch' }
+export function portalLabel(portal: string): string {
+  return PORTAL_LABELS[portal] ?? portal
+}
+/** Normalise un nom de portail saisi librement ('immobilier.ch' → 'immobilier_ch'). */
+export function normalizePortal(raw: string): string {
+  return raw.trim().toLowerCase().replace(/[.\-\s]+/g, '_')
 }
 
 // SEUL outil 'confirm' qui peut passer en auto (Palier 3) : update_pipeline — réversible

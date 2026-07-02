@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MEGGA CRM — Créer un bien · Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(120% 90% at 50% 0%, #C8D5E0 0%, #DDE2EA 48%, #EDEFF3 100%) fixed;
+    font-family: "Manrope", system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 24px 72px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .caption { text-align: center; margin-bottom: 30px; max-width: 720px; }
+  .caption .ey { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: #7A8088; }
+  .caption h1 { margin: 9px 0 7px; font-size: 26px; font-weight: 800; letter-spacing: -1px; color: #0B0C0E; }
+  .caption p { margin: 0; font-size: 14px; font-weight: 500; color: #3A3D44; line-height: 1.55; }
+  .caption p b { font-weight: 700; color: #0B0C0E; }
+  .pair { display: flex; gap: 56px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .tag { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+  .tag .d { width: 8px; height: 8px; border-radius: 999px; }
+  .tag.light { background: #fff; color: #0B0C0E; box-shadow: 0 4px 16px rgba(15,23,42,0.06); }
+  .tag.light .d { background: #0B0C0E; }
+  .tag.dark { background: #161616; color: #fff; }
+  .tag.dark .d { background: #fff; }
+
+  /* Animations partagées par tous les écrans du wizard */
+  @keyframes mwFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes mwScaleIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
+  @keyframes mwPulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(1.35); } }
+  @keyframes mwSpin { to { transform: rotate(360deg); } }
+  @keyframes mwPinPulse { 0%,100% { transform: scale(1); box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 0 rgba(0,0,0,0.4); } 50% { transform: scale(1.06); box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 12px rgba(0,0,0,0); } }
+  @keyframes mwRing { 0% { transform: scale(1); opacity: .5; } 100% { transform: scale(1.7); opacity: 0; } }
+  @keyframes mwLive { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.55); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
+  @keyframes mwCount { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes mwConfetti { 0% { transform: translate3d(0,-20px,0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate3d(var(--dx),640px,0) rotate(var(--rot)); opacity: 0; } }
+
+  /* Slider thumb noir Sugar */
+  .mw-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 999px; background: #0B0C0E; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .mw-range::-moz-range-thumb { width: 24px; height: 24px; border-radius: 999px; background: #0B0C0E; cursor: pointer; border: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+</style>
+</head>
+<body>
+  <div class="caption">
+    <div class="ey">MEGGA CRM · Responsive · Wizard « Créer un bien »</div>
+    <h1>Créer un bien — Mobile</h1>
+    <p>Portage fidèle du wizard desktop Sugar v2, repensé pour le tactile : <b>7 étapes</b> (Démarrer · Vendeur/Mandat · Adresse · Caractéristiques · Photos · Prix &amp; Description · Publication) + écran de succès. Une colonne, <b>footer d'action fixe</b>, stepper de progression, cibles ≥ 44 px. Tout est interactif — extraction de mandat, carte, sliders, génération IA. Clair et sombre.</p>
+  </div>
+  <div class="pair" id="pair">
+    <div class="col">
+      <span class="tag light"><span class="d"></span>Clair</span>
+      <div id="root-light"></div>
+    </div>
+    <div class="col">
+      <span class="tag dark"><span class="d"></span>Sombre</span>
+      <div id="root-dark"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/framer-motion@11.0.8/dist/framer-motion.js"></script>
+
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="crm-mobile-wizard-core.jsx"></script>
+  <script type="text/babel" src="crm-mobile-wizard-steps.jsx"></script>
+  <script type="text/babel" src="crm-mobile-wizard-final.jsx"></script>
+  <script type="text/babel">
+    const { IOSDevice, MobileWizardScreen } = window;
+    ReactDOM.createRoot(document.getElementById("root-light")).render(
+      <IOSDevice width={390} height={844}><MobileWizardScreen dark={false} /></IOSDevice>
+    );
+    ReactDOM.createRoot(document.getElementById("root-dark")).render(
+      <IOSDevice width={390} height={844} dark><MobileWizardScreen dark={true} /></IOSDevice>
+    );
+  </script>
+</body>
+</html>

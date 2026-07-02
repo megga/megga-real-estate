@@ -71,6 +71,21 @@ export function useTransaction(id: string | undefined) {
   }
 }
 
+// Documents RÉELS rattachés à un deal (= transaction). Remplace une liste de
+// documents auparavant SYNTHÉTISÉE (offres + KYC + stage, avec nombres de pages
+// inventés) côté DealDetail. RLS agency-scopée sur `documents`. Vide tant qu'aucun
+// document n'est rattaché — état honnête, pas de fabrication.
+export function useTransactionDocuments(transactionId: string | undefined) {
+  return useQuery(
+    supabase
+      .from('documents')
+      .select('id, name, type, status, created_at')
+      .eq('transaction_id', transactionId ?? '00000000-0000-0000-0000-000000000000')
+      .order('created_at', { ascending: false }),
+    { enabled: !!transactionId }
+  )
+}
+
 interface CreateTransactionInput {
   agency_id: string
   property_id?: string

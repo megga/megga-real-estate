@@ -1,0 +1,45 @@
+-- =====================================================================
+-- SÉCURITÉ — Fuite cross-agence sur public.properties (confirmée LIVE)
+--
+-- NOTE (renommage 28.06.2026) : ce fichier était daté 20260627130000, en
+-- collision de version avec 20260627130000_fix_realadvisor_health_check_array_append
+-- (deux PR branchées le même jour ont choisi le même timestamp 14 chiffres).
+-- Effet : `supabase start` (CI DB fraîche) plantait sur schema_migrations_pkey
+-- duplicate, et en prod incrémental le DROP était silencieusement sauté
+-- (version déjà enregistrée par l'autre fichier). Renommé en 20260628140000
+-- (version unique). DDL idempotente (DROP ... IF EXISTS) → réapplication sûre.
+--
+-- Trou (vérifié en prod via pg_policy) :
+--   properties_select_public : FOR SELECT, roles = PUBLIC (anon + authenticated),
+--     USING (status = 'active' AND deleted_at IS NULL)
+--   → toute personne munie de la clé anon publique, ET tout agent authentifié
+--     d'une AUTRE agence, peut lire TOUTES les colonnes (dont private_notes,
+--     prix, adresse, contact) de n'importe quel bien `status='active'`.
+--   Les policies RLS permissives se combinent en OR : cette policy s'ajoutait à
+--   properties_select_agency (même agence) → un agent voyait ses biens OU
+--   n'importe quel bien actif d'une autre agence.
+--
+-- Pourquoi c'est un pur vestige (aucun consommateur légitime) :
+--   * Vestige de la marketplace publique, DÉSACTIVÉE depuis le pivot CRM-first.
+--     L'affichage public passe par market_listings (~120k Flatfox), JAMAIS par
+--     properties (biens internes d'agence).
+--   * CRM agent → lit properties en authenticated via properties_select_agency
+--     (agency_id = get_user_agency_id()).
+--   * Super-admin → super_admin_read_all_properties (is_super_admin()).
+--   * Portail vendeur → edge function seller-portal-action (service_role,
+--     validée par token), PAS de requête anon directe (cf useSellerPortal.ts).
+--   * Edge functions (matching-engine, virtual-staging, photo-*, …) → service_role
+--     (bypass RLS).
+--   * Storefront statique (sites/) → market_listings via worker, jamais properties.
+--   → grep `from('properties')` : tous les appels sont authenticated (même agence)
+--     ou service_role. Aucun ne dépend de cette policy.
+--
+-- Fix : supprimer la policy. Après suppression :
+--   * anon → 0 bien (aucune policy SELECT ne matche pour anon : agency_id NULL).
+--   * agent d'une autre agence → ne voit plus les biens actifs d'autrui.
+--   * même agence (properties_select_agency) + super_admin → INCHANGÉS.
+-- Régression couverte par tests/backend/rls-isolation-properties.spec.ts
+-- (nouveau cas : bien `status='active'` d'agence A invisible pour agent B + anon).
+-- =====================================================================
+
+DROP POLICY IF EXISTS "properties_select_public" ON public.properties;

@@ -6,7 +6,6 @@ import { useState, useRef, useMemo, type ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { SugarV2, shade, sgOn, sgAcc, type WizardData, type WizardPhoto } from '../tokens'
-import StagingStudio, { type SavedVariant } from '../StagingStudio'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
@@ -21,6 +20,11 @@ const STOCK: WizardPhoto[] = [
   { id: 'p8', label: 'Plan',          kind: 'plan',     tone: '#EAEAEA' },
 ]
 
+// Formats acceptés côté upload (useUploadPropertyPhotos refuse le reste) + plafond
+// aligné sur le texte de la dropzone.
+const ACCEPTED_PHOTO_MIME = ['image/jpeg', 'image/png', 'image/webp']
+const MAX_WIZARD_PHOTOS = 30
+
 export function Step4Photos({ data, set }: StepProps) {
   const { t: tr } = useTranslation('listings')
   const photos = data.photos || []
@@ -29,31 +33,7 @@ export function Step4Photos({ data, set }: StepProps) {
   const [hoverPhoto, setHoverPhoto] = useState<string | null>(null)
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
   const [overIdx, setOverIdx] = useState<number | null>(null)
-  const [stagingPhoto, setStagingPhoto] = useState<WizardPhoto | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const onSaveVariant = (variants: SavedVariant[]) => {
-    const srcId = variants[0]?.sourcePhotoId
-    if (!srcId) return
-    const all = [...photos]
-    const srcIdx = all.findIndex(p => p.id === srcId)
-    if (srcIdx === -1) return
-    const inserted: WizardPhoto[] = variants.map(v => ({
-      id: `staged-${v.id}`,
-      label: `${all[srcIdx].label} · ${v.label}`,
-      kind: all[srcIdx].kind,
-      tone: v.tone,
-      uploadedAt: v.signedAt,
-      variantOf: srcId,
-      style: v.style,
-      prompt: v.prompt,
-      model: v.model,
-      provenance: v.provenance,
-      seed: v.seed,
-    }))
-    all.splice(srcIdx + 1, 0, ...inserted)
-    set({ photos: all })
-  }
 
   const addStock = (n = 1) => {
     const taken = photos.length
@@ -64,14 +44,29 @@ export function Step4Photos({ data, set }: StepProps) {
     set({ photos: [...photos, ...next] })
   }
 
+  // Dropzone PC = SEUL chemin qui porte de vrais fichiers. On les capture pour de
+  // bon (object URL d'aperçu + File conservé jusqu'à la publication où il est
+  // uploadé bucket + miroir R2). Les modes téléphone (QR) et drive restent
+  // simulés (addStock) faute de backend de transfert — leurs tuiles, sans `file`,
+  // ne sont jamais persistées.
   const handleFiles = (files: FileList | null) => {
     if (!files || !files.length) return
-    const remaining = STOCK.length - photos.length
-    if (remaining <= 0) {
-      addStock(Math.min(files.length, 4))
-      return
-    }
-    addStock(Math.min(files.length, remaining))
+    const room = Math.max(0, MAX_WIZARD_PHOTOS - photos.length)
+    if (room <= 0) return
+    const accepted = Array.from(files)
+      .filter(f => ACCEPTED_PHOTO_MIME.includes(f.type))
+      .slice(0, room)
+    if (!accepted.length) return
+    const mapped: WizardPhoto[] = accepted.map((file, i) => ({
+      id: `up-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      label: file.name.replace(/\.[^.]+$/, ''),
+      kind: 'interior',
+      tone: '#D4DDE3',
+      uploadedAt: new Date().toISOString(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }))
+    set({ photos: [...photos, ...mapped] })
   }
 
   const onDrop = (e: React.DragEvent) => {
@@ -91,7 +86,15 @@ export function Step4Photos({ data, set }: StepProps) {
     setDraggedIdx(null); setOverIdx(null)
   }
 
-  const removePhoto = (id: string) => set({ photos: photos.filter(p => p.id !== id) })
+  const removePhoto = (id: string) => {
+    const gone = photos.find(p => p.id === id)
+    if (gone?.previewUrl) URL.revokeObjectURL(gone.previewUrl)
+    set({ photos: photos.filter(p => p.id !== id) })
+  }
+  const clearPhotos = () => {
+    photos.forEach(p => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl) })
+    set({ photos: [] })
+  }
   const setCover = (id: string) => {
     const idx = photos.findIndex(p => p.id === id)
     if (idx <= 0) return
@@ -246,7 +249,7 @@ export function Step4Photos({ data, set }: StepProps) {
             )}
           </h2>
           {photos.length > 0 && (
-            <button onClick={() => set({ photos: [] })} style={{
+            <button onClick={clearPhotos} style={{
               border: 0, background: 'transparent', color: SugarV2.muted,
               fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
               cursor: 'pointer', padding: '6px 12px', borderRadius: 8,
@@ -335,21 +338,6 @@ export function Step4Photos({ data, set }: StepProps) {
                     padding: 10, gap: 6,
                     pointerEvents: isHover ? 'auto' : 'none',
                   }}>
-                    {!p.variantOf && (
-                      <button onClick={e => { e.stopPropagation(); setStagingPhoto(p) }}
-                        title={tr('wizard.step4.action.stage')}
-                        style={{
-                          width: 32, height: 32, borderRadius: 999, border: 0,
-                          background: SugarV2.black, color: sgOn(),
-                          cursor: 'pointer', display: 'grid', placeItems: 'center',
-                          boxShadow: '0 6px 14px rgba(0,0,0,0.30)',
-                        }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="m12 3 1.9 5.8L20 11l-5.8 1.9L12 19l-1.9-5.8L4 11l5.8-2L12 3Z"/>
-                        </svg>
-                      </button>
-                    )}
                     {!isCover && (
                       <button onClick={e => { e.stopPropagation(); setCover(p.id) }}
                         title={tr('wizard.step4.action.setCover')}
@@ -475,14 +463,6 @@ export function Step4Photos({ data, set }: StepProps) {
         </div>
       )}
 
-      {/* Staging Studio modal — opens from spark button on each photo */}
-      {stagingPhoto && (
-        <StagingStudio
-          photo={stagingPhoto}
-          onClose={() => setStagingPhoto(null)}
-          onSaveVariant={onSaveVariant}
-        />
-      )}
     </div>
   )
 }
@@ -723,6 +703,18 @@ function PhotoIcon({ name, size = 16, stroke = 'currentColor' }: { name: 'comput
 }
 
 function FakePhoto({ p }: { p: WizardPhoto }) {
+  // Vraie photo (dropzone PC) ou URL déjà persistée → on affiche l'image réelle.
+  const realSrc = p.previewUrl || p.url
+  if (realSrc) {
+    return (
+      <img
+        src={realSrc}
+        alt={p.label}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        draggable={false}
+      />
+    )
+  }
   const stripes = `repeating-linear-gradient(135deg, ${p.tone} 0 14px, ${shade(p.tone, -0.03)} 14px 28px)`
   return (
     <div style={{

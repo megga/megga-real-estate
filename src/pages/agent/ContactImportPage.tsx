@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'
 import { useCreateContact } from '@/hooks/useContacts'
+import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ContactType } from '@/types/contact'
 import PageTransition from '@/components/layout/PageTransition'
@@ -24,6 +25,7 @@ interface ImportResult {
   total: number
   imported: number
   skipped: number
+  duplicates: number
   errors: string[]
 }
 
@@ -465,6 +467,9 @@ function ImportResultScreen({ result, onDone }: { result: ImportResult; onDone: 
       <h1 className="text-xl font-semibold text-theme-primary">
         {t('import.batch.result.importedCount', { count: result.imported })}
       </h1>
+      {result.duplicates > 0 && (
+        <p className="text-sm text-theme-muted mt-1">{t('import.batch.result.duplicatesCount', { count: result.duplicates })}</p>
+      )}
       {result.skipped > 0 && (
         <p className="text-sm text-theme-muted mt-1">{t('import.batch.result.skippedCount', { count: result.skipped })}</p>
       )}
@@ -496,13 +501,34 @@ export default function ContactImportPage() {
   const [isImporting, setIsImporting] = useState(false)
   const [result, setResult] = useState<ImportResult | null>(null)
   const createContact = useCreateContact()
+  const { profile, user } = useAuth()
 
   const handleImport = useCallback(async (contacts: ImportedContact[]) => {
     setIsImporting(true)
-    const importResult: ImportResult = { total: contacts.length, imported: 0, skipped: 0, errors: [] }
+    const importResult: ImportResult = { total: contacts.length, imported: 0, skipped: 0, duplicates: 0, errors: [] }
+
+    // Dédup de l'import en masse : on charge les emails/téléphones DÉJÀ en base
+    // (agence via RLS) et on déduplique aussi À L'INTÉRIEUR du lot. Match EXACT
+    // email/téléphone — pas de fuzzy : sur un import de masse, fusionner sur une
+    // ressemblance de nom risquerait d'écraser des personnes distinctes.
+    const normEmail = (s?: string | null) => (s || '').trim().toLowerCase()
+    const normPhone = (s?: string | null) => (s || '').replace(/\D/g, '')
+    const { data: existing } = await supabase.from('contacts').select('email, phone')
+    const seenEmails = new Set<string>()
+    const seenPhones = new Set<string>()
+    for (const r of (existing ?? []) as Array<{ email: string | null; phone: string | null }>) {
+      const e = normEmail(r.email); if (e) seenEmails.add(e)
+      const p = normPhone(r.phone); if (p) seenPhones.add(p)
+    }
 
     for (const c of contacts) {
       if (!c.first_name && !c.last_name) { importResult.skipped++; continue }
+      const e = normEmail(c.email)
+      const p = normPhone(c.phone)
+      if ((e && seenEmails.has(e)) || (p && seenPhones.has(p))) {
+        importResult.duplicates++
+        continue
+      }
       try {
         await createContact.mutateAsync({
           firstName: c.first_name || '',
@@ -511,6 +537,8 @@ export default function ContactImportPage() {
           phone: c.phone,
           type: c.type || 'lead',
         })
+        if (e) seenEmails.add(e)
+        if (p) seenPhones.add(p)
         importResult.imported++
       } catch (err) {
         importResult.errors.push(`${c.first_name} ${c.last_name}: ${err instanceof Error ? err.message : 'erreur'}`)
@@ -518,9 +546,32 @@ export default function ContactImportPage() {
       }
     }
 
+    // Audit LBA : la création unitaire (useCreateContact) n'écrit AUCUN
+    // activity_events ; le chemin bulk (le plus volumineux) créait donc des
+    // contacts sans trace. On consigne au moins un event de SYNTHÈSE par lot
+    // (fire-and-forget — n'altère jamais le résultat affiché à l'agent).
+    if (importResult.imported > 0 && profile?.agency_id) {
+      void supabase.from('activity_events').insert({
+        agency_id: profile.agency_id,
+        actor_id: profile.id ?? user?.id ?? null,
+        action: 'Contacts importés',
+        entity_type: 'contact',
+        category: 'contact',
+        severity: 'info',
+        object_label: `${importResult.imported} / ${importResult.total}`,
+        metadata: {
+          method,
+          total: importResult.total,
+          imported: importResult.imported,
+          duplicates: importResult.duplicates,
+          skipped: importResult.skipped,
+        },
+      }).then(({ error }) => { if (error) console.error('[import] audit insert failed', error) })
+    }
+
     setResult(importResult)
     setIsImporting(false)
-  }, [createContact])
+  }, [createContact, profile, user, method])
 
   return (
     <PageTransition>

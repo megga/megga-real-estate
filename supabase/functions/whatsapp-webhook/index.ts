@@ -7,14 +7,15 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getProvider, verifyHmac, type SendConfig } from '../_shared/whatsapp-gateway.ts'
+import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument } from '../_shared/vision.ts'
+import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { meggaProse } from '../_shared/megga-prose.ts'
-import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, detectLang, t, type WaLang, undoneStage, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
@@ -74,15 +75,33 @@ serve(async (req) => {
   let payload: unknown
   try { payload = JSON.parse(rawBody) } catch { return new Response('Bad JSON', { status: 400, headers: corsHeaders }) }
   const provider = getProvider(providerName)
-  const msg = provider.parseInbound(payload)
-  if (!msg) {
-    return new Response(JSON.stringify({ ignored: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-  }
-
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
+
+  // Kill-switch : si MEGGA WhatsApp est coupé (app_config.whatsapp_enabled='false'),
+  // on ACK 200 (pas de rejeu Meta) mais on ne traite/stocke/répond rien.
+  if (!(await isWhatsAppEnabled(admin))) {
+    return new Response(JSON.stringify({ ok: true, disabled: true }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const msg = provider.parseInbound(payload)
+  if (!msg) {
+    // Events `statuses` Meta (sent/delivered/read/failed) : progression monotone du
+    // statut des SORTANTS + alerte agent si un message client n'est pas délivré.
+    // Tout autre event non-message reste ignoré (200 pour ne pas déclencher de rejeu).
+    const updates = provider.parseStatusUpdates?.(payload) ?? []
+    if (updates.length > 0) {
+      const applied = await applyStatusUpdates(admin, provider, updates)
+      return new Response(JSON.stringify({ ok: true, statuses: applied }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(JSON.stringify({ ignored: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  }
 
   // ── 2bis. Résolution d'expéditeur AGENT (Phase 3) — AVANT la branche client ──
   // Si le numéro est un agent vérifié → MEGGA AI répond (lecture seule).
@@ -370,6 +389,20 @@ async function processAgentMessage(
           tool: pendingAction.tool as string, outcome: 'no',
         })
       } catch { /* journal non bloquant */ }
+      // Apprentissage T2 : un brouillon client REJETÉ → on le mémorise (1 par
+      // agent×contact, upsert) pour l'apparier au prochain message envoyé à ce
+      // contact (paire contrastive). Best-effort, non bloquant.
+      if (pendingAction.tool === 'send_client_message') {
+        const pargs = pendingAction.args as Record<string, unknown>
+        const rcid = String(pargs.contact_id ?? '')
+        const rdraft = String(pargs.body ?? '').trim()
+        if (rcid && rdraft) {
+          await admin.from('whatsapp_rejected_drafts').upsert({
+            profile_id: agentLink.profile_id, agency_id: agentLink.agency_id,
+            contact_id: rcid, draft: rdraft, created_at: new Date().toISOString(),
+          }, { onConflict: 'profile_id,contact_id' }).then(() => {}, () => {})
+        }
+      }
       reply = t(lang, 'cancelled')
     } else if (!valid) {
       reply = t(lang, 'expired')
@@ -483,6 +516,91 @@ async function sendWhatsAppText(
     const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
     return sres.ok
   } catch { return false }
+}
+
+// ── Statuts de livraison (sent/delivered/read/failed) ──────────────────────
+// Applique les events `statuses` Meta aux SORTANTS. Monotone via allowedPriorStatuses :
+// un event en retard (delivered après read) ou un rejeu ne matche aucune ligne → no-op.
+// Premier passage à `failed` : delivery_error posé, audit, et alerte WhatsApp à l'agent
+// lié si le message visait un client — un échec d'envoi ne doit JAMAIS rester muet.
+async function applyStatusUpdates(
+  admin: SupabaseClient,
+  provider: ReturnType<typeof getProvider>,
+  updates: StatusUpdate[],
+): Promise<number> {
+  let applied = 0
+  for (const u of updates) {
+    const patch: Record<string, unknown> = {
+      status: u.status,
+      status_updated_at: u.timestamp ?? new Date().toISOString(),
+    }
+    if (u.status === 'failed') {
+      patch.delivery_error = u.errorCode === 131047
+        ? '131047 — fenêtre 24h fermée (le client doit écrire en premier)'
+        : [u.errorCode, u.errorDetail].filter(Boolean).join(' — ') || 'échec de livraison'
+    }
+    const { data: rows, error } = await admin
+      .from('whatsapp_messages')
+      .update(patch)
+      .eq('provider', provider.name)
+      .eq('provider_message_id', u.providerMessageId)
+      .eq('direction', 'outbound')
+      .in('status', allowedPriorStatuses(u.status))
+      .select('id, contact_id, agency_id')
+    if (error) {
+      console.error('wa status update failed:', error.message.slice(0, 120))
+      continue
+    }
+    if (!rows || rows.length === 0) continue // rejeu / hors ordre / message inconnu
+    applied++
+    if (u.status === 'failed') await notifyDeliveryFailure(admin, provider, rows[0], u)
+  }
+  return applied
+}
+
+// Après un échec de livraison : audit TOUJOURS, puis alerte WhatsApp à l'agent vérifié
+// de l'agence si le sortant visait un CLIENT (contact_id). Best-effort, PII-safe
+// (aucun numéro ni contenu en logs). Appelée uniquement sur la PREMIÈRE transition vers
+// failed (l'UPDATE monotone ne renvoie une ligne qu'une fois) → pas de double alerte.
+async function notifyDeliveryFailure(
+  admin: SupabaseClient,
+  provider: ReturnType<typeof getProvider>,
+  row: { id: string; contact_id: string | null; agency_id: string | null },
+  u: StatusUpdate,
+): Promise<void> {
+  try {
+    await admin.from('activity_events').insert({
+      agency_id: row.agency_id,
+      actor_id: null,
+      actor_kind: 'system',
+      action: 'whatsapp_delivery_failed',
+      entity_type: row.contact_id ? 'contact' : 'whatsapp_message',
+      entity_id: row.contact_id,
+      category: 'contact',
+      severity: 'warn',
+      metadata: { code: u.errorCode },
+    })
+  } catch { /* non bloquant */ }
+
+  if (!row.contact_id || !row.agency_id) return
+  const { data: link } = await admin
+    .from('whatsapp_agent_links')
+    .select('wa_number')
+    .eq('agency_id', row.agency_id)
+    .eq('verified', true)
+    .limit(1)
+    .maybeSingle()
+  if (!link?.wa_number) return
+
+  let who = 'ton client'
+  const { data: c } = await admin.from('contacts')
+    .select('first_name, last_name').eq('id', row.contact_id).maybeSingle()
+  const name = c ? `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim() : ''
+  if (name) who = name
+  const reason = u.errorCode === 131047
+    ? "sa fenêtre de 24h est fermée — il doit t'écrire d'abord"
+    : 'erreur de livraison WhatsApp'
+  await sendWhatsAppText(provider, link.wa_number, `⚠️ Ton message à ${who} n'a pas été délivré : ${reason}.`)
 }
 
 // Accusé de lecture (coches bleues) + « typing… » optionnel. Best-effort, Meta only
@@ -615,12 +733,15 @@ async function executePending(
       outId = provider.parseSendResult(sres.status, sbody).providerMessageId
     } catch { return t(lang, 'sendFailNet') }
     // Persiste le message client envoyé (fil + corpus de voix). Idempotent, non bloquant.
+    // sent_by_profile_id = l'agent qui a validé l'envoi → mimétisme de voix PAR AGENT
+    // (apprentissage T2 par l'exemple ; cf. agent-style.ts fetchClientVoiceSamples).
     await admin.from('whatsapp_messages').upsert({
       provider: provider.name,
       provider_message_id: outId ?? `local-clientmsg-${contactId}-${Date.now()}`,
       direction: 'outbound', wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
       wa_to: String(contact.phone).replace(/\D/g, ''), contact_id: contactId,
       agency_id: agentLink.agency_id, body: text, status: 'received', is_agent_error: false,
+      sent_by_profile_id: agentLink.profile_id,
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
     try {
       await admin.from('activity_events').insert({
@@ -628,6 +749,26 @@ async function executePending(
         action: 'whatsapp_ai_send_client_message', entity_type: 'contact', entity_id: contactId, category: 'contact',
         severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
       })
+    } catch { /* non bloquant */ }
+    // Apprentissage T2 : si un brouillon a été REJETÉ récemment (<1h) pour ce contact
+    // et que le message envoyé DIFFÈRE → apparie (rejeté → envoyé) comme correction.
+    // Consomme le brouillon dans tous les cas. Best-effort, non bloquant.
+    try {
+      const { data: rej } = await admin.from('whatsapp_rejected_drafts')
+        .select('draft, created_at')
+        .eq('profile_id', agentLink.profile_id).eq('contact_id', contactId).maybeSingle()
+      if (rej) {
+        const fresh = Date.now() - Date.parse(rej.created_at as string) < 60 * 60 * 1000
+        const draft = String(rej.draft ?? '').trim()
+        if (fresh && draft && draft !== text.trim()) {
+          await admin.from('whatsapp_message_corrections').insert({
+            profile_id: agentLink.profile_id, agency_id: agentLink.agency_id,
+            contact_id: contactId, megga_draft: draft, agent_final: text,
+          })
+        }
+        await admin.from('whatsapp_rejected_drafts').delete()
+          .eq('profile_id', agentLink.profile_id).eq('contact_id', contactId)
+      }
     } catch { /* non bloquant */ }
     return t(lang, 'clientMsgSent')
   }
@@ -697,6 +838,14 @@ async function executePending(
   if (pending.tool === 'send_client_email') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return executeSendClientEmail(ctx, pending.args)
+  }
+  if (pending.tool === 'publish_to_portals') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executePublishToPortals(ctx, pending.args)
+  }
+  if (pending.tool === 'withdraw_from_portals') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executeWithdrawFromPortals(ctx, pending.args)
   }
   return t(lang, 'unknownAction')
 }

@@ -20,7 +20,7 @@ import { Step5PriceDesc } from './steps/Step5PriceDesc'
 import { Step6Options } from './steps/Step6Options'
 import { Step7Publish } from './steps/Step7Publish'
 import { Step8Success } from './steps/Step8Success'
-import { useCreateProperty } from '@/hooks/useProperties'
+import { useCreateProperty, useUpdateProperty, useUploadPropertyPhotos } from '@/hooks/useProperties'
 import { useCreateContact } from '@/hooks/useContacts'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 import { useAuth } from '@/hooks/useAuth'
@@ -30,6 +30,17 @@ import { useAuth } from '@/hooks/useAuth'
 // We detect that here so handlePublish knows to create the contact first
 // before linking it via a transaction row.
 const NEW_CONTACT_PREFIX = 'c-new-'
+
+// Wizard type (FR) → enum DB `property_type` (EN only : apartment|house|villa|
+// commercial|land). Sans ce mapping, 3 tuiles sur 4 ('appartement'/'maison'/
+// 'terrain') violent l'enum → l'insert échoue (22P02) et le bien n'est jamais
+// créé. Même fix que le wizard mobile (WTYPE_TO_ENUM).
+const TYPE_TO_ENUM: Record<WizardData['type'], 'apartment' | 'house' | 'villa' | 'land'> = {
+  appartement: 'apartment',
+  maison: 'house',
+  villa: 'villa',
+  terrain: 'land',
+}
 
 interface WizardShellProps {
   onClose: () => void
@@ -52,11 +63,26 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   const [subStep, setSubStep] = useState(0)        // 0 = Vendeur, 1 = Mandat
   const [published, setPublished] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState(false)
   const [data, setDataRaw] = useState<WizardData>(EMPTY_WIZARD)
   const set = (patch: Partial<WizardData>) => setDataRaw(prev => ({ ...prev, ...patch }))
 
+  // Garde-fou photo. Un bien publié (status 'active') sans AUCUNE photo persistable
+  // n'est jamais diffusé, et la syndication IDX le rejette en silence
+  // (validateIdxProperty exige ≥1 photo). Les tuiles des modes téléphone/drive sont
+  // du stock sans `file` ni `url` : elles ne sont PAS persistées (cf handlePublish),
+  // donc elles ne comptent pas ici — seules valent les vraies photos (fichier déposé
+  // ou URL déjà persistée). Un brouillon, lui, peut rester sans photo.
+  const persistablePhotoCount = data.photos.filter(p => p.file || p.url).length
+  // 'schedule' est persisté en 'draft' (pas de backend de publication programmée) ;
+  // seule la publication immédiate met le bien en 'active'.
+  const willGoLive = data.publishMode !== 'draft' && data.publishMode !== 'schedule'
+  const blockedNoPhoto = willGoLive && persistablePhotoCount === 0
+
   const { profile } = useAuth()
   const createProperty = useCreateProperty()
+  const updateProperty = useUpdateProperty()
+  const uploadPhotos = useUploadPropertyPhotos()
   const createContact = useCreateContact()
   const createTransaction = useCreateTransaction()
 
@@ -65,7 +91,15 @@ export default function WizardShell({ onClose }: WizardShellProps) {
   // so 'schedule' is persisted as 'draft' — separate chip to wire a real
   // cron-based publication when the feature is designed.
   async function handlePublish() {
-    if (createProperty.isPending || createContact.isPending || createTransaction.isPending) return
+    if (publishing) return
+    // Filet de sécurité : le bouton est déjà désactivé dans ce cas, mais on ne crée
+    // jamais une annonce 'active' sans photo persistable, même si l'appel arrivait par
+    // un autre chemin. Un brouillon sans photo reste autorisé (willGoLive=false).
+    if (blockedNoPhoto) {
+      setPublishError(t('wizard.shell.photoRequired'))
+      return
+    }
+    setPublishing(true)
     setPublishError(null)
 
     const status =
@@ -111,11 +145,18 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         sellerContactId = data.ownerContactId
       }
 
+      // Photos réelles ajoutées par l'agent (dropzone PC) vs URLs déjà
+      // persistées. Les tuiles sans `file` ni `url` (placeholders mobile/drive,
+      // variantes staging) ne sont PAS persistées — aucune photo fabriquée.
+      const photoFiles = data.photos.map(p => p.file).filter((f): f is File => !!f)
+      const existingPhotoUrls = data.photos.map(p => p.url).filter((u): u is string => !!u)
+
       // 2) Create the property (no direct vendor column — link comes via
-      // a transactions row below).
+      // a transactions row below). Photos uploadées juste après (besoin de l'id).
       const created = await createProperty.mutateAsync({
         title,
-        type: data.type,
+        type: TYPE_TO_ENUM[data.type] ?? 'apartment',
+        transaction_type: data.transaction === 'location' ? 'rent' : 'buy',
         status,
         price: data.transaction === 'vente' ? (data.price ?? 0) : (data.rent ?? 0),
         rooms: data.rooms ?? 0,
@@ -138,10 +179,30 @@ export default function WizardShell({ onClose }: WizardShellProps) {
         city: data.city ?? '',
         canton: data.cantonShort ?? data.canton,
         postal_code: data.postCode,
-        photos: data.photos.map(p => (typeof p === 'string' ? p : '')).filter(Boolean),
+        photos: existingPhotoUrls,
         features: data.features,
         // published_at posé par le trigger DB set_property_published_at (1er passage en 'active')
       })
+
+      // 2b) Upload des vraies photos maintenant qu'on a l'id, puis persistance
+      // de leurs URLs (bucket property-photos + miroir R2, ownership server-side).
+      // Échec d'upload = warning souple (le bien existe ; l'agent complète les
+      // photos depuis la fiche) — même posture que l'échec de liaison vendeur,
+      // jamais un upload silencieusement perdu sur le chemin nominal.
+      if (photoFiles.length && profile?.agency_id) {
+        try {
+          const uploadedUrls = await uploadPhotos.mutateAsync({
+            propertyId: created.id,
+            files: photoFiles,
+          })
+          await updateProperty.mutateAsync({
+            id: created.id,
+            photos: [...existingPhotoUrls, ...uploadedUrls],
+          })
+        } catch (photoErr) {
+          console.warn('[wizard] photo upload failed:', photoErr)
+        }
+      }
 
       // 3) Link the vendor — properties has no contact_seller_id column;
       // the relationship lives in `transactions` (same model the deal
@@ -180,6 +241,8 @@ export default function WizardShell({ onClose }: WizardShellProps) {
     } catch (e) {
       const message = e instanceof Error ? e.message : t('wizard.shell.unknownError')
       setPublishError(message)
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -324,8 +387,8 @@ export default function WizardShell({ onClose }: WizardShellProps) {
               {t('wizard.shell.continue')}
             </SgBlackPill>
           ) : (
-            <SgBlackPill onClick={handlePublish} disabled={createProperty.isPending}>
-              {createProperty.isPending
+            <SgBlackPill onClick={handlePublish} disabled={publishing || blockedNoPhoto}>
+              {publishing
                 ? t('wizard.shell.publishing')
                 : data.publishMode === 'schedule' ? t('wizard.shell.schedulePublish')
                 : data.publishMode === 'draft' ? t('wizard.shell.saveDraft')
@@ -334,6 +397,21 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           )}
         </div>
       </footer>}
+
+      {/* Garde-fou photo — explique pourquoi « Publier » est désactivé tant qu'aucune
+          photo réelle n'est ajoutée (la dernière étape porte le bouton Publier). */}
+      {blockedNoPhoto && !published && step === SG_STEPS.length - 1 && (
+        <div role="status" style={{
+          position: 'absolute', bottom: 92, left: 32, right: 32, zIndex: 21,
+          padding: '10px 14px', borderRadius: 12,
+          background: dark ? 'rgba(245,158,11,0.12)' : '#FFFBEB',
+          color: dark ? '#FBBF24' : '#B45309',
+          border: `1px solid ${dark ? 'rgba(245,158,11,0.35)' : '#FCD34D'}`,
+          fontSize: 12.5, fontWeight: 600,
+        }}>
+          {t('wizard.shell.photoRequired')}
+        </div>
+      )}
 
       {/* Inline publish error — sits above the footer so the agent sees
           exactly what went wrong without losing their wizard state. */}

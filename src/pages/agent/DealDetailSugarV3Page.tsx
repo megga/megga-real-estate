@@ -28,11 +28,10 @@ import {
   DdCard,
   DdStageStepper,
   DdKycChip,
-  DdSentimentChip,
   DdOfferCard,
   ddFmt,
 } from '@/components/crm-sugar-v3/deal-detail/DdShared'
-import { useTransaction, useUpdateTransactionNotes } from '@/hooks/useTransactions'
+import { useTransaction, useUpdateTransactionNotes, useTransactionDocuments } from '@/hooks/useTransactions'
 import { useContact } from '@/hooks/useContacts'
 import { useProperty } from '@/hooks/useProperties'
 import { useOfferChain, lastOffer, useUpdateOfferStatus } from '@/hooks/useOffers'
@@ -74,6 +73,7 @@ export default function DealDetailSugarV3Page() {
   const { data: contact } = useContact(deal?.contact_buyer_id ?? undefined)
   const { data: property } = useProperty(deal?.property_id)
   const { data: offerChain } = useOfferChain(deal?.id)
+  const { data: dealDocuments } = useTransactionDocuments(deal?.id)
   const { data: kycDossier } = useKycDossierByContact(
     deal?.contact_buyer_id ?? undefined,
   )
@@ -283,7 +283,6 @@ export default function DealDetailSugarV3Page() {
               </h1>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <DdKycChip status={kycStatus} />
-                <DdSentimentChip tone="healthy" label={t('deal.sentiment_healthy')} />
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -912,42 +911,19 @@ export default function DealDetailSugarV3Page() {
                 {t('deal.documents_subtitle')}
               </h3>
               {(() => {
-                const docs: {
-                  name: string
-                  status: 'signed' | 'pending' | 'missing'
-                  pages: number | null
-                }[] = []
-                if (offers.length > 0) {
-                  docs.push({
-                    name: t('deal.doc_formal_offer', { by: offers[0].by_label }),
+                // Documents RÉELS du deal (table documents, RLS agency-scopée) —
+                // plus aucune liste synthétisée ni nombre de pages inventé.
+                const docs = (dealDocuments ?? []).map(
+                  (d): { name: string; status: 'signed' | 'pending' | 'missing' } => ({
+                    name: d.name,
                     status:
-                      offers[0].status === 'accepted' ? 'signed' : 'pending',
-                    pages: 4,
-                  })
-                }
-                if (offers.length > 1) {
-                  docs.push({
-                    name: t('deal.doc_counter_offer', { by: offers[1].by_label }),
-                    status:
-                      offers[1].status === 'accepted' ? 'signed' : 'pending',
-                    pages: 3,
-                  })
-                }
-                if (kycStatus === 'verified') {
-                  docs.push({
-                    name: t('deal.doc_kyc_complete'),
-                    status: 'signed',
-                    pages: 6,
-                  })
-                }
-                if (deal.stage === 'notary' || deal.stage === 'signed') {
-                  docs.push({
-                    name: t('deal.doc_sale_agreement'),
-                    status:
-                      deal.stage === 'signed' ? 'signed' : 'missing',
-                    pages: null,
-                  })
-                }
+                      d.status === 'signed' || d.status === 'verified' || d.status === 'valid'
+                        ? 'signed'
+                        : d.status === 'missing'
+                          ? 'missing'
+                          : 'pending',
+                  }),
+                )
                 if (docs.length === 0) {
                   return (
                     <div
@@ -1030,7 +1006,6 @@ export default function DealDetailSugarV3Page() {
                                 }}
                               />
                               {toneItem.l}
-                              {d.pages && <> · {t('deal.doc_pages', { count: d.pages })}</>}
                             </div>
                           </div>
                         </div>

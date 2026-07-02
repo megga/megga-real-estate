@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MEGGA Mobile — Scanner pour tester</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  *{ box-sizing:border-box; margin:0; }
+  body{ font-family:"Manrope",system-ui,sans-serif; min-height:100vh;
+    background:radial-gradient(120% 90% at 50% 0%, #C8D5E0 0%, #DDE2EA 50%, #EDEFF3 100%) fixed;
+    display:flex; align-items:center; justify-content:center; padding:40px 20px; color:#0B0C0E; }
+  .card{ background:#fff; border-radius:28px; padding:38px 38px 30px; max-width:460px; width:100%;
+    box-shadow:0 40px 100px rgba(15,23,42,0.16), 0 8px 24px rgba(15,23,42,0.08); text-align:center; }
+  .eyebrow{ font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:#7A8088; }
+  h1{ font-size:26px; font-weight:800; letter-spacing:-0.8px; margin:10px 0 6px; }
+  p{ font-size:14.5px; line-height:1.55; color:#3A3D44; font-weight:500; }
+  #qr{ display:inline-flex; padding:18px; background:#fff; border-radius:18px; margin:26px 0 22px;
+    box-shadow:0 4px 16px rgba(15,23,42,0.06); }
+  #qr img, #qr canvas{ display:block; border-radius:6px; }
+  .steps{ text-align:left; display:grid; gap:12px; margin-top:8px; }
+  .step{ display:flex; gap:12px; align-items:flex-start; font-size:13.5px; color:#3A3D44; font-weight:600; line-height:1.5; }
+  .n{ width:22px; height:22px; border-radius:999px; background:#0B0C0E; color:#fff; font-size:12px; font-weight:800;
+    display:grid; place-items:center; flex-shrink:0; }
+  .note{ margin-top:22px; font-size:12px; color:#7A8088; font-weight:600; line-height:1.5; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="eyebrow">MEGGA CRM · Mobile</div>
+    <h1>Scanne pour tester</h1>
+    <p>Pointe l'appareil photo de ton téléphone sur le code.</p>
+    <div id="qr"></div>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><div>Ouvre l'<b>appareil photo</b> et vise le QR — touche la notification qui apparaît.</div></div>
+      <div class="step"><span class="n">2</span><div>La page s'ouvre dans <b>Safari / Chrome</b>.</div></div>
+      <div class="step"><span class="n">3</span><div>iOS : <b>Partager → Sur l'écran d'accueil</b> pour le vrai plein écran (safe-areas).</div></div>
+    </div>
+    <div class="note">Lien temporaire (~1h, quelques ouvertures). Demande-moi un nouveau code s'il a expiré.</div>
+  </div>
+
+  <script>
+    var URL = "https://019ddb25-9df7-7bba-82f2-48dd78fd9daf.claudeusercontent.com/v1/design/projects/019ddb25-9df7-7bba-82f2-48dd78fd9daf/serve/MEGGA%20CRM%20Mobile%20-%20Plein%20%C3%A9cran%20(autonome).html?t=e4e0f29362f34547e4c90eedd7d01551fa270672f26332ae2fc6f5d26acbc29d.ad93b2e0-3229-42f7-a91d-b7cb9b77649f.f10ae457-011f-495f-8e88-1e8b05270d0e.1782344950.fp&direct=1";
+    new QRCode(document.getElementById("qr"), {
+      text: URL, width: 300, height: 300,
+      colorDark: "#0B0C0E", colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.L
+    });
+  </script>
+</body>
+</html>

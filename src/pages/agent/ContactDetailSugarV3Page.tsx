@@ -31,9 +31,11 @@ import { CdKycCard } from '@/components/crm-sugar-v3/contact-detail/CdKycCard'
 import { CdTimelineCard } from '@/components/crm-sugar-v3/contact-detail/CdTimelineCard'
 import { CdNotesCard } from '@/components/crm-sugar-v3/contact-detail/CdNotesCard'
 import { CdDocsCard } from '@/components/crm-sugar-v3/contact-detail/CdDocsCard'
+import { CdSignatureCard } from '@/components/crm-sugar-v3/contact-detail/CdSignatureCard'
 import { CdCriteriaCard } from '@/components/crm-sugar-v3/contact-detail/CdCriteriaCard'
 import { CdWhatsAppCard } from '@/components/crm-sugar-v3/contact-detail/CdWhatsAppCard'
 import { CdConversationInsight } from '@/components/crm-sugar-v3/contact-detail/CdConversationInsight'
+import { CdFollowupSuggestions } from '@/components/crm-sugar-v3/contact-detail/CdFollowupSuggestions'
 import { useContact } from '@/hooks/useContacts'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import { useAuditEvents } from '@/hooks/useAuditLog'
@@ -209,6 +211,7 @@ export default function ContactDetailSugarV3Page() {
                 <CdNotesCard key={contact.id} contactId={contact.id} notes={contact.notes} />
                 <CdWhatsAppCard contactId={contact.id} />
                 <CdConversationInsight contactId={contact.id} />
+                <CdFollowupSuggestions contactId={contact.id} />
               </div>
 
               {/* COLONNE LATÉRALE */}
@@ -218,6 +221,7 @@ export default function ContactDetailSugarV3Page() {
                   <CdCriteriaCard criteria={contact.search_criteria} />
                 )}
                 <CdDocsCard docs={docs} />
+                <CdSignatureCard contact={contact} />
               </div>
             </div>
           </div>

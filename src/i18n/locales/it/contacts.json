@@ -207,8 +207,10 @@
       "result": {
         "importedCount_one": "{{count}} contact imported",
         "importedCount_other": "{{count}} contacts imported",
-        "skippedCount_one": "{{count}} skipped (duplicate or incomplete)",
-        "skippedCount_other": "{{count}} skipped (duplicates or incomplete)",
+        "skippedCount_one": "{{count}} skipped (incomplete)",
+        "skippedCount_other": "{{count}} skipped (incomplete)",
+        "duplicatesCount_one": "{{count}} duplicate skipped",
+        "duplicatesCount_other": "{{count}} duplicates skipped",
         "goToContacts": "View my contacts"
       }
     }
@@ -345,7 +347,17 @@
       "qualifyHint": "Insufficient data"
     },
     "contactInfo": "Contact details",
-    "openFullProfile": "Open full profile"
+    "openFullProfile": "Open full profile",
+    "signature": {
+      "title": "Electronic signature",
+      "description": "Upload a document (PDF) for {{name}} to sign. The signing link is sent by email or WhatsApp, validated by you.",
+      "thisContact": "this contact",
+      "send": "Send a document for signature",
+      "errPdfOnly": "Only PDF files are accepted.",
+      "errTooLarge": "PDF too large (max 20 MB).",
+      "errRead": "Unable to read the file.",
+      "defaultTitle": "Document to sign"
+    }
   },
   "timeline": {
     "stageChange": "Pipeline: {{from}} → {{to}}",
@@ -724,6 +736,11 @@
     "waSendError": "Sending failed. The 24-hour window may have expired.",
     "waSending": "Sending…",
     "waSend": "Send",
+    "waDeliverySent": "Sent",
+    "waDeliveryDelivered": "Delivered",
+    "waDeliveryRead": "Read",
+    "waDeliveryFailed": "not delivered",
+    "waDeliveryFailedTitle": "Delivery failed",
     "timelineTitle": "Activity",
     "timelineEyebrow": "Unified timeline",
     "timelineSummarize": "Summarize with MEGGA AI",
@@ -756,7 +773,14 @@
     "insightNextAction": "Suggested next action",
     "insightFooter_one": "AI estimate · {{count}} message analyzed · {{date}}",
     "insightFooter_other": "AI estimate · {{count}} messages analyzed · {{date}}",
-    "loading": "Loading contact…"
+    "loading": "Loading contact…",
+    "followupTitle": "Suggested follow-ups",
+    "followupAccept": "Create reminder",
+    "followupDismiss": "Dismiss",
+    "followupFooter": "MEGGA suggestions to accept or dismiss.",
+    "followupKind_commitment": "Commitment",
+    "followupKind_next_action": "Next action",
+    "followupKind_client_availability": "Client availability"
   },
   "ctKyc": {
     "title": "KYC / AML compliance",
@@ -828,5 +852,147 @@
     "addDetails": "+ Add details",
     "notesPlaceholder": "Context, remarks...",
     "create": "Create"
+  },
+  "mobile": {
+    "title": "Contatti",
+    "subtitle": "{{count}} su {{total}}",
+    "searchPlaceholder": "Nome, e-mail, telefono…",
+    "errorTitle": "Impossibile caricare i contatti",
+    "retry": "Riprova",
+    "emptyTitle": "Nessun contatto",
+    "emptyDesc": "Nessun contatto corrisponde. Modifica la ricerca o il filtro.",
+    "add": "Nuovo contatto",
+    "kycVerified": "KYC verificato",
+    "seg": {
+      "all": "Tutti",
+      "buyer": "Acquirenti",
+      "seller": "Venditori"
+    },
+    "type": {
+      "buyer": "Acquirente",
+      "seller": "Venditore",
+      "tenant": "Inquilino",
+      "landlord": "Locatore",
+      "mixed": "Misto"
+    },
+    "act": {
+      "open": "Vedi il contatto",
+      "call": "Chiama",
+      "email": "Invia un'e-mail"
+    },
+    "new": {
+      "title": "Nuovo contatto",
+      "identity": "Identità",
+      "firstName": "Nome",
+      "lastName": "Cognome",
+      "contact": "Recapiti",
+      "phone": "Telefono",
+      "phonePlaceholder": "+41 79 000 00 00",
+      "email": "E-mail",
+      "emailPlaceholder": "contact@email.ch",
+      "origin": "Origine",
+      "source": "Fonte",
+      "sources": {
+        "manual": "Inserimento manuale",
+        "website": "Sito web",
+        "referral": "Segnalazione"
+      },
+      "create": "Crea il contatto",
+      "creating": "Creazione…",
+      "error": "Creazione non riuscita. Riprova.",
+      "doneTitle": "Contatto creato",
+      "doneDesc": "{{name}} è stato aggiunto ai tuoi contatti.",
+      "openContact": "Apri la scheda"
+    },
+    "detail": {
+      "phone": "Telefono",
+      "email": "E-mail",
+      "tab": {
+        "overview": "Panoramica",
+        "activity": "Attività",
+        "matching": "Matching",
+        "docs": "Doc."
+      },
+      "source": {
+        "manual": "Manuale",
+        "website": "Sito web",
+        "referral": "Raccomandazione",
+        "onboarding": "Onboarding",
+        "csv": "Importazione CSV",
+        "call": "Chiamata in entrata",
+        "walk-in": "Visita agenzia",
+        "vcard": "vCard",
+        "ai": "Estrazione IA"
+      },
+      "kyc": {
+        "title": "Conformità KYC",
+        "lba": "Pratica LRD",
+        "compliant": "Pratica conforme",
+        "verify": "Verifica",
+        "progress": "{{done}}/{{total}} controlli",
+        "status": {
+          "none": "Da avviare",
+          "pending": "In corso",
+          "verified": "Verificato",
+          "stale": "Da rinnovare",
+          "failed": "Da rivedere"
+        }
+      },
+      "criteria": {
+        "eyebrow": "Matching IA",
+        "title": "Criteri di ricerca",
+        "buy": "Acquisto",
+        "rent": "Affitto",
+        "indispensable": "Indispensabile",
+        "refine": "Affina nel Matching",
+        "empty": "Nessun criterio di ricerca"
+      },
+      "infos": {
+        "title": "Informazioni",
+        "language": "Lingua",
+        "nationality": "Nazionalità",
+        "created": "Creato il",
+        "lastInteraction": "Ultima attività"
+      },
+      "timeline": {
+        "empty": "Nessuna attività per ora",
+        "by": "da {{name}}",
+        "cat": {
+          "created": "Creazione",
+          "call": "Chiamata",
+          "email": "E-mail",
+          "message": "Messaggio",
+          "visit": "Visita",
+          "document": "Documento",
+          "kyc": "KYC",
+          "match": "Matching",
+          "offer": "Offerta",
+          "stage": "Pipeline",
+          "note": "Nota",
+          "activity": "Attività"
+        }
+      },
+      "matching": {
+        "eyebrow": "Stima IA",
+        "title": "Immobili proposti",
+        "empty": "Nessun immobile proposto",
+        "emptyDesc": "Avvia il matching dall'area di lavoro per proporre immobili.",
+        "openAtelier": "Apri il matching",
+        "rooms": "{{n}} loc.",
+        "status": {
+          "suggested": "Suggerito",
+          "sent": "Inviato",
+          "visit_planned": "Visita prevista",
+          "interested": "Interessato",
+          "rejected": "Rifiutato",
+          "ignored": "Scartato"
+        }
+      },
+      "docs": {
+        "title": "Documenti",
+        "empty": "Nessun documento",
+        "emptyDesc": "I file aggiunti alla scheda appariranno qui."
+      }
+    }
   }
 }

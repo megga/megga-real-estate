@@ -22,12 +22,13 @@ interface AgencyTargetsRow {
   yearly_target: number | string | null
 }
 
-export function useAgencyTargets(): {
+export function useAgencyTargets(options?: { enabled?: boolean }): {
   targets: AgencyTargets
   isLoading: boolean
   saveYearly: (yearly: number) => Promise<void>
   isSaving: boolean
 } {
+  const enabled = options?.enabled ?? true
   const { profile } = useAuth()
   const agencyId = profile?.agency_id ?? null
   const queryClient = useQueryClient()
@@ -48,7 +49,7 @@ export function useAgencyTargets(): {
         yearly: Number(data?.yearly_target ?? 0),
       }
     },
-    enabled: !!agencyId,
+    enabled: enabled && !!agencyId,
     staleTime: 5 * 60_000,
   })
 

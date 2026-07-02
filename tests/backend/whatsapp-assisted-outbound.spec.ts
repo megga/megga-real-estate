@@ -62,3 +62,25 @@ describe('send_client_email — invariants sortie assistée', () => {
     expect(canLeaveConfirm('send_client_message')).toBe(false)
   })
 })
+
+describe('syndication portails — invariants (Phase 2)', () => {
+  // publish/withdraw modifient ce qui est publié À L'EXTÉRIEUR (portails) : même socle
+  // que les communications client → confirm, jamais auto. get_publication_status = lecture.
+
+  it("publish_to_portals / withdraw_from_portals / get_publication_status sont dans WHATSAPP_TOOLS", () => {
+    for (const name of ['publish_to_portals', 'withdraw_from_portals', 'get_publication_status']) {
+      expect(WHATSAPP_TOOLS.find(t => t.function.name === name), name).toBeDefined()
+    }
+  })
+
+  it("publish/withdraw sont confirm et ne quittent JAMAIS confirm", () => {
+    for (const name of ['publish_to_portals', 'withdraw_from_portals']) {
+      expect(toolTier(name)).toBe('confirm')
+      expect(canLeaveConfirm(name)).toBe(false)
+    }
+  })
+
+  it("get_publication_status est read (lecture seule)", () => {
+    expect(toolTier('get_publication_status')).toBe('read')
+  })
+})

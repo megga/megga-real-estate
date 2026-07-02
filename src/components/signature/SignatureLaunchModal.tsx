@@ -56,6 +56,8 @@ const QUALITIES: { id: SignatureQuality; label: string }[] = [
 const inputCls =
   'w-full h-9 rounded-lg border border-theme-border bg-theme-page px-3 text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-accent/20'
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export function SignatureLaunchModal({
   open,
   onClose,
@@ -85,9 +87,12 @@ export function SignatureLaunchModal({
   const [waState, setWaState] = useState<'idle' | 'sent' | 'failed'>('idle')
   const [copied, setCopied] = useState(false)
 
-  const firstPhone = signers[0]?.phone || contact?.phone || ''
+  // Premier signataire au mail VALIDE = celui que le provider traite en premier ;
+  // on aligne la cible WhatsApp dessus (sinon le lien pourrait partir au mauvais).
+  const firstValidSigner = signers.find((s) => EMAIL_RE.test((s.email ?? '').trim()))
+  const firstPhone = firstValidSigner?.phone || contact?.phone || ''
   const canWhatsApp = !!(contact?.id || firstPhone)
-  const validEmail = signers.some((s) => (s.email ?? '').includes('@'))
+  const validEmail = !!firstValidSigner
   const canSend = !!pdfBase64 && validEmail && hasActiveProvider && !isCreating
 
   function updateSigner(i: number, patch: Partial<SignatureLaunchSigner>) {
@@ -95,7 +100,7 @@ export function SignatureLaunchModal({
   }
 
   async function deliverWhatsApp(signingUrl: string) {
-    const name = signers[0]?.name?.trim() || ''
+    const name = firstValidSigner?.name?.trim() || ''
     const message =
       `Bonjour${name ? ' ' + name : ''}, votre document « ${defaultTitle} » est prêt à être signé.\n` +
       `Signez en toute sécurité ici : ${signingUrl}`
@@ -120,7 +125,7 @@ export function SignatureLaunchModal({
         legislation: 'ZERTES',
         notify: delivery === 'email', // WhatsApp → pas de notif email provider
         signers: signers
-          .filter((s) => (s.email ?? '').includes('@'))
+          .filter((s) => EMAIL_RE.test((s.email ?? '').trim()))
           .map((s, i) => ({
             email: (s.email ?? '').trim(),
             name: s.name?.trim() || undefined,
@@ -171,7 +176,7 @@ export function SignatureLaunchModal({
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={onClose}>Fermer</Button>
-            <Button onClick={() => navigate('/settings?tab=applications')}>
+            <Button onClick={() => navigate('/dashboard/settings?tab=integrations')}>
               Connecter Skribble
             </Button>
           </div>

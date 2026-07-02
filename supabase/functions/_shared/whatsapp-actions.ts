@@ -15,7 +15,8 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { mapCriteria, isSearchable, computeMissing, parseAmount, canonicalPropertyType, normalizeZone } from './whatsapp-lead.ts'
-import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, stripExactAddress, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
+import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, stripExactAddress, portalLabel, normalizePortal, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
+import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
 import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
@@ -590,11 +591,53 @@ function listingAmount(l: { transaction_type: string | null; price: number | nul
   return l.transaction_type === 'rent' ? (l.rent_chf ?? l.rent ?? l.price ?? 0) : (l.price ?? 0)
 }
 
-/** Recherche d'annonces (market_listings). Perf-safe : eq(status)+eq(transaction_type) sur
- *  index, tri quality_score (indexé, pas de sort full table). Renvoie le total ESTIMÉ
- *  (count: 'estimated', sans scan complet — conforme CLAUDE.md §7, jamais 'exact') reflétant
- *  les filtres et ignorant le .limit, plus un échantillon de 6 biens. Budget filtré EN SQL
- *  sur `price` (loyer réel des actifs rent ; rent/rent_chf sont NULL en base). */
+// Cantons suisses : code ISO + variantes de nom (FR/DE/IT, sans accents) → code 2 lettres.
+// Permet de filtrer une zone « canton » via `canton = code` (INDEXÉ : idx_ml_active_tx_canton_type)
+// au lieu d'un `canton ILIKE '%nom%'` plein-texte — inutile (canton = code 2 lettres) ET qui
+// empêchait le planificateur d'utiliser le trigram, forçant un scan de ~34k lignes (timeout 24/06).
+const CANTON_BY_NAME: Record<string, string> = {
+  ge: 'GE', geneve: 'GE', geneva: 'GE', genf: 'GE',
+  vd: 'VD', vaud: 'VD', waadt: 'VD',
+  vs: 'VS', valais: 'VS', wallis: 'VS', vallese: 'VS',
+  ne: 'NE', neuchatel: 'NE', neuenburg: 'NE',
+  fr: 'FR', fribourg: 'FR', freiburg: 'FR', friburgo: 'FR',
+  be: 'BE', berne: 'BE', bern: 'BE', berna: 'BE',
+  ju: 'JU', jura: 'JU',
+  bs: 'BS', baleville: 'BS', baselstadt: 'BS', bale: 'BS', basel: 'BS',
+  bl: 'BL', balecampagne: 'BL', basellandschaft: 'BL', baselland: 'BL',
+  ag: 'AG', argovie: 'AG', aargau: 'AG',
+  so: 'SO', soleure: 'SO', solothurn: 'SO',
+  zh: 'ZH', zurich: 'ZH',
+  lu: 'LU', lucerne: 'LU', luzern: 'LU',
+  zg: 'ZG', zoug: 'ZG', zug: 'ZG',
+  sz: 'SZ', schwytz: 'SZ', schwyz: 'SZ',
+  nw: 'NW', nidwald: 'NW', nidwalden: 'NW',
+  ow: 'OW', obwald: 'OW', obwalden: 'OW',
+  ur: 'UR', uri: 'UR',
+  gl: 'GL', glaris: 'GL', glarus: 'GL',
+  sh: 'SH', schaffhouse: 'SH', schaffhausen: 'SH',
+  tg: 'TG', thurgovie: 'TG', thurgau: 'TG',
+  ar: 'AR', appenzellrhodesexterieures: 'AR', appenzellausserrhoden: 'AR',
+  ai: 'AI', appenzellrhodesinterieures: 'AI', appenzellinnerrhoden: 'AI',
+  sg: 'SG', saintgall: 'SG', stgall: 'SG', stgallen: 'SG', sangallo: 'SG',
+  gr: 'GR', grisons: 'GR', graubunden: 'GR', grigioni: 'GR',
+  ti: 'TI', tessin: 'TI', ticino: 'TI',
+}
+
+/** Un libellé de zone est-il un CANTON ? Renvoie son code ISO 2 lettres, sinon null (= commune). */
+function zoneToCantonCode(zone: string): string | null {
+  const k = zone.toLowerCase()
+    .replace(/[àâäáã]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[îïíì]/g, 'i')
+    .replace(/[ôöóò]/g, 'o').replace(/[ûüúù]/g, 'u').replace(/ç/g, 'c')
+    .replace(/[^a-z]/g, '')
+  return CANTON_BY_NAME[k] ?? null
+}
+
+/** Recherche d'annonces (market_listings). Perf-safe (CLAUDE.md §7) : eq(status)+eq(transaction_type)
+ *  sur index, tri quality_score (indexé). Géo INDEXÉE : une zone reconnue comme canton → `canton IN`
+ *  (idx_ml_active_tx_canton_type) ; une commune → `city ILIKE` servi par le GIN trigram
+ *  idx_ml_city_trgm (sinon scan de ~34k lignes = timeout). Total via count:'estimated' (jamais
+ *  'exact'). Budget filtré EN SQL sur `price` (loyer réel des actifs rent ; rent/rent_chf NULL). */
 export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
   const txType = s(a.transaction_type) === 'buy' ? 'buy' : 'rent'
@@ -618,15 +661,33 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   // gonfleraient le total et sortiraient avec un montant null (préserve l'ancienne sémantique amt>0).
   if (budget && budget > 0) q = q.lte('price', budget).gt('price', 0)
 
-  // Zones : OR d'ilike sur city/canton (matche n'importe laquelle). Neutralise les
-  // caractères qui casseraient le filtre PostgREST .or(). Max 5 zones (anti-abus).
+  // Zones : on sépare les CANTONS (→ `canton IN`, indexé) des COMMUNES (→ `city ILIKE`, servi par
+  // le GIN trigram). On NE filtre JAMAIS par `canton ILIKE` : canton = code 2 lettres, un ILIKE y est
+  // inutile ET, dans un OR, il prive le planificateur du trigram → scan de ~34k lignes (timeout 24/06).
+  // Neutralise les caractères qui casseraient le filtre PostgREST .or(). Max 5 zones (anti-abus).
   let zones: string[] = []
   if (Array.isArray(a.zones)) zones = (a.zones as unknown[]).filter((z): z is string => typeof z === 'string' && z.trim().length > 0)
   else if (typeof a.zones === 'string' && a.zones.trim()) zones = a.zones.split(',').map((z) => z.trim()).filter(Boolean)
   const safeZones = zones.map((z) => normalizeZone(z).replace(/[,()%*]/g, ' ').trim()).filter(Boolean).slice(0, 5)
-  if (safeZones.length) {
-    q = q.or(safeZones.flatMap((z) => [`city.ilike.%${z}%`, `canton.ilike.%${z}%`]).join(','))
+  const cantonCodes: string[] = []
+  const cityTerms: string[] = []
+  for (const z of safeZones) {
+    const code = zoneToCantonCode(z)
+    if (code) { if (!cantonCodes.includes(code)) cantonCodes.push(code) }
+    else cityTerms.push(z)
   }
+  const cityOr = cityTerms.map((z) => `city.ilike.%${z}%`)
+  if (cantonCodes.length && cityOr.length) {
+    // union « l'une OU l'autre des zones », canton.in (indexé) bitmap-OR city.ilike (trigram)
+    q = q.or([`canton.in.(${cantonCodes.join(',')})`, ...cityOr].join(','))
+  } else if (cantonCodes.length) {
+    q = q.in('canton', cantonCodes)
+  } else if (cityOr.length === 1) {
+    q = q.ilike('city', `%${cityTerms[0]}%`)
+  } else if (cityOr.length) {
+    q = q.or(cityOr.join(','))
+  }
+  const hasGeo = cantonCodes.length > 0 || cityTerms.length > 0
 
   q = q.order('quality_score', { ascending: false, nullsFirst: false }).limit(24)
   const { data, count, error } = await q
@@ -641,7 +702,13 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   }))
   // total = count estimé (reflète les filtres, ignore le .limit) ; garde-fou : au moins l'échantillon affiché.
   const total = (typeof count === 'number' && count >= biens.length) ? count : biens.length
-  return JSON.stringify({ total, shown: biens.length, biens })
+  // Requête sans aucun critère restrictif (ni zone, ni type, ni budget, ni pièces) → nudge l'agent à affiner.
+  const noNarrowing = !hasGeo && !type && !(budget && budget > 0) && !(Number.isFinite(roomsMin) && roomsMin > 0)
+  const out: Record<string, unknown> = { total, shown: biens.length, biens }
+  if (noNarrowing && total > 200) {
+    out.astuce = "Recherche très large : propose à l'agent d'affiner (zone ou canton, budget, type de bien) pour une sélection plus pertinente."
+  }
+  return JSON.stringify(out)
 }
 
 /** État du dossier KYC d'un contact (lecture). KYC FACULTATIF : aucun dossier ≠ blocage. */
@@ -1305,7 +1372,7 @@ export async function prepareSendClientEmail(ctx: ActionCtx, a: Args): Promise<P
   const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
 
   // Mimétisme de voix : vrais messages clients récents de l'agence (few-shot). Vide si < 2.
-  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId)
+  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId, { profileId: ctx.profileId })
   const voiceBlock = formatVoiceExamples(voiceSamples, lang === 'en' ? 'en' : 'fr')
 
   // 4. Appel DeepSeek (JSON mode) pour rédiger le brouillon.
@@ -1855,7 +1922,7 @@ export async function execDraftListingCopy(ctx: ActionCtx, a: Args): Promise<str
     .eq('agent_id', ctx.profileId)
     .maybeSingle()
   const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
-  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId)
+  const voiceSamples = await fetchClientVoiceSamples(ctx.supabase, ctx.agencyId, { profileId: ctx.profileId })
   const voiceBlock = formatVoiceExamples(voiceSamples, lang === 'en' ? 'en' : 'fr')
 
   const confidentialClause = variant === 'confidential'
@@ -2381,4 +2448,663 @@ export async function execFileDocument(ctx: ActionCtx, a: Args): Promise<string>
   return lang === 'en'
     ? `Filed under ${name}'s timeline.\n\n${r.digest}\n\n(AI read — please check it in the CRM.)${truncNote}`
     : `Classé dans la fiche de ${name}.\n\n${r.digest}\n\n(Lecture IA — vérifie dans le CRM.)${truncNote}`
+}
+
+// ── Syndication portails (Phase 2) ──────────────────────────────────────────
+// publish_to_portals / withdraw_from_portals (tier confirm) + get_publication_status
+// (read). Modèle « feed » : on inscrit/retire un bien du feed IDX de l'agence
+// (table property_syndications) ; immobilier.ch va chercher le feed et importe.
+// Préflight = mêmes règles que le sérialiseur (validateIdxProperty) + garde-fou
+// compliance MANDAT SIGNÉ : on ne syndique jamais un bien sans mandat.
+
+const VALID_PORTALS = new Set(['immobilier_ch'])
+const DEFAULT_PORTAL = 'immobilier_ch'
+
+// Statuts hors-marché (impubliables) → libellé FR. draft/active sont publiables
+// (publier active un brouillon, comme le wizard).
+const OFFMARKET_LABEL_FR: Record<string, string> = { reserved: 'réservé', sold: 'vendu', archived: 'archivé' }
+
+const SYND_FIELDS =
+  'id, title, type, status, transaction_type, price, currency, charges_monthly, rooms, ' +
+  'surface_m2, description, address, postal_code, city, photos, deleted_at'
+type SyndPropertyRow = {
+  id: string; title: string | null; type: string | null; status: string | null
+  transaction_type: string | null; price: number | string | null
+  currency: string | null; charges_monthly: number | string | null
+  rooms: number | string | null; surface_m2: number | string | null; description: string | null
+  address: string | null; postal_code: string | null; city: string | null
+  photos: string[] | null; deleted_at: string | null
+}
+
+type PropLookup =
+  | { kind: 'one'; property: SyndPropertyRow }
+  | { kind: 'none' }
+  | { kind: 'many'; labels: string }
+  | { kind: 'error' }
+
+/** Résout UN bien des mandats de l'agence par requête libre (titre/adresse), scopé
+ *  agency_id + non supprimé. Même filtre ilike que draft_listing_copy (échappe %,()). */
+async function lookupAgencyProperty(ctx: ActionCtx, query: string, lang: WaLang): Promise<PropLookup> {
+  const term = query.slice(0, 80).replace(/[%,()]/g, ' ').trim()
+  if (!term) return { kind: 'none' }
+  const { data, error } = await ctx.supabase.from('properties')
+    .select(SYND_FIELDS)
+    .eq('agency_id', ctx.agencyId)
+    .is('deleted_at', null)
+    .or(`title.ilike.%${term}%,address.ilike.%${term}%`)
+    .limit(5)
+  if (error) {
+    console.error('syndication property lookup', error.code ?? 'unknown')
+    return { kind: 'error' }
+  }
+  const rows = (data ?? []) as unknown as SyndPropertyRow[]
+  if (rows.length === 0) return { kind: 'none' }
+  if (rows.length >= 2) {
+    const labels = rows
+      .map((p) => `- ${p.title ?? (lang === 'en' ? 'Untitled' : 'Sans titre')}${p.city ? ` (${p.city})` : ''}`)
+      .join('\n')
+    return { kind: 'many', labels }
+  }
+  return { kind: 'one', property: rows[0] }
+}
+
+function toIdxInput(p: SyndPropertyRow): IdxProperty {
+  return {
+    id: p.id, type: p.type, transactionType: p.transaction_type, title: p.title,
+    price: toNum(p.price), address: p.address, postalCode: p.postal_code, city: p.city,
+    photos: p.photos ?? [],
+  }
+}
+
+// Libellés FR/EN de type de bien pour l'aperçu (déterministe).
+const PUBLISH_TYPE_LABEL: Record<string, { fr: string; en: string }> = {
+  apartment: { fr: 'Appartement', en: 'Apartment' },
+  house: { fr: 'Maison', en: 'House' },
+  villa: { fr: 'Villa', en: 'Villa' },
+  commercial: { fr: 'Commercial', en: 'Commercial' },
+  land: { fr: 'Terrain', en: 'Land' },
+}
+
+/** Aperçu DÉTERMINISTE de l'annonce telle qu'elle partira au portail (vraies
+ *  données du bien, aucun appel IA). L'agent valide le CONTENU, pas juste l'action. */
+function buildPublishPreview(p: SyndPropertyRow, lang: WaLang): string {
+  const en = lang === 'en'
+  const lines: string[] = []
+  lines.push(`« ${p.title ?? (en ? 'Untitled' : 'Sans titre')} »`)
+
+  const typeLabel = p.type ? (PUBLISH_TYPE_LABEL[p.type.toLowerCase()] ?? { fr: p.type, en: p.type }) : null
+  const isRent = (p.transaction_type ?? 'buy') === 'rent'
+  const txn = isRent ? (en ? 'Rent' : 'Location') : (en ? 'Sale' : 'Vente')
+  const price = toNum(p.price)
+  const charges = toNum(p.charges_monthly)
+  const cur = (p.currency ?? 'CHF').toString().toUpperCase()
+  let priceStr = ''
+  if (price != null && price > 0) {
+    priceStr = cur === 'CHF' ? (isRent ? `${fmtCHF(price)}${en ? '/mo' : '/mois'}` : fmtCHF(price)) : `${cur} ${Math.round(price)}`
+    if (isRent && charges != null && charges > 0) priceStr += en ? ` (+ ${fmtCHF(charges)} charges)` : ` (+ ${fmtCHF(charges)} charges)`
+  }
+  lines.push([typeLabel ? (en ? typeLabel.en : typeLabel.fr) : null, txn, priceStr || null].filter(Boolean).join(' · '))
+
+  const rooms = toNum(p.rooms)
+  const surface = toNum(p.surface_m2)
+  const place = [p.postal_code, p.city].filter(Boolean).join(' ')
+  const geo = [
+    rooms != null ? `${rooms}${en ? ' rooms' : ' pièces'}` : null,
+    surface != null ? `${Math.round(surface)} m²` : null,
+    place || null,
+  ].filter(Boolean).join(' · ')
+  if (geo) lines.push(geo)
+
+  const photoCount = (p.photos ?? []).filter((u) => typeof u === 'string' && u.trim() !== '').length
+  lines.push(`${photoCount} photo${photoCount > 1 ? 's' : ''}`)
+
+  const desc = (p.description ?? '').trim()
+  if (desc) lines.push(desc.length > 160 ? desc.slice(0, 160).trimEnd() + '…' : desc)
+
+  return lines.join('\n')
+}
+
+/** Libellés humains des champs manquants au préflight IDX. */
+const MISSING_LABELS: Record<string, { fr: string; en: string }> = {
+  type: { fr: 'le type de bien', en: 'property type' },
+  transaction_type: { fr: 'vente ou location', en: 'sale or rent' },
+  title: { fr: 'un titre', en: 'a title' },
+  price: { fr: 'le prix', en: 'the price' },
+  address: { fr: "l'adresse", en: 'the address' },
+  postal_code: { fr: 'le NPA', en: 'the postal code' },
+  city: { fr: 'la localité', en: 'the city' },
+  photos: { fr: 'au moins une photo', en: 'at least one photo' },
+}
+
+/** Portails demandés (normalisés + filtrés au catalogue supporté). Défaut immobilier.ch. */
+function parsePortals(a: Args, fallback: string[] = [DEFAULT_PORTAL]): string[] {
+  const raw = Array.isArray(a.portals) ? a.portals.filter((x): x is string => typeof x === 'string') : []
+  const cleaned = raw.map(normalizePortal).filter((p) => VALID_PORTALS.has(p))
+  return cleaned.length ? Array.from(new Set(cleaned)) : fallback
+}
+
+/** Confirm-tier : valide que le bien est actif + données IDX complètes (le MANDAT
+ *  n'est PAS requis — optionnel, jamais bloquant, cf. KYC), puis construit l'APERÇU
+ *  de l'annonce + le prompt de confirmation. */
+export async function preparePublishToPortals(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const query = s(a.query)
+  if (!query) return { ok: false, error: lang === 'en' ? 'Which property should I publish?' : 'Quel bien veux-tu publier ?' }
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return { ok: false, error: lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.' }
+  if (found.kind === 'none') return { ok: false, error: lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.' }
+  if (found.kind === 'many') return { ok: false, error: (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels }
+  const p = found.property
+  const portals = parsePortals(a)
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // Statut : on accepte un BROUILLON (publier l'activera, comme le wizard) ou un
+  // bien actif. On refuse seulement hors-marché (réservé/vendu/archivé). Le MANDAT
+  // n'est PAS contrôlé : optionnel, jamais bloquant (comme le KYC).
+  const offmarket = OFFMARKET_LABEL_FR[p.status ?? '']
+  if (offmarket) {
+    return { ok: false, error: lang === 'en'
+      ? `"${title}" is ${p.status} — can't publish it.`
+      : `« ${title} » est ${offmarket} — impossible de le publier.` }
+  }
+  // Préflight données IDX (validité d'annonce, pas de la compliance) : sans ces
+  // champs on ne peut pas produire un enregistrement IDX valide.
+  const missing = validateIdxProperty(toIdxInput(p))
+  if (missing.length) {
+    const human = missing.map((k) => (lang === 'en' ? MISSING_LABELS[k]?.en : MISSING_LABELS[k]?.fr) ?? k)
+    return { ok: false, error: lang === 'en'
+      ? `Before publishing "${title}", it's missing: ${human.join(', ')}.`
+      : `Avant de publier « ${title} », il manque : ${human.join(', ')}.` }
+  }
+
+  // Aperçu de l'annonce (contenu réel) dans le confirm → l'agent valide ce qui part.
+  const names = portals.map(portalLabel).join(', ')
+  const preview = buildPublishPreview(p, lang)
+  const prompt = lang === 'en'
+    ? `${preview}\n\nPublish this on ${names}? ("yes" / "no")`
+    : `${preview}\n\nJe publie ça sur ${names} ? (« oui » / « non »)`
+  return { ok: true, prompt, payload: { property_id: p.id, portals, title } }
+}
+
+// Déclenche le push FTP du feed tout de suite (au lieu d'attendre le cron 05h30).
+// idx-syndicate ACK vite (202) puis bosse en arrière-plan ; no-op tant que le FTP
+// n'est pas configuré. Best-effort : toute erreur est avalée (le cron rattrape).
+async function triggerImmediateSyndication(agencyId: string): Promise<void> {
+  const url = Deno.env.get('SUPABASE_URL')
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!url || !key) return
+  try {
+    await fetch(`${url}/functions/v1/idx-syndicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ agency_id: agencyId }),
+      signal: AbortSignal.timeout(4000),
+    })
+  } catch { /* best-effort */ }
+}
+
+/** Si le bien est actuellement publié sur un portail (queued/published), redéploie
+ *  le feed tout de suite pour refléter une modif (photo, prix…). Renvoie true si un
+ *  push a été lancé — sinon (bien non syndiqué) ne fait rien. */
+async function maybeRepushOnChange(ctx: ActionCtx, propertyId: string): Promise<boolean> {
+  if (!ctx.agencyId) return false
+  const { data } = await ctx.supabase.from('property_syndications')
+    .select('id').eq('property_id', propertyId).eq('agency_id', ctx.agencyId)
+    .in('status', ['queued', 'published']).limit(1)
+  if (!Array.isArray(data) || data.length === 0) return false
+  await triggerImmediateSyndication(ctx.agencyId)
+  return true
+}
+
+/** Post-« oui » : inscrit le bien au feed (upsert property_syndications status='queued')
+ *  puis déclenche le push immédiat. */
+export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const propertyId = s(payload.property_id)
+  const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
+  if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing published.' : 'Action incomplète, rien n’a été publié.'
+
+  // Re-garde (défense en profondeur) : bien de l'agence, actif. PAS de mandat
+  // (optionnel, jamais bloquant).
+  const { data: prop } = await ctx.supabase.from('properties')
+    .select('id, title, status')
+    .eq('id', propertyId).eq('agency_id', ctx.agencyId).is('deleted_at', null).maybeSingle()
+  if (!prop) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
+  if (OFFMARKET_LABEL_FR[prop.status ?? '']) {
+    return lang === 'en' ? 'Property is off-market (reserved/sold/archived), nothing published.' : 'Bien hors marché (réservé/vendu/archivé), rien publié.'
+  }
+
+  const nowIso = new Date().toISOString()
+  const rows = portals.map((portal) => ({
+    property_id: propertyId, agency_id: ctx.agencyId, portal, status: 'queued', error: null, updated_at: nowIso,
+  }))
+  const { error } = await ctx.supabase.from('property_syndications').upsert(rows, { onConflict: 'property_id,portal' })
+  if (error) return (lang === 'en' ? 'Error publishing: ' : 'Erreur publication: ') + error.message
+
+  // Publier ACTIVE un brouillon (draft → active), comme le wizard. published_at est
+  // posé par le trigger set_property_published_at au 1er passage en active.
+  if (prop.status === 'draft') {
+    await ctx.supabase.from('properties')
+      .update({ status: 'active', updated_at: nowIso })
+      .eq('id', propertyId).eq('agency_id', ctx.agencyId)
+  }
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_published_to_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
+    })
+  } catch { /* non bloquant */ }
+
+  // Livraison immédiate : déclenche le push du feed (no-op tant que FTP non
+  // configuré), au lieu d'attendre le cron. Best-effort, ne bloque pas la réponse.
+  if (ctx.agencyId) await triggerImmediateSyndication(ctx.agencyId)
+
+  const names = portals.map(portalLabel).join(', ')
+  const title = s(payload.title) ?? prop.title ?? (lang === 'en' ? 'the property' : 'le bien')
+  return lang === 'en'
+    ? `"${title}" published on ${names} — it goes to the portal at the next feed deposit.`
+    : `« ${title} » publié sur ${names} — il part au portail au prochain dépôt du feed.`
+}
+
+/** Confirm-tier : retire un bien des portails où il est actuellement publié. */
+export async function prepareWithdrawFromPortals(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const query = s(a.query)
+  if (!query) return { ok: false, error: lang === 'en' ? 'Which property should I withdraw?' : 'Quel bien veux-tu retirer ?' }
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return { ok: false, error: lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.' }
+  if (found.kind === 'none') return { ok: false, error: lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.' }
+  if (found.kind === 'many') return { ok: false, error: (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels }
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // Portails où le bien est actuellement actif (queued/published).
+  const { data: synd } = await ctx.supabase.from('property_syndications')
+    .select('portal, status').eq('property_id', p.id).eq('agency_id', ctx.agencyId).in('status', ['queued', 'published'])
+  const active = (synd ?? []).map((r) => r.portal as string)
+  const requested = Array.isArray(a.portals) && a.portals.length ? parsePortals(a, active) : active
+  const targets = requested.filter((portal) => active.includes(portal))
+  if (targets.length === 0) {
+    return { ok: false, error: lang === 'en' ? `"${title}" isn't published on any portal.` : `« ${title} » n’est sur aucun portail.` }
+  }
+
+  const names = targets.map(portalLabel).join(', ')
+  const prompt = lang === 'en'
+    ? `I'll withdraw "${title}" from ${names}. Confirm? ("yes" / "no")`
+    : `Je retire « ${title} » de ${names}. Tu confirmes ? (« oui » / « non »)`
+  return { ok: true, prompt, payload: { property_id: p.id, portals: targets, title } }
+}
+
+/** Post-« oui » : passe les lignes ciblées en status='withdrawn' (sortent du feed). */
+export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const propertyId = s(payload.property_id)
+  const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
+  if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing withdrawn.' : 'Action incomplète, rien n’a été retiré.'
+
+  const { error } = await ctx.supabase.from('property_syndications')
+    .update({ status: 'withdrawn', updated_at: new Date().toISOString() })
+    .eq('property_id', propertyId).eq('agency_id', ctx.agencyId).in('portal', portals).in('status', ['queued', 'published'])
+  if (error) return (lang === 'en' ? 'Error withdrawing: ' : 'Erreur retrait: ') + error.message
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_withdrawn_from_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
+    })
+  } catch { /* non bloquant */ }
+
+  const names = portals.map(portalLabel).join(', ')
+  const title = s(payload.title) ?? (lang === 'en' ? 'the property' : 'le bien')
+  return lang === 'en'
+    ? `"${title}" withdrawn from ${names} — it drops off at the portal's next import.`
+    : `« ${title} » retiré de ${names} — il disparaîtra au prochain import du portail.`
+}
+
+/** Read-tier : sur quels portails un bien est publié + état (en ligne / en file). */
+export async function execGetPublicationStatus(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const query = s(a.query)
+  if (!query) return lang === 'en' ? 'Which property?' : 'Quel bien ?'
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.'
+  if (found.kind === 'none') return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.'
+  if (found.kind === 'many') return (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  const { data: synd, error } = await ctx.supabase.from('property_syndications')
+    .select('portal, status').eq('property_id', p.id).eq('agency_id', ctx.agencyId)
+  if (error) return lang === 'en' ? "I couldn't read the publication status." : 'Je n’ai pas pu lire le statut de publication.'
+
+  const live = (synd ?? []).filter((r) => r.status === 'queued' || r.status === 'published')
+  if (live.length === 0) {
+    return lang === 'en' ? `"${title}" isn't on any portal.` : `« ${title} » n’est sur aucun portail.`
+  }
+  const lines = live.map((r) => {
+    const name = portalLabel(r.portal as string)
+    const st = r.status === 'published'
+      ? (lang === 'en' ? 'live' : 'en ligne')
+      : (lang === 'en' ? 'queued (next import)' : 'en file (prochain import)')
+    return `- ${name} : ${st}`
+  }).join('\n')
+  return (lang === 'en' ? `"${title}" — publication:\n` : `« ${title} » — publication :\n`) + lines
+}
+
+// ── Photos de bien par WhatsApp : attach_property_photos (tier auto) ──────────
+// L'agent envoie une photo (1 par message) → on la met sur la galerie du bien.
+// Réutilise le pipeline R2 : stage dans le bucket public property-photos →
+// photo-processor (service role, 3 variantes JPEG → R2) → append atomique.
+
+const MAX_PHOTO_BYTES = 15 * 1024 * 1024
+
+/** Hash déterministe (djb2 → base36), comme property-photo-r2 (keyPrefix idempotent). */
+function hash36(str: string): string {
+  let h = 5381
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0
+  return h.toString(36)
+}
+
+export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  if (!ctx.inboundMedia) {
+    return lang === 'en'
+      ? "I don't see a photo in this message. Send the photo with the property name."
+      : 'Je ne vois pas de photo dans ce message. Envoie la photo avec le nom du bien.'
+  }
+  const query = s(a.query)
+  if (!query) return lang === 'en' ? 'Which property are these photos for?' : 'Ces photos sont pour quel bien ?'
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.'
+  if (found.kind === 'none') return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.'
+  if (found.kind === 'many') return (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // 1. Récupère les bytes de l'image (lien Meta éphémère).
+  let bytes: Uint8Array, mime: string | null
+  try {
+    const media = await fetchMetaMedia(ctx.inboundMedia.mediaId, {
+      metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
+      apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+    })
+    bytes = media.bytes; mime = media.mime
+  } catch {
+    return lang === 'en' ? "I couldn't fetch the photo (Meta link expired?). Resend it." : 'Je n’ai pas pu récupérer la photo (lien Meta expiré ?). Renvoie-la.'
+  }
+
+  // 2. Valide : image uniquement + taille.
+  if (!mime || !mime.startsWith('image/')) {
+    return lang === 'en' ? "That file isn't a photo (image only)." : "Ce fichier n'est pas une photo (image uniquement)."
+  }
+  if (bytes.byteLength <= 0 || bytes.byteLength > MAX_PHOTO_BYTES) {
+    return lang === 'en' ? 'The photo is too large (15 MB max).' : 'La photo est trop lourde (15 Mo max).'
+  }
+
+  // 3. Stage dans le bucket PUBLIC property-photos (photo-processor fetchera l'URL ;
+  //    le lien Meta direct exige l'auth Meta, donc on passe par le staging public).
+  const baseUrl = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '')
+  const serviceKey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
+  if (!baseUrl || !serviceKey) return lang === 'en' ? 'Photo pipeline not configured.' : 'Pipeline photo non configuré.'
+  const ext = extFromMime(mime)
+  // Assainit le message-id avant de l'utiliser comme clé de stockage : défense en
+  // profondeur contre une injection de clé d'objet (les ids WhatsApp sont sûrs en
+  // pratique, mais on ne fait pas confiance à une valeur entrante).
+  const safeMsgId = ctx.inboundMedia.messageId.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 128)
+  const stagePath = `wa/${ctx.agencyId}/${p.id}/${safeMsgId}.${ext}`
+  const { error: upErr } = await ctx.supabase.storage
+    .from('property-photos')
+    .upload(stagePath, bytes, { contentType: mime, upsert: true })
+  if (upErr) return (lang === 'en' ? 'Photo storage error: ' : 'Erreur de stockage de la photo: ') + upErr.message
+  const stageUrl = `${baseUrl}/storage/v1/object/public/property-photos/${stagePath}`
+
+  // 4. Mirror R2 via photo-processor (service role) ; keyPrefix dérivé server-side.
+  const keyPrefix = `properties/${p.id.toLowerCase()}/photos/${hash36(stageUrl)}`
+  let r2Url: string | null = null
+  try {
+    const res = await fetch(`${baseUrl}/functions/v1/photo-processor`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId: p.id, photoUrls: [stageUrl], keyPrefix }),
+      signal: AbortSignal.timeout(30000),
+    })
+    const j = (await res.json()) as { success?: boolean; photos_cf?: Array<{ detail?: string; hero?: string; thumb?: string }> }
+    const v = j.photos_cf?.[0]
+    r2Url = v ? (v.detail ?? v.hero ?? v.thumb ?? null) : null
+  } catch { /* géré ci-dessous */ }
+
+  // Nettoie le staging (best-effort, évite les orphelins).
+  await ctx.supabase.storage.from('property-photos').remove([stagePath]).then(() => {}, () => {})
+
+  if (!r2Url) {
+    return lang === 'en' ? "I couldn't process that photo — try another one." : 'Je n’ai pas pu traiter cette photo — essaie-en une autre.'
+  }
+
+  // 5. Append ATOMIQUE (RPC) — robuste à une rafale de photos en parallèle.
+  const { data: count, error: rpcErr } = await ctx.supabase.rpc('append_property_photo', {
+    p_property_id: p.id, p_agency_id: ctx.agencyId, p_url: r2Url,
+  })
+  if (rpcErr) return (lang === 'en' ? 'Error saving the photo: ' : 'Erreur enregistrement de la photo: ') + rpcErr.message
+  if (count == null) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
+
+  // 6. Audit.
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_photo_added', entity_type: 'property', entity_id: p.id, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId },
+    })
+  } catch { /* non bloquant */ }
+
+  const n = typeof count === 'number' ? count : 0
+  const live = await maybeRepushOnChange(ctx, p.id)
+  const suffix = live ? (lang === 'en' ? ' Portal updated.' : ' Le portail est mis à jour.') : ''
+  return lang === 'en'
+    ? `Photo added to "${title}" (${n} photo${n > 1 ? 's' : ''} now).${suffix}`
+    : `Photo ajoutée à « ${title} » (${n} photo${n > 1 ? 's' : ''} maintenant).${suffix}`
+}
+
+// ── Compléter / corriger un bien par WhatsApp : update_property (tier auto) ───
+// Met à jour SEULEMENT les champs explicitement donnés par l'agent (jamais
+// d'invention). Sert à finir une annonce avant publication, ou corriger une info.
+
+// Map stricte vers l'enum property_type (apartment|house|villa|commercial|land).
+// canonicalPropertyType (recherche) renvoie un vocabulaire plus large → inutilisable ici.
+const PROPERTY_TYPE_ENUM_MAP: Record<string, string> = {
+  appartement: 'apartment', appart: 'apartment', apartment: 'apartment', flat: 'apartment',
+  studio: 'apartment', loft: 'apartment', duplex: 'apartment', attique: 'apartment', pph: 'apartment',
+  maison: 'house', house: 'house', individuelle: 'house', mitoyenne: 'house', chalet: 'house',
+  villa: 'villa',
+  terrain: 'land', land: 'land', parcelle: 'land',
+  commercial: 'commercial', commerce: 'commercial', bureau: 'commercial', bureaux: 'commercial',
+  local: 'commercial', office: 'commercial', dépôt: 'commercial', depot: 'commercial', arcade: 'commercial',
+}
+
+interface CollectedPropertyFields { fields: Record<string, unknown>; applied: string[]; notes: string[] }
+
+/** Coercion PARTAGÉE (create_property + update_property) : args libres → colonnes
+ *  properties. Ne pose QUE les champs donnés explicitement (anti-fabrication). */
+function collectPropertyFields(a: Args, lang: WaLang): CollectedPropertyFields {
+  const fields: Record<string, unknown> = {}
+  const applied: string[] = []
+  const notes: string[] = []
+
+  const pushText = (col: string, argKey: string, label: string, max: number) => {
+    const v = s(a[argKey])
+    if (!v) return
+    const val = v.slice(0, max)
+    fields[col] = val
+    applied.push(`${label} ${val}`)
+  }
+  pushText('title', 'title', lang === 'en' ? 'title' : 'titre', 200)
+  pushText('address', 'address', lang === 'en' ? 'address' : 'adresse', 300)
+  pushText('city', 'city', lang === 'en' ? 'city' : 'localité', 120)
+  pushText('canton', 'canton', 'canton', 40)
+  pushText('description', 'description', 'description', 4000)
+
+  const npa = s(a.postal_code)
+  if (npa) {
+    const val = npa.slice(0, 12)
+    fields.postal_code = val
+    applied.push(`${lang === 'en' ? 'postal code' : 'NPA'} ${val}`)
+  }
+
+  if (a.property_type != null) {
+    const mapped = PROPERTY_TYPE_ENUM_MAP[String(a.property_type).toLowerCase().trim()]
+    if (mapped) { fields.type = mapped; applied.push(`type ${mapped}`) }
+    else notes.push(lang === 'en'
+      ? `(type "${a.property_type}" not recognized)`
+      : `(type « ${a.property_type} » non reconnu : appartement/maison/villa/terrain/commercial)`)
+  }
+
+  if (a.transaction_type != null) {
+    const t = String(a.transaction_type).toLowerCase().trim()
+    const tt = ['rent', 'location', 'louer', 'à louer', 'a louer'].includes(t) ? 'rent'
+      : ['buy', 'sale', 'vente', 'achat', 'vendre', 'à vendre', 'a vendre'].includes(t) ? 'buy' : null
+    if (tt) { fields.transaction_type = tt; applied.push(tt === 'rent' ? (lang === 'en' ? 'for rent' : 'à louer') : (lang === 'en' ? 'for sale' : 'à vendre')) }
+    else notes.push(lang === 'en'
+      ? `(transaction "${a.transaction_type}" not recognized)`
+      : `(transaction « ${a.transaction_type} » non reconnue : vente ou location)`)
+  }
+
+  const price = parseAmount(a.price)
+  if (price != null && price > 0) { fields.price = price; applied.push(`${lang === 'en' ? 'price' : 'prix'} ${fmtCHF(price)}`) }
+  const charges = parseAmount(a.charges_monthly)
+  if (charges != null && charges >= 0) { fields.charges_monthly = charges; applied.push(`${lang === 'en' ? 'charges' : 'charges'} ${fmtCHF(charges)}`) }
+
+  const rooms = toNum(a.rooms)
+  if (rooms != null && rooms > 0) { fields.rooms = rooms; applied.push(`${rooms} ${lang === 'en' ? 'rooms' : 'pièces'}`) }
+  const surface = toNum(a.surface_m2)
+  if (surface != null && surface > 0) { fields.surface_m2 = Math.round(surface * 100) / 100; applied.push(`${Math.round(surface)} m²`) }
+  const yb = toNum(a.year_built)
+  if (yb != null && yb > 1000 && yb < 2100) { fields.year_built = Math.round(yb); applied.push(`${lang === 'en' ? 'year' : 'année'} ${Math.round(yb)}`) }
+
+  return { fields, applied, notes }
+}
+
+const PROPERTY_TYPE_TITLE: Record<string, { fr: string; en: string }> = {
+  apartment: { fr: 'Appartement', en: 'Apartment' },
+  house: { fr: 'Maison', en: 'House' },
+  villa: { fr: 'Villa', en: 'Villa' },
+  commercial: { fr: 'Local commercial', en: 'Commercial space' },
+  land: { fr: 'Terrain', en: 'Land' },
+}
+
+/** Titre synthétisé depuis les champs donnés (type / pièces / localité) — composé
+ *  de vraies entrées de l'agent, jamais inventé. Null si rien d'exploitable. */
+function synthesizeTitle(fields: Record<string, unknown>, lang: WaLang): string | null {
+  const parts: string[] = []
+  const t = typeof fields.type === 'string' ? PROPERTY_TYPE_TITLE[fields.type] : null
+  if (t) parts.push(lang === 'en' ? t.en : t.fr)
+  if (typeof fields.rooms === 'number') parts.push(`${fields.rooms} ${lang === 'en' ? 'rooms' : 'pièces'}`)
+  const head = parts.join(' ')
+  const city = typeof fields.city === 'string' ? fields.city : ''
+  if (head && city) return `${head} — ${city}`
+  return head || city || null
+}
+
+export async function execUpdateProperty(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const query = s(a.query)
+  if (!query) return lang === 'en' ? 'Which property should I update?' : 'Quel bien veux-tu compléter ?'
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.'
+  if (found.kind === 'none') return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.'
+  if (found.kind === 'many') return (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  const { fields: patch, applied, notes } = collectPropertyFields(a, lang)
+
+  if (Object.keys(patch).length === 0) {
+    if (notes.length) return notes.join(' ')
+    return lang === 'en' ? 'Tell me which field to update (price, postal code, surface…).' : 'Dis-moi quel champ compléter (prix, NPA, surface…).'
+  }
+
+  patch.updated_at = new Date().toISOString()
+  const { error } = await ctx.supabase.from('properties')
+    .update(patch).eq('id', p.id).eq('agency_id', ctx.agencyId).is('deleted_at', null)
+  if (error) return (lang === 'en' ? 'Update error: ' : 'Erreur mise à jour: ') + error.message
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_updated', entity_type: 'property', entity_id: p.id, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(patch).filter((k) => k !== 'updated_at') },
+    })
+  } catch { /* non bloquant */ }
+
+  const changed = applied.join(', ')
+  const note = notes.length ? ' ' + notes.join(' ') : ''
+  const live = await maybeRepushOnChange(ctx, p.id)
+  const suffix = live ? (lang === 'en' ? ' Portal updated.' : ' Je mets le portail à jour.') : ''
+  return lang === 'en'
+    ? `Updated "${title}": ${changed}.${note}${suffix}`
+    : `C'est noté pour « ${title} » : ${changed}.${note}${suffix}`
+}
+
+// ── Créer un bien de zéro par WhatsApp : create_property (tier auto) ──────────
+// Crée un BROUILLON depuis ce que l'agent dicte. Le titre est synthétisé des
+// champs donnés s'il n'est pas fourni. Publier l'activera ensuite (draft → active).
+export async function execCreateProperty(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+
+  const { fields, applied, notes } = collectPropertyFields(a, lang)
+
+  // Titre : explicite, sinon synthétisé (type/pièces/localité). Sans rien → on demande.
+  if (!fields.title) {
+    const synth = synthesizeTitle(fields, lang)
+    if (synth) fields.title = synth
+  }
+  if (!fields.title) {
+    const head = notes.length ? notes.join(' ') + ' ' : ''
+    return head + (lang === 'en'
+      ? 'Give me at least a title, or the type and city.'
+      : 'Donne-moi au moins un titre, ou le type et la localité.')
+  }
+
+  const { data: created, error } = await ctx.supabase.from('properties').insert({
+    agency_id: ctx.agencyId,
+    status: 'draft',
+    currency: 'CHF',
+    created_by: ctx.profileId,
+    ...fields,
+  }).select('id, title').single()
+  if (error) return (lang === 'en' ? 'Error creating the property: ' : 'Erreur création du bien: ') + error.message
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_created', entity_type: 'property', entity_id: created.id, category: 'bien',
+      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(fields) },
+    })
+  } catch { /* non bloquant */ }
+
+  // `applied` peut contenir « titre X » (titre explicite) → on l'écarte du détail,
+  // le titre est déjà montré séparément.
+  const titlePrefix = lang === 'en' ? 'title ' : 'titre '
+  const details = applied.filter((x) => !x.startsWith(titlePrefix)).join(', ')
+  const note = notes.length ? ' ' + notes.join(' ') : ''
+  const tail = lang === 'en'
+    ? ' Send me photos or say "publish it" when ready.'
+    : ' Envoie-moi des photos ou dis « publie-le » quand c\'est prêt.'
+  return (lang === 'en'
+    ? `Draft created: "${created.title}"${details ? ` (${details})` : ''}.`
+    : `Brouillon créé : « ${created.title} »${details ? ` (${details})` : ''}.`) + note + tail
 }

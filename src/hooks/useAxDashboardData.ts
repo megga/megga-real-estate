@@ -25,27 +25,33 @@ async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
   return data as T
 }
 
-export function useAxDashboardData(period: AxPeriodId, scope: AxScope): {
+export function useAxDashboardData(period: AxPeriodId, scope: AxScope, opts?: { enabled?: boolean }): {
   data: AxPeriodData | null
   isLoading: boolean
   isError: boolean
   refetch: () => void
 } {
   const { t, i18n } = useTranslation('dashboard')
+  // Rétro-compatible : `enabled` vaut true par défaut (appelants existants
+  // inchangés). Permet aux surfaces démo de rester inertes (aucun appel RPC).
+  const enabled = opts?.enabled ?? true
   const cockpit = useQuery({
     queryKey: ['ax-cockpit', period, scope],
     queryFn: () => rpc<CockpitJson>('analytics_cockpit', { p_period: period, p_scope: scope }),
     staleTime: 60_000,
+    enabled,
   })
   const objectif = useQuery({
     queryKey: ['ax-objectif', period, scope],
     queryFn: () => rpc<ObjectifJson>('analytics_objectif', { p_period: period, p_scope: scope }),
     staleTime: 60_000,
+    enabled,
   })
   const funnel = useQuery({
     queryKey: ['ax-funnel', period, scope],
     queryFn: () => rpc<FunnelJson>('analytics_funnel', { p_period: period, p_scope: scope }),
     staleTime: 60_000,
+    enabled,
   })
 
   const isLoading = cockpit.isLoading || objectif.isLoading || funnel.isLoading

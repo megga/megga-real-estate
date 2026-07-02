@@ -247,7 +247,11 @@
         "match": "Match",
         "compromis": "Sale agreement",
         "visit": "Viewing"
-      }
+      },
+      "pipelineDeals_one": "{{count}} affare",
+      "pipelineDeals_other": "{{count}} affari",
+      "pipelineAtRisk": "{{count}} a rischio",
+      "objectifUnset": "Non definito"
     },
     "agenda": {
       "next": "Next",
@@ -265,12 +269,13 @@
         "mandate": "Mandate",
         "visit": "Viewing",
         "offer": "Offer"
-      }
+      },
+      "nowBadge": "Adesso"
     },
     "relances": {
       "leadsToFollow": "leads to follow up",
       "preparedByAi": "prepared by AI",
-      "startSession": "Start session",
+      "startSession": "Avvia la sessione",
       "tempHot": "hot",
       "tempWarm": "warm",
       "tempCold": "cold"
@@ -416,6 +421,11 @@
       "agentFallback": "Your MEGGA broker",
       "generating": "MEGGA AI is writing…",
       "demoBanner": "Demo mode, no dormant lead in your agency. These examples are sent to no one.",
+      "loading": "Loading…",
+      "noLeads": {
+        "title": "No follow-ups pending",
+        "body": "No dormant contact to follow up today. Your follow-ups will appear here as soon as a contact goes cold."
+      },
       "sendError": "Sending failed, try again or copy the message.",
       "draft": {
         "to": "To",
@@ -662,5 +672,22 @@
   "focus": {
     "heading": "3 must-do priorities for today",
     "subtitle": "Everything else can wait. Breathe, do these three things well."
+  },
+  "mobile": {
+    "analytics": {
+      "title": "Il tuo cockpit commissioni",
+      "back": "Altro",
+      "noData": "Nessun dato da mostrare per ora",
+      "sourcesSubtitle": "Da dove arrivano i tuoi contatti"
+    },
+    "settings": {
+      "completion": "Profilo completato al {{pct}} %",
+      "unnamed": "Senza nome",
+      "channelWord_one": "canale attivo",
+      "channelWord_other": "canali attivi",
+      "billingDesktop": "La gestione dell’abbonamento è disponibile da desktop.",
+      "signedOut": "Accedi per modificare le tue impostazioni.",
+      "noPlan": "Nessun piano attivo"
+    }
   }
 }

@@ -305,8 +305,15 @@ serve(async (req) => {
       metadata: { filters, chain_hash: chainHash, count: events.length },
     })
 
-    // Réponse base64 (compatible client browser)
-    const b64 = btoa(String.fromCharCode(...pdfBytes))
+    // Réponse base64 (compatible client browser). Encodage PAR CHUNKS : un spread
+    // `String.fromCharCode(...pdfBytes)` sur un gros PDF d'audit (beaucoup
+    // d'évènements nLPD) dépasse la limite d'arguments JS → RangeError. 32 Ko/passe.
+    let binary = ''
+    const B64_CHUNK = 0x8000
+    for (let i = 0; i < pdfBytes.length; i += B64_CHUNK) {
+      binary += String.fromCharCode(...pdfBytes.subarray(i, i + B64_CHUNK))
+    }
+    const b64 = btoa(binary)
 
     return new Response(
       JSON.stringify({

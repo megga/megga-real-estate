@@ -79,6 +79,9 @@ export interface CreatePropertyInput {
   description?: string
   private_notes?: string | null
   type: string
+  /** 'buy' (vente) | 'rent' (location). Sans valeur explicite, la DB applique son
+   *  défaut → le choix Vente/Location de l'agent serait silencieusement perdu. */
+  transaction_type?: 'buy' | 'rent'
   status: PropertyStatus
   price: number
   rooms: number

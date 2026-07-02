@@ -5,6 +5,7 @@
 // MEGGA AI in the relance editor) so the agent owns the wording.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 interface SendRequest {
   to: string
@@ -76,13 +77,12 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
-      )
-    }
+    // Auth réelle : valide le JWT (auth.getUser) ET exige un profil avec agency_id.
+    // Avant, on ne vérifiait que le préfixe « Bearer » → un faux jeton déclenchait
+    // un envoi Resend réel depuis noreply@megga.ch (usurpation d'expéditeur).
+    const auth = await requireAgentAuth(req, CORS_HEADERS)
+    if (auth instanceof Response) return auth
+    const { profile } = auth
 
     const body: SendRequest = await req.json()
 
@@ -113,7 +113,8 @@ serve(async (req) => {
     const tags = [
       { name: 'kind', value: 'relance' },
       ...(body.leadId ? [{ name: 'lead_id', value: body.leadId }] : []),
-      ...(body.agencyId ? [{ name: 'agency_id', value: body.agencyId }] : []),
+      // agency_id pris du profil authentifié, pas du body (non falsifiable).
+      { name: 'agency_id', value: profile.agency_id },
     ]
 
     const resendResponse = await fetch('https://api.resend.com/emails', {

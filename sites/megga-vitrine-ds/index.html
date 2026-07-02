@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Design System — Vitrine MEGGA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0b0b0c; --card:#161618; --line:#262629; --txt:#ececef; --muted:#8e8e96; --accent:#424bfb; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Inter Tight",sans-serif; background:var(--bg); color:var(--txt); padding:40px; }
+    header { max-width:1200px; margin:0 auto 8px; }
+    h1 { font-size:30px; font-weight:700; letter-spacing:-0.02em; margin:0 0 6px; }
+    .sub { color:var(--muted); font-size:14px; margin:0 0 28px; }
+    .sub code { background:var(--card); padding:2px 6px; border-radius:6px; }
+    h2 { max-width:1200px; margin:34px auto 14px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); }
+    .grid { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:18px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+    .frame { height:240px; overflow:hidden; background:#000; border-bottom:1px solid var(--line); position:relative; }
+    .frame iframe { width:200%; height:480px; border:0; transform:scale(0.5); transform-origin:top left; }
+    .meta { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; }
+    .meta a { color:var(--txt); font-size:14px; font-weight:600; text-decoration:none; }
+    .meta a:hover { color:var(--accent); }
+    .open { color:var(--muted); font-size:12px; text-decoration:none; }
+    .open:hover { color:var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Design System — Vitrine MEGGA</h1>
+    <p class="sub">Bundle prêt pour <code>/design-sync</code> · dérivé de <code>sites/megga-vitrine/</code> · police Inter Tight · 11 cartes</p>
+  </header>
+
+  <h2>Foundations</h2>
+  <div class="grid" id="foundations"></div>
+
+  <h2>Components</h2>
+  <div class="grid" id="components"></div>
+
+  <script>
+    const foundations = [
+      ['Couleurs','foundations-colors.html'],
+      ['Typographie','foundations-typography.html'],
+      ['Radius & Spacing','foundations-radius-spacing.html'],
+    ];
+    const components = [
+      ['Barre de navigation','navbar.html'],
+      ['Boutons','buttons.html'],
+      ['Hero','hero.html'],
+      ['Cartes fonctionnalités','feature-cards.html'],
+      ['Tarifs','pricing.html'],
+      ['Bandeau CTA','cta-band.html'],
+      ['Pied de page','footer.html'],
+      ['Bandeau confiance / logos','logos-strip.html'],
+    ];
+    function render(list, id) {
+      document.getElementById(id).innerHTML = list.map(([name, file]) => `
+        <div class="card">
+          <div class="frame"><iframe loading="lazy" src="components/${file}" title="${name}"></iframe></div>
+          <div class="meta"><a href="components/${file}">${name}</a><a class="open" href="components/${file}" target="_blank">ouvrir ↗</a></div>
+        </div>`).join('');
+    }
+    render(foundations, 'foundations');
+    render(components, 'components');
+  </script>
+</body>
+</html>

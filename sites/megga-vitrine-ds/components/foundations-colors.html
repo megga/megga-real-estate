@@ -1,0 +1,66 @@
+<!-- @dsCard group="Foundations" -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Couleurs — MEGGA Vitrine</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="../css/styles.css" rel="stylesheet" type="text/css" />
+  <style>
+    /* thème sombre vitrine — les swatches lisent les vrais tokens --*-colors de styles.css */
+    body { font-family: "Inter Tight", sans-serif; margin: 0; padding: 40px; background: var(--neutral-colors--100); color: #ececef; }
+    h1 { font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; color: #fff; }
+    .sub { color: #8e8e96; font-size: 14px; margin: 0 0 32px; }
+    .sub code { color: #b2cdff; }
+    h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #8e8e96; margin: 32px 0 12px; }
+    .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: 12px; }
+    .sw { border: 1px solid #262629; border-radius: 12px; overflow: hidden; background: #0d0d0f; }
+    .chip { height: 64px; }
+    .meta { padding: 8px 10px; }
+    .name { font-size: 12px; font-weight: 600; color: #ececef; }
+    .hex { font-size: 11px; color: #8e8e96; font-family: "Inter", monospace; }
+  </style>
+</head>
+<body>
+  <h1>Couleurs</h1>
+  <p class="sub">Palette de marque MEGGA — vitrine megga.ch · tokens <code>--*-colors</code></p>
+
+  <h2>Primaire</h2>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--primary-colors--100)"></div><div class="meta"><div class="name">primary 100</div><div class="hex">#424bfb</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--primary-colors--200)"></div><div class="meta"><div class="name">primary 200</div><div class="hex">#00d95f</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--primary-colors--300)"></div><div class="meta"><div class="name">primary 300</div><div class="hex">#1abcfe</div></div></div>
+  </div>
+
+  <h2>Secondaire (bleu)</h2>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--100)"></div><div class="meta"><div class="name">secondary 100</div><div class="hex">#f4f8ff</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--200)"></div><div class="meta"><div class="name">secondary 200</div><div class="hex">#e9f1ff</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--300)"></div><div class="meta"><div class="name">secondary 300</div><div class="hex">#d5e4ff</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--400)"></div><div class="meta"><div class="name">secondary 400</div><div class="hex">#b2cdff</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--500)"></div><div class="meta"><div class="name">secondary 500</div><div class="hex">#82aeff</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--600)"></div><div class="meta"><div class="name">secondary 600</div><div class="hex">#679cff</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--700)"></div><div class="meta"><div class="name">secondary 700</div><div class="hex">#2370ff</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--800)"></div><div class="meta"><div class="name">secondary 800</div><div class="hex">#024bd2</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--900)"></div><div class="meta"><div class="name">secondary 900</div><div class="hex">#003598</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--secondary-colors--1000)"></div><div class="meta"><div class="name">secondary 1000</div><div class="hex">#002a79</div></div></div>
+  </div>
+
+  <h2>Neutres</h2>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--100); box-shadow: inset 0 0 0 1px #262629"></div><div class="meta"><div class="name">neutral 100</div><div class="hex">#030303</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--200); box-shadow: inset 0 0 0 1px #262629"></div><div class="meta"><div class="name">neutral 200</div><div class="hex">#050505</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--300); box-shadow: inset 0 0 0 1px #262629"></div><div class="meta"><div class="name">neutral 300</div><div class="hex">#090909</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--400)"></div><div class="meta"><div class="name">neutral 400</div><div class="hex">#181818</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--500)"></div><div class="meta"><div class="name">neutral 500</div><div class="hex">#686868</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--600)"></div><div class="meta"><div class="name">neutral 600</div><div class="hex">#a3a3a3</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--700)"></div><div class="meta"><div class="name">neutral 700</div><div class="hex">#cccccc</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--800)"></div><div class="meta"><div class="name">neutral 800</div><div class="hex">#ededed</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--900)"></div><div class="meta"><div class="name">neutral 900</div><div class="hex">#f9f9f9</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--neutral-colors--1000)"></div><div class="meta"><div class="name">neutral 1000</div><div class="hex">#ffffff</div></div></div>
+  </div>
+</body>
+</html>

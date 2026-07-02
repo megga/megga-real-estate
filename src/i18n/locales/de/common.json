@@ -1,6 +1,11 @@
 {
   "nav": {
+    "appearance": "Darstellung",
+    "language": "Sprache",
+    "light": "Hell",
+    "dark": "Dunkel",
     "today": "Heute",
+    "more": "Mehr",
     "dashboard": "Dashboard",
     "contacts": "Kontakte",
     "pipeline": "Pipeline",
@@ -39,6 +44,7 @@
     "adminToolUsage": "Tool-Nutzung",
     "journey": "Journey",
     "aiAgent": "Megga, AI agent",
+    "help": "Hilfe",
     "notifications": "Notifications",
     "callbacksToday": "Today's callbacks",
     "importLeads": "Import leads"
@@ -1253,6 +1259,12 @@
     }
   },
   "notifications": {
+    "essential": "Das Wichtigste",
+    "digestPriorities_one": "{{count}} Priorität für heute",
+    "digestPriorities_other": "{{count}} Prioritäten für heute",
+    "groupToday": "Heute",
+    "groupYesterday": "Gestern",
+    "groupOlder": "Früher",
     "kind": {
       "kyc": "KYC",
       "visite": "Viewing",

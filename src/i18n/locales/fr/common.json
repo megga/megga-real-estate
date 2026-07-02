@@ -6,7 +6,12 @@
     "dashboard": "Retour au tableau de bord"
   },
   "nav": {
+    "appearance": "Apparence",
+    "language": "Langue",
+    "light": "Clair",
+    "dark": "Sombre",
     "today": "Aujourd'hui",
+    "more": "Plus",
     "dashboard": "Dashboard",
     "contacts": "Contacts",
     "pipeline": "Pipeline",
@@ -45,6 +50,7 @@
     "adminToolUsage": "Usage des outils",
     "journey": "Parcours",
     "aiAgent": "Megga, Agent IA",
+    "help": "Aide",
     "notifications": "Notifications",
     "callbacksToday": "Relances du jour",
     "importLeads": "Importer des leads"
@@ -1259,6 +1265,12 @@
     }
   },
   "notifications": {
+    "essential": "L'essentiel",
+    "digestPriorities_one": "{{count}} priorité à traiter aujourd'hui",
+    "digestPriorities_other": "{{count}} priorités à traiter aujourd'hui",
+    "groupToday": "Aujourd'hui",
+    "groupYesterday": "Hier",
+    "groupOlder": "Plus tôt",
     "kind": {
       "kyc": "KYC",
       "visite": "Visite",

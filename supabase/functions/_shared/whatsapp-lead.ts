@@ -145,3 +145,62 @@ export function computeMissing(c: LeadCriteria, contact: LeadContactInfo): strin
   if (!c.rooms_min) missing.push('nombre de pièces')
   return missing
 }
+
+// ── Enrichissement continu (fusion NON DESTRUCTIVE) ──────────────────────────
+// Quand un lead déjà qualifié reparle, on RAFFINE ses critères sans jamais écraser
+// ce qui est posé (par l'agent ou une qualif antérieure) : on remplit les champs
+// vides et on fait l'UNION des tableaux. On ne retire ni ne rétrécit JAMAIS rien.
+
+/** Union sensible à la casse-insensible, ordre stable (existants d'abord, puis nouveaux). */
+function unionCI(a?: string[], b?: string[]): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const v of [...(a ?? []), ...(b ?? [])]) {
+    const t = (v ?? '').trim()
+    if (!t) continue
+    const k = t.toLowerCase()
+    if (!seen.has(k)) { seen.add(k); out.push(t) }
+  }
+  return out
+}
+
+/** Fusionne les critères entrants dans les courants, sans rien écraser ni retirer. */
+export function mergeCriteria(current: LeadCriteria | null | undefined, incoming: LeadCriteria | null | undefined): LeadCriteria {
+  const cur = current ?? {}
+  const inc = incoming ?? {}
+  const out: LeadCriteria = { ...cur }
+  // Scalaires : on remplit UNIQUEMENT si absent (jamais d'écrasement d'une valeur posée).
+  if (out.transaction_type == null && inc.transaction_type != null) out.transaction_type = inc.transaction_type
+  if (!out.type && inc.type) out.type = inc.type
+  if (out.budget_min == null && inc.budget_min != null) out.budget_min = inc.budget_min
+  if (out.budget_max == null && inc.budget_max != null) out.budget_max = inc.budget_max
+  if (out.rooms_min == null && inc.rooms_min != null) out.rooms_min = inc.rooms_min
+  if (out.rooms_max == null && inc.rooms_max != null) out.rooms_max = inc.rooms_max
+  if (out.surface_min == null && inc.surface_min != null) out.surface_min = inc.surface_min
+  // Tableaux : union (on n'enlève jamais une zone/prestation déjà connue).
+  const zones = unionCI(cur.zones, inc.zones)
+  const features = unionCI(cur.features, inc.features)
+  if (zones.length) out.zones = zones; else delete out.zones
+  if (features.length) out.features = features; else delete out.features
+  return out
+}
+
+/** Décrit en FR ce que `after` ajoute par rapport à `before` (vide = aucun changement). */
+export function criteriaDelta(before: LeadCriteria | null | undefined, after: LeadCriteria): string[] {
+  const b = before ?? {}
+  const d: string[] = []
+  if (b.transaction_type == null && after.transaction_type != null) {
+    d.push(after.transaction_type === 'rent' ? 'location' : 'achat')
+  }
+  if (!b.type && after.type) d.push(`type ${after.type}`)
+  if (b.budget_max == null && after.budget_max != null) d.push(`budget ${after.budget_max}`)
+  if (b.budget_min == null && after.budget_min != null) d.push(`budget min ${after.budget_min}`)
+  if (b.rooms_min == null && after.rooms_min != null) d.push(`${after.rooms_min} pièces`)
+  if (b.rooms_max == null && after.rooms_max != null) d.push(`max ${after.rooms_max} pièces`)
+  if (b.surface_min == null && after.surface_min != null) d.push(`dès ${after.surface_min} m²`)
+  const newZones = unionCI(after.zones).filter((z) => !unionCI(b.zones).some((x) => x.toLowerCase() === z.toLowerCase()))
+  if (newZones.length) d.push(`secteur ${newZones.join('/')}`)
+  const newFeats = unionCI(after.features).filter((f) => !unionCI(b.features).some((x) => x.toLowerCase() === f.toLowerCase()))
+  if (newFeats.length) d.push(newFeats.join(', '))
+  return d
+}

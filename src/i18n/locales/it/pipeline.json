@@ -270,7 +270,8 @@
     "toast": {
       "moveFailedTitle": "Could not move the deal",
       "moveFailedDescription": "The stage change was not saved. Check your connection, then try again."
-    }
+    },
+    "empty": "Nessuna trattativa nella pipeline per ora."
   },
   "kyc": {
     "lock": {
@@ -361,7 +362,16 @@
     "offer_received": "Offer received",
     "last_update": "Last update",
     "no_offer_recorded": "No offer recorded for this transaction.",
-    "view_contact": "View contact"
+    "view_contact": "View contact",
+    "offer_status": {
+      "pending": "In attesa",
+      "accepted": "Accettata",
+      "rejected": "Rifiutata",
+      "expired": "Scaduta",
+      "withdrawn": "Ritirata"
+    },
+    "notes_cancel": "Annulla",
+    "notes_save": "Salva"
   },
   "offerModal": {
     "cta": {
@@ -530,6 +540,30 @@
       "title": "{{firstName}} {{lastName}}, {{role}}",
       "tasksInProgress_one": "{{count}} task in progress",
       "tasksInProgress_other": "{{count}} tasks in progress"
+    }
+  },
+  "actions": {
+    "changeStage": "Cambia fase",
+    "scheduleRdv": "Pianifica un appuntamento",
+    "markLost": "Segna come persa"
+  },
+  "stagePick": {
+    "current": "Attuale"
+  },
+  "toast": {
+    "movedTo": "{{name}} spostata in «{{stage}}»",
+    "markedLost": "{{name}} segnata come persa"
+  },
+  "dealsCount_one": "{{count}} affare",
+  "dealsCount_other": "{{count}} affari",
+  "toEstimate": "Da stimare",
+  "kycSoft": "KYC da completare, opzionale",
+  "mobile": {
+    "journey": {
+      "back": "Altro",
+      "inProgress": "In corso",
+      "error": "Caricamento non riuscito",
+      "retry": "Riprova"
     }
   }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
@@ -39,6 +40,22 @@ function AgentLayoutInner() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  // Mobile (< 768px) : on neutralise le chrome legacy (Sidebar, header mobile,
+  // Breadcrumb, BottomTabBar) — les pages mobiles fournissent leur propre
+  // MobileShell via ResponsiveRoute. L'admin conserve son chrome legacy (hors
+  // cible mobile V1). Desktop ≥ 768px : strictement inchangé.
+  const isMobile = useIsMobile()
+  const { pathname } = useLocation()
+  if (isMobile && !pathname.startsWith('/dashboard/admin')) {
+    return (
+      <div className="min-h-[100dvh] bg-theme-section">
+        <ImpersonateBanner />
+        <Outlet />
+        <NpsSurvey />
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-theme-section isolate">

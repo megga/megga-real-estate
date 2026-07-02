@@ -247,10 +247,16 @@
         "match": "Match",
         "compromis": "Compromis",
         "visit": "Visite"
-      }
+      },
+      "pipelineDeals_one": "{{count}} affaire",
+      "pipelineDeals_other": "{{count}} affaires",
+      "pipelineAtRisk": "{{count}} à risque",
+      "objectifUnset": "Non défini"
     },
     "agenda": {
-      "error": { "title": "Données indisponibles" },
+      "error": {
+        "title": "Données indisponibles"
+      },
       "next": "Ensuite",
       "empty": "Plus rien après, journée dégagée.",
       "call": "Appeler",
@@ -266,7 +272,8 @@
         "mandate": "Mandat",
         "visit": "Visite",
         "offer": "Offre"
-      }
+      },
+      "nowBadge": "Maintenant"
     },
     "relances": {
       "leadsToFollow": "leads à relancer",
@@ -277,7 +284,9 @@
       "tempCold": "froids"
     },
     "pipeline": {
-      "error": { "title": "Données indisponibles" },
+      "error": {
+        "title": "Données indisponibles"
+      },
       "stages": {
         "searching": "Recherche active",
         "visit": "Visite planifiée",
@@ -289,7 +298,9 @@
       "riskOverdue": "Échéance dépassée"
     },
     "objectif": {
-      "error": { "title": "Données indisponibles" },
+      "error": {
+        "title": "Données indisponibles"
+      },
       "realized": "réalisé",
       "realizedNoTarget": "réalisé · objectif non défini",
       "target": "cible"
@@ -419,6 +430,11 @@
       "agentFallback": "Votre courtier MEGGA",
       "generating": "MEGGA AI rédige…",
       "demoBanner": "Mode démo, aucun lead dormant dans votre agence. Ces exemples ne sont envoyés à personne.",
+      "loading": "Chargement…",
+      "noLeads": {
+        "title": "Aucune relance en attente",
+        "body": "Aucun contact dormant à relancer aujourd'hui. Vos relances apparaîtront ici dès qu'un contact se refroidira."
+      },
       "sendError": "L'envoi a échoué, réessayez ou copiez le message.",
       "draft": {
         "to": "À",
@@ -665,5 +681,22 @@
   "focus": {
     "heading": "3 priorités absolues pour aujourd'hui",
     "subtitle": "Tout le reste peut attendre. Respire, fais ces trois choses bien."
+  },
+  "mobile": {
+    "analytics": {
+      "title": "Ton cockpit commission",
+      "back": "Plus",
+      "noData": "Aucune donnée à afficher pour le moment",
+      "sourcesSubtitle": "D'où viennent tes contacts"
+    },
+    "settings": {
+      "completion": "Profil complété à {{pct}} %",
+      "unnamed": "Sans nom",
+      "channelWord_one": "canal actif",
+      "channelWord_other": "canaux actifs",
+      "billingDesktop": "Gestion de l’abonnement disponible sur le bureau.",
+      "signedOut": "Connectez-vous pour modifier vos réglages.",
+      "noPlan": "Aucun plan actif"
+    }
   }
 }

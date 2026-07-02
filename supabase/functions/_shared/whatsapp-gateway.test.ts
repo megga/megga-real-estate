@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getProvider, verifyHmac, type NormalizedInboundMessage } from './whatsapp-gateway'
+import { getProvider, verifyHmac, allowedPriorStatuses, type NormalizedInboundMessage } from './whatsapp-gateway'
 
 describe('whatsapp-gateway — OpenWA provider', () => {
   const provider = getProvider('openwa')
@@ -139,6 +139,77 @@ describe('Meta buildSendDocumentRequest', () => {
     const body = JSON.parse(req.body)
     expect('caption' in body.document).toBe(false)
     expect(body.document).toEqual({ id: 'M1', filename: 'r.pdf' })
+  })
+})
+
+describe('whatsapp-gateway — statuts de livraison Meta', () => {
+  const meta = getProvider('meta')
+  const statusPayload = (statuses: unknown[]) => ({
+    object: 'whatsapp_business_account',
+    entry: [{ changes: [{ field: 'messages', value: { metadata: { phone_number_id: '123' }, statuses } }] }],
+  })
+
+  it('parse un event delivered', () => {
+    const ups = meta.parseStatusUpdates!(statusPayload([
+      { id: 'wamid.OUT1', status: 'delivered', timestamp: '1717000000', recipient_id: '41791112233' },
+    ]))
+    expect(ups).toHaveLength(1)
+    expect(ups[0]).toMatchObject({
+      providerMessageId: 'wamid.OUT1', status: 'delivered',
+      recipientPhone: '41791112233', errorCode: null, errorDetail: null,
+    })
+    expect(ups[0].timestamp).toBe(new Date(1717000000 * 1000).toISOString())
+  })
+
+  it('parse un failed avec erreur 131047 (code + détail)', () => {
+    const ups = meta.parseStatusUpdates!(statusPayload([
+      { id: 'wamid.OUT2', status: 'failed', timestamp: '1717000001', recipient_id: '41791112233',
+        errors: [{ code: 131047, title: 'Re-engagement message', error_data: { details: 'Message failed to send because more than 24 hours have passed' } }] },
+    ]))
+    expect(ups[0].status).toBe('failed')
+    expect(ups[0].errorCode).toBe(131047)
+    expect(ups[0].errorDetail).toContain('24 hours')
+  })
+
+  it('parse plusieurs statuses d\'un coup et ignore les statuts inconnus', () => {
+    const ups = meta.parseStatusUpdates!(statusPayload([
+      { id: 'a', status: 'sent', timestamp: '1' },
+      { id: 'b', status: 'read', timestamp: '2' },
+      { id: 'c', status: 'warmup' }, // hors contrat → ignoré
+    ]))
+    expect(ups.map(u => u.status)).toEqual(['sent', 'read'])
+  })
+
+  it('renvoie [] pour un payload message entrant (pas de statuses)', () => {
+    const inbound = {
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ field: 'messages', value: {
+        messages: [{ id: 'wamid.IN', from: '41780001122', type: 'text', text: { body: 'salut' } }],
+      } }] }],
+    }
+    expect(meta.parseStatusUpdates!(inbound)).toEqual([])
+  })
+
+  it('OpenWA n\'expose pas parseStatusUpdates (méthode absente)', () => {
+    expect(getProvider('openwa').parseStatusUpdates).toBeUndefined()
+  })
+})
+
+describe('allowedPriorStatuses — progression monotone', () => {
+  it('chaque statut n\'avance que depuis un statut antérieur', () => {
+    expect(allowedPriorStatuses('sent')).toEqual(['received'])
+    expect(allowedPriorStatuses('delivered')).toEqual(['received', 'sent'])
+    expect(allowedPriorStatuses('read')).toEqual(['received', 'sent', 'delivered'])
+    expect(allowedPriorStatuses('failed')).toEqual(['received', 'sent', 'delivered'])
+  })
+  it('read n\'est jamais rétrogradé (delivered/failed en retard → no-op)', () => {
+    expect(allowedPriorStatuses('delivered')).not.toContain('read')
+    expect(allowedPriorStatuses('failed')).not.toContain('read')
+  })
+  it('failed est terminal (absent de toutes les listes)', () => {
+    for (const s of ['sent', 'delivered', 'read', 'failed'] as const) {
+      expect(allowedPriorStatuses(s)).not.toContain('failed')
+    }
   })
 })
 

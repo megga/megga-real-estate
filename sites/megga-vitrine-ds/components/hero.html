@@ -1,0 +1,49 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hero — MEGGA Vitrine</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="../css/styles.css" rel="stylesheet" type="text/css" />
+  <style>
+    body { margin: 0; font-family: "Inter Tight", sans-serif; background: var(--neutral-colors--100); color: var(--neutral-colors--700); }
+    /* neutralise les états cachés des animations Webflow IX2 (pas de JS runtime dans la preview statique) */
+    [style*="opacity:0"], [style*="opacity: 0"] { opacity: 1 !important; }
+    [style*="opacity:0"] *, [style*="opacity: 0"] * { opacity: 1 !important; }
+    /* neutralise aussi le flou des entrées IX2 pour un rendu net */
+    [style*="blur"] { filter: none !important; }
+
+    /* Hero CRM — scène perspective (maquette « CRM Hero A - Dark ») + dégradé conservé
+       (ces classes vivent inline dans index.html, pas dans styles.css → embarquées ici) */
+    .crm-hero-visual{position:relative;width:100%;aspect-ratio:2880/1496;margin-top:64px;}
+    .section.hero---br.v3 .buttons-row{margin-top:24px;}
+    .crm-hero-glow{position:absolute;z-index:3;left:-3%;right:-3%;bottom:0;height:46%;pointer-events:none;
+      background:linear-gradient(90deg,
+        rgb(34,4,171) 0%, rgb(34,4,184) 8%, rgb(33,6,198) 17%, rgb(31,12,216) 25%,
+        rgb(37,32,252) 33%, rgb(57,36,255) 42%, rgb(105,36,253) 50%, rgb(136,41,251) 58%,
+        rgb(136,41,251) 67%, rgb(123,38,180) 75%, rgb(119,27,142) 83%, rgb(116,13,112) 92%, rgb(109,11,105) 100%);
+      -webkit-mask-image:linear-gradient(to top,#000 0%,#000 6%,rgba(0,0,0,.6) 34%,transparent 86%);
+      mask-image:linear-gradient(to top,#000 0%,#000 6%,rgba(0,0,0,.6) 34%,transparent 86%);
+      filter:blur(8px);}
+    .crm-hero-stage{position:absolute;z-index:2;left:50%;top:2%;width:2000px;height:920px;transform:translateX(-50%);perspective:2600px;perspective-origin:50% 12%;}
+    .crm-hero-device{position:absolute;left:50%;top:0;width:2040px;transform:translateX(calc(-50% + 210px)) rotateX(49deg) rotateZ(-31deg);transform-origin:50% 0;border-radius:20px;overflow:hidden;background:#0a0a0c;border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 60px 110px -34px rgba(0,0,0,.85),0 24px 60px -40px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.03) inset;}
+    .crm-hero-device img{display:block;width:100%;height:auto;}
+    @media screen and (max-width:991px){
+      .crm-hero-stage{top:2%;width:1500px;}
+      .crm-hero-device{width:1500px;transform:translateX(calc(-50% + 150px)) rotateX(49deg) rotateZ(-31deg);}
+    }
+    @media screen and (max-width:767px){
+      .crm-hero-stage{top:0%;width:1060px;}
+      .crm-hero-device{width:1060px;transform:translateX(calc(-50% + 80px)) rotateX(47deg) rotateZ(-29deg);}
+    }
+  </style>
+</head>
+<body>
+<section class="section hero---br v3"><div class="w-layout-blockcontainer container-default w-container"><div class="inner-container _618px center"><div class="position-relative---z-index-1"><div class="text-center position-relative---z-index-2"><h1 data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6adfe" style="opacity:0;filter:blur(8px)">Votre CRM se pilote depuis WhatsApp.</h1><div class="mg-top-small"><div class="buttons-row" data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6ae04" style="opacity:0;filter:blur(8px)"><a class="primary-button w-inline-block" href="signup.html"><div class="link-content-flex"><div>Commencer</div></div></a><a class="secondary-button w-inline-block" href="contact.html"><div class="link-content-flex"><div>Voir les fonctionnalités</div></div></a></div></div></div></div></div></div><div class="crm-hero-visual mg-top--3 width-100" data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6ae0a" style="opacity:0;filter:blur(8px)"><div class="crm-hero-glow"></div><div class="crm-hero-stage"><div class="crm-hero-device"><img alt="MEGGA CRM — écran Aujourd'hui (mode nuit)" loading="eager" src="../images/crm-today-dark-dash.png"/></div></div></div></section>
+</body>
+</html>

@@ -957,5 +957,33 @@
     "riskFallback": "Risk",
     "checksCount": "{{done}}/{{total}} checks",
     "checksLabel": "checks"
+  },
+  "mobile": {
+    "back": "Altro",
+    "detail": {
+      "seeContact": "Vedi contatto",
+      "examineOnDesktop": "Completa la verifica di questa corrispondenza da desktop."
+    },
+    "check": {
+      "done": "Verificato",
+      "na": "Non richiesto",
+      "pending": "Da verificare",
+      "markVerified": "Segna come verificato",
+      "completedBy": "da {{name}}"
+    },
+    "docs": {
+      "empty": "Nessun documento allegato per ora."
+    },
+    "audit": {
+      "title": "Traccia di audit",
+      "empty": "Nessuna azione registrata.",
+      "timeline": "Cronologia",
+      "registre": "Registro",
+      "colTime": "Data e ora",
+      "colAction": "Azione",
+      "colActor": "Autore",
+      "actorSystem": "Sistema",
+      "actorAi": "Assistente MEGGA"
+    }
   }
 }

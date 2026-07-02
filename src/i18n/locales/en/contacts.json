@@ -207,8 +207,10 @@
       "result": {
         "importedCount_one": "{{count}} contact imported",
         "importedCount_other": "{{count}} contacts imported",
-        "skippedCount_one": "{{count}} skipped (duplicate or incomplete)",
-        "skippedCount_other": "{{count}} skipped (duplicates or incomplete)",
+        "skippedCount_one": "{{count}} skipped (incomplete)",
+        "skippedCount_other": "{{count}} skipped (incomplete)",
+        "duplicatesCount_one": "{{count}} duplicate skipped",
+        "duplicatesCount_other": "{{count}} duplicates skipped",
         "goToContacts": "View my contacts"
       }
     }
@@ -345,7 +347,17 @@
       "qualifyHint": "Insufficient data"
     },
     "contactInfo": "Contact details",
-    "openFullProfile": "Open full profile"
+    "openFullProfile": "Open full profile",
+    "signature": {
+      "title": "Electronic signature",
+      "description": "Upload a document (PDF) for {{name}} to sign. The signing link is sent by email or WhatsApp, validated by you.",
+      "thisContact": "this contact",
+      "send": "Send a document for signature",
+      "errPdfOnly": "Only PDF files are accepted.",
+      "errTooLarge": "PDF too large (max 20 MB).",
+      "errRead": "Unable to read the file.",
+      "defaultTitle": "Document to sign"
+    }
   },
   "timeline": {
     "stageChange": "Pipeline: {{from}} → {{to}}",
@@ -724,6 +736,11 @@
     "waSendError": "Sending failed. The 24-hour window may have expired.",
     "waSending": "Sending…",
     "waSend": "Send",
+    "waDeliverySent": "Sent",
+    "waDeliveryDelivered": "Delivered",
+    "waDeliveryRead": "Read",
+    "waDeliveryFailed": "not delivered",
+    "waDeliveryFailedTitle": "Delivery failed",
     "timelineTitle": "Activity",
     "timelineEyebrow": "Unified timeline",
     "timelineSummarize": "Summarize with MEGGA AI",
@@ -761,7 +778,14 @@
       "title": "Couldn't load this contact",
       "message": "Something went wrong. Check your connection, then try again.",
       "retry": "Try again"
-    }
+    },
+    "followupTitle": "Suggested follow-ups",
+    "followupAccept": "Create reminder",
+    "followupDismiss": "Dismiss",
+    "followupFooter": "MEGGA suggestions to accept or dismiss.",
+    "followupKind_commitment": "Commitment",
+    "followupKind_next_action": "Next action",
+    "followupKind_client_availability": "Client availability"
   },
   "ctKyc": {
     "title": "KYC / AML compliance",
@@ -833,5 +857,147 @@
     "addDetails": "+ Add details",
     "notesPlaceholder": "Context, remarks...",
     "create": "Create"
+  },
+  "mobile": {
+    "title": "Contacts",
+    "subtitle": "{{count}} of {{total}}",
+    "searchPlaceholder": "Name, email, phone…",
+    "errorTitle": "Couldn't load contacts",
+    "retry": "Retry",
+    "emptyTitle": "No contact",
+    "emptyDesc": "No contact matches. Adjust the search or filter.",
+    "add": "New contact",
+    "kycVerified": "KYC verified",
+    "seg": {
+      "all": "All",
+      "buyer": "Buyers",
+      "seller": "Sellers"
+    },
+    "type": {
+      "buyer": "Buyer",
+      "seller": "Seller",
+      "tenant": "Tenant",
+      "landlord": "Landlord",
+      "mixed": "Mixed"
+    },
+    "act": {
+      "open": "View contact",
+      "call": "Call",
+      "email": "Send an email"
+    },
+    "new": {
+      "title": "New contact",
+      "identity": "Identity",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "contact": "Contact details",
+      "phone": "Phone",
+      "phonePlaceholder": "+41 79 000 00 00",
+      "email": "Email",
+      "emailPlaceholder": "contact@email.ch",
+      "origin": "Origin",
+      "source": "Source",
+      "sources": {
+        "manual": "Manual entry",
+        "website": "Website",
+        "referral": "Referral"
+      },
+      "create": "Create contact",
+      "creating": "Creating…",
+      "error": "Creation failed. Try again.",
+      "doneTitle": "Contact created",
+      "doneDesc": "{{name}} has been added to your contacts.",
+      "openContact": "Open contact"
+    },
+    "detail": {
+      "phone": "Phone",
+      "email": "Email",
+      "tab": {
+        "overview": "Overview",
+        "activity": "Activity",
+        "matching": "Matching",
+        "docs": "Docs"
+      },
+      "source": {
+        "manual": "Manual",
+        "website": "Website",
+        "referral": "Referral",
+        "onboarding": "Onboarding",
+        "csv": "CSV import",
+        "call": "Inbound call",
+        "walk-in": "Walk-in",
+        "vcard": "vCard",
+        "ai": "AI extraction"
+      },
+      "kyc": {
+        "title": "KYC compliance",
+        "lba": "AML file",
+        "compliant": "Compliant file",
+        "verify": "Verify",
+        "progress": "{{done}}/{{total}} checks",
+        "status": {
+          "none": "To start",
+          "pending": "In progress",
+          "verified": "Verified",
+          "stale": "To renew",
+          "failed": "To review"
+        }
+      },
+      "criteria": {
+        "eyebrow": "AI matching",
+        "title": "Search criteria",
+        "buy": "Buy",
+        "rent": "Rent",
+        "indispensable": "Must-have",
+        "refine": "Refine in Matching",
+        "empty": "No search criteria"
+      },
+      "infos": {
+        "title": "Information",
+        "language": "Language",
+        "nationality": "Nationality",
+        "created": "Created on",
+        "lastInteraction": "Last activity"
+      },
+      "timeline": {
+        "empty": "No activity yet",
+        "by": "by {{name}}",
+        "cat": {
+          "created": "Created",
+          "call": "Call",
+          "email": "Email",
+          "message": "Message",
+          "visit": "Visit",
+          "document": "Document",
+          "kyc": "KYC",
+          "match": "Matching",
+          "offer": "Offer",
+          "stage": "Pipeline",
+          "note": "Note",
+          "activity": "Activity"
+        }
+      },
+      "matching": {
+        "eyebrow": "AI estimate",
+        "title": "Suggested properties",
+        "empty": "No suggested property",
+        "emptyDesc": "Run matching from the workspace to suggest properties.",
+        "openAtelier": "Open matching",
+        "rooms": "{{n}} rm",
+        "status": {
+          "suggested": "Suggested",
+          "sent": "Sent",
+          "visit_planned": "Visit planned",
+          "interested": "Interested",
+          "rejected": "Rejected",
+          "ignored": "Dismissed"
+        }
+      },
+      "docs": {
+        "title": "Documents",
+        "empty": "No document",
+        "emptyDesc": "Files added to the record will appear here."
+      }
+    }
   }
 }

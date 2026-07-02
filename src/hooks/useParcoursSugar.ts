@@ -148,6 +148,8 @@ function buildColumns(
 export interface UseParcoursSugarReturn {
   dossiers: ParcoursDossier[]
   isLoading: boolean
+  isError: boolean
+  refetch: () => void
 }
 
 export function useParcoursSugar(): UseParcoursSugarReturn {
@@ -155,7 +157,7 @@ export function useParcoursSugar(): UseParcoursSugarReturn {
   const { t, i18n } = useTranslation('pipeline')
   const agencyId = profile?.agency_id
 
-  const { data: transactions = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['parcours-sugar', agencyId],
     queryFn: async (): Promise<TransactionJoin[]> => {
       if (!agencyId) return []
@@ -197,5 +199,5 @@ export function useParcoursSugar(): UseParcoursSugarReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactions, i18n.language])
 
-  return { dossiers, isLoading }
+  return { dossiers, isLoading, isError, refetch: () => void refetch() }
 }

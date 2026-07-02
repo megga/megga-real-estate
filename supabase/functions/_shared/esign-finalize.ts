@@ -72,18 +72,34 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
   const nowIso = new Date().toISOString()
   const newStatus = statusResult.status
 
-  const update: Record<string, unknown> = {
-    status: newStatus,
-    signers: statusResult.signers,
-    raw_status: statusResult as unknown,
-  }
-  if (statusResult.providerDocumentId) update.provider_document_id = statusResult.providerDocumentId
-  if (TERMINAL.has(newStatus)) update.completed_at = nowIso
-
   let finalized = false
 
-  // Signé et pas encore archivé → télécharge + range le PDF signé.
   if (newStatus === 'signed' && !sr.signed_document_path) {
+    // Claim ATOMIQUE : Skribble envoie success + update quasi-simultanement, donc
+    // deux callbacks concurrents arrivent. Le verrou porte sur completed_at — que
+    // CE meme UPDATE ecrit — via WHERE completed_at IS NULL : un seul callback
+    // gagne, le second voit la colonne deja ecrite → 0 ligne → il s'arrete (pas de
+    // double download ni de double audit). NB : verrouiller sur signed_document_path
+    // serait inefficace (le claim ne l'ecrit qu'APRES le download → la colonne reste
+    // NULL, les deux callbacks matcheraient). En cas d'echec download, on relache
+    // completed_at (plus bas) pour permettre un retry.
+    const claim: Record<string, unknown> = {
+      status: 'signed',
+      completed_at: nowIso,
+      signers: statusResult.signers,
+      raw_status: statusResult as unknown,
+    }
+    if (statusResult.providerDocumentId) claim.provider_document_id = statusResult.providerDocumentId
+    const { data: claimed } = await supabase
+      .from('signature_requests')
+      .update(claim)
+      .eq('id', sr.id)
+      .is('completed_at', null)
+      .select('id')
+    if (!claimed || claimed.length === 0) {
+      // Un autre callback finalise deja → idempotent, on s'arrete (pas de re-audit).
+      return { status: 'signed', finalized: false }
+    }
     const stored = await downloadAndStoreSigned({
       supabase,
       provider,
@@ -92,15 +108,30 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
       sr: { ...sr, provider_document_id: statusResult.providerDocumentId ?? sr.provider_document_id },
     })
     if (stored.ok) {
-      update.signed_document_path = stored.path
-      update.signed_sha256 = stored.sha256
+      await supabase
+        .from('signature_requests')
+        .update({ signed_document_path: stored.path, signed_sha256: stored.sha256 })
+        .eq('id', sr.id)
       finalized = true
     } else {
-      update.last_error = stored.error
+      // Echec download → on RELACHE le verrou (completed_at=null) et on laisse
+      // signed_document_path NULL, pour re-tenter au prochain callback / refresh.
+      await supabase
+        .from('signature_requests')
+        .update({ last_error: stored.error, completed_at: null })
+        .eq('id', sr.id)
     }
+  } else {
+    // Statuts non-signes (ou signe deja archive) : MAJ generique.
+    const update: Record<string, unknown> = {
+      status: newStatus,
+      signers: statusResult.signers,
+      raw_status: statusResult as unknown,
+    }
+    if (statusResult.providerDocumentId) update.provider_document_id = statusResult.providerDocumentId
+    if (TERMINAL.has(newStatus)) update.completed_at = nowIso
+    await supabase.from('signature_requests').update(update).eq('id', sr.id)
   }
-
-  await supabase.from('signature_requests').update(update).eq('id', sr.id)
 
   // Reflète sur le document source (filtrage rapide en liste).
   if (sr.document_id) {
@@ -114,7 +145,9 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
     await supabase.from('documents').update(docUpdate).eq('id', sr.document_id)
   }
 
-  // Audit (toute action, y compris callback système).
+  // Audit (toute action, y compris callback systeme). category contraint a
+  // {kyc,deal,contact,bien,doc,auth,settings,ai} → 'doc' ; actor_kind a
+  // {user,ai,system} avec actor_id non-null seulement si 'user' (cf. CHECK).
   await supabase.from('activity_events').insert({
     agency_id: sr.agency_id,
     actor_id: actor?.id ?? null,

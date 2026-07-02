@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 interface PropertyPayload {
   title: string
@@ -138,14 +139,11 @@ serve(async (req) => {
   }
 
   try {
-    // ── Auth check (agent-only — sending property emails requires authentication) ──
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { status: 401, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
-      )
-    }
+    // Auth réelle (agent authentifié) : valide le JWT (auth.getUser) ET exige un
+    // profil avec agency_id. Avant, seul le préfixe « Bearer » était vérifié → un
+    // faux jeton déclenchait un envoi Resend réel (usurpation d'expéditeur megga.ch).
+    const auth = await requireAgentAuth(req, { 'Access-Control-Allow-Origin': '*' })
+    if (auth instanceof Response) return auth
 
     const body: SendRequest = await req.json()
 

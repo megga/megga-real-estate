@@ -247,10 +247,16 @@
         "match": "Match",
         "compromis": "Sale agreement",
         "visit": "Viewing"
-      }
+      },
+      "pipelineDeals_one": "{{count}} deal",
+      "pipelineDeals_other": "{{count}} deals",
+      "pipelineAtRisk": "{{count}} at risk",
+      "objectifUnset": "Not set"
     },
     "agenda": {
-      "error": { "title": "Data unavailable" },
+      "error": {
+        "title": "Data unavailable"
+      },
       "next": "Next",
       "empty": "Nothing more after this, your day is clear.",
       "call": "Call",
@@ -266,18 +272,21 @@
         "mandate": "Mandate",
         "visit": "Viewing",
         "offer": "Offer"
-      }
+      },
+      "nowBadge": "Now"
     },
     "relances": {
       "leadsToFollow": "leads to follow up",
       "preparedByAi": "prepared by AI",
-      "startSession": "Start session",
+      "startSession": "Start the session",
       "tempHot": "hot",
       "tempWarm": "warm",
       "tempCold": "cold"
     },
     "pipeline": {
-      "error": { "title": "Data unavailable" },
+      "error": {
+        "title": "Data unavailable"
+      },
       "stages": {
         "searching": "Active search",
         "visit": "Viewing scheduled",
@@ -289,7 +298,9 @@
       "riskOverdue": "Deadline overdue"
     },
     "objectif": {
-      "error": { "title": "Data unavailable" },
+      "error": {
+        "title": "Data unavailable"
+      },
       "realized": "achieved",
       "realizedNoTarget": "achieved · no target set",
       "target": "target"
@@ -419,6 +430,11 @@
       "agentFallback": "Your MEGGA broker",
       "generating": "MEGGA AI is writing…",
       "demoBanner": "Demo mode, no dormant lead in your agency. These examples are sent to no one.",
+      "loading": "Loading…",
+      "noLeads": {
+        "title": "No follow-ups pending",
+        "body": "No dormant contact to follow up today. Your follow-ups will appear here as soon as a contact goes cold."
+      },
       "sendError": "Sending failed, try again or copy the message.",
       "draft": {
         "to": "To",
@@ -665,5 +681,22 @@
   "focus": {
     "heading": "3 must-do priorities for today",
     "subtitle": "Everything else can wait. Breathe, do these three things well."
+  },
+  "mobile": {
+    "analytics": {
+      "title": "Your commission cockpit",
+      "back": "More",
+      "noData": "No data to show right now",
+      "sourcesSubtitle": "Where your contacts come from"
+    },
+    "settings": {
+      "completion": "Profile {{pct}} % complete",
+      "unnamed": "No name",
+      "channelWord_one": "active channel",
+      "channelWord_other": "active channels",
+      "billingDesktop": "Subscription management is available on desktop.",
+      "signedOut": "Sign in to edit your settings.",
+      "noPlan": "No active plan"
+    }
   }
 }

@@ -259,7 +259,7 @@ export default function MatchingAtelierDemoPage() {
     const b = BUYERS.find(x => x.id === contactId)
     if (!b) return []
     return [
-      { matchId: b.matchId, lid: LISTING.key, L: LISTING, score: b.score, reasons: b.reasons, current: true, snoozedUntil: null },
+      { matchId: b.matchId, lid: LISTING.key, L: LISTING, score: b.score, reasons: b.reasons, current: true, snoozedUntil: null, status: 'to-send' as const },
       {
         matchId: `demo-pool-1-${contactId}`, lid: POOL_EXTRA[0].key, L: POOL_EXTRA[0], score: 78,
         reasons: [
@@ -269,7 +269,7 @@ export default function MatchingAtelierDemoPage() {
           r('Surface', '98 m² — proche du souhait', 12, true),
           r('Pièces', '4 — minimum demandé', 8, true),
         ],
-        current: false, snoozedUntil: null,
+        current: false, snoozedUntil: null, status: 'to-send' as const,
       },
       {
         matchId: `demo-pool-2-${contactId}`, lid: POOL_EXTRA[1].key, L: POOL_EXTRA[1], score: 64,
@@ -280,7 +280,7 @@ export default function MatchingAtelierDemoPage() {
           r('Budget', '1,18M — haut de fourchette', 10, true),
           r('Quartier', 'Plainpalais hors zones cibles', -6, false),
         ],
-        current: false, snoozedUntil: null,
+        current: false, snoozedUntil: null, status: 'to-send' as const,
       },
     ].sort((a, z) => z.score - a.score)
   }

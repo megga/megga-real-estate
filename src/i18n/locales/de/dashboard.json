@@ -247,7 +247,11 @@
         "match": "Match",
         "compromis": "Sale agreement",
         "visit": "Viewing"
-      }
+      },
+      "pipelineDeals_one": "{{count}} Deal",
+      "pipelineDeals_other": "{{count}} Deals",
+      "pipelineAtRisk": "{{count}} gefährdet",
+      "objectifUnset": "Nicht festgelegt"
     },
     "agenda": {
       "next": "Next",
@@ -265,12 +269,13 @@
         "mandate": "Mandate",
         "visit": "Viewing",
         "offer": "Offer"
-      }
+      },
+      "nowBadge": "Jetzt"
     },
     "relances": {
       "leadsToFollow": "leads to follow up",
       "preparedByAi": "prepared by AI",
-      "startSession": "Start session",
+      "startSession": "Sitzung starten",
       "tempHot": "hot",
       "tempWarm": "warm",
       "tempCold": "cold"
@@ -416,6 +421,11 @@
       "agentFallback": "Your MEGGA broker",
       "generating": "MEGGA AI is writing…",
       "demoBanner": "Demo mode, no dormant lead in your agency. These examples are sent to no one.",
+      "loading": "Loading…",
+      "noLeads": {
+        "title": "No follow-ups pending",
+        "body": "No dormant contact to follow up today. Your follow-ups will appear here as soon as a contact goes cold."
+      },
       "sendError": "Sending failed, try again or copy the message.",
       "draft": {
         "to": "To",
@@ -662,5 +672,22 @@
   "focus": {
     "heading": "3 must-do priorities for today",
     "subtitle": "Everything else can wait. Breathe, do these three things well."
+  },
+  "mobile": {
+    "analytics": {
+      "title": "Dein Provisions-Cockpit",
+      "back": "Mehr",
+      "noData": "Derzeit keine Daten verfügbar",
+      "sourcesSubtitle": "Woher deine Kontakte kommen"
+    },
+    "settings": {
+      "completion": "Profil zu {{pct}} % ausgefüllt",
+      "unnamed": "Kein Name",
+      "channelWord_one": "aktiver Kanal",
+      "channelWord_other": "aktive Kanäle",
+      "billingDesktop": "Die Abo-Verwaltung ist am Desktop verfügbar.",
+      "signedOut": "Melde dich an, um deine Einstellungen zu bearbeiten.",
+      "noPlan": "Kein aktives Abo"
+    }
   }
 }

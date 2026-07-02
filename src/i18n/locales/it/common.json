@@ -1,6 +1,11 @@
 {
   "nav": {
+    "appearance": "Aspetto",
+    "language": "Lingua",
+    "light": "Chiaro",
+    "dark": "Scuro",
     "today": "Oggi",
+    "more": "Altro",
     "dashboard": "Dashboard",
     "contacts": "Contatti",
     "pipeline": "Pipeline",
@@ -39,6 +44,7 @@
     "adminToolUsage": "Utilizzo strumenti",
     "journey": "Journey",
     "aiAgent": "Megga, AI agent",
+    "help": "Aiuto",
     "notifications": "Notifications",
     "callbacksToday": "Today's callbacks",
     "importLeads": "Import leads"
@@ -1253,6 +1259,12 @@
     }
   },
   "notifications": {
+    "essential": "L'essenziale",
+    "digestPriorities_one": "{{count}} priorità da gestire oggi",
+    "digestPriorities_other": "{{count}} priorità da gestire oggi",
+    "groupToday": "Oggi",
+    "groupYesterday": "Ieri",
+    "groupOlder": "Prima",
     "kind": {
       "kyc": "KYC",
       "visite": "Viewing",

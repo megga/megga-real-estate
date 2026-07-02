@@ -3,21 +3,27 @@
 //   1. Média/voix : téléchargement Meta → R2 + transcription Deepgram (file durable).
 //   2. Compréhension : insight MEGGA par contact (DeepSeek), péremption dérivée.
 //   3. Compliance : avis LPD une fois par numéro client.
-// Appelé UNIQUEMENT par pg_cron en service-role. DÉPLOYER verify_jwt=true
-// (config.toml + allowlist deploy.yml) — NE JAMAIS --no-verify-jwt.
+// Appelé UNIQUEMENT par pg_cron en service-role. verify_jwt=false (config.toml + déploiement
+// --no-verify-jwt) : la plateforme rejette la clé service-role legacy quand verify_jwt=true
+// (UNAUTHORIZED_LEGACY_JWT). La garde se fait DANS la fonction (Bearer comparé à
+// app_config.service_role_key, cf. ci-dessous).
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.17'
 import { fetchMetaMedia, buildMediaKey } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
+import { describeInboundMedia, threadTextFor, isReadableDocMime } from '../_shared/vision.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
-import { mapCriteria, computeMissing, isSearchable } from '../_shared/whatsapp-lead.ts'
+import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
+import { deriveFollowups, persistFollowups } from '../_shared/whatsapp-followups.ts'
+import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BATCH = 10            // messages média réclamés / tick (chaque op peut être lente)
 const MAX_RETRIES = 3
+const MAX_VISION_BYTES = 12 * 1024 * 1024  // au-delà : on garde le média mais on ne le lit pas (coût/latence)
 const INSIGHT_BATCH = 5     // contacts ré-analysés / tick (borne coût DeepSeek + temps)
 const NOTICE_BATCH = 10     // avis LPD envoyés / tick
 const BUDGET_MS = 90_000    // budget temps : on rend la main avant la limite edge (~150s)
@@ -52,6 +58,9 @@ serve(async (req) => {
     if (!expectedKey || !safeEqual(providedKey, expectedKey)) return json({ error: 'Forbidden' }, 403)
   }
 
+  // Kill-switch : coupé → on rend la main sans rien traiter (média/insight/avis).
+  if (!(await isWhatsAppEnabled(admin))) return json({ ok: true, disabled: true }, 200)
+
   const t0 = Date.now()
   const overBudget = () => Date.now() - t0 > BUDGET_MS
   const metaToken = Deno.env.get('META_WHATSAPP_TOKEN') ?? ''
@@ -59,6 +68,7 @@ serve(async (req) => {
   const metaPhoneNumberId = Deno.env.get('META_PHONE_NUMBER_ID') ?? ''
   const deepgramKey = Deno.env.get('DEEPGRAM_API_KEY') ?? ''
   const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY') ?? ''
+  const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? ''
 
   const r2 = new AwsClient({
     accessKeyId: (Deno.env.get('R2_ACCESS_KEY_ID') ?? '').trim(),
@@ -91,6 +101,15 @@ serve(async (req) => {
           patch.transcript = t.transcript
           patch.transcript_lang = t.lang
           patch.transcript_confidence = t.confidence
+        } else if (geminiKey && isReadableDocMime(mime) && bytes.length <= MAX_VISION_BYTES) {
+          // Image/PDF entrant : Gemini Vision classe + résume → rangé dans `transcript`
+          // (le digest le lit → l'insight « voit » le média). Garde-fou résidence : une
+          // pièce d'identité n'est jamais recopiée (threadTextFor redacte). Best-effort.
+          const u = await describeInboundMedia(bytes, mime, geminiKey)
+          if (u.ok && u.data) {
+            patch.transcript = threadTextFor(u.data)
+            patch.media_kind = u.data.kind
+          }
         }
       }
       await admin.from('whatsapp_messages').update(patch).eq('id', id)
@@ -135,6 +154,14 @@ serve(async (req) => {
         if (insight.lead) {
           try { await qualifyLead(admin, c.agency_id, c.contact_id, insight, digest) }
           catch (e) { console.error('whatsapp lead qualify failed:', String((e as Error)?.message ?? 'error').slice(0, 120)) }
+        }
+        // Engagements actionnables : transforme les commitments/next_action en
+        // suggestions de suivi datées (l'agent accepte → vrai rappel). Best-effort.
+        try {
+          const followups = deriveFollowups(insight, { nowISO: new Date().toISOString() })
+          if (followups.length) await persistFollowups(admin, c.agency_id, c.contact_id, followups, c.last_message_at)
+        } catch (e) {
+          console.error('whatsapp followups failed:', String((e as Error)?.message ?? 'error').slice(0, 120))
         }
       } catch (e) {
         console.error('whatsapp insight failed:', String((e as Error)?.message ?? 'error').slice(0, 120))
@@ -252,13 +279,21 @@ async function qualifyLead(
     }
   }
 
-  // 2. Idempotence : déjà qualifié par MEGGA ?
-  const { data: cRow } = await admin.from('contacts').select('tags, phone, email').eq('id', leadContactId).maybeSingle()
+  // 2. Critères extraits de CE fil + état du contact.
+  const { data: cRow } = await admin.from('contacts').select('tags, phone, email, search_criteria').eq('id', leadContactId).maybeSingle()
   const tags: string[] = Array.isArray(cRow?.tags) ? (cRow!.tags as string[]) : []
-  if (!created && tags.includes('whatsapp_ai_qualified')) return
-
-  // 3. Critères + champs manquants.
   const criteria = mapCriteria(insight.intent, insight.entities, digest)
+
+  // 2b. Déjà qualifié → ENRICHISSEMENT continu (fusion non destructive) puis stop.
+  //     On ne re-crée pas, on RAFFINE : nouvelles zones/prestations, champs comblés.
+  if (!created && tags.includes('whatsapp_ai_qualified')) {
+    await enrichQualifiedLead(admin, agencyId, leadContactId, tags,
+      (cRow?.search_criteria ?? null) as LeadCriteria | null, criteria,
+      { phone: cRow?.phone ?? lead.phone, email: cRow?.email ?? lead.email })
+    return
+  }
+
+  // 3. Première qualification : champs manquants.
   const missing = computeMissing(criteria, { phone: cRow?.phone ?? lead.phone, email: cRow?.email ?? lead.email })
 
   // 4. MAJ contact : tags + critères structurés.
@@ -301,5 +336,56 @@ async function qualifyLead(
     category: 'contact',
     severity: 'info',
     metadata: { via: 'whatsapp', phase: '4b' },
+  })
+}
+
+// ── Enrichissement continu d'un lead déjà qualifié ──────────────────────────
+// Fusion NON DESTRUCTIVE des nouveaux critères dans la fiche + la recherche active
+// (jamais d'écrasement d'une valeur posée par l'agent). Écrit SEULEMENT s'il y a du
+// neuf ; la MAJ de client_searches.criteria relance le matching (trigger DB
+// on_search_criteria_updated). Audit du delta. Best-effort (appelé dans un try).
+async function enrichQualifiedLead(
+  admin: SupabaseClient,
+  agencyId: string,
+  contactId: string,
+  tags: string[],
+  current: LeadCriteria | null,
+  incoming: LeadCriteria,
+  contact: { phone?: string | null; email?: string | null },
+): Promise<void> {
+  const merged = mergeCriteria(current, incoming)
+  const delta = criteriaDelta(current, merged)
+  if (delta.length === 0) return // rien de neuf → aucune écriture, aucun bruit
+
+  // Fiche : critères enrichis + recalcul du flag « à compléter ».
+  const missing = computeMissing(merged, contact)
+  const base = tags.filter((t) => t !== 'à_compléter')
+  const newTags = Array.from(new Set(missing.length ? [...base, 'à_compléter'] : base))
+  await admin.from('contacts').update({ search_criteria: merged, tags: newTags }).eq('id', contactId)
+
+  // Recherche active : on fusionne AUSSI dans SES critères (jamais perdre ce que
+  // l'agent y aurait ajouté), ce qui déclenche le re-matching si ça change.
+  if (isSearchable(merged)) {
+    const { data: active } = await admin.from('client_searches')
+      .select('id, criteria').eq('contact_id', contactId).eq('is_active', true).limit(1).maybeSingle()
+    if (active) {
+      const searchMerged = mergeCriteria((active.criteria ?? null) as LeadCriteria | null, merged)
+      if (criteriaDelta((active.criteria ?? null) as LeadCriteria | null, searchMerged).length > 0) {
+        await admin.from('client_searches').update({ criteria: searchMerged }).eq('id', active.id)
+      }
+    } else {
+      await admin.from('client_searches').insert({
+        agency_id: agencyId, contact_id: contactId,
+        label: `WhatsApp — ${merged.transaction_type === 'rent' ? 'location' : 'achat'}`,
+        criteria: merged, is_active: true,
+      })
+    }
+  }
+
+  await admin.from('activity_events').insert({
+    agency_id: agencyId, actor_id: null, actor_kind: 'ai',
+    action: 'Fiche enrichie (WhatsApp)', entity_type: 'contact', entity_id: contactId,
+    object_label: `MEGGA a enrichi la recherche depuis WhatsApp : ${delta.join(' · ')}.`.slice(0, 500),
+    category: 'contact', severity: 'info', metadata: { via: 'whatsapp', phase: '4b-enrich' },
   })
 }

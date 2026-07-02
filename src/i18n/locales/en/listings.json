@@ -117,7 +117,8 @@
     "reserved": "Reserved",
     "draft": "Draft",
     "paused": "Paused",
-    "sold": "Sold"
+    "sold": "Sold",
+    "archived": "Archived"
   },
   "relativeTime": {
     "min": "{{n}} min",
@@ -652,6 +653,7 @@
       "eyebrow": "Distribution",
       "notPublished": "Not published",
       "online": "Online",
+      "queued": "Queued",
       "offline": "Offline"
     },
     "historySection": {
@@ -1267,6 +1269,7 @@
       "schedulePublish": "Schedule publication",
       "saveDraft": "Save as draft",
       "publish": "Publish on MEGGA",
+      "photoRequired": "Add at least one photo to publish. Without a photo, save the listing as a draft and complete it later.",
       "publishError": "Publication failed: {{message}}",
       "unknownError": "Unknown error",
       "recommended": "Recommended",
@@ -1371,5 +1374,91 @@
   },
   "gallery": {
     "sort": "Sort"
+  },
+  "mobile": {
+    "subtitle": "{{count}} of {{total}}",
+    "searchPlaceholder": "Property, address, reference…",
+    "errorTitle": "Couldn't load properties",
+    "detailError": "Couldn't load the property",
+    "retry": "Retry",
+    "emptyTitle": "No property",
+    "emptyDesc": "No property matches. Adjust the search or filters.",
+    "viewListing": "Open listing",
+    "edit": "Edit",
+    "scheduleVisit": "Schedule a visit",
+    "txRent": "Rental",
+    "txSale": "Sale",
+    "roomsShort_one": "{{count}} room",
+    "roomsShort_other": "{{count}} rooms",
+    "c2pa": "Verified photos",
+    "photosCount_one": "{{count}} photo",
+    "photosCount_other": "{{count}} photos",
+    "chargesLine": "+ {{value}} / month",
+    "perM2": "{{value}}/m²",
+    "descriptionTitle": "Description",
+    "performanceTitle": "Performance",
+    "mandateTitle": "Mandate",
+    "diffusionTitle": "Distribution",
+    "diffusionOnline": "Online since {{date}}",
+    "diffusionOffline": "Not published yet",
+    "spec": {
+      "surface": "Surface",
+      "rooms": "Rooms",
+      "beds": "Bedrooms",
+      "baths": "Bathrooms",
+      "year": "Year",
+      "energy": "Energy"
+    },
+    "stat": {
+      "views": "Views",
+      "favorites": "Favorites",
+      "visits": "Visits"
+    },
+    "mandate": {
+      "type": "Type",
+      "commission": "Commission",
+      "signedAt": "Signed on",
+      "expiresAt": "Expires on"
+    },
+    "photoIndex": "Photo {{i}} / {{total}}",
+    "surfaceSuffix": "m²"
+  },
+  "wizardMobile": {
+    "continue": "Continue",
+    "publish": "Publish",
+    "publishing": "Publishing…",
+    "saveDraft": "Save as draft",
+    "publishError": "Publishing failed. Try again.",
+    "doneTitle": "Property created",
+    "doneDesc": "Your property is saved. Add photos from its listing.",
+    "typeTitle": "What type of property?",
+    "transaction": "Transaction",
+    "locationTitle": "Where is the property?",
+    "addr": "Street and number",
+    "postCode": "ZIP",
+    "city": "City",
+    "canton": "Canton",
+    "specsTitle": "Characteristics",
+    "energy": "Energy class",
+    "features": "Features",
+    "priceTitle": "Price & publishing",
+    "priceLabel": "Sale price",
+    "rentLabel": "Monthly rent",
+    "charges": "Charges",
+    "descPlaceholder": "Describe the property…",
+    "mandate": "Mandate",
+    "mandateExclusive": "Exclusive",
+    "mandateSimple": "Simple",
+    "publishWhen": "Publishing",
+    "publishNow": "Publish now",
+    "draft": "Draft",
+    "photosLater": "Photos can be added from the listing",
+    "step": {
+      "type": "Type",
+      "location": "Location",
+      "specs": "Characteristics",
+      "price": "Price & publishing"
+    },
+    "chargesUnit": "CHF / month"
   }
 }

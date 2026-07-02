@@ -1,0 +1,35 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Boutons — MEGGA Vitrine</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="../css/styles.css" rel="stylesheet" type="text/css" />
+  <style>
+    body { margin: 0; font-family: "Inter Tight", sans-serif; background: var(--neutral-colors--100); color: var(--neutral-colors--700); }
+    /* neutralise les états cachés des animations Webflow IX2 (pas de JS runtime dans la preview statique) */
+    [style*="opacity:0"], [style*="opacity: 0"] { opacity: 1 !important; }
+    [style*="opacity:0"] *, [style*="opacity: 0"] * { opacity: 1 !important; }
+    [style*="blur"] { filter: none !important; }
+  </style>
+</head>
+<body>
+<div style="padding:40px;display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+<a class="primary-button w-inline-block" href="signup.html"><div class="link-content-flex"><div>Commencer</div></div></a>
+<a class="primary-button w-inline-block" href="index.html#fonctionnalites"><div class="link-content-flex"><div>Voir les fonctionnalités</div></div></a>
+<a class="secondary-button w-inline-block" href="blog.html"><div class="link-content-flex"><div>Voir le blog</div></div></a>
+<a class="secondary-button w-inline-block" href="contact.html"><div class="link-content-flex"><div>Voir les fonctionnalités</div></div></a>
+<a class="secondary-button light-mode w-inline-block" href="contact.html"><div>Nous contacter</div></a>
+<a class="secondary-button light-mode w-inline-block" href="signup.html"><div>Commencer</div></a>
+<div class="primary-button no-hover width-100">Commencer</div>
+<div class="secondary-button no-hover width-100">Nous contacter</div>
+<div class="circle-button-primary light-mode large slider-center---button-right w-slider-arrow-right"><div></div></div>
+<div class="circle-button-secondary large light-mode slider-center---button-left w-slider-arrow-left"><div></div></div>
+<div class="circle-button-secondary accordion-circle-button"><div class="accordion-circle-button---icon"></div></div>
+</div>
+</body>
+</html>
