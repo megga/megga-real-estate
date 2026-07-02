@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MEGGA · Conversation</title>
+<title>MEGGA · Conversation animée</title>
 <style>
   :root {
     --ai: #00DA5F;
     --ai-text: #FFFFFF;
-    --ai-time: rgba(255,255,255,0.78);
+    --ai-time: rgba(255,255,255,0.82);
     --agent: #F1F3F5;
-    --agent-text: #1A1A1A;
+    --agent-text: #14181D;
     --agent-time: #8A929D;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,337 +32,189 @@
   .thread {
     position: absolute;
     inset: 0;
-    padding: 12px 40px;
+    padding: 48px 96px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    gap: 18px;
   }
   .row {
     display: flex;
     width: 100%;
-    margin-top: 5px;
   }
   .row.left { justify-content: flex-start; }
   .row.right { justify-content: flex-end; }
-  /* bulles consécutives du même interlocuteur : rapprochées */
-  .row.cont { margin-top: 2px; }
+  .row.cont { margin-top: -12px; }
+
+  /* entrée */
+  .enter {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+    animation: pop .42s cubic-bezier(.18,.9,.28,1.2) forwards;
+    transform-origin: bottom;
+  }
+  .row.right .enter { transform-origin: bottom right; }
+  .row.left  .enter { transform-origin: bottom left; }
+  @keyframes pop {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
 
   .bubble {
     position: relative;
-    max-width: 600px;
-    padding: 11px 19px 8px;
-    border-radius: 22px;
-    box-shadow: 0 1px 2px rgba(15,23,42,0.06);
-    font-size: 18px;
-    line-height: 1.4;
-    letter-spacing: -0.1px;
+    max-width: 760px;
+    padding: 22px 28px 16px;
+    border-radius: 30px;
+    box-shadow: 0 2px 6px rgba(15,23,42,0.07);
+    font-size: 26px;
+    line-height: 1.42;
+    letter-spacing: -0.3px;
   }
-
-  /* AI — left, green : ergot WhatsApp en haut à gauche */
   .bubble.ai {
     background: var(--ai);
     color: var(--ai-text);
-    border-top-left-radius: 0;
+    border-top-left-radius: 8px;
   }
   .bubble.ai::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: -8px;
-    width: 9px;
-    height: 14px;
+    top: 0; left: -10px;
+    width: 12px; height: 20px;
     background: var(--ai);
     clip-path: polygon(0 0, 100% 0, 100% 100%);
   }
-
-  /* Agent — right, gray : ergot WhatsApp en haut à droite */
   .bubble.agent {
     background: var(--agent);
     color: var(--agent-text);
-    border-top-right-radius: 0;
+    border-top-right-radius: 8px;
   }
   .bubble.agent::before {
     content: "";
     position: absolute;
-    top: 0;
-    right: -8px;
-    width: 9px;
-    height: 14px;
+    top: 0; right: -10px;
+    width: 12px; height: 20px;
     background: var(--agent);
     clip-path: polygon(0 0, 100% 0, 0 100%);
   }
-
-  /* bulle de continuation : pas d'ergot, coin plein */
-  .bubble.notail { border-radius: 20px; }
-  .bubble.notail::before,
-  .bubble.notail::after { display: none; }
+  .bubble.notail { border-radius: 30px; }
+  .bubble.notail::before { display: none; }
 
   .bubble p { margin: 0; }
   .bubble .lead { font-weight: 700; }
-  .bubble .quote { margin-top: 6px; }
+  .bubble .quote { margin-top: 10px; }
 
   .meta {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 4px;
-    margin-top: 6px;
-    font-size: 15px;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 16px;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
   .ai .meta { color: var(--ai-time); }
   .agent .meta { color: var(--agent-time); }
-
   .ticks { display: inline-flex; align-items: center; }
   .ticks svg { display: block; }
 
-  /* ---- indicateur de saisie ---- */
-  .typing-pill {
-    position: relative;
+  /* indicateur de saisie */
+  .typing {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding: 24px 28px;
+    border-radius: 30px;
+    box-shadow: 0 2px 6px rgba(15,23,42,0.07);
     background: var(--ai);
-    padding: 16px 18px;
-    border-radius: 20px;
-    border-top-left-radius: 0;
-    box-shadow: 0 1px 2px rgba(15,23,42,0.06);
+    border-top-left-radius: 8px;
   }
-  .typing-pill::before {
-    content: "";
-    position: absolute;
-    top: 0; left: -8px;
-    width: 9px; height: 14px;
-    background: var(--ai);
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
+  .typing.agent { background: var(--agent); border-top-left-radius: 30px; border-top-right-radius: 8px; }
+  .typing .dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    animation: blink 1.3s infinite ease-in-out;
   }
-  .typing-pill span {
-    width: 9px; height: 9px; border-radius: 50%;
-    background: rgba(255,255,255,0.92);
-    animation: tdot 1.2s infinite ease-in-out;
-  }
-  .typing-pill span:nth-child(2) { animation-delay: .16s; }
-  .typing-pill span:nth-child(3) { animation-delay: .32s; }
-  @keyframes tdot {
-    0%, 60%, 100% { transform: translateY(0); opacity: .5; }
-    30%           { transform: translateY(-5px); opacity: 1; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .typing-pill span { animation: none; }
+  .typing.agent .dot { background: #A7AEB8; }
+  .typing .dot:nth-child(2) { animation-delay: .18s; }
+  .typing .dot:nth-child(3) { animation-delay: .36s; }
+  @keyframes blink {
+    0%, 60%, 100% { opacity: .3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-4px); }
   }
 </style>
 </head>
 <body>
   <div class="canvas">
-    <div class="thread" id="thread">
-
-      <!-- 1 — agent -->
-      <div class="row right">
-        <div class="bubble agent">
-          <p>Salut MEGGA 👋 tu peux me préparer l'annonce du 4,5 pièces à Genève ?</p>
-          <div class="meta">
-            <span>14:30</span>
-            <span class="ticks">
-              <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
-                <path d="M1 5.8 4 8.8 9.4 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M6.6 5.8 9.6 8.8 15 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2 — ai -->
-      <div class="row left">
-        <div class="bubble ai">
-          <p>Bien sûr 🙂 Plutôt sobre ou prestige ?</p>
-          <div class="meta"><span>14:30</span></div>
-        </div>
-      </div>
-
-      <!-- 3 — agent -->
-      <div class="row right">
-        <div class="bubble agent">
-          <p>Prestige</p>
-          <div class="meta">
-            <span>14:31</span>
-            <span class="ticks">
-              <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
-                <path d="M1 5.8 4 8.8 9.4 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M6.6 5.8 9.6 8.8 15 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4 — ai -->
-      <div class="row left">
-        <div class="bubble ai notail">
-          <p>Parfait, je vous prépare ça.</p>
-          <div class="meta"><span>14:31</span></div>
-        </div>
-      </div>
-
-      <!-- 5 — ai (suite) -->
-      <div class="row left cont">
-        <div class="bubble ai" style="max-width: 680px;">
-          <p class="lead">« Genève · 4,5 pièces d'exception, 118 m² »</p>
-          <p class="quote">« Réception traversante et lumineuse, deux terrasses, à deux pas du parc Bertrand. Une adresse rare au cœur de la ville. »</p>
-          <div class="meta"><span>14:32</span></div>
-        </div>
-      </div>
-
-      <!-- 6 — agent -->
-      <div class="row right">
-        <div class="bubble agent">
-          <p>Nickel 🙌 ajoute juste la proximité des écoles</p>
-          <div class="meta">
-            <span>14:32</span>
-            <span class="ticks">
-              <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
-                <path d="M1 5.8 4 8.8 9.4 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M6.6 5.8 9.6 8.8 15 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 7 — ai -->
-      <div class="row left">
-        <div class="bubble ai notail">
-          <p>C'est ajouté. Je l'ai aussi adaptée pour les réseaux et en SMS.</p>
-          <div class="meta"><span>14:33</span></div>
-        </div>
-      </div>
-
-      <!-- 8 — ai (suite) -->
-      <div class="row left cont">
-        <div class="bubble ai">
-          <p>Vous validez quand vous voulez 👍</p>
-          <div class="meta"><span>14:33</span></div>
-        </div>
-      </div>
-
-    </div>
+    <div class="thread" id="thread"></div>
   </div>
 
 <script>
-(function () {
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var thread = document.getElementById('thread');
-  var rows = Array.prototype.slice.call(thread.querySelectorAll('.row'));
-  var EASE = 'cubic-bezier(.22,.61,.36,1)';
+const TICKS = `<span class="ticks"><svg width="22" height="15" viewBox="0 0 16 11" fill="none">
+  <path d="M1 5.8 4 8.8 9.4 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M6.6 5.8 9.6 8.8 15 2.4" stroke="#8A929D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></span>`;
 
-  function marginFor(r) { return r.classList.contains('cont') ? '4px' : '14px'; }
+// side: 'agent' (droite) | 'ai' (gauche)
+// think: durée de l'indicateur "..." avant la bulle (ms). 0 = pas d'indicateur (envoi direct)
+const SCRIPT = [
+  { side:'agent', think:0,    html:`<p>Salut MEGGA 👋 tu peux me préparer l'annonce du 4,5 pièces à Genève ?</p><div class="meta"><span>14:30</span>${TICKS}</div>` },
+  { side:'ai',    think:1100, html:`<p>Bien sûr 🙂 Plutôt sobre ou prestige ?</p><div class="meta"><span>14:30</span></div>` },
+  { side:'agent', think:900,  html:`<p>Prestige</p><div class="meta"><span>14:31</span>${TICKS}</div>` },
+  { side:'ai',    think:1000, html:`<p>Parfait, je vous prépare ça.</p><div class="meta"><span>14:31</span></div>`, notail:true },
+  { side:'ai',    think:1600, cont:true, html:`<p class="lead">« Genève · 4,5 pièces d'exception, 118 m² »</p><p class="quote">« Réception traversante et lumineuse, deux terrasses, à deux pas du parc Bertrand. Une adresse rare au cœur de la ville. »</p><div class="meta"><span>14:32</span></div>` },
+  { side:'agent', think:1400, html:`<p>Nickel 🙌 ajoute juste la proximité des écoles</p><div class="meta"><span>14:32</span>${TICKS}</div>` },
+  { side:'ai',    think:1500, html:`<p>C'est ajouté. Je l'ai aussi adaptée pour les réseaux et en SMS. Vous validez quand vous voulez 👍</p><div class="meta"><span>14:33</span></div>` },
+];
 
-  function setHidden(r) {
-    r.style.overflow = 'hidden';
-    r.style.transition = 'none';
-    r.style.height = '0px';
-    r.style.opacity = '0';
-    r.style.marginTop = '0px';
-    r.style.transform = 'translateY(6px)';
-  }
-  function showStatic() {
-    rows.forEach(function (r, i) {
-      r.style.height = 'auto';
-      r.style.opacity = '1';
-      r.style.overflow = 'visible';
-      r.style.transform = 'none';
-      r.style.marginTop = i === 0 ? '0px' : marginFor(r);
-    });
-  }
+const thread = document.getElementById('thread');
+const wait = ms => new Promise(r => setTimeout(r, ms));
 
-  if (reduce) { showStatic(); return; }
+function makeRow(cont) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  return row;
+}
 
-  function sleep(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+async function run() {
+  for (const m of SCRIPT) {
+    const row = document.createElement('div');
+    row.className = 'row ' + (m.side === 'agent' ? 'right' : 'left') + (m.cont ? ' cont' : '');
+    thread.appendChild(row);
 
-  function reveal(r) {
-    return new Promise(function (res) {
-      r.style.transition = 'none';
-      r.style.height = 'auto';
-      var h = r.scrollHeight;
-      r.style.height = '0px';
-      void r.offsetHeight;
-      r.style.transition = 'height .34s ' + EASE + ', opacity .3s ease, transform .34s ' + EASE + ', margin-top .34s ' + EASE;
-      r.style.marginTop = marginFor(r);
-      r.style.height = h + 'px';
-      r.style.opacity = '1';
-      r.style.transform = 'none';
-      setTimeout(function () { r.style.height = 'auto'; r.style.overflow = 'visible'; res(); }, 360);
-    });
-  }
-  function collapse(r) {
-    return new Promise(function (res) {
-      r.style.transition = 'height .24s ease, opacity .18s ease, margin-top .24s ease';
-      r.style.height = r.scrollHeight + 'px';
-      void r.offsetHeight;
-      r.style.overflow = 'hidden';
-      r.style.height = '0px';
-      r.style.opacity = '0';
-      r.style.marginTop = '0px';
-      setTimeout(res, 250);
-    });
-  }
-
-  function makeTyping() {
-    var row = document.createElement('div');
-    row.className = 'row left typing';
-    row.innerHTML = '<div class="typing-pill"><span></span><span></span><span></span></div>';
-    setHidden(row);
-    return row;
-  }
-
-  async function run() {
-    await sleep(450);
-    for (var i = 0; i < rows.length; i++) {
-      var r = rows[i];
-      var isAI = r.classList.contains('left');
-      if (isAI) {
-        var t = makeTyping();
-        thread.insertBefore(t, r);
-        await reveal(t);
-        var len = (r.textContent || '').trim().length;
-        await sleep(Math.min(1700, 550 + len * 9));
-        await collapse(t);
-        if (t.parentNode) t.parentNode.removeChild(t);
-        await reveal(r);
-      } else {
-        if (i !== 0) await sleep(680);
-        await reveal(r);
-      }
+    // indicateur de saisie
+    if (m.think > 0) {
+      const t = document.createElement('div');
+      t.className = 'typing enter ' + (m.side === 'agent' ? 'agent' : '');
+      t.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span>`;
+      row.appendChild(t);
+      await wait(m.think);
+      row.removeChild(t);
     }
-    await sleep(4200);
+
+    // bulle
+    const b = document.createElement('div');
+    b.className = 'bubble enter ' + m.side + (m.notail ? ' notail' : '');
+    b.innerHTML = m.html;
+    row.appendChild(b);
+    await wait(m.side === 'agent' ? 650 : 900);
   }
+}
 
-  var running = false;
-  async function loop() {
-    if (running) return;
-    running = true;
-    rows.forEach(setHidden);
-    while (true) {
-      await run();
-      thread.style.transition = 'opacity .5s ease';
-      thread.style.opacity = '0';
-      await sleep(520);
-      Array.prototype.slice.call(thread.querySelectorAll('.typing')).forEach(function (n) { n.remove(); });
-      rows.forEach(setHidden);
-      thread.style.opacity = '1';
-      await sleep(260);
-    }
+async function loop() {
+  while (true) {
+    thread.innerHTML = '';
+    await run();
+    await wait(2600);
+    // fondu de sortie
+    thread.style.transition = 'opacity .5s ease';
+    thread.style.opacity = '0';
+    await wait(600);
+    thread.style.transition = 'none';
+    thread.style.opacity = '1';
+    await wait(400);
   }
-
-  var started = false;
-  function start() { if (started) return; started = true; loop(); }
-
-  // Démarre quand le parent signale l'entrée dans l'écran, sinon repli autonome.
-  window.addEventListener('message', function (e) { if (e && e.data === 'megga:play') start(); });
-  setTimeout(start, 1500);
-})();
+}
+loop();
 </script>
 </body>
 </html>
