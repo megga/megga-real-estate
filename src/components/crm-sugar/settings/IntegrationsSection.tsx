@@ -9,10 +9,11 @@
 //   - Skribble    → useEsignSignature (edge sign-document, table esign_provider_
 //                   connections, cle chiffree dans Vault). Connecter = modale
 //                   EsignConnectModal (cle API validee par login live). QES/AES CH.
-//   - DocuSign    → reste « Sur demande » : onboarding OAuth self-service a venir.
-//                   La charte interdit de presenter une integration fictive comme reelle.
+//   - DocuSign    → carte RETIREE (2 juil.) : sans valeur ajoutee pour le marche
+//                   suisse (Skribble = QES ZertES). Le gateway backend est conserve
+//                   (esign-gateway.ts) pour une future activation US en BYO OAuth.
 //
-// Catalogue limité aux 5 services décidés avec le client. Les anciennes cartes mock
+// Catalogue limité aux 4 services décidés avec le client. Les anciennes cartes mock
 // (IAZI, RealAdvisor, SIX, Onfido, Veriff, Zapier) et le bandeau de fausses stats
 // (« 12.3k synchronisations ») ont été retirés — aucune donnée mockée affichée comme réelle.
 
@@ -66,26 +67,6 @@ function MsLogo({ size = 18 }: { size?: number }) {
   )
 }
 
-// DocuSign — « D » Poppy + carré Cobalt + centre blanc (Nexus officiel).
-function DocuSignLogo({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="409 0 651 651" fill="none">
-      <path
-        d="M1059.2,233.8c0,139.6-81.3,233.7-181.8,234V292c0-5.1-2-9.9-5.6-13.5l-91.2-91.2c-3.6-3.6-8.4-5.6-13.5-5.6H591.4V15.9c0-8.8,7.1-15.9,15.9-15.9h246C969.8,0,1059.2,93.9,1059.2,233.8z"
-        fill="#FE5252"
-      />
-      <path
-        d="M877.4,467.7v165.9c0,8.8-7.1,15.9-15.9,15.9H425.6c-8.8,0-15.9-7.1-15.9-15.9v-436c0-8.8,7.1-15.9,15.9-15.9h165.8v270.1c0,8.8,7.1,15.9,15.9,15.9L877.4,467.7z"
-        fill="#4B00FE"
-      />
-      <path
-        d="M871.8,278.5c3.6,3.6,5.6,8.4,5.6,13.5v175.8H607.3c-8.8,0-15.9-7.1-15.9-15.9V181.7h175.8c5.1,0,9.9,2,13.5,5.6L871.8,278.5z"
-        fill="#FEFEFE"
-      />
-    </svg>
-  )
-}
-
 // Skribble — paraphe orange souligné (officiel).
 function SkribbleLogo({ size = 18 }: { size?: number }) {
   return (
@@ -125,7 +106,7 @@ function WhatsAppLogo({ size = 18 }: { size?: number }) {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────
-type ProviderId = 'google' | 'microsoft' | 'docusign' | 'skribble' | 'whatsapp'
+type ProviderId = 'google' | 'microsoft' | 'skribble' | 'whatsapp'
 // Catégorie = clé canonique (sert de discriminant de filtre) ; le libellé visible
 // est résolu via i18n (catLabel).
 type Category = 'productivity' | 'signature' | 'messaging'
@@ -176,18 +157,6 @@ const CATALOGUE: Integration[] = [
     logoBg: '#FFFFFF',
     logo: <MsLogo size={22} />,
     connectable: true,
-    connected: false,
-  },
-  {
-    id: 'docusign',
-    category: 'signature',
-    provider: 'docusign',
-    name: 'DocuSign',
-    descKey: 'integrations.catalogue.docusign.desc',
-    logoBg: '#FFFFFF',
-    logo: <DocuSignLogo size={24} />,
-    connectable: false,
-    onRequest: true,
     connected: false,
   },
   {
