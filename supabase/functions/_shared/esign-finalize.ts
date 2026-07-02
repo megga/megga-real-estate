@@ -75,10 +75,14 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
   let finalized = false
 
   if (newStatus === 'signed' && !sr.signed_document_path) {
-    // Claim ATOMIQUE : Skribble envoie success + update a la completion, donc deux
-    // callbacks concurrents arrivent. Le UPDATE conditionnel (... WHERE
-    // signed_document_path IS NULL) n'est gagne que par UN seul → pas de double
-    // download ni de double audit.
+    // Claim ATOMIQUE : Skribble envoie success + update quasi-simultanement, donc
+    // deux callbacks concurrents arrivent. Le verrou porte sur completed_at — que
+    // CE meme UPDATE ecrit — via WHERE completed_at IS NULL : un seul callback
+    // gagne, le second voit la colonne deja ecrite → 0 ligne → il s'arrete (pas de
+    // double download ni de double audit). NB : verrouiller sur signed_document_path
+    // serait inefficace (le claim ne l'ecrit qu'APRES le download → la colonne reste
+    // NULL, les deux callbacks matcheraient). En cas d'echec download, on relache
+    // completed_at (plus bas) pour permettre un retry.
     const claim: Record<string, unknown> = {
       status: 'signed',
       completed_at: nowIso,
@@ -90,7 +94,7 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
       .from('signature_requests')
       .update(claim)
       .eq('id', sr.id)
-      .is('signed_document_path', null)
+      .is('completed_at', null)
       .select('id')
     if (!claimed || claimed.length === 0) {
       // Un autre callback finalise deja → idempotent, on s'arrete (pas de re-audit).
@@ -110,9 +114,12 @@ export async function reconcileSignatureRequest(args: ReconcileArgs): Promise<{ 
         .eq('id', sr.id)
       finalized = true
     } else {
-      // Echec download → on laisse signed_document_path NULL pour re-tenter au
-      // prochain callback / refresh statut.
-      await supabase.from('signature_requests').update({ last_error: stored.error }).eq('id', sr.id)
+      // Echec download → on RELACHE le verrou (completed_at=null) et on laisse
+      // signed_document_path NULL, pour re-tenter au prochain callback / refresh.
+      await supabase
+        .from('signature_requests')
+        .update({ last_error: stored.error, completed_at: null })
+        .eq('id', sr.id)
     }
   } else {
     // Statuts non-signes (ou signe deja archive) : MAJ generique.
