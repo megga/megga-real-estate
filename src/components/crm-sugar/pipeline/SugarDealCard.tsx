@@ -471,9 +471,13 @@ function MenuItem({
 // Memoïsation : pendant un drag, le PipelineSugarV2Page re-render à chaque
 // `setDragOverStage`. Sans React.memo, toutes les SugarDealCard de toutes
 // les colonnes recalculent (60+ cards en pipeline réaliste).
-// Comparaison custom : on saute le re-render si le deal n'a pas changé ET que
-// les flags `focused`/`isDragging` sont identiques. `sp` change avec dark/light
-// (référence stable au sein du parent) — on l'inclut.
+//
+// On NE compare PAS les handlers (`onClick`/`onDragStart`/`onDragEnd`) : la colonne
+// les recrée en wrappers inline à chaque render (`() => onOpenDeal?.(d.id)`), ce qui
+// faisait échouer le memo à tous les coups (P9). Ces handlers sont *comportementalement
+// stables* — même `deal.id`, mêmes `navigate`/`setState` sous-jacents — donc leur
+// identité n'affecte pas la correction : on saute le re-render dès que le deal et les
+// flags `focused`/`isDragging`/`sp`/`dark` sont identiques.
 export const SugarDealCard = memo(SugarDealCardImpl, (prev, next) => {
   return (
     prev.deal === next.deal
@@ -481,8 +485,5 @@ export const SugarDealCard = memo(SugarDealCardImpl, (prev, next) => {
     && prev.isDragging === next.isDragging
     && prev.sp === next.sp
     && prev.dark === next.dark
-    && prev.onClick === next.onClick
-    && prev.onDragStart === next.onDragStart
-    && prev.onDragEnd === next.onDragEnd
   )
 })
