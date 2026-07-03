@@ -36,10 +36,13 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
   const [to, setTo] = useState('')
   const [subject, setSubject] = useState(draft.subject)
   const [body, setBody] = useState(draft.body)
+  // Planification (Resend `scheduled_at`, ≤ 30 j). scheduleMode off = envoi immédiat.
+  const [scheduleMode, setScheduleMode] = useState(false)
+  const [scheduleAt, setScheduleAt] = useState('')
 
   // Ré-initialise les champs à chaque ouverture / changement de brouillon.
   useEffect(() => {
-    if (open) { setSubject(draft.subject); setBody(draft.body) }
+    if (open) { setSubject(draft.subject); setBody(draft.body); setScheduleMode(false); setScheduleAt('') }
   }, [open, draft.subject, draft.body])
 
   // Pré-remplissage du destinataire depuis la fiche contact (si route contact).
@@ -62,13 +65,27 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
 
   if (!open) return null
 
-  const canSend = isEmail(to) && subject.trim().length > 0 && body.trim().length > 0 && !sendEmail.isPending
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const toLocalInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const now = new Date()
+  const minAt = toLocalInput(new Date(now.getTime() + 60_000))
+  const maxAt = toLocalInput(new Date(now.getTime() + 30 * 86_400_000))
+  const scheduleDate = scheduleAt ? new Date(scheduleAt) : null
+  const scheduleValid = !!scheduleDate && scheduleDate.getTime() > now.getTime() && scheduleDate.getTime() <= now.getTime() + 30 * 86_400_000
+  const scheduling = scheduleMode && scheduleValid
+
+  const canSend = isEmail(to) && subject.trim().length > 0 && body.trim().length > 0 && !sendEmail.isPending && (!scheduleMode || scheduleValid)
 
   const send = async () => {
     if (!canSend) return
+    const scheduledAt = scheduling && scheduleDate ? scheduleDate.toISOString() : undefined
     try {
-      await sendEmail.mutateAsync({ to: to.trim(), subject: subject.trim(), body })
-      toast.success('Email envoyé', { description: to.trim(), duration: 2600 })
+      await sendEmail.mutateAsync({ to: to.trim(), subject: subject.trim(), body, scheduledAt })
+      if (scheduledAt && scheduleDate) {
+        toast.success('Envoi programmé', { description: scheduleDate.toLocaleString('fr-CH', { dateStyle: 'medium', timeStyle: 'short' }), duration: 3000 })
+      } else {
+        toast.success('Email envoyé', { description: to.trim(), duration: 2600 })
+      }
       onSent()
       onClose()
     } catch (e) {
@@ -141,9 +158,37 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
           />
         </div>
 
+        {/* Planification (facultative) — Resend `scheduled_at` */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => { setScheduleMode((v) => !v); if (!scheduleMode && !scheduleAt) setScheduleAt(minAt) }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, border: 0, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: scheduleMode ? sp.ink : sp.sub,
+              background: 'transparent', padding: '4px 0',
+            }}>
+            <span style={{
+              width: 18, height: 18, borderRadius: 6, display: 'grid', placeItems: 'center', flexShrink: 0,
+              background: scheduleMode ? sp.accent : 'transparent',
+              boxShadow: scheduleMode ? 'none' : `inset 0 0 0 1.5px ${sp.sub}`,
+            }}>
+              {scheduleMode && <CpIcon name="check" size={12} color={sp.onAccent} sw={2.6} />}
+            </span>
+            Programmer l'envoi
+          </button>
+          {scheduleMode && (
+            <input
+              type="datetime-local" value={scheduleAt} min={minAt} max={maxAt}
+              onChange={(e) => setScheduleAt(e.target.value)}
+              style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: 190 }}
+            />
+          )}
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
           <span style={{ fontSize: 12, color: sp.sub, flex: 1 }}>
-            Vous relisez avant l'envoi — rien n'est envoyé automatiquement.
+            {scheduling ? 'Programmé — modifiable avant l’heure d’envoi.' : "Vous relisez avant l'envoi — rien n'est envoyé automatiquement."}
           </span>
           <button onClick={onClose} style={{
             height: 40, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer',
@@ -156,8 +201,8 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
             background: canSend ? sp.accent : (dark ? 'rgba(255,255,255,0.12)' : '#E6E9EE'),
             color: canSend ? sp.onAccent : sp.sub, display: 'flex', alignItems: 'center', gap: 7,
           }}>
-            <CpIcon name="send" size={15} color={canSend ? sp.onAccent : sp.sub} sw={2} />
-            {sendEmail.isPending ? 'Envoi…' : 'Envoyer'}
+            <CpIcon name={scheduleMode ? 'calendar' : 'send'} size={15} color={canSend ? sp.onAccent : sp.sub} sw={2} />
+            {sendEmail.isPending ? '…' : scheduleMode ? 'Programmer' : 'Envoyer'}
           </button>
         </div>
       </div>

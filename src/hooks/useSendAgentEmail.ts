@@ -13,6 +13,8 @@ export interface SendAgentEmailParams {
   subject: string
   /** Corps en texte brut (les sauts de ligne deviennent des paragraphes). */
   body: string
+  /** ISO 8601 → planification native Resend. Absent = envoi immédiat. */
+  scheduledAt?: string
 }
 
 function escapeHtml(s: string): string {
@@ -43,12 +45,15 @@ interface SendAgentEmailResult {
 
 export function useSendAgentEmail() {
   return useMutation({
-    mutationFn: async ({ to, subject, body }: SendAgentEmailParams): Promise<SendAgentEmailResult> => {
+    mutationFn: async ({ to, subject, body, scheduledAt }: SendAgentEmailParams): Promise<SendAgentEmailResult> => {
       const html = buildEmailHtml(body)
       // template hors switch → case `default` de send-email (rend data.html tel quel,
       // exige une session agent). invoke() attache le JWT de session.
       const { data, error } = await supabase.functions.invoke<SendAgentEmailResult>('send-email', {
-        body: { to, subject, template: 'agent_freeform', data: { html } },
+        body: {
+          to, subject, template: 'agent_freeform', data: { html },
+          ...(scheduledAt ? { scheduled_at: scheduledAt } : {}),
+        },
       })
       if (error) {
         let detail = error.message

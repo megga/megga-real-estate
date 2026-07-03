@@ -15,6 +15,8 @@ interface SendEmailRequest {
   subject: string
   template: string
   data: Record<string, unknown>
+  /** Planification native Resend (ISO 8601 ou langage naturel, ≤ 30 j). Absent = envoi immédiat. */
+  scheduled_at?: string
 }
 
 function formatCHF(amount: number): string {
@@ -331,7 +333,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject: overrideSubject, template, data }: SendEmailRequest = await req.json()
+    const { to, subject: overrideSubject, template, data, scheduled_at }: SendEmailRequest = await req.json()
 
     // ── Auth ────────────────────────────────────────────────────────────────
     // Templates PUBLICS = contenu 100% rendu serveur (formulaires contact / ticket).
@@ -447,6 +449,8 @@ serve(async (req) => {
         to: [recipient],
         subject: emailSubject,
         html: emailHtml,
+        // Planification native Resend (facultative) — absent ⇒ envoi immédiat.
+        ...(typeof scheduled_at === 'string' && scheduled_at ? { scheduled_at } : {}),
       }),
     })
 
