@@ -31,10 +31,10 @@ async function resolveAll(hostname: string): Promise<string[]> {
   return [...a, ...aaaa]
 }
 
-export async function safeFetch(
-  rawUrl: string,
-  { maxBytes = 8_000_000, timeoutMs = 8_000 }: { maxBytes?: number; timeoutMs?: number } = {},
-): Promise<Uint8Array> {
+// Valide qu'une URL fournie par un appelant est publique et https, SANS la fetch.
+// Utile quand l'appelant a besoin de la Response brute (blob/formData) tout en
+// gardant le garde-fou SSRF. Lève une Error `ssrf:` sinon.
+export async function assertPublicUrl(rawUrl: string): Promise<URL> {
   let u: URL
   try {
     u = new URL(rawUrl)
@@ -42,12 +42,17 @@ export async function safeFetch(
     throw new Error('ssrf: invalid_url')
   }
   if (u.protocol !== 'https:') throw new Error('ssrf: https_only')
-
-  // Résolution DNS + refus des cibles internes (bloque aussi un rebinding basique
-  // puisqu'on vérifie l'IP effective au moment de l'appel).
   const ips = await resolveAll(u.hostname)
   if (ips.length === 0) throw new Error('ssrf: dns_unresolved')
   if (ips.some((ip) => BLOCKED_IP.some((r) => r.test(ip)))) throw new Error('ssrf: blocked_ip')
+  return u
+}
+
+export async function safeFetch(
+  rawUrl: string,
+  { maxBytes = 8_000_000, timeoutMs = 8_000 }: { maxBytes?: number; timeoutMs?: number } = {},
+): Promise<Uint8Array> {
+  const u = await assertPublicUrl(rawUrl)
 
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
