@@ -1240,6 +1240,10 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const localPreviews = useMemo(() => pendingFiles.map(f => URL.createObjectURL(f)), [pendingFiles])
+  // Révoque les blob URLs quand les previews changent / au démontage (anti-fuite mémoire, B8).
+  useEffect(() => {
+    return () => { localPreviews.forEach(url => URL.revokeObjectURL(url)) }
+  }, [localPreviews])
   const allPhotos = useMemo(() => [...photos, ...localPreviews], [photos, localPreviews])
 
   // DnD sensors
