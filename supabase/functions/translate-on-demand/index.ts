@@ -12,6 +12,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { callDeepSeek } from '../_shared/ai-provider.ts'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,13 +41,17 @@ async function sha256(input: string): Promise<string> {
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Auth agent : coupe l'abus anonyme de DeepSeek (coût) + l'empoisonnement du cache. cf. S1i.
+  const auth = await requireAgentAuth(req, corsHeaders)
+  if (auth instanceof Response) return auth
+
   try {
     const body: TranslateRequest = await req.json()
     const content = (body.content || '').trim()
     const targetLang = body.target_lang
 
-    if (!content) {
-      return new Response(JSON.stringify({ error: 'Missing content' }), {
+    if (!content || content.length > 5000) {
+      return new Response(JSON.stringify({ error: 'Missing or oversized content (max 5000)' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
