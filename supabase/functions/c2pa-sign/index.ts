@@ -4,6 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { assertPublicUrl } from '../_shared/safe-fetch.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,6 +72,9 @@ serve(async (req: Request) => {
 
     for (const photoUrl of photoUrls) {
       try {
+        // SSRF (S23) : n'accepter que des URLs publiques https (refuse IP internes/
+        // loopback/link-local) avant tout fetch ou envoi à un tiers (Capture/Trufo).
+        await assertPublicUrl(photoUrl)
         let signed = false
         let method = 'none'
 
