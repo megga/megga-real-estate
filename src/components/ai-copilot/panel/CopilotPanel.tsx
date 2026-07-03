@@ -17,8 +17,9 @@ import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useImpersonate } from '@/hooks/useImpersonate'
 import { CpIcon, AiGlyph } from './panelIcons'
+import EmailReviewModal, { type EmailDraft } from './EmailReviewModal'
 import {
-  PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, thinkingPhases,
+  PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, thinkingPhases,
   type AiPalette,
 } from './aiPanel'
 
@@ -183,7 +184,7 @@ function CpRichText({ content, sp }: { content: string; sp: AiPalette }) {
 }
 
 // ── Carte d'action : brouillon rédigé (chantier 4 — boucle fermée) ──────────
-function CpDraftCard({ lang, body, open, sp }: { lang: string; body: string; open: boolean; sp: AiPalette }) {
+function CpDraftCard({ lang, body, open, sp, onInsertEmail }: { lang: string; body: string; open: boolean; sp: AiPalette; onInsertEmail?: (draft: EmailDraft) => void }) {
   const [copied, setCopied] = useState(false)
   const [inserted, setInserted] = useState(false)
   const [done2, setDone2] = useState(false)
@@ -233,11 +234,18 @@ function CpDraftCard({ lang, body, open, sp }: { lang: string; body: string; ope
       </div>
       {!open && !inserted && (
         <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-          <button onClick={() => setInserted(true)} style={{
-            display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
-            borderRadius: 999, background: sp.accent, color: sp.onAccent, transition: 'background .15s, transform .15s',
-          }}
+          <button
+            onClick={() => {
+              // Email : ouvre le modal de revue-et-envoi (human-in-the-loop).
+              // Autres types (message/annonce/lettre) : confirmation visuelle (PR suivantes).
+              if (isEmail && onInsertEmail) onInsertEmail({ subject: subject ?? '', body: text })
+              else setInserted(true)
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
+              borderRadius: 999, background: sp.accent, color: sp.onAccent, transition: 'background .15s, transform .15s',
+            }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)' }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'none' }}>
             {isEmail ? 'Insérer dans un email' : 'Utiliser ce message'}
@@ -290,20 +298,31 @@ function CpDraftCard({ lang, body, open, sp }: { lang: string; body: string; ope
   )
 }
 
-function CpAnswerBody({ content, sp }: { content: string; sp: AiPalette }) {
+function CpAnswerBody({ content, sp, onInsertEmail }: { content: string; sp: AiPalette; onInsertEmail?: (draft: EmailDraft) => void }) {
   const segs = useMemo(() => parseSegments(content), [content])
+  // L'edge function ne fence pas → si pas de bloc explicite, on détecte un email
+  // rédigé en clair (« Objet : … ») pour le présenter en carte d'action.
+  const emailDraft = useMemo(
+    () => (segs.some((s) => s.type === 'draft') ? null : detectEmailDraft(content)),
+    [segs, content],
+  )
   if (!segs.length) return null
+  if (emailDraft) {
+    // CpDraftCard re-parse la ligne « Objet: … » → on la reconstruit.
+    const reconstructed = (emailDraft.subject ? `Objet: ${emailDraft.subject}\n` : '') + emailDraft.body
+    return <CpDraftCard lang="courriel" body={reconstructed} open={false} sp={sp} onInsertEmail={onInsertEmail} />
+  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {segs.map((s, i) => s.type === 'draft'
-        ? <CpDraftCard key={i} lang={s.lang} body={s.body} open={s.open} sp={sp} />
+        ? <CpDraftCard key={i} lang={s.lang} body={s.body} open={s.open} sp={sp} onInsertEmail={onInsertEmail} />
         : <CpRichText key={i} content={s.text} sp={sp} />)}
     </div>
   )
 }
 
 // ── Bulle de message ────────────────────────────────────────────────────────
-function Bubble({ msg, sp, onSend }: { msg: PanelMsg; sp: AiPalette; onSend: (p: string) => void }) {
+function Bubble({ msg, sp, onSend, onInsertEmail }: { msg: PanelMsg; sp: AiPalette; onSend: (p: string) => void; onInsertEmail?: (draft: EmailDraft) => void }) {
   if (msg.role === 'context') {
     const pack = packFor(msg.screen || '')
     return (
@@ -350,7 +369,7 @@ function Bubble({ msg, sp, onSend }: { msg: PanelMsg; sp: AiPalette; onSend: (p:
       <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
         {msg.loading
           ? <CpThinking sp={sp} query={msg.query} />
-          : <CpAnswerBody content={msg.content} sp={sp} />}
+          : <CpAnswerBody content={msg.content} sp={sp} onInsertEmail={onInsertEmail} />}
       </div>
     </div>
   )
@@ -488,9 +507,15 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
   const { sendMessageStream, isLoading, clearHistory } = useCopilot()
   const { profile } = useAuth()
   const { deals } = usePipelineSugar()
+  const { entity } = useAiPanel()
   const [messages, setMessages] = useState<PanelMsg[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(0) // ids de messages monotones (pas de collision Date.now())
+
+  // Modal de revue-et-envoi d'email (chantier 4 · Partie 2). Ouvert par la carte
+  // brouillon ; destinataire pré-rempli depuis la fiche contact ouverte (route).
+  const [emailModal, setEmailModal] = useState<{ open: boolean; draft: EmailDraft }>({ open: false, draft: { subject: '', body: '' } })
+  const openEmailModal = useCallback((draft: EmailDraft) => setEmailModal({ open: true, draft }), [])
 
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || ''
 
@@ -591,12 +616,21 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
       {!hasMsgs && <EmptyDock sp={sp} onSend={send} screen={screen} />}
       {hasMsgs && (
         <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '8px 18px 8px' }}>
-          {messages.map((m) => <Bubble key={m.id} msg={m} sp={sp} onSend={send} />)}
+          {messages.map((m) => <Bubble key={m.id} msg={m} sp={sp} onSend={send} onInsertEmail={openEmailModal} />)}
         </div>
       )}
       <div style={{ padding: '8px 14px 12px', flexShrink: 0 }}>
         <Composer onSend={send} loading={isLoading} sp={sp} />
       </div>
+      <EmailReviewModal
+        open={emailModal.open}
+        sp={sp}
+        dark={sp.dark}
+        draft={emailModal.draft}
+        contactId={entity?.kind === 'contact' ? entity.id : null}
+        onClose={() => setEmailModal((m) => ({ ...m, open: false }))}
+        onSent={() => {}}
+      />
     </>
   )
 }

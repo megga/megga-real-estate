@@ -198,6 +198,22 @@ export function screenFromPath(pathname: string): string {
   return ''
 }
 
+// Entité CRM ouverte, dérivée de la route (contexte réel — Partie 2). Sert à
+// cibler les actions de brouillon (ex. pré-remplir le destinataire d'un email
+// quand l'agent est sur une fiche contact).
+export interface RouteEntity {
+  kind: 'contact' | 'listing'
+  id: string
+}
+export function entityFromPath(pathname: string): RouteEntity | null {
+  const p = pathname.replace(/\/+$/, '')
+  const contact = p.match(/^\/dashboard\/contacts\/([^/]+)$/)
+  if (contact) return { kind: 'contact', id: contact[1] }
+  const listing = p.match(/^\/dashboard\/listings\/([^/]+)$/)
+  if (listing) return { kind: 'listing', id: listing[1] }
+  return null
+}
+
 // ── Découpe une réponse en segments texte / brouillon (chantier 4) ──────────
 // MEGGA AI encadre les livrables (email, message, SMS…) dans un bloc ```…```.
 export type DraftSegment =
@@ -232,6 +248,38 @@ export function parseSegments(content: string): DraftSegment[] {
     idx = close + 3
   }
   return segs
+}
+
+// ── Détection heuristique d'un email dans la réponse ────────────────────────
+// L'edge function `ai-copilot` ne fence PAS les livrables (contrairement au
+// prototype) : l'IA écrit « Objet : … » + corps en clair. On détecte comme la
+// page Julien (greeting+signature OU ligne Objet) pour transformer la réponse en
+// carte d'action (chantier 4). Renvoie null si ce n'est pas un email.
+export function detectEmailDraft(text: string): { subject: string; body: string } | null {
+  if (!text || text.length < 60) return null
+  // L'IA formate souvent en markdown (**Objet :**, titres #) → on nettoie l'emphase
+  // avant de matcher, sinon « **Objet :** » casse la détection du sujet.
+  const t = text.trim().replace(/\*\*/g, '').replace(/^#{1,4}\s+/gm, '')
+  const greet = /(^|\n)\s*(Bonjour|Madame|Monsieur|Cher|Chère|Chers|Bonsoir)\b/i
+  const sign = /(Cordialement|Bien cordialement|Bien à vous|Sincères salutations|Excellente journée|Belle journée|À très vite|À bientôt)\b/i
+  const subjectMatch = t.match(/(?:^|\n)\s*(?:Objet|Sujet)\s*[:：]\s*(.+?)(?:\n|$)/i)
+  const toMatch = t.match(/(?:^|\n)\s*(?:À|A|Destinataire|Pour)\s*[:：]\s*(.+?)(?:\n|$)/i)
+  if (!greet.test(t) || !sign.test(t)) {
+    if (!subjectMatch) return null
+  }
+  let body = t
+  if (subjectMatch) body = body.replace(subjectMatch[0], '')
+  if (toMatch) body = body.replace(toMatch[0], '')
+  body = body.replace(/^\s*\n+/, '').trim()
+  let subject = subjectMatch ? subjectMatch[1].trim() : ''
+  if (!subject) {
+    const firstLine = body.split('\n')[0]?.trim() || ''
+    if (firstLine.length < 80 && !greet.test(firstLine) && /^[A-ZÉÈÀ]/.test(firstLine)) {
+      subject = firstLine
+      body = body.split('\n').slice(1).join('\n').replace(/^\s*\n+/, '')
+    }
+  }
+  return { subject, body: body || t }
 }
 
 // ── Phases de réflexion selon la demande ────────────────────────────────────
