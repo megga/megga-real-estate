@@ -10,16 +10,25 @@ const SENTRY_DSN = (import.meta.env.VITE_SENTRY_DSN as string | undefined) || DE
 
 let sentryInitialized = false
 
+// Retire les tokens secrets des URLs (KYC / portail vendeur) + query strings,
+// avant tout envoi à Sentry (tiers). cf. audit S27.
+function scrubSecretUrl(u: string): string {
+  return u.replace(/\/(kyc|portail)\/[^/?#]+/gi, '/$1/[redacted]').replace(/[?#].*$/, '')
+}
+
 export function initSentry() {
   if (sentryInitialized || !SENTRY_DSN) return
 
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: import.meta.env.MODE,
-    sendDefaultPii: true,
-    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-    // Tracing — 100% of transactions captured.
-    tracesSampleRate: 1.0,
+    sendDefaultPii: false,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration({ maskAllText: true, maskAllInputs: true, blockAllMedia: true }),
+    ],
+    // Tracing — échantillon réduit (limite la captation d'URLs).
+    tracesSampleRate: 0.2,
     // Distributed tracing — propagate trace headers to our own backends only.
     tracePropagationTargets: [
       'localhost',
@@ -29,8 +38,8 @@ export function initSentry() {
     // Session Replay — 10% of all sessions, 100% of sessions that hit an error.
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
-    // Forward console logs to Sentry.
-    enableLogs: true,
+    // Ne plus forwarder les console logs (peuvent contenir des fragments de données).
+    enableLogs: false,
     // Don't spam Sentry from local dev unless explicitly opted in.
     enabled: import.meta.env.PROD || import.meta.env.VITE_SENTRY_FORCE_DEV === 'true',
     // Filter noisy errors that aren't actionable.
@@ -39,6 +48,24 @@ export function initSentry() {
       'ResizeObserver loop completed with undelivered notifications',
       'Non-Error promise rejection captured',
     ],
+    // Scrub des tokens secrets (/kyc/<token>, /portail/<token>) dans les URLs des
+    // événements, breadcrumbs et transactions avant envoi au tiers.
+    beforeSend(event) {
+      if (event.request?.url) event.request.url = scrubSecretUrl(event.request.url)
+      if (event.breadcrumbs) {
+        event.breadcrumbs = event.breadcrumbs.map((b) =>
+          b.data && typeof b.data.url === 'string'
+            ? { ...b, data: { ...b.data, url: scrubSecretUrl(b.data.url) } }
+            : b,
+        )
+      }
+      return event
+    },
+    beforeSendTransaction(event) {
+      if (event.transaction) event.transaction = scrubSecretUrl(event.transaction)
+      if (event.request?.url) event.request.url = scrubSecretUrl(event.request.url)
+      return event
+    },
   })
 
   sentryInitialized = true
