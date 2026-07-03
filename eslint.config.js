@@ -116,6 +116,12 @@ export default defineConfig([
       'src/components/onboarding-sugar/**/*.{ts,tsx}',
       'src/components/premier-jour-sugar/**/*.{ts,tsx}',
       'src/pages/agent/NetworkSugarV2Page.tsx',
+      // MEGGA AI (Partie 1) — nouvelle surface FR-only, non encore bilingue.
+      // WARN jusqu'à sa migration i18n (comme les familles ci-dessus). Ces globs
+      // sont plus spécifiques que crm-sugar/** et ai-copilot/** ci-dessus : ce
+      // bloc venant après le bloc verrouillé, le dernier match l'emporte → WARN.
+      'src/components/ai-copilot/panel/**/*.{ts,tsx}',
+      'src/components/crm-sugar/ai/**/*.{ts,tsx}',
     ]
     return [
       {

@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { showIntercomSpace, isIntercomEnabled } from '@/lib/intercom'
 import { openHelpFor } from '@/lib/help-articles'
 import { openSugarSearch } from './search/openSearch'
+import { useAiPanel } from '@/hooks/useAiPanel'
 
 // ─── Round icon button (44x44, glass) ──────────────────────────────────
 interface SugarRoundIconBtnProps {
@@ -59,6 +60,9 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
   const navigate = useNavigate()
   const { t: tc } = useTranslation('common')
   const { signOut, profile, user } = useAuth()
+  // MEGGA AI — le bouton ✦ ouvre le panneau docké (via AiPanelProvider). Repli
+  // sur la page « Julien » si la nav est rendue hors du provider.
+  const ai = useAiPanel()
   // Calcule initiales/affichage depuis le vrai profil. Fallback "??" pour
   // les sessions sans profil (devrait être rare — l'AuthGuard route avant).
   const displayName = profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Agent'
@@ -111,6 +115,8 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
     { id: 'calendar',  label: tc('nav.calendar') },
   ]
   const isJulien = active === 'julien'
+  // ✦ actif = page Julien OU panneau MEGGA AI ouvert (quand le provider est monté).
+  const aiActive = isJulien || (ai.enabled && ai.isOpen)
 
   return (
     <div style={{
@@ -143,19 +149,23 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
         {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
             Centre d'aide à défaut). Fallback /help si Intercom n'est pas configuré. */}
         <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => { if (!openHelpFor(active)) navigate('/help') }}><AnimatedTopIcon name="help" color={sp.soft} size={18} /></SugarRoundIconBtn>
-        {/* Bouton Megga — Agent IA (route interne inchangée : 'julien') */}
+        {/* Bouton Megga — ouvre le panneau MEGGA AI docké (ou la page Julien en repli) */}
         <button
-          onClick={() => onNavigate && onNavigate('julien')}
+          onClick={() => {
+            if (ai.enabled && active !== 'julien') ai.open()
+            else onNavigate?.('julien')
+          }}
           title={tc('nav.aiAgent')}
+          aria-expanded={ai.enabled ? ai.isOpen : undefined}
           style={{
             width: 44, height: 44, borderRadius: 999, border: 0,
-            background: isJulien ? sp.ink : sp.iconBtnBg,
-            boxShadow: isJulien ? '0 6px 20px rgba(11,12,14,0.25)' : sp.shadow,
+            background: aiActive ? sp.ink : sp.iconBtnBg,
+            boxShadow: aiActive ? '0 6px 20px rgba(11,12,14,0.25)' : sp.shadow,
             display: 'grid', placeItems: 'center', cursor: 'pointer',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
             transition: 'all .2s ease',
           }}>
-          <AnimatedTopIcon name="sparkle" color={isJulien ? sp.pageBg : sp.soft} size={18} active={isJulien} />
+          <AnimatedTopIcon name="sparkle" color={aiActive ? sp.pageBg : sp.soft} size={18} active={aiActive} />
         </button>
         <div ref={notifAnchorRef} style={{ position: 'relative' }}>
           <button
