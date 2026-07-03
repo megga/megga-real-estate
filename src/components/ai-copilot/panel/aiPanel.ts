@@ -282,6 +282,15 @@ export function detectEmailDraft(text: string): { subject: string; body: string 
   return { subject, body: body || t }
 }
 
+// ── Intention « annonce » (depuis la REQUÊTE, pas le contenu) ───────────────
+// Une annonce immobilière n'a pas de marqueurs fiables (contrairement à l'email) :
+// on se fie à ce que l'agent a demandé. Si sa question portait sur une annonce,
+// la réponse est traitée comme telle → action « Utiliser sur le bien ».
+export function isAnnonceRequest(query: string | undefined): boolean {
+  if (!query) return false
+  return /\bannonce|texte de vente|descriptif du bien|description vendeuse/i.test(query)
+}
+
 // ── Phases de réflexion selon la demande ────────────────────────────────────
 export function thinkingPhases(q: string): string[] {
   const t = (q || '').toLowerCase()
