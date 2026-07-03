@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const DEEPGRAM_API_KEY = Deno.env.get('DEEPGRAM_API_KEY')
 
@@ -13,6 +14,10 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Auth agent : coupe l'abus anonyme des crédits Deepgram. cf. S1j.
+  const auth = await requireAgentAuth(req, corsHeaders)
+  if (auth instanceof Response) return auth
+
   try {
     if (!DEEPGRAM_API_KEY) {
       throw new Error('DEEPGRAM_API_KEY not configured')
@@ -25,6 +30,13 @@ serve(async (req) => {
 
     if (!audioFile) {
       throw new Error('No audio file provided')
+    }
+    // Borne anti-abus : dictée agent, pas d'upload massif.
+    if (audioFile.size > 15_000_000) {
+      return new Response(JSON.stringify({ error: 'Audio too large (max 15MB)' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const audioBuffer = await audioFile.arrayBuffer()
