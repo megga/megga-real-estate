@@ -26,6 +26,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { analyzePhoto, judgePhotoForStaging, type PhotoAnalysis, type RoomType } from '../_shared/photo-vision.ts'
+import { assertPublicUrl } from '../_shared/safe-fetch.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -262,6 +263,30 @@ serve(async (req) => {
     if (!photoUrl || !style || !propertyId) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: photoUrl, style, propertyId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // S24 — validation stricte des valeurs interpolées dans la clé Storage
+    // `${propertyId}/staged_..._${style}.jpg` (anti path-traversal → écrasement
+    // d'objets arbitraires du bucket property-photos) + garde SSRF sur photoUrl.
+    if (!Object.prototype.hasOwnProperty.call(STYLE_PROMPTS, style)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid style' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (!/^[A-Za-z0-9._-]{1,64}$/.test(propertyId) || propertyId.includes('..')) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid propertyId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    try {
+      await assertPublicUrl(photoUrl)
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or unsafe photoUrl' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
