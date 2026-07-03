@@ -23,6 +23,7 @@ import { useTodayNav } from './TodayNavContext'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useAuth } from '@/hooks/useAuth'
 import { formatTodayHeader } from '@/lib/utils'
+import { CockpitAiInsights } from '@/components/crm-sugar/ai/CockpitAiInsights'
 
 // ─── « Ensuite » — file d'attente compacte ──────────────────────────────
 // `e.tag` reste un CODE stable (clé de tonalité + de libellé). La tonalité et le
@@ -168,6 +169,10 @@ export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
           </div>
           <FocusPill onClick={() => setFocusMode(true)} />
         </div>
+
+        {/* Bandeau proactif MEGGA AI — sous la salutation, avant la grille bento.
+            Branché sur le pipeline live ; se masque s'il n'y a aucun signal réel. */}
+        {!demo && <CockpitAiInsights />}
 
         <div style={{ flex: 1, display: 'flex', gap: 14, minHeight: 0 }}>
 

@@ -4,6 +4,7 @@ import ResponsiveRoute from '@/components/crm-mobile/shell/ResponsiveRoute'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AnimatePresence } from 'motion/react'
 import { AuthProvider } from '@/hooks/useAuth'
+import { AiPanelProvider } from '@/hooks/useAiPanel'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Static imports — STRICT minimum loaded with the main bundle (~boot shell).
@@ -126,6 +127,10 @@ const D0ConfiguringDemoPage = lazy(() => import('@/pages/dev/D0ConfiguringDemoPa
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
 const D0ActivationDemoPage = lazy(() => import('@/pages/dev/D0ActivationDemoPage'))
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
+// MEGGA AI — panneau docké monté AU-DESSUS des Routes keyées (key={pathname})
+// pour survivre au remount de navigation : le panneau + la conversation
+// persistent d'une page à l'autre (suivi de contexte, chantier 5).
+const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPanel'))
 const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
 const OnboardingWizardPage = lazy(() => import('@/pages/agent/OnboardingWizardPage'))
 const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
@@ -605,6 +610,20 @@ function AnimatedRoutes() {
   )
 }
 
+// Rend le panneau MEGGA AI uniquement sur les routes CRM (/dashboard). Monté
+// HORS des Routes keyées (key={pathname}) → stable à la navigation (le panneau et
+// sa conversation ne se ferment plus quand on change de page). Lazy + Suspense
+// null car le panneau est invisible tant qu'il n'est pas ouvert.
+function CopilotPanelHost() {
+  const { pathname } = useLocation()
+  if (!pathname.startsWith('/dashboard')) return null
+  return (
+    <Suspense fallback={null}>
+      <CopilotPanel />
+    </Suspense>
+  )
+}
+
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -615,11 +634,15 @@ export default function App() {
             {/* Masks the layout reflow during i18n.changeLanguage() — 350ms
                 frosted-glass shimmer overlay, listens to languageChanged event. */}
             <LanguageChangeOverlay />
-            <ErrorBoundary>
-              <Suspense fallback={<SmartPageLoader />}>
-                <AnimatedRoutes />
-              </Suspense>
-            </ErrorBoundary>
+            <AiPanelProvider>
+              <ErrorBoundary>
+                <Suspense fallback={<SmartPageLoader />}>
+                  <AnimatedRoutes />
+                </Suspense>
+              </ErrorBoundary>
+              {/* Panneau MEGGA AI — stable au-dessus des Routes keyées (persiste à la nav). */}
+              <CopilotPanelHost />
+            </AiPanelProvider>
             {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
             <Suspense fallback={null}>
               <FavoritesLoginPrompt />

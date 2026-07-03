@@ -27,6 +27,7 @@ import {
   type PipelineView, type RiskFilterValue,
 } from '@/components/crm-sugar/pipeline/PipelineFilters'
 import { NewDealDrawer } from '@/components/crm-sugar/pipeline/NewDealDrawer'
+import SugarAiBanner, { type SugarAiInsight } from '@/components/crm-sugar/ai/SugarAiBanner'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -238,6 +239,17 @@ export default function PipelineSugarV2Page() {
     () => localDeals.filter(d => d.risk !== 'healthy').length,
     [localDeals],
   )
+  // Insights du bandeau MEGGA AI — compteurs RÉELS du pipeline live (le compteur
+  // « à risque » colle au KPI). Le bandeau se masque de lui-même si tout est vide.
+  const aiInsights = useMemo<SugarAiInsight[]>(() => {
+    const offers = localDeals.filter(d => d.stage === 'offer').length
+    const stalled = localDeals.filter(d => d.risk === 'stalled').length
+    const out: SugarAiInsight[] = []
+    if (atRisk) out.push({ short: `${atRisk} deal${atRisk > 1 ? 's' : ''} à risque`, tone: 'warn', q: 'Passe en revue mes deals à risque, priorise-les et propose la prochaine meilleure action pour chacun.' })
+    if (offers) out.push({ short: `${offers} offre${offers > 1 ? 's' : ''} à suivre`, tone: 'info', q: 'Quelle offre dois-je relancer en priorité, et rédige-moi la relance.' })
+    if (stalled) out.push({ short: `${stalled} sans activité`, tone: 'danger', q: "Quels deals n'ont eu aucune activité récente et comment les relancer ?" })
+    return out
+  }, [localDeals, atRisk])
   // ── Conversion : signed / total des stages clôturés (signed + lost) ──
   // Source : pipeline live. Si pas de deals clôturés, on n'affiche pas de %.
   const closedDeals = useMemo(
@@ -356,6 +368,10 @@ export default function PipelineSugarV2Page() {
             onOpenKyc={() => navigate('/dashboard/kyc')}
             sp={sp}
           />
+
+          {/* Bandeau proactif MEGGA AI — après le rappel KYC, avant les KPI.
+              Chaque puce ouvre le panneau MEGGA AI pré-rempli (compteurs réels). */}
+          <SugarAiBanner sp={sp} dark={dark} title="Priorités du pipeline" insights={aiInsights} />
 
           {/* KPI tiles — source : pipeline live (usePipelineSugar) */}
           <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>
