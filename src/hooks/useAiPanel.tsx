@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
-import { screenFromPath } from '@/components/ai-copilot/panel/aiPanel'
+import { screenFromPath, entityFromPath, type RouteEntity } from '@/components/ai-copilot/panel/aiPanel'
 
 interface AiPanelValue {
   /** true seulement sous le provider (sinon les surfaces retombent sur un fallback). */
@@ -15,6 +15,8 @@ interface AiPanelValue {
   isOpen: boolean
   seed: string | null
   screen: string
+  /** Entité CRM ouverte (fiche contact/bien), dérivée de la route — cible des actions. */
+  entity: RouteEntity | null
   /** Ouvre le panneau, éventuellement avec une question pré-remplie. */
   open: (seed?: string) => void
   close: () => void
@@ -26,7 +28,7 @@ interface AiPanelValue {
 
 const noop = () => {}
 const AiPanelContext = createContext<AiPanelValue>({
-  enabled: false, isOpen: false, seed: null, screen: 'today',
+  enabled: false, isOpen: false, seed: null, screen: 'today', entity: null,
   open: noop, close: noop, askAi: noop, consumeSeed: noop,
 })
 
@@ -35,6 +37,8 @@ export function AiPanelProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const [seed, setSeed] = useState<string | null>(null)
   const screen = screenFromPath(location.pathname)
+  // Mémoïsé par pathname → référence stable (sinon re-render à chaque render).
+  const entity = useMemo(() => entityFromPath(location.pathname), [location.pathname])
 
   const open = useCallback((s?: string) => { setSeed(s ?? null); setIsOpen(true) }, [])
   const close = useCallback(() => setIsOpen(false), [])
@@ -42,8 +46,8 @@ export function AiPanelProvider({ children }: { children: ReactNode }) {
   const consumeSeed = useCallback(() => setSeed(null), [])
 
   const value = useMemo<AiPanelValue>(() => ({
-    enabled: true, isOpen, seed, screen, open, close, askAi, consumeSeed,
-  }), [isOpen, seed, screen, open, close, askAi, consumeSeed])
+    enabled: true, isOpen, seed, screen, entity, open, close, askAi, consumeSeed,
+  }), [isOpen, seed, screen, entity, open, close, askAi, consumeSeed])
 
   return <AiPanelContext.Provider value={value}>{children}</AiPanelContext.Provider>
 }
