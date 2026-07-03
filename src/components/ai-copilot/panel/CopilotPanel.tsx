@@ -19,8 +19,9 @@ import { useImpersonate } from '@/hooks/useImpersonate'
 import { CpIcon, AiGlyph } from './panelIcons'
 import EmailReviewModal, { type EmailDraft } from './EmailReviewModal'
 import AnnonceReviewModal from './AnnonceReviewModal'
+import LetterReviewModal from './LetterReviewModal'
 import {
-  PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, thinkingPhases,
+  PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
   type AiPalette,
 } from './aiPanel'
 
@@ -185,7 +186,7 @@ function CpRichText({ content, sp }: { content: string; sp: AiPalette }) {
 }
 
 // ── Carte d'action : brouillon rédigé (chantier 4 — boucle fermée) ──────────
-function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce }: { lang: string; body: string; open: boolean; sp: AiPalette; onInsertEmail?: (draft: EmailDraft) => void; onUseAnnonce?: (annonce: string) => void }) {
+function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGenerateLetter }: { lang: string; body: string; open: boolean; sp: AiPalette; onInsertEmail?: (draft: EmailDraft) => void; onUseAnnonce?: (annonce: string) => void; onGenerateLetter?: (letter: string) => void }) {
   const [copied, setCopied] = useState(false)
   const [inserted, setInserted] = useState(false)
   const [done2, setDone2] = useState(false)
@@ -241,6 +242,7 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce }: { la
               // (human-in-the-loop). Autres types (message/lettre) : stub visuel (PR suivante).
               if (isEmail && onInsertEmail) onInsertEmail({ subject: subject ?? '', body: text })
               else if (isAnnonce && onUseAnnonce) onUseAnnonce(text)
+              else if (isLettre && onGenerateLetter) onGenerateLetter(text)
               else setInserted(true)
             }}
             style={{
@@ -250,7 +252,7 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce }: { la
             }}
             onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)' }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'none' }}>
-            {isEmail ? 'Insérer dans un email' : isAnnonce ? 'Utiliser sur le bien' : 'Utiliser ce message'}
+            {isEmail ? 'Insérer dans un email' : isAnnonce ? 'Utiliser sur le bien' : isLettre ? 'Générer le PDF' : 'Utiliser ce message'}
           </button>
           <button onClick={copy} style={{
             display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
@@ -300,34 +302,37 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce }: { la
   )
 }
 
-function CpAnswerBody({ content, sp, query, onInsertEmail, onUseAnnonce }: { content: string; sp: AiPalette; query?: string; onInsertEmail?: (draft: EmailDraft) => void; onUseAnnonce?: (annonce: string) => void }) {
+function CpAnswerBody({ content, sp, query, onInsertEmail, onUseAnnonce, onGenerateLetter }: { content: string; sp: AiPalette; query?: string; onInsertEmail?: (draft: EmailDraft) => void; onUseAnnonce?: (annonce: string) => void; onGenerateLetter?: (letter: string) => void }) {
   const segs = useMemo(() => parseSegments(content), [content])
   const hasFence = segs.some((s) => s.type === 'draft')
   // L'edge function ne fence pas → si pas de bloc explicite, on détecte un email
   // rédigé en clair (« Objet : … ») pour le présenter en carte d'action.
   const emailDraft = useMemo(() => (hasFence ? null : detectEmailDraft(content)), [hasFence, content])
   if (!segs.length) return null
+  // Intentions EXPLICITES (lettre/annonce) prioritaires sur la détection email de
+  // contenu (un courrier formel a aussi greeting + formule de politesse).
+  if (!hasFence && isLettreRequest(query)) {
+    return <CpDraftCard lang="lettre" body={content} open={false} sp={sp} onGenerateLetter={onGenerateLetter} />
+  }
+  if (!hasFence && isAnnonceRequest(query)) {
+    return <CpDraftCard lang="annonce" body={content} open={false} sp={sp} onUseAnnonce={onUseAnnonce} />
+  }
   if (emailDraft) {
     // CpDraftCard re-parse la ligne « Objet: … » → on la reconstruit.
     const reconstructed = (emailDraft.subject ? `Objet: ${emailDraft.subject}\n` : '') + emailDraft.body
     return <CpDraftCard lang="courriel" body={reconstructed} open={false} sp={sp} onInsertEmail={onInsertEmail} />
   }
-  // Annonce : aucun marqueur fiable dans le contenu → on se fie à l'intention de
-  // la requête de l'agent (« rédige une annonce… »).
-  if (!hasFence && isAnnonceRequest(query)) {
-    return <CpDraftCard lang="annonce" body={content} open={false} sp={sp} onUseAnnonce={onUseAnnonce} />
-  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {segs.map((s, i) => s.type === 'draft'
-        ? <CpDraftCard key={i} lang={s.lang} body={s.body} open={s.open} sp={sp} onInsertEmail={onInsertEmail} onUseAnnonce={onUseAnnonce} />
+        ? <CpDraftCard key={i} lang={s.lang} body={s.body} open={s.open} sp={sp} onInsertEmail={onInsertEmail} onUseAnnonce={onUseAnnonce} onGenerateLetter={onGenerateLetter} />
         : <CpRichText key={i} content={s.text} sp={sp} />)}
     </div>
   )
 }
 
 // ── Bulle de message ────────────────────────────────────────────────────────
-function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce }: { msg: PanelMsg; sp: AiPalette; onSend: (p: string) => void; onInsertEmail?: (draft: EmailDraft) => void; onUseAnnonce?: (annonce: string) => void }) {
+function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter }: { msg: PanelMsg; sp: AiPalette; onSend: (p: string) => void; onInsertEmail?: (draft: EmailDraft) => void; onUseAnnonce?: (annonce: string) => void; onGenerateLetter?: (letter: string) => void }) {
   if (msg.role === 'context') {
     const pack = packFor(msg.screen || '')
     return (
@@ -374,7 +379,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce }: { msg: PanelMs
       <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
         {msg.loading
           ? <CpThinking sp={sp} query={msg.query} />
-          : <CpAnswerBody content={msg.content} sp={sp} query={msg.query} onInsertEmail={onInsertEmail} onUseAnnonce={onUseAnnonce} />}
+          : <CpAnswerBody content={msg.content} sp={sp} query={msg.query} onInsertEmail={onInsertEmail} onUseAnnonce={onUseAnnonce} onGenerateLetter={onGenerateLetter} />}
       </div>
     </div>
   )
@@ -524,6 +529,9 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
   // Modal annonce → enregistre le texte comme description du bien ouvert (route → entity).
   const [annonceModal, setAnnonceModal] = useState<{ open: boolean; annonce: string }>({ open: false, annonce: '' })
   const openAnnonceModal = useCallback((annonce: string) => setAnnonceModal({ open: true, annonce }), [])
+  // Modal lettre → génère un PDF A4 (impression navigateur, pattern KycExportPage).
+  const [letterModal, setLetterModal] = useState<{ open: boolean; letter: string }>({ open: false, letter: '' })
+  const openLetterModal = useCallback((letter: string) => setLetterModal({ open: true, letter }), [])
 
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || ''
 
@@ -624,7 +632,7 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
       {!hasMsgs && <EmptyDock sp={sp} onSend={send} screen={screen} />}
       {hasMsgs && (
         <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '8px 18px 8px' }}>
-          {messages.map((m) => <Bubble key={m.id} msg={m} sp={sp} onSend={send} onInsertEmail={openEmailModal} onUseAnnonce={openAnnonceModal} />)}
+          {messages.map((m) => <Bubble key={m.id} msg={m} sp={sp} onSend={send} onInsertEmail={openEmailModal} onUseAnnonce={openAnnonceModal} onGenerateLetter={openLetterModal} />)}
         </div>
       )}
       <div style={{ padding: '8px 14px 12px', flexShrink: 0 }}>
@@ -647,6 +655,13 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
         listingId={entity?.kind === 'listing' ? entity.id : null}
         onClose={() => setAnnonceModal((m) => ({ ...m, open: false }))}
         onSaved={() => {}}
+      />
+      <LetterReviewModal
+        open={letterModal.open}
+        sp={sp}
+        dark={sp.dark}
+        letter={letterModal.letter}
+        onClose={() => setLetterModal((m) => ({ ...m, open: false }))}
       />
     </>
   )
