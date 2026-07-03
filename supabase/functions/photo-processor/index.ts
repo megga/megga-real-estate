@@ -34,6 +34,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts'
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.17'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 // .trim() is defensive: copy-paste from dashboards often adds trailing newlines
 // or zero-width spaces that break SigV4 silently.
@@ -53,21 +55,6 @@ const R2_BUCKET = Deno.env.get('R2_BUCKET') ?? 'megga-market'
 // comparing it against this env var. May be empty if the EF runtime doesn't
 // inject it; the comparison short-circuits on '' so that's safe.
 const SERVICE_ROLE_KEY = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
-
-// Decode a Supabase JWT payload without verifying the signature. We only
-// use this to check the `role` claim; write operations still go through
-// Supabase's own RLS on any table access. This is robust to the secret-key
-// roll-out where SUPABASE_SERVICE_ROLE_KEY isn't auto-injected in EFs.
-function decodeJwtRole(token: string): string | null {
-  try {
-    const payload = token.split('.')[1]
-    if (!payload) return null
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
-    return (JSON.parse(json) as { role?: string }).role ?? null
-  } catch {
-    return null
-  }
-}
 
 // Pre-generated variants (stored in R2 as separate files, served from edge
 // with free egress and long cache headers).
@@ -196,19 +183,17 @@ serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   // ── Auth: service_role only ────────────────────────────────────────
-  // We decode the JWT claim instead of string-comparing to a local env var
-  // because SUPABASE_SERVICE_ROLE_KEY isn't always auto-injected (especially
-  // with the new sb_secret_ key rollout). Decoding verifies the JWT shape
-  // and the role claim; signature forgery is prevented by the Supabase
-  // gateway which refuses unsigned tokens upstream.
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const token = authHeader.replace(/^Bearer\s+/i, '')
-  const role = decodeJwtRole(token)
-  // Accept the current sb_secret_ service key (string-equality) in addition to
-  // the legacy service_role JWT, so callers (backfill-cf-images via pg_cron) that
-  // forward get_app_config('service_role_key') authenticate.
-  const isServiceRole = role === 'service_role' || (SERVICE_ROLE_KEY !== '' && token === SERVICE_ROLE_KEY)
-  if (!isServiceRole) {
+  // Comparaison constant-time au secret partagé `app_config.service_role_key` (ce que
+  // pg_cron / backfill forwardent), avec repli sur l'env. On NE décode PLUS le rôle
+  // d'un JWT : sous --no-verify-jwt la plateforme ne vérifie pas la signature, donc un
+  // JWT forgé {"role":"service_role"} contournait la garde (audit S1b).
+  // cf. _shared/require-service-secret.ts.
+  const adminClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } },
+  )
+  if (!(await isServiceSecret(adminClient, req))) {
     return new Response(
       JSON.stringify({ success: false, error: 'service_role required' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -256,6 +241,14 @@ serve(async (req: Request) => {
   if (!listingId || !Array.isArray(photoUrls) || photoUrls.length === 0) {
     return new Response(
       JSON.stringify({ success: false, error: 'listingId and non-empty photoUrls[] required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+  // Anti path-traversal : listingId entre dans la clé R2 `listings/${listingId}/…`
+  // quand keyPrefix est absent → on interdit `/` et `..` (audit S1b).
+  if (!/^[A-Za-z0-9._-]{1,128}$/.test(listingId) || listingId.includes('..')) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'invalid listingId' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

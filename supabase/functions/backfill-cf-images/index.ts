@@ -24,23 +24,10 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-
-// Decode a Supabase JWT payload without verifying the signature. We only
-// use this to check the `role` claim; the signature check is done by the
-// Supabase gateway upstream.
-function decodeJwtRole(token: string): string | null {
-  try {
-    const payload = token.split('.')[1]
-    if (!payload) return null
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
-    return (JSON.parse(json) as { role?: string }).role ?? null
-  } catch {
-    return null
-  }
-}
 
 const DEFAULT_BATCH = 25
 const MAX_BATCH = 50
@@ -60,15 +47,10 @@ serve(async (req: Request) => {
     auth: { persistSession: false },
   })
 
-  // Decode the JWT role — robust to whether SUPABASE_SERVICE_ROLE_KEY is
-  // auto-injected in the EF runtime. The signature itself is checked by the
-  // Supabase gateway before we get here.
-  const bearerToken = authHeader.replace(/^Bearer\s+/i, '')
-  const role = decodeJwtRole(bearerToken)
-  // Accept the current sb_secret_ service key (string-equality) in addition to
-  // the legacy service_role JWT, so pg_cron via get_app_config authenticates.
-  const isServiceRole =
-    role === 'service_role' || (SERVICE_ROLE_KEY !== '' && bearerToken === SERVICE_ROLE_KEY)
+  // Garde service-role : comparaison constant-time au secret partagé
+  // app_config.service_role_key (repli env). Plus de décodage de rôle JWT
+  // (forgeable sous --no-verify-jwt, S22). Le chemin super_admin ci-dessous est inchangé.
+  const isServiceRole = await isServiceSecret(supabase, req)
   let isSuperAdmin = false
   if (!isServiceRole && authHeader.startsWith('Bearer ')) {
     const userClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
