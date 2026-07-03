@@ -291,6 +291,14 @@ export function isAnnonceRequest(query: string | undefined): boolean {
   return /\bannonce|texte de vente|descriptif du bien|description vendeuse/i.test(query)
 }
 
+// Intention « lettre / courrier » (physique) → action « Générer le PDF ».
+// Prioritaire sur la détection email (un courrier formel a aussi greeting +
+// formule de politesse, mais l'agent a explicitement demandé une lettre).
+export function isLettreRequest(query: string | undefined): boolean {
+  if (!query) return false
+  return /\blettre|courrier(?!\s*électronique)/i.test(query)
+}
+
 // ── Phases de réflexion selon la demande ────────────────────────────────────
 export function thinkingPhases(q: string): string[] {
   const t = (q || '').toLowerCase()
