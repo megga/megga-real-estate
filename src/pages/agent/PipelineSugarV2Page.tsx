@@ -105,7 +105,7 @@ export default function PipelineSugarV2Page() {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<StageId | null>(null)
 
-  const applyDrop = (dealId: string, targetStage: StageId) => {
+  const applyDrop = (dealId: string, targetStage: StageId, onAudit?: () => void) => {
     // Optimistic overlay
     setPendingStage(prev => {
       const next = new Map(prev)
@@ -116,6 +116,9 @@ export default function PipelineSugarV2Page() {
     updateStage.mutate(
       { id: dealId, stage: stageIdToTransactionStage(targetStage) },
       {
+        // B1 : audit émis SEULEMENT si la mutation réussit — sinon on tracerait
+        // un déplacement annulé (piste d'audit LBA inexacte).
+        onSuccess: () => { onAudit?.() },
         onError: () => {
           toast.error(t('board.toast.moveFailedTitle'), {
             description: t('board.toast.moveFailedDescription'),
@@ -144,16 +147,18 @@ export default function PipelineSugarV2Page() {
     // drag. Le rappel KYC reste affiché en pilule douce (SugarPipelineKycLock),
     // mais le deal avance toujours. Le notaire finalise (cf KYC non-bloquant).
     const contact = contactsById.get(deal.contactId)
-    applyDrop(deal.id, targetStage)
-    // AuditEvent normal : Étape changée (info)
-    logAudit.mutate({
-      category: 'deal',
-      severity: 'info',
-      action: 'Étape changée',
-      entityType: 'deal',
-      entityId: deal.id,
-      objectLabel: contact ? `${contact.firstName} ${contact.lastName}` : deal.id,
-      metadata: { from: deal.stage, to: targetStage },
+    const fromStage = deal.stage
+    applyDrop(deal.id, targetStage, () => {
+      // AuditEvent émis uniquement après succès de la mutation (cf. B1).
+      logAudit.mutate({
+        category: 'deal',
+        severity: 'info',
+        action: 'Étape changée',
+        entityType: 'deal',
+        entityId: deal.id,
+        objectLabel: contact ? `${contact.firstName} ${contact.lastName}` : deal.id,
+        metadata: { from: fromStage, to: targetStage },
+      })
     })
     handleDragEnd()
   }
