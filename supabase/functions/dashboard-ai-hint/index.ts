@@ -10,6 +10,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { meggaProse } from '../_shared/megga-prose.ts'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -168,8 +169,13 @@ serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Auth agent obligatoire : coupe l'abus anonyme de Claude (coût) et l'injection
+  // cross-tenant dans activity_events (agency_id était contrôlé par l'appelant). cf. S1c.
+  const auth = await requireAgentAuth(req, corsHeaders)
+  if (auth instanceof Response) return auth
+
   try {
-    const body = await req.json() as { snapshot: SnapshotInput; agency_id?: string }
+    const body = await req.json() as { snapshot: SnapshotInput }
     const snapshot = body.snapshot
     if (!snapshot) {
       return new Response(JSON.stringify({ error: 'Missing snapshot' }), {
@@ -194,7 +200,7 @@ serve(async (req: Request) => {
     }
 
     // Log async (n'attend pas la fin)
-    void logHint(body.agency_id ?? null, snapshot, hint, usedClaude)
+    void logHint(auth.profile.agency_id, snapshot, hint, usedClaude)
 
     return new Response(JSON.stringify(hint), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
