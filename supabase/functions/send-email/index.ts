@@ -3,6 +3,7 @@
 // Uses Resend API with MEGGA branding
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -332,21 +333,26 @@ serve(async (req) => {
   try {
     const { to, subject: overrideSubject, template, data }: SendEmailRequest = await req.json()
 
-    // ── Auth check (skip for public templates) ──────────────────────────────
-    const PUBLIC_TEMPLATES = ['ticket_confirmation', 'visit_confirmation_buyer', 'contact_confirmation', 'contact_notification_admin']
+    // ── Auth ────────────────────────────────────────────────────────────────
+    // Templates PUBLICS = contenu 100% rendu serveur (formulaires contact / ticket).
+    // Tout le reste — dont le case `default` avec `data.html` arbitraire — exige une
+    // VRAIE session agent. Sous --no-verify-jwt, `startsWith('Bearer ')` ne prouvait
+    // rien (relais email ouvert). Le destinataire de la notif admin est forcé
+    // côté serveur plus bas (jamais `body.to`).
+    const PUBLIC_TEMPLATES = ['ticket_confirmation', 'contact_confirmation', 'contact_notification_admin']
     const isPublicTemplate = PUBLIC_TEMPLATES.includes(template)
     if (!isPublicTemplate) {
-      const authHeader = req.headers.get('Authorization')
-      if (!authHeader?.startsWith('Bearer ')) {
-        return new Response(
-          JSON.stringify({ error: 'Authentication required' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+      const auth = await requireAgentAuth(req, corsHeaders)
+      if (auth instanceof Response) return auth
     }
 
-    if (!to) {
-      return new Response(JSON.stringify({ error: 'Missing "to" field' }), { status: 400, headers: corsHeaders })
+    const isEmail = (s: unknown): s is string =>
+      typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
+    if (!isEmail(to)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid "to" address' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
     }
 
     // Build email from template
@@ -424,6 +430,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Email service not configured' }), { status: 500, headers: corsHeaders })
     }
 
+    // La notification admin ne part JAMAIS vers un `to` fourni par l'appelant :
+    // destinataire dérivé serveur (anti-relais via le template public admin).
+    const recipient = template === 'contact_notification_admin'
+      ? (Deno.env.get('CONTACT_NOTIFICATION_TO') ?? 'contact@megga.ch')
+      : to
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -432,7 +444,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'MEGGA <noreply@megga.ch>',
-        to: [to],
+        to: [recipient],
         subject: emailSubject,
         html: emailHtml,
       }),
