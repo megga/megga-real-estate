@@ -3,6 +3,7 @@
 // Pas d'auth requise — vérification publique
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { safeFetch } from '../_shared/safe-fetch.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,16 +36,18 @@ serve(async (req: Request) => {
       )
     }
 
-    // Télécharger la photo
-    const photoResponse = await fetch(photoUrl)
-    if (!photoResponse.ok) {
+    // Télécharger la photo — durci anti-SSRF : refuse les IP internes/loopback/
+    // link-local (169.254.x = métadonnées cloud), le non-https, les redirections
+    // et les réponses trop volumineuses. Endpoint public → cible d'attaque directe.
+    let photoBytes: Uint8Array
+    try {
+      photoBytes = await safeFetch(photoUrl)
+    } catch (e) {
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch photo', status: photoResponse.status }),
+        JSON.stringify({ error: 'Failed to fetch photo', detail: String((e as Error).message) }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    const photoBuffer = await photoResponse.arrayBuffer()
 
     // ── C2PA Verification ──────────────────────────────────────────────
     // Stratégie : tenter c2pa-wasm (WASM, compatible Deno), fallback sur
@@ -64,7 +67,7 @@ serve(async (req: Request) => {
       const c2paSpecifier = 'npm:c2pa-wasm'
       const c2pa = await import(c2paSpecifier)
       if (c2pa && typeof c2pa.read === 'function') {
-        const result = await c2pa.read(new Uint8Array(photoBuffer))
+        const result = await c2pa.read(photoBytes)
         if (result && result.manifests && result.manifests.length > 0) {
           verified = true
           const m = result.manifests[0]
@@ -80,7 +83,7 @@ serve(async (req: Request) => {
       // c2pa-wasm non disponible — fallback sur vérification basique
       // On vérifie la présence de markers C2PA dans les bytes du fichier
       // Le standard C2PA utilise JUMBF (ISO 19566-5) boxes dans les fichiers JPEG/PNG
-      const bytes = new Uint8Array(photoBuffer)
+      const bytes = photoBytes
       const jumbfMarker = findJumbfBox(bytes)
       if (jumbfMarker) {
         verified = true
