@@ -373,10 +373,39 @@
       "accepted": "Accepted",
       "rejected": "Rejected",
       "expired": "Expired",
-      "withdrawn": "Withdrawn"
+      "withdrawn": "Withdrawn",
+      "current": "Current"
     },
     "notes_cancel": "Cancel",
-    "notes_save": "Save"
+    "notes_save": "Save",
+    "step_counter": "step {{index}}/{{total}}",
+    "negotiation": "Negotiation",
+    "rounds_one": "{{count}} round",
+    "rounds_other": "{{count}} rounds",
+    "no_offer_hint": "When the buyer is ready, record their offer here.",
+    "offer_row": {
+      "offer": "Offer · buyer",
+      "counter": "Counter-offer · seller"
+    },
+    "cond": {
+      "financing": "Financing {{days}}d",
+      "sale": "Sale of another property",
+      "diagnostic": "Survey"
+    },
+    "accept_offer": "Accept the offer",
+    "reject": "Decline",
+    "relaunch_offer": "Send a new offer",
+    "mark_lost": "Mark as lost",
+    "rejected_note": "Offer declined. Send the buyer a new proposal, or close the deal.",
+    "kyc_to_complete": "KYC to complete",
+    "optional": "optional",
+    "toast": {
+      "accepted": "Offer accepted, deal signed",
+      "rejected": "Offer declined",
+      "lost": "Deal marked as lost",
+      "offer_sent": "Offer sent",
+      "counter_sent": "Counter-offer sent"
+    }
   },
   "offerModal": {
     "cta": {
@@ -385,10 +414,21 @@
       "back": "Back",
       "continue": "Continue",
       "submit": "Save & send",
-      "submitting": "Sending…"
+      "submitting": "Sending…",
+      "save": "Save",
+      "saving": "Saving…"
     },
     "label": {
       "buyerFallback": "Buyer"
+    },
+    "header": {
+      "fallback": "Record an offer"
+    },
+    "section": {
+      "amount": "Offer amount",
+      "amountCounter": "Amount proposed in return",
+      "conditions": "Conditions precedent",
+      "validity": "Offer validity"
     },
     "eyebrow": {
       "counter": "Counter-offer · seller",
@@ -456,7 +496,8 @@
         "placeholder": "E.g. Purchase in a personal capacity, cash payment of 35%."
       },
       "financingShort": "Financing · {{days}}d",
-      "diagnosticShort": "Survey"
+      "diagnosticShort": "Survey",
+      "noteTitle": "Note"
     },
     "step2": {
       "eyebrow": "Step 3 of 3 · Deadline & confirmation",
