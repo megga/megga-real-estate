@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Pipeline page (Tier 3.c).
 // 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx — `CRMScreenPipelineSugar`).
 
-import { useState, useEffect, useMemo, type MouseEvent as ReactMouseEvent } from 'react'
+import { useState, useEffect, useMemo, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -66,6 +66,8 @@ export default function PipelineSugarV2Page() {
 
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
+  // Board kanban (conteneur overflow-x) — réf pour le garde-fou molette/touchpad.
+  const boardRef = useRef<HTMLDivElement>(null)
   // Ouverture deal : navigate vers DealDetailSugarV3Page (route réelle wired
   // sur transactions Supabase). L'ancien DealDetailDrawer (737 lignes, lookup
   // dans CRM_DEALS mock) a été supprimé — il ne pouvait pas afficher de deal
@@ -184,6 +186,33 @@ export default function PipelineSugarV2Page() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // ── Molette / touchpad du kanban (fix handoff, adapté à la prod) ────────
+  // Le board est un conteneur `overflow-x`. Sur Chrome, un geste VERTICAL au
+  // touchpad (souvent un peu en biais) fait DÉRIVER le board latéralement via la
+  // composante deltaX — jamais souhaité. Règle : geste horizontal franc → le board
+  // défile (natif, fluide) ; geste vertical → on fige le board et on transmet le
+  // défilement à la PAGE (au pixel près = momentum touchpad préservé). Le port
+  // verbatim du proto s'appuyait sur un pager vertical, absent en prod.
+  useEffect(() => {
+    const el = boardRef.current
+    if (!el || view !== 'kanban') return
+    const onWheel = (e: WheelEvent) => {
+      // Board non défilable horizontalement → rien à intercepter (scroll natif).
+      if (el.scrollWidth <= el.clientWidth) return
+      // Geste horizontal franc → laisser le board défiler nativement.
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      // Geste vertical → figer le board, transmettre le défilement à la page.
+      // Le layout Sugar défile le document (AgentSugarLayout = minHeight:100vh, sans
+      // conteneur overflow) → on scrolle la page directement. Pas de remontée
+      // d'ancêtres + getComputedStyle par event : en boucle chaude (60-120 wheel/s au
+      // touchpad) ça forcerait un recalc de style et nuirait au momentum.
+      e.preventDefault()
+      window.scrollBy(0, e.deltaY)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [view])
 
   const filteredDeals = useMemo(() => {
     return localDeals.filter(d => {
@@ -464,7 +493,7 @@ export default function PipelineSugarV2Page() {
           )}
           {/* Views */}
           {view === 'kanban' && (
-            <div style={{
+            <div ref={boardRef} style={{
               display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 24,
             }}>
               {CRM_STAGE_ORDER.map(stage => (

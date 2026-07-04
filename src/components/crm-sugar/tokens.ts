@@ -50,9 +50,12 @@ export const CRM_TOKENS: { light: CrmTheme; dark: CrmTheme } = {
     shadow1:      '0 1px 2px rgba(14,20,16,.04), 0 0 0 1px rgba(14,20,16,.04)',
     shadow2:      '0 8px 24px -8px rgba(14,20,16,.12), 0 0 0 1px rgba(14,20,16,.05)',
   },
-  // Dark mode — cohérence avec MEGGA AI : quasi-noir, voile bleuté discret.
+  // Dark mode — cohérence avec MEGGA AI : quasi-noir NEUTRE, aligné sur le
+  // cockpit Today (#0A0B0D). Fond unifié (handoff « Unification du fond sombre »)
+  // pour que Today, Pipeline, fiche Deal et modale offre partagent EXACTEMENT le
+  // même noir. Ne pas réintroduire de teinte bleue (#0A0A0F portait un B=15).
   dark: {
-    bg:           '#0A0A0F',
+    bg:           '#0A0B0D',
     surface:      '#101019',
     surface2:     '#171724',
     border:       '#1F1F2E',

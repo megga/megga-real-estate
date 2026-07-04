@@ -196,11 +196,32 @@ export function useUpdateOfferStatus() {
         .select('*')
         .single()
       if (error) throw error
+
+      // Contrat handoff « boucle de négociation » : accepter une offre SIGNE le
+      // deal (transactions.stage='signed', ex-`deal.won=true` du prototype).
+      // ATOMICITÉ : le trigger DB `trg_crm_offer_sign_deal`
+      // (migration 20260704140000_crm_offer_accept_signs_deal) signe le deal DANS
+      // la même transaction que l'update de l'offre. Cet update client est un
+      // FILET idempotent : no-op quand le trigger est déployé (garde `stage <>
+      // 'signed'` côté trigger + garde stage-change de capture_transaction_lifecycle
+      // → 0 audit en double), mais garantit le comportement sur un environnement
+      // où le trigger n'est pas (encore) appliqué. Le refus ne change PAS l'étape.
+      // Audits : audit_crm_offer_event → 'Offre acceptée' ; trg_transaction_lifecycle → 'stage_change'.
+      if (input.status === 'accepted') {
+        const { error: stageErr } = await supabase
+          .from('transactions')
+          .update({ stage: 'signed' })
+          .eq('id', input.dealId)
+        if (stageErr) throw stageErr
+      }
+
       return normalizeOfferRow(data as unknown as RawOfferRow) as Offer
     },
     onSuccess: (offer) => {
       queryClient.invalidateQueries({ queryKey: ['offer-chain', offer.deal_id] })
       queryClient.invalidateQueries({ queryKey: ['transaction', offer.deal_id] })
+      // Board pipeline (usePipelineSugar) — même invalidation que useUpdateTransactionStage.
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['audit-events'] })
     },
   })

@@ -373,10 +373,39 @@
       "accepted": "Acceptée",
       "rejected": "Refusée",
       "expired": "Expirée",
-      "withdrawn": "Retirée"
+      "withdrawn": "Retirée",
+      "current": "En cours"
     },
     "notes_cancel": "Annuler",
-    "notes_save": "Enregistrer"
+    "notes_save": "Enregistrer",
+    "step_counter": "étape {{index}}/{{total}}",
+    "negotiation": "Négociation",
+    "rounds_one": "{{count}} tour",
+    "rounds_other": "{{count}} tours",
+    "no_offer_hint": "Quand l'acheteur sera prêt, saisissez son offre ici.",
+    "offer_row": {
+      "offer": "Offre · acheteur",
+      "counter": "Contre-offre · vendeur"
+    },
+    "cond": {
+      "financing": "Financement {{days}}j",
+      "sale": "Vente d'un autre bien",
+      "diagnostic": "Expertise"
+    },
+    "accept_offer": "Accepter l'offre",
+    "reject": "Refuser",
+    "relaunch_offer": "Relancer une offre",
+    "mark_lost": "Marquer perdu",
+    "rejected_note": "Offre refusée. Relancez l'acheteur avec une nouvelle proposition, ou clôturez le deal.",
+    "kyc_to_complete": "KYC à compléter",
+    "optional": "optionnel",
+    "toast": {
+      "accepted": "Offre acceptée, deal signé",
+      "rejected": "Offre refusée",
+      "lost": "Deal marqué perdu",
+      "offer_sent": "Offre envoyée",
+      "counter_sent": "Contre-offre envoyée"
+    }
   },
   "offerModal": {
     "cta": {
@@ -385,10 +414,21 @@
       "back": "Retour",
       "continue": "Continuer",
       "submit": "Enregistrer & envoyer",
-      "submitting": "Envoi…"
+      "submitting": "Envoi…",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
     },
     "label": {
       "buyerFallback": "Acheteur"
+    },
+    "header": {
+      "fallback": "Saisir une offre"
+    },
+    "section": {
+      "amount": "Montant de l'offre",
+      "amountCounter": "Montant proposé en retour",
+      "conditions": "Conditions suspensives",
+      "validity": "Validité de l'offre"
     },
     "eyebrow": {
       "counter": "Contre-offre · vendeur",
@@ -456,7 +496,8 @@
         "placeholder": "Ex. Acquisition à titre personnel, paiement comptant à hauteur de 35%."
       },
       "financingShort": "Financement · {{days}}j",
-      "diagnosticShort": "Expertise"
+      "diagnosticShort": "Expertise",
+      "noteTitle": "Note"
     },
     "step2": {
       "eyebrow": "Étape 3 sur 3 · Délai & confirmation",

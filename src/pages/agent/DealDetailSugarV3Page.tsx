@@ -1,1178 +1,542 @@
-// MEGGA CRM Sprint 2 — Fiche Deal Sugar Pure
-// Port pixel-près de crm-screen-deal-detail-sugar.jsx (handoff Sprint 2).
+// MEGGA CRM — Fiche Deal V3 « épurée » (Sugar Pure) — port fidèle Claude Design
+// ─────────────────────────────────────────────────────────────────────
+// (crm-screen-deal-detail-v3.jsx). Repart de 2 surfaces :
+//   1. Carte principale — identité, montant, progression (DvStageBar), NÉGOCIATION
+//      (créer → contrer → accepter/refuser → relancer/perdu, toasts, verrous terminaux)
+//   2. Colonne contexte — bien, acheteur, rappel KYC (optionnel)
+// Retirés volontairement (design) : documents, notes privées, timeline, stepper 8
+// cercles, bannière KYC bloquante. Les hooks correspondants restent dans le codebase
+// (useTransactionDocuments / useUpdateTransactionNotes), réintégrables au besoin.
 //
-// Sections :
-//   1. Header retour pipeline + actions (modifier / visite / nouvelle offre)
-//   2. Hero — acheteur + bien, stepper 8 cercles, montant + sentiment
-//   3. Bannière KYC bloquante (si stage∈{interest-confirmed, offer, signed}
-//      ET kyc.status !== 'verified') — réutilise verrou Sprint 1
-//   4. Grid 2 cols :
-//      Main:    Offres & contre-offres (timeline filiation) · Activité
-//      Sidebar: Acheteur · Bien · Prochaine action · Documents · Notes privées
+// Câblage Supabase LIVE :
+//   - useTransaction / useContact / useProperty / useKycDossierByContact / useOfferChain
+//   - Accepter une offre → useUpdateOfferStatus('accepted') (le hook avance AUSSI la
+//     transaction en 'signed' — cf. contrat handoff deal.won). Refuser → 'rejected'.
+//   - Marquer perdu → useUpdateTransactionStage(stage='lost').
+//   - Offre / contre-offre → <OfferModalSugar contained dark> embarquée dans le bento.
 //
 // Route : /dashboard/transactions/:id
 
-import { useEffect, useMemo, useState } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { SugarV3, SUGAR_V3_KEYFRAMES, fmtDateTime } from '@/components/crm-sugar-v3/tokens'
+import type { TFunction } from 'i18next'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
-import {
-  SgBlackPill,
-  SgGhostPill,
-  SgCircleBtn,
-} from '@/components/crm-sugar-v3/primitives'
-import { isStageKycBlocking } from '@/components/crm-sugar-v3/dealStepper'
-import {
-  DdEyebrow,
-  DdCard,
-  DdStageStepper,
-  DdKycChip,
-  DdOfferCard,
-  ddFmt,
-} from '@/components/crm-sugar-v3/deal-detail/DdShared'
-import { useTransaction, useUpdateTransactionNotes, useTransactionDocuments } from '@/hooks/useTransactions'
+import { fmtDateTime } from '@/components/crm-sugar-v3/tokens'
+import { CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
+import OfferModalSugar from '@/components/crm-sugar-v3/offer-modal/OfferModalSugar'
+import { useTranslation } from 'react-i18next'
+import { useTransaction, useUpdateTransactionStage } from '@/hooks/useTransactions'
 import { useContact } from '@/hooks/useContacts'
 import { useProperty } from '@/hooks/useProperties'
 import { useOfferChain, lastOffer, useUpdateOfferStatus } from '@/hooks/useOffers'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
+import { useSugarDark } from '@/lib/sugarDark'
 import type { TransactionStage } from '@/lib/constants'
-import { mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
+import type { Offer, OfferKind } from '@/types/offer'
+
+// ─── Palettes ────────────────────────────────────────────────────────────
+interface DvPalette {
+  card: string
+  sub: string
+  ink: string
+  soft: string
+  muted: string
+  ghost: string
+  black: string
+  blackHover: string
+  onBlack: string
+  shadow: string
+  shadowSm: string
+  ring: string
+  ok: string
+  warn: string
+  err: string
+  pop: string
+}
+const DV_LIGHT: DvPalette = {
+  card: '#FFFFFF', sub: '#F7F8FA', ink: '#0B0C0E', soft: '#3A3D44', muted: '#7A8088', ghost: '#B5BAC2',
+  black: '#0B0C0E', blackHover: '#1F2024', onBlack: '#FFFFFF',
+  shadow: '0 12px 40px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)',
+  shadowSm: '0 4px 16px rgba(15,23,42,0.04)', ring: '',
+  ok: '#10B981', warn: '#F59E0B', err: '#EF4444', pop: '#3B82F6',
+}
+const DV_DARK: DvPalette = {
+  card: '#1B1E28', sub: '#262A36', ink: '#F4F5F7', soft: '#C4C8D0', muted: '#8A909B', ghost: '#4C505A',
+  black: '#F4F5F7', blackHover: '#FFFFFF', onBlack: '#0B0C0E',
+  shadow: '0 14px 40px rgba(0,0,0,0.42), 0 2px 8px rgba(0,0,0,0.30)',
+  shadowSm: '0 4px 16px rgba(0,0,0,0.28)', ring: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+  ok: '#34D399', warn: '#FBBF24', err: '#F87171', pop: '#60A5FA',
+}
+
+const DV_ORDER = [
+  'new-lead', 'to-qualify', 'searching', 'visit-scheduled',
+  'visit-done', 'interest-confirmed', 'offer', 'signed',
+] as const
+
+function dvFmt(n: number | null | undefined): string {
+  if (n == null) return '—'
+  return 'CHF ' + n.toLocaleString('fr-CH').replace(/[\u00A0\u202F,]/g, "'")
+}
 
 interface TransactionJoined {
   id: string
-  agency_id: string
   property_id: string
   contact_buyer_id: string | null
-  contact_seller_id: string | null
-  assigned_to: string
   stage: TransactionStage
-  status: string
   price_offered: number | null
   price_final: number | null
-  mandate_type: string | null
-  notes: string | null
-  created_at: string
-  updated_at: string
-  property?: {
-    id?: string
-    title?: string
-    address?: string
-    city?: string
-    canton?: string
-    price?: number | null
-  } | null
 }
 
+// ─── Primitives (module-level → pas de remount/focus-loss) ─────────────────
+function DvEyebrow({ children, pal }: { children: ReactNode; pal: DvPalette }) {
+  return (
+    <div style={{ fontSize: 11.5, fontWeight: 600, color: pal.muted, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+      {children}
+    </div>
+  )
+}
+
+function DvBlackPill({ children, onClick, pal }: { children: ReactNode; onClick: () => void; pal: DvPalette }) {
+  const [h, setH] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        height: 44, padding: '0 22px', borderRadius: 999, border: 0,
+        background: h ? pal.blackHover : pal.black, color: pal.onBlack,
+        fontFamily: 'inherit', fontWeight: 700, fontSize: 13.5, cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap',
+        boxShadow: h ? '0 12px 30px rgba(11,12,14,0.25)' : '0 6px 16px rgba(11,12,14,0.18)',
+        transform: h ? 'translateY(-1px)' : 'none', transition: 'all .18s ease',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function DvGhostPill({ children, onClick, icon, pal }: { children: ReactNode; onClick: () => void; icon?: ReactNode; pal: DvPalette }) {
+  const [h, setH] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        height: 40, padding: '0 18px', borderRadius: 999, border: 0,
+        background: h ? pal.card : 'transparent', color: pal.soft,
+        fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
+        boxShadow: h ? pal.shadow : 'none', transition: 'all .18s ease',
+      }}
+    >
+      {icon}
+      {children}
+    </button>
+  )
+}
+
+// Progression — barre segmentée fine (remplace le stepper 8 cercles).
+function DvStageBar({ stage, label, pal, t }: { stage: string; label: string; pal: DvPalette; t: TFunction<'pipeline'> }) {
+  const idx = DV_ORDER.indexOf(stage as (typeof DV_ORDER)[number])
+  const isLost = stage === 'lost'
+  const terminal = isLost || stage === 'signed'
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {DV_ORDER.map((s, i) => (
+          <div
+            key={s}
+            style={{
+              flex: 1, height: 4, borderRadius: 999,
+              background: isLost ? pal.err : i <= idx ? pal.ink : pal.sub,
+              transition: 'background .3s ease',
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: isLost ? pal.err : pal.ink }}>{label}</span>
+        {!terminal && (
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: pal.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {t('deal.step_counter', { index: idx + 1, total: DV_ORDER.length })}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Négociation — fil épuré (une ligne par offre).
+function DvOfferRow({ o, current, pal, t }: { o: Offer; current: boolean; pal: DvPalette; t: TFunction<'pipeline'> }) {
+  const counter = o.kind === 'counter'
+  const pill = (bg: string, fg: string, label: string) => (
+    <span style={{ padding: '2px 9px', borderRadius: 999, background: bg, color: fg, fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+      {label}
+    </span>
+  )
+  let statusPill: ReactNode = null
+  if (o.status === 'accepted') statusPill = pill(pal.ok, '#FFFFFF', t('deal.offer_status.accepted'))
+  else if (o.status === 'rejected') statusPill = pill(pal.err, '#FFFFFF', t('deal.offer_status.rejected'))
+  else if (o.status === 'expired') statusPill = pill(pal.muted, '#FFFFFF', t('deal.offer_status.expired'))
+  else if (current) statusPill = pill(pal.black, pal.onBlack, t('deal.offer_status.current'))
+
+  const conds = o.conditions
+  const condSummary = conds
+    ? [
+        conds.financing?.active ? t('deal.cond.financing', { days: conds.financing.days ?? 45 }) : null,
+        conds.sale?.active ? t('deal.cond.sale') : null,
+        conds.diagnostic?.active ? t('deal.cond.diagnostic') : null,
+      ].filter(Boolean).join(' · ')
+    : ''
+
+  return (
+    <div
+      style={{
+        display: 'flex', gap: 16, alignItems: 'flex-start', padding: '16px 18px', borderRadius: 16,
+        background: 'transparent',
+        boxShadow: current ? `0 0 0 1.5px ${pal.ink} inset` : 'none',
+      }}
+    >
+      <div
+        style={{
+          width: 34, height: 34, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center',
+          background: counter ? 'transparent' : pal.black,
+          boxShadow: counter ? `0 0 0 1.5px ${pal.ghost} inset` : 'none',
+        }}
+      >
+        <SgIcon name={counter ? 'swap' : 'arrowR'} size={14} stroke={counter ? pal.ink : pal.onBlack} sw={2} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: pal.muted, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+            {counter ? t('deal.offer_row.counter') : t('deal.offer_row.offer')}
+          </span>
+          {statusPill}
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: pal.muted, fontWeight: 500, whiteSpace: 'nowrap' }}>
+            {fmtDateTime(o.created_at)}
+          </span>
+        </div>
+        <div style={{ marginTop: 8, fontSize: 27, fontWeight: 700, color: pal.ink, letterSpacing: -0.6, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+          {dvFmt(o.amount)}
+        </div>
+        {condSummary && (
+          <div style={{ marginTop: 10, fontSize: 12, color: pal.muted, fontWeight: 500, lineHeight: 1.5 }}>{condSummary}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 export default function DealDetailSugarV3Page() {
   const { t } = useTranslation('pipeline')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const dark = useSugarDark()
+  const pal = dark ? DV_DARK : DV_LIGHT
+  const pageBg = crmSugarPalette(dark ? CRM_TOKENS.dark : CRM_TOKENS.light, dark, 'meggaAi').pageBg
+
   const { data: dealRaw, isLoading, isError, error } = useTransaction(id)
   const deal = dealRaw as TransactionJoined | undefined
   const { data: contact } = useContact(deal?.contact_buyer_id ?? undefined)
   const { data: property } = useProperty(deal?.property_id)
   const { data: offerChain } = useOfferChain(deal?.id)
-  const { data: dealDocuments } = useTransactionDocuments(deal?.id)
-  const { data: kycDossier } = useKycDossierByContact(
-    deal?.contact_buyer_id ?? undefined,
-  )
-
-  const [notesEditing, setNotesEditing] = useState(false)
-  const [privateNotes, setPrivateNotes] = useState<string>('')
-
-  // Sync notes depuis Supabase quand le deal charge (ou s'invalide après save)
-  useEffect(() => {
-    setPrivateNotes(deal?.notes ?? '')
-  }, [deal?.notes])
-
-  const updateNotes = useUpdateTransactionNotes()
-  const handleNotesSave = async () => {
-    if (!deal?.id) return
-    try {
-      await updateNotes.mutateAsync({ id: deal.id, notes: privateNotes })
-      setNotesEditing(false)
-    } catch (err) {
-       
-      console.error('[DealDetail] save notes failed', err)
-    }
-  }
-  const handleNotesCancel = () => {
-    setPrivateNotes(deal?.notes ?? '')
-    setNotesEditing(false)
-  }
+  const { data: kycDossier } = useKycDossierByContact(deal?.contact_buyer_id ?? undefined)
 
   const offers = useMemo(() => offerChain ?? [], [offerChain])
   const last = lastOffer(offers)
   const updateOfferStatus = useUpdateOfferStatus()
+  const updateStage = useUpdateTransactionStage()
 
-  const kycStatus = kycDossier?.dossier_status ?? 'none'
-  const kycBlocking =
-    kycStatus !== 'verified' && deal && isStageKycBlocking(deal.stage)
+  const [offerModalOpen, setOfferModalOpen] = useState(false)
+  const [offerModalKind, setOfferModalKind] = useState<OfferKind>('offer')
+
+  // Toast éphémère (2600 ms, sans icône).
+  const [toast, setToast] = useState<string | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const showToast = (msg: string) => {
+    setToast(msg)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 2600)
+  }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+
+  const respondOffer = (offer: Offer, status: 'accepted' | 'rejected') => {
+    updateOfferStatus.mutate(
+      { offerId: offer.id, dealId: deal!.id, status },
+      {
+        onSuccess: () => showToast(status === 'accepted' ? t('deal.toast.accepted') : t('deal.toast.rejected')),
+        onError: (err) => showToast(t('deal.offer_update_failed', { message: err.message })),
+      },
+    )
+  }
+  const markLost = () => {
+    updateStage.mutate(
+      { id: deal!.id, stage: 'lost' },
+      {
+        onSuccess: () => showToast(t('deal.toast.lost')),
+        onError: (err) => showToast(t('deal.offer_update_failed', { message: err.message })),
+      },
+    )
+  }
+
+  const shell = (children: ReactNode): ReactElement => (
+    <div
+      style={{
+        position: 'relative', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        background: pageBg, color: pal.ink, fontFamily: '"Inter Tight", system-ui, sans-serif',
+      }}
+    >
+      {children}
+    </div>
+  )
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: SugarV3.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: SugarV3.muted,
-          fontFamily: SugarV3.font,
-        }}
-      >
-        {t('deal.loading')}
-      </div>
+    return shell(
+      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: pal.muted }}>{t('deal.loading')}</div>,
     )
   }
   if (isError) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: SugarV3.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: SugarV3.err,
-          fontFamily: SugarV3.font,
-          padding: 40,
-          textAlign: 'center',
-        }}
-      >
+    return shell(
+      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: pal.err, padding: 40, textAlign: 'center' }}>
         {t('deal.load_error', { message: error?.message ?? t('deal.error_unknown') })}
-      </div>
+      </div>,
     )
   }
   if (!deal) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: SugarV3.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: SugarV3.muted,
-          fontFamily: SugarV3.font,
-        }}
-      >
-        {t('deal.not_found')}
-      </div>
-    )
+    return shell(<div style={{ flex: 1, display: 'grid', placeItems: 'center', color: pal.muted }}>{t('deal.not_found')}</div>)
   }
 
-  const dealValue =
-    deal.price_offered ?? deal.price_final ?? property?.price ?? 0
-  const contactName = contact
-    ? `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim()
-    : t('deal.buyer_fallback')
+  const dealValue = deal.price_offered ?? deal.price_final ?? property?.price ?? 0
+  const contactName = contact ? `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim() : t('deal.buyer_fallback')
   const initials = contact
-    ? `${contact.first_name?.[0] ?? ''}${contact.last_name?.[0] ?? ''}`.toUpperCase()
+    ? `${contact.first_name?.[0] ?? ''}${contact.last_name?.[0] ?? ''}`.toUpperCase() || '?'
     : '?'
+  const kycStatus = kycDossier?.dossier_status ?? 'none'
+  const isTerminal = deal.stage === 'signed' || deal.stage === 'lost'
+  const uiStage = deal.stage === 'lost' ? 'lost' : mapTransactionStageToStepper(deal.stage)
+  const stageLabel = t(`stages.${uiStage}`)
 
-  return (
-    <div
-      data-screen-label="Fiche Deal (Sugar v3)"
-      style={{
-        width: '100%',
-        minHeight: '100vh',
-        background: SugarV3.bgGradient,
-        color: SugarV3.ink,
-        fontFamily: SugarV3.font,
-      }}
-    >
-      <style>{SUGAR_V3_KEYFRAMES}</style>
+  return shell(
+    <>
+      <style>{`
+        @keyframes sgFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        .dv-scroll { scrollbar-width: thin; scrollbar-color: ${pal.ghost} transparent; }
+        .dv-scroll::-webkit-scrollbar { width: 10px; }
+        .dv-scroll::-webkit-scrollbar-thumb { background: ${pal.ghost}; border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+      `}</style>
 
-      <main style={{ padding: '28px 40px 80px', minWidth: 0 }}>
-        {/* Header */}
-        <header
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            marginBottom: 32,
-            flexWrap: 'wrap',
-          }}
-        >
-          <SgGhostPill
-            icon={<SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />}
-            onClick={() => navigate('/dashboard/pipeline')}
-          >
-            {t('title')}
-          </SgGhostPill>
-          <span
-            style={{
-              fontFamily: 'JetBrains Mono, monospace',
-              whiteSpace: 'nowrap',
-              fontSize: 12,
-              color: SugarV3.muted,
-              letterSpacing: 0.3,
+      {/* Barre d'actions */}
+      <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 34px', flexWrap: 'wrap', flexShrink: 0 }}>
+        <DvGhostPill pal={pal} icon={<SgIcon name="arrowL" size={15} stroke={pal.soft} />} onClick={() => navigate('/dashboard/pipeline')}>
+          {t('title')}
+        </DvGhostPill>
+        <div style={{ flex: 1 }} />
+        {!isTerminal && (
+          <DvBlackPill
+            pal={pal}
+            onClick={() => {
+              setOfferModalKind(last ? 'counter' : 'offer')
+              setOfferModalOpen(true)
             }}
           >
-            {deal.id.slice(0, 8).toUpperCase()}
-          </span>
-          <div style={{ flex: 1 }} />
-          <SgCircleBtn
-            icon={<SgIcon name="pencil" size={17} stroke={SugarV3.inkSoft} />}
-            title={t('common:actions.edit')}
-          />
-          <SgCircleBtn
-            icon={<SgIcon name="cal" size={17} stroke={SugarV3.inkSoft} />}
-            title={t('deal.schedule_visit')}
-            onClick={() =>
-              navigate(
-                `/dashboard/visits/nouveau?bienId=${deal.property_id}&contactId=${deal.contact_buyer_id ?? ''}&dealId=${deal.id}`,
-              )
-            }
-          />
-          {deal.stage !== 'signed' && (
-            <SgBlackPill
-              icon={
-                <SgIcon
-                  name={last ? 'swap' : 'plus'}
-                  size={14}
-                  stroke="#fff"
-                />
-              }
-              onClick={() =>
-                navigate(
-                  `/dashboard/transactions/${deal.id}/offre/${last ? 'contre' : 'nouvelle'}`,
-                )
-              }
-            >
-              {last ? t('deal.counter_offer') : t('deal.new_offer')}
-            </SgBlackPill>
-          )}
-        </header>
-
-        {/* HERO */}
-        <DdCard padding={32} style={{ marginBottom: 20 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              gap: 24,
-              flexWrap: 'wrap',
-              marginBottom: 28,
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 280 }}>
-              <DdEyebrow>
-                {t('deal.pipeline_stage', {
-                  stage: t(`stages.${mapTransactionStageToStepper(deal.stage)}`),
-                })}
-              </DdEyebrow>
-              <h1
-                style={{
-                  margin: '12px 0 12px',
-                  fontSize: 36,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.8,
-                  lineHeight: 1.15,
-                }}
-              >
-                {contactName}
-                {property && (
-                  <span style={{ color: SugarV3.muted, fontWeight: 500 }}>
-                    {' '}
-                    · {property.title}
-                  </span>
-                )}
-              </h1>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <DdKycChip status={kycStatus} />
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  color: SugarV3.muted,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.6,
-                }}
-              >
-                {t('deal.deal_amount')}
-              </div>
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 42,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -1,
-                  lineHeight: 1,
-                  fontVariantNumeric: 'tabular-nums',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {ddFmt(dealValue)}
-              </div>
-              {last && last.amount !== dealValue && (
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 12,
-                    color: SugarV3.muted,
-                    fontWeight: 500,
-                  }}
-                >
-                  {t('deal.last_offer', { amount: ddFmt(last.amount) })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DdStageStepper stage={deal.stage} />
-        </DdCard>
-
-        {/* BANNIÈRE KYC BLOQUANTE */}
-        {kycBlocking && (
-          <div
-            style={{
-              marginBottom: 20,
-              padding: 24,
-              borderRadius: 22,
-              background: SugarV3.ink,
-              color: '#fff',
-              boxShadow: SugarV3.shadow,
-              animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 18,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 999,
-                background: 'rgba(255,255,255,0.10)',
-                flexShrink: 0,
-                display: 'grid',
-                placeItems: 'center',
-              }}
-            >
-              <SgIcon name="lock" size={20} stroke="#fff" sw={1.8} />
-            </div>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <div
-                style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}
-              >
-                {t('deal.kyc_banner_title')}
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: 'rgba(255,255,255,0.7)',
-                  lineHeight: 1.5,
-                }}
-              >
-                <Trans
-                  t={t}
-                  i18nKey="deal.kyc_banner_body"
-                  values={{
-                    name: contactName,
-                    stage: t('stages.signed'),
-                  }}
-                  components={{
-                    strong: (
-                      <strong style={{ color: '#fff', fontWeight: 700 }} />
-                    ),
-                  }}
-                />
-              </div>
-            </div>
-            <button
-              onClick={() =>
-                navigate(`/dashboard/kyc?contactId=${deal.contact_buyer_id}`)
-              }
-              style={{
-                height: 42,
-                padding: '0 22px',
-                borderRadius: 999,
-                border: 0,
-                background: '#fff',
-                color: SugarV3.ink,
-                fontFamily: 'inherit',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <SgIcon name="shield" size={14} stroke={SugarV3.ink} sw={2} />
-              {t('deal.open_kyc_dossier')}
-            </button>
-          </div>
+            {last ? t('deal.counter_offer') : t('deal.new_offer')}
+          </DvBlackPill>
         )}
+      </header>
 
-        {/* GRID 2 COLONNES */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1.55fr 1fr',
-            gap: 20,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 20,
-              minWidth: 0,
-            }}
-          >
-            {/* Offres & contre-offres */}
-            <DdCard>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 6,
-                  gap: 12,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div>
-                  <DdEyebrow>
-                    {t('deal.negotiation_rounds', { count: offers.length })}
-                  </DdEyebrow>
-                  <h2
-                    style={{
-                      margin: '10px 0 0',
-                      fontSize: 22,
-                      fontWeight: 700,
-                      color: SugarV3.ink,
-                      letterSpacing: -0.4,
-                    }}
-                  >
-                    {t('deal.offers_title')}
-                  </h2>
+      <div className="dv-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 34px 46px', boxSizing: 'border-box' }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 330px', gap: 22, alignItems: 'start' }}>
+          {/* ── CARTE PRINCIPALE ── */}
+          <div style={{ background: pal.card, borderRadius: 24, boxShadow: (pal.ring ? pal.ring + ', ' : '') + pal.shadow, padding: 36, animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <h1 style={{ margin: '0 0 6px', fontSize: 38, fontWeight: 700, color: pal.ink, letterSpacing: -1, lineHeight: 1.08 }}>
+                  {contactName}
+                </h1>
+                {property && <div style={{ fontSize: 15.5, fontWeight: 500, color: pal.muted }}>{property.title}</div>}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: pal.muted, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                  {t('deal.deal_amount')}
                 </div>
-                {offers.length > 0 && deal.stage !== 'signed' && (
-                  <SgGhostPill
-                    icon={
-                      <SgIcon
-                        name="swap"
-                        size={14}
-                        stroke={SugarV3.inkSoft}
-                      />
-                    }
-                    onClick={() =>
-                      navigate(`/dashboard/transactions/${deal.id}/offre/contre`)
-                    }
-                  >
-                    {t('deal.counter_offer')}
-                  </SgGhostPill>
+                <div style={{ marginTop: 8, fontSize: 42, fontWeight: 700, color: pal.ink, letterSpacing: -1.2, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                  {dvFmt(dealValue)}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 30 }}>
+              <DvStageBar stage={uiStage} label={stageLabel} pal={pal} t={t} />
+            </div>
+
+            <div style={{ height: 1, background: pal.sub, margin: '30px 0' }} />
+
+            {/* Négociation */}
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: pal.ink, letterSpacing: -0.4 }}>{t('deal.negotiation')}</h2>
+              {offers.length > 0 && (
+                <span style={{ fontSize: 12, color: pal.muted, fontWeight: 600 }}>
+                  {t('deal.rounds', { count: offers.length })}
+                </span>
+              )}
+            </div>
+
+            {offers.length === 0 ? (
+              <div style={{ marginTop: 18, padding: '28px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: pal.ink, marginBottom: 6 }}>{t('deal.no_offer_title')}</div>
+                <div style={{ fontSize: 12.5, color: pal.muted, marginBottom: 18 }}>{t('deal.no_offer_hint')}</div>
+                {!isTerminal && (
+                  <DvBlackPill pal={pal} onClick={() => { setOfferModalKind('offer'); setOfferModalOpen(true) }}>
+                    {t('deal.record_offer')}
+                  </DvBlackPill>
                 )}
               </div>
-
-              {offers.length === 0 ? (
-                <div
-                  style={{
-                    marginTop: 22,
-                    padding: 28,
-                    borderRadius: 18,
-                    background: SugarV3.cardSubtle,
-                    textAlign: 'center',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: SugarV3.ink,
-                      marginBottom: 6,
-                    }}
-                  >
-                    {t('deal.no_offer_title')}
+            ) : (
+              <div style={{ marginTop: 12 }}>
+                {offers.map((o, i) => (
+                  <div key={o.id}>
+                    {i > 0 && <div style={{ height: 1, background: pal.sub, margin: '0 18px' }} />}
+                    <DvOfferRow o={o} current={i === offers.length - 1} pal={pal} t={t} />
                   </div>
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      color: SugarV3.muted,
-                      marginBottom: 18,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {t('deal.no_offer_subtitle')}
+                ))}
+
+                {last && last.status === 'pending' && !isTerminal && (
+                  <div style={{ marginTop: 14, paddingTop: 16, borderTop: `1px solid ${pal.sub}`, display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 18, paddingRight: 18 }}>
+                    <DvBlackPill pal={pal} onClick={() => respondOffer(last, 'accepted')}>{t('deal.accept_offer')}</DvBlackPill>
+                    <DvGhostPill pal={pal} onClick={() => respondOffer(last, 'rejected')}>{t('deal.reject')}</DvGhostPill>
                   </div>
-                  <SgBlackPill
-                    icon={<SgIcon name="plus" size={14} stroke="#fff" />}
-                    onClick={() =>
-                      navigate(
-                        `/dashboard/transactions/${deal.id}/offre/nouvelle`,
-                      )
-                    }
-                  >
-                    {t('deal.record_offer')}
-                  </SgBlackPill>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    marginTop: 24,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 16,
-                  }}
-                >
-                  {offers.map((o, i) => (
-                    <DdOfferCard
-                      key={o.id}
-                      offer={o}
-                      isCurrent={i === offers.length - 1}
-                      onUpdateStatus={(status) => {
-                        if (typeof window !== 'undefined') {
-                          if (!window.confirm(t(`deal.offer_confirm.${status}`))) return
-                        }
-                        updateOfferStatus.mutate(
-                          { offerId: o.id, dealId: deal!.id, status },
-                          {
-                            onError: (err) => {
+                )}
 
-                              window.alert(t('deal.offer_update_failed', { message: err.message }))
-                            },
-                          }
-                        )
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </DdCard>
-
-            {/* Activité récente */}
-            <DdCard>
-              <DdEyebrow>{t('deal.recent_activity')}</DdEyebrow>
-              <h2
-                style={{
-                  margin: '10px 0 22px',
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.4,
-                }}
-              >
-                {t('deal.timeline_title')}
-              </h2>
-              <div style={{ position: 'relative', paddingLeft: 22 }}>
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 8,
-                    top: 6,
-                    bottom: 6,
-                    width: 2,
-                    background: SugarV3.cardSubtle,
-                    borderRadius: 999,
-                  }}
-                />
-                {[
-                  ...offers.map((o) => ({
-                    at: o.created_at,
-                    kind: o.kind,
-                    label:
-                      o.kind === 'counter'
-                        ? t('deal.timeline_counter_offer', { by: o.by_label })
-                        : t('deal.timeline_offer', { by: o.by_label }),
-                    detail: ddFmt(o.amount),
-                  })),
-                  {
-                    at: deal.created_at,
-                    kind: 'system' as const,
-                    label: t('deal.timeline_created'),
-                    detail: '',
-                  },
-                ]
-                  .sort(
-                    (a, b) =>
-                      new Date(b.at).getTime() - new Date(a.at).getTime(),
-                  )
-                  .slice(0, 8)
-                  .map((e, i, arr) => (
-                    <div
-                      key={i}
-                      style={{
-                        position: 'relative',
-                        marginBottom: i === arr.length - 1 ? 0 : 18,
-                      }}
-                    >
-                      <span
-                        style={{
-                          position: 'absolute',
-                          left: -22,
-                          top: 4,
-                          width: 14,
-                          height: 14,
-                          borderRadius: 999,
-                          background:
-                            e.kind === 'offer' || e.kind === 'counter'
-                              ? SugarV3.ink
-                              : SugarV3.cardSubtle,
-                          border: `3px solid ${SugarV3.card}`,
-                          boxShadow: SugarV3.shadowSm,
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: SugarV3.muted,
-                          fontWeight: 600,
-                          marginBottom: 3,
-                        }}
-                      >
-                        {fmtDateTime(e.at)}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 13.5,
-                          color: SugarV3.ink,
-                          fontWeight: 600,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {e.label}
-                        {e.detail && (
-                          <span
-                            style={{
-                              marginLeft: 10,
-                              fontWeight: 700,
-                              color: SugarV3.ink,
-                              fontVariantNumeric: 'tabular-nums',
-                            }}
-                          >
-                            · {e.detail}
-                          </span>
-                        )}
-                      </div>
+                {last && last.status === 'rejected' && deal.stage !== 'lost' && (
+                  <div style={{ marginTop: 14, paddingTop: 16, borderTop: `1px solid ${pal.sub}`, paddingLeft: 18, paddingRight: 18 }}>
+                    <div style={{ fontSize: 12.5, color: pal.muted, fontWeight: 500, marginBottom: 12, lineHeight: 1.5 }}>
+                      {t('deal.rejected_note')}
                     </div>
-                  ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <DvBlackPill pal={pal} onClick={() => { setOfferModalKind('counter'); setOfferModalOpen(true) }}>
+                        {t('deal.relaunch_offer')}
+                      </DvBlackPill>
+                      <button
+                        onClick={markLost}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = dark ? 'rgba(224,115,140,0.12)' : 'rgba(142,31,61,0.08)' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                        style={{
+                          height: 40, padding: '0 18px', borderRadius: 999, border: 0,
+                          background: 'transparent', color: pal.err,
+                          fontFamily: 'inherit', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all .18s ease',
+                        }}
+                      >
+                        {t('deal.mark_lost')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </DdCard>
+            )}
           </div>
 
-          {/* SIDEBAR */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 20,
-              minWidth: 0,
-            }}
-          >
-            {/* Acheteur */}
+          {/* ── COLONNE CONTEXTE ── */}
+          <div style={{ background: pal.card, borderRadius: 24, boxShadow: (pal.ring ? pal.ring + ', ' : '') + pal.shadow, padding: '8px 22px', animation: 'sgFadeUp .55s cubic-bezier(.2,.8,.2,1) both', display: 'flex', flexDirection: 'column' }}>
+            {property && (
+              <>
+                <DvContextButton pal={pal} onClick={() => navigate(`/dashboard/listings/${property.id}`)}>
+                  <DvEyebrow pal={pal}>{t('column.property')}</DvEyebrow>
+                  <div style={{ marginTop: 10, fontSize: 14.5, fontWeight: 700, color: pal.ink }}>{property.title}</div>
+                  <div style={{ marginTop: 3, fontSize: 12, color: pal.muted, fontWeight: 500 }}>
+                    {property.address} · {property.canton}
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 16, fontWeight: 700, color: pal.ink, fontVariantNumeric: 'tabular-nums' }}>
+                    {dvFmt(property.price)}
+                  </div>
+                </DvContextButton>
+                {contact && <div style={{ height: 1, background: pal.sub }} />}
+              </>
+            )}
+
             {contact && (
-              <DdCard padding={24}>
-                <DdEyebrow>{t('deal.buyer')}</DdEyebrow>
+              <div style={{ padding: '16px 6px' }}>
+                <DvEyebrow pal={pal}>{t('deal.buyer')}</DvEyebrow>
                 <button
                   onClick={() => navigate(`/dashboard/contacts/${contact.id}`)}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    marginTop: 14,
-                    padding: 16,
-                    background: SugarV3.cardSubtle,
-                    border: 0,
-                    borderRadius: 18,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                  }}
+                  style={{ width: '100%', textAlign: 'left', marginTop: 12, padding: 0, background: 'transparent', border: 0, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 12 }}
                 >
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 999,
-                      background: SugarV3.ink,
-                      color: '#fff',
-                      display: 'grid',
-                      placeItems: 'center',
-                      flexShrink: 0,
-                      fontWeight: 700,
-                      fontSize: 16,
-                    }}
-                  >
+                  <div style={{ width: 42, height: 42, borderRadius: 999, background: pal.pop, color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0, fontWeight: 700, fontSize: 14 }}>
                     {initials}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 14.5,
-                        fontWeight: 700,
-                        color: SugarV3.ink,
-                      }}
-                    >
-                      {contactName}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: SugarV3.muted,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {t('deal.view_full_profile')}
-                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: pal.ink }}>{contactName}</div>
+                    <div style={{ fontSize: 11.5, color: pal.muted, fontWeight: 500 }}>{t('deal.view_full_profile')}</div>
                   </div>
+                  <SgIcon name="arrowR" size={15} stroke={pal.muted} />
                 </button>
-
-                <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
-                  <SgCircleBtn
-                    icon={
-                      <SgIcon
-                        name="phone"
-                        size={15}
-                        stroke={SugarV3.inkSoft}
-                      />
-                    }
-                    title={t('deal.call')}
-                    size={38}
-                  />
-                  <SgCircleBtn
-                    icon={
-                      <SgIcon
-                        name="mail"
-                        size={15}
-                        stroke={SugarV3.inkSoft}
-                      />
-                    }
-                    title={t('deal.email')}
-                    size={38}
-                  />
-                  <SgCircleBtn
-                    icon={
-                      <SgIcon name="msg" size={15} stroke={SugarV3.inkSoft} />
-                    }
-                    title={t('deal.message')}
-                    size={38}
-                  />
-                </div>
-
-                {/* Capacité (search_criteria.budget_min/max) — HIGH-4 audit */}
-                {contact.search_criteria?.budget_max != null && (
-                  <div
-                    style={{
-                      marginTop: 16,
-                      padding: 14,
-                      borderRadius: 14,
-                      background: SugarV3.cardSubtle,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: SugarV3.muted,
-                        fontWeight: 600,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {t('deal.capacity')}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: SugarV3.ink,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {contact.search_criteria.budget_min
-                        ? `${ddFmt(contact.search_criteria.budget_min)} — `
-                        : ''}
-                      {ddFmt(contact.search_criteria.budget_max)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Pill probabilité achat (HIGH-5 audit) */}
-                {contact.ai_purchase_probability != null && (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      padding: '6px 12px',
-                      borderRadius: 999,
-                      background: SugarV3.cardSubtle,
-                      color: SugarV3.inkSoft,
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <SgIcon
-                      name="target"
-                      size={11}
-                      stroke={SugarV3.inkSoft}
-                      sw={1.8}
-                    />
-                    {t('deal.purchase_probability', { value: contact.ai_purchase_probability })}
-                  </div>
-                )}
-              </DdCard>
+              </div>
             )}
 
-            {/* Bien */}
-            {property && (
-              <DdCard padding={24}>
-                <DdEyebrow>{t('column.property')}</DdEyebrow>
-                <button
-                  onClick={() =>
-                    navigate(`/dashboard/listings/${property.id}`)
-                  }
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    marginTop: 14,
-                    padding: 14,
-                    background: SugarV3.cardSubtle,
-                    border: 0,
-                    borderRadius: 18,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 14.5,
-                      fontWeight: 700,
-                      color: SugarV3.ink,
-                      marginBottom: 4,
-                    }}
-                  >
-                    {property.title}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: SugarV3.muted,
-                      fontWeight: 500,
-                      marginBottom: 12,
-                    }}
-                  >
-                    {property.address} · {property.canton}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'baseline',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: SugarV3.ink,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {ddFmt(property.price)}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: SugarV3.muted,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {t('deal.surface_rooms', { surface: property.surface_m2, rooms: property.rooms })}
-                    </div>
-                  </div>
-                </button>
-              </DdCard>
+            {kycStatus !== 'verified' && contact && (
+              <>
+                <div style={{ height: 1, background: pal.sub }} />
+                <DvContextButton pal={pal} onClick={() => navigate(`/dashboard/kyc?contactId=${contact.id}`)}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <SgIcon name="shield" size={16} stroke={pal.muted} sw={1.8} />
+                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: pal.soft }}>
+                      {t('deal.kyc_to_complete')}{' '}
+                      <span style={{ color: pal.muted, fontWeight: 500 }}>· {t('deal.optional')}</span>
+                    </span>
+                    <SgIcon name="arrowR" size={14} stroke={pal.muted} />
+                  </span>
+                </DvContextButton>
+              </>
             )}
-
-            {/* Documents */}
-            <DdCard padding={24}>
-              <DdEyebrow>{t('deal.documents')}</DdEyebrow>
-              <h3
-                style={{
-                  margin: '10px 0 14px',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.3,
-                }}
-              >
-                {t('deal.documents_subtitle')}
-              </h3>
-              {(() => {
-                // Documents RÉELS du deal (table documents, RLS agency-scopée) —
-                // plus aucune liste synthétisée ni nombre de pages inventé.
-                const docs = (dealDocuments ?? []).map(
-                  (d): { name: string; status: 'signed' | 'pending' | 'missing' } => ({
-                    name: d.name,
-                    status:
-                      d.status === 'signed' || d.status === 'verified' || d.status === 'valid'
-                        ? 'signed'
-                        : d.status === 'missing'
-                          ? 'missing'
-                          : 'pending',
-                  }),
-                )
-                if (docs.length === 0) {
-                  return (
-                    <div
-                      style={{
-                        padding: 14,
-                        borderRadius: 14,
-                        background: SugarV3.cardSubtle,
-                        fontSize: 12.5,
-                        color: SugarV3.muted,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {t('deal.no_documents')}
-                    </div>
-                  )
-                }
-                const tone = {
-                  signed: { l: t('deal.doc_status_signed'), c: SugarV3.ok },
-                  pending: { l: t('deal.doc_status_pending'), c: SugarV3.warn },
-                  missing: { l: t('deal.doc_status_missing'), c: SugarV3.muted },
-                } as const
-                return (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                    }}
-                  >
-                    {docs.map((d, i) => {
-                      const toneItem = tone[d.status]
-                      return (
-                        <div
-                          key={i}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 12,
-                            padding: '10px 14px',
-                            borderRadius: 14,
-                            background: SugarV3.cardSubtle,
-                          }}
-                        >
-                          <SgIcon
-                            name="file"
-                            size={14}
-                            stroke={SugarV3.inkSoft}
-                            sw={1.8}
-                          />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontSize: 12.5,
-                                fontWeight: 700,
-                                color: SugarV3.ink,
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                              }}
-                            >
-                              {d.name}
-                            </div>
-                            <div
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                marginTop: 2,
-                                fontSize: 10.5,
-                                color: SugarV3.muted,
-                                fontWeight: 600,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 5,
-                                  height: 5,
-                                  borderRadius: 999,
-                                  background: toneItem.c,
-                                }}
-                              />
-                              {toneItem.l}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
-            </DdCard>
-
-            {/* Notes privées */}
-            <DdCard padding={24}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                }}
-              >
-                <DdEyebrow>{t('deal.private_notes')}</DdEyebrow>
-                {!notesEditing && (
-                  <button
-                    onClick={() => setNotesEditing(true)}
-                    style={{
-                      height: 30,
-                      padding: '0 12px',
-                      borderRadius: 999,
-                      border: 0,
-                      background: SugarV3.cardSubtle,
-                      color: SugarV3.ink,
-                      fontFamily: 'inherit',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <SgIcon
-                      name="pencil"
-                      size={11}
-                      stroke={SugarV3.ink}
-                      sw={2}
-                    />
-                    {t('common:actions.edit')}
-                  </button>
-                )}
-              </div>
-              <h3
-                style={{
-                  margin: '10px 0 14px',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: SugarV3.ink,
-                  letterSpacing: -0.3,
-                }}
-              >
-                {t('deal.notes_team', { brand: 'MEGGA' })}
-              </h3>
-              {notesEditing ? (
-                <div>
-                  <textarea
-                    value={privateNotes}
-                    onChange={(e) => setPrivateNotes(e.target.value)}
-                    rows={6}
-                    autoFocus
-                    style={{
-                      width: '100%',
-                      padding: 14,
-                      borderRadius: 14,
-                      background: SugarV3.cardSubtle,
-                      border: 0,
-                      fontFamily: 'inherit',
-                      fontSize: 13,
-                      color: SugarV3.ink,
-                      lineHeight: 1.6,
-                      resize: 'vertical',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <div
-                    style={{
-                      marginTop: 12,
-                      display: 'flex',
-                      gap: 8,
-                      justifyContent: 'flex-end',
-                    }}
-                  >
-                    <button
-                      onClick={handleNotesCancel}
-                      disabled={updateNotes.isPending}
-                      style={{
-                        height: 36,
-                        padding: '0 16px',
-                        borderRadius: 999,
-                        border: 0,
-                        background: 'transparent',
-                        color: SugarV3.inkSoft,
-                        fontFamily: 'inherit',
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        cursor: updateNotes.isPending ? 'not-allowed' : 'pointer',
-                        opacity: updateNotes.isPending ? 0.5 : 1,
-                      }}
-                    >
-                      {t('common:actions.cancel')}
-                    </button>
-                    <button
-                      onClick={handleNotesSave}
-                      disabled={updateNotes.isPending}
-                      style={{
-                        height: 36,
-                        padding: '0 18px',
-                        borderRadius: 999,
-                        border: 0,
-                        background: SugarV3.ink,
-                        color: '#fff',
-                        fontFamily: 'inherit',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        cursor: updateNotes.isPending ? 'wait' : 'pointer',
-                        opacity: updateNotes.isPending ? 0.7 : 1,
-                      }}
-                    >
-                      {updateNotes.isPending ? t('deal.notes_saving') : t('common:actions.save')}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    padding: 14,
-                    borderRadius: 14,
-                    background: SugarV3.cardSubtle,
-                    fontSize: 13,
-                    color: SugarV3.inkSoft,
-                    lineHeight: 1.7,
-                    fontWeight: 500,
-                  }}
-                >
-                  {privateNotes || t('deal.notes_empty', { brand: 'MEGGA' })}
-                </div>
-              )}
-              <div
-                style={{
-                  marginTop: 12,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  padding: '5px 10px',
-                  borderRadius: 999,
-                  background: SugarV3.cardSubtle,
-                  color: SugarV3.muted,
-                  fontSize: 10.5,
-                  fontWeight: 600,
-                }}
-              >
-                <SgIcon name="lock" size={10} stroke={SugarV3.muted} sw={2} />
-                {t('deal.never_visible_client')}
-              </div>
-            </DdCard>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+
+      {/* Offre / contre-offre — épouse le bento (contained) */}
+      {offerModalOpen && (
+        <OfferModalSugar
+          dealId={deal.id}
+          kind={offerModalKind}
+          parentOffer={offerModalKind === 'counter' ? last ?? null : null}
+          contained
+          dark={dark}
+          onSubmit={() => showToast(offerModalKind === 'counter' ? t('deal.toast.counter_sent') : t('deal.toast.offer_sent'))}
+          onClose={() => setOfferModalOpen(false)}
+        />
+      )}
+
+      {/* Toast — pilule bas-centre, sans icône */}
+      {toast && (
+        <div
+          style={{
+            position: 'absolute', left: '50%', bottom: 28, transform: 'translateX(-50%)', zIndex: 60,
+            display: 'inline-flex', alignItems: 'center', gap: 10, padding: '13px 20px', borderRadius: 999,
+            background: pal.black, color: pal.onBlack, fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
+            boxShadow: '0 18px 44px rgba(0,0,0,0.30), 0 4px 14px rgba(0,0,0,0.20)',
+            animation: 'sgFadeUp .3s cubic-bezier(.2,.8,.2,1) both',
+          }}
+        >
+          {toast}
+        </div>
+      )}
+    </>,
+  )
+}
+
+// Bloc contexte cliquable (survol → fond subtil).
+function DvContextButton({ children, onClick, pal }: { children: ReactNode; onClick: () => void; pal: DvPalette }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ width: '100%', textAlign: 'left', padding: '16px 6px', background: 'transparent', border: 0, borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s ease', display: 'block' }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = pal.sub }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+    >
+      {children}
+    </button>
   )
 }
