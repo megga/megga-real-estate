@@ -111,6 +111,14 @@ const STR = {
     fr: "L'envoi au client a échoué (réseau).",
     en: 'Sending to the client failed (network).',
   },
+  templateOffer: {
+    fr: "Sa fenêtre 24h est fermée. Je peux lui envoyer le message de relance approuvé (template) à la place — réponds « oui » pour l'envoyer, « non » sinon.",
+    en: 'Their 24h window is closed. I can send the approved re-engagement template instead — reply “yes” to send it, “no” otherwise.',
+  },
+  templateSent: {
+    fr: '✅ Relance approuvée (template) envoyée. Sa réponse rouvrira la conversation pour un échange libre.',
+    en: '✅ Approved re-engagement template sent. Their reply will reopen the conversation for free-form messaging.',
+  },
   clientMsgSent: {
     fr: '✅ Message envoyé au client.',
     en: '✅ Message sent to the client.',

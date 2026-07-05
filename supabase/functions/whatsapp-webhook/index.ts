@@ -9,6 +9,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
 import { resolveTriageAgencyId, ensureLeadForInboundPhone, triageLeadName, isTriageEligible } from '../_shared/whatsapp-lead-triage.ts'
+import { buildTemplateMessage, type WaTemplateContext, type WaTemplateKey } from '../_shared/whatsapp-templates.ts'
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
@@ -787,8 +788,59 @@ async function rollbackAutoAction(
   return null // outil sans branche → le handler relâchera le verrou
 }
 
-// Exécute une action confirmée (send_client_message, update_pipeline, record_offer,
-// send_listings). Garde agence AU SQL ou via l'exécuteur partagé.
+// Contexte de remplissage des variables d'un template (prénom client + nom agent).
+async function templateCtx(
+  admin: SupabaseClient,
+  agentLink: { profile_id: string; agency_id: string | null },
+  contactId: string,
+): Promise<WaTemplateContext> {
+  const [{ data: c }, { data: prof }] = await Promise.all([
+    admin.from('contacts').select('first_name').eq('id', contactId).maybeSingle(),
+    admin.from('profiles').select('full_name').eq('id', agentLink.profile_id).maybeSingle(),
+  ])
+  return {
+    clientFirstName: (c?.first_name as string | null) ?? undefined,
+    agentName: (prof?.full_name as string | null) ?? undefined,
+  }
+}
+
+// Fenêtre 24h fermée : PROPOSE (HITL) l'envoi d'un template de relance approuvé. Renvoie le
+// message de proposition (et stashe la pending send_template) si un template est configuré,
+// sinon null → le caller retombe sur l'échec habituel. INERTE tant qu'aucun template n'est
+// activé (Meta approuvé + env WA_TEMPLATE_* posé) : buildTemplateMessage renvoie alors null.
+async function offerTemplateFallback(
+  admin: SupabaseClient,
+  agentLink: { profile_id: string; agency_id: string | null },
+  contactId: string,
+  lang: WaLang,
+): Promise<string | null> {
+  if (!agentLink.agency_id) return null
+  const { data: contact } = await admin.from('contacts')
+    .select('phone').eq('id', contactId).eq('agency_id', agentLink.agency_id).maybeSingle()
+  const phone = String(contact?.phone ?? '').replace(/\D/g, '')
+  if (!phone) return null
+  const tmsg = buildTemplateMessage('followup', phone, await templateCtx(admin, agentLink, contactId), (k) => Deno.env.get(k))
+  if (!tmsg) return null // aucun template approuvé configuré → repli gracieux
+  // Numéro WhatsApp de l'agent (colonne pending.wa_number NOT NULL) : lu sur son lien vérifié.
+  const { data: link } = await admin.from('whatsapp_agent_links')
+    .select('wa_number').eq('profile_id', agentLink.profile_id).eq('verified', true).maybeSingle()
+  const agentNumber = String(link?.wa_number ?? '').replace(/\D/g, '')
+  if (!agentNumber) return null
+  // Le slot pending vient d'être consommé (executePending). On stashe la proposition ; sur
+  // collision (course concurrente, UNIQUE profile_id → 23505), on retombe sur l'échec.
+  const { error } = await admin.from('whatsapp_pending_actions').insert({
+    profile_id: agentLink.profile_id, agency_id: agentLink.agency_id, wa_number: agentNumber,
+    tool: 'send_template',
+    args: { contact_id: contactId, __template_key: 'followup', __lang: lang },
+    summary: t(lang, 'templateOffer'),
+    expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+  })
+  if (error) return null
+  return t(lang, 'templateOffer')
+}
+
+// Exécute une action confirmée (send_client_message, send_template, update_pipeline,
+// record_offer, send_listings). Garde agence AU SQL ou via l'exécuteur partagé.
 async function executePending(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
@@ -796,6 +848,48 @@ async function executePending(
   pending: { tool: string; args: Record<string, unknown> },
   lang: WaLang,
 ): Promise<string> {
+  if (pending.tool === 'send_template') {
+    if (!agentLink.agency_id) return t(lang, 'noAgencySend')
+    const contactId = String(pending.args.contact_id ?? '')
+    const key = String(pending.args.__template_key ?? 'followup') as WaTemplateKey
+    if (!contactId) return t(lang, 'actionIncompleteSend')
+    const { data: contact } = await admin.from('contacts')
+      .select('id, phone').eq('id', contactId).eq('agency_id', agentLink.agency_id).maybeSingle()
+    if (!contact || !contact.phone) return t(lang, 'contactNotFoundSend')
+    const phone = String(contact.phone).replace(/\D/g, '')
+    const tmsg = buildTemplateMessage(key, phone, await templateCtx(admin, agentLink, contactId), (k) => Deno.env.get(k))
+    if (!tmsg || !provider.buildSendTemplateRequest) return t(lang, 'sendFail24h')
+    const sendConfig: SendConfig = {
+      metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+      metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+      metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+    }
+    const sreq = provider.buildSendTemplateRequest(tmsg, sendConfig)
+    let outId: string | null = null
+    try {
+      const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
+      if (!sres.ok) return t(lang, 'sendFail24h')
+      const sbody = await sres.json().catch(() => ({}))
+      outId = provider.parseSendResult(sres.status, sbody).providerMessageId
+    } catch { return t(lang, 'sendFailNet') }
+    await admin.from('whatsapp_messages').upsert({
+      provider: provider.name,
+      provider_message_id: outId ?? `local-template-${contactId}-${Date.now()}`,
+      direction: 'outbound', wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
+      wa_to: phone, contact_id: contactId, agency_id: agentLink.agency_id,
+      body: `[template: ${key}]`, status: 'received', is_agent_error: false,
+      sent_by_profile_id: agentLink.profile_id,
+    }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
+    try {
+      await admin.from('activity_events').insert({
+        agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
+        action: 'whatsapp_ai_send_template', entity_type: 'contact', entity_id: contactId,
+        category: 'contact', severity: 'info',
+        metadata: { via: 'whatsapp', profile_id: agentLink.profile_id, template_key: key },
+      })
+    } catch { /* non bloquant */ }
+    return t(lang, 'templateSent')
+  }
   if (pending.tool === 'send_client_message') {
     if (!agentLink.agency_id) return t(lang, 'noAgencySend')
     const contactId = String(pending.args.contact_id ?? '')
@@ -817,7 +911,13 @@ async function executePending(
     let outId: string | null = null
     try {
       const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-      if (!sres.ok) return t(lang, 'sendFail24h')
+      if (!sres.ok) {
+        // Fenêtre 24h fermée (ex. 131047) : si un template de relance approuvé est configuré,
+        // on PROPOSE de l'envoyer (HITL, l'agent confirme — jamais d'auto-envoi de contenu non
+        // validé). Inerte tant qu'aucun template n'est activé (Meta approuvé + env posé).
+        const offer = await offerTemplateFallback(admin, agentLink, contactId, lang)
+        return offer ?? t(lang, 'sendFail24h')
+      }
       const sbody = await sres.json().catch(() => ({}))
       outId = provider.parseSendResult(sres.status, sbody).providerMessageId
     } catch { return t(lang, 'sendFailNet') }
