@@ -46,6 +46,12 @@ if (role === 'service_role') {
   supabaseAnonKey = DEFAULT_ANON_KEY
 }
 
+// Exposés pour les appels fetch directs (SSE du copilote MEGGA AI) —
+// supabase.functions.invoke ne sait pas lire une réponse streamée. Valeurs
+// publiques (l'anon key est publique par design, la sécurité vient de RLS).
+export const SUPABASE_FUNCTIONS_URL = `${supabaseUrl}/functions/v1`
+export const SUPABASE_PUBLIC_ANON_KEY = supabaseAnonKey
+
 // ─── "Remember me" storage switch ──────────────────────────────────────
 // When the user opts out of "Se souvenir de moi" we want the session to die
 // with the browser tab. Supabase's JS client only accepts one storage adapter

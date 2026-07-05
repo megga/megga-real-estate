@@ -1,92 +1,112 @@
 // supabase/functions/ai-copilot/index.ts
-// Copilote IA agent — chat libre + actions structurées
+// Copilote IA agent — chat libre + actions structurées + outils CRM (lecture).
+//
+// Enrichissement juillet 2026 (Phases 0+1 du chantier « expert immobilier ») :
+//  • Auth RÉELLE : requireAgentAuth (JWT vérifié, agency_id dérivé serveur) — le
+//    chemin principal ne se contente plus de la présence d'un header Bearer.
+//  • Rédaction PII (AVS/IBAN/carte/…) sur message + contexte + historique AVANT
+//    tout envoi au LLM (copilot-redaction).
+//  • Audit LBA complet : le free chat (sans entity id) est journalisé aussi.
+//  • Tool-calling read-only (flag app_config `copilot_tools_enabled`) : boucle
+//    portée de whatsapp-agent (agent-loop) + catalogue web (copilot-tools) —
+//    le copilote interroge le VRAI portefeuille au lieu de deviner.
+//  • Streaming SSE réel (body.stream=true) : tokens + phases d'outils réelles.
+//  • Le mode public_buyer (vestige marketplace, sans appelant) est SUPPRIMÉ.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from '../_shared/agent-style.ts'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { meggaProse, MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { persistCopilotTurn, persistenceFlagOn, type ConversationMessage, type ConversationStore } from '../_shared/copilot-persistence.ts'
 import { buildUserContent, resolveAuditEntity } from '../_shared/ai-copilot-request.ts'
+import { requireAgentAuth, type AgentAuthContext } from '../_shared/require-agent-auth.ts'
+import { redactCopilotRequest } from '../_shared/copilot-redaction.ts'
+import { redactPII } from '../_shared/pii-redaction.ts'
+import {
+  runAgentLoop, SseDecoder, StreamAssembler,
+  type LoopEvent, type LoopMessage, type ModelTurn, type StreamEvent,
+} from '../_shared/agent-loop.ts'
+import { COPILOT_TOOLS, COPILOT_TOOLS_BLOCK, webToolTier } from '../_shared/copilot-tools.ts'
+import { execSuggestPrioritiesToday, execGetAnalyticsSnapshot, execGetMarketStats, type WebToolCtx } from '../_shared/copilot-actions.ts'
+import {
+  execGetMyAgenda, execSearchContacts, execGetContactBrief, execListFollowups,
+  execGetMatches, execGetDailyBrief, execSearchListings, execGetKycStatus,
+  execGetPublicationStatus, execPrepareMeeting,
+  type ActionCtx,
+} from '../_shared/whatsapp-actions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// LBA/IA compliance: log toute interaction IA liée à une entité CRM (contact, KYC,
-// bien, deal) dans activity_events avec actor_id='ai'. Silencieux en cas d'échec
-// (on ne veut pas bloquer la réponse IA si le log échoue).
+const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions'
+const CALL_TIMEOUT_MS = 60_000   // par appel modèle (streaming inclus)
+const LOOP_BUDGET_MS = 90_000    // budget global de la boucle d'outils
+const MAX_TURNS = 5
+const MAX_TOOL_CALLS = 8
+
+// LBA/IA compliance : log de TOUTE interaction copilote dans activity_events,
+// actor_kind='ai'. Le free chat (aucune entité CRM dans le contexte) est
+// journalisé sous entity_type='ai_chat' (entity_id null) — la promesse « audit
+// trail pour toute action IA » couvre désormais le panneau docké. Silencieux en
+// cas d'échec (jamais bloquant pour la réponse).
 async function logAiCopilotInteraction(params: {
+  admin: SupabaseClient
+  agencyId: string | null
   action: string
   context: Record<string, unknown>
   tokens: { input?: number; output?: number }
   success: boolean
+  toolsUsed?: Array<{ name: string; ok: boolean }>
+  redactions?: string
+  streamed?: boolean
+  degraded?: string
 }) {
   try {
-    const { context } = params
-    const agencyId = context?.agency_id as string | undefined
+    const resolved = resolveAuditEntity(params.context)
+    const metadata: Record<string, unknown> = {
+      copilot_action: params.action,
+      input_tokens: params.tokens.input,
+      output_tokens: params.tokens.output,
+      success: params.success,
+    }
+    // PII-safe : noms d'outils seulement, jamais les arguments ni les résultats.
+    if (params.toolsUsed?.length) metadata.tools_used = params.toolsUsed.map((t) => `${t.name}${t.ok ? '' : '!'}`)
+    if (params.redactions) metadata.pii_redactions = params.redactions
+    if (params.streamed) metadata.streamed = true
+    if (params.degraded) metadata.degraded = params.degraded
 
-    // Only log if interaction is tied to a real CRM entity (otherwise free chat).
-    // Routage pur extrait dans _shared/ai-copilot-request.ts (testé en unité).
-    const resolved = resolveAuditEntity(context)
-    if (!resolved) return
-    const { entityType, entityId } = resolved
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey) return
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
-    await supabase.from('activity_events').insert({
-      agency_id: agencyId ?? null,
+    await params.admin.from('activity_events').insert({
+      agency_id: params.agencyId,
       actor_id: null,
       actor_kind: 'ai',
       action: `MEGGA AI — ${params.action}`,
-      entity_type: entityType,
-      entity_id: entityId,
-      metadata: {
-        copilot_action: params.action,
-        input_tokens: params.tokens.input,
-        output_tokens: params.tokens.output,
-        success: params.success,
-      },
+      entity_type: resolved?.entityType ?? 'ai_chat',
+      entity_id: resolved?.entityId ?? null,
+      metadata,
     })
   } catch {
     // Silent fail — ne jamais bloquer la réponse IA sur un échec de logging
   }
 }
 
-// Persistance de la conversation copilote (chantier B · phase 2). DOUBLE GATE :
-// (1) le client envoie `persist:true` — seul le CHAT copilote (useCopilot) le fait,
-// pas les actions one-shot ; (2) le flag app_config `copilot_persistence_enabled`
-// vaut 'true'. Défaut = OFF (clé absente ⇒ aucune persistance) : activer = décision
-// nLPD (stocke de la PII CRM au repos). Best-effort, jamais bloquant pour la réponse.
-// Renvoie le conversation_id (nouveau ou réutilisé), ou null si rien persisté.
+// Persistance de la conversation (double gate : persist:true client + flag
+// app_config). Identité fournie par requireAgentAuth — plus de re-dérivation.
 async function maybePersistConversation(params: {
-  token: string
+  admin: SupabaseClient
+  userId: string
+  agencyId: string
   conversationId: string | null
   userMessage: string
   assistantMessage: string
 }): Promise<string | null> {
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !serviceRoleKey || !params.token) return null
-
-    const admin = createClient(supabaseUrl, serviceRoleKey)
-
-    // Kill-switch (défaut OFF par absence de la clé).
-    const { data: flag } = await admin
+    const { data: flag } = await params.admin
       .from('app_config').select('value').eq('key', 'copilot_persistence_enabled').maybeSingle()
     if (!persistenceFlagOn(flag?.value)) return null
 
-    // Identité serveur (jamais d'ids fournis par le client).
-    const { data: u } = await admin.auth.getUser(params.token)
-    if (!u?.user) return null
-    const { data: prof } = await admin
-      .from('profiles').select('agency_id').eq('id', u.user.id).maybeSingle()
-    if (!prof?.agency_id) return null
-
+    const admin = params.admin
     const store: ConversationStore = {
       async load(conversationId, userId) {
         const { data } = await admin
@@ -113,8 +133,6 @@ async function maybePersistConversation(params: {
         return data.id as string
       },
       async append(conversationId, userId, messages, lastMessageAt) {
-        // Garde d'appartenance en plus du filtre id (défense en profondeur :
-        // le service client contourne la RLS).
         const { error } = await admin
           .from('ai_copilot_conversations')
           .update({ messages, last_message_at: lastMessageAt })
@@ -126,8 +144,8 @@ async function maybePersistConversation(params: {
 
     return await persistCopilotTurn(store, {
       conversationId: params.conversationId,
-      userId: u.user.id,
-      agencyId: prof.agency_id as string,
+      userId: params.userId,
+      agencyId: params.agencyId,
       userMessage: params.userMessage,
       assistantMessage: params.assistantMessage,
       now: new Date().toISOString(),
@@ -159,10 +177,10 @@ interface CopilotRequest {
   context?: Record<string, unknown>
   history?: ChatMessage[]
   language?: 'fr' | 'de' | 'en' | 'it'
-  /** Conversation copilote à poursuivre (chantier B · phase 2). null/absent = nouvelle. */
   conversation_id?: string | null
-  /** Demande de persistance du tour (seul le chat copilote l'envoie). */
   persist?: boolean
+  /** true = réponse SSE (tokens + phases d'outils). Absent = JSON (compat). */
+  stream?: boolean
 }
 
 const MEGGA_SYSTEM = `Tu es MEGGA AI, le copilote intelligent de la plateforme MEGGA Real Estate — un CRM immobilier suisse.
@@ -203,62 +221,26 @@ Tes réponses doivent sonner comme un vrai courtier, pas comme une IA. Règles s
 
 RÈGLES :
 - Tu es une ASSISTANCE, pas une décision. L'agent décide toujours.
-- Tu ne valides JAMAIS un dossier KYC — tu analyses et recommandes, l'humain valide.
+- Tu ne valides JAMAIS un dossier KYC — tu analyses et recommandes, l'humain valide. Le KYC est FACULTATIF et ne bloque jamais une vente.
 - Tu ne contactes JAMAIS un client directement — tu prépares, l'agent envoie.
 - Tes scores et estimations sont indicatifs — toujours mentionner "estimation IA".
 - Si on te demande quelque chose hors immobilier suisse, tu restes poli mais tu recentres.
 
-MÉMOIRE CONTEXTUELLE :
-Tu reçois le contexte CRM complet du client actif (profil, interactions, biens envoyés, visites, feedbacks, transactions, notes).
-- UTILISE ces données pour personnaliser chaque réponse. Mentionne des détails spécifiques (dates, biens, feedbacks).
-- Pour un résumé : base-toi sur les VRAIES interactions, pas des généralités.
-- Pour une relance : référence la dernière visite ou le dernier bien envoyé. Propose 1-2 biens du matching si disponibles.
-- Pour une suggestion : prends en compte l'historique complet (refus, préférences implicites, timing).
-- Si le contexte est vide ou absent, réponds de manière générale mais signale que tu manques de données.`
-
-const MEGGA_SEARCH_SYSTEM = `Tu es l'assistant de recherche immobilière de MEGGA, un portail immobilier suisse premium.
-
-TON RÔLE :
-Tu aides les ACHETEURS à trouver le bien idéal. Tu es expert du marché immobilier suisse.
-
-TON STYLE :
-- Chaleureux, concis, actionnable — maximum 150 mots
-- Parle comme un ami qui connaît bien l'immobilier, pas comme un robot
-- Toujours en français, Markdown (**gras**, listes)
-- Vouvoiement avec les acheteurs
-- Monnaie : CHF avec apostrophe suisse (CHF 720'000)
-- Quand tu trouves des biens, dis pourquoi ils correspondent en étant spécifique
-- Si le budget est serré, dis-le honnêtement et suggère des alternatives concrètes
-- JAMAIS de phrases creuses ("vibrant", "nestled", "showcasing", "fostering")
-- JAMAIS de "Great question!", "Here's what you need to know", "Let's explore"
-- Varie tes phrases. Courtes parfois. Plus longues quand ça apporte quelque chose.
-- Aie un avis : "Ce quartier est bruyant mais les prix sont 20% en dessous de Plainpalais" est mieux que "Ce quartier offre une expérience unique"
-
-CAPACITÉS :
-- Tu comprends le langage naturel ("lumineux près de Cornavin", "comme Champel mais moins cher")
-- Tu extrais les filtres : ville, type, prix, pièces, surface, chambres
-- Tu donnes des conseils sur les quartiers et les prix du marché suisse
-
-PRIX MÉDIANS (approximatifs) :
-- Genève centre : CHF 12'000-15'000/m², périphérie : CHF 9'000-12'000/m²
-- Lausanne : CHF 10'000-13'000/m², Zurich : CHF 12'000-16'000/m²
-
-RÈGLES :
-- Tu es une aide, pas un agent. Tu informes, tu ne vends pas.
-- Après 8 échanges, suggère de contacter un agent MEGGA
-- IMPORTANT : Termine TOUJOURS ta réponse avec un bloc de filtres extraits sur une ligne séparée :
-FILTERS:{"city":"Genève","rooms":"3","maxPrice":"800000","types":["apartment"]}
-Clés possibles : city, canton, rooms, bedrooms, minPrice, maxPrice, minSurface, types (array), context ("buy"|"rent")
-N'inclus que les filtres que tu as extraits de la demande.`
+CONTEXTE ET DONNÉES :
+Tu reçois un contexte d'écran (page courante, prénom de l'agent, agrégats du pipeline) et, selon la surface, des détails du dossier actif. Quand des OUTILS te sont fournis, ce sont eux ta source de vérité CRM.
+- UTILISE ces données réelles pour personnaliser chaque réponse. Mentionne des détails spécifiques (dates, biens, montants).
+- Si une donnée manque et qu'aucun outil ne peut la fournir, dis-le au lieu d'inventer. Ne fabrique JAMAIS un contact, un chiffre ou un historique.`
 
 const ACTION_PROMPTS: Record<string, string> = {
   summarize_contact: `Résume le profil et l'historique de ce contact en 3-5 points clés basés sur les VRAIES données CRM fournies.
 Mentionne : intérêt principal, budget (annoncé vs estimé), dernière interaction avec date, biens envoyés/visités, niveau d'engagement, action recommandée.
-Si des visites ont eu des feedbacks négatifs, mentionne les objections. Si des biens ont été refusés, note les patterns.`,
+Si des visites ont eu des feedbacks négatifs, mentionne les objections. Si des biens ont été refusés, note les patterns.
+Si tu disposes d'outils, appelle get_contact_brief pour obtenir la fiche réelle avant de résumer.`,
 
   suggest_next_action: `Analyse le contexte CRM complet et suggère la prochaine action optimale.
 Donne 1 action prioritaire + 2 alternatives. Base-toi sur : dernière interaction, biens envoyés non répondus, visites sans suite, deals en cours, timing du client.
-Sois spécifique : mentionne le nom du bien, la date, le contexte.`,
+Sois spécifique : mentionne le nom du bien, la date, le contexte.
+Si tu disposes d'outils, appelle suggest_priorities_today pour obtenir la vraie file de priorités avant de recommander.`,
 
   draft_email: `Rédige un email professionnel immobilier suisse PERSONNALISÉ basé sur l'historique CRM.
 Ton : courtois, vouvoiement, formules suisses.
@@ -267,22 +249,26 @@ Si des biens du matching sont disponibles, propose-en 1-2 avec prix et caractér
 L'email doit donner l'impression que le courtier connaît parfaitement le dossier du client.`,
 
   draft_description: `Rédige une description d'annonce immobilière attractive et honnête.
-2-3 paragraphes, 150-250 mots. Mets en avant les points forts sans exagérer.`,
+2-3 paragraphes, 150-250 mots. Mets en avant les points forts sans exagérer.
+N'affirme RIEN qui ne figure pas dans les données fournies ; une caractéristique inconnue ne s'invente pas.`,
 
   analyze_kyc: `Analyse ce dossier KYC et identifie : documents manquants, vérifications nécessaires, niveau de risque préliminaire.
-IMPORTANT : Tu assistes l'agent, tu ne valides PAS. La validation finale est humaine.`,
+IMPORTANT : Tu assistes l'agent, tu ne valides PAS. La validation finale est humaine. Le KYC est facultatif et ne bloque jamais une transaction.
+Si tu disposes d'outils, appelle get_kyc_status pour lire l'état réel du dossier.`,
 
   score_lead: `Évalue la qualité de ce lead : Chaud/Tiède/Froid avec score 0-100.
-Critères : budget, timeline, engagement, correspondance offre/demande. Justifie en 2-3 phrases.`,
+Critères : budget, timeline, engagement, correspondance offre/demande. Justifie en 2-3 phrases. Présente le score comme une estimation IA.
+Si tu disposes d'outils, appelle get_contact_brief pour fonder l'évaluation sur la fiche réelle.`,
 
-  analyze_market: `Analyse le positionnement du bien par rapport aux données marché fournies.
+  analyze_market: `Analyse le positionnement du bien par rapport aux données marché.
+Si tu disposes d'outils, appelle get_market_stats avec la zone et les caractéristiques du bien AVANT d'analyser : les chiffres viennent de l'outil, jamais de ta mémoire.
 Structure ta réponse :
 1. **Positionnement prix** : le bien est-il au-dessus, dans la moyenne, ou en-dessous du marché ? De combien en % ?
-2. **Prix au m²** : compare avec la moyenne du quartier/canton.
+2. **Prix au m²** : compare avec la médiane du secteur (cite le nombre de comparables).
 3. **Concurrence** : combien de biens similaires sont actuellement en vente ? Le marché est-il saturé ou porteur ?
 4. **Recommandation** : faut-il ajuster le prix ? Mettre en avant certains atouts ? Attendre ?
-5. **Risque de stagnation** : basé sur le nombre de biens comparables et la fourchette de prix, estime le temps de vente probable.
-Sois précis avec les chiffres fournis dans le contexte marché.`,
+5. **Risque de stagnation** : basé sur les comparables et la fourchette de prix, estime le temps de vente probable (en le présentant comme une estimation).
+Si l'échantillon de comparables est insuffisant, dis-le honnêtement au lieu de citer des chiffres.`,
 
   detect_intent: `Analyse le message du client ci-dessous et détecte l'intention principale.
 Réponds en JSON strict avec ce format :
@@ -296,26 +282,158 @@ Réponds en JSON strict avec ce format :
 Sois factuel et base-toi uniquement sur le contenu du message.`,
 }
 
+// ─── Appel modèle (streaming SSE DeepSeek, assemblage pur) ───────────────────
+function makeCallModel(opts: {
+  apiKey: string
+  tools: boolean
+  responseFormat?: 'json_object'
+  wantStream: boolean
+  emit: (ev: StreamEvent) => void
+}) {
+  return async (messages: LoopMessage[], withTools: boolean): Promise<ModelTurn | null> => {
+    const body: Record<string, unknown> = {
+      model: 'deepseek-chat',
+      max_tokens: 2000,
+      messages,
+      stream: true,
+      stream_options: { include_usage: true },
+    }
+    if (opts.tools) {
+      body.tools = COPILOT_TOOLS
+      body.tool_choice = withTools ? 'auto' : 'none'
+    }
+    if (opts.responseFormat) body.response_format = { type: opts.responseFormat }
+
+    try {
+      const r = await fetch(DEEPSEEK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${opts.apiKey}` },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+      })
+      // Status seulement, jamais le corps (PII des messages échoués).
+      if (!r.ok || !r.body) { console.error('deepseek http', r.status); return null }
+
+      const sse = new SseDecoder()
+      const asm = new StreamAssembler()
+      let usage: { prompt_tokens?: number; completion_tokens?: number } | undefined
+      const reader = r.body.getReader()
+      const td = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        for (const payload of sse.push(td.decode(value, { stream: true }))) {
+          let parsed: { usage?: typeof usage; choices?: Array<{ delta?: Record<string, unknown> }> }
+          try { parsed = JSON.parse(payload) } catch { continue }
+          if (parsed.usage) usage = parsed.usage
+          for (const ev of asm.feed(parsed.choices?.[0]?.delta ?? null)) {
+            if (opts.wantStream) opts.emit(ev)
+          }
+        }
+      }
+      const fin = asm.finish()
+      if (opts.wantStream) for (const ev of fin.events) opts.emit(ev)
+      return { content: fin.content, toolCalls: fin.toolCalls, emitted: opts.wantStream && fin.emitted, usage }
+    } catch (e) {
+      console.error('deepseek fetch failed:', (e as Error)?.name ?? 'error')
+      return null
+    }
+  }
+}
+
+// ─── Exécuteurs d'outils (partagés WhatsApp + web) ───────────────────────────
+function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx) {
+  return async (name: string, args: Record<string, unknown>): Promise<string> => {
+    switch (name) {
+      case 'get_my_agenda': return execGetMyAgenda(actionCtx, args)
+      case 'search_contacts': return execSearchContacts(actionCtx, args)
+      case 'get_contact_brief': return execGetContactBrief(actionCtx, args)
+      case 'list_followups': return execListFollowups(actionCtx, args)
+      case 'get_matches': return execGetMatches(actionCtx, args)
+      case 'get_daily_brief': return execGetDailyBrief(actionCtx, args)
+      case 'search_listings': return execSearchListings(actionCtx, args)
+      case 'get_kyc_status': return execGetKycStatus(actionCtx, args)
+      case 'get_publication_status': return execGetPublicationStatus(actionCtx, args)
+      case 'prepare_meeting': return execPrepareMeeting(actionCtx, args)
+      case 'suggest_priorities_today': return execSuggestPrioritiesToday(webCtx, args)
+      case 'get_analytics_snapshot': return execGetAnalyticsSnapshot(webCtx, args)
+      case 'get_market_stats': return execGetMarketStats(webCtx, args)
+      default: return `Outil inconnu: ${name}`
+    }
+  }
+}
+
+// ─── Assemblage du system prompt (style + personnalisation agent) ────────────
+async function buildSystemPrompt(params: {
+  auth: AgentAuthContext
+  language: string
+  toolsOn: boolean
+}): Promise<string> {
+  const { auth, language, toolsOn } = params
+  let systemPrompt = MEGGA_SYSTEM
+  systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
+  if (toolsOn) systemPrompt += COPILOT_TOOLS_BLOCK
+
+  // Ancrage temporel : indispensable pour résoudre « demain », « cette semaine »
+  // en ISO 8601 (get_my_agenda) et dater correctement les réponses.
+  const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
+  systemPrompt += `\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage suisse.`
+
+  if (language !== 'fr') systemPrompt += `\n\nLangue de réponse : ${language}`
+
+  // Personnalisation (Day 0 + style appris + voix + corrections). Best-effort.
+  try {
+    const sb = auth.supabase
+    const { data: aiProfile } = await sb
+      .from('agent_ai_profiles')
+      .select('brief, learned_style')
+      .eq('agent_id', auth.user.id)
+      .maybeSingle()
+    const addendum = (aiProfile?.brief as { system_addendum?: string } | null)?.system_addendum
+    if (typeof addendum === 'string' && addendum.trim()) {
+      systemPrompt += `\n\n--- Contexte de l'agent (calibrage Day 0) ---\n${addendum.trim()}`
+    }
+    const styleBlock = formatStyleBlock((aiProfile?.learned_style as LearnedStyle | null) ?? null)
+    if (styleBlock) systemPrompt += styleBlock
+
+    const voiceLang = language === 'en' ? 'en' : 'fr'
+    // Mimétisme de voix : vrais messages clients de l'agence (few-shot), pour les brouillons client.
+    // PII : ces corps proviennent de whatsapp_messages (stockés bruts) — un agent a pu y taper un
+    // IBAN/N° AVS. On les rédige AVANT injection dans le prompt LLM, comme message/contexte/historique
+    // (même invariant « aucune PII sensible vers DeepSeek »). La rédaction préserve le TON (seuls les
+    // identifiants sensibles → [REDACTED:*]), ce qui est exactement ce que le mimétisme exploite.
+    const voiceSamples = (await fetchClientVoiceSamples(sb, auth.profile.agency_id, { profileId: auth.user.id }))
+      .map((s) => ({ body: redactPII(s.body).redactedText }))
+    const rawVoice = formatVoiceExamples(voiceSamples, voiceLang)
+    if (rawVoice) {
+      systemPrompt += voiceLang === 'en'
+        ? `\n\nWhen you draft a CLIENT-FACING message (email/listing), mirror this tone; for internal analysis keep your usual style.${rawVoice}`
+        : `\n\nQuand tu rédiges un message DESTINÉ À UN CLIENT (email/annonce), copie ce ton ; pour l'analyse interne, garde ton style habituel.${rawVoice}`
+    }
+    // Apprentissage T2 : corrections passées de l'agent (brouillon rejeté →
+    // message envoyé), même pipeline que whatsapp-agent. Rédigées aussi (même raison).
+    const corrections = (await fetchCorrectionExamples(sb, auth.user.id))
+      .map((c) => ({ draft: redactPII(c.draft).redactedText, final: redactPII(c.final).redactedText }))
+    systemPrompt += formatCorrectionExamples(corrections, voiceLang)
+  } catch (_) {
+    // personnalisation optionnelle — ne jamais bloquer la réponse IA
+  }
+
+  return systemPrompt
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // ── Auth réelle (Phase 0) : JWT vérifié, identité dérivée serveur. ─────────
+  const auth = await requireAgentAuth(req, corsHeaders)
+  if (auth instanceof Response) return auth
+
   try {
     const body: CopilotRequest = await req.json()
-    const { action = 'chat', message, context, history = [], language = 'fr', conversation_id = null, persist = false } = body
-
-    // ── Auth check (skip for public buyer search) ───────────────────────────
-    const isPublicSearch = context?.search_mode === 'public_buyer'
-    if (!isPublicSearch) {
-      const authHeader = req.headers.get('Authorization')
-      if (!authHeader?.startsWith('Bearer ')) {
-        return new Response(
-          JSON.stringify({ error: 'Authentication required' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    }
+    const { action = 'chat', message, context, history = [], language = 'fr', conversation_id = null, persist = false, stream = false } = body
 
     if (!message && action === 'chat') {
       return new Response(
@@ -325,8 +443,7 @@ serve(async (req: Request) => {
     }
 
     // Moteur DeepSeek (deepseek-chat) — décision coût : MEGGA AI tourne sur
-    // DeepSeek (~16x moins cher que Claude). Claude reste réservé au KYC
-    // (kyc-screening) pour la compliance. Le nom exposé reste "MEGGA AI".
+    // DeepSeek (~16x moins cher que Claude). Le nom exposé reste "MEGGA AI".
     const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY')
     if (!deepseekApiKey) {
       return new Response(
@@ -335,129 +452,176 @@ serve(async (req: Request) => {
       )
     }
 
-    // Build system prompt — switch to buyer search mode if requested
-    // (isPublicSearch déjà déclaré dans le bloc auth ci-dessus — réutilisé ici)
-    let systemPrompt = isPublicSearch ? MEGGA_SEARCH_SYSTEM : MEGGA_SYSTEM
-    // Style maison (ban em dash / puces, ton sobre suisse) — couche prompt. La
-    // même règle est appliquée en aval par meggaProse() sur la sortie, car le
-    // modèle ignore parfois la consigne (même logique que whatsapp-format).
-    systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
-    if (language !== 'fr') {
-      systemPrompt += `\n\nLangue de réponse : ${language}`
-    }
+    // ── Rédaction PII (Phase 0) : identifiants sensibles masqués AVANT le LLM
+    // (et avant la persistance). Le résumé des substitutions part dans l'audit.
+    const red = redactCopilotRequest({ message: message || '', context, history })
 
-    // Personnalisation agent (Day 0) : si l'agent connecté a un profil IA
-    // provisionné (agent_ai_profiles.brief.system_addendum, généré par
-    // day0-activation-setup à partir de son calibrage), on l'injecte dans le
-    // system prompt pour adapter le copilote à sa spécialité / zones / priorité /
-    // autonomie. Best-effort : jamais bloquant pour la réponse IA.
-    if (!isPublicSearch) {
+    // ── Outils CRM (Phase 1) : flag kill-switch, OFF par défaut (clé absente).
+    // detect_intent reste un one-shot JSON strict, sans outils.
+    let toolsOn = false
+    if (action !== 'detect_intent') {
       try {
-        const token = (req.headers.get('Authorization') || '')
-          .replace(/^Bearer\s+/i, '')
-          .trim()
-        const sbUrl = Deno.env.get('SUPABASE_URL')
-        const sbKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-        if (token && sbUrl && sbKey) {
-          const sb = createClient(sbUrl, sbKey)
-          const { data: u } = await sb.auth.getUser(token)
-          if (u?.user) {
-            const { data: aiProfile } = await sb
-              .from('agent_ai_profiles')
-              .select('brief, learned_style, agency_id')
-              .eq('agent_id', u.user.id)
-              .maybeSingle()
-            const addendum = (aiProfile?.brief as { system_addendum?: string } | null)
-              ?.system_addendum
-            if (typeof addendum === 'string' && addendum.trim()) {
-              systemPrompt += `\n\n--- Contexte de l'agent (calibrage Day 0) ---\n${addendum.trim()}`
-            }
-            const styleBlock = formatStyleBlock((aiProfile?.learned_style as LearnedStyle | null) ?? null)
-            if (styleBlock) systemPrompt += styleBlock
-            // Mimétisme de voix : vrais messages clients de l'agence (few-shot), pour les brouillons client.
-            const agencyId = (aiProfile as { agency_id?: string | null } | null)?.agency_id ?? null
-            const rawVoice = formatVoiceExamples(await fetchClientVoiceSamples(sb, agencyId, { profileId: u.user.id }), language === 'en' ? 'en' : 'fr')
-            if (rawVoice) {
-              systemPrompt += language === 'en'
-                ? `\n\nWhen you draft a CLIENT-FACING message (email/listing), mirror this tone; for internal analysis keep your usual style.${rawVoice}`
-                : `\n\nQuand tu rédiges un message DESTINÉ À UN CLIENT (email/annonce), copie ce ton ; pour l'analyse interne, garde ton style habituel.${rawVoice}`
-            }
-          }
-        }
-      } catch (_) {
-        // personnalisation optionnelle — ne jamais bloquer la réponse IA
+        const { data: flag } = await auth.supabase
+          .from('app_config').select('value').eq('key', 'copilot_tools_enabled').maybeSingle()
+        toolsOn = flag?.value === 'true'
+      } catch { toolsOn = false }
+    }
+
+    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn })
+
+    const baseMessages: LoopMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...red.history.slice(-10).map((m) => ({ role: m.role, content: m.content })),
+      {
+        role: 'user',
+        content: buildUserContent({ action, message: red.message, context: red.context, actionPrompts: ACTION_PROMPTS }),
+      },
+    ]
+
+    // Contexte d'outils : service-role (données marché, exécuteurs scopés agence
+    // au SQL) + client scopé au JWT (RPC SECURITY DEFINER dérivant l'agence).
+    const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim()
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const actionCtx: ActionCtx = {
+      supabase: auth.supabase,
+      profileId: auth.user.id,
+      agencyId: auth.profile.agency_id,
+      lang: language === 'en' ? 'en' : 'fr',
+    }
+    const webCtx: WebToolCtx = {
+      supabase: auth.supabase,
+      userClient,
+      profileId: auth.user.id,
+      agencyId: auth.profile.agency_id,
+    }
+    const runTool = makeRunTool(actionCtx, webCtx)
+
+    // ── Un tour complet (boucle d'outils ou appel simple) + post-traitements. ──
+    const runTurn = async (emit: (ev: LoopEvent) => void): Promise<{
+      final: string
+      usage: { input: number; output: number }
+      conversationId: string | null
+      toolsUsed: Array<{ name: string; ok: boolean }>
+      degraded?: string
+    }> => {
+      let text = ''
+      let usage = { input: 0, output: 0 }
+      let toolsUsed: Array<{ name: string; ok: boolean }> = []
+      let degraded: string | undefined
+
+      if (toolsOn) {
+        const res = await runAgentLoop({
+          callModel: makeCallModel({ apiKey: deepseekApiKey, tools: true, wantStream: stream, emit }),
+          runTool,
+          tierOf: webToolTier,
+          emit,
+          maxTurns: MAX_TURNS,
+          maxToolCalls: MAX_TOOL_CALLS,
+          budgetMs: LOOP_BUDGET_MS,
+        }, baseMessages)
+        text = res.text
+        usage = res.usage
+        toolsUsed = res.toolsUsed
+        degraded = res.degraded
+        if (!text && res.degraded === 'model_error') throw new Error('Le moteur IA est indisponible, réessayez.')
+      } else {
+        const turn = await makeCallModel({
+          apiKey: deepseekApiKey,
+          tools: false,
+          responseFormat: action === 'detect_intent' ? 'json_object' : undefined,
+          wantStream: stream,
+          emit,
+        })(baseMessages, false)
+        if (!turn) throw new Error('Le moteur IA est indisponible, réessayez.')
+        text = turn.content
+        usage = { input: turn.usage?.prompt_tokens ?? 0, output: turn.usage?.completion_tokens ?? 0 }
       }
+
+      // detect_intent renvoie du JSON strict : pas de normalisation de prose.
+      // Garde réponse vide (dégradation modèle) : jamais un `final` vide côté chat,
+      // sinon la bulle s'affiche vide (le client garde son accumulation, mais on
+      // sécurise aussi le mode JSON one-shot et la persistance).
+      const normalized = action === 'detect_intent' ? text : meggaProse(text)
+      const final = action === 'detect_intent'
+        ? normalized
+        : (normalized.trim() ? normalized : "Je n'ai pas pu générer de réponse cette fois. Reformule ou réessaie.")
+
+      await logAiCopilotInteraction({
+        admin: auth.supabase,
+        agencyId: auth.profile.agency_id,
+        action,
+        context: context ?? {},
+        tokens: { input: usage.input, output: usage.output },
+        success: true,
+        toolsUsed,
+        redactions: red.summary || undefined,
+        streamed: stream,
+        degraded,
+      })
+
+      let conversationId: string | null = null
+      if (persist) {
+        conversationId = await maybePersistConversation({
+          admin: auth.supabase,
+          userId: auth.user.id,
+          agencyId: auth.profile.agency_id,
+          conversationId: conversation_id,
+          userMessage: red.message,
+          assistantMessage: final,
+        })
+      }
+
+      return { final, usage, conversationId, toolsUsed, degraded }
     }
 
-    // Build messages array
-    const messages: { role: 'user' | 'assistant'; content: string }[] = []
-
-    // Add conversation history (last 10 messages max)
-    const recentHistory = history.slice(-10)
-    for (const msg of recentHistory) {
-      messages.push({ role: msg.role, content: msg.content })
-    }
-
-    // Build the current user message (helper pur ai-copilot-request.ts, testé en unité)
-    const userContent = buildUserContent({ action, message: message || '', context, actionPrompts: ACTION_PROMPTS })
-
-    messages.push({ role: 'user', content: userContent })
-
-    // Call DeepSeek API (OpenAI-compatible). Le system prompt est passé comme
-    // 1er message role:'system' (DeepSeek n'a pas de champ `system` séparé).
-    const deepseekResponse = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${deepseekApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        max_tokens: 2000,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-      }),
-    })
-
-    if (!deepseekResponse.ok) {
-      const errText = await deepseekResponse.text()
-      throw new Error(`DeepSeek API ${deepseekResponse.status}: ${errText}`)
-    }
-
-    const deepseekData = await deepseekResponse.json()
-    const result = meggaProse(deepseekData.choices?.[0]?.message?.content || '')
-
-    // LBA/IA audit trail — log toute interaction liée à une entité CRM
-    await logAiCopilotInteraction({
-      action,
-      context: context ?? {},
-      tokens: {
-        input: deepseekData.usage?.prompt_tokens,
-        output: deepseekData.usage?.completion_tokens,
-      },
-      success: true,
-    })
-
-    // Persistance best-effort de la conversation (double gate persist + flag).
-    let persistedConversationId: string | null = null
-    if (persist && !isPublicSearch) {
-      const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim()
-      persistedConversationId = await maybePersistConversation({
-        token,
-        conversationId: conversation_id,
-        userMessage: message || '',
-        assistantMessage: result,
+    // ── Mode SSE : tokens + phases d'outils en direct. ──────────────────────
+    if (stream) {
+      const enc = new TextEncoder()
+      const sseBody = new ReadableStream<Uint8Array>({
+        start(controller) {
+          const send = (ev: Record<string, unknown>) => {
+            try { controller.enqueue(enc.encode(`data: ${JSON.stringify(ev)}\n\n`)) } catch { /* flux fermé */ }
+          }
+          void (async () => {
+            try {
+              const out = await runTurn((ev) => send(ev as unknown as Record<string, unknown>))
+              send({
+                type: 'done',
+                final: out.final,
+                conversation_id: out.conversationId,
+                usage: { input_tokens: out.usage.input, output_tokens: out.usage.output },
+              })
+            } catch (err) {
+              send({ type: 'error', message: err instanceof Error ? err.message : 'Erreur interne' })
+            } finally {
+              try { controller.close() } catch { /* déjà fermé */ }
+            }
+          })()
+        },
+      })
+      return new Response(sseBody, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'X-Accel-Buffering': 'no',
+        },
       })
     }
 
+    // ── Mode JSON (compat : actions one-shot, anciens appelants). ───────────
+    const out = await runTurn(() => {})
     return new Response(
       JSON.stringify({
-        result,
+        result: out.final,
         action,
-        conversation_id: persistedConversationId,
-        usage: {
-          input_tokens: deepseekData.usage?.prompt_tokens,
-          output_tokens: deepseekData.usage?.completion_tokens,
-        },
+        conversation_id: out.conversationId,
+        usage: { input_tokens: out.usage.input, output_tokens: out.usage.output },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

@@ -55,10 +55,15 @@ interface PanelMsg {
   loading?: boolean
   query?: string
   screen?: string
+  /** Libellé RÉEL de l'outil en cours (tool_start SSE) — null = aucun. */
+  phase?: string | null
 }
 
-// ── Statut « réflexion » dynamique ──────────────────────────────────────────
-function CpThinking({ sp, query }: { sp: AiPalette; query?: string }) {
+// ── Statut « réflexion » ─────────────────────────────────────────────────────
+// Si un outil réel tourne (phase fournie par le SSE), on affiche SON libellé —
+// c'est de la transparence, pas une animation fabriquée. Sinon, repli sur les
+// phases heuristiques dérivées de la question (le temps de la 1re inférence).
+function CpThinking({ sp, query, phase }: { sp: AiPalette; query?: string; phase?: string | null }) {
   const phases = useMemo(() => thinkingPhases(query || ''), [query])
   const [i, setI] = useState(0)
   useEffect(() => {
@@ -66,9 +71,10 @@ function CpThinking({ sp, query }: { sp: AiPalette; query?: string }) {
     const id = window.setInterval(() => setI((n) => Math.min(n + 1, phases.length - 1)), 1100)
     return () => window.clearInterval(id)
   }, [phases])
+  const label = phase || phases[i]
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-      <span key={i} style={{
+      <span key={label} style={{
         fontSize: 13.5, fontWeight: 600, lineHeight: 1.5,
         color: sp.dark ? 'rgba(255,255,255,0.55)' : '#7A8088',
         background: `linear-gradient(100deg, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 30%, ${sp.dark ? '#FFFFFF' : '#0B0C0E'} 50%, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 70%)`,
@@ -76,7 +82,7 @@ function CpThinking({ sp, query }: { sp: AiPalette; query?: string }) {
         WebkitBackgroundClip: 'text', backgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         animation: 'cpShimmer 1.6s linear infinite, cpFadeIn .3s ease both',
-      }}>{phases[i]}</span>
+      }}>{label}</span>
     </div>
   )
 }
@@ -188,21 +194,19 @@ function CpRichText({ content, sp }: { content: string; sp: AiPalette }) {
 // ── Carte d'action : brouillon rédigé (chantier 4 — boucle fermée) ──────────
 function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGenerateLetter }: { lang: string; body: string; open: boolean; sp: AiPalette; onInsertEmail?: (draft: EmailDraft) => void; onUseAnnonce?: (annonce: string) => void; onGenerateLetter?: (letter: string) => void }) {
   const [copied, setCopied] = useState(false)
-  const [inserted, setInserted] = useState(false)
-  const [done2, setDone2] = useState(false)
   const isEmail = /^(courriel|email|e-mail|mail)$/i.test(lang)
   const isAnnonce = /annonce/i.test(lang)
   const isLettre = /lettre/i.test(lang)
+  // Un brouillon a une action « boucle fermée » RÉELLE seulement pour email
+  // (modal d'envoi Resend), annonce (enregistrement sur le bien) et lettre (PDF).
+  // Un message/SMS n'a pas de canal d'envoi web → on ne montre PAS de fausse
+  // action « Programmer l'envoi » : l'agent copie et envoie par son canal.
+  const hasAction = isEmail || isAnnonce || isLettre
   const kind = isEmail ? "Brouillon d'email"
     : /sms/i.test(lang) ? 'Brouillon de SMS'
     : isLettre ? 'Brouillon de courrier'
     : isAnnonce ? "Brouillon d'annonce"
     : 'Brouillon de message'
-  const followUp = isAnnonce
-    ? { cta: 'Publier le bien', ok: 'Annonce en file de publication', icon: 'send' }
-    : isLettre
-      ? { cta: 'Générer le PDF', ok: 'PDF généré — prêt à imprimer', icon: 'draft' }
-      : { cta: "Programmer l'envoi", ok: 'Envoi programmé — demain 09:00', icon: 'calendar' }
   let subject: string | null = null
   let text = body
   const firstNl = body.indexOf('\n')
@@ -234,26 +238,27 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
       <div style={{ fontSize: 13.5, lineHeight: 1.6, color: sp.soft, fontWeight: 500, whiteSpace: 'pre-wrap' }}>
         {text}{open && <span style={{ opacity: 0.4 }}>▍</span>}
       </div>
-      {!open && !inserted && (
+      {!open && (
         <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-          <button
-            onClick={() => {
-              // Email → modal envoi ; annonce → modal « utiliser sur le bien »
-              // (human-in-the-loop). Autres types (message/lettre) : stub visuel (PR suivante).
-              if (isEmail && onInsertEmail) onInsertEmail({ subject: subject ?? '', body: text })
-              else if (isAnnonce && onUseAnnonce) onUseAnnonce(text)
-              else if (isLettre && onGenerateLetter) onGenerateLetter(text)
-              else setInserted(true)
-            }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
-              borderRadius: 999, background: sp.accent, color: sp.onAccent, transition: 'background .15s, transform .15s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'none' }}>
-            {isEmail ? 'Insérer dans un email' : isAnnonce ? 'Utiliser sur le bien' : isLettre ? 'Générer le PDF' : 'Utiliser ce message'}
-          </button>
+          {hasAction && (
+            <button
+              onClick={() => {
+                // Boucle fermée réelle (human-in-the-loop) : email → modal d'envoi,
+                // annonce → enregistrement sur le bien, lettre → génération PDF.
+                if (isEmail && onInsertEmail) onInsertEmail({ subject: subject ?? '', body: text })
+                else if (isAnnonce && onUseAnnonce) onUseAnnonce(text)
+                else if (isLettre && onGenerateLetter) onGenerateLetter(text)
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
+                borderRadius: 999, background: sp.accent, color: sp.onAccent, transition: 'background .15s, transform .15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none' }}>
+              {isEmail ? 'Insérer dans un email' : isAnnonce ? 'Utiliser sur le bien' : 'Générer le PDF'}
+            </button>
+          )}
           <button onClick={copy} style={{
             display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 13px',
@@ -263,39 +268,6 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
             <CpIcon name={copied ? 'check' : 'copy'} size={13} color={copied ? sp.ink : sp.soft} sw={2} />
             {copied ? 'Copié' : 'Copier'}
           </button>
-        </div>
-      )}
-      {!open && inserted && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 10, marginTop: 2,
-          animation: 'cpFade .32s cubic-bezier(.2,.8,.2,1) both',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              width: 20, height: 20, borderRadius: 999, flexShrink: 0,
-              background: sp.dark ? 'rgba(80,200,140,0.18)' : 'rgba(5,150,105,0.12)',
-              display: 'grid', placeItems: 'center',
-            }}>
-              <CpIcon name="check" size={13} color={sp.dark ? '#5FD39A' : '#059669'} sw={2.6} />
-            </span>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, letterSpacing: -0.1 }}>
-              {done2 ? followUp.ok : (isEmail ? "Ajouté au brouillon d'email" : 'Message inséré')}
-            </span>
-          </div>
-          {!done2 && (
-            <button onClick={() => setDone2(true)} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, border: 0, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
-              borderRadius: 999, alignSelf: 'flex-start', color: sp.soft,
-              background: sp.dark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
-              boxShadow: sp.dark ? 'none' : '0 1px 4px rgba(15,23,42,0.06)', transition: 'background .14s, transform .14s',
-            }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = sp.rowHov; e.currentTarget.style.transform = 'translateY(-1px)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = sp.dark ? 'rgba(255,255,255,0.06)' : '#FFFFFF'; e.currentTarget.style.transform = 'none' }}>
-              <CpIcon name={followUp.icon} size={14} color={sp.soft} sw={1.9} />
-              {followUp.cta}
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -378,7 +350,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
       <AiGlyph size={22} bg="transparent" on={sp.dark ? '#7FB0FF' : '#1E5BC6'} />
       <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
         {msg.loading
-          ? <CpThinking sp={sp} query={msg.query} />
+          ? <CpThinking sp={sp} query={msg.query} phase={msg.phase} />
           : <CpAnswerBody content={msg.content} sp={sp} query={msg.query} onInsertEmail={onInsertEmail} onUseAnnonce={onUseAnnonce} onGenerateLetter={onGenerateLetter} />}
       </div>
     </div>
@@ -568,11 +540,18 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
     setMessages((m) => [
       ...m,
       { id: uid, role: 'user', content: t },
-      { id: lid, role: 'assistant', content: '', loading: true, query: t },
+      { id: lid, role: 'assistant', content: '', loading: true, query: t, phase: null },
     ])
     const ctx = buildContext(screen)
-    void sendMessageStream(t, ctx, (chunk) => {
-      setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, content: (x.content || '') + chunk } : x))
+    void sendMessageStream(t, ctx, {
+      // Token streamé → on sort du mode « réflexion » et on APPEND le fragment.
+      onDelta: (chunk) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, phase: null, content: (x.content || '') + chunk } : x)),
+      // Un appel d'outil est survenu après du texte → on efface l'ébauche.
+      onReset: () => setMessages((m) => m.map((x) => x.id === lid ? { ...x, content: '' } : x)),
+      // Phase d'outil RÉELLE (« Analyse du marché… ») affichée pendant la consultation.
+      onPhase: (label) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, phase: label } : x)),
+      // Texte final normalisé (meggaProse serveur) → remplace l'accumulation brute.
+      onFinal: (finalText) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, phase: null, content: finalText } : x)),
     })
   }, [isLoading, sendMessageStream, buildContext, screen])
 
