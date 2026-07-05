@@ -415,8 +415,14 @@ async function processAgentMessage(
     // un seul DELETE renvoie une ligne → seul lui exécute/répond, l'autre s'arrête.
     const { data: claimed } = await admin
       .from('whatsapp_pending_actions').delete().eq('id', pendingAction.id).select('id')
-    if (!claimed || claimed.length === 0) return // une autre invocation gère cette attente
-    if (decision === 'yes' && valid) {
+    if (!claimed || claimed.length === 0) {
+      // Course perdue : une autre invocation a déjà consommé cette attente (gagnant-unique).
+      // On n'AVALE PAS notre message — le pending n'existe plus, on le traite comme un message
+      // normal (le cerveau répond ; s'il re-stashe, stashPending est atomique → pas de corruption).
+      const brain = await callAgentBrain(agentLink, msg, userText, lang, inboundDocText)
+      reply = brain.reply
+      replyIsError = brain.isError
+    } else if (decision === 'yes' && valid) {
       try {
         await admin.from('whatsapp_confirmation_log').insert({
           profile_id: agentLink.profile_id, agency_id: agentLink.agency_id,
