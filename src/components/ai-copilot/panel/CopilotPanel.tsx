@@ -11,7 +11,7 @@ import {
   type ReactNode, type KeyboardEvent as ReactKeyboardEvent, type ChangeEvent as ReactChangeEvent,
 } from 'react'
 import { CRM_TOKENS, crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId } from '@/components/crm-sugar/tokens'
-import { useCopilot } from '@/hooks/useCopilot'
+import { useCopilot, type PendingActionCard } from '@/hooks/useCopilot'
 import { useAuth } from '@/hooks/useAuth'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -20,6 +20,7 @@ import { CpIcon, AiGlyph } from './panelIcons'
 import EmailReviewModal, { type EmailDraft } from './EmailReviewModal'
 import AnnonceReviewModal from './AnnonceReviewModal'
 import LetterReviewModal from './LetterReviewModal'
+import PublishReviewModal from './PublishReviewModal'
 import {
   PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
   type AiPalette,
@@ -486,7 +487,7 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
   consumeSeed: () => void
   onClose: () => void
 }) {
-  const { sendMessageStream, isLoading, clearHistory } = useCopilot()
+  const { sendMessageStream, executePending, isLoading, clearHistory } = useCopilot()
   const { profile } = useAuth()
   const { deals } = usePipelineSugar()
   const { entity } = useAiPanel()
@@ -504,6 +505,9 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
   // Modal lettre → génère un PDF A4 (impression navigateur, pattern KycExportPage).
   const [letterModal, setLetterModal] = useState<{ open: boolean; letter: string }>({ open: false, letter: '' })
   const openLetterModal = useCallback((letter: string) => setLetterModal({ open: true, letter }), [])
+  // Carte de publication (Phase C) : ouverte par l'event serveur onPendingAction quand
+  // le copilote a PRÉPARÉ une publication/retrait. Rien ne part sans le clic de l'agent.
+  const [publishModal, setPublishModal] = useState<{ open: boolean; pending: PendingActionCard | null }>({ open: false, pending: null })
 
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || ''
 
@@ -552,6 +556,8 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
       onPhase: (label) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, phase: label } : x)),
       // Texte final normalisé (meggaProse serveur) → remplace l'accumulation brute.
       onFinal: (finalText) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, phase: null, content: finalText } : x)),
+      // Publication préparée → ouvre la carte de validation (aucune exécution avant le clic).
+      onPendingAction: (pending) => setPublishModal({ open: true, pending }),
     })
   }, [isLoading, sendMessageStream, buildContext, screen])
 
@@ -641,6 +647,18 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
         dark={sp.dark}
         letter={letterModal.letter}
         onClose={() => setLetterModal((m) => ({ ...m, open: false }))}
+      />
+      <PublishReviewModal
+        open={publishModal.open}
+        sp={sp}
+        dark={sp.dark}
+        pending={publishModal.pending}
+        executePending={executePending}
+        onExecuted={(resultText) => {
+          const id = (idRef.current += 1)
+          setMessages((m) => [...m, { id, role: 'assistant', content: resultText }])
+        }}
+        onClose={() => setPublishModal((m) => ({ ...m, open: false }))}
       />
     </>
   )
