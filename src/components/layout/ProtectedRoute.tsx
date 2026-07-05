@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useMfaGate } from '@/hooks/useMfaGate'
 import { resolveOnboardingGate } from '@/components/layout/onboardingGate'
+import ConsentGate from '@/components/layout/ConsentGate'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Carte de step-up 2FA : on réutilise l'écran de connexion existant (auth-bento),
@@ -62,5 +63,7 @@ export default function ProtectedRoute({ children, skipOnboardingCheck }: Protec
     }
   }
 
-  return <>{children}</>
+  // 4. Gate consentements nLPD (modal bloquante si les versions courantes des
+  //    CGU/confidentialité n'ont pas été acceptées — preuve en user_consents).
+  return <ConsentGate>{children}</ConsentGate>
 }

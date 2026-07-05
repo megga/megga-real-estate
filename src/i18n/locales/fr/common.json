@@ -5,6 +5,19 @@
     "reload": "Recharger",
     "dashboard": "Retour au tableau de bord"
   },
+  "consentGate": {
+    "title": "Mise à jour légale",
+    "subtitle": "Pour continuer, merci d'accepter les documents ci-dessous.",
+    "termsLabel": "J'accepte les",
+    "termsLink": "conditions d'utilisation",
+    "privacyLabel": "J'accepte la",
+    "privacyLink": "politique de confidentialité",
+    "version": "version",
+    "marketingLabel": "J'accepte de recevoir des communications produit (optionnel)",
+    "error": "L'enregistrement a échoué. Réessayez.",
+    "saving": "Enregistrement...",
+    "accept": "Accepter et continuer"
+  },
   "nav": {
     "appearance": "Apparence",
     "language": "Langue",

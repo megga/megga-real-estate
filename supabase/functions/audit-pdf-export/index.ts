@@ -10,13 +10,19 @@
 //    + ses propres données. Toute altération brise la chaîne → preuve juridique.
 //
 // POST /functions/v1/audit-pdf-export
-//   body : { from?: ISO, to?: ISO, category?, severity?, search? }
+//   body : { from?: ISO, to?: ISO, category?, severity?, search?, agency_id? }
 //   auth : Bearer <user_jwt> (agent de l'agence demandée)
 //   returns : { pdf: base64, hash: string, chain_hash: string, count: number }
+//
+// Branche SUPER-ADMIN (20260705…, P2 admin) : un super-admin (allowlist + AAL2
+// revérifiées par _shared/require-super-admin.ts) exporte la piste d'audit
+// PLATEFORME entière (body sans agency_id) ou celle d'une agence précise
+// (body.agency_id). Le chemin agent est inchangé.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1'
+import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +35,8 @@ interface AuditFilters {
   category?: string
   severity?: string
   search?: string
+  /** Super-admin uniquement : scope une agence précise (absent = plateforme). */
+  agency_id?: string
 }
 
 interface AuditRow {
@@ -251,20 +259,41 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) throw new Error('Unauthorized')
 
-    // Récupère agency_id + nom agence depuis le profil
+    // Récupère agency_id + rôle depuis le profil
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('agency_id')
+      .select('agency_id, role')
       .eq('id', user.id)
       .single()
-    if (!profile?.agency_id) throw new Error('Agency not found')
 
-    const { data: agency } = await supabaseAdmin
-      .from('agencies')
-      .select('name')
-      .eq('id', profile.agency_id)
-      .single()
-    const agencyName = agency?.name ?? 'Agence MEGGA'
+    // Scope : agent = SA propre agence ; super-admin (allowlist + AAL2
+    // revérifiées) = plateforme entière ou body.agency_id.
+    let scopeAgencyId: string | null
+    let agencyName: string
+    if (profile?.role === 'super_admin') {
+      const adminAuth = await requireSuperAdmin(req, corsHeaders)
+      if (adminAuth instanceof Response) return adminAuth
+      scopeAgencyId = filters.agency_id ?? null
+      if (scopeAgencyId) {
+        const { data: agency } = await supabaseAdmin
+          .from('agencies')
+          .select('name')
+          .eq('id', scopeAgencyId)
+          .single()
+        agencyName = agency?.name ?? 'Agence MEGGA'
+      } else {
+        agencyName = 'Plateforme MEGGA'
+      }
+    } else {
+      if (!profile?.agency_id) throw new Error('Agency not found')
+      scopeAgencyId = profile.agency_id
+      const { data: agency } = await supabaseAdmin
+        .from('agencies')
+        .select('name')
+        .eq('id', scopeAgencyId)
+        .single()
+      agencyName = agency?.name ?? 'Agence MEGGA'
+    }
 
     // Construit la query
     let query = supabaseAdmin
@@ -272,9 +301,9 @@ serve(async (req) => {
       .select(
         'id, created_at, action, category, severity, object_label, entity_type, entity_id, actor_id, ip_address, metadata',
       )
-      .eq('agency_id', profile.agency_id)
       .order('created_at', { ascending: false })
       .limit(10000) // safety cap pour 10 ans de logs
+    if (scopeAgencyId) query = query.eq('agency_id', scopeAgencyId)
 
     if (filters.from) query = query.gte('created_at', filters.from)
     if (filters.to) query = query.lte('created_at', filters.to)
@@ -295,7 +324,7 @@ serve(async (req) => {
 
     // Log l'export lui-même comme AuditEvent (méta-traçabilité)
     await supabaseAdmin.from('activity_events').insert({
-      agency_id: profile.agency_id,
+      agency_id: scopeAgencyId,
       actor_id: user.id,
       action: 'Export PDF audit nLPD',
       entity_type: 'audit_export',

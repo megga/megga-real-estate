@@ -5133,6 +5133,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_consents: {
+        Row: {
+          accepted_at: string
+          consent_type: string
+          id: string
+          ip_hash: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          consent_type: string
+          id?: string
+          ip_hash?: string | null
+          user_id: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          consent_type?: string
+          id?: string
+          ip_hash?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
       user_devices: {
         Row: {
           browser: string | null
@@ -6070,6 +6097,18 @@ export type Database = {
       admin_log_impersonation: {
         Args: { p_action: string; p_metadata?: Json; p_target_id: string }
         Returns: string
+      }
+      get_admin_consent_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      purge_activity_events_retention: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      record_consent: {
+        Args: { p_type: string; p_version: string }
+        Returns: undefined
       }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }
