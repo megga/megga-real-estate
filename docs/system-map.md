@@ -176,7 +176,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, setti
 - **Messaging** : `message_threads`, `messages`, `email_messages_cache`, `message_templates`, `marketplace_inquiries`.
 - **Favoris/alertes** : `market_favorites`, `market_alerts`, `saved_searches`, `newsletter_subscribers`.
 - **Audit & monitoring** : `activity_events` (immutable, `actor_kind` user/system/ai), `auth_events`, `ticket_events`, `platform_metrics`, `flatfox_sync_runs`.
-- **Admin** : `admin_feature_flags`, `admin_nps_responses`, `admin_notes`, `admin_changelog`.
+- **Admin** : `admin_feature_flags`, `admin_nps_responses`, `admin_notes`, `admin_changelog` · `user_consents` (preuves nLPD immuables user×type×version, INSERT via RPC `record_consent` seule) · `profiles.is_suspended` (miroir du ban GoTrue, écriture service/definer) · `ai_usage_logs.agency_id/module` (attribution coûts IA, historique NULL = « Plateforme »).
 - **Support** : `support_tickets`, `ticket_messages`, `ticket_canned_responses`, `chat_conversations`, `chat_messages` — ⚠️ **DORMANTES** depuis le passage à Intercom (support maison décommissionné ; tables conservées, réversibles ; `admin-monitoring` lit encore `open_tickets`→0). Cf. brain `intercom-support`.
 - **IA** : `ai_usage_logs`, `ai_balance_snapshots`, `ai_photo_labels`, `ai_generated_photos`, `translation_cache`, `ai_copilot_conversations` (persistance copilote web OPTIONNELLE double-gatée — flag `app_config.copilot_persistence_enabled` + `persist:true` client ; RLS owner-scoped ; cf. brain `megga/copilot-persistence`).
 
@@ -262,7 +262,8 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | Domaine | Functions |
 |---|---|
 | **IA / copilote** | `ai-copilot` (chat agent + actions, **DeepSeek** deepseek-chat) · `ai-search` (sémantique pgvector) · `dashboard-ai-hint` (Claude) · `parse-search-query` (DeepSeek) |
-| **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions + analyse Claude) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans) |
+| **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions + analyse Claude) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32, + branche admin `target_user_id`) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans ; branche super-admin = scope plateforme) |
+| **Admin (P1-P4 07/2026)** | `admin-dsar-export` (JSON nLPD art. 25, journalisé avant retour) · `admin-user-lifecycle` (suspend/reactivate/reset, ban GoTrue, anti-lockout allowlist) · `admin-agency-lifecycle` (suspension agence + ban membres) · `_shared/require-super-admin.ts` (rôle + allowlist + AAL2, adopté par toutes les edges admin) · `_shared/admin-alerts.ts` (alerting cron : seuils `app_config.admin_alert_thresholds`, dédup 24h, destinataires `super_admin_allowlist()`, Resend) |
 | **Magic link KYC** | `magic-link-create/get/confirm/regenerate/send-email/upload` |
 | **Email (Resend)** | `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
 | **Paiements (Stripe)** | `stripe-checkout` · `stripe-portal` · `stripe-webhook` (signature) · `admin-stripe-metrics` (MRR/ARR/churn) |
