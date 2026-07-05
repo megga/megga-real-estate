@@ -223,3 +223,88 @@ describe('runAgentLoop', () => {
     expect(res.text).toContain('voici ce que je sais')
   })
 })
+
+// ─── runAgentLoop — publication confirm-tier (prepareConfirm / pending HITL) ──
+describe('runAgentLoop — confirm préparé en attente (prepareConfirm)', () => {
+  const CONFIRM = (n: string) => (n === 'publish_to_portals' ? 'confirm' : 'read')
+
+  it('confirm PRÉPARÉ (jamais exécuté, jamais refusé) → pending renseigné', async () => {
+    const calls: ModelTurn[] = [
+      turn('', [{ id: 'c1', name: 'publish_to_portals', arguments: '{"query":"Champel"}' }]),
+      turn('J\'ai préparé la publication, valide-la dans le panneau.'),
+    ]
+    let i = 0
+    const runTool = vi.fn(async () => 'NE_DOIT_PAS_TOURNER')
+    const prepareConfirm = vi.fn(async () => ({
+      ok: true, kind: 'publish',
+      payload: { property_id: 'p1', portals: ['immobilier_ch'], title: 'Champel' },
+      preview: '« Champel » · Vente', title: 'Champel',
+    }))
+    const res = await runAgentLoop({
+      callModel: async () => calls[i++], runTool, tierOf: CONFIRM, prepareConfirm, emit: () => {},
+    }, [{ role: 'user', content: 'publie le bien de Champel' }])
+
+    expect(runTool).not.toHaveBeenCalled()              // jamais exécuté dans la boucle
+    expect(prepareConfirm).toHaveBeenCalledTimes(1)
+    expect(res.toolsUsed).toEqual([{ name: 'publish_to_portals', ok: true }])
+    expect(res.pending).toEqual({
+      tool: 'publish_to_portals', kind: 'publish',
+      payload: { property_id: 'p1', portals: ['immobilier_ch'], title: 'Champel' },
+      preview: '« Champel » · Vente', title: 'Champel',
+    })
+  })
+
+  it('prepareConfirm en échec → aucun pending, message d\'erreur injecté', async () => {
+    const calls: ModelTurn[] = [
+      turn('', [{ id: 'c1', name: 'publish_to_portals', arguments: '{"query":"X"}' }]),
+      turn('Il manque une photo pour publier.'),
+    ]
+    let i = 0
+    const prepareConfirm = vi.fn(async () => ({ ok: false, error: 'Il manque : au moins une photo.' }))
+    const res = await runAgentLoop({
+      callModel: async () => calls[i++], runTool: async () => 'x', tierOf: CONFIRM, prepareConfirm, emit: () => {},
+    }, [{ role: 'user', content: 'publie X' }])
+    expect(res.pending).toBeUndefined()
+    expect(res.toolsUsed).toEqual([{ name: 'publish_to_portals', ok: false }])
+  })
+
+  it('deux confirm le même tour → un seul stashé, le second refusé', async () => {
+    const calls: ModelTurn[] = [
+      turn('', [
+        { id: 'a', name: 'publish_to_portals', arguments: '{"query":"A"}' },
+        { id: 'b', name: 'publish_to_portals', arguments: '{"query":"B"}' },
+      ]),
+      turn('Une seule action préparée.'),
+    ]
+    let i = 0
+    let prep = 0
+    const prepareConfirm = vi.fn(async () => {
+      prep++
+      return { ok: true, kind: 'publish', payload: { property_id: `p${prep}`, portals: ['immobilier_ch'] }, preview: `aperçu ${prep}` }
+    })
+    const res = await runAgentLoop({
+      callModel: async () => calls[i++], runTool: async () => 'x', tierOf: CONFIRM, prepareConfirm, emit: () => {},
+    }, [{ role: 'user', content: 'publie A et B' }])
+    expect(prepareConfirm).toHaveBeenCalledTimes(1)     // le 2e n'est pas préparé
+    expect(res.pending?.payload.property_id).toBe('p1')
+    expect(res.toolsUsed).toEqual([
+      { name: 'publish_to_portals', ok: true },
+      { name: 'publish_to_portals', ok: false },
+    ])
+  })
+
+  it('confirm SANS prepareConfirm → refusé (comportement historique préservé)', async () => {
+    const calls: ModelTurn[] = [
+      turn('', [{ id: 'c1', name: 'publish_to_portals', arguments: '{}' }]),
+      turn('Je ne peux pas publier ici.'),
+    ]
+    let i = 0
+    const runTool = vi.fn(async () => 'NON')
+    const res = await runAgentLoop({
+      callModel: async () => calls[i++], runTool, tierOf: CONFIRM, allowWrites: true, emit: () => {}, // pas de prepareConfirm
+    }, [{ role: 'user', content: 'publie' }])
+    expect(runTool).not.toHaveBeenCalled()
+    expect(res.pending).toBeUndefined()
+    expect(res.toolsUsed).toEqual([{ name: 'publish_to_portals', ok: false }])
+  })
+})

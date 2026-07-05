@@ -131,3 +131,45 @@ describe('montage d\'annonce (Phase B — publication depuis le copilote CRM)', 
     }
   })
 })
+
+describe('publication immobilier.ch (Phase C — confirm-tier gated)', () => {
+  it('publish/withdraw sont CONFIRM (jamais read ni auto : la boucle ne les exécute pas)', () => {
+    expect(webToolTier('publish_to_portals')).toBe('confirm')
+    expect(webToolTier('withdraw_from_portals')).toBe('confirm')
+  })
+
+  it('absents tant que publishEnabled=false, même avec les écritures activées', () => {
+    for (const names of [copilotTools(false), copilotTools(true), copilotTools(true, false)].map((c) => c.map((t) => t.function.name))) {
+      expect(names).not.toContain('publish_to_portals')
+      expect(names).not.toContain('withdraw_from_portals')
+    }
+  })
+
+  it('présents quand publishEnabled=true (indépendant des écritures internes)', () => {
+    const namesPublishOnly = copilotTools(false, true).map((t) => t.function.name)
+    expect(namesPublishOnly).toContain('publish_to_portals')
+    expect(namesPublishOnly).toContain('withdraw_from_portals')
+    // get_publication_status (lecture) reste toujours dispo dès que les outils sont là
+    expect(namesPublishOnly).toContain('get_publication_status')
+    const namesBoth = copilotTools(true, true).map((t) => t.function.name)
+    expect(namesBoth).toContain('publish_to_portals')
+    expect(namesBoth).toContain('create_property')
+  })
+
+  it('la description web publish interdit de se confirmer soi-même (carte HITL)', () => {
+    const t = copilotTools(false, true).find((x) => x.function.name === 'publish_to_portals')
+    expect(t?.function.description).toMatch(/carte|valid/i)
+    expect(t?.function.description).toMatch(/ne te confirme jamais toi-même|ne te confirme pas/i)
+  })
+
+  it('copilotToolsBlock(_, true) décrit la publication ; jamais de contradiction « aucune écriture »', () => {
+    // publish sans écritures internes : pas de bloc « aucun outil d'écriture »
+    const publishOnly = copilotToolsBlock(false, true)
+    expect(publishOnly).toMatch(/PUBLICATION/i)
+    expect(publishOnly).not.toMatch(/aucun outil d'écriture/i)
+    // écritures + publication : les deux volets présents
+    const both = copilotToolsBlock(true, true)
+    expect(both).toMatch(/create_property/)
+    expect(both).toMatch(/PUBLICATION/i)
+  })
+})
