@@ -238,6 +238,12 @@ export function pipelineAutoMoved(lang: WaLang, who: string, label: string): str
 export function undoneStage(lang: WaLang, label: string): string {
   return lang === 'en' ? `Rolled back — back to ${label}.` : `Annulé — c’est revenu en ${label}.`
 }
+/** L'état a changé depuis l'action auto → on n'annule pas (sinon on écraserait un changement plus récent). */
+export function undoStateChanged(lang: WaLang): string {
+  return lang === 'en'
+    ? "I didn't undo it — the deal has moved since. Tell me the exact stage you want."
+    : "Je n’annule pas — le dossier a changé d’étape depuis. Dis-moi l’étape exacte que tu veux."
+}
 /** Rien à annuler dans la fenêtre. */
 export function nothingToUndo(lang: WaLang): string {
   return lang === 'en' ? "Nothing to undo (the window has passed)." : "Rien à annuler (la fenêtre est passée)."

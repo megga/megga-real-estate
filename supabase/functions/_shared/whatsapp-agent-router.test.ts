@@ -42,15 +42,17 @@ describe('buildHistoryMessages', () => {
 })
 
 describe('whatsapp-agent-router — pairing code', () => {
-  it('extractPairingCode : isole 6 chiffres exacts (espaces/texte tolérés)', () => {
-    expect(extractPairingCode('123456')).toBe('123456')
-    expect(extractPairingCode('  123456 ')).toBe('123456')
-    expect(extractPairingCode('Code: 123456')).toBe('123456')
-    expect(extractPairingCode('mon code est 123 456')).toBe('123456')
+  it('extractPairingCode : isole 8 chiffres exacts (espaces/texte tolérés)', () => {
+    expect(extractPairingCode('12345678')).toBe('12345678')
+    expect(extractPairingCode('  12345678 ')).toBe('12345678')
+    expect(extractPairingCode('Code: 12345678')).toBe('12345678')
+    expect(extractPairingCode('mon code est 1234 5678')).toBe('12345678')
+    expect(extractPairingCode('00341829')).toBe('00341829') // zéros de tête préservés
   })
-  it('extractPairingCode : null si pas exactement 6 chiffres', () => {
-    expect(extractPairingCode('12345')).toBeNull()
+  it('extractPairingCode : null si pas exactement 8 chiffres', () => {
     expect(extractPairingCode('1234567')).toBeNull()
+    expect(extractPairingCode('123456789')).toBeNull()
+    expect(extractPairingCode('123456')).toBeNull()
     expect(extractPairingCode('bonjour')).toBeNull()
     expect(extractPairingCode('')).toBeNull()
     expect(extractPairingCode(null)).toBeNull()

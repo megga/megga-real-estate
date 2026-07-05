@@ -11,12 +11,12 @@ import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type St
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
-import { readDocument } from '../_shared/vision.ts'
+import { readDocument, describeInboundMedia, ID_DOC_REDACTION_FR } from '../_shared/vision.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { meggaProse } from '../_shared/megga-prose.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, type ActionCtx } from '../_shared/whatsapp-actions.ts'
-import { asWaLang, detectLang, t, type WaLang, undoneStage, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
+import { asWaLang, detectLang, t, type WaLang, undoneStage, undoStateChanged, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -156,35 +156,53 @@ serve(async (req) => {
     // b) Code d'appairage en attente ?
     const code = extractPairingCode(msg.body)
     if (code) {
-      const { data: pending } = await admin
-        .from('whatsapp_agent_links')
-        .select('id, pairing_expires_at')
-        .eq('pairing_code', code)
-        .eq('verified', false)
-        .maybeSingle()
+      // Anti-brute-force (P2 sécu) : un numéro non vérifié qui inonde le webhook tente de
+      // deviner un code d'appairage en attente. Plafond par numéro source — au-delà de
+      // PAIRING_GUESS_LIMIT messages entrants sur 15 min, on n'essaie plus l'appairage (le
+      // message retombe en branche client, jamais perdu). Requête couverte par
+      // idx_wa_messages_wafrom_created ; .limit() évite tout count:exact (CLAUDE.md §7).
+      // Combiné au code à 8 chiffres cryptographique, rend le brute-force en ligne infaisable.
+      const PAIRING_GUESS_LIMIT = 10
+      const guessSince = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+      const { data: recentGuesses } = await admin
+        .from('whatsapp_messages')
+        .select('id')
+        .eq('wa_from', msg.fromPhone)
+        .eq('direction', 'inbound')
+        .gt('created_at', guessSince)
+        .limit(PAIRING_GUESS_LIMIT + 1)
 
-      if (pending && isPairingCodeValid(pending.pairing_expires_at)) {
-        await admin
+      if ((recentGuesses?.length ?? 0) <= PAIRING_GUESS_LIMIT) {
+        const { data: pending } = await admin
           .from('whatsapp_agent_links')
-          .update({ wa_number: msg.fromPhone, verified: true, pairing_code: null, verified_at: new Date().toISOString() })
-          .eq('id', pending.id)
+          .select('id, pairing_expires_at')
+          .eq('pairing_code', code)
+          .eq('verified', false)
+          .maybeSingle()
 
-        const sendConfig: SendConfig = {
-          metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-          metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-          metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+        if (pending && isPairingCodeValid(pending.pairing_expires_at)) {
+          await admin
+            .from('whatsapp_agent_links')
+            .update({ wa_number: msg.fromPhone, verified: true, pairing_code: null, verified_at: new Date().toISOString() })
+            .eq('id', pending.id)
+
+          const sendConfig: SendConfig = {
+            metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+            metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+            metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+          }
+          const okMsg = '✅ Votre WhatsApp est lié à MEGGA. Posez-moi vos questions : « Mes RDV demain ? », « Résume le dossier Dubois »…'
+          const sreq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: okMsg }, sendConfig)
+          try { await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) }) } catch { /* */ }
+
+          return new Response(JSON.stringify({ ok: true, routed: 'pairing' }), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
         }
-        const okMsg = '✅ Votre WhatsApp est lié à MEGGA. Posez-moi vos questions : « Mes RDV demain ? », « Résume le dossier Dubois »…'
-        const sreq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: okMsg }, sendConfig)
-        try { await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) }) } catch { /* */ }
-
-        return new Response(JSON.stringify({ ok: true, routed: 'pairing' }), {
-          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
       }
-      // Code à 6 chiffres mais SANS correspondance en attente : ce n'était pas un
-      // appairage. On NE court-circuite PAS — on laisse filer vers la branche client
-      // (sinon un vrai message client réductible à 6 chiffres serait perdu).
+      // Code à 8 chiffres mais SANS correspondance en attente (ou numéro throttlé) : ce
+      // n'était pas un appairage. On NE court-circuite PAS — on laisse filer vers la
+      // branche client (sinon un vrai message client réductible à 8 chiffres serait perdu).
     }
   }
   // ── fin routage agent — sinon, branche client ci-dessous ──
@@ -311,27 +329,57 @@ async function processAgentMessage(
         metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
         apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
       })
-      const doc = await readDocument(bytes, mime, Deno.env.get('GEMINI_API_KEY') ?? '', {
-        model: Deno.env.get('GEMINI_MODEL') || undefined,
-      })
-      if (doc.ok && doc.text) {
-        const extract = doc.text.trim().slice(0, 6000)
-        inboundDocText = extract // réutilisé par read_document / file_document (pas de 2e OCR)
-        userText = userText
-          ? `${userText}\n\n[Document reçu — contenu lu]:\n${extract}`
-          : `[Document reçu — contenu lu]:\n${extract}`
+      const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? ''
+      const geminiModel = Deno.env.get('GEMINI_MODEL') || undefined
+      // Garde résidence (parité avec le chemin client) : on CLASSE d'abord le média.
+      // Une pièce d'identité n'est JAMAIS recopiée dans le prompt DeepSeek ni stockée en
+      // clair — seul un libellé neutre entre dans le fil, et sa lecture réelle passe par le
+      // dossier KYC (attach_kyc_document, OCR structuré dédié qui re-fetch par mediaId).
+      // Les autres documents (mandat, contrat, capture) gardent l'OCR complet dont
+      // dépendent read_document / file_document. Coût : 1 appel de classification en plus
+      // par document non-identité (chemin agent, faible volume).
+      const desc = await describeInboundMedia(bytes, mime, geminiKey, { model: geminiModel })
+      if (desc.ok && desc.data?.kind === 'id_document') {
+        userText = userText ? `${userText}\n\n${ID_DOC_REDACTION_FR}` : ID_DOC_REDACTION_FR
+        // inboundDocText reste null → aucun OCR d'identité transmis au cerveau ni aux outils.
         await admin.from('whatsapp_messages')
-          .update({ transcript: extract })
+          .update({ transcript: ID_DOC_REDACTION_FR })
           .eq('provider', provider.name).eq('provider_message_id', msg.providerMessageId)
+      } else {
+        // Classification non concluante (desc.ok=false) ⇒ on retombe sur l'OCR complet :
+        // dégradation gracieuse, l'exposition résiduelle se limite à une pièce d'identité
+        // ET une classification en échec, au lieu de l'OCR systématique d'avant.
+        const doc = await readDocument(bytes, mime, geminiKey, { model: geminiModel })
+        if (doc.ok && doc.text) {
+          const extract = doc.text.trim().slice(0, 6000)
+          inboundDocText = extract // réutilisé par read_document / file_document (pas de 2e OCR)
+          userText = userText
+            ? `${userText}\n\n[Document reçu — contenu lu]:\n${extract}`
+            : `[Document reçu — contenu lu]:\n${extract}`
+          await admin.from('whatsapp_messages')
+            .update({ transcript: extract })
+            .eq('provider', provider.name).eq('provider_message_id', msg.providerMessageId)
+        }
       }
     } catch (err) {
       console.error('whatsapp agent document read failed:', (err as Error)?.name ?? 'error')
     }
   }
 
+  // Action en attente de confirmation ? Chargée AVANT l'undo différé pour lever l'ambiguïté
+  // de « annule » : si un pending attend, « annule/non » doit le REFUSER (géré plus bas) et
+  // NON déclencher l'undo d'une action auto antérieure.
+  const { data: pendingAction } = await admin
+    .from('whatsapp_pending_actions')
+    .select('id, tool, args, summary, expires_at')
+    .eq('profile_id', agentLink.profile_id)
+    .maybeSingle()
+
   // L3 — undo différé : « /annuler » dans la fenêtre rejoue le dernier payload_undo.
-  // Placé AVANT la gestion des pending (une action venant de partir en auto prime).
-  if (isUndoCommand(userText)) {
+  // Prioritaire SAUF quand un pending attend ET que ce message le refuse (parseConfirmation
+  // === 'no', ex. « annule », « non ») : dans ce cas le « non » vise le pending, pas l'undo.
+  // Le « /annuler » explicite (parseConfirmation === 'none') reste un undo même avec pending.
+  if (isUndoCommand(userText) && !(pendingAction && parseConfirmation(userText) === 'no')) {
     const { data: last } = await admin
       .from('whatsapp_recent_auto_actions')
       .select('id, tool, payload_undo, undo_until')
@@ -359,12 +407,6 @@ async function processAgentMessage(
     // Rien d'annulable : on NE return PAS — le message suit le flux normal (le cerveau répondra).
   }
 
-  const { data: pendingAction } = await admin
-    .from('whatsapp_pending_actions')
-    .select('id, tool, args, summary, expires_at')
-    .eq('profile_id', agentLink.profile_id)
-    .maybeSingle()
-
   if (pendingAction) {
     const decision = parseConfirmation(userText)
     const valid = isPendingActionValid(pendingAction.expires_at)
@@ -373,8 +415,14 @@ async function processAgentMessage(
     // un seul DELETE renvoie une ligne → seul lui exécute/répond, l'autre s'arrête.
     const { data: claimed } = await admin
       .from('whatsapp_pending_actions').delete().eq('id', pendingAction.id).select('id')
-    if (!claimed || claimed.length === 0) return // une autre invocation gère cette attente
-    if (decision === 'yes' && valid) {
+    if (!claimed || claimed.length === 0) {
+      // Course perdue : une autre invocation a déjà consommé cette attente (gagnant-unique).
+      // On n'AVALE PAS notre message — le pending n'existe plus, on le traite comme un message
+      // normal (le cerveau répond ; s'il re-stashe, stashPending est atomique → pas de corruption).
+      const brain = await callAgentBrain(agentLink, msg, userText, lang, inboundDocText)
+      reply = brain.reply
+      replyIsError = brain.isError
+    } else if (decision === 'yes' && valid) {
       try {
         await admin.from('whatsapp_confirmation_log').insert({
           profile_id: agentLink.profile_id, agency_id: agentLink.agency_id,
@@ -645,7 +693,18 @@ async function rollbackAutoAction(
 
   if (row.tool === 'update_pipeline') {
     const tx = String(p.transaction_id ?? ''), old = String(p.old_stage ?? '')
+    const setStage = String(p.new_stage ?? '')  // l'étape que l'action auto avait posée
     if (!tx || !old) return null
+    // Check d'état : ne défaire QUE si le dossier est ENCORE à l'étape posée par MEGGA. Si
+    // l'agent ou un trigger (ex. offre acceptée → signed) l'a déplacé entre-temps, revenir à
+    // `old` écraserait ce changement plus récent → on refuse honnêtement. (Payloads anciens
+    // sans new_stage : check sauté = rétro-compatible.)
+    if (setStage) {
+      const { data: cur } = await admin.from('transactions')
+        .select('stage').eq('id', tx).eq('agency_id', agencyId).maybeSingle()
+      if (!cur) return null
+      if (cur.stage !== setStage) return undoStateChanged(lang)
+    }
     // Revert via la RPC d'attribution (GUC 'ai' + via='whatsapp') pour que le
     // stage_change émis par le trigger trg_transaction_lifecycle garde l'attribution
     // MEGGA AI, cohérente avec l'aller. RETURNS integer = nb de lignes affectées.

@@ -488,7 +488,16 @@ async function stashPending(
     prompt = confirmUpdatePipeline(ctx.lang ?? 'fr', who, label)
   }
 
-  await ctx.supabase.from('whatsapp_pending_actions').upsert({
+  // Purge d'un éventuel pending EXPIRÉ pour ce profil (sinon l'INSERT atomique ci-dessous
+  // buterait sur UNIQUE(profile_id) alors qu'aucune action VALIDE n'attend).
+  await ctx.supabase.from('whatsapp_pending_actions')
+    .delete().eq('profile_id', ctx.profileId).lt('expires_at', new Date().toISOString())
+
+  // Écriture ATOMIQUE (INSERT, pas upsert) : si un pending VALIDE existe déjà — course entre
+  // deux cerveaux concurrents (EdgeRuntime.waitUntil) — la contrainte UNIQUE(profile_id)
+  // rejette (23505) et on renvoie 'busy', au lieu d'ÉCRASER silencieusement l'action déjà
+  // annoncée à l'agent (F2 : sinon un « oui » validerait une autre action que celle affichée).
+  const { error: insErr } = await ctx.supabase.from('whatsapp_pending_actions').insert({
     profile_id: ctx.profileId,
     agency_id: ctx.agencyId,
     wa_number: waNumber,
@@ -496,6 +505,11 @@ async function stashPending(
     args: { ...storeArgs, __lang: ctx.lang ?? 'fr' },
     summary: prompt,
     expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-  }, { onConflict: 'profile_id' })
+  })
+  if (insErr) {
+    // 23505 = unique_violation → un pending valide a gagné la course concurrente.
+    if ((insErr as { code?: string }).code === '23505') return { status: 'busy' }
+    return { status: 'error', error: insErr.message }
+  }
   return { status: 'created', prompt }
 }

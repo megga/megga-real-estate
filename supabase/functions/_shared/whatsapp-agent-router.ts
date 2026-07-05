@@ -1,10 +1,12 @@
 // Logique PURE du routage agent WhatsApp (Phase 3). Aucun I/O — testable Node.
 
-/** Code à 6 chiffres si le corps en contient exactement 6 (espaces internes ignorés), sinon null. */
+/** Code à 8 chiffres si le corps en contient exactement 8 (espaces internes ignorés), sinon null.
+ *  8 chiffres (aléa cryptographique) depuis le durcissement 2026-07 : espace 10^8 + plafond de
+ *  tentatives côté webhook rendent le brute-force du lien agent infaisable en ligne. */
 export function extractPairingCode(body: string | null | undefined): string | null {
   if (!body) return null
   const digits = body.replace(/\D/g, '')
-  return digits.length === 6 ? digits : null
+  return digits.length === 8 ? digits : null
 }
 
 /** Valide si la date d'expiration est dans le futur. */
