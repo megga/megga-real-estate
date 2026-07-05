@@ -11,7 +11,7 @@ import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type St
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
-import { readDocument } from '../_shared/vision.ts'
+import { readDocument, describeInboundMedia, ID_DOC_REDACTION_FR } from '../_shared/vision.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { meggaProse } from '../_shared/megga-prose.ts'
@@ -156,35 +156,53 @@ serve(async (req) => {
     // b) Code d'appairage en attente ?
     const code = extractPairingCode(msg.body)
     if (code) {
-      const { data: pending } = await admin
-        .from('whatsapp_agent_links')
-        .select('id, pairing_expires_at')
-        .eq('pairing_code', code)
-        .eq('verified', false)
-        .maybeSingle()
+      // Anti-brute-force (P2 sécu) : un numéro non vérifié qui inonde le webhook tente de
+      // deviner un code d'appairage en attente. Plafond par numéro source — au-delà de
+      // PAIRING_GUESS_LIMIT messages entrants sur 15 min, on n'essaie plus l'appairage (le
+      // message retombe en branche client, jamais perdu). Requête couverte par
+      // idx_wa_messages_wafrom_created ; .limit() évite tout count:exact (CLAUDE.md §7).
+      // Combiné au code à 8 chiffres cryptographique, rend le brute-force en ligne infaisable.
+      const PAIRING_GUESS_LIMIT = 10
+      const guessSince = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+      const { data: recentGuesses } = await admin
+        .from('whatsapp_messages')
+        .select('id')
+        .eq('wa_from', msg.fromPhone)
+        .eq('direction', 'inbound')
+        .gt('created_at', guessSince)
+        .limit(PAIRING_GUESS_LIMIT + 1)
 
-      if (pending && isPairingCodeValid(pending.pairing_expires_at)) {
-        await admin
+      if ((recentGuesses?.length ?? 0) <= PAIRING_GUESS_LIMIT) {
+        const { data: pending } = await admin
           .from('whatsapp_agent_links')
-          .update({ wa_number: msg.fromPhone, verified: true, pairing_code: null, verified_at: new Date().toISOString() })
-          .eq('id', pending.id)
+          .select('id, pairing_expires_at')
+          .eq('pairing_code', code)
+          .eq('verified', false)
+          .maybeSingle()
 
-        const sendConfig: SendConfig = {
-          metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-          metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-          metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+        if (pending && isPairingCodeValid(pending.pairing_expires_at)) {
+          await admin
+            .from('whatsapp_agent_links')
+            .update({ wa_number: msg.fromPhone, verified: true, pairing_code: null, verified_at: new Date().toISOString() })
+            .eq('id', pending.id)
+
+          const sendConfig: SendConfig = {
+            metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+            metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+            metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+          }
+          const okMsg = '✅ Votre WhatsApp est lié à MEGGA. Posez-moi vos questions : « Mes RDV demain ? », « Résume le dossier Dubois »…'
+          const sreq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: okMsg }, sendConfig)
+          try { await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) }) } catch { /* */ }
+
+          return new Response(JSON.stringify({ ok: true, routed: 'pairing' }), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
         }
-        const okMsg = '✅ Votre WhatsApp est lié à MEGGA. Posez-moi vos questions : « Mes RDV demain ? », « Résume le dossier Dubois »…'
-        const sreq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: okMsg }, sendConfig)
-        try { await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) }) } catch { /* */ }
-
-        return new Response(JSON.stringify({ ok: true, routed: 'pairing' }), {
-          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
       }
-      // Code à 6 chiffres mais SANS correspondance en attente : ce n'était pas un
-      // appairage. On NE court-circuite PAS — on laisse filer vers la branche client
-      // (sinon un vrai message client réductible à 6 chiffres serait perdu).
+      // Code à 8 chiffres mais SANS correspondance en attente (ou numéro throttlé) : ce
+      // n'était pas un appairage. On NE court-circuite PAS — on laisse filer vers la
+      // branche client (sinon un vrai message client réductible à 8 chiffres serait perdu).
     }
   }
   // ── fin routage agent — sinon, branche client ci-dessous ──
@@ -311,18 +329,37 @@ async function processAgentMessage(
         metaToken: Deno.env.get('META_WHATSAPP_TOKEN') ?? '',
         apiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
       })
-      const doc = await readDocument(bytes, mime, Deno.env.get('GEMINI_API_KEY') ?? '', {
-        model: Deno.env.get('GEMINI_MODEL') || undefined,
-      })
-      if (doc.ok && doc.text) {
-        const extract = doc.text.trim().slice(0, 6000)
-        inboundDocText = extract // réutilisé par read_document / file_document (pas de 2e OCR)
-        userText = userText
-          ? `${userText}\n\n[Document reçu — contenu lu]:\n${extract}`
-          : `[Document reçu — contenu lu]:\n${extract}`
+      const geminiKey = Deno.env.get('GEMINI_API_KEY') ?? ''
+      const geminiModel = Deno.env.get('GEMINI_MODEL') || undefined
+      // Garde résidence (parité avec le chemin client) : on CLASSE d'abord le média.
+      // Une pièce d'identité n'est JAMAIS recopiée dans le prompt DeepSeek ni stockée en
+      // clair — seul un libellé neutre entre dans le fil, et sa lecture réelle passe par le
+      // dossier KYC (attach_kyc_document, OCR structuré dédié qui re-fetch par mediaId).
+      // Les autres documents (mandat, contrat, capture) gardent l'OCR complet dont
+      // dépendent read_document / file_document. Coût : 1 appel de classification en plus
+      // par document non-identité (chemin agent, faible volume).
+      const desc = await describeInboundMedia(bytes, mime, geminiKey, { model: geminiModel })
+      if (desc.ok && desc.data?.kind === 'id_document') {
+        userText = userText ? `${userText}\n\n${ID_DOC_REDACTION_FR}` : ID_DOC_REDACTION_FR
+        // inboundDocText reste null → aucun OCR d'identité transmis au cerveau ni aux outils.
         await admin.from('whatsapp_messages')
-          .update({ transcript: extract })
+          .update({ transcript: ID_DOC_REDACTION_FR })
           .eq('provider', provider.name).eq('provider_message_id', msg.providerMessageId)
+      } else {
+        // Classification non concluante (desc.ok=false) ⇒ on retombe sur l'OCR complet :
+        // dégradation gracieuse, l'exposition résiduelle se limite à une pièce d'identité
+        // ET une classification en échec, au lieu de l'OCR systématique d'avant.
+        const doc = await readDocument(bytes, mime, geminiKey, { model: geminiModel })
+        if (doc.ok && doc.text) {
+          const extract = doc.text.trim().slice(0, 6000)
+          inboundDocText = extract // réutilisé par read_document / file_document (pas de 2e OCR)
+          userText = userText
+            ? `${userText}\n\n[Document reçu — contenu lu]:\n${extract}`
+            : `[Document reçu — contenu lu]:\n${extract}`
+          await admin.from('whatsapp_messages')
+            .update({ transcript: extract })
+            .eq('provider', provider.name).eq('provider_message_id', msg.providerMessageId)
+        }
       }
     } catch (err) {
       console.error('whatsapp agent document read failed:', (err as Error)?.name ?? 'error')

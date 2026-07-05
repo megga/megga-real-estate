@@ -193,19 +193,22 @@ serve(async (req) => {
     }
   }
 
-  // L3 : purge des audios R2 transcrits (transcript NON VIDE) > 30 j (minimisation LPD).
-  // Best-effort, borné, FIFO. Un transcript vide = transcription ratée → on GARDE l'audio
-  // (re-tentable / vérifiable). Durcissement futur : exclure les objets en échec persistant
-  // (poison-pill) au-delà de N tentatives.
+  // L3 : purge des médias R2 TRAITÉS (transcript/description NON VIDE) > 30 j (minimisation
+  // nLPD). Tous types : audio (transcrit Deepgram) ET images/PDF (décrits Gemini, y compris
+  // pièces d'identité dont le transcript est déjà redacté). La copie R2 ne sert qu'au
+  // traitement — media_url pointe vers Meta (éphémère), le CRM n'affiche jamais depuis R2 et
+  // aucun code ne relit media_r2_key après coup → purger ne casse aucun affichage.
+  // Best-effort, borné, FIFO. Un transcript vide = traitement raté → on GARDE l'objet
+  // (re-tentable / vérifiable). Durcissement futur : purge immédiate des id_document +
+  // exclusion des objets en échec persistant (poison-pill) au-delà de N tentatives.
   try {
     const { data: stale } = await admin.from('whatsapp_messages')
       .select('id, media_r2_key')
-      .eq('media_type', 'audio')
       .not('media_r2_key', 'is', null)
       .not('transcript', 'is', null)
       .neq('transcript', '')
-      .order('created_at', { ascending: true })
       .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: true })
       .limit(20)
     for (const m of (stale ?? []) as Array<{ id: string; media_r2_key: string }>) {
       const key = m.media_r2_key

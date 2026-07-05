@@ -453,24 +453,38 @@ serve(async (req) => {
     // ── Sprint 4.5 — Couche IA Claude Sonnet 4 (analyse contextuelle) ───────
     // Optionnelle : si ANTHROPIC_API_KEY absent ou API plante, on continue
     // sans bloquer le screening Dilisense factuel.
-    const aiAnalysis = await analyzeWithSonnet({
-      anthropicKey: Deno.env.get('ANTHROPIC_API_KEY'),
-      contactName: contact_name,
-      contactNationality: contact_nationality || null,
-      entityType: entity_type,
-      kycType: currentCase?.type ?? 'buyer_pp',
-      transactionAmount: currentCase?.transaction_amount ?? 0,
-      completionPct: currentCase?.completion_pct ?? 0,
-      dilisenseResult: {
-        totalHits: dilisenseData.total_hits,
-        pepHits: pepRecords.length,
-        sanctionsHits: sanctionRecords.length,
-        pepRecords: pepRecords.slice(0, 5),
-        sanctionRecords: sanctionRecords.slice(0, 5),
-      },
-      quantScore: riskResult.score,
-      quantLevel: riskResult.level,
-    })
+    //
+    // ⚠ Résidence nLPD (P1, juil. 2026) — DÉSACTIVÉE PAR DÉFAUT.
+    // Cette analyse envoie nom, nationalité et hits PEP/sanctions à Anthropic
+    // (api.anthropic.com, US). Le registre de traitement déclare « 0 transfert
+    // hors UE » → on ne l'appelle plus par défaut. Le screening Dilisense
+    // factuel + la revue humaine MLRO sont INCHANGÉS ; seule la section
+    // « Analyse de risque » du rapport (estimation assistée) est masquée quand
+    // ai_analysis est null (buildReportData.ts / PdfPage2.tsx). La fonction
+    // analyzeWithSonnet est conservée intentionnellement (réactivable).
+    // KYC_AI_ANALYSIS_ENABLED=true la rallume — À NE FAIRE qu'après bascule vers
+    // un fournisseur d'inférence hébergé en UE (décision résidence).
+    const aiAnalysisEnabled = Deno.env.get('KYC_AI_ANALYSIS_ENABLED') === 'true'
+    const aiAnalysis = aiAnalysisEnabled
+      ? await analyzeWithSonnet({
+          anthropicKey: Deno.env.get('ANTHROPIC_API_KEY'),
+          contactName: contact_name,
+          contactNationality: contact_nationality || null,
+          entityType: entity_type,
+          kycType: currentCase?.type ?? 'buyer_pp',
+          transactionAmount: currentCase?.transaction_amount ?? 0,
+          completionPct: currentCase?.completion_pct ?? 0,
+          dilisenseResult: {
+            totalHits: dilisenseData.total_hits,
+            pepHits: pepRecords.length,
+            sanctionsHits: sanctionRecords.length,
+            pepRecords: pepRecords.slice(0, 5),
+            sanctionRecords: sanctionRecords.slice(0, 5),
+          },
+          quantScore: riskResult.score,
+          quantLevel: riskResult.level,
+        })
+      : null
 
     // Update kyc_cases
     const { error: updateError } = await supabaseClient
