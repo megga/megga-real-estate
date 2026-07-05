@@ -95,7 +95,7 @@ serve(async (req: Request) => {
     const result = await callDeepSeek(
       [{ role: 'user', content }],
       systemPrompt,
-      { maxTokens: 1500, temperature: 0.2 },
+      { maxTokens: 1500, temperature: 0.2, module: 'translate-on-demand' },
     )
 
     const translated = result.text.trim()

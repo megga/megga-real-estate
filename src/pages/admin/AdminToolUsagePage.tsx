@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminToolUsage, type ToolUsageRow } from '@/hooks/useAdminToolUsage'
 import { WHATSAPP_TOOL_CATALOG } from '@/lib/whatsapp-tools-catalog'
+import { AiCostsSection } from '@/components/admin/AdminOpsPanels'
 
 const TIER_BY_TOOL = new Map(WHATSAPP_TOOL_CATALOG.map((tt) => [tt.name, tt.tier]))
 
@@ -100,6 +101,9 @@ export default function AdminToolUsagePage() {
           )
         })}
       </div>
+
+      {/* Coûts IA par agence × provider × module (P3 admin — RPC 20260705172000) */}
+      <AiCostsSection />
     </div>
   )
 }

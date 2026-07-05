@@ -12,6 +12,8 @@ import {
 } from '@/hooks/useAdminAgencies'
 import PageTransition from '@/components/layout/PageTransition'
 import { useImpersonate } from '@/hooks/useImpersonate'
+import { useToast } from '@/components/ui/Toast'
+import AdminBillingCard from '@/components/admin/AdminBillingCard'
 
 type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions'
 
@@ -213,16 +215,21 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
   ]
 
   return (
-    <div className="rounded-xl border border-theme-border divide-y divide-theme-border">
-      {fields.map((f) => (
-        <div key={f.label} className="flex items-center gap-3 px-4 py-3.5">
-          <f.icon className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-          <span className="text-sm text-theme-secondary w-24 flex-shrink-0">{f.label}</span>
-          <span className="text-sm text-theme-primary">
-            {f.value || <span className="text-theme-tertiary">{t('admin:common.notProvided')}</span>}
-          </span>
-        </div>
-      ))}
+    <div className="space-y-4">
+      <div className="rounded-xl border border-theme-border divide-y divide-theme-border">
+        {fields.map((f) => (
+          <div key={f.label} className="flex items-center gap-3 px-4 py-3.5">
+            <f.icon className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
+            <span className="text-sm text-theme-secondary w-24 flex-shrink-0">{f.label}</span>
+            <span className="text-sm text-theme-primary">
+              {f.value || <span className="text-theme-tertiary">{t('admin:common.notProvided')}</span>}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Abonnement + override manuel de plan (P4 admin) */}
+      <AdminBillingCard agencyId={agency.id as string} />
     </div>
   )
 }
@@ -232,6 +239,7 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
   const { t } = useTranslation('admin')
   const { data: members, isLoading } = useAgencyMembers(agencyId)
   const { startImpersonate } = useImpersonate()
+  const toast = useToast()
 
   if (isLoading) {
     return (
@@ -285,14 +293,18 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
           </span>
           <span className="w-10 flex justify-end">
             <button
-              onClick={() => startImpersonate({
-                id: member.id,
-                full_name: member.full_name ?? 'Utilisateur',
-                email: member.email,
-                role: member.role ?? 'agent',
-                agency_id: agencyId,
-                agency_name: agencyName,
-              })}
+              onClick={async () => {
+                // Audit-first : pas d'impersonation si l'audit serveur échoue.
+                const ok = await startImpersonate({
+                  id: member.id,
+                  full_name: member.full_name ?? 'Utilisateur',
+                  email: member.email,
+                  role: member.role ?? 'agent',
+                  agency_id: agencyId,
+                  agency_name: agencyName,
+                })
+                if (!ok) toast.error(t('userDrawer.impersonateAuditFailed'))
+              }}
               aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
               className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-admin-accent hover:bg-admin-accent/5 transition-all"
             >

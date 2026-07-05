@@ -142,6 +142,41 @@ describe('Meta buildSendDocumentRequest', () => {
   })
 })
 
+describe('Meta buildSendImageRequest', () => {
+  it('construit une requête image par lien (pas d’upload média)', () => {
+    const meta = getProvider('meta')
+    expect(meta.buildSendImageRequest).toBeDefined()
+    const req = meta.buildSendImageRequest!(
+      { toPhone: '41791112233', link: 'https://img.megga.ch/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
+      { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' },
+    )
+    expect(req.url).toBe('https://graph.facebook.com/v22.0/PNID/messages')
+    expect(req.headers.Authorization).toBe('Bearer TOK')
+    const body = JSON.parse(req.body)
+    expect(body).toMatchObject({
+      messaging_product: 'whatsapp',
+      to: '41791112233',
+      type: 'image',
+      image: { link: 'https://img.megga.ch/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
+    })
+  })
+
+  it('omet caption du body quand non fournie', () => {
+    const meta = getProvider('meta')
+    const req = meta.buildSendImageRequest!(
+      { toPhone: '41791112233', link: 'https://img.megga.ch/x.jpg' },
+      { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' },
+    )
+    const body = JSON.parse(req.body)
+    expect('caption' in body.image).toBe(false)
+    expect(body.image).toEqual({ link: 'https://img.megga.ch/x.jpg' })
+  })
+
+  it('absent chez OpenWA (prototype legacy)', () => {
+    expect(getProvider('openwa').buildSendImageRequest).toBeUndefined()
+  })
+})
+
 describe('whatsapp-gateway — statuts de livraison Meta', () => {
   const meta = getProvider('meta')
   const statusPayload = (statuses: unknown[]) => ({

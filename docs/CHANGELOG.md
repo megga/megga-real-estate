@@ -6,6 +6,19 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Morning brief WhatsApp proactif 07h30 (5 juillet 2026 — livré, gated OFF)
+> Inverse le pull (outil `get_daily_brief`) en push quotidien. Sert les objectifs 1 (temps admin) et 3 (closing). 0 LLM, agent-facing (pas de HITL).
+
+Chaque matin à 07h30 (Europe/Zurich), MEGGA pousse sur le WhatsApp de chaque agent appairé sa journée : visites du jour, relances dues (`reminders`, retard inclus), offres qui expirent sous 48 h (`crm_offers` pending) et nouveaux leads vendeurs (`seller_leads` new, pool partagé inclus). Journée vide = aucun envoi (pas de brief creux).
+- **Archi** : edge function `whatsapp-morning-brief` (verify_jwt=false + garde Bearer service-role à temps constant) + composeur pur `_shared/morning-brief.ts` (gabarit figé FR/EN, gras Markdown → pipeline maison `toWhatsAppText(meggaProse())`, tests Vitest 11 cas dont DST et compteurs « N+ »). Données = lectures de table directes scoppées `agency_id` dérivé de `profiles.agency_id` (jamais du snapshot du lien d'appairage, périmable — audit P2 ; les RPC Focus dérivent l'agence de `auth.uid()` → 0 ligne en service role), cache par agence quand plusieurs agents sont liés ; visites filtrées par `agent_id` (les visites des collègues ne sont pas « ta journée »), leads vendeurs bornés 72 h.
+- **Revue adversariale (3 lentilles, 11 findings confirmés, tous traités ou actés)** : tick filet + gate élargi, re-claim TTL, opt-out par agent, compteurs honnêtes, fail-loud sur les caps ; différés = double-passe DST (scénario irréaliste, assumé en commentaire) et self-invoke budget (remplacé par le tick filet).
+- **Horloge** : triple cron UTC (05:30 + 06:30 anti-DST + 07:30 tick filet, migration `20260705180000`) + gate applicatif « 07h heure locale Zurich, 08h filet » + dédup atomique `whatsapp_daily_briefs` (claim insert-first par profil et date locale, re-claim TTL 10 min via `confirmed_at` pour les claims orphelins, purge 90 j) → 07h30 pile toute l'année, pire cas 08h30 si le tick primaire saute, jamais de doublon.
+- **Fenêtre 24h Meta** : non trackée (comme partout) — si l'agent n'a pas écrit au copilote depuis 24 h, Meta refuse (131047) → échec silencieux journalisé, claim relâché. Le teaser template prendra le relais avec l'activation de #795.
+- **Traçabilité** : sortant persisté dans `whatsapp_messages` (fil copilote → repris par la mémoire C1 du cerveau, l'agent peut enchaîner « détaille la visite de 10h ») + audit `activity_events` `whatsapp_morning_brief_sent` (`actor_kind='ai'`).
+- **Activation** : opt-in fail-closed `app_config.whatsapp_morning_brief_enabled='true'` (seedé `false`) + opt-out par agent `whatsapp_agent_links.morning_brief_enabled` (défaut ON, débrayable sans désappairer — proportionnalité LPD), kill-switch global `whatsapp_enabled` respecté ; `dryRun`/`force` (service-role only) pour vérifier en prod sans toucher les agents.
+- **Hygiène connexe** : migration `20260705190000` révoque les GRANT anon/authenticated du baseline sur `get_app_config` (pré-existant ; la prod live était déjà saine, mais une base reconstruite depuis les migrations aurait exposé `service_role_key`).
+
+
 #### Atelier Matching — triptyque plein écran (10 juin 2026)
 > Refonte complète de l'écran Matching d'après le handoff Claude Design (`design_handoff_matching_atelier`). Branche `claude/kind-ritchie-d7078d`. Migration `20260610_001_atelier_matching_loop` appliquée par la CI au merge. Sert les objectifs 1 (temps admin) et 3 (closing).
 

@@ -7,6 +7,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,29 +76,10 @@ serve(async (req: Request) => {
     // to the legacy service_role JWT, so pg_cron via get_app_config authenticates.
     const isServiceKey = serviceKey !== '' && token === serviceKey
     if (jwtRole !== 'service_role' && !isServiceKey) {
-      // Try user auth via super_admin check
-      const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-        global: { headers: { Authorization: authHeader } },
-      })
-      const { data: { user } } = await userClient.auth.getUser()
-      if (!user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized', hint: `jwt_role=${jwtRole ?? 'none'}` }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
-      const { data: profile } = await admin
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      if (profile?.role !== 'super_admin') {
-        return new Response(JSON.stringify({ error: 'Forbidden' }), {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+      // Appel interactif — super_admin : rôle + allowlist email + AAL2
+      // (voir _shared/require-super-admin.ts, migration 20260705160000)
+      const auth = await requireSuperAdmin(req, corsHeaders)
+      if (auth instanceof Response) return auth
     }
 
     const res = await fetch('https://api.deepseek.com/user/balance', {

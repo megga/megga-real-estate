@@ -16,6 +16,7 @@ const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_T
 
 const PMID_HAPPY = `wamid.TEST-DELIVERY-HAPPY-${Date.now()}`
 const PMID_FAIL = `wamid.TEST-DELIVERY-FAIL-${Date.now()}`
+const PMID_IMG = `wamid.TEST-DELIVERY-IMG-${Date.now()}`
 
 describe.skipIf(!HAS_KEYS)('whatsapp delivery status — progression monotone', () => {
   const svc = () => serviceRoleClient()
@@ -42,12 +43,14 @@ describe.skipIf(!HAS_KEYS)('whatsapp delivery status — progression monotone', 
     const { error } = await svc().from('whatsapp_messages').insert([
       { provider: 'meta', provider_message_id: PMID_HAPPY, direction: 'outbound', wa_from: 'megga-test', wa_to: '41790000001', body: 'test delivery happy', status: 'received' },
       { provider: 'meta', provider_message_id: PMID_FAIL, direction: 'outbound', wa_from: 'megga-test', wa_to: '41790000002', body: 'test delivery fail', status: 'received' },
+      // Sortant IMAGE (photo send_listings, juil 2026) : mêmes règles de progression.
+      { provider: 'meta', provider_message_id: PMID_IMG, direction: 'outbound', wa_from: 'megga-test', wa_to: '41790000003', body: 'Bien test — CHF 1000', media_type: 'image', media_url: 'https://img.megga.ch/test/0-detail.jpg', status: 'received' },
     ])
     if (error) throw new Error(`seed: ${error.message}`)
   })
 
   afterAll(async () => {
-    await svc().from('whatsapp_messages').delete().in('provider_message_id', [PMID_HAPPY, PMID_FAIL])
+    await svc().from('whatsapp_messages').delete().in('provider_message_id', [PMID_HAPPY, PMID_FAIL, PMID_IMG])
   })
 
   it('fait progresser un sortant received → sent → delivered → read', async () => {
@@ -86,6 +89,16 @@ describe.skipIf(!HAS_KEYS)('whatsapp delivery status — progression monotone', 
     // terminal : aucun statut ne repasse par-dessus failed
     expect(await apply(PMID_FAIL, 'delivered')).toBe(0)
     expect(await apply(PMID_FAIL, 'read')).toBe(0)
+  })
+
+  it('un sortant image (photo send_listings) suit la même progression', async () => {
+    expect(await apply(PMID_IMG, 'sent')).toBe(1)
+    expect(await apply(PMID_IMG, 'delivered')).toBe(1)
+    const { data } = await svc().from('whatsapp_messages')
+      .select('status, media_type, media_url').eq('provider_message_id', PMID_IMG).single()
+    expect(data?.status).toBe('delivered')
+    expect(data?.media_type).toBe('image')
+    expect(data?.media_url).toContain('https://')
   })
 
   it('le CHECK rejette un statut hors contrat', async () => {

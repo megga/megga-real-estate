@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 
 // delete-account — nLPD art. 32 (right to erasure) compliant account deletion.
 //
@@ -52,10 +53,28 @@ serve(async (req) => {
     if (userError || !userData?.user) {
       return json({ error: 'Invalid or expired session' }, 401)
     }
-    const userId = userData.user.id
+    let userId = userData.user.id
+    let initiatedByAdmin = false
 
     // Service role client — bypasses RLS
     const admin = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Branche ADMIN (P4) : un super-admin (allowlist + AAL2 revérifiées) peut
+    // supprimer un compte tiers — le pipeline et TOUS ses garde-fous (KYC en
+    // cours, dernier admin d'agence, rétention LBA) s'appliquent tels quels.
+    const body = await req.clone().json().catch(() => ({})) as { target_user_id?: string }
+    if (body.target_user_id && body.target_user_id !== userId) {
+      const adminAuth = await requireSuperAdmin(req, corsHeaders)
+      if (adminAuth instanceof Response) return adminAuth
+      const { data: targetAllowlisted } = await admin.rpc('super_admin_allowlist_match', {
+        p_email: (await admin.auth.admin.getUserById(body.target_user_id)).data.user?.email ?? '',
+      })
+      if (targetAllowlisted === true) {
+        return json({ error: 'refused: cannot delete an allowlisted admin account' }, 403)
+      }
+      userId = body.target_user_id
+      initiatedByAdmin = true
+    }
 
     // 2. Load profile
     const { data: profile, error: profileError } = await admin
@@ -130,7 +149,8 @@ serve(async (req) => {
       entity_type: 'profile',
       entity_id: userId,
       metadata: {
-        reason: 'user_request',
+        reason: initiatedByAdmin ? 'admin_request' : 'user_request',
+        initiated_by: initiatedByAdmin ? 'admin' : 'user',
         timestamp: now,
         email_hash: profile.email ? `sha256:${profile.email.length}` : null,
       },

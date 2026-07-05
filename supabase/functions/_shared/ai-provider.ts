@@ -19,6 +19,10 @@ export interface AIMessage {
 export interface AIOptions {
   maxTokens?: number
   temperature?: number
+  /** Attribution du coût (ai_usage_logs, 20260705172000) — agence à l'origine de l'appel. */
+  agencyId?: string
+  /** Module fonctionnel (copilot, whatsapp-agent, extract-lead…), plus fin que edge_function. */
+  module?: string
 }
 
 export interface AIResponse {
@@ -67,6 +71,8 @@ function logUsage(row: {
   output_tokens: number
   estimated_cost_usd: number
   was_fallback: boolean
+  agency_id?: string | null
+  module?: string | null
 }) {
   try {
     supabaseAdmin()
@@ -133,6 +139,8 @@ export async function callClaude(
     output_tokens,
     estimated_cost_usd: cost,
     was_fallback: false,
+    agency_id: options.agencyId ?? null,
+    module: options.module ?? null,
   })
 
   return {
@@ -195,6 +203,8 @@ export async function callDeepSeek(
       output_tokens,
       estimated_cost_usd: cost,
       was_fallback: false,
+      agency_id: options.agencyId ?? null,
+      module: options.module ?? null,
     })
 
     return {

@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Search, ShieldCheck, AlertTriangle, FileCheck, Clock, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { Search, ShieldCheck, AlertTriangle, FileCheck, Clock, ChevronLeft, ChevronRight, Download, Trash2, ClipboardCheck } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
 import { cn, formatDate } from '@/lib/utils'
-import { useAdminCompliance } from '@/hooks/useAdminCompliance'
+import { useAdminCompliance, useConsentStats, useAccountDeletions } from '@/hooks/useAdminCompliance'
 import type { ComplianceCase } from '@/hooks/useAdminCompliance'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import PageTransition from '@/components/layout/PageTransition'
@@ -95,6 +95,75 @@ function EmptyState({ tab }: { tab: TabValue }) {
       <ShieldCheck className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
       <p className="text-sm text-theme-secondary font-medium">{msg.title}</p>
       <p className="text-xs text-theme-tertiary mt-1">{msg.subtitle}</p>
+    </div>
+  )
+}
+
+// ── Consentements nLPD — couverture par type × version (P2 admin) ───────────
+function ConsentStatsCard() {
+  const { t } = useTranslation('admin')
+  const { data, isLoading } = useConsentStats()
+
+  return (
+    <div className="rounded-xl border border-theme-border bg-theme-card p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <ClipboardCheck className="h-4 w-4 text-theme-secondary" />
+        <h2 className="text-sm font-semibold text-theme-primary">{t('compliance.consents.title')}</h2>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-theme-muted">{t('common.loading')}</p>
+      ) : !data || data.coverage.length === 0 ? (
+        <p className="text-sm text-theme-muted">{t('compliance.consents.empty')}</p>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-sm text-theme-secondary">
+            {t('compliance.consents.summary', {
+              terms: data.users_with_terms,
+              privacy: data.users_with_privacy,
+              total: data.users_total,
+            })}
+          </p>
+          <div className="space-y-1">
+            {data.coverage.map((row) => (
+              <div key={`${row.consent_type}-${row.version}`} className="flex items-center justify-between text-xs">
+                <span className="text-theme-secondary">
+                  {t(`compliance.consents.type.${row.consent_type}`)} · {row.version}
+                </span>
+                <span className="font-medium text-theme-primary">{row.accepted}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Suppressions de comptes (delete-account, nLPD art. 32) ──────────────────
+function AccountDeletionsCard() {
+  const { t } = useTranslation('admin')
+  const { data, isLoading } = useAccountDeletions()
+
+  return (
+    <div className="rounded-xl border border-theme-border bg-theme-card p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Trash2 className="h-4 w-4 text-theme-secondary" />
+        <h2 className="text-sm font-semibold text-theme-primary">{t('compliance.deletions.title')}</h2>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-theme-muted">{t('common.loading')}</p>
+      ) : !data || data.length === 0 ? (
+        <p className="text-sm text-theme-muted">{t('compliance.deletions.empty')}</p>
+      ) : (
+        <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-hide">
+          {data.map((event) => (
+            <div key={event.id} className="flex items-center justify-between gap-3 text-xs">
+              <span className="truncate text-theme-secondary">{event.object_label ?? event.entity_id ?? '—'}</span>
+              <span className="shrink-0 text-theme-tertiary">{formatDate(event.created_at)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -457,6 +526,12 @@ export default function AdminCompliancePage() {
             </button>
           </div>
         )}
+
+        {/* Consentements nLPD + suppressions de comptes (P2 admin) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <ConsentStatsCard />
+          <AccountDeletionsCard />
+        </div>
       </div>
     </PageTransition>
   )

@@ -3654,6 +3654,7 @@ export type Database = {
           first_day_done: boolean | null
           full_name: string
           id: string
+          is_suspended: boolean
           mobile_phone: string | null
           onboarding_completed: boolean | null
           onboarding_step: number | null
@@ -3680,6 +3681,7 @@ export type Database = {
           first_day_done?: boolean | null
           full_name: string
           id: string
+          is_suspended?: boolean
           mobile_phone?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
@@ -3706,6 +3708,7 @@ export type Database = {
           first_day_done?: boolean | null
           full_name?: string
           id?: string
+          is_suspended?: boolean
           mobile_phone?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
@@ -5133,6 +5136,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_consents: {
+        Row: {
+          accepted_at: string
+          consent_type: string
+          id: string
+          ip_hash: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          consent_type: string
+          id?: string
+          ip_hash?: string | null
+          user_id: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          consent_type?: string
+          id?: string
+          ip_hash?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
       user_devices: {
         Row: {
           browser: string | null
@@ -6067,6 +6097,48 @@ export type Database = {
             }
             Returns: string
           }
+      admin_log_impersonation: {
+        Args: { p_action: string; p_metadata?: Json; p_target_id: string }
+        Returns: string
+      }
+      get_admin_ai_costs: {
+        Args: { p_months?: number }
+        Returns: {
+          month: string
+          agency_id: string | null
+          agency_name: string
+          provider: string
+          module: string
+          calls: number
+          tokens_in: number
+          tokens_out: number
+          cost_usd: number
+        }[]
+      }
+      get_admin_consent_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_admin_syndication_health: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_admin_whatsapp_health: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      purge_activity_events_retention: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      record_consent: {
+        Args: { p_type: string; p_version: string }
+        Returns: undefined
+      }
+      admin_set_agency_plan: {
+        Args: { p_agency_id: string; p_plan: string; p_status?: string; p_note?: string }
+        Returns: undefined
+      }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }
         Returns: undefined

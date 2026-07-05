@@ -1,4 +1,17 @@
 {
+  "consentGate": {
+    "title": "Aggiornamento legale",
+    "subtitle": "Per continuare, accetta i documenti qui sotto.",
+    "termsLabel": "Accetto le",
+    "termsLink": "condizioni d'uso",
+    "privacyLabel": "Accetto l'",
+    "privacyLink": "informativa sulla privacy",
+    "version": "versione",
+    "marketingLabel": "Accetto di ricevere comunicazioni sul prodotto (facoltativo)",
+    "error": "Salvataggio non riuscito. Riprova.",
+    "saving": "Salvataggio...",
+    "accept": "Accetta e continua"
+  },
   "nav": {
     "appearance": "Aspetto",
     "language": "Lingua",
