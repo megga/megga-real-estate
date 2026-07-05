@@ -23,6 +23,9 @@ import { requireAgentAuth, type AgentAuthContext } from '../_shared/require-agen
 import { redactCopilotRequest } from '../_shared/copilot-redaction.ts'
 import { redactPII } from '../_shared/pii-redaction.ts'
 import {
+  selectKnowledge, formatKnowledgeBlock, unsourcedCitationWarning, type KnowledgeSnippet,
+} from '../_shared/knowledge-retrieval.ts'
+import {
   runAgentLoop, SseDecoder, StreamAssembler,
   type LoopEvent, type LoopMessage, type ModelTurn, type StreamEvent,
 } from '../_shared/agent-loop.ts'
@@ -363,6 +366,40 @@ function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx) {
   }
 }
 
+// ─── Savoir métier vérifié : chargement + sélection déterministe ─────────────
+// Best-effort (jamais bloquant). Gated par app_config `copilot_knowledge_enabled`
+// (défaut OFF par absence). Fetch des snippets ACTIFS non-expirés (table minuscule,
+// SELECT trivial via service-role) puis sélection PURE (knowledge-retrieval.ts).
+async function loadKnowledge(params: {
+  admin: SupabaseClient
+  message: string
+  action: string
+  canton: string | null
+  lang: 'fr' | 'en'
+}): Promise<{ block: string; injected: KnowledgeSnippet[]; enabled: boolean }> {
+  try {
+    const { data: flag } = await params.admin
+      .from('app_config').select('value').eq('key', 'copilot_knowledge_enabled').maybeSingle()
+    if (flag?.value !== 'true') return { block: '', injected: [], enabled: false }
+
+    const today = new Date().toISOString().slice(0, 10)
+    const { data } = await params.admin
+      .from('knowledge_snippets')
+      .select('slug, domain, canton, title, body_md, applies_to_actions, keywords, priority, source_ref, source_url, verified_at, review_after')
+      .eq('status', 'active')
+      .or(`review_after.is.null,review_after.gte.${today}`)
+      .limit(200)
+    if (!data?.length) return { block: '', injected: [], enabled: true }
+
+    const selected = selectKnowledge(data as KnowledgeSnippet[], params.message, {
+      action: params.action, canton: params.canton, maxSnippets: 3, budgetTokens: 700,
+    })
+    return { block: formatKnowledgeBlock(selected, params.lang), injected: selected, enabled: true }
+  } catch {
+    return { block: '', injected: [], enabled: false } // best-effort — jamais bloquer la réponse
+  }
+}
+
 // ─── Assemblage du system prompt (style + personnalisation agent) ────────────
 async function buildSystemPrompt(params: {
   auth: AgentAuthContext
@@ -469,13 +506,34 @@ serve(async (req: Request) => {
 
     const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn })
 
+    // ── Savoir métier vérifié (Phase 2) : retrieval déterministe de snippets
+    // juridiques suisses SOURCÉS + DATÉS, injectés selon l'intent. Gated par
+    // app_config `copilot_knowledge_enabled` ; 0 match ou flag OFF = aucun bloc
+    // (comportement inchangé). Les snippets injectés servent aussi la garde
+    // anti-citation-inventée sur la réponse. detect_intent exclu (classifieur JSON).
+    let knowledgeBlock = ''
+    let injectedSnippets: KnowledgeSnippet[] = []
+    let knowledgeOn = false
+    if (action !== 'detect_intent') {
+      const k = await loadKnowledge({
+        admin: auth.supabase,
+        message: red.message,
+        action,
+        canton: (context?.canton as string | undefined) ?? null,
+        lang: language === 'en' ? 'en' : 'fr',
+      })
+      knowledgeBlock = k.block
+      injectedSnippets = k.injected
+      knowledgeOn = k.enabled
+    }
+
+    let userContent = buildUserContent({ action, message: red.message, context: red.context, actionPrompts: ACTION_PROMPTS })
+    if (knowledgeBlock) userContent += knowledgeBlock
+
     const baseMessages: LoopMessage[] = [
       { role: 'system', content: systemPrompt },
       ...red.history.slice(-10).map((m) => ({ role: m.role, content: m.content })),
-      {
-        role: 'user',
-        content: buildUserContent({ action, message: red.message, context: red.context, actionPrompts: ACTION_PROMPTS }),
-      },
+      { role: 'user', content: userContent },
     ]
 
     // Contexte d'outils : service-role (données marché, exécuteurs scopés agence
@@ -547,9 +605,18 @@ serve(async (req: Request) => {
       // sinon la bulle s'affiche vide (le client garde son accumulation, mais on
       // sécurise aussi le mode JSON one-shot et la persistance).
       const normalized = action === 'detect_intent' ? text : meggaProse(text)
-      const final = action === 'detect_intent'
+      let final = action === 'detect_intent'
         ? normalized
         : (normalized.trim() ? normalized : "Je n'ai pas pu générer de réponse cette fois. Reformule ou réessaie.")
+
+      // Garde anti-citation-inventée (Phase 2) : quand le savoir vérifié est actif,
+      // une référence légale précise (article, loi nommée) absente des snippets
+      // injectés reçoit un avertissement DOUX suffixé (jamais bloquant, jamais de
+      // réécriture). Sans savoir actif : comportement inchangé.
+      if (knowledgeOn && action !== 'detect_intent') {
+        const warn = unsourcedCitationWarning(final, injectedSnippets, language === 'en' ? 'en' : 'fr')
+        if (warn) final += warn
+      }
 
       await logAiCopilotInteraction({
         admin: auth.supabase,
