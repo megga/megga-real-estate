@@ -58,9 +58,15 @@ async function reportDevice(accessToken: string) {
 // set VITE_DEV_BYPASS_ROLE=super_admin dans .env.local
 const MOCK_ROLE = (import.meta.env.VITE_DEV_BYPASS_ROLE as UserRole | undefined) ?? 'agent'
 
+// Email en `.local` (TLD non routable) : c'est l'échappatoire CI/dev de
+// l'allowlist super-admin (cf. src/lib/superAdmin.ts + la source SQL). Sans ça,
+// le mock VITE_DEV_BYPASS_ROLE=super_admin échoue au `emailOk` de
+// useSuperAdminGate et se fait rediriger vers /dashboard — la suite E2E
+// super-admin (playwright.admin.config.ts) testait alors « Aujourd'hui » au
+// lieu des pages admin. Sans effet en prod (DEV_BYPASS dev-only + mur DB/edge).
 const MOCK_USER = {
   id: 'dev-mock-user',
-  email: 'agent@megga.ch',
+  email: 'dev@megga.local',
   user_metadata: { full_name: 'Gregory Lyonnet', role: MOCK_ROLE },
   app_metadata: {},
   aud: 'authenticated',
@@ -69,7 +75,7 @@ const MOCK_USER = {
 
 const MOCK_PROFILE: UserProfile = {
   id: 'dev-mock-user',
-  email: 'agent@megga.ch',
+  email: 'dev@megga.local',
   full_name: 'Gregory Lyonnet',
   role: MOCK_ROLE,
   avatar_url: null,
