@@ -36,6 +36,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
   let stampA1: string
   let stampA2: string
   let stampA3: string
+  let stampAauto: string
   let stampB1: string
 
   // Contacts créés pour ce spec
@@ -50,6 +51,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
     stampA1 = `vm-a1-${stamp}`
     stampA2 = `vm-a2-${stamp}`
     stampA3 = `vm-a3-${stamp}`
+    stampAauto = `vm-aauto-${stamp}`
     stampB1 = `vm-b1-${stamp}`
 
     // Créer un contact minimal pour l'agence A
@@ -92,6 +94,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
         provider_message_id: stampA1,
         provider: 'openwa',
         wa_from: 'test',
+        is_automated: false, // prose authored (explicite : batch mixte avec la ligne automated ci-dessous)
       },
       {
         agency_id: agencyAId,
@@ -101,6 +104,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
         provider_message_id: stampA2,
         provider: 'openwa',
         wa_from: 'test',
+        is_automated: false,
       },
       {
         agency_id: agencyAId,
@@ -110,6 +114,18 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
         provider_message_id: stampA3,
         provider: 'openwa',
         wa_from: 'test',
+        is_automated: false,
+      },
+      {
+        // Sortant GÉNÉRÉ (send_listings) : is_automated=true → boilerplate, hors corpus de voix.
+        agency_id: agencyAId,
+        contact_id: contactAId,
+        direction: 'outbound',
+        body: 'Bonjour VoiceTest, voici une sélection qui pourrait vous intéresser : • Appartement — CHF 2\'450/mois',
+        provider_message_id: stampAauto,
+        provider: 'openwa',
+        wa_from: 'test',
+        is_automated: true,
       },
     ])
     if (insAErr) throw new Error(`insert agencyA messages: ${insAErr.message}`)
@@ -124,6 +140,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
         provider_message_id: stampB1,
         provider: 'openwa',
         wa_from: 'test',
+        is_automated: false,
       },
     ])
     if (insBErr) throw new Error(`insert agencyB message: ${insBErr.message}`)
@@ -136,7 +153,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
     await svc
       .from('whatsapp_messages')
       .delete()
-      .in('provider_message_id', [stampA1, stampA2, stampA3, stampB1])
+      .in('provider_message_id', [stampA1, stampA2, stampA3, stampAauto, stampB1])
       .then(() => {}, () => {})
 
     // Supprimer les contacts créés
@@ -167,6 +184,16 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
     const samples = await fetchClientVoiceSamples(serviceRoleClient(), setup.agencyAId)
     // On a inséré 3 rows valides → au moins 3 doivent être retournés
     expect(samples.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it("exclut le texte généré (is_automated=true) du corpus de voix", async () => {
+    // Le sortant send_listings/template ne doit JAMAIS entrer dans le few-shot de ton :
+    // c'est du boilerplate machine, pas la prose écrite par l'agent.
+    const samples = await fetchClientVoiceSamples(serviceRoleClient(), setup.agencyAId)
+    const bodies = samples.map((s) => s.body)
+    expect(bodies).not.toContain('Bonjour VoiceTest, voici une sélection qui pourrait vous intéresser : • Appartement — CHF 2\'450/mois')
+    // les 3 messages authored restent, eux, présents
+    expect(bodies).toContain('Le dossier est bien reçu, nous revenons vers vous sous 48h. Merci.')
   })
 
   it('retourne [] pour agencyId null (dégradation propre)', async () => {

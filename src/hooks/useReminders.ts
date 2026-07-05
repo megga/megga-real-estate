@@ -24,7 +24,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { TablesUpdate } from '@/types/database'
 
-export type ReminderType = 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom'
+export type ReminderType = 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom' | 'deal_stagnant' | 'match_ignored'
 export type ReminderStatus = 'pending' | 'triggered' | 'done' | 'cancelled' | 'snoozed'
 export type ReminderChannel = 'email' | 'task' | 'notification'
 
@@ -99,6 +99,8 @@ const REMINDER_TYPE_TITLES: Record<string, string> = {
   missing_document: 'Document manquant',
   price_change: 'Changement de prix',
   custom: 'Relance personnalisée',
+  deal_stagnant: 'Dossier à faire avancer',
+  match_ignored: 'Correspondance à envoyer',
 }
 
 // ── DB row types ───────────────────────────────────────────────────────────
@@ -151,9 +153,11 @@ function rowToReminder(row: ReminderRow): Reminder {
 
   const typeTitle = REMINDER_TYPE_TITLES[row.type] || row.type
   const title = `${typeTitle} — ${contactName}`
-  const description = propertyTitle
-    ? `${typeTitle} (${propertyTitle}).`
-    : typeTitle
+  // La raison chiffrée (message_template, ex. signaux radar « Dossier sans
+  // avancement depuis 14 jours ») prime sur le libellé générique quand elle existe.
+  const description = row.message_template?.trim()
+    ? row.message_template.trim()
+    : (propertyTitle ? `${typeTitle} (${propertyTitle}).` : typeTitle)
 
   return {
     id: row.id,

@@ -365,7 +365,8 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
         },
       })
       if (fnError) throw new Error(fnError.message)
-      const content = data?.response ?? data?.content ?? ''
+      // L'edge function ai-copilot renvoie { result }, pas { response }.
+      const content = (data as { result?: string } | null)?.result ?? ''
       const jsonMatch = content.match(/\[[\s\S]*\]/)
       if (!jsonMatch) throw new Error(t('import.batch.text.errorNotFound'))
       const contacts = JSON.parse(jsonMatch[0]) as ImportedContact[]
