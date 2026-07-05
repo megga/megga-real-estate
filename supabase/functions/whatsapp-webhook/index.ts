@@ -529,6 +529,7 @@ async function processAgentMessage(
     body: outText,
     status: 'received',
     is_agent_error: replyIsError,
+    is_automated: true, // réponse générée par le copilote (MEGGA→agent) : jamais du corpus de voix
   }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
 
   try {
@@ -947,6 +948,7 @@ async function executePending(
       wa_to: phone, contact_id: contactId, agency_id: agentLink.agency_id,
       body: `[template: ${key}]`, status: 'received', is_agent_error: false,
       sent_by_profile_id: agentLink.profile_id,
+      is_automated: true, // template Meta (boilerplate) : jamais du corpus de voix
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
     try {
       await admin.from('activity_events').insert({
@@ -1069,6 +1071,7 @@ async function executePending(
       direction: 'outbound', wa_from: waFrom,
       wa_to: phone, contact_id: contactId,
       agency_id: agentLink.agency_id, body: text, status: 'received', is_agent_error: false,
+      is_automated: true, // texte send_listings (« Bonjour X, voici une sélection… ») = boilerplate, hors corpus de voix
     }, 'text')
     // Photos : la 1re de chaque bien, en messages image après le texte. Best-effort au
     // sens où le texte est déjà parti — mais PAS muet : on compte les tentatives réelles
@@ -1097,6 +1100,7 @@ async function executePending(
         agency_id: agentLink.agency_id, body: caption ?? null,
         media_type: 'image', media_url: url,
         status: 'received', is_agent_error: false,
+        is_automated: true, // légende de photo send_listings = boilerplate, hors corpus de voix
       }, 'photo')
     }
     try {
