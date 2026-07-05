@@ -64,7 +64,7 @@ export default function AdminAgenciesPage() {
   // activity_events des 30 derniers jours dans le navigateur (SELECT non borné
   // sur une table d'audit append-only → des dizaines de milliers de lignes pour
   // un super_admin réel). La RPC renvoie ~1 ligne par agence. Voir migration
-  // 20260705200000_agency_activity_summary_rpc + CLAUDE.md §7.
+  // 20260705210000_agency_activity_summary_rpc + CLAUDE.md §7.
   const agencyIds = useMemo(() => agencies.map((a) => a.id), [agencies])
   const activityQuery = useQuery({
     queryKey: ['admin-agency-activity-summary', agencyIds],
