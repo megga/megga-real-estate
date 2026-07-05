@@ -8,6 +8,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
+import { resolveTriageAgencyId, ensureLeadForInboundPhone, triageLeadName, isTriageEligible } from '../_shared/whatsapp-lead-triage.ts'
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
@@ -223,12 +224,23 @@ serve(async (req) => {
     }
   } catch { /* résolution best-effort, non bloquant */ }
 
-  // Repli : numéro inconnu => rattacher à une agence par défaut si configurée,
-  // sinon log (le message reste en base mais sans agence = invisible en CRM).
-  if (!agencyId) {
-    const fallback = Deno.env.get('WHATSAPP_FALLBACK_AGENCY_ID')
-    if (fallback) agencyId = fallback
-    else console.warn('whatsapp inbound: numéro inconnu, message sans agence:', msg.fromPhone.slice(-4))
+  // Triage numéros inconnus → leads. On ne touche à RIEN pour un numéro déjà résolu (connu :
+  // agencyId hérité du contact). Pour un INCONNU, on ne dérive l'agence de rattachement
+  // (server-side, garde cross-tenant — cf. resolveTriageAgencyId) et on ne crée un lead QUE si
+  // l'inbound est ÉLIGIBLE (numéro réel + body texte non vide). Un média-seul / body vide
+  // (démarchage/bruit) reste ORPHELIN (agency_id null) → HORS de la file d'avis LPD (pas d'envoi
+  // auto au bruit). Un vrai message d'un inconnu → agence + lead + compréhension/qualif/avis LPD.
+  // AUCUN envoi au prospect ici (HITL préservé — la branche client ne fait que markRead).
+  let leadCreated = false
+  if (!contactId && !agencyId && isTriageEligible(msg.fromPhone, msg.body)) {
+    agencyId = await resolveTriageAgencyId(admin, (k) => Deno.env.get(k))
+    if (!agencyId) {
+      console.warn('whatsapp inbound: numéro inconnu, agence indéterminable, message orphelin:', msg.fromPhone.slice(-4))
+    } else {
+      const { firstName, lastName } = triageLeadName(msg.fromPhone)
+      const triage = await ensureLeadForInboundPhone(admin, { agencyId, phone: msg.fromPhone, firstName, lastName })
+      if (triage.contactId) { contactId = triage.contactId; leadCreated = triage.created }
+    }
   }
 
   // 4. Insert idempotent (ON CONFLICT via upsert sur la contrainte unique)
@@ -273,6 +285,24 @@ serve(async (req) => {
       severity: 'info',
     })
   } catch { /* non bloquant */ }
+
+  // Triage : si un lead vient d'être créé pour ce prospect entrant, on le trace (actor 'ai',
+  // severity 'warn' → remonte en notif priorisée « cloche ») pour que l'agent le voie.
+  if (leadCreated && contactId) {
+    try {
+      await admin.from('activity_events').insert({
+        agency_id: agencyId,
+        actor_id: null,
+        actor_kind: 'ai',
+        action: 'whatsapp_inbound_lead_created',
+        entity_type: 'contact',
+        entity_id: contactId,
+        category: 'contact',
+        severity: 'warn',
+        metadata: { via: 'whatsapp', phase: 'inbound-triage' },
+      })
+    } catch { /* non bloquant */ }
+  }
 
   // Coches bleues côté client : son message est vu par l'agence (pas de « typing » —
   // MEGGA ne répond pas automatiquement au client, capture seule / human-in-the-loop).
