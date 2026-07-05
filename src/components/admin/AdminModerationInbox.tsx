@@ -67,7 +67,7 @@ export function SellerLeadsInbox() {
     mutationFn: async ({ leadId, agencyId }: { leadId: string; agencyId: string }) => {
       const { error } = await supabase
         .from('seller_leads')
-        .update({ assigned_agency_id: agencyId, status: 'assigned' })
+        .update({ assigned_agency_id: agencyId })
         .eq('id', leadId)
       if (error) throw error
     },

@@ -51,7 +51,8 @@ begin
     raise exception 'agency not found';
   end if;
 
-  update public.agencies set plan = p_plan where id = p_agency_id;
+  -- agencies.plan est l'enum agency_plan (pas du text) → cast explicite requis.
+  update public.agencies set plan = p_plan::agency_plan where id = p_agency_id;
 
   -- Upsert de la ligne subscriptions. ⚠ Limitation documentée : un webhook
   -- Stripe ultérieur pour cette agence réécrira cette ligne — l'override

@@ -111,7 +111,7 @@ describe.skipIf(!HAS_KEYS)('admin_set_agency_plan + seller_leads super-admin', (
     // par le WITH CHECK agence-scopé.
     const { data: bAttempt } = await setup.clientB
       .from('seller_leads')
-      .update({ assigned_agency_id: setup.agencyAId, status: 'assigned' })
+      .update({ assigned_agency_id: setup.agencyAId })
       .eq('id', leadId)
       .select('id')
     expect(bAttempt?.length ?? 0).toBe(0)
@@ -119,7 +119,7 @@ describe.skipIf(!HAS_KEYS)('admin_set_agency_plan + seller_leads super-admin', (
     // Super-admin assigne à l'agence B (tierce pour lui) → policy super_admin.
     const { data: aAttempt, error: aErr } = await setup.clientA
       .from('seller_leads')
-      .update({ assigned_agency_id: setup.agencyBId, status: 'assigned' })
+      .update({ assigned_agency_id: setup.agencyBId })
       .eq('id', leadId)
       .select('id')
     if (aErr) throw new Error(`super_admin assign: ${aErr.message}`)
