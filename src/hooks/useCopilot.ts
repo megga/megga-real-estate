@@ -15,11 +15,24 @@ interface ChatMessage {
  *  puis un appel d'outil est survenu) ; `onPhase` reçoit le libellé humain de
  *  l'outil en cours (null = plus d'outil en cours) ; `onFinal` remplace le texte
  *  accumulé par la version normalisée finale (meggaProse côté serveur). */
+/** Carte de validation d'une action de publication en attente (HITL). Émise par le
+ *  serveur quand le modèle a PRÉPARÉ une publication/retrait ; le panneau ouvre une
+ *  modale d'aperçu et n'exécute rien tant que l'agent ne valide pas. */
+export interface PendingActionCard {
+  id: string
+  kind: string          // 'publish' | 'withdraw'
+  title: string | null
+  portals: string[]
+  preview: string
+}
+
 export interface CopilotStreamHandlers {
   onDelta: (text: string) => void
   onReset?: () => void
   onPhase?: (label: string | null) => void
   onFinal?: (text: string) => void
+  /** Carte de publication à valider (0 ou 1 par tour). */
+  onPendingAction?: (pending: PendingActionCard) => void
 }
 
 /* ─── Action detection from natural language ─── */
@@ -41,6 +54,7 @@ function detectAction(message: string): CopilotAction {
 interface CopilotApiResult {
   result: string
   conversationId: string | null
+  pendingAction: PendingActionCard | null
 }
 
 async function callCopilotApi(
@@ -53,6 +67,7 @@ async function callCopilotApi(
   const { data, error } = await supabase.functions.invoke<{
     result?: string
     conversation_id?: string | null
+    pending_action?: PendingActionCard | null
   }>('ai-copilot', {
     body: {
       action,
@@ -78,7 +93,7 @@ async function callCopilotApi(
     throw new Error(detail)
   }
 
-  return { result: data?.result ?? '', conversationId: data?.conversation_id ?? null }
+  return { result: data?.result ?? '', conversationId: data?.conversation_id ?? null, pendingAction: data?.pending_action ?? null }
 }
 
 /* ─── SSE stream (real token + tool phase streaming) ─── */
@@ -163,6 +178,15 @@ async function streamCopilotApi(
         break
       case 'tool_end':
         handlers.onPhase?.(null)
+        break
+      case 'pending_action':
+        handlers.onPendingAction?.({
+          id: String(ev.id ?? ''),
+          kind: String(ev.kind ?? 'publish'),
+          title: (ev.title as string | null) ?? null,
+          portals: Array.isArray(ev.portals) ? (ev.portals as unknown[]).map(String) : [],
+          preview: String(ev.preview ?? ''),
+        })
         break
       case 'done':
         box.final = typeof ev.final === 'string' ? ev.final : acc
@@ -269,12 +293,13 @@ export function useCopilot() {
       // Repli : si le streaming échoue (réseau, proxy sans SSE), on retombe sur
       // l'appel JSON bloquant pour ne pas laisser l'agent sans réponse.
       try {
-        const { result, conversationId } = await callCopilotApi(message, action, context, historyRef.current, conversationIdRef.current)
+        const { result, conversationId, pendingAction } = await callCopilotApi(message, action, context, historyRef.current, conversationIdRef.current)
         if (conversationId) conversationIdRef.current = conversationId
         handlers.onReset?.()
         handlers.onPhase?.(null)
         if (handlers.onFinal) handlers.onFinal(result)
         else handlers.onDelta(result)
+        if (pendingAction) handlers.onPendingAction?.(pendingAction)
         const userMsg: ChatMessage = { role: 'user', content: message }
         const assistantMsg: ChatMessage = { role: 'assistant', content: result }
         historyRef.current = [...historyRef.current, userMsg, assistantMsg].slice(-20)
@@ -298,5 +323,21 @@ export function useCopilot() {
     historyRef.current = history.slice(-20)
   }, [])
 
-  return { sendMessage, sendMessageStream, isLoading, detectAction, clearHistory, resumeConversation }
+  /** Valide (exécute) une action de publication en attente après le clic de l'agent
+   *  sur la carte. Consomme la carte côté serveur et renvoie le texte de résultat. */
+  const executePending = useCallback(async (pendingId: string): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke<{ result?: string; error?: string }>('ai-copilot', {
+      body: { action: 'execute_pending', pending_id: pendingId, message: '', language: 'fr' },
+    })
+    if (error) {
+      let detail = error.message
+      if (error instanceof FunctionsHttpError) {
+        try { const body = await error.context.json(); if (body?.error) detail = body.error as string } catch { /* garde le message générique */ }
+      }
+      throw new Error(detail)
+    }
+    return data?.result ?? ''
+  }, [])
+
+  return { sendMessage, sendMessageStream, executePending, isLoading, detectAction, clearHistory, resumeConversation }
 }

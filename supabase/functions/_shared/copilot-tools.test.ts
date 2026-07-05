@@ -78,12 +78,15 @@ describe('écritures gated (Phase 4a)', () => {
     expect(names.sort()).toEqual(COPILOT_TOOLS.map((t) => t.function.name).sort())
   })
 
-  it('copilotTools(true) ajoute create_reminder + add_note (et RIEN d\'autre en écriture)', () => {
+  it('copilotTools(true) ajoute les écritures internes (rappel/note + montage de bien) et AUCUN envoi/publication', () => {
     const names = copilotTools(true).map((t) => t.function.name)
     expect(names).toContain('create_reminder')
     expect(names).toContain('add_note')
-    // aucun outil d'envoi client ne s'y glisse
-    for (const forbidden of ['send_client_message', 'send_client_email', 'update_pipeline', 'record_offer', 'send_listings']) {
+    expect(names).toContain('create_property')
+    expect(names).toContain('update_property')
+    // aucun outil d'envoi client NI de publication externe ne s'y glisse (la
+    // publication est confirm-tier, gated à part, jamais dans ce catalogue d'écritures)
+    for (const forbidden of ['send_client_message', 'send_client_email', 'update_pipeline', 'record_offer', 'send_listings', 'publish_to_portals', 'withdraw_from_portals']) {
       expect(names).not.toContain(forbidden)
     }
   })
@@ -101,5 +104,72 @@ describe('écritures gated (Phase 4a)', () => {
 
   it('copilotToolsBlock(false) reste lecture seule', () => {
     expect(copilotToolsBlock(false)).toMatch(/aucun outil d'écriture/i)
+  })
+})
+
+describe('montage d\'annonce (Phase B — publication depuis le copilote CRM)', () => {
+  it('draft_listing_copy est READ : présent même en lecture seule', () => {
+    expect(webToolTier('draft_listing_copy')).toBe('read')
+    expect(copilotTools(false).map((t) => t.function.name)).toContain('draft_listing_copy')
+  })
+
+  it('create_property / update_property sont AUTO : absents en read-only, présents sous écritures', () => {
+    const ro = copilotTools(false).map((t) => t.function.name)
+    const rw = copilotTools(true).map((t) => t.function.name)
+    for (const tool of ['create_property', 'update_property']) {
+      expect(webToolTier(tool), `${tool} doit être auto`).toBe('auto')
+      expect(ro, `${tool} ne doit PAS être exposé en lecture seule`).not.toContain(tool)
+      expect(rw, `${tool} doit être exposé sous écritures`).toContain(tool)
+    }
+  })
+
+  it('les descriptions web de create/update ne renvoient pas vers attach_property_photos (outil WhatsApp absent du web)', () => {
+    const rw = copilotTools(true)
+    for (const name of ['create_property', 'update_property']) {
+      const t = rw.find((x) => x.function.name === name)
+      expect(t?.function.description, `${name} description`).not.toContain('attach_property_photos')
+    }
+  })
+})
+
+describe('publication immobilier.ch (Phase C — confirm-tier gated)', () => {
+  it('publish/withdraw sont CONFIRM (jamais read ni auto : la boucle ne les exécute pas)', () => {
+    expect(webToolTier('publish_to_portals')).toBe('confirm')
+    expect(webToolTier('withdraw_from_portals')).toBe('confirm')
+  })
+
+  it('absents tant que publishEnabled=false, même avec les écritures activées', () => {
+    for (const names of [copilotTools(false), copilotTools(true), copilotTools(true, false)].map((c) => c.map((t) => t.function.name))) {
+      expect(names).not.toContain('publish_to_portals')
+      expect(names).not.toContain('withdraw_from_portals')
+    }
+  })
+
+  it('présents quand publishEnabled=true (indépendant des écritures internes)', () => {
+    const namesPublishOnly = copilotTools(false, true).map((t) => t.function.name)
+    expect(namesPublishOnly).toContain('publish_to_portals')
+    expect(namesPublishOnly).toContain('withdraw_from_portals')
+    // get_publication_status (lecture) reste toujours dispo dès que les outils sont là
+    expect(namesPublishOnly).toContain('get_publication_status')
+    const namesBoth = copilotTools(true, true).map((t) => t.function.name)
+    expect(namesBoth).toContain('publish_to_portals')
+    expect(namesBoth).toContain('create_property')
+  })
+
+  it('la description web publish interdit de se confirmer soi-même (carte HITL)', () => {
+    const t = copilotTools(false, true).find((x) => x.function.name === 'publish_to_portals')
+    expect(t?.function.description).toMatch(/carte|valid/i)
+    expect(t?.function.description).toMatch(/ne te confirme jamais toi-même|ne te confirme pas/i)
+  })
+
+  it('copilotToolsBlock(_, true) décrit la publication ; jamais de contradiction « aucune écriture »', () => {
+    // publish sans écritures internes : pas de bloc « aucun outil d'écriture »
+    const publishOnly = copilotToolsBlock(false, true)
+    expect(publishOnly).toMatch(/PUBLICATION/i)
+    expect(publishOnly).not.toMatch(/aucun outil d'écriture/i)
+    // écritures + publication : les deux volets présents
+    const both = copilotToolsBlock(true, true)
+    expect(both).toMatch(/create_property/)
+    expect(both).toMatch(/PUBLICATION/i)
   })
 })
