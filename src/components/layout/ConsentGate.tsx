@@ -19,6 +19,16 @@ import { CURRENT_CONSENT_VERSIONS, LEGAL_URLS, type RequiredConsentType } from '
 
 const REQUIRED: RequiredConsentType[] = ['terms', 'privacy']
 
+// Dev/CI auth bypass (cf. useAuth.tsx) : la session est mockée, il n'y a pas
+// de vraie identité GoTrue. La lecture user_consents part alors en anon et
+// réussit à vide → `missing` non vide → la modale bloque *toutes* les pages
+// (E2E fonctionnels + baselines visuelles). Le fail-open documenté en tête de
+// fichier ne se déclenche pas car la lecture ne *échoue* pas, elle renvoie [].
+// On saute donc explicitement la gate sous bypass — inerte en prod
+// (import.meta.env.DEV=false, et useAuth throw si bypass sous PROD).
+const DEV_BYPASS_AUTH =
+  import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
+
 export default function ConsentGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation('common')
   const { user } = useAuth()
@@ -32,7 +42,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
 
   const { data: rows, isSuccess } = useQuery({
     queryKey: ['user-consents', user?.id],
-    enabled: !!user?.id,
+    enabled: !!user?.id && !DEV_BYPASS_AUTH,
     staleTime: 24 * 60 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -74,7 +84,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
   })
 
   const allChecked = missing.every((type) => checked[type])
-  const showModal = !!user && isSuccess && missing.length > 0
+  const showModal = !DEV_BYPASS_AUTH && !!user && isSuccess && missing.length > 0
 
   return (
     <>
