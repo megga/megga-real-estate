@@ -53,13 +53,19 @@ BEGIN
   -- transactionnel est relâché en fin d'appel ; il ne sérialise que les inbounds du même numéro.
   PERFORM pg_advisory_xact_lock(hashtextextended(p_agency_id::text || '|' || v_norm, 0));
 
-  -- Déjà un (ou plusieurs) contact de l'agence avec ce numéro ?
-  SELECT count(*), min(id) INTO v_count, v_id
+  -- Déjà un (ou plusieurs) contact de l'agence avec ce numéro ? (min(uuid) n'existe pas en
+  -- Postgres → on COMPTE, puis on récupère l'id du gagnant séparément quand il y en a 1.)
+  SELECT count(*) INTO v_count
     FROM public.contacts
     WHERE agency_id = p_agency_id AND phone IS NOT NULL
       AND public.normalize_phone(phone) = v_norm;
 
   IF v_count = 1 THEN
+    SELECT id INTO v_id
+      FROM public.contacts
+      WHERE agency_id = p_agency_id AND phone IS NOT NULL
+        AND public.normalize_phone(phone) = v_norm
+      LIMIT 1;
     RETURN QUERY SELECT v_id, false; RETURN;           -- exactement 1 → on s'y rattache
   ELSIF v_count > 1 THEN
     RETURN QUERY SELECT NULL::uuid, false; RETURN;      -- ambigu → on ne devine pas (orphelin)
