@@ -11,6 +11,7 @@ export interface AdminUser {
   created_at: string
   agency_id: string | null
   agency_name: string | null
+  is_suspended: boolean
 }
 
 export function useAdminUsers() {
@@ -21,7 +22,7 @@ export function useAdminUsers() {
     queryFn: async (): Promise<AdminUser[]> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, avatar_url, role, phone, created_at, agency_id')
+        .select('id, full_name, email, avatar_url, role, phone, created_at, agency_id, is_suspended')
         .order('created_at', { ascending: false })
       if (error) throw error
 

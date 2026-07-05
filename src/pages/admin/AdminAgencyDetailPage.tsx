@@ -13,6 +13,7 @@ import {
 import PageTransition from '@/components/layout/PageTransition'
 import { useImpersonate } from '@/hooks/useImpersonate'
 import { useToast } from '@/components/ui/Toast'
+import AdminBillingCard from '@/components/admin/AdminBillingCard'
 
 type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions'
 
@@ -214,16 +215,21 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
   ]
 
   return (
-    <div className="rounded-xl border border-theme-border divide-y divide-theme-border">
-      {fields.map((f) => (
-        <div key={f.label} className="flex items-center gap-3 px-4 py-3.5">
-          <f.icon className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
-          <span className="text-sm text-theme-secondary w-24 flex-shrink-0">{f.label}</span>
-          <span className="text-sm text-theme-primary">
-            {f.value || <span className="text-theme-tertiary">{t('admin:common.notProvided')}</span>}
-          </span>
-        </div>
-      ))}
+    <div className="space-y-4">
+      <div className="rounded-xl border border-theme-border divide-y divide-theme-border">
+        {fields.map((f) => (
+          <div key={f.label} className="flex items-center gap-3 px-4 py-3.5">
+            <f.icon className="h-4 w-4 text-theme-tertiary flex-shrink-0" />
+            <span className="text-sm text-theme-secondary w-24 flex-shrink-0">{f.label}</span>
+            <span className="text-sm text-theme-primary">
+              {f.value || <span className="text-theme-tertiary">{t('admin:common.notProvided')}</span>}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Abonnement + override manuel de plan (P4 admin) */}
+      <AdminBillingCard agencyId={agency.id as string} />
     </div>
   )
 }

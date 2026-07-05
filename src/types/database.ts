@@ -3654,6 +3654,7 @@ export type Database = {
           first_day_done: boolean | null
           full_name: string
           id: string
+          is_suspended: boolean
           mobile_phone: string | null
           onboarding_completed: boolean | null
           onboarding_step: number | null
@@ -3680,6 +3681,7 @@ export type Database = {
           first_day_done?: boolean | null
           full_name: string
           id: string
+          is_suspended?: boolean
           mobile_phone?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
@@ -3706,6 +3708,7 @@ export type Database = {
           first_day_done?: boolean | null
           full_name?: string
           id?: string
+          is_suspended?: boolean
           mobile_phone?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
@@ -6130,6 +6133,10 @@ export type Database = {
       }
       record_consent: {
         Args: { p_type: string; p_version: string }
+        Returns: undefined
+      }
+      admin_set_agency_plan: {
+        Args: { p_agency_id: string; p_plan: string; p_status?: string; p_note?: string }
         Returns: undefined
       }
       admin_set_user_role: {
