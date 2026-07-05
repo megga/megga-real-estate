@@ -485,6 +485,11 @@
         "explainer": "Postponed leads will come back tomorrow; discarded ones are out of the loop.",
         "backToDashboard": "Back to dashboard"
       }
+    },
+    "brief": {
+      "eyebrow": "MEGGA AI · Daily briefing",
+      "deepen": "Go deeper",
+      "deepenQuestion": "Detail my priorities for today and suggest the next action for each."
     }
   },
   "analytics": {

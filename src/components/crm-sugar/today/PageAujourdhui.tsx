@@ -24,6 +24,7 @@ import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useAuth } from '@/hooks/useAuth'
 import { formatTodayHeader } from '@/lib/utils'
 import { CockpitAiInsights } from '@/components/crm-sugar/ai/CockpitAiInsights'
+import { MorningBriefing } from './MorningBriefing'
 
 // ─── « Ensuite » — file d'attente compacte ──────────────────────────────
 // `e.tag` reste un CODE stable (clé de tonalité + de libellé). La tonalité et le
@@ -173,6 +174,10 @@ export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
         {/* Bandeau proactif MEGGA AI — sous la salutation, avant la grille bento.
             Branché sur le pipeline live ; se masque s'il n'y a aucun signal réel. */}
         {!demo && <CockpitAiInsights />}
+
+        {/* Briefing matinal généré (Phase 3) — gated app_config + cache 1×/jour ;
+            se masque tant que le flag est OFF ou qu'il n'y a rien à dire. */}
+        {!demo && <MorningBriefing />}
 
         <div style={{ flex: 1, display: 'flex', gap: 14, minHeight: 0 }}>
 

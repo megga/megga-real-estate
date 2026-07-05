@@ -25,6 +25,8 @@ import { redactPII } from '../_shared/pii-redaction.ts'
 import {
   selectKnowledge, formatKnowledgeBlock, unsourcedCitationWarning, type KnowledgeSnippet,
 } from '../_shared/knowledge-retrieval.ts'
+import { createPseudonymizer } from '../_shared/pseudonymize.ts'
+import { buildBriefSnapshot, type BriefFocusRow } from '../_shared/daily-brief.ts'
 import {
   runAgentLoop, SseDecoder, StreamAssembler,
   type LoopEvent, type LoopMessage, type ModelTurn, type StreamEvent,
@@ -168,6 +170,7 @@ type CopilotAction =
   | 'score_lead'
   | 'analyze_market'
   | 'detect_intent'
+  | 'daily_brief'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -459,6 +462,132 @@ async function buildSystemPrompt(params: {
   return systemPrompt
 }
 
+// ─── Briefing matinal (Phase 3) ──────────────────────────────────────────────
+// Assemble le snapshot SERVEUR (file Focus + objectif + rappels du jour) via un
+// client scopé au JWT (RPC SECURITY DEFINER → agence dérivée du token), remplace
+// les noms de contacts par des jetons {{Cn}}, demande à DeepSeek un briefing de
+// 3-5 priorités, puis re-substitue les vrais noms côté edge. DeepSeek ne voit
+// jamais un nom. Gated. Fallback déterministe si DeepSeek échoue.
+async function handleDailyBrief(params: {
+  auth: AgentAuthContext
+  deepseekApiKey: string
+  language: string
+  token: string
+}): Promise<Response> {
+  const json = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+  // Kill-switch (défaut OFF par absence).
+  try {
+    const { data: flag } = await params.auth.supabase
+      .from('app_config').select('value').eq('key', 'copilot_briefing_enabled').maybeSingle()
+    if (flag?.value !== 'true') return json({ result: '', disabled: true })
+  } catch { return json({ result: '', disabled: true }) }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: `Bearer ${params.token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+
+  // Assemblage du snapshot (agence dérivée du JWT par les RPC SECURITY DEFINER).
+  const start = new Date(); start.setHours(0, 0, 0, 0)
+  const end = new Date(); end.setHours(23, 59, 59, 999)
+  const [focusRes, cockpitRes, objectifRes, remindersRes] = await Promise.all([
+    userClient.rpc('focus_top_matches', { p_limit: 6 }),
+    userClient.rpc('analytics_cockpit', { p_period: 'month', p_scope: 'me' }),
+    userClient.rpc('analytics_objectif', { p_period: 'month', p_scope: 'me' }),
+    // On ne lit QUE le type (jamais message_template : texte libre à noms en dur).
+    userClient.from('reminders').select('type')
+      .eq('status', 'pending').gte('trigger_at', start.toISOString()).lte('trigger_at', end.toISOString()).limit(10),
+  ])
+
+  const focus = (focusRes.data ?? []) as BriefFocusRow[]
+  const pseudo = createPseudonymizer()
+  const reminderTypes = (remindersRes.error ? [] : (remindersRes.data ?? []))
+    .map((r) => String(r.type))
+
+  // Assemblage pseudonymisé (module PUR testé) : noms de contacts ET titres de
+  // biens → jetons ; `contributors` (noms d'acheteurs) retiré des agrégats ;
+  // rappels réduits à des libellés de type. DeepSeek ne verra que des jetons {{Cn}},
+  // re-substitués par les vraies valeurs après génération.
+  const { snapshot, itemCount, reminderCount } = buildBriefSnapshot({
+    focus,
+    cockpit: (cockpitRes.error ? {} : cockpitRes.data) as Record<string, unknown>,
+    objectif: (objectifRes.error ? {} : objectifRes.data) as Record<string, unknown>,
+    reminderTypes,
+    pseudo,
+  })
+
+  // Rien à dire → pas de briefing (le client n'affiche rien).
+  if (!itemCount && !reminderCount) return json({ result: '', empty: true })
+
+  const briefingPrompt = `Tu es MEGGA AI. Rédige le BRIEFING MATINAL de l'agent, en te basant UNIQUEMENT sur le snapshot ci-dessous (n'invente aucun contact, chiffre ou fait).
+Format : une phrase d'accroche courte, puis 3 à 5 priorités numérotées. Chaque priorité = le contact concerné + POURQUOI c'est prioritaire (avec le chiffre du snapshot) + l'action concrète suggérée.
+Ton direct et sobre, tutoiement de l'agent, format suisse (CHF 720'000). Pas de remplissage.
+IMPÉRATIF : garde les jetons {{C1}}, {{C2}}… EXACTEMENT tels quels (ne les traduis pas, ne les remplace pas par un nom).
+${params.language === 'en' ? 'Answer in English.' : ''}
+
+SNAPSHOT :
+${snapshot}`
+
+  // Fallback déterministe (vrais noms, aucun LLM) si DeepSeek échoue.
+  const fallback = () => {
+    const lines = focus.slice(0, 5).map((r, i) => {
+      const who = (r.contact_name || 'Contact').trim()
+      const why = r.kyc_days_to_expiry != null ? `KYC expire dans ${r.kyc_days_to_expiry}j`
+        : r.property_title ? `match sur « ${r.property_title} »` : 'à traiter'
+      return `${i + 1}. ${who} — ${why}.`
+    })
+    return lines.length ? `Tes priorités du jour :\n${lines.join('\n')}` : ''
+  }
+
+  let generated = false
+  let text = ''
+  try {
+    const r = await fetch(DEEPSEEK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${params.deepseekApiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat', max_tokens: 800,
+        messages: [
+          { role: 'system', content: `${MEGGA_SYSTEM}\n\n${MEGGA_STYLE_BLOCK}` },
+          { role: 'user', content: briefingPrompt },
+        ],
+      }),
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+    })
+    if (r.ok) {
+      const d = await r.json()
+      const raw = d.choices?.[0]?.message?.content || ''
+      // Re-substitution des vraies valeurs APRÈS génération (DeepSeek n'a vu que
+      // des jetons). Si DeepSeek a mutilé un jeton (accolades cassées, traduction)
+      // et qu'un {{Cn}} SUBSISTE, on préfère le fallback déterministe propre à un
+      // briefing avec un placeholder visible.
+      const restored = pseudo.restore(meggaProse(raw))
+      if (!/\{\{\s*C\d+\s*\}\}/.test(restored)) {
+        text = restored
+        generated = text.trim().length > 0
+      }
+    }
+  } catch { /* fallback ci-dessous */ }
+
+  if (!generated) text = fallback()
+  if (!text.trim()) return json({ result: '', empty: true })
+
+  // Audit LBA (actor_kind='ai', sans entité précise).
+  try {
+    await params.auth.supabase.from('activity_events').insert({
+      agency_id: params.auth.profile.agency_id, actor_id: null, actor_kind: 'ai',
+      action: 'MEGGA AI — daily_brief', entity_type: 'ai_chat', entity_id: null,
+      metadata: { copilot_action: 'daily_brief', generated, priorities: itemCount },
+    })
+  } catch { /* best-effort */ }
+
+  return json({ result: text, generated })
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -487,6 +616,15 @@ serve(async (req: Request) => {
         JSON.stringify({ error: 'DEEPSEEK_API_KEY non configurée' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    // ── Briefing matinal (Phase 3) : flux dédié — assemblage SERVEUR du snapshot
+    // (priorités, objectif, rappels), PSEUDONYMISATION des noms avant DeepSeek,
+    // génération, re-substitution des vrais noms côté edge. DeepSeek ne voit jamais
+    // une PII client. Gated app_config `copilot_briefing_enabled` (OFF par défaut).
+    if (action === 'daily_brief') {
+      const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim()
+      return await handleDailyBrief({ auth, deepseekApiKey, language, token })
     }
 
     // ── Rédaction PII (Phase 0) : identifiants sensibles masqués AVANT le LLM
