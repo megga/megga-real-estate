@@ -79,6 +79,17 @@ export function CdWhatsAppCard({ contactId }: Props) {
                         : t('cd.waTranscriptUnavailable')}
                     </span>}
               </span>
+            ) : m.media_type === 'image' && m.media_url ? (
+              <>
+                {/* Photo effectivement envoyée (URL R2 publique) → l'agent voit ce qui est parti chez le client. */}
+                <img
+                  src={m.media_url}
+                  alt={m.body || 'photo'}
+                  loading="lazy"
+                  className="rounded-md max-w-full max-h-48 object-cover mb-1"
+                />
+                {m.body && <span className="block">{m.body}</span>}
+              </>
             ) : (
               <>
                 {m.media_type && <span className="block text-xs opacity-70 mb-0.5">[{m.media_type}]</span>}

@@ -7,7 +7,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
+import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type SendResult, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
 import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
@@ -551,9 +551,12 @@ async function callAgentBrain(
 }
 
 // Envoi d'un texte WhatsApp à un numéro (fenêtre 24h requise, sinon template Meta).
+// Renvoie le SendResult complet : le provider_message_id, persisté sur les sortants
+// clients, est ce qui permet aux events `statuses` (applyStatusUpdates) de suivre la
+// livraison et d'alerter au premier failed — un envoi sans id est invisible à la boucle.
 async function sendWhatsAppText(
   provider: ReturnType<typeof getProvider>, toPhone: string, body: string,
-): Promise<boolean> {
+): Promise<SendResult> {
   const sendConfig: SendConfig = {
     metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
     metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
@@ -562,8 +565,31 @@ async function sendWhatsAppText(
   const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(meggaProse(body)) }, sendConfig)
   try {
     const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-    return sres.ok
-  } catch { return false }
+    return provider.parseSendResult(sres.status, await sres.json().catch(() => ({})))
+  } catch { return { ok: false, providerMessageId: null, error: 'network' } }
+}
+
+// Envoi d'une image WhatsApp par URL publique (photo R2) — Meta télécharge le lien,
+// pas d'upload média. ok=false si le provider ne le supporte pas (OpenWA legacy).
+async function sendWhatsAppImage(
+  provider: ReturnType<typeof getProvider>, toPhone: string, link: string, caption?: string,
+): Promise<SendResult> {
+  if (!provider.buildSendImageRequest) return { ok: false, providerMessageId: null, error: 'unsupported' }
+  const sendConfig: SendConfig = {
+    metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
+    metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
+    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
+  }
+  // Même normalisation que le texte (meggaProse + syntaxe WhatsApp) : la légende
+  // est un message client comme un autre.
+  const sreq = provider.buildSendImageRequest(
+    { toPhone, link, caption: caption ? toWhatsAppText(meggaProse(caption)) : undefined },
+    sendConfig,
+  )
+  try {
+    const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
+    return provider.parseSendResult(sres.status, await sres.json().catch(() => ({})))
+  } catch { return { ok: false, providerMessageId: null, error: 'network' } }
 }
 
 // ── Statuts de livraison (sent/delivered/read/failed) ──────────────────────
@@ -594,7 +620,7 @@ async function applyStatusUpdates(
       .eq('provider_message_id', u.providerMessageId)
       .eq('direction', 'outbound')
       .in('status', allowedPriorStatuses(u.status))
-      .select('id, contact_id, agency_id')
+      .select('id, contact_id, agency_id, media_type')
     if (error) {
       console.error('wa status update failed:', error.message.slice(0, 120))
       continue
@@ -608,14 +634,71 @@ async function applyStatusUpdates(
 
 // Après un échec de livraison : audit TOUJOURS, puis alerte WhatsApp à l'agent vérifié
 // de l'agence si le sortant visait un CLIENT (contact_id). Best-effort, PII-safe
-// (aucun numéro ni contenu en logs). Appelée uniquement sur la PREMIÈRE transition vers
-// failed (l'UPDATE monotone ne renvoie une ligne qu'une fois) → pas de double alerte.
+// (aucun numéro ni contenu en logs). L'UPDATE monotone ne fait transiter chaque MESSAGE
+// vers failed qu'une fois → pas de double alerte PAR message ; mais un send_listings =
+// jusqu'à 6 messages (texte + 5 photos) qui, hors fenêtre 24h, échouent tous → sans
+// garde, 6 alertes quasi identiques. THROTTLE : on n'envoie qu'UNE alerte WhatsApp par
+// contact sur une courte fenêtre (l'audit, lui, reste exhaustif). Le libellé distingue
+// photo vs message (un échec photo isolé ≠ « ton message n'a pas été délivré », sinon
+// l'agent croit toute la sélection perdue et la renvoie → doublons chez le client).
 async function notifyDeliveryFailure(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
-  row: { id: string; contact_id: string | null; agency_id: string | null },
+  row: { id: string; contact_id: string | null; agency_id: string | null; media_type: string | null },
   u: StatusUpdate,
 ): Promise<void> {
+  // 131047 = fenêtre 24h fermée → TOUTE la conversation est bloquée (texte + photos),
+  // pas seulement ce message : on parle alors du « message » global, jamais d'« une
+  // photo » (sinon on sous-estime la panne au 1er event traité s'il vise une photo).
+  // Autres codes = échec propre à ce média → libellé fidèle (photo vs message).
+  const windowClosed = u.errorCode === 131047
+  const isPhoto = row.media_type === 'image' && !windowClosed
+
+  // Une alerte WhatsApp a-t-elle DÉJÀ RÉELLEMENT été émise pour ce contact récemment ?
+  // (marqueur alert_sent=true posé plus bas UNIQUEMENT après un envoi réussi). Throttle
+  // cross-invocation : un send_listings hors fenêtre = jusqu'à 6 échecs → 1 seule alerte.
+  let alreadyAlerted = false
+  if (row.contact_id) {
+    const since = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+    const { data: recent } = await admin.from('activity_events')
+      .select('id')
+      .eq('action', 'whatsapp_delivery_failed')
+      .eq('entity_id', row.contact_id)
+      .filter('metadata->>alert_sent', 'eq', 'true')
+      .gte('created_at', since)
+      .limit(1)
+    alreadyAlerted = !!(recent && recent.length)
+  }
+
+  // Envoi de l'alerte D'ABORD (si un agent vérifié existe et pas déjà alerté) → on
+  // connaît alors le VRAI résultat. Si l'envoi échoue, alert_sent reste false : l'échec
+  // suivant du lot ne sera PAS throttlé et retentera (jamais de silence sur un raté).
+  let alertSent = false
+  if (row.contact_id && row.agency_id && !alreadyAlerted) {
+    const { data: link } = await admin
+      .from('whatsapp_agent_links')
+      .select('wa_number')
+      .eq('agency_id', row.agency_id)
+      .eq('verified', true)
+      .limit(1)
+      .maybeSingle()
+    const waNumber = link?.wa_number ?? null
+    if (waNumber) {
+      let who = 'ton client'
+      const { data: c } = await admin.from('contacts')
+        .select('first_name, last_name').eq('id', row.contact_id).maybeSingle()
+      const name = c ? `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim() : ''
+      if (name) who = name
+      const reason = windowClosed
+        ? "sa fenêtre de 24h est fermée — il doit t'écrire d'abord"
+        : 'erreur de livraison WhatsApp'
+      const what = isPhoto ? 'Une photo envoyée à' : 'Ton message à'
+      const res = await sendWhatsAppText(provider, waNumber, `⚠️ ${what} ${who} n'a pas été délivré${isPhoto ? 'e' : ''} : ${reason}.`)
+      alertSent = res.ok
+    }
+  }
+
+  // Audit TOUJOURS (trail exhaustif), alert_sent = alerte réellement partie ou non.
   try {
     await admin.from('activity_events').insert({
       agency_id: row.agency_id,
@@ -626,29 +709,9 @@ async function notifyDeliveryFailure(
       entity_id: row.contact_id,
       category: 'contact',
       severity: 'warn',
-      metadata: { code: u.errorCode },
+      metadata: { code: u.errorCode, media_type: row.media_type, alert_sent: alertSent },
     })
   } catch { /* non bloquant */ }
-
-  if (!row.contact_id || !row.agency_id) return
-  const { data: link } = await admin
-    .from('whatsapp_agent_links')
-    .select('wa_number')
-    .eq('agency_id', row.agency_id)
-    .eq('verified', true)
-    .limit(1)
-    .maybeSingle()
-  if (!link?.wa_number) return
-
-  let who = 'ton client'
-  const { data: c } = await admin.from('contacts')
-    .select('first_name, last_name').eq('id', row.contact_id).maybeSingle()
-  const name = c ? `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim() : ''
-  if (name) who = name
-  const reason = u.errorCode === 131047
-    ? "sa fenêtre de 24h est fermée — il doit t'écrire d'abord"
-    : 'erreur de livraison WhatsApp'
-  await sendWhatsAppText(provider, link.wa_number, `⚠️ Ton message à ${who} n'a pas été délivré : ${reason}.`)
 }
 
 // Accusé de lecture (coches bleues) + « typing… » optionnel. Best-effort, Meta only
@@ -842,27 +905,71 @@ async function executePending(
     return executeRecordOffer(ctx, pending.args)
   }
   if (pending.tool === 'send_listings') {
-    // Payload figé au stash (validé + formaté) : { contact_id, phone, text }. On envoie tel quel.
+    // Payload figé au stash (validé + formaté) : { contact_id, phone, text, images }. On envoie tel quel.
     if (!agentLink.agency_id) return t(lang, 'noAgencySend')
     const phone = String(pending.args.phone ?? '').replace(/\D/g, '')
     const text = String(pending.args.text ?? '')
     if (!phone || !text) return t(lang, 'selectionIncomplete')
+    const contactId = String(pending.args.contact_id ?? '') || null
+    const waFrom = Deno.env.get('META_PHONE_NUMBER_ID') ?? 'megga'
     const sent = await sendWhatsAppText(provider, phone, text)
-    if (!sent) return t(lang, 'sendFail24h')
-    // Persiste le message client envoyé (fil + corpus de voix). Idempotent, non bloquant.
-    await admin.from('whatsapp_messages').upsert({
+    if (!sent.ok) return t(lang, 'sendFail24h')
+    // Persiste le texte envoyé avec son id provider RÉEL (repli local si le parse n'en
+    // rend pas) : c'est lui qui rattache les statuses Meta (delivered/read/failed) à la
+    // ligne — avec un id local, un échec 131047 resterait muet. On AWAIT (au lieu de
+    // fire-and-forget) : la ligne existe avant que les events statuses n'arrivent (fenêtre
+    // de course réduite) et un échec DB est LOGGÉ, plus avalé. Idempotent, non bloquant.
+    const persist = async (
+      row: Record<string, unknown>, label: string,
+    ): Promise<void> => {
+      try {
+        const { error } = await admin.from('whatsapp_messages')
+          .upsert(row, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
+        if (error) console.error(`send_listings ${label} persist failed:`, error.message.slice(0, 120))
+      } catch (e) { console.error(`send_listings ${label} persist threw:`, (e as Error)?.name ?? 'error') }
+    }
+    await persist({
       provider: provider.name,
-      provider_message_id: `local-listings-${String(pending.args.contact_id ?? '')}-${Date.now()}`,
-      direction: 'outbound', wa_from: Deno.env.get('META_PHONE_NUMBER_ID') ?? 'megga',
-      wa_to: phone, contact_id: String(pending.args.contact_id ?? '') || null,
+      provider_message_id: sent.providerMessageId ?? `local-listings-${contactId ?? 'x'}-${Date.now()}`,
+      direction: 'outbound', wa_from: waFrom,
+      wa_to: phone, contact_id: contactId,
       agency_id: agentLink.agency_id, body: text, status: 'received', is_agent_error: false,
-    }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
+    }, 'text')
+    // Photos : la 1re de chaque bien, en messages image après le texte. Best-effort au
+    // sens où le texte est déjà parti — mais PAS muet : on compte les tentatives réelles
+    // (imagesAttempted) vs les succès (photosSent) et on le dit à l'agent si l'écart
+    // existe (WYSIWYG : le prompt annonçait « +N photos »). Re-garde https à l'exécution
+    // (défense en profondeur) : jamais d'URL non-https relayée à Meta.
+    let photosSent = 0
+    let imagesAttempted = 0
+    const images = Array.isArray(pending.args.images) ? (pending.args.images as Array<Record<string, unknown>>).slice(0, 5) : []
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i]
+      const url = typeof img.url === 'string' && img.url.startsWith('https://') ? img.url : null
+      if (!url) continue
+      imagesAttempted++
+      const caption = typeof img.caption === 'string' ? img.caption.slice(0, 300) : undefined
+      const ires = await sendWhatsAppImage(provider, phone, url, caption)
+      if (!ires.ok) { console.error('send_listings photo failed:', url.slice(0, 120)); continue }
+      photosSent++
+      // Chaque image persistée avec son id provider → visible dans le fil client et
+      // couverte par la même boucle de statuts/alerte que le texte.
+      await persist({
+        provider: provider.name,
+        provider_message_id: ires.providerMessageId ?? `local-listings-img-${contactId ?? 'x'}-${Date.now()}-${i}`,
+        direction: 'outbound', wa_from: waFrom,
+        wa_to: phone, contact_id: contactId,
+        agency_id: agentLink.agency_id, body: caption ?? null,
+        media_type: 'image', media_url: url,
+        status: 'received', is_agent_error: false,
+      }, 'photo')
+    }
     try {
       await admin.from('activity_events').insert({
         agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
         action: 'whatsapp_ai_send_listings', entity_type: 'contact',
-        entity_id: String(pending.args.contact_id ?? '') || null, category: 'contact',
-        severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id },
+        entity_id: contactId, category: 'contact',
+        severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id, photos_sent: photosSent, photos_attempted: imagesAttempted },
       })
     } catch { /* non bloquant */ }
     // Capture sent_at : un vrai dossier vient de partir → marquer les matches
@@ -884,6 +991,15 @@ async function executePending(
           .or(`property_id.in.${inList},market_listing_id.in.${inList}`)
       }
     } catch { /* non bloquant */ }
+    // Retour honnête à l'agent : si des photos annoncées n'ont pas pu partir (Meta a
+    // rejeté le lien, réseau, ou provider sans image), on le DIT — jamais « tout envoyé »
+    // en silence (invariant « aucun échec d'envoi muet », ici au niveau requête).
+    if (imagesAttempted > 0 && photosSent < imagesAttempted) {
+      const missing = imagesAttempted - photosSent
+      return lang === 'en'
+        ? `✅ Text sent to the client — but ${missing}/${imagesAttempted} photo${imagesAttempted > 1 ? 's' : ''} couldn't go through (only the text arrived).`
+        : `✅ Texte envoyé au client — mais ${missing}/${imagesAttempted} photo${imagesAttempted > 1 ? 's' : ''} n'${missing > 1 ? 'ont' : 'a'} pas pu partir (seul le texte est arrivé).`
+    }
     return t(lang, 'listingsSent')
   }
   if (pending.tool === 'open_kyc_case') {

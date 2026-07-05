@@ -197,7 +197,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'send_listings',
-      description: "Envoie une sélection de biens à un client par WhatsApp. Pour « envoie à Sarah ses meilleures correspondances », « envoie ces biens à Dubois ». Sans listing_ids, prend automatiquement les meilleures correspondances du contact. Appelle directement l'outil.",
+      description: "Envoie une sélection de biens à un client par WhatsApp (texte + première photo de chaque bien quand elle existe). Pour « envoie à Sarah ses meilleures correspondances », « envoie ces biens à Dubois ». Sans listing_ids, prend automatiquement les meilleures correspondances du contact. Appelle directement l'outil.",
       parameters: {
         type: 'object',
         properties: {

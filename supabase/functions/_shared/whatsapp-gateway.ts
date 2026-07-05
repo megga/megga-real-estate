@@ -33,6 +33,12 @@ export interface OutboundDocumentMessage {
   caption?: string      // légende optionnelle
 }
 
+export interface OutboundImageMessage {
+  toPhone: string       // digits only, international sans +
+  link: string          // URL https publique (photo R2) — Meta la télécharge, pas d'upload
+  caption?: string      // légende optionnelle
+}
+
 export interface SendConfig {
   // Meta Cloud API
   metaToken?: string
@@ -77,6 +83,8 @@ export interface WhatsAppProvider {
   buildMarkReadRequest?(messageId: string, config: SendConfig, opts?: { typing?: boolean }): SendHttpRequest
   // Envoi d'un document (PDF) déjà uploadé en média. Optionnel : Meta uniquement.
   buildSendDocumentRequest?(msg: OutboundDocumentMessage, config: SendConfig): SendHttpRequest
+  // Envoi d'une image par URL publique (photo R2). Optionnel : Meta uniquement.
+  buildSendImageRequest?(msg: OutboundImageMessage, config: SendConfig): SendHttpRequest
   // Events `statuses` (sent/delivered/read/failed) d'un webhook. Optionnel : Meta
   // uniquement (le proto OpenWA n'en émet pas). Renvoie [] si le payload n'en a aucun.
   parseStatusUpdates?(payload: unknown): StatusUpdate[]
@@ -296,6 +304,28 @@ class MetaProvider implements WhatsAppProvider {
         to: msg.toPhone,
         type: 'document',
         document,
+      }),
+    }
+  }
+
+  // Image par lien (pas d'upload préalable : Meta télécharge l'URL, qui doit être
+  // publique — nos photos R2 le sont). Même squelette que buildSendDocumentRequest.
+  buildSendImageRequest(msg: OutboundImageMessage, config: SendConfig): SendHttpRequest {
+    const apiVersion = config.metaApiVersion ?? 'v22.0'
+    const image: Record<string, unknown> = { link: msg.link }
+    if (msg.caption) image.caption = msg.caption
+    return {
+      url: `https://graph.facebook.com/${apiVersion}/${config.metaPhoneNumberId}/messages`,
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + config.metaToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: msg.toPhone,
+        type: 'image',
+        image,
       }),
     }
   }

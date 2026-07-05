@@ -55,6 +55,7 @@ export async function fetchClientVoiceSamples(
       .eq('sent_by_profile_id', opts.profileId)
       .not('contact_id', 'is', null)
       .not('body', 'is', null)
+      .is('media_type', null) // exclut les légendes de photos (send_listings) : ce corpus vise le TON, pas des lignes « Titre — prix »
       .order('created_at', { ascending: false })
       .limit(limit)
     const perAgent = toSamples(data)
@@ -68,6 +69,7 @@ export async function fetchClientVoiceSamples(
     .eq('direction', 'outbound')
     .not('contact_id', 'is', null)
     .not('body', 'is', null)
+    .is('media_type', null) // idem : les légendes de send_listings ne doivent pas polluer le corpus de voix
     .order('created_at', { ascending: false })
     .limit(limit)
   return toSamples(data)

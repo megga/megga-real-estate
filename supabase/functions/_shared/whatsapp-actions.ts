@@ -24,6 +24,7 @@ import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from './agent-style.ts'
+import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -795,11 +796,15 @@ type ListingRow = {
   surface_m2: number | null; city: string | null; source_url?: string | null
 }
 
-function formatListing(l: ListingRow, lang: WaLang = 'fr'): string {
+function listingPriceLabel(l: ListingRow, lang: WaLang): string {
   const amount = l.transaction_type === 'rent' ? (l.rent_chf ?? l.rent ?? l.price ?? 0) : (l.price ?? 0)
   const perMonth = lang === 'en' ? '/mo' : '/mois'
   const onReq = lang === 'en' ? 'price on request' : 'prix sur demande'
-  const price = amount ? (l.transaction_type === 'rent' ? `${fmtCHF(amount)}${perMonth}` : fmtCHF(amount)) : onReq
+  return amount ? (l.transaction_type === 'rent' ? `${fmtCHF(amount)}${perMonth}` : fmtCHF(amount)) : onReq
+}
+
+function formatListing(l: ListingRow, lang: WaLang = 'fr'): string {
+  const price = listingPriceLabel(l, lang)
   const roomsU = lang === 'en' ? 'rm' : 'p.'
   const facts = [l.rooms ? `${l.rooms} ${roomsU}` : null, l.surface_m2 ? `${Math.round(l.surface_m2)} m²` : null, l.city]
     .filter(Boolean).join(' · ')
@@ -835,16 +840,43 @@ export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prep
   }
   if (!ids.length) return { ok: false, error: lang === 'en' ? 'No listing to send (run matching first, or specify the listings).' : "Aucun bien à envoyer (lance d'abord le matching, ou précise les biens)." }
 
+  // Texte + photos : la 1re photo de chaque bien part en message image (lien R2,
+  // légende = titre + prix pour rattacher la photo à sa ligne). Un bien sans photo
+  // n'empêche rien : il reste dans le texte, simplement sans image.
+  // On n'envoie QUE des photos que NOUS hébergeons : le repli source tiers (URL d'annonce
+  // Flatfox non vérifiée) est écarté, jamais relayé au client sous l'identité WhatsApp de
+  // l'agence. Hôtes autorisés : R2 (img.megga.ch) + Storage Supabase (staging des uploads
+  // agents, utilisé tel quel quand le miroir R2 a échoué). Sans env → https seul (repli).
+  const allowedHosts: string[] = []
+  for (const base of [Deno.env.get('R2_PUBLIC_BASE'), Deno.env.get('SUPABASE_URL')]) {
+    if (base) { try { allowedHosts.push(new URL(base).host) } catch { /* ignore */ } }
+  }
+  const requireHost = allowedHosts.length ? allowedHosts : null
   const lines: string[] = []
+  const images: Array<{ url: string; caption: string }> = []
+  const pushImage = (row: ListingRow & ListingPhotoRow) => {
+    const url = firstListingPhotoUrl(row, { requireHost })
+    if (!url) return
+    const title = row.title ?? (lang === 'en' ? 'Property' : 'Bien')
+    images.push({ url, caption: `${title} — ${listingPriceLabel(row, lang)}` })
+  }
   for (const id of ids.slice(0, 5)) {
     const { data: ml } = await ctx.supabase.from('market_listings')
-      .select('title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, source_url')
+      .select('title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, source_url, photos_cf, photos')
       .eq('id', id).maybeSingle()
-    if (ml) { lines.push(formatListing(ml as unknown as ListingRow, lang)); continue }
+    if (ml) {
+      const row = ml as unknown as ListingRow & ListingPhotoRow
+      lines.push(formatListing(row, lang)); pushImage(row); continue
+    }
+    // properties porte AUSSI photos_cf (miroir R2, migration 20260620130000) → on le
+    // charge pour préférer la variante detail 1200px, comme pour market_listings.
     const { data: pr } = await ctx.supabase.from('properties')
-      .select('title, transaction_type, price, rooms, surface_m2, city')
+      .select('title, transaction_type, price, rooms, surface_m2, city, photos_cf, photos')
       .eq('id', id).eq('agency_id', ctx.agencyId).maybeSingle()
-    if (pr) lines.push(formatListing(pr as unknown as ListingRow, lang))
+    if (pr) {
+      const row = pr as unknown as ListingRow & ListingPhotoRow
+      lines.push(formatListing(row, lang)); pushImage(row)
+    }
   }
   if (!lines.length) return { ok: false, error: lang === 'en' ? 'The specified listings were not found.' : 'Les biens indiqués sont introuvables.' }
 
@@ -856,12 +888,23 @@ export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prep
     ? `${hi}\n\nHere is a selection that might interest you:\n\n${lines.join('\n\n')}\n\nLet me know if you'd like to visit any of these.`
     : `${hi}\n\nVoici une sélection qui pourrait vous intéresser :\n\n${lines.join('\n\n')}\n\nDites-moi si vous souhaitez visiter l'un de ces biens.`
   const who = contact.first_name ?? (lang === 'en' ? 'this client' : 'ce client')
+  // WYSIWYG : les photos ne sont pas prévisualisables en texte → on les ANNONCE
+  // dans le prompt de confirmation (jamais une surprise pour l'agent). Le libellé est
+  // fidèle à la distribution : si tous les biens n'ont pas de photo exploitable, on dit
+  // « N des M biens » plutôt que « chaque bien » (sinon l'agent croit chaque bien illustré).
+  const partial = images.length < lines.length
+  const nPhotos = `${images.length} photo${images.length > 1 ? 's' : ''}`
+  const photoNote = images.length
+    ? (lang === 'en'
+        ? `\n\n(+ ${nPhotos} — ${partial ? `first photo of ${images.length} of the ${lines.length} listings` : 'the first of each listing'})`
+        : `\n\n(+ ${nPhotos} — ${partial ? `la première de ${images.length} des ${lines.length} biens` : 'la première de chaque bien'})`)
+    : ''
   const prompt = lang === 'en'
-    ? `Here's what I'd send to ${who}:\n\n${text}\n\nSend it? ("yes" / "no")`
-    : `Voici ce que je propose d'envoyer à ${who} :\n\n${text}\n\nJ'envoie ? (« oui » / « non »)`
+    ? `Here's what I'd send to ${who}:\n\n${text}${photoNote}\n\nSend it? ("yes" / "no")`
+    : `Voici ce que je propose d'envoyer à ${who} :\n\n${text}${photoNote}\n\nJ'envoie ? (« oui » / « non »)`
   // listing_ids figés dans le payload → permettent, à l'envoi confirmé, de marquer
   // les matches correspondants comme 'sent' (capture de sent_at, instrumentation).
-  return { ok: true, prompt, payload: { contact_id: contactId, phone: contact.phone.replace(/\D/g, ''), text, listing_ids: ids.slice(0, 5) } }
+  return { ok: true, prompt, payload: { contact_id: contactId, phone: contact.phone.replace(/\D/g, ''), text, listing_ids: ids.slice(0, 5), images } }
 }
 
 /** Valide + prépare l'enregistrement d'une offre (crm_offers). Le montant est figé au « oui ». */
