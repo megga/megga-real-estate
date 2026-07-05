@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkMetaToken, tokenDaysMetric, tokenNeedsAlert } from '../_shared/whatsapp-token.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
+import { evaluateAndSendAlerts } from '../_shared/admin-alerts.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -160,6 +161,18 @@ serve(async (req) => {
     } catch (e) { console.error('whatsapp token check failed:', (e as Error)?.name ?? 'error') }
 
     await supabaseAdmin.from('platform_metrics').insert(metrics)
+
+    // ── Alerting proactif (P3) — seuils app_config, dédup 24h, email aux
+    // admins allowlistés. Best-effort : ne casse jamais la collecte.
+    try {
+      await evaluateAndSendAlerts(supabaseAdmin, {
+        errorCount24h: errorCount.count ?? 0,
+        flatfoxLastSeen,
+        now,
+      })
+    } catch (e) {
+      console.error('[admin-monitoring] alerting failed:', (e as Error)?.message)
+    }
 
     return new Response(JSON.stringify({
       success: true,
