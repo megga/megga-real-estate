@@ -41,11 +41,12 @@ export function ctFmtCHF(n: number | null | undefined): string {
   return 'CHF ' + n
 }
 
-export type SegmentId = 'all' | 'buyer' | 'seller' | 'tenant' | 'hot' | 'kyc' | 'stale'
+export type SegmentId = 'all' | 'to_qualify' | 'buyer' | 'seller' | 'tenant' | 'hot' | 'kyc' | 'stale'
 
 // labelKey traduit chez le consommateur : t(seg.labelKey).
 export const CT_SEGMENTS: { id: SegmentId; labelKey: string }[] = [
   { id: 'all', labelKey: 'contacts:segments.all' },
+  { id: 'to_qualify', labelKey: 'contacts:segments.toQualify' }, // leads à compléter (triage WhatsApp + qualif auto)
   { id: 'buyer', labelKey: 'contacts:segments.buyer' },
   { id: 'seller', labelKey: 'contacts:segments.seller' },
   { id: 'tenant', labelKey: 'contacts:segments.tenant' },

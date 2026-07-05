@@ -37,6 +37,7 @@ function toKind(action: string, category: string | null): NotifKind {
   if (/mandate|mandat|sign|compromis/.test(a)) return 'mandat'
   if (/document|\bdoc\b/.test(a) || category === 'doc') return 'doc'
   if (/team|invite|member|équipe|equipe/.test(a)) return 'team'
+  if (/prospect|lead/.test(a)) return 'ai'
   if (/\bai\b|copilot|relance/.test(a) || category === 'ai') return 'ai'
   if (category === 'deal') return 'offre'
   return 'system'
@@ -69,6 +70,7 @@ function relTime(iso: string): string {
 
 const ACTION_TITLES: Record<string, string> = {
   seller_offer_decision: 'Décision du vendeur sur une offre',
+  whatsapp_inbound_lead_created: 'Nouveau prospect WhatsApp',
 }
 
 function titleFor(ev: RawEvent): string {
