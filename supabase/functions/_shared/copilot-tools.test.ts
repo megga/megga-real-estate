@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { COPILOT_TOOLS, SHARED_READ_TOOLS, webToolTier, COPILOT_TOOLS_BLOCK } from './copilot-tools'
+import {
+  COPILOT_TOOLS, SHARED_READ_TOOLS, SHARED_WRITE_TOOLS, webToolTier, COPILOT_TOOLS_BLOCK,
+  copilotTools, copilotToolsBlock,
+} from './copilot-tools'
 import { toolTier } from './whatsapp-agent-router'
 
 describe('catalogue copilote web — invariant lecture seule', () => {
@@ -62,8 +65,41 @@ describe('COPILOT_TOOLS — composition du catalogue', () => {
 })
 
 describe('COPILOT_TOOLS_BLOCK', () => {
-  it('rappelle la lecture seule et l\'absence d\'écriture', () => {
-    expect(COPILOT_TOOLS_BLOCK).toMatch(/LECTURE/)
+  it('mode lecture seule (compat) : annonce l\'absence d\'écriture', () => {
     expect(COPILOT_TOOLS_BLOCK).toMatch(/aucun outil d'écriture/i)
+  })
+})
+
+describe('écritures gated (Phase 4a)', () => {
+  it('copilotTools(false) = lecture seule, aucun outil d\'écriture', () => {
+    const names = copilotTools(false).map((t) => t.function.name)
+    for (const w of SHARED_WRITE_TOOLS) expect(names).not.toContain(w)
+    // équivaut au catalogue read-only historique
+    expect(names.sort()).toEqual(COPILOT_TOOLS.map((t) => t.function.name).sort())
+  })
+
+  it('copilotTools(true) ajoute create_reminder + add_note (et RIEN d\'autre en écriture)', () => {
+    const names = copilotTools(true).map((t) => t.function.name)
+    expect(names).toContain('create_reminder')
+    expect(names).toContain('add_note')
+    // aucun outil d'envoi client ne s'y glisse
+    for (const forbidden of ['send_client_message', 'send_client_email', 'update_pipeline', 'record_offer', 'send_listings']) {
+      expect(names).not.toContain(forbidden)
+    }
+  })
+
+  it('les outils d\'écriture v1 sont bien tier auto (jamais read ni confirm)', () => {
+    for (const w of SHARED_WRITE_TOOLS) expect(webToolTier(w)).toBe('auto')
+  })
+
+  it('copilotToolsBlock(true) autorise les 2 écritures et interdit l\'envoi client', () => {
+    const b = copilotToolsBlock(true)
+    expect(b).toMatch(/create_reminder/)
+    expect(b).toMatch(/add_note/)
+    expect(b).toMatch(/ne contactes JAMAIS un client/i)
+  })
+
+  it('copilotToolsBlock(false) reste lecture seule', () => {
+    expect(copilotToolsBlock(false)).toMatch(/aucun outil d'écriture/i)
   })
 })

@@ -140,10 +140,13 @@ export type LoopMessage = Record<string, unknown>
 export interface AgentLoopDeps {
   /** Un appel modèle. `withTools=false` force la passe finale (tool_choice none). */
   callModel: (messages: LoopMessage[], withTools: boolean) => Promise<ModelTurn | null>
-  /** Exécute un outil read ; renvoie le texte role:'tool'. Ne jette jamais (géré ici en défense). */
+  /** Exécute un outil autorisé ; renvoie le texte role:'tool'. Ne jette jamais (géré ici en défense). */
   runTool: (name: string, args: Record<string, unknown>) => Promise<string>
-  /** Tier de l'outil ('read' attendu ; tout autre tier est refusé en v1 web). */
+  /** Tier de l'outil ('read' toujours OK ; 'auto' OK si allowWrites ; le reste refusé). */
   tierOf: (name: string) => string
+  /** Autorise l'exécution du tier 'auto' (écritures internes réversibles). Défaut false
+   *  = lecture seule stricte. Les tiers 'confirm'/'slow_async'/inconnu sont TOUJOURS refusés. */
+  allowWrites?: boolean
   emit: (ev: LoopEvent) => void
   maxTurns?: number
   maxToolCalls?: number
@@ -162,7 +165,7 @@ export interface AgentLoopResult {
 }
 
 const REFUSED_TOOL_MSG =
-  "Outil non disponible dans le copilote web (lecture seule en v1). Réponds avec ce que tu as, ou explique à l'agent comment faire l'action dans le CRM."
+  "Cet outil n'est pas exécutable ici (envoi client ou action sensible réservée à une validation). Réponds avec ce que tu as, ou explique à l'agent comment le faire dans le CRM."
 
 export async function runAgentLoop(deps: AgentLoopDeps, baseMessages: LoopMessage[]): Promise<AgentLoopResult> {
   const maxTurns = deps.maxTurns ?? 5
@@ -222,9 +225,11 @@ export async function runAgentLoop(deps: AgentLoopDeps, baseMessages: LoopMessag
       try { args = JSON.parse(call.arguments || '{}') } catch { /* args vides */ }
 
       const tier = deps.tierOf(call.name)
-      // v1 web : LECTURE SEULE. Tout tier ≠ read (fail-safe : inconnu = confirm)
-      // est refusé dans la boucle — jamais exécuté, jamais silencieux.
-      if (tier !== 'read') {
+      // Périmètre d'exécution : 'read' toujours ; 'auto' si allowWrites (écritures
+      // internes réversibles). 'confirm'/'slow_async'/inconnu (fail-safe) TOUJOURS
+      // refusés — un envoi client n'est JAMAIS exécuté dans la boucle.
+      const allowed = tier === 'read' || (tier === 'auto' && deps.allowWrites === true)
+      if (!allowed) {
         toolsUsed.push({ name: call.name, ok: false })
         messages.push({ role: 'tool', tool_call_id: call.id, content: REFUSED_TOOL_MSG })
         continue

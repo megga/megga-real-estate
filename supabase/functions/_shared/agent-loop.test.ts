@@ -136,6 +136,52 @@ describe('runAgentLoop', () => {
     expect(res.text).toBe('ok')
   })
 
+  it('tier auto EXÉCUTÉ quand allowWrites:true (écriture interne)', async () => {
+    const calls: ModelTurn[] = [
+      turn('', [{ id: 'c1', name: 'create_reminder', arguments: '{"body":"relance","due_at":"2026-07-10T09:00:00Z"}' }]),
+      turn('Rappel créé.'),
+    ]
+    let i = 0
+    const runTool = vi.fn(async () => 'Rappel noté.')
+    const tierOf = (n: string) => (n === 'create_reminder' ? 'auto' : 'read')
+    const res = await runAgentLoop({
+      callModel: async () => calls[i++], runTool, tierOf, allowWrites: true, emit: () => {},
+    }, [{ role: 'user', content: 'rappelle-moi vendredi' }])
+    expect(runTool).toHaveBeenCalledTimes(1)
+    expect(res.toolsUsed).toEqual([{ name: 'create_reminder', ok: true }])
+    expect(res.text).toBe('Rappel créé.')
+  })
+
+  it('tier auto REFUSÉ sans allowWrites (défaut lecture seule)', async () => {
+    const calls: ModelTurn[] = [
+      turn('', [{ id: 'c1', name: 'add_note', arguments: '{}' }]),
+      turn('Je ne peux pas écrire, voici le contenu.'),
+    ]
+    let i = 0
+    const runTool = vi.fn(async () => 'NE_DOIT_PAS_TOURNER')
+    const tierOf = (n: string) => (n === 'add_note' ? 'auto' : 'read')
+    const res = await runAgentLoop({
+      callModel: async () => calls[i++], runTool, tierOf, emit: () => {}, // allowWrites absent
+    }, [{ role: 'user', content: 'ajoute une note' }])
+    expect(runTool).not.toHaveBeenCalled()
+    expect(res.toolsUsed).toEqual([{ name: 'add_note', ok: false }])
+  })
+
+  it('tier confirm TOUJOURS refusé, même avec allowWrites (envoi client jamais exécuté)', async () => {
+    const calls: ModelTurn[] = [
+      turn('', [{ id: 'c1', name: 'send_client_message', arguments: '{}' }]),
+      turn('Voici le brouillon à valider.'),
+    ]
+    let i = 0
+    const runTool = vi.fn(async () => 'NE_DOIT_JAMAIS_TOURNER')
+    const tierOf = (n: string) => (n === 'send_client_message' ? 'confirm' : 'read')
+    const res = await runAgentLoop({
+      callModel: async () => calls[i++], runTool, tierOf, allowWrites: true, emit: () => {},
+    }, [{ role: 'user', content: 'envoie un message' }])
+    expect(runTool).not.toHaveBeenCalled()
+    expect(res.toolsUsed).toEqual([{ name: 'send_client_message', ok: false }])
+  })
+
   it('erreur modèle au 1er appel → degraded model_error', async () => {
     const res = await runAgentLoop({
       callModel: async () => null, runTool: async () => '', tierOf: READ, emit: () => {},

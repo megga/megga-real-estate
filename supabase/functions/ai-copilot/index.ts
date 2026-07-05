@@ -31,8 +31,11 @@ import {
   runAgentLoop, SseDecoder, StreamAssembler,
   type LoopEvent, type LoopMessage, type ModelTurn, type StreamEvent,
 } from '../_shared/agent-loop.ts'
-import { COPILOT_TOOLS, COPILOT_TOOLS_BLOCK, webToolTier } from '../_shared/copilot-tools.ts'
-import { execSuggestPrioritiesToday, execGetAnalyticsSnapshot, execGetMarketStats, type WebToolCtx } from '../_shared/copilot-actions.ts'
+import { copilotTools, copilotToolsBlock, webToolTier, type DeepSeekTool } from '../_shared/copilot-tools.ts'
+import {
+  execSuggestPrioritiesToday, execGetAnalyticsSnapshot, execGetMarketStats,
+  execWebCreateReminder, execWebAddNote, type WebToolCtx,
+} from '../_shared/copilot-actions.ts'
 import {
   execGetMyAgenda, execSearchContacts, execGetContactBrief, execListFollowups,
   execGetMatches, execGetDailyBrief, execSearchListings, execGetKycStatus,
@@ -291,7 +294,7 @@ Sois factuel et base-toi uniquement sur le contenu du message.`,
 // ─── Appel modèle (streaming SSE DeepSeek, assemblage pur) ───────────────────
 function makeCallModel(opts: {
   apiKey: string
-  tools: boolean
+  tools: DeepSeekTool[] | null
   responseFormat?: 'json_object'
   wantStream: boolean
   emit: (ev: StreamEvent) => void
@@ -305,7 +308,7 @@ function makeCallModel(opts: {
       stream_options: { include_usage: true },
     }
     if (opts.tools) {
-      body.tools = COPILOT_TOOLS
+      body.tools = opts.tools
       body.tool_choice = withTools ? 'auto' : 'none'
     }
     if (opts.responseFormat) body.response_format = { type: opts.responseFormat }
@@ -364,6 +367,10 @@ function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx) {
       case 'suggest_priorities_today': return execSuggestPrioritiesToday(webCtx, args)
       case 'get_analytics_snapshot': return execGetAnalyticsSnapshot(webCtx, args)
       case 'get_market_stats': return execGetMarketStats(webCtx, args)
+      // Écritures auto (Phase 4a) — exécutées seulement si la boucle l'autorise
+      // (allowWrites) ; le tier 'auto' garde ce filet même si un tool était nommé.
+      case 'create_reminder': return execWebCreateReminder(webCtx, args)
+      case 'add_note': return execWebAddNote(webCtx, args)
       default: return `Outil inconnu: ${name}`
     }
   }
@@ -408,11 +415,12 @@ async function buildSystemPrompt(params: {
   auth: AgentAuthContext
   language: string
   toolsOn: boolean
+  writesOn: boolean
 }): Promise<string> {
-  const { auth, language, toolsOn } = params
+  const { auth, language, toolsOn, writesOn } = params
   let systemPrompt = MEGGA_SYSTEM
   systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
-  if (toolsOn) systemPrompt += COPILOT_TOOLS_BLOCK
+  if (toolsOn) systemPrompt += copilotToolsBlock(writesOn)
 
   // Ancrage temporel : indispensable pour résoudre « demain », « cette semaine »
   // en ISO 8601 (get_my_agenda) et dater correctement les réponses.
@@ -632,17 +640,22 @@ serve(async (req: Request) => {
     const red = redactCopilotRequest({ message: message || '', context, history })
 
     // ── Outils CRM (Phase 1) : flag kill-switch, OFF par défaut (clé absente).
-    // detect_intent reste un one-shot JSON strict, sans outils.
+    // detect_intent reste un one-shot JSON strict, sans outils. Les ÉCRITURES
+    // (Phase 4a : create_reminder/add_note, tier 'auto') exigent un 2e flag
+    // copilot_writes_enabled ET les outils actifs. Jamais d'envoi client.
     let toolsOn = false
+    let writesOn = false
     if (action !== 'detect_intent') {
       try {
-        const { data: flag } = await auth.supabase
-          .from('app_config').select('value').eq('key', 'copilot_tools_enabled').maybeSingle()
-        toolsOn = flag?.value === 'true'
-      } catch { toolsOn = false }
+        const { data: flags } = await auth.supabase
+          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled'])
+        const val = (k: string) => flags?.find((f) => f.key === k)?.value
+        toolsOn = val('copilot_tools_enabled') === 'true'
+        writesOn = toolsOn && val('copilot_writes_enabled') === 'true'
+      } catch { toolsOn = false; writesOn = false }
     }
 
-    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn })
+    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn })
 
     // ── Savoir métier vérifié (Phase 2) : retrieval déterministe de snippets
     // juridiques suisses SOURCÉS + DATÉS, injectés selon l'intent. Gated par
@@ -711,10 +724,12 @@ serve(async (req: Request) => {
       let degraded: string | undefined
 
       if (toolsOn) {
+        const catalog = copilotTools(writesOn)
         const res = await runAgentLoop({
-          callModel: makeCallModel({ apiKey: deepseekApiKey, tools: true, wantStream: stream, emit }),
+          callModel: makeCallModel({ apiKey: deepseekApiKey, tools: catalog, wantStream: stream, emit }),
           runTool,
           tierOf: webToolTier,
+          allowWrites: writesOn,
           emit,
           maxTurns: MAX_TURNS,
           maxToolCalls: MAX_TOOL_CALLS,
@@ -728,7 +743,7 @@ serve(async (req: Request) => {
       } else {
         const turn = await makeCallModel({
           apiKey: deepseekApiKey,
-          tools: false,
+          tools: null,
           responseFormat: action === 'detect_intent' ? 'json_object' : undefined,
           wantStream: stream,
           emit,

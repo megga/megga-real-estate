@@ -33,6 +33,77 @@ const numArg = (v: unknown): number | null => {
 }
 const strArg = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
 
+// ─── Écritures internes réversibles (Phase 4a) — exécuteurs WEB NATIFS ────────
+// Réécrits ici (et non réutilisés depuis whatsapp-actions) pour ZÉRO couplage au
+// canal WhatsApp : pas de hint « /annuler », pas de table d'undo WhatsApp, audit
+// marqué via='web'. Sécurité identique aux exécuteurs WhatsApp : service-role
+// scopé par agency_id AU SQL, refus si pas d'agence. Aucun envoi client.
+
+function frDateTime(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat('fr-CH', {
+      dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Zurich',
+    }).format(new Date(iso))
+  } catch { return iso }
+}
+
+/** Écrit une note dans la timeline d'un contact (activity_events, actor_kind='ai'). */
+export async function execWebAddNote(ctx: WebToolCtx, a: Args): Promise<string> {
+  if (!ctx.agencyId) return "Erreur: aucun compte d'agence."
+  const contactId = strArg(a.contact_id), body = strArg(a.body)
+  if (!contactId || !body) return 'Erreur: contact_id (via search_contacts) et body requis.'
+  const { data: c } = await ctx.supabase
+    .from('contacts').select('id, first_name').eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (!c) return 'Erreur: contact introuvable dans votre agence.'
+  const { error } = await ctx.supabase.from('activity_events').insert({
+    agency_id: ctx.agencyId,
+    actor_id: null,           // contrainte : actor_id NULL si actor_kind != 'user'
+    actor_kind: 'ai',
+    action: 'Note ajoutée',
+    entity_type: 'contact',
+    entity_id: contactId,
+    object_label: body.slice(0, 500),
+    category: 'contact',
+    severity: 'info',
+    metadata: { via: 'web', profile_id: ctx.profileId },
+  })
+  if (error) return "Erreur: impossible d'enregistrer la note."
+  const who = (c.first_name ?? '').trim() || 'ce contact'
+  const extrait = body.length > 80 ? `${body.slice(0, 80)}…` : body
+  return `Note ajoutée à la fiche de ${who} : « ${extrait} ». (Tu peux la retrouver dans sa timeline.)`
+}
+
+/** Crée un rappel/tâche interne (reminders, type custom). N'envoie rien au client. */
+export async function execWebCreateReminder(ctx: WebToolCtx, a: Args): Promise<string> {
+  if (!ctx.agencyId) return "Erreur: aucun compte d'agence."
+  const body = strArg(a.body), when = strArg(a.due_at)
+  if (!body) return "Erreur: objet du rappel (body) requis."
+  if (!when || !Number.isFinite(Date.parse(when))) return 'Erreur: date du rappel (due_at, ISO 8601) requise.'
+  const contactId = strArg(a.contact_id)
+  if (contactId) {
+    const { data: c } = await ctx.supabase
+      .from('contacts').select('id').eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+    if (!c) return 'Erreur: contact introuvable dans votre agence.'
+  }
+  const iso = new Date(when).toISOString()
+  const { data: reminder, error } = await ctx.supabase.from('reminders').insert({
+    agency_id: ctx.agencyId, contact_id: contactId,
+    type: 'custom', trigger_rule: 'manual', status: 'pending', channel: 'task',
+    trigger_at: iso, message_template: body.slice(0, 500),
+  }).select('id').single()
+  if (error) return `Erreur rappel: ${error.message}`
+  // Audit timeline si lié à un contact (cohérent avec add_note).
+  if (contactId) {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'Rappel créé', entity_type: 'contact', entity_id: contactId,
+      object_label: `${body.slice(0, 120)} (${frDateTime(iso)})`, category: 'contact', severity: 'info',
+      metadata: { via: 'web', profile_id: ctx.profileId, reminder_id: reminder.id },
+    })
+  }
+  return `Rappel noté pour le ${frDateTime(iso)} : « ${body.slice(0, 120)} ». (Visible et modifiable dans ton agenda / tes rappels.)`
+}
+
 // ─── suggest_priorities_today ────────────────────────────────────────────────
 // File Focus réelle (RPC focus_top_matches, agence dérivée du JWT) + rappels du
 // jour. Sortie compacte JSON : le modèle rédige, il n'invente rien.
