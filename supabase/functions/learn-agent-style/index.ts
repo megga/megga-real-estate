@@ -42,8 +42,11 @@ serve(async (req) => {
     const waNumber = (link.wa_number as string) ?? ''
     if (!waNumber) continue
     // Messages ENTRANTS de l'agent (son style), récents.
+    // is_agent_error=false : no-op sur l'entrant (le flag ne marque que le SORTANT en échec)
+    // mais requis pour que le planner utilise l'index partiel idx_wa_messages_wafrom_created.
     const { data: msgs } = await admin.from('whatsapp_messages')
       .select('body').eq('wa_from', waNumber).eq('direction', 'inbound')
+      .eq('is_agent_error', false)
       .not('body', 'is', null).order('created_at', { ascending: false }).limit(SAMPLE)
     const texts = (msgs ?? []).map((m) => (m.body as string)).filter((b) => b && b.trim().length > 1)
     if (texts.length < MIN_MSGS) continue
