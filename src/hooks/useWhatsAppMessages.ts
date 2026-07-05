@@ -28,13 +28,17 @@ export function useWhatsAppMessages(contactId: string | undefined) {
     enabled: !!contactId,
     staleTime: 30_000,
     queryFn: async (): Promise<WhatsAppMessageRow[]> => {
+      // Les 50 messages les PLUS RÉCENTS (index contact_id, created_at DESC), pas tout le fil :
+      // un contact actif peut avoir des centaines de messages, transcript OCR jusqu'à 6 Ko/ligne.
+      // On ré-ordonne ensuite du plus ancien au plus récent pour l'affichage timeline.
       const { data, error } = await supabase
         .from('whatsapp_messages')
         .select('id, created_at, direction, wa_from, wa_to, body, media_type, media_url, status, delivery_error, wa_timestamp, transcript, transcript_lang, processing_status')
         .eq('contact_id', contactId!)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
+        .limit(50)
       if (error) throw error
-      return (data ?? []) as WhatsAppMessageRow[]
+      return ((data ?? []) as WhatsAppMessageRow[]).reverse()
     },
   })
 }

@@ -45,6 +45,29 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
+const LOCK_JOB = 'whatsapp-process'
+const LOCK_TTL_MS = 120_000  // > BUDGET_MS : filet anti-crash ; le release explicite libère avant.
+
+/** Lease atomique en base (anti-chevauchement du cron, cf. migration 20260705130000).
+ *  Décroche le verrou par UPDATE conditionnel (locked_until < now). Fail-open si l'infra de
+ *  verrou est absente/en erreur (disponibilité > optimisation anti-chevauchement). */
+async function claimProcessLock(admin: SupabaseClient): Promise<boolean> {
+  const { data, error } = await admin.from('whatsapp_cron_locks')
+    .update({ locked_until: new Date(Date.now() + LOCK_TTL_MS).toISOString() })
+    .eq('job', LOCK_JOB)
+    .lt('locked_until', new Date().toISOString())
+    .select('job')
+  if (error) { console.error('cron lock claim error (fail-open):', error.message.slice(0, 120)); return true }
+  return !!(data && data.length > 0)
+}
+/** Relâche le lease (best-effort). Le TTL couvre les crashs. */
+async function releaseProcessLock(admin: SupabaseClient): Promise<void> {
+  await admin.from('whatsapp_cron_locks')
+    .update({ locked_until: new Date(Date.now() - 1000).toISOString() })
+    .eq('job', LOCK_JOB)
+    .then(() => {}, () => {})
+}
+
 serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
@@ -60,6 +83,10 @@ serve(async (req) => {
 
   // Kill-switch : coupé → on rend la main sans rien traiter (média/insight/avis).
   if (!(await isWhatsAppEnabled(admin))) return json({ ok: true, disabled: true }, 200)
+
+  // Anti-chevauchement : on ne traite que si on décroche le lease (le budget 90s dépasse
+  // l'intervalle cron 60s → sinon deux instances tourneraient en parallèle). Sinon main rendue.
+  if (!(await claimProcessLock(admin))) return json({ ok: true, skipped: 'locked' }, 200)
 
   const t0 = Date.now()
   const overBudget = () => Date.now() - t0 > BUDGET_MS
@@ -80,7 +107,7 @@ serve(async (req) => {
 
   // ── Phase 1 : média + transcription (file durable, reprise sur échec). ──
   const { data: jobs, error } = await admin.rpc('claim_whatsapp_jobs', { p_batch: BATCH })
-  if (error) return json({ error: error.message }, 500)
+  if (error) { await releaseProcessLock(admin); return json({ error: error.message }, 500) }
 
   let done = 0, failed = 0
   for (const m of (jobs ?? []) as Array<Record<string, unknown>>) {
@@ -223,6 +250,7 @@ serve(async (req) => {
     }
   } catch (e) { console.error('L3 purge failed:', (e as Error)?.name ?? 'error') }
 
+  await releaseProcessLock(admin)
   return json({ ok: true, claimed: (jobs ?? []).length, done, failed, insights, notices }, 200)
 })
 

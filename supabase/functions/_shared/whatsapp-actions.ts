@@ -113,13 +113,23 @@ export async function execCreateContact(ctx: ActionCtx, a: Args): Promise<string
   const phone = s(a.phone), email = s(a.email), last = s(a.last_name)
 
   // Dédup (anti-doublon sur messages concurrents / répétés) : si un contact de
-  // l'agence a déjà ce téléphone ou cet email, on ne recrée pas.
+  // l'agence a déjà ce téléphone ou cet email, on ne recrée pas. Sans .or() interpolé
+  // (phone/email viennent des args DeepSeek) : deux lookups .eq() PARAMÉTRÉS, jamais de
+  // chaîne de filtre construite à la main → aucune injection PostgREST possible.
   if (phone || email) {
-    let dq = ctx.supabase.from('contacts').select('id, first_name, last_name').eq('agency_id', ctx.agencyId)
-    if (phone && email) dq = dq.or(`phone.eq.${phone},email.eq.${email}`)
-    else if (phone) dq = dq.eq('phone', phone)
-    else if (email) dq = dq.eq('email', email)
-    const { data: existing } = await dq.limit(1).maybeSingle()
+    let existing: { id: string; first_name: string | null; last_name: string | null } | null = null
+    if (phone) {
+      const { data } = await ctx.supabase.from('contacts')
+        .select('id, first_name, last_name').eq('agency_id', ctx.agencyId)
+        .eq('phone', phone).limit(1).maybeSingle()
+      existing = data
+    }
+    if (!existing && email) {
+      const { data } = await ctx.supabase.from('contacts')
+        .select('id, first_name, last_name').eq('agency_id', ctx.agencyId)
+        .eq('email', email).limit(1).maybeSingle()
+      existing = data
+    }
     if (existing) {
       return `Un contact existe déjà (${existing.first_name ?? ''} ${existing.last_name ?? ''}, id ${existing.id}). Je ne l’ai pas recréé.`
     }
