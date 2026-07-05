@@ -452,11 +452,19 @@ function JulienConversation({ s, dark, prevScreen, firstName, resumeId }: Julien
       await sendMessageStream(
         text,
         undefined,
-        chunk => {
-          acc += chunk
-          setMessages(prev => prev.map(m =>
-            m.id === lid ? { ...m, content: acc } : m,
-          ))
+        {
+          onDelta: chunk => {
+            acc += chunk
+            setMessages(prev => prev.map(m => m.id === lid ? { ...m, content: acc } : m))
+          },
+          onReset: () => {
+            acc = ''
+            setMessages(prev => prev.map(m => m.id === lid ? { ...m, content: '' } : m))
+          },
+          onFinal: finalText => {
+            acc = finalText
+            setMessages(prev => prev.map(m => m.id === lid ? { ...m, content: finalText } : m))
+          },
         },
       )
       setMessages(prev => prev.map(m =>
