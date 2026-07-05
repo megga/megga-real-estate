@@ -423,6 +423,9 @@ verify_jwt = false
 [functions.learn-agent-style]
 verify_jwt = false
 
+[functions.whatsapp-morning-brief]
+verify_jwt = false
+
 # E-signature : sign-document s'authentifie en interne (requireAgentAuth) ;
 # esign-webhook est public, l'authenticité du callback = couple (sr, token) dans
 # l'URL, vérifié à temps constant.
