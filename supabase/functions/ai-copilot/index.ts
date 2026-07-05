@@ -40,6 +40,7 @@ import {
   execGetMyAgenda, execSearchContacts, execGetContactBrief, execListFollowups,
   execGetMatches, execGetDailyBrief, execSearchListings, execGetKycStatus,
   execGetPublicationStatus, execPrepareMeeting,
+  execCreateProperty, execUpdateProperty, execDraftListingCopy,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 
@@ -371,6 +372,12 @@ function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx) {
       // (allowWrites) ; le tier 'auto' garde ce filet même si un tool était nommé.
       case 'create_reminder': return execWebCreateReminder(webCtx, args)
       case 'add_note': return execWebAddNote(webCtx, args)
+      // Annonce : rédaction (read) + montage du bien (auto). Exécuteurs partagés
+      // WhatsApp, scopés agence au SQL, audités via='web'. La boucle n'exécute
+      // create_property/update_property (auto) que si les écritures sont autorisées.
+      case 'draft_listing_copy': return execDraftListingCopy(actionCtx, args)
+      case 'create_property': return execCreateProperty(actionCtx, args)
+      case 'update_property': return execUpdateProperty(actionCtx, args)
       default: return `Outil inconnu: ${name}`
     }
   }
@@ -701,6 +708,7 @@ serve(async (req: Request) => {
       profileId: auth.user.id,
       agencyId: auth.profile.agency_id,
       lang: language === 'en' ? 'en' : 'fr',
+      via: 'web',
     }
     const webCtx: WebToolCtx = {
       supabase: auth.supabase,

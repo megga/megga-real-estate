@@ -35,6 +35,9 @@ export interface ActionCtx {
   inboundMedia?: { mediaId: string; messageId: string; ocrText?: string | null } | null
   lang?: WaLang
   agentPhone?: string  // numéro WhatsApp de l'agent (pour lui renvoyer un document)
+  // Canal d'origine, pour l'audit activity_events (défaut 'whatsapp'). Le copilote
+  // web (ai-copilot) pose 'web' → les mêmes exécuteurs journalisent la bonne source.
+  via?: 'web' | 'whatsapp'
 }
 
 type Args = Record<string, unknown>
@@ -193,7 +196,7 @@ async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, 
     object_label: objectLabel.slice(0, 500),
     category: 'contact',
     severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId },
+    metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId },
   })
   if (error) { console.error('activity_events insert failed'); return false }
   return true
@@ -1249,7 +1252,7 @@ export async function execAttachKycDocument(ctx: ActionCtx, a: Args): Promise<st
     agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
     action: 'kyc_document_attached', entity_type: 'kyc_case', entity_id: kc.id,
     category: 'kyc', severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, category, document_id: docRow.id },
+    metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, category, document_id: docRow.id },
   })
   if (auditErr) console.error('kyc attach audit failed')
 
@@ -1375,7 +1378,7 @@ export async function executeSendKycLink(ctx: ActionCtx, payload: Args): Promise
   await ctx.supabase.from('activity_events').insert({
     agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
     action: 'kyc_link_sent', entity_type: 'kyc_case', entity_id: kycCaseId, category: 'kyc', severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, magic_link_id: inserted.id, email_sent: sent },
+    metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, magic_link_id: inserted.id, email_sent: sent },
   }).then(() => {}, () => {})
 
   if (sent) {
@@ -1578,7 +1581,7 @@ export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Pro
     agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
     action: 'whatsapp_ai_send_client_email', entity_type: 'contact', entity_id: contactId,
     category: 'contact', severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, email_sent: emailSent },
+    metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, email_sent: emailSent },
   }).then(() => {}, () => {})
 
   if (emailSent) {
@@ -2755,7 +2758,7 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_published_to_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', portals, profile_id: ctx.profileId },
     })
   } catch { /* non bloquant */ }
 
@@ -2818,7 +2821,7 @@ export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args):
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_withdrawn_from_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', portals, profile_id: ctx.profileId },
     })
   } catch { /* non bloquant */ }
 
@@ -2964,7 +2967,7 @@ export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_photo_added', entity_type: 'property', entity_id: p.id, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId },
     })
   } catch { /* non bloquant */ }
 
@@ -3104,7 +3107,7 @@ export async function execUpdateProperty(ctx: ActionCtx, a: Args): Promise<strin
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_updated', entity_type: 'property', entity_id: p.id, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(patch).filter((k) => k !== 'updated_at') },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(patch).filter((k) => k !== 'updated_at') },
     })
   } catch { /* non bloquant */ }
 
@@ -3151,7 +3154,7 @@ export async function execCreateProperty(ctx: ActionCtx, a: Args): Promise<strin
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_created', entity_type: 'property', entity_id: created.id, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(fields) },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(fields) },
     })
   } catch { /* non bloquant */ }
 
@@ -3160,9 +3163,10 @@ export async function execCreateProperty(ctx: ActionCtx, a: Args): Promise<strin
   const titlePrefix = lang === 'en' ? 'title ' : 'titre '
   const details = applied.filter((x) => !x.startsWith(titlePrefix)).join(', ')
   const note = notes.length ? ' ' + notes.join(' ') : ''
+  const web = ctx.via === 'web'
   const tail = lang === 'en'
-    ? ' Send me photos or say "publish it" when ready.'
-    : ' Envoie-moi des photos ou dis « publie-le » quand c\'est prêt.'
+    ? (web ? ' Add the photos from the property sheet, then say "publish it" when ready.' : ' Send me photos or say "publish it" when ready.')
+    : (web ? ' Ajoutez les photos depuis la fiche du bien, puis dites « publie-le » quand c\'est prêt.' : ' Envoie-moi des photos ou dis « publie-le » quand c\'est prêt.')
   return (lang === 'en'
     ? `Draft created: "${created.title}"${details ? ` (${details})` : ''}.`
     : `Brouillon créé : « ${created.title} »${details ? ` (${details})` : ''}.`) + note + tail

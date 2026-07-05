@@ -137,6 +137,27 @@ export interface ModelTurn {
 
 export type LoopMessage = Record<string, unknown>
 
+/** Action confirm-tier PRÉPARÉE, en attente de validation humaine (carte HITL web). */
+export interface PendingAction {
+  tool: string
+  kind: string   // 'publish' | 'withdraw'
+  payload: Record<string, unknown>
+  preview: string
+  title?: string | null
+}
+
+/** Résultat de la préparation d'une action confirm : aperçu déterministe + charge figée. */
+export interface PrepareConfirmResult {
+  ok: boolean
+  kind?: string
+  payload?: Record<string, unknown>
+  preview?: string
+  title?: string | null
+  /** Message role:'tool' réinjecté au modèle après la préparation (sinon défaut). */
+  toolMessage?: string
+  error?: string
+}
+
 export interface AgentLoopDeps {
   /** Un appel modèle. `withTools=false` force la passe finale (tool_choice none). */
   callModel: (messages: LoopMessage[], withTools: boolean) => Promise<ModelTurn | null>
@@ -147,6 +168,11 @@ export interface AgentLoopDeps {
   /** Autorise l'exécution du tier 'auto' (écritures internes réversibles). Défaut false
    *  = lecture seule stricte. Les tiers 'confirm'/'slow_async'/inconnu sont TOUJOURS refusés. */
   allowWrites?: boolean
+  /** Si fourni, un tier 'confirm' n'est plus refusé sèchement : il est PRÉPARÉ (aperçu +
+   *  charge figée) et renvoyé comme action EN ATTENTE (carte de validation web) — jamais
+   *  exécuté dans la boucle. UNE seule action confirm par tour est stashée ; les suivantes
+   *  sont refusées. Sans ce dep, le tier confirm reste refusé (comportement historique). */
+  prepareConfirm?: (name: string, args: Record<string, unknown>) => Promise<PrepareConfirmResult>
   emit: (ev: LoopEvent) => void
   maxTurns?: number
   maxToolCalls?: number
@@ -162,10 +188,15 @@ export interface AgentLoopResult {
   usage: { input: number; output: number }
   /** Renseigné si la boucle a dégradé (budget/tours épuisés, erreur modèle). */
   degraded?: 'model_error' | 'budget' | 'exhausted'
+  /** Action confirm préparée en attente de validation de l'agent (0 ou 1 par tour). */
+  pending?: PendingAction
 }
 
 const REFUSED_TOOL_MSG =
   "Cet outil n'est pas exécutable ici (envoi client ou action sensible réservée à une validation). Réponds avec ce que tu as, ou explique à l'agent comment le faire dans le CRM."
+
+const PENDING_PREPARED_MSG =
+  "Action préparée : une carte de validation vient d'être affichée à l'agent. Ne prétends PAS que c'est fait — invite-le à valider (ou annuler) dans le panneau. N'appelle pas d'autre outil de publication ce tour-ci."
 
 export async function runAgentLoop(deps: AgentLoopDeps, baseMessages: LoopMessage[]): Promise<AgentLoopResult> {
   const maxTurns = deps.maxTurns ?? 5
@@ -180,6 +211,8 @@ export async function runAgentLoop(deps: AgentLoopDeps, baseMessages: LoopMessag
   const usage = { input: 0, output: 0 }
   const resultCache = new Map<string, string>() // dédup outil identique (F4 WhatsApp)
   let toolCallsUsed = 0
+  // Action confirm préparée ce tour (0 ou 1) : surfacée au HITL web, jamais exécutée ici.
+  let pending: PendingAction | undefined
 
   const addUsage = (u?: { prompt_tokens?: number; completion_tokens?: number }) => {
     usage.input += u?.prompt_tokens ?? 0
@@ -191,9 +224,9 @@ export async function runAgentLoop(deps: AgentLoopDeps, baseMessages: LoopMessag
     const forced = await deps.callModel(messages, false)
     addUsage(forced?.usage)
     if (forced?.content) {
-      return { text: forced.content, emitted: forced.emitted, toolsUsed, usage, degraded: reason }
+      return { text: forced.content, emitted: forced.emitted, toolsUsed, usage, degraded: reason, pending }
     }
-    return { text: '', emitted: false, toolsUsed, usage, degraded: reason }
+    return { text: '', emitted: false, toolsUsed, usage, degraded: reason, pending }
   }
 
   for (let turn = 0; turn < maxTurns; turn++) {
@@ -204,7 +237,7 @@ export async function runAgentLoop(deps: AgentLoopDeps, baseMessages: LoopMessag
     addUsage(resp.usage)
 
     if (!resp.toolCalls.length) {
-      return { text: resp.content, emitted: resp.emitted, toolsUsed, usage }
+      return { text: resp.content, emitted: resp.emitted, toolsUsed, usage, pending }
     }
 
     // Ré-empile le message assistant AVEC ses tool_calls (ids garantis — F11).
@@ -225,6 +258,37 @@ export async function runAgentLoop(deps: AgentLoopDeps, baseMessages: LoopMessag
       try { args = JSON.parse(call.arguments || '{}') } catch { /* args vides */ }
 
       const tier = deps.tierOf(call.name)
+      // Tier 'confirm' + prepareConfirm fourni → on PRÉPARE l'action (aperçu + charge
+      // figée) et on la surface au HITL, au lieu de l'exécuter (jamais dans la boucle)
+      // ou de la refuser sèchement. UNE seule par tour : la 2e est refusée.
+      if (tier === 'confirm' && deps.prepareConfirm) {
+        if (pending) {
+          toolsUsed.push({ name: call.name, ok: false })
+          messages.push({ role: 'tool', tool_call_id: call.id, content: PENDING_PREPARED_MSG })
+          continue
+        }
+        let prep: PrepareConfirmResult
+        try {
+          prep = await deps.prepareConfirm(call.name, args)
+        } catch (e) {
+          prep = { ok: false, error: `Erreur préparation: ${(e as Error)?.message ?? 'inconnue'}` }
+        }
+        if (prep.ok && prep.preview) {
+          pending = {
+            tool: call.name,
+            kind: prep.kind ?? 'confirm',
+            payload: prep.payload ?? {},
+            preview: prep.preview,
+            title: prep.title ?? null,
+          }
+          toolsUsed.push({ name: call.name, ok: true })
+          messages.push({ role: 'tool', tool_call_id: call.id, content: prep.toolMessage ?? PENDING_PREPARED_MSG })
+        } else {
+          toolsUsed.push({ name: call.name, ok: false })
+          messages.push({ role: 'tool', tool_call_id: call.id, content: prep.error ?? REFUSED_TOOL_MSG })
+        }
+        continue
+      }
       // Périmètre d'exécution : 'read' toujours ; 'auto' si allowWrites (écritures
       // internes réversibles). 'confirm'/'slow_async'/inconnu (fail-safe) TOUJOURS
       // refusés — un envoi client n'est JAMAIS exécuté dans la boucle.

@@ -78,12 +78,15 @@ describe('écritures gated (Phase 4a)', () => {
     expect(names.sort()).toEqual(COPILOT_TOOLS.map((t) => t.function.name).sort())
   })
 
-  it('copilotTools(true) ajoute create_reminder + add_note (et RIEN d\'autre en écriture)', () => {
+  it('copilotTools(true) ajoute les écritures internes (rappel/note + montage de bien) et AUCUN envoi/publication', () => {
     const names = copilotTools(true).map((t) => t.function.name)
     expect(names).toContain('create_reminder')
     expect(names).toContain('add_note')
-    // aucun outil d'envoi client ne s'y glisse
-    for (const forbidden of ['send_client_message', 'send_client_email', 'update_pipeline', 'record_offer', 'send_listings']) {
+    expect(names).toContain('create_property')
+    expect(names).toContain('update_property')
+    // aucun outil d'envoi client NI de publication externe ne s'y glisse (la
+    // publication est confirm-tier, gated à part, jamais dans ce catalogue d'écritures)
+    for (const forbidden of ['send_client_message', 'send_client_email', 'update_pipeline', 'record_offer', 'send_listings', 'publish_to_portals', 'withdraw_from_portals']) {
       expect(names).not.toContain(forbidden)
     }
   })
@@ -101,5 +104,30 @@ describe('écritures gated (Phase 4a)', () => {
 
   it('copilotToolsBlock(false) reste lecture seule', () => {
     expect(copilotToolsBlock(false)).toMatch(/aucun outil d'écriture/i)
+  })
+})
+
+describe('montage d\'annonce (Phase B — publication depuis le copilote CRM)', () => {
+  it('draft_listing_copy est READ : présent même en lecture seule', () => {
+    expect(webToolTier('draft_listing_copy')).toBe('read')
+    expect(copilotTools(false).map((t) => t.function.name)).toContain('draft_listing_copy')
+  })
+
+  it('create_property / update_property sont AUTO : absents en read-only, présents sous écritures', () => {
+    const ro = copilotTools(false).map((t) => t.function.name)
+    const rw = copilotTools(true).map((t) => t.function.name)
+    for (const tool of ['create_property', 'update_property']) {
+      expect(webToolTier(tool), `${tool} doit être auto`).toBe('auto')
+      expect(ro, `${tool} ne doit PAS être exposé en lecture seule`).not.toContain(tool)
+      expect(rw, `${tool} doit être exposé sous écritures`).toContain(tool)
+    }
+  })
+
+  it('les descriptions web de create/update ne renvoient pas vers attach_property_photos (outil WhatsApp absent du web)', () => {
+    const rw = copilotTools(true)
+    for (const name of ['create_property', 'update_property']) {
+      const t = rw.find((x) => x.function.name === name)
+      expect(t?.function.description, `${name} description`).not.toContain('attach_property_photos')
+    }
   })
 })
