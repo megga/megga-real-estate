@@ -790,7 +790,9 @@ function fmtCHF(n: number): string {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export type Prepared =
-  | { ok: true; prompt: string; payload: Record<string, unknown> }
+  // preview/kind : renseignés par les prepare de publication pour la carte HITL web
+  // (aperçu déterministe de l'annonce + type d'action) ; ignorés par le canal WhatsApp.
+  | { ok: true; prompt: string; payload: Record<string, unknown>; preview?: string; kind?: string }
   | { ok: false; error: string }
 
 type ListingRow = {
@@ -2687,7 +2689,7 @@ export async function preparePublishToPortals(ctx: ActionCtx, a: Args): Promise<
   const prompt = lang === 'en'
     ? `${preview}\n\nPublish this on ${names}? ("yes" / "no")`
     : `${preview}\n\nJe publie ça sur ${names} ? (« oui » / « non »)`
-  return { ok: true, prompt, payload: { property_id: p.id, portals, title } }
+  return { ok: true, prompt, payload: { property_id: p.id, portals, title }, preview, kind: 'publish' }
 }
 
 // Déclenche le push FTP du feed tout de suite (au lieu d'attendre le cron 05h30).
@@ -2798,10 +2800,13 @@ export async function prepareWithdrawFromPortals(ctx: ActionCtx, a: Args): Promi
   }
 
   const names = targets.map(portalLabel).join(', ')
+  const preview = lang === 'en'
+    ? `Withdraw "${title}" from ${names}.`
+    : `Retirer « ${title} » de ${names}.`
   const prompt = lang === 'en'
     ? `I'll withdraw "${title}" from ${names}. Confirm? ("yes" / "no")`
     : `Je retire « ${title} » de ${names}. Tu confirmes ? (« oui » / « non »)`
-  return { ok: true, prompt, payload: { property_id: p.id, portals: targets, title } }
+  return { ok: true, prompt, payload: { property_id: p.id, portals: targets, title }, preview, kind: 'withdraw' }
 }
 
 /** Post-« oui » : passe les lignes ciblées en status='withdrawn' (sortent du feed). */

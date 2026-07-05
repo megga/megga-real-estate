@@ -30,6 +30,7 @@ import { buildBriefSnapshot, type BriefFocusRow } from '../_shared/daily-brief.t
 import {
   runAgentLoop, SseDecoder, StreamAssembler,
   type LoopEvent, type LoopMessage, type ModelTurn, type StreamEvent,
+  type PendingAction, type PrepareConfirmResult,
 } from '../_shared/agent-loop.ts'
 import { copilotTools, copilotToolsBlock, webToolTier, type DeepSeekTool } from '../_shared/copilot-tools.ts'
 import {
@@ -41,7 +42,9 @@ import {
   execGetMatches, execGetDailyBrief, execSearchListings, execGetKycStatus,
   execGetPublicationStatus, execPrepareMeeting,
   execCreateProperty, execUpdateProperty, execDraftListingCopy,
-  type ActionCtx,
+  preparePublishToPortals, prepareWithdrawFromPortals,
+  executePublishToPortals, executeWithdrawFromPortals,
+  type ActionCtx, type Prepared,
 } from '../_shared/whatsapp-actions.ts'
 
 const corsHeaders = {
@@ -175,6 +178,7 @@ type CopilotAction =
   | 'analyze_market'
   | 'detect_intent'
   | 'daily_brief'
+  | 'execute_pending'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -189,6 +193,8 @@ interface CopilotRequest {
   language?: 'fr' | 'de' | 'en' | 'it'
   conversation_id?: string | null
   persist?: boolean
+  /** id de la carte copilot_pending_actions à exécuter (action execute_pending). */
+  pending_id?: string | null
   /** true = réponse SSE (tokens + phases d'outils). Absent = JSON (compat). */
   stream?: boolean
 }
@@ -383,6 +389,140 @@ function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx) {
   }
 }
 
+// ─── Publication (tier confirm) : préparation + stash HITL ────────────────────
+// Le tier 'confirm' (publish_to_portals / withdraw_from_portals) n'est JAMAIS exécuté
+// dans la boucle. Il est PRÉPARÉ ici (aperçu déterministe + charge figée), stashé dans
+// copilot_pending_actions, puis validé par l'agent via une carte (action execute_pending).
+
+/** Carte de validation renvoyée au panneau après stash (id DB + aperçu). */
+interface StashedPending { id: string; kind: string; title: string | null; portals: string[]; preview: string }
+
+/** Adapte les prepare de whatsapp-actions au contrat PrepareConfirmResult de la boucle. */
+function makePrepareConfirm(ctx: ActionCtx) {
+  return async (name: string, args: Record<string, unknown>): Promise<PrepareConfirmResult> => {
+    let prep: Prepared
+    if (name === 'publish_to_portals') prep = await preparePublishToPortals(ctx, args)
+    else if (name === 'withdraw_from_portals') prep = await prepareWithdrawFromPortals(ctx, args)
+    else return { ok: false, error: `Action non préparable ici : ${name}` }
+    if (!prep.ok) return { ok: false, error: prep.error }
+    // preview obligatoire pour la carte ; prepare de publication le fournit toujours.
+    if (!prep.preview) return { ok: false, error: "Aperçu indisponible pour cette action." }
+    return {
+      ok: true,
+      kind: prep.kind ?? 'confirm',
+      payload: prep.payload,
+      preview: prep.preview,
+      title: (typeof prep.payload.title === 'string' ? prep.payload.title : null),
+    }
+  }
+}
+
+/** Fige l'action confirm préparée dans copilot_pending_actions (1 par agent, TTL 15 min).
+ *  UPSERT sur user_id : une nouvelle proposition remplace une carte périmée. Renvoie la
+ *  carte (id + aperçu) à afficher, ou null si le stash échoue (pas de carte → l'agent
+ *  reformule). Best-effort : jamais bloquant pour la réponse. */
+async function stashPendingAction(
+  admin: SupabaseClient, userId: string, agencyId: string | null,
+  pending: PendingAction, lang: string,
+): Promise<StashedPending | null> {
+  const portals = Array.isArray(pending.payload.portals)
+    ? pending.payload.portals.filter((x): x is string => typeof x === 'string')
+    : []
+  try {
+    // Purge paresseuse des cartes expirées (table minuscule : ≤ 1 ligne/agent actif).
+    await admin.from('copilot_pending_actions').delete().lt('expires_at', new Date().toISOString())
+    const { data, error } = await admin.from('copilot_pending_actions').upsert({
+      user_id: userId,
+      agency_id: agencyId,
+      kind: pending.kind,
+      tool: pending.tool,
+      payload: { ...pending.payload, __lang: lang },
+      preview: pending.preview,
+      title: pending.title ?? null,
+      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    }, { onConflict: 'user_id' }).select('id').single()
+    if (error || !data) return null
+    return { id: data.id as string, kind: pending.kind, title: pending.title ?? null, portals, preview: pending.preview }
+  } catch {
+    return null
+  }
+}
+
+// ─── Exécution d'une action confirm validée par l'agent (execute_pending) ─────
+// Appelé quand l'agent clique « Publier » / « Retirer » sur la carte. Charge la ligne
+// copilot_pending_actions SCOPÉE à l'agent du JWT, la CONSOMME (delete atomique = usage
+// unique, anti double-clic), puis rejoue la charge figée via l'exécuteur partagé
+// (via='web'). Rien ne part au portail sans ce clic. Gated copilot_publish_enabled.
+async function handleExecutePending(params: {
+  auth: AgentAuthContext
+  pendingId: string
+  language: string
+}): Promise<Response> {
+  const { auth, pendingId, language } = params
+  const json = (obj: unknown, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+  // Re-vérifie le flag au moment de l'exécution (coupé entre préparer et valider = refus).
+  try {
+    const { data: flags } = await auth.supabase
+      .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_publish_enabled'])
+    const val = (k: string) => flags?.find((f) => f.key === k)?.value
+    if (val('copilot_tools_enabled') !== 'true' || val('copilot_publish_enabled') !== 'true') {
+      return json({ error: 'La publication est désactivée.' }, 403)
+    }
+  } catch {
+    return json({ error: 'Impossible de vérifier la configuration.' }, 500)
+  }
+
+  if (!pendingId || typeof pendingId !== 'string') return json({ error: 'pending_id requis.' }, 400)
+
+  // Consomme la carte ATOMIQUEMENT, scopée à l'agent (jamais un id forgé d'un autre agent).
+  const { data: rows, error: delErr } = await auth.supabase
+    .from('copilot_pending_actions')
+    .delete()
+    .eq('id', pendingId)
+    .eq('user_id', auth.user.id)
+    .select('kind, tool, payload, expires_at, agency_id')
+  if (delErr) return json({ error: "Impossible de lire l'action en attente." }, 500)
+  const row = Array.isArray(rows) ? rows[0] : null
+  if (!row) return json({ error: 'Action introuvable ou déjà traitée.' }, 404)
+  if (Date.parse(String(row.expires_at)) <= Date.now()) {
+    return json({ error: 'Cette action a expiré — relance la publication.' }, 410)
+  }
+
+  const payload = (row.payload ?? {}) as Record<string, unknown>
+  const lang = (typeof payload.__lang === 'string' ? payload.__lang : language) === 'en' ? 'en' : 'fr'
+  const ctx: ActionCtx = {
+    supabase: auth.supabase,
+    profileId: auth.user.id,
+    agencyId: auth.profile.agency_id,
+    lang,
+    via: 'web',
+  }
+
+  let result: string
+  try {
+    if (row.tool === 'publish_to_portals') result = await executePublishToPortals(ctx, payload)
+    else if (row.tool === 'withdraw_from_portals') result = await executeWithdrawFromPortals(ctx, payload)
+    else result = lang === 'en' ? 'Unknown action.' : 'Action inconnue.'
+  } catch (e) {
+    result = (lang === 'en' ? 'Action failed: ' : "Échec de l'action : ") + ((e as Error)?.message ?? 'inconnue')
+  }
+
+  // Audit copilote (l'exécuteur écrit déjà l'audit métier property_published_to_portal).
+  await logAiCopilotInteraction({
+    admin: auth.supabase,
+    agencyId: auth.profile.agency_id,
+    action: 'execute_pending',
+    context: {},
+    tokens: {},
+    success: true,
+    toolsUsed: [{ name: String(row.tool), ok: true }],
+  })
+
+  return json({ result })
+}
+
 // ─── Savoir métier vérifié : chargement + sélection déterministe ─────────────
 // Best-effort (jamais bloquant). Gated par app_config `copilot_knowledge_enabled`
 // (défaut OFF par absence). Fetch des snippets ACTIFS non-expirés (table minuscule,
@@ -423,11 +563,12 @@ async function buildSystemPrompt(params: {
   language: string
   toolsOn: boolean
   writesOn: boolean
+  publishOn: boolean
 }): Promise<string> {
-  const { auth, language, toolsOn, writesOn } = params
+  const { auth, language, toolsOn, writesOn, publishOn } = params
   let systemPrompt = MEGGA_SYSTEM
   systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
-  if (toolsOn) systemPrompt += copilotToolsBlock(writesOn)
+  if (toolsOn) systemPrompt += copilotToolsBlock(writesOn, publishOn)
 
   // Ancrage temporel : indispensable pour résoudre « demain », « cette semaine »
   // en ISO 8601 (get_my_agenda) et dater correctement les réponses.
@@ -642,6 +783,13 @@ serve(async (req: Request) => {
       return await handleDailyBrief({ auth, deepseekApiKey, language, token })
     }
 
+    // ── Exécution d'une action confirm VALIDÉE par l'agent (clic « Publier » / « Retirer »
+    // sur la carte). Consomme copilot_pending_actions (scopée à l'agent) et rejoue la
+    // charge figée via l'exécuteur de publication (via='web'). Gated copilot_publish_enabled.
+    if (action === 'execute_pending') {
+      return await handleExecutePending({ auth, pendingId: body.pending_id ?? '', language })
+    }
+
     // ── Rédaction PII (Phase 0) : identifiants sensibles masqués AVANT le LLM
     // (et avant la persistance). Le résumé des substitutions part dans l'audit.
     const red = redactCopilotRequest({ message: message || '', context, history })
@@ -652,17 +800,21 @@ serve(async (req: Request) => {
     // copilot_writes_enabled ET les outils actifs. Jamais d'envoi client.
     let toolsOn = false
     let writesOn = false
+    let publishOn = false
     if (action !== 'detect_intent') {
       try {
         const { data: flags } = await auth.supabase
-          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled'])
+          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled', 'copilot_publish_enabled'])
         const val = (k: string) => flags?.find((f) => f.key === k)?.value
         toolsOn = val('copilot_tools_enabled') === 'true'
         writesOn = toolsOn && val('copilot_writes_enabled') === 'true'
-      } catch { toolsOn = false; writesOn = false }
+        // Publication externe (immobilier.ch) : 3e flag, indépendant des écritures
+        // internes. Confirm-tier → jamais exécutée dans la boucle (validée par carte HITL).
+        publishOn = toolsOn && val('copilot_publish_enabled') === 'true'
+      } catch { toolsOn = false; writesOn = false; publishOn = false }
     }
 
-    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn })
+    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn, publishOn })
 
     // ── Savoir métier vérifié (Phase 2) : retrieval déterministe de snippets
     // juridiques suisses SOURCÉS + DATÉS, injectés selon l'intent. Gated par
@@ -725,19 +877,24 @@ serve(async (req: Request) => {
       conversationId: string | null
       toolsUsed: Array<{ name: string; ok: boolean }>
       degraded?: string
+      pending?: StashedPending | null
     }> => {
       let text = ''
       let usage = { input: 0, output: 0 }
       let toolsUsed: Array<{ name: string; ok: boolean }> = []
       let degraded: string | undefined
+      let pending: StashedPending | null = null
 
       if (toolsOn) {
-        const catalog = copilotTools(writesOn)
+        const catalog = copilotTools(writesOn, publishOn)
         const res = await runAgentLoop({
           callModel: makeCallModel({ apiKey: deepseekApiKey, tools: catalog, wantStream: stream, emit }),
           runTool,
           tierOf: webToolTier,
           allowWrites: writesOn,
+          // Publication (tier confirm) : préparée puis surfacée en carte HITL, jamais
+          // exécutée dans la boucle. Absent si la publication n'est pas activée.
+          prepareConfirm: publishOn ? makePrepareConfirm(actionCtx) : undefined,
           emit,
           maxTurns: MAX_TURNS,
           maxToolCalls: MAX_TOOL_CALLS,
@@ -748,6 +905,11 @@ serve(async (req: Request) => {
         toolsUsed = res.toolsUsed
         degraded = res.degraded
         if (!text && res.degraded === 'model_error') throw new Error('Le moteur IA est indisponible, réessayez.')
+        // Action confirm préparée → on la FIGE en base ; elle repartira au panneau
+        // comme carte de validation. Rien n'est publié tant que l'agent ne clique pas.
+        if (res.pending) {
+          pending = await stashPendingAction(auth.supabase, auth.user.id, auth.profile.agency_id, res.pending, actionCtx.lang ?? 'fr')
+        }
       } else {
         const turn = await makeCallModel({
           apiKey: deepseekApiKey,
@@ -804,7 +966,7 @@ serve(async (req: Request) => {
         })
       }
 
-      return { final, usage, conversationId, toolsUsed, degraded }
+      return { final, usage, conversationId, toolsUsed, degraded, pending }
     }
 
     // ── Mode SSE : tokens + phases d'outils en direct. ──────────────────────
@@ -818,6 +980,15 @@ serve(async (req: Request) => {
           void (async () => {
             try {
               const out = await runTurn((ev) => send(ev as unknown as Record<string, unknown>))
+              // Carte de validation (publication en attente) AVANT le done : le panneau
+              // ouvre la modale d'aperçu ; rien n'est publié sans le clic de l'agent.
+              if (out.pending) {
+                send({
+                  type: 'pending_action',
+                  id: out.pending.id, kind: out.pending.kind, title: out.pending.title,
+                  portals: out.pending.portals, preview: out.pending.preview,
+                })
+              }
               send({
                 type: 'done',
                 final: out.final,
@@ -850,6 +1021,10 @@ serve(async (req: Request) => {
         action,
         conversation_id: out.conversationId,
         usage: { input_tokens: out.usage.input, output_tokens: out.usage.output },
+        // Carte de validation (publication en attente) pour le repli JSON du panneau.
+        pending_action: out.pending
+          ? { id: out.pending.id, kind: out.pending.kind, title: out.pending.title, portals: out.pending.portals, preview: out.pending.preview }
+          : undefined,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
