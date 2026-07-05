@@ -172,4 +172,10 @@ describe('publication immobilier.ch (Phase C — confirm-tier gated)', () => {
     expect(both).toMatch(/create_property/)
     expect(both).toMatch(/PUBLICATION/i)
   })
+
+  it('publish SANS écritures : le bloc ne nomme PAS update_property (outil absent du catalogue)', () => {
+    // Revue adverse : sinon le prompt inviterait à un outil qu'il n'a pas.
+    expect(copilotToolsBlock(false, true)).not.toMatch(/update_property/)
+    expect(copilotToolsBlock(true, true)).toMatch(/update_property/)
+  })
 })
