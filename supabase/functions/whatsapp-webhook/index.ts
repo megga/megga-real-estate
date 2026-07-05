@@ -161,9 +161,13 @@ serve(async (req) => {
       // Anti-brute-force (P2 sécu) : un numéro non vérifié qui inonde le webhook tente de
       // deviner un code d'appairage en attente. Plafond par numéro source — au-delà de
       // PAIRING_GUESS_LIMIT messages entrants sur 15 min, on n'essaie plus l'appairage (le
-      // message retombe en branche client, jamais perdu). Requête couverte par
-      // idx_wa_messages_wafrom_created ; .limit() évite tout count:exact (CLAUDE.md §7).
-      // Combiné au code à 8 chiffres cryptographique, rend le brute-force en ligne infaisable.
+      // message retombe en branche client, jamais perdu). is_agent_error=false est un no-op
+      // sémantique ici (le flag ne marque QUE les réponses SORTANTES en échec, jamais un
+      // entrant) mais REQUIS pour que le planner utilise l'index partiel
+      // idx_wa_messages_wafrom_created (… WHERE wa_from IS NOT NULL AND is_agent_error=false) :
+      // sans cette égalité, le prédicat ne l'implique pas → seq scan (CLAUDE.md §7).
+      // .limit() évite tout count:exact. Combiné au code à 8 chiffres cryptographique,
+      // rend le brute-force en ligne infaisable.
       const PAIRING_GUESS_LIMIT = 10
       const guessSince = new Date(Date.now() - 15 * 60 * 1000).toISOString()
       const { data: recentGuesses } = await admin
@@ -171,6 +175,7 @@ serve(async (req) => {
         .select('id')
         .eq('wa_from', msg.fromPhone)
         .eq('direction', 'inbound')
+        .eq('is_agent_error', false)
         .gt('created_at', guessSince)
         .limit(PAIRING_GUESS_LIMIT + 1)
 

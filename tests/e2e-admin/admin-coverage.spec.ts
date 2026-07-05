@@ -34,8 +34,31 @@ test.describe('Super-admin — parametric route coverage', () => {
   for (const route of ADMIN_ROUTES) {
     test(`${route.label} (${route.path}) loads cleanly`, async ({ page }) => {
       const collector = collectConsoleErrors(page)
-      await page.goto(route.path)
-      await page.waitForLoadState('networkidle')
+      await page.goto(route.path) // waitUntil 'load' par défaut
+
+      // Attente de CONTENU d'abord (retour immédiat dès que le shell rend) :
+      // `networkidle` n'est pas fiable sur ces pages data-heavy (cf.
+      // agent-dashboard.spec.ts), donc on ne s'appuie pas dessus pour le rendu.
+      await expect
+        .poll(async () => (await page.locator('body').innerText()).length, {
+          timeout: 10_000,
+        })
+        .toBeGreaterThan(50)
+
+      // La route admin doit VRAIMENT rendre (pas se faire rediriger vers
+      // /dashboard par SuperAdminGuard). Garde la régression exacte qui faisait
+      // que la suite testait « Aujourd'hui » au lieu des pages admin.
+      expect(
+        page.url(),
+        `${route.path}: redirigé hors de /dashboard/admin (URL=${page.url()})`
+      ).toContain('/dashboard/admin')
+
+      // Laisse les requêtes data émettre d'éventuelles erreurs console avant de
+      // vérifier. `networkidle` borné (retour anticipé dès que le réseau est
+      // calme) — plafond court pour ne pas approcher le timeout de 30s du test.
+      await page
+        .waitForLoadState('networkidle', { timeout: 4_000 })
+        .catch(() => {})
 
       const bodyText = await page.locator('body').innerText()
       expect(

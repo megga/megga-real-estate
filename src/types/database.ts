@@ -6593,6 +6593,14 @@ export type Database = {
           sla_breached_open: number
         }[]
       }
+      get_agency_activity_summary: {
+        Args: { agency_ids: string[]; since_days?: number }
+        Returns: {
+          agency_id: string
+          event_count: number
+          last_activity_at: string
+        }[]
+      }
       get_agency_stats: {
         Args: { agency_ids: string[] }
         Returns: {
