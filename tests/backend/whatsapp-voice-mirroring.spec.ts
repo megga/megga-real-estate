@@ -94,6 +94,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
         provider_message_id: stampA1,
         provider: 'openwa',
         wa_from: 'test',
+        is_automated: false, // prose authored (explicite : batch mixte avec la ligne automated ci-dessous)
       },
       {
         agency_id: agencyAId,
@@ -103,6 +104,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
         provider_message_id: stampA2,
         provider: 'openwa',
         wa_from: 'test',
+        is_automated: false,
       },
       {
         agency_id: agencyAId,
@@ -112,6 +114,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
         provider_message_id: stampA3,
         provider: 'openwa',
         wa_from: 'test',
+        is_automated: false,
       },
       {
         // Sortant GÉNÉRÉ (send_listings) : is_automated=true → boilerplate, hors corpus de voix.
@@ -137,6 +140,7 @@ describe.skipIf(!HAS_KEYS)("fetchClientVoiceSamples — corpus scopé à l'age
         provider_message_id: stampB1,
         provider: 'openwa',
         wa_from: 'test',
+        is_automated: false,
       },
     ])
     if (insBErr) throw new Error(`insert agencyB message: ${insBErr.message}`)
