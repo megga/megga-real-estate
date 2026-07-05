@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkMetaToken, tokenDaysMetric, tokenNeedsAlert } from '../_shared/whatsapp-token.ts'
+import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
+import { evaluateAndSendAlerts } from '../_shared/admin-alerts.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,17 +40,10 @@ serve(async (req) => {
     const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     const isServiceKey = svcKey !== '' && token === svcKey
     if (jwtRole !== 'service_role' && !isServiceKey) {
-      // Interactive call from dashboard — verify the user is super_admin
-      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-      if (authError || !user) throw new Error('Unauthorized')
-
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.role !== 'super_admin') throw new Error('Forbidden')
+      // Interactive call from dashboard — super_admin : rôle + allowlist email
+      // + AAL2 (voir _shared/require-super-admin.ts, migration 20260705160000)
+      const auth = await requireSuperAdmin(req, corsHeaders)
+      if (auth instanceof Response) return auth
     }
 
     // ── Collect metrics ──
@@ -166,6 +161,18 @@ serve(async (req) => {
     } catch (e) { console.error('whatsapp token check failed:', (e as Error)?.name ?? 'error') }
 
     await supabaseAdmin.from('platform_metrics').insert(metrics)
+
+    // ── Alerting proactif (P3) — seuils app_config, dédup 24h, email aux
+    // admins allowlistés. Best-effort : ne casse jamais la collecte.
+    try {
+      await evaluateAndSendAlerts(supabaseAdmin, {
+        errorCount24h: errorCount.count ?? 0,
+        flatfoxLastSeen,
+        now,
+      })
+    } catch (e) {
+      console.error('[admin-monitoring] alerting failed:', (e as Error)?.message)
+    }
 
     return new Response(JSON.stringify({
       success: true,

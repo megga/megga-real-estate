@@ -31,6 +31,16 @@ export async function setupTwoAgencies(): Promise<TwoAgenciesSetup> {
   const emailB = `agent-b-${stamp}@megga-test.local`
   const service = serviceRoleClient()
 
+  // Allowlist super-admin (migration 20260705160000) : les specs promeuvent des
+  // users @megga-test.local en super_admin. La clé super_admin_test_domain
+  // (écrivable par service_role seulement ; domaine .local non routable) fait
+  // passer ces comptes par super_admin_allowlist_match. Idempotent, jamais
+  // nettoyée (partagée entre fichiers de specs qui tournent en parallèle).
+  const { error: cfgErr } = await service
+    .from('app_config')
+    .upsert({ key: 'super_admin_test_domain', value: '@megga-test.local' }, { onConflict: 'key' })
+  if (cfgErr) throw new Error(`app_config super_admin_test_domain: ${cfgErr.message}`)
+
   // 2 agencies
   const { data: agencyA, error: errA } = await service
     .from('agencies')

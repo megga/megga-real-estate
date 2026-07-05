@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Mail, Phone, Building2, Clock, Eye } from 'lucide-react'
+import { X, Mail, Phone, Building2, Clock, Eye, FileDown, Ban, KeyRound, Trash2 } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
-import { useAdminUsers, useUserActivity } from '@/hooks/useAdminUsers'
+import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
+import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
 import { useImpersonate } from '@/hooks/useImpersonate'
+import { useToast } from '@/components/ui/Toast'
 
 const ROLE_OPTIONS = [
   { value: 'super_admin', i18nKey: 'common.role.superAdmin' },
@@ -50,6 +52,9 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
   const { startImpersonate } = useImpersonate()
+  const dsarExport = useDsarExport()
+  const { lifecycle, deleteAccount } = useAdminUserLifecycle()
+  const toast = useToast()
 
   const user = users.find(u => u.id === userId)
   const focusTrapRef = useFocusTrap(true)
@@ -103,6 +108,9 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
               <UserAvatar name={user.full_name ?? 'Utilisateur'} avatarUrl={user.avatar_url} />
               <h2 className="text-lg font-semibold text-theme-primary mt-3">
                 {user.full_name ?? t('common.noName')}
+                {user.is_suspended && (
+                  <span className="ml-2 text-xs font-medium text-red-500">{t('common.status.suspended')}</span>
+                )}
               </h2>
               <p className="text-sm text-theme-secondary mt-0.5">{user.email}</p>
             </div>
@@ -179,8 +187,10 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
             {/* Impersonate button */}
             <button
-              onClick={() => {
-                startImpersonate({
+              onClick={async () => {
+                // Audit-first : l'impersonation ne s'active que si l'événement
+                // d'audit serveur a été journalisé (RPC admin_log_impersonation).
+                const ok = await startImpersonate({
                   id: user.id,
                   full_name: user.full_name ?? 'Utilisateur',
                   email: user.email,
@@ -188,6 +198,10 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                   agency_id: user.agency_id,
                   agency_name: user.agency_name,
                 })
+                if (!ok) {
+                  toast.error(t('userDrawer.impersonateAuditFailed'))
+                  return
+                }
                 onClose()
               }}
               className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-admin-accent/30 text-admin-accent rounded-lg hover:bg-admin-accent/5 transition-colors"
@@ -195,6 +209,93 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
               <Eye className="h-4 w-4" />
               {t('userDrawer.impersonate')}
             </button>
+
+            {/* Export DSAR (nLPD art. 25) — JSON journalisé côté serveur */}
+            <button
+              onClick={() =>
+                dsarExport.mutate(
+                  { userId: user.id, email: user.email },
+                  { onError: () => toast.error(t('userDrawer.dsarExportError')) },
+                )
+              }
+              disabled={dsarExport.isPending}
+              className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:bg-theme-hover transition-colors disabled:opacity-50"
+            >
+              <FileDown className="h-4 w-4" />
+              {dsarExport.isPending ? t('userDrawer.dsarExporting') : t('userDrawer.dsarExport')}
+            </button>
+
+            {/* Cycle de vie du compte (P4) — actions journalisées serveur ;
+                les comptes allowlistés sont refusés par l'edge (anti-lockout). */}
+            <div className="space-y-2 border-t border-theme-border-subtle pt-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    const action = user.is_suspended ? 'reactivate' : 'suspend'
+                    if (action === 'suspend' && !window.confirm(t('userDrawer.lifecycle.suspendConfirm', { email: user.email }))) return
+                    lifecycle.mutate(
+                      { action, userId: user.id },
+                      {
+                        onSuccess: () => toast.success(t('userDrawer.lifecycle.done')),
+                        onError: () => toast.error(t('userDrawer.lifecycle.error')),
+                      },
+                    )
+                  }}
+                  disabled={lifecycle.isPending}
+                  className={cn(
+                    'h-9 flex items-center justify-center gap-2 text-sm font-medium border rounded-lg transition-colors disabled:opacity-50',
+                    user.is_suspended
+                      ? 'border-theme-border text-theme-secondary hover:bg-theme-hover'
+                      : 'border-amber-500/30 text-amber-500 hover:bg-amber-500/5',
+                  )}
+                >
+                  <Ban className="h-4 w-4" />
+                  {user.is_suspended ? t('userDrawer.lifecycle.reactivate') : t('userDrawer.lifecycle.suspend')}
+                </button>
+                <button
+                  onClick={() =>
+                    lifecycle.mutate(
+                      { action: 'force_password_reset', userId: user.id },
+                      {
+                        onSuccess: () => toast.success(t('userDrawer.lifecycle.resetSent')),
+                        onError: () => toast.error(t('userDrawer.lifecycle.error')),
+                      },
+                    )
+                  }
+                  disabled={lifecycle.isPending}
+                  className="h-9 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:bg-theme-hover transition-colors disabled:opacity-50"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  {t('userDrawer.lifecycle.resetPassword')}
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  // Confirmation typée : l'admin doit saisir l'email exact du compte.
+                  const typed = window.prompt(t('userDrawer.lifecycle.deletePrompt', { email: user.email }))
+                  if (typed === null) return
+                  if (typed.trim().toLowerCase() !== user.email.toLowerCase()) {
+                    toast.error(t('userDrawer.lifecycle.deleteMismatch'))
+                    return
+                  }
+                  deleteAccount.mutate(
+                    { userId: user.id },
+                    {
+                      onSuccess: () => {
+                        toast.success(t('userDrawer.lifecycle.deleted'))
+                        onClose()
+                      },
+                      onError: () => toast.error(t('userDrawer.lifecycle.error')),
+                    },
+                  )
+                }}
+                disabled={deleteAccount.isPending}
+                className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-red-500/30 text-red-500 rounded-lg hover:bg-red-500/5 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleteAccount.isPending ? t('userDrawer.lifecycle.deleting') : t('userDrawer.lifecycle.delete')}
+              </button>
+            </div>
 
             {/* Activity timeline */}
             <div>

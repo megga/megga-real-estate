@@ -413,6 +413,7 @@
   },
   "segments": {
     "all": "All",
+    "toQualify": "To qualify",
     "buyer": "Buyers",
     "seller": "Sellers",
     "tenant": "Tenants",

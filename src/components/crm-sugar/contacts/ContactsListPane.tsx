@@ -305,6 +305,7 @@ export function ContactsListPane({
     cutoff.setDate(cutoff.getDate() - 14)
     return {
       all: countsSource.length,
+      to_qualify: countsSource.filter(c => c.tags?.includes('à_compléter')).length,
       buyer: countsSource.filter(c => c.type === 'buyer').length,
       seller: countsSource.filter(c => c.type === 'seller').length,
       tenant: countsSource.filter(

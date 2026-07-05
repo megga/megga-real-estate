@@ -52,11 +52,16 @@ export function useAdminAgencies() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: 'active' | 'suspended' }) => {
-      const { error } = await supabase.from('agencies').update({ status }).eq('id', id)
+      // P4 : passe par l'edge admin-agency-lifecycle — l'ancien update nu de
+      // agencies.status ne bloquait personne (aucun ban GoTrue des membres).
+      const { error } = await supabase.functions.invoke('admin-agency-lifecycle', {
+        body: { action: status === 'suspended' ? 'suspend' : 'reactivate', agency_id: id },
+      })
       if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-agencies'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
   })
 

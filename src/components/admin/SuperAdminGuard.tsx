@@ -1,13 +1,22 @@
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
+import AdminMfaRequired from '@/components/admin/AdminMfaRequired'
 
+// Garde UX de la section super-admin : rôle + email allowlisté (miroir de la
+// liste SQL, cf. src/lib/superAdmin.ts) + enrôlement TOTP forcé. L'enforcement
+// réel est en DB (is_super_admin, migration 20260705160000) et sur les edges
+// (_shared/require-super-admin.ts).
 export default function SuperAdminGuard({ children }: { children: React.ReactNode }) {
-  const { profile, loading } = useAuth()
+  const { checking, allowed, needsEnrollment, recheck } = useSuperAdminGate()
 
-  if (loading) return null
+  if (checking) return null
 
-  if (!profile || profile.role !== 'super_admin') {
+  if (!allowed) {
     return <Navigate to="/dashboard" replace />
+  }
+
+  if (needsEnrollment) {
+    return <AdminMfaRequired onEnrolled={recheck} />
   }
 
   return <>{children}</>

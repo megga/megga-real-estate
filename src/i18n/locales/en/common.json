@@ -5,6 +5,19 @@
     "reload": "Reload",
     "dashboard": "Back to dashboard"
   },
+  "consentGate": {
+    "title": "Legal update",
+    "subtitle": "To continue, please accept the documents below.",
+    "termsLabel": "I accept the",
+    "termsLink": "terms of service",
+    "privacyLabel": "I accept the",
+    "privacyLink": "privacy policy",
+    "version": "version",
+    "marketingLabel": "I agree to receive product communications (optional)",
+    "error": "Saving failed. Please try again.",
+    "saving": "Saving...",
+    "accept": "Accept and continue"
+  },
   "nav": {
     "appearance": "Appearance",
     "language": "Language",

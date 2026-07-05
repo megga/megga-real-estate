@@ -276,7 +276,7 @@ serve(async (req: Request) => {
     const ai = await callDeepSeek(
       [{ role: 'user', content: buildPrompt(answers, zoneLabels, prenom, preferences) }],
       BRIEF_SYSTEM,
-      { maxTokens: 900, temperature: 0.5 },
+      { maxTokens: 900, temperature: 0.5, agencyId: profile.agency_id ?? undefined, module: 'day0-activation' },
     )
     const parsed = parseBrief(ai.text)
     if (parsed) {

@@ -11,6 +11,7 @@ export interface AdminUser {
   created_at: string
   agency_id: string | null
   agency_name: string | null
+  is_suspended: boolean
 }
 
 export function useAdminUsers() {
@@ -21,7 +22,7 @@ export function useAdminUsers() {
     queryFn: async (): Promise<AdminUser[]> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, avatar_url, role, phone, created_at, agency_id')
+        .select('id, full_name, email, avatar_url, role, phone, created_at, agency_id, is_suspended')
         .order('created_at', { ascending: false })
       if (error) throw error
 
@@ -76,5 +77,26 @@ export function useUserActivity(userId: string) {
     },
     enabled: !!userId,
     staleTime: 30_000,
+  })
+}
+
+// Export DSAR (nLPD art. 25) — télécharge le JSON agrégé produit par l'edge
+// admin-dsar-export (l'export est journalisé côté serveur AVANT le retour).
+export function useDsarExport() {
+  return useMutation({
+    mutationFn: async ({ userId, email }: { userId: string; email: string }) => {
+      const { data, error } = await supabase.functions.invoke('admin-dsar-export', {
+        body: { user_id: userId },
+      })
+      if (error) throw error
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const date = new Date().toLocaleDateString('fr-CH').replace(/\//g, '.')
+      a.href = url
+      a.download = `dsar-${email.replace(/[^a-z0-9.@-]/gi, '_')}-${date}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    },
   })
 }

@@ -39,6 +39,17 @@ export interface OutboundImageMessage {
   caption?: string      // légende optionnelle
 }
 
+// Message TEMPLATE (Meta) — seul type autorisé HORS de la fenêtre de service 24h. Le
+// template doit être pré-approuvé dans Meta Business Manager ; `templateName` + `languageCode`
+// doivent correspondre EXACTEMENT à l'approbation, et `bodyParams` remplit {{1}}, {{2}}… du
+// corps DANS L'ORDRE. Cf. _shared/whatsapp-templates.ts (registre côté code).
+export interface OutboundTemplateMessage {
+  toPhone: string           // digits only, international sans +
+  templateName: string      // nom EXACT du template approuvé
+  languageCode: string      // ex. 'fr', 'fr_CH', 'en' — doit matcher l'approbation
+  bodyParams?: string[]     // variables du corps {{1}}, {{2}}… dans l'ordre (omis si aucune)
+}
+
 export interface SendConfig {
   // Meta Cloud API
   metaToken?: string
@@ -85,6 +96,8 @@ export interface WhatsAppProvider {
   buildSendDocumentRequest?(msg: OutboundDocumentMessage, config: SendConfig): SendHttpRequest
   // Envoi d'une image par URL publique (photo R2). Optionnel : Meta uniquement.
   buildSendImageRequest?(msg: OutboundImageMessage, config: SendConfig): SendHttpRequest
+  // Envoi d'un TEMPLATE approuvé (seul type autorisé hors fenêtre 24h). Optionnel : Meta seul.
+  buildSendTemplateRequest?(msg: OutboundTemplateMessage, config: SendConfig): SendHttpRequest
   // Events `statuses` (sent/delivered/read/failed) d'un webhook. Optionnel : Meta
   // uniquement (le proto OpenWA n'en émet pas). Renvoie [] si le payload n'en a aucun.
   parseStatusUpdates?(payload: unknown): StatusUpdate[]
@@ -326,6 +339,38 @@ class MetaProvider implements WhatsAppProvider {
         to: msg.toPhone,
         type: 'image',
         image,
+      }),
+    }
+  }
+
+  // Template approuvé (hors fenêtre 24h). Corps `type:'template'` avec name + language ;
+  // un composant `body` n'est ajouté que s'il y a des paramètres (templates sans variable
+  // = pas de components). Ne valide PAS l'approbation Meta (faite côté Business Manager) :
+  // un nom non approuvé → l'API renvoie une erreur remontée par parseSendResult.
+  buildSendTemplateRequest(msg: OutboundTemplateMessage, config: SendConfig): SendHttpRequest {
+    const apiVersion = config.metaApiVersion ?? 'v22.0'
+    const template: Record<string, unknown> = {
+      name: msg.templateName,
+      language: { code: msg.languageCode },
+    }
+    if (msg.bodyParams && msg.bodyParams.length > 0) {
+      template.components = [{
+        type: 'body',
+        parameters: msg.bodyParams.map((text) => ({ type: 'text', text })),
+      }]
+    }
+    return {
+      url: `https://graph.facebook.com/${apiVersion}/${config.metaPhoneNumberId}/messages`,
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + config.metaToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: msg.toPhone,
+        type: 'template',
+        template,
       }),
     }
   }
