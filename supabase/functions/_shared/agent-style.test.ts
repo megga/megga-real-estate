@@ -70,6 +70,7 @@ function makeClient(perAgentRows: Row[], agencyRows: Row[]) {
         select: () => builder,
         eq: (col: string) => { if (col === 'sent_by_profile_id') isAgent = true; return builder },
         not: () => builder,
+        is: () => builder, // filtre media_type null (exclusion des légendes de photos)
         order: () => builder,
         limit: () => { calls.push(isAgent ? 'agent' : 'agency'); return Promise.resolve({ data: isAgent ? perAgentRows : agencyRows }) },
       }
