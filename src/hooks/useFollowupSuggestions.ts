@@ -51,7 +51,13 @@ export function useFollowupSuggestions(contactId: string | undefined) {
 /** Accept (→ rappel) et dismiss, avec invalidation de la liste du contact. */
 export function useFollowupActions(contactId: string | undefined) {
   const qc = useQueryClient()
-  const invalidate = () => qc.invalidateQueries({ queryKey: KEY(contactId) })
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: KEY(contactId) })
+    // La surface cockpit agrège les suivis de toute l'agence (useAgencyFollowupSuggestions,
+    // clé ['wa-agency-followups', …]) : accepter/écarter ici doit la rafraîchir aussi,
+    // sinon le bandeau « Aujourd'hui » ré-affiche un suivi déjà traité (préfixe = toutes limites).
+    qc.invalidateQueries({ queryKey: ['wa-agency-followups'] })
+  }
 
   const accept = useMutation({
     mutationFn: async (id: string) => {
