@@ -2724,21 +2724,25 @@ async function maybeRepushOnChange(ctx: ActionCtx, propertyId: string): Promise<
 
 /** Post-« oui » : inscrit le bien au feed (upsert property_syndications status='queued')
  *  puis déclenche le push immédiat. */
-export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
+export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string }> {
   const lang = ctx.lang ?? 'fr'
+  // Contrat {ok,message} : le canal appelant (carte HITL web / WhatsApp) doit pouvoir
+  // distinguer un vrai succès d'un échec métier (bien hors marché, introuvable, erreur
+  // DB) — sinon un échec serait présenté comme un succès. ok reflète la réalité.
+  const fail = (message: string) => ({ ok: false, message })
+  if (!hasAgency(ctx)) return fail(NO_AGENCY)
   const propertyId = s(payload.property_id)
   const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
-  if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing published.' : 'Action incomplète, rien n’a été publié.'
+  if (!propertyId || portals.length === 0) return fail(lang === 'en' ? 'Action incomplete, nothing published.' : 'Action incomplète, rien n’a été publié.')
 
   // Re-garde (défense en profondeur) : bien de l'agence, actif. PAS de mandat
   // (optionnel, jamais bloquant).
   const { data: prop } = await ctx.supabase.from('properties')
     .select('id, title, status')
     .eq('id', propertyId).eq('agency_id', ctx.agencyId).is('deleted_at', null).maybeSingle()
-  if (!prop) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
+  if (!prop) return fail(lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.')
   if (OFFMARKET_LABEL_FR[prop.status ?? '']) {
-    return lang === 'en' ? 'Property is off-market (reserved/sold/archived), nothing published.' : 'Bien hors marché (réservé/vendu/archivé), rien publié.'
+    return fail(lang === 'en' ? 'Property is off-market (reserved/sold/archived), nothing published.' : 'Bien hors marché (réservé/vendu/archivé), rien publié.')
   }
 
   const nowIso = new Date().toISOString()
@@ -2746,7 +2750,7 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
     property_id: propertyId, agency_id: ctx.agencyId, portal, status: 'queued', error: null, updated_at: nowIso,
   }))
   const { error } = await ctx.supabase.from('property_syndications').upsert(rows, { onConflict: 'property_id,portal' })
-  if (error) return (lang === 'en' ? 'Error publishing: ' : 'Erreur publication: ') + error.message
+  if (error) return fail((lang === 'en' ? 'Error publishing: ' : 'Erreur publication: ') + error.message)
 
   // Publier ACTIVE un brouillon (draft → active), comme le wizard. published_at est
   // posé par le trigger set_property_published_at au 1er passage en active.
@@ -2770,9 +2774,9 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
 
   const names = portals.map(portalLabel).join(', ')
   const title = s(payload.title) ?? prop.title ?? (lang === 'en' ? 'the property' : 'le bien')
-  return lang === 'en'
+  return { ok: true, message: lang === 'en'
     ? `"${title}" published on ${names} — it goes to the portal at the next feed deposit.`
-    : `« ${title} » publié sur ${names} — il part au portail au prochain dépôt du feed.`
+    : `« ${title} » publié sur ${names} — il part au portail au prochain dépôt du feed.` }
 }
 
 /** Confirm-tier : retire un bien des portails où il est actuellement publié. */
@@ -2810,17 +2814,18 @@ export async function prepareWithdrawFromPortals(ctx: ActionCtx, a: Args): Promi
 }
 
 /** Post-« oui » : passe les lignes ciblées en status='withdrawn' (sortent du feed). */
-export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
+export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string }> {
   const lang = ctx.lang ?? 'fr'
+  const fail = (message: string) => ({ ok: false, message })
+  if (!hasAgency(ctx)) return fail(NO_AGENCY)
   const propertyId = s(payload.property_id)
   const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
-  if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing withdrawn.' : 'Action incomplète, rien n’a été retiré.'
+  if (!propertyId || portals.length === 0) return fail(lang === 'en' ? 'Action incomplete, nothing withdrawn.' : 'Action incomplète, rien n’a été retiré.')
 
   const { error } = await ctx.supabase.from('property_syndications')
     .update({ status: 'withdrawn', updated_at: new Date().toISOString() })
     .eq('property_id', propertyId).eq('agency_id', ctx.agencyId).in('portal', portals).in('status', ['queued', 'published'])
-  if (error) return (lang === 'en' ? 'Error withdrawing: ' : 'Erreur retrait: ') + error.message
+  if (error) return fail((lang === 'en' ? 'Error withdrawing: ' : 'Erreur retrait: ') + error.message)
 
   try {
     await ctx.supabase.from('activity_events').insert({
@@ -2832,9 +2837,9 @@ export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args):
 
   const names = portals.map(portalLabel).join(', ')
   const title = s(payload.title) ?? (lang === 'en' ? 'the property' : 'le bien')
-  return lang === 'en'
+  return { ok: true, message: lang === 'en'
     ? `"${title}" withdrawn from ${names} — it drops off at the portal's next import.`
-    : `« ${title} » retiré de ${names} — il disparaîtra au prochain import du portail.`
+    : `« ${title} » retiré de ${names} — il disparaîtra au prochain import du portail.` }
 }
 
 /** Read-tier : sur quels portails un bien est publié + état (en ligne / en file). */

@@ -1155,11 +1155,11 @@ async function executePending(
   }
   if (pending.tool === 'publish_to_portals') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
-    return executePublishToPortals(ctx, pending.args)
+    return executePublishToPortals(ctx, pending.args).then((r) => r.message)
   }
   if (pending.tool === 'withdraw_from_portals') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
-    return executeWithdrawFromPortals(ctx, pending.args)
+    return executeWithdrawFromPortals(ctx, pending.args).then((r) => r.message)
   }
   return t(lang, 'unknownAction')
 }

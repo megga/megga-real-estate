@@ -189,16 +189,22 @@ const TOOLS_BLOCK_WRITES = `
 - Avant add_note/create_reminder sur un contact, obtiens son id via search_contacts ; si plusieurs correspondent, demande lequel — n'écris jamais sur un contact deviné.`
 
 const TOOLS_BLOCK_PUBLISH = `
-- PUBLICATION (immobilier.ch) : tu peux publier un bien de l'agence (publish_to_portals) ou l'en retirer (withdraw_from_portals). Action SORTANTE vers un portail externe, donc JAMAIS immédiate : tu la PRÉPARES en appelant l'outil, puis l'agent voit une carte d'aperçu de l'annonce et clique « Publier » (ou « Annuler ») pour valider. NE dis jamais qu'un bien est publié/retiré tant que l'agent n'a pas validé, et ne te confirme jamais toi-même. Publier exige un bien complet (titre, prix, adresse, au moins une photo) : s'il manque une info, complète-la (update_property) ou dis à l'agent d'ajouter les photos dans la fiche du bien, puis relance la publication.`
+- PUBLICATION (immobilier.ch) : tu peux publier un bien de l'agence (publish_to_portals) ou l'en retirer (withdraw_from_portals). Action SORTANTE vers un portail externe, donc JAMAIS immédiate : tu la PRÉPARES en appelant l'outil, puis l'agent voit une carte d'aperçu de l'annonce et clique « Publier » (ou « Annuler ») pour valider. NE dis jamais qu'un bien est publié/retiré tant que l'agent n'a pas validé, et ne te confirme jamais toi-même. Publier exige un bien complet (titre, prix, adresse, au moins une photo).`
+
+// Suffixe « info manquante » : ne mentionne update_property QUE si les écritures sont
+// actives (sinon le prompt inviterait à un outil absent du catalogue — cf. revue).
+const PUBLISH_MISSING_WITH_WRITES = ` S'il manque une info, complète-la (update_property) ou fais ajouter les photos dans la fiche du bien, puis relance la publication.`
+const PUBLISH_MISSING_NO_WRITES = ` S'il manque une info, dis à l'agent de compléter la fiche du bien (champs + photos), puis relance la publication.`
 
 /** Bloc system selon le mode. `writesEnabled` bascule le périmètre d'écriture interne ;
  *  `publishEnabled` ajoute le volet publication externe (validée par carte HITL). Composé
- *  pour ne jamais se contredire (pas de « aucune écriture » quand la publication est on). */
+ *  pour ne jamais se contredire (pas de « aucune écriture » quand la publication est on ;
+ *  pas de mention update_property quand les écritures sont coupées). */
 export function copilotToolsBlock(writesEnabled: boolean, publishEnabled = false): string {
   let block = TOOLS_BLOCK_BASE
   if (writesEnabled) block += TOOLS_BLOCK_WRITES
   else if (!publishEnabled) block += TOOLS_BLOCK_READONLY
-  if (publishEnabled) block += TOOLS_BLOCK_PUBLISH
+  if (publishEnabled) block += TOOLS_BLOCK_PUBLISH + (writesEnabled ? PUBLISH_MISSING_WITH_WRITES : PUBLISH_MISSING_NO_WRITES)
   return block
 }
 
