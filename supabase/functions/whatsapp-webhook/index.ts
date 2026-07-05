@@ -16,7 +16,7 @@ import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { meggaProse } from '../_shared/megga-prose.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, type ActionCtx } from '../_shared/whatsapp-actions.ts'
-import { asWaLang, detectLang, t, type WaLang, undoneStage, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
+import { asWaLang, detectLang, t, type WaLang, undoneStage, undoStateChanged, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -366,9 +366,20 @@ async function processAgentMessage(
     }
   }
 
+  // Action en attente de confirmation ? Chargée AVANT l'undo différé pour lever l'ambiguïté
+  // de « annule » : si un pending attend, « annule/non » doit le REFUSER (géré plus bas) et
+  // NON déclencher l'undo d'une action auto antérieure.
+  const { data: pendingAction } = await admin
+    .from('whatsapp_pending_actions')
+    .select('id, tool, args, summary, expires_at')
+    .eq('profile_id', agentLink.profile_id)
+    .maybeSingle()
+
   // L3 — undo différé : « /annuler » dans la fenêtre rejoue le dernier payload_undo.
-  // Placé AVANT la gestion des pending (une action venant de partir en auto prime).
-  if (isUndoCommand(userText)) {
+  // Prioritaire SAUF quand un pending attend ET que ce message le refuse (parseConfirmation
+  // === 'no', ex. « annule », « non ») : dans ce cas le « non » vise le pending, pas l'undo.
+  // Le « /annuler » explicite (parseConfirmation === 'none') reste un undo même avec pending.
+  if (isUndoCommand(userText) && !(pendingAction && parseConfirmation(userText) === 'no')) {
     const { data: last } = await admin
       .from('whatsapp_recent_auto_actions')
       .select('id, tool, payload_undo, undo_until')
@@ -395,12 +406,6 @@ async function processAgentMessage(
     }
     // Rien d'annulable : on NE return PAS — le message suit le flux normal (le cerveau répondra).
   }
-
-  const { data: pendingAction } = await admin
-    .from('whatsapp_pending_actions')
-    .select('id, tool, args, summary, expires_at')
-    .eq('profile_id', agentLink.profile_id)
-    .maybeSingle()
 
   if (pendingAction) {
     const decision = parseConfirmation(userText)
@@ -682,7 +687,18 @@ async function rollbackAutoAction(
 
   if (row.tool === 'update_pipeline') {
     const tx = String(p.transaction_id ?? ''), old = String(p.old_stage ?? '')
+    const setStage = String(p.new_stage ?? '')  // l'étape que l'action auto avait posée
     if (!tx || !old) return null
+    // Check d'état : ne défaire QUE si le dossier est ENCORE à l'étape posée par MEGGA. Si
+    // l'agent ou un trigger (ex. offre acceptée → signed) l'a déplacé entre-temps, revenir à
+    // `old` écraserait ce changement plus récent → on refuse honnêtement. (Payloads anciens
+    // sans new_stage : check sauté = rétro-compatible.)
+    if (setStage) {
+      const { data: cur } = await admin.from('transactions')
+        .select('stage').eq('id', tx).eq('agency_id', agencyId).maybeSingle()
+      if (!cur) return null
+      if (cur.stage !== setStage) return undoStateChanged(lang)
+    }
     // Revert via la RPC d'attribution (GUC 'ai' + via='whatsapp') pour que le
     // stage_change émis par le trigger trg_transaction_lifecycle garde l'attribution
     // MEGGA AI, cohérente avec l'aller. RETURNS integer = nb de lignes affectées.

@@ -436,7 +436,7 @@ export async function execUpdatePipelineWithUndo(ctx: ActionCtx, a: Args): Promi
   // Enregistre l'undo (payload = quoi défaire + jusqu'à quand).
   const { error: undoErr } = await ctx.supabase.from('whatsapp_recent_auto_actions').insert({
     profile_id: ctx.profileId, agency_id: ctx.agencyId, tool: 'update_pipeline',
-    payload_undo: { transaction_id: deal.id, old_stage: oldStage },
+    payload_undo: { transaction_id: deal.id, old_stage: oldStage, new_stage: stage },
     undo_until: new Date(Date.now() + PIPELINE_UNDO_SEC * 1000).toISOString(),
   })
   // Promesse honnête : si l'undo n'a pas pu être enregistré, ne pas annoncer « /annuler ».
@@ -498,13 +498,19 @@ export async function execQualifyLead(ctx: ActionCtx, a: Args): Promise<string> 
     const { data: existing } = await ctx.supabase.from('client_searches')
       .select('id').eq('contact_id', contactId).eq('is_active', true).limit(1).maybeSingle()
     if (!existing) {
-      const { data: cs } = await ctx.supabase.from('client_searches').insert({
+      const { data: cs, error: csErr } = await ctx.supabase.from('client_searches').insert({
         agency_id: ctx.agencyId, contact_id: contactId,
         label: `WhatsApp — ${criteria.transaction_type === 'rent' ? 'location' : 'achat'}`,
         criteria, is_active: true,
       }).select('id').single()
-      createdSearchId = cs?.id ?? null
-      searchCreated = true
+      // Anti-fabrication : ne prétendre « matching lancé » QUE si l'insert a réussi. Sinon on
+      // reste sur « Lead qualifié » sans promettre une recherche active qui n'existe pas.
+      if (csErr) {
+        console.error('qualify_lead client_searches insert failed:', csErr.message.slice(0, 120))
+      } else {
+        createdSearchId = cs?.id ?? null
+        searchCreated = true
+      }
     }
   }
   const critTxt = [
