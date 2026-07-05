@@ -253,6 +253,13 @@
       "pipelineAtRisk": "{{count}} gefährdet",
       "objectifUnset": "Nicht festgelegt"
     },
+    "waFollowups": {
+      "title": "WhatsApp-Follow-ups",
+      "pending_one": "{{countLabel}} offener Follow-up",
+      "pending_other": "{{countLabel}} offene Follow-ups",
+      "more_one": "+{{count}} weiterer",
+      "more_other": "+{{count}} weitere"
+    },
     "agenda": {
       "next": "Next",
       "empty": "Nothing more after this, your day is clear.",

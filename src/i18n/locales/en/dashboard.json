@@ -253,6 +253,13 @@
       "pipelineAtRisk": "{{count}} at risk",
       "objectifUnset": "Not set"
     },
+    "waFollowups": {
+      "title": "WhatsApp follow-ups",
+      "pending_one": "{{countLabel}} follow-up pending",
+      "pending_other": "{{countLabel}} follow-ups pending",
+      "more_one": "+{{count}} more",
+      "more_other": "+{{count}} more"
+    },
     "agenda": {
       "error": {
         "title": "Data unavailable"
