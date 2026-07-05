@@ -55,7 +55,10 @@ export async function fetchClientVoiceSamples(
       .eq('sent_by_profile_id', opts.profileId)
       .not('contact_id', 'is', null)
       .not('body', 'is', null)
-      .is('media_type', null) // exclut les légendes de photos (send_listings) : ce corpus vise le TON, pas des lignes « Titre — prix »
+      // is_automated=false → prose RÉELLEMENT écrite par un agent (exclut copilote,
+      // templates, texte ET légendes send_listings) ; media_type null → texte seul.
+      .eq('is_automated', false)
+      .is('media_type', null)
       .order('created_at', { ascending: false })
       .limit(limit)
     const perAgent = toSamples(data)
@@ -69,7 +72,11 @@ export async function fetchClientVoiceSamples(
     .eq('direction', 'outbound')
     .not('contact_id', 'is', null)
     .not('body', 'is', null)
-    .is('media_type', null) // idem : les légendes de send_listings ne doivent pas polluer le corpus de voix
+    // Même garde : seule la prose authored (is_automated=false, texte) alimente le corpus.
+    // NE PAS gater sur sent_by_profile_id : le compositeur manuel CRM ne le pose pas → on
+    // perdrait de la vraie voix. Le flag is_automated est le seul discriminant fiable.
+    .eq('is_automated', false)
+    .is('media_type', null)
     .order('created_at', { ascending: false })
     .limit(limit)
   return toSamples(data)
