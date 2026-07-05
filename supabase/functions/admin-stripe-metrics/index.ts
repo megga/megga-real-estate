@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
+import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,19 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Verify super_admin
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('Unauthorized')
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    if (authError || !user) throw new Error('Unauthorized')
-    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
-    if (profile?.role !== 'super_admin') throw new Error('Forbidden')
+    // Super-admin only : rôle + allowlist email + AAL2 (voir _shared/require-super-admin.ts)
+    const auth = await requireSuperAdmin(req, corsHeaders)
+    if (auth instanceof Response) return auth
 
     // Init Stripe
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {

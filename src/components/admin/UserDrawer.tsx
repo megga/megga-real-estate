@@ -7,6 +7,7 @@ import { X, Mail, Phone, Building2, Clock, Eye } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity } from '@/hooks/useAdminUsers'
 import { useImpersonate } from '@/hooks/useImpersonate'
+import { useToast } from '@/components/ui/Toast'
 
 const ROLE_OPTIONS = [
   { value: 'super_admin', i18nKey: 'common.role.superAdmin' },
@@ -50,6 +51,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
   const { startImpersonate } = useImpersonate()
+  const toast = useToast()
 
   const user = users.find(u => u.id === userId)
   const focusTrapRef = useFocusTrap(true)
@@ -179,8 +181,10 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
             {/* Impersonate button */}
             <button
-              onClick={() => {
-                startImpersonate({
+              onClick={async () => {
+                // Audit-first : l'impersonation ne s'active que si l'événement
+                // d'audit serveur a été journalisé (RPC admin_log_impersonation).
+                const ok = await startImpersonate({
                   id: user.id,
                   full_name: user.full_name ?? 'Utilisateur',
                   email: user.email,
@@ -188,6 +192,10 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                   agency_id: user.agency_id,
                   agency_name: user.agency_name,
                 })
+                if (!ok) {
+                  toast.error(t('userDrawer.impersonateAuditFailed'))
+                  return
+                }
                 onClose()
               }}
               className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-admin-accent/30 text-admin-accent rounded-lg hover:bg-admin-accent/5 transition-colors"

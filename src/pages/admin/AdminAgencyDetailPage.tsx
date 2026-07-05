@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useAdminAgencies'
 import PageTransition from '@/components/layout/PageTransition'
 import { useImpersonate } from '@/hooks/useImpersonate'
+import { useToast } from '@/components/ui/Toast'
 
 type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions'
 
@@ -232,6 +233,7 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
   const { t } = useTranslation('admin')
   const { data: members, isLoading } = useAgencyMembers(agencyId)
   const { startImpersonate } = useImpersonate()
+  const toast = useToast()
 
   if (isLoading) {
     return (
@@ -285,14 +287,18 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
           </span>
           <span className="w-10 flex justify-end">
             <button
-              onClick={() => startImpersonate({
-                id: member.id,
-                full_name: member.full_name ?? 'Utilisateur',
-                email: member.email,
-                role: member.role ?? 'agent',
-                agency_id: agencyId,
-                agency_name: agencyName,
-              })}
+              onClick={async () => {
+                // Audit-first : pas d'impersonation si l'audit serveur échoue.
+                const ok = await startImpersonate({
+                  id: member.id,
+                  full_name: member.full_name ?? 'Utilisateur',
+                  email: member.email,
+                  role: member.role ?? 'agent',
+                  agency_id: agencyId,
+                  agency_name: agencyName,
+                })
+                if (!ok) toast.error(t('userDrawer.impersonateAuditFailed'))
+              }}
               aria-label={t('admin:agencyDetail.team.impersonate', { name: member.full_name ?? t('admin:common.user') })}
               className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-admin-accent hover:bg-admin-accent/5 transition-all"
             >

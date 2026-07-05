@@ -110,7 +110,7 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
 | **Portail vendeur** | `/portal/:token` (+ `/portal` dev) | `VotreVentePage` — page unique « Votre vente » (Sugar Pure, lecture seule) : carte bien + galerie/lightbox, parcours arc 6 étapes, 3 jauges donut, offres (+modal décision), timeline, carte agent WhatsApp |
 | **CRM agent** | `/dashboard/*` | voir ci-dessous |
-| **Super-admin** | `/dashboard/admin/*` | 14 pages (accent violet), `SuperAdminGuard` |
+| **Super-admin** | `/dashboard/admin/*` | 16 pages (accent violet), `SuperAdminGuard` v2 — **accès verrouillé** (20260705160000) : rôle + **allowlist email en dur** (hello@juarts.com, ttaillefer.dev@gmail.com — `is_super_admin()` joint `auth.users`) + **enrôlement TOTP forcé** (`AdminMfaRequired`) ; edges admin gardées `_shared/require-super-admin.ts` (allowlist + AAL2) ; impersonation **audit-first** (RPC `admin_log_impersonation` bloquante). Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). |
 
 **CRM agent** (layout `AgentSugarLayout`, dark CRM) — pages principales :
 `dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
@@ -186,7 +186,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, setti
 - **Acheteur authentifié** : ses `message_threads` (`buyer_user_id = auth.uid()`), favoris.
 - **Vendeur** : via `seller_portals.token` (stateless, pas d'auth.users) → READ property/transaction, UPLOAD documents.
 - **service_role** (edge functions) : full access ; triggers écrivent `activity_events` (`actor_kind='system'`).
-- **super_admin** : silo séparé sur `admin_*` + impersonate audité.
+- **super_admin** : silo séparé sur `admin_*` + impersonate audité (audit-first, RPC serveur). Depuis 20260705160000, `is_super_admin()` exige rôle **ET** email allowlisté en dur (lu dans `auth.users` — jamais `profiles.email`, auto-modifiable) : un rôle posé hors allowlist ne débloque rien.
 
 ### Storage buckets
 `documents` (KYC/transac, CRUD par agency) · `property-photos` (write agent, read public si publié) · `avatars` · `kyc-magic-link/{agency}/{link}/…`.

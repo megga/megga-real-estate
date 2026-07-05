@@ -6067,6 +6067,10 @@ export type Database = {
             }
             Returns: string
           }
+      admin_log_impersonation: {
+        Args: { p_action: string; p_metadata?: Json; p_target_id: string }
+        Returns: string
+      }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }
         Returns: undefined

@@ -25,6 +25,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -51,27 +52,11 @@ serve(async (req: Request) => {
   // app_config.service_role_key (repli env). Plus de décodage de rôle JWT
   // (forgeable sous --no-verify-jwt, S22). Le chemin super_admin ci-dessous est inchangé.
   const isServiceRole = await isServiceSecret(supabase, req)
-  let isSuperAdmin = false
-  if (!isServiceRole && authHeader.startsWith('Bearer ')) {
-    const userClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
-    })
-    const { data: { user } } = await userClient.auth.getUser()
-    if (user) {
-      const { data: prof } = await userClient
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      isSuperAdmin = prof?.role === 'super_admin'
-    }
-  }
-  if (!isServiceRole && !isSuperAdmin) {
-    return new Response(
-      JSON.stringify({ error: 'super_admin or service_role required' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+  if (!isServiceRole) {
+    // Appel interactif — super_admin : rôle + allowlist email + AAL2
+    // (voir _shared/require-super-admin.ts, migration 20260705160000)
+    const auth = await requireSuperAdmin(req, corsHeaders)
+    if (auth instanceof Response) return auth
   }
 
   // ── Parse batch size ───────────────────────────────────────────────
