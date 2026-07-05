@@ -253,6 +253,13 @@
       "pipelineAtRisk": "{{count}} à risque",
       "objectifUnset": "Non défini"
     },
+    "waFollowups": {
+      "title": "Suivis WhatsApp",
+      "pending_one": "{{countLabel}} suivi en attente",
+      "pending_other": "{{countLabel}} suivis en attente",
+      "more_one": "+{{count}} autre",
+      "more_other": "+{{count}} autres"
+    },
     "agenda": {
       "error": {
         "title": "Données indisponibles"

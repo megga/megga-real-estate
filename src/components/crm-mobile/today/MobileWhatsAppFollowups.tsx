@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'
 import type { MobileTokens } from '../tokens'
@@ -6,7 +7,6 @@ import { useAgencyFollowupSuggestions, AGENCY_FOLLOWUPS_LIMIT, type AgencyFollow
 import { followupDueLabel, type FollowupUrgency } from '@/lib/whatsappFollowupDue'
 
 const MAX_ROWS = 4
-const plural = (n: number) => (n > 1 ? 's' : '')
 
 // Pastille d'échéance → couleurs mobiles (paires bg/fg tint des tokens Sugar Pure ;
 // jamais le CTA solide danger/dangerInk réservé aux boutons destructifs).
@@ -49,6 +49,7 @@ function FollowupRow({ row, last, tk }: { row: AgencyFollowupRow; last: boolean;
  * (comme le desktop). Lecture seule (aucune mutation ici).
  */
 export function MobileWhatsAppFollowups() {
+  const { t } = useTranslation('dashboard')
   const { tk } = useMobileTokens()
   const { data: rows } = useAgencyFollowupSuggestions()
 
@@ -63,9 +64,9 @@ export function MobileWhatsAppFollowups() {
     <div style={{ marginTop: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 11, padding: '0 2px' }}>
         <MEIcon name="message" size={15} color={tk.ink} />
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>Suivis WhatsApp</h3>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>{t('today.waFollowups.title')}</h3>
         <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: tk.muted, flexShrink: 0 }}>
-          {rows.length}{capped ? '+' : ''} suivi{plural(rows.length)} en attente
+          {t('today.waFollowups.pending', { count: rows.length, countLabel: `${rows.length}${capped ? '+' : ''}` })}
         </span>
       </div>
       <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 18, boxShadow: tk.shadowSm, overflow: 'hidden' }}>
@@ -74,7 +75,7 @@ export function MobileWhatsAppFollowups() {
         ))}
         {extra > 0 && (
           <div style={{ padding: '9px 14px', fontSize: 11.5, fontWeight: 700, color: tk.muted, textAlign: 'center' }}>
-            +{extra} autre{plural(extra)}
+            {t('today.waFollowups.more', { count: extra })}
           </div>
         )}
       </div>
