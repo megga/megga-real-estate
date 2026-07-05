@@ -413,6 +413,7 @@
   },
   "segments": {
     "all": "Tous",
+    "toQualify": "À qualifier",
     "buyer": "Acheteurs",
     "seller": "Vendeurs",
     "tenant": "Locataires",

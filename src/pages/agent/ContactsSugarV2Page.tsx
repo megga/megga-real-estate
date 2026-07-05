@@ -123,6 +123,8 @@ export default function ContactsSugarV2Page() {
     cutoff.setDate(cutoff.getDate() - 14)
     let list = contacts.slice()
 
+    // Leads à qualifier : tag 'à_compléter' (triage numéros inconnus WhatsApp + qualif autonome).
+    if (segment === 'to_qualify') list = list.filter(c => c.tags?.includes('à_compléter'))
     if (segment === 'buyer') list = list.filter(c => c.type === 'buyer')
     if (segment === 'seller') list = list.filter(c => c.type === 'seller')
     if (segment === 'tenant')
