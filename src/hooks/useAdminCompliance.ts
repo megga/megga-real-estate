@@ -112,3 +112,49 @@ export function useAdminCompliance() {
     updateRiskLevel,
   }
 }
+
+// ── Couverture des consentements nLPD (migration 20260705170000) ─────────────
+export interface ConsentStats {
+  coverage: Array<{ consent_type: string; version: string; accepted: number }>
+  users_with_terms: number
+  users_with_privacy: number
+  users_total: number
+}
+
+export function useConsentStats() {
+  return useQuery({
+    queryKey: ['admin-consent-stats'],
+    queryFn: async (): Promise<ConsentStats> => {
+      const { data, error } = await supabase.rpc('get_admin_consent_stats')
+      if (error) throw error
+      return data as unknown as ConsentStats
+    },
+    staleTime: 60_000,
+  })
+}
+
+// ── Suppressions de comptes (delete-account, nLPD art. 32) ───────────────────
+export interface AccountDeletionEvent {
+  id: string
+  created_at: string
+  object_label: string | null
+  entity_id: string | null
+  metadata: Record<string, unknown> | null
+}
+
+export function useAccountDeletions() {
+  return useQuery({
+    queryKey: ['admin-account-deletions'],
+    queryFn: async (): Promise<AccountDeletionEvent[]> => {
+      const { data, error } = await supabase
+        .from('activity_events')
+        .select('id, created_at, object_label, entity_id, metadata')
+        .eq('action', 'account_deleted')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (error) throw error
+      return (data ?? []) as AccountDeletionEvent[]
+    },
+    staleTime: 60_000,
+  })
+}

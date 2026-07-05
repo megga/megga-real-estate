@@ -1,4 +1,17 @@
 {
+  "consentGate": {
+    "title": "Rechtliche Aktualisierung",
+    "subtitle": "Um fortzufahren, akzeptieren Sie bitte die folgenden Dokumente.",
+    "termsLabel": "Ich akzeptiere die",
+    "termsLink": "Nutzungsbedingungen",
+    "privacyLabel": "Ich akzeptiere die",
+    "privacyLink": "Datenschutzerklaerung",
+    "version": "Version",
+    "marketingLabel": "Ich bin mit Produktmitteilungen einverstanden (optional)",
+    "error": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "saving": "Speichern...",
+    "accept": "Akzeptieren und fortfahren"
+  },
   "nav": {
     "appearance": "Darstellung",
     "language": "Sprache",

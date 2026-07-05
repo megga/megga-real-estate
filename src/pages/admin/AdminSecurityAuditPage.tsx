@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Shield, AlertTriangle, AlertCircle, Info, Download, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Shield, AlertTriangle, AlertCircle, Info, Download, FileDown, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { exportToCsv } from '@/lib/exportCsv'
+import { downloadAuditPdf } from '@/lib/auditPdfExport'
+import { useToast } from '@/components/ui/Toast'
 import {
   useSecurityAudit,
   AUDIT_ACTION_LABELS,
@@ -91,11 +93,13 @@ function SkeletonRows() {
 export default function AdminSecurityAuditPage() {
   const { t } = useTranslation('admin')
   const { data: entries, isLoading } = useSecurityAudit({ limit: 500 })
+  const toast = useToast()
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [pdfExporting, setPdfExporting] = useState(false)
 
   // ── Derived data ──────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -146,6 +150,21 @@ export default function AdminSecurityAuditPage() {
     setPage(1)
   }
 
+  // ── Export PDF plateforme (hash-chain, nLPD/LBA) ──────────────────────
+  // Piste d'audit PLATEFORME complète (branche super-admin d'audit-pdf-export),
+  // volontairement sans les filtres d'affichage : la preuve juridique porte sur
+  // la chaîne entière, pas sur une vue filtrée par action côté client.
+  async function handlePdfExport() {
+    setPdfExporting(true)
+    try {
+      await downloadAuditPdf({})
+    } catch {
+      toast.error(t('admin:securityAudit.pdfExportError'))
+    } finally {
+      setPdfExporting(false)
+    }
+  }
+
   // ── CSV Export ─────────────────────────────────────────────────────────
   function handleExport() {
     if (!filtered.length) return
@@ -191,14 +210,24 @@ export default function AdminSecurityAuditPage() {
             </p>
           </div>
 
-          <button
-            onClick={handleExport}
-            disabled={!filtered.length}
-            className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            {t('admin:common.exportCsv')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => void handlePdfExport()}
+              disabled={pdfExporting}
+              className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              {pdfExporting ? t('admin:securityAudit.pdfExporting') : t('admin:securityAudit.exportPdf')}
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={!filtered.length}
+              className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {t('admin:common.exportCsv')}
+            </button>
+          </div>
         </div>
 
         {/* Stats bar */}

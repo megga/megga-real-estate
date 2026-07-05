@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Mail, Phone, Building2, Clock, Eye } from 'lucide-react'
+import { X, Mail, Phone, Building2, Clock, Eye, FileDown } from 'lucide-react'
 import { cn, formatRelativeDate } from '@/lib/utils'
-import { useAdminUsers, useUserActivity } from '@/hooks/useAdminUsers'
+import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
 import { useImpersonate } from '@/hooks/useImpersonate'
 import { useToast } from '@/components/ui/Toast'
 
@@ -51,6 +51,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
   const { startImpersonate } = useImpersonate()
+  const dsarExport = useDsarExport()
   const toast = useToast()
 
   const user = users.find(u => u.id === userId)
@@ -202,6 +203,21 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
             >
               <Eye className="h-4 w-4" />
               {t('userDrawer.impersonate')}
+            </button>
+
+            {/* Export DSAR (nLPD art. 25) — JSON journalisé côté serveur */}
+            <button
+              onClick={() =>
+                dsarExport.mutate(
+                  { userId: user.id, email: user.email },
+                  { onError: () => toast.error(t('userDrawer.dsarExportError')) },
+                )
+              }
+              disabled={dsarExport.isPending}
+              className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:bg-theme-hover transition-colors disabled:opacity-50"
+            >
+              <FileDown className="h-4 w-4" />
+              {dsarExport.isPending ? t('userDrawer.dsarExporting') : t('userDrawer.dsarExport')}
             </button>
 
             {/* Activity timeline */}

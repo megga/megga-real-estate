@@ -10,6 +10,8 @@ export interface AuditPdfFilters {
   category?: AuditCategory
   severity?: AuditSeverity
   search?: string
+  /** Super-admin uniquement : scope une agence précise (absent = plateforme entière). */
+  agency_id?: string
 }
 
 export interface AuditPdfResponse {
