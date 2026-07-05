@@ -6098,7 +6098,29 @@ export type Database = {
         Args: { p_action: string; p_metadata?: Json; p_target_id: string }
         Returns: string
       }
+      get_admin_ai_costs: {
+        Args: { p_months?: number }
+        Returns: {
+          month: string
+          agency_id: string | null
+          agency_name: string
+          provider: string
+          module: string
+          calls: number
+          tokens_in: number
+          tokens_out: number
+          cost_usd: number
+        }[]
+      }
       get_admin_consent_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_admin_syndication_health: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_admin_whatsapp_health: {
         Args: Record<PropertyKey, never>
         Returns: Json
       }

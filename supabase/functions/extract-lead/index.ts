@@ -434,7 +434,7 @@ serve(async (req) => {
     claudeResponse = await callClaude(
       [{ role: 'user', content: redactedText }],
       SYSTEM_PROMPT,
-      { model: 'sonnet', maxTokens: 600, temperature: 0.0 },
+      { model: 'sonnet', maxTokens: 600, temperature: 0.0, agencyId: ctx.agencyId ?? undefined, module: 'extract-lead' },
     )
   } catch (err) {
     await logExtraction({

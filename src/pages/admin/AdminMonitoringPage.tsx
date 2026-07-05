@@ -5,6 +5,7 @@ import { useAdminMonitoring } from '@/hooks/useAdminMonitoring'
 import { useDeepSeekBalance, useAIUsageSummary, useAIUsageTimeseries } from '@/hooks/useAIBilling'
 import { useCronHealth } from '@/hooks/useCronHealth'
 import { cronStale } from '@/lib/cronHealth'
+import { SyndicationHealthPanel, WhatsAppOpsPanel } from '@/components/admin/AdminOpsPanels'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { cn, formatRelativeDate } from '@/lib/utils'
@@ -284,6 +285,10 @@ export default function AdminMonitoringPage() {
           </div>
         )}
       </div>
+
+      {/* Syndication IDX + WhatsApp ops (P3 admin — RPC 20260705172000) */}
+      <SyndicationHealthPanel />
+      <WhatsAppOpsPanel />
 
       {/* AI billing — DeepSeek balance + Claude estimated cost */}
       <div className="rounded-xl border border-theme-border p-5 space-y-4">
