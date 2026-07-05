@@ -59,21 +59,28 @@ export default function AdminAgenciesPage() {
   const { t } = useTranslation('admin')
   const { agencies, isLoading, updateStatus } = useAdminAgencies()
 
-  // Activity data for health scores
+  // Activity data for health scores.
+  // Agrégé SERVER-SIDE via RPC : l'ancien code chargeait toutes les lignes
+  // activity_events des 30 derniers jours dans le navigateur (SELECT non borné
+  // sur une table d'audit append-only → des dizaines de milliers de lignes pour
+  // un super_admin réel). La RPC renvoie ~1 ligne par agence. Voir migration
+  // 20260705200000_agency_activity_summary_rpc + CLAUDE.md §7.
+  const agencyIds = useMemo(() => agencies.map((a) => a.id), [agencies])
   const activityQuery = useQuery({
-    queryKey: ['admin-agency-activity-summary'],
+    queryKey: ['admin-agency-activity-summary', agencyIds],
+    enabled: agencyIds.length > 0,
     queryFn: async () => {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      const { data } = await supabase
-        .from('activity_events')
-        .select('agency_id, created_at')
-        .gte('created_at', thirtyDaysAgo)
+      const { data } = await supabase.rpc('get_agency_activity_summary', {
+        agency_ids: agencyIds,
+        since_days: 30,
+      })
       const byAgency: Record<string, { count: number; lastAt: string }> = {}
-      for (const evt of data ?? []) {
-        if (!evt.agency_id) continue
-        if (!byAgency[evt.agency_id]) byAgency[evt.agency_id] = { count: 0, lastAt: evt.created_at }
-        byAgency[evt.agency_id].count++
-        if (evt.created_at > byAgency[evt.agency_id].lastAt) byAgency[evt.agency_id].lastAt = evt.created_at
+      for (const row of data ?? []) {
+        if (!row.agency_id) continue
+        byAgency[row.agency_id] = {
+          count: Number(row.event_count),
+          lastAt: row.last_activity_at,
+        }
       }
       return byAgency
     },
