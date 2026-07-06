@@ -323,10 +323,12 @@ export function useCopilot() {
     historyRef.current = history.slice(-20)
   }, [])
 
-  /** Valide (exécute) une action de publication en attente après le clic de l'agent
-   *  sur la carte. Consomme la carte côté serveur et renvoie le texte de résultat. */
-  const executePending = useCallback(async (pendingId: string): Promise<string> => {
-    const { data, error } = await supabase.functions.invoke<{ result?: string; error?: string }>('ai-copilot', {
+  /** Valide (exécute) une action de publication en attente après le clic de l'agent sur la
+   *  carte. Renvoie { result, ok } : `ok` distingue un vrai succès d'un ÉCHEC MÉTIER (bien
+   *  hors-marché, erreur DB) renvoyé en HTTP 200 → l'UI n'affiche pas un faux succès. Throw
+   *  seulement sur non-2xx (publication désactivée, carte expirée/introuvable). */
+  const executePending = useCallback(async (pendingId: string): Promise<{ result: string; ok: boolean }> => {
+    const { data, error } = await supabase.functions.invoke<{ result?: string; ok?: boolean; error?: string }>('ai-copilot', {
       body: { action: 'execute_pending', pending_id: pendingId, message: '', language: 'fr' },
     })
     if (error) {
@@ -336,7 +338,7 @@ export function useCopilot() {
       }
       throw new Error(detail)
     }
-    return data?.result ?? ''
+    return { result: data?.result ?? '', ok: data?.ok === true }
   }, [])
 
   return { sendMessage, sendMessageStream, executePending, isLoading, detectAction, clearHistory, resumeConversation }

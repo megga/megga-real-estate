@@ -417,10 +417,12 @@ function makePrepareConfirm(ctx: ActionCtx) {
   }
 }
 
-/** Fige l'action confirm préparée dans copilot_pending_actions (1 par agent, TTL 15 min).
- *  UPSERT sur user_id : une nouvelle proposition remplace une carte périmée. Renvoie la
- *  carte (id + aperçu) à afficher, ou null si le stash échoue (pas de carte → l'agent
- *  reformule). Best-effort : jamais bloquant pour la réponse. */
+/** Fige l'action confirm préparée dans copilot_pending_actions (TTL 15 min). INSERT d'une
+ *  ligne PROPRE par carte (id immuable) — surtout PAS d'upsert sur user_id : sinon une 2e
+ *  préparation écraserait la charge d'une carte déjà affichée dans un autre onglet, et le
+ *  clic « Publier » enverrait un bien différent de l'aperçu validé. Renvoie la carte (id +
+ *  aperçu) à afficher, ou null si le stash échoue (pas de carte → l'agent reformule).
+ *  Best-effort : jamais bloquant pour la réponse. */
 async function stashPendingAction(
   admin: SupabaseClient, userId: string, agencyId: string | null,
   pending: PendingAction, lang: string,
@@ -429,9 +431,9 @@ async function stashPendingAction(
     ? pending.payload.portals.filter((x): x is string => typeof x === 'string')
     : []
   try {
-    // Purge paresseuse des cartes expirées (table minuscule : ≤ 1 ligne/agent actif).
+    // Purge paresseuse des cartes expirées (table minuscule, bornée par le TTL).
     await admin.from('copilot_pending_actions').delete().lt('expires_at', new Date().toISOString())
-    const { data, error } = await admin.from('copilot_pending_actions').upsert({
+    const { data, error } = await admin.from('copilot_pending_actions').insert({
       user_id: userId,
       agency_id: agencyId,
       kind: pending.kind,
@@ -440,7 +442,7 @@ async function stashPendingAction(
       preview: pending.preview,
       title: pending.title ?? null,
       expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    }, { onConflict: 'user_id' }).select('id').single()
+    }).select('id').single()
     if (error || !data) return null
     return { id: data.id as string, kind: pending.kind, title: pending.title ?? null, portals, preview: pending.preview }
   } catch {
@@ -449,10 +451,11 @@ async function stashPendingAction(
 }
 
 // ─── Exécution d'une action confirm validée par l'agent (execute_pending) ─────
-// Appelé quand l'agent clique « Publier » / « Retirer » sur la carte. Charge la ligne
-// copilot_pending_actions SCOPÉE à l'agent du JWT, la CONSOMME (delete atomique = usage
-// unique, anti double-clic), puis rejoue la charge figée via l'exécuteur partagé
-// (via='web'). Rien ne part au portail sans ce clic. Gated copilot_publish_enabled.
+// Appelé quand l'agent clique « Publier » / « Retirer » sur la carte. CONSOMME la carte
+// ATOMIQUEMENT (DELETE...RETURNING scopé à l'agent du JWT = winner-takes-all, pas de double
+// exécution) puis rejoue la charge figée via l'exécuteur partagé (via='web'). Sur ÉCHEC, la
+// carte est réinsérée (même id/charge/TTL) → retry possible. Rien ne part au portail sans ce
+// clic. Gated copilot_publish_enabled.
 async function handleExecutePending(params: {
   auth: AgentAuthContext
   pendingId: string
@@ -476,13 +479,17 @@ async function handleExecutePending(params: {
 
   if (!pendingId || typeof pendingId !== 'string') return json({ error: 'pending_id requis.' }, 400)
 
-  // Consomme la carte ATOMIQUEMENT, scopée à l'agent (jamais un id forgé d'un autre agent).
+  // CONSOMME la carte ATOMIQUEMENT (winner-takes-all, comme le canal WhatsApp F3) :
+  // DELETE ... RETURNING scopé à l'agent du JWT. Deux execute_pending concurrents tentent
+  // la même ligne mais UNE SEULE la voit revenir → une seule exécute (pas de double audit
+  // sur le trail append-only LBA) ; le perdant reçoit 404. Sur ÉCHEC métier, la carte est
+  // réinsérée plus bas pour préserver le retry.
   const { data: rows, error: delErr } = await auth.supabase
     .from('copilot_pending_actions')
     .delete()
     .eq('id', pendingId)
     .eq('user_id', auth.user.id)
-    .select('kind, tool, payload, expires_at, agency_id')
+    .select('kind, tool, payload, preview, title, expires_at, agency_id')
   if (delErr) return json({ error: "Impossible de lire l'action en attente." }, 500)
   const row = Array.isArray(rows) ? rows[0] : null
   if (!row) return json({ error: 'Action introuvable ou déjà traitée.' }, 404)
@@ -500,27 +507,43 @@ async function handleExecutePending(params: {
     via: 'web',
   }
 
-  let result: string
+  // Contrat {ok,message} : on distingue succès et échec métier → l'UI n'affiche un
+  // succès (« publié ») QUE si ok.
+  let outcome: { ok: boolean; message: string }
   try {
-    if (row.tool === 'publish_to_portals') result = await executePublishToPortals(ctx, payload)
-    else if (row.tool === 'withdraw_from_portals') result = await executeWithdrawFromPortals(ctx, payload)
-    else result = lang === 'en' ? 'Unknown action.' : 'Action inconnue.'
+    if (row.tool === 'publish_to_portals') outcome = await executePublishToPortals(ctx, payload)
+    else if (row.tool === 'withdraw_from_portals') outcome = await executeWithdrawFromPortals(ctx, payload)
+    else outcome = { ok: false, message: lang === 'en' ? 'Unknown action.' : 'Action inconnue.' }
   } catch (e) {
-    result = (lang === 'en' ? 'Action failed: ' : "Échec de l'action : ") + ((e as Error)?.message ?? 'inconnue')
+    outcome = { ok: false, message: (lang === 'en' ? 'Action failed: ' : "Échec de l'action : ") + ((e as Error)?.message ?? 'inconnue') }
   }
 
-  // Audit copilote (l'exécuteur écrit déjà l'audit métier property_published_to_portal).
+  // La carte a été consommée par le claim atomique. Sur ÉCHEC métier, on la RÉINSÈRE
+  // (même id, même charge, même TTL d'origine) pour permettre un nouvel essai depuis la
+  // carte — sans avoir doublé l'exécution ni l'audit. Best-effort.
+  if (!outcome.ok) {
+    try {
+      await auth.supabase.from('copilot_pending_actions').insert({
+        id: pendingId, user_id: auth.user.id, agency_id: row.agency_id,
+        kind: row.kind, tool: row.tool, payload: row.payload,
+        preview: row.preview, title: row.title, expires_at: row.expires_at,
+      })
+    } catch { /* réinsertion best-effort : si elle échoue, l'agent reformulera */ }
+  }
+
+  // Audit copilote FIDÈLE au résultat réel (l'exécuteur écrit en plus l'audit métier
+  // property_published_to_portal sur le seul chemin de succès).
   await logAiCopilotInteraction({
     admin: auth.supabase,
     agencyId: auth.profile.agency_id,
     action: 'execute_pending',
     context: {},
     tokens: {},
-    success: true,
-    toolsUsed: [{ name: String(row.tool), ok: true }],
+    success: outcome.ok,
+    toolsUsed: [{ name: String(row.tool), ok: outcome.ok }],
   })
 
-  return json({ result })
+  return json({ result: outcome.message, ok: outcome.ok })
 }
 
 // ─── Savoir métier vérifié : chargement + sélection déterministe ─────────────
@@ -884,6 +907,7 @@ serve(async (req: Request) => {
       let toolsUsed: Array<{ name: string; ok: boolean }> = []
       let degraded: string | undefined
       let pending: StashedPending | null = null
+      let stashFailed = false
 
       if (toolsOn) {
         const catalog = copilotTools(writesOn, publishOn)
@@ -909,6 +933,9 @@ serve(async (req: Request) => {
         // comme carte de validation. Rien n'est publié tant que l'agent ne clique pas.
         if (res.pending) {
           pending = await stashPendingAction(auth.supabase, auth.user.id, auth.profile.agency_id, res.pending, actionCtx.lang ?? 'fr')
+          // Le modèle a été orienté vers « valide dans le panneau » ; si le stash échoue
+          // (aucune carte affichable), on le dira honnêtement dans le texte final.
+          stashFailed = !pending
         }
       } else {
         const turn = await makeCallModel({
@@ -931,6 +958,14 @@ serve(async (req: Request) => {
       let final = action === 'detect_intent'
         ? normalized
         : (normalized.trim() ? normalized : "Je n'ai pas pu générer de réponse cette fois. Reformule ou réessaie.")
+
+      // Carte de validation attendue mais non stashée (échec DB) → ne pas laisser le texte
+      // inviter l'agent à valider une carte qui n'apparaîtra pas.
+      if (stashFailed && action !== 'detect_intent') {
+        final += language === 'en'
+          ? "\n\n(I couldn't prepare the validation card — restate your publish request.)"
+          : "\n\n(Je n'ai pas pu préparer la carte de validation — reformule ta demande de publication.)"
+      }
 
       // Garde anti-citation-inventée (Phase 2) : quand le savoir vérifié est actif,
       // une référence légale précise (article, loi nommée) absente des snippets

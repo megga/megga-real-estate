@@ -20,9 +20,10 @@ interface PublishReviewModalProps {
   dark: boolean
   pending: PendingActionCard | null
   onClose: () => void
-  /** Exécute l'action validée (clic « Publier »/« Retirer ») → texte de résultat. */
-  executePending: (id: string) => Promise<string>
-  /** Appelé avec le texte de résultat après une exécution réussie (bulle de confirmation). */
+  /** Exécute l'action validée (clic « Publier »/« Retirer »). `ok` distingue succès et
+   *  échec métier ; throw sur non-2xx (désactivée / carte expirée). */
+  executePending: (id: string) => Promise<{ result: string; ok: boolean }>
+  /** Appelé avec le texte de résultat après une exécution RÉUSSIE (bulle de confirmation). */
   onExecuted: (resultText: string) => void
 }
 
@@ -41,16 +42,26 @@ export default function PublishReviewModal({ open, sp, dark, pending, onClose, e
     if (busy) return
     setBusy(true)
     try {
-      const result = await executePending(pending.id)
-      onExecuted(result || (isWithdraw ? 'Bien retiré.' : 'Bien publié.'))
-      toast.success(isWithdraw ? 'Bien retiré du portail' : 'Bien envoyé au portail', {
-        description: pending.title || undefined, duration: 2800,
-      })
-      onClose()
+      const { result, ok } = await executePending(pending.id)
+      if (ok) {
+        onExecuted(result || (isWithdraw ? 'Bien retiré.' : 'Bien publié.'))
+        toast.success(isWithdraw ? 'Bien retiré du portail' : 'Bien envoyé au portail', {
+          description: pending.title || undefined, duration: 2800,
+        })
+        onClose()
+      } else {
+        // Échec MÉTIER (bien passé hors-marché, erreur DB…) : rien n'est parti au portail.
+        // Le serveur n'a pas consommé la carte → on la laisse ouverte pour réessayer/annuler.
+        toast.error(isWithdraw ? 'Retrait non effectué' : 'Publication non effectuée', {
+          description: result || 'Réessayez ou annulez.',
+        })
+      }
     } catch (e) {
+      // Non-2xx : publication désactivée, ou carte expirée/introuvable → carte invalide.
       toast.error(isWithdraw ? 'Échec du retrait' : 'Échec de la publication', {
         description: e instanceof Error ? e.message : 'Réessayez.',
       })
+      onClose()
     } finally {
       setBusy(false)
     }
