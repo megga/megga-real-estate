@@ -41,7 +41,7 @@ import {
   execGetMyAgenda, execSearchContacts, execGetContactBrief, execListFollowups,
   execGetMatches, execGetDailyBrief, execSearchListings, execGetKycStatus,
   execGetPublicationStatus, execPrepareMeeting,
-  execCreateProperty, execUpdateProperty, execDraftListingCopy,
+  execCreateProperty, execUpdateProperty, execDraftListingCopy, execWebAttachPropertyPhotos,
   preparePublishToPortals, prepareWithdrawFromPortals,
   executePublishToPortals, executeWithdrawFromPortals,
   type ActionCtx, type Prepared,
@@ -384,6 +384,7 @@ function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx) {
       case 'draft_listing_copy': return execDraftListingCopy(actionCtx, args)
       case 'create_property': return execCreateProperty(actionCtx, args)
       case 'update_property': return execUpdateProperty(actionCtx, args)
+      case 'attach_property_photos': return execWebAttachPropertyPhotos(actionCtx, args)
       default: return `Outil inconnu: ${name}`
     }
   }
@@ -860,8 +861,25 @@ serve(async (req: Request) => {
       knowledgeOn = k.enabled
     }
 
+    // Photos jointes par l'agent (copilote web) : URLs DÉJÀ stagées dans property-photos
+    // (préfixe agence). Elles vont à l'exécuteur attach_property_photos, JAMAIS au LLM ;
+    // seul un indice de COMPTAGE est injecté pour qu'il pense à appeler l'outil. Lues du
+    // contexte ORIGINAL (des URLs, pas de PII à rédiger). N'ont d'effet que sous écritures.
+    const attachedPhotos = Array.isArray((context as Record<string, unknown> | undefined)?.attached_photos)
+      ? ((context as Record<string, unknown>).attached_photos as unknown[]).filter((u): u is string => typeof u === 'string' && u.length > 0)
+      : []
+    // Les URLs de photos ne partent JAMAIS au LLM (serializeContext dumperait le contexte) :
+    // on les retire du contexte sérialisé dans le prompt ; elles ne vivent que dans
+    // ctx.attachedPhotos, côté exécuteur. Seul l'indice de comptage ci-dessous les évoque.
+    if (red.context && typeof red.context === 'object') {
+      delete (red.context as Record<string, unknown>).attached_photos
+    }
+
     let userContent = buildUserContent({ action, message: red.message, context: red.context, actionPrompts: ACTION_PROMPTS })
     if (knowledgeBlock) userContent += knowledgeBlock
+    if (attachedPhotos.length && writesOn) {
+      userContent += `\n\n[${attachedPhotos.length} photo(s) jointe(s) à ce message — pour les attacher à un bien, appelle attach_property_photos en précisant le bien (query).]`
+    }
 
     const baseMessages: LoopMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -884,6 +902,7 @@ serve(async (req: Request) => {
       agencyId: auth.profile.agency_id,
       lang: language === 'en' ? 'en' : 'fr',
       via: 'web',
+      attachedPhotos,
     }
     const webCtx: WebToolCtx = {
       supabase: auth.supabase,

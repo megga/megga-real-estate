@@ -34,10 +34,12 @@ export const SHARED_READ_TOOLS = [
 const WEB_DESCRIPTION_OVERRIDES: Record<string, string> = {
   search_listings:
     "Recherche des biens sur le marché (annonces) par critères. Pour « trouve un 3,5 pièces à Carouge en location sous 2500 », « des bureaux à Lausanne », « combien d'appartements à Lausanne ». Interroge l'inventaire MARCHÉ réel (les annonces du marché, PAS le CRM de l'agence). Renvoie le NOMBRE TOTAL ESTIMÉ de biens correspondants (champ `total`) en plus d'un échantillon de biens réels (`biens`) ; annonce ce total à l'agent. N'invente jamais de bien.",
-  // Réécrits pour le web : sur WhatsApp l'agent envoie les photos dans le message
-  // (attach_property_photos) ; sur le web, les photos se gèrent dans la fiche du bien.
+  // Réécrits pour le web. Les photos se joignent DANS LE CHAT (attach_property_photos,
+  // comme WhatsApp) : le frontend les stage, l'outil les attache au bien résolu.
+  attach_property_photos:
+    "Attache la/les photo(s) JOINTE(S) par l'agent à CE message à la galerie d'un bien de l'agence. Pour « voici les photos du 3 pièces des Eaux-Vives », « ajoute ces photos au bien de Champel ». N'appelle cet outil QUE si des photos sont jointes au message (l'indice « [N photo(s) jointe(s)] » te le signale) ; sinon demande à l'agent de les joindre. Précise le bien via `query` (nom/adresse). Indispensable pour compléter un bien avant publication (≥ 1 photo requise).",
   create_property:
-    "Crée un NOUVEAU bien (brouillon) dans le CRM de l'agence à partir de ce que l'agent DICTE. Pour « crée un 3 pièces aux Eaux-Vives en location à 2400 », « ajoute une villa à Cologny en vente ». NE remplis QUE les champs donnés par l'agent — n'invente JAMAIS. Sans titre, il est composé du type + pièces + localité. Le bien est créé en BROUILLON : l'agent complète ensuite les champs manquants (update_property), ajoute les photos dans la fiche du bien, puis le publie.",
+    "Crée un NOUVEAU bien (brouillon) dans le CRM de l'agence à partir de ce que l'agent DICTE. Pour « crée un 3 pièces aux Eaux-Vives en location à 2400 », « ajoute une villa à Cologny en vente ». NE remplis QUE les champs donnés par l'agent — n'invente JAMAIS. Sans titre, il est composé du type + pièces + localité. Le bien est créé en BROUILLON : l'agent complète ensuite les champs (update_property), joint les photos au chat (attach_property_photos), puis le publie.",
   update_property:
     "Met à jour ou complète les champs d'un bien de l'agence (finir une annonce avant publication, corriger une info). NE passe QUE les champs que l'agent te donne EXPLICITEMENT — n'invente JAMAIS de valeur. Le bien est cherché par titre/adresse. Ex. « pour le 3 pièces des Eaux-Vives, NPA 1207 et loyer 2400 », « corrige la surface du bien de Champel à 95 m² ». Utile quand publier échoue faute d'une info : l'agent la donne, tu complètes, puis il republie.",
   draft_listing_copy:
@@ -110,9 +112,9 @@ const WEB_ONLY_NAMES = new Set(WEB_ONLY_TOOLS.map((t) => t.function.name))
 
 // Outils d'ÉCRITURE (tier 'auto' — écritures CRM internes réversibles, jamais un
 // envoi client ni une publication externe) : create_reminder/add_note (Phase 4a) +
-// create_property/update_property (monter une annonce = brouillon de bien + champs,
-// avant publication). Exposés QUE si les écritures sont activées (copilot_writes_enabled).
-export const SHARED_WRITE_TOOLS = ['create_reminder', 'add_note', 'create_property', 'update_property'] as const
+// create_property/update_property (monter une annonce) + attach_property_photos (joindre
+// des photos au bien depuis le chat). Exposés QUE si les écritures sont activées (copilot_writes_enabled).
+export const SHARED_WRITE_TOOLS = ['create_reminder', 'add_note', 'create_property', 'update_property', 'attach_property_photos'] as const
 
 // Outils de PUBLICATION externe (tier 'confirm' — action SORTANTE vers immobilier.ch).
 // JAMAIS exécutés dans la boucle : préparés (aperçu de l'annonce) puis VALIDÉS par
@@ -183,8 +185,9 @@ const TOOLS_BLOCK_READONLY = `
 - Tu n'as AUCUN outil d'écriture ni d'envoi : si l'agent demande une action (créer un rappel, envoyer un message, déplacer un dossier), prépare le contenu si utile et indique où le faire dans le CRM. Ne prétends JAMAIS avoir effectué une action.`
 
 const TOOLS_BLOCK_WRITES = `
-- Tu peux effectuer des écritures internes réversibles quand l'agent te le demande explicitement : create_reminder (rappel/tâche), add_note (note sur une fiche contact), create_property (créer un bien en BROUILLON) et update_property (compléter/corriger les champs d'un bien). Ce sont des actions INTERNES au CRM — aucun message envoyé à un client, aucune publication externe. Appelle directement l'outil ; confirme en une phrase après coup.
+- Tu peux effectuer des écritures internes réversibles quand l'agent te le demande explicitement : create_reminder (rappel/tâche), add_note (note sur une fiche contact), create_property (créer un bien en BROUILLON), update_property (compléter/corriger les champs d'un bien) et attach_property_photos (joindre au bien la/les photo(s) que l'agent a jointes au message). Ce sont des actions INTERNES au CRM — aucun message envoyé à un client, aucune publication externe. Appelle directement l'outil ; confirme en une phrase après coup.
 - create_property / update_property : ne remplis QUE les champs que l'agent DICTE (type, prix, pièces, surface, adresse, NPA…) — n'invente JAMAIS de valeur. Le bien reste un BROUILLON non publié ; la mise en ligne sur un portail est une étape séparée, validée à part.
+- attach_property_photos : appelle-le UNIQUEMENT si des photos sont jointes au message (indice « [N photo(s) jointe(s)] ») ; précise le bien (nom/adresse). Sinon, demande à l'agent de joindre les photos.
 - Tu n'as AUCUN autre pouvoir d'action : tu ne contactes JAMAIS un client, tu n'envoies aucun email/message, tu ne déplaces aucun dossier dans le pipeline, tu ne valides aucun KYC. Pour ça, prépare le contenu et dis à l'agent de le faire lui-même.
 - Avant add_note/create_reminder sur un contact, obtiens son id via search_contacts ; si plusieurs correspondent, demande lequel — n'écris jamais sur un contact deviné.`
 
@@ -193,7 +196,7 @@ const TOOLS_BLOCK_PUBLISH = `
 
 // Suffixe « info manquante » : ne mentionne update_property QUE si les écritures sont
 // actives (sinon le prompt inviterait à un outil absent du catalogue — cf. revue).
-const PUBLISH_MISSING_WITH_WRITES = ` S'il manque une info, complète-la (update_property) ou fais ajouter les photos dans la fiche du bien, puis relance la publication.`
+const PUBLISH_MISSING_WITH_WRITES = ` S'il manque une info, complète-la (update_property) ; s'il manque des photos, demande à l'agent de les JOINDRE au message et attache-les (attach_property_photos). Puis relance la publication.`
 const PUBLISH_MISSING_NO_WRITES = ` S'il manque une info, dis à l'agent de compléter la fiche du bien (champs + photos), puis relance la publication.`
 
 /** Bloc system selon le mode. `writesEnabled` bascule le périmètre d'écriture interne ;
