@@ -108,6 +108,21 @@ describe('whatsapp-gateway — Meta média entrant', () => {
     }
     const m = meta.parseInbound(textPayload) as NormalizedInboundMessage
     expect(m.mediaId).toBeNull()
+    // Sécurité attribution : sans display_phone_number, toPhone doit être NULL — JAMAIS le
+    // phone_number_id (ID de compte ~15 chiffres) qui collisionnerait au routage wa_to→agence.
+    expect(m.toPhone).toBeNull()
+    expect(m.sessionId).toBe('123') // le phone_number_id reste en sessionId (usage légitime)
+  })
+
+  it('toPhone = display_phone_number quand présent (numéro Business réel)', () => {
+    const m = meta.parseInbound({
+      object: 'whatsapp_business_account',
+      entry: [{ changes: [{ field: 'messages', value: {
+        metadata: { display_phone_number: '41 79 874 94 84', phone_number_id: '123' },
+        messages: [{ from: '41780001122', id: 'wamid.TXT2', timestamp: '1717000000', type: 'text', text: { body: 'salut' } }],
+      } }] }],
+    }) as NormalizedInboundMessage
+    expect(m.toPhone).toBe('41798749484') // digits-only du vrai numéro Business
   })
 })
 
