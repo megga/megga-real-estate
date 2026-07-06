@@ -376,7 +376,7 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string
   // Chaque photo est stagée en parallèle (bucket property-photos) ; l'URL revient dans la
   // vignette. À l'envoi, seules les URLs prêtes partent dans context.attached_photos.
   const addFiles = (files: FileList | File[]) => {
-    const imgs = Array.from(files).filter((f) => f.type.startsWith('image/')).slice(0, 8)
+    const imgs = Array.from(files).filter((f) => f.type.startsWith('image/')).slice(0, 6)
     for (const file of imgs) {
       const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
       setPhotos((ps) => [...ps, { id, url: null, error: false }])

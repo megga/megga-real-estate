@@ -342,7 +342,7 @@ export function useUploadChatPhoto() {
       if (!ALLOWED_PHOTO_MIME.has(file.type)) {
         throw new Error(`Format ${file.type || 'inconnu'} refusé (JPG/PNG/WebP uniquement)`)
       }
-      if (file.size > 15 * 1024 * 1024) throw new Error('Photo trop lourde (15 Mo max)')
+      if (file.size > 10 * 1024 * 1024) throw new Error('Photo trop lourde (10 Mo max)')
 
       const stripped = await stripImageMetadata(file)
       const ext = EXT_FOR_MIME[file.type]

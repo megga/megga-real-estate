@@ -3016,13 +3016,6 @@ export async function execWebAttachPropertyPhotos(ctx: ActionCtx, a: Args): Prom
   const query = s(a.query)
   if (!query) return lang === 'en' ? 'Which property are these photos for?' : 'Ces photos sont pour quel bien ?'
 
-  const found = await lookupAgencyProperty(ctx, query, lang)
-  if (found.kind === 'error') return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.'
-  if (found.kind === 'none') return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.'
-  if (found.kind === 'many') return (lang === 'en' ? 'Several properties match — which one?\n' : 'Plusieurs biens correspondent — lequel ?\n') + found.labels
-  const p = found.property
-  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
-
   const baseUrl = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '')
   const serviceKey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
   if (!baseUrl || !serviceKey) return lang === 'en' ? 'Photo pipeline not configured.' : 'Pipeline photo non configuré.'
@@ -3034,12 +3027,25 @@ export async function execWebAttachPropertyPhotos(ctx: ActionCtx, a: Args): Prom
   if (urls.length === 0) {
     return lang === 'en' ? "Those photos aren't valid staged uploads." : 'Ces photos ne sont pas des envois valides.'
   }
+  // Nettoyage du staging (best-effort) — appelé sur TOUTE sortie une fois les URLs validées,
+  // pour ne jamais laisser d'orphelins dans le bucket public quand l'exécuteur tourne. (Le
+  // cas « l'outil n'est jamais appelé » — écritures OFF, LLM qui n'appelle pas — est couvert
+  // par le cron purge-chat-staging-daily.)
+  const stagePaths = urls.map((u) => u.slice(publicBase.length))
+  const cleanupStaging = () => ctx.supabase.storage.from('property-photos').remove(stagePaths).then(() => {}, () => {})
 
-  // Une photo à la fois (comme WhatsApp) : keyPrefix dérivé par photo, append atomique.
-  let added = 0
-  let lastCount = 0
-  for (const url of urls) {
-    const stagePath = url.slice(publicBase.length)
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') { await cleanupStaging(); return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.' }
+  if (found.kind === 'none') { await cleanupStaging(); return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.' }
+  if (found.kind === 'many') { await cleanupStaging(); return (lang === 'en' ? 'Several properties match — which one? (re-attach the photos)\n' : 'Plusieurs biens correspondent — lequel ? (rejoins les photos)\n') + found.labels }
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // Traitement EN PARALLÈLE (borne le temps total ≈ 1 photo, évite un timeout du tour) :
+  // photo-processor (R2, keyPrefix par photo) → append_property_photo (RPC atomique, robuste
+  // à la concurrence). Un count null (bien disparu entre-temps) = cette photo échoue, jamais
+  // tout le lot.
+  const results = await Promise.all(urls.map(async (url) => {
     const keyPrefix = `properties/${p.id.toLowerCase()}/photos/${hash36(url)}`
     let r2Url: string | null = null
     try {
@@ -3047,23 +3053,24 @@ export async function execWebAttachPropertyPhotos(ctx: ActionCtx, a: Args): Prom
         method: 'POST',
         headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId: p.id, photoUrls: [url], keyPrefix }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(25000),
       })
       const j = (await res.json()) as { success?: boolean; photos_cf?: Array<{ detail?: string; hero?: string; thumb?: string }> }
       const v = j.photos_cf?.[0]
       r2Url = v ? (v.detail ?? v.hero ?? v.thumb ?? null) : null
-    } catch { /* photo suivante */ }
-    // Nettoie le staging (best-effort, évite les orphelins).
-    await ctx.supabase.storage.from('property-photos').remove([stagePath]).then(() => {}, () => {})
-    if (!r2Url) continue
+    } catch { /* photo échouée */ }
+    if (!r2Url) return { ok: false, count: null as number | null }
     const { data: count, error: rpcErr } = await ctx.supabase.rpc('append_property_photo', {
       p_property_id: p.id, p_agency_id: ctx.agencyId, p_url: r2Url,
     })
-    if (rpcErr) continue
-    if (count == null) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
-    added++
-    lastCount = typeof count === 'number' ? count : lastCount
-  }
+    return { ok: !rpcErr && count != null, count: (typeof count === 'number' ? count : null) }
+  }))
+
+  // Staging consommé → nettoie tout (best-effort), quel que soit le résultat.
+  await cleanupStaging()
+
+  const added = results.filter((r) => r.ok).length
+  const lastCount = results.reduce((m, r) => (typeof r.count === 'number' && r.count > m ? r.count : m), 0)
 
   if (added === 0) {
     return lang === 'en' ? "I couldn't process those photos — try again." : 'Je n’ai pas pu traiter ces photos — réessaie.'
