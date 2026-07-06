@@ -451,10 +451,11 @@ async function stashPendingAction(
 }
 
 // ─── Exécution d'une action confirm validée par l'agent (execute_pending) ─────
-// Appelé quand l'agent clique « Publier » / « Retirer » sur la carte. Charge la ligne
-// copilot_pending_actions SCOPÉE à l'agent du JWT, rejoue la charge figée via l'exécuteur
-// partagé (via='web'), puis CONSOMME la carte en cas de SUCCÈS seulement (usage unique ;
-// retry possible sur échec). Rien ne part au portail sans ce clic. Gated copilot_publish_enabled.
+// Appelé quand l'agent clique « Publier » / « Retirer » sur la carte. CONSOMME la carte
+// ATOMIQUEMENT (DELETE...RETURNING scopé à l'agent du JWT = winner-takes-all, pas de double
+// exécution) puis rejoue la charge figée via l'exécuteur partagé (via='web'). Sur ÉCHEC, la
+// carte est réinsérée (même id/charge/TTL) → retry possible. Rien ne part au portail sans ce
+// clic. Gated copilot_publish_enabled.
 async function handleExecutePending(params: {
   auth: AgentAuthContext
   pendingId: string
@@ -478,21 +479,21 @@ async function handleExecutePending(params: {
 
   if (!pendingId || typeof pendingId !== 'string') return json({ error: 'pending_id requis.' }, 400)
 
-  // Charge la carte SCOPÉE à l'agent (jamais un id forgé d'un autre agent). On NE
-  // consomme PAS avant l'exécution : sur échec (bien passé hors-marché, erreur DB…),
-  // la carte survit pour un nouvel essai. publish/withdraw sont idempotents (upsert
-  // (property_id,portal) / update conditionnel), donc un double-clic ne double rien.
-  const { data: rows, error: selErr } = await auth.supabase
+  // CONSOMME la carte ATOMIQUEMENT (winner-takes-all, comme le canal WhatsApp F3) :
+  // DELETE ... RETURNING scopé à l'agent du JWT. Deux execute_pending concurrents tentent
+  // la même ligne mais UNE SEULE la voit revenir → une seule exécute (pas de double audit
+  // sur le trail append-only LBA) ; le perdant reçoit 404. Sur ÉCHEC métier, la carte est
+  // réinsérée plus bas pour préserver le retry.
+  const { data: rows, error: delErr } = await auth.supabase
     .from('copilot_pending_actions')
-    .select('kind, tool, payload, expires_at, agency_id')
+    .delete()
     .eq('id', pendingId)
     .eq('user_id', auth.user.id)
-    .limit(1)
-  if (selErr) return json({ error: "Impossible de lire l'action en attente." }, 500)
+    .select('kind, tool, payload, preview, title, expires_at, agency_id')
+  if (delErr) return json({ error: "Impossible de lire l'action en attente." }, 500)
   const row = Array.isArray(rows) ? rows[0] : null
   if (!row) return json({ error: 'Action introuvable ou déjà traitée.' }, 404)
   if (Date.parse(String(row.expires_at)) <= Date.now()) {
-    await auth.supabase.from('copilot_pending_actions').delete().eq('id', pendingId).eq('user_id', auth.user.id)
     return json({ error: 'Cette action a expiré — relance la publication.' }, 410)
   }
 
@@ -507,7 +508,7 @@ async function handleExecutePending(params: {
   }
 
   // Contrat {ok,message} : on distingue succès et échec métier → l'UI n'affiche un
-  // succès (« publié ») QUE si ok, sinon une erreur avec la carte préservée.
+  // succès (« publié ») QUE si ok.
   let outcome: { ok: boolean; message: string }
   try {
     if (row.tool === 'publish_to_portals') outcome = await executePublishToPortals(ctx, payload)
@@ -517,10 +518,17 @@ async function handleExecutePending(params: {
     outcome = { ok: false, message: (lang === 'en' ? 'Action failed: ' : "Échec de l'action : ") + ((e as Error)?.message ?? 'inconnue') }
   }
 
-  // Consomme la carte UNIQUEMENT en cas de succès (usage unique) ; sur échec on la
-  // laisse pour permettre un nouvel essai depuis la même carte.
-  if (outcome.ok) {
-    await auth.supabase.from('copilot_pending_actions').delete().eq('id', pendingId).eq('user_id', auth.user.id)
+  // La carte a été consommée par le claim atomique. Sur ÉCHEC métier, on la RÉINSÈRE
+  // (même id, même charge, même TTL d'origine) pour permettre un nouvel essai depuis la
+  // carte — sans avoir doublé l'exécution ni l'audit. Best-effort.
+  if (!outcome.ok) {
+    try {
+      await auth.supabase.from('copilot_pending_actions').insert({
+        id: pendingId, user_id: auth.user.id, agency_id: row.agency_id,
+        kind: row.kind, tool: row.tool, payload: row.payload,
+        preview: row.preview, title: row.title, expires_at: row.expires_at,
+      })
+    } catch { /* réinsertion best-effort : si elle échoue, l'agent reformulera */ }
   }
 
   // Audit copilote FIDÈLE au résultat réel (l'exécuteur écrit en plus l'audit métier
