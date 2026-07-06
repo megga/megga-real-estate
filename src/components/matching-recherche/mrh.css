@@ -1,0 +1,46 @@
+/* Matching · Recherche hybride — styles (portés du proto handoff).
+   Scopé .mrh-root. Reflow via container queries (largeur RÉELLE du panneau,
+   pas du viewport — MEGGA AI peut comprimer la zone). */
+
+.mrh-root { container-type: inline-size; }
+
+.mrh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@container (max-width: 1080px) { .mrh-grid { grid-template-columns: repeat(2, 1fr); } }
+@container (max-width: 640px)  { .mrh-grid { grid-template-columns: 1fr; } }
+/* Repli viewport si les container queries ne sont pas supportées. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 1200px) { .mrh-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px)  { .mrh-grid { grid-template-columns: 1fr; } }
+}
+
+.mrh-scroll::-webkit-scrollbar { width: 9px; }
+.mrh-scroll::-webkit-scrollbar-thumb { background: var(--mrh-line, rgba(15,23,42,.1)); border-radius: 9px; }
+
+.mrh-root input::placeholder { color: var(--mrh-soft, #7A8088); opacity: 1; }
+
+/* Accessibilité — anneau de focus clavier visible (masqué au clic souris). */
+.mrh-root button:focus-visible,
+.mrh-root input:focus-visible,
+.mrh-root [tabindex]:focus-visible {
+  outline: 2.5px solid var(--mrh-focus, #0041D9);
+  outline-offset: 2px;
+}
+.mrh-root :focus:not(:focus-visible) { outline: none; }
+
+/* ✦ MEGGA AI — halo conique animé (signature violet→magenta→bleu→cyan) au survol */
+.mrh-ai-btn { position: relative; overflow: hidden; }
+.mrh-ai-btn::before {
+  content: ""; position: absolute; inset: -45%; border-radius: 999px;
+  background: conic-gradient(from 0deg, #7C63F0, #C44FB8, #2A6FDB, #0891B2, #7C63F0);
+  opacity: 0; transition: opacity .22s ease;
+}
+.mrh-ai-btn:hover::before { opacity: 1; animation: mrhAiSpin 1.6s linear infinite; }
+.mrh-ai-btn svg { position: relative; z-index: 1; }
+.mrh-ai-btn:hover svg { color: #fff; }
+@keyframes mrhAiSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .mrh-ai-btn:hover::before { animation: none; }
+  .mrh-root *, .mrh-root *::before, .mrh-root *::after { animation-duration: .001ms !important; }
+}
+
+@keyframes sgFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

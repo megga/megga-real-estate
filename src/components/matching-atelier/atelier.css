@@ -88,6 +88,10 @@
 
 /* ════════════════════ STAGE & TOP BAR ══════════════════════════════ */
 .sga-stage{ position:fixed; inset:0; z-index:120; background:var(--canvas); display:flex; flex-direction:column; overflow:hidden; }
+/* Embarqué dans le pager Matching (page 0) : l'étage s'épouse au bento central
+   au lieu de couvrir tout l'écran. contain:layout paint → il devient le bloc
+   conteneur des overlays position:fixed internes (vue annonce, galerie). */
+.sga-stage.sga-embedded{ position:absolute; z-index:1; contain:layout paint; }
 .sga-top{ flex-shrink:0; height:76px; display:flex; align-items:center; gap:16px; padding:0 22px; }
 .sga-top .seg{ display:flex; gap:3px; padding:5px; background:var(--surface); border-radius:var(--r-pill); box-shadow:var(--sh-sm); }
 .sga-seg-btn{ font-family:inherit; cursor:pointer; border:none; background:transparent; color:var(--ink-muted);

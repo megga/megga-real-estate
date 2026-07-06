@@ -36,7 +36,10 @@ import { CdCriteriaCard } from '@/components/crm-sugar-v3/contact-detail/CdCrite
 import { CdWhatsAppCard } from '@/components/crm-sugar-v3/contact-detail/CdWhatsAppCard'
 import { CdConversationInsight } from '@/components/crm-sugar-v3/contact-detail/CdConversationInsight'
 import { CdFollowupSuggestions } from '@/components/crm-sugar-v3/contact-detail/CdFollowupSuggestions'
+import { CdToTraitInbox } from '@/components/crm-sugar-v3/contact-detail/CdToTraitInbox'
+import { CdFilDuDossier } from '@/components/crm-sugar-v3/contact-detail/CdFilDuDossier'
 import { useContact } from '@/hooks/useContacts'
+import { useContactSentMatches } from '@/hooks/useContactSentMatches'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import { useAuditEvents } from '@/hooks/useAuditLog'
 import { supabase } from '@/lib/supabase'
@@ -63,6 +66,9 @@ export default function ContactDetailSugarV3Page() {
 
   const { data: contact, isLoading, isError, refetch } = useContact(id)
   const { data: dossier } = useKycDossierByContact(id)
+  // Boucle de match : dossiers transmis + réactions acheteur (live, realtime).
+  const loop = useContactSentMatches(id)
+  const openAtelierForBuyer = () => id && navigate(`/dashboard/matching?contact=${id}`)
 
   // Activity events filtrés sur cet entity_id
   const { data: allEvents = [] } = useAuditEvents({ days: 90 })
@@ -204,9 +210,14 @@ export default function ContactDetailSugarV3Page() {
               onNewAction={() => navigate('/dashboard/visits/new')}
             />
 
+            {/* Boucle de match — F : inbox « À traiter » (likes acheteur non traités) */}
+            <CdToTraitInbox pendingLikes={loop.pendingLikes} onProposeVisit={openAtelierForBuyer} />
+
             <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18 }}>
               {/* COLONNE PRINCIPALE */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {/* Boucle de match — E : fil du dossier (état de réception) */}
+                <CdFilDuDossier loop={loop} onOpenAtelier={openAtelierForBuyer} />
                 <CdTimelineCard events={contactEvents} />
                 <CdNotesCard key={contact.id} contactId={contact.id} notes={contact.notes} />
                 <CdWhatsAppCard contactId={contact.id} />

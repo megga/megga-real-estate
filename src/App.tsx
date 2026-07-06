@@ -35,6 +35,8 @@ import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
 const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
+// Réception acheteur — page publique par token (boucle de match, refonte juil. 2026)
+const BuyerReceptionPage = lazy(() => import('@/pages/public/BuyerReceptionPage'))
 // Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
 const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
@@ -108,7 +110,7 @@ const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugar
 // visit capture is a separate sprint.
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
 const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
-const MatchingAtelierPage = lazy(() => import('@/pages/agent/MatchingAtelierPage'))
+const MatchingPagerPage = lazy(() => import('@/pages/agent/MatchingPagerPage'))
 const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
@@ -356,6 +358,8 @@ function AnimatedRoutes() {
               <Route path="/auth/mot-de-passe-oublie/redefinir" element={<Navigate to="/auth/forgot-password/reset" replace />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
+              {/* Réception acheteur — sélection de biens transmise par lien privé (boucle de match) */}
+              <Route path="/reception/:token" element={<BuyerReceptionPage />} />
               {/* Sprint 4.7.D — Rendu PDF tokenisé (Cloudflare Browser Rendering → WhatsApp) */}
               <Route path="/kyc-report/:token" element={<KycReportRenderPage />} />
               {/* Marketplace publique désactivée → vitrine. (SearchPage/RentPage
@@ -528,10 +532,12 @@ function AnimatedRoutes() {
                 <Route path="visites/:id" element={<DashboardVisitRedirect />} />
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
-                {/* Atelier Matching — triptyque plein écran (handoff juin 2026).
-                    Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id>.
-                    Mobile (< 768px) : inbox acheteurs + focus (P5). */}
-                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingAtelierPage />} mobile={<MobileMatchingPage />} />} />
+                {/* Matching — pager vertical (refonte Claude Design juil. 2026) :
+                    page 0 = atelier triptyque « par score » · page 1 = recherche
+                    hybride du marché (vente + location). Deep-links portés par
+                    l'atelier : ?annonce=p:<id>|m:<id> · ?contact=<id>.
+                    Mobile (< 768px) : inbox acheteurs + focus. */}
+                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingPagerPage />} mobile={<MobileMatchingPage />} />} />
                 {/* Parcours — mobile (< 768px) : dossiers en vue panoramique (P9). */}
                 <Route path="journey" element={<ResponsiveRoute desktop={<JourneySugarV2Page />} mobile={<MobileJourneyPage />} />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />

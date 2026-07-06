@@ -12,6 +12,7 @@ import SgaQueue, { type SnoozedEntry } from './SgaQueue'
 import SgaListing from './SgaListing'
 import SgaWhy from './SgaWhy'
 import SgaConfirm from './SgaConfirm'
+import SgaSendSheet from './SgaSendSheet'
 import SgaGallery from './SgaGallery'
 import SgaAnnonceVue from './SgaAnnonceVue'
 import SgaAcheteurMode from './SgaAcheteurMode'
@@ -50,11 +51,18 @@ export interface AtelierStageProps {
   onStartKyc: (contactId: string) => void
   /** action de l'état vide (scan moteur) — absente en démo */
   emptyAction?: { label: string; busy: boolean; run: () => void }
+  /**
+   * Monté DANS le pager Matching (page 0) plutôt qu'en plein écran : l'étage
+   * devient `position:absolute` dans le bento (cf. .sga-embedded) et le bouton
+   * « Fermer l'atelier » disparaît — la navigation est portée par la SugarTopNav
+   * du pager, pas par l'étage.
+   */
+  embedded?: boolean
 }
 
 export default function AtelierStage({
   dark, isLoading, isError, onRetry, pivot, pivotBuyer, pool, poolCountFor, gestes,
-  onClose, onOpenDeal, onOpenBuyerPivot, onCloseBuyerPivot, onStartKyc, emptyAction,
+  onClose, onOpenDeal, onOpenBuyerPivot, onCloseBuyerPivot, onStartKyc, emptyAction, embedded,
 }: AtelierStageProps) {
   const { t } = useTranslation('matching')
   const [tab, setTab] = useState<AtelierTab>('to-send')
@@ -65,6 +73,8 @@ export default function AtelierStage({
   const [exiting, setExiting] = useState<{ id: string; dir: string } | null>(null)
   const [toast, setToast] = useState<AtelierToast | null>(null)
   const [confirmSend, setConfirmSend] = useState<{ matchId: string; relance?: boolean } | null>(null)
+  // Feuille d'envoi (lien privé réception) — remplace la confirmation email pour l'envoi.
+  const [sendSheet, setSendSheet] = useState<string | null>(null)
   const [gallery, setGallery] = useState<{ index: number } | null>(null)
   const [annonce, setAnnonce] = useState(false)
   const [selId, setSelId] = useState<string | null>(null)
@@ -104,7 +114,7 @@ export default function AtelierStage({
     return (filtered[idx + 1] ?? rest[rest.length - 1] ?? rest[0]).matchId
   }, [filtered])
 
-  const triage = useCallback((matchId: string, kind: TriageKind) => {
+  const triage = useCallback((matchId: string, kind: TriageKind, channel: 'email' | 'reception' = 'email') => {
     if (exitTimer.current) return
     const b = buyers.find(x => x.matchId === matchId)
     if (!b) return
@@ -112,7 +122,7 @@ export default function AtelierStage({
     const ret = kind === 'later' ? sgaReturnDate() : null
 
     const handle =
-      kind === 'sent' ? gestes.send(matchId)
+      kind === 'sent' ? gestes.send(matchId, channel)
       : kind === 'relance' ? gestes.relance(matchId)
       : kind === 'later' ? gestes.snooze(matchId)
       : kind === 'interested' ? gestes.react(matchId, 'interested')
@@ -144,7 +154,7 @@ export default function AtelierStage({
 
   const requestSend = useCallback((matchId: string) => {
     if (exitTimer.current) return
-    setConfirmSend({ matchId })
+    setSendSheet(matchId)
   }, [])
 
   const requestRelance = useCallback((matchId: string) => {
@@ -191,7 +201,7 @@ export default function AtelierStage({
   useEffect(() => {
     if (pivotBuyer) return
     const onKey = (e: KeyboardEvent) => {
-      if (confirmSend || gallery || annonce) return
+      if (confirmSend || gallery || annonce || sendSheet) return
       const tag = ((e.target as HTMLElement)?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       const k = e.key.toLowerCase()
@@ -207,7 +217,7 @@ export default function AtelierStage({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pivotBuyer, selected, confirmSend, gallery, annonce, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
+  }, [pivotBuyer, selected, confirmSend, gallery, annonce, sendSheet, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
 
   // ── parking « Reportés » : session + base ───────────────────────────────
   const snoozedList: SnoozedEntry[] = useMemo(() => [
@@ -221,14 +231,21 @@ export default function AtelierStage({
   ], [history, processed, laterInfo, buyers])
 
   const confirmBuyer = confirmSend ? buyers.find(x => x.matchId === confirmSend.matchId) ?? null : null
+  const sendBuyer = sendSheet ? buyers.find(x => x.matchId === sendSheet) ?? null : null
 
   return (
-    <div className="sga sga-stage" data-theme={dark ? 'dark' : 'light'} data-density="confort">
+    <div
+      className={`sga sga-stage${embedded ? ' sga-embedded' : ''}`}
+      data-theme={dark ? 'dark' : 'light'}
+      data-density="confort"
+    >
       {/* ── top bar ── */}
       <div className="sga-top">
-        <button className="btn circle" title={t('atelier.closeAtelier')} onClick={onClose}>
-          <SgaIcon d="close" size={18} />
-        </button>
+        {!embedded && (
+          <button className="btn circle" title={t('atelier.closeAtelier')} onClick={onClose}>
+            <SgaIcon d="close" size={18} />
+          </button>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.18, minWidth: 0 }}>
           <span className="t3 semi" style={{ color: 'var(--ink)' }}>
             {pivotBuyer ? t('atelier.buyerTitle') : t('atelier.listingTitle')}
@@ -353,6 +370,16 @@ export default function AtelierStage({
             setConfirmSend(null)
             triage(confirmBuyer.matchId, rel ? 'relance' : 'sent')
           }}
+        />
+      )}
+
+      {/* ── feuille d'envoi (lien privé réception — WhatsApp / lien copié, zéro email) ── */}
+      {sendSheet && sendBuyer && pivot && (
+        <SgaSendSheet
+          b={sendBuyer}
+          L={pivot.listing}
+          onClose={() => setSendSheet(null)}
+          onSent={() => { const mid = sendSheet; setSendSheet(null); triage(mid, 'sent', 'reception') }}
         />
       )}
 
