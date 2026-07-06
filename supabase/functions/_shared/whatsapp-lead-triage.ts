@@ -28,12 +28,38 @@ export function pickTriageAgency(distinctVerifiedAgencies: string[], fallback: s
   return (fallback ?? '').trim() || null                // 0 agence → béquille bootstrap
 }
 
+/**
+ * Décision d'affectation d'agence (pure). Le routage par NUMÉRO BUSINESS
+ * (wa_to → agence, résolu server-side via agency_wa_numbers) est PRIORITAIRE : il est
+ * déterministe et SÛR même en multi-tenant (le message est physiquement arrivé sur ce
+ * numéro → aucune devinette). À défaut (numéro non enregistré), repli sur pickTriageAgency
+ * (heuristique de comptage conservatrice). C'est la levée de la dette « routage wa_to ».
+ */
+export function decideTriageAgency(
+  waToAgency: string | null,
+  distinctVerifiedAgencies: string[],
+  fallback: string | null,
+): string | null {
+  if ((waToAgency ?? '').trim()) return (waToAgency as string).trim()
+  return pickTriageAgency(distinctVerifiedAgencies, fallback)
+}
+
 /** Agence de rattachement d'un lead d'un numéro inconnu, ou null si indéterminable.
- *  Dérivée SERVER-SIDE (whatsapp_agent_links vérifiés + env), jamais du payload. Voir pickTriageAgency. */
+ *  Dérivée SERVER-SIDE, jamais du payload : (1) numéro Business `waTo` → agence via le
+ *  registre agency_wa_numbers (déterministe, sûr multi-tenant) ; sinon (2) heuristique
+ *  whatsapp_agent_links vérifiés + env. Voir decideTriageAgency / pickTriageAgency. */
 export async function resolveTriageAgencyId(
   admin: SupabaseClient,
   env: (k: string) => string | undefined,
+  waTo?: string | null,
 ): Promise<string | null> {
+  // 1. Routage déterministe par numéro Business (wa_to → agence), s'il est enregistré.
+  let waToAgency: string | null = null
+  if ((waTo ?? '').trim()) {
+    const { data } = await admin.rpc('agency_for_wa_business_number', { p_wa_to: waTo })
+    if (typeof data === 'string' && data) waToAgency = data
+  }
+  // 2. Repli : agences vérifiées (garde cross-tenant conservatrice).
   const { data } = await admin
     .from('whatsapp_agent_links')
     .select('agency_id')
@@ -42,7 +68,7 @@ export async function resolveTriageAgencyId(
   const distinct = Array.from(
     new Set((data ?? []).map((r) => (r as { agency_id: string }).agency_id)),
   )
-  return pickTriageAgency(distinct, env('WHATSAPP_FALLBACK_AGENCY_ID') ?? null)
+  return decideTriageAgency(waToAgency, distinct, env('WHATSAPP_FALLBACK_AGENCY_ID') ?? null)
 }
 
 export interface TriageResult { contactId: string | null; created: boolean }

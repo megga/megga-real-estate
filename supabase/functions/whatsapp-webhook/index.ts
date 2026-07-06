@@ -239,13 +239,23 @@ serve(async (req) => {
   // AUCUN envoi au prospect ici (HITL préservé — la branche client ne fait que markRead).
   let leadCreated = false
   if (!contactId && !agencyId && isTriageEligible(msg.fromPhone, msg.body)) {
-    agencyId = await resolveTriageAgencyId(admin, (k) => Deno.env.get(k))
-    if (!agencyId) {
-      console.warn('whatsapp inbound: numéro inconnu, agence indéterminable, message orphelin:', msg.fromPhone.slice(-4))
-    } else {
-      const { firstName, lastName } = triageLeadName(msg.fromPhone)
-      const triage = await ensureLeadForInboundPhone(admin, { agencyId, phone: msg.fromPhone, firstName, lastName })
-      if (triage.contactId) { contactId = triage.contactId; leadCreated = triage.created }
+    // Best-effort : les 2 appels réseau du triage (RPC agence + upsert lead) ne doivent JAMAIS
+    // faire échouer le webhook. Une erreur Postgres est déjà gérée en {error} → null ; on borne
+    // aussi les erreurs TRANSPORT (DNS/timeout) sinon le handler rejette → 500 → retries Meta/openwa.
+    // Mode d'échec sûr : le message est inséré tel quel (orphelin), le back-link trigger rattrapera.
+    try {
+      // wa_to = numéro Business composé par le client → attribution déterministe par agence
+      // (registre agency_wa_numbers) ; sinon repli sur l'heuristique de comptage.
+      agencyId = await resolveTriageAgencyId(admin, (k) => Deno.env.get(k), msg.toPhone)
+      if (!agencyId) {
+        console.warn('whatsapp inbound: numéro inconnu, agence indéterminable, message orphelin:', msg.fromPhone.slice(-4))
+      } else {
+        const { firstName, lastName } = triageLeadName(msg.fromPhone)
+        const triage = await ensureLeadForInboundPhone(admin, { agencyId, phone: msg.fromPhone, firstName, lastName })
+        if (triage.contactId) { contactId = triage.contactId; leadCreated = triage.created }
+      }
+    } catch (e) {
+      console.warn('whatsapp inbound: triage best-effort échoué:', String((e as Error)?.message ?? 'error').slice(0, 80))
     }
   }
 

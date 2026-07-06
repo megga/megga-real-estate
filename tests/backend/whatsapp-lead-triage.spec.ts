@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
 import { serviceRoleClient } from './helpers/supabase'
-import { isTriageEligible, triageLeadName, pickTriageAgency } from '../../supabase/functions/_shared/whatsapp-lead-triage.ts'
+import { isTriageEligible, triageLeadName, pickTriageAgency, decideTriageAgency } from '../../supabase/functions/_shared/whatsapp-lead-triage.ts'
 
 describe('whatsapp-lead-triage — helpers purs', () => {
   it('isTriageEligible : numéro réel + body texte non vide', () => {
@@ -28,6 +28,18 @@ describe('whatsapp-lead-triage — helpers purs', () => {
     expect(pickTriageAgency([], F)).toBe(F)           // 0 agence → béquille bootstrap
     expect(pickTriageAgency([], null)).toBeNull()     // 0 agence, sans fallback → null
     expect(pickTriageAgency([], '  ')).toBeNull()     // fallback blanc → null
+  })
+  it('decideTriageAgency : routage wa_to→agence PRIORITAIRE (déterministe, même multi-tenant)', () => {
+    const A = 'agency-a', B = 'agency-b', W = 'agency-wa', F = 'agency-fallback'
+    // wa_to résolu → il gagne, MÊME avec ≥2 agences vérifiées (que pickTriageAgency refuserait)
+    expect(decideTriageAgency(W, [A, B], F)).toBe(W)
+    expect(decideTriageAgency(W, [], null)).toBe(W)
+    expect(decideTriageAgency(W, [A], null)).toBe(W)
+    // pas de wa_to (numéro Business non enregistré) → repli sur l'heuristique de comptage
+    expect(decideTriageAgency(null, [A], F)).toBe(A)
+    expect(decideTriageAgency(null, [A, B], F)).toBeNull()   // ≥2 sans wa_to → null (garde)
+    expect(decideTriageAgency('  ', [A], null)).toBe(A)      // wa_to blanc = absent
+    expect(decideTriageAgency(null, [], null)).toBeNull()
   })
 })
 
@@ -118,5 +130,23 @@ describe.skipIf(!HAS_KEYS)('whatsapp-lead-triage — RPC ensure_wa_inbound_lead 
     const ids = ((stale ?? []) as Array<{ contact_id: string }>).map((s) => s.contact_id)
     expect(ids).toContain(lead!.contact_id)
     await service.from('whatsapp_messages').delete().eq('id', (m as { id: string }).id)
+  })
+
+  it('agency_for_wa_business_number : numéro Business → agence (routage wa_to), robuste au format', async () => {
+    const num = '41798000123'
+    const { data: ins } = await service.from('agency_wa_numbers')
+      .insert({ agency_id: setup.agencyAId, wa_number: num, label: 'test-wa-routing' })
+      .select('id').single()
+    const insId = (ins as { id: string }).id
+    try {
+      for (const q of [num, '0798000123', '0041 79 800 01 23']) {   // E.164 / national / préfixé+espaces
+        const { data } = await service.rpc('agency_for_wa_business_number', { p_wa_to: q })
+        expect(data).toBe(setup.agencyAId)
+      }
+      const { data: none } = await service.rpc('agency_for_wa_business_number', { p_wa_to: '41799990000' })
+      expect(none).toBeNull()                                        // numéro non enregistré → null
+    } finally {
+      await service.from('agency_wa_numbers').delete().eq('id', insId)
+    }
   })
 })
