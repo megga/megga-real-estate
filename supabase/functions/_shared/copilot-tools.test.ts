@@ -123,12 +123,19 @@ describe('montage d\'annonce (Phase B — publication depuis le copilote CRM)', 
     }
   })
 
-  it('les descriptions web de create/update ne renvoient pas vers attach_property_photos (outil WhatsApp absent du web)', () => {
-    const rw = copilotTools(true)
-    for (const name of ['create_property', 'update_property']) {
-      const t = rw.find((x) => x.function.name === name)
-      expect(t?.function.description, `${name} description`).not.toContain('attach_property_photos')
-    }
+  it('attach_property_photos (photos en chat) est AUTO : absent en read-only, présent sous écritures', () => {
+    const ro = copilotTools(false).map((t) => t.function.name)
+    const rw = copilotTools(true).map((t) => t.function.name)
+    expect(webToolTier('attach_property_photos'), 'doit être auto').toBe('auto')
+    expect(ro, 'pas exposé en lecture seule').not.toContain('attach_property_photos')
+    expect(rw, 'exposé sous écritures (photos en chat)').toContain('attach_property_photos')
+  })
+
+  it('la description web de attach_property_photos ne dépend PAS d\'un média Meta (web = photos jointes au message)', () => {
+    const t = copilotTools(true).find((x) => x.function.name === 'attach_property_photos')
+    expect(t?.function.description).toMatch(/jointe|joins|photo/i)
+    // pas de vocabulaire spécifique WhatsApp/Meta dans la version web
+    expect(t?.function.description ?? '').not.toMatch(/WhatsApp|Meta|média/i)
   })
 })
 

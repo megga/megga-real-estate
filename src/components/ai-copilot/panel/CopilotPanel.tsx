@@ -12,6 +12,7 @@ import {
 } from 'react'
 import { CRM_TOKENS, crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId } from '@/components/crm-sugar/tokens'
 import { useCopilot, type PendingActionCard } from '@/hooks/useCopilot'
+import { useUploadChatPhoto } from '@/hooks/useProperties'
 import { useAuth } from '@/hooks/useAuth'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -359,13 +360,38 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
 }
 
 // ── Barre de saisie ancrée ──────────────────────────────────────────────────
-function Composer({ onSend, loading, sp }: { onSend: (t: string) => void; loading: boolean; sp: AiPalette }) {
+interface ComposerPhoto { id: string; url: string | null; error: boolean }
+
+function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string[]) => void; loading: boolean; sp: AiPalette }) {
   const [val, setVal] = useState('')
+  const [photos, setPhotos] = useState<ComposerPhoto[]>([])
+  const [dragOver, setDragOver] = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const upload = useUploadChatPhoto()
+
+  const uploading = photos.some((p) => p.url === null && !p.error)
+  const readyUrls = photos.filter((p) => p.url).map((p) => p.url as string)
+
+  // Chaque photo est stagée en parallèle (bucket property-photos) ; l'URL revient dans la
+  // vignette. À l'envoi, seules les URLs prêtes partent dans context.attached_photos.
+  const addFiles = (files: FileList | File[]) => {
+    const imgs = Array.from(files).filter((f) => f.type.startsWith('image/')).slice(0, 6)
+    for (const file of imgs) {
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      setPhotos((ps) => [...ps, { id, url: null, error: false }])
+      upload.mutateAsync(file)
+        .then((url) => setPhotos((ps) => ps.map((p) => (p.id === id ? { ...p, url } : p))))
+        .catch(() => setPhotos((ps) => ps.map((p) => (p.id === id ? { ...p, error: true } : p))))
+    }
+  }
+  const removePhoto = (id: string) => setPhotos((ps) => ps.filter((p) => p.id !== id))
+
   const submit = () => {
     const v = val.trim()
-    if (!v || loading) return
-    onSend(v); setVal('')
+    if ((!v && readyUrls.length === 0) || loading || uploading) return
+    onSend(v, readyUrls.length ? readyUrls : undefined)
+    setVal(''); setPhotos([])
     if (ref.current) ref.current.style.height = 'auto'
   }
   const onKey = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
@@ -376,12 +402,37 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string) => void; loadin
     e.target.style.height = 'auto'
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
   }
-  const canSend = !!val.trim() && !loading
+  const canSend = (!!val.trim() || readyUrls.length > 0) && !loading && !uploading
+
   return (
-    <div style={{
-      background: sp.dark ? '#0B0C0E' : sp.composerBg, borderRadius: 22, padding: '10px 10px 10px 16px',
-      boxShadow: sp.dark ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : sp.composerShadow, display: 'flex', flexDirection: 'column', gap: 8,
-    }}>
+    <div
+      onDragOver={(e) => { e.preventDefault(); if (!dragOver) setDragOver(true) }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files) }}
+      style={{
+        background: sp.dark ? '#0B0C0E' : sp.composerBg, borderRadius: 22, padding: '10px 10px 10px 16px',
+        boxShadow: dragOver ? `inset 0 0 0 2px ${sp.accent}` : (sp.dark ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : sp.composerShadow),
+        display: 'flex', flexDirection: 'column', gap: 8, transition: 'box-shadow .14s',
+      }}
+    >
+      {photos.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
+          {photos.map((p) => (
+            <div key={p.id} style={{
+              position: 'relative', width: 46, height: 46, borderRadius: 9, overflow: 'hidden',
+              background: sp.dark ? 'rgba(255,255,255,0.08)' : '#E9ECF1', display: 'grid', placeItems: 'center',
+            }}>
+              {p.url
+                ? <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontSize: 11, fontWeight: 700, color: p.error ? '#E5484D' : sp.sub }}>{p.error ? '!' : '…'}</span>}
+              <button onClick={() => removePhoto(p.id)} title="Retirer" aria-label="Retirer la photo" style={{
+                position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: 999, border: 0, cursor: 'pointer',
+                background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, lineHeight: '16px', padding: 0,
+              }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
       <textarea ref={ref} value={val} onChange={grow} onKeyDown={onKey} rows={1}
         className={sp.dark ? 'cp-composer-input' : undefined}
         placeholder="Demander à MEGGA AI"
@@ -390,7 +441,17 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string) => void; loadin
           resize: 'none', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.5,
           color: sp.dark ? '#FFFFFF' : sp.ink, padding: '4px 0', maxHeight: 120,
         }} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <button onClick={() => fileRef.current?.click()} title="Joindre des photos" aria-label="Joindre des photos"
+          style={{
+            width: 34, height: 34, borderRadius: 999, border: 0, cursor: 'pointer',
+            background: sp.dark ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.05)',
+            display: 'grid', placeItems: 'center',
+          }}>
+          <CpIcon name="image" size={18} color={sp.sub} sw={1.9} />
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+          onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
         <button onClick={submit} disabled={!canSend} title="Envoyer" aria-label="Envoyer"
           style={{
             width: 36, height: 36, borderRadius: 999, border: 0, cursor: canSend ? 'pointer' : 'default',
@@ -536,18 +597,26 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
     return ctx
   }, [deals, firstName, profile])
 
-  const send = useCallback((text: string) => {
+  const send = useCallback((text: string, photoUrls?: string[]) => {
     const t = text.trim()
-    if (!t || isLoading) return
+    const hasPhotos = !!photoUrls?.length
+    if ((!t && !hasPhotos) || isLoading) return
     const uid = (idRef.current += 1)
     const lid = (idRef.current += 1)
+    // Message envoyé au copilote : non vide même sans texte (sinon l'edge le rejette).
+    const msg = t || 'Voici des photos pour un bien.'
+    // Bulle utilisateur : texte + indicateur photo si des photos sont jointes.
+    const shown = hasPhotos
+      ? `${t ? t + '\n\n' : ''}📷 ${photoUrls!.length} photo${photoUrls!.length > 1 ? 's' : ''}`
+      : t
     setMessages((m) => [
       ...m,
-      { id: uid, role: 'user', content: t },
-      { id: lid, role: 'assistant', content: '', loading: true, query: t, phase: null },
+      { id: uid, role: 'user', content: shown },
+      { id: lid, role: 'assistant', content: '', loading: true, query: msg, phase: null },
     ])
     const ctx = buildContext(screen)
-    void sendMessageStream(t, ctx, {
+    if (hasPhotos) ctx.attached_photos = photoUrls
+    void sendMessageStream(msg, ctx, {
       // Token streamé → on sort du mode « réflexion » et on APPEND le fragment.
       onDelta: (chunk) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, phase: null, content: (x.content || '') + chunk } : x)),
       // Un appel d'outil est survenu après du texte → on efface l'ébauche.

@@ -327,6 +327,38 @@ async function stripImageMetadata(file: File): Promise<File> {
   }
 }
 
+// Upload d'UNE photo dans le staging du chat copilote (bucket public property-photos,
+// préfixe {agencyId}/chat-staging/ — imposé par la policy d'insertion ET par la garde
+// SSRF de l'exécuteur execWebAttachPropertyPhotos). EXIF strippé côté client. Renvoie
+// l'URL publique ; le copilote (attach_property_photos) la miroir vers R2, l'attache au
+// bien résolu, puis nettoie le staging. Une photo par appel (le composer parallélise).
+export function useUploadChatPhoto() {
+  const { profile } = useAuth()
+
+  return useMutation({
+    mutationFn: async (file: File): Promise<string> => {
+      const agencyId = profile?.agency_id
+      if (!agencyId) throw new Error('Agence introuvable — connectez-vous')
+      if (!ALLOWED_PHOTO_MIME.has(file.type)) {
+        throw new Error(`Format ${file.type || 'inconnu'} refusé (JPG/PNG/WebP uniquement)`)
+      }
+      if (file.size > 10 * 1024 * 1024) throw new Error('Photo trop lourde (10 Mo max)')
+
+      const stripped = await stripImageMetadata(file)
+      const ext = EXT_FOR_MIME[file.type]
+      const uid = crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+      const filePath = `${agencyId}/chat-staging/${uid}.${ext}`
+
+      const { error } = await supabase.storage
+        .from('property-photos')
+        .upload(filePath, stripped, { contentType: file.type })
+      if (error) throw error
+
+      return supabase.storage.from('property-photos').getPublicUrl(filePath).data.publicUrl
+    },
+  })
+}
+
 export function useUploadPropertyPhotos() {
   const { profile } = useAuth()
 

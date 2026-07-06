@@ -25,6 +25,7 @@ import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from './agent-style.ts'
 import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts'
+import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -38,6 +39,11 @@ export interface ActionCtx {
   // Canal d'origine, pour l'audit activity_events (défaut 'whatsapp'). Le copilote
   // web (ai-copilot) pose 'web' → les mêmes exécuteurs journalisent la bonne source.
   via?: 'web' | 'whatsapp'
+  // Copilote WEB : URLs de photos DÉJÀ STAGÉES par le frontend dans le bucket public
+  // property-photos (préfixe agence, EXIF strippé côté client) et jointes au message.
+  // execWebAttachPropertyPhotos les attache au bien résolu — jamais fournies par le LLM,
+  // et re-validées côté exécuteur contre le préfixe de l'agence (garde SSRF).
+  attachedPhotos?: string[]
 }
 
 type Args = Record<string, unknown>
@@ -2987,6 +2993,102 @@ export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise
   return lang === 'en'
     ? `Photo added to "${title}" (${n} photo${n > 1 ? 's' : ''} now).${suffix}`
     : `Photo ajoutée à « ${title} » (${n} photo${n > 1 ? 's' : ''} maintenant).${suffix}`
+}
+
+// ── Photos de bien PAR LE CHAT WEB : execWebAttachPropertyPhotos (tier auto) ──
+// Miroir web de execAttachPropertyPhotos. La SOURCE n'est plus un média Meta mais des URLs
+// DÉJÀ STAGÉES par le frontend dans le bucket public property-photos (EXIF strippé côté
+// client, préfixe {agencyId}/chat-staging/ imposé par la policy d'insertion). Les URLs
+// viennent du CONTEXTE (ctx.attachedPhotos), jamais du LLM. Garde SSRF : on n'accepte QUE
+// des objets property-photos de l'AGENCE de l'agent (photo-processor va fetcher l'URL).
+// Ensuite, même pipeline que WhatsApp : photo-processor (R2) → append_property_photo.
+export async function execWebAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const staged = Array.isArray(ctx.attachedPhotos)
+    ? ctx.attachedPhotos.filter((u): u is string => typeof u === 'string' && u.length > 0)
+    : []
+  if (staged.length === 0) {
+    return lang === 'en'
+      ? "I don't see a photo attached to this message. Attach the photo(s) and tell me which property."
+      : 'Je ne vois pas de photo jointe à ce message. Joins la/les photo(s) et dis-moi pour quel bien.'
+  }
+  const query = s(a.query)
+  if (!query) return lang === 'en' ? 'Which property are these photos for?' : 'Ces photos sont pour quel bien ?'
+
+  const baseUrl = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '')
+  const serviceKey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
+  if (!baseUrl || !serviceKey) return lang === 'en' ? 'Photo pipeline not configured.' : 'Pipeline photo non configuré.'
+
+  // Garde SSRF (helper pur testé) : QUE des objets property-photos du préfixe staging de
+  // l'agence de l'agent — jamais une URL arbitraire (le photo-processor va la fetcher).
+  const publicBase = `${baseUrl}/storage/v1/object/public/property-photos/`
+  const urls = stagedPhotoUrlsForAgency(baseUrl, ctx.agencyId, staged)
+  if (urls.length === 0) {
+    return lang === 'en' ? "Those photos aren't valid staged uploads." : 'Ces photos ne sont pas des envois valides.'
+  }
+  // Nettoyage du staging (best-effort) — appelé sur TOUTE sortie une fois les URLs validées,
+  // pour ne jamais laisser d'orphelins dans le bucket public quand l'exécuteur tourne. (Le
+  // cas « l'outil n'est jamais appelé » — écritures OFF, LLM qui n'appelle pas — est couvert
+  // par le cron purge-chat-staging-daily.)
+  const stagePaths = urls.map((u) => u.slice(publicBase.length))
+  const cleanupStaging = () => ctx.supabase.storage.from('property-photos').remove(stagePaths).then(() => {}, () => {})
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') { await cleanupStaging(); return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.' }
+  if (found.kind === 'none') { await cleanupStaging(); return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.' }
+  if (found.kind === 'many') { await cleanupStaging(); return (lang === 'en' ? 'Several properties match — which one? (re-attach the photos)\n' : 'Plusieurs biens correspondent — lequel ? (rejoins les photos)\n') + found.labels }
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // Traitement EN PARALLÈLE (borne le temps total ≈ 1 photo, évite un timeout du tour) :
+  // photo-processor (R2, keyPrefix par photo) → append_property_photo (RPC atomique, robuste
+  // à la concurrence). Un count null (bien disparu entre-temps) = cette photo échoue, jamais
+  // tout le lot.
+  const results = await Promise.all(urls.map(async (url) => {
+    const keyPrefix = `properties/${p.id.toLowerCase()}/photos/${hash36(url)}`
+    let r2Url: string | null = null
+    try {
+      const res = await fetch(`${baseUrl}/functions/v1/photo-processor`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: p.id, photoUrls: [url], keyPrefix }),
+        signal: AbortSignal.timeout(25000),
+      })
+      const j = (await res.json()) as { success?: boolean; photos_cf?: Array<{ detail?: string; hero?: string; thumb?: string }> }
+      const v = j.photos_cf?.[0]
+      r2Url = v ? (v.detail ?? v.hero ?? v.thumb ?? null) : null
+    } catch { /* photo échouée */ }
+    if (!r2Url) return { ok: false, count: null as number | null }
+    const { data: count, error: rpcErr } = await ctx.supabase.rpc('append_property_photo', {
+      p_property_id: p.id, p_agency_id: ctx.agencyId, p_url: r2Url,
+    })
+    return { ok: !rpcErr && count != null, count: (typeof count === 'number' ? count : null) }
+  }))
+
+  // Staging consommé → nettoie tout (best-effort), quel que soit le résultat.
+  await cleanupStaging()
+
+  const added = results.filter((r) => r.ok).length
+  const lastCount = results.reduce((m, r) => (typeof r.count === 'number' && r.count > m ? r.count : m), 0)
+
+  if (added === 0) {
+    return lang === 'en' ? "I couldn't process those photos — try again." : 'Je n’ai pas pu traiter ces photos — réessaie.'
+  }
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_photo_added', entity_type: 'property', entity_id: p.id, category: 'bien',
+      severity: 'info', metadata: { via: ctx.via ?? 'web', profile_id: ctx.profileId, count: added },
+    })
+  } catch { /* non bloquant */ }
+
+  const live = await maybeRepushOnChange(ctx, p.id)
+  const suffix = live ? (lang === 'en' ? ' Portal updated.' : ' Le portail est mis à jour.') : ''
+  return lang === 'en'
+    ? `${added} photo${added > 1 ? 's' : ''} added to "${title}" (${lastCount} total).${suffix}`
+    : `${added} photo${added > 1 ? 's' : ''} ajoutée${added > 1 ? 's' : ''} à « ${title} » (${lastCount} au total).${suffix}`
 }
 
 // ── Compléter / corriger un bien par WhatsApp : update_property (tier auto) ───
