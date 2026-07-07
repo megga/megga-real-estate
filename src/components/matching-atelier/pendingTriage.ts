@@ -18,7 +18,8 @@ export interface PendingHandle {
 }
 
 export interface AtelierGestes {
-  send: (matchId: string) => PendingHandle
+  /** canal 'reception' = lien privé déjà transmis (WhatsApp / lien copié), pas d'email */
+  send: (matchId: string, channel?: 'email' | 'reception') => PendingHandle
   relance: (matchId: string) => PendingHandle
   snooze: (matchId: string) => PendingHandle
   dismiss: (matchId: string) => PendingHandle

@@ -462,11 +462,13 @@ export async function execSendDossier(
   ctx: GesteContext,
   buyer: AtelierBuyer,
   listing: AtelierListing,
+  channel: 'email' | 'reception' = 'email',
 ): Promise<SendResult> {
-  // 1. Match → sent
+  const viaReception = channel === 'reception'
+  // 1. Match → sent (canal 'reception' = lien privé déjà transmis, pas d'email)
   const { error: mErr } = await supabase
     .from('matches')
-    .update({ status: 'sent', sent_via: 'email', sent_at: new Date().toISOString() })
+    .update({ status: 'sent', sent_via: viaReception ? 'reception' : 'email', sent_at: new Date().toISOString() })
     .eq('id', buyer.matchId)
   if (mErr) throw mErr
 
@@ -516,7 +518,7 @@ export async function execSendDossier(
       deal_id: dealId,
       bien_ref: listing.ref,
       bien_key: listing.key,
-      canal: buyer.email ? 'email' : 'aucun',
+      canal: viaReception ? 'reception' : (buyer.email ? 'email' : 'aucun'),
       score: buyer.score,
     },
   })
@@ -538,9 +540,10 @@ export async function execSendDossier(
     message_template: `Sans réponse au dossier ${listing.ref} — relancer ${buyer.first} ${buyer.last}`,
   })
 
-  // 5. Notification e-mail (l'agent a validé dans la confirmation — human-in-the-loop)
+  // 5. Notification e-mail (l'agent a validé dans la confirmation — human-in-the-loop).
+  // Canal 'reception' : le lien privé A DÉJÀ été transmis (WhatsApp / lien copié) → pas d'email.
   let emailSent = false
-  if (buyer.email) {
+  if (!viaReception && buyer.email) {
     const { error: eErr } = await supabase.functions.invoke('send-property-email', {
       body: {
         to: buyer.email,
