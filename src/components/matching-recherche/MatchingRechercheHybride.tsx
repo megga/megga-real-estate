@@ -17,11 +17,14 @@ import { useNavigate } from 'react-router-dom'
 import { crmSugarPalette, type CrmTheme, type DarkTone } from '@/components/crm-sugar/tokens'
 import { useToast } from '@/components/ui/Toast'
 import { useAiPanel } from '@/hooks/useAiPanel'
+import { useAuth } from '@/hooks/useAuth'
+import { useSendReceptionSelection, type SendSelectionResult } from '@/hooks/useSendReceptionSelection'
 import { formatCHF } from '@/lib/utils'
 import RechIcon from './RechIcon'
 import MrhGrid, { type MrhItem } from './MrhGrid'
 import MrhExtDetail from './MrhExtDetail'
 import MrhMapView from './MrhMapView'
+import MrhSendSheet from './MrhSendSheet'
 import { useMatchingSearch, useMatchingBuyers, type SearchTx } from '@/hooks/useMatchingRecherche'
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
@@ -68,6 +71,8 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
   const { t } = useTranslation('matching')
   const navigate = useNavigate()
   const toast = useToast()
+  const { profile } = useAuth()
+  const sendSel = useSendReceptionSelection()
   const ai = useAiPanel()
   const sp = crmSugarPalette(crmT, dark, darkTone)
   const surf: MrhSurf = {
@@ -90,6 +95,7 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<'pertinence' | 'recent' | 'price-asc' | 'price-desc'>('recent')
   const [sel, setSel] = useState<string[]>([])
+  const [sentLink, setSentLink] = useState<SendSelectionResult | null>(null)
   const [dd, setDd] = useState(false)
   const [sugIdx, setSugIdx] = useState(0)
   const [extBien, setExtBien] = useState<MrhBien | null>(null)
@@ -207,6 +213,21 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
   }
   const clearAll = () => { setBuyer(null); setTokens([]); setQ(''); setSort('recent'); setSel([]); setTrans('all') }
   const toggleSel = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+
+  // Envoi de la sélection à l'acheteur : crée les matches marché (RPC idempotente)
+  // + mint le lien de réception, puis ouvre la feuille de partage (WhatsApp / copier).
+  const onSendSelection = () => {
+    if (!buyer || !profile?.agency_id || !sel.length || sendSel.isPending) return
+    const items = sel
+      .map((id) => biens.find((b) => b.id === id))
+      .filter((b): b is MrhBien => !!b)
+      .map((b) => { const m = scoreBien(buyer, b); return { marketListingId: b.id, score: m.score, reasons: m.reasons } })
+    if (!items.length) return
+    sendSel.mutate(
+      { contactId: buyer.id, agencyId: profile.agency_id, clientSearchId: buyer.searchId, items },
+      { onSuccess: (res) => { setSentLink(res); setSel([]) }, onError: () => toast.error(t('sendSheet.error')) },
+    )
+  }
 
   // Ouvre la fiche annonce marché (« Voir l'annonce ») — plein bento.
   const openBien = (b: MrhBien) => setExtBien(b)
@@ -482,11 +503,21 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
       {/* Barre d'envoi */}
       {buyer && sel.length > 0 && (
         <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
-          <button onClick={() => toast.info(t('recherche.sendSoon'))}
+          <button onClick={onSendSelection} disabled={sendSel.isPending}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: ACC, color: ONACC, fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: dark ? '0 16px 44px rgba(0,0,0,.5)' : '0 16px 40px rgba(15,23,42,.28), 0 4px 12px rgba(15,23,42,.14)', animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both' }}>
             <RechIcon name="send" size={15} stroke={ONACC} /> {t('recherche.send', { count: sel.length, name: buyer.firstName })}
           </button>
         </div>
+      )}
+
+      {/* Feuille d'envoi de la sélection (lien de réception créé) */}
+      {sentLink && (
+        <MrhSendSheet
+          result={sentLink}
+          buyerName={buyer ? `${buyer.firstName} ${buyer.lastName}`.trim() : sentLink.firstName || ''}
+          ctx={ctx}
+          onClose={() => setSentLink(null)}
+        />
       )}
 
       {/* Fiche annonce marché (« Voir l'annonce ») */}
