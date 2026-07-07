@@ -8,6 +8,11 @@
 -- (index idx_ml_active_tx_canton_type + post-filtre unaccent sur le sous-ensemble
 -- transaction) — pas de nouvel index nécessaire.
 
+-- Extension unaccent (accent-insensible). Présente en prod (dans public) → no-op
+-- via IF NOT EXISTS ; ABSENTE sur le Supabase local de CI (supabase start) → on
+-- l'installe ici dans public pour que public.unaccent() résolve partout.
+CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
+
 -- ----------------------------------------------------------------------------
 -- 1. match_candidate_listings : + p_city (filtre ville exact, unaccent)
 -- ----------------------------------------------------------------------------
