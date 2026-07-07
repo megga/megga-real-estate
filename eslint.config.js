@@ -35,6 +35,15 @@ export default defineConfig([
               message: 'Importer Intercom UNIQUEMENT via src/lib/intercom.ts (frontière LPD + no-op guard).',
             },
           ],
+          // Isolation lazy Mapbox : mapbox-gl (~1,7 Mo) ne doit être importé QUE dans
+          // MrhMapbox.tsx (chargé en lazy). Un import ailleurs le ré-embarque dans le
+          // bundle principal → régression de poids silencieuse sur tout le CRM.
+          patterns: [
+            {
+              group: ['mapbox-gl', 'mapbox-gl/*', 'react-map-gl', 'react-map-gl/*'],
+              message: 'Importer Mapbox UNIQUEMENT via src/components/matching-recherche/MrhMapbox.tsx (isolation lazy — évite +1,7 Mo dans le bundle principal).',
+            },
+          ],
         },
       ],
       // Convention TS standard : un préfixe `_` marque l'arg/var intentionnel-
@@ -55,8 +64,8 @@ export default defineConfig([
     },
   },
   {
-    // Exception : le wrapper EST le point de passage autorisé vers le SDK Intercom.
-    files: ['src/lib/intercom.ts'],
+    // Exceptions : ces fichiers SONT les points de passage autorisés (Intercom / Mapbox).
+    files: ['src/lib/intercom.ts', 'src/components/matching-recherche/MrhMapbox.tsx'],
     rules: { 'no-restricted-imports': 'off' },
   },
   // ── Garde-fou i18n — texte JSX codé en dur sur les surfaces agent ──────────

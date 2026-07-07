@@ -193,6 +193,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                         ) }]}
                         dark={dark} radius={18} interactive={false}
                         overlay={locChips}
+                        fallback={<div style={{ position: 'absolute', inset: 0, background: mapBg }} />}
                       />
                     </Suspense>
                   </div>
