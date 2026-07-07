@@ -35,7 +35,9 @@ serve(async (req) => {
   try { body = await req.json() } catch { return json({ error: 'Invalid JSON body' }, 400) }
 
   const contactId = String(body.contact_id ?? '').trim()
-  const matchIds = Array.isArray(body.match_ids) ? body.match_ids.map((x) => String(x)).filter((x) => UUID_RE.test(x)) : []
+  // Borne la sélection côté serveur (défense en profondeur) : match_ids nourrit un
+  // .in('id', …) rechargé à CHAQUE ouverture publique de la page réception.
+  const matchIds = Array.isArray(body.match_ids) ? body.match_ids.map((x) => String(x)).filter((x) => UUID_RE.test(x)).slice(0, 50) : []
   const channel = body.channel === 'whatsapp' ? 'whatsapp' : 'link'
   const days = Number.isFinite(Number(body.expiration_days)) ? Math.min(90, Math.max(1, Number(body.expiration_days))) : 30
 
@@ -93,18 +95,25 @@ serve(async (req) => {
   })
   if (insErr) return json({ error: 'Could not create reception link' }, 500)
 
-  // Audit best-effort (l'agent a transmis une sélection).
-  supabase.from('activity_events').insert({
-    agency_id: profile.agency_id,
-    actor_id: profile.id,
-    actor_kind: 'user',
-    action: 'reception_link_created',
-    entity_type: 'contact',
-    entity_id: contactId,
-    category: 'deal',
-    severity: 'info',
-    metadata: { link_id: linkId, count: validIds.length, channel },
-  }).then(() => {})
+  // Audit best-effort (l'agent a transmis une sélection). waitUntil garde l'isolat
+  // vivant après la Response : cet insert est la dernière tâche avant le return,
+  // rien ne l'attend en aval (sur Edge il serait sinon susceptible d'être perdu).
+  const auditWrite = (async () => {
+    const { error: auditErr } = await supabase.from('activity_events').insert({
+      agency_id: profile.agency_id,
+      actor_id: profile.id,
+      actor_kind: 'user',
+      action: 'reception_link_created',
+      entity_type: 'contact',
+      entity_id: contactId,
+      category: 'deal',
+      severity: 'info',
+      metadata: { link_id: linkId, count: validIds.length, channel },
+    })
+    if (auditErr) console.error('[buyer-reception-create] audit insert échoué', auditErr.message)
+  })()
+  const edge = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime
+  if (edge?.waitUntil) edge.waitUntil(auditWrite); else await auditWrite
 
   return json({ ok: true, linkId, token, expiresAt: exp.iso, count: validIds.length })
 })

@@ -104,12 +104,16 @@ BEGIN
   PERFORM set_config('app.actor_kind', 'system', true);
   PERFORM set_config('app.actor_via', 'reception', true);
 
+  -- L'acheteur ne peut basculer QUE parmi ses états de réception (sent/interested/
+  -- rejected). Si l'agent a déjà fait avancer le match (visit_planned…), un lien
+  -- encore valide ne doit PAS régresser cet état → la garde de statut l'en empêche.
   UPDATE public.matches
      SET status         = p_reaction,
          reaction_motif = CASE WHEN p_reaction = 'rejected' THEN NULLIF(btrim(p_motif), '') ELSE NULL END,
          reaction_note  = CASE WHEN p_reaction = 'rejected' THEN NULLIF(btrim(p_note), '')  ELSE NULL END
    WHERE id = p_match_id
-     AND contact_id = v_contact;   -- garde : le match appartient bien au contact du lien
+     AND contact_id = v_contact                          -- garde tenant : le match appartient au contact du lien
+     AND status IN ('sent', 'interested', 'rejected');   -- garde anti-régression : préserve un état avancé par l'agent
 
   UPDATE public.buyer_reception_links
      SET status = 'reacted', reacted_at = now(), updated_at = now()

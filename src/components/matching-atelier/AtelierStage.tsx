@@ -82,6 +82,13 @@ export default function AtelierStage({
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Purge les timers en vol au démontage — évite un setState post-unmount si l'agent
+  // quitte l'atelier (navigation pager) pendant l'animation de sortie ou un toast actif.
+  useEffect(() => () => {
+    if (exitTimer.current) clearTimeout(exitTimer.current)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+  }, [])
+
   const canVisit = pivot?.listing.kind === 'property'
   const buyers = useMemo(() => pivot?.buyers ?? [], [pivot])
 
