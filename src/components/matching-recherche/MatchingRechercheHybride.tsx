@@ -25,7 +25,7 @@ import MrhGrid, { type MrhItem } from './MrhGrid'
 import MrhExtDetail from './MrhExtDetail'
 import MrhMapView from './MrhMapView'
 import MrhSendSheet from './MrhSendSheet'
-import { useMatchingSearch, useMatchingBuyers, type SearchTx } from '@/hooks/useMatchingRecherche'
+import { useMatchingSearch, useMatchingBuyers, useCitySuggest, type SearchTx } from '@/hooks/useMatchingRecherche'
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
 import { parseQuery, norm } from './omniParse'
@@ -36,6 +36,7 @@ const mrhM = (n: number) => (n >= 1e6 ? String(Math.round(n / 1e5) / 10).replace
 
 type MrhToken =
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'canton'; value: string }
+  | { id: string; kind: 'crit' | 'filter'; label: string; field: 'city'; value: string }
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'type'; value: string }
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'budgetMax'; value: number }
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'rooms'; value: number }
@@ -116,7 +117,10 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     const budgetMax = budgetTok.length ? Math.min(...budgetTok) : buyer?.criteria.budgetMax ?? null
     const budgetMinTok = tokens.filter((tk) => tk.field === 'budgetMin').map((tk) => tk.value as number)
     const budgetMin = budgetMinTok.length ? Math.max(...budgetMinTok) : buyer?.criteria.budgetMin ?? null
-    return { transaction: effTx, cantons, types, budgetMax, budgetMin, limitPerTx: 60 }
+    // Une seule ville à la fois (la plus récente) → filtre p_city exact en SQL.
+    const cityTok = tokens.filter((tk) => tk.field === 'city')
+    const city = cityTok.length ? (cityTok[cityTok.length - 1].value as string) : null
+    return { transaction: effTx, cantons, types, budgetMax, budgetMin, city, limitPerTx: 60 }
   }, [trans, tokens, buyer])
 
   const { data: biens = [], isLoading, isError, refetch } = useMatchingSearch(serverParams)
@@ -202,13 +206,19 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     const parsed = parseQuery(raw)
     if (!parsed.length) { setDd(false); return }
     setTokens((ts) => {
-      const next = [...ts]
+      let next = [...ts]
       for (const p of parsed) {
+        if (p.field === 'city') next = next.filter((tk) => tk.field !== 'city') // une seule ville
         if (next.some((tk) => tk.field === p.field && String(tk.value) === String(p.value))) continue
         next.push({ id: p.field + ':' + p.value, kind: 'filter', label: p.label, field: p.field, value: p.value } as MrhToken)
       }
       return next
     })
+    setQ(''); setDd(false)
+  }
+  // Jeton VILLE depuis l'autocomplétion search_cities (une seule ville active).
+  const addCityToken = (city: string) => {
+    setTokens((ts) => [...ts.filter((tk) => tk.field !== 'city'), { id: 'city:' + norm(city), kind: 'filter' as const, label: city, field: 'city' as const, value: city }])
     setQ(''); setDd(false)
   }
   const clearAll = () => { setBuyer(null); setTokens([]); setQ(''); setSort('recent'); setSel([]); setTrans('all') }
@@ -238,47 +248,41 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     ai.askAi(question)
   }
 
-  // ── suggestions typées ──
+  // ── suggestions typées ── villes via search_cities (TOUTES les villes) + acheteurs + annonces locales
+  const searchTx: SearchTx = trans === 'vente' ? 'buy' : trans === 'location' ? 'rent' : null
+  const { data: rawCityHits = [] } = useCitySuggest(q, searchTx)
+  const navSugg = useRef(false)
   const sugg = useMemo(() => {
     const s = q.trim().toLowerCase()
-    if (s.length < 2) return null
-    const seen = new Set<string>()
-    const places: string[] = []
-    biens.forEach((b) => {
-      const lastWord = (b.title || '').trim().split(/\s+/).pop() ?? ''
-      ;[b.city, b.canton, lastWord].forEach((p) => {
-        if (p && p.length >= 3 && /^[A-ZÀ-Ý]/.test(p) && !seen.has(p)) { seen.add(p); places.push(p) }
-      })
-    })
-    const placeHits = places.filter((p) => p.toLowerCase().includes(s)).slice(0, 3)
+    if (s.length < 2) return { buyerHits: [] as MrhContact[], bienHits: [] as MrhBien[] }
     const buyerHits = buyers.filter((c) => `${c.firstName} ${c.lastName} ${c.label}`.toLowerCase().includes(s)).slice(0, 3)
     const bienHits = biens.filter((b) => `${b.title} ${b.addr} ${b.ref ?? ''}`.toLowerCase().includes(s)).slice(0, 3)
-    return { placeHits, buyerHits, bienHits, any: placeHits.length + buyerHits.length + bienHits.length > 0 }
+    return { buyerHits, bienHits }
   }, [q, biens, buyers])
+  const cityHits = q.trim().length >= 2 ? rawCityHits.slice(0, 4) : []
+  const suggAny = cityHits.length + sugg.buyerHits.length + sugg.bienHits.length > 0
   const suggFlat = useMemo(() => {
-    if (!sugg || !sugg.any) return [] as Array<() => void>
+    if (!suggAny) return [] as Array<() => void>
     return [
-      ...sugg.placeHits.map((p) => () => applyQuery(p)),
+      ...cityHits.map((c) => () => addCityToken(c.city)),
       ...sugg.buyerHits.map((c) => () => applyBuyer(c)),
       ...sugg.bienHits.map((b) => () => { setDd(false); openBien(b) }),
     ]
-  }, [sugg]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setSugIdx(0) }, [q])
+  }, [sugg, cityHits, suggAny]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setSugIdx(0); navSugg.current = false }, [q])
 
   const onInputKey = (e: ReactKeyboardEvent) => {
     if (q.trim() && suggFlat.length > 0 && dd) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSugIdx((i) => (i + 1) % suggFlat.length); return }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setSugIdx((i) => (i - 1 + suggFlat.length) % suggFlat.length); return }
-      if (e.key === 'Enter') {
-        e.preventDefault()
-        // contact / annonce surligné = sélection directe ; sinon on PARSE toute la saisie
-        const placeN = sugg?.placeHits.length ?? 0
-        if (sugIdx >= placeN && suggFlat[sugIdx]) suggFlat[sugIdx]()
-        else applyQuery(q)
-        return
-      }
+      if (e.key === 'ArrowDown') { e.preventDefault(); navSugg.current = true; setSugIdx((i) => (i + 1) % suggFlat.length); return }
+      if (e.key === 'ArrowUp') { e.preventDefault(); navSugg.current = true; setSugIdx((i) => (i - 1 + suggFlat.length) % suggFlat.length); return }
     }
-    if (e.key === 'Enter' && q.trim()) { e.preventDefault(); applyQuery(q); return }
+    if (e.key === 'Enter' && q.trim()) {
+      e.preventDefault()
+      // suggestion explicitement surlignée (flèches) = sélection directe ; sinon on PARSE toute la saisie
+      if (navSugg.current && dd && suggFlat[sugIdx]) suggFlat[sugIdx]()
+      else applyQuery(q)
+      return
+    }
     if (e.key === 'Backspace' && q === '' && tokens.length > 0) { e.preventDefault(); removeTok(tokens[tokens.length - 1]) }
     if (e.key === 'Escape') setDd(false)
   }
@@ -418,28 +422,28 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
             </div>
           )}
 
-          {dd && q.trim() && sugg && sugg.any && (
+          {dd && q.trim() && suggAny && (
             <div style={{ position: 'absolute', top: 'calc(100% + 12px)', left: 0, right: 0, zIndex: 60, background: popBg, borderRadius: 22, boxShadow: sp.solidShadow, border: '1px solid ' + sp.solidBorder, padding: 14, animation: 'sgFadeUp .28s cubic-bezier(.2,.8,.2,1) both' }}>
-              {sugg.placeHits.length > 0 && (
+              {cityHits.length > 0 && (
                 <>
                   <Lab style={{ padding: '4px 12px 8px' }}>{t('recherche.omni.groupPlaces')}</Lab>
-                  {sugg.placeHits.map((p, i) => <DdRow key={p} icon="search" title={t('recherche.omni.place', { place: p })} active={sugIdx === i} onClick={() => applyQuery(p)} />)}
+                  {cityHits.map((c, i) => <DdRow key={c.city + c.canton} icon="search" title={c.city} sub={`${c.canton} · ${c.n}`} active={sugIdx === i} onClick={() => addCityToken(c.city)} />)}
                 </>
               )}
               {sugg.buyerHits.length > 0 && (
                 <>
-                  {sugg.placeHits.length > 0 && <div style={{ height: 1, background: line, margin: '10px 12px' }} />}
+                  {cityHits.length > 0 && <div style={{ height: 1, background: line, margin: '10px 12px' }} />}
                   <Lab style={{ padding: '4px 12px 8px' }}>{t('recherche.omni.groupContacts')}</Lab>
-                  {sugg.buyerHits.map((c, i) => <DdRow key={c.searchId} avatar={`${c.firstName} ${c.lastName}`} title={`${c.firstName} ${c.lastName}`} sub={c.label} active={sugIdx === sugg.placeHits.length + i} onClick={() => applyBuyer(c)} />)}
+                  {sugg.buyerHits.map((c, i) => <DdRow key={c.searchId} avatar={`${c.firstName} ${c.lastName}`} title={`${c.firstName} ${c.lastName}`} sub={c.label} active={sugIdx === cityHits.length + i} onClick={() => applyBuyer(c)} />)}
                 </>
               )}
               {sugg.bienHits.length > 0 && (
                 <>
-                  {(sugg.placeHits.length > 0 || sugg.buyerHits.length > 0) && <div style={{ height: 1, background: line, margin: '10px 12px' }} />}
+                  {(cityHits.length > 0 || sugg.buyerHits.length > 0) && <div style={{ height: 1, background: line, margin: '10px 12px' }} />}
                   <Lab style={{ padding: '4px 12px 8px' }}>{t('recherche.omni.groupListings')}</Lab>
                   {sugg.bienHits.map((b, i) => {
                     const bp = b.transaction === 'location' ? b.rent : b.price
-                    return <DdRow key={b.id} icon="home" title={b.title} sub={b.addr + (bp ? ' · ' + formatCHF(bp) : '')} active={sugIdx === sugg.placeHits.length + sugg.buyerHits.length + i} onClick={() => { setDd(false); openBien(b) }} />
+                    return <DdRow key={b.id} icon="home" title={b.title} sub={b.addr + (bp ? ' · ' + formatCHF(bp) : '')} active={sugIdx === cityHits.length + sugg.buyerHits.length + i} onClick={() => { setDd(false); openBien(b) }} />
                   })}
                 </>
               )}

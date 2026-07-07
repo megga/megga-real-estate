@@ -11,7 +11,7 @@
 // (apartment/house/land/commercial/parking) : les sous-types (attique, villa,
 // chalet…) mappent vers l'enum + un jeton texte d'affinage.
 
-export type OmniField = 'canton' | 'type' | 'budgetMax' | 'budgetMin' | 'rooms' | 'surface' | 'text'
+export type OmniField = 'canton' | 'city' | 'type' | 'budgetMax' | 'budgetMin' | 'rooms' | 'surface' | 'text'
 export interface OmniToken {
   field: OmniField
   value: string | number
@@ -191,10 +191,10 @@ export function parseQuery(raw: string): OmniToken[] {
       const phrase = normWords.slice(k, k + len).join(' ')
       const cantonCode = CANTON_NAME_TO_CODE[phrase]
       if (cantonCode) { push({ field: 'canton', value: cantonCode, label: CANTON_LABEL[cantonCode] ?? cantonCode }); k += len - 1; matched = true; break }
-      const cityCode = CITY_TO_CANTON[phrase]
-      if (cityCode) {
-        push({ field: 'canton', value: cityCode, label: CANTON_LABEL[cityCode] ?? cityCode })
-        push({ field: 'text', value: phrase, label: titleCase(phrase) })
+      // Ville connue → jeton VILLE (poussé en SQL via p_city, filtre ville exact).
+      // Les villes hors de cette liste passent par l'autocomplétion search_cities.
+      if (CITY_TO_CANTON[phrase]) {
+        push({ field: 'city', value: phrase, label: titleCase(phrase) })
         k += len - 1; matched = true; break
       }
     }

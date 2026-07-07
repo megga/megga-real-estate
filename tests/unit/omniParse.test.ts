@@ -51,13 +51,14 @@ describe('parseQuery — geo', () => {
     expect(val('ne', 'canton')).toEqual([]) // "ne" (négation) ≠ Neuchâtel
     expect(val('so', 'canton')).toEqual([]) // "so" ≠ Soleure
   })
-  it('city → canton scope + text refine', () => {
-    expect(first('Nyon', 'canton')).toBe('VD')
-    expect(first('Nyon', 'text')).toBe('nyon')
-    expect(first('Carouge', 'canton')).toBe('GE')
+  it('known city → city token (SQL p_city, exact), no canton/text', () => {
+    expect(first('Nyon', 'city')).toBe('nyon')
+    expect(val('Nyon', 'canton')).toEqual([])
+    expect(val('Nyon', 'text')).toEqual([])
+    expect(first('Carouge', 'city')).toBe('carouge')
   })
-  it('multi-word city name', () => {
-    expect(first('La Chaux-de-Fonds', 'canton')).toBe('NE')
+  it('multi-word city name → city token', () => {
+    expect(first('La Chaux-de-Fonds', 'city')).toBe('la chaux de fonds')
   })
 })
 
@@ -98,8 +99,8 @@ describe('parseQuery — type (mapped to the 5 real enums)', () => {
 })
 
 describe('parseQuery — combos & residual', () => {
-  it('"Lausanne 5 pièces sous 2M"', () => {
-    expect(first('Lausanne 5 pièces sous 2M', 'canton')).toBe('VD')
+  it('"Lausanne 5 pièces sous 2M" (ville + pièces + budget)', () => {
+    expect(first('Lausanne 5 pièces sous 2M', 'city')).toBe('lausanne')
     expect(first('Lausanne 5 pièces sous 2M', 'rooms')).toBe(5)
     expect(first('Lausanne 5 pièces sous 2M', 'budgetMax')).toBe(2_000_000)
   })

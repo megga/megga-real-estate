@@ -6946,6 +6946,7 @@ export type Database = {
           p_budget_max?: number
           p_budget_min?: number
           p_cantons?: string[]
+          p_city?: string
           p_limit?: number
           p_margin?: number
           p_min_quality?: number
@@ -6965,6 +6966,14 @@ export type Database = {
           surface_m2: number
           transaction_type: string
           type: string
+        }[]
+      }
+      search_cities: {
+        Args: { p_prefix: string; p_tx?: string; p_limit?: number }
+        Returns: {
+          city: string
+          canton: string
+          n: number
         }[]
       }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
