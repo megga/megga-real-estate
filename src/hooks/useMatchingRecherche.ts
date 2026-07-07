@@ -34,6 +34,8 @@ export interface MatchingSearchParams {
   types?: string[]
   budgetMin?: number | null
   budgetMax?: number | null
+  /** ville exacte (accent/casse-insensible via unaccent, poussée EN SQL) */
+  city?: string | null
   /** plafond de candidats PAR transaction (borne l'IN + le DOM) */
   limitPerTx?: number
 }
@@ -51,6 +53,7 @@ async function candidateIds(p: MatchingSearchParams, tx: 'buy' | 'rent'): Promis
     p_types: p.types && p.types.length ? p.types : undefined,
     p_min_quality: 50,
     p_limit: p.limitPerTx ?? 60,
+    p_city: p.city && p.city.trim() ? p.city.trim() : undefined,
   })
   if (error) throw error
   return (data ?? []).map((r: { id: string }) => r.id)
@@ -115,6 +118,32 @@ export function useMatchingBuyers() {
         const contact = Array.isArray(r.contact) ? r.contact[0] ?? null : r.contact
         return mapSearchRow(r, contact)
       })
+    },
+  })
+}
+
+export interface CityHit { city: string; canton: string; n: number }
+
+/**
+ * Autocomplétion des VILLES (RPC `search_cities`) — toutes les villes qui ont des
+ * annonces au marché connecté (~3750). Alimente l'omnibox : l'agent tape ≥ 2 lettres
+ * → suggestions de vraies villes → picker pose un jeton ville → filtre `p_city` en SQL.
+ * Débounce léger via `staleTime` + gate sur la longueur du préfixe.
+ */
+export function useCitySuggest(prefix: string, tx: SearchTx) {
+  const p = prefix.trim()
+  return useQuery<CityHit[]>({
+    queryKey: ['mrh-cities', p.toLowerCase(), tx],
+    enabled: p.length >= 2,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_cities', {
+        p_prefix: p,
+        p_tx: tx ?? undefined,
+        p_limit: 6,
+      })
+      if (error) throw error
+      return (data ?? []).map((r) => ({ city: r.city, canton: r.canton, n: Number(r.n) }))
     },
   })
 }
