@@ -145,6 +145,7 @@
     "copied": "Lien copié",
     "preview": "Ouvrir l'aperçu acheteur",
     "error": "Impossible de préparer le lien. Réessayez.",
+    "noPhone": "Ce contact n'a pas de numéro. Copiez le lien pour le lui envoyer.",
     "waMessage": "Bonjour {{firstName}}, voici une sélection de biens pour vous : {{url}}"
   },
   "runMatching": "Lancer le matching",

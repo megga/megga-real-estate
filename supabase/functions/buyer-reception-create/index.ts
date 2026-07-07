@@ -56,9 +56,17 @@ serve(async (req) => {
   // ── Transmission : les matches encore 'suggested' passent 'sent' (canal reception)
   const toSend = (matches ?? []).filter((m) => m.status === 'suggested').map((m) => m.id as string)
   if (toSend.length) {
-    await supabase.from('matches')
+    const { error: sendErr } = await supabase.from('matches')
       .update({ status: 'sent', sent_via: 'reception', sent_at: new Date().toISOString() })
       .in('id', toSend)
+    // Ne pas avaler cette erreur : sinon on minterait un lien alors que les matches
+    // restent 'suggested' → le « Fil du dossier » de l'agent diverge de ce que
+    // l'acheteur reçoit (ex. fenêtre de déploiement où matches_sent_via_check n'a
+    // pas encore 'reception'). On échoue AVANT de créer le lien ; l'agent réessaie.
+    if (sendErr) {
+      console.error('[buyer-reception-create] matches → sent/reception a échoué', sendErr.message)
+      return json({ error: 'Could not mark selection as sent' }, 500)
+    }
   }
 
   // ── Mint du lien (id d'abord → payload HMAC) ──

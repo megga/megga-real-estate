@@ -145,6 +145,7 @@
     "copied": "Link copied",
     "preview": "Open the buyer preview",
     "error": "Couldn't prepare the link. Try again.",
+    "noPhone": "This contact has no phone number. Copy the link to send it.",
     "waMessage": "Hi {{firstName}}, here's a selection of properties for you: {{url}}"
   },
   "runMatching": "Run matching",

@@ -26,6 +26,7 @@ export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState(false)
   const name = `${b.first} ${b.last}`
+  const hasPhone = !!(b.phone && b.phone.trim())
 
   // Crée le lien une seule fois (mis en cache) ; renvoie l'URL publique.
   const ensureLink = async (channel: 'whatsapp' | 'link'): Promise<string | null> => {
@@ -42,6 +43,9 @@ export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
   }
 
   const onWhatsApp = async () => {
+    // Sans numéro, wa.me n'a pas de destinataire → on ne marque pas le dossier
+    // « transmis ». L'agent passe par « Copier le lien ».
+    if (!hasPhone) return
     const url = await ensureLink('whatsapp')
     if (!url) return
     window.open(buildWaMeUrl(b.phone ?? '', t('sendSheet.waMessage', { firstName: b.first, url })), '_blank', 'noopener')
@@ -78,12 +82,13 @@ export default function SgaSendSheet({ b, L, onClose, onSent }: Props) {
           {error && <p className="t2" style={{ margin: '10px 0 0', color: 'var(--sys-red, #C0453B)', fontWeight: 600 }}>{t('sendSheet.error')}</p>}
         </div>
         <div style={{ padding: '0 24px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button className="btn btn-primary" style={{ width: '100%' }} onClick={onWhatsApp} disabled={busy} autoFocus>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={onWhatsApp} disabled={busy || !hasPhone} autoFocus={hasPhone}>
             <SgaIcon d="message" size={16} /> {t('sendSheet.whatsapp')}
           </button>
-          <button className="btn btn-ghost" style={{ width: '100%', boxShadow: 'inset 0 0 0 1px var(--hairline)' }} onClick={onCopy} disabled={busy}>
+          <button className="btn btn-ghost" style={{ width: '100%', boxShadow: 'inset 0 0 0 1px var(--hairline)' }} onClick={onCopy} disabled={busy} autoFocus={!hasPhone}>
             <SgaIcon d={copied ? 'check' : 'copy'} size={15} /> {copied ? t('sendSheet.copied') : t('sendSheet.copyLink')}
           </button>
+          {!hasPhone && <p className="t2 muted" style={{ margin: '2px 0 0', lineHeight: 1.5 }}>{t('sendSheet.noPhone')}</p>}
         </div>
         <div className="sga-modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>{t('common:actions.cancel')}</button>
