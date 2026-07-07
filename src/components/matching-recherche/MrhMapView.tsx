@@ -277,7 +277,7 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
         <div className="mrh-split-map" style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: surf.shadow, border: surf.hairline }}>
           <Suspense fallback={<MapSurface dark={dark} />}>
             {mbBounds ? (
-              <MrhMapbox markers={mbMarkers} bounds={mbBounds} dark={dark} controls radius={20} />
+              <MrhMapbox markers={mbMarkers} bounds={mbBounds} dark={dark} controls radius={20} fallback={<MapSurface dark={dark} />} />
             ) : (
               <>
                 <MapSurface dark={dark} />
