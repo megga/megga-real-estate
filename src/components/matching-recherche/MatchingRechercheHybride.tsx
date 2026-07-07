@@ -25,6 +25,7 @@ import MrhMapView from './MrhMapView'
 import { useMatchingSearch, useMatchingBuyers, type SearchTx } from '@/hooks/useMatchingRecherche'
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
+import { parseQuery, norm } from './omniParse'
 import './mrh.css'
 
 // millions / milliers (jetons budget) : 1'100'000 → « 1,1M » ; 3'000 → « 3k »
@@ -35,6 +36,8 @@ type MrhToken =
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'type'; value: string }
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'budgetMax'; value: number }
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'rooms'; value: number }
+  | { id: string; kind: 'crit' | 'filter'; label: string; field: 'budgetMin'; value: number }
+  | { id: string; kind: 'crit' | 'filter'; label: string; field: 'surface'; value: number }
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'text'; value: string }
 
 // score heuristique (proto `mrhScore`) — contre les critères du contact.
@@ -105,25 +108,28 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     const types = tokens.filter((tk) => tk.field === 'type').map((tk) => tk.value as string)
     const budgetTok = tokens.filter((tk) => tk.field === 'budgetMax').map((tk) => tk.value as number)
     const budgetMax = budgetTok.length ? Math.min(...budgetTok) : buyer?.criteria.budgetMax ?? null
-    const budgetMin = buyer?.criteria.budgetMin ?? null
+    const budgetMinTok = tokens.filter((tk) => tk.field === 'budgetMin').map((tk) => tk.value as number)
+    const budgetMin = budgetMinTok.length ? Math.max(...budgetMinTok) : buyer?.criteria.budgetMin ?? null
     return { transaction: effTx, cantons, types, budgetMax, budgetMin, limitPerTx: 60 }
   }, [trans, tokens, buyer])
 
   const { data: biens = [], isLoading, isError, refetch } = useMatchingSearch(serverParams)
 
   // ── filtres client (texte libre + jetons pièces/quartier) + scoring ──
-  const clientTokens = useMemo(() => tokens.filter((tk) => tk.field === 'rooms' || tk.field === 'text'), [tokens])
+  const clientTokens = useMemo(() => tokens.filter((tk) => tk.field === 'rooms' || tk.field === 'text' || tk.field === 'surface'), [tokens])
+  // Meule de recherche texte : titre + adresse + ville + features + réf, normalisée
+  // (sans accents/casse) — le texte matche aussi les FEATURES structurées (garage, balcon…).
+  const bienHay = useCallback((b: MrhBien) => norm(`${b.title} ${b.addr} ${b.city ?? ''} ${(b.features ?? []).join(' ')} ${b.ref ?? ''}`), [])
   const strictPass = useCallback((b: MrhBien) => {
+    const hay = bienHay(b)
     for (const tk of clientTokens) {
       if (tk.field === 'rooms' && (b.rooms ?? 0) < tk.value) return false
-      if (tk.field === 'text' && !`${b.title} ${b.addr}`.toLowerCase().includes(tk.value.toLowerCase())) return false
+      if (tk.field === 'surface' && (b.area ?? 0) < tk.value) return false
+      if (tk.field === 'text' && !hay.includes(norm(String(tk.value)))) return false
     }
-    if (q.trim()) {
-      const hay = `${b.title} ${b.addr} ${b.ref ?? ''}`.toLowerCase()
-      if (!hay.includes(q.trim().toLowerCase())) return false
-    }
+    if (q.trim() && !hay.includes(norm(q))) return false
     return true
-  }, [clientTokens, q])
+  }, [clientTokens, q, bienHay])
 
   const strict: MrhItem[] = useMemo(() => {
     const list: MrhItem[] = biens.filter(strictPass).map((b) => ({ b, m: buyer ? scoreBien(buyer, b) : null }))
@@ -151,13 +157,15 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
       .slice(0, 3)
   }, [biens, strictPass, buyer])
   const missNote = useCallback((b: MrhBien): string => {
+    const hay = bienHay(b)
     for (const tk of clientTokens) {
       if (tk.field === 'rooms' && (b.rooms ?? 0) < tk.value) return tk.label
-      if (tk.field === 'text' && !`${b.title} ${b.addr}`.toLowerCase().includes(tk.value.toLowerCase())) return tk.label
+      if (tk.field === 'surface' && (b.area ?? 0) < tk.value) return tk.label
+      if (tk.field === 'text' && !hay.includes(norm(String(tk.value)))) return tk.label
     }
     if (q.trim()) return q.trim()
     return t('recherche.near.note')
-  }, [clientTokens, q, t])
+  }, [clientTokens, q, t, bienHay])
   const reasonForNear = useCallback((it: MrhItem): string | null => missNote(it.b), [missNote])
 
   // ── actions ──
@@ -182,7 +190,21 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     if (tok.kind === 'crit' && !next.some((tk) => tk.kind === 'crit')) setBuyer(null)
     return next
   })
-  const addTextFilter = (txt: string) => { setTokens((ts) => (ts.some((tk) => tk.field === 'text' && tk.value === txt) ? ts : [...ts, { id: 'q-' + txt, kind: 'filter', label: txt, field: 'text', value: txt }])); setDd(false) }
+  // Parse la saisie libre en jetons TYPÉS (canton/type/budget → SQL ; pièces/surface/texte
+  // → client) et les ajoute. Remplace l'ancien « tout devient un jeton texte ».
+  const applyQuery = (raw: string) => {
+    const parsed = parseQuery(raw)
+    if (!parsed.length) { setDd(false); return }
+    setTokens((ts) => {
+      const next = [...ts]
+      for (const p of parsed) {
+        if (next.some((tk) => tk.field === p.field && String(tk.value) === String(p.value))) continue
+        next.push({ id: p.field + ':' + p.value, kind: 'filter', label: p.label, field: p.field, value: p.value } as MrhToken)
+      }
+      return next
+    })
+    setQ(''); setDd(false)
+  }
   const clearAll = () => { setBuyer(null); setTokens([]); setQ(''); setSort('recent'); setSel([]); setTrans('all') }
   const toggleSel = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
 
@@ -215,7 +237,7 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
   const suggFlat = useMemo(() => {
     if (!sugg || !sugg.any) return [] as Array<() => void>
     return [
-      ...sugg.placeHits.map((p) => () => { addTextFilter(p); setQ('') }),
+      ...sugg.placeHits.map((p) => () => applyQuery(p)),
       ...sugg.buyerHits.map((c) => () => applyBuyer(c)),
       ...sugg.bienHits.map((b) => () => { setDd(false); openBien(b) }),
     ]
@@ -226,8 +248,16 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     if (q.trim() && suggFlat.length > 0 && dd) {
       if (e.key === 'ArrowDown') { e.preventDefault(); setSugIdx((i) => (i + 1) % suggFlat.length); return }
       if (e.key === 'ArrowUp') { e.preventDefault(); setSugIdx((i) => (i - 1 + suggFlat.length) % suggFlat.length); return }
-      if (e.key === 'Enter') { e.preventDefault(); (suggFlat[sugIdx] || suggFlat[0])(); return }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        // contact / annonce surligné = sélection directe ; sinon on PARSE toute la saisie
+        const placeN = sugg?.placeHits.length ?? 0
+        if (sugIdx >= placeN && suggFlat[sugIdx]) suggFlat[sugIdx]()
+        else applyQuery(q)
+        return
+      }
     }
+    if (e.key === 'Enter' && q.trim()) { e.preventDefault(); applyQuery(q); return }
     if (e.key === 'Backspace' && q === '' && tokens.length > 0) { e.preventDefault(); removeTok(tokens[tokens.length - 1]) }
     if (e.key === 'Escape') setDd(false)
   }
@@ -253,8 +283,9 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     let best: { tok: MrhToken; n: number } | null = null
     clientTokens.forEach((tok) => {
       const n = biens.filter((b) => {
-        for (const tk of clientTokens) { if (tk === tok) continue; if (tk.field === 'rooms' && (b.rooms ?? 0) < tk.value) return false; if (tk.field === 'text' && !`${b.title} ${b.addr}`.toLowerCase().includes(tk.value.toLowerCase())) return false }
-        if (q.trim()) { const hay = `${b.title} ${b.addr}`.toLowerCase(); if (!hay.includes(q.trim().toLowerCase())) return false }
+        const hay = bienHay(b)
+        for (const tk of clientTokens) { if (tk === tok) continue; if (tk.field === 'rooms' && (b.rooms ?? 0) < tk.value) return false; if (tk.field === 'surface' && (b.area ?? 0) < tk.value) return false; if (tk.field === 'text' && !hay.includes(norm(String(tk.value)))) return false }
+        if (q.trim() && !hay.includes(norm(q))) return false
         return true
       }).length
       if (n > 0 && (!best || n > best.n)) best = { tok, n }
@@ -371,7 +402,7 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
               {sugg.placeHits.length > 0 && (
                 <>
                   <Lab style={{ padding: '4px 12px 8px' }}>{t('recherche.omni.groupPlaces')}</Lab>
-                  {sugg.placeHits.map((p, i) => <DdRow key={p} icon="search" title={t('recherche.omni.place', { place: p })} active={sugIdx === i} onClick={() => { addTextFilter(p); setQ('') }} />)}
+                  {sugg.placeHits.map((p, i) => <DdRow key={p} icon="search" title={t('recherche.omni.place', { place: p })} active={sugIdx === i} onClick={() => applyQuery(p)} />)}
                 </>
               )}
               {sugg.buyerHits.length > 0 && (
