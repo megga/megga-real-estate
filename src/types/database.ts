@@ -1008,6 +1008,95 @@ export type Database = {
           },
         ]
       }
+      buyer_reception_links: {
+        Row: {
+          agency_id: string
+          agent_id: string | null
+          channel: string | null
+          client_ip: string | null
+          client_user_agent: string | null
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          match_ids: string[]
+          reacted_at: string | null
+          sent_at: string
+          status: string
+          token: string
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          agency_id: string
+          agent_id?: string | null
+          channel?: string | null
+          client_ip?: string | null
+          client_user_agent?: string | null
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          match_ids: string[]
+          reacted_at?: string | null
+          sent_at?: string
+          status?: string
+          token: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          agency_id?: string
+          agent_id?: string | null
+          channel?: string | null
+          client_ip?: string | null
+          client_user_agent?: string | null
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          match_ids?: string[]
+          reacted_at?: string | null
+          sent_at?: string
+          status?: string
+          token?: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_reception_links_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_reception_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_reception_links_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_reception_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_sync: {
         Row: {
           created_at: string | null
@@ -3115,6 +3204,8 @@ export type Database = {
           id: string
           market_listing_id: string | null
           property_id: string | null
+          reaction_motif: string | null
+          reaction_note: string | null
           reasons: Json | null
           response_at: string | null
           score: number
@@ -3133,6 +3224,8 @@ export type Database = {
           id?: string
           market_listing_id?: string | null
           property_id?: string | null
+          reaction_motif?: string | null
+          reaction_note?: string | null
           reasons?: Json | null
           response_at?: string | null
           score: number
@@ -3151,6 +3244,8 @@ export type Database = {
           id?: string
           market_listing_id?: string | null
           property_id?: string | null
+          reaction_motif?: string | null
+          reaction_note?: string | null
           reasons?: Json | null
           response_at?: string | null
           score?: number
