@@ -2,10 +2,10 @@
 // central, grammaire Sugar. Partagée Recherche ↔ mode « par acheteur ». Port du
 // proto handoff `MrhExtDetail`, câblé aux vraies photos + i18n.
 //
-// Carte : placeholder CSS (grille + rues + pin) avec vraies coordonnées ; une
-// vraie carte Mapbox pourra remplacer ce bloc plus tard (react-map-gl).
+// Carte : vraie carte Mapbox (react-map-gl, lazy) quand VITE_MAPBOX_TOKEN est
+// présent ; repli placeholder CSS (grille + rues + pin, vraies coordonnées) sinon.
 
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
 import MrhPhoto from './MrhPhoto'
@@ -14,6 +14,10 @@ import { formatCHF } from '@/lib/utils'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import type { MrhBien, MrhContact } from './types'
 import type { MrhSurf } from './mrhCtx'
+
+// Carte réelle isolée + lazy → mapbox-gl ne charge qu'à l'ouverture d'une fiche avec token.
+const MrhMapbox = lazy(() => import('./MrhMapbox'))
+const HAS_MAPBOX = !!((import.meta.env.VITE_MAPBOX_TOKEN as string | undefined) || '')
 
 interface Props {
   bien: MrhBien
@@ -54,6 +58,12 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   const agencyInit = agencyName.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
   const mapBg = dark ? '#12151B' : '#E7ECF2'
   const mapLine = dark ? 'rgba(255,255,255,.05)' : 'rgba(15,23,42,.06)'
+  const locChips = (
+    <div style={{ position: 'absolute', left: 14, right: 14, bottom: 14, zIndex: 2, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, maxWidth: '100%', background: dark ? 'rgba(11,12,14,.8)' : 'rgba(255,255,255,.94)', color: sp.ink, fontSize: 12.5, fontWeight: 700, boxShadow: '0 2px 8px rgba(15,23,42,.12)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bien.addr}</span>
+      {bien.lat != null && bien.lng != null ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 26, padding: '0 11px', borderRadius: 999, background: dark ? 'rgba(11,12,14,.66)' : 'rgba(255,255,255,.85)', color: sp.sub, fontSize: 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{bien.lat.toFixed(4) + ', ' + bien.lng.toFixed(4)}</span> : null}
+    </div>
+  )
   const photos = useMemo(() => bien.photos, [bien.photos])
   const [lb, setLb] = useState(-1)
 
@@ -173,18 +183,30 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
 
               <div style={{ marginTop: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sp.sub, marginBottom: 12 }}>{t('recherche.detail.location')}</div>
-                <div style={{ position: 'relative', height: 240, borderRadius: 18, overflow: 'hidden', background: mapBg, boxShadow: surf.shadow }}>
-                  <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(${mapLine} 1px, transparent 1px), linear-gradient(90deg, ${mapLine} 1px, transparent 1px)`, backgroundSize: '34px 34px' }} />
-                  <div style={{ position: 'absolute', top: '-12%', left: '20%', width: '62%', height: '160%', transform: 'rotate(22deg)', background: mapLine }} />
-                  <div style={{ position: 'absolute', top: '42%', left: '-10%', width: '130%', height: 12, background: mapLine }} />
-                  <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-100%)' }}>
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill={sp.ink} style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,.3))' }}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.6" fill={mapBg} /></svg>
+                {HAS_MAPBOX && bien.lat != null && bien.lng != null ? (
+                  <div style={{ position: 'relative', height: 240, borderRadius: 18, overflow: 'hidden', background: mapBg, boxShadow: surf.shadow }}>
+                    <Suspense fallback={<div style={{ position: 'absolute', inset: 0, background: mapBg }} />}>
+                      <MrhMapbox
+                        center={{ lng: bien.lng, lat: bien.lat, zoom: 14 }}
+                        markers={[{ id: 'loc', lng: bien.lng, lat: bien.lat, anchor: 'bottom', el: (
+                          <svg width="30" height="30" viewBox="0 0 24 24" fill={sp.ink} style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,.3))' }}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.6" fill={mapBg} /></svg>
+                        ) }]}
+                        dark={dark} radius={18} interactive={false}
+                        overlay={locChips}
+                      />
+                    </Suspense>
                   </div>
-                  <div style={{ position: 'absolute', left: 14, right: 14, bottom: 14, zIndex: 2, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, maxWidth: '100%', background: dark ? 'rgba(11,12,14,.8)' : 'rgba(255,255,255,.94)', color: sp.ink, fontSize: 12.5, fontWeight: 700, boxShadow: '0 2px 8px rgba(15,23,42,.12)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bien.addr}</span>
-                    {bien.lat != null && bien.lng != null ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 26, padding: '0 11px', borderRadius: 999, background: dark ? 'rgba(11,12,14,.66)' : 'rgba(255,255,255,.85)', color: sp.sub, fontSize: 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{bien.lat.toFixed(4) + ', ' + bien.lng.toFixed(4)}</span> : null}
+                ) : (
+                  <div style={{ position: 'relative', height: 240, borderRadius: 18, overflow: 'hidden', background: mapBg, boxShadow: surf.shadow }}>
+                    <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(${mapLine} 1px, transparent 1px), linear-gradient(90deg, ${mapLine} 1px, transparent 1px)`, backgroundSize: '34px 34px' }} />
+                    <div style={{ position: 'absolute', top: '-12%', left: '20%', width: '62%', height: '160%', transform: 'rotate(22deg)', background: mapLine }} />
+                    <div style={{ position: 'absolute', top: '42%', left: '-10%', width: '130%', height: 12, background: mapLine }} />
+                    <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-100%)' }}>
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill={sp.ink} style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,.3))' }}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.6" fill={mapBg} /></svg>
+                    </div>
+                    {locChips}
                   </div>
-                </div>
+                )}
               </div>
             </div>
 

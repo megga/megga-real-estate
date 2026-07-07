@@ -1,11 +1,12 @@
 // Matching · Recherche — vue Carte (split liste ↔ carte à pins prix).
-// Port du proto handoff (branche stylisée CSS : fond abstrait + pins projetés,
-// zoom molette / pan glisser, survol liste↔pin synchronisé + mini-aperçu).
-// La branche Mapbox live du proto est omise ici (le fond stylisé est complet et
-// sans dépendance) ; une vraie carte react-map-gl pourra la remplacer plus tard.
+// Carte RÉELLE Mapbox (react-map-gl, chargée en lazy) quand VITE_MAPBOX_TOKEN est
+// présent : pins aux vraies coordonnées + tuiles réelles. SANS token (dev local,
+// build sans secret) → repli sur le fond stylisé CSS d'origine (pins projetés,
+// zoom molette / pan glisser). Les deux partagent la liste, le survol synchronisé
+// liste↔pin et le mini-aperçu au survol.
 
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useReducer, useRef, useState } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
 import MrhPhoto from './MrhPhoto'
@@ -13,6 +14,11 @@ import { formatCHF } from '@/lib/utils'
 import type { MrhBien } from './types'
 import type { MrhCtx } from './mrhCtx'
 import type { MrhItem } from './MrhGrid'
+import type { MrhMarker } from './MrhMapbox'
+
+// Carte réelle isolée + lazy → mapbox-gl (~1,5 Mo) ne charge qu'à l'ouverture carte + token.
+const MrhMapbox = lazy(() => import('./MrhMapbox'))
+const HAS_MAPBOX = !!((import.meta.env.VITE_MAPBOX_TOKEN as string | undefined) || '')
 
 const mrhM = (n: number) => (n >= 1e6 ? String(Math.round(n / 1e5) / 10).replace('.', ',') + 'M' : Math.round(n / 1e3) + 'k')
 const VIO = '#7C63F0', VIO_HOT = '#5B44D6', VIO_NEAR = '#9B86F2'
@@ -38,6 +44,12 @@ function mrhPos(b: MrhBien, bnds: Bounds): Pos {
   return { left: cx + '%', top: cy + '%', _x: cx, _y: cy, _in: x >= -0.06 && x <= 1.06 && y >= -0.06 && y <= 1.06 }
 }
 
+// Style visuel de la pastille prix (partagé CSS ↔ marqueur Mapbox).
+function pinStyle(hot: boolean, near: boolean, on: boolean): CSSProperties {
+  return { border: 0, cursor: 'pointer', padding: '5px 10px', borderRadius: 999, fontFamily: 'inherit', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', background: hot ? VIO_HOT : near ? VIO_NEAR : VIO, color: '#FFFFFF', boxShadow: '0 3px 10px rgba(76,58,160,.42)', outline: on ? '2px solid rgba(255,255,255,.9)' : 'none', outlineOffset: -2, transition: 'background .14s' }
+}
+const priceLabel = (b: MrhBien) => { const p = b.transaction === 'location' ? b.rent : b.price; return p ? mrhM(p) : '—' }
+
 function MapSurface({ dark }: { dark: boolean }) {
   const base = dark ? '#0F131A' : '#E9EDF2'
   const ln = dark ? 'rgba(255,255,255,.05)' : 'rgba(15,23,42,.055)'
@@ -55,30 +67,32 @@ function MapSurface({ dark }: { dark: boolean }) {
   )
 }
 
+// Pastille prix statique (contenu d'un marqueur Mapbox — le positionnement est géré par la carte).
+function PinPill({ b, active, near, on }: { b: MrhBien; active: boolean; near: boolean; on: boolean }) {
+  return <span style={{ ...pinStyle(active || on, near, on), display: 'inline-block' }}>{priceLabel(b)}</span>
+}
+
 function PricePin({ b, pos, active, near, sel, onHover, onOpen }: { b: MrhBien; pos: Pos; active: boolean; near: boolean; sel: string[]; onHover: (id: string | null) => void; onOpen: (b: MrhBien) => void }) {
-  const price = b.transaction === 'location' ? b.rent : b.price
-  const label = price ? mrhM(price) : '—'
   const on = sel.includes(b.id)
   const hot = active || on
   const z = active ? 60 : on ? 40 : 14 + Math.round(pos._y / 3)
-  const bg = hot ? VIO_HOT : near ? VIO_NEAR : VIO
   return (
     <button onMouseEnter={() => onHover(b.id)} onMouseLeave={() => onHover(null)} onClick={(e) => { e.stopPropagation(); onOpen(b) }}
-      style={{ position: 'absolute', left: pos.left, top: pos.top, zIndex: z, transform: 'translate(-50%,-50%)', border: 0, cursor: 'pointer', padding: '5px 10px', borderRadius: 999, fontFamily: 'inherit', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', background: bg, color: '#FFFFFF', boxShadow: '0 3px 10px rgba(76,58,160,.42)', outline: on ? '2px solid rgba(255,255,255,.9)' : 'none', outlineOffset: -2, transition: 'background .14s' }}>
-      {label}
+      style={{ position: 'absolute', left: pos.left, top: pos.top, zIndex: z, transform: 'translate(-50%,-50%)', ...pinStyle(hot, near, on) }}>
+      {priceLabel(b)}
     </button>
   )
 }
 
-function MapPopover({ b, m, pos, ctx, onOpen, onHover }: { b: MrhBien; m: MrhItem['m']; pos: Pos; ctx: MrhCtx; onOpen: (b: MrhBien) => void; onHover: (id: string | null) => void }) {
+// Carte de l'aperçu (contenu partagé CSS ↔ Mapbox), sans positionnement.
+function MapPopoverCard({ b, m, ctx }: { b: MrhBien; m: MrhItem['m']; ctx: MrhCtx }) {
   const { sp, surf, dark, cardSolid } = ctx
   const price = b.transaction === 'location' ? b.rent : b.price
   const [pi, setPi] = useState(0)
   const photos = b.photos.length ? b.photos : [null]
   const goPhoto = (e: ReactMouseEvent, d: number) => { e.stopPropagation(); setPi((i) => (i + d + photos.length) % photos.length) }
   return (
-    <div onMouseEnter={() => onHover(b.id)} onMouseLeave={() => onHover(null)} onClick={(e) => { e.stopPropagation(); onOpen(b) }}
-      style={{ position: 'absolute', left: pos.left, top: pos.top, zIndex: 70, marginLeft: -108, marginTop: 24, width: 216, cursor: 'pointer', background: cardSolid, borderRadius: 14, overflow: 'hidden', boxShadow: sp.solidShadow, border: '1px solid ' + sp.solidBorder, animation: 'sgFadeUp .16s cubic-bezier(.2,.8,.2,1) both' }}>
+    <div style={{ width: 216, background: cardSolid, borderRadius: 14, overflow: 'hidden', boxShadow: sp.solidShadow, border: '1px solid ' + sp.solidBorder }}>
       <div style={{ position: 'relative', aspectRatio: '16 / 9', background: surf.cardSub }}>
         <MrhPhoto url={photos[pi]} dark={dark} alt="" fallbackBg={surf.cardSub} fallbackInk={sp.sub} />
         {photos.length > 1 && (
@@ -97,6 +111,15 @@ function MapPopover({ b, m, pos, ctx, onOpen, onHover }: { b: MrhBien; m: MrhIte
           <span style={{ fontSize: 11, color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{b.rooms ?? '—'} p · {b.area ?? '—'} m²</span>
         </div>
       </div>
+    </div>
+  )
+}
+
+function MapPopover({ b, m, pos, ctx, onOpen, onHover }: { b: MrhBien; m: MrhItem['m']; pos: Pos; ctx: MrhCtx; onOpen: (b: MrhBien) => void; onHover: (id: string | null) => void }) {
+  return (
+    <div onMouseEnter={() => onHover(b.id)} onMouseLeave={() => onHover(null)} onClick={(e) => { e.stopPropagation(); onOpen(b) }}
+      style={{ position: 'absolute', left: pos.left, top: pos.top, zIndex: 70, marginLeft: -108, marginTop: 24, width: 216, cursor: 'pointer', animation: 'sgFadeUp .16s cubic-bezier(.2,.8,.2,1) both' }}>
+      <MapPopoverCard b={b} m={m} ctx={ctx} />
     </div>
   )
 }
@@ -168,7 +191,7 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
   }, [located, bnds])
   const [, bump] = useReducer((x: number) => x + 1, 0)
 
-  // zoom molette + pan glisser (fond stylisé)
+  // zoom molette + pan glisser (fond stylisé — repli sans token Mapbox)
   const onWheel = (e: ReactWheelEvent) => {
     if (!bnds0) return
     e.preventDefault(); e.stopPropagation()
@@ -213,6 +236,29 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
   const labStyle = { fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' as const, color: sp.sub }
   const rowOf = (x: MrhItem) => <ListRow key={x.b.id} b={x.b} m={x.m} active={x.b.id === hoverId} ctx={ctx} onHover={setHover} onOpen={ctx.onOpen} />
 
+  // Marqueurs pour la carte réelle (Mapbox) : pastilles prix + aperçu du survol.
+  const mbBounds: [[number, number], [number, number]] | null = bnds0 ? [[bnds0.minLo, bnds0.minLa], [bnds0.maxLo, bnds0.maxLa]] : null
+  const mbMarkers: MrhMarker[] = located.map((x) => ({
+    id: x.b.id,
+    lng: x.b.lng as number,
+    lat: x.b.lat as number,
+    el: <PinPill b={x.b} active={x.b.id === hoverId} near={x.near} on={ctx.sel.includes(x.b.id)} />,
+    z: x.b.id === hoverId ? 60 : ctx.sel.includes(x.b.id) ? 40 : 10,
+    onClick: () => ctx.onOpen(x.b),
+    onEnter: () => setHover(x.b.id),
+    onLeave: () => setHover(null),
+  }))
+  if (act && act.b.lat != null && act.b.lng != null) {
+    mbMarkers.push({
+      id: 'pop-' + act.b.id,
+      lng: act.b.lng, lat: act.b.lat, anchor: 'bottom', z: 80,
+      el: <div style={{ marginBottom: 12, animation: 'sgFadeUp .16s cubic-bezier(.2,.8,.2,1) both' }}><MapPopoverCard b={act.b} m={act.m} ctx={ctx} /></div>,
+      onClick: () => ctx.onOpen(act.b),
+      onEnter: () => setHover(act.b.id),
+      onLeave: () => setHover(null),
+    })
+  }
+
   return (
     <div className="mrh-split" style={{ flex: 1, minHeight: 0, padding: '8px 30px 30px' }}>
       <div className="mrh-split-list mrh-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 8 }}>
@@ -226,28 +272,44 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
         )}
         {near.map(rowOf)}
       </div>
-      <div ref={stageRef} className="mrh-split-map" onClick={() => setHover(null)} onWheel={onWheel} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-        style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: surf.shadow, border: surf.hairline, cursor: zoom > 1 ? 'grab' : 'default', touchAction: 'none' }}>
-        <MapSurface dark={dark} />
-        {bnds ? located.filter((x) => posById[x.b.id]?._in).map((x) => (
-          <PricePin key={x.b.id} b={x.b} pos={posById[x.b.id]} active={x.b.id === hoverId} near={x.near} sel={ctx.sel} onHover={setHover} onOpen={ctx.onOpen} />
-        )) : (
-          <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 13, fontWeight: 600 }}>{t('recherche.map.noLocated')}</div>
-        )}
-        {bnds0 && (
-          <div style={{ position: 'absolute', right: 12, top: 12, zIndex: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(48, z * 1.4)) }} title={t('recherche.map.zoomIn')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 20, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>+</button>
-            <button onClick={(e) => { e.stopPropagation(); setZoom((z) => { const n = Math.max(1, z / 1.4); if (n <= 1) setCtr(null); return n }) }} title={t('recherche.map.zoomOut')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 22, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>−</button>
-          </div>
-        )}
-        {zoom > 1 && (
-          <button onClick={(e) => { e.stopPropagation(); setZoom(1); setCtr(null) }} title={t('recherche.map.overview')}
-            style={{ position: 'absolute', left: 12, top: 12, zIndex: 46, height: 32, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, boxShadow: '0 2px 8px rgba(15,23,42,.18)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            {t('recherche.map.overview')}
-          </button>
-        )}
-        {act && actPos && posById[act.b.id]?._in && <MapPopover b={act.b} m={act.m} pos={actPos} ctx={ctx} onOpen={ctx.onOpen} onHover={setHover} />}
-      </div>
+
+      {HAS_MAPBOX ? (
+        <div className="mrh-split-map" style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: surf.shadow, border: surf.hairline }}>
+          <Suspense fallback={<MapSurface dark={dark} />}>
+            {mbBounds ? (
+              <MrhMapbox markers={mbMarkers} bounds={mbBounds} dark={dark} controls radius={20} />
+            ) : (
+              <>
+                <MapSurface dark={dark} />
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 13, fontWeight: 600 }}>{t('recherche.map.noLocated')}</div>
+              </>
+            )}
+          </Suspense>
+        </div>
+      ) : (
+        <div ref={stageRef} className="mrh-split-map" onClick={() => setHover(null)} onWheel={onWheel} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+          style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', boxShadow: surf.shadow, border: surf.hairline, cursor: zoom > 1 ? 'grab' : 'default', touchAction: 'none' }}>
+          <MapSurface dark={dark} />
+          {bnds ? located.filter((x) => posById[x.b.id]?._in).map((x) => (
+            <PricePin key={x.b.id} b={x.b} pos={posById[x.b.id]} active={x.b.id === hoverId} near={x.near} sel={ctx.sel} onHover={setHover} onOpen={ctx.onOpen} />
+          )) : (
+            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 13, fontWeight: 600 }}>{t('recherche.map.noLocated')}</div>
+          )}
+          {bnds0 && (
+            <div style={{ position: 'absolute', right: 12, top: 12, zIndex: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(48, z * 1.4)) }} title={t('recherche.map.zoomIn')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 20, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>+</button>
+              <button onClick={(e) => { e.stopPropagation(); setZoom((z) => { const n = Math.max(1, z / 1.4); if (n <= 1) setCtr(null); return n }) }} title={t('recherche.map.zoomOut')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 22, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>−</button>
+            </div>
+          )}
+          {zoom > 1 && (
+            <button onClick={(e) => { e.stopPropagation(); setZoom(1); setCtr(null) }} title={t('recherche.map.overview')}
+              style={{ position: 'absolute', left: 12, top: 12, zIndex: 46, height: 32, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, boxShadow: '0 2px 8px rgba(15,23,42,.18)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {t('recherche.map.overview')}
+            </button>
+          )}
+          {act && actPos && posById[act.b.id]?._in && <MapPopover b={act.b} m={act.m} pos={actPos} ctx={ctx} onOpen={ctx.onOpen} onHover={setHover} />}
+        </div>
+      )}
     </div>
   )
 }
