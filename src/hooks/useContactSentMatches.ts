@@ -67,8 +67,8 @@ export function useContactSentMatches(contactId: string | undefined): ContactLoo
       if (!contactId) return { matches: [] as MatchRow[], openedIds: new Set<string>() }
       const matchesRes = await supabase
         .from('matches')
-        // reaction_motif : colonne ajoutée par la migration 20260707120000 (hors types
-        // générés jusqu'au déploiement) → `.data` recasté MatchRow[] plus bas.
+        // reaction_motif est typé (régé des types post-migration 20260707120000). Le
+        // recast MatchRow[] plus bas n'aplatit plus que la forme des jointures.
         .select(
           'id, status, score, sent_at, response_at, reaction_motif, property_id, market_listing_id,' +
           ' property:properties(title, address, city, postal_code, price, rooms, surface_m2, photos),' +
@@ -79,12 +79,13 @@ export function useContactSentMatches(contactId: string | undefined): ContactLoo
         .order('sent_at', { ascending: false, nullsFirst: false })
       if (matchesRes.error) throw matchesRes.error
 
-      // buyer_reception_links absente des types générés (déployée au merge) → accès
-      // non-typé ciblé (sans `any`), juste pour dériver les biens « ouverts ».
-      const brl = supabase as unknown as {
-        from(t: string): { select(c: string): { eq(k: string, v: string): { not(k: string, op: string, v: null): PromiseLike<{ data: { match_ids: string[] | null }[] | null }> } } }
-      }
-      const linksRes = await brl.from('buyer_reception_links').select('match_ids, viewed_at').eq('contact_id', contactId).not('viewed_at', 'is', null)
+      // buyer_reception_links → biens « ouverts » (viewed_at renseigné). Typé depuis
+      // la régé des types post-migration 20260707120000.
+      const linksRes = await supabase
+        .from('buyer_reception_links')
+        .select('match_ids, viewed_at')
+        .eq('contact_id', contactId)
+        .not('viewed_at', 'is', null)
       const openedIds = new Set<string>()
       for (const l of linksRes.data ?? []) {
         for (const id of l.match_ids ?? []) openedIds.add(id)
