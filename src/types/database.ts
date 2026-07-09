@@ -6962,7 +6962,9 @@ export type Database = {
           lat: number
           lng: number
           price: number
+          price_at_first_seen: number
           rooms: number
+          status: string
           surface_m2: number
           transaction_type: string
           type: string

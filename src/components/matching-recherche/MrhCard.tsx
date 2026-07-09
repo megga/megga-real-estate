@@ -31,6 +31,11 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
   const goPhoto = (e: ReactMouseEvent, d: number) => { e.stopPropagation(); setPi((i) => (i + d + photos.length) % photos.length) }
   const isRent = bien.transaction === 'location'
   const price = isRent ? bien.rent : bien.price
+  // Signal « prix baissé » (trigger ra_price_status) — même seuil anti-bruit ≥2%
+  // que le bonus de scoring ; la fiche détail affiche le prix barré + le chip.
+  const dropPct = bien.price_original && price && bien.price_original > price
+    ? Math.round((1 - price / bien.price_original) * 100)
+    : null
   const on = sel.includes(bien.id)
 
   return (
@@ -92,6 +97,11 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
             <div style={{ fontSize: 18.5, fontWeight: 800, color: sp.ink, letterSpacing: -0.6, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               {price ? formatCHF(price) : t('recherche.card.estimate')}
               {isRent && price ? <span style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600 }}> {t('recherche.card.perMonth')}</span> : null}
+              {dropPct != null && dropPct >= 2 ? (
+                <span title={t('recherche.card.priceDrop')} style={{ fontSize: 11.5, fontWeight: 800, color: '#C45A00', marginLeft: 7, letterSpacing: 0 }}>
+                  {'−' + dropPct + ' %'}
+                </span>
+              ) : null}
             </div>
             <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600, marginTop: 5, fontVariantNumeric: 'tabular-nums' }}>
               {t('recherche.card.roomsArea', { rooms: bien.rooms ?? '—', area: bien.area ?? '—' })}

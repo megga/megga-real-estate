@@ -133,18 +133,18 @@ function typeFamily(t: string): string {
 
 // ─── Config de scoring (poids/seuil), surchargée par app_config ─────────────
 export interface ScoringConfig {
-  weights: { price: number; zone: number; type: number; rooms: number; surface: number; features: number; pricePosition: number }
+  weights: { price: number; zone: number; type: number; rooms: number; surface: number; features: number; pricePosition: number; priceDrop: number }
   threshold: number
   priceOverTolerance: number // 0.15 = 0 pt à +15% au-dessus du budget max
   surfaceDeficitTolerance: number // 0.20 = 0 pt à -20% sous la surface min
   version: number
 }
 export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
-  weights: { price: 32, zone: 24, type: 12, rooms: 12, surface: 10, features: 10, pricePosition: 7 }, // 100 = barème redistribué ; 7 = BONUS additif (hors redistribution)
+  weights: { price: 32, zone: 24, type: 12, rooms: 12, surface: 10, features: 10, pricePosition: 7, priceDrop: 5 }, // 100 = barème redistribué ; 7 et 5 = BONUS additifs (hors redistribution)
   threshold: 55,
   priceOverTolerance: 0.15,
   surfaceDeficitTolerance: 0.20,
-  version: 3,
+  version: 4,
 }
 export function parseScoringConfig(text: string | null | undefined): ScoringConfig {
   if (!text) return DEFAULT_SCORING_CONFIG
@@ -240,7 +240,20 @@ export function calculateScoreV2(
   // par rentPosition() avec la même courbe → réutilisé tel quel. clamp borne à 100.
   const pricePosP = rentRef ? clamp(rentRef.frac, 0, 1) * W.pricePosition : 0
 
-  const total = clamp(Math.round(priceP + zoneP + typeP + roomsP + surfaceP + featP + pricePosP), 0, 100)
+  // ─── PRIX BAISSÉ (BONUS additif, hors redistribution — même pattern) ──────
+  // Signal « vendeur potentiellement motivé » produit par le trigger
+  // ra_price_status (baisses RealAdvisor, vente). Baisse réelle ≥2% requise
+  // (anti-bruit arrondi/devise) ; bonus plein à ≥10% de baisse, linéaire entre
+  // les deux. Champs servis par match_candidate_listings ; absents (properties
+  // internes, vieux appels) ⇒ 0 — dégradation silencieuse, barème 100 inchangé.
+  const firstSeen = numOrNull(listing.price_at_first_seen)
+  const dropFrac =
+    listing.status === 'price_reduced' && firstSeen != null && firstSeen > 0 && amount > 0 && amount < firstSeen
+      ? 1 - amount / firstSeen
+      : 0
+  const priceDropP = dropFrac >= 0.02 ? clamp(dropFrac / 0.10, 0, 1) * W.priceDrop : 0
+
+  const total = clamp(Math.round(priceP + zoneP + typeP + roomsP + surfaceP + featP + pricePosP + priceDropP), 0, 100)
 
   // reason « rooms » = pièces + surface fusionnés (libellé Atelier « Pièces & surface »)
   const roomsSurfP = roomsP + surfaceP
@@ -261,6 +274,10 @@ export function calculateScoreV2(
   if (rentRef) {
     const suffix = buildRentReasonSuffix(rentRef)
     if (suffix) reasons.budget = { ...reasons.budget, detail: `${reasons.budget.detail}${suffix}` }
+  }
+  // Prix baissé : même règle — suffixe sur budget.detail, jamais une 6ᵉ clé.
+  if (priceDropP > 0) {
+    reasons.budget = { ...reasons.budget, detail: `${reasons.budget.detail} · Prix baissé de ${Math.round(dropFrac * 100)}%` }
   }
   return { total, reasons }
 }
