@@ -200,6 +200,55 @@ export function useMarkAllChecksCompleted() {
   })
 }
 
+// ─── Invalidation KYC à l'édition d'identité (règle métier LBA) ───────
+// Refonte Contacts : modifier l'identité (prénom/nom) d'un contact au KYC
+// VÉRIFIÉ invalide la vérification — toute la procédure LBA doit être
+// recommencée (refs/CLAUDE.md §215). On downgrade le dossier vérifié le plus
+// récent (verified → pending, validated_at effacé) + trace un AuditEvent.
+// Le trigger guard_manual_kyc_verified n'interdit QUE le passage VERS 'verified',
+// pas ce downgrade. Human-in-the-loop : appelé après confirmation + consentement.
+export function useInvalidateKycForContact() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ contactId, actorId }: { contactId: string; actorId: string }) => {
+      const { data: cases, error: selErr } = await supabase
+        .from('kyc_cases')
+        .select('id, agency_id, dossier_status')
+        .eq('contact_id', contactId)
+        .order('created_at', { ascending: false })
+      if (selErr) throw selErr
+      // Un contact peut détenir plusieurs dossiers : on invalide TOUS ceux qui
+      // sont vérifiés (sinon un dossier vérifié « oublié » resterait valide).
+      const verifiedCases = (cases ?? []).filter((c) => c.dossier_status === 'verified')
+      if (verifiedCases.length === 0) return null // rien à invalider
+
+      for (const vc of verifiedCases) {
+        const { error: updErr } = await supabase
+          .from('kyc_cases')
+          .update({ dossier_status: 'pending', status: 'pending', validated_at: null } as TablesUpdate<'kyc_cases'>)
+          .eq('id', vc.id)
+        if (updErr) throw updErr
+
+        await supabase.from('activity_events').insert({
+          agency_id: vc.agency_id,
+          actor_id: actorId,
+          action: 'KYC invalidé — identité du contact modifiée',
+          entity_type: 'contact',
+          entity_id: contactId,
+          metadata: { reason: 'identity_change', kyc_case_id: vc.id },
+        })
+      }
+      return verifiedCases.map((v) => v.id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
+      queryClient.invalidateQueries({ queryKey: ['audit-events'] })
+    },
+  })
+}
+
 // ─── Créer un dossier KYC (déclenche seed 5 checks + AuditEvent) ──────
 
 interface CreateKycDossierInput {

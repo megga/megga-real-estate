@@ -73,13 +73,26 @@ export interface CriteriaChip {
 }
 
 /** Construit les chips résumant `search_criteria` (omet les champs vides). */
+const PROP_TYPE_FR: Record<string, string> = {
+  apartment: 'Appartement', appartement: 'Appartement', house: 'Maison', maison: 'Maison',
+  villa: 'Villa', land: 'Terrain', terrain: 'Terrain', commercial: 'Commercial',
+}
+
 export function criteriaChips(sc: SearchCriteria): CriteriaChip[] {
   const chips: CriteriaChip[] = []
+  // Transaction = `transaction_type` (rent/buy, forme canonique) ; repli legacy
+  // sur un `type` transactionnel (anciennes données). Le `type` sert au type de
+  // BIEN (apartment/house…), pas à la transaction — ne pas confondre.
+  const txSource = (sc.transaction_type ?? '').toLowerCase()
+  const legacyTx = sc.type ? sc.type.toLowerCase() : ''
+  if (SALE_TYPES.has(txSource) || SALE_TYPES.has(legacyTx)) chips.push({ key: 'mobile.detail.criteria.buy', text: '' })
+  else if (RENT_TYPES.has(txSource) || RENT_TYPES.has(legacyTx)) chips.push({ key: 'mobile.detail.criteria.rent', text: '' })
+  // Type de bien (uniquement si `type` n'est pas une valeur transactionnelle legacy).
   if (sc.type) {
     const norm = sc.type.toLowerCase()
-    if (SALE_TYPES.has(norm)) chips.push({ key: 'mobile.detail.criteria.buy', text: '' })
-    else if (RENT_TYPES.has(norm)) chips.push({ key: 'mobile.detail.criteria.rent', text: '' })
-    else chips.push({ key: null, text: sc.type })
+    if (!SALE_TYPES.has(norm) && !RENT_TYPES.has(norm)) {
+      chips.push({ key: null, text: PROP_TYPE_FR[norm] ?? sc.type })
+    }
   }
   const zones = (sc.zones ?? []).filter(Boolean)
   if (zones.length) chips.push({ key: null, text: zones.join(', ') })

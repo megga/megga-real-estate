@@ -4,6 +4,7 @@
 // et les hooks adapter remplissent le registry runtime de mockData.ts.
 
 import type { Contact, SearchCriteria } from '@/types/contact'
+import { splitZones, PROP_TYPE_EN_TO_FR } from '@/lib/contactCriteria'
 import type { KycCase, KycDossierStatus } from '@/types/kyc'
 import type { Property } from '@/types/listing'
 import type { ContactTransaction } from '@/hooks/useTransactions'
@@ -42,11 +43,15 @@ export function mapContactType(t: Contact['type']): CrmContact['type'] {
 // ─── SearchCriteria DB → CrmContact.criteria ───────────────────────────
 export function mapCriteria(c: SearchCriteria | null): CrmContact['criteria'] {
   if (!c) return undefined
+  // `zones` mélange villes et codes cantons → on sépare. `type` est en anglais
+  // (apartment/house…) → on repasse au libellé FR de l'UI. `transaction_type`
+  // discrimine location/vente (lu par le matching-engine).
+  const { cantons, cities } = splitZones(c.zones)
   return {
-    transaction: 'vente',  // pas de discriminant côté DB pour l'instant
-    types: c.type ? [c.type] : [],
-    cantons: [],
-    cities: c.zones ?? [],
+    transaction: c.transaction_type === 'rent' ? 'location' : 'vente',
+    types: c.type ? [PROP_TYPE_EN_TO_FR[c.type] ?? c.type] : [],
+    cantons,
+    cities,
     budgetMin: c.budget_min,
     budgetMax: c.budget_max ?? 0,
     areaMin: c.surface_min,
