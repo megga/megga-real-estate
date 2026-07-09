@@ -1103,7 +1103,7 @@
     "budgetMinPlaceholder": "900'000",
     "budgetMax": "Max budget (CHF)",
     "budgetMaxPlaceholder": "1'300'000",
-    "cantonPlaceholder": "Type a canton — GE, VD…",
+    "cantonPlaceholder": "Type a canton: GE, VD…",
     "roomsPlaceholder": "4",
     "addressPlaceholder": "Street…, ZIP City",
     "note": "Note",
@@ -1151,7 +1151,7 @@
     },
     "kycWarn": {
       "title": "Edit a verified identity?",
-      "body": "{{name}} has a verified KYC. Editing their identity <1>invalidates the verification</1> — the entire AML procedure will have to be redone.",
+      "body": "{{name}} has a verified KYC. Editing their identity <1>invalidates the verification</1>. The entire AML procedure will have to be redone.",
       "consent": "I confirm I have obtained the <1>contact's consent</1> to edit their identity and restart the KYC / AML procedure.",
       "confirm": "Edit"
     },
@@ -1159,7 +1159,7 @@
       "title": "Edit identity",
       "firstName": "First name",
       "lastName": "Last name",
-      "kycWarn": "This contact has a verified KYC. Saving a new identity <1>will invalidate the verification</1> — the AML procedure will have to be redone."
+      "kycWarn": "This contact has a verified KYC. Saving a new identity <1>will invalidate the verification</1>. The AML procedure will have to be redone."
     },
     "coord": {
       "civility": "Title",
@@ -1169,7 +1169,7 @@
     },
     "toFill": "To fill in",
     "civ": {
-      "none": "—",
+      "none": "-",
       "mrs": "Ms",
       "mr": "Mr"
     },

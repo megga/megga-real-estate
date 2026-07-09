@@ -1108,7 +1108,7 @@
     "budgetMinPlaceholder": "900'000",
     "budgetMax": "Budget max (CHF)",
     "budgetMaxPlaceholder": "1'300'000",
-    "cantonPlaceholder": "Tapez un canton — GE, VD…",
+    "cantonPlaceholder": "Tapez un canton : GE, VD…",
     "roomsPlaceholder": "4",
     "addressPlaceholder": "Rue…, NPA Ville",
     "note": "Note",
@@ -1156,7 +1156,7 @@
     },
     "kycWarn": {
       "title": "Modifier une identité vérifiée ?",
-      "body": "{{name}} a un KYC vérifié. Modifier son identité <1>invalide la vérification</1> — toute la procédure LBA devra être recommencée.",
+      "body": "{{name}} a un KYC vérifié. Modifier son identité <1>invalide la vérification</1>. Toute la procédure LBA devra être recommencée.",
       "consent": "Je confirme avoir recueilli le <1>consentement du contact</1> pour modifier son identité et relancer la procédure KYC / LBA.",
       "confirm": "Modifier"
     },
@@ -1164,7 +1164,7 @@
       "title": "Modifier l'identité",
       "firstName": "Prénom",
       "lastName": "Nom",
-      "kycWarn": "Ce contact a un KYC vérifié. Enregistrer une nouvelle identité <1>invalidera la vérification</1> — la procédure LBA devra être recommencée."
+      "kycWarn": "Ce contact a un KYC vérifié. Enregistrer une nouvelle identité <1>invalidera la vérification</1>. La procédure LBA devra être recommencée."
     },
     "coord": {
       "civility": "Civilité",
@@ -1174,7 +1174,7 @@
     },
     "toFill": "À renseigner",
     "civ": {
-      "none": "—",
+      "none": "-",
       "mrs": "Madame",
       "mr": "Monsieur"
     },
