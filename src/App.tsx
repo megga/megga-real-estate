@@ -512,8 +512,12 @@ function AnimatedRoutes() {
                 <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
                 {/* Contacts — mobile (< 768px) : liste (P8). */}
                 <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsSugarV2Page />} mobile={<MobileContactsListPage />} />} />
-                {/* Création contact — mobile only (desktop : drawer dans la liste). */}
+                {/* Création contact — mobile only (desktop : modale dans le pager). */}
                 <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
+                {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
+                    Sous AgentSugarLayout (chrome Sugar auto-porté) pour cohérence
+                    liste↔fiche. Mobile (< 768px) : fiche détail P8/2. */}
+                <Route path="contacts/:id" element={<ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} />} />
                 {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
                 <Route path="listings" element={<ResponsiveRoute desktop={<BiensSugarV2Page />} mobile={<MobileBiensPage />} />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
@@ -582,8 +586,6 @@ function AnimatedRoutes() {
                 }
               >
                 <Route path="contacts/import" element={<ContactImportPage />} />
-                {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) ; mobile = fiche détail P8/2 */}
-                <Route path="contacts/:id" element={<ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} />} />
                 <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
                 {/* Créer un bien — mobile (< 768px) : wizard 4 étapes (P7/2). */}

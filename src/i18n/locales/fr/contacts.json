@@ -444,6 +444,61 @@
     "kyc": "KYC à compléter",
     "stale": "Sans activité 14j+"
   },
+  "pager": {
+    "title": "Contacts",
+    "newContact": "Nouveau contact",
+    "removeFilter": "Retirer le filtre",
+    "emptyFilter": "Aucun contact pour ce filtre.",
+    "today": "aujourd'hui",
+    "yesterday": "hier",
+    "col": {
+      "contact": "Contact",
+      "type": "Type",
+      "budget": "Budget",
+      "kyc": "KYC",
+      "last": "Dernier contact"
+    },
+    "kyc": {
+      "verified": "Vérifié",
+      "pending": "En attente",
+      "stale": "Expiré",
+      "noneShort": "Aucun"
+    },
+    "src": {
+      "website": "Site web",
+      "referral": "Recommandation",
+      "csv": "Import",
+      "import": "Import",
+      "call": "Appel",
+      "walk-in": "Walk-in",
+      "AI": "MEGGA AI",
+      "ai": "MEGGA AI",
+      "whatsapp_ai": "WhatsApp IA",
+      "onboarding": "Onboarding",
+      "manual": "Saisie manuelle",
+      "portal": "Portail",
+      "other": "Autre"
+    }
+  },
+  "health": {
+    "title": "Santé du portefeuille",
+    "intro": "D'où viennent vos contacts, où sont les angles morts. Cliquez un segment pour filtrer la liste.",
+    "byAudience": "Par audience",
+    "kycCoverage": "Couverture KYC",
+    "sources": "Sources d'acquisition",
+    "kpi": {
+      "active": "Contacts actifs",
+      "medBudget": "Budget médian achat",
+      "kycVerified": "KYC vérifié",
+      "relance": "À relancer 7 j+"
+    },
+    "seg": {
+      "kycVerified": "KYC · Vérifié",
+      "stale": "Sans nouvelle 7 j+",
+      "kyc": "KYC · {{status}}",
+      "source": "Source · {{source}}"
+    }
+  },
   "nextAction": {
     "planifier_visite": "Planifier une visite",
     "envoyer_biens": "Envoyer des biens",
@@ -685,35 +740,6 @@
     "shortcutCreate": "⌘⏎ pour créer",
     "creating": "Création…",
     "submit": "Créer le contact"
-  },
-  "planRdv": {
-    "title": "Planifier un rendez-vous",
-    "withContact": "avec <strong>{{name}}</strong>",
-    "typeLabel": "Type de rendez-vous",
-    "type": {
-      "visit": "Visite",
-      "phone": "Téléphone",
-      "video": "Visio",
-      "notary": "Signature notaire",
-      "other": "Autre"
-    },
-    "date": "Date",
-    "time": "Heure",
-    "duration": "Durée",
-    "minutes": "{{count}} min",
-    "linkedProperty": "Bien associé",
-    "noProperty": "Aucun",
-    "location": "Lieu",
-    "locationPlaceholder": {
-      "visit": "Adresse du bien…",
-      "notary": "Étude notariale…",
-      "other": "Adresse ou lieu…"
-    },
-    "invitedAgents": "Agents invités",
-    "notes": "Notes / agenda",
-    "notesPlaceholder": "Points à aborder, documents à apporter…",
-    "shortcutHint": "Esc pour fermer · ⌘⏎ pour enregistrer",
-    "submit": "Enregistrer"
   },
   "cd": {
     "backToContacts": "Retour aux contacts",
@@ -1022,6 +1048,194 @@
         "empty": "Aucun document",
         "emptyDesc": "Les pièces ajoutées à la fiche apparaîtront ici."
       }
+    }
+  },
+  "firstRun": {
+    "title": "Votre premier contact",
+    "manualTitle": "À la main",
+    "manualDesc": "Vous saisissez ses coordonnées et ses critères de recherche.",
+    "whatsappTitle": "Associer WhatsApp",
+    "whatsappDesc": "Vos contacts et vos échanges remontent dans MEGGA."
+  },
+  "waConnect": {
+    "title": "Associer votre compte WhatsApp",
+    "subtitle": "Vos échanges deviennent votre carnet et bien plus.",
+    "benefit1": "Vos contacts remontent d'un coup dans MEGGA.",
+    "benefit2": "Partagez une fiche à compléter dans la conversation.",
+    "benefit3": "Les réponses reviennent seules au CRM.",
+    "cta": "Associer WhatsApp",
+    "note": "Vous confirmez depuis WhatsApp › Appareils connectés.",
+    "close": "Fermer",
+    "generating": "Génération du code…",
+    "codeLabel": "Votre code d'appairage",
+    "error": "Impossible de générer le code. Réessayez.",
+    "connectedTitle": "Compte WhatsApp associé",
+    "connectedFallback": "Votre numéro est associé.",
+    "connectedBadge": "Compte associé"
+  },
+  "newContactPager": {
+    "heroTitle": "Qui rejoint votre portefeuille ?",
+    "close": "Fermer",
+    "photo": "Photo",
+    "addPhoto": "Ajouter une photo",
+    "removePhoto": "Retirer la photo",
+    "civ": "Civ.",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "emailPlaceholder": "nom@exemple.ch",
+    "phone": "Téléphone",
+    "phonePlaceholder": "+41 79 …",
+    "lang": "Langue",
+    "langOpt": {
+      "fr": "Français",
+      "de": "Allemand",
+      "en": "Anglais",
+      "it": "Italien"
+    },
+    "canal": "Canal préféré",
+    "canalOpt": {
+      "whatsapp": "WhatsApp",
+      "sms": "SMS",
+      "call": "Appel",
+      "email": "E-mail"
+    },
+    "criteriaBuy": "Critères · achat",
+    "criteriaRent": "Critères · location",
+    "rentMax": "Loyer max (CHF)",
+    "rentMaxPlaceholder": "3'500",
+    "budgetMin": "Budget min (CHF)",
+    "budgetMinPlaceholder": "900'000",
+    "budgetMax": "Budget max (CHF)",
+    "budgetMaxPlaceholder": "1'300'000",
+    "cantonPlaceholder": "Tapez un canton — GE, VD…",
+    "roomsPlaceholder": "4",
+    "addressPlaceholder": "Rue…, NPA Ville",
+    "note": "Note",
+    "notePlaceholder": "Contexte, préférences, historique de la relation…",
+    "validationError": "Prénom, nom et e-mail valide requis.",
+    "cancel": "Annuler",
+    "crop": {
+      "title": "Cadrer la photo",
+      "hint": "Glissez pour repositionner, ajustez le zoom.",
+      "validate": "Valider"
+    },
+    "created": {
+      "eyebrow": "Contact créé",
+      "heroTitle": "Voir les correspondances",
+      "heroSub": "Premier matching lancé automatiquement",
+      "kycTitle": "KYC",
+      "kycSub": "Optionnel",
+      "ficheTitle": "Fiche",
+      "ficheSub": "Compléter, planifier",
+      "createAnother": "Créer un autre"
+    }
+  },
+  "fiche": {
+    "back": "Contacts",
+    "seal": {
+      "title": "KYC vérifié",
+      "aria": "Vérifié"
+    },
+    "kycDossier": "Dossier KYC",
+    "cta": {
+      "transmit": "Transmettre des biens",
+      "viewMandate": "Voir le mandat"
+    },
+    "menu": {
+      "editIdentity": "Modifier l'identité",
+      "editCoord": "Modifier les coordonnées",
+      "editCriteria": "Modifier les critères",
+      "delete": "Supprimer le contact"
+    },
+    "delete": {
+      "title": "Supprimer {{name}} ?",
+      "thisContact": "ce contact",
+      "body": "La fiche, ses critères de recherche et l'historique de sa boucle de match seront <1>définitivement supprimés</1>. Cette action est irréversible.",
+      "confirm": "Supprimer"
+    },
+    "kycWarn": {
+      "title": "Modifier une identité vérifiée ?",
+      "body": "{{name}} a un KYC vérifié. Modifier son identité <1>invalide la vérification</1> — toute la procédure LBA devra être recommencée.",
+      "consent": "Je confirme avoir recueilli le <1>consentement du contact</1> pour modifier son identité et relancer la procédure KYC / LBA.",
+      "confirm": "Modifier"
+    },
+    "identity": {
+      "title": "Modifier l'identité",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "kycWarn": "Ce contact a un KYC vérifié. Enregistrer une nouvelle identité <1>invalidera la vérification</1> — la procédure LBA devra être recommencée."
+    },
+    "coord": {
+      "civility": "Civilité",
+      "channel": "Canal préféré",
+      "emailPlaceholder": "nom@exemple.ch",
+      "phonePlaceholder": "+41 79 …"
+    },
+    "toFill": "À renseigner",
+    "civ": {
+      "none": "—",
+      "mrs": "Madame",
+      "mr": "Monsieur"
+    },
+    "lang": {
+      "fr": "Français",
+      "de": "Allemand",
+      "en": "Anglais",
+      "it": "Italien"
+    },
+    "canal": {
+      "whatsapp": "WhatsApp",
+      "sms": "SMS",
+      "call": "Appel",
+      "email": "E-mail"
+    },
+    "crit": {
+      "wants": "Ce qu'elle cherche",
+      "offers": "Ce qu'il/elle propose",
+      "rentMax": "Loyer max",
+      "buyBudget": "Budget d'achat",
+      "chfUnit": "(CHF)",
+      "sectors": "Secteurs",
+      "citiesPlaceholder": "Villes (séparées par des virgules)",
+      "roomsMin": "Pièces min",
+      "areaMin": "Surface min",
+      "areaMinEdit": "Surface min (m²)",
+      "mustHave": "Indispensables",
+      "minPlaceholder": "Min",
+      "maxPlaceholder": "Max"
+    },
+    "propType": {
+      "appartement": "Appartement",
+      "maison": "Maison",
+      "terrain": "Terrain",
+      "commercial": "Commercial"
+    },
+    "feature": {
+      "balcon": "Balcon",
+      "ascenseur": "Ascenseur",
+      "parking": "Parking",
+      "jardin": "Jardin",
+      "terrasse": "Terrasse",
+      "cave": "Cave",
+      "garage": "Garage",
+      "vueLac": "Vue lac"
+    },
+    "note": {
+      "label": "Note",
+      "placeholder": "Contexte, préférences, historique de la relation…"
+    },
+    "page": {
+      "infos": "Ses informations",
+      "loop": "Boucle de match"
+    },
+    "loop": {
+      "opened": "Ouverts",
+      "toHandleCount": "À traiter ({{count}})",
+      "transmittedCount": "Biens transmis ({{count}})",
+      "openInMatching": "Ouvrir dans le Matching",
+      "ignore": "Ignorer",
+      "nothingToHandle": "Rien à traiter pour l'instant."
     }
   }
 }

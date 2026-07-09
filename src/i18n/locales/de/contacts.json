@@ -1,4 +1,27 @@
 {
+  "loop": {
+    "inboxTitle": "To handle",
+    "likedTitle": "Liked {{title}}",
+    "likedSub": "{{when}} · {{price}}{{score}}",
+    "matchPct": " · match {{score}}%",
+    "proposeVisit": "Propose a visit",
+    "later": "Later",
+    "handled": "Visit in preparation · logged in their file",
+    "filEyebrow": "Their reception",
+    "filTitle": "Sent dossiers",
+    "filMeta": "{{sent}} sent · {{opened}} opened",
+    "openAtelier": "Open the atelier",
+    "empty": "No dossier sent yet.",
+    "pillLiked": "Liked",
+    "pillSeen": "Seen",
+    "pillSent": "Sent",
+    "pillDismissed": "Passed",
+    "metaLiked": "Sent {{sent}} · opened · liked {{when}}",
+    "metaSeen": "Sent {{sent}} · opened · no reaction",
+    "metaSent": "Sent {{sent}} · not opened yet",
+    "metaDismissed": "Reason logged · recalibrates matching",
+    "motif": "“{{motif}}”"
+  },
   "title": "Kontakte",
   "add_button": "Hinzufügen",
   "import_button": "Importieren",
@@ -663,35 +686,6 @@
     "creating": "Creating…",
     "submit": "Create contact"
   },
-  "planRdv": {
-    "title": "Schedule an appointment",
-    "withContact": "with <strong>{{name}}</strong>",
-    "typeLabel": "Appointment type",
-    "type": {
-      "visit": "Viewing",
-      "phone": "Phone",
-      "video": "Video",
-      "notary": "Notary signing",
-      "other": "Other"
-    },
-    "date": "Date",
-    "time": "Time",
-    "duration": "Duration",
-    "minutes": "{{count}} min",
-    "linkedProperty": "Linked property",
-    "noProperty": "None",
-    "location": "Location",
-    "locationPlaceholder": {
-      "visit": "Property address…",
-      "notary": "Notary office…",
-      "other": "Address or location…"
-    },
-    "invitedAgents": "Invited agents",
-    "notes": "Notes / agenda",
-    "notesPlaceholder": "Topics to cover, documents to bring…",
-    "shortcutHint": "Esc to close · ⌘⏎ to save",
-    "submit": "Save"
-  },
   "cd": {
     "backToContacts": "Back to contacts",
     "scoreHot": "Hot score",
@@ -994,6 +988,249 @@
         "empty": "Kein Dokument",
         "emptyDesc": "Zur Akte hinzugefügte Dateien erscheinen hier."
       }
+    }
+  },
+  "pager": {
+    "title": "Contacts",
+    "newContact": "New contact",
+    "removeFilter": "Remove filter",
+    "emptyFilter": "No contact for this filter.",
+    "today": "today",
+    "yesterday": "yesterday",
+    "col": {
+      "contact": "Contact",
+      "type": "Type",
+      "budget": "Budget",
+      "kyc": "KYC",
+      "last": "Last contact"
+    },
+    "kyc": {
+      "verified": "Verified",
+      "pending": "Pending",
+      "stale": "Expired",
+      "noneShort": "None"
+    },
+    "src": {
+      "website": "Website",
+      "referral": "Referral",
+      "csv": "Import",
+      "import": "Import",
+      "call": "Call",
+      "walk-in": "Walk-in",
+      "AI": "MEGGA AI",
+      "ai": "MEGGA AI",
+      "whatsapp_ai": "WhatsApp AI",
+      "onboarding": "Onboarding",
+      "manual": "Manual entry",
+      "portal": "Portal",
+      "other": "Other"
+    }
+  },
+  "health": {
+    "title": "Portfolio health",
+    "intro": "Where your contacts come from, where the blind spots are. Click a segment to filter the list.",
+    "byAudience": "By audience",
+    "kycCoverage": "KYC coverage",
+    "sources": "Acquisition sources",
+    "kpi": {
+      "active": "Active contacts",
+      "medBudget": "Median purchase budget",
+      "kycVerified": "KYC verified",
+      "relance": "To follow up 7 d+"
+    },
+    "seg": {
+      "kycVerified": "KYC · Verified",
+      "stale": "No news 7 d+",
+      "kyc": "KYC · {{status}}",
+      "source": "Source · {{source}}"
+    }
+  },
+  "firstRun": {
+    "title": "Your first contact",
+    "manualTitle": "Manually",
+    "manualDesc": "You enter their contact details and search criteria.",
+    "whatsappTitle": "Connect WhatsApp",
+    "whatsappDesc": "Your contacts and conversations flow into MEGGA."
+  },
+  "waConnect": {
+    "title": "Connect your WhatsApp account",
+    "subtitle": "Your conversations become your address book and much more.",
+    "benefit1": "Your contacts flow into MEGGA at once.",
+    "benefit2": "Share a form to complete right in the conversation.",
+    "benefit3": "Replies come back to the CRM on their own.",
+    "cta": "Connect WhatsApp",
+    "note": "You confirm from WhatsApp › Linked devices.",
+    "close": "Close",
+    "generating": "Generating code…",
+    "codeLabel": "Your pairing code",
+    "error": "Couldn't generate the code. Try again.",
+    "connectedTitle": "WhatsApp account connected",
+    "connectedFallback": "Your number is connected.",
+    "connectedBadge": "Account connected"
+  },
+  "newContactPager": {
+    "heroTitle": "Who's joining your portfolio?",
+    "close": "Close",
+    "photo": "Photo",
+    "addPhoto": "Add a photo",
+    "removePhoto": "Remove photo",
+    "civ": "Title",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "emailPlaceholder": "name@example.ch",
+    "phone": "Phone",
+    "phonePlaceholder": "+41 79 …",
+    "lang": "Language",
+    "langOpt": {
+      "fr": "French",
+      "de": "German",
+      "en": "English",
+      "it": "Italian"
+    },
+    "canal": "Preferred channel",
+    "canalOpt": {
+      "whatsapp": "WhatsApp",
+      "sms": "SMS",
+      "call": "Call",
+      "email": "Email"
+    },
+    "criteriaBuy": "Criteria · purchase",
+    "criteriaRent": "Criteria · rental",
+    "rentMax": "Max rent (CHF)",
+    "rentMaxPlaceholder": "3'500",
+    "budgetMin": "Min budget (CHF)",
+    "budgetMinPlaceholder": "900'000",
+    "budgetMax": "Max budget (CHF)",
+    "budgetMaxPlaceholder": "1'300'000",
+    "cantonPlaceholder": "Type a canton — GE, VD…",
+    "roomsPlaceholder": "4",
+    "addressPlaceholder": "Street…, ZIP City",
+    "note": "Note",
+    "notePlaceholder": "Context, preferences, relationship history…",
+    "validationError": "First name, last name and a valid email are required.",
+    "cancel": "Cancel",
+    "crop": {
+      "title": "Crop the photo",
+      "hint": "Drag to reposition, adjust the zoom.",
+      "validate": "Apply"
+    },
+    "created": {
+      "eyebrow": "Contact created",
+      "heroTitle": "See the matches",
+      "heroSub": "First matching launched automatically",
+      "kycTitle": "KYC",
+      "kycSub": "Optional",
+      "ficheTitle": "Profile",
+      "ficheSub": "Complete, schedule",
+      "createAnother": "Create another"
+    }
+  },
+  "fiche": {
+    "back": "Contacts",
+    "seal": {
+      "title": "KYC verified",
+      "aria": "Verified"
+    },
+    "kycDossier": "KYC file",
+    "cta": {
+      "transmit": "Send properties",
+      "viewMandate": "View mandate"
+    },
+    "menu": {
+      "editIdentity": "Edit identity",
+      "editCoord": "Edit contact details",
+      "editCriteria": "Edit criteria",
+      "delete": "Delete contact"
+    },
+    "delete": {
+      "title": "Delete {{name}}?",
+      "thisContact": "this contact",
+      "body": "The profile, its search criteria and its match-loop history will be <1>permanently deleted</1>. This action is irreversible.",
+      "confirm": "Delete"
+    },
+    "kycWarn": {
+      "title": "Edit a verified identity?",
+      "body": "{{name}} has a verified KYC. Editing their identity <1>invalidates the verification</1> — the entire AML procedure will have to be redone.",
+      "consent": "I confirm I have obtained the <1>contact's consent</1> to edit their identity and restart the KYC / AML procedure.",
+      "confirm": "Edit"
+    },
+    "identity": {
+      "title": "Edit identity",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "kycWarn": "This contact has a verified KYC. Saving a new identity <1>will invalidate the verification</1> — the AML procedure will have to be redone."
+    },
+    "coord": {
+      "civility": "Title",
+      "channel": "Preferred channel",
+      "emailPlaceholder": "name@example.ch",
+      "phonePlaceholder": "+41 79 …"
+    },
+    "toFill": "To fill in",
+    "civ": {
+      "none": "—",
+      "mrs": "Ms",
+      "mr": "Mr"
+    },
+    "lang": {
+      "fr": "French",
+      "de": "German",
+      "en": "English",
+      "it": "Italian"
+    },
+    "canal": {
+      "whatsapp": "WhatsApp",
+      "sms": "SMS",
+      "call": "Call",
+      "email": "Email"
+    },
+    "crit": {
+      "wants": "What they're looking for",
+      "offers": "What they offer",
+      "rentMax": "Max rent",
+      "buyBudget": "Purchase budget",
+      "chfUnit": "(CHF)",
+      "sectors": "Areas",
+      "citiesPlaceholder": "Cities (comma-separated)",
+      "roomsMin": "Min rooms",
+      "areaMin": "Min area",
+      "areaMinEdit": "Min area (m²)",
+      "mustHave": "Must-haves",
+      "minPlaceholder": "Min",
+      "maxPlaceholder": "Max"
+    },
+    "propType": {
+      "appartement": "Apartment",
+      "maison": "House",
+      "terrain": "Land",
+      "commercial": "Commercial"
+    },
+    "feature": {
+      "balcon": "Balcony",
+      "ascenseur": "Elevator",
+      "parking": "Parking",
+      "jardin": "Garden",
+      "terrasse": "Terrace",
+      "cave": "Cellar",
+      "garage": "Garage",
+      "vueLac": "Lake view"
+    },
+    "note": {
+      "label": "Note",
+      "placeholder": "Context, preferences, relationship history…"
+    },
+    "page": {
+      "infos": "Their information",
+      "loop": "Match loop"
+    },
+    "loop": {
+      "opened": "Opened",
+      "toHandleCount": "To handle ({{count}})",
+      "transmittedCount": "Properties sent ({{count}})",
+      "openInMatching": "Open in Matching",
+      "ignore": "Ignore",
+      "nothingToHandle": "Nothing to handle right now."
     }
   }
 }

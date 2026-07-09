@@ -18,6 +18,8 @@ export interface Contact {
   score: ContactScore | null
   tags: string[]
   notes: string | null
+  /** Fourre-tout jsonb : civilité, langue UI, canal préféré, photo, linked_bien… */
+  form_data?: Record<string, unknown> | null
   created_at: string
 
   // Enriched CRM fields (Étape 1)
@@ -40,8 +42,11 @@ export interface Contact {
 
 export interface SearchCriteria {
   type?: string
+  /** 'rent' (location) | 'buy' (achat/vente) — lu par matching-engine + pont client_searches. */
+  transaction_type?: 'rent' | 'buy'
   budget_min?: number
   budget_max?: number
+  /** Villes ET/OU codes cantons mélangés (ex. ["Carouge", "Genève", "GE"]). */
   zones?: string[]
   rooms_min?: number
   rooms_max?: number
