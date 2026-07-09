@@ -541,6 +541,8 @@ export default function NewContactModal({
   isPending,
   error,
   onOpenMatching,
+  onOpenKyc,
+  onOpenFiche,
 }: {
   sp: SugarPalette
   dark: boolean
@@ -549,6 +551,9 @@ export default function NewContactModal({
   isPending: boolean
   error: string | null
   onOpenMatching: () => void
+  /** Écran de confirmation — tuiles secondaires (contact créé). Repli sur onClose. */
+  onOpenKyc?: () => void
+  onOpenFiche?: () => void
 }): JSX.Element {
   const { t } = useTranslation('contacts')
   const C = useMemo(() => buildC(sp, dark), [sp, dark])
@@ -672,8 +677,8 @@ export default function NewContactModal({
               </span>
             </button>
             <div style={{ display: 'flex', gap: 11, marginTop: 12 }}>
-              <SecTileM C={C} icon="shield" title={t('newContactPager.created.kycTitle')} sub={t('newContactPager.created.kycSub')} onClick={reset} />
-              <SecTileM C={C} icon="user" title={t('newContactPager.created.ficheTitle')} sub={t('newContactPager.created.ficheSub')} onClick={reset} />
+              <SecTileM C={C} icon="shield" title={t('newContactPager.created.kycTitle')} sub={t('newContactPager.created.kycSub')} onClick={onOpenKyc ?? onClose} />
+              <SecTileM C={C} icon="user" title={t('newContactPager.created.ficheTitle')} sub={t('newContactPager.created.ficheSub')} onClick={onOpenFiche ?? onClose} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 22 }}>
               <NcbCtaM C={C} tone="ghost" icon="plus" onClick={reset}>{t('newContactPager.created.createAnother')}</NcbCtaM>

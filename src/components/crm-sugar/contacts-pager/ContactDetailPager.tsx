@@ -64,6 +64,8 @@ export interface ContactDetailPagerProps {
   onDelete: () => void
   onOpenKyc: () => void
   onOpenMatching: () => void
+  /** CTA principal d'un Vendeur/Bailleur (côté offre) — vers ses biens, jamais le Matching acheteur. */
+  onOpenListings: () => void
   onProposeVisit: (matchId: string) => void
 }
 
@@ -694,9 +696,9 @@ function CdDots({ page, onGo, P, labels }: { page: number; onGo: (i: number) => 
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGE 0 — SES INFORMATIONS
 // ═══════════════════════════════════════════════════════════════════════
-function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onOpenMatching, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete }: {
+function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onOpenMatching, onOpenListings, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete }: {
   P: FichePal; dark: boolean; fiche: FicheContact; freezeRef: MutableRefObject<number>
-  onBack: () => void; onOpenKyc: () => void; onOpenMatching: () => void
+  onBack: () => void; onOpenKyc: () => void; onOpenMatching: () => void; onOpenListings: () => void
   onSaveIdentity: ContactDetailPagerProps['onSaveIdentity']; onInvalidateKyc: ContactDetailPagerProps['onInvalidateKyc']
   onSaveCoord: ContactDetailPagerProps['onSaveCoord']; onSaveCriteria: ContactDetailPagerProps['onSaveCriteria']
   onSaveNote: ContactDetailPagerProps['onSaveNote']; onDelete: ContactDetailPagerProps['onDelete']
@@ -785,7 +787,7 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onOpenMatching,
         <div style={{ flex: 1 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CdCta tone="ghost" P={P} onClick={onOpenKyc}><FcpIcon name="shield" size={14} stroke={P.inkSoft} /> {t('fiche.kycDossier')}</CdCta>
-          <CdCta P={P} onClick={onOpenMatching}><FcpIcon name={primary.icon} size={14} stroke={P.accentInk} /> {primary.label}</CdCta>
+          <CdCta P={P} onClick={isSeller ? onOpenListings : onOpenMatching}><FcpIcon name={primary.icon} size={14} stroke={P.accentInk} /> {primary.label}</CdCta>
           <div ref={moreRef} style={{ position: 'relative' }}>
             <CdRoundBtn icon="more" P={P} onClick={() => setMenuOpen((o) => !o)} />
             {menuOpen && (
@@ -906,7 +908,7 @@ function CdBoucle({ P, loop, onOpenMatching, onProposeVisit }: {
 //   PAGER
 // ═══════════════════════════════════════════════════════════════════════
 export default function ContactDetailPager(props: ContactDetailPagerProps): ReactElement {
-  const { fiche, loop, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onProposeVisit } = props
+  const { fiche, loop, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onOpenListings, onProposeVisit } = props
   const { t } = useTranslation('contacts')
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
@@ -1012,7 +1014,7 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
       <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            <CdInfos P={P} dark={dark} fiche={fiche} freezeRef={freezeRef} onBack={onBack} onOpenKyc={onOpenKyc} onOpenMatching={onOpenMatching}
+            <CdInfos P={P} dark={dark} fiche={fiche} freezeRef={freezeRef} onBack={onBack} onOpenKyc={onOpenKyc} onOpenMatching={onOpenMatching} onOpenListings={onOpenListings}
               onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} onSaveNote={onSaveNote} onDelete={onDelete} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>

@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
@@ -28,6 +29,7 @@ export default function ContactsSugarV2Page() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const qc = useQueryClient()
+  const { t: tr } = useTranslation('contacts')
 
   // Deep-link `?source=` (handoff Dashboard) — consommé une fois puis nettoyé
   // (le pager n'affiche plus de bannière source ; param obsolète mais toléré).
@@ -119,7 +121,7 @@ export default function ContactsSugarV2Page() {
       // l'auto-invalidation cache-helpers ne la couvre pas → on invalide explicitement.
       await qc.invalidateQueries({ queryKey: ['contacts-sugar'] })
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : 'Erreur inconnue')
+      setCreateError(e instanceof Error ? e.message : tr('list.toast.unknownError'))
       throw e
     }
   }
@@ -127,6 +129,14 @@ export default function ContactsSugarV2Page() {
   const openMatchingForCreated = () => {
     setModalOpen(false)
     navigate(createdId ? `/dashboard/matching?contact=${createdId}` : '/dashboard/matching')
+  }
+  const openKycForCreated = () => {
+    setModalOpen(false)
+    navigate(createdId ? `/dashboard/kyc?openContactId=${createdId}` : '/dashboard/kyc')
+  }
+  const openFicheForCreated = () => {
+    setModalOpen(false)
+    navigate(createdId ? `/dashboard/contacts/${createdId}` : '/dashboard/contacts')
   }
 
   return (
@@ -155,6 +165,8 @@ export default function ContactsSugarV2Page() {
               isPending={createContact.isPending}
               error={createError}
               onOpenMatching={openMatchingForCreated}
+              onOpenKyc={openKycForCreated}
+              onOpenFiche={openFicheForCreated}
             />
           }
         />

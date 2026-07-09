@@ -23,7 +23,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactSentMatches } from '@/hooks/useContactSentMatches'
 import { useKycDossierByContact, useInvalidateKycForContact } from '@/hooks/useKycDossier'
-import { buildSearchCriteria, parseSearchCriteria } from '@/lib/contactCriteria'
+import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
 import { pickAvatarBg } from '@/lib/sugarAdapters'
 import ContactDetailPager, {
   type FicheContact,
@@ -138,7 +138,12 @@ export default function ContactDetailSugarV3Page() {
     audience,
     isTenant,
     avatarBg: pickAvatarBg(contact.id),
-    crit: parseSearchCriteria(contact.search_criteria),
+    // Acheteur/Locataire : critères depuis search_criteria (matching). Vendeur/
+    // Bailleur : le « bien proposé » est écrit dans form_data.offer (pas de
+    // matching) → symétrie lecture/écriture, sinon l'édition ne se ré-affiche pas.
+    crit: (contact.type === 'seller' || contact.type === 'landlord') && fd.offer
+      ? (fd.offer as CriteriaInput)
+      : parseSearchCriteria(contact.search_criteria),
     notes: contact.notes ?? '',
   }
 
@@ -188,6 +193,7 @@ export default function ContactDetailSugarV3Page() {
       onDelete={async () => { await del.mutateAsync(id); refreshList(); navigate('/dashboard/contacts') }}
       onOpenKyc={() => navigate(`/dashboard/kyc?openContactId=${id}`)}
       onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`)}
+      onOpenListings={() => navigate('/dashboard/listings')}
       onProposeVisit={() => navigate(`/dashboard/matching?contact=${id}`)}
     />,
   )
