@@ -13,6 +13,7 @@
 
 import { type ReactNode, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
@@ -34,6 +35,7 @@ export default function ContactDetailSugarV3Page() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { t: tr } = useTranslation('contacts')
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
@@ -95,7 +97,7 @@ export default function ContactDetailSugarV3Page() {
   if (isLoading) {
     return shell(
       <main style={{ flex: 1, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 14, fontWeight: 600 }}>
-        Chargement du contact…
+        {tr('cd.loading')}
       </main>,
     )
   }
@@ -103,11 +105,11 @@ export default function ContactDetailSugarV3Page() {
     return shell(
       <main style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: sp.ink }}>Contact introuvable</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: sp.ink }}>{tr('detail.notFound')}</div>
           <button onClick={() => navigate('/dashboard/contacts')} style={{
             marginTop: 14, height: 36, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer',
             fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: sp.ink, color: sp.pageBg,
-          }}>Retour aux contacts</button>
+          }}>{tr('detail.backToContacts')}</button>
         </div>
       </main>,
     )
