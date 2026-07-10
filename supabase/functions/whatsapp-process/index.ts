@@ -19,7 +19,7 @@ import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
-import { deriveFollowups, persistFollowups } from '../_shared/whatsapp-followups.ts'
+import { deriveFollowups, persistFollowups, fetchContactDefaultHour } from '../_shared/whatsapp-followups.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -211,7 +211,10 @@ serve(async (req) => {
         // Engagements actionnables : transforme les commitments/next_action en
         // suggestions de suivi datées (l'agent accepte → vrai rappel). Best-effort.
         try {
-          const followups = deriveFollowups(insight, { nowISO: new Date().toISOString() })
+          // Timing appris : dater les suivis à l'heure médiane de réponse du contact
+          // (paires out→in, ≥5) plutôt qu'à 09:00 fixe. Best-effort → 09:00 si erreur.
+          const defaultHour = await fetchContactDefaultHour(admin, c.contact_id)
+          const followups = deriveFollowups(insight, { nowISO: new Date().toISOString(), defaultHour })
           if (followups.length) await persistFollowups(admin, c.agency_id, c.contact_id, followups, c.last_message_at)
         } catch (e) {
           console.error('whatsapp followups failed:', String((e as Error)?.message ?? 'error').slice(0, 120))

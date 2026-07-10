@@ -24,6 +24,13 @@ export interface DerivedFollowup {
 const TZ = 'Europe/Zurich'
 const ACTION_MAX = 300
 
+// Relances au timing appris du client (item Fable). Heure murale par défaut d'un
+// suivi daté sans heure explicite. Remplacée par l'heure médiane de réponse du
+// contact quand on a assez de signal (cf. resolveResponseHour / fetchContactDefaultHour).
+export const DEFAULT_FOLLOWUP_HOUR = 9
+// Nombre minimum de paires out→in avant de faire confiance à l'heure apprise.
+export const MIN_RESPONSE_PAIRS = 5
+
 // next_action « molles » qui ne valent pas un todo daté (réponse immédiate / rien à faire).
 const SOFT_NEXT_ACTIONS = new Set(['rien', 'repondre'])
 
@@ -121,9 +128,10 @@ function parseTime(t: string): { H: number; M: number } | null {
 /**
  * Résout une échéance depuis le texte d'un engagement, relative à `nowISO` (Zurich).
  * Renvoie un ISO UTC, ou null si aucun repère de jour n'est trouvé (engagement non daté).
- * Heure par défaut si jour sans heure : 09:00 local.
+ * Heure par défaut si jour sans heure : `defaultHour` local (09:00 sauf timing appris).
+ * Une heure explicite dans le texte (« 14h ») l'emporte toujours sur `defaultHour`.
  */
-export function resolveDueAt(text: string, nowISO: string): string | null {
+export function resolveDueAt(text: string, nowISO: string, defaultHour: number = DEFAULT_FOLLOWUP_HOUR): string | null {
   const t = stripDiacritics((text ?? '').toLowerCase())
   const { p, offsetMin } = localParts(nowISO)
   const time = parseTime(t)
@@ -133,7 +141,7 @@ export function resolveDueAt(text: string, nowISO: string): string | null {
   const at = (offsetDays: number): string => {
     const dt = new Date(base + offsetDays * DAY)
     return wallToISO(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate(),
-      time?.H ?? 9, time?.M ?? 0, offsetMin)
+      time?.H ?? defaultHour, time?.M ?? 0, offsetMin)
   }
 
   // Relatifs explicites.
@@ -186,11 +194,12 @@ function isClientAvailability(text: string): boolean {
  */
 export function deriveFollowups(
   insight: Pick<ConversationInsight, 'commitments' | 'next_action'> | null | undefined,
-  opts: { nowISO: string; contactId?: string },
+  opts: { nowISO: string; contactId?: string; defaultHour?: number },
 ): DerivedFollowup[] {
   if (!insight) return []
   const out: DerivedFollowup[] = []
   const seen = new Set<string>()
+  const defaultHour = opts.defaultHour ?? DEFAULT_FOLLOWUP_HOUR
 
   const push = (f: DerivedFollowup) => {
     if (seen.has(f.dedupKey)) return
@@ -204,13 +213,13 @@ export function deriveFollowups(
     if (owner === 'agent') {
       // Engagement de l'agent = son todo (daté si repère temporel, sinon non daté).
       const action = text.slice(0, ACTION_MAX)
-      const dueAt = resolveDueAt(text, opts.nowISO)
+      const dueAt = resolveDueAt(text, opts.nowISO, defaultHour)
       const dayKey = dueAt ? dueAt.slice(0, 10) : 'nodate'
       push({ owner: 'agent', action, dueAt, kind: 'commitment', dedupKey: hashKey('c', normalizeAction(action), dayKey) })
     } else if (owner === 'client' && isClientAvailability(text)) {
       // Dispo client → suggestion de planification, UNIQUEMENT si un créneau concret
       // est résolu (pas de « dispo cette semaine » vague). L'action reste à l'agent.
-      const dueAt = resolveDueAt(text, opts.nowISO)
+      const dueAt = resolveDueAt(text, opts.nowISO, defaultHour)
       if (!dueAt) continue
       const action = `Planifier avec le client (dispo : ${text})`.slice(0, ACTION_MAX)
       push({ owner: 'agent', action, dueAt, kind: 'client_availability', dedupKey: hashKey('av', normalizeAction(text), dueAt.slice(0, 10)) })
@@ -227,7 +236,43 @@ export function deriveFollowups(
   return out
 }
 
-// ── Persistance (seule I/O) ──────────────────────────────────────────────────
+// ── Timing appris : heure médiane de réponse du contact ──────────────────────
+export interface MedianResponseHourRow { n?: number | null; median_hour?: number | null }
+
+/**
+ * Choisit l'heure par défaut d'un suivi à partir du signal appris. On ne fait
+ * confiance à l'heure médiane de réponse que si le contact a assez d'historique
+ * (≥ MIN_RESPONSE_PAIRS paires out→in) ET que l'heure est valide (entier 0–23).
+ * Sinon repli sur DEFAULT_FOLLOWUP_HOUR (09:00). Pur, testable.
+ */
+export function resolveResponseHour(row: MedianResponseHourRow | null | undefined): number {
+  const n = Number(row?.n ?? 0)
+  const h = row?.median_hour
+  if (n >= MIN_RESPONSE_PAIRS && typeof h === 'number' && Number.isInteger(h) && h >= 0 && h <= 23) {
+    return h
+  }
+  return DEFAULT_FOLLOWUP_HOUR
+}
+
+/**
+ * Lit l'heure médiane de réponse d'un contact via le RPC pur-SQL
+ * `whatsapp_median_response_hour` et renvoie l'heure par défaut à utiliser pour
+ * dater ses suivis. Best-effort : toute erreur → repli 09:00 (les suivis restent
+ * datés, juste au défaut). Une des deux seules I/O de ce module.
+ */
+export async function fetchContactDefaultHour(admin: SupabaseClient, contactId: string): Promise<number> {
+  try {
+    const { data, error } = await admin.rpc('whatsapp_median_response_hour', { p_contact_id: contactId })
+    if (error) throw error
+    const row = (Array.isArray(data) ? data[0] : data) as MedianResponseHourRow | null | undefined
+    return resolveResponseHour(row ?? null)
+  } catch (e) {
+    console.error('whatsapp median hour failed:', String((e as Error)?.message ?? 'error').slice(0, 120))
+    return DEFAULT_FOLLOWUP_HOUR
+  }
+}
+
+// ── Persistance (seule I/O restante) ─────────────────────────────────────────
 /** Upsert ON CONFLICT DO NOTHING : ne ressuscite jamais une suggestion écartée/acceptée. */
 export async function persistFollowups(
   admin: SupabaseClient,
