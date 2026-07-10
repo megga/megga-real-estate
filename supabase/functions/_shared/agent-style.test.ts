@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle, type VoiceSample, type CorrectionExample } from './agent-style'
+import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, buildStyleDistillPrompt, type LearnedStyle, type VoiceSample, type CorrectionExample } from './agent-style'
 
 const base: LearnedStyle = { language: 'fr', formality: 'tu', emoji: true, traits: 'phrases courtes, va droit au but', status: 'active', updated_at: '2026-06-03T00:00:00Z', sample_count: 20 }
 
@@ -169,5 +169,31 @@ describe('fetchCorrectionExamples (T2)', () => {
   it('filtre les paires incomplètes', async () => {
     const { client } = mk([{ megga_draft: 'incomplet', agent_final: '' }, { megga_draft: 'Avant texte', agent_final: 'Après texte' }])
     expect(await fetchCorrectionExamples(client, 'p1')).toEqual([{ draft: 'Avant texte', final: 'Après texte' }])
+  })
+})
+
+describe('buildStyleDistillPrompt', () => {
+  it('scrubbe les PII de chaque message avant DeepSeek', () => {
+    const p = buildStyleDistillPrompt([
+      'Salut, note l\'IBAN CH93 0076 2011 6238 5295 7 du client',
+      'mdp: secret123 pour le portail',
+      'AVS 756.1234.5678.90 à vérifier',
+    ])
+    expect(p).not.toContain('CH93')
+    expect(p).not.toContain('secret123')
+    expect(p).not.toContain('756.1234.5678.90')
+    expect(p).toContain('[REDACTED:IBAN]')
+    expect(p).toContain('[REDACTED:PASSWORD]')
+    expect(p).toContain('[REDACTED:AVS]')
+    // La consigne de style reste intacte.
+    expect(p).toContain('Résume SON style de communication')
+  })
+  it('rédige le texte ENTIER avant de tronquer (pas de fuite via troncature)', () => {
+    // IBAN à cheval sur la borne 200 : un slice(0,200) AVANT redaction laisserait
+    // un fragment « CH93 » que le regex IBAN ne matche pas → fuite. redact-puis-slice
+    // rédige l'IBAN complet d'abord, donc aucun chiffre ne subsiste.
+    const long = `${'a'.repeat(190)} IBAN CH93 0076 2011 6238 5295 7`
+    const p = buildStyleDistillPrompt([long])
+    expect(p).not.toContain('CH93')
   })
 })

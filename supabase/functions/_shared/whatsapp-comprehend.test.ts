@@ -12,6 +12,30 @@ describe('buildThreadDigest', () => {
   it('ignore les messages sans texte', () => {
     expect(buildThreadDigest([{ direction: 'inbound', body: '', transcript: null, created_at: 'x' }])).toBe('')
   })
+  it('scrubbe les PII sensibles avant l\'envoi LLM (AVS/IBAN/mdp) mais garde nom/téléphone', () => {
+    const d = buildThreadDigest([
+      { direction: 'inbound', body: 'Mon AVS 756.1234.5678.90, IBAN CH93 0076 2011 6238 5295 7, mdp: secret123', transcript: null, created_at: 'a' },
+      { direction: 'outbound', body: 'Bien reçu Sarah, je vous appelle au 079 123 45 67', transcript: null, created_at: 'b' },
+    ])
+    expect(d).not.toContain('756.1234.5678.90')
+    expect(d).not.toContain('CH93')
+    expect(d).not.toContain('secret123')
+    expect(d).toContain('[REDACTED:AVS]')
+    expect(d).toContain('[REDACTED:IBAN]')
+    expect(d).toContain('[REDACTED:PASSWORD]')
+    // Contact info préservée : l'extraction du lead (nom/téléphone/email) en dépend.
+    expect(d).toContain('Sarah')
+    expect(d).toContain('079 123 45 67')
+  })
+  it('scrubbe aussi les PII des transcripts vocaux (canal principal des notes vocales)', () => {
+    // Note vocale : body=null, PII dans le transcript (Deepgram). buildThreadDigest
+    // rédige transcript||body via la même passe → le canal vocal est couvert.
+    const d = buildThreadDigest([
+      { direction: 'inbound', body: null, transcript: 'alors mon numéro AVS c\'est 756.1234.5678.90', created_at: 'a' },
+    ])
+    expect(d).not.toContain('756.1234.5678.90')
+    expect(d).toContain('[REDACTED:AVS]')
+  })
 })
 
 describe('parseInsight', () => {

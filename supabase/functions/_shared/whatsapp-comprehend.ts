@@ -1,7 +1,11 @@
 // Compréhension de conversation (L2) via DeepSeek (deepseek-chat).
 // PURS (testés) : buildThreadDigest, buildMessages, parseInsight.
+// buildThreadDigest scrubbe les PII sensibles (AVS/IBAN/carte/mdp/…) : c'est le
+// SEUL producteur du digest, donc rien de sensible ne part vers DeepSeek.
 // comprehend() = appel DeepSeek (clé en paramètre, fetch global → Node OK).
 // IA = DeepSeek uniquement (décision produit : coût). PAS de Claude.
+
+import { redactPII } from './pii-redaction.ts'
 
 export interface ConversationInsight {
   summary: string | null
@@ -31,13 +35,19 @@ export interface ThreadMessage {
 const NEXT_ACTION_TYPES = new Set(['planifier_visite', 'envoyer_biens', 'relancer', 'qualifier_lead', 'repondre', 'rien'])
 const SENTIMENTS = new Set(['positif', 'neutre', 'tendu'])
 
-/** Fil compact pour le prompt : « Client: … » / « Agent: … », transcript si vocal. */
+/** Fil compact pour le prompt : « Client: … » / « Agent: … », transcript si vocal.
+ *  Rédige les PII sensibles AVANT tout envoi LLM : le digest part vers DeepSeek
+ *  (comprehend) ET vers qualifyLead. On strippe les identifiants catalogués
+ *  (AVS, IBAN, carte, passeport, mot de passe, clé API, date de naissance) ;
+ *  noms, téléphones et emails sont PRÉSERVÉS — l'extraction du lead en dépend.
+ *  cf. _shared/pii-redaction.ts (minimisation nLPD + cross-border). */
 export function buildThreadDigest(messages: ThreadMessage[]): string {
   return messages
     .map((m) => {
       const who = m.direction === 'inbound' ? 'Client' : 'Agent'
-      const text = (m.transcript || m.body || '').trim()
-      return text ? `${who}: ${text}` : null
+      const raw = (m.transcript || m.body || '').trim()
+      if (!raw) return null
+      return `${who}: ${redactPII(raw).redactedText}`
     })
     .filter(Boolean)
     .join('\n')
