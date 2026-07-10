@@ -30,6 +30,7 @@ import {
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -186,7 +187,7 @@ serve(async (req) => {
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     if (overBudget()) return json({ reply: t(lang, 'complexRetry'), isError: true }, 200)
-    const resp = await callDeepSeek(apiKey, messages)
+    const resp = await callDeepSeek(apiKey, messages, 'auto', { client: supabase, agencyId: ctx.agencyId })
     if (!resp) return json({ reply: t(lang, 'cantProcess'), isError: true }, 200)
     const msg = resp.choices?.[0]?.message
     const toolCalls = msg?.tool_calls as Array<{ id?: string; function?: { name?: string; arguments?: string } }> | undefined
@@ -279,7 +280,7 @@ serve(async (req) => {
   // F9 : la boucle d'outils est épuisée sans réponse finale (DeepSeek a continué à
   // appeler des outils sans conclure). On force une DERNIÈRE passe SANS outils : il doit
   // rédiger une réponse à partir de ce qu'il a déjà récolté, plutôt qu'un message d'échec.
-  const forced = await callDeepSeek(apiKey, messages, 'none')
+  const forced = await callDeepSeek(apiKey, messages, 'none', { client: supabase, agencyId: ctx.agencyId })
   const forcedContent = forced?.choices?.[0]?.message?.content as string | undefined
   if (forcedContent) {
     if (isFabricatedKycClaim(forcedContent, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
@@ -366,8 +367,10 @@ function safeEqual(a: string, b: string): boolean {
 
 async function callDeepSeek(
   apiKey: string, messages: Array<Record<string, unknown>>, toolChoice: 'auto' | 'none' = 'auto',
+  logCtx?: { client: SupabaseClient; agencyId: string | null },
 ) {
   try {
+    const started = Date.now()
     const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -376,7 +379,15 @@ async function callDeepSeek(
     })
     // F14/I4 : on log le status seulement, JAMAIS le corps (PII des messages échoués).
     if (!r.ok) { console.error('deepseek http', r.status); return null }
-    return await r.json()
+    const j = await r.json()
+    // Journalisation coût + latence (fire-and-forget) : un log par tour de boucle.
+    if (logCtx) {
+      logDeepSeekUsageWith(logCtx.client, j?.usage, {
+        edgeFunction: 'whatsapp-agent', module: 'whatsapp-agent',
+        latencyMs: Date.now() - started, agencyId: logCtx.agencyId,
+      })
+    }
+    return j
   } catch (e) {
     console.error('deepseek fetch failed:', (e as Error)?.name ?? 'error')
     return null

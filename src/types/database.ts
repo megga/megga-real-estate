@@ -827,36 +827,53 @@ export type Database = {
       }
       ai_usage_logs: {
         Row: {
+          agency_id: string | null
           created_at: string
           edge_function: string
           estimated_cost_usd: number
           id: string
           input_tokens: number
+          latency_ms: number | null
+          module: string | null
           output_tokens: number
           provider: string
           was_fallback: boolean
         }
         Insert: {
+          agency_id?: string | null
           created_at?: string
           edge_function: string
           estimated_cost_usd: number
           id?: string
           input_tokens: number
+          latency_ms?: number | null
+          module?: string | null
           output_tokens: number
           provider: string
           was_fallback?: boolean
         }
         Update: {
+          agency_id?: string | null
           created_at?: string
           edge_function?: string
           estimated_cost_usd?: number
           id?: string
           input_tokens?: number
+          latency_ms?: number | null
+          module?: string | null
           output_tokens?: number
           provider?: string
           was_fallback?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       app_config: {
         Row: {

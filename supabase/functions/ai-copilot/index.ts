@@ -33,6 +33,7 @@ import {
   type PendingAction, type PrepareConfirmResult,
 } from '../_shared/agent-loop.ts'
 import { copilotTools, copilotToolsBlock, webToolTier, type DeepSeekTool } from '../_shared/copilot-tools.ts'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import {
   execSuggestPrioritiesToday, execGetAnalyticsSnapshot, execGetMarketStats,
   execWebCreateReminder, execWebAddNote, type WebToolCtx,
@@ -305,6 +306,10 @@ function makeCallModel(opts: {
   responseFormat?: 'json_object'
   wantStream: boolean
   emit: (ev: StreamEvent) => void
+  // Journalisation coût + latence (fire-and-forget), un log par appel DeepSeek.
+  client?: SupabaseClient
+  agencyId?: string | null
+  module?: string
 }) {
   return async (messages: LoopMessage[], withTools: boolean): Promise<ModelTurn | null> => {
     const body: Record<string, unknown> = {
@@ -320,6 +325,7 @@ function makeCallModel(opts: {
     }
     if (opts.responseFormat) body.response_format = { type: opts.responseFormat }
 
+    const started = Date.now()
     try {
       const r = await fetch(DEEPSEEK_URL, {
         method: 'POST',
@@ -349,6 +355,12 @@ function makeCallModel(opts: {
       }
       const fin = asm.finish()
       if (opts.wantStream) for (const ev of fin.events) opts.emit(ev)
+      if (opts.client) {
+        logDeepSeekUsageWith(opts.client, usage, {
+          edgeFunction: 'ai-copilot', module: opts.module ?? 'copilot',
+          latencyMs: Date.now() - started, agencyId: opts.agencyId ?? null,
+        })
+      }
       return { content: fin.content, toolCalls: fin.toolCalls, emitted: opts.wantStream && fin.emitted, usage }
     } catch (e) {
       console.error('deepseek fetch failed:', (e as Error)?.name ?? 'error')
@@ -733,6 +745,7 @@ ${snapshot}`
 
   let generated = false
   let text = ''
+  const started = Date.now()
   try {
     const r = await fetch(DEEPSEEK_URL, {
       method: 'POST',
@@ -748,6 +761,10 @@ ${snapshot}`
     })
     if (r.ok) {
       const d = await r.json()
+      logDeepSeekUsageWith(params.auth.supabase, d?.usage, {
+        edgeFunction: 'ai-copilot', module: 'copilot-daily-brief',
+        latencyMs: Date.now() - started, agencyId: params.auth.profile.agency_id,
+      })
       const raw = d.choices?.[0]?.message?.content || ''
       // Re-substitution des vraies valeurs APRÈS génération (DeepSeek n'a vu que
       // des jetons). Si DeepSeek a mutilé un jeton (accolades cassées, traduction)
@@ -939,7 +956,7 @@ serve(async (req: Request) => {
       if (toolsOn) {
         const catalog = copilotTools(writesOn, publishOn)
         const res = await runAgentLoop({
-          callModel: makeCallModel({ apiKey: deepseekApiKey, tools: catalog, wantStream: stream, emit }),
+          callModel: makeCallModel({ apiKey: deepseekApiKey, tools: catalog, wantStream: stream, emit, client: auth.supabase, agencyId: auth.profile.agency_id, module: 'copilot' }),
           runTool,
           tierOf: webToolTier,
           allowWrites: writesOn,
@@ -971,6 +988,9 @@ serve(async (req: Request) => {
           responseFormat: action === 'detect_intent' ? 'json_object' : undefined,
           wantStream: stream,
           emit,
+          client: auth.supabase,
+          agencyId: auth.profile.agency_id,
+          module: action === 'detect_intent' ? 'copilot-detect-intent' : 'copilot',
         })(baseMessages, false)
         if (!turn) throw new Error('Le moteur IA est indisponible, réessayez.')
         text = turn.content
