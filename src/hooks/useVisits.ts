@@ -157,13 +157,17 @@ export function useVisits() {
   }
 
   const updateVisitFn = async (event: CalendarEvent) => {
+    // Mise à jour partielle : on ne touche au `status` QUE s'il est explicitement
+    // fourni (un simple re-scheduling ne doit pas écraser confirmed/done/no_show).
     const updatePayload: Record<string, unknown> = {
       id: event.id,
       scheduled_at: event.start.toISOString(),
-      status: event.visitStatus || 'planned',
     }
-    if (event.visitStatus === 'done') {
-      updatePayload.completed_at = new Date().toISOString()
+    if (event.visitStatus !== undefined) {
+      updatePayload.status = event.visitStatus
+      if (event.visitStatus === 'done') {
+        updatePayload.completed_at = new Date().toISOString()
+      }
     }
     if (event.feedbackBuyer !== undefined) {
       updatePayload.feedback_buyer = event.feedbackBuyer

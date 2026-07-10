@@ -468,6 +468,82 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
 }
 
 // ─── Modale détails ───────────────────────────────────────────────────────
+// ─── Volet « Synchronisation calendrier » (Google / Outlook connecté) ──────
+// Sens (Import/Export/Bidirectionnel) + sous-agendas (MEGGA éditable · Perso
+// « Occupé » lecture seule · Jours fériés). Préférences persistées localement ;
+// le backend applique aujourd'hui la synchro bidirectionnelle par défaut.
+interface CalSyncPrefs { direction: 'in' | 'out' | 'two'; megga: boolean; perso: boolean; holidays: boolean }
+const CAL_SYNC_DEFAULT: CalSyncPrefs = { direction: 'two', megga: true, perso: true, holidays: false }
+
+function CalSyncSwitch({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} style={{ width: 38, height: 22, borderRadius: 999, border: 0, background: on ? SET.black : '#D1D5DB', position: 'relative', cursor: 'pointer', transition: 'background .2s', flexShrink: 0 }}>
+      <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: 999, background: on ? SET.blackInk : '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+    </button>
+  )
+}
+
+function CalSyncRow({ label, meta, on, onToggle, last }: { label: string; meta: string; on: boolean; onToggle: () => void; last?: boolean }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderBottom: last ? 'none' : `1px solid ${SET.line}` }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, color: SET.ink, fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: 11.5, color: SET.muted, fontWeight: 500, marginTop: 1 }}>{meta}</div>
+      </div>
+      <CalSyncSwitch on={on} onClick={onToggle} />
+    </div>
+  )
+}
+
+function CalendarSyncPanel({ provider, t }: { provider: 'google' | 'microsoft'; t: TFunction }) {
+  const storageKey = `megga.calendar.sync.${provider}`
+  const [sync, setSync] = useState<CalSyncPrefs>(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(storageKey) : null
+      if (raw) return { ...CAL_SYNC_DEFAULT, ...(JSON.parse(raw) as Partial<CalSyncPrefs>) }
+    } catch { /* défaut */ }
+    return CAL_SYNC_DEFAULT
+  })
+  const patch = (p: Partial<CalSyncPrefs>) =>
+    setSync(prev => {
+      const next = { ...prev, ...p }
+      try { window.localStorage.setItem(storageKey, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+
+  const DIRS: { k: CalSyncPrefs['direction']; l: string }[] = [
+    { k: 'in', l: t('integrations.calSync.import') },
+    { k: 'out', l: t('integrations.calSync.export') },
+    { k: 'two', l: t('integrations.calSync.both') },
+  ]
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: SET.muted, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 10 }}>
+        {t('integrations.calSync.title')}
+      </div>
+      <div style={{ display: 'flex', gap: 4, background: SET.cardSubtle, borderRadius: 12, padding: 4, marginBottom: 12 }}>
+        {DIRS.map(dir => {
+          const on = sync.direction === dir.k
+          return (
+            <button key={dir.k} onClick={() => patch({ direction: dir.k })} style={{ flex: 1, height: 34, borderRadius: 9, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, background: on ? SET.black : 'transparent', color: on ? SET.blackInk : SET.muted, transition: 'background .15s' }}>
+              {dir.l}
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ background: SET.cardSubtle, borderRadius: 14, overflow: 'hidden' }}>
+        <CalSyncRow label={t('integrations.calSync.meggaRow')} meta={t('integrations.calSync.meggaMeta')} on={sync.megga} onToggle={() => patch({ megga: !sync.megga })} />
+        <CalSyncRow label={t('integrations.calSync.persoRow')} meta={t('integrations.calSync.persoMeta')} on={sync.perso} onToggle={() => patch({ perso: !sync.perso })} />
+        <CalSyncRow label={t('integrations.calSync.holidaysRow')} meta={t('integrations.calSync.holidaysMeta')} on={sync.holidays} onToggle={() => patch({ holidays: !sync.holidays })} last />
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 12, background: SET.cardSubtle, borderRadius: 12, padding: '11px 13px' }}>
+        <SetIcon name="lock" size={15} stroke={SET.muted} />
+        <div style={{ fontSize: 11.5, fontWeight: 500, color: SET.inkSoft, lineHeight: 1.5 }}>{t('integrations.calSync.lbaNote')}</div>
+      </div>
+    </div>
+  )
+}
+
 function DetailsModal({
   item,
   onClose,
@@ -605,6 +681,10 @@ function DetailsModal({
             </span>
           </div>
         ) : null}
+
+        {item.connected && (item.provider === 'google' || item.provider === 'microsoft') && (
+          <CalendarSyncPanel provider={item.provider} t={t} />
+        )}
 
         <div
           style={{

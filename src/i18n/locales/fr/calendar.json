@@ -4,7 +4,8 @@
     "mandate": "Mandat / Estim.",
     "notary": "Signature notaire",
     "task": "Tâche / Relance",
-    "publish": "Publication"
+    "publish": "Publication",
+    "autre": "Autre"
   },
   "days": [
     "Dim",
@@ -82,7 +83,8 @@
       "week": "Semaine",
       "month": "Mois",
       "agenda": "Agenda"
-    }
+    },
+    "eventTypes": "Types d'événement"
   },
   "edit": {
     "newEvent": "Nouvel événement",
@@ -324,5 +326,121 @@
     "dayFreeTitle": "Journée libre",
     "dayFreeDesc": "Bloquez du temps pour vos acheteurs chauds ou avancez sur le pipeline.",
     "retry": "Réessayer"
+  },
+  "monthsShort": [
+    "janv.",
+    "févr.",
+    "mars",
+    "avr.",
+    "mai",
+    "juin",
+    "juil.",
+    "août",
+    "sept.",
+    "oct.",
+    "nov.",
+    "déc."
+  ],
+  "busy": "Occupé",
+  "popover": {
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "close": "Fermer",
+    "statusDone": "Terminé",
+    "statusCancelled": "Annulé",
+    "from": "Du",
+    "to": "au",
+    "fullDay": "Journée entière",
+    "recurrent": "Récurrent",
+    "until": "jusqu'au",
+    "conflictOne": "Chevauche",
+    "conflictMany": "Chevauche {{count}} autres rendez-vous",
+    "openBien": "Ouvrir la fiche du bien",
+    "openContact": "Ouvrir la fiche du contact",
+    "itinerary": "Itinéraire",
+    "readOnly": "Synchronisé depuis {{source}} · lecture seule. Détail privé (« Occupé »).",
+    "markDone": "Marquer terminé",
+    "done": "Terminé"
+  },
+  "modal": {
+    "newEvent": "Nouvel événement",
+    "editEvent": "Modifier l'événement",
+    "type": "Type",
+    "color": "Couleur",
+    "title": "Titre",
+    "allDay": "Journée entière",
+    "startDate": "Date de début",
+    "start": "Début",
+    "endDate": "Date de fin",
+    "end": "Fin",
+    "recurrence": "Récurrence",
+    "recurEnd": "Fin de la récurrence",
+    "recurNone": "Aucune",
+    "recurNever": "Sans fin",
+    "recurUntil": "Jusqu'au…",
+    "location": "Lieu",
+    "linkedBien": "Bien lié",
+    "associateBien": "Associer un bien",
+    "linkedContact": "Contact lié",
+    "associateContact": "Associer un contact",
+    "notes": "Notes",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "create": "Créer",
+    "save": "Enregistrer",
+    "search": "Rechercher…",
+    "noResults": "Aucun résultat",
+    "change": "Changer",
+    "remove": "Retirer"
+  },
+  "role": {
+    "buyer": "Acheteur",
+    "seller": "Vendeur",
+    "investor": "Investisseur",
+    "tenant": "Locataire",
+    "landlord": "Propriétaire",
+    "both": "Mixte",
+    "lead": "Prospect",
+    "contact": "Contact"
+  },
+  "color": {
+    "slate": "Ardoise",
+    "raspberry": "Framboise",
+    "amber": "Ambre",
+    "olive": "Olive",
+    "emerald": "Émeraude",
+    "teal": "Sarcelle",
+    "indigo": "Indigo"
+  },
+  "recur": {
+    "daily": "Tous les jours",
+    "weekly": "Chaque semaine",
+    "biweekly": "Toutes les 2 semaines",
+    "monthly": "Chaque mois"
+  },
+  "toast": {
+    "syncing": "Synchronisation…",
+    "synced": "Synchronisé",
+    "created": "Créé",
+    "modified": "Modifié",
+    "deleted": "Supprimé",
+    "durationChanged": "Durée modifiée : {{start}} à {{end}}",
+    "moved": "Déplacé : {{date}}, {{time}}",
+    "markedDone": "Marqué terminé",
+    "markedTodo": "Marqué à faire",
+    "markedCancelled": "Marqué annulé",
+    "reactivated": "Réactivé"
+  },
+  "onboarding": {
+    "kicker": "Première connexion",
+    "title": "Connectez votre agenda",
+    "connectGoogle": "Connecter Google",
+    "connectOutlook": "Connecter Outlook",
+    "later": "Plus tard",
+    "privacy": "Vos événements perso restent privés.",
+    "laterTitle": "Vous pourrez connecter plus tard",
+    "laterBody": "Reliez Google ou Outlook quand vous voulez, depuis",
+    "laterPath": "Réglages › Intégrations",
+    "goToCalendar": "Aller au calendrier"
   }
 }
