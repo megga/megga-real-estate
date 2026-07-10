@@ -166,9 +166,15 @@ serve(async (req) => {
 
   // Ancrage temporel : sans ça DeepSeek ne sait pas résoudre « demain », « vendredi 14h »
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
+  // CACHE CONTEXTE : la valeur horodatée change à la minute. On la place en TOUT DERNIER
+  // du system message pour que le gros volume statique (SYSTEM + blocs) reste un préfixe
+  // stable ; le cache DeepSeek ne se réinvalide alors que sur le court suffixe daté, et non
+  // sur tout le prompt à chaque minute. L'instruction de conversion (statique) reste dans
+  // le préfixe et pointe vers la date fournie en fin de message.
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
+  const systemStable = `${SYSTEM}\n\nConvertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver), en te basant sur la date/heure actuelle indiquée en toute fin de ce message.\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${correctionsBlock}${groupBlock}${listingBlock}${antiFabBlock}`
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${correctionsBlock}${groupBlock}${listingBlock}${antiFabBlock}` },
+    { role: 'system', content: `${systemStable}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.` },
     ...history,
     { role: 'user', content: message },
   ]
