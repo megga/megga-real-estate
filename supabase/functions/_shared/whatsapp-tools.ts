@@ -93,7 +93,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'get_contact_brief',
-      description: "Fiche synthétique d'un contact (infos, critères, 5 dernières actions) + compréhension de la dernière conversation WhatsApp (résumé, intention, prochaine action suggérée). Pour « résume Dubois », « où en est X », « rédige une réponse pour X ». contact_id via search_contacts.",
+      description: "Fiche synthétique d'un contact (infos, critères, 5 dernières actions) + compréhension de la dernière conversation WhatsApp (résumé, mémoire longue, piste évoquée en conversation) + prochaine action du dossier (next_action_estimee, estimation déterministe interne). Pour « résume Dubois », « où en est X », « rédige une réponse pour X ». contact_id via search_contacts.",
       parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
     },
   },
