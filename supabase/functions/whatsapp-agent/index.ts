@@ -31,7 +31,7 @@ import {
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
-import { NBA_PROMPT_GUARDRAIL } from '../_shared/contact-nba.ts'
+import { composeAgentSystemPrompt } from '../_shared/agent-system-prompt.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -145,7 +145,8 @@ serve(async (req) => {
 - search_contacts : si plusieurs contacts correspondent, liste les noms et demande lequel — ne devine pas avant d'agir.
 - attach_kyc_document : ne dis jamais qu'une pièce est validée ni le dossier complet (la validation n'est pas faite par l'IA) ; ne restitue que les champs réellement lus.`
 
-  const nbaGuardrailBlock = `\n\n${NBA_PROMPT_GUARDRAIL}`
+  // Le garde-fou NBA (anti-initiative) est injecté par composeAgentSystemPrompt (baked-in),
+  // gardé par agent-system-prompt.test.ts — plus besoin de le concaténer à la main ici.
 
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
@@ -176,7 +177,16 @@ serve(async (req) => {
   // sur tout le prompt à chaque minute. L'instruction de conversion (statique) reste dans
   // le préfixe et pointe vers la date fournie en fin de message.
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
-  const systemStable = `${SYSTEM}\n\nConvertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver), en te basant sur la date/heure actuelle indiquée en toute fin de ce message.\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${correctionsBlock}${groupBlock}${listingBlock}${antiFabBlock}${nbaGuardrailBlock}`
+  const systemStable = composeAgentSystemPrompt({
+    system: SYSTEM,
+    styleGuide: MEGGA_STYLE_BLOCK,
+    learnedStyle: styleBlock,
+    voice: voiceBlock,
+    corrections: correctionsBlock,
+    group: groupBlock,
+    listing: listingBlock,
+    antiFab: antiFabBlock,
+  })
   const messages: Array<Record<string, unknown>> = [
     { role: 'system', content: `${systemStable}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.` },
     ...history,
