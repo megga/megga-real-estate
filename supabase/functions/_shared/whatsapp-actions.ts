@@ -2207,10 +2207,10 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
   // 2. Compréhension du fil + timeline + recherches actives (mêmes requêtes que execGetContactBrief).
   const { data: insightRow } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, intent, sentiment, urgency, language, objections, next_action, commitments')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments')
     .eq('contact_id', contact.id).eq('agency_id', ctx.agencyId).maybeSingle()
   const insight = insightRow as {
-    summary: string | null; intent: string | null; sentiment: string | null
+    summary: string | null; rolling_summary: string | null; intent: string | null; sentiment: string | null
     urgency: string | null; language: string | null; objections: unknown
     next_action: unknown; commitments: unknown
   } | null
@@ -2257,6 +2257,25 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     visitTitle = (vp as { title: string | null } | null)?.title ?? null
   }
 
+  // 4bis. NBA déterministe (cerveau partagé) — best-effort, jamais bloquant.
+  let nbaLabel: string | null = null
+  let nbaKycNote: string | null = null
+  try {
+    const { data: nbaRaw, error: nbaErr } = await ctx.supabase.rpc('contact_next_action', {
+      p_contact: contact.id,
+      p_agency: ctx.agencyId,
+    })
+    if (nbaErr) {
+      console.error('contact_next_action rpc failed')
+    } else {
+      const nba = parseNextAction(nbaRaw)
+      if (nba && nba.reasonKey !== 'none') nbaLabel = formatNextAction(nba, lang)
+      if (nba?.kycNote) nbaKycNote = formatKycNote(nba.kycNote, lang)
+    }
+  } catch (_e) {
+    console.error('contact_next_action threw')
+  }
+
   // 5. « Où on en est » assemblé EN CODE depuis les vraies données.
   const nextActionLabel = insight && insight.next_action && typeof insight.next_action === 'object' && insight.next_action !== null
     && typeof (insight.next_action as Record<string, unknown>).label === 'string'
@@ -2288,12 +2307,15 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     const ctxLines: string[] = []
     ctxLines.push(`Contact : ${fullName}${contact.type ? ` (${contact.type})` : ''}${typeof contact.score === 'number' ? `, score ${contact.score}` : ''}`)
     if (insight?.summary) ctxLines.push(`Résumé de la dernière conversation : ${insight.summary}`)
+    if (insight?.rolling_summary) ctxLines.push(`Mémoire longue de la conversation : ${insight.rolling_summary}`)
     if (insight?.intent) ctxLines.push(`Intention : ${insight.intent}`)
     if (insight?.sentiment) ctxLines.push(`Ressenti : ${insight.sentiment}`)
     if (insight?.urgency) ctxLines.push(`Urgence du besoin : ${insight.urgency}`)
     if (objections.length) ctxLines.push(`Objections / freins : ${objections.slice(0, 5).join(' / ')}`)
     if (insight?.language) ctxLines.push(`Langue du client : ${insight.language}`)
-    if (nextActionLabel) ctxLines.push(`Prochaine action suggérée : ${nextActionLabel}`)
+    if (nbaLabel) ctxLines.push(`Prochaine action (dossier, estimation interne) : ${nbaLabel}`)
+    if (nbaKycNote) ctxLines.push(`Conformité (jamais bloquant) : ${nbaKycNote}`)
+    if (nextActionLabel) ctxLines.push(`Piste évoquée en conversation : ${nextActionLabel}`)
     if (commitments.length) ctxLines.push(`Engagements pris : ${commitments.slice(0, 5).join(' / ')}`)
     if (lastEventLabel) ctxLines.push(`Dernière action au dossier : ${lastEventLabel}`)
     if (searchLabels.length) ctxLines.push(`Recherches actives : ${searchLabels.join(' ; ')}`)
