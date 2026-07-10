@@ -50,8 +50,18 @@ export interface FicheLoopItem {
   motif: string | null
 }
 
+/** Prochaine action estimée (NBA déterministe, cerveau partagé WhatsApp ⇄ copilote) —
+ *  chaînes DÉJÀ traduites par le parent (le pager reste présentation pure, sans i18n
+ *  de données). Absent/null → aucun rendu (ajout additif, façon BnScoreBadge). */
+export interface FicheNba {
+  label: string
+  estimateTag: string
+  kycNote: string | null
+}
+
 export interface ContactDetailPagerProps {
   fiche: FicheContact
+  nba?: FicheNba | null
   loop: { items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; opened: number }
   sp: SugarPalette
   dark: boolean
@@ -696,8 +706,8 @@ function CdDots({ page, onGo, P, labels }: { page: number; onGo: (i: number) => 
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGE 0 — SES INFORMATIONS
 // ═══════════════════════════════════════════════════════════════════════
-function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onOpenMatching, onOpenListings, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete }: {
-  P: FichePal; dark: boolean; fiche: FicheContact; freezeRef: MutableRefObject<number>
+function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatching, onOpenListings, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete }: {
+  P: FichePal; dark: boolean; fiche: FicheContact; nba?: FicheNba | null; freezeRef: MutableRefObject<number>
   onBack: () => void; onOpenKyc: () => void; onOpenMatching: () => void; onOpenListings: () => void
   onSaveIdentity: ContactDetailPagerProps['onSaveIdentity']; onInvalidateKyc: ContactDetailPagerProps['onInvalidateKyc']
   onSaveCoord: ContactDetailPagerProps['onSaveCoord']; onSaveCriteria: ContactDetailPagerProps['onSaveCriteria']
@@ -783,6 +793,14 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onOpenMatching,
               <FcpIcon name="pencil" size={14} stroke={P.muted} />
             </button>
           </div>
+          {/* NBA — prochaine action estimée (cerveau partagé). Estimation, jamais une obligation. */}
+          {nba && (
+            <div title={nba.kycNote ?? undefined} style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, minWidth: 0 }}>
+              <FcpIcon name="sparkle" size={13} stroke={P.accent} />
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: P.inkSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nba.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: P.muted, flexShrink: 0 }}>{nba.estimateTag}</span>
+            </div>
+          )}
         </div>
         <div style={{ flex: 1 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -908,7 +926,7 @@ function CdBoucle({ P, loop, onOpenMatching, onProposeVisit }: {
 //   PAGER
 // ═══════════════════════════════════════════════════════════════════════
 export default function ContactDetailPager(props: ContactDetailPagerProps): ReactElement {
-  const { fiche, loop, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onOpenListings, onProposeVisit } = props
+  const { fiche, nba, loop, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onOpenListings, onProposeVisit } = props
   const { t } = useTranslation('contacts')
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
@@ -1014,7 +1032,7 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
       <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            <CdInfos P={P} dark={dark} fiche={fiche} freezeRef={freezeRef} onBack={onBack} onOpenKyc={onOpenKyc} onOpenMatching={onOpenMatching} onOpenListings={onOpenListings}
+            <CdInfos P={P} dark={dark} fiche={fiche} nba={nba} freezeRef={freezeRef} onBack={onBack} onOpenKyc={onOpenKyc} onOpenMatching={onOpenMatching} onOpenListings={onOpenListings}
               onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} onSaveNote={onSaveNote} onDelete={onDelete} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>

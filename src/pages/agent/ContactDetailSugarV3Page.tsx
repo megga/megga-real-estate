@@ -27,7 +27,10 @@ import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/
 import { pickAvatarBg } from '@/lib/sugarAdapters'
 import ContactDetailPager, {
   type FicheContact,
+  type FicheNba,
 } from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
+import { useContactNextAction } from '@/hooks/useContactNextAction'
+import { nbaToI18n } from '@/lib/contactNba'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
@@ -50,6 +53,8 @@ export default function ContactDetailSugarV3Page() {
   const { data: contact, isLoading, isError } = useContact(id)
   const loop = useContactSentMatches(id)
   const { data: kyc } = useKycDossierByContact(id)
+  // NBA (cerveau partagé) — best-effort : null si RPC absent/erreur, la fiche vit sans.
+  const { data: nbaRaw } = useContactNextAction(id)
   const update = useUpdateContact()
   const del = useDeleteContact()
   const invalidateKyc = useInvalidateKycForContact()
@@ -147,9 +152,21 @@ export default function ContactDetailSugarV3Page() {
     notes: contact.notes ?? '',
   }
 
+  // ── NBA → ligne du héro (chaînes traduites ici ; le pager reste présentationnel).
+  // `none` → null (sobre, pas de bruit « aucune action »).
+  const nbaI = nbaRaw ? nbaToI18n(nbaRaw) : null
+  const nba: FicheNba | null = nbaI
+    ? {
+        label: tr(nbaI.key, nbaI.params as Record<string, string | number>),
+        estimateTag: tr('nba.estimateTag'),
+        kycNote: nbaRaw?.hasKycNote ? tr('nba.kycNote') : null,
+      }
+    : null
+
   return shell(
     <ContactDetailPager
       fiche={fiche}
+      nba={nba}
       loop={{ items: loop.items, pendingLikes: loop.pendingLikes, transmitted: loop.transmitted, opened: loop.opened }}
       sp={sp}
       dark={dark}

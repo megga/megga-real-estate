@@ -1232,5 +1232,19 @@
       "ignore": "Ignore",
       "nothingToHandle": "Nothing to handle right now."
     }
+  },
+  "nba": {
+    "reminderOverdue": "Gestire il promemoria (in ritardo di {{days}} g)",
+    "reminderToday": "Gestire il promemoria di oggi",
+    "offerExpiring": "Rispondere all'offerta di {{amount}} (scade tra {{days}} g)",
+    "offerExpired": "Rispondere all'offerta di {{amount}} (scadenza superata)",
+    "visitToday": "Preparare la visita di oggi",
+    "visitDebrief": "Fare il punto sulla visita del {{date}}",
+    "dealStalled": "Far avanzare il dossier (fermo da {{days}} g)",
+    "matchesToSend": "Proporre una selezione ({{count}} immobili pertinenti)",
+    "neverContacted": "Stabilire un primo contatto (mai contattato)",
+    "dormant": "Ricontattare (nessuno scambio da {{days}} g)",
+    "estimateTag": "stima",
+    "kycNote": "Dossier KYC da finalizzare (facoltativo, mai bloccante)"
   }
 }
