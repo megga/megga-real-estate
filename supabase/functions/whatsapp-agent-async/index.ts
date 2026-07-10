@@ -11,6 +11,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
+import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { execRunKycScreening, execSendKycReport, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, asyncFailed } from '../_shared/whatsapp-i18n.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
@@ -42,13 +43,12 @@ async function sendToAgent(
   toPhone: string, body: string, metaToken: string, metaPhoneNumberId: string,
 ): Promise<void> {
   if (!metaToken || !metaPhoneNumberId || !toPhone) return
-  try {
-    const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(meggaProse(body)) }, cfg)
-    const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-    if (!sres.ok) console.error('wa-agent-async agent send not ok:', sres.status)
-  } catch (e) {
-    console.error('wa-agent-async agent send failed:', (e as Error)?.name ?? 'error')
-  }
+  // Retry court sur erreur transitoire (réseau/5xx/429) : la livraison du résultat KYC à
+  // l'agent est en tentative unique sinon → perdue au moindre aléa Meta. sendWithRetry ne
+  // rejoue jamais 131047 (fenêtre 24h) et ne lève pas (ce chemin reste best-effort).
+  const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(meggaProse(body)) }, cfg)
+  const sr = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b))
+  if (!sr.ok) console.error('wa-agent-async agent send not ok:', sr.error ?? 'error')
 }
 
 serve(async (req) => {

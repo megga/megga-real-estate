@@ -16,6 +16,7 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { describeInboundMedia, threadTextFor, isReadableDocMime } from '../_shared/vision.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
+import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
 import { deriveFollowups, persistFollowups } from '../_shared/whatsapp-followups.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
@@ -204,12 +205,15 @@ serve(async (req) => {
     const cfg: SendConfig = { metaToken, metaPhoneNumberId, metaApiVersion: apiVersion }
     for (const n of (pendingNotices ?? []) as Array<{ agency_id: string; wa_phone: string }>) {
       if (overBudget()) break
-      try {
-        const sreq = provider.buildSendTextRequest({ toPhone: n.wa_phone, body: NOTICE_TEXT }, cfg)
-        await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-      } catch (e) {
-        console.error('whatsapp notice send failed:', String((e as Error)?.message ?? 'error').slice(0, 80))
-      }
+      // Retry court (profil resserré : 2 tentatives, timeout 6s) sur erreur transitoire.
+      // L'avis LPD va au CLIENT (n.wa_phone) et l'API Meta n'est pas idempotente, donc
+      // retryNetworkError:false → on ne rejoue QUE des refus explicites (5xx/429/throttle,
+      // refusés avant mise en file = sûrs), JAMAIS le timeout ambigu (Meta a peut-être livré
+      // → doublonnerait la notice). Jamais 131047. Profil borné pour ne pas déborder le
+      // budget du cron (le garde overBudget() en tête de boucle borne déjà les itérations).
+      const sreq = provider.buildSendTextRequest({ toPhone: n.wa_phone, body: NOTICE_TEXT }, cfg)
+      const sr = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b), { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false })
+      if (!sr.ok) console.error('whatsapp notice send failed:', String(sr.error ?? 'error').slice(0, 80))
       // Une tentative par numéro : on enregistre l'avis quoi qu'il arrive (la fenêtre
       // 24h de whatsapp_pending_notices borne déjà les renvois).
       await admin.from('whatsapp_notices').upsert(

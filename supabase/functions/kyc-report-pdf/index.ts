@@ -4,6 +4,7 @@ import { signMagicLinkToken } from '../_shared/magic-link-token.ts'
 import { buildCfPdfRequestBody, parseBasicAuthPair } from '../_shared/cf-browser-render.ts'
 import { uploadMetaMediaDocument } from '../_shared/whatsapp-media.ts'
 import { getProvider } from '../_shared/whatsapp-gateway.ts'
+import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -108,11 +109,13 @@ serve(async (req) => {
       { toPhone, mediaId, filename, caption: reference },
       { metaToken, metaPhoneNumberId, metaApiVersion: apiVersion },
     )
-    const sendRes = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body })
-    const sendParsed = provider.parseSendResult(sendRes.status, await sendRes.json().catch(() => ({})))
+    // Retry court sur erreur transitoire (réseau/5xx/429) — l'envoi du rapport KYC à l'agent
+    // partait en tentative unique, donc perdu au moindre aléa Meta. Jamais de retry sur
+    // 131047 (fenêtre 24h). Le média (mediaId) reste valide entre les tentatives.
+    const sendParsed = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b))
     if (!sendParsed.ok) {
-      console.error('kyc-report-pdf meta-send', { kyc_case_id, status: sendRes.status, err: sendParsed.error ?? '' })
-      return json({ error: `meta send HTTP ${sendRes.status}: ${sendParsed.error ?? ''}` }, 502)
+      console.error('kyc-report-pdf meta-send', { kyc_case_id, err: sendParsed.error ?? '' })
+      return json({ error: `meta send failed: ${sendParsed.error ?? ''}` }, 502)
     }
 
     // 5. Audit (actor IA, lecture seule du dossier — règle d'or intacte).
