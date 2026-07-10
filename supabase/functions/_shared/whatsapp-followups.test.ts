@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   parseOwner, resolveDueAt, deriveFollowups, normalizeAction, hashKey, persistFollowups,
+  resolveResponseHour, DEFAULT_FOLLOWUP_HOUR, MIN_RESPONSE_PAIRS,
   type DerivedFollowup,
 } from './whatsapp-followups'
 
@@ -66,6 +67,59 @@ describe('resolveDueAt — jours nommés', () => {
   it('aucun repère de jour → null', () => {
     expect(resolveDueAt('envoyer les photos', NOW)).toBeNull()
     expect(resolveDueAt('', NOW)).toBeNull()
+  })
+})
+
+describe('resolveDueAt — timing appris (defaultHour)', () => {
+  it('jour sans heure → utilise defaultHour au lieu de 09:00', () => {
+    // demain à 14:00 Zurich (CEST) = 12:00Z
+    expect(resolveDueAt('envoyer le dossier demain', NOW, 14)).toBe('2026-07-01T12:00:00.000Z')
+    // jeudi (mardi→+2) à 18:00 Zurich = 16:00Z
+    expect(resolveDueAt('rappeler jeudi', NOW, 18)).toBe('2026-07-02T16:00:00.000Z')
+  })
+  it('heure explicite dans le texte l’emporte sur defaultHour', () => {
+    expect(resolveDueAt('rappeler demain 9h', NOW, 18)).toBe('2026-07-01T07:00:00.000Z')
+  })
+  it('sans defaultHour → 09:00 par défaut (rétrocompat)', () => {
+    expect(resolveDueAt('envoyer le dossier demain', NOW)).toBe('2026-07-01T07:00:00.000Z')
+  })
+})
+
+describe('resolveResponseHour — seuil ≥5 sinon repli 09:00', () => {
+  it('≥5 paires + heure valide → heure apprise', () => {
+    expect(resolveResponseHour({ n: 5, median_hour: 11 })).toBe(11)
+    expect(resolveResponseHour({ n: 42, median_hour: 20 })).toBe(20)
+    expect(resolveResponseHour({ n: MIN_RESPONSE_PAIRS, median_hour: 0 })).toBe(0)   // minuit valide
+    expect(resolveResponseHour({ n: 6, median_hour: 23 })).toBe(23)
+  })
+  it('< 5 paires → repli 09:00', () => {
+    expect(resolveResponseHour({ n: 4, median_hour: 11 })).toBe(DEFAULT_FOLLOWUP_HOUR)
+    expect(resolveResponseHour({ n: 0, median_hour: null })).toBe(DEFAULT_FOLLOWUP_HOUR)
+  })
+  it('heure invalide / manquante → repli 09:00', () => {
+    expect(resolveResponseHour({ n: 10, median_hour: null })).toBe(DEFAULT_FOLLOWUP_HOUR)
+    expect(resolveResponseHour({ n: 10, median_hour: 24 })).toBe(DEFAULT_FOLLOWUP_HOUR)   // hors 0–23
+    expect(resolveResponseHour({ n: 10, median_hour: -1 })).toBe(DEFAULT_FOLLOWUP_HOUR)
+    expect(resolveResponseHour(null)).toBe(DEFAULT_FOLLOWUP_HOUR)
+    expect(resolveResponseHour(undefined)).toBe(DEFAULT_FOLLOWUP_HOUR)
+  })
+})
+
+describe('deriveFollowups — propage defaultHour', () => {
+  it('date les engagements sans heure à l’heure apprise', () => {
+    const out = deriveFollowups(
+      { commitments: ['Agent: rappeler jeudi'], next_action: null },
+      { nowISO: NOW, defaultHour: 18 },
+    )
+    expect(out).toHaveLength(1)
+    expect(out[0].dueAt).toBe('2026-07-02T16:00:00.000Z')   // jeudi 18:00 Zurich
+  })
+  it('sans defaultHour → 09:00 (comportement historique)', () => {
+    const out = deriveFollowups(
+      { commitments: ['Agent: rappeler jeudi'], next_action: null },
+      { nowISO: NOW },
+    )
+    expect(out[0].dueAt).toBe('2026-07-02T07:00:00.000Z')
   })
 })
 
