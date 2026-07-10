@@ -27,6 +27,7 @@ const BATCH = 10            // messages média réclamés / tick (chaque op peut
 const MAX_RETRIES = 3
 const MAX_VISION_BYTES = 12 * 1024 * 1024  // au-delà : on garde le média mais on ne le lit pas (coût/latence)
 const INSIGHT_BATCH = 5     // contacts ré-analysés / tick (borne coût DeepSeek + temps)
+const INSIGHT_MSG_WINDOW = 30  // fenêtre = N DERNIERS messages (le contexte plus ancien vit dans rolling_summary)
 const NOTICE_BATCH = 10     // avis LPD envoyés / tick
 const BUDGET_MS = 90_000    // budget temps : on rend la main avant la limite edge (~150s)
 
@@ -159,29 +160,46 @@ serve(async (req) => {
   let insights = 0
   if (deepseekKey && !overBudget()) {
     const { data: stale } = await admin.rpc('whatsapp_stale_insight_contacts', { p_limit: INSIGHT_BATCH })
-    for (const c of (stale ?? []) as Array<{ contact_id: string; agency_id: string; last_message_at: string }>) {
+    const staleContacts = (stale ?? []) as Array<{ contact_id: string; agency_id: string; last_message_at: string }>
+    // Mémoire longue : on lit le résumé progressif antérieur (une requête pour tout le batch)
+    // pour le réinjecter au prompt — le digest ne montre que les N derniers messages.
+    const priorSummaryById = new Map<string, string | null>()
+    if (staleContacts.length) {
+      const { data: priors } = await admin
+        .from('whatsapp_conversation_insights')
+        .select('contact_id, rolling_summary')
+        .in('contact_id', staleContacts.map((c) => c.contact_id))
+      for (const p of (priors ?? []) as Array<{ contact_id: string; rolling_summary: string | null }>)
+        priorSummaryById.set(p.contact_id, p.rolling_summary)
+    }
+    for (const c of staleContacts) {
       if (overBudget()) break
       try {
-        const { data: thread } = await admin
+        // N DERNIERS messages (descending + limit), remis en ordre chronologique pour le digest.
+        // (Fix : l'ancienne requête ascending prenait les 30 plus ANCIENS → insight figé.)
+        const { data: recent } = await admin
           .from('whatsapp_messages')
           .select('direction, body, transcript, created_at')
           .eq('contact_id', c.contact_id)
-          .order('created_at', { ascending: true })
-          .limit(30)
-        const digest = buildThreadDigest((thread ?? []) as ThreadMessage[])
+          .order('created_at', { ascending: false })
+          .limit(INSIGHT_MSG_WINDOW)
+        const thread = ((recent ?? []) as ThreadMessage[]).slice().reverse()
+        const digest = buildThreadDigest(thread)
         if (!digest) continue
-        const insight = await comprehend(buildMessages(digest), deepseekKey, (usage, latencyMs) =>
+        const priorSummary = priorSummaryById.get(c.contact_id) ?? null
+        const insight = await comprehend(buildMessages(digest, priorSummary), deepseekKey, (usage, latencyMs) =>
           logDeepSeekUsageWith(admin, usage, {
             edgeFunction: 'whatsapp-process', module: 'whatsapp-comprehend',
             latencyMs, agencyId: c.agency_id,
           }))
         await admin.from('whatsapp_conversation_insights').upsert({
           contact_id: c.contact_id, agency_id: c.agency_id,
-          summary: insight.summary, intent: insight.intent, entities: insight.entities,
+          summary: insight.summary, rolling_summary: insight.rolling_summary,
+          intent: insight.intent, entities: insight.entities,
           commitments: insight.commitments, objections: insight.objections,
           sentiment: insight.sentiment, urgency: insight.urgency, language: insight.language,
           next_action: insight.next_action,
-          model: 'deepseek-chat', source_message_count: (thread ?? []).length,
+          model: 'deepseek-chat', source_message_count: thread.length,
           source_last_message_at: c.last_message_at, generated_at: new Date().toISOString(),
         }, { onConflict: 'contact_id' })
         insights++

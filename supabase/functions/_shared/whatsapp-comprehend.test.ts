@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildThreadDigest, parseInsight } from './whatsapp-comprehend'
+import { buildThreadDigest, buildMessages, parseInsight } from './whatsapp-comprehend'
 
 describe('buildThreadDigest', () => {
   it('formate Client/Agent et utilise le transcript pour la voix', () => {
@@ -38,6 +38,23 @@ describe('buildThreadDigest', () => {
   })
 })
 
+describe('buildMessages', () => {
+  it('sans résumé antérieur : message « Conversation »', () => {
+    const [, user] = buildMessages('Client: bonjour')
+    expect(user.content).toBe('Conversation :\n\nClient: bonjour')
+  })
+  it('avec résumé antérieur : le place EN TÊTE (mémoire longue)', () => {
+    const [sys, user] = buildMessages('Client: et pour la cuisine ?', 'Cherche 4.5p Lausanne, budget 1.4M.')
+    expect(sys.role).toBe('system')                                  // system stable → préfixe cachable
+    expect(user.content).toContain('Mémoire de la conversation')
+    expect(user.content.indexOf('Cherche 4.5p Lausanne')).toBeLessThan(user.content.indexOf('Client: et pour la cuisine ?'))
+  })
+  it('résumé antérieur vide → ignoré', () => {
+    const [, user] = buildMessages('Client: ok', '   ')
+    expect(user.content).toBe('Conversation :\n\nClient: ok')
+  })
+})
+
 describe('parseInsight', () => {
   it('valide et conserve les champs corrects', () => {
     const i = parseInsight(JSON.stringify({
@@ -53,9 +70,15 @@ describe('parseInsight', () => {
   })
   it('JSON invalide → défauts sûrs', () => {
     expect(parseInsight('{ pas du json')).toEqual({
-      summary: null, intent: null, entities: {}, commitments: [], objections: [],
+      summary: null, rolling_summary: null, intent: null, entities: {}, commitments: [], objections: [],
       sentiment: null, urgency: null, language: null, next_action: null, lead: null,
     })
+  })
+  it('conserve rolling_summary et le borne (mémoire longue)', () => {
+    expect(parseInsight(JSON.stringify({ rolling_summary: 'Cliente Sarah, 4.5p Nyon, RDV samedi.' })).rolling_summary)
+      .toBe('Cliente Sarah, 4.5p Nyon, RDV samedi.')
+    const long = 'x'.repeat(2000)
+    expect(parseInsight(JSON.stringify({ rolling_summary: long })).rolling_summary).toHaveLength(800)
   })
   it('extrait objections/urgency/language valides', () => {
     const i = parseInsight(JSON.stringify({
@@ -76,7 +99,7 @@ describe('parseInsight', () => {
   })
   it('contenu JSON non-objet (null / tableau / nombre) → défauts sûrs, jamais de throw', () => {
     const defaults = {
-      summary: null, intent: null, entities: {}, commitments: [], objections: [],
+      summary: null, rolling_summary: null, intent: null, entities: {}, commitments: [], objections: [],
       sentiment: null, urgency: null, language: null, next_action: null, lead: null,
     }
     expect(parseInsight('null')).toEqual(defaults)   // JSON.parse('null') === null

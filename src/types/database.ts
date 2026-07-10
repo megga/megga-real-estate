@@ -5700,6 +5700,7 @@ export type Database = {
           intent: string | null
           model: string | null
           next_action: Json | null
+          rolling_summary: string | null
           sentiment: string | null
           source_last_message_at: string | null
           source_message_count: number
@@ -5715,6 +5716,7 @@ export type Database = {
           intent?: string | null
           model?: string | null
           next_action?: Json | null
+          rolling_summary?: string | null
           sentiment?: string | null
           source_last_message_at?: string | null
           source_message_count?: number
@@ -5730,6 +5732,7 @@ export type Database = {
           intent?: string | null
           model?: string | null
           next_action?: Json | null
+          rolling_summary?: string | null
           sentiment?: string | null
           source_last_message_at?: string | null
           source_message_count?: number
