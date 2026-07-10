@@ -4,6 +4,7 @@ import {
   copilotTools, copilotToolsBlock,
 } from './copilot-tools'
 import { toolTier } from './whatsapp-agent-router'
+import { NBA_PROMPT_GUARDRAIL } from './contact-nba'
 
 describe('catalogue copilote web — invariant lecture seule', () => {
   it('tous les outils WhatsApp réutilisés sont bien tier read', () => {
@@ -184,5 +185,29 @@ describe('publication immobilier.ch (Phase C — confirm-tier gated)', () => {
     // Revue adverse : sinon le prompt inviterait à un outil qu'il n'a pas.
     expect(copilotToolsBlock(false, true)).not.toMatch(/update_property/)
     expect(copilotToolsBlock(true, true)).toMatch(/update_property/)
+  })
+})
+
+describe('garde-fou NBA (anti-initiative) injecté dans le bloc outils copilote', () => {
+  // Filet anti-régression : le garde-fou est ajouté à TOOLS_BLOCK_BASE (copilot-tools.ts).
+  // Si l'injection est retirée, ces tests cassent — sinon le garde-fou compliance
+  // disparaîtrait silencieusement du system prompt du copilote avec une CI verte.
+  it('NBA_PROMPT_GUARDRAIL est présent quel que soit le mode (lecture, écritures, publication)', () => {
+    for (const block of [
+      copilotToolsBlock(false),
+      copilotToolsBlock(true),
+      copilotToolsBlock(false, true),
+      copilotToolsBlock(true, true),
+    ]) {
+      expect(block).toContain(NBA_PROMPT_GUARDRAIL)
+    }
+  })
+
+  it('le bloc de compat COPILOT_TOOLS_BLOCK porte aussi le garde-fou', () => {
+    expect(COPILOT_TOOLS_BLOCK).toContain(NBA_PROMPT_GUARDRAIL)
+  })
+
+  it('l\'interdiction d\'initiative outillée est bien dans le prompt (pas juste la constante)', () => {
+    expect(copilotToolsBlock(false)).toContain("N'appelle AUCUN outil")
   })
 })
