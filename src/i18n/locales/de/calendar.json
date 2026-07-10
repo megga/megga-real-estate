@@ -4,7 +4,8 @@
     "mandate": "Mandate / Valuation",
     "notary": "Notary signing",
     "task": "Task / Follow-up",
-    "publish": "Publication"
+    "publish": "Publication",
+    "autre": "Andere"
   },
   "days": [
     "Sun",
@@ -82,7 +83,8 @@
       "week": "Week",
       "month": "Month",
       "agenda": "Agenda"
-    }
+    },
+    "eventTypes": "Ereignistypen"
   },
   "edit": {
     "newEvent": "New event",
@@ -319,5 +321,121 @@
     "dayFreeTitle": "Freier Tag",
     "dayFreeDesc": "Blockieren Sie Zeit für heisse Käufer oder bringen Sie die Pipeline voran.",
     "retry": "Erneut versuchen"
+  },
+  "monthsShort": [
+    "Jan.",
+    "Feb.",
+    "März",
+    "Apr.",
+    "Mai",
+    "Juni",
+    "Juli",
+    "Aug.",
+    "Sept.",
+    "Okt.",
+    "Nov.",
+    "Dez."
+  ],
+  "busy": "Belegt",
+  "popover": {
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "statusDone": "Erledigt",
+    "statusCancelled": "Abgesagt",
+    "from": "Vom",
+    "to": "bis",
+    "fullDay": "Ganztägig",
+    "recurrent": "Wiederkehrend",
+    "until": "bis",
+    "conflictOne": "Überschneidet sich mit",
+    "conflictMany": "Überschneidet sich mit {{count}} weiteren Terminen",
+    "openBien": "Objekt öffnen",
+    "openContact": "Kontakt öffnen",
+    "itinerary": "Route",
+    "readOnly": "Synchronisiert von {{source}} · schreibgeschützt. Privates Detail („Belegt“).",
+    "markDone": "Als erledigt markieren",
+    "done": "Erledigt"
+  },
+  "modal": {
+    "newEvent": "Neues Ereignis",
+    "editEvent": "Ereignis bearbeiten",
+    "type": "Typ",
+    "color": "Farbe",
+    "title": "Titel",
+    "allDay": "Ganztägig",
+    "startDate": "Startdatum",
+    "start": "Beginn",
+    "endDate": "Enddatum",
+    "end": "Ende",
+    "recurrence": "Wiederholung",
+    "recurEnd": "Ende der Wiederholung",
+    "recurNone": "Keine",
+    "recurNever": "Ohne Ende",
+    "recurUntil": "Bis…",
+    "location": "Ort",
+    "linkedBien": "Verknüpftes Objekt",
+    "associateBien": "Objekt verknüpfen",
+    "linkedContact": "Verknüpfter Kontakt",
+    "associateContact": "Kontakt verknüpfen",
+    "notes": "Notizen",
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "create": "Erstellen",
+    "save": "Speichern",
+    "search": "Suchen…",
+    "noResults": "Keine Ergebnisse",
+    "change": "Ändern",
+    "remove": "Entfernen"
+  },
+  "role": {
+    "buyer": "Käufer",
+    "seller": "Verkäufer",
+    "investor": "Investor",
+    "tenant": "Mieter",
+    "landlord": "Eigentümer",
+    "both": "Gemischt",
+    "lead": "Lead",
+    "contact": "Kontakt"
+  },
+  "color": {
+    "slate": "Schiefer",
+    "raspberry": "Himbeere",
+    "amber": "Bernstein",
+    "olive": "Olive",
+    "emerald": "Smaragd",
+    "teal": "Petrol",
+    "indigo": "Indigo"
+  },
+  "recur": {
+    "daily": "Täglich",
+    "weekly": "Wöchentlich",
+    "biweekly": "Alle 2 Wochen",
+    "monthly": "Monatlich"
+  },
+  "toast": {
+    "syncing": "Synchronisierung…",
+    "synced": "Synchronisiert",
+    "created": "Erstellt",
+    "modified": "Geändert",
+    "deleted": "Gelöscht",
+    "durationChanged": "Dauer geändert: {{start}} bis {{end}}",
+    "moved": "Verschoben: {{date}}, {{time}}",
+    "markedDone": "Als erledigt markiert",
+    "markedTodo": "Als offen markiert",
+    "markedCancelled": "Als abgesagt markiert",
+    "reactivated": "Reaktiviert"
+  },
+  "onboarding": {
+    "kicker": "Erste Verbindung",
+    "title": "Verbinden Sie Ihren Kalender",
+    "connectGoogle": "Google verbinden",
+    "connectOutlook": "Outlook verbinden",
+    "later": "Später",
+    "privacy": "Ihre persönlichen Termine bleiben privat.",
+    "laterTitle": "Sie können sich später verbinden",
+    "laterBody": "Verbinden Sie Google oder Outlook jederzeit über",
+    "laterPath": "Einstellungen › Integrationen",
+    "goToCalendar": "Zum Kalender"
   }
 }

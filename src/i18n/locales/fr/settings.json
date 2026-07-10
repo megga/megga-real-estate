@@ -798,6 +798,19 @@
       "trustNote": "Votre clé est chiffrée (Supabase Vault), jamais exposée, et validée à la connexion.",
       "connectFailed": "Connexion impossible",
       "connectButton": "Connecter Skribble"
+    },
+    "calSync": {
+      "title": "Synchronisation calendrier",
+      "import": "Import",
+      "export": "Export",
+      "both": "Bidirectionnel",
+      "meggaRow": "MEGGA · Visites & RDV",
+      "meggaMeta": "Éditable · synchro 2 sens",
+      "persoRow": "Perso",
+      "persoMeta": "Lecture seule (Occupé)",
+      "holidaysRow": "Jours fériés · Suisse",
+      "holidaysMeta": "Non synchronisé",
+      "lbaNote": "Vos événements personnels s’affichent en « Occupé », aucun détail client ne quitte MEGGA. Conforme LBA."
     }
   },
   "apps": {

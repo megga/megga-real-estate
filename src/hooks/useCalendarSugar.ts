@@ -58,8 +58,10 @@ function visitToCalEvent(v: VisitJoin): CalEvent {
   const propTitle = property?.title || property?.address || 'Bien'
   return {
     id: v.id,
+    origin: 'visit',
     type: 'visite',
     title: `Visite — ${contactName}`,
+    bienId: property?.id ?? null,
     property: property ? {
       id: property.id,
       title: propTitle,
@@ -86,6 +88,7 @@ function reminderToCalEvent(r: ReminderJoin): CalEvent {
   const contactName = contact ? `${contact.first_name} ${contact.last_name}`.trim() : ''
   return {
     id: r.id,
+    origin: 'reminder',
     type: 'task',
     title: contactName ? `Relance ${contactName}` : 'Tâche',
     contact: contactName ? { name: contactName, role: 'Contact' } : undefined,
@@ -194,7 +197,7 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
   }, [visits, reminders])
 
   // Hot buyers : contacts.score IN ('hot','warm') ordonnés par last_interaction_at,
-  // top 5 affichés dans CalRightPanel.
+  // top 5 acheteurs chauds (exposés pour d'éventuels consommateurs — Today/mobile).
   const { data: hotBuyerRows = [], isLoading: hotLoading, isError: hotError, refetch: refetchHot } = useQuery({
     queryKey: ['calendar-sugar-hot-buyers', agencyId],
     queryFn: async (): Promise<HotBuyerRow[]> => {

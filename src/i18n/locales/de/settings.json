@@ -798,6 +798,19 @@
       "trustNote": "Your key is encrypted (Supabase Vault), never exposed, and validated on connection.",
       "connectFailed": "Connection failed",
       "connectButton": "Connect Skribble"
+    },
+    "calSync": {
+      "title": "Kalendersynchronisation",
+      "import": "Import",
+      "export": "Export",
+      "both": "Bidirektional",
+      "meggaRow": "MEGGA · Besichtigungen & Termine",
+      "meggaMeta": "Bearbeitbar · beidseitige Sync",
+      "persoRow": "Privat",
+      "persoMeta": "Schreibgeschützt (Belegt)",
+      "holidaysRow": "Feiertage · Schweiz",
+      "holidaysMeta": "Nicht synchronisiert",
+      "lbaNote": "Ihre privaten Termine erscheinen als „Belegt“, keine Kundendaten verlassen MEGGA. GwG-konform."
     }
   },
   "apps": {

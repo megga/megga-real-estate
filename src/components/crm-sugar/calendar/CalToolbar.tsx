@@ -12,6 +12,7 @@ interface CalCircleBtnProps {
   size?: number
 }
 
+// Pas d'animation de survol (préférence MEGGA) : changement de fond instantané seulement.
 export function CalCircleBtn({ icon, onClick, title, size = 40 }: CalCircleBtnProps) {
   const SP = useCalPalette()
   return (
@@ -23,30 +24,22 @@ export function CalCircleBtn({ icon, onClick, title, size = 40 }: CalCircleBtnPr
         height: size,
         borderRadius: 999,
         border: 0,
-        background: SP.cardSubtle,
+        background: 'transparent',
         color: SP.inkSoft,
         cursor: 'pointer',
         display: 'grid',
         placeItems: 'center',
-        transition: 'all .18s ease',
         flexShrink: 0,
-        boxShadow: SP.shadowSm,
       }}
-      onMouseEnter={e => {
-        e.currentTarget.style.background = SP.card
-        e.currentTarget.style.boxShadow = SP.shadow
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.background = SP.cardSubtle
-        e.currentTarget.style.boxShadow = SP.shadowSm
-      }}
+      onMouseEnter={e => { e.currentTarget.style.background = SP.cardSubtle }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
     >
       {icon}
     </button>
   )
 }
 
-export type CalViewId = 'day' | 'week' | 'month' | 'agenda'
+export type CalViewId = 'day' | 'week' | 'month'
 
 interface CalViewToggleProps {
   value: CalViewId
@@ -60,7 +53,6 @@ export function CalViewToggle({ value, onChange }: CalViewToggleProps) {
     { id: 'day', label: t('panel.views.day') },
     { id: 'week', label: t('panel.views.week') },
     { id: 'month', label: t('panel.views.month') },
-    { id: 'agenda', label: t('panel.views.agenda') },
   ]
   return (
     <div
@@ -90,8 +82,8 @@ export function CalViewToggle({ value, onChange }: CalViewToggleProps) {
               cursor: 'pointer',
               fontFamily: 'inherit',
               letterSpacing: -0.1,
-              boxShadow: active ? '0 4px 12px rgba(11,12,14,0.20)' : 'none',
-              transition: 'all .18s ease',
+              boxShadow: active ? SP.shadowSm : 'none',
+              transition: 'background-color .18s ease, color .18s ease, box-shadow .18s ease',
             }}
           >
             {o.label}

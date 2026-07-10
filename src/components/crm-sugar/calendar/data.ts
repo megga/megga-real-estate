@@ -1,6 +1,8 @@
-// MEGGA CRM Sugar v2 — Calendar types, palette + layout helpers
-// 1:1 port from `crm-calendar-sugar-data.jsx`. Les événements affichés sont
-// dérivés en live par useCalendarSugar (les anciens tableaux démo ont été retirés).
+// MEGGA CRM Sugar — Calendar types, palette + layout helpers
+// Refonte « façon Google » — port fidèle de `crm-calendar-sugar-data.jsx`.
+// Les événements affichés sont dérivés en live (useCalendarSugar : visites +
+// reminders) et enrichis des créneaux « Occupé » des agendas externes
+// (Google / Outlook) ; aucun tableau démo ici.
 
 import { createContext, useContext } from 'react'
 // i18n : le `label` des types d'événement est un GETTER (lu via l'instance i18n
@@ -20,21 +22,46 @@ export interface CalEventType extends CalEventTypeColors {
   label: string
   short: string
   icon: string
-  /** Variante sombre {bg, ink, accent} — handoff dark mode. */
+  /** Variante sombre {bg, ink, accent} — aplat opaque sur quasi-noir. */
   darkColors?: CalEventTypeColors
 }
 
+// ─── Couleurs FONCTIONNELLES MEGGA (mêmes familles que Pipeline / CRM_STAGES) ──
+// Cyan = visites · Bleu = mandat · Vert = signé/compromis · Orange = relance ·
+// Gris ardoise = publication · Ardoise = autre. Bloc à fond PLEIN + texte blanc.
+// En sombre : aplat opaque légèrement approfondi pour le confort sur fond noir ;
+// l'accent (pastille / dot) reprend la teinte éclaircie.
 export const CAL_EVENT_TYPES: Record<string, CalEventType> = {
-  visite: { id: 'visite', get label() { return i18n.t('calendar:eventType.visite') }, short: 'V', bg: '#E8E0D2', ink: '#5C4F3C', accent: '#8A7654', icon: 'home',
-    darkColors: { bg: '#2A2417', ink: '#E7D7B7', accent: '#C9A86A' } },
-  mandate: { id: 'mandate', get label() { return i18n.t('calendar:eventType.mandate') }, short: 'M', bg: '#DCE5DA', ink: '#3F5044', accent: '#5F7A66', icon: 'signature',
-    darkColors: { bg: '#17271D', ink: '#BBDDC4', accent: '#6FB585' } },
-  notary: { id: 'notary', get label() { return i18n.t('calendar:eventType.notary') }, short: 'N', bg: '#E5D9E0', ink: '#4F3C48', accent: '#7A5C70', icon: 'stamp',
-    darkColors: { bg: '#261C26', ink: '#DCC0D4', accent: '#B083A6' } },
-  task: { id: 'task', get label() { return i18n.t('calendar:eventType.task') }, short: 'T', bg: '#DCE0E8', ink: '#3F4554', accent: '#5F6A82', icon: 'check',
-    darkColors: { bg: '#1B2230', ink: '#BFCBE2', accent: '#7E92BE' } },
-  publish: { id: 'publish', get label() { return i18n.t('calendar:eventType.publish') }, short: 'P', bg: '#0B0C0E', ink: '#FFFFFF', accent: '#FFFFFF', icon: 'upload', dark: true,
-    darkColors: { bg: '#ECEDF3', ink: '#14141D', accent: '#14141D', dark: true } },
+  visite: {
+    id: 'visite', get label() { return i18n.t('calendar:eventType.visite') }, short: 'V', icon: 'home',
+    bg: '#0891B2', ink: '#FFFFFF', accent: '#0891B2',
+    darkColors: { bg: '#0A7A92', ink: '#FFFFFF', accent: '#22B0CE' },
+  },
+  mandate: {
+    id: 'mandate', get label() { return i18n.t('calendar:eventType.mandate') }, short: 'M', icon: 'signature',
+    bg: '#1E5BC6', ink: '#FFFFFF', accent: '#1E5BC6',
+    darkColors: { bg: '#1C4FA8', ink: '#FFFFFF', accent: '#4C86E8' },
+  },
+  notary: {
+    id: 'notary', get label() { return i18n.t('calendar:eventType.notary') }, short: 'N', icon: 'stamp',
+    bg: '#059669', ink: '#FFFFFF', accent: '#059669',
+    darkColors: { bg: '#06805B', ink: '#FFFFFF', accent: '#17B683' },
+  },
+  task: {
+    id: 'task', get label() { return i18n.t('calendar:eventType.task') }, short: 'T', icon: 'check',
+    bg: '#C45A00', ink: '#FFFFFF', accent: '#C45A00',
+    darkColors: { bg: '#A84E00', ink: '#FFFFFF', accent: '#E07A28' },
+  },
+  publish: {
+    id: 'publish', get label() { return i18n.t('calendar:eventType.publish') }, short: 'P', icon: 'upload',
+    bg: '#4A5568', ink: '#FFFFFF', accent: '#4A5568',
+    darkColors: { bg: '#3E4757', ink: '#FFFFFF', accent: '#AEBAC9' },
+  },
+  autre: {
+    id: 'autre', get label() { return i18n.t('calendar:eventType.autre') }, short: 'A', icon: 'pin',
+    bg: '#5B6472', ink: '#FFFFFF', accent: '#5B6472',
+    darkColors: { bg: '#4E5561', ink: '#FFFFFF', accent: '#8A93A3' },
+  },
 }
 
 /** Résout les couleurs d'un type selon le thème (clair ↔ sombre). */
@@ -44,12 +71,29 @@ export function eventTypeColors(type: CalEventType, isDark: boolean): CalEventTy
 
 export type CalEventTypeId = keyof typeof CAL_EVENT_TYPES
 
-export interface CalEventProperty {
+/** Palette libre pour le type « Autre » (aplats opaques + texte blanc). */
+export interface CalEventColorOption {
   id: string
+  label: string
+  hex: string
+}
+export const CAL_EVENT_COLORS: CalEventColorOption[] = [
+  { id: 'slate', get label() { return i18n.t('calendar:color.slate') }, hex: '#5B6472' },
+  { id: 'raspberry', get label() { return i18n.t('calendar:color.raspberry') }, hex: '#B0466A' },
+  { id: 'amber', get label() { return i18n.t('calendar:color.amber') }, hex: '#C08234' },
+  { id: 'olive', get label() { return i18n.t('calendar:color.olive') }, hex: '#6E8A3C' },
+  { id: 'emerald', get label() { return i18n.t('calendar:color.emerald') }, hex: '#2E8B6B' },
+  { id: 'teal', get label() { return i18n.t('calendar:color.teal') }, hex: '#2E8296' },
+  { id: 'indigo', get label() { return i18n.t('calendar:color.indigo') }, hex: '#4E63B4' },
+]
+
+export interface CalEventProperty {
+  id?: string
   title: string
-  area: number
+  area: number | null
   price: number | null
   tone: string
+  addr?: string | null
 }
 
 export interface CalEventContact {
@@ -57,6 +101,13 @@ export interface CalEventContact {
   role: string
   phone?: string
   warm?: number
+}
+
+/** Récurrence d'un événement MEGGA. */
+export type CalRecurFreq = 'daily' | 'weekly' | 'biweekly' | 'monthly'
+export interface CalEventRecurrence {
+  freq: CalRecurFreq
+  until?: string | null
 }
 
 export interface CalEvent {
@@ -69,8 +120,70 @@ export interface CalEvent {
   start: Date
   end: Date
   notes?: string
-  /** Suivi d'état (réversible) — handoff dark mode / statuts. */
+  /** Suivi d'état (réversible). */
   status?: 'done' | 'cancelled'
+  /** Journée entière (00:00 → 23:59). */
+  allDay?: boolean
+  /** Récurrence (null = ponctuel). */
+  recurrence?: CalEventRecurrence | null
+  /** Couleur libre pour le type « autre ». */
+  color?: string
+  /** Rattachement CRM (liens profonds bien / contact). */
+  bienId?: string | null
+  contactId?: string | null
+  /** Table d'origine (routage des écritures serveur). */
+  origin?: 'visit' | 'reminder'
+  /** Événement synchronisé d'un agenda externe (Google/Outlook) → « Occupé », lecture seule. */
+  external?: boolean
+  source?: 'google' | 'microsoft'
+  /** Champs runtime issus de l'expansion des occurrences récurrentes. */
+  masterId?: string
+  isOccurrence?: boolean
+}
+
+/** Style résolu d'un événement (couleurs + libellé + icône). */
+export interface CalResolvedStyle {
+  bg: string
+  ink: string
+  accent: string
+  icon: string
+  label: string
+  external?: boolean
+  source?: 'google' | 'microsoft'
+}
+
+/**
+ * Résout la couleur/l'icône/le libellé d'un événement.
+ * - externe synchronisé → neutre « Occupé » (contour tireté, lecture seule) ;
+ * - type « autre » avec couleur libre → aplat de cette couleur ;
+ * - sinon → couleur fonctionnelle du type (selon le thème).
+ */
+export function calTypeStyle(e: CalEvent, palette: CalSugarPalette): CalResolvedStyle {
+  if (e.external) {
+    return {
+      external: true,
+      source: e.source,
+      label: e.source === 'microsoft' ? 'Outlook' : 'Google',
+      bg: palette.isDark ? 'rgba(255,255,255,0.03)' : '#F4F6F9',
+      ink: palette.muted,
+      accent: palette.ghost,
+      icon: 'clock',
+    }
+  }
+  const base = CAL_EVENT_TYPES[e.type] ?? CAL_EVENT_TYPES.task
+  if (e.type === 'autre' && e.color) {
+    return { bg: e.color, ink: '#FFFFFF', accent: e.color, icon: base.icon, label: base.label }
+  }
+  const c = eventTypeColors(base, palette.isDark)
+  return { bg: c.bg, ink: c.ink, accent: c.accent, icon: base.icon, label: base.label }
+}
+
+/** Libellés des fréquences de récurrence (i18n). */
+export const CAL_RECUR_LABEL: Record<CalRecurFreq, string> = {
+  get daily() { return i18n.t('calendar:recur.daily') },
+  get weekly() { return i18n.t('calendar:recur.weekly') },
+  get biweekly() { return i18n.t('calendar:recur.biweekly') },
+  get monthly() { return i18n.t('calendar:recur.monthly') },
 }
 
 export interface CalHotBuyer {
@@ -173,18 +286,17 @@ export const CAL_LIGHT: CalSugarPalette = {
 export const CAL_DARK: CalSugarPalette = {
   bg: '#0A0A0F',
   bgGradient: 'radial-gradient(ellipse 120% 80% at 50% 0%, #14141F 0%, #0D0D14 55%, #0A0A0F 100%)',
-  // Surfaces neutralisées (handoff cohérence) : alignées sur RC_DARK de Contacts,
-  // pour rejoindre la famille sombre commune du CRM (plus de canal bleu surélevé).
-  card: '#1A1C22',
-  cardSubtle: '#14171E',
-  cardHover: '#22242B',
-  hoverSubtle: '#1E2027',
+  // Surfaces NEUTRES (gris quasi-noir) alignées sur Matching / Contacts — voir buildCalPalette.
+  card: '#17181A',
+  cardSubtle: '#1E1F21',
+  cardHover: '#26272A',
+  hoverSubtle: '#1E1F21',
   ink: '#FFFFFF',
   inkSoft: '#C8CCD2',
   muted: '#7E828A',
-  ghost: '#4A4D54',
+  ghost: '#52535A',
   line: 'rgba(255,255,255,0.07)',
-  line2: 'rgba(255,255,255,0.12)',
+  line2: 'rgba(255,255,255,0.11)',
   accent: '#ECEDF3',
   onAccent: '#0B0C0E',
   ring: '#ECEDF3',
@@ -211,13 +323,23 @@ export const CAL_DARK: CalSugarPalette = {
 }
 
 /**
- * Palette du calendrier selon le thème actif. En sombre, `bg` suit le thème
- * dark du CRM (`t.bg`). Handoff : remplace l'ancien `CAL_PALETTE` statique
- * (qui laissait les cartes blanches en dark mode).
+ * Palette du calendrier selon le thème actif. En sombre, on neutralise les
+ * surfaces (gris quasi-noir) et on reprend fond/encre du thème CRM (`t`) pour
+ * rester uniforme avec Matching / Contacts (pas de canal bleu surélevé).
  */
-export function buildCalPalette(dark: boolean, t?: { bg?: string }): CalSugarPalette {
+export function buildCalPalette(
+  dark: boolean,
+  t?: { bg?: string; ink?: string; soft?: string; muted?: string },
+): CalSugarPalette {
   if (!dark) return CAL_LIGHT
-  return t?.bg ? { ...CAL_DARK, bg: t.bg } : CAL_DARK
+  const p: CalSugarPalette = { ...CAL_DARK }
+  if (t) {
+    if (t.bg) p.bg = t.bg
+    if (t.ink) p.ink = t.ink
+    if (t.soft) p.inkSoft = t.soft
+    if (t.muted) p.muted = t.muted
+  }
+  return p
 }
 
 /** Context palette — les composants lisent `useCalPalette()` (plus d'import statique). */
@@ -275,7 +397,109 @@ export function calLayout(events: CalEvent[]): Map<string, CalLayoutSlot> {
   return result
 }
 
-// ── Édition / création inline (#6/#7) + parseur NL (#9) ─────────────────────
+// ── Conflits d'agenda ───────────────────────────────────────────────────────
+/**
+ * Autres RDV du MÊME jour dont la plage horaire chevauche `event`.
+ * Ignore l'événement lui-même, les annulés et les journées entières. Les blocs
+ * externes « Occupé » NE sont PAS exclus (un RDV MEGGA chevauchant un « Occupé »
+ * déclenche l'alerte).
+ */
+export function calConflicts(event: CalEvent | null | undefined, list: CalEvent[]): CalEvent[] {
+  if (!event || !Array.isArray(list) || event.status === 'cancelled' || event.allDay) return []
+  const s = event.start.getTime()
+  const e = event.end.getTime()
+  return list.filter(
+    o =>
+      o &&
+      !o.allDay &&
+      o.id !== event.id &&
+      o.status !== 'cancelled' &&
+      sameDayLocal(o.start, event.start) &&
+      o.start.getTime() < e &&
+      s < o.end.getTime(),
+  )
+}
+
+function sameDayLocal(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
+
+// ── Expansion des occurrences récurrentes ───────────────────────────────────
+/**
+ * Développe les événements récurrents en occurrences datées dans [rangeStart,
+ * rangeEnd]. Les événements simples sont renvoyés tels quels (MÊME référence →
+ * React.memo tient). Les occurrences reçoivent un id `masterId@AAAA-M-J`.
+ */
+export function calExpandEvents(events: CalEvent[], rangeStart: Date, rangeEnd: Date): CalEvent[] {
+  const out: CalEvent[] = []
+  const DAY = 86400000
+  for (const e of events) {
+    const rec = e.recurrence
+    if (!rec || !rec.freq) { out.push(e); continue }
+    const monthly = rec.freq === 'monthly'
+    const stepDays = rec.freq === 'daily' ? 1 : rec.freq === 'weekly' ? 7 : rec.freq === 'biweekly' ? 14 : 0
+    if (!monthly && stepDays === 0) { out.push(e); continue }
+    const durMs = e.end.getTime() - e.start.getTime()
+    const until = rec.until ? new Date(rec.until) : null
+    const startDay = e.start.getDate()
+    const h = e.start.getHours()
+    const min = e.start.getMinutes()
+
+    // Occurrence datée pour l'index n (0 = start). Le mensuel est ancré sur le
+    // jour du mois de départ, borné à la longueur du mois (31 janv. → 28 févr.,
+    // pas de dérive via setMonth).
+    const occAt = (n: number): Date => {
+      if (monthly) {
+        const d = new Date(e.start.getFullYear(), e.start.getMonth() + n, 1)
+        const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+        d.setDate(Math.min(startDay, lastDay))
+        d.setHours(h, min, 0, 0)
+        return d
+      }
+      const d = new Date(e.start)
+      d.setDate(d.getDate() + n * stepDays)
+      return d
+    }
+
+    // Fast-forward : saute directement à la première occurrence dans la fenêtre
+    // (sinon un événement démarré loin dans le passé épuise le garde avant d'y arriver).
+    let n = 0
+    if (e.start < rangeStart) {
+      if (monthly) {
+        n = (rangeStart.getFullYear() - e.start.getFullYear()) * 12 + (rangeStart.getMonth() - e.start.getMonth())
+      } else {
+        n = Math.floor((rangeStart.getTime() - e.start.getTime()) / (stepDays * DAY))
+      }
+      if (n < 0) n = 0
+      while (occAt(n) < rangeStart) n++
+      while (n > 0 && occAt(n - 1) >= rangeStart) n--
+    }
+
+    let guard = 0
+    while (guard < 500) {
+      const occ = occAt(n)
+      if (occ > rangeEnd) break
+      if (until && occ > until) break
+      const en = new Date(occ.getTime() + durMs)
+      const key = `${occ.getFullYear()}-${occ.getMonth() + 1}-${occ.getDate()}`
+      out.push({ ...e, start: occ, end: en, id: `${e.id}@${key}`, masterId: e.id, isOccurrence: true })
+      n++
+      guard++
+    }
+  }
+  return out
+}
+
+/** L'id d'une occurrence est `masterId@AAAA-M-J` → remonte au maître. */
+export function calMasterId(id: string): string {
+  return typeof id === 'string' && id.includes('@') ? id.split('@')[0] : id
+}
+
+// ── Édition / création inline + parseur NL ──────────────────────────────────
 
 /** Brouillon vierge : visite 09:00–10:00 le jour courant. */
 export function calBlankEvent(currentDate: Date): CalEvent {
@@ -283,23 +507,45 @@ export function calBlankEvent(currentDate: Date): CalEvent {
   start.setHours(9, 0, 0, 0)
   const end = new Date(start)
   end.setHours(10, 0, 0, 0)
-  return { id: `draft_${start.getTime()}`, type: 'visite', title: '', start, end }
+  return {
+    id: `draft_${start.getTime()}`,
+    type: 'visite',
+    title: '',
+    start,
+    end,
+    allDay: false,
+    recurrence: null,
+  }
 }
 
-/** Nettoie/normalise un brouillon avant sauvegarde (titre, property/contact → null si vides, prix numérique). */
+/** Fin par défaut d'une récurrence : 3 mois après le début. */
+export function calRecurDefaultUntil(start: Date): string {
+  const u = new Date(start)
+  u.setMonth(u.getMonth() + 3)
+  u.setHours(23, 59, 59, 0)
+  return u.toISOString()
+}
+
+/** Nettoie/normalise un brouillon avant sauvegarde. */
 export function calNormalizeDraft(d: CalEvent): CalEvent {
   const label = CAL_EVENT_TYPES[d.type]?.label ?? 'Événement'
   const title = d.title.trim() || label
-  const property =
-    d.property && d.property.title?.trim()
-      ? {
-          ...d.property,
-          area: Number(d.property.area) || 0,
-          price: d.property.price != null && `${d.property.price}` !== '' ? Number(d.property.price) || null : null,
-        }
-      : undefined
+  const pTitle = d.property?.title?.trim() ?? ''
+  const property: CalEventProperty | undefined = pTitle
+    ? {
+        ...d.property,
+        title: pTitle,
+        area: d.property?.area != null ? Number(d.property.area) || null : null,
+        price:
+          d.property?.price != null && `${d.property.price}` !== ''
+            ? Number(String(d.property.price).replace(/[^\d]/g, '')) || null
+            : null,
+        tone: d.property?.tone || '#A8B5BF',
+        addr: d.property?.addr?.trim() || null,
+      }
+    : undefined
   const contact = d.contact && d.contact.name?.trim() ? d.contact : undefined
-  return {
+  const out: CalEvent = {
     ...d,
     title,
     property,
@@ -307,13 +553,28 @@ export function calNormalizeDraft(d: CalEvent): CalEvent {
     location: d.location?.trim() || undefined,
     notes: d.notes?.trim() || undefined,
   }
+  // Cohérence des liens CRM : pas de contenu → pas d'id.
+  if (!out.contact) out.contactId = null
+  if (!out.property) out.bienId = null
+  // Journée entière : 00:00 → 23:59:59 du jour de fin (bornée ≥ début).
+  // Sinon (timé, éventuellement multi-jours) : fin toujours ≥ début (+15 min mini).
+  out.allDay = !!d.allDay
+  if (out.allDay) {
+    const s = new Date(out.start); s.setHours(0, 0, 0, 0)
+    let e = new Date(out.end); e.setHours(23, 59, 59, 0)
+    if (e.getTime() < s.getTime()) e = new Date(s.getFullYear(), s.getMonth(), s.getDate(), 23, 59, 59)
+    out.start = s
+    out.end = e
+  } else if (out.end.getTime() <= out.start.getTime()) {
+    out.end = new Date(out.start.getTime() + 15 * 60000)
+  }
+  return out
 }
 
 /**
  * Heuristique FR : transforme une phrase en brouillon d'événement pré-rempli.
  * Prototype — à remplacer par un vrai appel LLM en prod. Couvre type, jour,
  * heure et personne (« avec … » ou 1er nom propre).
- * Ex : « visite Marie demain 14h » → Visite — Marie, J+1 14:00–15:00.
  */
 export function calParseNL(text: string, currentDate: Date): CalEvent {
   const lower = text.toLowerCase()

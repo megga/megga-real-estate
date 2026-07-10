@@ -12,6 +12,20 @@ export const calDays = (): string[] => i18n.t('calendar:days', { returnObjects: 
 export const calDaysFull = (): string[] => i18n.t('calendar:daysFull', { returnObjects: true }) as string[]
 export const calMonths = (): string[] => i18n.t('calendar:months', { returnObjects: true }) as string[]
 
+// Mois abrégés (sélecteur de date). Repli FR si la clé i18n manque.
+const CAL_MONTHS_SHORT_FR = [
+  'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+]
+export const calMonthsShort = (): string[] => {
+  const v = i18n.t('calendar:monthsShort', { returnObjects: true })
+  return Array.isArray(v) ? (v as string[]) : CAL_MONTHS_SHORT_FR
+}
+
+/** Nom court d'un événement pour les toasts : sans le lieu/adresse (suffixe après « — »). */
+export function calShortTitle(title?: string): string {
+  return (title || 'Rendez-vous').split(/\s[—–]\s/)[0].trim()
+}
+
 export function fmtTime(d: Date): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
@@ -29,6 +43,17 @@ export function sameDay(a: Date, b: Date): boolean {
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
   )
+}
+
+// Timeline : bornes horaires (0 → 24 h) partagées par les vues Jour / Semaine.
+export const CAL_HOUR_START = 0
+export const CAL_HOUR_END = 24
+
+// Curseur/sélection du corps pendant un glissé (déporté hors composant : la
+// mutation de document.body.style ne doit pas vivre dans le render/handler).
+export function calSetBodyDrag(cursor: string | null): void {
+  document.body.style.userSelect = cursor ? 'none' : ''
+  document.body.style.cursor = cursor ?? ''
 }
 
 export function shadeMix(hex: string, amt: number): string {
