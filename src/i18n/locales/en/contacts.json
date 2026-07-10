@@ -1237,5 +1237,19 @@
       "ignore": "Ignore",
       "nothingToHandle": "Nothing to handle right now."
     }
+  },
+  "nba": {
+    "reminderOverdue": "Handle the reminder ({{days}} d overdue)",
+    "reminderToday": "Handle today's reminder",
+    "offerExpiring": "Respond to the {{amount}} offer (expires in {{days}} d)",
+    "offerExpired": "Respond to the {{amount}} offer (deadline passed)",
+    "visitToday": "Prepare today's visit",
+    "visitDebrief": "Debrief the visit of {{date}}",
+    "dealStalled": "Move the deal forward (no activity for {{days}} d)",
+    "matchesToSend": "Propose a selection ({{count}} matching listings)",
+    "neverContacted": "Make a first contact (never contacted yet)",
+    "dormant": "Follow up (no exchange for {{days}} d)",
+    "estimateTag": "estimate",
+    "kycNote": "KYC file to finalise (optional, never blocking)"
   }
 }
