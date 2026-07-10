@@ -8,6 +8,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getProvider, verifyHmac, allowedPriorStatuses, type SendConfig, type SendResult, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
+import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { resolveTriageAgencyId, ensureLeadForInboundPhone, triageLeadName, isTriageEligible } from '../_shared/whatsapp-lead-triage.ts'
 import { buildTemplateMessage, type WaTemplateContext, type WaTemplateKey } from '../_shared/whatsapp-templates.ts'
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
@@ -182,16 +183,45 @@ serve(async (req) => {
       if ((recentGuesses?.length ?? 0) <= PAIRING_GUESS_LIMIT) {
         const { data: pending } = await admin
           .from('whatsapp_agent_links')
-          .select('id, pairing_expires_at')
+          .select('id, agency_id, pairing_expires_at')
           .eq('pairing_code', code)
           .eq('verified', false)
           .maybeSingle()
 
         if (pending && isPairingCodeValid(pending.pairing_expires_at)) {
-          await admin
+          // Trace idempotente de l'entrant d'appairage AVANT tout. Sans elle, un REJEU
+          // séquentiel de ce message — le numéro étant désormais vérifié, il route en branche
+          // AGENT — insèrerait un provider_message_id neuf → le code à 8 chiffres partirait au
+          // cerveau IA (réponse parasite). En posant la ligne ici, l'upsert de la branche
+          // agent au rejeu trouve le doublon → 'agent_duplicate', pas d'appel IA. Best-effort.
+          await admin.from('whatsapp_messages').upsert({
+            provider: provider.name,
+            provider_message_id: msg.providerMessageId,
+            session_id: msg.sessionId,
+            direction: 'inbound',
+            wa_from: msg.fromPhone,
+            wa_to: msg.toPhone,
+            agency_id: pending.agency_id,
+            body: msg.body,
+            status: 'received',
+            wa_timestamp: msg.timestamp,
+            raw: msg.raw,
+          }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
+
+          // Bascule du lien en compare-and-swap : `.eq('verified', false)` ferme la course
+          // TOCTOU entre le SELECT ci-dessus et cet UPDATE. Sur deux livraisons CONCURRENTES du
+          // même code, seule la 1re bascule ; la 2e voit 0 ligne → court-circuit sans 2e « ✅ lié ».
+          const { data: verifiedRows } = await admin
             .from('whatsapp_agent_links')
             .update({ wa_number: msg.fromPhone, verified: true, pairing_code: null, verified_at: new Date().toISOString() })
             .eq('id', pending.id)
+            .eq('verified', false)
+            .select('id')
+          if (!verifiedRows || verifiedRows.length === 0) {
+            return new Response(JSON.stringify({ ok: true, routed: 'pairing_duplicate' }), {
+              status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
+          }
 
           const sendConfig: SendConfig = {
             metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
@@ -259,8 +289,40 @@ serve(async (req) => {
     }
   }
 
-  // 4. Insert idempotent (ON CONFLICT via upsert sur la contrainte unique)
-  const { error: insErr } = await admin
+  // Triage : si un lead vient d'être créé pour ce prospect entrant, on le trace (actor 'ai',
+  // severity 'warn' → remonte en notif priorisée « cloche ») pour que l'agent le voie.
+  // ÉMIS AVANT le gate d'idempotence ci-dessous, PAS après : `leadCreated=true` n'appartient
+  // qu'au gagnant de ensure_wa_inbound_lead (RPC atomique → exactement UNE livraison l'obtient,
+  // concurrente ou séquentielle) ; or le gagnant du gate d'INSERT (transaction séparée) peut
+  // être une AUTRE livraison. Émettre après le gate ferait avaler la cloche quand un doublon
+  // concurrent remporte l'insert. Émettre ici = cloche exactement une fois, sans risque de
+  // doublon (une seule livraison a jamais leadCreated=true).
+  if (leadCreated && contactId) {
+    try {
+      await admin.from('activity_events').insert({
+        agency_id: agencyId,
+        actor_id: null,
+        actor_kind: 'ai',
+        action: 'whatsapp_inbound_lead_created',
+        entity_type: 'contact',
+        entity_id: contactId,
+        category: 'contact',
+        severity: 'warn',
+        metadata: { via: 'whatsapp', phase: 'inbound-triage' },
+      })
+    } catch { /* non bloquant */ }
+  }
+
+  // 4. Insert idempotent (ON CONFLICT via upsert sur la contrainte unique) + GATE
+  //    d'idempotence. Meta REJOUE un webhook non acquitté à temps (ou batche en double) :
+  //    sur un même provider_message_id, l'upsert ON CONFLICT DO NOTHING ne renvoie AUCUNE
+  //    ligne. On court-circuite alors AVANT tout effet de bord non idempotent (audit
+  //    `whatsapp_message_received` dupliqué, markRead) — même garde que la branche agent
+  //    (routed:'agent_duplicate'). Race-safe : sur deux livraisons concurrentes, une seule
+  //    remporte le RETURNING, l'autre voit 0 ligne et s'arrête. (Le triage lead en amont est
+  //    déjà idempotent : ensure_wa_inbound_lead = ON CONFLICT DO NOTHING → created=false au
+  //    rejeu, pas de doublon de lead ni d'event.)
+  const { data: insertedRows, error: insErr } = await admin
     .from('whatsapp_messages')
     .upsert({
       provider: provider.name,
@@ -282,10 +344,16 @@ serve(async (req) => {
       wa_timestamp: msg.timestamp,
       raw: msg.raw,
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
+    .select('id')
 
   if (insErr) {
     console.error('whatsapp_messages insert error:', insErr.message)
     return new Response('DB error', { status: 500, headers: corsHeaders })
+  }
+  if (!insertedRows || insertedRows.length === 0) {
+    return new Response(JSON.stringify({ ok: true, routed: 'client_duplicate' }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
   // 5. Audit (best-effort, non bloquant). Colonnes vérifiées sur activity_events.
@@ -301,24 +369,6 @@ serve(async (req) => {
       severity: 'info',
     })
   } catch { /* non bloquant */ }
-
-  // Triage : si un lead vient d'être créé pour ce prospect entrant, on le trace (actor 'ai',
-  // severity 'warn' → remonte en notif priorisée « cloche ») pour que l'agent le voie.
-  if (leadCreated && contactId) {
-    try {
-      await admin.from('activity_events').insert({
-        agency_id: agencyId,
-        actor_id: null,
-        actor_kind: 'ai',
-        action: 'whatsapp_inbound_lead_created',
-        entity_type: 'contact',
-        entity_id: contactId,
-        category: 'contact',
-        severity: 'warn',
-        metadata: { via: 'whatsapp', phase: 'inbound-triage' },
-      })
-    } catch { /* non bloquant */ }
-  }
 
   // Coches bleues côté client : son message est vu par l'agence (pas de « typing » —
   // MEGGA ne répond pas automatiquement au client, capture seule / human-in-the-loop).
@@ -442,7 +492,7 @@ async function processAgentMessage(
       if (claimed && claimed.length > 0) {
         const undoReply = await rollbackAutoAction(admin, agentLink, last as UndoRow, lang)
         if (undoReply) {
-          await sendWhatsAppText(provider, msg.fromPhone, undoReply)
+          await sendWhatsAppText(provider, msg.fromPhone, undoReply, { retry: true })
           return
         }
         // Rollback impossible OU outil sans branche : LIBÉRER le verrou pour ne pas brûler le
@@ -519,15 +569,10 @@ async function processAgentMessage(
     metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
   }
   const outText = toWhatsAppText(meggaProse(reply)) // style maison (meggaProse) puis Markdown DeepSeek (**gras**) → WhatsApp (*gras*)
-  const sendReq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: outText }, sendConfig)
-  let outId: string | null = null
-  try {
-    const sres = await fetch(sendReq.url, { method: sendReq.method, headers: sendReq.headers, body: sendReq.body, signal: AbortSignal.timeout(8000) })
-    const sbody = await sres.json().catch(() => ({}))
-    outId = provider.parseSendResult(sres.status, sbody).providerMessageId
-  } catch (err) {
-    console.error('whatsapp agent reply send failed:', (err as Error)?.name ?? 'error')
-  }
+  // Réponse AGENT-facing : retry court (réseau/5xx/429, jamais 131047). En tentative unique,
+  // la réponse du copilote était perdue au moindre aléa Meta ; un doublon vers l'agent est
+  // inoffensif. sendWhatsAppText applique meggaProse+toWhatsAppText (identique à outText).
+  const outId = (await sendWhatsAppText(provider, msg.fromPhone, reply, { retry: true })).providerMessageId
 
   await admin.from('whatsapp_messages').upsert({
     provider: provider.name,
@@ -601,8 +646,13 @@ async function callAgentBrain(
 // Renvoie le SendResult complet : le provider_message_id, persisté sur les sortants
 // clients, est ce qui permet aux events `statuses` (applyStatusUpdates) de suivre la
 // livraison et d'alerter au premier failed — un envoi sans id est invisible à la boucle.
+// opts.retry : rejoue les erreurs transitoires (réseau/5xx/429, jamais 131047). À n'activer
+// que sur les envois AGENT-facing (réponse copilote, alerte, confirmation d'undo), où un
+// doublon est inoffensif. Les envois CLIENT (send_listings) restent en tentative unique
+// (défaut) : l'API Meta n'est pas idempotente → un retry pourrait doublonner côté client.
 async function sendWhatsAppText(
   provider: ReturnType<typeof getProvider>, toPhone: string, body: string,
+  opts?: { retry?: boolean },
 ): Promise<SendResult> {
   const sendConfig: SendConfig = {
     metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
@@ -610,10 +660,7 @@ async function sendWhatsAppText(
     metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
   }
   const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(meggaProse(body)) }, sendConfig)
-  try {
-    const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-    return provider.parseSendResult(sres.status, await sres.json().catch(() => ({})))
-  } catch { return { ok: false, providerMessageId: null, error: 'network' } }
+  return sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b), { maxAttempts: opts?.retry ? 3 : 1 })
 }
 
 // Envoi d'une image WhatsApp par URL publique (photo R2) — Meta télécharge le lien,
@@ -740,6 +787,10 @@ async function notifyDeliveryFailure(
         ? "sa fenêtre de 24h est fermée — il doit t'écrire d'abord"
         : 'erreur de livraison WhatsApp'
       const what = isPhoto ? 'Une photo envoyée à' : 'Ton message à'
+      // PAS de retry ici : cette alerte part depuis applyStatusUpdates, AWAITÉ avant le 200
+      // rendu à Meta sur les events `statuses`. Un retry (~25 s) retarderait l'ACK → Meta
+      // rejouerait le webhook (voire throttlerait l'abonnement). L'alerte est best-effort
+      // (alert_sent audité, re-tentée au prochain `failed` du lot) : tentative unique.
       const res = await sendWhatsAppText(provider, waNumber, `⚠️ ${what} ${who} n'a pas été délivré${isPhoto ? 'e' : ''} : ${reason}.`)
       alertSent = res.ok
     }
