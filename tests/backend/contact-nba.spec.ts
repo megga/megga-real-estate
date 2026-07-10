@@ -364,4 +364,89 @@ describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', 
     if (nbaCfgBefore.had) await svc.from('app_config').update({ value: nbaCfgBefore.value }).eq('key', 'contact_nba_v1')
     else await svc.from('app_config').update({ value: '{"dormant_days":14,"offer_window_days":7,"deal_stall_days":14,"visit_debrief_window_days":21,"version":1}' }).eq('key', 'contact_nba_v1')
   })
+
+  // N23 — R4 : un deal sur stage exclu (signed) reste hors « stagnant » même immobile.
+  // Garde la régression : sans le NOT IN (signed/closed/lost/to_recontact), un dossier
+  // clos (updated_at figé) ressortirait deal_stagnant à tort.
+  it('N23: deal actif sur stage exclu (signed) immobile > 14 j → PAS deal_stagnant', async () => {
+    const c = await mkContact({ lastInteraction: iso(-1 * DAY) })
+    const { error } = await svc.from('transactions').insert({
+      agency_id: setup.agencyAId, contact_buyer_id: c, property_id: propId,
+      stage: 'signed', status: 'active', updated_at: iso(-30 * DAY),
+    })
+    if (error) throw new Error(`tx: ${error.message}`)
+    const nba = await core(c, setup.agencyAId)
+    expect(nba?.action).toBe('aucune')
+  })
+
+  // N24 — R1 : rappel du JOUR (statut 'pending') → reason_key 'reminder_today', days_overdue 0.
+  // trigger_at = maintenant : toujours dans la journée Zurich (>= v_sod, <= v_eod). Couvre le
+  // statut 'pending' ET la borne haute v_eod (si v_eod régressait à v_sod, ce rappel serait exclu).
+  it('N24: rappel pending du jour → rappel / reminder_today, days_overdue 0', async () => {
+    const c = await mkContact({ lastInteraction: iso(-1 * DAY) })
+    const { error } = await svc.from('reminders').insert({
+      agency_id: setup.agencyAId, contact_id: c, type: 'custom', trigger_rule: 'manual',
+      status: 'pending', trigger_at: iso(0),
+    })
+    if (error) throw new Error(`reminder: ${error.message}`)
+    const nba = await core(c, setup.agencyAId)
+    expect(nba?.action).toBe('rappel')
+    expect(nba?.reason_key).toBe('reminder_today')
+    expect(Number(nba?.params.days_overdue)).toBe(0)
+  })
+
+  // N25 — Note KYC : la gate de stage closing-proximate est aussi testée NÉGATIVEMENT.
+  // KYC ouvert + deal actif sur un stage précoce (qualified) → kyc_note doit rester null.
+  it('N25: KYC ouvert mais deal sur stage non closing-proximate (qualified) → kyc_note null', async () => {
+    const c = await mkContact({ lastInteraction: iso(-1 * DAY) })
+    const { error: tErr } = await svc.from('transactions').insert({
+      agency_id: setup.agencyAId, contact_buyer_id: c, property_id: propId,
+      stage: 'qualified', status: 'active',   // updated_at par défaut (frais) → pas stagnant
+    })
+    if (tErr) throw new Error(`tx: ${tErr.message}`)
+    const { error: kErr } = await svc.from('kyc_cases').insert({
+      agency_id: setup.agencyAId, contact_id: c, type: 'buyer_pp', status: 'pending',
+    })
+    if (kErr) throw new Error(`kyc: ${kErr.message}`)
+    const nba = await core(c, setup.agencyAId)
+    expect(nba?.kyc_note).toBeNull()
+  })
+
+  // N26 — Invariant intra-règle : R3a (visite du jour) prime R3b (débrief) sur le MÊME contact.
+  it('N26: visite du jour + visite passée non débriefée → visite_preparer (R3a prime R3b)', async () => {
+    const c = await mkContact({ lastInteraction: iso(-1 * DAY) })
+    const { error: v1 } = await svc.from('visits').insert({
+      agency_id: setup.agencyAId, contact_id: c, property_id: propId,
+      scheduled_at: iso(5 * 60_000), status: 'planned',
+    })
+    if (v1) throw new Error(`visit-today: ${v1.message}`)
+    const { error: v2 } = await svc.from('visits').insert({
+      agency_id: setup.agencyAId, contact_id: c, property_id: propId,
+      scheduled_at: iso(-3 * DAY), status: 'done', rapport: null, feedback_agent: null,
+    })
+    if (v2) throw new Error(`visit-past: ${v2.message}`)
+    const nba = await core(c, setup.agencyAId)
+    expect(nba?.action).toBe('visite_preparer')
+    expect(nba?.reason_key).toBe('visit_today')
+  })
+
+  // N27 — R2 : offre pending DÉJÀ expirée (cron horaire pas encore passé) reste candidate,
+  // avec days_left NÉGATIF (spec « échéance dépassée » ; pas de borne basse sur expires_at).
+  it('N27: offre pending déjà expirée → offre_expirante avec days_left négatif', async () => {
+    const c = await mkContact({ lastInteraction: iso(-1 * DAY) })
+    const { data: tx, error: tErr } = await svc.from('transactions').insert({
+      agency_id: setup.agencyAId, contact_buyer_id: c, property_id: propId,
+      stage: 'offer', status: 'active',
+    }).select('id').single()
+    if (tErr) throw new Error(`tx: ${tErr.message}`)
+    const { error: oErr } = await svc.from('crm_offers').insert({
+      agency_id: setup.agencyAId, transaction_id: tx.id, status: 'pending',
+      kind: 'offer', from_party: 'buyer', by_label: 'NBA QA', amount: 850_000,
+      expires_at: iso(-1 * DAY),
+    })
+    if (oErr) throw new Error(`offer: ${oErr.message}`)
+    const nba = await core(c, setup.agencyAId)
+    expect(nba?.action).toBe('offre_expirante')
+    expect(Number(nba?.params.days_left)).toBeLessThan(0)
+  })
 })

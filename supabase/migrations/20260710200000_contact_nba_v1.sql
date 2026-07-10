@@ -82,18 +82,25 @@ BEGIN
   cfg := COALESCE(cfg, '{}'::jsonb);
   focus_cfg := COALESCE(focus_cfg, '{}'::jsonb);
 
-  v_dormant_days      := COALESCE((cfg->>'dormant_days')::int, 14);
-  v_offer_window_days := COALESCE((cfg->>'offer_window_days')::int, 7);
-  v_deal_stall_days   := COALESCE((cfg->>'deal_stall_days')::int, 14);
-  v_debrief_days      := COALESCE((cfg->>'visit_debrief_window_days')::int, 21);
+  -- Casts DÉFENSIFS : le bloc EXCEPTION ci-dessus ne couvre QUE le parse JSON.
+  -- Un scalaire mal typé (JSON valide mais p.ex. {"dormant_days":"deux"}) ferait
+  -- throw ::int/::numeric HORS de tout handler → panne du cœur partagé pour TOUTES
+  -- les agences. Guard regex avant le cast : valeur non numérique → défaut littéral.
+  v_dormant_days      := CASE WHEN (cfg->>'dormant_days')             ~ '^-?[0-9]+$' THEN (cfg->>'dormant_days')::int             ELSE 14 END;
+  v_offer_window_days := CASE WHEN (cfg->>'offer_window_days')        ~ '^-?[0-9]+$' THEN (cfg->>'offer_window_days')::int        ELSE 7  END;
+  v_deal_stall_days   := CASE WHEN (cfg->>'deal_stall_days')          ~ '^-?[0-9]+$' THEN (cfg->>'deal_stall_days')::int          ELSE 14 END;
+  v_debrief_days      := CASE WHEN (cfg->>'visit_debrief_window_days') ~ '^-?[0-9]+$' THEN (cfg->>'visit_debrief_window_days')::int ELSE 21 END;
   -- match_gate : fallback sur le gate du radar Focus (une seule notion partagée)
-  v_match_gate        := COALESCE((cfg->>'match_gate')::numeric,
-                                  (focus_cfg->'thresholds'->>'match_gate')::numeric,
-                                  70);
+  v_match_gate        := COALESCE(
+    CASE WHEN (cfg->>'match_gate')                       ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (cfg->>'match_gate')::numeric                       END,
+    CASE WHEN (focus_cfg->'thresholds'->>'match_gate')   ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (focus_cfg->'thresholds'->>'match_gate')::numeric   END,
+    70);
 
-  -- Bornes de journée Europe/Zurich
+  -- Bornes de journée Europe/Zurich. v_eod = dernier instant du jour LOCAL, calculé
+  -- par conversion TZ (pas « +24h » : les jours de bascule DST font 23 h ou 25 h).
   v_sod := date_trunc('day', v_now AT TIME ZONE 'Europe/Zurich') AT TIME ZONE 'Europe/Zurich';
-  v_eod := v_sod + interval '1 day' - interval '1 second';
+  v_eod := (date_trunc('day', v_now AT TIME ZONE 'Europe/Zurich') + interval '1 day')
+             AT TIME ZONE 'Europe/Zurich' - interval '1 microsecond';
 
   -- Garde d'entrée : contact de CETTE agence, sinon NULL (pas de fuite d'existence)
   SELECT c2.id, c2.type, c2.last_interaction_at INTO c
