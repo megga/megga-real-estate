@@ -144,9 +144,25 @@ describe('sendWithRetry', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
 
-  it('retryNetworkError:false → rejoue quand même un refus EXPLICITE (5xx)', async () => {
+  it('retryNetworkError:false → ne rejoue PAS un 5xx (ambigu : peut être post-file → doublon)', async () => {
+    const fetchImpl = vi.fn(async () => res(503, { error: { message: 'busy' } }))
+    const out = await sendWithRetry(REQ, parse, { ...FAST, fetchImpl, maxAttempts: 3, retryNetworkError: false })
+    expect(out.ok).toBe(false)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('retryNetworkError:false → rejoue quand même un refus de QUOTA (429, pré-file donc sûr)', async () => {
     const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(res(503, { error: { message: 'busy' } }))
+      .mockResolvedValueOnce(res(429, { error: { message: 'rate' } }))
+      .mockResolvedValueOnce(res(200, { messages: [{ id: 'wamid.OK' }] }))
+    const out = await sendWithRetry(REQ, parse, { ...FAST, fetchImpl, maxAttempts: 3, retryNetworkError: false })
+    expect(out.ok).toBe(true)
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+  })
+
+  it('retryNetworkError:false → rejoue un throttle de débit Meta en 400 (130429, pré-file)', async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(res(400, { error: { code: 130429, message: 'Rate limit hit' } }))
       .mockResolvedValueOnce(res(200, { messages: [{ id: 'wamid.OK' }] }))
     const out = await sendWithRetry(REQ, parse, { ...FAST, fetchImpl, maxAttempts: 3, retryNetworkError: false })
     expect(out.ok).toBe(true)

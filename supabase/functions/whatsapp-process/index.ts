@@ -212,10 +212,11 @@ serve(async (req) => {
       if (overBudget()) break
       // Retry court (profil resserré : 2 tentatives, timeout 6s) sur erreur transitoire.
       // L'avis LPD va au CLIENT (n.wa_phone) et l'API Meta n'est pas idempotente, donc
-      // retryNetworkError:false → on ne rejoue QUE des refus explicites (5xx/429/throttle,
-      // refusés avant mise en file = sûrs), JAMAIS le timeout ambigu (Meta a peut-être livré
-      // → doublonnerait la notice). Jamais 131047. Profil borné pour ne pas déborder le
-      // budget du cron (le garde overBudget() en tête de boucle borne déjà les itérations).
+      // retryNetworkError:false → on ne rejoue QUE les refus de QUOTA (429 + throttle Meta 400),
+      // rejetés avant mise en file = sûrs ; JAMAIS un 5xx ni un timeout (ambigus : Meta a
+      // peut-être livré → doublonnerait la notice). Jamais 131047. Un 5xx non rejoué est
+      // re-tenté au prochain tick (whatsapp_pending_notices borne la fenêtre 24h). Profil borné
+      // pour ne pas déborder le budget du cron (overBudget() en tête de boucle borne déjà).
       const sreq = provider.buildSendTextRequest({ toPhone: n.wa_phone, body: NOTICE_TEXT }, cfg)
       const sr = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b), { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false })
       if (!sr.ok) console.error('whatsapp notice send failed:', String(sr.error ?? 'error').slice(0, 80))

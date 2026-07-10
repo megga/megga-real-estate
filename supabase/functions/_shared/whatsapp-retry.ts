@@ -13,8 +13,9 @@
 // tolèrent ce doublon (inoffensif) → retry réseau/5xx/429 plein. Les envois CLIENT non
 // idempotents (fil conversationnel) restent en tentative UNIQUE. Cas intermédiaire, l'avis
 // LPD (client, mais courtoisie de conformité où « deux fois » vaut mieux que « zéro ») :
-// retryNetworkError=false → on ne rejoue que des refus EXPLICITES (5xx/429/throttle, refusés
-// avant mise en file donc sûrs), jamais le timeout ambigu.
+// retryNetworkError=false → on ne rejoue que les refus de QUOTA (429 + throttle de débit),
+// rejetés avant mise en file donc sûrs ; JAMAIS un 5xx ni un timeout (ambigus : une passerelle
+// peut renvoyer 502/504 après que Meta a accepté le message → rejouer doublonnerait).
 //
 // N'utilise que fetch + AbortSignal.timeout + setTimeout (standard Deno ET Node) et injecte
 // ses dépendances d'I/O (fetchImpl, sleep, makeSignal) → testable en Vitest sans réseau.
@@ -79,8 +80,9 @@ export interface SendWithRetryOpts {
    * Rejouer une exception réseau / timeout (status === null). Défaut true (envois AGENT :
    * un doublon est inoffensif). À passer FALSE pour un envoi CLIENT non idempotent : un
    * timeout est ambigu (Meta a PEUT-ÊTRE livré avant que la réponse se perde), donc rejouer
-   * risquerait un doublon côté client. Avec false, on ne rejoue que des refus EXPLICITES
-   * (5xx / 429 / throttle de débit) — refusés avant mise en file, donc sûrs à rejouer.
+   * risquerait un doublon côté client. Avec false, on ne rejoue que les refus de QUOTA
+   * (429 + throttle de débit Meta en 400) — rejetés avant mise en file, donc sûrs. Un 5xx et
+   * un timeout réseau sont ambigus (livraison peut-être déjà faite) → jamais rejoués.
    */
   retryNetworkError?: boolean
 }
@@ -129,15 +131,20 @@ export async function sendWithRetry(
       : { ok: false, providerMessageId: null, error: 'network' }
     if (last.ok) return last
 
-    // Décision de retry. Le code banni (131047) l'emporte TOUJOURS. Sinon :
-    //  · status null (réseau/timeout) → transitoire, sauf si retryNetworkError=false
-    //    (envoi client non idempotent : timeout ambigu = doublon possible → on s'abstient) ;
-    //  · sinon 5xx/429 (statut) OU throttle de débit Meta en 400 (RETRYABLE_META_CODES).
+    // Décision de retry. Le code banni (131047) l'emporte TOUJOURS. Ensuite, deux modes :
+    //  · Mode plein (défaut, envoi AGENT — un doublon est inoffensif) : rejoue le réseau/
+    //    timeout, les 5xx, les 429 et les throttles de débit Meta en 400 (RETRYABLE_META_CODES).
+    //  · Mode « zéro doublon » (retryNetworkError=false, envoi CLIENT non idempotent) : on ne
+    //    rejoue QUE les refus de QUOTA (429 + throttle Meta 400) — rejetés AVANT toute mise en
+    //    file, donc sûrs. Le timeout réseau (null) ET les 5xx sont AMBIGUS (une passerelle peut
+    //    renvoyer 502/504 APRÈS que Meta a accepté le message) → jamais rejoués (sinon doublon).
     const code = metaErrorCode(body)
     if (code !== null && NEVER_RETRY_META_CODES.has(code)) return last
-    const retryable = status === null
-      ? opts.retryNetworkError !== false
-      : classifySendOutcome(status) === 'retryable' || (code !== null && RETRYABLE_META_CODES.has(code))
+    // Refus de quota : rejouable même en mode « zéro doublon » (pré-file → aucun doublon possible).
+    const quotaRefusal = status === 429 || (code !== null && RETRYABLE_META_CODES.has(code))
+    const retryable = opts.retryNetworkError === false
+      ? quotaRefusal
+      : status === null || classifySendOutcome(status) === 'retryable' || quotaRefusal
     if (!retryable || attempt === maxAttempts) return last
 
     opts.onRetry?.(attempt, status === null ? 'network' : `http-${status}`)
