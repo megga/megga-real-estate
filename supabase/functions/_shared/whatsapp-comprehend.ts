@@ -96,10 +96,17 @@ export function parseInsight(content: string | null | undefined): ConversationIn
   }
 }
 
-/** Appel DeepSeek (JSON mode). Lève si HTTP non-2xx. */
+/**
+ * Appel DeepSeek (JSON mode). Lève si HTTP non-2xx.
+ * `onUsage` (optionnel) reçoit le `usage` brut + la latence mesurée pour la
+ * journalisation coût/latence côté appelant — passé en callback pour que ce
+ * module n'importe PAS ai-usage/ai-provider (il est testé sous Node/Vitest).
+ */
 export async function comprehend(
   messages: Array<{ role: string; content: string }>, apiKey: string,
+  onUsage?: (usage: { prompt_tokens?: number; completion_tokens?: number } | undefined, latencyMs: number) => void,
 ): Promise<ConversationInsight> {
+  const started = Date.now()
   const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -114,5 +121,6 @@ export async function comprehend(
   })
   if (!res.ok) throw new Error(`deepseek HTTP ${res.status}`)
   const data = await res.json()
+  onUsage?.(data?.usage, Date.now() - started)
   return parseInsight(data?.choices?.[0]?.message?.content)
 }

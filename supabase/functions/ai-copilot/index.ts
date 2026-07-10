@@ -33,6 +33,7 @@ import {
   type PendingAction, type PrepareConfirmResult,
 } from '../_shared/agent-loop.ts'
 import { copilotTools, copilotToolsBlock, webToolTier, type DeepSeekTool } from '../_shared/copilot-tools.ts'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import {
   execSuggestPrioritiesToday, execGetAnalyticsSnapshot, execGetMarketStats,
   execWebCreateReminder, execWebAddNote, type WebToolCtx,
@@ -305,6 +306,10 @@ function makeCallModel(opts: {
   responseFormat?: 'json_object'
   wantStream: boolean
   emit: (ev: StreamEvent) => void
+  // Journalisation coût + latence (fire-and-forget), un log par appel DeepSeek.
+  client?: SupabaseClient
+  agencyId?: string | null
+  module?: string
 }) {
   return async (messages: LoopMessage[], withTools: boolean): Promise<ModelTurn | null> => {
     const body: Record<string, unknown> = {
@@ -320,6 +325,7 @@ function makeCallModel(opts: {
     }
     if (opts.responseFormat) body.response_format = { type: opts.responseFormat }
 
+    const started = Date.now()
     try {
       const r = await fetch(DEEPSEEK_URL, {
         method: 'POST',
@@ -349,6 +355,12 @@ function makeCallModel(opts: {
       }
       const fin = asm.finish()
       if (opts.wantStream) for (const ev of fin.events) opts.emit(ev)
+      if (opts.client) {
+        logDeepSeekUsageWith(opts.client, usage, {
+          edgeFunction: 'ai-copilot', module: opts.module ?? 'copilot',
+          latencyMs: Date.now() - started, agencyId: opts.agencyId ?? null,
+        })
+      }
       return { content: fin.content, toolCalls: fin.toolCalls, emitted: opts.wantStream && fin.emitted, usage }
     } catch (e) {
       console.error('deepseek fetch failed:', (e as Error)?.name ?? 'error')
@@ -596,8 +608,10 @@ async function buildSystemPrompt(params: {
 
   // Ancrage temporel : indispensable pour résoudre « demain », « cette semaine »
   // en ISO 8601 (get_my_agenda) et dater correctement les réponses.
-  const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
-  systemPrompt += `\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage suisse.`
+  // CACHE CONTEXTE : seule l'INSTRUCTION (statique) reste ici, dans le préfixe. La VALEUR
+  // horodatée (change à la minute) est ajoutée en tout dernier, après les blocs de
+  // personnalisation, pour que le préfixe stable du cache DeepSeek couvre tout le volume.
+  systemPrompt += `\n\nConvertis toute date relative en ISO 8601 avec le décalage suisse, en te basant sur la date/heure actuelle indiquée en fin de message.`
 
   if (language !== 'fr') systemPrompt += `\n\nLangue de réponse : ${language}`
 
@@ -638,6 +652,12 @@ async function buildSystemPrompt(params: {
   } catch (_) {
     // personnalisation optionnelle — ne jamais bloquer la réponse IA
   }
+
+  // Horodatage volatil en DERNIER (voir note CACHE CONTEXTE plus haut) : tout le préfixe
+  // ci-dessus (système + style + outils + personnalisation) reste stable d'une minute à
+  // l'autre ; seul ce court suffixe daté change, donc le cache n'est invalidé que là.
+  const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
+  systemPrompt += `\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.`
 
   return systemPrompt
 }
@@ -725,6 +745,7 @@ ${snapshot}`
 
   let generated = false
   let text = ''
+  const started = Date.now()
   try {
     const r = await fetch(DEEPSEEK_URL, {
       method: 'POST',
@@ -740,6 +761,10 @@ ${snapshot}`
     })
     if (r.ok) {
       const d = await r.json()
+      logDeepSeekUsageWith(params.auth.supabase, d?.usage, {
+        edgeFunction: 'ai-copilot', module: 'copilot-daily-brief',
+        latencyMs: Date.now() - started, agencyId: params.auth.profile.agency_id,
+      })
       const raw = d.choices?.[0]?.message?.content || ''
       // Re-substitution des vraies valeurs APRÈS génération (DeepSeek n'a vu que
       // des jetons). Si DeepSeek a mutilé un jeton (accolades cassées, traduction)
@@ -931,7 +956,7 @@ serve(async (req: Request) => {
       if (toolsOn) {
         const catalog = copilotTools(writesOn, publishOn)
         const res = await runAgentLoop({
-          callModel: makeCallModel({ apiKey: deepseekApiKey, tools: catalog, wantStream: stream, emit }),
+          callModel: makeCallModel({ apiKey: deepseekApiKey, tools: catalog, wantStream: stream, emit, client: auth.supabase, agencyId: auth.profile.agency_id, module: 'copilot' }),
           runTool,
           tierOf: webToolTier,
           allowWrites: writesOn,
@@ -963,6 +988,9 @@ serve(async (req: Request) => {
           responseFormat: action === 'detect_intent' ? 'json_object' : undefined,
           wantStream: stream,
           emit,
+          client: auth.supabase,
+          agencyId: auth.profile.agency_id,
+          module: action === 'detect_intent' ? 'copilot-detect-intent' : 'copilot',
         })(baseMessages, false)
         if (!turn) throw new Error('Le moteur IA est indisponible, réessayez.')
         text = turn.content

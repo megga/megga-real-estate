@@ -10,6 +10,7 @@
 // activity_events row so super_admin sees DeepSeek outages.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { computeCost, logAIUsageWith } from './ai-usage.ts'
 
 export interface AIMessage {
   role: 'user' | 'assistant'
@@ -34,12 +35,8 @@ export interface AIResponse {
   was_fallback: boolean
 }
 
-// USD per 1M tokens. Update if provider pricing changes.
-const PRICING = {
-  'deepseek':       { input: 0.27, output: 1.10 },
-  'claude-sonnet':  { input: 3.00, output: 15.00 },
-  'claude-haiku':   { input: 1.00, output: 5.00 },
-} as const
+// Tarification (PRICING) et calcul de coût vivent dans ./ai-usage.ts (partagé
+// avec les appelants DeepSeek directs, et importable sous Node/Vitest).
 
 const CLAUDE_MODELS = {
   sonnet: 'claude-sonnet-4-20250514',
@@ -48,42 +45,10 @@ const CLAUDE_MODELS = {
 
 const DEEPSEEK_TIMEOUT_MS = 8000
 
-function computeCost(
-  provider: keyof typeof PRICING,
-  inputTokens: number,
-  outputTokens: number,
-): number {
-  const p = PRICING[provider]
-  return (inputTokens * p.input + outputTokens * p.output) / 1_000_000
-}
-
 function supabaseAdmin() {
   const url = Deno.env.get('SUPABASE_URL')!
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   return createClient(url, key, { auth: { persistSession: false } })
-}
-
-// Fire-and-forget insert. Never await — UX latency must not depend on logging.
-function logUsage(row: {
-  edge_function: string
-  provider: string
-  input_tokens: number
-  output_tokens: number
-  estimated_cost_usd: number
-  was_fallback: boolean
-  agency_id?: string | null
-  module?: string | null
-}) {
-  try {
-    supabaseAdmin()
-      .from('ai_usage_logs')
-      .insert(row)
-      .then(({ error }) => {
-        if (error) console.error('[ai-provider] log insert failed:', error.message)
-      })
-  } catch (err) {
-    console.error('[ai-provider] log threw:', err)
-  }
 }
 
 // Edge Function name for logging. Infers from stack or falls back to env.
@@ -105,6 +70,7 @@ export async function callClaude(
   const model = CLAUDE_MODELS[modelKey]
   const providerKey = modelKey === 'sonnet' ? 'claude-sonnet' : 'claude-haiku'
 
+  const started = Date.now()
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -132,14 +98,13 @@ export async function callClaude(
   const output_tokens = data.usage?.output_tokens ?? 0
   const cost = computeCost(providerKey, input_tokens, output_tokens)
 
-  logUsage({
-    edge_function: currentFunctionName(),
+  logAIUsageWith(supabaseAdmin(), {
+    edgeFunction: currentFunctionName(),
     provider: providerKey,
-    input_tokens,
-    output_tokens,
-    estimated_cost_usd: cost,
-    was_fallback: false,
-    agency_id: options.agencyId ?? null,
+    inputTokens: input_tokens,
+    outputTokens: output_tokens,
+    latencyMs: Date.now() - started,
+    agencyId: options.agencyId ?? null,
     module: options.module ?? null,
   })
 
@@ -167,6 +132,7 @@ export async function callDeepSeek(
   const timeout = setTimeout(() => controller.abort(), DEEPSEEK_TIMEOUT_MS)
 
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -196,14 +162,13 @@ export async function callDeepSeek(
     const output_tokens = data.usage?.completion_tokens ?? 0
     const cost = computeCost('deepseek', input_tokens, output_tokens)
 
-    logUsage({
-      edge_function: currentFunctionName(),
+    logAIUsageWith(supabaseAdmin(), {
+      edgeFunction: currentFunctionName(),
       provider: 'deepseek',
-      input_tokens,
-      output_tokens,
-      estimated_cost_usd: cost,
-      was_fallback: false,
-      agency_id: options.agencyId ?? null,
+      inputTokens: input_tokens,
+      outputTokens: output_tokens,
+      latencyMs: Date.now() - started,
+      agencyId: options.agencyId ?? null,
       module: options.module ?? null,
     })
 

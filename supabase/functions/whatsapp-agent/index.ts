@@ -30,6 +30,7 @@ import {
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -166,9 +167,15 @@ serve(async (req) => {
 
   // Ancrage temporel : sans ça DeepSeek ne sait pas résoudre « demain », « vendredi 14h »
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
+  // CACHE CONTEXTE : la valeur horodatée change à la minute. On la place en TOUT DERNIER
+  // du system message pour que le gros volume statique (SYSTEM + blocs) reste un préfixe
+  // stable ; le cache DeepSeek ne se réinvalide alors que sur le court suffixe daté, et non
+  // sur tout le prompt à chaque minute. L'instruction de conversion (statique) reste dans
+  // le préfixe et pointe vers la date fournie en fin de message.
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
+  const systemStable = `${SYSTEM}\n\nConvertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver), en te basant sur la date/heure actuelle indiquée en toute fin de ce message.\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${correctionsBlock}${groupBlock}${listingBlock}${antiFabBlock}`
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${correctionsBlock}${groupBlock}${listingBlock}${antiFabBlock}` },
+    { role: 'system', content: `${systemStable}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.` },
     ...history,
     { role: 'user', content: message },
   ]
@@ -180,7 +187,7 @@ serve(async (req) => {
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     if (overBudget()) return json({ reply: t(lang, 'complexRetry'), isError: true }, 200)
-    const resp = await callDeepSeek(apiKey, messages)
+    const resp = await callDeepSeek(apiKey, messages, 'auto', { client: supabase, agencyId: ctx.agencyId })
     if (!resp) return json({ reply: t(lang, 'cantProcess'), isError: true }, 200)
     const msg = resp.choices?.[0]?.message
     const toolCalls = msg?.tool_calls as Array<{ id?: string; function?: { name?: string; arguments?: string } }> | undefined
@@ -273,7 +280,7 @@ serve(async (req) => {
   // F9 : la boucle d'outils est épuisée sans réponse finale (DeepSeek a continué à
   // appeler des outils sans conclure). On force une DERNIÈRE passe SANS outils : il doit
   // rédiger une réponse à partir de ce qu'il a déjà récolté, plutôt qu'un message d'échec.
-  const forced = await callDeepSeek(apiKey, messages, 'none')
+  const forced = await callDeepSeek(apiKey, messages, 'none', { client: supabase, agencyId: ctx.agencyId })
   const forcedContent = forced?.choices?.[0]?.message?.content as string | undefined
   if (forcedContent) {
     if (isFabricatedKycClaim(forcedContent, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
@@ -360,8 +367,10 @@ function safeEqual(a: string, b: string): boolean {
 
 async function callDeepSeek(
   apiKey: string, messages: Array<Record<string, unknown>>, toolChoice: 'auto' | 'none' = 'auto',
+  logCtx?: { client: SupabaseClient; agencyId: string | null },
 ) {
   try {
+    const started = Date.now()
     const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -370,7 +379,15 @@ async function callDeepSeek(
     })
     // F14/I4 : on log le status seulement, JAMAIS le corps (PII des messages échoués).
     if (!r.ok) { console.error('deepseek http', r.status); return null }
-    return await r.json()
+    const j = await r.json()
+    // Journalisation coût + latence (fire-and-forget) : un log par tour de boucle.
+    if (logCtx) {
+      logDeepSeekUsageWith(logCtx.client, j?.usage, {
+        edgeFunction: 'whatsapp-agent', module: 'whatsapp-agent',
+        latencyMs: Date.now() - started, agencyId: logCtx.agencyId,
+      })
+    }
+    return j
   } catch (e) {
     console.error('deepseek fetch failed:', (e as Error)?.name ?? 'error')
     return null

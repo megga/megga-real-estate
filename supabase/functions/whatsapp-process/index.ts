@@ -15,6 +15,7 @@ import { fetchMetaMedia, buildMediaKey } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { describeInboundMedia, threadTextFor, isReadableDocMime } from '../_shared/vision.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
 import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
@@ -169,7 +170,11 @@ serve(async (req) => {
           .limit(30)
         const digest = buildThreadDigest((thread ?? []) as ThreadMessage[])
         if (!digest) continue
-        const insight = await comprehend(buildMessages(digest), deepseekKey)
+        const insight = await comprehend(buildMessages(digest), deepseekKey, (usage, latencyMs) =>
+          logDeepSeekUsageWith(admin, usage, {
+            edgeFunction: 'whatsapp-process', module: 'whatsapp-comprehend',
+            latencyMs, agencyId: c.agency_id,
+          }))
         await admin.from('whatsapp_conversation_insights').upsert({
           contact_id: c.contact_id, agency_id: c.agency_id,
           summary: insight.summary, intent: insight.intent, entities: insight.entities,
