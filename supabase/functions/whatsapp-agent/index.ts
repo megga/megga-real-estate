@@ -32,6 +32,8 @@ import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCo
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import { composeAgentSystemPrompt } from '../_shared/agent-system-prompt.ts'
+import { redactPII } from '../_shared/pii-redaction.ts'
+import { redactLlmMessages } from '../_shared/wa-agent-redaction.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -107,7 +109,11 @@ serve(async (req) => {
   // Mimétisme de voix (few-shot) : vrais messages clients de l'agence, pour les messages DESTINÉS À UN CLIENT.
   // NB: fetché à chaque tour (le corps de send_client_message est composé inline) ; TODO lazy si le budget requêtes se tend.
   const voiceLang = lang === 'en' ? 'en' : 'fr'
-  const voiceSamples = await fetchClientVoiceSamples(supabase, ctx.agencyId, { profileId })
+  // PII : ces corps proviennent de whatsapp_messages (stockés bruts) — un agent a pu y taper un
+  // IBAN/N° AVS. Rédigés AVANT injection dans le prompt LLM (même invariant que le copilote,
+  // ai-copilot/index.ts). La rédaction préserve le TON, qui est tout ce que le mimétisme exploite.
+  const voiceSamples = (await fetchClientVoiceSamples(supabase, ctx.agencyId, { profileId }))
+    .map((s) => ({ body: redactPII(s.body).redactedText }))
   const rawVoice = formatVoiceExamples(voiceSamples, voiceLang)
   // Cadrage : la voix ne s'applique QU'aux messages client (send_client_message), jamais au chat avec l'agent.
   const voiceBlock = rawVoice
@@ -119,7 +125,10 @@ serve(async (req) => {
   // Apprentissage T2 (par l'exemple) : corrections passées de l'agent sur tes
   // brouillons client (brouillon rejeté → message envoyé), réinjectées pour ne pas
   // refaire la même erreur. Par agent, auto (ne façonne qu'un brouillon validé).
-  const correctionsBlock = formatCorrectionExamples(await fetchCorrectionExamples(supabase, profileId), voiceLang)
+  // Rédigées aussi (même raison que la voix : brouillons + messages envoyés stockés bruts).
+  const correctionExamples = (await fetchCorrectionExamples(supabase, profileId))
+    .map((c) => ({ draft: redactPII(c.draft).redactedText, final: redactPII(c.final).redactedText }))
+  const correctionsBlock = formatCorrectionExamples(correctionExamples, voiceLang)
 
   // Comportement GROUPE (v1) : le brain aide l'agent À PROPOS d'un groupe ; il ne poste jamais lui-même.
   const groupBlock = lang === 'en'
@@ -384,10 +393,15 @@ async function callDeepSeek(
 ) {
   try {
     const started = Date.now()
+    // Rédaction PII AU FIL (P0 « PII→LLM ») : message agent + historique C1 + résultats
+    // d'outils passent par redactPII ici — point d'étranglement unique que ni la passe
+    // finale forcée ni un futur site de push d'outil ne peuvent contourner. Le system est
+    // exclu (composé de parties déjà rédigées : voix/corrections au fetch + texte statique).
+    // Voir _shared/wa-agent-redaction.ts pour le périmètre et le trade-off assumé.
     const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: 'deepseek-chat', messages, tools: WHATSAPP_TOOLS, tool_choice: toolChoice, max_tokens: 1500 }),
+      body: JSON.stringify({ model: 'deepseek-chat', messages: redactLlmMessages(messages), tools: WHATSAPP_TOOLS, tool_choice: toolChoice, max_tokens: 1500 }),
       signal: AbortSignal.timeout(DEEPSEEK_TIMEOUT_MS), // F13 : ne jamais pendre
     })
     // F14/I4 : on log le status seulement, JAMAIS le corps (PII des messages échoués).
