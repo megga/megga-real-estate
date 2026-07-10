@@ -177,7 +177,9 @@ serve(async (req) => {
         await admin.from('whatsapp_conversation_insights').upsert({
           contact_id: c.contact_id, agency_id: c.agency_id,
           summary: insight.summary, intent: insight.intent, entities: insight.entities,
-          commitments: insight.commitments, sentiment: insight.sentiment, next_action: insight.next_action,
+          commitments: insight.commitments, objections: insight.objections,
+          sentiment: insight.sentiment, urgency: insight.urgency, language: insight.language,
+          next_action: insight.next_action,
           model: 'deepseek-chat', source_message_count: (thread ?? []).length,
           source_last_message_at: c.last_message_at, generated_at: new Date().toISOString(),
         }, { onConflict: 'contact_id' })

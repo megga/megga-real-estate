@@ -12,7 +12,10 @@ export interface ConversationInsight {
   intent: string | null
   entities: Record<string, unknown>
   commitments: string[]
+  objections: string[]
   sentiment: 'positif' | 'neutre' | 'tendu' | null
+  urgency: 'haute' | 'moyenne' | 'faible' | null
+  language: 'fr' | 'de' | 'en' | 'it' | null
   next_action: { type: string; label: string } | null
   lead: LeadInfo | null
 }
@@ -34,6 +37,8 @@ export interface ThreadMessage {
 
 const NEXT_ACTION_TYPES = new Set(['planifier_visite', 'envoyer_biens', 'relancer', 'qualifier_lead', 'repondre', 'rien'])
 const SENTIMENTS = new Set(['positif', 'neutre', 'tendu'])
+const URGENCIES = new Set(['haute', 'moyenne', 'faible'])
+const LANGUAGES = new Set(['fr', 'de', 'en', 'it'])
 
 /** Fil compact pour le prompt : « Client: … » / « Agent: … », transcript si vocal.
  *  Rédige les PII sensibles AVANT tout envoi LLM : le digest part vers DeepSeek
@@ -61,11 +66,15 @@ Réponds UNIQUEMENT en JSON (en français) selon ce schéma :
   "intent": "intention du client (ex: recherche_achat, recherche_location, prise_rdv, question_dossier, negociation, autre)",
   "entities": { "budget": "", "zones": [], "type": "", "pieces": "", "dates": [] },
   "commitments": ["engagement pris, ex: 'Agent: envoie les photos', 'Client: dispo samedi 14h'"],
+  "objections": ["frein ou objection exprimé par le client, ex: 'trop cher', 'quartier trop bruyant', 'pas le bon moment'"],
   "sentiment": "positif | neutre | tendu",
+  "urgency": "haute | moyenne | faible",
   "next_action": { "type": "planifier_visite|envoyer_biens|relancer|qualifier_lead|repondre|rien", "label": "action concrète proposée" },
+  "language": "fr | de | en | it",
   "lead": { "is_third_party": true_ou_false, "first_name": "", "last_name": "", "phone": "", "email": "" }
 }
 "lead" = la personne PROSPECT de la conversation. is_third_party=true si l'expéditeur DICTE à propos d'un tiers (« j'ai une cliente Sarah Williams… »), false s'il parle de lui-même. Mets "lead": null si aucun prospect identifiable.
+"objections" = freins EXPLICITES du client (prix, emplacement, timing, financement…), [] si aucun. "urgency" = urgence du besoin client : "haute" si délai serré (« rapidement », « urgent », « cette semaine »), "faible" si exploratoire, "moyenne" sinon. "language" = langue principale du client dans le fil (fr, de, en, it).
 N'invente rien : laisse un champ vide, [] ou null si l'info n'est pas dans le fil.`
 
 /** Messages DeepSeek (system + fil). Pur. */
@@ -79,9 +88,18 @@ export function buildMessages(digest: string): Array<{ role: string; content: st
 /** Parse + valide la réponse DeepSeek en insight sûr (défauts si champ absent/invalide). */
 export function parseInsight(content: string | null | undefined): ConversationInsight {
   let raw: Record<string, unknown> = {}
-  if (content) { try { raw = JSON.parse(content) as Record<string, unknown> } catch { /* défauts */ } }
+  if (content) {
+    try {
+      // JSON.parse('null')/'123'/'[…]' réussit sans throw → on n'accepte qu'un
+      // objet non-null (sinon raw.sentiment déréférencerait null plus bas → throw).
+      const parsed = JSON.parse(content)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) raw = parsed as Record<string, unknown>
+    } catch { /* défauts */ }
+  }
   const s = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
   const sentiment = s(raw.sentiment)
+  const urgency = s(raw.urgency)
+  const language = s(raw.language)?.toLowerCase() ?? null
   const na = raw.next_action as { type?: unknown; label?: unknown } | undefined
   const naType = s(na?.type)
   const leadRaw = (raw.lead && typeof raw.lead === 'object' && !Array.isArray(raw.lead))
@@ -100,7 +118,11 @@ export function parseInsight(content: string | null | undefined): ConversationIn
       ? (raw.entities as Record<string, unknown>) : {},
     commitments: Array.isArray(raw.commitments)
       ? (raw.commitments as unknown[]).filter((x): x is string => typeof x === 'string').slice(0, 20) : [],
+    objections: Array.isArray(raw.objections)
+      ? (raw.objections as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim().length > 0).slice(0, 20) : [],
     sentiment: sentiment && SENTIMENTS.has(sentiment) ? (sentiment as ConversationInsight['sentiment']) : null,
+    urgency: urgency && URGENCIES.has(urgency) ? (urgency as ConversationInsight['urgency']) : null,
+    language: language && LANGUAGES.has(language) ? (language as ConversationInsight['language']) : null,
     next_action: naType && NEXT_ACTION_TYPES.has(naType) ? { type: naType, label: s(na?.label) ?? '' } : null,
     lead,
   }

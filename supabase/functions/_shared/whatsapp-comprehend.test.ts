@@ -53,8 +53,42 @@ describe('parseInsight', () => {
   })
   it('JSON invalide → défauts sûrs', () => {
     expect(parseInsight('{ pas du json')).toEqual({
-      summary: null, intent: null, entities: {}, commitments: [], sentiment: null, next_action: null, lead: null,
+      summary: null, intent: null, entities: {}, commitments: [], objections: [],
+      sentiment: null, urgency: null, language: null, next_action: null, lead: null,
     })
+  })
+  it('extrait objections/urgency/language valides', () => {
+    const i = parseInsight(JSON.stringify({
+      objections: ['trop cher', 'quartier bruyant', 42], urgency: 'haute', language: 'de',
+    }))
+    expect(i.objections).toEqual(['trop cher', 'quartier bruyant']) // le non-string est filtré
+    expect(i.urgency).toBe('haute')
+    expect(i.language).toBe('de')
+  })
+  it('rejette urgency/language hors whitelist (défensif comme sentiment)', () => {
+    const i = parseInsight(JSON.stringify({ urgency: 'critique', language: 'es', objections: 'pas un tableau' }))
+    expect(i.urgency).toBeNull()
+    expect(i.language).toBeNull()
+    expect(i.objections).toEqual([]) // objections non-tableau → []
+  })
+  it('normalise la casse de language (FR → fr)', () => {
+    expect(parseInsight(JSON.stringify({ language: 'FR' })).language).toBe('fr')
+  })
+  it('contenu JSON non-objet (null / tableau / nombre) → défauts sûrs, jamais de throw', () => {
+    const defaults = {
+      summary: null, intent: null, entities: {}, commitments: [], objections: [],
+      sentiment: null, urgency: null, language: null, next_action: null, lead: null,
+    }
+    expect(parseInsight('null')).toEqual(defaults)   // JSON.parse('null') === null
+    expect(parseInsight('[1,2,3]')).toEqual(defaults)
+    expect(parseInsight('42')).toEqual(defaults)
+  })
+  it('borne objections à 20 et filtre les entrées vides', () => {
+    const many = Array.from({ length: 25 }, (_, i) => `frein ${i}`)
+    const i = parseInsight(JSON.stringify({ objections: ['  ', '', ...many] }))
+    expect(i.objections).toHaveLength(20)         // cap dur
+    expect(i.objections).not.toContain('')        // vides filtrées avant le cap
+    expect(i.objections[0]).toBe('frein 0')
   })
   it('extrait le lead tiers', () => {
     const i = parseInsight(JSON.stringify({ lead: { is_third_party: true, first_name: 'Sarah', last_name: 'Williams' } }))
