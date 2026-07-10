@@ -1,17 +1,18 @@
 // supabase/functions/extract-property-pdf/index.ts
-// Extracts structured property data from a PDF using Claude API.
-// Authenticated agents only — uses Anthropic credits, so anon access is blocked.
+// Extracts structured property data from a PDF using Gemini Vision (native PDF).
+// Authenticated agents only — uses AI credits, so anon access is blocked.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { readDocument } from '../_shared/vision.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// 10 MB cap on base64 payload (Claude PDF support tops out around there too,
-// and prevents a single agent from running up the Anthropic bill on one call).
+// 10 MB cap on base64 payload (Gemini inline PDF tops out around there too,
+// and prevents a single agent from running up the AI bill on one call).
 const MAX_PDF_BASE64_BYTES = 10 * 1024 * 1024
 
 // Per-agency monthly quotas — mirror virtual-staging shape. PDF extraction
@@ -70,10 +71,10 @@ serve(async (req) => {
     if (auth instanceof Response) return auth
     const { profile, supabase } = auth
 
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
-    if (!apiKey) {
+    const geminiKey = Deno.env.get('GEMINI_API_KEY') || Deno.env.get('GOOGLE_AI_API_KEY')
+    if (!geminiKey) {
       return new Response(
-        JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
+        JSON.stringify({ error: 'GEMINI_API_KEY not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -129,56 +130,22 @@ serve(async (req) => {
       )
     }
 
-    // Call Claude API with PDF document
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
-                  data: pdf_base64,
-                },
-                cache_control: { type: 'ephemeral' },
-              },
-              {
-                type: 'text',
-                text: EXTRACTION_PROMPT,
-              },
-            ],
-          },
-        ],
-      }),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Claude API error:', errorText)
+    // Extraction via Gemini Vision (lecture PDF native), JSON strict.
+    const pdfBytes = Uint8Array.from(atob(pdf_base64), (c) => c.charCodeAt(0))
+    const gemini = await readDocument(pdfBytes, 'application/pdf', geminiKey, { prompt: EXTRACTION_PROMPT, json: true })
+    if (!gemini.ok) {
+      console.error('Gemini PDF extraction error:', gemini.error ?? 'unknown')
       return new Response(
-        JSON.stringify({ error: 'Claude API error', details: errorText }),
+        JSON.stringify({ error: 'AI extraction error' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+    const text = gemini.text
 
-    const result = await response.json()
-    const text = result.content?.[0]?.text ?? ''
-
-    // Parse the JSON from Claude's response
+    // Parse the JSON from the model's response
     let extracted
     try {
-      // Find JSON in the response (Claude sometimes wraps it in ```json blocks)
+      // Find JSON in the response (the model sometimes wraps it in ```json blocks)
       const jsonMatch = text.match(/\{[\s\S]*\}/)
       if (!jsonMatch) throw new Error('No JSON found in response')
       extracted = JSON.parse(jsonMatch[0])
@@ -191,7 +158,7 @@ serve(async (req) => {
     }
 
     // Log successful extraction for quota accounting and audit trail. We do
-    // this AFTER Claude returns so a 502/422 doesn't count against the cap.
+    // this AFTER the model returns so a 502/422 doesn't count against the cap.
     await supabase.from('activity_events').insert({
       agency_id: profile.agency_id,
       actor_id: profile.id,
@@ -202,7 +169,7 @@ serve(async (req) => {
       category: 'ai',
       metadata: {
         filename: filename ?? 'document.pdf',
-        usage: result.usage ?? null,
+        usage: null,
         usage_count: currentUsage + 1,
         quota,
       },
@@ -213,7 +180,7 @@ serve(async (req) => {
         success: true,
         data: extracted,
         filename: filename ?? 'document.pdf',
-        usage: result.usage,
+        usage: null,
         quota: { current: currentUsage + 1, limit: quota, remaining: quota - currentUsage - 1 },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

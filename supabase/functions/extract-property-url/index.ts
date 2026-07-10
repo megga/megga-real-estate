@@ -1,9 +1,10 @@
 // supabase/functions/extract-property-url/index.ts
-// Fetches a property listing URL and extracts structured data using Claude API.
-// Authenticated agents only — burns Anthropic credits per call.
+// Fetches a property listing URL and extracts structured data using DeepSeek (text).
+// Authenticated agents only — uses AI credits per call.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { callDeepSeek } from '../_shared/ai-provider.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -67,7 +68,7 @@ Règles :
 - Retourne UNIQUEMENT le JSON, pas de texte avant ou après`
 
 // Per-agency monthly quotas — mirror virtual-staging / extract-property-pdf
-// shape. URL extraction uses Claude Sonnet text (~CHF 0.01 per call), so
+// shape. URL extraction uses DeepSeek text (~CHF 0.001 per call), so
 // worst-case Pro = CHF 1/month/agent.
 const PLAN_QUOTAS: Record<string, number> = {
   starter: 5,
@@ -115,14 +116,6 @@ serve(async (req) => {
     const auth = await requireAgentAuth(req, corsHeaders)
     if (auth instanceof Response) return auth
     const { profile, supabase } = auth
-
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
 
     // ── Monthly quota check ────────────────────────────────────────────
     const { data: agency } = await supabase
@@ -252,7 +245,7 @@ serve(async (req) => {
       .replace(/\s{2,}/g, ' ')
       .trim()
 
-    // Limit to ~100K chars to stay within Claude's context
+    // Limit to ~100K chars to stay within the model's context
     const truncatedHtml = cleanedHtml.slice(0, 100_000)
 
     // Also try to extract JSON-LD structured data (many portals use it)
@@ -261,48 +254,24 @@ serve(async (req) => {
       .map(block => block.replace(/<\/?script[^>]*>/gi, '').trim())
       .join('\n')
 
-    // Call Claude API with the HTML content
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `URL source : ${url}\n\n${jsonLdBlocks ? `--- JSON-LD structured data ---\n${jsonLdBlocks}\n\n` : ''}--- HTML de la page (nettoyé) ---\n${truncatedHtml}`,
-              },
-              {
-                type: 'text',
-                text: EXTRACTION_PROMPT,
-              },
-            ],
-          },
-        ],
-      }),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Claude API error:', errorText)
+    // Extraction via DeepSeek (texte) : JSON strict + timeout large (gros output tardif).
+    let result
+    try {
+      result = await callDeepSeek(
+        [{ role: 'user', content: `URL source : ${url}\n\n${jsonLdBlocks ? `--- JSON-LD structured data ---\n${jsonLdBlocks}\n\n` : ''}--- HTML de la page (nettoyé) ---\n${truncatedHtml}` }],
+        EXTRACTION_PROMPT,
+        { maxTokens: 4096, timeoutMs: 30000, responseFormat: 'json_object', agencyId: profile.agency_id, module: 'extract-property-url' },
+      )
+    } catch (err) {
+      console.error('DeepSeek extraction error:', (err as Error)?.message ?? 'error')
       return new Response(
-        JSON.stringify({ error: 'Claude API error', details: errorText }),
+        JSON.stringify({ error: 'AI extraction error' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+    const text = result.text ?? ''
 
-    const result = await response.json()
-    const text = result.content?.[0]?.text ?? ''
-
-    // Parse the JSON from Claude's response
+    // Parse the JSON from the model's response
     let extracted
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/)
@@ -332,7 +301,7 @@ serve(async (req) => {
       metadata: {
         source_url: url,
         source_portal: (extracted as { source_portal?: string } | null)?.source_portal ?? null,
-        usage: result.usage ?? null,
+        usage: { input_tokens: result.input_tokens, output_tokens: result.output_tokens },
         usage_count: currentUsage + 1,
         quota,
       },
@@ -343,7 +312,7 @@ serve(async (req) => {
         success: true,
         data: extracted,
         source_url: url,
-        usage: result.usage,
+        usage: { input_tokens: result.input_tokens, output_tokens: result.output_tokens },
         quota: { current: currentUsage + 1, limit: quota, remaining: quota - currentUsage - 1 },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

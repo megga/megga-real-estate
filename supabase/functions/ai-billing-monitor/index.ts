@@ -2,8 +2,8 @@
 // Fetches DeepSeek account balance and stores a snapshot in ai_balance_snapshots.
 // Called hourly by pg_cron (via service_role) or manually by super_admin.
 //
-// Anthropic has no public balance endpoint — only DeepSeek is monitored here.
-// Claude cost is tracked via ai_usage_logs (estimated_cost_usd).
+// Only DeepSeek exposes a balance endpoint (Gemini/Google billing is separate).
+// Per-call AI cost is tracked via ai_usage_logs (estimated_cost_usd).
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
