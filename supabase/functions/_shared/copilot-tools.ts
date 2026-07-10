@@ -10,6 +10,7 @@
 
 import { WHATSAPP_TOOLS, type DeepSeekTool } from './whatsapp-tools.ts'
 import { toolTier } from './whatsapp-agent-router.ts'
+import { NBA_PROMPT_GUARDRAIL } from './contact-nba.ts'
 
 export type { DeepSeekTool }
 
@@ -204,7 +205,7 @@ const PUBLISH_MISSING_NO_WRITES = ` S'il manque une info, dis à l'agent de comp
  *  pour ne jamais se contredire (pas de « aucune écriture » quand la publication est on ;
  *  pas de mention update_property quand les écritures sont coupées). */
 export function copilotToolsBlock(writesEnabled: boolean, publishEnabled = false): string {
-  let block = TOOLS_BLOCK_BASE
+  let block = TOOLS_BLOCK_BASE + `\n- ${NBA_PROMPT_GUARDRAIL}`
   if (writesEnabled) block += TOOLS_BLOCK_WRITES
   else if (!publishEnabled) block += TOOLS_BLOCK_READONLY
   if (publishEnabled) block += TOOLS_BLOCK_PUBLISH + (writesEnabled ? PUBLISH_MISSING_WITH_WRITES : PUBLISH_MISSING_NO_WRITES)
