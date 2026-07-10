@@ -34,6 +34,13 @@ export interface WhatsAppHealth {
   top_errors: Array<{ error: string; count: number }>
   unmapped_inbound_7d: number
   cron_locks: Array<{ job: string; locked_until: string }>
+  // Dead-letters (migration 20260710163000) : signaux d'échec des files WA
+  // fusionnés par get_admin_whatsapp_health via get_whatsapp_deadletter_metrics.
+  processing_failed: number
+  processing_deadletter: number
+  agent_errors_24h: number
+  delivery_failed_24h: number
+  async_jobs_failed_24h: number
   /** Calculé au fetch (pas au render — react-hooks/purity) : webhook muet >24h. */
   webhook_stale: boolean
 }

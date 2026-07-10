@@ -20,6 +20,7 @@ interface AlertThresholds {
   deepseek_balance_min_usd: number
   whatsapp_token_days: number
   edge_errors_24h: number
+  whatsapp_deadletter_max: number
 }
 
 const DEFAULT_THRESHOLDS: AlertThresholds = {
@@ -28,13 +29,28 @@ const DEFAULT_THRESHOLDS: AlertThresholds = {
   deepseek_balance_min_usd: 2,
   whatsapp_token_days: 7,
   edge_errors_24h: 10,
+  // Nouveaux échecs définitifs WhatsApp sur 24h (média non rejouable + jobs KYC
+  // async échoués). Au-delà → alerte. Taux fenêtré, pas backlog cumulatif.
+  whatsapp_deadletter_max: 5,
 }
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000
 
+export interface WhatsAppDeadletters {
+  processing_failed: number
+  /** Cumulatif à vie (aucune purge) — tendance/affichage, JAMAIS l'alerting. */
+  processing_deadletter: number
+  /** Fenêtré 24h — signal d'alerte actionnable qui s'auto-résout. */
+  processing_deadletter_24h: number
+  agent_errors_24h: number
+  delivery_failed_24h: number
+  async_jobs_failed_24h: number
+}
+
 interface AlertSignals {
   errorCount24h: number
   flatfoxLastSeen: string | null
+  waDeadletters?: WhatsAppDeadletters
   now: Date
 }
 
@@ -134,6 +150,24 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       subject: 'Pic d\'erreurs edge functions',
       body: `${signals.errorCount24h} erreurs edge sur 24h (seuil : ${thresholds.edge_errors_24h}). Voir /dashboard/admin/monitoring.`,
     })
+  }
+
+  // 6. Dead-letters WhatsApp — alerte sur le TAUX 24h (nouveaux échecs
+  // définitifs), pas sur le backlog cumulatif : processing_deadletter ne
+  // décroît jamais (aucune purge des lignes mortes), donc l'alerter dessus
+  // ré-enverrait à vie une fois le seuil franchi. Le taux 24h s'auto-résout
+  // dès que le pipeline se rétablit ; le backlog cumulatif est cité pour le
+  // triage. Compteurs 24h purs (agent/livraison) = tendance sans alerte (bruit).
+  const dl = signals.waDeadletters
+  if (dl) {
+    const newlyStuck = dl.processing_deadletter_24h + dl.async_jobs_failed_24h
+    if (newlyStuck > thresholds.whatsapp_deadletter_max) {
+      alerts.push({
+        key: 'whatsapp:deadletter',
+        subject: 'Files WhatsApp bloquées',
+        body: `${newlyStuck} nouvel(le)(s) file(s) WhatsApp en échec définitif sur 24h (seuil : ${thresholds.whatsapp_deadletter_max}) — ${dl.processing_deadletter_24h} média/transcription non rejouable(s) et ${dl.async_jobs_failed_24h} job(s) KYC async échoué(s). Backlog cumulatif : ${dl.processing_deadletter}. Voir /dashboard/admin/monitoring.`,
+      })
+    }
   }
 
   if (alerts.length === 0) return
