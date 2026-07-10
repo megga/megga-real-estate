@@ -138,7 +138,7 @@ describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', 
     if (mErr) throw new Error(`match: ${mErr.message}`)
     const mkRem = async (delta: number, type: string) => {
       const { error } = await svc.from('reminders').insert({
-        agency_id: setup.agencyAId, contact_id: c, type, trigger_rule: 'nba_qa',
+        agency_id: setup.agencyAId, contact_id: c, type, trigger_rule: 'manual',
         status: 'triggered', trigger_at: iso(delta),
       })
       if (error) throw new Error(`reminder: ${error.message}`)
@@ -306,7 +306,7 @@ describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', 
     const cQuiet = await mkContact({ lastInteraction: iso(-1 * DAY) })
     const { error } = await svc.from('reminders').insert({
       agency_id: setup.agencyAId, contact_id: cSignal, type: 'dormant_lead',
-      trigger_rule: 'nba_qa', status: 'triggered', trigger_at: iso(-1 * DAY),
+      trigger_rule: 'manual', status: 'triggered', trigger_at: iso(-1 * DAY),
     })
     if (error) throw new Error(`reminder: ${error.message}`)
     const nba = await core(cQuiet, setup.agencyAId)
