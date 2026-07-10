@@ -12,7 +12,10 @@ export interface ConversationInsightRow {
   intent: string | null
   entities: Record<string, unknown>
   commitments: string[]
+  objections: string[]
   sentiment: 'positif' | 'neutre' | 'tendu' | null
+  urgency: 'haute' | 'moyenne' | 'faible' | null
+  language: 'fr' | 'de' | 'en' | 'it' | null
   next_action: { type: string; label: string } | null
   source_message_count: number
   generated_at: string
@@ -26,7 +29,7 @@ export function useConversationInsight(contactId: string | undefined) {
     queryFn: async (): Promise<ConversationInsightRow | null> => {
       const { data, error } = await supabase
         .from('whatsapp_conversation_insights')
-        .select('contact_id, summary, intent, entities, commitments, sentiment, next_action, source_message_count, generated_at')
+        .select('contact_id, summary, intent, entities, commitments, objections, sentiment, urgency, language, next_action, source_message_count, generated_at')
         .eq('contact_id', contactId!)
         .maybeSingle()
       if (error) throw error

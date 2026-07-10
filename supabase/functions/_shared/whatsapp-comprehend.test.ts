@@ -12,6 +12,30 @@ describe('buildThreadDigest', () => {
   it('ignore les messages sans texte', () => {
     expect(buildThreadDigest([{ direction: 'inbound', body: '', transcript: null, created_at: 'x' }])).toBe('')
   })
+  it('scrubbe les PII sensibles avant l\'envoi LLM (AVS/IBAN/mdp) mais garde nom/téléphone', () => {
+    const d = buildThreadDigest([
+      { direction: 'inbound', body: 'Mon AVS 756.1234.5678.90, IBAN CH93 0076 2011 6238 5295 7, mdp: secret123', transcript: null, created_at: 'a' },
+      { direction: 'outbound', body: 'Bien reçu Sarah, je vous appelle au 079 123 45 67', transcript: null, created_at: 'b' },
+    ])
+    expect(d).not.toContain('756.1234.5678.90')
+    expect(d).not.toContain('CH93')
+    expect(d).not.toContain('secret123')
+    expect(d).toContain('[REDACTED:AVS]')
+    expect(d).toContain('[REDACTED:IBAN]')
+    expect(d).toContain('[REDACTED:PASSWORD]')
+    // Contact info préservée : l'extraction du lead (nom/téléphone/email) en dépend.
+    expect(d).toContain('Sarah')
+    expect(d).toContain('079 123 45 67')
+  })
+  it('scrubbe aussi les PII des transcripts vocaux (canal principal des notes vocales)', () => {
+    // Note vocale : body=null, PII dans le transcript (Deepgram). buildThreadDigest
+    // rédige transcript||body via la même passe → le canal vocal est couvert.
+    const d = buildThreadDigest([
+      { direction: 'inbound', body: null, transcript: 'alors mon numéro AVS c\'est 756.1234.5678.90', created_at: 'a' },
+    ])
+    expect(d).not.toContain('756.1234.5678.90')
+    expect(d).toContain('[REDACTED:AVS]')
+  })
 })
 
 describe('parseInsight', () => {
@@ -29,8 +53,42 @@ describe('parseInsight', () => {
   })
   it('JSON invalide → défauts sûrs', () => {
     expect(parseInsight('{ pas du json')).toEqual({
-      summary: null, intent: null, entities: {}, commitments: [], sentiment: null, next_action: null, lead: null,
+      summary: null, intent: null, entities: {}, commitments: [], objections: [],
+      sentiment: null, urgency: null, language: null, next_action: null, lead: null,
     })
+  })
+  it('extrait objections/urgency/language valides', () => {
+    const i = parseInsight(JSON.stringify({
+      objections: ['trop cher', 'quartier bruyant', 42], urgency: 'haute', language: 'de',
+    }))
+    expect(i.objections).toEqual(['trop cher', 'quartier bruyant']) // le non-string est filtré
+    expect(i.urgency).toBe('haute')
+    expect(i.language).toBe('de')
+  })
+  it('rejette urgency/language hors whitelist (défensif comme sentiment)', () => {
+    const i = parseInsight(JSON.stringify({ urgency: 'critique', language: 'es', objections: 'pas un tableau' }))
+    expect(i.urgency).toBeNull()
+    expect(i.language).toBeNull()
+    expect(i.objections).toEqual([]) // objections non-tableau → []
+  })
+  it('normalise la casse de language (FR → fr)', () => {
+    expect(parseInsight(JSON.stringify({ language: 'FR' })).language).toBe('fr')
+  })
+  it('contenu JSON non-objet (null / tableau / nombre) → défauts sûrs, jamais de throw', () => {
+    const defaults = {
+      summary: null, intent: null, entities: {}, commitments: [], objections: [],
+      sentiment: null, urgency: null, language: null, next_action: null, lead: null,
+    }
+    expect(parseInsight('null')).toEqual(defaults)   // JSON.parse('null') === null
+    expect(parseInsight('[1,2,3]')).toEqual(defaults)
+    expect(parseInsight('42')).toEqual(defaults)
+  })
+  it('borne objections à 20 et filtre les entrées vides', () => {
+    const many = Array.from({ length: 25 }, (_, i) => `frein ${i}`)
+    const i = parseInsight(JSON.stringify({ objections: ['  ', '', ...many] }))
+    expect(i.objections).toHaveLength(20)         // cap dur
+    expect(i.objections).not.toContain('')        // vides filtrées avant le cap
+    expect(i.objections[0]).toBe('frein 0')
   })
   it('extrait le lead tiers', () => {
     const i = parseInsight(JSON.stringify({ lead: { is_third_party: true, first_name: 'Sarah', last_name: 'Williams' } }))

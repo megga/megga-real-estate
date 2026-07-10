@@ -11,6 +11,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
+import { buildStyleDistillPrompt } from '../_shared/agent-style.ts'
 
 const MIN_MSGS = 10            // pas de profil tant qu'on n'a pas assez de signal
 const SAMPLE = 30              // derniers messages échantillonnés
@@ -52,7 +53,9 @@ serve(async (req) => {
     const texts = (msgs ?? []).map((m) => (m.body as string)).filter((b) => b && b.trim().length > 1)
     if (texts.length < MIN_MSGS) continue
 
-    const prompt = `Voici des messages écrits par un agent immobilier à son assistante. Résume SON style de communication. Réponds UNIQUEMENT en JSON strict: {"language":"fr|en|mixed","formality":"tu|vous|direct","emoji":true|false,"traits":"1-2 phrases sur ses tournures/préférences"}. RÈGLE ABSOLUE: décris le STYLE seulement — AUCUN nom, adresse, montant, ni donnée de contact. Messages:\n${texts.slice(0, SAMPLE).map((t) => `- ${t.slice(0, 200)}`).join('\n')}`
+    // Prompt distillé + PII scrubbées (AVS/IBAN/… jamais envoyées à DeepSeek).
+    // Helper PUR → couvert par agent-style.test.ts (edge fn Deno hors vitest).
+    const prompt = buildStyleDistillPrompt(texts)
     let style: { language: string; formality: string; emoji: boolean; traits: string } | null = null
     try {
       const started = Date.now()

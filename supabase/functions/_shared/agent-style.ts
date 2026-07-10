@@ -1,7 +1,24 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { redactPII } from './pii-redaction.ts'
 
 /** Un vrai message destiné à un client, source de mimétisme de voix (few-shot). */
 export type VoiceSample = { body: string }
+
+const DISTILL_SAMPLE = 30      // messages échantillonnés pour la distillation de style
+const DISTILL_CHARS = 200      // borne par message (coût + focus)
+
+/** Prompt de distillation du STYLE d'un agent (cron learn-agent-style).
+ *  Rédige les PII de CHAQUE message AVANT toute troncature (une clé/IBAN coupé
+ *  échapperait au regex → on rédige le texte entier puis on borne), de sorte
+ *  qu'aucun identifiant sensible ne parte vers DeepSeek. On distille le TON,
+ *  jamais la donnée. Pur → testable sous Vitest. cf. _shared/pii-redaction.ts. */
+export function buildStyleDistillPrompt(texts: string[]): string {
+  const samples = texts
+    .slice(0, DISTILL_SAMPLE)
+    .map((t) => `- ${redactPII(t).redactedText.slice(0, DISTILL_CHARS)}`)
+    .join('\n')
+  return `Voici des messages écrits par un agent immobilier à son assistante. Résume SON style de communication. Réponds UNIQUEMENT en JSON strict: {"language":"fr|en|mixed","formality":"tu|vous|direct","emoji":true|false,"traits":"1-2 phrases sur ses tournures/préférences"}. RÈGLE ABSOLUE: décris le STYLE seulement — AUCUN nom, adresse, montant, ni donnée de contact. Messages:\n${samples}`
+}
 
 const VOICE_MIN = 2            // en dessous, pas assez de signal → bloc vide (fallback style/brief)
 const VOICE_MAX = 4            // few-shot borné (coût + focus)

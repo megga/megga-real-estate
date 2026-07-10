@@ -239,7 +239,7 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .from('client_searches').select('label, criteria')
     .eq('contact_id', contactId).eq('is_active', true).limit(3)
   const { data: insight } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, intent, sentiment, next_action, commitments, source_message_count, generated_at')
+    .select('summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at')
     .eq('contact_id', c.id).eq('agency_id', ctx.agencyId).maybeSingle()
   return JSON.stringify({ contact: c, recherches_actives: searches ?? [], timeline: timeline ?? [], comprehension: insight ?? null })
 }
@@ -2175,10 +2175,11 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
   // 2. Compréhension du fil + timeline + recherches actives (mêmes requêtes que execGetContactBrief).
   const { data: insightRow } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, intent, sentiment, next_action, commitments')
+    .select('summary, intent, sentiment, urgency, language, objections, next_action, commitments')
     .eq('contact_id', contact.id).eq('agency_id', ctx.agencyId).maybeSingle()
   const insight = insightRow as {
     summary: string | null; intent: string | null; sentiment: string | null
+    urgency: string | null; language: string | null; objections: unknown
     next_action: unknown; commitments: unknown
   } | null
 
@@ -2232,6 +2233,9 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
   const commitments = insight && Array.isArray(insight.commitments)
     ? (insight.commitments as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
     : []
+  const objections = insight && Array.isArray(insight.objections)
+    ? (insight.objections as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    : []
   const lastEvent = timeline[0]
   const lastEventLabel = lastEvent
     ? [lastEvent.action?.trim(), lastEvent.object_label?.trim()].filter(Boolean).join(' — ')
@@ -2254,6 +2258,9 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     if (insight?.summary) ctxLines.push(`Résumé de la dernière conversation : ${insight.summary}`)
     if (insight?.intent) ctxLines.push(`Intention : ${insight.intent}`)
     if (insight?.sentiment) ctxLines.push(`Ressenti : ${insight.sentiment}`)
+    if (insight?.urgency) ctxLines.push(`Urgence du besoin : ${insight.urgency}`)
+    if (objections.length) ctxLines.push(`Objections / freins : ${objections.slice(0, 5).join(' / ')}`)
+    if (insight?.language) ctxLines.push(`Langue du client : ${insight.language}`)
     if (nextActionLabel) ctxLines.push(`Prochaine action suggérée : ${nextActionLabel}`)
     if (commitments.length) ctxLines.push(`Engagements pris : ${commitments.slice(0, 5).join(' / ')}`)
     if (lastEventLabel) ctxLines.push(`Dernière action au dossier : ${lastEventLabel}`)
