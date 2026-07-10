@@ -8,6 +8,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import {
   buildDigestSnapshot, digestPrompt, digestHtml, fallbackDigest, isQuietWeek,
   type WeeklyCounts,
@@ -93,6 +94,7 @@ serve(async (req) => {
   let bodyText = fallbackDigest(counts)
   if (apiKey) {
     try {
+      const started = Date.now()
       const r = await fetch(DEEPSEEK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -104,6 +106,7 @@ serve(async (req) => {
       })
       if (r.ok) {
         const d = await r.json()
+        logDeepSeekUsageWith(supabase, d?.usage, { edgeFunction: 'weekly-digest', module: 'weekly-digest', latencyMs: Date.now() - started, agencyId })
         const raw = meggaProse(d.choices?.[0]?.message?.content || '')
         if (raw.trim()) bodyText = raw.trim()
       }

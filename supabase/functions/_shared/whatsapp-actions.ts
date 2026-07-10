@@ -26,6 +26,7 @@ import { readDocument, isReadableDocMime } from './vision.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from './agent-style.ts'
 import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts'
 import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
+import { logDeepSeekUsageWith } from './ai-usage.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -48,6 +49,16 @@ export interface ActionCtx {
 
 type Args = Record<string, unknown>
 const s = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
+
+// Attribution des coûts IA pour les exécuteurs PARTAGÉS (WhatsApp ⇄ copilote web) :
+// le même code tourne dans deux Edge Functions, donc edge_function/module doivent suivre
+// ctx.via (comme l'audit activity_events le fait déjà) — sinon un appel du copilote web
+// est faussement imputé au canal WhatsApp.
+function usageChannel(ctx: ActionCtx): { edgeFunction: string; modulePrefix: string } {
+  return ctx.via === 'web'
+    ? { edgeFunction: 'ai-copilot', modulePrefix: 'copilot' }
+    : { edgeFunction: 'whatsapp-agent', modulePrefix: 'wa' }
+}
 
 // Garde commune : aucune action si l'agent n'a pas d'agence (évite tout accès hors RLS).
 const NO_AGENCY = 'Erreur: ton compte n’est rattaché à aucune agence. Contacte un administrateur.'
@@ -1487,6 +1498,7 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
   let subject = ''
   let body = ''
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -1508,7 +1520,8 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
       console.error('DeepSeek draft email HTTP', res.status)
       return { ok: false, error: lang === 'en' ? "I couldn't draft the email — try again or rephrase." : "Je n'ai pas réussi à rédiger l'email, tu peux reformuler ?" }
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: 'whatsapp-agent', module: 'wa-draft-email', latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const raw = data?.choices?.[0]?.message?.content ?? ''
     let parsed: Record<string, unknown> = {}
     try { parsed = JSON.parse(raw) } catch { /* laisse subject/body vides */ }
@@ -1635,6 +1648,7 @@ export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise
 
   let parsed: Record<string, unknown> = {}
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -1651,7 +1665,8 @@ export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise
       console.error('DeepSeek summarize group HTTP', res.status)
       return failMsg
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: 'whatsapp-agent', module: 'wa-summarize-group', latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const raw = data?.choices?.[0]?.message?.content ?? ''
     // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`123`/`[]` passent et
     // feraient throw `typeof parsed.resume` HORS du try/catch (→ 500). Garde de forme :
@@ -1742,6 +1757,7 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
 
   let parsed: Record<string, unknown> = {}
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -1758,7 +1774,8 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
       console.error('DeepSeek check_group_leak HTTP', res.status)
       return failMsg
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: 'whatsapp-agent', module: 'wa-check-group-leak', latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const raw = data?.choices?.[0]?.message?.content ?? ''
     // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`123`/`[]` passent et
     // feraient throw `parsed.fuite` HORS du try/catch (→ 500). Garde de forme : fail CLOSED
@@ -2018,6 +2035,7 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
 
   let parsed: Record<string, unknown> = {}
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -2037,7 +2055,9 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
       console.error('DeepSeek draft listing HTTP', res.status)
       return failMsg
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    const chDraft = usageChannel(ctx)
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: chDraft.edgeFunction, module: `${chDraft.modulePrefix}-draft-listing`, latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const raw = data?.choices?.[0]?.message?.content ?? ''
     // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`[]` passent et feraient
     // throw les accès `parsed.titre` HORS du try/catch (→ 500). Garde de forme : fail CLOSED.
@@ -2261,6 +2281,7 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
     let parsed: Record<string, unknown> = {}
     try {
+      const started = Date.now()
       const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -2277,7 +2298,9 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
         console.error('DeepSeek prepare_meeting HTTP', res.status)
         pointsUnavailable = true
       } else {
-        const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+        const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+        const chMeeting = usageChannel(ctx)
+        logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: chMeeting.edgeFunction, module: `${chMeeting.modulePrefix}-prepare-meeting`, latencyMs: Date.now() - started, agencyId: ctx.agencyId })
         const raw = data?.choices?.[0]?.message?.content ?? ''
         // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`[]` passent et feraient
         // throw les accès `parsed.brief` HORS du try/catch (→ 500). Garde de forme : dégradation
@@ -2447,6 +2470,7 @@ async function readInboundDocument(ctx: ActionCtx, focus: string | null): Promis
     'Pas de préambule, pas de formule commerciale.' + focusLine + '\n\nTEXTE OCR :\n' + ocrText
 
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -2462,7 +2486,8 @@ async function readInboundDocument(ctx: ActionCtx, focus: string | null): Promis
       console.error('DeepSeek read_document HTTP', res.status)
       return { ok: true, digest: rawFallback, failMessage: null }
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: 'whatsapp-agent', module: 'wa-read-document', latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const digest = (data?.choices?.[0]?.message?.content ?? '').trim()
     return { ok: true, digest: digest || rawFallback, failMessage: null }
   } catch (e) {
