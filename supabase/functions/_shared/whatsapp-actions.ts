@@ -27,6 +27,7 @@ import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type Le
 import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts'
 import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 import { logDeepSeekUsageWith } from './ai-usage.ts'
+import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -239,9 +240,40 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .from('client_searches').select('label, criteria')
     .eq('contact_id', contactId).eq('is_active', true).limit(3)
   const { data: insight } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at')
     .eq('contact_id', c.id).eq('agency_id', ctx.agencyId).maybeSingle()
-  return JSON.stringify({ contact: c, recherches_actives: searches ?? [], timeline: timeline ?? [], comprehension: insight ?? null })
+  // NBA déterministe (cerveau partagé WhatsApp ⇄ copilote) — best-effort : ne casse
+  // JAMAIS le brief. supabase.rpc() ne throw pas → on consulte `error` explicitement
+  // (le try/catch n'est qu'un filet réseau).
+  let nextActionEstimee: Record<string, unknown> | null = null
+  try {
+    const { data: nbaRaw, error: nbaErr } = await ctx.supabase.rpc('contact_next_action', {
+      p_contact: c.id,
+      p_agency: ctx.agencyId,
+    })
+    if (nbaErr) {
+      console.error('contact_next_action rpc failed')
+    } else {
+      const nba = parseNextAction(nbaRaw)
+      if (nba) {
+        nextActionEstimee = {
+          action: nba.action,
+          label: formatNextAction(nba, ctx.lang ?? 'fr'),
+          due_at: nba.dueAt,
+          kyc_note: nba.kycNote ? formatKycNote(nba.kycNote, ctx.lang ?? 'fr') : null,
+        }
+      }
+    }
+  } catch (_e) {
+    console.error('contact_next_action threw')
+  }
+  return JSON.stringify({
+    contact: c,
+    recherches_actives: searches ?? [],
+    timeline: timeline ?? [],
+    comprehension: insight ?? null,
+    next_action_estimee: nextActionEstimee,
+  })
 }
 
 /** Leads à compléter / relancer (marqués par MEGGA). */
