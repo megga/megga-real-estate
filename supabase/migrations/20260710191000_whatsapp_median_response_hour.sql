@@ -50,8 +50,10 @@ $$;
 COMMENT ON FUNCTION public.whatsapp_median_response_hour(uuid) IS
   'Heure médiane (Europe/Zurich, 0-23) des réponses entrantes suivant un sortant, pour un contact. Repli <5 paires géré côté appelant (whatsapp-followups).';
 
--- Seul le cron (service_role) l'appelle. Pas d'EXECUTE pour anon/authenticated.
-REVOKE ALL ON FUNCTION public.whatsapp_median_response_hour(uuid) FROM PUBLIC;
+-- Seul le cron (service_role) l'appelle. On révoque explicitement anon/authenticated
+-- (les default privileges Supabase leur accordent EXECUTE, que REVOKE FROM PUBLIC
+-- ne retire pas) — même pattern que resolve_contact_by_phone.
+REVOKE ALL ON FUNCTION public.whatsapp_median_response_hour(uuid) FROM public, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.whatsapp_median_response_hour(uuid) TO service_role;
 
 COMMIT;
