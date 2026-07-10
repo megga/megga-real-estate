@@ -82,8 +82,8 @@ i18n :         react-i18next (FR/DE/EN/IT)
 
 Backend :      Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1)
                PostgreSQL 15+ / Edge Functions (Deno) / Auth / Storage / Realtime / pgvector / pg_cron
-IA :           DeepSeek (deepseek-chat) par défaut via Edge Functions — décision coût
-               Claude (Sonnet 4) sur surfaces ciblées : dashboard-ai-hint, extract-lead, kyc-screening
+IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions — décision coût
+               Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
 Email :        Resend (megga.ch DKIM/SPF)
 Payments :     Stripe
 Hosting :      Cloudflare Pages
@@ -279,7 +279,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Réseau inter-agences (`/dashboard/network`, `NetworkSugarV2Page`) : 🚧 EN CONSTRUCTION.** Prototype hi-fi en données d'exemple (5 vues, dont 3 « Coming soon ») — aucun backend (pas de table `agency_partners`/`shared_listings`, pas de RLS cross-agence). Un bandeau « en construction » est affiché sur la page. Le module réel (partage de biens inter-agences + RLS + modèles PDF) arrivera plus tard ; ne pas présenter cette page comme livrée.
 
-**MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. Inférence = DeepSeek par défaut (coût) ; Claude réservé à dashboard-ai-hint / extract-lead et kyc-screening.
+**MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. **Inférence texte = DeepSeek partout** ; **vision/OCR/PDF = Gemini** (photo-vision, extract-property-pdf via `_shared/vision.ts`). **AUCUN Claude/Anthropic** (retiré ; kyc-screening = Dilisense déterministe seul).
 
 **Portail vendeur :** `/portail/:token` — page unique « Votre vente » (VotreVentePage, lecture seule), dev route `/portail` (PortalDevWrapper + mock data).
 
@@ -289,7 +289,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 ### Secrets Supabase
 ```
-ANTHROPIC_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
+DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 ```

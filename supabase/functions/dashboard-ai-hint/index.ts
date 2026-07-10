@@ -5,12 +5,13 @@
 // suggestion actionnable contextualisée pour l'agent. Compliance-enabling :
 // l'agent décide, pas l'IA.
 //
-// Caching côté client (staleTime 1h) — pas de spam Claude API.
+// Caching côté client (staleTime 1h) — pas de spam de l'API IA.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { meggaProse } from '../_shared/megga-prose.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { callDeepSeek } from '../_shared/ai-provider.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +65,7 @@ Règles strictes :
 Compliance-enabling : tu suggères, l'agent décide. Pas de promesses, pas de pourcentages inventés.`
 
 function fallbackHint(s: SnapshotInput): HintOutput {
-  // Heuristique de secours si Claude API échoue
+  // Heuristique de secours si l'appel IA échoue
   if (s.vitals.kycRisk > 0) {
     return {
       label: 'Action prioritaire',
@@ -93,7 +94,7 @@ function fallbackHint(s: SnapshotInput): HintOutput {
   }
 }
 
-async function callClaude(snapshot: SnapshotInput, apiKey: string): Promise<HintOutput | null> {
+async function generateHint(snapshot: SnapshotInput, agencyId: string | null): Promise<HintOutput | null> {
   const userPrompt = `Snapshot ${snapshot.label} (${snapshot.scope === 'me' ? 'agent' : 'équipe'}) :
 - Projeté : CHF ${snapshot.projected.toLocaleString('fr-CH')} / objectif CHF ${snapshot.target.toLocaleString('fr-CH')} (${snapshot.deltaPct >= 0 ? '+' : ''}${snapshot.deltaPct} %)
 - ${snapshot.daysLeft} j restants
@@ -103,24 +104,18 @@ async function callClaude(snapshot: SnapshotInput, apiKey: string): Promise<Hint
 
 Quelle est l'action prioritaire de la semaine ?`
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 400,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  })
-  if (!resp.ok) return null
-  const json = await resp.json() as { content?: Array<{ text?: string }> }
-  const text = json.content?.[0]?.text ?? ''
-  // Extract JSON object — Claude peut envelopper en markdown ```json ... ```
+  let aiResp
+  try {
+    aiResp = await callDeepSeek(
+      [{ role: 'user', content: userPrompt }],
+      SYSTEM_PROMPT,
+      { maxTokens: 400, agencyId: agencyId ?? undefined, module: 'dashboard-hint' },
+    )
+  } catch {
+    return null
+  }
+  const text = aiResp.text ?? ''
+  // Extract JSON object — le modèle peut envelopper en markdown ```json ... ```
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) return null
   try {
@@ -169,7 +164,7 @@ serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Auth agent obligatoire : coupe l'abus anonyme de Claude (coût) et l'injection
+  // Auth agent obligatoire : coupe l'abus anonyme de l'IA (coût) et l'injection
   // cross-tenant dans activity_events (agency_id était contrôlé par l'appelant). cf. S1c.
   const auth = await requireAgentAuth(req, corsHeaders)
   if (auth instanceof Response) return auth
@@ -184,23 +179,18 @@ serve(async (req: Request) => {
       })
     }
 
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     let hint: HintOutput
-    let usedClaude = false
-    if (apiKey) {
-      const claudeHint = await callClaude(snapshot, apiKey)
-      if (claudeHint) {
-        hint = claudeHint
-        usedClaude = true
-      } else {
-        hint = fallbackHint(snapshot)
-      }
+    let usedAI = false
+    const aiHint = await generateHint(snapshot, auth.profile.agency_id)
+    if (aiHint) {
+      hint = aiHint
+      usedAI = true
     } else {
       hint = fallbackHint(snapshot)
     }
 
     // Log async (n'attend pas la fin)
-    void logHint(auth.profile.agency_id, snapshot, hint, usedClaude)
+    void logHint(auth.profile.agency_id, snapshot, hint, usedAI)
 
     return new Response(JSON.stringify(hint), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
