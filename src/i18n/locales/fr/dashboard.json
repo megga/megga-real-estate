@@ -555,7 +555,8 @@
     "stage": {
       "signed": "Signé",
       "compromis": "Compromis",
-      "offer": "Offre"
+      "offer": "Offre",
+      "visit": "Visite"
     },
     "dealFallback": "Deal",
     "title": "Performance",
@@ -595,7 +596,14 @@
       "setInSettingsAgency": "Le fixer dans Réglages › Agence.",
       "targetSetByAgency": "Objectif fixé par l'agence",
       "editInSettings": "Modifier dans Réglages",
-      "targetUnsetHint": "Objectif non défini · le fixer dans Réglages"
+      "targetUnsetHint": "Objectif non défini · le fixer dans Réglages",
+      "realized": "Réalisé",
+      "remaining": "Reste",
+      "objectiveLabel": "Objectif",
+      "modify": "Modifier",
+      "aheadShort": "d'avance",
+      "behindShort": "de retard",
+      "paceMarkerTitle": "Où tu devrais en être à ce stade"
     },
     "fallback": {
       "defaultRate_one": "{{count}} bien au taux 3 % par défaut",
@@ -623,7 +631,8 @@
       "bestChannel": "= ton meilleur canal",
       "empty": "Aucune source sur la période",
       "leadCount_one": "lead",
-      "leadCount_other": "leads"
+      "leadCount_other": "leads",
+      "dealsTitle": "Sources des deals"
     },
     "drawer": {
       "bucket": {
@@ -659,7 +668,35 @@
       "goalLabel": "objectif",
       "pointFallback": "Point {{n}}",
       "projected": "projeté",
-      "vsPace": "vs rythme"
+      "vsPace": "vs rythme",
+      "objectiveShort": "objectif {{amount}}",
+      "prudent": "prudent {{amount}}",
+      "projectedShort": "proj.",
+      "pointWordFallback": "Point"
+    },
+    "drill": {
+      "filesCount_one": "{{count}} dossier",
+      "filesCount_other": "{{count}} dossiers",
+      "openInPipeline": "Ouvrir dans le Pipeline",
+      "openNFiles": "Ouvrir les {{count}} dossiers dans le Pipeline",
+      "emptyBucket": "Ouvre le Pipeline pour voir les dossiers de cette catégorie.",
+      "topFiles": "Principaux dossiers"
+    },
+    "gate": {
+      "eyebrow": "Première connexion",
+      "title": "Fixe ton objectif annuel",
+      "placeholder": "1'200'000",
+      "cta": "Définir mon objectif",
+      "saving": "Enregistrement…",
+      "error": "L'enregistrement a échoué. Réessaie."
+    },
+    "firstrun": {
+      "objectiveEyebrow": "Objectif annuel",
+      "objectiveSet": "Objectif fixé",
+      "objectiveCaption": "Ta trajectoire démarre à ta première commission. Modifiable dans Réglages.",
+      "compositionCaption": "Ton premier deal remplira cette carte.",
+      "trajectoryStart": "Ta courbe démarre ici, à ta première commission",
+      "sourcesCaption": "Tes canaux apparaîtront dès ton premier deal."
     }
   },
   "task": {

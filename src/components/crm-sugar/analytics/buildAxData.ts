@@ -12,7 +12,7 @@
 import type { TFunction } from 'i18next'
 import { formatCHF } from '@/lib/utils'
 import type {
-  AxPeriodId, AxPeriodData, AxSeries, AxKpi, AxCompositionItem, AxSource, AxDeal, AxBucketId, AxBucket,
+  AxPeriodId, AxPeriodData, AxSeries, AxKpi, AxCompositionItem, AxSource, AxDeal, AxBucketId, AxBucket, AxRecord,
 } from './tokens'
 
 // i18n : adaptateur PUR mais à libellés traduits → un traducteur `t` (lié au
@@ -111,6 +111,7 @@ function stageLabel(raw: string, t: TFunction): string {
     case 'Signé': return t('analytics.stage.signed')
     case 'Compromis': return t('analytics.stage.compromis')
     case 'Offre': return t('analytics.stage.offer')
+    case 'Visite': return t('analytics.stage.visit')
     default: return raw
   }
 }
@@ -176,6 +177,47 @@ function probaForStage(stage: string): number {
     case 'Offre': return Math.round(DECOMP_PROBABILITY.offres * 100)
     default: return Math.round(DECOMP_PROBABILITY.pipeline * 100)
   }
+}
+
+// ── Bucket de composition d'un stage BRUT (cohérent avec la décompo pondérée) ──
+function stageToBucket(rawStage: string): AxBucketId {
+  switch (rawStage) {
+    case 'Signé':
+    case 'Compromis': return 'secured'
+    case 'Offre': return 'probable'
+    default: return 'possible'
+  }
+}
+
+// ── Records du popover de composition : dérivés des VRAIS contributeurs cockpit
+// (déjà top-5 par montant côté SQL), regroupés par bucket. Aucun chiffre inventé :
+// un bucket sans contributeur dans le top-5 renvoie une liste vide → le popover
+// dégrade honnêtement (« ouvrir le Pipeline »). Le total du bucket reste porté
+// par la composition pondérée (source unique), pas par la somme des items listés.
+function buildRecords(
+  contributors: CockpitJson['contributors'],
+  composition: AxCompositionItem[],
+  t: TFunction,
+): Record<AxBucketId, AxBucket> {
+  const byBucket: Record<AxBucketId, AxRecord[]> = { secured: [], probable: [], possible: [] }
+  for (const c of contributors ?? []) {
+    const bucket = stageToBucket(c.stage)
+    byBucket[bucket].push({
+      prop: c.name ?? t('analytics.dealFallback'),
+      loc: '',
+      gmv: 0,
+      comm: c.price_missing ? 0 : (c.amount ?? 0),
+      prob: probaForStage(c.stage),
+      state: stageLabel(c.stage, t),
+    })
+  }
+  const metaOf = (k: AxBucketId): AxCompositionItem | undefined => composition.find(c => c.k === k)
+  const mk = (k: AxBucketId): AxBucket => ({
+    label: metaOf(k)?.label ?? k,
+    hint: metaOf(k)?.hint ?? '',
+    items: byBucket[k].sort((a, b) => b.comm - a.comm),
+  })
+  return { secured: mk('secured'), probable: mk('probable'), possible: mk('possible') }
 }
 
 // ── Adaptateur principal ─────────────────────────────────────────────────────
@@ -288,7 +330,9 @@ export function buildAxData(
     targetIsSet: !!objectif.target_is_set,
     commissionFlags,
     closing,
-    records: null, // Drawer drill-down différé V1 → « détails indisponibles ».
+    // Popover de composition : contributeurs réels regroupés par bucket (jamais
+    // de fixture). Bucket vide → dégradation honnête côté UI.
+    records: buildRecords(cockpit.contributors ?? [], composition, t),
   }
 }
 

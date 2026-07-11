@@ -83,10 +83,14 @@ export default function DashboardSugarV4Page() {
 
   return (
     <div
-      data-screen-label="CRM Dashboard Analytics (cockpit commission)"
+      data-screen-label="CRM Dashboard Analytics (cockpit commission fusion)"
       style={{
-        minHeight: '100vh',
+        position: 'relative',
+        height: '100vh',
         width: '100%',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
         background: sp.pageBg,
         fontFamily: "'Manrope', system-ui, sans-serif",
         color: sp.ink,
@@ -102,7 +106,7 @@ export default function DashboardSugarV4Page() {
         onCmd={onCmd}
       />
 
-      <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail
           active="dashboard"
           onNavigate={onNavigate}
@@ -112,13 +116,14 @@ export default function DashboardSugarV4Page() {
           sp={sp}
         />
 
-        <main
-          className="sg-main-padded"
-          style={{ flex: 1, minWidth: 0, padding: '30px 48px 96px' }}
-        >
-          <AXCtx.Provider value={axTheme}>
-            <AxDashboardBody embedded dark={dark} setDark={setDark} onNavigate={onNavigate} />
-          </AXCtx.Provider>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+          <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg }}>
+            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', padding: '20px 24px 22px' }}>
+              <AXCtx.Provider value={axTheme}>
+                <AxDashboardBody embedded dark={dark} setDark={setDark} onNavigate={onNavigate} />
+              </AXCtx.Provider>
+            </div>
+          </div>
         </main>
       </div>
     </div>
