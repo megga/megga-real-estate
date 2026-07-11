@@ -1,10 +1,10 @@
 // supabase/functions/_shared/photo-vision.ts
 // Gemini Vision wrapper qui classe une photo immobilière (type de pièce +
-// scores qualité + flags). Partagé entre `photo-labeler` (bulk au moment de
-// l'upload) et `virtual-staging` (gate pré-staging sur 1 photo).
+// scores qualité + flags). Utilisé par `virtual-staging` (gate pré-staging
+// sur 1 photo). NB : `photo-labeler` (bulk à l'upload) a été retiré au
+// nettoyage code mort — plus aucun appelant frontend.
 //
 // Returns: { room, confidence, quality{...}, flags }
-// On garde le shape stable car `photo-labeler` est consommé par le frontend.
 //
 // VISION = Gemini (décision Gregory, 2 juin 2026 ; DeepSeek n'a pas de vision).
 
