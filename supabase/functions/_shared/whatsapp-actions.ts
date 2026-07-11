@@ -24,6 +24,7 @@ import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from './agent-style.ts'
+import { buildInsightContext } from './whatsapp-followup-draft.ts'
 import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts'
 import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 import { logDeepSeekUsageWith } from './ai-usage.ts'
@@ -1496,18 +1497,9 @@ export async function prepareSendClientEmail(ctx: ActionCtx, a: Args): Promise<P
   const lastName = (contact.last_name ?? '').trim()
   const clientName = [firstName, lastName].filter(Boolean).join(' ') || 'le client'
 
-  // Résumé du fil pour le contexte DeepSeek.
-  const insightContext = insight
-    ? [
-        insight.summary ? `Résumé du fil : ${insight.summary}` : null,
-        insight.intent ? `Intention du client : ${insight.intent}` : null,
-        insight.next_action && typeof insight.next_action === 'object' && insight.next_action !== null
-          && typeof (insight.next_action as Record<string, unknown>).label === 'string'
-          ? `Prochaine action suggérée : ${(insight.next_action as Record<string, unknown>).label}` : null,
-        Array.isArray(insight.commitments) && (insight.commitments as unknown[]).length
-          ? `Engagements pris : ${(insight.commitments as string[]).slice(0, 5).join(' / ')}` : null,
-      ].filter(Boolean).join('\n')
-    : ''
+  // Résumé du fil pour le contexte DeepSeek (helper partagé, testé — même bloc que le
+  // brouillon de relance ; évite la dérive entre les deux rédactions client).
+  const insightContext = buildInsightContext(insight, 'fr')
 
   const systemPrompt = `Tu es un assistant immobilier suisse expert en rédaction d'emails professionnels pour agents immobiliers.
 Tu rédiges un email POUR LE CLIENT de l'agent, au nom de l'agence.
