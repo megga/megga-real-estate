@@ -618,7 +618,11 @@
       "empty": "No source for the period",
       "leadCount_one": "lead",
       "leadCount_other": "leads",
-      "dealsTitle": "Deal sources"
+      "dealsTitle": "Deal sources",
+      "commissionTitle": "Commission by channel",
+      "commissionEmpty": "No realized commission by channel for the period",
+      "wonDeals_one": "{{count}} signed deal",
+      "wonDeals_other": "{{count}} signed deals"
     },
     "drawer": {
       "bucket": {

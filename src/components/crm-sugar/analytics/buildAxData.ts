@@ -73,7 +73,10 @@ export interface FunnelJson {
     offers: number
     compromis: number
   }
-  sources: Array<{ source: string; v: number; conv: number; prev: number }>
+  // `comm`/`won` = commission RÉALISÉE + nb de deals gagnés attribués au canal
+  // (analytics_funnel, migration 20260711120000). Optionnels : rétro-compat avant
+  // application de la migration → traités comme 0.
+  sources: Array<{ source: string; v: number; conv: number; prev: number; comm?: number; won?: number }>
   forecast: {
     n30: number; mid30: number
     n60: number; mid60: number
@@ -289,9 +292,10 @@ export function buildAxData(
     label: sourceLabel(s.source, t),
     // sous-libellé = taux de qualification du canal (conv = qualifiés / leads).
     sub: s.conv > 0 ? t('analytics.qualifiedPct', { pct: s.conv }) : '',
-    deals: s.v,
-    comm: 0,
-    pct: totalLeads > 0 ? Math.round((s.v * 100) / totalLeads) : 0,
+    deals: s.v,                    // volume de leads (inchangé — lu par le mobile)
+    comm: s.comm ?? 0,             // commission RÉALISÉE attribuée au canal (live)
+    won: s.won ?? 0,               // nombre de deals gagnés du canal
+    pct: totalLeads > 0 ? Math.round((s.v * 100) / totalLeads) : 0,  // % de LEADS (inchangé)
     delta: deltaPct(s.v, s.prev),
   }))
 
