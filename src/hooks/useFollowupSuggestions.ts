@@ -60,10 +60,22 @@ export function useFollowupActions(contactId: string | undefined) {
   }
 
   const accept = useMutation({
+    // Accept = crée un VRAI rappel (RPC atomique). L'accept se résout DÈS que le rappel
+    // existe : on NE bloque PAS son achèvement sur la rédaction du brouillon (DeepSeek,
+    // ~5-20 s) → l'accept reste instantané. Le brouillon se génère en ARRIÈRE-PLAN
+    // (fire-and-forget) et se persiste sur le rappel (reminders.draft_message), relu à
+    // l'heure de relance ; GATÉ derrière la métrique T1 côté edge fn ; jamais bloquant.
+    // NB : le contrôle « accepter » sur la fiche contact a été retiré au refonte #823
+    // (fiche minimale). Ce hook reste le point d'accroche : dès qu'une surface rebranche
+    // accept, le brouillon se génère automatiquement (aucun changement ici requis).
     mutationFn: async (id: string) => {
       const res = await db.rpc('accept_followup_suggestion', { p_id: id })
       const { error } = res as unknown as { error: { message: string } | null }
       if (error) throw new Error(error.message)
+      // Fire-and-forget : promesse détachée, on avale toute erreur (rappel nu conservé).
+      void db.functions
+        .invoke('whatsapp-followup-draft', { body: { suggestionId: id } })
+        .catch(() => { /* enrichissement optionnel — ne remonte jamais à l'accept */ })
     },
     onSuccess: invalidate,
   })

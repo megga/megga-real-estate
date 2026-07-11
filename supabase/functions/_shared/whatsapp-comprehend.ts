@@ -154,13 +154,17 @@ export function parseInsight(content: string | null | undefined): ConversationIn
 export async function comprehend(
   messages: Array<{ role: string; content: string }>, apiKey: string,
   onUsage?: (usage: { prompt_tokens?: number; completion_tokens?: number } | undefined, latencyMs: number) => void,
+  model = 'deepseek-chat',
 ): Promise<ConversationInsight> {
+  // `model` par défaut = production (deepseek-chat). Paramétrable UNIQUEMENT pour que le
+  // golden set d'éval puisse A/B tester un modèle candidat AVANT une migration (le prod
+  // n'appelle jamais avec un autre modèle). Cf. tests/backend/whatsapp-comprehension-golden.spec.ts.
   const started = Date.now()
   const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: 'deepseek-chat',
+      model,
       messages,
       response_format: { type: 'json_object' },
       max_tokens: 800,
