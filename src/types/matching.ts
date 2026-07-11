@@ -46,41 +46,6 @@ export interface SupabaseMatch {
   created_at: string
 }
 
-export interface MatchWithRelations extends SupabaseMatch {
-  contact: {
-    id: string
-    first_name: string
-    last_name: string
-    email: string
-    phone: string
-    whatsapp_phone: string | null
-    type: string
-    score: string
-  } | null
-  property: {
-    id: string
-    title: string
-    description: string | null
-    type: string
-    status: string
-    price: number
-    rooms: number
-    bedrooms: number | null
-    bathrooms: number | null
-    surface_m2: number
-    address: string
-    city: string
-    canton: string
-    postal_code: string
-    photos: string[] | null
-    features: string[] | null
-    lat: number | null
-    lng: number | null
-    published_at: string | null
-    created_at: string
-  } | null
-}
-
 export interface ClientSearchCriteria {
   budget_min?: number
   budget_max?: number
@@ -98,16 +63,4 @@ export interface ClientSearchCriteria {
   center_lat?: number
   center_lng?: number
   radius_km?: number
-}
-
-export interface SupabaseClientSearch {
-  id: string
-  agency_id: string
-  contact_id: string
-  label: string | null
-  criteria: ClientSearchCriteria
-  is_active: boolean
-  last_matched_at: string | null
-  created_at: string
-  updated_at: string
 }

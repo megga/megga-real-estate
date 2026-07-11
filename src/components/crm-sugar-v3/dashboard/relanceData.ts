@@ -313,96 +313,17 @@ function buildFillers(): RelanceLead[] {
 export const RELANCE_LEADS: RelanceLead[] = [...TOP_LEADS, ...buildFillers()]
 
 // ─── Brouillons MEGGA AI par lead ──────────────────────────────────────
-const DRAFT_TEMPLATES: Record<string, DraftTemplate> = {
-  'lead-01': {
-    subject: 'Toujours intéressée par la Villa Pully, Sophie ?',
-    body: 'Bonjour Sophie,\n\nJe pense à vous : cela fait quelques semaines depuis votre seconde visite de la Villa Pully avec votre mari, et je voulais simplement m\'assurer que vous aviez toutes les informations dont vous aviez besoin.\n\nVous m\'aviez parlé d\'hésitation avec un appartement à Lutry — est-ce que ce point s\'est éclairci de votre côté ?\n\nJe reste à disposition pour une 3e visite ou pour vous présenter une offre formelle si vous le souhaitez. Le bien suscite de l\'intérêt et je préfère vous en informer.\n\nÀ très bientôt,\nJulien Berset',
-  },
-  'lead-02': {
-    subject: 'Un rendez-vous banque ensemble, Marc ?',
-    body: 'Bonjour Marc,\n\nVous m\'avez dit la dernière fois que vous deviez voir avec votre banque avant de programmer une visite. Je voulais vous proposer quelque chose : si cela peut vous aider, je peux vous accompagner à ce rendez-vous bancaire.\n\nJ\'ai l\'habitude de ce type de réunion, et avec votre profil le dossier devrait être simple. Cela vous éviterait d\'y aller seul et accélérerait les choses.\n\nDeux créneaux possibles cette semaine, dites-moi ce qui vous arrange.\n\nBien à vous,\nJulien Berset',
-  },
-  'lead-03': {
-    subject: 'Le Loft Ouchy vous attend, Léa',
-    body: 'Bonjour Léa,\n\nJ\'espère que votre décorateur a pu vous accompagner sur le Loft Ouchy. Je voulais juste vous confirmer que le bien est toujours disponible et que je n\'ai pas d\'autre offre active actuellement — vous avez donc tout le temps de prendre votre décision sereinement.\n\nSi vous avez besoin d\'une 3e visite, de plans plus détaillés ou de tout autre élément, n\'hésitez pas.\n\nAu plaisir,\nJulien Berset',
-  },
-  'lead-04': {
-    subject: 'Trois alternatives dans votre budget, Pierre',
-    body: 'Bonjour Pierre,\n\nJe comprends parfaitement votre retour sur le prix de la Maison Lutry. Plutôt que de chercher à négocier (peu probable à ce niveau), j\'ai préparé 3 biens qui correspondent à votre budget réel et à vos critères :\n\n— Maison St-Sulpice, 1.45M, jardin similaire\n— Villa Bourg-en-Lavaux, 1.39M, vue dégagée\n— Maison Cully, 1.42M, plus récente\n\nDites-moi lequel vous interpelle, je vous organise une visite cette semaine.\n\nÀ bientôt,\nJulien Berset',
-  },
-  'lead-05': {
-    subject: 'Un café pour faire le point, Camille ?',
-    body: 'Bonjour Camille,\n\nC\'est tout à fait normal d\'hésiter pour un premier achat — beaucoup de mes clients passent par là. Avant de continuer à vous montrer des biens, je vous propose qu\'on prenne un café 30 minutes pour reprendre vos critères au calme.\n\nParfois, faire un point neutre permet de se rendre compte qu\'on était plus proche du choix qu\'on ne le pensait.\n\nDispo mardi ou jeudi prochain ?\n\nBien à vous,\nJulien Berset',
-  },
-  'lead-06': {
-    subject: 'Trois créneaux pour visiter le Duplex à deux',
-    body: 'Bonjour Thomas,\n\nPour faciliter la 2e visite du Duplex Cité avec votre compagne, j\'ai bloqué 3 créneaux à des horaires qui devraient convenir à un agenda Genève → Lausanne :\n\n— Jeudi 18h30\n— Samedi 10h00\n— Samedi 14h30\n\nDites-moi celui qui marche, je confirme.\n\nÀ bientôt,\nJulien Berset',
-  },
-  'lead-07': {
-    subject: 'Septembre approche, Aïcha — un point sur St-Sulpice ?',
-    body: 'Bonjour Aïcha,\n\nJe pense à vous avec la rentrée scolaire de votre fille en tête. La Villa St-Sulpice reste disponible, mais la fenêtre pour un emménagement avant septembre se resserre (il faut compter 60 jours entre compromis et acte authentique en Suisse).\n\nSi vous êtes toujours sur ce bien, est-ce qu\'on programme une visite de confirmation cette semaine et on parle d\'une offre ?\n\nÀ très vite,\nJulien Berset',
-  },
-  'lead-08': {
-    subject: 'Quelques infos avant de programmer, Olivier',
-    body: 'Bonjour Olivier,\n\nMerci pour votre intérêt pour le Penthouse Beau-Rivage. Vu le segment (3.2M), nous demandons systématiquement quelques éléments avant d\'organiser une visite : un KYC simplifié et une preuve de capacité de financement.\n\nC\'est rapide (15 min en ligne) et cela permet de vous garantir un accès prioritaire au bien.\n\nLe lien : megga.ch/kyc\n\nÀ disposition,\nJulien Berset',
-  },
-}
 
-function genericDraft(lead: RelanceLead): DraftTemplate {
-  return {
-    subject: `À propos de ${lead.bien.split(' · ')[0]}, ${lead.first}`,
-    body: `Bonjour ${lead.first},\n\nCela fait ${lead.dormSince} jours environ que nous n'avons plus échangé concernant ${lead.bien.split(' · ')[0]}, et je voulais simplement reprendre contact avec vous.\n\n${lead.reason} Je voulais m'assurer que tout va bien de votre côté et savoir si vous souhaitez qu'on planifie une prochaine étape — visite, appel, ou simplement un échange par email.\n\nN'hésitez pas à me dire ce qui vous arrange.\n\nÀ bientôt,\nJulien Berset`,
-  }
-}
-
-export function getInitialDraft(lead: RelanceLead): DraftTemplate {
-  return DRAFT_TEMPLATES[lead.id] || genericDraft(lead)
-}
 
 // ─── Variantes de ton MEGGA AI ─────────────────────────────────────────
 export type ToneId = 'formaliser' | 'chaleureux' | 'court' | 'detaille' | 'recreer'
 
-type ToneVariant = (
-  draft: DraftTemplate,
-  lead: RelanceLead,
-) => DraftTemplate
-
-export const TONE_VARIANTS: Record<ToneId, ToneVariant> = {
-  formaliser: (draft, lead) => ({
-    subject: draft.subject,
-    body: `Madame, Monsieur,\n\nJe me permets de revenir vers vous concernant ${lead.bien.split(' · ')[0]}.\n\nAprès ${lead.dormSince} jours sans échange, je souhaitais m'enquérir de l'évolution de votre réflexion. Je reste naturellement à votre entière disposition pour toute information complémentaire ou pour organiser une nouvelle visite.\n\nJe vous prie d'agréer, Madame, Monsieur, mes salutations distinguées.\n\nJulien Berset\nMEGGA Real Estate`,
-  }),
-  chaleureux: (_draft, lead) => ({
-    subject: `${lead.first}, j'ai pensé à vous`,
-    body: `Bonjour ${lead.first},\n\nJ'espère que vous allez bien. Je repensais à notre dernier échange${lead.quote ? ` — vous m'aviez dit ${lead.quote.toLowerCase().replace(/[«»]/g, '').trim()}` : ''} — et je me disais que ça faisait un moment.\n\nPas de pression, vraiment. Juste un petit signe pour vous dire que je suis toujours là si vous voulez en discuter, qu'on remette une visite, ou même qu'on prenne un café pour faire le point sans engagement.\n\nÀ très vite j'espère,\nJulien`,
-  }),
-  court: (_draft, lead) => ({
-    subject: `Toujours intéressé, ${lead.first} ?`,
-    body: `Bonjour ${lead.first},\n\n${lead.dormSince} jours sans nouvelles. ${lead.bien.split(' · ')[0]} est toujours disponible — toujours dans la course ?\n\nUne ligne en retour suffit.\n\nJulien`,
-  }),
-  detaille: (_draft, lead) => ({
-    subject: `${lead.bien.split(' · ')[0]} — points clés et prochaine étape`,
-    body: `Bonjour ${lead.first},\n\nCela fait maintenant ${lead.dormSince} jours depuis nos derniers échanges autour de ${lead.bien.split(' · ')[0]}, et je voulais reprendre contact en vous apportant quelques éléments concrets.\n\nPour rappel sur le bien :\n— Prix : CHF ${lead.bienPrice}\n— ${lead.reason}\n${lead.quote ? `— Vous m'aviez confié : ${lead.quote}\n` : ''}\nDe mon côté, voici ce que je peux vous proposer comme prochaine étape : **${lead.nextStep}**. ${lead.nextStepHint}\n\nSi vous préférez qu'on en parle de vive voix avant tout autre chose, je peux vous appeler à un moment qui vous arrange — dites-moi simplement quand.\n\nBien à vous,\nJulien Berset\nMEGGA Real Estate · +41 21 555 12 34`,
-  }),
-  recreer: (_draft, lead) => ({
-    subject: `Une question rapide, ${lead.first}`,
-    body: `Bonjour ${lead.first},\n\nJe vais être direct : ${lead.bien.split(' · ')[0]} vous correspond-il toujours, ou est-ce que je continue à chercher pour vous ?\n\nQuelle que soit votre réponse, elle m'aide. Si oui, on accélère. Si non, je vous propose 2-3 biens qui collent vraiment à ce que vous cherchez aujourd'hui.\n\nUn simple oui / non en retour, et je m'occupe du reste.\n\nMerci d'avance,\nJulien`,
-  }),
-}
 
 export interface ToneAction {
   id: ToneId
   label: string
   hint: string
 }
-
-export const TONE_ACTIONS: ToneAction[] = [
-  { id: 'formaliser', label: 'Formaliser', hint: 'Plus protocolaire' },
-  { id: 'chaleureux', label: 'Plus chaleureux', hint: 'Plus personnel' },
-  { id: 'court', label: 'Plus court', hint: '3-4 lignes' },
-  { id: 'detaille', label: 'Plus détaillé', hint: 'Arguments + contexte' },
-  { id: 'recreer', label: 'Recréer', hint: 'Nouvelle approche' },
-]
 
 // ─── Session storage (pause/reprise) ───────────────────────────────────
 const SESSION_STORAGE_KEY = 'megga.session.relance.v1'
@@ -423,29 +344,4 @@ export function loadSession(): RelanceSessionState | null {
   } catch {
     return null
   }
-}
-
-export function saveSession(state: RelanceSessionState): void {
-  try {
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    // localStorage can throw in incognito or quota exceeded
-  }
-}
-
-export function clearSession(): void {
-  try {
-    localStorage.removeItem(SESSION_STORAGE_KEY)
-  } catch {
-    // localStorage can throw in incognito
-  }
-}
-
-export function hasActiveRelanceSession(): boolean {
-  const s = loadSession()
-  return Boolean(
-    s &&
-      s.currentIdx < RELANCE_LEADS.length &&
-      Object.keys(s.treated || {}).length > 0,
-  )
 }

@@ -25,8 +25,6 @@ export const FLOOR_PLAN_ROOMS = [
   { key: 'autre', label: 'Autre' },
 ] as const
 
-export type RoomKey = typeof FLOOR_PLAN_ROOMS[number]['key']
-
 export function getRoomLabel(key: string): string {
   return FLOOR_PLAN_ROOMS.find(r => r.key === key)?.label ?? key
 }

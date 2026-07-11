@@ -119,10 +119,6 @@ export const SELLER_SP_DARK: SellerSP = {
 // ── Formatage CHF suisse → CHF 1'250'000 ─────────────────────────────────
 export const sellerFmtCHF = (n: number): string =>
   'CHF ' + Math.round(n).toLocaleString('fr-CH').replace(/[\s.,]/g, "'")
-
-export const sellerFmtNum = (n: number): string =>
-  Math.round(n).toLocaleString('fr-CH').replace(/[\s.,]/g, "'")
-
 // ── Parcours de vente — 6 étapes, vocabulaire VENDEUR ────────────────────
 // (relabellé depuis le pipeline agent ; cf. viewModel.mandateStepToIndex)
 export function sellerSteps(): string[] {

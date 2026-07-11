@@ -151,8 +151,6 @@ export const MT_PHASES = {
   compromis: '#059669',
   acte: '#0B0C0E',
 } as const
-export type MobilePhase = keyof typeof MT_PHASES
-
 // Manrope chargé globalement (index.html). Fallback système si indisponible.
 export const MOBILE_FONT =
   "'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"

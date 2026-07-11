@@ -1,23 +1,8 @@
-import { useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { SellerPortalData, SellerVisit, SellerActivity, SellerOffer, MandateStep } from '@/lib/mockSellerData'
 
 // ── Types ────────────────────────────────────────────────────────────────
-
-export interface SellerPortalRow {
-  id: string
-  token: string
-  agency_id: string | null
-  contact_id: string
-  property_id: string
-  agent_id: string
-  status: 'active' | 'expired' | 'revoked'
-  created_at: string
-  expires_at: string
-  last_viewed_at: string | null
-  view_count: number
-}
 
 export interface PortalValidation {
   isValid: boolean
@@ -310,49 +295,4 @@ export interface SellerPortalRecord {
   token: string
   contactId: string
   status: 'active' | 'expired' | 'revoked'
-}
-
-export function useSellerPortals() {
-  const getPortalForContact = useCallback(async (contactId: string): Promise<SellerPortalRecord | null> => {
-    const { data } = await supabase
-      .from('seller_portals')
-      .select('id, token, contact_id, status')
-      .eq('contact_id', contactId)
-      .eq('status', 'active')
-      .limit(1)
-      .single()
-
-    if (!data) return null
-    return { id: data.id, token: data.token, contactId: data.contact_id, status: data.status as 'expired' | 'active' | 'revoked' }
-  }, [])
-
-  const getPortalUrl = useCallback((token: string): string => {
-    return `${window.location.origin}/portal/${token}`
-  }, [])
-
-  const createPortal = useCallback(async (_params: {
-    contactId: string
-    contactName: string
-    contactEmail: string
-    propertyTitle: string
-    propertyAddress: string
-    agentName?: string
-  }): Promise<SellerPortalRecord | null> => {
-    // Portal creation is now handled by useAcceptSellerLead
-    // This is a stub for backwards compatibility
-    const existing = await getPortalForContact(_params.contactId)
-    return existing
-  }, [getPortalForContact])
-
-  const markInviteSent = useCallback((_portalId: string) => {
-    // No-op — invite tracking is handled by activity_events
-  }, [])
-
-  return {
-    portals: [] as SellerPortalRecord[],
-    createPortal,
-    getPortalForContact,
-    getPortalUrl,
-    markInviteSent,
-  }
 }

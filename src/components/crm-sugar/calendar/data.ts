@@ -196,16 +196,6 @@ export interface CalHotBuyer {
   tone: string
 }
 
-export interface CalAIInsight {
-  id: string
-  kind: 'transit' | 'opportunity'
-  severity: 'warning' | 'info'
-  title: string
-  detail: string
-  suggestion: string
-  events: string[]
-}
-
 export interface CalSugarPalette {
   bg: string
   bgGradient: string
@@ -345,10 +335,6 @@ export function buildCalPalette(
 /** Context palette — les composants lisent `useCalPalette()` (plus d'import statique). */
 export const CalPaletteContext = createContext<CalSugarPalette>(CAL_LIGHT)
 export const useCalPalette = (): CalSugarPalette => useContext(CalPaletteContext)
-
-/** @deprecated Compat : alias de la palette claire. Préférer `useCalPalette()`. */
-export const CAL_PALETTE: CalSugarPalette = CAL_LIGHT
-
 // ── Chevauchement : packing en colonnes (type Google Agenda) ────────────────
 // Pour un ensemble d'events, renvoie pour chacun { col, cols } : sa colonne et
 // le nombre total de colonnes de son cluster de chevauchement. Les vues
@@ -569,70 +555,4 @@ export function calNormalizeDraft(d: CalEvent): CalEvent {
     out.end = new Date(out.start.getTime() + 15 * 60000)
   }
   return out
-}
-
-/**
- * Heuristique FR : transforme une phrase en brouillon d'événement pré-rempli.
- * Prototype — à remplacer par un vrai appel LLM en prod. Couvre type, jour,
- * heure et personne (« avec … » ou 1er nom propre).
- */
-export function calParseNL(text: string, currentDate: Date): CalEvent {
-  const lower = text.toLowerCase()
-
-  let type: CalEventTypeId = 'task'
-  if (/visite|visit/.test(lower)) type = 'visite'
-  else if (/estim|mandat/.test(lower)) type = 'mandate'
-  else if (/notaire|signature|acte/.test(lower)) type = 'notary'
-  else if (/publi/.test(lower)) type = 'publish'
-  else if (/relance|appel|t[aâ]che|rappel/.test(lower)) type = 'task'
-
-  const base = new Date(currentDate)
-  if (/apr[èe]s.?demain/.test(lower)) base.setDate(base.getDate() + 2)
-  else if (/demain/.test(lower)) base.setDate(base.getDate() + 1)
-  else if (!/aujourd/.test(lower)) {
-    const dayNames = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
-    const di = dayNames.findIndex(n => lower.includes(n))
-    if (di >= 0) {
-      const delta = ((di - base.getDay() + 7) % 7) || 7
-      base.setDate(base.getDate() + delta)
-    }
-    const dm = lower.match(/\ble (\d{1,2})\b/) || lower.match(/(\d{1,2})\/(\d{1,2})/)
-    if (dm) {
-      base.setDate(Number(dm[1]))
-      if (dm[2]) base.setMonth(Number(dm[2]) - 1)
-    }
-  }
-
-  let hour = 9
-  let min = 0
-  const tm =
-    lower.match(/(\d{1,2})\s*h\s*(\d{2})?/) ||
-    lower.match(/(\d{1,2}):(\d{2})/) ||
-    lower.match(/(\d{1,2})\s*heures?/)
-  if (tm) {
-    hour = Math.min(23, Number(tm[1]))
-    min = tm[2] ? Number(tm[2]) : 0
-  }
-  const start = new Date(base)
-  start.setHours(hour, min, 0, 0)
-  const end = new Date(start)
-  end.setHours(end.getHours() + 1)
-
-  let person: string | undefined
-  const withMatch = text.match(/avec\s+([A-ZÉÈÀ][\wÀ-ÿ'-]+(?:\s+[A-ZÉÈÀ][\wÀ-ÿ'-]+)?)/)
-  if (withMatch) person = withMatch[1].trim()
-  else {
-    const cap = text.match(/\b([A-ZÉÈÀ][a-zà-ÿ'-]{2,})\b/)
-    if (cap) person = cap[1]
-  }
-
-  const label = CAL_EVENT_TYPES[type]?.label ?? 'Événement'
-  return {
-    id: `draft_${start.getTime()}`,
-    type,
-    title: person ? `${label} — ${person}` : label,
-    start,
-    end,
-    contact: person ? { name: person, role: 'Contact' } : undefined,
-  }
 }

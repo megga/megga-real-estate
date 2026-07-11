@@ -5,9 +5,6 @@
 //
 // Source : handoff-premier-jour/premier-jour/crm-day0-tokens.jsx → D0_CSS
 
-export { OB_LIGHT, OB_DARK, obPalette, OB_GLOBAL_CSS } from '@/components/onboarding-sugar/tokens'
-export type { ObTheme } from '@/components/onboarding-sugar/tokens'
-
 export const D0_CSS = `
   @keyframes d0AiPulse {
     0%   { box-shadow: 0 0 0 0 rgba(11,12,14,0.30); }

@@ -2,7 +2,7 @@
 // 1:1 port from the Claude Design bundle (crm-screen-today-sugar.jsx).
 
 import { useState, useRef, useEffect } from 'react'
-import type { CSSProperties, ReactNode, MouseEvent as ReactMouseEvent } from 'react'
+import type { ReactNode, MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatedTopIcon } from './LiquidGlassRail'
@@ -258,81 +258,8 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
 // du nouveau rail sans changement.
 export { SugarIconRail, type SugarIconRailProps } from './LiquidGlassRail'
 
-// ─── Floating "frame" card ─────────────────────────────────────────────
-interface SugarFrameProps {
-  title: string
-  badge?: ReactNode
-  actions?: ReactNode
-  children: ReactNode
-  teamChips?: ReactNode
-  style?: CSSProperties
-  sp: SugarPalette
-  index?: number
-}
-export function SugarFrame({
-  title, badge, actions, children, teamChips, style, sp, index = 0,
-}: SugarFrameProps) {
-  return (
-    <div style={{
-      background: sp.frameBg,
-      border: `1px solid ${sp.frameBorder}`,
-      borderRadius: 24,
-      padding: '20px 22px',
-      boxShadow: sp.shadow,
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      animation: `sugar-fade-up 480ms cubic-bezier(.22,1,.36,1) ${index * 80}ms backwards`,
-      ...style,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
-        <h2 style={{
-          margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: -0.3, color: sp.ink,
-        }}>{title}</h2>
-        {badge}
-        {teamChips && (
-          <div style={{ display: 'flex', marginLeft: 8 }}>
-            {teamChips}
-          </div>
-        )}
-        <div style={{ flex: 1 }} />
-        {actions}
-      </div>
-      {children}
-    </div>
-  )
-}
 
 // ─── Orb background — soft floating gradient blobs behind the glass ────
-export function SugarOrbBackground({ dark }: { dark: boolean }) {
-  const orbs = dark
-    ? [
-        { top: '-8%',  left: '-6%', size: 560, color: 'rgba(99,102,241,0.32)' },
-        { top: '30%',  left: '62%', size: 640, color: 'rgba(168,85,247,0.22)' },
-        { top: '70%',  left: '10%', size: 520, color: 'rgba(20,184,166,0.18)' },
-      ]
-    : [
-        { top: '-10%', left: '-8%', size: 560, color: 'rgba(255,180,140,0.45)' },
-        { top: '25%',  left: '65%', size: 640, color: 'rgba(140,180,255,0.40)' },
-        { top: '70%',  left: '8%',  size: 520, color: 'rgba(180,255,210,0.38)' },
-      ]
-  return (
-    <div aria-hidden style={{
-      position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none',
-      zIndex: 0,
-    }}>
-      {orbs.map((o, i) => (
-        <div key={i} style={{
-          position: 'absolute',
-          top: o.top, left: o.left,
-          width: o.size, height: o.size,
-          background: `radial-gradient(circle at center, ${o.color} 0%, transparent 70%)`,
-          filter: 'blur(40px)',
-        }} />
-      ))}
-    </div>
-  )
-}
-
 // ─── Sugar global animations (mounted once at the page root) ───────────
 export const SUGAR_KEYFRAMES = `
   @keyframes sugar-fade-up {

@@ -47,14 +47,6 @@ export interface StagingError {
   analysis?: { quality: PhotoAnalysis['quality']; flags: string[] }
 }
 
-export interface StagedPhoto {
-  original_url: string
-  staged_url: string
-  style: StagingStyle
-  room_type: RoomType
-  created_at: string
-}
-
 // ─── Style metadata ─────────────────────────────────────────────────────
 
 export const STAGING_STYLES: { value: StagingStyle; label: string; description: string }[] = [
@@ -79,14 +71,6 @@ export const ROOM_TYPES: { value: RoomType; label: string }[] = [
 ]
 
 // ─── Plan quotas (mirrored from Edge Function) ──────────────────────────
-
-export const STAGING_QUOTAS: Record<string, number> = {
-  starter: 0,
-  pro: 50,
-  entreprise: 200,
-  agency: 200,
-}
-
 // ─── Hook ───────────────────────────────────────────────────────────────
 
 export function useVirtualStaging() {

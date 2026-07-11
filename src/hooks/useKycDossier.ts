@@ -18,7 +18,6 @@ import type {
   KycDossierStatus,
   KycDossierSummary,
   KycVigilance,
-  KycCountByStatus,
   KycType,
 } from '@/types/kyc'
 import type { TablesUpdate } from '@/types/database'
@@ -111,18 +110,6 @@ export function useKycDossierByContact(contactId: string | undefined) {
 }
 
 // ─── Compteurs par statut (KPIs) ───────────────────────────────────────
-
-export function useKycCountByStatus() {
-  return useQuery<KycCountByStatus>({
-    queryKey: ['kyc-count-by-status'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('kyc_count_by_status')
-      if (error) throw error
-      return (data as KycCountByStatus) ?? {}
-    },
-  })
-}
-
 // ─── Mark check completed (trigger auto-valide le dossier) ─────────────
 
 export function useMarkKycCheck() {

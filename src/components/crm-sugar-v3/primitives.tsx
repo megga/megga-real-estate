@@ -632,12 +632,4 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
 // ═══════════════════════════════════════════════════════════════════════
 export const SgBlackPill = KycBlackPill
 export const SgGhostPill = KycGhostPill
-export const SgCircleBtn = KycCircleBtn
-export const SgRing = KycRing
-export const SgStatusPill = KycStatusPill
-export const SgRiskPill = KycRiskPill
-export const SgNeutralPill = KycNeutralPill
-export const SgStatCard = KycStatCard
-export const SgSection = KycSection
-export const SgAvatar = KycAvatar
 export const SgStepper = KycStepper

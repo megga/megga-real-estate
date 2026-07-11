@@ -217,37 +217,6 @@ export function useSignVisitBon() {
 }
 
 // ─── Write : enregistrer le rapport (marque la visite 'done') ───────────
-
-export function useSaveVisitRapport() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      visitId,
-      rapport,
-    }: {
-      visitId: string
-      rapport: VisitRapport
-    }) => {
-      const { data, error } = await supabase
-        .from('visits')
-        .update({
-          rapport: rapport as unknown as Json,
-          status: 'done',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', visitId)
-        .select('id')
-        .single()
-      if (error) throw error
-      return data as { id: string }
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['visit-detail', vars.visitId] })
-      queryClient.invalidateQueries({ queryKey: ['visits'] })
-    },
-  })
-}
-
 // ─── Normalisation row Supabase → type VisitDetail ──────────────────────
 
 function unwrap<T>(v: T | T[] | null | undefined): T | null {

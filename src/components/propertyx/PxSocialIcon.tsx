@@ -123,4 +123,3 @@ export default function PxSocialIcon({
   )
 }
 
-export { BRAND_COLORS as PX_SOCIAL_BRAND_COLORS }

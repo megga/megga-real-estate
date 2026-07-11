@@ -5,7 +5,7 @@
 //
 // Source : handoff-premier-jour/HANDOFF_PREMIER_JOUR_CLAUDE_CODE.md §"Modèle de données"
 import { supabase } from '@/lib/supabase'
-import type { D0Answers, D0ChecklistItem, D0Payload, D0Phase } from './types'
+import type { D0Answers, D0Payload, D0Phase } from './types'
 
 const LS_ANSWERS = 'megga.day0.answers'
 const LS_AUTONOMY = 'megga.day0.autonomy'
@@ -114,13 +114,3 @@ export async function saveDay0Payload(
 }
 
 // ─── Supabase : checklist activation ─────────────────────────────────
-
-export async function saveActivationChecklist(
-  userId: string,
-  items: D0ChecklistItem[],
-): Promise<void> {
-  await supabase
-    .from('profiles')
-    .update({ activation_checklist: items })
-    .eq('id', userId)
-}

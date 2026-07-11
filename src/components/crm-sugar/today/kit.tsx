@@ -9,7 +9,7 @@ import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { TK, type TkToneName } from './tk'
+import { TK } from './tk'
 
 // ─── RXIcon — adaptateur noms locaux → MEIcon (trait bold ≥ 2.1) ───────────
 const RX_TO_ME: Record<string, MEIconName> = {
@@ -76,49 +76,7 @@ export function Av({ initials, av, size = 38, ring = false }: AvProps) {
   )
 }
 
-// ─── Pill fonctionnelle ─────────────────────────────────────────────────
-interface PillProps {
-  tone?: TkToneName
-  children: ReactNode
-  dot?: boolean
-  sm?: boolean
-}
 
-export function Pill({ tone = 'neutral', children, dot = false, sm = false }: PillProps) {
-  const p = TK[tone] || TK.neutral
-  return (
-    <span
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
-        padding: sm ? '2px 8px' : '3px 10px', borderRadius: 999,
-        background: p.bg, color: p.fg, fontSize: sm ? 10 : 11, fontWeight: 700,
-        letterSpacing: 0.2, lineHeight: 1.4,
-      }}
-    >
-      {dot && <span style={{ width: 6, height: 6, borderRadius: 999, background: p.dot }} />}
-      {children}
-    </span>
-  )
-}
-
-// eyebrow / section label
-interface EyebrowProps {
-  children: ReactNode
-  color?: string
-}
-
-export function Eyebrow({ children, color }: EyebrowProps) {
-  return (
-    <div
-      style={{
-        fontSize: 10.5, fontWeight: 800, letterSpacing: '0.13em', textTransform: 'uppercase',
-        color: color || TK.sub,
-      }}
-    >
-      {children}
-    </div>
-  )
-}
 
 // ─── Frame / Tile (verre Sugar) ─────────────────────────────────────────
 interface TileProps {
@@ -149,33 +107,6 @@ export function Tile({ children, style, pad = 18, hover = true }: TileProps) {
   )
 }
 
-// petite carte intérieure (cardSubtle)
-interface SubCardProps {
-  children: ReactNode
-  style?: CSSProperties
-  onClick?: () => void
-  hover?: boolean
-}
-
-export function SubCard({ children, style, onClick, hover = true }: SubCardProps) {
-  const [h, setH] = useState(false)
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
-      style={{
-        background: h && hover ? TK.cardHi : TK.card,
-        border: `1px solid ${TK.cardBorder}`, borderRadius: 16,
-        transition: 'background .2s ease',
-        cursor: onClick ? 'pointer' : 'default',
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  )
-}
 
 // ─── Orbs de fond (lueur douce derrière le verre) — no-op fidèle ─────────
 export function Orbs() {

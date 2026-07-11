@@ -35,20 +35,6 @@ import {
 // Champs persistés via save() — tout le formulaire est désormais sauvegardé.
 // `avatarUrl` est persisté séparément par useAvatar (upload Storage + avatar_url),
 // donc absent de cette liste qui couvre uniquement le payload de save().
-const PERSISTED_FIELDS = [
-  'firstName',
-  'lastName',
-  'title',
-  'phone',
-  'mobile',
-  'rcc',
-  'bio',
-  'languages',
-  'specialties',
-  'signature',
-  'signatureHtml',
-  'signatureMode',
-] as const
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const trimmed = (fullName ?? '').trim()
@@ -228,4 +214,3 @@ export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentP
 }
 
 // Helper exposé pour les tests / debug — liste des champs effectivement persistés
-export const AGENT_PROFILE_PERSISTED_FIELDS = PERSISTED_FIELDS

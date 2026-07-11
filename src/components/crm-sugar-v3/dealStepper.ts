@@ -30,18 +30,6 @@ export const DEAL_STEPPER_ORDER: readonly DealStepperStage[] = [
   'signed',
 ] as const
 
-/** Labels FR pour le stepper. */
-export const DEAL_STEPPER_LABELS: Record<DealStepperStage, string> = {
-  'new-lead': 'Lead',
-  'to-qualify': 'Qualifier',
-  searching: 'Recherche',
-  'visit-scheduled': 'Visite planifiée',
-  'visit-done': 'Visite faite',
-  'interest-confirmed': 'Intérêt',
-  offer: 'Offre',
-  signed: 'Signé',
-}
-
 /** Mapping DB TransactionStage → stepper UI (handoff §Stepper). */
 export function mapTransactionStageToStepper(
   stage: TransactionStage | string | null | undefined,

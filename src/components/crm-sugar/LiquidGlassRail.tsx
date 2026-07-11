@@ -394,4 +394,3 @@ export function SugarIconRail({
   )
 }
 
-export default SugarIconRail

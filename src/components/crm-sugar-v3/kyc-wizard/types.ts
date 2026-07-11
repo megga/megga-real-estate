@@ -26,5 +26,3 @@ export const WIZARD_STEPS = [
   { id: 'contact', labelKey: 'kyc:wizard.steps.contact' },
   { id: 'vigilance', labelKey: 'kyc:wizard.steps.vigilance' },
 ] as const
-
-export type WizardStepId = (typeof WIZARD_STEPS)[number]['id']

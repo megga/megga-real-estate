@@ -183,5 +183,3 @@ export const PX = {
     slow: '480ms',
   },
 } as const
-
-export type PxPalette = typeof PX

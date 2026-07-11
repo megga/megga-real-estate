@@ -102,30 +102,12 @@ export const CRM_DENSITY = {
   comfortable: { rowH: 56, gap: 14, padX: 18, padY: 14, fontBody: 14, fontDense: 13 },
   compact:     { rowH: 40, gap:  8, padX: 12, padY:  8, fontBody: 13, fontDense: 12 },
 }
-export type DensityKey = keyof typeof CRM_DENSITY
-
 // ─── Formatters ─────────────────────────────────────────────────────────
 export function crmFmtCHF(n: number | null | undefined): string {
   if (n == null) return '—'
   return 'CHF ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")
 }
-export function crmFmtNum(n: number | null | undefined): string {
-  if (n == null) return '—'
-  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")
-}
-export function crmRelative(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  const ms = Date.now() - d.getTime()
-  const m = Math.round(ms / 60000)
-  if (m < 1) return "À l'instant"
-  if (m < 60) return `il y a ${m} min`
-  const h = Math.round(m / 60)
-  if (h < 24) return `il y a ${h} h`
-  const j = Math.round(h / 24)
-  if (j < 7) return `il y a ${j} j`
-  if (j < 30) return `il y a ${Math.round(j / 7)} sem`
-  return `il y a ${Math.round(j / 30)} mois`
-}
+
 export function crmInitials(name: string): string {
   return name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase()
 }
