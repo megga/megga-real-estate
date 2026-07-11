@@ -416,23 +416,23 @@ export interface PublicVisitData {
   property: { title: string; address: string; city: string; photos: string[] } | null
 }
 
-// Public token-based lookup — kept on classic useQuery because the response
-// shape needs post-processing (`property` join unwrap + cast to
-// PublicVisitData). Cache Helpers' useQuery returns the raw row; we keep the
-// shape consumers expect.
+// Public token-based lookup — via RPC SECURITY DEFINER `get_visit_by_token`
+// (migration 20260711190000). L'ancienne lecture directe de `visits` reposait
+// sur une policy anon `manage_token IS NOT NULL` qui exposait TOUTES les
+// visites (faille advisor rls_policy_always_true) ; la RPC ne renvoie que la
+// visite dont le client détient le token (uuid = capability non devinable).
+// Les RPC token ne sont pas dans les types générés (database.ts en retard) →
+// cast localisé, même pattern que useFollowupSuggestions.
 export function usePublicVisit(token: string | undefined) {
   return useRqQuery({
     queryKey: ['public-visit', token],
     queryFn: async (): Promise<PublicVisitData | null> => {
       if (!token) return null
-      const { data, error } = await supabase
-        .from('visits')
-        .select('id, scheduled_at, status, buyer_name, buyer_email, manage_token, property:properties(title, address, city, photos)')
-        .eq('manage_token', token)
-        .single()
-      if (error) return null
-      const property = Array.isArray(data.property) ? data.property[0] : data.property
-      return { ...data, property } as PublicVisitData
+      const res = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(
+        'get_visit_by_token', { p_token: token },
+      )
+      if (res.error || !res.data) return null
+      return res.data as PublicVisitData
     },
     enabled: !!token,
   })
@@ -440,16 +440,16 @@ export function usePublicVisit(token: string | undefined) {
 
 // ── Public visit reschedule/cancel ──────────────────────────────────────────
 
-// Token-based update (no `id` in WHERE) — Cache Helpers' useUpdateMutation
-// expects the primary key in the input; we update by `manage_token`. Keep raw.
+// Mutations par token — via RPC SECURITY DEFINER (mêmes transitions que les
+// anciens updates directs ; la policy anon UPDATE barn-door a été supprimée).
+const rpcByToken = (fn: string, args: Record<string, unknown>) =>
+  (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(fn, args)
+
 export function useRescheduleVisit() {
   return useMutation({
     mutationFn: async ({ token, newDate }: { token: string; newDate: string }) => {
-      const { error } = await supabase
-        .from('visits')
-        .update({ scheduled_at: newDate, status: 'planned' })
-        .eq('manage_token', token)
-      if (error) throw error
+      const { error } = await rpcByToken('reschedule_visit_by_token', { p_token: token, p_new_at: newDate })
+      if (error) throw new Error(error.message)
     },
   })
 }
@@ -457,11 +457,8 @@ export function useRescheduleVisit() {
 export function useCancelVisit() {
   return useMutation({
     mutationFn: async (token: string) => {
-      const { error } = await supabase
-        .from('visits')
-        .update({ status: 'cancelled' })
-        .eq('manage_token', token)
-      if (error) throw error
+      const { error } = await rpcByToken('cancel_visit_by_token', { p_token: token })
+      if (error) throw new Error(error.message)
     },
   })
 }
@@ -480,22 +477,19 @@ export interface VisitFeedbackInput {
 export function useSubmitFeedback() {
   return useMutation({
     mutationFn: async (input: VisitFeedbackInput) => {
-      const { error } = await supabase
-        .from('visits')
-        .update({
-          rating: input.rating,
-          feedback_buyer: input.comment || null,
-          ai_objections: {
-            strengths: input.strengths,
-            objections: input.objections,
-            offer_interest: input.offerInterest,
-          },
-          status: 'done',
-          completed_at: new Date().toISOString(),
-          feedback_sent: true,
-        })
-        .eq('manage_token', input.token)
-      if (error) throw error
+      // Même capability token que la lecture/replanification : RPC SECURITY DEFINER
+      // (submit_visit_feedback_by_token) — l'update direct anon n'existe plus.
+      const { error } = await rpcByToken('submit_visit_feedback_by_token', {
+        p_token: input.token,
+        p_rating: input.rating,
+        p_comment: input.comment || '',
+        p_ai: {
+          strengths: input.strengths,
+          objections: input.objections,
+          offer_interest: input.offerInterest,
+        },
+      })
+      if (error) throw new Error(error.message)
     },
   })
 }
