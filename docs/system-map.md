@@ -262,7 +262,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 | Domaine | Functions |
 |---|---|
-| **IA / copilote** | `ai-copilot` (chat agent + actions, **DeepSeek** deepseek-chat) · `ai-search` (sémantique pgvector) · `dashboard-ai-hint` (Claude) · `parse-search-query` (DeepSeek) |
+| **IA / copilote** | `ai-copilot` (chat agent + actions, **DeepSeek** deepseek-chat) · `ai-search` (sémantique pgvector) · `parse-search-query` (DeepSeek) |
 | **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions + analyse Claude) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32, + branche admin `target_user_id`) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans ; branche super-admin = scope plateforme) |
 | **Admin (P1-P4 07/2026)** | `admin-dsar-export` (JSON nLPD art. 25, journalisé avant retour) · `admin-user-lifecycle` (suspend/reactivate/reset, ban GoTrue, anti-lockout allowlist) · `admin-agency-lifecycle` (suspension agence + ban membres) · `_shared/require-super-admin.ts` (rôle + allowlist + AAL2, adopté par toutes les edges admin) · `_shared/admin-alerts.ts` (alerting cron : seuils `app_config.admin_alert_thresholds`, dédup 24h, destinataires `super_admin_allowlist()`, Resend) |
 | **Magic link KYC** | `magic-link-create/get/confirm/regenerate/send-email/upload` |
