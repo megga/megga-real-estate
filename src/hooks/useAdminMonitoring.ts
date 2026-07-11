@@ -40,7 +40,7 @@ const EDGE_FUNCTION_NAMES = [
   'virtual-staging', 'google-calendar-sync', 'outlook-calendar-sync',
   'stripe-checkout', 'stripe-portal', 'stripe-webhook', 'search-alert',
   'market-scraper', 'automation-engine', 'accept-team-invite',
-  'admin-monitoring', 'ai-billing-monitor',
+  'admin-monitoring', 'ai-billing-monitor', 'translate-on-demand',
 ]
 
 export function useAdminMonitoring() {
