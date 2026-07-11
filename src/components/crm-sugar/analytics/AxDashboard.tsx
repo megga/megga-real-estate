@@ -503,30 +503,33 @@ function AxfDrillPopover({ drill, bucket, compValue, onClose, onNavigate }: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//   SOURCES — colonnes relatives au meilleur canal
+//   COMMISSION PAR CANAL — colonnes = commission RÉALISÉE attribuée par canal
+//   (décompose le « Réalisé » du héro ; hauteur relative au meilleur canal)
 // ═══════════════════════════════════════════════════════════════════════════
 function AxfSourcesCard({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
-  const srcs = d.sources || []
   const opac = [1, 0.76, 0.56, 0.42, 0.3]
-  const maxPct = Math.max(1, ...srcs.map(s => s.pct))
+  // Seuls les canaux ayant produit de la commission réalisée (tri par commission
+  // décroissante ; le RPC trie déjà ainsi, on reste défensif).
+  const chans = (d.sources || []).filter(s => (s.comm ?? 0) > 0).sort((a, b) => (b.comm ?? 0) - (a.comm ?? 0))
+  const maxComm = Math.max(1, ...chans.map(s => s.comm))
   const [on, setOn] = useState(false)
   useEffect(() => { const t = window.setTimeout(() => setOn(true), 60); return () => window.clearTimeout(t) }, [])
   return (
     <div style={{ background: A.card, borderRadius: 26, padding: '18px 22px 16px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
-      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.dealsTitle')}</h3>
-      {srcs.length === 0 ? (
+      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.commissionTitle')}</h3>
+      {chans.length === 0 ? (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
-          {tr('analytics.sources.empty')}
+          {tr('analytics.sources.commissionEmpty')}
         </div>
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'stretch', gap: 14, paddingTop: 12 }}>
-          {srcs.map((s, i) => (
-            <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }} title={`${s.label} · ${tr('analytics.sources.leadCount', { count: s.deals })}`}>
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{s.pct} %</span>
+          {chans.map((s, i) => (
+            <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }} title={`${s.label} · ${axCHF(s.comm)} · ${tr('analytics.sources.wonDeals', { count: s.won ?? 0 })}`}>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axShort(s.comm)}</span>
               <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', borderRadius: 10, background: A.cardSubtle, overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.pct / maxPct) * 100)}%` : 0, background: acc.accent, opacity: opac[i] ?? 0.3, borderRadius: 10, transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.comm / maxComm) * 100)}%` : 0, background: acc.accent, opacity: opac[i] ?? 0.3, borderRadius: 10, transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
               </div>
               <span style={{ maxWidth: '100%', fontSize: 11, fontWeight: 700, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
             </div>

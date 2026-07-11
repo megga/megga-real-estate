@@ -123,7 +123,7 @@ export type AxPeriodId = 'month' | 'quarter' | 'year'
 
 export interface AxKpi { label: string; value: string; delta: number; spark: number[]; pts?: boolean; abs?: boolean }
 export interface AxCompositionItem { k: AxBucketId; label: string; hint: string; v: number }
-export interface AxSource { label: string; sub: string; deals: number; comm: number; pct: number; delta: number }
+export interface AxSource { label: string; sub: string; deals: number; comm: number; pct: number; delta: number; won?: number }
 
 export interface AxPeriodData {
   key: AxPeriodId

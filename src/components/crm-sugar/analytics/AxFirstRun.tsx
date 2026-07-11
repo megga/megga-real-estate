@@ -69,7 +69,7 @@ export default function AxFirstRun({ acc, dark, target, onGoSettings }: { acc: A
         <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, minWidth: 0, display: 'flex', gap: 16 }}>
           <div style={{ flex: '1.42 1 0', minWidth: 0, minHeight: 0, display: 'grid' }}>
             <div style={{ background: A.card, borderRadius: 26, padding: '18px 22px 16px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.dealsTitle')}</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.commissionTitle')}</h3>
               <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'flex-end', gap: 14, paddingTop: 12 }}>
                 {[100, 68, 44, 27, 15].map((h, i) => (
                   <div key={i} style={{ flex: 1, height: `${h}%`, background: ghost, borderRadius: 10, opacity: 1 - i * 0.14 }} />
