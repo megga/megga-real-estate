@@ -36,11 +36,11 @@ interface ErrorLog {
 const EDGE_FUNCTION_NAMES = [
   'ai-copilot', 'external-matching', 'send-email', 'send-property-email',
   'send-reminder-email', 'send-team-invite', 'send-visit-email',
-  'extract-property-pdf', 'extract-property-url', 'kyc-screening', 'photo-labeler',
+  'extract-property-pdf', 'extract-property-url', 'kyc-screening',
   'virtual-staging', 'google-calendar-sync', 'outlook-calendar-sync',
   'stripe-checkout', 'stripe-portal', 'stripe-webhook', 'search-alert',
-  'market-scraper', 'market-scraper-batch', 'automation-engine', 'accept-team-invite',
-  'webhooks', 'admin-monitoring', 'ai-billing-monitor', 'translate-on-demand',
+  'market-scraper', 'automation-engine', 'accept-team-invite',
+  'admin-monitoring', 'ai-billing-monitor', 'translate-on-demand',
 ]
 
 export function useAdminMonitoring() {

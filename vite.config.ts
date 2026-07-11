@@ -20,15 +20,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      // Recharts importe `react-is` (CJS) via `import { isFragment } from 'react-is'`.
-      // Rolldown échoue sur le CJS interop → alias vers le fichier resolved.
-      // Fix de l'erreur "Rolldown failed to resolve import 'react-is'" qui
-      // bloquait `npm run build` depuis l'introduction de recharts.
-      'react-is': path.resolve(__dirname, './node_modules/react-is/index.js'),
     },
-  },
-  optimizeDeps: {
-    include: ['react-is'],
   },
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
