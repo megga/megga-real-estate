@@ -48,10 +48,14 @@ describe.skipIf(!HAS_KEYS)('secdef — EXECUTE révoqué (API) sans casser les t
   })
 
   it('une fonction trigger n\'est plus appelable via l\'API (anon ET authenticated)', async () => {
+    // Les fns retournant `trigger` sont ABSENTES du schema cache PostgREST → PGRST202
+    // (« introuvable », encore plus opaque que 42501). Le revoke reste utile en défense
+    // en profondeur (accès SQL directs) ; côté API on accepte l'un ou l'autre refus.
+    const REFUSED = [DENIED, 'PGRST202']
     const { error: anonErr } = await anonClient().rpc('bump_contact_last_interaction')
-    expect(anonErr?.code).toBe(DENIED)
+    expect(REFUSED).toContain(anonErr?.code)
     const { error: authErr } = await setup.clientA.rpc('bump_contact_last_interaction')
-    expect(authErr?.code).toBe(DENIED)
+    expect(REFUSED).toContain(authErr?.code)
   })
 
   // ── (2) helpers cron/service + orphelines fermés ────────────────────────────
