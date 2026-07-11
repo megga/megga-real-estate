@@ -55,9 +55,11 @@ serve(async (req) => {
   const profileId = auth.user.id
 
   let suggestionId = ''
+  let force = false
   try {
     const body = await req.json()
     suggestionId = typeof body?.suggestionId === 'string' ? body.suggestionId : ''
+    force = body?.force === true   // régénérer même si un brouillon existe déjà
   } catch { /* body illisible → 400 ci-dessous */ }
   if (!suggestionId) return json({ error: 'suggestionId required' }, 400)
 
@@ -75,7 +77,23 @@ serve(async (req) => {
     return json({ draft: null, gated: false, reason: 'not_accepted' })
   }
 
-  // 2. GATE T1 : style appris ACTIVÉ par l'agent, sinon on laisse le rappel nu.
+  // 2. GARDE anti-régénération : si le rappel porte DÉJÀ un brouillon, le renvoyer tel
+  // quel sans rappeler DeepSeek (évite de brûler des tokens sur un double-invoke / retry).
+  // `force: true` force la régénération. Scopé agence.
+  if (!force) {
+    const { data: remExisting } = await admin
+      .from('reminders')
+      .select('draft_message')
+      .eq('id', sug.reminder_id)
+      .eq('agency_id', agencyId)
+      .maybeSingle()
+    const existing = (remExisting as { draft_message: string | null } | null)?.draft_message
+    if (existing && existing.trim()) {
+      return json({ draft: existing, gated: false, reason: 'already_drafted' })
+    }
+  }
+
+  // 3. GATE T1 : style appris ACTIVÉ par l'agent, sinon on laisse le rappel nu.
   const { data: prof } = await admin
     .from('agent_ai_profiles')
     .select('learned_style')
@@ -86,7 +104,7 @@ serve(async (req) => {
     return json({ draft: null, gated: true, reason: 'style_not_active' })
   }
 
-  // 3. Contact (prénom) — scopé agence.
+  // 4. Contact (prénom) — scopé agence.
   const { data: cRow } = await admin
     .from('contacts')
     .select('first_name, last_name')
@@ -96,7 +114,7 @@ serve(async (req) => {
   const contact = cRow as { first_name: string | null; last_name: string | null } | null
   const clientName = [contact?.first_name ?? '', contact?.last_name ?? ''].map((s) => s.trim()).filter(Boolean).join(' ')
 
-  // 4. Insight du fil (dégrade proprement à null).
+  // 5. Insight du fil (dégrade proprement à null).
   const { data: insightRow } = await admin
     .from('whatsapp_conversation_insights')
     .select('summary, intent, next_action, commitments, language')
@@ -110,7 +128,7 @@ serve(async (req) => {
   // Langue : celle du fil si détectée ('en' → anglais), sinon FR par défaut.
   const lang: DraftLang = (insight?.language ?? '').toLowerCase().startsWith('en') ? 'en' : 'fr'
 
-  // 5. Blocs de personnalisation — T1 (déjà 'active'), voix, corrections. Voix +
+  // 6. Blocs de personnalisation — T1 (déjà 'active'), voix, corrections. Voix +
   //    corrections proviennent de whatsapp_messages / corrections stockés BRUTS :
   //    rédigés (redactPII) AVANT injection dans le prompt LLM (même invariant que
   //    ai-copilot / whatsapp-agent : aucune PII sensible vers DeepSeek).
@@ -122,7 +140,7 @@ serve(async (req) => {
     .map((c) => ({ draft: redactPII(c.draft).redactedText, final: redactPII(c.final).redactedText }))
   const correctionsBlock = formatCorrectionExamples(correctionExamples, lang)
 
-  // 6. Assemblage PUR du prompt + appel DeepSeek (JSON strict).
+  // 7. Assemblage PUR du prompt + appel DeepSeek (JSON strict).
   const systemPrompt = buildFollowupDraftSystemPrompt({ styleBlock, voiceBlock, correctionsBlock, lang })
   const userPrompt = buildFollowupDraftUserPrompt({
     clientName,
@@ -153,7 +171,7 @@ serve(async (req) => {
 
   if (!draft) return json({ draft: null, gated: false, reason: 'empty_draft' })
 
-  // 7. Persister le brouillon SUR LE RAPPEL (artefact durable, revu à l'heure de relance).
+  // 8. Persister le brouillon SUR LE RAPPEL (artefact durable, revu à l'heure de relance).
   //    Re-scopé par agency_id : jamais d'écriture hors agence.
   const { error: upErr } = await admin
     .from('reminders')

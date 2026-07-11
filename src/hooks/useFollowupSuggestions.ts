@@ -60,24 +60,22 @@ export function useFollowupActions(contactId: string | undefined) {
   }
 
   const accept = useMutation({
-    // Accept = crée un VRAI rappel (RPC atomique). PUIS, best-effort, on demande un
-    // brouillon de relance dans la voix de l'agent (edge fn whatsapp-followup-draft,
-    // GATÉ derrière la métrique T1) qui s'attache au rappel. Le rappel existe déjà :
-    // la rédaction ne doit JAMAIS faire échouer l'accept (DeepSeek lent/absent, T1 non
-    // activé → on retombe simplement sur le rappel nu). Renvoie le brouillon (ou null).
+    // Accept = crée un VRAI rappel (RPC atomique). L'accept se résout DÈS que le rappel
+    // existe : on NE bloque PAS son achèvement sur la rédaction du brouillon (DeepSeek,
+    // ~5-20 s) → l'accept reste instantané. Le brouillon se génère en ARRIÈRE-PLAN
+    // (fire-and-forget) et se persiste sur le rappel (reminders.draft_message), relu à
+    // l'heure de relance ; GATÉ derrière la métrique T1 côté edge fn ; jamais bloquant.
     // NB : le contrôle « accepter » sur la fiche contact a été retiré au refonte #823
     // (fiche minimale). Ce hook reste le point d'accroche : dès qu'une surface rebranche
     // accept, le brouillon se génère automatiquement (aucun changement ici requis).
-    mutationFn: async (id: string): Promise<string | null> => {
+    mutationFn: async (id: string) => {
       const res = await db.rpc('accept_followup_suggestion', { p_id: id })
       const { error } = res as unknown as { error: { message: string } | null }
       if (error) throw new Error(error.message)
-      try {
-        const { data } = await db.functions.invoke('whatsapp-followup-draft', { body: { suggestionId: id } })
-        return (data as { draft?: string | null } | null)?.draft ?? null
-      } catch {
-        return null // rappel nu conservé — enrichissement optionnel
-      }
+      // Fire-and-forget : promesse détachée, on avale toute erreur (rappel nu conservé).
+      void db.functions
+        .invoke('whatsapp-followup-draft', { body: { suggestionId: id } })
+        .catch(() => { /* enrichissement optionnel — ne remonte jamais à l'accept */ })
     },
     onSuccess: invalidate,
   })
