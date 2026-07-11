@@ -12,7 +12,7 @@ import { AiPanelProvider } from '@/hooks/useAiPanel'
 // /home et les routes publiques à fort trafic SEO.
 //
 // Avant cette optimisation : ~30 components publics étaient eager, dont les
-// 11 DesignSystem pages + TodaySugarPage (dashboard agent) — résultat : 153 KB
+// 11 pages DesignSystem (depuis retirées) + TodaySugarPage (dashboard agent) — résultat : 153 KB
 // JS inutilisé sur /louer d'après Lighthouse, FCP/LCP à 4.6s. Convertir tout
 // le reste en lazy() ramène le main bundle à ~50 KB.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -30,8 +30,9 @@ import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 // Lazy-loaded public pages
 // Property X storefront pages were removed — the public storefront on
 // megga.ch is now the static V3 HTML site (sites/property-preview), overlaid
-// at the deploy root by the npm postbuild hook. The Px* atom library under
-// src/components/propertyx/ stays (used by the CRM, auth and skeletons).
+// at the deploy root by the npm postbuild hook. Only the Property X icon
+// system remains under src/components/propertyx/ (MEIcon/PxIconFont/
+// PxSocialIcon/PxWhatsAppButton + PX.* tokens), used across the CRM.
 
 // Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
 const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
@@ -554,7 +555,7 @@ function AnimatedRoutes() {
                 <Route path="kyc" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycListPage />} />} />
                 {/* Détail dossier KYC — mobile (< 768px) : 4 onglets + garde LBA art.9 + read-log (P9). */}
                 <Route path="kyc/:dossierId" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} />} />
-                {/* Réseau inter-agences — hors périmètre v1 (page conservée, route neutralisée) */}
+                {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
                 <Route path="network" element={<Navigate to="/dashboard" replace />} />
                 <Route path="reseau" element={<Navigate to="/dashboard" replace />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}

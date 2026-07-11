@@ -19,30 +19,18 @@
 > - Pages MVP (42 écrans) : [docs/pages.md](docs/pages.md)
 > - Modules IA (specs Gregory) : [docs/ai-modules.md](docs/ai-modules.md)
 > - Design system patterns (Sugar v2 CRM) : [docs/design-system.md](docs/design-system.md)
-> - Design system Property X (Marketplace) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
+> - Design system Property X (Marketplace — ⚠ ARCHIVÉ, marketplace désactivée) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
 > - Roadmap sprints : [docs/roadmap.md](docs/roadmap.md)
 > - Changelog : [docs/CHANGELOG.md](docs/CHANGELOG.md)
 >
-> **Migration Figma → Code :**
-> - Catalogue de mapping `Figma node ID → composant React` : [src/lib/figma-catalog.ts](src/lib/figma-catalog.ts)
-> - **Avant** de migrer un node Figma : consulter le catalogue. **Après** : l'enrichir.
-> - Remplace Figma Code Connect (qui nécessite un plan Org/Enterprise).
->
-> **🎨 Design System Property X — SOURCE DE VÉRITÉ INTERNE :**
-> Toutes les pages `/design-system/*` (11 pages : Buttons, Links, Badges, Lists, Icons, Icon Fonts,
-> Avatars, Inputs, Colors, Typography, Shadows) sont la source de vérité ABSOLUE pour les
-> composants et tokens du marketplace.
->
-> **AVANT** de créer une nouvelle page ou un nouveau composant :
-> 1. Consulter `/design-system/<page>` dans le navigateur pour voir les atoms disponibles
-> 2. Vérifier [src/lib/figma-catalog.ts](src/lib/figma-catalog.ts) pour le mapping Figma → React
-> 3. **NE JAMAIS recréer** un atom existant (PxButton, PxBadge, PxCheckbox, PxLink, PxInput, etc.)
-> 4. **TOUJOURS utiliser les tokens** `PX.*` (couleurs, ombres, radii, font, spacing) — pas de valeurs hardcodées
-> 5. Pour ajouter un nouvel atom : valider d'abord qu'il n'existe pas, puis enrichir la DS
->
-> Routes DS internes :
-> - Basic Styles : `/design-system/colors` · `/design-system/typography` · `/design-system/shadows`
-> - Components : `/design-system/buttons` · `/links` · `/badges` · `/lists` · `/icons` · `/iconfonts` · `/avatars` · `/inputs`
+> **🎨 Vestiges Property X (marketplace désactivée — pivot CRM-first) :**
+> Le design system Property X, ses 11 pages `/design-system/*` et le catalogue `figma-catalog.ts`
+> (ainsi que le skill `figma-to-section`) ont été **retirés** avec la marketplace. Il ne subsiste
+> que le **système d'icônes** utilisé par tout le CRM — `MEIcon`, `PxIconFont`, `PxSocialIcon`,
+> `PxWhatsAppButton` — et les **tokens `PX.*`** ([src/components/propertyx/tokens.ts](src/components/propertyx/tokens.ts)).
+> Utiliser ces tokens pour tout ce qui touche à l'iconographie ; ne pas réintroduire d'atomes Px
+> de présentation (PxButton, PxBadge, PxInput…). Seule route DS survivante : `/design-system/megga-x`
+> (MeggaX, port de la vitrine — voir [src/components/megga-x/](src/components/megga-x)).
 
 ---
 
@@ -277,7 +265,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline (14 stades DB → 8 colonnes UI), Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
 
-**Réseau inter-agences (`/dashboard/network`, `NetworkSugarV2Page`) : 🚧 EN CONSTRUCTION.** Prototype hi-fi en données d'exemple (5 vues, dont 3 « Coming soon ») — aucun backend (pas de table `agency_partners`/`shared_listings`, pas de RLS cross-agence). Un bandeau « en construction » est affiché sur la page. Le module réel (partage de biens inter-agences + RLS + modèles PDF) arrivera plus tard ; ne pas présenter cette page comme livrée.
+**Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 
 **MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. **Inférence texte = DeepSeek partout** ; **vision/OCR/PDF = Gemini** (photo-vision, extract-property-pdf via `_shared/vision.ts`). **AUCUN Claude/Anthropic** (retiré ; kyc-screening = Dilisense déterministe seul).
 

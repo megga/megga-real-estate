@@ -104,7 +104,7 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|
-| **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` conservés (imports commentés, réactivation Sprint 7). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
+| **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
 | **Marketing public** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` `/help*` | pages secondaires + centre d'aide |
 | **Compte visiteur** | `/account` | favoris, recherches sauvegardées, messagerie acheteur |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
@@ -154,7 +154,7 @@ Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`
 > ⚠️ Realtime : **toujours** `useId()` pour le nom de channel (sinon crash au re-mount). Cf. `useAdminLiveFeed`, `useMessaging`, `useAdminNotifications`, `useAgentNotifications` (centre de notif agent réel, dérivé d'`activity_events` non-user).
 
 ### lib (`src/lib/`)
-`supabase.ts` (client typé, anon key) · `utils.ts` (`formatCHF` → `CHF 720'000`, `formatDate` DD.MM.YYYY, `cn`) · `constants.ts` (CANTONS, types, stages) · `sugarAdapters.ts` (Supabase → vues CRM) · logique métier (`estimation`, `matching`, `kycUtils`, `cantonalTaxRates`, `plans`) · export (`auditPdfExport`, `exportCsv`) · `figma-catalog.ts` (mapping Figma→React) · intégrations (`mapboxClient`, `captcha`, `sentry`, `posthog`).
+`supabase.ts` (client typé, anon key) · `utils.ts` (`formatCHF` → `CHF 720'000`, `formatDate` DD.MM.YYYY, `cn`) · `constants.ts` (CANTONS, types, stages) · `sugarAdapters.ts` (Supabase → vues CRM) · logique métier (`matching`, `plans`) · export (`auditPdfExport`, `exportCsv`) · intégrations (`mapboxClient`, `captcha`, `sentry`, `posthog`).
 
 ### i18n
 FR (défaut, eager) + DE/EN/IT (lazy). 15 namespaces : `common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, directory, compte, comingSoon, auth`. Switch = overlay shimmer 350ms.
