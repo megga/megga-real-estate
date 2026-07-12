@@ -1,7 +1,7 @@
 // MEGGA Onboarding — Service de persistance Supabase
 // Voir migration 20260521_001_onboarding_persistence.sql.
 import { supabase } from '@/lib/supabase'
-import type { Billing, ObAgency, OnboardingData } from './types'
+import type { ObAgency, OnboardingData } from './types'
 import type { TablesUpdate } from '@/types/database'
 
 // ─── Agencies — autocomplete + create + join ─────────────────────────
@@ -230,27 +230,6 @@ export async function saveAgencyProfile(
     .eq('id', agencyId)
   if (error) {
     console.warn('[onboarding] saveAgencyProfile failed:', error.message)
-    return false
-  }
-  return true
-}
-
-export async function savePlanOnAgency(
-  agencyId: string,
-  plan: 'free' | 'pro',
-  billing: Billing,
-): Promise<boolean> {
-  // The agencies.plan enum is 'starter' (default) — pro maps to 'pro' if the
-  // enum has it, otherwise we just record what we can.
-  const { error } = await supabase
-    .from('agencies')
-    .update({
-      plan: plan === 'pro' ? 'pro' : 'starter',
-      billing,
-    })
-    .eq('id', agencyId)
-  if (error) {
-    console.warn('[onboarding] savePlan failed:', error.message)
     return false
   }
   return true

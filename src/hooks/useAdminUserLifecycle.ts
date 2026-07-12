@@ -39,21 +39,3 @@ export function useAdminUserLifecycle() {
 
   return { lifecycle, deleteAccount }
 }
-
-export function useAdminAgencyLifecycle() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ action, agencyId }: { action: 'suspend' | 'reactivate'; agencyId: string }) => {
-      const { data, error } = await supabase.functions.invoke('admin-agency-lifecycle', {
-        body: { action, agency_id: agencyId },
-      })
-      if (error) throw error
-      return data
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin-agencies'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-    },
-  })
-}

@@ -5,15 +5,6 @@
 import type { StageId } from './tokens'
 
 // ─── Types ───────────────────────────────────────────────────────────────
-export interface CrmAgent {
-  id: string
-  name: string
-  role: string
-  agency: string
-  email?: string
-  phone?: string
-  initials: string
-}
 
 export interface CrmContact {
   id: string
@@ -106,53 +97,7 @@ export interface CrmDeal {
   updatedAt: string
 }
 
-export interface CrmActivity {
-  id: string
-  at: string
-  kind: string
-  contactId?: string
-  bienId?: string
-  text: string
-}
-
-export interface CrmMatch {
-  /** Real Supabase match.id when sourced from a live matching hook. Absent for mock. */
-  id?: string
-  contactId: string
-  bienId: string
-  score: number
-  reasons: string[]
-  status: 'to-send' | 'sent' | 'viewed' | 'liked' | 'rejected'
-}
-
-export interface CrmAISuggestion {
-  id: string
-  contactId?: string
-  bienId?: string
-  priority: 'high' | 'medium' | 'low'
-  title: string
-  body: string
-  cta: string
-}
-
 // ─── Agent + team ────────────────────────────────────────────────────────
-export const CRM_AGENT: CrmAgent = {
-  id: 'agt-1',
-  name: 'Gregory Lyonnet',
-  role: 'Agent principal',
-  agency: 'MEGGA Genève',
-  email: 'gregory@megga.ch',
-  phone: '+41 22 555 01 02',
-  initials: 'GL',
-}
-
-export const CRM_TEAM: CrmAgent[] = [
-  CRM_AGENT,
-  { id: 'agt-2', name: 'Sophie Martin',  role: 'Agent senior',       agency: 'MEGGA Genève',   initials: 'SM' },
-  { id: 'agt-3', name: 'Marc Dubois',    role: 'Agent',              agency: 'MEGGA Lausanne', initials: 'MD' },
-  { id: 'agt-4', name: 'Laure Berger',   role: 'Agent · Valais',     agency: 'MEGGA Sion',     initials: 'LB' },
-]
-
 // ─── Contacts ────────────────────────────────────────────────────────────
 export const CRM_CONTACTS: CrmContact[] = [
   { id: 'c-001', type: 'buyer',  firstName: 'Marie',     lastName: 'Bertrand',  email: 'm.bertrand@bluewin.ch',  phone: '+41 79 412 88 02', lang: 'fr',
@@ -290,88 +235,9 @@ export const CRM_BIENS: CrmBien[] = [
 ]
 
 // ─── Deals (pipeline) ────────────────────────────────────────────────────
-export const CRM_DEALS: CrmDeal[] = [
-  { id: 'd-1', contactId: 'c-001', bienId: 'b-103', stage: 'visit-done',
-    value: 1100000, probability: 65, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'call', dueAt: '2026-05-02T10:00', note: 'Recueillir intérêt après visite' },
-    risk: 'healthy', updatedAt: '2026-04-29T15:32:00' },
-  { id: 'd-2', contactId: 'c-002', bienId: null, stage: 'searching',
-    value: 1800000, probability: 35, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'match', dueAt: '2026-05-01T14:00', note: 'Envoyer 3 nouveaux matchs' },
-    risk: 'at-risk', updatedAt: '2026-04-21T10:11:00' },
-  { id: 'd-3', contactId: 'c-003', bienId: 'b-101', stage: 'interest-confirmed',
-    value: 850000, probability: 80, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'kyc', dueAt: '2026-05-01T09:00', note: 'Lancer dossier KYC' },
-    risk: 'healthy', updatedAt: '2026-04-30T08:45:00' },
-  { id: 'd-4', contactId: 'c-005', bienId: 'b-106', stage: 'visit-scheduled',
-    value: 38400, probability: 55, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'visit', dueAt: '2026-05-03T16:00', note: 'Visite Pâquis 16h' },
-    risk: 'healthy', updatedAt: '2026-04-22T09:00:00' },
-  { id: 'd-5', contactId: 'c-007', bienId: 'b-104', stage: 'offer',
-    value: 3850000, probability: 70, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'offer', dueAt: '2026-05-02T18:00', note: 'Réponse vendeur attendue' },
-    risk: 'healthy', updatedAt: '2026-04-27T14:40:00' },
-  { id: 'd-6', contactId: 'c-008', bienId: null, stage: 'to-qualify',
-    value: 0, probability: 10, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'call', dueAt: '2026-04-30T11:00', note: 'Premier appel de qualification' },
-    risk: 'stalled', updatedAt: '2026-04-29T17:00:00' },
-  { id: 'd-7', contactId: 'c-006', bienId: null, stage: 'new-lead',
-    value: 0, probability: 0, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'call', dueAt: '2026-04-30T15:00', note: 'Premier contact vendeur Carouge' },
-    risk: 'healthy', updatedAt: '2026-04-26T10:00:00' },
-]
-
 // ─── Activity (timeline) ─────────────────────────────────────────────────
-export const CRM_ACTIVITY: CrmActivity[] = [
-  { id: 'a-1', at: '2026-04-30T09:00:00', kind: 'ai-action', contactId: 'c-003',
-    text: "MEGGA AI a extrait Élodie Schmidt depuis un email transféré. 4 critères détectés." },
-  { id: 'a-2', at: '2026-04-30T08:45:00', kind: 'email-open', contactId: 'c-003',
-    text: "Élodie Schmidt a ouvert l'envoi de matchs (3/3 biens vus)." },
-  { id: 'a-3', at: '2026-04-29T17:32:00', kind: 'visit', contactId: 'c-001', bienId: 'b-103',
-    text: "Visite effectuée — 5 pièces familial Carouge avec Marie Bertrand." },
-  { id: 'a-4', at: '2026-04-29T15:32:00', kind: 'note', contactId: 'c-001',
-    text: "Marie a apprécié l'exposition mais souhaite revoir la cuisine. À recontacter sous 48h." },
-  { id: 'a-5', at: '2026-04-29T11:10:00', kind: 'doc-signed', contactId: 'c-007', bienId: 'b-104',
-    text: "Antoine Picard a signé le bon de visite (signature électronique)." },
-  { id: 'a-6', at: '2026-04-28T17:00:00', kind: 'call', contactId: 'c-004',
-    text: "Appel vendeur Aebischer — point hebdo, 5 demandes de visite cette semaine." },
-  { id: 'a-7', at: '2026-04-27T14:40:00', kind: 'offer', contactId: 'c-007', bienId: 'b-104',
-    text: "Offre déposée — CHF 3'850'000 pour la villa Cologny." },
-  { id: 'a-8', at: '2026-04-26T10:00:00', kind: 'lead-in', contactId: 'c-006',
-    text: "Nouveau dossier vendeur reçu via MEGGA Vendre — Catherine Loreau, Carouge." },
-]
-
 // ─── Matchs IA ───────────────────────────────────────────────────────────
-export const CRM_MATCHES: CrmMatch[] = [
-  { contactId: 'c-001', bienId: 'b-103', score: 94, reasons: ['Budget +25', 'Surface +20', 'Canton +15', 'Type +15', 'Pièces +10', 'Quartier favori +9'], status: 'viewed' },
-  { contactId: 'c-001', bienId: 'b-101', score: 78, reasons: ['Budget +20', 'Canton +15', 'Type +15', 'Pièces +10', 'Surface −10', 'Année −12'], status: 'sent' },
-  { contactId: 'c-003', bienId: 'b-101', score: 88, reasons: ['Budget +25', 'Quartier +20', 'Type +15', 'Pièces +15', 'Année −5'], status: 'liked' },
-  { contactId: 'c-003', bienId: 'b-102', score: 81, reasons: ['Budget +25', 'Quartier +20', 'Type +15', 'Pièces +10', 'Surface +5', 'Année +6'], status: 'sent' },
-  { contactId: 'c-002', bienId: 'b-104', score: 73, reasons: ['Type +15', 'Canton −5', 'Budget +25', 'Pièces +10', 'Vue lac +8', 'Surface +20'], status: 'to-send' },
-  { contactId: 'c-007', bienId: 'b-104', score: 96, reasons: ['Type +20', 'Canton +15', 'Quartier +20', 'Budget +25', 'Surface +20', 'Pièces +15', 'Vue lac +5', 'Piscine +5', 'Année +6'], status: 'liked' },
-  { contactId: 'c-005', bienId: 'b-106', score: 82, reasons: ['Transaction +15', 'Budget +20', 'Quartier +15', 'Pièces +15', 'Type +15', 'Surface +2'], status: 'viewed' },
-]
-
 // ─── AI Suggestions (today screen) ───────────────────────────────────────
-export const CRM_AI_SUGGESTIONS: CrmAISuggestion[] = [
-  { id: 's-1', contactId: 'c-001', priority: 'high',
-    title: 'Relancer Marie Bertrand',
-    body: 'Visite il y a 36h sans suivi. Le bien b-103 a un score de match de 94% avec ses critères.',
-    cta: 'Rédiger une relance' },
-  { id: 's-2', contactId: 'c-003', priority: 'high',
-    title: 'Lancer le KYC pour Élodie Schmidt',
-    body: "Deal en intérêt confirmé — KYC obligatoire avant l'offre. Documents requis : pièce d'identité + justificatif d'adresse.",
-    cta: 'Démarrer KYC' },
-  { id: 's-3', contactId: 'c-002', priority: 'medium',
-    title: '3 nouveaux biens correspondent à Pierre Vionnet',
-    body: 'Le matching a trouvé 3 biens >70% sur le marché public MEGGA depuis hier soir.',
-    cta: 'Voir les matchs' },
-  { id: 's-4', bienId: 'b-104', priority: 'low',
-    title: 'Le mandat exclusif Cologny expire dans 12 jours',
-    body: "Pensez à renouveler ou à passer en mandat simple si la vente n'aboutit pas avant le 12 mai.",
-    cta: 'Préparer renouvellement' },
-]
-
 // ─── Helpers ─────────────────────────────────────────────────────────────
 // Le Matching Sugar v2 peut être branché sur Supabase via `useMatchingSugar()`.
 // Dans ce mode, l'adapter pousse les Contact/Bien Supabase dans ce registry
@@ -396,7 +262,4 @@ export function crmContactById(id: string): CrmContact | undefined {
 }
 export function crmBienById(id: string): CrmBien | undefined {
   return _liveBiens.get(id) ?? CRM_BIENS.find(b => b.id === id)
-}
-export function crmDealsByStage(stage: StageId): CrmDeal[] {
-  return CRM_DEALS.filter(d => d.stage === stage)
 }

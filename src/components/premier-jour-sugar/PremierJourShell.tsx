@@ -37,7 +37,6 @@ import {
   saveLocalPhase,
 } from './persistence'
 import {
-  D0_PHASES,
   INITIAL_ANSWERS,
   SKIP_DEFAULTS,
   type Autonomy,
@@ -359,5 +358,3 @@ export function PremierJourShell({
 }
 
 // Guard utilitaire — true si la liste des phases connaît cette valeur
-export const isD0Phase = (s: string): s is D0Phase =>
-  (D0_PHASES as readonly string[]).includes(s)

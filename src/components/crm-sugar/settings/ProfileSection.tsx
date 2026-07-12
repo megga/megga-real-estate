@@ -972,8 +972,7 @@ export function ProfileSection() {
 
 // Export par défaut (conforme à la convention « la page importe par nom » — la
 // page frozen SettingsSugarV2Page consomme l'export NOMMÉ `ProfileSection` ;
-// l'alias default couvre les deux styles d'import).
-export default ProfileSection
+// (l'export nommé `ProfileSection` ci-dessus est l'unique consommé).
 
 // Garde-fou : DEFAULT_PROFILE reste l'unique fallback de lecture (référencé par
 // le hook). Importé ici pour conserver le lien sémantique maquette ↔ schéma.

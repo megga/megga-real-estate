@@ -54,15 +54,3 @@ export interface SearchCriteria {
   surface_max?: number
   features?: string[]
 }
-
-export interface ActivityEvent {
-  id: string
-  agency_id: string
-  actor_id: string
-  action: string
-  entity_type: string
-  entity_id: string
-  metadata: Record<string, unknown> | null
-  created_at: string
-  description?: string
-}

@@ -37,23 +37,6 @@ export function useOfferChain(dealId: string | undefined) {
   })
 }
 
-/** Compteur uniquement (badge sidebar, KPIs). */
-export function useOffersCountByDeal(dealId: string | undefined) {
-  return useQuery({
-    queryKey: ['offers-count', dealId],
-    enabled: !!dealId,
-    queryFn: async () => {
-      if (!dealId) return 0
-      const { count, error } = await supabase
-        .from('crm_offers')
-        .select('id', { count: 'estimated', head: true })
-        .eq('deal_id', dealId)
-      if (error) throw error
-      return count ?? 0
-    },
-  })
-}
-
 // ─── Read : offres 'pending' proches de l'échéance (Focus radar v3) ──────
 //
 // Liste agence-wide des offres en attente, triées par échéance la plus proche.

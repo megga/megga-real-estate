@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useState, useCallback, type ReactNode } from 'react'
 
 interface ContactContext {
   id: string
@@ -48,8 +48,4 @@ export function CopilotContextProvider({ children }: { children: ReactNode }) {
       {children}
     </CopilotContext.Provider>
   )
-}
-
-export function useCopilotContext() {
-  return useContext(CopilotContext)
 }

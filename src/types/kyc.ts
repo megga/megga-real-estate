@@ -104,9 +104,6 @@ export interface KycDossierSummary {
   checks_completed: number
 }
 
-/** Compteurs renvoyés par la RPC `kyc_count_by_status`. */
-export type KycCountByStatus = Partial<Record<KycDossierStatus, number>>
-
 export interface KycCaseWithChecklist extends KycCase {
   checklist: KycChecklistItem[]
 }

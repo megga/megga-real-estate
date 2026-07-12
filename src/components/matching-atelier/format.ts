@@ -21,16 +21,6 @@ export function fmtBudgetRange(min?: number, max?: number): string {
   return '—'
 }
 
-/** « il y a 3 h » / « il y a 2 j » depuis un ISO */
-export function relativeFrom(iso: string | null): string {
-  if (!iso) return '—'
-  const diff = Date.now() - new Date(iso).getTime()
-  const h = Math.round(diff / 3600000)
-  if (h < 1) return "à l'instant"
-  if (h < 24) return `il y a ${h} h`
-  return `il y a ${Math.round(h / 24)} j`
-}
-
 /** Date de retour d'un report (J+7), format « 17 juin » */
 export function sgaReturnDate(iso?: string): string {
   const d = iso ? new Date(iso) : new Date(Date.now() + 7 * 864e5)

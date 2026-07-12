@@ -38,18 +38,6 @@ export type D0ChecklistItem = {
   est: string
   done: boolean
 }
-
-export const D0_PHASES: D0Phase[] = [
-  'welcome',
-  'q0',
-  'q1',
-  'q2',
-  'q3',
-  'synthesis',
-  'configuring',
-  'today',
-]
-
 export const INITIAL_ANSWERS: D0Answers = {
   specialite: null,
   zone: [],

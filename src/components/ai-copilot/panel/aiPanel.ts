@@ -13,10 +13,6 @@ export const PANEL_W = 372
 export const COPILOT_WIDTH = PANEL_W + 32
 
 // ── Bleu identité MEGGA AI (chantier 1) ─────────────────────────────────────
-export const AI_BLUE_LIGHT = '#1E5BC6'
-export const AI_BLUE_DARK = '#7FB0FF'
-export const aiBlue = (dark: boolean) => (dark ? AI_BLUE_DARK : AI_BLUE_LIGHT)
-
 // ── Palette dérivée du panneau ──────────────────────────────────────────────
 // Étend le SugarPalette de base avec les surfaces propres au panneau (accent
 // noir plein #0B0C0E en clair / surface claire en sombre, canvas, composer…).

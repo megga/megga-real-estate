@@ -25,7 +25,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   useQuery,
   useInsertMutation,
-  useUpdateMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -197,20 +196,6 @@ export function useUpdateProperty() {
 // into a `bien_soft_deleted` event so the audit trail survives the deletion
 // (LBA art. 7 al. 3 retention). Hard delete is reserved for the pg_cron
 // orphan-draft cleanup; agents should never need it.
-
-export function useDeleteProperty() {
-  const update = useUpdateMutation(supabase.from('properties'), ['id'])
-  return {
-    mutateAsync: async (id: string) => {
-      await update.mutateAsync({
-        id,
-        deleted_at: new Date().toISOString(),
-      } as unknown as Parameters<typeof update.mutateAsync>[0])
-    },
-    isPending: update.isPending,
-  }
-}
-
 // Miroir des photos staging Supabase → Cloudflare R2 via le broker agent-auth
 // `property-photo-r2` (ownership vérifié server-side). Renvoie les URLs R2 dans le
 // MÊME ordre, ou null si échec/partiel (l'appelant garde alors les URLs Supabase :

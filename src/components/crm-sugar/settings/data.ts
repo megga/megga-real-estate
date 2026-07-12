@@ -65,12 +65,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'preferences', get label() { return i18n.t('settings:nav.sections.preferences.label') }, get short() { return i18n.t('settings:nav.sections.preferences.short') }, icon: 'sliders', group: 'compte' },
 ]
 
-export const SETTINGS_GROUPS: { id: 'moi' | 'produit' | 'compte'; label: string }[] = [
-  { id: 'moi', get label() { return i18n.t('settings:nav.groups.moi') } },
-  { id: 'produit', get label() { return i18n.t('settings:nav.groups.produit') } },
-  { id: 'compte', get label() { return i18n.t('settings:nav.groups.compte') } },
-]
-
 export interface ProfileData {
   firstName: string
   lastName: string

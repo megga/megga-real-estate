@@ -164,17 +164,4 @@ export const BORDER_RADIUS_PRESETS: Record<BorderRadiusTheme, { card: string; bu
 }
 
 /* ─── Density Presets ─── */
-
-export const DENSITY_PRESETS: Record<DensityLevel, { cardPadding: string; gap: string; fontSize: string }> = {
-  compact: { cardPadding: '16px', gap: '12px', fontSize: '13px' },
-  comfortable: { cardPadding: '20px', gap: '16px', fontSize: '14px' },
-  spacious: { cardPadding: '24px', gap: '20px', fontSize: '15px' },
-}
-
 /* ─── Font Size Presets ─── */
-
-export const FONT_SIZE_PRESETS: Record<FontSizeLevel, string> = {
-  small: '13px',
-  medium: '14px',
-  large: '15px',
-}

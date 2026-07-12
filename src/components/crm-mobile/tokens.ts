@@ -143,16 +143,6 @@ export const MT_DARK: MobileTokens = {
 // Couleurs fonctionnelles métier — pilules/pastilles UNIQUEMENT, jamais accent
 // UI. Identiques clair/sombre (reconnaissance). Canoniques : résout les
 // divergences Offre (#C45A00) / Compromis (#059669) des maquettes.
-export const MT_PHASES = {
-  mandat: '#1E5BC6',
-  preparation: '#0891B2',
-  visites: '#0891B2',
-  offre: '#C45A00',
-  compromis: '#059669',
-  acte: '#0B0C0E',
-} as const
-export type MobilePhase = keyof typeof MT_PHASES
-
 // Manrope chargé globalement (index.html). Fallback système si indisponible.
 export const MOBILE_FONT =
   "'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
