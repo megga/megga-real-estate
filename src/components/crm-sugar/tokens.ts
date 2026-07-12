@@ -97,11 +97,6 @@ export const CRM_STAGE_ORDER: StageId[] = [
   'new-lead', 'to-qualify', 'searching', 'visit-scheduled',
   'visit-done', 'interest-confirmed', 'offer', 'signed',
 ]
-
-export const CRM_DENSITY = {
-  comfortable: { rowH: 56, gap: 14, padX: 18, padY: 14, fontBody: 14, fontDense: 13 },
-  compact:     { rowH: 40, gap:  8, padX: 12, padY:  8, fontBody: 13, fontDense: 12 },
-}
 // ─── Formatters ─────────────────────────────────────────────────────────
 export function crmFmtCHF(n: number | null | undefined): string {
   if (n == null) return '—'

@@ -58,34 +58,3 @@ export interface Property {
   published_at: string | null
   updated_at?: string
 }
-
-export interface Listing {
-  id: string
-  property_id: string
-  agency_id: string
-  title: string
-  description_ai: string | null
-  price_display: string
-  is_featured: boolean
-  is_hot: boolean
-  views_count: number
-  favorites_count: number
-  published_at: string
-  expires_at: string | null
-  property?: Property
-  agency?: {
-    name: string
-    logo_url: string | null
-  }
-}
-
-export interface ListingFilters {
-  type?: PropertyType
-  minPrice?: number
-  maxPrice?: number
-  minRooms?: number
-  maxRooms?: number
-  city?: string
-  canton?: string
-  query?: string
-}

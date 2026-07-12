@@ -20,7 +20,6 @@ import {
   shutdown as sdkShutdown,
   show as sdkShow,
   showSpace as sdkShowSpace,
-  showNews as sdkShowNews,
   showArticle as sdkShowArticle,
   trackEvent as sdkTrackEvent,
 } from '@intercom/messenger-js-sdk'
@@ -87,13 +86,6 @@ export type IntercomSpace = 'home' | 'messages' | 'help' | 'news' | 'tasks' | 't
 export function showIntercomSpace(space: IntercomSpace) {
   if (!APP_ID || !booted) return
   sdkShowSpace(space)
-}
-
-/** Ouvre une actualité (news item) précise par son ID Intercom.
- *  Pour ouvrir le feed Actualités complet, utiliser `showIntercomSpace('news')`. */
-export function showIntercomNews(newsItemId: string) {
-  if (!APP_ID || !booted) return
-  sdkShowNews(newsItemId)
 }
 
 /** Ouvre un article du Help Center par son ID Intercom (aide contextuelle). */

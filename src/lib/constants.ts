@@ -71,12 +71,6 @@ export const TRANSACTION_STAGES = [
 export type TransactionStage = typeof TRANSACTION_STAGES[number]
 
 // Legacy stage mapping for backward compatibility
-export const LEGACY_STAGE_MAP: Record<string, TransactionStage> = {
-  lead: 'new_lead',
-  qualified: 'to_qualify',
-  closed: 'signed',
-}
-
 export const KYC_RISK_LEVELS = ['low', 'medium', 'high', 'unassessed'] as const
 export type KycRiskLevel = typeof KYC_RISK_LEVELS[number]
 

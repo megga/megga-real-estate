@@ -12,17 +12,6 @@ export interface TeamMember {
   created_at: string
 }
 
-export interface TeamInvitation {
-  id: string
-  email: string
-  role: 'admin' | 'manager' | 'agent' | 'assistant'
-  status: 'pending' | 'accepted' | 'cancelled' | 'expired'
-  created_at: string
-  expires_at: string
-  invited_by: string
-}
-
-
 // ─── Team Members ───
 
 export function useTeamMembers() {

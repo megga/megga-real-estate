@@ -202,8 +202,3 @@ export function resetCaptcha(): void {
     /* silent */
   }
 }
-
-/** Quick check from app code : is captcha actually enabled in this env ? */
-export function captchaConfigured(): boolean {
-  return Boolean(SITE_KEY)
-}

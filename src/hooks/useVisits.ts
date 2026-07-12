@@ -266,24 +266,6 @@ export function useFocusVisits(limit = 100) {
 }
 
 // ── Public visit booking (no auth required) ─────────────────────────────────
-
-export interface VisitBookingInput {
-  propertyId: string
-  agencyId: string
-  scheduledAt: string // ISO string
-  buyerName: string
-  buyerEmail: string
-  buyerPhone?: string
-  buyerMessage?: string
-  visitType?: 'sur_place' | 'video'
-  videoPlatform?: 'google_meet' | 'facetime'
-  qualification?: {
-    budget?: string
-    financing?: string
-    firstVisit?: boolean
-  }
-}
-
 // useBookVisit stays on raw useMutation because it issues N sequential
 // queries (lookup contact, maybe insert contact, fetch agent email, insert
 // visit, 2 edge function calls, activity log). The contact + visit inserts

@@ -11,14 +11,3 @@
 
 
 export type FollowupKind = 'commitment' | 'next_action' | 'client_availability'
-
-export interface FollowupSuggestionRow {
-  id: string
-  contact_id: string
-  action: string
-  due_at: string | null
-  kind: FollowupKind
-  status: 'suggested' | 'accepted' | 'dismissed'
-  created_at: string
-}
-

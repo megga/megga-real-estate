@@ -55,8 +55,3 @@ export interface CrmSubmission {
 // BnDetailOverlay (onglet Historique) mais le wire backend (query
 // activity_events filter entity_type='property') n'existait pas. BnDetailOverlay
 // affiche maintenant l'empty state "Aucun événement enregistré".
-
-export interface BienAlert {
-  level: 'blocker' | 'warn'
-  text: string
-}

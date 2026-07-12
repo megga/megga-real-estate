@@ -53,5 +53,3 @@ export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
   { name: 'run_kyc_screening', tier: 'slow_async' },
   { name: 'send_kyc_report', tier: 'slow_async' },
 ]
-
-export const WHATSAPP_TOOL_NAMES: string[] = WHATSAPP_TOOL_CATALOG.map((tt) => tt.name)

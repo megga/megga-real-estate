@@ -289,10 +289,3 @@ function describeActivity(action: string, metadata: Record<string, unknown> | nu
 }
 
 // ── Hook: manage portals (agent side) ────────────────────────────────────
-
-export interface SellerPortalRecord {
-  id: string
-  token: string
-  contactId: string
-  status: 'active' | 'expired' | 'revoked'
-}

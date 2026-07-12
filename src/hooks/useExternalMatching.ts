@@ -1,12 +1,4 @@
 
-export interface ExternalSearchCriteria {
-  zone: string
-  type: string
-  budget_max: number
-  budget_min?: number
-  rooms_min?: number
-}
-
 export interface ExternalListing {
   external_id: string
   title: string

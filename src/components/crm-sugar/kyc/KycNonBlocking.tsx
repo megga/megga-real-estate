@@ -4,17 +4,10 @@
 
 import { useTranslation } from 'react-i18next'
 import {
-  KycIcon, SP, type KycTone,
+  KycIcon, SP,
 } from './atoms'
 
 // ─── Banner non-bloquant fiche contact ───────────────────────────────────
-export interface KycSoftBannerProps {
-  title: string
-  desc: string
-  onComplete?: () => void
-  onDismiss?: () => void
-}
-
 // ─── Badge persistant carte deal pipeline ────────────────────────────────
 export interface KycDealBadgeProps {
   done: number
@@ -48,24 +41,4 @@ export function KycDealBadge({ done, total, hint }: KycDealBadgeProps) {
 
 // ─── Action item (utility) ────────────────────────────────────────────────
 // ─── Carte deal pipeline (avec badge) ────────────────────────────────────
-export interface KycDealCardData {
-  stage: string
-  stageTone: KycTone
-  name: string
-  amount: string
-  scoreText?: string
-  due?: string
-  dueLabel?: string
-  kycDone: number
-  kycTotal: number
-}
-
-
 // ─── Tableau de dette KYC (vue responsable) ──────────────────────────────
-export interface KycDebtRow {
-  name: string
-  info: string
-  days: number
-  tone: KycTone
-}
-

@@ -46,31 +46,6 @@ export interface Reminder {
   propertyTitle?: string
 }
 
-export interface AutomationRule {
-  id: string
-  name: string
-  triggerEvent: string
-  triggerLabel: string
-  action: string
-  actionLabel: string
-  delayDays: number
-  templateId: string | null
-  isActive: boolean
-  autoSend: boolean
-  generatedCount: number
-  activeCount: number
-  lastTriggeredAt: string | null
-}
-
-export interface MessageTemplate {
-  id: string
-  name: string
-  category: string
-  channel: 'email' | 'notification'
-  subject: string | null
-  body: string
-}
-
 // ── Label mappings ─────────────────────────────────────────────────────────
 const REMINDER_TYPE_TITLES: Record<string, string> = {
   follow_up_sent_property: 'Relance envoi de bien',

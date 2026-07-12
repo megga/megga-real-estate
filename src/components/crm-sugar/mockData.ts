@@ -5,15 +5,6 @@
 import type { StageId } from './tokens'
 
 // ─── Types ───────────────────────────────────────────────────────────────
-export interface CrmAgent {
-  id: string
-  name: string
-  role: string
-  agency: string
-  email?: string
-  phone?: string
-  initials: string
-}
 
 export interface CrmContact {
   id: string
@@ -106,45 +97,7 @@ export interface CrmDeal {
   updatedAt: string
 }
 
-export interface CrmActivity {
-  id: string
-  at: string
-  kind: string
-  contactId?: string
-  bienId?: string
-  text: string
-}
-
-export interface CrmMatch {
-  /** Real Supabase match.id when sourced from a live matching hook. Absent for mock. */
-  id?: string
-  contactId: string
-  bienId: string
-  score: number
-  reasons: string[]
-  status: 'to-send' | 'sent' | 'viewed' | 'liked' | 'rejected'
-}
-
-export interface CrmAISuggestion {
-  id: string
-  contactId?: string
-  bienId?: string
-  priority: 'high' | 'medium' | 'low'
-  title: string
-  body: string
-  cta: string
-}
-
 // ─── Agent + team ────────────────────────────────────────────────────────
-export const CRM_AGENT: CrmAgent = {
-  id: 'agt-1',
-  name: 'Gregory Lyonnet',
-  role: 'Agent principal',
-  agency: 'MEGGA Genève',
-  email: 'gregory@megga.ch',
-  phone: '+41 22 555 01 02',
-  initials: 'GL',
-}
 // ─── Contacts ────────────────────────────────────────────────────────────
 export const CRM_CONTACTS: CrmContact[] = [
   { id: 'c-001', type: 'buyer',  firstName: 'Marie',     lastName: 'Bertrand',  email: 'm.bertrand@bluewin.ch',  phone: '+41 79 412 88 02', lang: 'fr',
@@ -282,37 +235,6 @@ export const CRM_BIENS: CrmBien[] = [
 ]
 
 // ─── Deals (pipeline) ────────────────────────────────────────────────────
-export const CRM_DEALS: CrmDeal[] = [
-  { id: 'd-1', contactId: 'c-001', bienId: 'b-103', stage: 'visit-done',
-    value: 1100000, probability: 65, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'call', dueAt: '2026-05-02T10:00', note: 'Recueillir intérêt après visite' },
-    risk: 'healthy', updatedAt: '2026-04-29T15:32:00' },
-  { id: 'd-2', contactId: 'c-002', bienId: null, stage: 'searching',
-    value: 1800000, probability: 35, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'match', dueAt: '2026-05-01T14:00', note: 'Envoyer 3 nouveaux matchs' },
-    risk: 'at-risk', updatedAt: '2026-04-21T10:11:00' },
-  { id: 'd-3', contactId: 'c-003', bienId: 'b-101', stage: 'interest-confirmed',
-    value: 850000, probability: 80, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'kyc', dueAt: '2026-05-01T09:00', note: 'Lancer dossier KYC' },
-    risk: 'healthy', updatedAt: '2026-04-30T08:45:00' },
-  { id: 'd-4', contactId: 'c-005', bienId: 'b-106', stage: 'visit-scheduled',
-    value: 38400, probability: 55, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'visit', dueAt: '2026-05-03T16:00', note: 'Visite Pâquis 16h' },
-    risk: 'healthy', updatedAt: '2026-04-22T09:00:00' },
-  { id: 'd-5', contactId: 'c-007', bienId: 'b-104', stage: 'offer',
-    value: 3850000, probability: 70, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'offer', dueAt: '2026-05-02T18:00', note: 'Réponse vendeur attendue' },
-    risk: 'healthy', updatedAt: '2026-04-27T14:40:00' },
-  { id: 'd-6', contactId: 'c-008', bienId: null, stage: 'to-qualify',
-    value: 0, probability: 10, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'call', dueAt: '2026-04-30T11:00', note: 'Premier appel de qualification' },
-    risk: 'stalled', updatedAt: '2026-04-29T17:00:00' },
-  { id: 'd-7', contactId: 'c-006', bienId: null, stage: 'new-lead',
-    value: 0, probability: 0, ownerAgentId: 'agt-1',
-    nextAction: { kind: 'call', dueAt: '2026-04-30T15:00', note: 'Premier contact vendeur Carouge' },
-    risk: 'healthy', updatedAt: '2026-04-26T10:00:00' },
-]
-
 // ─── Activity (timeline) ─────────────────────────────────────────────────
 // ─── Matchs IA ───────────────────────────────────────────────────────────
 // ─── AI Suggestions (today screen) ───────────────────────────────────────

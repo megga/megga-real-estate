@@ -15,19 +15,6 @@ export type MagicLinkStatus =
 
 export type MagicLinkUploadType = 'identity' | 'address' | 'funds' | 'other'
 
-/** Vue résumée renvoyée par la RPC `kyc_magic_link_summary`. */
-export interface KycMagicLinkSummary {
-  id: string
-  status: MagicLinkStatus
-  mode: MagicLinkMode
-  sent_at: string
-  expires_at: string
-  opened_at: string | null
-  confirmed_at: string | null
-  uploads_count: number
-  channels: MagicLinkChannel[]
-}
-
 /** Row `kyc_magic_link_uploads`. */
 export interface KycMagicLinkUpload {
   id: string
@@ -68,11 +55,6 @@ export interface CreateMagicLinkResponse {
   url: string
   expires_at: string
   status: MagicLinkStatus
-}
-
-export interface RegenerateMagicLinkInput {
-  magic_link_id: string
-  expiration_days?: number
 }
 
 /** Vue publique servie par GET /magic-link-get?token=... (côté client). */
