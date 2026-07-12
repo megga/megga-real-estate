@@ -19,9 +19,11 @@ const DEFAULT_PREFS: PrefsData = {
   defaultPipelineView: 'kanban',
   density: 'comfort',
   theme: 'system',
+  accent: 'black',
   spellcheck: true,
   autosave: true,
   aiAssist: 'balanced',
+  aiTone: 'neutre',
 }
 
 interface ProfilePrefsRow {

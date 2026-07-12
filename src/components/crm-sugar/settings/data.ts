@@ -60,9 +60,9 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'agency', get label() { return i18n.t('settings:nav.sections.agency.label') }, get short() { return i18n.t('settings:nav.sections.agency.short') }, icon: 'building', group: 'moi' },
   { id: 'notifications', get label() { return i18n.t('settings:nav.sections.notifications.label') }, get short() { return i18n.t('settings:nav.sections.notifications.short') }, icon: 'bell', group: 'produit' },
   { id: 'integrations', get label() { return i18n.t('settings:nav.sections.integrations.label') }, get short() { return i18n.t('settings:nav.sections.integrations.short') }, icon: 'plug', group: 'produit' },
+  { id: 'preferences', get label() { return i18n.t('settings:nav.sections.preferences.label') }, get short() { return i18n.t('settings:nav.sections.preferences.short') }, icon: 'sliders', group: 'produit' },
   { id: 'billing', get label() { return i18n.t('settings:nav.sections.billing.label') }, get short() { return i18n.t('settings:nav.sections.billing.short') }, icon: 'card', group: 'compte' },
   { id: 'security', get label() { return i18n.t('settings:nav.sections.security.label') }, get short() { return i18n.t('settings:nav.sections.security.short') }, icon: 'lock', group: 'compte' },
-  { id: 'preferences', get label() { return i18n.t('settings:nav.sections.preferences.label') }, get short() { return i18n.t('settings:nav.sections.preferences.short') }, icon: 'sliders', group: 'compte' },
 ]
 
 export interface ProfileData {
@@ -78,6 +78,9 @@ export interface ProfileData {
   specialties: string[]
   bio: string
   signature: string
+  /** Liens publics (settings Focus « Liens ») — agent_profiles.website_url / linkedin_url. */
+  website: string
+  linkedin: string
   initials: string
   avatarBg: string
   // Champs maquette « Sugar Pure ». Optionnels : la passe DB (différée) leur
@@ -101,6 +104,8 @@ export const DEFAULT_PROFILE: ProfileData = {
   specialties: ['Résidentiel haut de gamme', 'Mandats exclusifs', 'Cologny / Champel'],
   bio: "Spécialiste du marché genevois depuis 12 ans. Accompagnement haut de gamme sur Cologny, Champel et la Vieille-Ville. Mandats exclusifs uniquement, conformité C2PA sur l'ensemble du portefeuille.",
   signature: 'Cordialement,\nGregory Lyonnet\nMEGGA Genève · +41 22 555 01 02',
+  website: '',
+  linkedin: '',
   initials: 'GL',
   avatarBg: '#0041D9',
   signatureMode: 'text',

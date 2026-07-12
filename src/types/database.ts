@@ -255,6 +255,7 @@ export type Database = {
           id: string
           ide: string | null
           legal_name: string | null
+          legal_form: string | null
           logo_url: string | null
           monthly_target: number | null
           name: string
@@ -284,6 +285,7 @@ export type Database = {
           id?: string
           ide?: string | null
           legal_name?: string | null
+          legal_form?: string | null
           logo_url?: string | null
           monthly_target?: number | null
           name: string
@@ -313,6 +315,7 @@ export type Database = {
           id?: string
           ide?: string | null
           legal_name?: string | null
+          legal_form?: string | null
           logo_url?: string | null
           monthly_target?: number | null
           name?: string
@@ -589,6 +592,7 @@ export type Database = {
           updated_at: string | null
           verified_at: string | null
           website_url: string | null
+          linkedin_url: string | null
         }
         Insert: {
           agency_profile_id?: string | null
@@ -625,6 +629,7 @@ export type Database = {
           updated_at?: string | null
           verified_at?: string | null
           website_url?: string | null
+          linkedin_url?: string | null
         }
         Update: {
           agency_profile_id?: string | null
@@ -661,6 +666,7 @@ export type Database = {
           updated_at?: string | null
           verified_at?: string | null
           website_url?: string | null
+          linkedin_url?: string | null
         }
         Relationships: [
           {

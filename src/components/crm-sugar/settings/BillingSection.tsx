@@ -1,636 +1,240 @@
-// MEGGA CRM Sugar « Sugar Pure » — Settings Facturation (wired Stripe).
+// MEGGA CRM — Settings Facturation (immersif vitrine, câblé Stripe).
 //
-// Maquette : crm-screen-settings-step4.jsx → SettingsBillingSection + PriceBento.
-// Layout : (1) hero sombre fixe « Votre abonnement » + « Gérer dans Stripe »,
-//          (2) toggle Mensuel / Annuel −20% (yearly = monthly×0.8, toujours /mois),
-//          (3) grille 3 plans (Gratuit / Pro / Custom) avec features ✓.
+// Design : crm-facturation-plans.html (module pricing vitrine Webflow) rendu en
+// MODE IMMERSIF (le cadre entier des Réglages passe en noir #0B0C0E + dégradé bas,
+// fourni par le shell). Ici : toggle Mensuel/Annuel « Deux mois offerts » + 3 cartes
+// plans transparentes (Gratuit / Pro populaire / Custom), palette sombre FIXE
+// (indépendante du thème app, comme la maquette). Reproduit le look vitrine en
+// React — pas d'iframe ni de CSS vitrine embarqué (cf. handoff « recréer, pas embarquer »).
 //
-// Câblage réel (useSubscription → table subscriptions + Stripe webhook sync) :
-//   - plan courant dérivé de currentPlan/isActive (PAS un current:true mocké) ;
-//     mapping plan DB → carte : starter→free, pro→pro, entreprise→custom.
-//   - « Gérer dans Stripe » → openPortal() (Stripe Customer Portal).
-//   - CTA upgrade payant → createCheckout(priceId) avec STRIPE_PRICES.* .
-//   - Custom → mailto:sales@megga.ch (pas de self-serve).
-//
-// Prix d'affichage : repris EXACTEMENT de la maquette (Gratuit 0 · Pro 49 ·
-// Custom sur devis). Le portail Stripe reste la source de vérité du montant réel
-// facturé ; ici on affiche le tarif catalogue de la maquette.
+// Câblage réel PRÉSERVÉ (useSubscription → table subscriptions + Stripe webhook) :
+//   - plan courant dérivé de currentPlan/isActive (starter→free, pro→pro, entreprise→custom) ;
+//   - CTA plan courant / Gratuit → openPortal() (Stripe Customer Portal) ;
+//   - CTA « Passer à Pro » → createCheckout(STRIPE_PRICES.pro.*) ;
+//   - Custom → mailto:sales@megga.ch.
+// Prix affichés = catalogue maquette (Gratuit 0 · Pro 49, annuel 41 « deux mois offerts »
+//   · Custom sur devis) ; le portail Stripe reste la source de vérité du montant facturé.
 
 import { useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
 import { useSubscription } from '@/hooks/useSubscription'
 import { STRIPE_PRICES } from '@/lib/constants'
-import { SetIcon } from './atoms'
-import { SET_PALETTE } from './data'
 
-const SET = SET_PALETTE
+const NUM: CSSProperties = { fontVariantNumeric: 'tabular-nums', fontFeatureSettings: '"tnum" 1' }
 
-const NUM: CSSProperties = {
-  fontVariantNumeric: 'tabular-nums',
-  fontFeatureSettings: '"tnum" 1',
+// Palette sombre FIXE reprise de la vitrine (le module est toujours sombre).
+const V = {
+  brand: '#424bfb',
+  head: '#FFFFFF',
+  text: '#C7C8CE',
+  mut: '#8A8B93',
+  border: 'rgba(255,255,255,0.10)',
+  sub: 'rgba(255,255,255,0.05)',
+  onBrand: '#FFFFFF',
 }
 
 type PlanId = 'free' | 'pro' | 'custom'
 
 interface PlanDef {
   id: PlanId
-  /** Clé i18n du nom de plan (Gratuit / Pro reste un nom propre catalogue). */
+  icon: string
   nameKey: string
-  /** Tarif mensuel catalogue (maquette). null = sur devis. */
-  monthly: number | null
   taglineKey: string
+  monthly: number | null
   featureKeys: string[]
   popular?: boolean
 }
 
 const PLANS: PlanDef[] = [
   {
-    id: 'free',
-    nameKey: 'settings.billing.plans.free.name',
-    monthly: 0,
-    taglineKey: 'settings.billing.plans.free.tagline',
-    featureKeys: [
-      'settings.billing.plans.free.features.properties',
-      'settings.billing.plans.free.features.crm',
-      'settings.billing.plans.free.features.aiSearch',
-      'settings.billing.plans.free.features.sellerPortal',
-      'settings.billing.plans.free.features.emailSupport',
-    ],
+    id: 'free', icon: '/billing/plan-free.png', nameKey: 'billing.plans.free.name', taglineKey: 'billing.plans.free.tagline', monthly: 0,
+    featureKeys: ['billing.plans.free.features.properties', 'billing.plans.free.features.crm', 'billing.plans.free.features.aiSearch', 'billing.plans.free.features.sellerPortal', 'billing.plans.free.features.emailSupport'],
   },
   {
-    id: 'pro',
-    nameKey: 'settings.billing.plans.pro.name',
-    monthly: 49,
-    taglineKey: 'settings.billing.plans.pro.tagline',
-    featureKeys: [
-      'settings.billing.plans.pro.features.unlimitedProperties',
-      'settings.billing.plans.pro.features.fullCrm',
-      'settings.billing.plans.pro.features.pipeline',
-      'settings.billing.plans.pro.features.compliance',
-      'settings.billing.plans.pro.features.docGeneration',
-      'settings.billing.plans.pro.features.multichannel',
-      'settings.billing.plans.pro.features.copilot',
-      'settings.billing.plans.pro.features.prioritySupport',
-    ],
-    popular: true,
+    id: 'pro', icon: '/billing/plan-pro.png', nameKey: 'billing.plans.pro.name', taglineKey: 'billing.plans.pro.tagline', monthly: 49, popular: true,
+    featureKeys: ['billing.plans.pro.features.unlimitedProperties', 'billing.plans.pro.features.fullCrm', 'billing.plans.pro.features.pipeline', 'billing.plans.pro.features.compliance', 'billing.plans.pro.features.docGeneration', 'billing.plans.pro.features.multichannel', 'billing.plans.pro.features.copilot', 'billing.plans.pro.features.prioritySupport'],
   },
   {
-    id: 'custom',
-    nameKey: 'settings.billing.plans.custom.name',
-    monthly: null,
-    taglineKey: 'settings.billing.plans.custom.tagline',
-    featureKeys: [
-      'settings.billing.plans.custom.features.allPro',
-      'settings.billing.plans.custom.features.multiAgency',
-      'settings.billing.plans.custom.features.api',
-      'settings.billing.plans.custom.features.sso',
-      'settings.billing.plans.custom.features.branding',
-      'settings.billing.plans.custom.features.accountManager',
-      'settings.billing.plans.custom.features.sla',
-    ],
+    id: 'custom', icon: '/billing/plan-custom.png', nameKey: 'billing.plans.custom.name', taglineKey: 'billing.plans.custom.tagline', monthly: null,
+    featureKeys: ['billing.plans.custom.features.allPro', 'billing.plans.custom.features.multiAgency', 'billing.plans.custom.features.api', 'billing.plans.custom.features.sso', 'billing.plans.custom.features.branding', 'billing.plans.custom.features.accountManager', 'billing.plans.custom.features.sla'],
   },
 ]
 
-/** Mappe le plan DB (useSubscription) vers la carte de la maquette. */
 function planIdFromDb(dbPlan: string): PlanId {
   if (dbPlan === 'pro') return 'pro'
   if (dbPlan === 'entreprise') return 'custom'
-  return 'free' // starter / inconnu
+  return 'free'
+}
+
+function CheckDot({ pro }: { pro?: boolean }) {
+  return (
+    <span style={{ width: 18, height: 18, borderRadius: 999, flexShrink: 0, marginTop: 2, display: 'grid', placeItems: 'center', background: pro ? V.brand : 'rgba(255,255,255,0.10)' }}>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>
+    </span>
+  )
 }
 
 export function BillingSection() {
-  const {
-    subscription,
-    isLoading,
-    currentPlan,
-    isActive,
-    createCheckout,
-    isCheckoutLoading,
-    openPortal,
-    isPortalLoading,
-  } = useSubscription()
+  const { subscription, isLoading, currentPlan, isActive, createCheckout, isCheckoutLoading, openPortal, isPortalLoading } = useSubscription()
   const { t } = useTranslation('settings')
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly')
-  const [selectedPlan, setSelectedPlan] = useState<PlanId | null>(null)
   const toast = useToast()
 
-  // Plan courant réel : on retient le plan DB seulement s'il est actif,
-  // sinon on retombe sur Gratuit (cohérent avec un compte sans abonnement).
   const currentPlanId: PlanId = isActive ? planIdFromDb(currentPlan) : 'free'
-  const currentDef = PLANS.find((p) => p.id === currentPlanId) ?? PLANS[0]
 
   const handlePortal = async () => {
-    try {
-      await openPortal()
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t('settings.billing.unknownError')
-      toast.error(t('settings.billing.failureWith', { message: msg }))
+    try { await openPortal() } catch (err) {
+      toast.error(t('billing.failureWith', { message: err instanceof Error ? err.message : t('billing.unknownError') }))
     }
   }
-
-  const handleUpgrade = async (planId: PlanId) => {
-    // Seul Pro est self-serve payant (Custom = mailto, Gratuit = pas de checkout).
-    if (planId !== 'pro') return
-    const priceId =
-      period === 'yearly' ? STRIPE_PRICES.pro.yearly : STRIPE_PRICES.pro.monthly
-    if (!priceId) {
-      toast.error(t('settings.billing.stripeMissing'))
-      return
-    }
-    try {
-      await createCheckout(priceId)
-      // createCheckout redirige déjà via window.location.href
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t('settings.billing.unknownError')
-      toast.error(t('settings.billing.failureWith', { message: msg }))
+  const handleUpgrade = async () => {
+    const priceId = period === 'yearly' ? STRIPE_PRICES.pro.yearly : STRIPE_PRICES.pro.monthly
+    if (!priceId) { toast.error(t('billing.stripeMissing')); return }
+    try { await createCheckout(priceId) } catch (err) {
+      toast.error(t('billing.failureWith', { message: err instanceof Error ? err.message : t('billing.unknownError') }))
     }
   }
 
   if (isLoading) {
-    return (
-      <div style={{ padding: 40, color: SET.muted, fontSize: 13 }}>
-        {t('settings.billing.loading')}
-      </div>
-    )
+    return <div style={{ padding: 48, color: V.mut, fontSize: 13, textAlign: 'center' }}>{t('billing.loading')}</div>
   }
 
-  // Prix mensuel affiché pour le hero (catalogue maquette).
-  const heroMonthly = currentDef.monthly
+  const renewal = isActive && subscription?.current_period_end
+    ? (subscription.cancel_at_period_end
+        ? t('billing.cancellationOn', { date: formatPeriodDate(subscription.current_period_end) })
+        : t('billing.renewalOn', { date: formatPeriodDate(subscription.current_period_end) }))
+    : null
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 24,
-        paddingBottom: 24,
-        animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
-      }}
-    >
-      {/* Plan actuel — hero sombre fixe (signature site, sombre dans les 2 thèmes) */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #0B0C0E 0%, #1F2937 100%)',
-          color: '#fff',
-          borderRadius: 24,
-          padding: 28,
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 20px 60px rgba(11,12,14,0.20)',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'radial-gradient(ellipse 80% 120% at 82% 0%, rgba(255,255,255,0.10) 0%, transparent 58%)',
-          }}
-        />
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 24,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ flex: '1 1 280px' }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: 1.2,
-                textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.55)',
-                marginBottom: 10,
-              }}
-            >
-              {t('settings.billing.yourSubscription')}
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: 14,
-                flexWrap: 'wrap',
-              }}
-            >
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: 36,
-                  fontWeight: 700,
-                  letterSpacing: -0.6,
-                }}
-              >
-                {t(currentDef.nameKey)}
-              </h2>
-              {heroMonthly !== null ? (
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span
-                    style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}
-                  >
-                    CHF
-                  </span>
-                  <span
-                    style={{ fontSize: 34, fontWeight: 700, letterSpacing: -0.6, ...NUM }}
-                  >
-                    {heroMonthly}
-                  </span>
-                  <span
-                    style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}
-                  >
-                    {t('settings.billing.perMonth')}
-                  </span>
-                </div>
-              ) : (
-                <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.4 }}>
-                  {t('settings.billing.onQuote')}
-                </span>
-              )}
-            </div>
-
-            {/* Renouvellement/annulation réel si la sub Stripe le fournit */}
-            {isActive && subscription?.current_period_end && (
-              <div
-                style={{
-                  marginTop: 14,
-                  padding: '8px 14px',
-                  borderRadius: 999,
-                  background: 'rgba(255,255,255,0.10)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  ...NUM,
-                }}
-              >
-                <span
-                  style={{ width: 7, height: 7, borderRadius: 999, background: '#22C55E' }}
-                />
-                {subscription.cancel_at_period_end
-                  ? t('settings.billing.cancellationOn', { date: formatPeriodDate(subscription.current_period_end) })
-                  : t('settings.billing.renewalOn', { date: formatPeriodDate(subscription.current_period_end) })}
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={handlePortal}
-            disabled={isPortalLoading}
-            style={{
-              height: 44,
-              padding: '0 22px',
-              border: 0,
-              borderRadius: 999,
-              background: '#fff',
-              color: '#0B0C0E',
-              fontFamily: 'inherit',
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: isPortalLoading ? 'wait' : 'pointer',
-              opacity: isPortalLoading ? 0.7 : 1,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              boxShadow: '0 6px 18px rgba(0,0,0,0.20)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            <SetIcon name="card" size={15} stroke="#0B0C0E" sw={2} />
-            {isPortalLoading ? t('settings.billing.opening') : t('settings.billing.manageInStripe')}
-          </button>
-        </div>
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 28px 40px', fontFamily: '"Inter Tight", system-ui, sans-serif' }}>
+      {/* Toggle Mensuel / Annuel (+ badge « Deux mois offerts ») */}
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 5, borderRadius: 999, background: 'rgba(255,255,255,0.05)', boxShadow: `0 0 0 1px ${V.border} inset`, marginBottom: 30 }}>
+        {([
+          { id: 'monthly', label: t('billing.monthly'), badge: null },
+          { id: 'yearly', label: t('billing.annual'), badge: t('billing.twoMonthsFree') },
+        ] as const).map((tg) => {
+          const on = period === tg.id
+          return (
+            <button key={tg.id} onClick={() => setPeriod(tg.id)} style={{
+              height: 40, padding: '0 20px', border: 0, borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+              background: on ? '#181A20' : 'transparent', color: on ? V.head : V.mut, display: 'inline-flex', alignItems: 'center', gap: 9, transition: 'color .15s, background .15s',
+            }}>
+              {tg.label}
+              {tg.badge && <span style={{ height: 22, padding: '0 9px', borderRadius: 999, background: V.brand, color: '#fff', fontSize: 11.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>{tg.badge}</span>}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Changer de plan — bentos tarifaires */}
-      <div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            flexWrap: 'wrap',
-            marginBottom: 18,
-          }}
-        >
-          <div>
-            <h3
-              style={{
-                margin: '0 0 4px',
-                fontSize: 17,
-                fontWeight: 700,
-                color: SET.ink,
-                letterSpacing: -0.3,
-              }}
-            >
-              {t('settings.billing.changePlan')}
-            </h3>
-            <p style={{ margin: 0, fontSize: 13, color: SET.muted, fontWeight: 500 }}>
-              {t('settings.billing.changePlanHint')}
-            </p>
-          </div>
-          <div
-            style={{
-              display: 'inline-flex',
-              padding: 4,
-              borderRadius: 999,
-              background: SET.cardSubtle,
-            }}
-          >
-            {([
-              { id: 'monthly', labelKey: 'settings.billing.monthly' },
-              { id: 'yearly', labelKey: 'settings.billing.yearlyDiscount' },
-            ] as const).map((tg) => {
-              const active = period === tg.id
-              return (
-                <button
-                  key={tg.id}
-                  onClick={() => setPeriod(tg.id)}
-                  style={{
-                    height: 34,
-                    padding: '0 16px',
-                    border: 0,
-                    borderRadius: 999,
-                    background: active ? SET.card : 'transparent',
-                    color: active ? SET.ink : SET.inkSoft,
-                    fontFamily: 'inherit',
-                    fontSize: 12.5,
-                    fontWeight: active ? 700 : 600,
-                    cursor: 'pointer',
-                    letterSpacing: -0.1,
-                    boxShadow: active ? '0 4px 12px rgba(11,12,14,0.10)' : 'none',
-                    transition: 'all .15s',
-                  }}
-                >
-                  {t(tg.labelKey)}
-                </button>
-              )
-            })}
-          </div>
+      {renewal && (
+        <div style={{ marginBottom: 26, padding: '7px 16px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: V.text, ...NUM }}>
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#22C55E' }} />
+          {renewal}
         </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 16,
-          }}
-        >
-          {PLANS.map((p) => (
-            <PriceBento
-              key={p.id}
-              plan={p}
-              period={period}
-              isCurrent={p.id === currentPlanId}
-              selected={selectedPlan === p.id}
-              onSelect={() => setSelectedPlan(p.id)}
-              onUpgrade={() => handleUpgrade(p.id)}
-              upgrading={isCheckoutLoading}
-            />
-          ))}
-        </div>
+      )}
+
+      {/* 3 cartes plans */}
+      <div style={{ width: '100%', maxWidth: 1120, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, alignItems: 'stretch' }}>
+        {PLANS.map((p) => (
+          <PlanCard key={p.id} plan={p} period={period} isCurrent={p.id === currentPlanId}
+            onPortal={handlePortal} onUpgrade={handleUpgrade} busy={isCheckoutLoading || isPortalLoading} />
+        ))}
       </div>
     </div>
   )
 }
 
-interface PriceBentoProps {
+interface PlanCardProps {
   plan: PlanDef
   period: 'monthly' | 'yearly'
   isCurrent: boolean
-  selected: boolean
-  onSelect: () => void
+  onPortal: () => void
   onUpgrade: () => void
-  upgrading: boolean
+  busy: boolean
 }
 
-function PriceBento({
-  plan,
-  period,
-  isCurrent,
-  selected,
-  onSelect,
-  onUpgrade,
-  upgrading,
-}: PriceBentoProps) {
+function PlanCard({ plan, period, isCurrent, onPortal, onUpgrade, busy }: PlanCardProps) {
   const { t } = useTranslation('settings')
-  const isYearly = period === 'yearly' && plan.monthly !== null && plan.monthly > 0
-  const price =
-    plan.monthly === null
-      ? null
-      : isYearly
-        ? Math.round(plan.monthly * 0.8)
-        : plan.monthly
-  const checkColor = selected ? SET.ink : SET.muted
+  const pro = !!plan.popular
+
+  // Prix affiché : annuel Pro = « deux mois offerts » ⇒ ~10 mois (monthly × 10/12).
+  let priceBig: string
+  let priceTail = ''
+  if (plan.monthly === null) { priceBig = t('billing.onQuote'); priceTail = t('billing.perYourNeeds') }
+  else if (plan.monthly === 0) { priceBig = t('billing.plans.free.name') }
+  else {
+    const m = period === 'yearly' ? Math.round(plan.monthly * 10 / 12) : plan.monthly
+    priceBig = `CHF ${m}`; priceTail = t('billing.perPersonMonth')
+  }
 
   return (
-    <div
-      onClick={onSelect}
-      style={{
-        background: SET.card,
-        borderRadius: 20,
-        padding: '26px 24px 24px',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-        cursor: 'pointer',
-        transition: 'box-shadow .2s cubic-bezier(.2,.8,.2,1)',
-        boxShadow: selected
-          ? `inset 0 0 0 2px ${SET.ink}, 0 16px 40px rgba(11,12,14,0.12)`
-          : SET.shadow,
-      }}
-    >
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: SET.ink, letterSpacing: -0.1 }}>
-          {t(plan.nameKey)}
-        </div>
-        <div style={{ fontSize: 12.5, color: SET.muted, fontWeight: 500, marginTop: 3 }}>
-          {t(plan.taglineKey)}
+    <div style={{
+      position: 'relative', display: 'flex', flexDirection: 'column', gap: 18, padding: '26px 24px 24px', borderRadius: 24,
+      border: `1px solid ${pro ? 'rgba(66,75,251,0.55)' : V.border}`,
+      background: pro ? 'linear-gradient(180deg, rgba(66,75,251,0.10) 0%, rgba(66,75,251,0.02) 40%, transparent 100%)' : 'rgba(255,255,255,0.02)',
+    }}>
+      {/* En-tête : icône + nom + tagline */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <img src={plan.icon} alt="" width={44} height={44} style={{ flexShrink: 0, objectFit: 'contain' }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: V.head, letterSpacing: -0.4, lineHeight: 1.15 }}>{t(plan.nameKey)}</div>
+          <div style={{ fontSize: 13.5, color: V.mut, fontWeight: 500, marginTop: 1 }}>{t(plan.taglineKey)}</div>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, minHeight: 44 }}>
-        {price !== null ? (
-          <>
-            <span style={{ fontSize: 13, fontWeight: 600, color: SET.muted }}>CHF</span>
-            <span
-              style={{
-                fontSize: 38,
-                fontWeight: 700,
-                color: SET.ink,
-                letterSpacing: -0.8,
-                ...NUM,
-              }}
-            >
-              {price}
-            </span>
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: SET.muted }}>{t('settings.billing.perMonth')}</span>
-          </>
-        ) : (
-          <span
-            style={{
-              fontSize: 26,
-              fontWeight: 700,
-              color: SET.ink,
-              letterSpacing: -0.4,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {t('settings.billing.onQuote')}
-          </span>
-        )}
+
+      {/* Prix */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', minHeight: 40 }}>
+        <span style={{ fontSize: 34, fontWeight: 600, color: V.head, letterSpacing: -1, ...NUM }}>{priceBig}</span>
+        {priceTail && <span style={{ fontSize: 13.5, color: V.mut, fontWeight: 500 }}>{priceTail}</span>}
       </div>
-      <div style={{ height: 1, background: SET.line }} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+
+      <div style={{ height: 1, background: V.border }} />
+
+      {/* Features */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: V.head, letterSpacing: 0.1 }}>{t('billing.whatsIncluded')}</div>
         {plan.featureKeys.map((fk) => (
-          <div
-            key={fk}
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 9,
-              fontSize: 12.5,
-              color: SET.inkSoft,
-              fontWeight: 500,
-              lineHeight: 1.45,
-            }}
-          >
-            <span style={{ marginTop: 1, flexShrink: 0, display: 'inline-flex' }}>
-              <SetIcon name="check" size={15} stroke={checkColor} sw={2.4} />
-            </span>
-            {t(fk)}
+          <div key={fk} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, color: V.text, fontWeight: 500, lineHeight: 1.4 }}>
+            <CheckDot pro={pro} />{t(fk)}
           </div>
         ))}
       </div>
 
+      {/* CTA */}
       {isCurrent ? (
-        <button
-          disabled
-          style={{
-            height: 44,
-            marginTop: 4,
-            border: 0,
-            borderRadius: 999,
-            background: SET.cardSubtle,
-            color: SET.muted,
-            fontFamily: 'inherit',
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: 'default',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 7,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <SetIcon name="check" size={14} stroke={SET.muted} sw={2.6} />
-          {t('settings.billing.currentPlan')}
+        <button onClick={onPortal} disabled={busy} style={ctaStyle(pro ? 'brand' : 'ghost', busy)}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={pro ? '#fff' : V.head} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 2 }}><path d="m5 12 5 5L20 7" /></svg>
+          {t('billing.activeSubscription')}
+        </button>
+      ) : plan.id === 'pro' ? (
+        <button onClick={onUpgrade} disabled={busy} style={ctaStyle('brand', busy)}>
+          {busy ? t('billing.opening') : t('billing.switchTo', { plan: t(plan.nameKey) })}
         </button>
       ) : plan.id === 'custom' ? (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            window.location.href = 'mailto:sales@megga.ch'
-          }}
-          style={{
-            height: 44,
-            marginTop: 4,
-            border: 0,
-            borderRadius: 999,
-            background: SET.cardSubtle,
-            color: SET.ink,
-            fontFamily: 'inherit',
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: 'pointer',
-            transition: 'all .15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = SET.line
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = SET.cardSubtle
-          }}
-        >
-          {t('settings.billing.contactUs')}
-        </button>
-      ) : plan.id === 'free' ? (
-        // Downgrade vers Gratuit : pas de checkout Stripe — passe par le portail
-        // (géré côté hero « Gérer dans Stripe »). Ici, bouton informatif désactivé.
-        <button
-          disabled
-          style={{
-            height: 44,
-            marginTop: 4,
-            border: 0,
-            borderRadius: 999,
-            background: SET.cardSubtle,
-            color: SET.muted,
-            fontFamily: 'inherit',
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: 'default',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {t('settings.billing.included')}
+        <button onClick={() => { window.location.href = 'mailto:sales@megga.ch' }} style={ctaStyle('light', false)}>
+          {t('billing.contactUs')}
         </button>
       ) : (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            if (!upgrading) onUpgrade()
-          }}
-          disabled={upgrading}
-          style={{
-            height: 44,
-            marginTop: 4,
-            border: 0,
-            borderRadius: 999,
-            background: SET.black,
-            color: SET.blackInk,
-            fontFamily: 'inherit',
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: upgrading ? 'wait' : 'pointer',
-            opacity: upgrading ? 0.7 : 1,
-            boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
-            transition: 'all .15s',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-          onMouseEnter={(e) => {
-            if (!upgrading) e.currentTarget.style.background = SET.blackHover
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = SET.black
-          }}
-        >
-          {upgrading ? t('settings.billing.opening') : t('settings.billing.switchTo', { plan: t(plan.nameKey) })}
+        <button onClick={onPortal} disabled={busy} style={ctaStyle('light', busy)}>
+          {t('billing.chooseFree')}
         </button>
       )}
     </div>
   )
 }
 
-/** Format date court FR pour le hero (renouvellement / annulation). */
-function formatPeriodDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('fr-CH', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  } catch {
-    return iso
+function ctaStyle(kind: 'brand' | 'light' | 'ghost', busy: boolean): CSSProperties {
+  const base: CSSProperties = {
+    height: 46, marginTop: 4, border: 0, borderRadius: 999, fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+    cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1, width: '100%',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, whiteSpace: 'nowrap',
   }
+  if (kind === 'brand') return { ...base, background: V.brand, color: '#fff' }
+  if (kind === 'light') return { ...base, background: '#FFFFFF', color: '#0B0C0E' }
+  return { ...base, background: 'rgba(255,255,255,0.08)', color: V.head } // ghost (plan courant non-pro)
+}
+
+function formatPeriodDate(iso: string): string {
+  try { return new Date(iso).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' }) } catch { return iso }
 }
