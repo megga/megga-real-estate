@@ -26,12 +26,13 @@ const DEMO_PROFILE: ProfileData = {
   languages: [], specialties: [],
   bio: 'Spécialiste du marché genevois depuis 12 ans. Mandats exclusifs.',
   signature: 'Cordialement, Gregory Lyonnet',
+  website: '', linkedin: '',
   initials: 'GL', avatarBg: '#0041D9', signatureMode: 'text', signatureHtml: '', avatarUrl: null,
 }
 const DEMO_AGENCY: AgencySettingsData = {
   name: 'MEGGA Genève', address: 'Rue du Rhône 100', city: 'Genève', canton: 'GE',
   phone: '+41 22 555 01 00', email: 'contact@megga.ch', website: 'megga.ch', logoUrl: '',
-  legal: 'MEGGA Genève SA', ide: 'CHE-409.118.221', tva: 'CHE-409.118.221 TVA',
+  legal: 'MEGGA Genève SA', legalForm: 'Société anonyme (SA)', ide: 'CHE-409.118.221', tva: 'CHE-409.118.221 TVA',
   foundedYear: '2014', postal: '1204', country: 'Suisse', aboutShort: '',
 }
 const DEMO_NOTIF: NotifPreferences = { email: true, sms: false, whatsapp: true, inapp: true }

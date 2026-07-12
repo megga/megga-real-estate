@@ -12,7 +12,11 @@ export interface PrefsData {
   defaultPipelineView: string
   density: string
   theme: string
+  /** Couleur d'accent (settings Focus Préférences) — id de PXF_ACCENTS. */
+  accent: string
   spellcheck: boolean
   autosave: boolean
   aiAssist: string
+  /** Ton de rédaction de MEGGA AI (amicale | neutre | professionnel). */
+  aiTone: string
 }

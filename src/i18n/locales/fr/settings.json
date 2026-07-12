@@ -946,7 +946,8 @@
         "matching": "Matching IA",
         "contacts": "Contacts",
         "biens": "Mes biens",
-        "calendar": "Calendrier"
+        "calendar": "Calendrier",
+        "docs": "Documents"
       },
       "defaultPipelineView": "Vue pipeline par défaut",
       "pipelineViews": {
@@ -1077,7 +1078,14 @@
           "sla": "SLA 99,9 %"
         }
       }
-    }
+    },
+    "twoMonthsFree": "Deux mois offerts",
+    "annual": "Annuel",
+    "activeSubscription": "Abonnement actif",
+    "chooseFree": "Choisir Gratuit",
+    "whatsIncluded": "Ce qui est inclus",
+    "perPersonMonth": "/ personne / mois",
+    "perYourNeeds": "selon vos besoins"
   },
   "privacy": {
     "sending": "Envoi…",
@@ -1144,5 +1152,110 @@
   "banner": {
     "eyebrow": "Paramètres",
     "more": "Plus"
+  },
+  "focus": {
+    "title": "Paramètres",
+    "common": {
+      "saved": "Enregistré",
+      "add": "Ajouter",
+      "edit": "Modifier",
+      "toFill": "À renseigner",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "photo": {
+      "title": "Calibrer votre photo",
+      "choose": "Choisir une photo",
+      "change": "Changer"
+    },
+    "profile": {
+      "header": "Votre profil",
+      "info": {
+        "title": "Pourquoi se présenter ?",
+        "body": "Votre présentation permet à {{brand}} de mieux vous connaître dans son écosystème elle nourrit le matching, les recommandations et la mise en relation avec les bons acheteurs."
+      },
+      "groups": {
+        "identity": "Identité",
+        "contact": "Contact",
+        "presentation": "Présentation",
+        "links": "Liens"
+      },
+      "fields": {
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "role": "Fonction",
+        "email": "Email professionnel",
+        "mobile": "Mobile",
+        "phone": "Téléphone fixe",
+        "agency": "Agence",
+        "bio": "Biographie publique",
+        "languages": "Langues parlées",
+        "specialties": "Spécialités",
+        "website": "Site web professionnel",
+        "linkedin": "Profil LinkedIn"
+      },
+      "emailHint": "Adresse de connexion — non modifiable ici",
+      "agencyHint": "Modifiable depuis Mon agence"
+    },
+    "agency": {
+      "banner": "Ces informations apparaissent sur vos documents, mandats et annonces publiques.",
+      "header": "Votre agence",
+      "groups": {
+        "legal": "Identité légale",
+        "coord": "Coordonnées",
+        "presentation": "Présentation"
+      },
+      "fields": {
+        "legal": "Raison sociale",
+        "legalForm": "Forme juridique",
+        "ide": "Numéro IDE",
+        "tva": "No TVA",
+        "address": "Adresse",
+        "postal": "NPA",
+        "city": "Ville",
+        "canton": "Canton",
+        "phone": "Téléphone",
+        "email": "Email public",
+        "website": "Site web",
+        "about": "À propos de l'agence"
+      },
+      "legalFormPlaceholder": "Société anonyme (SA)",
+      "logoUpdated": "Logo mis à jour"
+    },
+    "notifications": {
+      "banner": "MEGGA vous prévient sur les canaux activés — messages clients, offres, visites, signatures.",
+      "group": "Canaux de notification",
+      "count": "{{active}} / {{total}} actifs"
+    },
+    "preferences": {
+      "banner": "Ces préférences sont personnelles à votre compte — elles n'affectent pas les autres membres de l'équipe.",
+      "aiAssistLabel": "Assistance MEGGA AI",
+      "accent": "Couleur d'accent",
+      "aiTone": "Ton des réponses",
+      "units": {
+        "metric": "m² · m",
+        "imperial": "ft² · ft"
+      },
+      "accents": {
+        "black": "Noir",
+        "periwinkle": "Périwinkle",
+        "blue": "Bleu",
+        "cyan": "Cyan",
+        "green": "Vert",
+        "orange": "Orange"
+      },
+      "aiTones": {
+        "amicale": "Amicale",
+        "neutre": "Neutre",
+        "professionnel": "Professionnel"
+      }
+    },
+    "toast": {
+      "saveError": "Enregistrement impossible. Réessayez.",
+      "sessionExpired": "Session expirée — reconnectez-vous pour enregistrer.",
+      "agencyNotLoaded": "Agence non chargée — reconnectez-vous pour enregistrer.",
+      "logoUploadError": "Envoi du logo impossible.",
+      "directoryMissing": "Votre fiche annuaire n'est pas encore créée — contactez votre administrateur pour la renseigner."
+    }
   }
 }

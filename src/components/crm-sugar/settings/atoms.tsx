@@ -361,89 +361,6 @@ export function SetInput({
   )
 }
 
-interface SetTextareaProps {
-  label?: string
-  hint?: string
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-  rows?: number
-  max?: number
-}
-
-export function SetTextarea({
-  label,
-  hint,
-  value,
-  onChange,
-  placeholder,
-  rows = 4,
-  max,
-}: SetTextareaProps) {
-  const [focus, setFocus] = useState(false)
-  const len = (value || '').length
-  return (
-    <label style={{ display: 'block' }}>
-      {label && (
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: SET.muted,
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
-            marginBottom: 8,
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span>{label}</span>
-          {max && (
-            <span style={{ color: len > max ? SET.err : SET.muted }}>
-              {len}/{max}
-            </span>
-          )}
-        </div>
-      )}
-      <div
-        style={{
-          padding: '12px 16px',
-          borderRadius: 14,
-          background: focus ? SET.inputFocusBg : SET.cardSubtle,
-          boxShadow: focus
-            ? `0 0 0 2px ${SET.black}, 0 4px 12px rgba(15,23,42,0.05)`
-            : 'inset 0 0 0 1px rgba(15,23,42,0.04)',
-          transition: 'all .18s ease',
-        }}
-      >
-        <textarea
-          value={value || ''}
-          rows={rows}
-          onChange={e => onChange(e.target.value)}
-          onFocus={() => setFocus(true)}
-          onBlur={() => setFocus(false)}
-          placeholder={placeholder}
-          style={{
-            width: '100%',
-            border: 0,
-            outline: 'none',
-            background: 'transparent',
-            fontFamily: 'inherit',
-            fontSize: 14.5,
-            fontWeight: 500,
-            color: SET.ink,
-            resize: 'vertical',
-            lineHeight: 1.55,
-          }}
-        />
-      </div>
-      {hint && (
-        <div style={{ marginTop: 6, fontSize: 12, color: SET.muted }}>{hint}</div>
-      )}
-    </label>
-  )
-}
-
 interface SetBlackBtnProps {
   children: ReactNode
   onClick?: () => void
@@ -568,57 +485,6 @@ export function SetGhostBtn({
       {icon}
       {children}
     </motion.button>
-  )
-}
-
-interface ToggleRowProps {
-  label: string
-  desc?: string
-  value: boolean
-  onChange: (v: boolean) => void
-  emphasis?: boolean
-}
-
-export function ToggleRow({ label, desc, value, onChange, emphasis }: ToggleRowProps) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        padding: emphasis ? '14px 16px' : 0,
-        borderRadius: emphasis ? 14 : 0,
-        background: emphasis ? SET.cardSubtle : 'transparent',
-        boxShadow: emphasis ? 'inset 0 0 0 1px rgba(15,23,42,0.04)' : 'none',
-      }}
-    >
-      <div style={{ flex: 1 }}>
-        <div
-          style={{
-            fontSize: 13.5,
-            fontWeight: 700,
-            color: SET.ink,
-            letterSpacing: -0.1,
-          }}
-        >
-          {label}
-        </div>
-        {desc && (
-          <div
-            style={{
-              fontSize: 12.5,
-              color: SET.muted,
-              fontWeight: 500,
-              marginTop: 2,
-              lineHeight: 1.4,
-            }}
-          >
-            {desc}
-          </div>
-        )}
-      </div>
-      <SetSwitch value={value} onChange={onChange} />
-    </div>
   )
 }
 
@@ -810,48 +676,6 @@ export function ConfirmModal({
   )
 }
 
-interface SetSwitchProps {
-  value: boolean
-  onChange: (v: boolean) => void
-  size?: 'sm' | 'md'
-}
-
-export function SetSwitch({ value, onChange, size = 'md' }: SetSwitchProps) {
-  const w = size === 'sm' ? 36 : 44
-  const h = size === 'sm' ? 22 : 26
-  const t = size === 'sm' ? 16 : 20
-  return (
-    <button
-      onClick={() => onChange(!value)}
-      style={{
-        width: w,
-        height: h,
-        borderRadius: 999,
-        border: 0,
-        background: value ? SET.black : SET.ghost,
-        position: 'relative',
-        cursor: 'pointer',
-        flexShrink: 0,
-        transition: 'background .2s',
-      }}
-    >
-      <span
-        style={{
-          position: 'absolute',
-          top: (h - t) / 2,
-          left: value ? w - t - (h - t) / 2 : (h - t) / 2,
-          width: t,
-          height: t,
-          borderRadius: 999,
-          background: value ? SET.blackInk : '#fff',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
-          transition: 'left .2s cubic-bezier(.2,.8,.2,1)',
-        }}
-      />
-    </button>
-  )
-}
-
 interface SectionHeaderProps {
   kicker: string
   title: string
@@ -900,62 +724,6 @@ export function SectionHeader({ kicker, title, sub }: SectionHeaderProps) {
   )
 }
 
-interface StickySaveBarProps {
-  dirty: boolean
-  saving: boolean
-  onSave: () => void
-  onCancel: () => void
-}
-
-export function StickySaveBar({ dirty, saving, onSave, onCancel }: StickySaveBarProps) {
-  const { t } = useTranslation('settings')
-  if (!dirty) return null
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 24,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 100,
-        background: SET.card,
-        borderRadius: 999,
-        padding: '8px 8px 8px 24px',
-        boxShadow:
-          '0 24px 60px rgba(11,12,14,0.20), 0 6px 20px rgba(11,12,14,0.10)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 14,
-        animation: 'setSlideUp .3s cubic-bezier(.2,.8,.2,1) both',
-      }}
-    >
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: SET.inkSoft,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 8,
-        }}
-      >
-        <span
-          style={{ width: 7, height: 7, borderRadius: 999, background: SET.warn }}
-        />
-        {t('settings.page.unsavedChanges')}
-      </span>
-      <SetGhostBtn onClick={onCancel}>{t('common:actions.cancel')}</SetGhostBtn>
-      <SetBlackBtn
-        onClick={onSave}
-        loading={saving}
-        icon={!saving && <SetIcon name="check" size={14} stroke={SET.blackInk} sw={2.4} />}
-      >
-        {saving ? t('settings.page.saving') : t('settings.page.save')}
-      </SetBlackBtn>
-    </div>
-  )
-}
-
 interface ToastProps {
   open: boolean
   label: string
@@ -997,69 +765,6 @@ export function Toast({ open, label }: ToastProps) {
         <SetIcon name="check" size={12} stroke={SET.blackInk} sw={3} />
       </span>
       {label}
-    </div>
-  )
-}
-
-interface SetCardProps {
-  title?: string
-  sub?: string
-  action?: ReactNode
-  children: ReactNode
-  padding?: number
-}
-
-export function SetCard({ title, sub, action, children, padding = 28 }: SetCardProps) {
-  return (
-    <div
-      style={{
-        background: SET.card,
-        borderRadius: 24,
-        padding,
-        boxShadow: SET.shadow,
-      }}
-    >
-      {(title || action) && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 16,
-            marginBottom: 22,
-          }}
-        >
-          <div style={{ flex: 1 }}>
-            {title && (
-              <h3
-                style={{
-                  margin: '0 0 4px',
-                  fontSize: 17,
-                  fontWeight: 700,
-                  color: SET.ink,
-                  letterSpacing: -0.3,
-                }}
-              >
-                {title}
-              </h3>
-            )}
-            {sub && (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 13,
-                  color: SET.muted,
-                  fontWeight: 500,
-                  lineHeight: 1.5,
-                }}
-              >
-                {sub}
-              </p>
-            )}
-          </div>
-          {action}
-        </div>
-      )}
-      {children}
     </div>
   )
 }

@@ -946,7 +946,8 @@
         "matching": "AI matching",
         "contacts": "Contacts",
         "biens": "My properties",
-        "calendar": "Calendar"
+        "calendar": "Calendar",
+        "docs": "Documenti"
       },
       "defaultPipelineView": "Default pipeline view",
       "pipelineViews": {
@@ -1019,65 +1020,72 @@
     "saving": "Saving…"
   },
   "billing": {
-    "loading": "Loading billing…",
-    "unknownError": "Unknown error",
-    "failureWith": "Failed: {{message}}",
-    "stripeMissing": "Stripe configuration missing, contact support",
-    "yourSubscription": "Your subscription",
-    "perMonth": "/month",
-    "onQuote": "On quote",
-    "cancellationOn": "Cancellation scheduled for {{date}}",
-    "renewalOn": "Renews on {{date}}",
-    "manageInStripe": "Manage in Stripe",
-    "opening": "Opening…",
-    "changePlan": "Change plan",
-    "changePlanHint": "Instant upgrade, no fees. You keep all your data.",
-    "monthly": "Monthly",
-    "yearlyDiscount": "Yearly  −20%",
-    "currentPlan": "Your current plan",
-    "contactUs": "Contact us",
-    "included": "Included",
-    "switchTo": "Switch to {{plan}}",
+    "loading": "Caricamento della fatturazione…",
+    "unknownError": "Errore sconosciuto",
+    "failureWith": "Errore: {{message}}",
+    "stripeMissing": "Configurazione Stripe mancante, contatta il supporto",
+    "yourSubscription": "Il tuo abbonamento",
+    "perMonth": "/mese",
+    "onQuote": "Su preventivo",
+    "cancellationOn": "Cancellazione prevista il {{date}}",
+    "renewalOn": "Rinnovo il {{date}}",
+    "manageInStripe": "Gestisci in Stripe",
+    "opening": "Apertura…",
+    "changePlan": "Cambia piano",
+    "changePlanHint": "Upgrade immediato, senza costi. Mantieni tutti i tuoi dati.",
+    "monthly": "Mensile",
+    "yearlyDiscount": "Annuale −20%",
+    "currentPlan": "Il tuo piano attuale",
+    "contactUs": "Contattaci",
+    "included": "Incluso",
+    "switchTo": "Passa a {{plan}}",
     "plans": {
       "free": {
-        "name": "Free",
-        "tagline": "To get started solo",
+        "name": "Gratuito",
+        "tagline": "Per iniziare da solo",
         "features": {
-          "properties": "3 active listings",
-          "crm": "Essential CRM",
-          "aiSearch": "AI search",
-          "sellerPortal": "Seller portal",
-          "emailSupport": "Email support"
+          "properties": "3 immobili attivi",
+          "crm": "CRM essenziale",
+          "aiSearch": "Ricerca IA",
+          "sellerPortal": "Portale venditore",
+          "emailSupport": "Supporto via email"
         }
       },
       "pro": {
         "name": "Pro",
-        "tagline": "For the independent agent",
+        "tagline": "Per l'agente indipendente",
         "features": {
-          "unlimitedProperties": "Unlimited listings",
-          "fullCrm": "Full CRM + scoring",
-          "pipeline": "Transaction pipeline",
-          "compliance": "AML / KYC compliance",
-          "docGeneration": "Document generation",
-          "multichannel": "Multichannel publishing",
-          "copilot": "MEGGA AI copilot",
-          "prioritySupport": "Priority support"
+          "unlimitedProperties": "Immobili illimitati",
+          "fullCrm": "CRM completo + scoring",
+          "pipeline": "Pipeline transazioni",
+          "compliance": "Conformità LAB / KYC",
+          "docGeneration": "Generazione documenti",
+          "multichannel": "Pubblicazione multicanale",
+          "copilot": "Copilota MEGGA AI",
+          "prioritySupport": "Supporto prioritario"
         }
       },
       "custom": {
         "name": "Custom",
-        "tagline": "For agencies & networks",
+        "tagline": "Per agenzie e reti",
         "features": {
-          "allPro": "Everything in Pro",
-          "multiAgency": "Multi-agency & multi-user",
-          "api": "API & integrations",
+          "allPro": "Tutto Pro incluso",
+          "multiAgency": "Multi-agenzia e multi-utente",
+          "api": "API e integrazioni",
           "sso": "SSO / SAML",
-          "branding": "Custom branding",
-          "accountManager": "Dedicated account manager",
-          "sla": "99.9% SLA"
+          "branding": "Branding personalizzato",
+          "accountManager": "Account manager dedicato",
+          "sla": "SLA 99,9 %"
         }
       }
-    }
+    },
+    "twoMonthsFree": "Due mesi gratis",
+    "annual": "Annuale",
+    "activeSubscription": "Abbonamento attivo",
+    "chooseFree": "Scegli Gratuito",
+    "whatsIncluded": "Cosa è incluso",
+    "perPersonMonth": "/ persona / mese",
+    "perYourNeeds": "in base alle esigenze"
   },
   "privacy": {
     "sending": "Sending…",
@@ -1144,5 +1152,110 @@
   "banner": {
     "eyebrow": "Settings",
     "more": "More"
+  },
+  "focus": {
+    "title": "Impostazioni",
+    "common": {
+      "saved": "Salvato",
+      "add": "Aggiungi",
+      "edit": "Modifica",
+      "toFill": "Da completare",
+      "cancel": "Annulla",
+      "save": "Salva"
+    },
+    "photo": {
+      "title": "Regola la tua foto",
+      "choose": "Scegli una foto",
+      "change": "Cambia"
+    },
+    "profile": {
+      "header": "Il tuo profilo",
+      "info": {
+        "title": "Perché presentarsi?",
+        "body": "La tua presentazione permette a {{brand}} di conoscerti meglio nel suo ecosistema alimenta il matching, le raccomandazioni e il collegamento con gli acquirenti giusti."
+      },
+      "groups": {
+        "identity": "Identità",
+        "contact": "Contatto",
+        "presentation": "Presentazione",
+        "links": "Link"
+      },
+      "fields": {
+        "firstName": "Nome",
+        "lastName": "Cognome",
+        "role": "Funzione",
+        "email": "Email professionale",
+        "mobile": "Cellulare",
+        "phone": "Telefono fisso",
+        "agency": "Agenzia",
+        "bio": "Biografia pubblica",
+        "languages": "Lingue parlate",
+        "specialties": "Specializzazioni",
+        "website": "Sito web professionale",
+        "linkedin": "Profilo LinkedIn"
+      },
+      "emailHint": "Indirizzo di accesso — non modificabile qui",
+      "agencyHint": "Modificabile da La mia agenzia"
+    },
+    "agency": {
+      "banner": "Queste informazioni compaiono sui vostri documenti, mandati e annunci pubblici.",
+      "header": "La tua agenzia",
+      "groups": {
+        "legal": "Identità legale",
+        "coord": "Recapiti",
+        "presentation": "Presentazione"
+      },
+      "fields": {
+        "legal": "Ragione sociale",
+        "legalForm": "Forma giuridica",
+        "ide": "Numero IDE",
+        "tva": "Numero IVA",
+        "address": "Indirizzo",
+        "postal": "NPA",
+        "city": "Città",
+        "canton": "Cantone",
+        "phone": "Telefono",
+        "email": "Email pubblica",
+        "website": "Sito web",
+        "about": "Informazioni sull'agenzia"
+      },
+      "legalFormPlaceholder": "Società anonima (SA)",
+      "logoUpdated": "Logo aggiornato"
+    },
+    "notifications": {
+      "banner": "MEGGA ti avvisa sui canali attivi — messaggi dei clienti, offerte, visite, firme.",
+      "group": "Canali di notifica",
+      "count": "{{active}} / {{total}} attivi"
+    },
+    "preferences": {
+      "banner": "Queste preferenze sono personali del tuo account — non influiscono sugli altri membri del team.",
+      "aiAssistLabel": "Assistenza MEGGA AI",
+      "accent": "Colore d'accento",
+      "aiTone": "Tono delle risposte",
+      "units": {
+        "metric": "m² · m",
+        "imperial": "ft² · ft"
+      },
+      "accents": {
+        "black": "Nero",
+        "periwinkle": "Periwinkle",
+        "blue": "Blu",
+        "cyan": "Ciano",
+        "green": "Verde",
+        "orange": "Arancione"
+      },
+      "aiTones": {
+        "amicale": "Amichevole",
+        "neutre": "Neutro",
+        "professionnel": "Professionale"
+      }
+    },
+    "toast": {
+      "saveError": "Salvataggio non riuscito. Riprova.",
+      "sessionExpired": "Sessione scaduta — accedi di nuovo per salvare.",
+      "agencyNotLoaded": "Agenzia non caricata — accedi di nuovo per salvare.",
+      "logoUploadError": "Impossibile caricare il logo.",
+      "directoryMissing": "La tua scheda di rubrica non è ancora creata — contatta il tuo amministratore per compilarla."
+    }
   }
 }

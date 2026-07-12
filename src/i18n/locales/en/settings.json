@@ -946,7 +946,8 @@
         "matching": "AI matching",
         "contacts": "Contacts",
         "biens": "My properties",
-        "calendar": "Calendar"
+        "calendar": "Calendar",
+        "docs": "Documents"
       },
       "defaultPipelineView": "Default pipeline view",
       "pipelineViews": {
@@ -1077,7 +1078,14 @@
           "sla": "99.9% SLA"
         }
       }
-    }
+    },
+    "twoMonthsFree": "Two months free",
+    "annual": "Annual",
+    "activeSubscription": "Active subscription",
+    "chooseFree": "Choose Free",
+    "whatsIncluded": "What's included",
+    "perPersonMonth": "/ person / month",
+    "perYourNeeds": "based on your needs"
   },
   "privacy": {
     "sending": "Sending…",
@@ -1144,5 +1152,110 @@
   "banner": {
     "eyebrow": "Settings",
     "more": "More"
+  },
+  "focus": {
+    "title": "Settings",
+    "common": {
+      "saved": "Saved",
+      "add": "Add",
+      "edit": "Edit",
+      "toFill": "To complete",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "photo": {
+      "title": "Adjust your photo",
+      "choose": "Choose a photo",
+      "change": "Change"
+    },
+    "profile": {
+      "header": "Your profile",
+      "info": {
+        "title": "Why introduce yourself?",
+        "body": "Your introduction helps {{brand}} get to know you within its ecosystem it powers matching, recommendations and connecting you with the right buyers."
+      },
+      "groups": {
+        "identity": "Identity",
+        "contact": "Contact",
+        "presentation": "Introduction",
+        "links": "Links"
+      },
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "role": "Role",
+        "email": "Work email",
+        "mobile": "Mobile",
+        "phone": "Landline",
+        "agency": "Agency",
+        "bio": "Public bio",
+        "languages": "Languages spoken",
+        "specialties": "Specialties",
+        "website": "Professional website",
+        "linkedin": "LinkedIn profile"
+      },
+      "emailHint": "Sign-in address — not editable here",
+      "agencyHint": "Editable from My agency"
+    },
+    "agency": {
+      "banner": "This information appears on your documents, mandates and public listings.",
+      "header": "Your agency",
+      "groups": {
+        "legal": "Legal identity",
+        "coord": "Contact details",
+        "presentation": "Introduction"
+      },
+      "fields": {
+        "legal": "Legal name",
+        "legalForm": "Legal form",
+        "ide": "UID number",
+        "tva": "VAT number",
+        "address": "Address",
+        "postal": "Postal code",
+        "city": "City",
+        "canton": "Canton",
+        "phone": "Phone",
+        "email": "Public email",
+        "website": "Website",
+        "about": "About the agency"
+      },
+      "legalFormPlaceholder": "Public limited company (SA)",
+      "logoUpdated": "Logo updated"
+    },
+    "notifications": {
+      "banner": "MEGGA notifies you on the enabled channels — client messages, offers, viewings, signatures.",
+      "group": "Notification channels",
+      "count": "{{active}} / {{total}} active"
+    },
+    "preferences": {
+      "banner": "These preferences are personal to your account — they don't affect other team members.",
+      "aiAssistLabel": "MEGGA AI assistance",
+      "accent": "Accent colour",
+      "aiTone": "Reply tone",
+      "units": {
+        "metric": "m² · m",
+        "imperial": "ft² · ft"
+      },
+      "accents": {
+        "black": "Black",
+        "periwinkle": "Periwinkle",
+        "blue": "Blue",
+        "cyan": "Cyan",
+        "green": "Green",
+        "orange": "Orange"
+      },
+      "aiTones": {
+        "amicale": "Friendly",
+        "neutre": "Neutral",
+        "professionnel": "Professional"
+      }
+    },
+    "toast": {
+      "saveError": "Could not save. Please try again.",
+      "sessionExpired": "Session expired — sign in again to save.",
+      "agencyNotLoaded": "Agency not loaded — sign in again to save.",
+      "logoUploadError": "Could not upload the logo.",
+      "directoryMissing": "Your directory profile isn't set up yet — contact your administrator to complete it."
+    }
   }
 }
