@@ -1194,7 +1194,7 @@
         "website": "Site web professionnel",
         "linkedin": "Profil LinkedIn"
       },
-      "emailHint": "Adresse de connexion — non modifiable ici",
+      "emailHint": "Adresse de connexion, non modifiable ici",
       "agencyHint": "Modifiable depuis Mon agence"
     },
     "agency": {
@@ -1223,12 +1223,12 @@
       "logoUpdated": "Logo mis à jour"
     },
     "notifications": {
-      "banner": "MEGGA vous prévient sur les canaux activés — messages clients, offres, visites, signatures.",
+      "banner": "MEGGA vous prévient sur les canaux activés, messages clients, offres, visites, signatures.",
       "group": "Canaux de notification",
       "count": "{{active}} / {{total}} actifs"
     },
     "preferences": {
-      "banner": "Ces préférences sont personnelles à votre compte — elles n'affectent pas les autres membres de l'équipe.",
+      "banner": "Ces préférences sont personnelles à votre compte, elles n'affectent pas les autres membres de l'équipe.",
       "aiAssistLabel": "Assistance MEGGA AI",
       "accent": "Couleur d'accent",
       "aiTone": "Ton des réponses",
@@ -1252,10 +1252,10 @@
     },
     "toast": {
       "saveError": "Enregistrement impossible. Réessayez.",
-      "sessionExpired": "Session expirée — reconnectez-vous pour enregistrer.",
-      "agencyNotLoaded": "Agence non chargée — reconnectez-vous pour enregistrer.",
+      "sessionExpired": "Session expirée, reconnectez-vous pour enregistrer.",
+      "agencyNotLoaded": "Agence non chargée, reconnectez-vous pour enregistrer.",
       "logoUploadError": "Envoi du logo impossible.",
-      "directoryMissing": "Votre fiche annuaire n'est pas encore créée — contactez votre administrateur pour la renseigner."
+      "directoryMissing": "Votre fiche annuaire n'est pas encore créée, contactez votre administrateur pour la renseigner."
     }
   }
 }

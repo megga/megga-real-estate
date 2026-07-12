@@ -1194,7 +1194,7 @@
         "website": "Sito web professionale",
         "linkedin": "Profilo LinkedIn"
       },
-      "emailHint": "Indirizzo di accesso — non modificabile qui",
+      "emailHint": "Indirizzo di accesso, non modificabile qui",
       "agencyHint": "Modificabile da La mia agenzia"
     },
     "agency": {
@@ -1223,12 +1223,12 @@
       "logoUpdated": "Logo aggiornato"
     },
     "notifications": {
-      "banner": "MEGGA ti avvisa sui canali attivi — messaggi dei clienti, offerte, visite, firme.",
+      "banner": "MEGGA ti avvisa sui canali attivi, messaggi dei clienti, offerte, visite, firme.",
       "group": "Canali di notifica",
       "count": "{{active}} / {{total}} attivi"
     },
     "preferences": {
-      "banner": "Queste preferenze sono personali del tuo account — non influiscono sugli altri membri del team.",
+      "banner": "Queste preferenze sono personali del tuo account, non influiscono sugli altri membri del team.",
       "aiAssistLabel": "Assistenza MEGGA AI",
       "accent": "Colore d'accento",
       "aiTone": "Tono delle risposte",
@@ -1252,10 +1252,10 @@
     },
     "toast": {
       "saveError": "Salvataggio non riuscito. Riprova.",
-      "sessionExpired": "Sessione scaduta — accedi di nuovo per salvare.",
-      "agencyNotLoaded": "Agenzia non caricata — accedi di nuovo per salvare.",
+      "sessionExpired": "Sessione scaduta, accedi di nuovo per salvare.",
+      "agencyNotLoaded": "Agenzia non caricata, accedi di nuovo per salvare.",
       "logoUploadError": "Impossibile caricare il logo.",
-      "directoryMissing": "La tua scheda di rubrica non è ancora creata — contatta il tuo amministratore per compilarla."
+      "directoryMissing": "La tua scheda di rubrica non è ancora creata, contatta il tuo amministratore per compilarla."
     }
   }
 }

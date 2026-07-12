@@ -1194,7 +1194,7 @@
         "website": "Professional website",
         "linkedin": "LinkedIn profile"
       },
-      "emailHint": "Sign-in address — not editable here",
+      "emailHint": "Sign-in address, not editable here",
       "agencyHint": "Editable from My agency"
     },
     "agency": {
@@ -1223,12 +1223,12 @@
       "logoUpdated": "Logo updated"
     },
     "notifications": {
-      "banner": "MEGGA notifies you on the enabled channels — client messages, offers, viewings, signatures.",
+      "banner": "MEGGA notifies you on the enabled channels, client messages, offers, viewings, signatures.",
       "group": "Notification channels",
       "count": "{{active}} / {{total}} active"
     },
     "preferences": {
-      "banner": "These preferences are personal to your account — they don't affect other team members.",
+      "banner": "These preferences are personal to your account, they don't affect other team members.",
       "aiAssistLabel": "MEGGA AI assistance",
       "accent": "Accent colour",
       "aiTone": "Reply tone",
@@ -1252,10 +1252,10 @@
     },
     "toast": {
       "saveError": "Could not save. Please try again.",
-      "sessionExpired": "Session expired — sign in again to save.",
-      "agencyNotLoaded": "Agency not loaded — sign in again to save.",
+      "sessionExpired": "Session expired, sign in again to save.",
+      "agencyNotLoaded": "Agency not loaded, sign in again to save.",
       "logoUploadError": "Could not upload the logo.",
-      "directoryMissing": "Your directory profile isn't set up yet — contact your administrator to complete it."
+      "directoryMissing": "Your directory profile isn't set up yet, contact your administrator to complete it."
     }
   }
 }

@@ -1194,7 +1194,7 @@
         "website": "Berufliche Website",
         "linkedin": "LinkedIn-Profil"
       },
-      "emailHint": "Anmeldeadresse — hier nicht änderbar",
+      "emailHint": "Anmeldeadresse, hier nicht änderbar",
       "agencyHint": "Änderbar unter Meine Agentur"
     },
     "agency": {
@@ -1223,12 +1223,12 @@
       "logoUpdated": "Logo aktualisiert"
     },
     "notifications": {
-      "banner": "MEGGA benachrichtigt Sie über die aktivierten Kanäle — Kundennachrichten, Angebote, Besichtigungen, Unterschriften.",
+      "banner": "MEGGA benachrichtigt Sie über die aktivierten Kanäle, Kundennachrichten, Angebote, Besichtigungen, Unterschriften.",
       "group": "Benachrichtigungskanäle",
       "count": "{{active}} / {{total}} aktiv"
     },
     "preferences": {
-      "banner": "Diese Einstellungen gelten nur für Ihr Konto — sie betreffen keine anderen Teammitglieder.",
+      "banner": "Diese Einstellungen gelten nur für Ihr Konto, sie betreffen keine anderen Teammitglieder.",
       "aiAssistLabel": "MEGGA-AI-Unterstützung",
       "accent": "Akzentfarbe",
       "aiTone": "Antwortton",
@@ -1252,10 +1252,10 @@
     },
     "toast": {
       "saveError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
-      "sessionExpired": "Sitzung abgelaufen — bitte erneut anmelden zum Speichern.",
-      "agencyNotLoaded": "Agentur nicht geladen — bitte erneut anmelden zum Speichern.",
+      "sessionExpired": "Sitzung abgelaufen, bitte erneut anmelden zum Speichern.",
+      "agencyNotLoaded": "Agentur nicht geladen, bitte erneut anmelden zum Speichern.",
       "logoUploadError": "Logo konnte nicht hochgeladen werden.",
-      "directoryMissing": "Ihr Verzeichnisprofil ist noch nicht eingerichtet — bitte kontaktieren Sie Ihren Administrator."
+      "directoryMissing": "Ihr Verzeichnisprofil ist noch nicht eingerichtet, bitte kontaktieren Sie Ihren Administrator."
     }
   }
 }
