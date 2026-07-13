@@ -6,7 +6,6 @@ interface AdminKPIs {
   totalUsers: number
   activeProperties: number
   activeTransactions: number
-  estimatedMRR: number
   highRiskKyc: number
   newAgenciesThisMonth: number
   newUsersThisMonth: number
@@ -45,7 +44,6 @@ export function useAdminStats() {
         totalUsers: Number(row?.total_users ?? 0),
         activeProperties: Number(row?.active_properties ?? 0),
         activeTransactions: Number(row?.active_transactions ?? 0),
-        estimatedMRR: 0,
         highRiskKyc: Number(row?.high_risk_kyc ?? 0),
         newAgenciesThisMonth: Number(row?.new_agencies_this_month ?? 0),
         newUsersThisMonth: Number(row?.new_users_this_month ?? 0),

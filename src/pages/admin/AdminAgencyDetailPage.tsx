@@ -28,7 +28,7 @@ const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
 const PLAN_I18N: Record<string, string> = {
   starter: 'common.plan.starter',
   pro: 'common.plan.pro',
-  agency: 'common.plan.agency',
+  entreprise: 'common.plan.entreprise',
 }
 
 const STATUS_I18N: Record<string, string> = {

@@ -159,6 +159,19 @@ export default function AdminLiveFeedPage() {
   const { t } = useTranslation('admin')
   const { events, isLoading } = useAdminLiveFeed(100)
   const [paused, setPaused] = useState(false)
+  // Snapshot capturé à la mise en pause — le Realtime continue d'alimenter
+  // `events`, mais l'affichage reste gelé tant que frozenEvents est posé.
+  const [frozenEvents, setFrozenEvents] = useState<typeof events | null>(null)
+
+  const togglePause = () => {
+    if (paused) {
+      setPaused(false)
+      setFrozenEvents(null)
+    } else {
+      setFrozenEvents(events)
+      setPaused(true)
+    }
+  }
   const [entityFilter, setEntityFilter] = useState('all')
   const [actionFilter, setActionFilter] = useState('')
   const feedRef = useRef<HTMLDivElement>(null)
@@ -185,7 +198,7 @@ export default function AdminLiveFeedPage() {
   }, [events.length, prevCount])
 
   // Display events (paused = freeze the current list)
-  const displayEvents = paused ? events : events
+  const displayEvents = paused && frozenEvents ? frozenEvents : events
 
   // Filter by entity type
   const filteredByEntity = useMemo(() => {
@@ -247,7 +260,7 @@ export default function AdminLiveFeedPage() {
         </div>
         <div className="ml-auto">
           <button
-            onClick={() => setPaused(!paused)}
+            onClick={togglePause}
             className="h-9 px-3.5 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
           >
             {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}

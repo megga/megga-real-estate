@@ -1,4 +1,4 @@
-// Phase C (part 2) — Couverture super-admin (14 pages).
+// Phase C (part 2) — Couverture super-admin (16 pages + détail agence mock).
 // Cette suite tourne avec un serveur Vite séparé sur :5174 avec
 // VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts).
 // Les routes /dashboard/admin/* sont wrappées dans SuperAdminGuard,
@@ -28,6 +28,9 @@ const ADMIN_ROUTES: RouteSpec[] = [
   { path: '/dashboard/admin/live', label: 'Admin > Live feed' },
   { path: '/dashboard/admin/security', label: 'Admin > Security audit' },
   { path: '/dashboard/admin/nps', label: 'Admin > NPS' },
+  { path: '/dashboard/admin/autonomy', label: 'Admin > Autonomie WhatsApp' },
+  { path: '/dashboard/admin/tool-usage', label: 'Admin > Outils IA' },
+  { path: '/dashboard/admin/learning', label: 'Admin > Apprentissage' },
 ]
 
 test.describe('Super-admin — parametric route coverage', () => {

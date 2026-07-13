@@ -16,7 +16,6 @@ const PLAN_LABEL_KEYS: Record<string, string> = {
   starter: 'common.plan.starter',
   pro: 'common.plan.pro',
   entreprise: 'common.plan.entreprise',
-  agency: 'common.plan.agency',
 }
 
 const PAYMENT_STATUS_KEYS: Record<string, { dot: string; key: string }> = {

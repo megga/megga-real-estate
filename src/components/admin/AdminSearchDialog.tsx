@@ -16,7 +16,6 @@ const TYPE_META: Record<AdminSearchResult['type'], { icon: MEIconName; i18nKey: 
   agency: { icon: 'building', i18nKey: 'search.type.agencies' },
   user: { icon: 'users', i18nKey: 'search.type.users' },
   property: { icon: 'home', i18nKey: 'search.type.properties' },
-  ticket: { icon: 'message', i18nKey: 'search.type.tickets' },
 }
 
 export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogProps) {
@@ -104,7 +103,7 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
             </div>
           )}
 
-          {(['agency', 'user', 'property', 'ticket'] as const).map(type => {
+          {(['agency', 'user', 'property'] as const).map(type => {
             const items = grouped[type]
             if (!items?.length) return null
             const meta = TYPE_META[type]

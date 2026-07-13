@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 export interface ComplianceCase {
@@ -23,8 +23,6 @@ export interface ComplianceStats {
 }
 
 export function useAdminCompliance() {
-  const queryClient = useQueryClient()
-
   const cases = useQuery({
     queryKey: ['admin-compliance'],
     queryFn: async (): Promise<ComplianceCase[]> => {
@@ -93,23 +91,13 @@ export function useAdminCompliance() {
     staleTime: 60_000,
   })
 
-  const updateRiskLevel = useMutation({
-    mutationFn: async ({ id, riskLevel }: { id: string; riskLevel: string }) => {
-      const { error } = await supabase.from('kyc_cases').update({ risk_level: riskLevel as 'low' | 'medium' | 'high' | 'unassessed' }).eq('id', id)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-compliance'] })
-      queryClient.invalidateQueries({ queryKey: ['admin-compliance-stats'] })
-    },
-  })
-
+  // Pas de mutation risk_level ici : la classification LBA appartient à
+  // l'agence (MLRO) — l'oversight plateforme reste en lecture seule (D5).
   return {
     cases: cases.data ?? [],
     isLoading: cases.isLoading,
     stats: stats.data,
     statsLoading: stats.isLoading,
-    updateRiskLevel,
   }
 }
 

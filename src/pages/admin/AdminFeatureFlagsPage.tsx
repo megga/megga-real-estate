@@ -1,11 +1,94 @@
-import { ToggleLeft, ToggleRight, Zap } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Check, ChevronDown, ToggleLeft, ToggleRight, X, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useFeatureFlags } from '@/hooks/useFeatureFlags'
+import { useFeatureFlags, type FeatureFlag } from '@/hooks/useFeatureFlags'
+import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { useTranslation } from 'react-i18next'
+
+// Les plans réels de l'enum agency_plan — « agency » n'existe pas (un ciblage
+// posé dessus ne matchait jamais, corrigé P5).
+const PLAN_IDS = ['starter', 'pro', 'entreprise'] as const
+
+function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
+  flag: FeatureFlag
+  agencies: { id: string; name: string }[]
+  disabled: boolean
+  onUpdate: (ids: string[]) => void
+}) {
+  const { t } = useTranslation('admin')
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return agencies
+    return agencies.filter(a => a.name.toLowerCase().includes(q))
+  }, [agencies, search])
+
+  const toggleAgency = (id: string) => {
+    const next = flag.enabled_agencies.includes(id)
+      ? flag.enabled_agencies.filter(a => a !== id)
+      : [...flag.enabled_agencies, id]
+    onUpdate(next)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        disabled={disabled}
+        className="h-7 px-2.5 rounded-lg text-xs font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-1.5"
+      >
+        {t('admin:featureFlags.targetAgency')}
+        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }} />
+          <div className="absolute left-0 top-full mt-1 z-20 bg-theme-card border border-theme-border rounded-lg py-1 w-64" role="listbox">
+            <div className="px-2 pb-1">
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t('admin:featureFlags.searchAgency')}
+                className="w-full h-7 px-2 rounded-md bg-theme-hover text-xs text-theme-primary placeholder:text-theme-muted outline-none"
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto scrollbar-hide">
+              {filtered.length === 0 && (
+                <p className="px-3 py-2 text-xs text-theme-muted">{t('admin:featureFlags.noAgencyFound')}</p>
+              )}
+              {filtered.map(a => {
+                const active = flag.enabled_agencies.includes(a.id)
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => toggleAgency(a.id)}
+                    className={cn(
+                      'w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between gap-2',
+                      active ? 'text-admin-accent' : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary'
+                    )}
+                  >
+                    <span className="truncate">{a.name}</span>
+                    {active && <Check className="h-3 w-3 flex-shrink-0" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 export default function AdminFeatureFlagsPage() {
   const { flags, isLoading, updateFlag } = useFeatureFlags()
+  const { agencies } = useAdminAgencies()
   const { t } = useTranslation('admin')
+
+  const agencyById = useMemo(() => new Map(agencies.map(a => [a.id, a])), [agencies])
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -79,7 +162,7 @@ export default function AdminFeatureFlagsPage() {
               {!flag.enabled_globally && (
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-theme-border-subtle">
                   <span className="text-xs text-theme-muted mr-1">{t('admin:featureFlags.activeFor')}</span>
-                  {['starter', 'pro', 'agency'].map(plan => {
+                  {PLAN_IDS.map(plan => {
                     const active = flag.enabled_plans.includes(plan)
                     return (
                       <button
@@ -99,6 +182,31 @@ export default function AdminFeatureFlagsPage() {
                       </button>
                     )
                   })}
+                </div>
+              )}
+
+              {/* Ciblage par agence (enabled_agencies — supporté par le hook depuis 20260518_001, UI ajoutée P5) */}
+              {!flag.enabled_globally && (
+                <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-theme-border-subtle">
+                  <span className="text-xs text-theme-muted mr-1">{t('admin:featureFlags.agencies')}</span>
+                  {flag.enabled_agencies.map(id => (
+                    <span key={id} className="flex items-center gap-1 h-7 pl-2.5 pr-1.5 rounded-lg text-xs font-medium bg-admin-accent/10 text-admin-accent">
+                      <span className="truncate max-w-[160px]">{agencyById.get(id)?.name ?? t('admin:featureFlags.unknownAgency')}</span>
+                      <button
+                        onClick={() => updateFlag.mutate({ id: flag.id, updates: { enabled_agencies: flag.enabled_agencies.filter(a => a !== id) } })}
+                        aria-label={t('admin:featureFlags.removeAgency')}
+                        className="p-0.5 rounded hover:bg-admin-accent/20"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                  <AgencyTargetPicker
+                    flag={flag}
+                    agencies={agencies}
+                    disabled={updateFlag.isPending}
+                    onUpdate={ids => updateFlag.mutate({ id: flag.id, updates: { enabled_agencies: ids } })}
+                  />
                 </div>
               )}
             </div>

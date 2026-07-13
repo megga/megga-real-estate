@@ -9,7 +9,6 @@ interface PlatformHealth {
   emailsSentToday: number
   lastScrapingRun: string | null
   apiRequestsToday: number
-  realtimeConnections: number
   storageUsedMb: number
   storageLimitMb: number
 }
@@ -50,6 +49,8 @@ export function useAdminMonitoring() {
   const health = useQuery({
     queryKey: ['admin-monitoring-health'],
     queryFn: async (): Promise<PlatformHealth> => {
+      // Les limites DB/storage viennent de la RPC v2 (app_config.
+      // admin_platform_limits) — plus de plafond codé en dur côté client.
       const { data, error } = await supabase.rpc('get_admin_monitoring_health')
       if (error) throw error
       const row = ((data as Array<{
@@ -59,18 +60,19 @@ export function useAdminMonitoring() {
         last_scraping_at: string | null
         db_size_mb: number
         storage_used_mb: number
+        db_limit_mb: number
+        storage_limit_mb: number
       }> | null) ?? [])[0]
       return {
-        dbSizeMb: Number(row?.db_size_mb ?? 160),
-        dbLimitMb: 8000, // Pro plan = 8 GB
+        dbSizeMb: Number(row?.db_size_mb ?? 0),
+        dbLimitMb: Number(row?.db_limit_mb ?? 8000),
         totalEdgeFunctions: EDGE_FUNCTION_NAMES.length,
         errorsLast24h: Number(row?.errors_last_24h ?? 0),
         emailsSentToday: Number(row?.emails_sent_today ?? 0),
         lastScrapingRun: row?.last_scraping_at ?? null,
         apiRequestsToday: Number(row?.api_requests_today ?? 0),
-        realtimeConnections: 0, // Updated via Edge Function
         storageUsedMb: Number(row?.storage_used_mb ?? 0),
-        storageLimitMb: 100000, // Pro = 100 GB
+        storageLimitMb: Number(row?.storage_limit_mb ?? 100000),
       }
     },
     staleTime: 60_000,
