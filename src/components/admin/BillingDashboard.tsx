@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { formatCHF, formatRelativeDate, cn } from '@/lib/utils'
 import { useAdminBilling } from '@/hooks/useAdminBilling'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
+import MrrSparkline from '@/components/admin/MrrSparkline'
 import { CreditCard, Users, TrendingDown, TrendingUp, DollarSign, AlertTriangle, Clock, Zap } from 'lucide-react'
 
 const PLAN_COLORS: Record<string, string> = {
@@ -74,6 +75,9 @@ export default function BillingDashboard() {
         <AdminKpiCard compact label={t('billing.kpi.failed')} value={data.failedPaymentsThisMonth + data.pastDue} icon={AlertTriangle}
           variant={(data.failedPaymentsThisMonth + data.pastDue) > 0 ? 'danger' : 'default'} />
       </div>
+
+      {/* Tendance MRR estimé (P7 — platform_metrics) */}
+      <MrrSparkline />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Plan breakdown */}

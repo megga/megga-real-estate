@@ -6325,6 +6325,14 @@ export type Database = {
         Args: { p_agency_id: string; p_quotas: Json; p_note?: string }
         Returns: undefined
       }
+      get_admin_integrations_health: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      compute_platform_mrr_estimate: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_admin_end_user_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json

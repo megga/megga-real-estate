@@ -6,6 +6,15 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Super-Admin P7 — santé des intégrations + monitoring V2 · JALON « prêt lancement » (13 juillet 2026)
+> Quatrième phase de la reprise super-admin. Aucune intégration critique (emails, webhooks Stripe, calendriers OAuth, Realtime) ne peut plus casser en silence avant le lancement. Objectifs 1 (temps admin) et 5, fiabilité pré-lancement. Migration `20260713170000` (2 RPC). **Marque la fin du jalon « prêt lancement »** (P5 dette purgée + P6a/b pilotage 360° + P7 intégrations).
+
+- **Carte « Santé des intégrations »** dans le monitoring : 4 cartes avec pastille de statut — **Resend** (envois 24h/7j, erreurs `send-*`), **Webhooks Stripe** (âge du dernier événement, échecs de paiement 7j), **Calendriers OAuth** (connectés Google/Outlook, synchros en retard), **Realtime** (probe live mesurant la latence jusqu'à `SUBSCRIBED`, remplace le faux `0` retiré en P5).
+- **Alertes proactives étendues** : le cron `admin-monitoring` alerte désormais sur les synchros calendrier en panne (> 48 h sans `last_sync_at`, seuil 3) et sur un webhook Stripe silencieux (> 72 h **si** au moins un abonnement actif). Un `token_expires_at` expiré n'est **pas** un signal d'alerte (refresh OAuth normal).
+- **Tendance MRR** : `compute_platform_mrr_estimate` (somme des abonnements actifs valorisés par `app_config.plan_pricing`) historisée chaque heure dans `platform_metrics` et affichée en sparkline sous les KPIs de facturation.
+- **Tests** : specs backend live `admin-integrations-health` (gate, forme, comptage d'un calendrier stale, MRR = 288 pour pro mensuel + entreprise annuel).
+- **À faire au go-live** : revoir les seuils d'alerte (`app_config.admin_alert_thresholds`) avec Thomas/Julien.
+
 #### Super-Admin P6b — supervision des utilisateurs finaux + nav groupée (13 juillet 2026)
 > Troisième phase de la reprise super-admin. Donne une visibilité sur les audiences **sans compte** (vendeurs, leads, clients KYC) et range la nav en 5 sections. Objectifs 4 (transparence), 2 (parcours KYC bloqués visibles), 3 (leads non traités visibles). Migration `20260713140000` (3 RPC de lecture).
 
