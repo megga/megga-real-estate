@@ -6325,6 +6325,40 @@ export type Database = {
         Args: { p_agency_id: string; p_quotas: Json; p_note?: string }
         Returns: undefined
       }
+      get_admin_end_user_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_admin_seller_portals: {
+        Args: { p_status?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          status: string
+          created_at: string
+          expires_at: string
+          last_viewed_at: string | null
+          view_count: number
+          agency_name: string | null
+          contact_name: string | null
+          property_title: string | null
+          agent_name: string | null
+        }[]
+      }
+      get_admin_kyc_magic_links: {
+        Args: { p_status?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          status: string
+          mode: string
+          sent_at: string
+          opened_at: string | null
+          uploaded_at: string | null
+          confirmed_at: string | null
+          expires_at: string
+          agency_name: string | null
+          contact_name: string | null
+        }[]
+      }
       get_admin_consent_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json

@@ -6,6 +6,14 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Super-Admin P6b — supervision des utilisateurs finaux + nav groupée (13 juillet 2026)
+> Troisième phase de la reprise super-admin. Donne une visibilité sur les audiences **sans compte** (vendeurs, leads, clients KYC) et range la nav en 5 sections. Objectifs 4 (transparence), 2 (parcours KYC bloqués visibles), 3 (leads non traités visibles). Migration `20260713140000` (3 RPC de lecture).
+
+- **Nouvelle page « Clients finaux »** (`/dashboard/admin/end-users`) : 3 sections — **Portails vendeurs** (statuts + vues, liste filtrable), **Leads entrants** (les deux files `SellerLeadsInbox` + `ContactMessagesInbox` **déménagées** depuis la modération, qui redevient modération pure), **Parcours KYC publics** (funnel envoyé → ouvert → déposé → confirmé + taux de conversion).
+- **Zéro secret exposé** : les RPC `get_admin_seller_portals` et `get_admin_kyc_magic_links` ne renvoient **jamais** le `token` (règle capability-URL #844/#845) ni `client_ip`/`client_user_agent` (minimisation nLPD). Assertion de non-régression dans la spec backend live.
+- **Nav admin groupée** : la liste plate de 15+ items passe à **5 sections** (Pilotage, Clients, Revenus, Opérations, Produit & IA), sur le même patron que la nav agent. Clé morte `nav.adminSupport` retirée.
+- **Stats agrégées côté serveur** (`get_admin_end_user_stats`) : portails, funnel magic-link 30 j, leads par statut/source, messages de contact par statut.
+
 #### Super-Admin P6a — pilotage clients 360° : usage consolidé + quotas (13 juillet 2026)
 > Deuxième phase de la reprise super-admin (plan P5→P8b). Donne à l'équipe une vue d'usage par agence et des plafonds configurables avec alerte. Sert les objectifs 1 (temps admin — plus d'allers-retours Stripe/DeepSeek/SQL) et 5 (remplace un outil fragmenté), et la maîtrise du coût IA. Migration `20260713100000` (1 table + 4 RPC).
 

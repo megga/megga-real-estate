@@ -45,7 +45,6 @@
     "adminMonitoring": "Monitoring",
     "adminMarketplace": "Moderation",
     "adminCompliance": "Compliance",
-    "adminSupport": "Support",
     "adminChangelog": "Changelog",
     "adminFlags": "Feature Flags",
     "adminLive": "Live Feed",
@@ -60,7 +59,13 @@
     "help": "Hilfe",
     "notifications": "Notifications",
     "callbacksToday": "Today's callbacks",
-    "importLeads": "Import leads"
+    "importLeads": "Import leads",
+    "adminSectionPilotage": "Steuerung",
+    "adminSectionClients": "Kunden",
+    "adminSectionRevenue": "Umsatz",
+    "adminSectionOps": "Betrieb",
+    "adminSectionProduct": "Produkt & KI",
+    "adminEndUsers": "Endkunden"
   },
   "sections": {
     "main": "Hauptmenü",

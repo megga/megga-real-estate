@@ -7,7 +7,6 @@ import { useAdminModeration } from '@/hooks/useAdminModeration'
 import type { ModerationListing } from '@/hooks/useAdminModeration'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import ModerationActionDialog from '@/components/admin/ModerationActionDialog'
-import { SellerLeadsInbox, ContactMessagesInbox } from '@/components/admin/AdminModerationInbox'
 import PageTransition from '@/components/layout/PageTransition'
 
 const ITEMS_PER_PAGE = 15
@@ -422,10 +421,8 @@ export default function AdminMarketplacePage() {
             </button>
           </div>
         )}
-
-        {/* Files entrantes (P4 admin) : leads vendeurs non assignés + messages storefront */}
-        <SellerLeadsInbox />
-        <ContactMessagesInbox />
+        {/* Les files entrantes (leads vendeurs + messages storefront) ont déménagé
+            vers « Clients finaux » (P6b) — cette page redevient modération pure. */}
       </div>
 
       {/* Moderation dialog */}

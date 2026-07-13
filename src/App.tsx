@@ -165,6 +165,7 @@ const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage')
 const AdminAgenciesPage = lazy(() => import('@/pages/admin/AdminAgenciesPage'))
 const AdminAgencyDetailPage = lazy(() => import('@/pages/admin/AdminAgencyDetailPage'))
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
+const AdminEndUsersPage = lazy(() => import('@/pages/admin/AdminEndUsersPage'))
 const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
 const AdminMarketplacePage = lazy(() => import('@/pages/admin/AdminMarketplacePage'))
 const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
@@ -598,6 +599,7 @@ function AnimatedRoutes() {
                 <Route path="admin/agencies" element={<SuperAdminGuard><AdminAgenciesPage /></SuperAdminGuard>} />
                 <Route path="admin/agencies/:id" element={<SuperAdminGuard><AdminAgencyDetailPage /></SuperAdminGuard>} />
                 <Route path="admin/users" element={<SuperAdminGuard><AdminUsersPage /></SuperAdminGuard>} />
+                <Route path="admin/end-users" element={<SuperAdminGuard><AdminEndUsersPage /></SuperAdminGuard>} />
                 <Route path="admin/monitoring" element={<SuperAdminGuard><AdminMonitoringPage /></SuperAdminGuard>} />
                 <Route path="admin/marketplace" element={<SuperAdminGuard><AdminMarketplacePage /></SuperAdminGuard>} />
                 <Route path="admin/compliance" element={<SuperAdminGuard><AdminCompliancePage /></SuperAdminGuard>} />

@@ -19,6 +19,7 @@ const ADMIN_ROUTES: RouteSpec[] = [
   { path: '/dashboard/admin/agencies', label: 'Admin > Agences' },
   { path: `/dashboard/admin/agencies/${MOCK_UUID}`, label: 'Admin > Agence detail (mock)' },
   { path: '/dashboard/admin/users', label: 'Admin > Users' },
+  { path: '/dashboard/admin/end-users', label: 'Admin > Clients finaux' },
   { path: '/dashboard/admin/monitoring', label: 'Admin > Monitoring' },
   { path: '/dashboard/admin/marketplace', label: 'Admin > Marketplace' },
   { path: '/dashboard/admin/compliance', label: 'Admin > Compliance' },

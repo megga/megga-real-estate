@@ -39,6 +39,37 @@ const NAV_SECTIONS: NavSection[] = [
   ]},
 ]
 
+// Nav super-admin groupée en 5 sections (P6b) — remplace la liste plate de 15+
+// items devenue illisible. Ordre des sections = du pilotage quotidien au produit.
+const ADMIN_NAV_SECTIONS: NavSection[] = [
+  { labelKey: 'nav.adminSectionPilotage', items: [
+    { labelKey: 'nav.adminLive', href: '/dashboard/admin/live', icon: 'broadcast' },
+    { labelKey: 'nav.adminOverview', href: '/dashboard/admin', icon: 'dashboard' },
+  ]},
+  { labelKey: 'nav.adminSectionClients', items: [
+    { labelKey: 'nav.adminAgencies', href: '/dashboard/admin/agencies', icon: 'building' },
+    { labelKey: 'nav.adminUsers', href: '/dashboard/admin/users', icon: 'users' },
+    { labelKey: 'nav.adminEndUsers', href: '/dashboard/admin/end-users', icon: 'users' },
+    { labelKey: 'nav.adminMarketplace', href: '/dashboard/admin/marketplace', icon: 'store' },
+  ]},
+  { labelKey: 'nav.adminSectionRevenue', items: [
+    { labelKey: 'nav.adminPlans', href: '/dashboard/admin/plans', icon: 'credit-card' },
+  ]},
+  { labelKey: 'nav.adminSectionOps', items: [
+    { labelKey: 'nav.adminMonitoring', href: '/dashboard/admin/monitoring', icon: 'broadcast' },
+    { labelKey: 'nav.adminSecurity', href: '/dashboard/admin/security', icon: 'shield' },
+    { labelKey: 'nav.adminCompliance', href: '/dashboard/admin/compliance', icon: 'shield' },
+  ]},
+  { labelKey: 'nav.adminSectionProduct', items: [
+    { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: 'megaphone' },
+    { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: 'bolt' },
+    { labelKey: 'nav.adminNps', href: '/dashboard/admin/nps', icon: 'star' },
+    { labelKey: 'nav.adminAutonomy', href: '/dashboard/admin/autonomy', icon: 'sparkle' },
+    { labelKey: 'nav.adminLearning', href: '/dashboard/admin/learning', icon: 'sparkle' },
+    { labelKey: 'nav.adminToolUsage', href: '/dashboard/admin/tool-usage', icon: 'sparkle' },
+  ]},
+]
+
 // ─── PROPS ──────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
@@ -236,52 +267,50 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             </div>
             <AdminSearchDialog open={adminSearchOpen} onClose={() => setAdminSearchOpen(false)} />
 
-            {/* Admin items */}
-            <div className="space-y-0.5">
-              {[
-                { labelKey: 'nav.adminLive', href: '/dashboard/admin/live', icon: 'broadcast' },
-                { labelKey: 'nav.adminOverview', href: '/dashboard/admin', icon: 'dashboard' },
-                { labelKey: 'nav.adminAgencies', href: '/dashboard/admin/agencies', icon: 'building' },
-                { labelKey: 'nav.adminUsers', href: '/dashboard/admin/users', icon: 'users' },
-                { labelKey: 'nav.adminMonitoring', href: '/dashboard/admin/monitoring', icon: 'broadcast' },
-                { labelKey: 'nav.adminMarketplace', href: '/dashboard/admin/marketplace', icon: 'store' },
-                { labelKey: 'nav.adminCompliance', href: '/dashboard/admin/compliance', icon: 'shield' },
-                { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: 'megaphone' },
-                { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: 'bolt' },
-                { labelKey: 'nav.adminPlans', href: '/dashboard/admin/plans', icon: 'credit-card' },
-                { labelKey: 'nav.adminSecurity', href: '/dashboard/admin/security', icon: 'shield' },
-                { labelKey: 'nav.adminNps', href: '/dashboard/admin/nps', icon: 'star' },
-                { labelKey: 'nav.adminAutonomy', href: '/dashboard/admin/autonomy', icon: 'sparkle' },
-                { labelKey: 'nav.adminLearning', href: '/dashboard/admin/learning', icon: 'sparkle' },
-                { labelKey: 'nav.adminToolUsage', href: '/dashboard/admin/tool-usage', icon: 'sparkle' },
-              ].map((item) => {
-                const isItemActive = location.pathname === item.href ||
-                  (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))
-                const label = t(item.labelKey)
-                return (
-                  <div key={item.href} className="relative">
-                    <Link
-                      to={item.href}
-                      onClick={onClose}
-                      onMouseEnter={() => isCol ? setHoveredItem(item.href) : undefined}
-                      onMouseLeave={() => setHoveredItem(null)}
-                      className={cn(
-                        navRow(isCol, isItemActive),
-                        isItemActive && '!bg-admin-accent/8 !text-admin-accent'
-                      )}
-                    >
-                      <div className="relative flex-shrink-0">
-                        <MEIcon name={item.icon as MEIconName} className={cn('h-[18px] w-[18px] stroke-[1.8]', isItemActive && 'text-admin-accent')} />
-                      </div>
-                      <span className={fadeLabel(isCol)}>{label}</span>
-                    </Link>
-                    <CollapsedTooltip show={isCol && hoveredItem === item.href}>
-                      {label}
-                    </CollapsedTooltip>
+            {/* Admin items — groupés en 5 sections (P6b) */}
+            {ADMIN_NAV_SECTIONS.map((section) => (
+              <div key={section.labelKey}>
+                {isCol || isMinimalSidebar ? (
+                  <div className="mt-3" />
+                ) : (
+                  <div className="mt-4 mb-1 px-3">
+                    <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
+                      {t(section.labelKey)}
+                    </span>
                   </div>
-                )
-              })}
-            </div>
+                )}
+
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const isItemActive = location.pathname === item.href ||
+                      (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))
+                    const label = t(item.labelKey)
+                    return (
+                      <div key={item.href} className="relative">
+                        <Link
+                          to={item.href}
+                          onClick={onClose}
+                          onMouseEnter={() => isCol ? setHoveredItem(item.href) : undefined}
+                          onMouseLeave={() => setHoveredItem(null)}
+                          className={cn(
+                            navRow(isCol, isItemActive),
+                            isItemActive && '!bg-admin-accent/8 !text-admin-accent'
+                          )}
+                        >
+                          <div className="relative flex-shrink-0">
+                            <MEIcon name={item.icon as MEIconName} className={cn('h-[18px] w-[18px] stroke-[1.8]', isItemActive && 'text-admin-accent')} />
+                          </div>
+                          <span className={fadeLabel(isCol)}>{label}</span>
+                        </Link>
+                        <CollapsedTooltip show={isCol && hoveredItem === item.href}>
+                          {label}
+                        </CollapsedTooltip>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </>
         ) : (
           /* ── Agent Mode (default) ── */
