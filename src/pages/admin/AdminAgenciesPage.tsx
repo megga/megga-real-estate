@@ -10,6 +10,7 @@ import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import type { AgencyWithStats } from '@/hooks/useAdminAgencies'
 import { calculateAgencyHealth } from '@/lib/agencyHealthScore'
 import AgencyHealthBadge from '@/components/admin/AgencyHealthBadge'
+import AgencyUsageOverview from '@/components/admin/AgencyUsageOverview'
 import PageTransition from '@/components/layout/PageTransition'
 
 const ITEMS_PER_PAGE = 10
@@ -17,7 +18,20 @@ const ITEMS_PER_PAGE = 10
 const PLAN_LABEL: Record<string, string> = {
   starter: 'Starter',
   pro: 'Pro',
-  agency: 'Agency',
+  entreprise: 'Entreprise',
+}
+
+// Statuts d'abonnement à signaler (badge texte, pas de fond — règle design).
+const SUB_BADGE: Record<string, { i18nKey: string; className: string }> = {
+  trialing: { i18nKey: 'agencies.sub.trialing', className: 'text-blue-500' },
+  past_due: { i18nKey: 'agencies.sub.pastDue', className: 'text-red-500' },
+}
+
+function SubscriptionBadge({ status }: { status: string | null }) {
+  const { t } = useTranslation('admin')
+  if (!status || !SUB_BADGE[status]) return null
+  const meta = SUB_BADGE[status]
+  return <span className={cn('text-xs font-medium', meta.className)}>{t(meta.i18nKey)}</span>
 }
 
 function AgencyAvatar({ name }: { name: string }) {
@@ -196,6 +210,9 @@ export default function AdminAgenciesPage() {
           </div>
         </div>
 
+        {/* Usage consolidé par agence (repliable, chargé à la demande) */}
+        <AgencyUsageOverview />
+
         {/* Mobile: cards */}
         <div className="md:hidden space-y-2">
           {isLoading ? (
@@ -264,9 +281,12 @@ export default function AdminAgenciesPage() {
                 <div className="flex-1 flex items-center gap-3 min-w-0">
                   <AgencyAvatar name={agency.name} />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-theme-primary truncate group-hover:text-admin-accent transition-colors">
-                      {agency.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-theme-primary truncate group-hover:text-admin-accent transition-colors">
+                        {agency.name}
+                      </p>
+                      <SubscriptionBadge status={agency.subscription_status} />
+                    </div>
                     {agency.email && (
                       <p className="text-xs text-theme-tertiary truncate">{agency.email}</p>
                     )}

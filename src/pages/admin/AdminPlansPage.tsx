@@ -283,8 +283,14 @@ export default function AdminPlansPage() {
                       <p className="text-xs text-theme-tertiary truncate">{agency.email}</p>
                     )}
                   </div>
-                  <div className="px-4 py-3 flex justify-center">
+                  <div className="px-4 py-3 flex flex-col items-center gap-0.5">
                     <PlanBadge plan={agency.plan ?? 'starter'} />
+                    {agency.subscription_status === 'trialing' && (
+                      <span className="text-xs font-medium text-blue-500">{t('agencies.sub.trialing')}</span>
+                    )}
+                    {agency.subscription_status === 'past_due' && (
+                      <span className="text-xs font-medium text-red-500">{t('agencies.sub.pastDue')}</span>
+                    )}
                   </div>
                   <div className="px-4 py-3 text-center">
                     <span className="text-sm text-theme-secondary">{agency.agent_count}</span>

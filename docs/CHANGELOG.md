@@ -6,6 +6,16 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Super-Admin P6a — pilotage clients 360° : usage consolidé + quotas (13 juillet 2026)
+> Deuxième phase de la reprise super-admin (plan P5→P8b). Donne à l'équipe une vue d'usage par agence et des plafonds configurables avec alerte. Sert les objectifs 1 (temps admin — plus d'allers-retours Stripe/DeepSeek/SQL) et 5 (remplace un outil fragmenté), et la maîtrise du coût IA. Migration `20260713100000` (1 table + 4 RPC).
+
+- **Usage consolidé par agence** : nouvelle RPC `get_admin_agency_usage(agency)` agrège côté serveur, sur le mois courant, biens actifs + contacts + coût/appels IA + messages WhatsApp + stockage estimé + portails actifs + dernière activité. Surfacé dans un onglet **« Usage & quotas »** de la fiche agence (cartes + barres usage/plafond) et un bloc repliable **« Usage par agence »** (`get_admin_usage_overview`, tri coût IA décroissant) en tête de la liste des agences.
+- **Quotas configurables** : table `agency_usage_quotas` (plafonds nullables IA/biens/WhatsApp/stockage + seuil d'alerte 50-100 %, défaut 80). Édition via RPC auditée `admin_set_agency_quotas` (événement `quota_changed`), formulaire en modal. Champs vides = illimité.
+- **Alerte à l'approche, sans blocage** : le cron `admin-monitoring` lit `get_admin_quota_breaches` (usage ≥ plafond × seuil) et pousse une alerte email par agence×métrique via `_shared/admin-alerts.ts` (dédup 24h). **Aucun blocage automatique** — la décision reste humaine.
+- **Trials surfacés** : `useAdminAgencies` joint `subscriptions` → badges `trialing`/`past_due` dans la liste des agences et le tableau des plans.
+- **Stockage = estimation** (documents + uploads KYC ; les photos R2 ne sont pas attribuables par agence), libellé comme tel dans l'UI. Correctif au passage : `PLAN_LABEL` de la liste des agences (`entreprise`, plus `agency`).
+- **Tests** : specs backend live `admin-quotas-rpc` (gate, upsert + audit, seuil invalide) et `admin-usage-rpcs` (gate, exactitude sur données seedées, overview + caps, détection de dépassement).
+
 #### Super-Admin P5 — fiabilisation de la dette (12-13 juillet 2026)
 > Première phase de la reprise du chantier super-admin (plan P5→P8b). Purge la dette repérée à l'audit pré-lancement. Sert les objectifs 1 (temps admin) et 4 (transparence). Migration `20260712120000`, e2e admin 16/16, spec backend `admin-monitoring-health.spec.ts`.
 

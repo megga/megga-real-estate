@@ -15,6 +15,9 @@ export interface AgencyWithStats {
   agent_count: number
   property_count: number
   transaction_count: number
+  // Statut d'abonnement Stripe (miroir subscriptions) — pour badges trials/past_due.
+  subscription_status: string | null
+  current_period_end: string | null
 }
 
 export function useAdminAgencies() {
@@ -33,10 +36,18 @@ export function useAdminAgencies() {
       if (agencyIds.length === 0) return []
 
       // Use RPC for server-side counting (single SQL query instead of fetching all rows)
-      const { data: stats } = await supabase.rpc('get_agency_stats', { agency_ids: agencyIds })
+      // + abonnements en une passe (policy super_admin_read_all_subscriptions) pour les badges trials.
+      const [{ data: stats }, { data: subs }] = await Promise.all([
+        supabase.rpc('get_agency_stats', { agency_ids: agencyIds }),
+        supabase.from('subscriptions').select('agency_id, status, current_period_end').in('agency_id', agencyIds),
+      ])
       const statsMap: Record<string, { agent_count: number; property_count: number; transaction_count: number }> = {}
       for (const s of stats ?? []) {
         statsMap[s.agency_id] = { agent_count: Number(s.agent_count), property_count: Number(s.property_count), transaction_count: Number(s.transaction_count) }
+      }
+      const subMap: Record<string, { status: string | null; current_period_end: string | null }> = {}
+      for (const s of subs ?? []) {
+        subMap[s.agency_id] = { status: s.status ?? null, current_period_end: s.current_period_end ?? null }
       }
 
       return (data ?? []).map(agency => ({
@@ -45,6 +56,8 @@ export function useAdminAgencies() {
         agent_count: statsMap[agency.id]?.agent_count ?? 0,
         property_count: statsMap[agency.id]?.property_count ?? 0,
         transaction_count: statsMap[agency.id]?.transaction_count ?? 0,
+        subscription_status: subMap[agency.id]?.status ?? null,
+        current_period_end: subMap[agency.id]?.current_period_end ?? null,
       }))
     },
     staleTime: 30_000,

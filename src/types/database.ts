@@ -154,6 +154,50 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_usage_quotas: {
+        Row: {
+          agency_id: string
+          ai_monthly_cost_cap_usd: number | null
+          active_properties_cap: number | null
+          whatsapp_monthly_cap: number | null
+          storage_cap_mb: number | null
+          alert_threshold_pct: number
+          note: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          ai_monthly_cost_cap_usd?: number | null
+          active_properties_cap?: number | null
+          whatsapp_monthly_cap?: number | null
+          storage_cap_mb?: number | null
+          alert_threshold_pct?: number
+          note?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          ai_monthly_cost_cap_usd?: number | null
+          active_properties_cap?: number | null
+          whatsapp_monthly_cap?: number | null
+          storage_cap_mb?: number | null
+          alert_threshold_pct?: number
+          note?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_usage_quotas_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notes: {
         Row: {
           author_id: string | null
@@ -6235,6 +6279,51 @@ export type Database = {
           tokens_out: number
           cost_usd: number
         }[]
+      }
+      get_admin_agency_usage: {
+        Args: { p_agency_id: string }
+        Returns: {
+          active_properties: number
+          contacts_count: number
+          ai_cost_month_usd: number
+          ai_calls_month: number
+          wa_messages_month: number
+          storage_est_mb: number
+          portals_active: number
+          last_activity_at: string | null
+        }[]
+      }
+      get_admin_usage_overview: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agency_id: string
+          agency_name: string
+          plan: string
+          status: string
+          active_properties: number
+          contacts_count: number
+          ai_cost_month_usd: number
+          wa_messages_month: number
+          storage_est_mb: number
+          portals_active: number
+          last_activity_at: string | null
+          caps: Json
+        }[]
+      }
+      get_admin_quota_breaches: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agency_id: string
+          agency_name: string
+          metric: string
+          usage: number
+          cap: number
+          threshold_pct: number
+        }[]
+      }
+      admin_set_agency_quotas: {
+        Args: { p_agency_id: string; p_quotas: Json; p_note?: string }
+        Returns: undefined
       }
       get_admin_consent_stats: {
         Args: Record<PropertyKey, never>

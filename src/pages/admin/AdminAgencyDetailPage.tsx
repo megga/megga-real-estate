@@ -14,11 +14,13 @@ import PageTransition from '@/components/layout/PageTransition'
 import { useImpersonate } from '@/hooks/useImpersonate'
 import { useToast } from '@/components/ui/Toast'
 import AdminBillingCard from '@/components/admin/AdminBillingCard'
+import AgencyUsagePanel from '@/components/admin/AgencyUsagePanel'
 
-type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions'
+type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions' | 'usage'
 
 const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
   { key: 'infos', i18nKey: 'agencyDetail.tab.infos' },
+  { key: 'usage', i18nKey: 'agencyDetail.tab.usage' },
   { key: 'equipe', i18nKey: 'agencyDetail.tab.team' },
   { key: 'activite', i18nKey: 'agencyDetail.tab.activity' },
   { key: 'biens', i18nKey: 'agencyDetail.tab.properties' },
@@ -194,6 +196,7 @@ export default function AdminAgencyDetailPage() {
         {/* Tab content */}
         <div>
           {activeTab === 'infos' && <InfosTab agency={agency} />}
+          {activeTab === 'usage' && <AgencyUsagePanel agencyId={agency.id} />}
           {activeTab === 'equipe' && <EquipeTab agencyId={agency.id} agencyName={agency.name as string ?? ''} />}
           {activeTab === 'activite' && <ActiviteTab agencyId={agency.id} />}
           {activeTab === 'biens' && <BiensTab agencyId={agency.id} />}
