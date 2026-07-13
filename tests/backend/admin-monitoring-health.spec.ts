@@ -1,4 +1,4 @@
-// Admin monitoring health — get_admin_monitoring_health v2 (migration 20260712120000)
+// Admin monitoring health — get_admin_monitoring_health v2 (migration 20260712123000)
 //
 //  La v1 (baseline / 20260518_004) accordait EXECUTE à authenticated SANS
 //  guard interne : n'importe quel agent connecté lisait les métriques

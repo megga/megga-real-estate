@@ -70,7 +70,7 @@ end;
 $$;
 
 comment on function public.get_admin_monitoring_health() is
-  'Santé plateforme pour AdminMonitoringPage. v2 : + limites DB/storage depuis app_config.admin_platform_limits, guard super_admin/service_role (la v1 était lisible par tout authenticated). Voir 20260712120000.';
+  'Santé plateforme pour AdminMonitoringPage. v2 : + limites DB/storage depuis app_config.admin_platform_limits, guard super_admin/service_role (la v1 était lisible par tout authenticated). Voir 20260712123000.';
 
 revoke all on function public.get_admin_monitoring_health() from public, anon;
 grant execute on function public.get_admin_monitoring_health() to authenticated, service_role;
