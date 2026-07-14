@@ -131,6 +131,12 @@ export default defineConfig([
       // bloc venant après le bloc verrouillé, le dernier match l'emporte → WARN.
       'src/components/ai-copilot/panel/**/*.{ts,tsx}',
       'src/components/crm-sugar/ai/**/*.{ts,tsx}',
+      // Refonte KYC (nouveau pager / vigie / fiche stricte / onboarding / import) —
+      // surface FR-first (« FR d'abord »), i18n bilingue différée comme ci-dessus.
+      // Plus spécifique que crm-sugar-v3/** et pages/agent/** → WARN (dernier match).
+      'src/components/crm-sugar-v3/kyc-pager/**/*.{ts,tsx}',
+      'src/components/crm-sugar-v3/kyc-wizard/KwStepImport.tsx',
+      'src/pages/agent/KycOnboardingPage.tsx',
     ]
     return [
       {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   parseKycOcr, deriveKycType, kycTypeToEntityType, kycCategoryMaps, KYC_DOC_PROMPT,
+  KYC_REPORT_PROMPT, normalizeKycReport,
 } from './kyc-extract'
 
 describe('deriveKycType', () => {
@@ -58,5 +59,49 @@ describe('parseKycOcr', () => {
 describe('KYC_DOC_PROMPT', () => {
   it('demande une sortie JSON stricte', () => {
     expect(KYC_DOC_PROMPT).toMatch(/JSON/)
+  })
+})
+
+describe('KYC_REPORT_PROMPT', () => {
+  it('cible les 3 contrôles couverts par un rapport externe', () => {
+    expect(KYC_REPORT_PROMPT).toMatch(/JSON/)
+    expect(KYC_REPORT_PROMPT).toMatch(/identite/)
+    expect(KYC_REPORT_PROMPT).toMatch(/pep/)
+    expect(KYC_REPORT_PROMPT).toMatch(/sanctions/)
+  })
+})
+
+describe('normalizeKycReport', () => {
+  it('mappe un rapport complet clear vers 3 contrôles + 2 pièces restantes', () => {
+    const out = normalizeKycReport({
+      fournisseur: 'Persona',
+      date: '2026-07-11',
+      identite: 'verifie',
+      pep: 'aucun',
+      sanctions: 'aucun',
+    })
+    expect(out.provider).toBe('Persona')
+    expect(out.reportDate).toBe('2026-07-11')
+    expect(out.checks).toEqual([
+      { key: "Pièce d'identité", result: 'Vérifiée' },
+      { key: 'Screening PEP', result: '0 correspondance' },
+      { key: 'Sanctions', result: '0 correspondance' },
+    ])
+    expect(out.missing).toEqual(['Justificatif de domicile', 'Source des fonds'])
+  })
+
+  it('signale une correspondance PEP/sanctions à examiner', () => {
+    const out = normalizeKycReport({ identite: 'verifie', pep: 'correspondance', sanctions: 'aucun' })
+    expect(out.checks).toContainEqual({ key: 'Screening PEP', result: 'Correspondance à examiner' })
+  })
+
+  it('omet les contrôles non couverts (absent) et n\'invente rien', () => {
+    const out = normalizeKycReport({ identite: 'verifie', pep: 'absent', sanctions: 'absent' })
+    expect(out.checks).toEqual([{ key: "Pièce d'identité", result: 'Vérifiée' }])
+    expect(out.provider).toBeNull()
+  })
+
+  it('rapport vide → aucun contrôle', () => {
+    expect(normalizeKycReport({}).checks).toEqual([])
   })
 })

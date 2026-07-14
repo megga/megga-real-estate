@@ -1,0 +1,766 @@
+// MEGGA CRM — KYC Pager · Fiche « table stricte » (overlay dans le bento)
+// ─────────────────────────────────────────────────────────────────────────
+// Port fidèle de `KypFiche` (kyc-pager-proto.jsx), branché sur la donnée LIVE
+// et sur TOUTES les garanties compliance existantes :
+//   • screening auto au réveil (EF kyc-screening / Dilisense) ;
+//   • contrôles manuels id/domicile → upload réel (useUploadKycDocument) +
+//     coche du checklist item ;
+//   • ligne fonds → typologie source des fonds LBA art. 6 (SourceOfFundsOverlay) ;
+//   • « Trancher » un match → décision documentée (justif ≥30 c, snapshot,
+//     supersedes) via useCreateKycScreeningDecision — true_match ⇒ dossier
+//     `failed` + MROS, false_positive ⇒ débloque ;
+//   • log de consultation nLPD art. 12 (useLogKycRead) ;
+//   • export = route print existante ; PAS de suppression (rétention LBA 10 ans).
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import {
+  useKycCase,
+  useKycDocuments,
+  useScreenKycCase,
+  useCreateKycScreeningDecision,
+  useLatestKycScreeningDecision,
+  useLogKycRead,
+  useUploadKycDocument,
+  useUpdateKycSourceOfFunds,
+} from '@/hooks/useKyc'
+import { useMarkKycCheck } from '@/hooks/useKycDossier'
+import type {
+  KycCaseWithChecklist,
+  KycChecklistItem,
+  KycCheckCategory,
+  KycDocument,
+  KycSourceOfFundsType,
+  ScreeningDecisionTarget,
+} from '@/types/kyc'
+import { KYC_CHECK_LABELS } from '../tokens'
+import { SourceOfFundsOverlay } from '../kyc/KycSourceOfFundsCard'
+import {
+  KYP_CHECK_ORDER,
+  KYP_FONT,
+  KYP_MANUAL_CHECKS,
+  kypRiskMeta,
+  kypStatusMeta,
+  type KypSurf,
+} from './kypTokens'
+import { KypAvatar, KypCheckIcon, KypCta, KypIcon, KypPill } from './kypAtoms'
+import { KycUploadModal } from './KycUploadModal'
+import { KycDocViewer } from './KycDocViewer'
+
+const CAT_TO_DOCCAT: Record<KycCheckCategory, KycDocument['document_category'][]> = {
+  id: ['identity'],
+  address: ['domicile'],
+  funds: ['financial', 'compliance'],
+  pep: [],
+  sanctions: [],
+}
+
+const CAT_TO_UPLOADCAT: Record<'id' | 'address', 'identity' | 'domicile'> = {
+  id: 'identity',
+  address: 'domicile',
+}
+
+function fmtDate(iso: string | null | undefined, long?: boolean): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString(
+    'fr-CH',
+    long ? { day: '2-digit', month: 'long', year: 'numeric' } : { day: '2-digit', month: 'short', year: 'numeric' },
+  )
+}
+
+interface Props {
+  dossierId: string
+  agentId: string
+  sp: SugarPalette
+  surf: KypSurf
+  onClose: () => void
+  onNavigate: (screen: string) => void
+}
+
+export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNavigate }: Props) {
+  const { data: dossier, isLoading } = useKycCase(dossierId)
+  const { data: docs = [] } = useKycDocuments(dossierId)
+  const markCheck = useMarkKycCheck()
+  const screen = useScreenKycCase()
+  const createDecision = useCreateKycScreeningDecision()
+  const updateFunds = useUpdateKycSourceOfFunds()
+  const upload = useUploadKycDocument()
+  const logRead = useLogKycRead()
+  const { data: sanctionsDecision } = useLatestKycScreeningDecision(dossierId, 'sanctions')
+  const { data: pepDecision } = useLatestKycScreeningDecision(dossierId, 'pep')
+
+  const [docView, setDocView] = useState<KycDocument | null>(null)
+  const [matchView, setMatchView] = useState<ScreeningDecisionTarget | null>(null)
+  const [upKey, setUpKey] = useState<'id' | 'address' | null>(null)
+  const [fundsOpen, setFundsOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Index checklist par catégorie LBA
+  const checksByCategory = useMemo<Record<KycCheckCategory, KycChecklistItem | null>>(() => {
+    const map: Record<KycCheckCategory, KycChecklistItem | null> = {
+      id: null,
+      address: null,
+      pep: null,
+      sanctions: null,
+      funds: null,
+    }
+    const items = (dossier as KycCaseWithChecklist | undefined)?.checklist ?? []
+    items.forEach((c) => {
+      if ((KYP_CHECK_ORDER as string[]).includes(c.category)) {
+        map[c.category as KycCheckCategory] = c
+      }
+    })
+    return map
+  }, [dossier])
+
+  // nLPD art. 12 — log de consultation (une fois par dossier).
+  const readLoggedRef = useRef<string | null>(null)
+  const logReadMutate = logRead.mutate
+  useEffect(() => {
+    if (!dossier?.agency_id || readLoggedRef.current === dossierId) return
+    readLoggedRef.current = dossierId
+    logReadMutate({ kycCaseId: dossierId, agencyId: dossier.agency_id, actorId: agentId })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dossier?.agency_id, dossierId, agentId])
+
+  const markAuto = (cat: 'pep' | 'sanctions') => {
+    const item = checksByCategory[cat]
+    if (item && !item.is_completed) {
+      markCheck.mutate({ checkId: item.id, is_completed: true, actorId: agentId })
+    }
+  }
+
+  // Screening automatique au réveil : dossier jamais screené → PEP + sanctions
+  // « sous les yeux de l'agent ». Une seule fois. Sur clear, on coche les checks
+  // auto (le design attend l'auto-validation ; le backend ne coche pas seul).
+  const autoScreenedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!dossier || autoScreenedRef.current === dossierId) return
+    const notScreened =
+      !dossier.last_screening_at &&
+      (dossier.pep_status == null || dossier.pep_status === 'not_checked') &&
+      (dossier.sanctions_status == null || dossier.sanctions_status === 'not_checked')
+    if (!notScreened || dossier.dossier_status === 'verified' || !dossier.contact) return
+    autoScreenedRef.current = dossierId
+    const name = `${dossier.contact.first_name} ${dossier.contact.last_name}`.trim()
+    screen.mutate(
+      {
+        kycCaseId: dossierId,
+        contactName: name,
+        contactNationality: dossier.contact_nationality ?? '',
+        entityType: dossier.type.endsWith('_pm') ? 'entity' : 'individual',
+      },
+      {
+        onSuccess: (res) => {
+          // Coche les contrôles auto revenus « clear » (audit trail + progression).
+          if (res.pep_status === 'clear') markAuto('pep')
+          if (res.sanctions_status === 'clear') markAuto('sanctions')
+        },
+        onError: () => {
+          /* best-effort — l'agent peut relancer via la fiche */
+        },
+      },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dossier?.id, dossier?.last_screening_at])
+
+  if (isLoading || !dossier) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 40,
+          background: sp.pageBg,
+          display: 'grid',
+          placeItems: 'center',
+          color: sp.sub,
+          fontSize: 14,
+          fontWeight: 500,
+          fontFamily: KYP_FONT,
+        }}
+      >
+        Chargement du dossier…
+      </div>
+    )
+  }
+
+  const contact = dossier.contact
+  const statusMeta = kypStatusMeta(dossier.dossier_status)
+  const riskMeta = kypRiskMeta(dossier.risk_level)
+  const verified = dossier.dossier_status === 'verified'
+
+  const isDone = (item: KycChecklistItem | null) => !!item && (item.is_completed || item.is_required === false)
+  const manualMissing = () => KYP_MANUAL_CHECKS.filter((k) => !isDone(checksByCategory[k])) as ('id' | 'address')[]
+
+  const docsForCategory = (cat: KycCheckCategory) => {
+    const wanted = CAT_TO_DOCCAT[cat]
+    if (wanted.length === 0) return []
+    return docs.filter((d) => wanted.includes(d.document_category))
+  }
+
+  const matchUnresolved = (cat: 'pep' | 'sanctions') => {
+    const status = cat === 'pep' ? dossier.pep_status : dossier.sanctions_status
+    const decision = cat === 'pep' ? pepDecision : sanctionsDecision
+    return status === 'match' && decision?.decision !== 'false_positive'
+  }
+
+  // Téléversement d'un contrôle manuel → upload réel + coche du check.
+  const handleUpload = (cat: 'id' | 'address', file: File) => {
+    setError(null)
+    if (!dossier.agency_id) {
+      setError('Agence introuvable pour ce dossier.')
+      return
+    }
+    upload.mutate(
+      {
+        kycCaseId: dossierId,
+        agencyId: dossier.agency_id,
+        file,
+        documentCategory: CAT_TO_UPLOADCAT[cat],
+        uploadedBy: agentId,
+      },
+      {
+        onSuccess: () => {
+          const item = checksByCategory[cat]
+          if (item && !item.is_completed) {
+            markCheck.mutate({ checkId: item.id, is_completed: true, actorId: agentId })
+          }
+          setUpKey(null)
+        },
+        onError: (e: unknown) => setError(e instanceof Error ? e.message : 'Échec du téléversement.'),
+      },
+    )
+  }
+
+  const handleFundsSubmit = (
+    sourceType: KycSourceOfFundsType,
+    description: string | null,
+    docId: string | null,
+  ) => {
+    if (!dossier.agency_id) return
+    updateFunds.mutate(
+      {
+        kycCaseId: dossierId,
+        agencyId: dossier.agency_id,
+        actorId: agentId,
+        sourceType,
+        description,
+        docId,
+      },
+      {
+        onSuccess: () => {
+          setFundsOpen(false)
+          const item = checksByCategory.funds
+          if (item && !item.is_completed) {
+            markCheck.mutate({ checkId: item.id, is_completed: true, actorId: agentId })
+          }
+        },
+      },
+    )
+  }
+
+  const cols = '44px 1.1fr 1.6fr 110px 150px'
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 40,
+        background: sp.pageBg,
+        animation: 'kypFiche .42s cubic-bezier(.2,.8,.2,1) both',
+        padding: '26px 34px',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        overflow: 'hidden',
+        fontFamily: KYP_FONT,
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button
+          onClick={onClose}
+          title="Retour"
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 999,
+            border: 0,
+            cursor: 'pointer',
+            flexShrink: 0,
+            background: surf.card,
+            boxShadow: sp.shadowSm,
+            color: sp.ink,
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
+          <KypIcon name="arrowL" size={18} />
+        </button>
+        {contact && <KypAvatar firstName={contact.first_name} lastName={contact.last_name} size={46} ring={sp.pageBg} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>
+            {contact ? `${contact.first_name} ${contact.last_name}` : 'Dossier KYC'}
+          </div>
+          <div style={{ fontSize: 12.5, color: sp.sub, fontWeight: 500, marginTop: 3 }}>
+            {dossier.created_at && dossier.dossier_status !== 'none'
+              ? `Ouvert le ${fmtDate(dossier.created_at, true)}`
+              : 'Dossier non démarré'}
+          </div>
+        </div>
+        <KypPill tone={statusMeta.tone} label={statusMeta.label} />
+        <KypPill tone={riskMeta.tone} label={riskMeta.label} />
+      </div>
+
+      {/* Table stricte */}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          background: surf.card,
+          borderRadius: 22,
+          boxShadow: sp.shadow,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: cols,
+            gap: 14,
+            padding: '12px 24px',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.4,
+            textTransform: 'uppercase',
+            color: sp.sub,
+            borderBottom: `1px solid ${surf.hairline}`,
+            flexShrink: 0,
+          }}
+        >
+          <div />
+          <div>Contrôle</div>
+          <div>Preuve / note</div>
+          <div>Date</div>
+          <div style={{ textAlign: 'right' }}>Statut</div>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          {KYP_CHECK_ORDER.map((cat, i) => {
+            const item = checksByCategory[cat]
+            const label = KYC_CHECK_LABELS[cat]?.title ?? cat
+            const done = isDone(item)
+            const isAuto = cat === 'pep' || cat === 'sanctions'
+            const autoStatus = cat === 'pep' ? dossier.pep_status : dossier.sanctions_status
+            const decision = cat === 'pep' ? pepDecision : cat === 'sanctions' ? sanctionsDecision : null
+            const decisionCleared = decision?.decision === 'false_positive'
+            const screeningThis = isAuto && screen.isPending && autoStatus !== 'clear' && autoStatus !== 'match'
+            const rowDocs = docsForCategory(cat)
+            // Contrôle auto « ok » = screening clair OU faux positif documenté.
+            const okVisual = done || (isAuto && (autoStatus === 'clear' || decisionCleared))
+            const na = item?.is_required === false
+
+            return (
+              <div
+                key={cat}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: cols,
+                  gap: 14,
+                  alignItems: 'center',
+                  padding: '16px 24px',
+                  borderBottom: i < KYP_CHECK_ORDER.length - 1 ? `1px solid ${surf.hairline}` : '0',
+                }}
+              >
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 999,
+                    flexShrink: 0,
+                    background: okVisual ? sp.focusBg : surf.cardSub,
+                    color: okVisual ? sp.focusInk : sp.ink,
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
+                >
+                  <KypCheckIcon category={cat} size={16} sw={1.7} />
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{label}</div>
+                <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {rowDocs.map((doc) => (
+                    <button
+                      key={doc.id}
+                      onClick={() => setDocView(doc)}
+                      title={`Ouvrir ${doc.name}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        height: 26,
+                        padding: '0 11px',
+                        borderRadius: 999,
+                        border: 0,
+                        background: surf.cardSub,
+                        color: sp.ink,
+                        fontFamily: KYP_FONT,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        maxWidth: 180,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      <KypIcon name="clip" size={12} />
+                      {doc.name}
+                    </button>
+                  ))}
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      color: sp.soft,
+                      fontWeight: 500,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {screeningThis
+                      ? 'Interrogation des bases PEP & sanctions…'
+                      : item?.notes || (rowDocs.length ? '' : '—')}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                  {screeningThis ? '—' : fmtDate(item?.completed_at ?? dossier.last_screening_at)}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  {screeningThis ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 999,
+                          border: `2px solid ${surf.hairline}`,
+                          borderTopColor: sp.ink,
+                          animation: 'kypSpin .7s linear infinite',
+                          flexShrink: 0,
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      Screening en cours…
+                    </span>
+                  ) : okVisual ? (
+                    <span style={{ animation: isAuto ? 'kypPop .38s cubic-bezier(.2,.8,.2,1) both' : 'none', display: 'inline-flex' }}>
+                      <KypPill tone={na ? sp.sub : '#059669'} label={na ? 'Non requis' : 'Vérifié'} />
+                    </span>
+                  ) : isAuto && matchUnresolved(cat as 'pep' | 'sanctions') ? (
+                    <KypCta sp={sp} h={28} onClick={() => setMatchView(cat as ScreeningDecisionTarget)}>
+                      Trancher
+                    </KypCta>
+                  ) : cat === 'id' || cat === 'address' ? (
+                    <KypCta sp={sp} h={28} onClick={() => setUpKey(cat)}>
+                      Téléverser
+                    </KypCta>
+                  ) : cat === 'funds' ? (
+                    <KypCta sp={sp} h={28} onClick={() => setFundsOpen(true)}>
+                      Renseigner
+                    </KypCta>
+                  ) : (
+                    <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, whiteSpace: 'nowrap' }}>
+                      Automatique — en attente
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Pied */}
+        <div
+          style={{
+            padding: '14px 24px',
+            borderTop: `1px solid ${surf.hairline}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: 12, color: sp.sub, fontWeight: 600 }}>
+            {verified
+              ? `Dossier complet — valable jusqu'au ${fmtDate(dossier.expires_at, true)}.`
+              : 'Piste d’audit complète disponible dans le Journal.'}
+          </span>
+          <span
+            onClick={() => onNavigate('audit')}
+            style={{ fontSize: 12, fontWeight: 700, color: sp.ink, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            Ouvrir le Journal ›
+          </span>
+          <span style={{ flex: 1 }} />
+          <span
+            onClick={() => window.open(`/dashboard/kyc/${dossierId}/export`, '_blank', 'noopener,noreferrer')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              height: 36,
+              padding: '0 15px',
+              borderRadius: 999,
+              background: surf.cardSub,
+              boxShadow: sp.shadowSm,
+              color: sp.ink,
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            <KypIcon name="download" size={14} />
+            Exporter le dossier
+          </span>
+          {manualMissing().length > 0 && (
+            <KypCta sp={sp} h={36} onClick={() => setUpKey(manualMissing()[0])}>
+              Téléverser les pièces
+            </KypCta>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ position: 'absolute', bottom: 16, left: 34, fontSize: 12.5, fontWeight: 600, color: surf.destructive }}>
+          {error}
+        </div>
+      )}
+
+      {docView && <KycDocViewer doc={docView} sp={sp} surf={surf} onClose={() => setDocView(null)} />}
+
+      {upKey && contact && (
+        <KycUploadModal
+          category={upKey}
+          contactName={`${contact.first_name} ${contact.last_name}`}
+          sp={sp}
+          surf={surf}
+          pending={upload.isPending}
+          onCancel={() => setUpKey(null)}
+          onConfirm={(file) => handleUpload(upKey, file)}
+        />
+      )}
+
+      {fundsOpen && (
+        <SourceOfFundsOverlay
+          dossier={dossier}
+          documents={docs}
+          isPending={updateFunds.isPending}
+          onCancel={() => setFundsOpen(false)}
+          onSubmit={handleFundsSubmit}
+        />
+      )}
+
+      {matchView && (
+        <MatchDecisionModal
+          target={matchView}
+          dossier={dossier}
+          sp={sp}
+          surf={surf}
+          pending={createDecision.isPending}
+          onCancel={() => setMatchView(null)}
+          onDecide={(verdict, justification) => {
+            if (!dossier.agency_id) return
+            const snapshot = {
+              sanctions_status: dossier.sanctions_status,
+              pep_status: dossier.pep_status,
+              sanctions_details: dossier.sanctions_details,
+              pep_details: dossier.pep_details,
+              risk_score: dossier.risk_score,
+              risk_factors: dossier.risk_factors,
+              last_screening_at: dossier.last_screening_at,
+              taken_at: new Date().toISOString(),
+            }
+            const previous = matchView === 'sanctions' ? sanctionsDecision : pepDecision
+            const target = matchView
+            createDecision.mutate(
+              {
+                kycCaseId: dossierId,
+                agencyId: dossier.agency_id,
+                decidedBy: agentId,
+                target,
+                decision: verdict,
+                justification,
+                screeningSnapshot: snapshot,
+                supersedesId: previous?.id ?? null,
+              },
+              {
+                onSuccess: () => {
+                  // Faux positif écarté → le contrôle auto passe vérifié (débloque
+                  // la validation ; le trigger auto_verify accepte false_positive).
+                  // true_match → dossier failed/MROS, on ne coche rien.
+                  if (verdict === 'false_positive') markAuto(target)
+                  setMatchView(null)
+                },
+              },
+            )
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Modale « Trancher » (match PEP / sanctions) ────────────────────────
+// Design KypFiche + champ justification OBLIGATOIRE ≥30 c (LBA art. 7 al. 1
+// lit. b — le proto mock l'omettait faute de backend).
+function MatchDecisionModal({
+  target,
+  dossier,
+  sp,
+  surf,
+  pending,
+  onCancel,
+  onDecide,
+}: {
+  target: ScreeningDecisionTarget
+  dossier: KycCaseWithChecklist
+  sp: SugarPalette
+  surf: KypSurf
+  pending: boolean
+  onCancel: () => void
+  onDecide: (verdict: 'true_match' | 'false_positive', justification: string) => void
+}) {
+  const [justif, setJustif] = useState('')
+  const isPep = target === 'pep'
+  const details = (isPep ? dossier.pep_details : dossier.sanctions_details) as
+    | { total?: number; records?: Array<Record<string, unknown>> }
+    | null
+  const record = details?.records?.[0] ?? null
+  const recordName = (record?.name as string) || (contactName(dossier)) || '—'
+  const total = details?.total ?? details?.records?.length ?? 0
+  const canDecide = justif.trim().length >= 30
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 70,
+        background: surf.dark ? 'rgba(0,0,4,.72)' : 'rgba(14,20,16,.42)',
+        display: 'grid',
+        placeItems: 'center',
+        animation: 'kypDocFade .22s ease both',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 480,
+          maxWidth: 'calc(100% - 60px)',
+          background: surf.card,
+          borderRadius: 24,
+          boxShadow: '0 40px 100px rgba(15,23,42,0.30), 0 8px 24px rgba(15,23,42,0.14)',
+          padding: '26px 26px 22px',
+          boxSizing: 'border-box',
+          animation: 'kypDocUp .3s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
+        <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+          {isPep ? 'Match PEP à trancher' : 'Alerte sanctions à trancher'}
+        </div>
+        <div style={{ background: surf.cardSub, borderRadius: 14, padding: '14px 16px', marginTop: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>{recordName}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+              {total} correspondance{total > 1 ? 's' : ''}
+            </span>
+            <span style={{ flex: 1 }} />
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>Dilisense</span>
+          </div>
+          <p style={{ margin: '9px 0 0', fontSize: 13, color: sp.soft, fontWeight: 500, lineHeight: 1.55 }}>
+            {isPep
+              ? 'Correspondance sur les listes de Personnes Exposées Politiquement. Vérifiez l’identité (date de naissance, nationalité) avant de trancher.'
+              : 'Correspondance sur les listes de sanctions (OFAC / SECO / ONU / UE). Vérifiez l’identité avant de trancher.'}
+          </p>
+        </div>
+
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: sp.soft, margin: '14px 0 6px' }}>
+          Justification (≥ 30 caractères — LBA art. 7) · {justif.trim().length}
+        </label>
+        <textarea
+          value={justif}
+          onChange={(e) => setJustif(e.target.value)}
+          rows={3}
+          placeholder="Éléments d’identité vérifiés, motif de la décision…"
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            padding: '10px 12px',
+            borderRadius: 12,
+            border: `1px solid ${surf.hairline}`,
+            background: surf.cardSub,
+            fontFamily: KYP_FONT,
+            fontSize: 13,
+            color: sp.ink,
+            resize: 'vertical',
+            minHeight: 72,
+          }}
+        />
+        <p style={{ margin: '10px 0 0', fontSize: 12, color: sp.sub, fontWeight: 500, lineHeight: 1.5 }}>
+          Votre décision est consignée (append-only). « Confirmer le match » place le dossier en « à examiner »
+          (communication MROS, LBA art. 9).
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+          <button
+            onClick={() => canDecide && onDecide('true_match', justif.trim())}
+            disabled={!canDecide || pending}
+            style={{
+              height: 40,
+              padding: '0 18px',
+              borderRadius: 999,
+              border: 0,
+              cursor: canDecide && !pending ? 'pointer' : 'not-allowed',
+              opacity: canDecide ? 1 : 0.5,
+              background: surf.cardSub,
+              color: sp.ink,
+              fontFamily: KYP_FONT,
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Confirmer le match
+          </button>
+          <button
+            onClick={() => canDecide && onDecide('false_positive', justif.trim())}
+            disabled={!canDecide || pending}
+            style={{
+              height: 40,
+              padding: '0 18px',
+              borderRadius: 999,
+              border: 0,
+              cursor: canDecide && !pending ? 'pointer' : 'not-allowed',
+              opacity: canDecide ? 1 : 0.5,
+              background: sp.focusBg,
+              color: sp.focusInk,
+              fontFamily: KYP_FONT,
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Écarter le faux positif
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function contactName(dossier: KycCaseWithChecklist): string | null {
+  return dossier.contact ? `${dossier.contact.first_name} ${dossier.contact.last_name}` : null
+}

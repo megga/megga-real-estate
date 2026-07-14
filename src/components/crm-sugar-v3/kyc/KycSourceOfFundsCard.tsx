@@ -235,7 +235,7 @@ interface OverlayProps {
   ) => void
 }
 
-function SourceOfFundsOverlay({
+export function SourceOfFundsOverlay({
   dossier,
   documents,
   isPending,
