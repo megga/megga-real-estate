@@ -6472,6 +6472,17 @@ export type Database = {
         Args: { p_agency_id: string; p_plan: string; p_status?: string; p_note?: string }
         Returns: undefined
       }
+      admin_create_agency: {
+        Args: {
+          p_name: string
+          p_city?: string
+          p_canton?: string
+          p_plan?: string
+          p_solo?: boolean
+          p_note?: string
+        }
+        Returns: string
+      }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }
         Returns: undefined

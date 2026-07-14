@@ -6,6 +6,13 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Super-Admin P8b — création d'agence + factures détaillées (14 juillet 2026)
+> Dernière phase de la reprise super-admin (croissance). Outille un onboarding piloté par l'équipe et la facturation par agence. Clôt le plan P5→P8b. Migration `20260714100000` (1 RPC) + 1 edge à la demande.
+
+- **Créer une agence depuis l'admin** : bouton et modal dans la page Agences → RPC `admin_create_agency` (nom, ville, canton, plan, solo, note). Contrairement à l'onboarding self-service, le super-admin **ne se rattache pas** à l'agence créée (le propriétaire est invité séparément) ; l'anti-doublon sur le nom et l'audit `agency_created` sont hérités de la logique existante.
+- **Factures Stripe par agence** : section « Factures » dans l'onglet Usage & quotas de la fiche agence, chargée **à la demande** (l'API Stripe est coûteuse) via la nouvelle edge `admin-stripe-agency-billing` — abonnement courant, 12 dernières factures (avec lien Stripe) et échéance à venir. Repli propre si aucun client Stripe n'est rattaché.
+- **Tests** : spec backend live `admin-create-agency` (gate, création sans rattachement, audit, collision de nom) ; la nouvelle edge rejoint la batterie de gardes 401.
+
 #### Super-Admin P8a — annonces in-app ciblées (13-14 juillet 2026)
 > Cinquième phase de la reprise super-admin (croissance, hors jalon lancement). Permet à l'équipe de pousser des annonces produit ciblées dans le CRM, sans email de masse. Objectifs 1, 4, 5. Migration `20260713200000` (2 tables + helper + trigger d'audit).
 

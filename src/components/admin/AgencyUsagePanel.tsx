@@ -8,6 +8,7 @@ import { Home, Users, Sparkles, MessageCircle, HardDrive, FileText, Activity, Sl
 import { cn, formatRelativeDate } from '@/lib/utils'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import AgencyQuotaForm from '@/components/admin/AgencyQuotaForm'
+import AgencyInvoicesSection from '@/components/admin/AgencyInvoicesSection'
 import { useAdminAgencyUsage, type AgencyQuotas } from '@/hooks/useAdminAgencyUsage'
 
 function QuotaBar({ label, used, cap, threshold }: { label: string; used: number; cap: number | null; threshold: number }) {
@@ -105,6 +106,9 @@ export default function AgencyUsagePanel({ agencyId }: { agencyId: string }) {
           <QuotaBar label={t('usage.quota.storage')} used={usage.storage_est_mb} cap={q?.storage_cap_mb ?? null} threshold={threshold} />
         </div>
       </div>
+
+      {/* Factures Stripe (chargées à la demande) */}
+      <AgencyInvoicesSection agencyId={agencyId} />
 
       {editing && <AgencyQuotaForm agencyId={agencyId} current={q} onClose={() => setEditing(false)} />}
     </div>

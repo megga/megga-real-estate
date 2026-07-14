@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Search, Building2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { Search, Building2, ChevronLeft, ChevronRight, Download, Plus } from 'lucide-react'
 import { exportToCsv } from '@/lib/exportCsv'
 import { cn, formatDate } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import type { AgencyWithStats } from '@/hooks/useAdminAgencies'
 import { calculateAgencyHealth } from '@/lib/agencyHealthScore'
 import AgencyHealthBadge from '@/components/admin/AgencyHealthBadge'
 import AgencyUsageOverview from '@/components/admin/AgencyUsageOverview'
+import CreateAgencyModal from '@/components/admin/CreateAgencyModal'
 import PageTransition from '@/components/layout/PageTransition'
 
 const ITEMS_PER_PAGE = 10
@@ -123,6 +124,7 @@ export default function AdminAgenciesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [page, setPage] = useState(1)
+  const [showCreate, setShowCreate] = useState(false)
 
   const filtered = useMemo(() => {
     let list = [...agencies]
@@ -166,18 +168,29 @@ export default function AdminAgenciesPage() {
               {isLoading ? t('common.loading') : t(agencies.length !== 1 ? 'agencies.subtitle_plural' : 'agencies.subtitle', { count: agencies.length })}
             </p>
           </div>
-          <button
-            onClick={() => exportToCsv('megga-agences', agencies.map(a => ({
-              nom: a.name, plan: a.plan ?? '', agents: a.agent_count,
-              biens: a.property_count, transactions: a.transaction_count,
-              statut: a.status, date: a.created_at,
-            })))}
-            className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            {t('agencies.export')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => exportToCsv('megga-agences', agencies.map(a => ({
+                nom: a.name, plan: a.plan ?? '', agents: a.agent_count,
+                biens: a.property_count, transactions: a.transaction_count,
+                statut: a.status, date: a.created_at,
+              })))}
+              className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {t('agencies.export')}
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="h-9 px-3 text-sm font-medium border border-admin-accent text-admin-accent rounded-lg hover:bg-admin-accent/10 transition-colors flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              {t('agencies.create')}
+            </button>
+          </div>
         </div>
+
+        {showCreate && <CreateAgencyModal onClose={() => setShowCreate(false)} />}
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">

@@ -26,6 +26,8 @@ const AUTH_PROTECTED_FUNCTIONS = [
   'send-team-invite',
   'send-visit-email',
   'magic-link-send-email',
+  // ── Admin (super-admin only, JWT + AAL2 required) ──────────────────────
+  'admin-stripe-agency-billing',
 ] as const
 
 describe.skipIf(!HAS_KEYS)('Edge Functions contract — integrations', () => {
