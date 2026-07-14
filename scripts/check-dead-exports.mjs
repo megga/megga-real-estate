@@ -16,6 +16,11 @@ const ALLOW_FILES = new Set([
   'src/components/megga-x/index.ts',        // barrel re-exporté, consommé par MeggaXStyleGuidePage (lazy) — invisible pour ts-prune
   'src/components/ui/PullToRefresh.tsx',     // kit UI conservé (réutilisable)
   'src/components/ui/StaggerList.tsx',       // kit UI conservé (réutilisable)
+  // Ancien écran KYC (liste + fiche riche) supplanté par le pager (refonte KYC,
+  // PR #853). Conservé transitoirement, non routé. Suppression du sous-arbre
+  // (+ atomes KycAvatar/KycStatCard/… devenus morts) = nettoyage dédié à suivre.
+  'src/components/crm-sugar-v3/kyc/KycDossierDetail.tsx',
+  'src/components/crm-sugar-v3/kyc/KycListView.tsx',
 ]);
 
 // Symboles précis exemptés : `chemin:symbole`.

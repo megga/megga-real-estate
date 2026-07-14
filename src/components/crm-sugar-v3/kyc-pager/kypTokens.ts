@@ -76,15 +76,6 @@ export function kypSurf(dark: boolean): KypSurf {
 /** Ordre canonique des 5 contrôles LBA art. 3-7. */
 export const KYP_CHECK_ORDER: KycCheckCategory[] = ['id', 'address', 'pep', 'sanctions', 'funds']
 
-/** Icône `KypIcon` par contrôle. */
-export const KYP_CHECK_ICON: Record<KycCheckCategory, string> = {
-  id: 'id',
-  address: 'home',
-  pep: 'flag',
-  sanctions: 'ban',
-  funds: 'coins',
-}
-
 /** Contrôles validés à la main par téléversement d'une pièce. */
 export const KYP_MANUAL_CHECKS: KycCheckCategory[] = ['id', 'address']
 

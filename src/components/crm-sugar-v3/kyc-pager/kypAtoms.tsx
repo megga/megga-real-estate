@@ -5,8 +5,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmInitials } from '@/components/crm-sugar/tokens'
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
-import type { KycRiskLevel } from '@/lib/constants'
-import { KYP_FONT, KYP_RISK, kypStatusMeta, type KypSurf } from './kypTokens'
+import { KYP_FONT, kypStatusMeta } from './kypTokens'
 
 // ─── Icônes SVG linéaires (stroke) ──────────────────────────────────────
 export function KypIcon({ name, size = 15, sw = 2 }: { name: string; size?: number; sw?: number }) {
@@ -162,44 +161,6 @@ export function KypCta({
     >
       {children}
     </button>
-  )
-}
-
-// ─── Jauge risque (anneau : progression × ton de risque) ────────────────
-export function KypGauge({
-  done,
-  total,
-  risk,
-  surf,
-  size = 40,
-}: {
-  done: number
-  total: number
-  risk: KycRiskLevel
-  surf: KypSurf
-  size?: number
-}) {
-  const pct = total > 0 ? done / total : 0
-  const r = (size - 6) / 2
-  const cx = size / 2
-  const circ = 2 * Math.PI * r
-  const tone = KYP_RISK[risk] || KYP_RISK.low
-  return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={cx} cy={cx} r={r} fill="none" stroke={surf.dark ? 'rgba(255,255,255,0.14)' : 'rgba(11,12,14,0.13)'} strokeWidth="5" />
-        <circle
-          cx={cx}
-          cy={cx}
-          r={r}
-          fill="none"
-          stroke={tone}
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeDasharray={`${Math.max(0.02, pct) * circ} ${circ}`}
-        />
-      </svg>
-    </div>
   )
 }
 
