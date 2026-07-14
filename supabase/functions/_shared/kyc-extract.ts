@@ -42,6 +42,65 @@ export function kycCategoryMaps(
   }
 }
 
+// ─── Import d'un RAPPORT KYC externe (Persona / partenaire) ──────────────
+// Voie « Importer un dossier externe » du wizard. Le rapport est lu par Gemini,
+// les contrôles couverts (identité / PEP / sanctions) sont PROPOSÉS et laissés
+// À VALIDER par l'agent (garde-fou MLRO) — jamais traités comme vérité.
+
+export const KYC_REPORT_PROMPT = `Tu es un OCR de conformité. On te donne un RAPPORT de vérification KYC/AML externe (par ex. Persona, ComplyAdvantage, Onfido, ou un rapport partenaire). Renvoie UNIQUEMENT un objet JSON valide (aucun texte autour, pas de markdown) :
+{"fournisseur":"...","date":"AAAA-MM-JJ","identite":"verifie|non_verifie|absent","pep":"aucun|correspondance|absent","sanctions":"aucun|correspondance|absent"}
+- "fournisseur" : nom de l'émetteur du rapport si visible, sinon "".
+- "identite" : "verifie" si le rapport atteste une pièce d'identité vérifiée, "non_verifie" si échec, "absent" si non couvert.
+- "pep" : résultat du screening Personne Exposée Politiquement ("aucun" = 0 correspondance).
+- "sanctions" : résultat du screening listes de sanctions (OFAC/SECO/ONU/UE).
+Mets "absent" si le rapport ne couvre pas le point. Ne devine JAMAIS. Réponds {} si inexploitable.`
+
+export interface KycReportCheck {
+  key: string
+  result: string
+}
+export interface KycReportExtract {
+  provider: string | null
+  reportDate: string | null
+  checks: KycReportCheck[]
+  missing: string[]
+}
+
+function asStr(v: unknown): string | null {
+  return typeof v === 'string' && v.trim().length > 0 ? v.trim() : null
+}
+function idResult(v: unknown): string | null {
+  const s = asStr(v)
+  if (s === 'verifie') return 'Vérifiée'
+  if (s === 'non_verifie') return 'À revoir'
+  return null // absent / inconnu → non couvert
+}
+function screenResult(v: unknown): string | null {
+  const s = asStr(v)
+  if (s === 'aucun') return '0 correspondance'
+  if (s === 'correspondance') return 'Correspondance à examiner'
+  return null
+}
+
+/** Normalise la sortie OCR d'un rapport externe vers la forme consommée par le
+ *  wizard (KwStepImport) : contrôles couverts + pièces restant à compléter. */
+export function normalizeKycReport(raw: Record<string, unknown>): KycReportExtract {
+  const checks: KycReportCheck[] = []
+  const id = idResult(raw.identite)
+  if (id) checks.push({ key: "Pièce d'identité", result: id })
+  const pep = screenResult(raw.pep)
+  if (pep) checks.push({ key: 'Screening PEP', result: pep })
+  const sanctions = screenResult(raw.sanctions)
+  if (sanctions) checks.push({ key: 'Sanctions', result: sanctions })
+  return {
+    provider: asStr(raw.fournisseur),
+    reportDate: asStr(raw.date),
+    checks,
+    // Le rapport externe ne couvre pas ces deux pièces déclaratives.
+    missing: ['Justificatif de domicile', 'Source des fonds'],
+  }
+}
+
 /** Extrait un objet JSON d'une sortie OCR (tolérant : markdown, texte autour).
  *  Ne throw JAMAIS — renvoie {} si rien d'exploitable. */
 export function parseKycOcr(text: string | null | undefined): Record<string, unknown> {

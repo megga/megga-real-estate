@@ -118,6 +118,8 @@ const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
 const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
+// Refonte KYC (handoff) — onboarding « Première ouverture » (empty-state).
+const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 // Sprint 4.4 — Export PDF dossier KYC (route print-friendly, hors layout agent)
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
@@ -551,9 +553,14 @@ function AnimatedRoutes() {
                 {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}
                 <Route path="settings" element={<ResponsiveRoute desktop={<SettingsSugarV2Page />} mobile={<MobileSettingsPage />} />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
-                {/* KYC — mobile (< 768px) : liste des dossiers (P9) ; détail = desktop. */}
+                {/* KYC — pager 2 pages (Dossiers · Vigie). Mobile (< 768px) : liste (P9). */}
                 <Route path="kyc" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycListPage />} />} />
-                {/* Détail dossier KYC — mobile (< 768px) : 4 onglets + garde LBA art.9 + read-log (P9). */}
+                {/* Onboarding « Première ouverture » (desktop) — refonte KYC. */}
+                <Route
+                  path="kyc/bienvenue"
+                  element={<ResponsiveRoute desktop={<KycOnboardingPage />} mobile={<Navigate to="/dashboard/kyc" replace />} />}
+                />
+                {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
                 <Route path="kyc/:dossierId" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} />} />
                 {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
                 <Route path="network" element={<Navigate to="/dashboard" replace />} />

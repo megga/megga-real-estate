@@ -141,6 +141,7 @@ export function useMarkKycCheck() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-case'] })
@@ -178,6 +179,7 @@ export function useMarkAllChecksCompleted() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-case'] })
@@ -230,6 +232,7 @@ export function useInvalidateKycForContact() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['audit-events'] })
     },
@@ -272,6 +275,7 @@ export function useCreateKycDossier() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['audit-events'] })
