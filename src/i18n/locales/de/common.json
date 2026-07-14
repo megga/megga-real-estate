@@ -1742,5 +1742,8 @@
       },
       "backHome": "Back to home"
     }
+  },
+  "announcements": {
+    "dismiss": "Schließen"
   }
 }

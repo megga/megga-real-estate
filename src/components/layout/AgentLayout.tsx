@@ -10,6 +10,7 @@ import Breadcrumb from '@/components/layout/Breadcrumb'
 import NewContactDialog from '@/components/contacts/NewContactDialog'
 import BottomTabBar from '@/components/layout/BottomTabBar'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
+import AnnouncementsBanner from '@/components/layout/AnnouncementsBanner'
 import NpsSurvey from '@/components/feedback/NpsSurvey'
 
 function AgentLayoutInner() {
@@ -51,6 +52,7 @@ function AgentLayoutInner() {
     return (
       <div className="min-h-[100dvh] bg-theme-section">
         <ImpersonateBanner />
+        <AnnouncementsBanner />
         <Outlet />
         <NpsSurvey />
       </div>
@@ -87,6 +89,9 @@ function AgentLayoutInner() {
 
         {/* Impersonate banner */}
         <ImpersonateBanner />
+
+        {/* Annonces plateforme (P8a) */}
+        <AnnouncementsBanner />
 
         {/* Page content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 pb-20 md:pb-4 overflow-y-auto">

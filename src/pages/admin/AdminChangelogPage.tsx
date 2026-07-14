@@ -4,8 +4,50 @@ import { Plus, Trash2, Megaphone, Eye, EyeOff } from 'lucide-react'
 import { cn, formatDate } from '@/lib/utils'
 import { useChangelog } from '@/hooks/useChangelog'
 import Modal from '@/components/ui/modal'
+import AnnouncementsTab from '@/components/admin/AnnouncementsTab'
 
-export default function AdminChangelogPage() {
+type Tab = 'changelog' | 'announcements'
+
+export default function AdminCommunicationPage() {
+  const { t } = useTranslation('admin')
+  const [tab, setTab] = useState<Tab>('changelog')
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="h-2 w-2 rounded-full bg-admin-accent" />
+          <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
+        </div>
+        <h1 className="text-2xl font-semibold text-theme-primary">{t('communication.title')}</h1>
+        <p className="text-sm text-theme-tertiary mt-0.5">{t('communication.subtitle')}</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-theme-border">
+        {(['changelog', 'announcements'] as const).map(key => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={cn(
+              'px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px',
+              tab === key
+                ? 'text-theme-primary border-theme-primary font-medium'
+                : 'text-theme-secondary border-transparent hover:text-theme-primary'
+            )}
+          >
+            {t(`communication.tab.${key}`)}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'changelog' ? <ChangelogTab /> : <AnnouncementsTab />}
+    </div>
+  )
+}
+
+function ChangelogTab() {
   const { t } = useTranslation('admin')
   const { entries, isLoading, createEntry, deleteEntry } = useChangelog()
   const [showCreate, setShowCreate] = useState(false)
@@ -24,17 +66,8 @@ export default function AdminChangelogPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="h-2 w-2 rounded-full bg-admin-accent" />
-            <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
-          </div>
-          <h1 className="text-2xl font-semibold text-theme-primary">{t('changelog.title')}</h1>
-          <p className="text-sm text-theme-tertiary mt-0.5">{t('changelog.subtitle')}</p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-end">
         <button
           onClick={() => setShowCreate(true)}
           className="h-9 px-3 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors flex items-center gap-2"

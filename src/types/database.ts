@@ -198,6 +198,83 @@ export type Database = {
           },
         ]
       }
+      platform_announcements: {
+        Row: {
+          id: string
+          title: string
+          body: string
+          severity: string
+          audience_plans: string[]
+          audience_agencies: string[]
+          starts_at: string
+          ends_at: string | null
+          cta_label: string | null
+          cta_href: string | null
+          published: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          body: string
+          severity?: string
+          audience_plans?: string[]
+          audience_agencies?: string[]
+          starts_at?: string
+          ends_at?: string | null
+          cta_label?: string | null
+          cta_href?: string | null
+          published?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          body?: string
+          severity?: string
+          audience_plans?: string[]
+          audience_agencies?: string[]
+          starts_at?: string
+          ends_at?: string | null
+          cta_label?: string | null
+          cta_href?: string | null
+          published?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          user_id: string
+          dismissed_at: string
+        }
+        Insert: {
+          announcement_id: string
+          user_id: string
+          dismissed_at?: string
+        }
+        Update: {
+          announcement_id?: string
+          user_id?: string
+          dismissed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "platform_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notes: {
         Row: {
           author_id: string | null
@@ -6332,6 +6409,10 @@ export type Database = {
       compute_platform_mrr_estimate: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      get_my_agency_plan: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_admin_end_user_stats: {
         Args: Record<PropertyKey, never>

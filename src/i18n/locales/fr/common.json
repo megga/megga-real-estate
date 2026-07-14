@@ -1748,5 +1748,8 @@
       },
       "backHome": "Retour à l'accueil"
     }
+  },
+  "announcements": {
+    "dismiss": "Fermer"
   }
 }

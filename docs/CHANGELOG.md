@@ -6,6 +6,14 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Super-Admin P8a — annonces in-app ciblées (13-14 juillet 2026)
+> Cinquième phase de la reprise super-admin (croissance, hors jalon lancement). Permet à l'équipe de pousser des annonces produit ciblées dans le CRM, sans email de masse. Objectifs 1, 4, 5. Migration `20260713200000` (2 tables + helper + trigger d'audit).
+
+- **Annonces ciblées** : nouvelle table `platform_announcements` (sévérité, ciblage par plan et/ou agence, fenêtre de diffusion, CTA optionnel). La **visibilité est portée par la RLS** — un agent ne voit une annonce que si elle est publiée, dans sa fenêtre et ciblée sur son plan/agence (tableaux vides = universel). Écriture réservée au super-admin ; publication auditée par trigger (`announcement_published`).
+- **Back-office** : la page Changelog devient **« Communication »** à deux onglets (Changelog produit | Annonces). Le formulaire d'annonce réutilise les pills de plans et un multi-select d'agences, avec fenêtre de diffusion, sévérité et brouillon/publication.
+- **Côté agent** : bannière discrète sous le bandeau d'impersonation, avec pastille de sévérité et CTA ; la fermeture enregistre un *dismissal* par utilisateur (`platform_announcement_dismissals`), self-only.
+- **Tests** : spec backend live `announcements-rls` couvrant la matrice de visibilité complète (ciblage plan/agence, hors-fenêtre, brouillon, écriture agent refusée, dismissal self-only). UI vérifiée au navigateur (onglets, rendu, zéro erreur console).
+
 #### Super-Admin P7 — santé des intégrations + monitoring V2 · JALON « prêt lancement » (13 juillet 2026)
 > Quatrième phase de la reprise super-admin. Aucune intégration critique (emails, webhooks Stripe, calendriers OAuth, Realtime) ne peut plus casser en silence avant le lancement. Objectifs 1 (temps admin) et 5, fiabilité pré-lancement. Migration `20260713170000` (2 RPC). **Marque la fin du jalon « prêt lancement »** (P5 dette purgée + P6a/b pilotage 360° + P7 intégrations).
 
