@@ -134,7 +134,13 @@ function deriveVigie(rows: RawVigieRow[]): KycVigie {
     }
 
     // ── Côté conformité — contrôles & échéances ──────────────────────────
-    if (r.dossier_status === 'failed') {
+    // Match à trancher = dossier bloqué (`failed`) OU correspondance PEP/sanctions
+    // signalée sur un dossier non encore vérifié (statut 'pending' avant que tous
+    // les contrôles ne soient faits — sinon le match n'apparaîtrait pas en Vigie).
+    // (Un faux positif déjà tranché sur un dossier vérifié est exclu.)
+    const hasOpenMatch =
+      r.dossier_status !== 'verified' && (r.pep_status === 'match' || r.sanctions_status === 'match')
+    if (r.dossier_status === 'failed' || hasOpenMatch) {
       agent.push({
         ...base,
         key: `${r.id}-match`,

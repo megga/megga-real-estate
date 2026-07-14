@@ -29,7 +29,7 @@ import {
 } from '@/components/crm-sugar-v3/kyc/kycPalette'
 import { KycPagerFrame, type KycWizardControl } from '@/components/crm-sugar-v3/kyc-pager/KycPagerFrame'
 import { kypSurf, KYP_KEYFRAMES } from '@/components/crm-sugar-v3/kyc-pager/kypTokens'
-import { KYC_ONBOARDED_KEY } from './KycOnboardingPage'
+import { isKycOnboarded, markKycOnboarded } from '@/lib/kycOnboarding'
 import { useKycDossiers, useKycDossierByContact } from '@/hooks/useKycDossier'
 
 const DARK_TONE: DarkTone = 'meggaAi'
@@ -54,26 +54,24 @@ export default function KycSugarV3Page() {
   const surf = useMemo(() => kypSurf(dark), [dark])
 
   // ─── Gate onboarding (empty-state) ────────────────────────────────────
-  const [onboarded, setOnboarded] = useState<boolean>(
-    () => typeof window !== 'undefined' && window.localStorage.getItem(KYC_ONBOARDED_KEY) === '1',
-  )
-  const { data: dossiers, isLoading: dossiersLoading } = useKycDossiers(undefined, {
-    enabled: !onboarded,
-  })
-  const dossiersEmpty = (dossiers?.length ?? 0) === 0
+  const [onboarded, setOnboarded] = useState<boolean>(() => isKycOnboarded())
+  const {
+    data: dossiers,
+    isLoading: dossiersLoading,
+    isError: dossiersError,
+  } = useKycDossiers(undefined, { enabled: !onboarded })
+  // Empty-state = requête ABOUTIE et vide. Une requête en erreur (timeout/RLS)
+  // ne doit PAS être confondue avec « aucun dossier » (sinon fausse redirection).
+  const dossiersEmpty = !dossiersError && (dossiers?.length ?? 0) === 0
   useEffect(() => {
-    if (onboarded || dossiersLoading) return
+    if (onboarded || dossiersLoading || dossiersError) return
     if (dossiersEmpty) {
       navigate('/dashboard/kyc/bienvenue', { replace: true })
     } else {
-      try {
-        window.localStorage.setItem(KYC_ONBOARDED_KEY, '1')
-      } catch {
-        /* ignore */
-      }
+      markKycOnboarded()
       setOnboarded(true)
     }
-  }, [onboarded, dossiersLoading, dossiersEmpty, navigate])
+  }, [onboarded, dossiersLoading, dossiersError, dossiersEmpty, navigate])
 
   // ─── État wizard (levé ici) ───────────────────────────────────────────
   const [wizard, setWizard] = useState<KycWizardControl | null>(() => {
@@ -92,24 +90,21 @@ export default function KycSugarV3Page() {
   const openContactId = searchParams.get('openContactId')
   const { data: deepLinkDossier } = useKycDossierByContact(openContactId ?? undefined)
   useEffect(() => {
-    if (!openContactId) return
+    if (!openContactId || deepLinkDossier === undefined) return // en cours de chargement
     if (deepLinkDossier && deepLinkDossier.dossier_status !== 'none') {
+      // Dossier existant → fiche. `navigate` vers le nouveau chemin abandonne
+      // déjà le query param ; ne PAS enchaîner setSearchParams (il re-naviguerait
+      // vers la liste et écraserait cette navigation — bug deep-link).
       navigate(`/dashboard/kyc/${deepLinkDossier.id}`, { replace: true })
-      setSearchParams((p) => {
-        const next = new URLSearchParams(p)
-        next.delete('openContactId')
-        return next
-      })
       return
     }
-    if (deepLinkDossier === null) {
-      setWizard({ mode: 'new', contactId: openContactId })
-      setSearchParams((p) => {
-        const next = new URLSearchParams(p)
-        next.delete('openContactId')
-        return next
-      })
-    }
+    // Aucun dossier (null) OU placeholder 'none' → wizard pré-rempli sur ce contact.
+    setWizard({ mode: 'new', contactId: openContactId })
+    setSearchParams((p) => {
+      const next = new URLSearchParams(p)
+      next.delete('openContactId')
+      return next
+    })
   }, [openContactId, deepLinkDossier, navigate, setSearchParams])
 
   // ?risk= : la refonte n'a plus d'onglet risque dédié ; on nettoie le param
@@ -149,7 +144,9 @@ export default function KycSugarV3Page() {
 
   // Anti-flash : tant que le gate n'est pas résolu, écran neutre (pas de pager
   // clignotant avant la redirection vers l'onboarding).
-  const gatePending = !onboarded && (dossiersLoading || dossiersEmpty)
+  // Splash anti-flash uniquement pendant la résolution du gate. Sur erreur, on
+  // rend le pager (qui affiche son propre état d'erreur), pas un splash figé.
+  const gatePending = !onboarded && !dossiersError && (dossiersLoading || dossiersEmpty)
 
   return (
     <KycPaletteContext.Provider value={kycSp}>

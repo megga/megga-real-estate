@@ -27,7 +27,10 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
   const dark = surf.dark
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const isPdf = /\.pdf$/i.test(doc.name) || doc.type === 'application/pdf'
+  // Les uploads KYC portent `type:'kyc'` (pas le MIME) : on détecte l'image par
+  // extension/MIME et on rend tout le reste en PDF (cas par défaut du bucket).
+  const isImage = /\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(doc.name) || (doc.type?.startsWith('image/') ?? false)
+  const isPdf = !isImage
 
   useEffect(() => {
     let alive = true
@@ -183,7 +186,14 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
           {error && <div style={{ fontSize: 13, color: sp.sub, fontWeight: 500 }}>{error}</div>}
           {!error && !url && <div style={{ fontSize: 13, color: sp.sub, fontWeight: 500 }}>Chargement de l'aperçu…</div>}
           {!error && url && isPdf && (
-            <iframe title={doc.name} src={url} style={{ width: '100%', height: '100%', border: 0 }} />
+            <iframe
+              title={doc.name}
+              src={url}
+              // Défense en profondeur : bloque scripts/formulaires d'un document
+              // servi avec un content-type inattendu (le PDF natif rend sans JS).
+              sandbox="allow-same-origin"
+              style={{ width: '100%', height: '100%', border: 0 }}
+            />
           )}
           {!error && url && !isPdf && (
             <img src={url} alt={doc.name} style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 6 }} />

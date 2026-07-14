@@ -123,16 +123,42 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dossier?.agency_id, dossierId, agentId])
 
+  // Coche un contrôle auto (pep/sanctions), dédupliqué par ref-set → jamais de
+  // double coche ni de double AuditEvent, même si l'auto-screening ET l'effet de
+  // réconciliation ciblent le même item.
+  const reconciledRef = useRef<Set<string>>(new Set())
   const markAuto = (cat: 'pep' | 'sanctions') => {
     const item = checksByCategory[cat]
-    if (item && !item.is_completed) {
+    if (item && !item.is_completed && !reconciledRef.current.has(item.id)) {
+      reconciledRef.current.add(item.id)
       markCheck.mutate({ checkId: item.id, is_completed: true, actorId: agentId })
     }
   }
 
+  // Réconciliation : un contrôle auto déjà « clair » (ou faux positif documenté)
+  // mais NON coché est complété. Couvre le dossier screené ailleurs ou une coche
+  // précédente échouée — sinon la fiche affiche « Vérifié » mais le trigger
+  // auto_verify ne peut jamais finaliser (dossier figé « En cours »).
+  useEffect(() => {
+    if (!dossier) return
+    ;(['pep', 'sanctions'] as const).forEach((cat) => {
+      const st = cat === 'pep' ? dossier.pep_status : dossier.sanctions_status
+      const dec = cat === 'pep' ? pepDecision : sanctionsDecision
+      if (st === 'clear' || dec?.decision === 'false_positive') markAuto(cat)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    dossier?.id,
+    dossier?.pep_status,
+    dossier?.sanctions_status,
+    pepDecision?.decision,
+    sanctionsDecision?.decision,
+    checksByCategory,
+  ])
+
   // Screening automatique au réveil : dossier jamais screené → PEP + sanctions
-  // « sous les yeux de l'agent ». Une seule fois. Sur clear, on coche les checks
-  // auto (le design attend l'auto-validation ; le backend ne coche pas seul).
+  // « sous les yeux de l'agent ». Une seule fois. La coche des contrôles clairs
+  // est portée par l'effet de réconciliation ci-dessus (le backend ne coche pas seul).
   const autoScreenedRef = useRef<string | null>(null)
   useEffect(() => {
     if (!dossier || autoScreenedRef.current === dossierId) return
@@ -151,14 +177,8 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
         entityType: dossier.type.endsWith('_pm') ? 'entity' : 'individual',
       },
       {
-        onSuccess: (res) => {
-          // Coche les contrôles auto revenus « clear » (audit trail + progression).
-          if (res.pep_status === 'clear') markAuto('pep')
-          if (res.sanctions_status === 'clear') markAuto('sanctions')
-        },
-        onError: () => {
-          /* best-effort — l'agent peut relancer via la fiche */
-        },
+        onError: () =>
+          setError("Le screening automatique n'a pas abouti — rechargez la fiche pour le relancer."),
       },
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -438,7 +458,13 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                   </span>
                 </div>
                 <div style={{ fontSize: 12, color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                  {screeningThis ? '—' : fmtDate(item?.completed_at ?? dossier.last_screening_at)}
+                  {screeningThis
+                    ? '—'
+                    : item?.completed_at
+                      ? fmtDate(item.completed_at)
+                      : isAuto && autoStatus === 'clear'
+                        ? fmtDate(dossier.last_screening_at)
+                        : '—'}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   {screeningThis ? (

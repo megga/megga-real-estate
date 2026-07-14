@@ -43,25 +43,38 @@ export function KwStepImport({ data, set }: Props) {
     if (runRef.current === key) return
     runRef.current = key
     setError(null)
-    let alive = true
+    // On garde `key` comme jeton de course (pas de flag `alive` annulé au
+    // cleanup) : sous StrictMode le double-invoke ne doit PAS jeter le résultat.
+    // `runRef.current !== key` ⇒ un autre fichier a pris la main ou démontage.
     ;(async () => {
       try {
         const pdfBase64 = await toBase64(file)
         const { data: res, error: efError } = await supabase.functions.invoke('kyc-report-import', {
           body: { pdf_base64: pdfBase64, filename: file.name },
         })
-        if (!alive) return
-        if (efError) throw efError
+        if (runRef.current !== key) return
+        if (efError) {
+          // Remonte le motif serveur réel (quota 429 / trop gros 413 / illisible 422)
+          // au lieu du générique « Edge Function returned a non-2xx status code ».
+          let serverMessage: string | null = null
+          try {
+            const ctx = (efError as { context?: Response }).context
+            if (ctx && typeof ctx.clone === 'function') {
+              const body = (await ctx.clone().json()) as { error?: string }
+              if (typeof body.error === 'string' && body.error.trim().length > 0) serverMessage = body.error
+            }
+          } catch {
+            /* corps non-JSON ou déjà consommé */
+          }
+          throw new Error(serverMessage ?? efError.message)
+        }
         set({ importParsed: res as KycImportParsed })
       } catch (e) {
-        if (!alive) return
+        if (runRef.current !== key) return
         setError(e instanceof Error ? e.message : 'Lecture du rapport impossible.')
         runRef.current = null
       }
     })()
-    return () => {
-      alive = false
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.importFile])
 
@@ -81,7 +94,15 @@ export function KwStepImport({ data, set }: Props) {
         style={{ display: 'none' }}
         onChange={(e) => {
           const f = e.target.files?.[0]
-          if (f) set({ importFile: f, importParsed: null })
+          if (!f) return
+          // Garde côté client : l'EF plafonne le payload base64 à 10 Mo, soit
+          // ~7 Mo de PDF réel. On rejette AVANT l'encodage avec un message clair.
+          if (f.size > 7 * 1024 * 1024) {
+            setError('Fichier trop volumineux (7 Mo max).')
+            return
+          }
+          setError(null)
+          set({ importFile: f, importParsed: null })
         }}
       />
 
@@ -92,7 +113,7 @@ export function KwStepImport({ data, set }: Props) {
               <SgIcon name="upload" size={26} stroke={sp.ink} />
             </span>
             <KycBlackPill onClick={() => inputRef.current?.click()}>Choisir le fichier</KycBlackPill>
-            <div style={{ fontSize: 12, color: sp.muted, fontWeight: 500 }}>PDF Persona ou partenaire · 10 Mo max</div>
+            <div style={{ fontSize: 12, color: sp.muted, fontWeight: 500 }}>PDF Persona ou partenaire · 7 Mo max</div>
           </div>
         )}
 

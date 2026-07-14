@@ -16,9 +16,9 @@ import {
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
 import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { markKycOnboarded } from '@/lib/kycOnboarding'
 
 const DARK_TONE: DarkTone = 'meggaAi'
-export const KYC_ONBOARDED_KEY = 'megga.kyc.onboarded'
 
 function ArrowGlyph({ color = '#FFFFFF' }: { color?: string }) {
   return (
@@ -59,13 +59,7 @@ export default function KycOnboardingPage() {
   }
   const onCmd = () => {}
 
-  const dismiss = () => {
-    try {
-      window.localStorage.setItem(KYC_ONBOARDED_KEY, '1')
-    } catch {
-      /* ignore */
-    }
-  }
+  const dismiss = () => markKycOnboarded()
   const startWizard = (mode: 'new' | 'import') => {
     dismiss()
     navigate('/dashboard/kyc', { state: { openWizard: mode } })
