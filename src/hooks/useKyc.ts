@@ -226,6 +226,7 @@ export function useScreenKycCase() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
       queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })
     },
   })
@@ -384,6 +385,7 @@ export function useCreateKycScreeningDecision() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kyc-screening-decisions', variables.kycCaseId] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-screening-decision-latest', variables.kycCaseId] })
       queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
       queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })

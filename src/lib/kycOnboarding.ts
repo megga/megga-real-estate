@@ -3,7 +3,7 @@
 // décider d'afficher l'onboarding ou le pager). Module non-composant : évite le
 // warning react-refresh d'un export de fonction depuis un fichier de page.
 
-export const KYC_ONBOARDED_KEY = 'megga.kyc.onboarded'
+const KYC_ONBOARDED_KEY = 'megga.kyc.onboarded'
 
 // Fallback mémoire : en navigation privée, localStorage.setItem peut lever. Sans
 // persistance, le gate rebouclerait vers /bienvenue. Ce flag module tient pour la

@@ -125,22 +125,33 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
 
   // Coche un contrôle auto (pep/sanctions), dédupliqué par ref-set → jamais de
   // double coche ni de double AuditEvent, même si l'auto-screening ET l'effet de
-  // réconciliation ciblent le même item.
+  // réconciliation ciblent le même item. Un échec est signalé (et retenté au
+  // prochain montage de la fiche — le ref-set est réinitialisé au remount).
   const reconciledRef = useRef<Set<string>>(new Set())
   const markAuto = (cat: 'pep' | 'sanctions') => {
     const item = checksByCategory[cat]
     if (item && !item.is_completed && !reconciledRef.current.has(item.id)) {
       reconciledRef.current.add(item.id)
-      markCheck.mutate({ checkId: item.id, is_completed: true, actorId: agentId })
+      markCheck.mutate(
+        { checkId: item.id, is_completed: true, actorId: agentId },
+        {
+          onError: () =>
+            setError("La validation d'un contrôle automatique n'a pas abouti — rechargez la fiche."),
+        },
+      )
     }
   }
 
   // Réconciliation : un contrôle auto déjà « clair » (ou faux positif documenté)
   // mais NON coché est complété. Couvre le dossier screené ailleurs ou une coche
   // précédente échouée — sinon la fiche affiche « Vérifié » mais le trigger
-  // auto_verify ne peut jamais finaliser (dossier figé « En cours »).
+  // auto_verify ne peut jamais finaliser (dossier figé « En cours »). Il ne
+  // s'agit PAS d'une validation humaine : pep/sanctions sont les contrôles
+  // AUTOMATIQUES du design (le dossier, lui, ne passe `verified` que si les
+  // pièces manuelles ont toutes été validées par un geste agent). Jamais sur un
+  // dossier déjà vérifié.
   useEffect(() => {
-    if (!dossier) return
+    if (!dossier || dossier.dossier_status === 'verified') return
     ;(['pep', 'sanctions'] as const).forEach((cat) => {
       const st = cat === 'pep' ? dossier.pep_status : dossier.sanctions_status
       const dec = cat === 'pep' ? pepDecision : sanctionsDecision
@@ -149,6 +160,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     dossier?.id,
+    dossier?.dossier_status,
     dossier?.pep_status,
     dossier?.sanctions_status,
     pepDecision?.decision,

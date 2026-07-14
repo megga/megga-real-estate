@@ -40,6 +40,14 @@ interface RawChecklistItem {
   is_required: boolean
 }
 
+interface RawDecision {
+  id: string
+  decision_target: 'pep' | 'sanctions'
+  decision: 'false_positive' | 'true_match' | 'escalated' | 'awaiting_evidence'
+  decided_at: string
+  supersedes_id: string | null
+}
+
 interface RawVigieRow {
   id: string
   contact_id: string
@@ -52,6 +60,16 @@ interface RawVigieRow {
   last_screening_at: string | null
   contact: { first_name: string; last_name: string } | null
   checks: RawChecklistItem[]
+  decisions: RawDecision[]
+}
+
+/** Décision la plus récente NON supersedée pour une cible (pep/sanctions). */
+function latestDecision(decisions: RawDecision[], target: 'pep' | 'sanctions'): RawDecision | null {
+  const superseded = new Set(decisions.map((d) => d.supersedes_id).filter(Boolean))
+  const candidates = decisions
+    .filter((d) => d.decision_target === target && !superseded.has(d.id))
+    .sort((a, b) => new Date(b.decided_at).getTime() - new Date(a.decided_at).getTime())
+  return candidates[0] ?? null
 }
 
 const DAY = 24 * 3600 * 1000
@@ -134,13 +152,23 @@ function deriveVigie(rows: RawVigieRow[]): KycVigie {
     }
 
     // ── Côté conformité — contrôles & échéances ──────────────────────────
-    // Match à trancher = dossier bloqué (`failed`) OU correspondance PEP/sanctions
-    // signalée sur un dossier non encore vérifié (statut 'pending' avant que tous
-    // les contrôles ne soient faits — sinon le match n'apparaîtrait pas en Vigie).
-    // (Un faux positif déjà tranché sur un dossier vérifié est exclu.)
-    const hasOpenMatch =
-      r.dossier_status !== 'verified' && (r.pep_status === 'match' || r.sanctions_status === 'match')
-    if (r.dossier_status === 'failed' || hasOpenMatch) {
+    // Une correspondance PEP/sanctions se lit avec sa DÉCISION la plus récente
+    // (kyc_cases.pep_status reste 'match' en base même après décision) :
+    //   · sans décision (ou en attente d'éléments) → « à trancher » ;
+    //   · faux positif écarté → plus une alerte (on passe aux échéances) ;
+    //   · confirmée / escaladée → dossier sous surveillance (décision consignée).
+    const matchTargets = (['pep', 'sanctions'] as const).filter(
+      (tgt) => (tgt === 'pep' ? r.pep_status : r.sanctions_status) === 'match',
+    )
+    const openTarget = matchTargets.find((tgt) => {
+      const d = latestDecision(r.decisions ?? [], tgt)
+      return !d || d.decision === 'awaiting_evidence'
+    })
+    const decidedTarget = matchTargets.find((tgt) => {
+      const d = latestDecision(r.decisions ?? [], tgt)
+      return d?.decision === 'true_match' || d?.decision === 'escalated'
+    })
+    if (r.dossier_status !== 'verified' && openTarget) {
       agent.push({
         ...base,
         key: `${r.id}-match`,
@@ -150,6 +178,18 @@ function deriveVigie(rows: RawVigieRow[]): KycVigie {
         title: 'Correspondance à trancher',
         meta: 'match PEP / sanctions signalé, décision attendue',
         cta: 'Trancher',
+      })
+    } else if (decidedTarget) {
+      const d = latestDecision(r.decisions ?? [], decidedTarget)
+      agent.push({
+        ...base,
+        key: `${r.id}-match-decided`,
+        nature: 'agent',
+        late: false,
+        whenLabel: relLabel(d?.decided_at ?? r.last_screening_at),
+        title: 'Match confirmé — dossier sous surveillance',
+        meta: 'décision consignée, ré-examen possible depuis la fiche',
+        cta: 'Ouvrir le dossier',
       })
     } else if (r.expires_at) {
       const dLeft = Math.ceil((new Date(r.expires_at).getTime() - Date.now()) / DAY)
@@ -184,7 +224,8 @@ export function useKycVigie() {
           id, contact_id, dossier_status, risk_level, pep_status, sanctions_status,
           expires_at, created_at, last_screening_at,
           contact:contacts(first_name, last_name),
-          checks:kyc_checklist_items(category, is_completed, is_required)
+          checks:kyc_checklist_items(category, is_completed, is_required),
+          decisions:kyc_screening_decisions(id, decision_target, decision, decided_at, supersedes_id)
         `,
         )
         .order('created_at', { ascending: false })

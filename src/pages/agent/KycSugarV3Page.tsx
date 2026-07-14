@@ -91,14 +91,17 @@ export default function KycSugarV3Page() {
   const { data: deepLinkDossier } = useKycDossierByContact(openContactId ?? undefined)
   useEffect(() => {
     if (!openContactId || deepLinkDossier === undefined) return // en cours de chargement
-    if (deepLinkDossier && deepLinkDossier.dossier_status !== 'none') {
-      // Dossier existant → fiche. `navigate` vers le nouveau chemin abandonne
-      // déjà le query param ; ne PAS enchaîner setSearchParams (il re-naviguerait
-      // vers la liste et écraserait cette navigation — bug deep-link).
+    if (deepLinkDossier) {
+      // TOUT dossier existant → fiche, y compris `none` (la fiche gère ce statut :
+      // « Dossier non démarré » + screening au réveil). Surtout PAS le wizard :
+      // son finish() INSÈRE un nouveau kyc_cases → doublon indélébile (rétention
+      // 10 ans, aucune unicité sur contact_id). `navigate` vers le nouveau chemin
+      // abandonne déjà le query param ; ne PAS enchaîner setSearchParams (il
+      // re-naviguerait vers la liste et écraserait cette navigation).
       navigate(`/dashboard/kyc/${deepLinkDossier.id}`, { replace: true })
       return
     }
-    // Aucun dossier (null) OU placeholder 'none' → wizard pré-rempli sur ce contact.
+    // Aucun dossier (null) → wizard pré-rempli sur ce contact.
     setWizard({ mode: 'new', contactId: openContactId })
     setSearchParams((p) => {
       const next = new URLSearchParams(p)

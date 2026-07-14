@@ -2,6 +2,12 @@
 // Port de `KypDocViewer` (kyc-pager-proto.jsx) mais avec le VRAI fichier :
 // URL signée du bucket `kyc-documents` (comme KycDossierDetail), rendue en
 // <iframe> (PDF) ou <img> (image). Bouton « Télécharger » = URL signée + download.
+//
+// Sécurité PDF (vérifié empiriquement, Chromium) : `sandbox` sur l'iframe BLOQUE
+// le viewer PDF (panneau vide, même avec allow-scripts). La défense retenue est
+// de télécharger le fichier puis de le servir via un blob au TYPE FORCÉ
+// `application/pdf` : un HTML déguisé téléversé dans le bucket ne peut pas
+// s'exécuter (traité comme PDF), et les vrais PDF rendent normalement.
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -34,20 +40,40 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
 
   useEffect(() => {
     let alive = true
+    let objectUrl: string | null = null
     setUrl(null)
     setError(null)
-    supabase.storage
-      .from('kyc-documents')
-      .createSignedUrl(doc.storage_path, 120)
-      .then(({ data, error }) => {
+    ;(async () => {
+      const { data, error } = await supabase.storage
+        .from('kyc-documents')
+        .createSignedUrl(doc.storage_path, 120)
+      if (!alive) return
+      if (error || !data) {
+        setError('Aperçu indisponible.')
+        return
+      }
+      if (isImage) {
+        // <img> n'exécute jamais de script — l'URL signée suffit.
+        setUrl(data.signedUrl)
+        return
+      }
+      // PDF : blob au type forcé (voir en-tête) — jamais l'URL storage brute en iframe.
+      try {
+        const resp = await fetch(data.signedUrl)
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        const buf = await resp.arrayBuffer()
         if (!alive) return
-        if (error || !data) setError('Aperçu indisponible.')
-        else setUrl(data.signedUrl)
-      })
+        objectUrl = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }))
+        setUrl(objectUrl)
+      } catch {
+        if (alive) setError('Aperçu indisponible — utilisez Télécharger.')
+      }
+    })()
     return () => {
       alive = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [doc.storage_path])
+  }, [doc.storage_path, isImage])
 
   const download = async () => {
     const { data } = await supabase.storage
@@ -188,10 +214,10 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
           {!error && url && isPdf && (
             <iframe
               title={doc.name}
+              // src = blob typé application/pdf (jamais l'URL storage brute) — un
+              // HTML déguisé ne peut pas s'exécuter. PAS de `sandbox` : il bloque
+              // le viewer PDF de Chromium (vérifié empiriquement, panneau vide).
               src={url}
-              // Défense en profondeur : bloque scripts/formulaires d'un document
-              // servi avec un content-type inattendu (le PDF natif rend sans JS).
-              sandbox="allow-same-origin"
               style={{ width: '100%', height: '100%', border: 0 }}
             />
           )}
