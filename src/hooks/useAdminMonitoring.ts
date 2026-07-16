@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { EDGE_FUNCTION_ROSTER } from '@/lib/edgeFunctionRoster'
 
 interface PlatformHealth {
   dbSizeMb: number
@@ -33,15 +34,17 @@ interface ErrorLog {
   duration_ms?: number
 }
 
-const EDGE_FUNCTION_NAMES = [
-  'ai-copilot', 'send-email', 'send-property-email',
-  'send-reminder-email', 'send-team-invite', 'send-visit-email',
-  'extract-property-pdf', 'extract-property-url', 'kyc-screening',
-  'virtual-staging', 'google-calendar-sync', 'outlook-calendar-sync',
-  'stripe-checkout', 'stripe-portal', 'stripe-webhook', 'search-alert',
-  'market-scraper', 'automation-engine', 'accept-team-invite',
-  'admin-monitoring', 'ai-billing-monitor', 'translate-on-demand',
-]
+// Roster = constante GÉNÉRÉE depuis supabase/functions/ (source unique, dérive
+// bloquée par `npm run lint:roster` en CI). L'ancienne liste manuelle était
+// tombée à 22 entrées sur ~69 fonctions (constat élagage juil. 2026).
+//
+// SÉMANTIQUE (honnêteté) : ce tableau est PASSIF — aucune fonction n'est
+// pingée. Les statuts agrègent les activity_events `edge_function_invoked` /
+// `edge_function_error` sur 24 h ; aujourd'hui AUCUNE fonction n'émet ces
+// événements (0 ligne en prod) → tout affiche « sans télémétrie » (unknown),
+// ce qui est la vérité. Brancher une vraie télémétrie (logs plateforme via
+// Management API, ou émission par les fns) = chantier produit séparé.
+const EDGE_FUNCTION_NAMES: readonly string[] = EDGE_FUNCTION_ROSTER
 
 export function useAdminMonitoring() {
   // RPC unique (migration 20260518_004) — remplace 6 queries parallèles
@@ -105,7 +108,7 @@ export function useAdminMonitoring() {
         }
       }
 
-      return EDGE_FUNCTION_NAMES.map(name => {
+      const rows = EDGE_FUNCTION_NAMES.map(name => {
         const stat = statsMap.get(name) ?? { invocations: 0, errors: 0, lastAt: null }
         return {
           name,
@@ -115,6 +118,13 @@ export function useAdminMonitoring() {
           invocationsLast24h: stat.invocations + stat.errors,
         }
       })
+      // Signal d'abord : erreurs, puis actives, puis sans télémétrie (A→Z).
+      const weight = { error: 0, healthy: 1, unknown: 2 } as const
+      return rows.sort((a, b) =>
+        weight[a.status] - weight[b.status] ||
+        b.invocationsLast24h - a.invocationsLast24h ||
+        a.name.localeCompare(b.name)
+      )
     },
     staleTime: 30_000,
   })

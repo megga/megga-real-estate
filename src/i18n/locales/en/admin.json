@@ -69,7 +69,6 @@
   "common.none": "None",
   "common.user": "User",
   "common.current": "current",
-
   "dashboard.title": "Overview",
   "dashboard.platformHealthy": "Platform healthy",
   "dashboard.attentionRequired": "Attention required",
@@ -85,7 +84,6 @@
   "dashboard.alert.subscriptionCancelled": "Subscription cancelled",
   "dashboard.alert.edgeFunctionError": "Edge Function error",
   "dashboard.alert.ticketCreated": "New support ticket",
-
   "agencies.title": "Agencies",
   "agencies.subtitle": "{{count}} registered agency",
   "agencies.subtitle_plural": "{{count}} registered agencies",
@@ -105,7 +103,6 @@
   "agencies.empty.titleFiltered": "No agencies found",
   "agencies.empty.subtitle": "Agencies will appear here once registered",
   "agencies.empty.subtitleFiltered": "Adjust your search filters",
-
   "agencyDetail.back": "Agencies",
   "agencyDetail.notFound": "Agency not found",
   "agencyDetail.tab.infos": "Info",
@@ -151,7 +148,6 @@
   "agencyDetail.stage.closed": "Closed",
   "agencyDetail.stage.lost": "Lost",
   "agencyDetail.stage.toRecontact": "To recontact",
-
   "users.title": "Users",
   "users.subtitle": "{{count}} registered user",
   "users.subtitle_plural": "{{count}} registered users",
@@ -165,7 +161,6 @@
   "users.empty.titleFiltered": "No users found",
   "users.empty.subtitle": "Users will appear here once registered",
   "users.empty.subtitleFiltered": "Adjust your search filters",
-
   "compliance.title": "Compliance",
   "compliance.subtitle": "{{count}} KYC case",
   "compliance.subtitle_plural": "{{count}} KYC cases",
@@ -206,7 +201,6 @@
   "compliance.empty.validated.subtitle": "Validated cases will appear here",
   "compliance.empty.all.title": "No KYC cases",
   "compliance.empty.all.subtitle": "Compliance cases will appear here",
-
   "support.title": "Support",
   "support.subtitle": "{{count}} ticket",
   "support.subtitle_plural": "{{count}} tickets",
@@ -254,7 +248,6 @@
   "support.event.noteAdded": "Internal note added",
   "support.event.csatSubmitted": "Satisfaction submitted",
   "support.stale": "+24h",
-
   "marketplace.title": "Marketplace",
   "marketplace.subtitle": "{{count}} active property",
   "marketplace.subtitle_plural": "{{count}} active properties",
@@ -279,7 +272,6 @@
   "marketplace.empty.titleFiltered": "No properties found",
   "marketplace.empty.subtitle": "Published properties will appear here",
   "marketplace.empty.subtitleFiltered": "Adjust your search filters",
-
   "monitoring.title": "Monitoring",
   "monitoring.planPro": "Pro Plan",
   "monitoring.health.database": "Database",
@@ -295,7 +287,7 @@
   "monitoring.edgeFunctions.filter.all": "All",
   "monitoring.edgeFunctions.filter.ok": "OK",
   "monitoring.edgeFunctions.filter.error": "Error",
-  "monitoring.edgeFunctions.filter.unknown": "Unknown",
+  "monitoring.edgeFunctions.filter.unknown": "No telemetry",
   "monitoring.edgeFunctions.filterPlaceholder": "Filter...",
   "monitoring.edgeFunctions.table.function": "Function",
   "monitoring.edgeFunctions.table.status": "Status",
@@ -343,7 +335,6 @@
   "monitoring.cronHealth.stale": "Overdue",
   "monitoring.cronHealth.never": "Never",
   "monitoring.cronHealth.empty": "No cron jobs detected (expected outside production).",
-
   "liveFeed.title": "Live Feed",
   "liveFeed.realtime": "Real-time",
   "liveFeed.paused": "Paused",
@@ -390,7 +381,6 @@
   "liveFeed.action.documentUploaded": "Document uploaded",
   "liveFeed.action.login": "Login",
   "liveFeed.action.logout": "Logout",
-
   "nps.title": "Satisfaction (NPS)",
   "nps.score": "NPS Score",
   "nps.scoreRange": "-100 to +100",
@@ -407,7 +397,6 @@
   "nps.rating.3": "Neutral",
   "nps.rating.4": "Satisfied",
   "nps.rating.5": "Very satisfied",
-
   "changelog.title": "Changelog",
   "changelog.subtitle": "Publish updates for agencies",
   "changelog.newEntry": "New entry",
@@ -423,14 +412,12 @@
   "changelog.modal.titlePlaceholder": "New feature: ...",
   "changelog.modal.description": "Description",
   "changelog.modal.descriptionPlaceholder": "Describe the changes...",
-
   "featureFlags.title": "Feature flags",
   "featureFlags.subtitle": "Enable or disable features by plan or agency",
   "featureFlags.toggle": "Enable/disable this feature",
   "featureFlags.plans": "Plans",
   "featureFlags.activeFor": "Active for:",
   "featureFlags.empty.title": "No feature flags configured",
-
   "plans.title": "Plans & Quotas",
   "plans.subtitle": "Plan configuration and agency subscription management",
   "plans.comparison": "Plan comparison",
@@ -446,7 +433,6 @@
   "plans.perMonth": "/month",
   "plans.annual": "or {{price}}/month (annual)",
   "plans.noAgency": "No registered agencies",
-
   "securityAudit.title": "Security audit",
   "securityAudit.subtitle": "Log of sensitive actions on the platform",
   "securityAudit.exportPdf": "PDF export (hash-chain)",
@@ -469,7 +455,6 @@
   "securityAudit.empty.title": "No events found",
   "securityAudit.empty.subtitle": "Adjust your filters to see more results",
   "securityAudit.megaAi": "MEGGA AI",
-
   "activityLog.title": "Platform activity",
   "activityLog.realtime": "Real-time",
   "activityLog.loadMore": "Load more",
@@ -497,7 +482,6 @@
   "activityLog.action.agencyCreated": "Agency registered",
   "activityLog.action.subscriptionCancelled": "Subscription cancelled",
   "activityLog.action.systemError": "System error",
-
   "billing.title": "Revenue & Subscriptions",
   "billing.stripeConnected": "Stripe connected",
   "billing.supabaseSource": "Supabase data (deploy admin-stripe-metrics for Stripe)",
@@ -521,7 +505,6 @@
   "billing.payment.status.succeeded": "Succeeded",
   "billing.payment.status.failed": "Failed",
   "billing.payment.status.refunded": "Refunded",
-
   "onboarding.title": "Agency activation",
   "onboarding.noAgencies": "No registered agencies",
   "onboarding.table.agency": "Agency",
@@ -539,7 +522,6 @@
   "onboarding.status.atRisk": "At risk",
   "onboarding.status.dormant": "Dormant",
   "onboarding.noActivity": "None",
-
   "notifications.title": "Notifications",
   "notifications.markAllRead": "Mark all as read",
   "notifications.close": "Close notifications",
@@ -549,7 +531,6 @@
   "notifications.action.subscriptionCancelled": "Subscription cancelled",
   "notifications.action.systemError": "System error",
   "notifications.action.newTicket": "New ticket",
-
   "search.placeholder": "Search agencies, users, properties...",
   "search.noResult": "No results",
   "search.minChars": "Type at least 2 characters",
@@ -557,7 +538,6 @@
   "search.type.users": "Users",
   "search.type.properties": "Properties",
   "search.type.tickets": "Tickets",
-
   "moderation.flagTitle": "Flag this property",
   "moderation.removeTitle": "Remove this property",
   "moderation.reason": "Reason",
@@ -569,7 +549,6 @@
   "moderation.customReasonPlaceholder": "Describe the reason...",
   "moderation.action.flag": "Flag",
   "moderation.action.remove": "Remove",
-
   "userDrawer.notFound": "User not found",
   "userDrawer.close": "Close",
   "userDrawer.phone": "Phone",
@@ -619,7 +598,6 @@
   "marketplace.messages.status.answered": "Answered",
   "marketplace.messages.status.archived": "Archived",
   "marketplace.messages.status.spam": "Spam",
-
   "mfa.title": "Two-factor authentication required",
   "mfa.subtitle": "Admin access requires 2FA (TOTP). Enable it to continue.",
   "mfa.enable": "Enable 2FA",
@@ -631,20 +609,17 @@
   "mfa.verifying": "Verifying...",
   "mfa.qrAlt": "2FA enrollment QR code",
   "mfa.qrUnavailable": "QR unavailable",
-
   "widgetConfig.title": "Customize dashboard",
   "widgetConfig.button": "Customize",
   "widgetConfig.moveUp": "Move up",
   "widgetConfig.moveDown": "Move down",
   "widgetConfig.reset": "Reset",
-
   "weeklyReport.title": "Weekly report",
   "weeklyReport.sendNow": "Send now",
   "weeklyReport.sending": "Sending...",
   "weeklyReport.sent": "Sent",
   "weeklyReport.description": "An automated report is sent every Monday at 8am to super-admins. It summarizes the week's KPIs: agencies, users, transactions, KYC, errors.",
   "weeklyReport.deployHint": "Deploy: supabase functions deploy weekly-report",
-
   "autonomy.title": "Agent autonomy",
   "autonomy.subtitle": "{{count}} suggestion(s) - MEGGA observes, you decide",
   "autonomy.error": "Couldn't load the suggestions.",
@@ -656,7 +631,6 @@
   "autonomy.col.tool": "Tool",
   "autonomy.col.yesno": "Yes / No",
   "autonomy.col.suggestion": "Suggestion",
-
   "toolUsage.title": "Tool usage",
   "toolUsage.subtitle": "{{neverUsed}} tool(s) never used out of {{total}} - WhatsApp copilot observability",
   "toolUsage.error": "Couldn't load usage stats.",
@@ -682,7 +656,6 @@
   "toolUsage.tier.auto": "Auto",
   "toolUsage.tier.confirm": "Confirm",
   "toolUsage.tier.slow_async": "Async",
-
   "learning.title": "Learned styles",
   "learning.subtitle": "{{count}} active style(s) - MEGGA suggests, you activate",
   "learning.error": "Couldn't load the learned styles.",
