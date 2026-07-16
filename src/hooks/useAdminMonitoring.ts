@@ -34,7 +34,7 @@ interface ErrorLog {
 }
 
 const EDGE_FUNCTION_NAMES = [
-  'ai-copilot', 'external-matching', 'send-email', 'send-property-email',
+  'ai-copilot', 'send-email', 'send-property-email',
   'send-reminder-email', 'send-team-invite', 'send-visit-email',
   'extract-property-pdf', 'extract-property-url', 'kyc-screening',
   'virtual-staging', 'google-calendar-sync', 'outlook-calendar-sync',

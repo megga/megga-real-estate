@@ -395,33 +395,18 @@
     }
   },
   "dossier": {
-    "row": {
-      "incomplete": "To complete",
-      "incompleteHint": "Gentle reminder, KYC to complete (does not block the pipeline)"
-    },
     "detail": {
       "loadError": "This KYC case could not be loaded.",
       "loadErrorHint": "Network or database error.",
-      "backToList": "Back to list",
       "retry": "Retry",
       "loading": "Loading case…",
       "reviewSanctionsFirst": "Review the sanctions match first",
       "reviewPepFirst": "Review the PEP match first",
       "screeningRunning": "Screening in progress…",
       "runScreeningFirst": "Run the screening before validating",
-      "contactNotFound": "No contact found for this case.",
-      "contactNameMissing": "Contact name is missing.",
-      "nationalityRequired": "Nationality is needed for the Dilisense screening. Please update the contact.",
-      "screeningRestarted": "Dilisense screening restarted.",
-      "screeningFailed": "Screening failed.",
-      "agencyMissing": "Missing agency_id, sign-in required.",
-      "decisionSaved": "Decision \"{{verdict}}\" saved.",
       "saveFailed": "Save failed.",
-      "fileUploaded": "\"{{name}}\" uploaded.",
-      "uploadFailed": "Upload failed.",
       "fiveChecks": "5 standard checks (AMLA art. 3-7)",
-      "previewError": "Preview unavailable: {{message}}",
-      "downloadError": "Download unavailable: {{message}}"
+      "previewError": "Preview unavailable: {{message}}"
     },
     "tabs": {
       "synthese": "Summary",
@@ -431,29 +416,7 @@
     },
     "alert": {
       "matchSanctions": "Sanctions match detected · review required (AMLA art. 9).",
-      "matchPep": "PEP match detected · review required (AMLA art. 9).",
-      "lastDecision": "Last decision:",
-      "reExamine": "Re-examine",
-      "examineMatch": "Examine this match",
-      "clearedFalsePositive": "Dilisense match cleared by compliance decision (false positive) · AMLA art. 7 documented."
-    },
-    "verdict": {
-      "false_positive": {
-        "label": "False positive",
-        "hint": "Human review: the Dilisense match does not correspond to the client. Allows validation."
-      },
-      "true_match": {
-        "label": "True match",
-        "hint": "The client is indeed the sanctioned/PEP person. MROS report (AMLA art. 9) is mandatory."
-      },
-      "escalated": {
-        "label": "Escalated to management",
-        "hint": "Referred to the MLRO / compliance management for decision."
-      },
-      "awaiting_evidence": {
-        "label": "Awaiting evidence",
-        "hint": "Review on hold, additional evidence requested from the client."
-      }
+      "matchPep": "PEP match detected · review required (AMLA art. 9)."
     },
     "confirm": {
       "eyebrow": "Compliance validation · AMLA art. 7",
@@ -473,43 +436,9 @@
         "not_checked": "Not checked"
       }
     },
-    "upload": {
-      "eyebrow": "Document upload",
-      "title": "Add a document",
-      "categoryLabel": "AMLA category",
-      "fileLabel": "File (PDF, JPG, PNG, WEBP)",
-      "cancel": "Cancel",
-      "uploading": "Uploading…",
-      "submit": "Upload",
-      "cat": {
-        "identity": "Identity document",
-        "domicile": "Proof of address",
-        "financial": "Financial document",
-        "compliance": "Compliance document (Form A, UBO…)",
-        "other": "Other"
-      },
-      "errTooLarge": "File too large (max 20 MB).",
-      "errEmpty": "Empty file.",
-      "errInvalidName": "Invalid file name.",
-      "errUnknownCategory": "Unknown category.",
-      "errMimeNotAllowed": "File type not allowed for this category (received: {{mime}}).",
-      "errExtNotAllowed": "Extension not allowed (.{{ext}}). Use PDF, JPG, PNG or WEBP."
-    },
     "examine": {
-      "eyebrowSanctions": "Compliance review · Sanctions · AMLA art. 7",
-      "eyebrowPep": "Compliance review · PEP · AMLA art. 7",
       "matchCount_one": "{{count}} Dilisense match",
-      "matchCount_other": "{{count}} Dilisense matches",
-      "intro": "Review the records returned by Dilisense, choose a verdict and justify it (minimum 30 characters, retained for 10 years).",
-      "noRecords": "No match details were stored for this case. Run a screening again if needed.",
-      "previousDecision": "Previous decision:",
-      "willSupersede": "A new decision will supersede this one (supersedes chaining).",
-      "verdictLabel": "Verdict",
-      "justificationLabel": "Justification ({{count}}/30 characters min)",
-      "justificationPlaceholder": "E.g. Different date of birth (1985 vs 1972), different country (CH vs RU), namesake confirmed by ID document.",
-      "cancel": "Cancel",
-      "saving": "Saving…",
-      "submit": "Save decision"
+      "matchCount_other": "{{count}} Dilisense matches"
     },
     "funds": {
       "eyebrow": "Economic origin · AMLA art. 6 para. 1 let. b",
@@ -592,71 +521,17 @@
       "openedOn": "Case opened on",
       "lastScreening": "Last screening",
       "expiry": "Expiry",
-      "reference": "Reference",
-      "screeningRunning": "Screening in progress…",
-      "screeningUpToDate": "Screening up to date",
-      "rescreen": "Re-screen",
-      "exportRunning": "Generating…",
-      "exportDone": "Case exported",
-      "export": "Export case"
-    },
-    "audit": {
-      "eyebrow": "FADP · AMLA compliance",
-      "title": "Audit trail",
-      "empty": "No action recorded, case not started.",
-      "retention": "Traceability retained for 10 years (AMLA art. 7)",
-      "exportPdf": "Export timestamped PDF",
-      "actorSystem": "System",
-      "actorUnknown": "Unknown agent"
+      "reference": "Reference"
     },
     "docs": {
-      "eyebrow": "Case documents",
-      "title": "Attached documents",
-      "upload": "Upload",
-      "emptyTitle": "No documents attached yet.",
-      "emptySubtitle": "Request the documents from the contact to start the verification.",
-      "expired": "Expired",
       "expiresInDays_one": "Expires in {{count}} day",
-      "expiresInDays_other": "Expires in {{count}} days",
-      "validUntil": "Valid until {{date}}",
-      "fileSize": "{{size}} MB",
-      "addedOn": "Added on {{date}}",
-      "shaPrefix": "sha {{hash}}…",
-      "shaFull": "SHA-256: {{hash}}",
-      "preview": "Preview",
-      "download": "Download"
-    },
-    "check": {
-      "awaiting": "Pending",
-      "markVerified": "Mark verified"
+      "expiresInDays_other": "Expires in {{count}} days"
     }
   },
   "list": {
-    "heading": "KYC cases.",
     "intro": "Every Swiss real-estate transaction calls for a documented check of identity, address and source of funds. KYC stays recommended before signing, a gentle reminder, never a blocker. Final verification rests with the notary.",
-    "export": "Export",
-    "newDossier": "New case",
-    "stats": {
-      "verifiedLabel": "Verified",
-      "verifiedSub": "Transactions cleared",
-      "pendingLabel": "In progress",
-      "pendingSub": "Documents outstanding or screening pending",
-      "noneLabel": "To start",
-      "noneSub": "No documents collected yet",
-      "riskLabel": "Watchlist",
-      "riskSub": "Moderate or high risk identified"
-    },
-    "filters": {
-      "all": "All · {{count}}",
-      "pending": "In progress · {{count}}",
-      "none": "To start · {{count}}",
-      "verified": "Verified · {{count}}",
-      "highRisk": "High risk · {{count}}"
-    },
     "errorTitle": "Unable to load KYC cases.",
-    "errorFallback": "Network or database error.",
     "retry": "Retry",
-    "loading": "Loading cases…",
     "emptyFilter": "No case matches this filter.",
     "staleCount_one": "{{count}} case to re-screen (review date passed).",
     "staleCount_other": "{{count}} cases to re-screen (review date passed)."
@@ -948,15 +823,6 @@
     "none": "KYC to do",
     "stale": "KYC expired",
     "failed": "KYC failed"
-  },
-  "detail": {
-    "backToList": "Back to cases",
-    "eyebrow": "KYC case · AMLA"
-  },
-  "gauge": {
-    "riskFallback": "Risk",
-    "checksCount": "{{done}}/{{total}} checks",
-    "checksLabel": "checks"
   },
   "mobile": {
     "back": "Mehr",

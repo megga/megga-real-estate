@@ -124,7 +124,7 @@ export function MobileKycDetailScreen({ demo = false }: { demo?: boolean }) {
   const { toast, showToast } = useSgToast()
 
   // nLPD art. 12 — log d'accès consultation (une fois par montage, ref-guardé,
-  // LIVE seulement). Verbatim du desktop (KycDossierDetail.tsx:128-139).
+  // LIVE seulement). Même règle que la fiche desktop.
   const readLoggedRef = useRef<string | null>(null)
   const logReadMutate = logRead.mutate
   useEffect(() => {
@@ -524,7 +524,7 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
   const { t, tk, lang } = ctx
   const [view, setView] = useState<'timeline' | 'registre'>('timeline')
   const actorOf = (ev: KycAuditEvent): string => {
-    // Ordre défensif (miroir desktop KycAuditTrail.tsx:25-32) : le type d'acteur
+    // Ordre défensif (miroir de la piste d'audit desktop) : le type d'acteur
     // prime sur la jointure profil — un événement IA/système ne peut jamais être
     // crédité à un humain (honnêteté de la piste d'audit).
     if (ev.actor_kind === 'ai') return t('mobile.audit.actorAi')
