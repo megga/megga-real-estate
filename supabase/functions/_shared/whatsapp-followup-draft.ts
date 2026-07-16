@@ -1,15 +1,19 @@
 // Brouillon de relance (WhatsApp) — assemblage PUR du prompt DeepSeek.
 //
 // Accepter un suivi crée un rappel nu (accept_followup_suggestion). Ici on prépare le
-// texte que l'edge fn whatsapp-followup-draft demande à DeepSeek : un message de relance
-// CLIENT rédigé dans la voix de l'agent, en réutilisant T1 (style appris), la voix
-// (few-shot), les corrections (T2) et l'insight du fil — tous déjà construits/rédigés
-// par l'appelant et passés ici sous forme de blocs texte.
+// texte d'un message de relance CLIENT rédigé dans la voix de l'agent, en réutilisant
+// T1 (style appris), la voix (few-shot), les corrections (T2) et l'insight du fil —
+// tous déjà construits/rédigés par l'appelant et passés ici sous forme de blocs texte.
+//
+// CONSOMMATEURS : buildInsightContext est vivant (whatsapp-actions.ts). Les builders
+// de prompt de brouillon sont EN RÉSERVE — l'edge fn whatsapp-followup-draft (wrapper
+// HTTP, jamais câblée côté front) a été retirée en juil. 2026, data-gated : 0 suivi
+// accepté en prod et gate T1 inactif. Re-câblage éventuel : voir PR #842 (git).
 //
 // Tout est pur (aucune I/O, aucun import runtime esm.sh) → testable sous Node/Vitest,
-// comme agent-style.ts / whatsapp-followups.ts. La seule I/O (DeepSeek, DB) vit dans
-// l'edge fn. cf. _shared/agent-style.ts (formatStyleBlock / formatVoiceExamples /
-// formatCorrectionExamples) et l'action draftEmail de whatsapp-actions.ts.
+// comme agent-style.ts / whatsapp-followups.ts. cf. _shared/agent-style.ts
+// (formatStyleBlock / formatVoiceExamples / formatCorrectionExamples) et l'action
+// draftEmail de whatsapp-actions.ts.
 
 /** Paramètres du modèle : une relance est COURTE (WhatsApp), avec un peu de chaleur. */
 export const DRAFT_MAX_TOKENS = 500

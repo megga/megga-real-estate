@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'
 import type { MobileTokens } from '../tokens'
-import { useAgencyFollowupSuggestions, AGENCY_FOLLOWUPS_LIMIT, type AgencyFollowupRow } from '@/hooks/useAgencyFollowupSuggestions'
+import { useAgencyFollowupSuggestions, useAgencyFollowupActions, AGENCY_FOLLOWUPS_LIMIT, type AgencyFollowupRow } from '@/hooks/useAgencyFollowupSuggestions'
 import { followupDueLabel, type FollowupUrgency } from '@/lib/whatsappFollowupDue'
 
 const MAX_ROWS = 4
@@ -17,17 +17,36 @@ function duePill(urgency: FollowupUrgency, tk: MobileTokens): { bg: string; fg: 
 }
 
 function FollowupRow({ row, last, tk }: { row: AgencyFollowupRow; last: boolean; tk: MobileTokens }) {
+  const { t } = useTranslation('dashboard')
   const navigate = useNavigate()
+  const { accept, dismiss } = useAgencyFollowupActions()
+  // Occupé = une mutation en vol POUR CETTE ligne (les hooks sont partagés entre lignes).
+  const busy = (accept.isPending && accept.variables === row.id) || (dismiss.isPending && dismiss.variables === row.id)
   const due = followupDueLabel(row.due_at)
   const pill = duePill(due.urgency, tk)
-  return (
+  const actionBtn = (label: string, onTap: () => void, icon: 'check' | 'close') => (
     <button
-      type="button"
-      onClick={() => navigate(`/dashboard/contacts/${row.contact_id}`)}
+      type="button" title={label} aria-label={label} disabled={busy}
+      onClick={(e) => { e.stopPropagation(); onTap() }}
       style={{
-        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-        padding: '12px 14px', border: 0, background: 'transparent', cursor: 'pointer',
-        fontFamily: 'inherit', textAlign: 'left',
+        width: 32, height: 32, borderRadius: 999, flexShrink: 0, padding: 0,
+        display: 'grid', placeItems: 'center', cursor: busy ? 'default' : 'pointer',
+        background: tk.cardSubtle, border: `1px solid ${tk.cardBorder}`,
+        opacity: busy ? 0.45 : 1,
+      }}
+    >
+      <MEIcon name={icon} size={15} color={icon === 'check' ? tk.goal : tk.muted} strokeWidth={2.4} />
+    </button>
+  )
+  return (
+    <div
+      role="button" tabIndex={0}
+      onClick={() => navigate(`/dashboard/contacts/${row.contact_id}`)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/dashboard/contacts/${row.contact_id}`) } }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+        padding: '10px 12px 10px 14px', cursor: 'pointer',
+        fontFamily: 'inherit', textAlign: 'left', opacity: busy ? 0.55 : 1,
         boxShadow: last ? 'none' : `inset 0 -1px 0 ${tk.hair}`,
       }}
     >
@@ -36,17 +55,20 @@ function FollowupRow({ row, last, tk }: { row: AgencyFollowupRow; last: boolean;
         <div style={{ fontSize: 11.5, color: tk.muted, fontWeight: 600, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.action}</div>
       </div>
       <span style={{ background: pill.bg, color: pill.fg, padding: '3px 9px', borderRadius: 999, fontSize: 10, fontWeight: 800, letterSpacing: 0.2, whiteSpace: 'nowrap', flexShrink: 0 }}>{due.text}</span>
-      <MEIcon name="chevron-right" size={16} color={tk.ghost} />
-    </button>
+      {/* Actions HITL inline (la ligne reste tappable → fiche). ✓ accepter = vrai rappel · ✕ écarter. */}
+      {actionBtn(t('today.waFollowups.accept'), () => accept.mutate(row.id), 'check')}
+      {actionBtn(t('today.waFollowups.dismiss'), () => dismiss.mutate(row.id), 'close')}
+    </div>
   )
 }
 
 /**
  * Bloc mobile « Suivis WhatsApp » — parité de CockpitWhatsAppFollowups (desktop).
  * MÊME hook agence (useAgencyFollowupSuggestions) et MÊME logique d'échéance
- * (whatsappFollowupDue) ; chaque ligne ouvre la fiche contact où vit le HITL
- * accepter(→ rappel)/écarter. Empty-state honnête : rien en attente = pas de bloc
- * (comme le desktop). Lecture seule (aucune mutation ici).
+ * (whatsappFollowupDue) ; le HITL accepter(→ rappel)/écarter vit SUR la ligne
+ * (useAgencyFollowupActions — la carte fiche est tombée à la refonte #823), le
+ * tap de la ligne ouvre la fiche. Empty-state honnête : rien en attente = pas
+ * de bloc (comme le desktop).
  */
 export function MobileWhatsAppFollowups() {
   const { t } = useTranslation('dashboard')

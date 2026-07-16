@@ -1,7 +1,8 @@
-// Brouillon de relance (voix de l'agent), généré à l'acceptation d'un suivi WhatsApp.
-// La GÉNÉRATION (DeepSeek) vit dans l'edge fn whatsapp-followup-draft et est couverte
-// par le helper pur (_shared/whatsapp-followup-draft.test.ts). Ici on vérifie l'ASSISE
-// données du migration 20260711140000 :
+// Brouillon de relance (voix de l'agent) — assise données d'un suivi WhatsApp accepté.
+// La GÉNÉRATION (DeepSeek) vit EN RÉSERVE dans le helper pur (_shared/
+// whatsapp-followup-draft.test.ts) ; le wrapper HTTP a été retiré en juil. 2026
+// (jamais câblé côté front). Ici on vérifie l'ASSISE données de la migration
+// 20260711140000 — toujours vivante (accept au cockpit) :
 //   (a) accept_followup_suggestion crée toujours un rappel NU (draft_message null) — le
 //       brouillon est une surcouche best-effort, jamais un prérequis ;
 //   (b) reminders.draft_message existe et accepte du texte ;

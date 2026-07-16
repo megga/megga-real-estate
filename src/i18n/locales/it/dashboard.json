@@ -258,7 +258,9 @@
       "pending_one": "{{countLabel}} follow-up in sospeso",
       "pending_other": "{{countLabel}} follow-up in sospeso",
       "more_one": "+{{count}} altro",
-      "more_other": "+{{count}} altri"
+      "more_other": "+{{count}} altri",
+      "accept": "Accetta (crea un promemoria)",
+      "dismiss": "Ignora"
     },
     "agenda": {
       "next": "Next",
