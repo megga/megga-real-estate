@@ -206,7 +206,7 @@ useEffect(() => {
 Devise :     CHF (apostrophe : CHF 720'000)
 Surface :    120 m²
 Date :       16.03.2026 (DD.MM.YYYY) ou relatif
-Langues :    FR (défaut), DE, EN, IT — react-i18next, 15 namespaces
+Langues :    FR (défaut), DE, EN, IT — react-i18next, 12 namespaces
 Cantons :    GE VD VS NE FR BE JU BS BL AG SO ZH LU ZG SZ NW OW UR GL SH TG AR AI SG GR TI
 ```
 
