@@ -289,42 +289,6 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
 }
 
 
-// ─── Avatar initiales ──────────────────────────────────────────────────
-interface AvatarProps {
-  firstName: string
-  lastName: string
-  avatarBg?: string | null
-  /** Couleur des initiales. Défaut '#fff'. À passer (= onAccent) quand le fond
-   *  est l'accent thémé, sinon les initiales disparaissent en dark mode. */
-  color?: string
-  size?: number
-}
-
-export function KycAvatar({ firstName, lastName, avatarBg, color = '#fff', size = 56 }: AvatarProps) {
-  const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
-  const bg = avatarBg || SugarV3.black
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 999,
-        background: bg,
-        color,
-        display: 'grid',
-        placeItems: 'center',
-        fontSize: Math.max(11, size * 0.3),
-        fontWeight: 700,
-        letterSpacing: -0.3,
-        flexShrink: 0,
-        boxShadow: '0 4px 12px rgba(11,12,14,0.12)',
-      }}
-    >
-      {initials}
-    </div>
-  )
-}
-
 // ─── Stepper Sugar 3 cercles connectés (utilisé par wizard) ────────────
 interface StepperProps {
   steps: ReadonlyArray<{ id: string; label: string }>

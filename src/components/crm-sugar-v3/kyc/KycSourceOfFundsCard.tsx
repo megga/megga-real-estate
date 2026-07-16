@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v3 — Section "Origine des fonds" (LBA art. 6 al. 1 lit. b)
+// MEGGA CRM Sugar v3 — Overlay "Origine des fonds" (LBA art. 6 al. 1 lit. b)
 // Sprint 3 — capture structurée de l'origine économique des fonds.
 // Red-team Léa #1 + #5 : sans cette UI, crypto / mixed étaient invisibles
 // comme red flag. Ici on documente, on associe une pièce, on logge.
@@ -9,18 +9,11 @@ import type { TFunction } from 'i18next'
 import { KycBlackPill, KycGhostPill } from './kycPrimitives'
 import { useKycPalette } from './kycPalette'
 import { SgIcon } from '../icons'
-import { useUpdateKycSourceOfFunds } from '@/hooks/useKyc'
 import type {
   KycCase,
   KycDocument,
   KycSourceOfFundsType,
 } from '@/types/kyc'
-
-interface Props {
-  dossier: KycCase
-  documents: KycDocument[]
-  agentId: string
-}
 
 /** Libellés des types d'origine des fonds. `isRedFlag` est une donnée métier
  * (LBA), pas du texte — seuls `label`/`hint` sont traduits via `t`. */
@@ -40,188 +33,6 @@ function buildSourceLabels(
   }
 }
 
-export function KycSourceOfFundsCard({ dossier, documents, agentId }: Props) {
-  const sp = useKycPalette()
-  const { t } = useTranslation('kyc')
-  const sourceLabels = buildSourceLabels(t)
-  const [editing, setEditing] = useState(false)
-  const update = useUpdateKycSourceOfFunds()
-  const [error, setError] = useState<string | null>(null)
-
-  const currentType = dossier.source_of_funds_type
-  const currentDoc = dossier.source_of_funds_doc_id
-    ? documents.find((d) => d.id === dossier.source_of_funds_doc_id) ?? null
-    : null
-  const isRedFlag = currentType ? sourceLabels[currentType].isRedFlag : false
-
-  const handleSubmit = (
-    sourceType: KycSourceOfFundsType,
-    description: string | null,
-    docId: string | null
-  ) => {
-    setError(null)
-    if (!dossier.agency_id) {
-      setError(t('dossier.funds.errorAgencyMissing'))
-      return
-    }
-    update.mutate(
-      {
-        kycCaseId: dossier.id,
-        agencyId: dossier.agency_id,
-        actorId: agentId,
-        sourceType,
-        description,
-        docId,
-      },
-      {
-        onSuccess: () => setEditing(false),
-        onError: (err) =>
-          setError(err instanceof Error ? err.message : t('dossier.funds.errorSave')),
-      }
-    )
-  }
-
-  return (
-    <>
-      <div
-        style={{
-          background: sp.card,
-          borderRadius: 22,
-          padding: '24px 28px',
-          boxShadow: sp.shadow,
-          marginBottom: 24,
-          animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
-          border: isRedFlag ? `1px solid ${sp.err}33` : `1px solid ${sp.cardBorder}`,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 12,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: sp.muted,
-                letterSpacing: 1.2,
-                textTransform: 'uppercase',
-                marginBottom: 4,
-              }}
-            >
-              {t('dossier.funds.eyebrow')}
-            </div>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: 20,
-                fontWeight: 700,
-                color: sp.ink,
-                letterSpacing: -0.3,
-              }}
-            >
-              {t('dossier.funds.title')}
-            </h3>
-          </div>
-          <KycGhostPill
-            onClick={() => setEditing(true)}
-            icon={<SgIcon name="pencil" size={14} stroke={sp.inkSoft} />}
-          >
-            {currentType ? t('dossier.funds.edit') : t('dossier.funds.document')}
-          </KycGhostPill>
-        </div>
-
-        {!currentType ? (
-          <div
-            style={{
-              padding: '14px 16px',
-              background: sp.cardSubtle,
-              borderRadius: 14,
-              fontSize: 13,
-              color: sp.muted,
-              fontWeight: 500,
-              lineHeight: 1.55,
-            }}
-          >
-            {t('dossier.funds.notDocumented')}
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gap: 6,
-              fontSize: 13.5,
-              color: sp.ink,
-              fontWeight: 500,
-              lineHeight: 1.55,
-            }}
-          >
-            <div>
-              <strong style={{ fontWeight: 700 }}>{sourceLabels[currentType].label}</strong>
-              {isRedFlag && (
-                <span
-                  style={{
-                    marginLeft: 8,
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    letterSpacing: 0.4,
-                    textTransform: 'uppercase',
-                    color: sp.errDarker,
-                  }}
-                >
-                  {t('dossier.funds.redFlag')}
-                </span>
-              )}
-            </div>
-            {dossier.source_of_funds_description && (
-              <div style={{ color: sp.inkSoft, fontSize: 13 }}>
-                {dossier.source_of_funds_description}
-              </div>
-            )}
-            <div style={{ color: sp.muted, fontSize: 12 }}>
-              {currentDoc ? (
-                <>{t('dossier.funds.linkedDoc')} <strong style={{ color: sp.ink }}>{currentDoc.name}</strong></>
-              ) : (
-                <em>{t('dossier.funds.noLinkedDoc')}</em>
-              )}
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div
-            role="alert"
-            style={{
-              marginTop: 12,
-              padding: '10px 14px',
-              background: sp.errSoft,
-              borderRadius: 12,
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: sp.errDarker,
-            }}
-          >
-            {error}
-          </div>
-        )}
-      </div>
-
-      {editing && (
-        <SourceOfFundsOverlay
-          dossier={dossier}
-          documents={documents}
-          isPending={update.isPending}
-          onCancel={() => setEditing(false)}
-          onSubmit={handleSubmit}
-        />
-      )}
-    </>
-  )
-}
 
 interface OverlayProps {
   dossier: KycCase

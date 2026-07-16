@@ -1,6 +1,6 @@
 // MEGGA CRM — KYC Pager · Liseuse de document (overlay dans le bento)
 // Port de `KypDocViewer` (kyc-pager-proto.jsx) mais avec le VRAI fichier :
-// URL signée du bucket `kyc-documents` (comme KycDossierDetail), rendue en
+// URL signée du bucket `kyc-documents`, rendue en
 // <iframe> (PDF) ou <img> (image). Bouton « Télécharger » = URL signée + download.
 //
 // Sécurité PDF (vérifié empiriquement, Chromium) : `sandbox` sur l'iframe BLOQUE
