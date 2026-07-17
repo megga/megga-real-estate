@@ -542,8 +542,9 @@ async function handleExecutePending(params: {
   }
 
   // Contrat {ok,message} : on distingue succès et échec métier → l'UI n'affiche un
-  // succès (« publié ») QUE si ok.
-  let outcome: { ok: boolean; message: string }
+  // succès (« publié ») QUE si ok. `retryable:false` (suppression d'un contact déjà parti)
+  // = échec DÉFINITIF → on ne réarme pas la carte (sinon elle traînerait jusqu'au TTL).
+  let outcome: { ok: boolean; message: string; retryable?: boolean }
   try {
     if (row.tool === 'publish_to_portals') outcome = await executePublishToPortals(ctx, payload)
     else if (row.tool === 'withdraw_from_portals') outcome = await executeWithdrawFromPortals(ctx, payload)
@@ -553,10 +554,13 @@ async function handleExecutePending(params: {
     outcome = { ok: false, message: (lang === 'en' ? 'Action failed: ' : "Échec de l'action : ") + ((e as Error)?.message ?? 'inconnue') }
   }
 
-  // La carte a été consommée par le claim atomique. Sur ÉCHEC métier, on la RÉINSÈRE
-  // (même id, même charge, même TTL d'origine) pour permettre un nouvel essai depuis la
-  // carte — sans avoir doublé l'exécution ni l'audit. Best-effort.
-  if (!outcome.ok) {
+  // La carte a été consommée par le claim atomique. Sur ÉCHEC métier RÉESSAYABLE, on la
+  // RÉINSÈRE (même id, même charge, même TTL d'origine) pour permettre un nouvel essai depuis
+  // la carte — sans avoir doublé l'exécution ni l'audit. Best-effort. Un échec DÉFINITIF
+  // (retryable:false — ex. contact déjà supprimé) NE réinsère PAS : réessayer échouerait
+  // à l'identique et la carte traînerait jusqu'au TTL ; on la laisse consommée (un nouveau
+  // clic → 404, la modale se ferme).
+  if (!outcome.ok && outcome.retryable !== false) {
     try {
       await auth.supabase.from('copilot_pending_actions').insert({
         id: pendingId, user_id: auth.user.id, agency_id: row.agency_id,
@@ -1036,9 +1040,11 @@ serve(async (req: Request) => {
       // Carte de validation attendue mais non stashée (échec DB) → ne pas laisser le texte
       // inviter l'agent à valider une carte qui n'apparaîtra pas.
       if (stashFailed && action !== 'detect_intent') {
+        // Neutre (publication OU suppression passent par cette carte) : ne présume pas
+        // du type d'action — « publier » induisait en erreur une demande de suppression.
         final += language === 'en'
-          ? "\n\n(I couldn't prepare the validation card — restate your publish request.)"
-          : "\n\n(Je n'ai pas pu préparer la carte de validation — reformule ta demande de publication.)"
+          ? "\n\n(I couldn't prepare the validation card — restate your request.)"
+          : "\n\n(Je n'ai pas pu préparer la carte de validation — reformule ta demande.)"
       }
 
       // Garde anti-citation-inventée (Phase 2) : quand le savoir vérifié est actif,

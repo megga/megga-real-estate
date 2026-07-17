@@ -77,7 +77,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'delete_contact',
-      description: "Supprime DÉFINITIVEMENT un contact du CRM de l'agence (le système confirme d'abord). Action IRRÉVERSIBLE, réservée à une vraie demande de suppression : « supprime le contact Dubois », « efface cette fiche », « retire Jean Martin du CRM ». Ne l'utilise JAMAIS pour archiver, marquer perdu ou déplacer dans le pipeline (c'est update_pipeline). Les dossiers KYC et transactions du contact sont conservés (déliés), le reste (correspondances, visites, notes) part avec la fiche. contact_id obtenu via search_contacts — n'invente jamais d'identifiant ; si plusieurs contacts correspondent, demande lequel.",
+      description: "Supprime DÉFINITIVEMENT un contact du CRM de l'agence (le système confirme d'abord). Action IRRÉVERSIBLE, réservée à une vraie demande de suppression : « supprime le contact Dubois », « efface cette fiche », « retire Jean Martin du CRM ». Ne l'utilise JAMAIS pour archiver, marquer perdu ou déplacer dans le pipeline (c'est update_pipeline). Les dossiers KYC et transactions du contact sont conservés (déliés), le reste (correspondances, visites) part avec la fiche. contact_id obtenu via search_contacts — n'invente jamais d'identifiant ; si plusieurs contacts correspondent, demande lequel.",
       parameters: {
         type: 'object',
         properties: {

@@ -215,9 +215,9 @@ export function confirmUpdatePipeline(lang: WaLang, who: string, stageLabel: str
 /** delete_contact — prompt de confirmation (DESTRUCTIF + IRRÉVERSIBLE, jamais auto). */
 export function confirmDeleteContact(lang: WaLang, name: string): string {
   if (lang === 'en') {
-    return `⚠ I'll permanently delete ${name} and their matches, visits and notes. KYC files and transactions are kept (unlinked), as the law requires. This can't be undone. ${confirmSuffix('en')}`
+    return `⚠ I'll permanently delete ${name}'s record, along with their matches and visits. KYC files and transactions are kept (unlinked), as the law requires. This can't be undone. ${confirmSuffix('en')}`
   }
-  return `⚠ Je vais supprimer définitivement ${name} et ses correspondances, visites et notes. Ses dossiers KYC et transactions sont conservés (déliés), comme la loi l'exige. C'est irréversible. ${confirmSuffix('fr')}`
+  return `⚠ Je vais supprimer définitivement la fiche de ${name}, avec ses correspondances et visites. Ses dossiers KYC et transactions sont conservés (déliés), comme la loi l'exige. C'est irréversible. ${confirmSuffix('fr')}`
 }
 
 /** delete_contact — aperçu déterministe pour la carte de validation du copilote web. */

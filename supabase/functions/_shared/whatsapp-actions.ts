@@ -1051,23 +1051,26 @@ export async function prepareDeleteContact(ctx: ActionCtx, a: Args): Promise<Pre
 
 /** Post-« oui » (WhatsApp) / clic carte (web) : suppression DURE scopée agence.
  *  Contrat {ok,message} aligné sur executePublishToPortals (l'UI n'affiche un succès
- *  que si ok ; le webhook WhatsApp relaie r.message). */
-export async function executeDeleteContact(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string }> {
-  if (!hasAgency(ctx)) return { ok: false, message: NO_AGENCY }
+ *  que si ok ; le webhook WhatsApp relaie r.message). `retryable:false` signale un échec
+ *  DÉFINITIF (contact déjà supprimé, action incomplète) → le copilote ne réarme pas la
+ *  carte HITL (un 23503 réversible, lui, reste réessayable = retryable absent). */
+export async function executeDeleteContact(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string; retryable?: boolean }> {
+  if (!hasAgency(ctx)) return { ok: false, message: NO_AGENCY, retryable: false }
   const lang = ctx.lang ?? 'fr'
   const contactId = s(payload.contact_id)
-  if (!contactId) return { ok: false, message: lang === 'en' ? 'Incomplete action — nothing deleted.' : 'Action incomplète, rien supprimé.' }
-  // Re-résolution DANS l'agence (garde SQL) + capture du nom pour l'audit AVANT le delete.
-  const { data: contact } = await ctx.supabase
-    .from('contacts').select('id, first_name, last_name')
-    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
-  if (!contact) return { ok: false, message: lang === 'en' ? 'Contact not found in your agency (already deleted?).' : 'Contact introuvable dans votre agence (déjà supprimé ?).' }
+  if (!contactId) return { ok: false, message: lang === 'en' ? 'Incomplete action — nothing deleted.' : 'Action incomplète, rien supprimé.', retryable: false }
+  // Re-résolution DANS l'agence (garde SQL, helper partagé contactInAgency) + capture du nom
+  // pour l'audit AVANT le delete. Contact déjà disparu = échec DÉFINITIF (re-résoudre ne le
+  // fera pas revenir) → retryable:false pour ne pas réarmer une carte web vouée à échouer.
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return { ok: false, message: lang === 'en' ? 'Contact not found in your agency (already deleted?).' : 'Contact introuvable dans votre agence (déjà supprimé ?).', retryable: false }
   const label = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || (lang === 'en' ? 'the contact' : 'le contact')
 
   const { error } = await ctx.supabase
     .from('contacts').delete().eq('id', contactId).eq('agency_id', ctx.agencyId)
   if (error) {
     // 23503 = FK NO ACTION (offre / dossier vendeur / fil / avis / ticket lié) → bloqué.
+    // RÉESSAYABLE (retryable absent) : l'agent détache l'élément puis relance depuis la carte.
     if ((error as { code?: string }).code === '23503') {
       return { ok: false, message: lang === 'en'
         ? `Can't delete ${label}: they're still linked to records that must be kept (an offer, a seller lead, a conversation…). Remove those links first.`
@@ -1076,17 +1079,22 @@ export async function executeDeleteContact(ctx: ActionCtx, payload: Args): Promi
     return { ok: false, message: (lang === 'en' ? 'Deletion failed: ' : 'Échec de la suppression : ') + error.message }
   }
 
-  // Audit LBA (append-only) APRÈS succès : le contact a disparu (entity_id pointe vers
-  // une ligne absente, activity_events n'a pas de FK vers contacts) mais son nom est
-  // conservé en metadata pour la traçabilité. Best-effort, jamais bloquant.
+  // Audit LBA (append-only) APRÈS succès : le contact a disparu (entity_id pointe vers une
+  // ligne absente, activity_events n'a pas de FK vers contacts) mais son nom est conservé en
+  // metadata pour la traçabilité. Best-effort (jamais bloquant) MAIS observable : un audit
+  // manquant sur une action IRRÉVERSIBLE doit se voir dans les logs (comme logTimeline) —
+  // on trace donc l'erreur RETOURNÉE (contrainte CHECK) autant que l'exception (réseau).
   try {
-    await ctx.supabase.from('activity_events').insert({
+    const { error: auditErr } = await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'contact_deleted', entity_type: 'contact', entity_id: contactId,
       object_label: label.slice(0, 500), category: 'contact', severity: 'warn',
       metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, deleted_contact_name: label },
     })
-  } catch { /* audit best-effort */ }
+    if (auditErr) console.error('[delete_contact] audit insert failed:', auditErr.message)
+  } catch (e) {
+    console.error('[delete_contact] audit insert threw:', (e as Error)?.message ?? 'error')
+  }
 
   return { ok: true, message: lang === 'en'
     ? `${label} deleted. Their KYC files and transactions are kept (unlinked), as the law requires.`
