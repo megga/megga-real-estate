@@ -93,8 +93,9 @@ describe.skipIf(!HAS_KEYS)('executeDeleteContact (live) — garde agence, réten
 
   it('BLOQUE (23503) si le contact est rattaché à un dossier vendeur (FK NO ACTION) — rien supprimé', async () => {
     const c = await mkContact(setup.agencyAId, 'blocked')
+    // seller_leads n'a PAS de colonne agency_id ; contact_id est la FK NO ACTION qui bloque.
     const { data: sl, error } = await svc.from('seller_leads').insert({
-      agency_id: setup.agencyAId, contact_id: c, contact_name: 'DEL blocked', contact_email: `del-${setup.stamp}@megga-test.local`,
+      contact_id: c, contact_name: 'DEL blocked', contact_email: `del-${setup.stamp}@megga-test.local`,
     }).select('id').single()
     if (error) throw new Error(`seller_lead: ${error.message}`)
     sellerLeadIds.push(sl.id as string)
