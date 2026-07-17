@@ -51,6 +51,17 @@ describe('resolveOnboardingGate', () => {
     ).toBeNull()
   })
 
+  it('super-admin avec onboarding/premier-jour NON marqués → NON redirigé (compte promu par allowlist)', () => {
+    expect(
+      resolveOnboardingGate({
+        role: 'super_admin',
+        agency_id: null,
+        onboarding_completed: false,
+        first_day_done: false,
+      }),
+    ).toBeNull()
+  })
+
   it('particulier/acheteur/vendeur sans agence → NON forcé dans l’onboarding agent', () => {
     for (const role of ['particulier', 'buyer', 'seller'] as const) {
       expect(

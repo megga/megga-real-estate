@@ -12,6 +12,11 @@ export type OnboardingGateRedirect =
 /**
  * Décide la redirection du gate CRM pour un profil donné (pur → testable).
  *
+ * - Super-admin plateforme → JAMAIS de gate (ni onboarding, ni premier-jour) :
+ *   il n'a pas de parcours agent, `agency_id` null est légitime, et il lit via
+ *   les policies `super_admin`. Sans cette sortie, un super-admin dont
+ *   `onboarding_completed` vaut `false` (ex. compte promu par la migration
+ *   d'allowlist sans avoir joué l'onboarding) serait piégé dans le wizard agent.
  * - Onboarding pas terminé → wizard onboarding.
  * - Agent (rôle agence) SANS `agency_id` → wizard onboarding. Sans agence, la RLS
  *   le verrouille hors de TOUTES les surfaces du CRM (contacts/biens/pipeline/
@@ -34,6 +39,9 @@ export function resolveOnboardingGate(
     'role' | 'agency_id' | 'onboarding_completed' | 'first_day_done'
   >,
 ): OnboardingGateRedirect {
+  // Les super-admins plateforme ne passent jamais par l'onboarding/premier-jour agent.
+  if (profile.role === 'super_admin') return null
+
   const needsAgency = isAgentRole(profile.role) && !profile.agency_id
   if (profile.onboarding_completed === false || needsAgency) {
     return '/dashboard/onboarding'
