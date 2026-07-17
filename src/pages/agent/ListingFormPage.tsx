@@ -36,12 +36,12 @@ import { useSignPhotos } from '@/hooks/useC2pa'
 import { useVirtualStaging, STAGING_STYLES, ROOM_TYPES, type StagingStyle, type RoomType } from '@/hooks/useVirtualStaging'
 import FloorPlanEditor from '@/components/listings/FloorPlanEditor'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
-import GalleryLayoutPicker from '@/components/listing/GalleryLayoutPicker'
+import GalleryLayoutPicker from '@/components/listings/GalleryLayoutPicker'
 import {
   ContactLayoutPicker,
   NeighborhoodVariantPicker,
   PartnerAgencyPicker,
-} from '@/components/listing/ListingDisplayPickers'
+} from '@/components/listings/ListingDisplayPickers'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
