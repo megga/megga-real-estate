@@ -73,6 +73,7 @@ interface RawPropertyRow {
 }
 
 interface RawMarketRow extends Omit<RawPropertyRow, 'features' | 'created_at'> {
+  status: string | null
   source_id: string | null
   source_portal: string | null
   source_url: string | null
@@ -387,6 +388,11 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
     const groups = new Map<string, AtelierPivot>()
     for (const m of rawMatches) {
       if (m.status === 'ignored' || m.status === 'rejected') continue
+      // Annonce retirée du marché → bien disparu, on ne le propose pas à l'agent.
+      // Défense intra-journée : la purge nocturne (purge_stale_market_matches)
+      // supprime ces matchs à la source, ce filtre couvre la fenêtre entre deux
+      // passes (une annonce marquée 'removed' au sync du matin).
+      if (m.market_listing && m.market_listing.status === 'removed') continue
       const L = listingOf(m)
       const b = toBuyer(m)
       if (!L || !b) continue
