@@ -211,6 +211,22 @@ export function confirmUpdatePipeline(lang: WaLang, who: string, stageLabel: str
   if (lang === 'en') return `I'll move ${who} to « ${stageLabel} ». ${confirmSuffix('en')}`
   return `Je vais déplacer ${who} en « ${stageLabel} ». ${confirmSuffix('fr')}`
 }
+
+/** delete_contact — prompt de confirmation (DESTRUCTIF + IRRÉVERSIBLE, jamais auto). */
+export function confirmDeleteContact(lang: WaLang, name: string): string {
+  if (lang === 'en') {
+    return `⚠ I'll permanently delete ${name} and their matches, visits and notes. KYC files and transactions are kept (unlinked), as the law requires. This can't be undone. ${confirmSuffix('en')}`
+  }
+  return `⚠ Je vais supprimer définitivement ${name} et ses correspondances, visites et notes. Ses dossiers KYC et transactions sont conservés (déliés), comme la loi l'exige. C'est irréversible. ${confirmSuffix('fr')}`
+}
+
+/** delete_contact — aperçu déterministe pour la carte de validation du copilote web. */
+export function deleteContactPreview(lang: WaLang, name: string): string {
+  if (lang === 'en') {
+    return `Delete ${name} from the CRM.\n\nRemoved with the contact: matches, visits, scores, WhatsApp insights.\nKept (unlinked, legal retention): KYC files, transactions, sent messages.\n\nThis is permanent and can't be undone.`
+  }
+  return `Supprimer ${name} du CRM.\n\nSupprimé avec le contact : correspondances, visites, scores, analyses WhatsApp.\nConservé (délié, rétention légale) : dossiers KYC, transactions, messages envoyés.\n\nAction définitive et irréversible.`
+}
 /** « le dossier » / « the file » (défaut quand le contact n'est pas résolu). */
 export function pipelineWhoDefault(lang: WaLang): string {
   return lang === 'en' ? 'the file' : 'le dossier'

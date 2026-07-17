@@ -51,6 +51,9 @@ const WEB_DESCRIPTION_OVERRIDES: Record<string, string> = {
     "Publie un bien de l'agence sur immobilier.ch (syndication IDX). Pour « publie le 3 pièces des Eaux-Vives sur immobilier.ch », « mets ce bien en ligne ». Le bien est cherché dans les biens de l'agence (titre/adresse). Il faut un bien avec des données complètes (titre, prix, adresse, ≥1 photo). Appelle directement l'outil : l'agent verra une CARTE d'aperçu de l'annonce et devra cliquer « Publier » pour valider. NE te confirme JAMAIS toi-même et ne prétends pas que c'est en ligne tant que l'agent n'a pas validé.",
   withdraw_from_portals:
     "Retire un bien de la publication sur immobilier.ch (il disparaîtra au prochain import du portail). Pour « retire le bien de Champel d'immobilier.ch », « dépublie ce bien ». Le bien est cherché dans les biens de l'agence. Appelle directement l'outil : l'agent devra valider le retrait dans une carte. Ne te confirme pas toi-même.",
+  // Suppression de contact : action DESTRUCTIVE validée par une CARTE (pas un « oui » texte).
+  delete_contact:
+    "Supprime DÉFINITIVEMENT un contact du CRM de l'agence. Action IRRÉVERSIBLE, réservée à une vraie demande de suppression (« supprime la fiche de Dubois », « efface ce contact »). Ne l'utilise JAMAIS pour archiver ni marquer un dossier perdu (ça, c'est le pipeline). Les dossiers KYC et transactions du contact sont conservés (déliés) ; le reste (correspondances, visites, notes) part avec la fiche. Le contact est cherché via search_contacts ; si plusieurs correspondent, demande lequel. Appelle directement l'outil : l'agent verra une CARTE de confirmation et devra cliquer « Supprimer » pour valider. NE dis jamais que c'est supprimé tant qu'il n'a pas validé, et ne te confirme pas toi-même.",
 }
 
 const WEB_ONLY_TOOLS: DeepSeekTool[] = [
@@ -123,6 +126,12 @@ export const SHARED_WRITE_TOOLS = ['create_reminder', 'add_note', 'create_proper
 // si copilot_publish_enabled. get_publication_status (lecture) reste dans les read.
 export const PUBLISH_TOOLS = ['publish_to_portals', 'withdraw_from_portals'] as const
 
+// Outil de SUPPRESSION (tier 'confirm' — action DESTRUCTIVE + IRRÉVERSIBLE sur le CRM).
+// JAMAIS exécuté dans la boucle : préparé (aperçu de ce qui part / de ce qui survit) puis
+// VALIDÉ par l'agent via une carte HITL (copilot_pending_actions → execute_pending).
+// Exposé QUE si copilot_delete_enabled. Gate indépendant des écritures et de la publication.
+export const DELETE_TOOLS = ['delete_contact'] as const
+
 // Applique l'override de description web s'il existe (sinon garde l'outil tel quel).
 // Appliqué aux DEUX catalogues (read ET write) : sinon un outil d'écriture réutilisé
 // garderait sa description WhatsApp (ex. create_property renvoyant vers un outil photo
@@ -144,6 +153,9 @@ const WRITE_CATALOG: DeepSeekTool[] = WHATSAPP_TOOLS
 const PUBLISH_CATALOG: DeepSeekTool[] = WHATSAPP_TOOLS
   .filter((t) => (PUBLISH_TOOLS as readonly string[]).includes(t.function.name))
   .map(withWebDescription)
+const DELETE_CATALOG: DeepSeekTool[] = WHATSAPP_TOOLS
+  .filter((t) => (DELETE_TOOLS as readonly string[]).includes(t.function.name))
+  .map(withWebDescription)
 
 /** Catalogue read-only (compat) — équivaut à copilotTools(false). */
 export const COPILOT_TOOLS: DeepSeekTool[] = READ_CATALOG
@@ -152,11 +164,13 @@ export const COPILOT_TOOLS: DeepSeekTool[] = READ_CATALOG
  *  `writesEnabled` ajoute les écritures internes réversibles (create_reminder,
  *  add_note, create_property, update_property — tier auto). `publishEnabled` ajoute
  *  la publication externe (publish_to_portals, withdraw_from_portals — tier confirm,
- *  JAMAIS exécutée dans la boucle : validée par carte HITL). */
-export function copilotTools(writesEnabled: boolean, publishEnabled = false): DeepSeekTool[] {
+ *  JAMAIS exécutée dans la boucle : validée par carte HITL). `deleteEnabled` ajoute la
+ *  suppression de contact (delete_contact — tier confirm, validée par carte HITL). */
+export function copilotTools(writesEnabled: boolean, publishEnabled = false, deleteEnabled = false): DeepSeekTool[] {
   const tools = [...READ_CATALOG]
   if (writesEnabled) tools.push(...WRITE_CATALOG)
   if (publishEnabled) tools.push(...PUBLISH_CATALOG)
+  if (deleteEnabled) tools.push(...DELETE_CATALOG)
   return tools
 }
 
@@ -195,20 +209,25 @@ const TOOLS_BLOCK_WRITES = `
 const TOOLS_BLOCK_PUBLISH = `
 - PUBLICATION (immobilier.ch) : tu peux publier un bien de l'agence (publish_to_portals) ou l'en retirer (withdraw_from_portals). Action SORTANTE vers un portail externe, donc JAMAIS immédiate : tu la PRÉPARES en appelant l'outil, puis l'agent voit une carte d'aperçu de l'annonce et clique « Publier » (ou « Annuler ») pour valider. NE dis jamais qu'un bien est publié/retiré tant que l'agent n'a pas validé, et ne te confirme jamais toi-même. Publier exige un bien complet (titre, prix, adresse, au moins une photo).`
 
+const TOOLS_BLOCK_DELETE = `
+- SUPPRESSION DE CONTACT (delete_contact) : tu peux supprimer DÉFINITIVEMENT un contact du CRM. Action IRRÉVERSIBLE et sensible, réservée à une demande EXPLICITE de suppression — JAMAIS pour « archiver » ou « marquer perdu » (ça, c'est le pipeline). Tu la PRÉPARES en appelant l'outil (contact via search_contacts ; si plusieurs correspondent, demande lequel) ; l'agent voit alors une carte de confirmation et clique « Supprimer » pour valider. Rien n'est supprimé tant qu'il n'a pas cliqué : ne dis jamais que c'est fait avant, et ne te confirme jamais toi-même. Ne propose pas de toi-même de supprimer un contact.`
+
 // Suffixe « info manquante » : ne mentionne update_property QUE si les écritures sont
 // actives (sinon le prompt inviterait à un outil absent du catalogue — cf. revue).
 const PUBLISH_MISSING_WITH_WRITES = ` S'il manque une info, complète-la (update_property) ; s'il manque des photos, demande à l'agent de les JOINDRE au message et attache-les (attach_property_photos). Puis relance la publication.`
 const PUBLISH_MISSING_NO_WRITES = ` S'il manque une info, dis à l'agent de compléter la fiche du bien (champs + photos), puis relance la publication.`
 
 /** Bloc system selon le mode. `writesEnabled` bascule le périmètre d'écriture interne ;
- *  `publishEnabled` ajoute le volet publication externe (validée par carte HITL). Composé
- *  pour ne jamais se contredire (pas de « aucune écriture » quand la publication est on ;
- *  pas de mention update_property quand les écritures sont coupées). */
-export function copilotToolsBlock(writesEnabled: boolean, publishEnabled = false): string {
+ *  `publishEnabled` ajoute le volet publication externe (validée par carte HITL) ;
+ *  `deleteEnabled` ajoute le volet suppression de contact (validée par carte HITL).
+ *  Composé pour ne jamais se contredire (pas de « aucune écriture » quand une action
+ *  confirm est on ; pas de mention update_property quand les écritures sont coupées). */
+export function copilotToolsBlock(writesEnabled: boolean, publishEnabled = false, deleteEnabled = false): string {
   let block = TOOLS_BLOCK_BASE + `\n- ${NBA_PROMPT_GUARDRAIL}`
   if (writesEnabled) block += TOOLS_BLOCK_WRITES
-  else if (!publishEnabled) block += TOOLS_BLOCK_READONLY
+  else if (!publishEnabled && !deleteEnabled) block += TOOLS_BLOCK_READONLY
   if (publishEnabled) block += TOOLS_BLOCK_PUBLISH + (writesEnabled ? PUBLISH_MISSING_WITH_WRITES : PUBLISH_MISSING_NO_WRITES)
+  if (deleteEnabled) block += TOOLS_BLOCK_DELETE
   return block
 }
 

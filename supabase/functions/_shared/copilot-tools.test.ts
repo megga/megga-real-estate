@@ -188,6 +188,40 @@ describe('publication immobilier.ch (Phase C — confirm-tier gated)', () => {
   })
 })
 
+describe('suppression de contact gated (delete_contact — tier confirm, carte HITL)', () => {
+  it('delete_contact ABSENT du catalogue tant que deleteEnabled est off', () => {
+    for (const names of [
+      copilotTools(false).map((t) => t.function.name),
+      copilotTools(true).map((t) => t.function.name),
+      copilotTools(true, true).map((t) => t.function.name), // écritures + publication, SANS suppression
+    ]) {
+      expect(names).not.toContain('delete_contact')
+    }
+  })
+
+  it('delete_contact PRÉSENT quand deleteEnabled, indépendamment des écritures/publication', () => {
+    expect(copilotTools(false, false, true).map((t) => t.function.name)).toContain('delete_contact')
+    expect(copilotTools(true, true, true).map((t) => t.function.name)).toContain('delete_contact')
+  })
+
+  it('delete_contact est tier confirm (jamais read/auto → validé par carte, jamais exécuté dans la boucle)', () => {
+    expect(webToolTier('delete_contact')).toBe('confirm')
+  })
+
+  it('sa description web renvoie vers la CARTE de validation, jamais un « oui » auto', () => {
+    const dc = copilotTools(false, false, true).find((t) => t.function.name === 'delete_contact')
+    expect(dc?.function.description).toMatch(/carte de confirmation|clique/i)
+    expect(dc?.function.description).toMatch(/IRRÉVERSIBLE/i)
+  })
+
+  it('le bloc system décrit la suppression QUE si deleteEnabled', () => {
+    expect(copilotToolsBlock(false, false, true)).toMatch(/SUPPRESSION DE CONTACT/i)
+    expect(copilotToolsBlock(false)).not.toMatch(/SUPPRESSION DE CONTACT/i)
+    // deleteEnabled seul ne réactive pas le laïus « lecture seule » (une action confirm est on)
+    expect(copilotToolsBlock(false, false, true)).not.toMatch(/aucun outil d'écriture/i)
+  })
+})
+
 describe('garde-fou NBA (anti-initiative) injecté dans le bloc outils copilote', () => {
   // Filet anti-régression : le garde-fou est ajouté à TOOLS_BLOCK_BASE (copilot-tools.ts).
   // Si l'injection est retirée, ces tests cassent — sinon le garde-fou compliance

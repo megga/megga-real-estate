@@ -45,6 +45,7 @@ import {
   execCreateProperty, execUpdateProperty, execDraftListingCopy, execWebAttachPropertyPhotos,
   preparePublishToPortals, prepareWithdrawFromPortals,
   executePublishToPortals, executeWithdrawFromPortals,
+  prepareDeleteContact, executeDeleteContact,
   type ActionCtx, type Prepared,
 } from '../_shared/whatsapp-actions.ts'
 
@@ -416,9 +417,10 @@ function makePrepareConfirm(ctx: ActionCtx) {
     let prep: Prepared
     if (name === 'publish_to_portals') prep = await preparePublishToPortals(ctx, args)
     else if (name === 'withdraw_from_portals') prep = await prepareWithdrawFromPortals(ctx, args)
+    else if (name === 'delete_contact') prep = await prepareDeleteContact(ctx, args)
     else return { ok: false, error: `Action non préparable ici : ${name}` }
     if (!prep.ok) return { ok: false, error: prep.error }
-    // preview obligatoire pour la carte ; prepare de publication le fournit toujours.
+    // preview obligatoire pour la carte ; publication et suppression le fournissent toujours.
     if (!prep.preview) return { ok: false, error: "Aperçu indisponible pour cette action." }
     return {
       ok: true,
@@ -478,14 +480,18 @@ async function handleExecutePending(params: {
   const json = (obj: unknown, status = 200) =>
     new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-  // Re-vérifie le flag au moment de l'exécution (coupé entre préparer et valider = refus).
+  // Flags lus au moment de l'exécution (coupés entre préparer et valider = refus). Le gate
+  // PRÉCIS dépend de l'outil de la carte (publication vs suppression) et se fait après la
+  // consommation atomique, une fois row.tool connu.
+  let publishOn = false, deleteOn = false
   try {
     const { data: flags } = await auth.supabase
-      .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_publish_enabled'])
+      .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_publish_enabled', 'copilot_delete_enabled'])
     const val = (k: string) => flags?.find((f) => f.key === k)?.value
-    if (val('copilot_tools_enabled') !== 'true' || val('copilot_publish_enabled') !== 'true') {
-      return json({ error: 'La publication est désactivée.' }, 403)
-    }
+    const toolsOn = val('copilot_tools_enabled') === 'true'
+    publishOn = toolsOn && val('copilot_publish_enabled') === 'true'
+    deleteOn = toolsOn && val('copilot_delete_enabled') === 'true'
+    if (!toolsOn) return json({ error: 'Les actions du copilote sont désactivées.' }, 403)
   } catch {
     return json({ error: 'Impossible de vérifier la configuration.' }, 500)
   }
@@ -507,7 +513,22 @@ async function handleExecutePending(params: {
   const row = Array.isArray(rows) ? rows[0] : null
   if (!row) return json({ error: 'Action introuvable ou déjà traitée.' }, 404)
   if (Date.parse(String(row.expires_at)) <= Date.now()) {
-    return json({ error: 'Cette action a expiré — relance la publication.' }, 410)
+    return json({ error: 'Cette action a expiré — relance-la depuis le panneau.' }, 410)
+  }
+
+  // Gate PRÉCIS par capacité (la carte a pu être créée quand la capacité était on puis coupée).
+  // Si la capacité de CETTE action est off, on RÉINSÈRE la carte consommée (même id/charge/TTL)
+  // et on refuse — rien n'a été exécuté.
+  const capOk = row.tool === 'delete_contact' ? deleteOn : publishOn
+  if (!capOk) {
+    try {
+      await auth.supabase.from('copilot_pending_actions').insert({
+        id: pendingId, user_id: auth.user.id, agency_id: row.agency_id,
+        kind: row.kind, tool: row.tool, payload: row.payload,
+        preview: row.preview, title: row.title, expires_at: row.expires_at,
+      })
+    } catch { /* réinsertion best-effort */ }
+    return json({ error: row.tool === 'delete_contact' ? 'La suppression est désactivée.' : 'La publication est désactivée.' }, 403)
   }
 
   const payload = (row.payload ?? {}) as Record<string, unknown>
@@ -526,6 +547,7 @@ async function handleExecutePending(params: {
   try {
     if (row.tool === 'publish_to_portals') outcome = await executePublishToPortals(ctx, payload)
     else if (row.tool === 'withdraw_from_portals') outcome = await executeWithdrawFromPortals(ctx, payload)
+    else if (row.tool === 'delete_contact') outcome = await executeDeleteContact(ctx, payload)
     else outcome = { ok: false, message: lang === 'en' ? 'Unknown action.' : 'Action inconnue.' }
   } catch (e) {
     outcome = { ok: false, message: (lang === 'en' ? 'Action failed: ' : "Échec de l'action : ") + ((e as Error)?.message ?? 'inconnue') }
@@ -600,11 +622,12 @@ async function buildSystemPrompt(params: {
   toolsOn: boolean
   writesOn: boolean
   publishOn: boolean
+  deleteOn: boolean
 }): Promise<string> {
-  const { auth, language, toolsOn, writesOn, publishOn } = params
+  const { auth, language, toolsOn, writesOn, publishOn, deleteOn } = params
   let systemPrompt = MEGGA_SYSTEM
   systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
-  if (toolsOn) systemPrompt += copilotToolsBlock(writesOn, publishOn)
+  if (toolsOn) systemPrompt += copilotToolsBlock(writesOn, publishOn, deleteOn)
 
   // Ancrage temporel : indispensable pour résoudre « demain », « cette semaine »
   // en ISO 8601 (get_my_agenda) et dater correctement les réponses.
@@ -850,20 +873,24 @@ serve(async (req: Request) => {
     let toolsOn = false
     let writesOn = false
     let publishOn = false
+    let deleteOn = false
     if (action !== 'detect_intent') {
       try {
         const { data: flags } = await auth.supabase
-          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled', 'copilot_publish_enabled'])
+          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled', 'copilot_publish_enabled', 'copilot_delete_enabled'])
         const val = (k: string) => flags?.find((f) => f.key === k)?.value
         toolsOn = val('copilot_tools_enabled') === 'true'
         writesOn = toolsOn && val('copilot_writes_enabled') === 'true'
         // Publication externe (immobilier.ch) : 3e flag, indépendant des écritures
         // internes. Confirm-tier → jamais exécutée dans la boucle (validée par carte HITL).
         publishOn = toolsOn && val('copilot_publish_enabled') === 'true'
-      } catch { toolsOn = false; writesOn = false; publishOn = false }
+        // Suppression de contact : 4e flag, indépendant. Confirm-tier + destructif →
+        // jamais dans la boucle, validé par carte HITL (execute_pending). OFF par défaut.
+        deleteOn = toolsOn && val('copilot_delete_enabled') === 'true'
+      } catch { toolsOn = false; writesOn = false; publishOn = false; deleteOn = false }
     }
 
-    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn, publishOn })
+    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn, publishOn, deleteOn })
 
     // ── Savoir métier vérifié (Phase 2) : retrieval déterministe de snippets
     // juridiques suisses SOURCÉS + DATÉS, injectés selon l'intent. Gated par
@@ -954,15 +981,15 @@ serve(async (req: Request) => {
       let stashFailed = false
 
       if (toolsOn) {
-        const catalog = copilotTools(writesOn, publishOn)
+        const catalog = copilotTools(writesOn, publishOn, deleteOn)
         const res = await runAgentLoop({
           callModel: makeCallModel({ apiKey: deepseekApiKey, tools: catalog, wantStream: stream, emit, client: auth.supabase, agencyId: auth.profile.agency_id, module: 'copilot' }),
           runTool,
           tierOf: webToolTier,
           allowWrites: writesOn,
-          // Publication (tier confirm) : préparée puis surfacée en carte HITL, jamais
-          // exécutée dans la boucle. Absent si la publication n'est pas activée.
-          prepareConfirm: publishOn ? makePrepareConfirm(actionCtx) : undefined,
+          // Actions confirm (publication OU suppression) : préparées puis surfacées en carte
+          // HITL, jamais exécutées dans la boucle. Absent si aucune n'est activée.
+          prepareConfirm: (publishOn || deleteOn) ? makePrepareConfirm(actionCtx) : undefined,
           emit,
           maxTurns: MAX_TURNS,
           maxToolCalls: MAX_TOOL_CALLS,
