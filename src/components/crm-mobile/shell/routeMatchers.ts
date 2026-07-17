@@ -1,3 +1,7 @@
+/**
+ * Constantes de la barre d'onglets mobile (crm-mobile/shell) : la table des
+ * 5 destinations et la résolution du chemin courant vers l'onglet actif.
+ */
 import type { MEIconName } from '@/components/propertyx/MEIcon'
 
 export type MobileTab = 'today' | 'pipeline' | 'matching' | 'agenda' | 'more'
@@ -30,23 +34,3 @@ export function pathnameToTab(pathname: string): MobileTab {
   return 'more'
 }
 
-/**
- * Routes détail/création : header bouton-retour, PAS de barre d'onglets
- * (fidèle aux écrans biens-new / contact-new / detail de la maquette).
- * Les listes secondaires (/contacts, /listings, /kyc, /journey, /analytics,
- * /settings) gardent la barre (« Plus » éclairé).
- */
-const DETAIL_PATTERNS: RegExp[] = [
-  /^\/dashboard\/transactions\/[^/]+/, // détail deal + offre/contre-offre
-  /^\/dashboard\/listings\/[^/]+/, // fiche :id, création /new, édition /:id/edit
-  /^\/dashboard\/contacts\/[^/]+/, // fiche contact, /import, /new
-  /^\/dashboard\/visits\//,
-  /^\/dashboard\/visites\//,
-  /^\/dashboard\/kyc\/[^/]+/, // détail dossier (la liste /kyc garde la barre)
-  /^\/dashboard\/(market|marche)\//,
-  /^\/dashboard\/import-lead/,
-]
-
-export function isDetailRoute(pathname: string): boolean {
-  return DETAIL_PATTERNS.some((re) => re.test(pathname))
-}

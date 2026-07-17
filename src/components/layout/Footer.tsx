@@ -1,7 +1,13 @@
+/**
+ * Footer des pages publiques / marketing. Bloc marque + réseaux sociaux, trois
+ * colonnes de liens i18n (rechercher / pro / MEGGA), barre légale (LPD) avec
+ * badges C2PA et Swiss Made Software, puis illustration skyline.
+ */
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Linkedin, Instagram, Facebook } from 'lucide-react'
 
+/** Colonne de liens du footer (titre + liste verticale). */
 function FooterLinkColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
     <nav aria-label={title}>
@@ -22,6 +28,7 @@ function FooterLinkColumn({ title, links }: { title: string; links: { label: str
   )
 }
 
+/** Assemble le footer : marque, 3 colonnes de liens, barre légale et badges. */
 export default function Footer() {
   const { t } = useTranslation('common')
 

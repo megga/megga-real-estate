@@ -1,7 +1,12 @@
+/**
+ * Bandeau sticky signalant une session d'impersonation super-admin en cours.
+ * Monté en haut de l'app (z-90) ; rappelle le compte usurpé et offre la sortie.
+ */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useImpersonate } from '@/hooks/useImpersonate'
 
+/** Rendu uniquement pendant une impersonation ; le bouton coupe la session via `stopImpersonate`. */
 export default function ImpersonateBanner() {
   const { t } = useTranslation('admin')
   const { impersonating, stopImpersonate } = useImpersonate()

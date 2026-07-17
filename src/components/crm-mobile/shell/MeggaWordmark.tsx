@@ -3,8 +3,10 @@ interface MeggaWordmarkProps {
   height?: number
 }
 
-// Wordmark MEGGA — tracé SVG officiel (ratio 694.81 × 419.02), repris du
-// chrome desktop. Monochrome via `color`.
+/**
+ * Wordmark MEGGA en SVG inline (ratio 694.81 × 419.02), repris du chrome
+ * desktop. Monochrome via `color`. Composant décoratif du shell mobile.
+ */
 export default function MeggaWordmark({ color = '#0B0C0E', height = 26 }: MeggaWordmarkProps) {
   const width = (694.81 / 419.02) * height
   return (

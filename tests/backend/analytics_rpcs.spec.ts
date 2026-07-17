@@ -41,7 +41,7 @@ interface ObjectifShape {
 }
 interface FunnelShape {
   funnel: { leads: number; qualif: number; visits: number; offers: number; compromis: number }
-  sources: Array<{ source: string; v: number; conv: number; prev: number }>
+  sources: Array<{ source: string; v: number; conv: number; prev: number; comm: number; won: number }>
 }
 
 describe.skipIf(!HAS_KEYS)('analytics RPCs — agrégation live + isolation', () => {
@@ -231,6 +231,25 @@ describe.skipIf(!HAS_KEYS)('analytics RPCs — agrégation live + isolation', ()
   it('funnel : crm_offers de B comptée seulement pour B', async () => {
     const bFunnel = (await setup.clientB.rpc('analytics_funnel', { p_period: 'year', p_scope: 'agency' })).data as FunnelShape
     expect(bFunnel.funnel.offers).toBe(1)
+  })
+
+  // ── 6b. funnel : commission RÉELLE par canal (buyer → contacts.source) ──────
+  it('funnel : commission réalisée attribuée au canal du contact acheteur', async () => {
+    const aFunnel = (await setup.clientA.rpc('analytics_funnel', { p_period: 'year', p_scope: 'agency' })).data as FunnelShape
+    // Le signed (pA_withPct 1M × 5% = 50k) a pour acheteur cA1 (source 'website').
+    const web = aFunnel.sources.find(s => s.source === 'website')
+    expect(web).toBeTruthy()
+    expect(web!.comm).toBe(50000)
+    expect(web!.won).toBe(1)
+    // Le volume de leads reste INCHANGÉ (website = 2 leads : hot + non qualifié).
+    expect(web!.v).toBe(2)
+    // 'referral' a un lead mais aucun deal gagné → commission 0.
+    const ref = aFunnel.sources.find(s => s.source === 'referral')
+    expect(ref?.comm ?? 0).toBe(0)
+    // Le 'closed' (60k) n'a PAS d'acheteur rattaché → non attribué : Σ par canal = 50k
+    // (honnête : < realized 110k ; l'écart = commission gagnée sans acheteur/source).
+    const totalComm = aFunnel.sources.reduce((s, x) => s + (x.comm ?? 0), 0)
+    expect(totalComm).toBe(50000)
   })
 
   // ── 7. analytics_objectif : structure + extrapolation ──────────────────────

@@ -1,3 +1,9 @@
+/**
+ * Layout des pages CRM Sugar v2 (route parente des surfaces agent). Volontairement
+ * dépouillé : ni sidebar, ni breadcrumb, ni bottom bar — les pages Sugar portent
+ * leur propre chrome. Fournit thème + contexte copilote, la bannière
+ * d'impersonation et le « push » du contenu quand le panneau MEGGA AI est ouvert.
+ */
 import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { ThemeProvider } from '@/hooks/useTheme'
@@ -9,6 +15,7 @@ import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import NpsSurvey from '@/components/feedback/NpsSurvey'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
 
+/** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
 // Mode sombre Sugar (même clé localStorage que les pages). Réactif : `storage`
 // (cross-onglet) + relecture courte tant que le panneau est ouvert (le fond de
 // la gouttière du push doit suivre le thème Sugar, pas le thème app `data-theme`).
@@ -72,6 +79,7 @@ function AgentSugarInner() {
   )
 }
 
+/** Enrobe le layout interne des providers thème + contexte copilote. */
 export default function AgentSugarLayout() {
   return (
     <ThemeProvider>

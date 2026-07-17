@@ -1,6 +1,6 @@
 // MEGGA CRM Sugar v3 — Primitives KYC palette-aware
 // Port propre de crm-screen-kyc-sugar.jsx (KycBlackPill, KycGhostPill,
-// KycCircleBtn, KycStatCard, KycStatusPill, KycRiskPill, KycMetaRow).
+// KycCircleBtn).
 //
 // Différence avec `../primitives` (statiques, partagées par les autres écrans
 // Sugar) : ici chaque primitive lit `useKycPalette()` → suit le flip clair/
@@ -8,9 +8,7 @@
 
 import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { KYC_STATUS_LABELS, KYC_RISK_LABELS } from '../tokens'
 import { useKycPalette } from './kycPalette'
-import type { KycDossierStatus } from '@/types/kyc'
 
 // ─── Pilule accent (CTA principal) ─────────────────────────────────────
 interface BlackPillProps {
@@ -180,155 +178,3 @@ export function KycCircleBtn({ icon, onClick, title, size = 44 }: CircleBtnProps
   )
 }
 
-// ─── Carte stat (bento header liste) ───────────────────────────────────
-// Handoff §8 : pastilles (dots) retirées des 4 stat cards.
-interface StatCardProps {
-  label: string
-  value: ReactNode
-  sub?: string
-}
-
-export function KycStatCard({ label, value, sub }: StatCardProps) {
-  const sp = useKycPalette()
-  return (
-    <div
-      style={{
-        background: sp.card,
-        borderRadius: 22,
-        padding: '22px 24px',
-        border: `1px solid ${sp.cardBorder}`,
-        boxShadow: sp.shadow,
-        minHeight: 124,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: 1.1,
-          textTransform: 'uppercase',
-          color: sp.muted,
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 14 }}>
-        <span
-          style={{
-            fontSize: 44,
-            fontWeight: 700,
-            letterSpacing: -1.4,
-            lineHeight: 1,
-            color: sp.ink,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {value}
-        </span>
-      </div>
-      {sub && (
-        <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.muted, marginTop: 8 }}>
-          {sub}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Pilule de statut (fond plein opaque, texte blanc — handoff §6) ─────
-export function KycStatusPill({ status }: { status: KycDossierStatus }) {
-  const sp = useKycPalette()
-  const meta = KYC_STATUS_LABELS[status] ?? { label: status, tone: sp.muted }
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '5px 12px',
-        borderRadius: 999,
-        background: meta.tone,
-        color: '#fff',
-        fontSize: 11.5,
-        fontWeight: 700,
-        letterSpacing: 0.1,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {meta.label}
-    </span>
-  )
-}
-
-// ─── Pilule de risque (fond plein opaque, texte blanc — handoff §6) ─────
-export function KycRiskPill({ risk }: { risk: keyof typeof KYC_RISK_LABELS }) {
-  const sp = useKycPalette()
-  const meta = KYC_RISK_LABELS[risk] ?? { label: risk, tone: sp.muted }
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '5px 12px',
-        borderRadius: 999,
-        background: meta.tone,
-        color: '#fff',
-        fontSize: 11.5,
-        fontWeight: 700,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {meta.label}
-    </span>
-  )
-}
-
-// ─── Ligne clé / valeur (bloc Informations de la Synthèse) ──────────────
-interface MetaRowProps {
-  label: string
-  children: ReactNode
-  last?: boolean
-}
-
-export function KycMetaRow({ label, children, last }: MetaRowProps) {
-  const sp = useKycPalette()
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
-        padding: '11px 0',
-        borderBottom: last ? 'none' : `1px solid ${sp.cardSubtle}`,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 12.5,
-          color: sp.muted,
-          fontWeight: 500,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontSize: 13,
-          color: sp.ink,
-          fontWeight: 600,
-          whiteSpace: 'nowrap',
-          textAlign: 'right',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 7,
-        }}
-      >
-        {children}
-      </span>
-    </div>
-  )
-}

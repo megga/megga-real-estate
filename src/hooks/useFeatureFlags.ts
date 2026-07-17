@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
+/** Un flag de `admin_feature_flags` : bascule globale + ciblage par plan/agence. */
 export interface FeatureFlag {
   id: string
   key: string
@@ -17,6 +18,10 @@ export interface FeatureFlag {
   created_at: string
 }
 
+/**
+ * Lecture + mutation des feature flags admin (table `admin_feature_flags`).
+ * `updateFlag` applique un update partiel (seuls les champs fournis) et invalide le cache.
+ */
 export function useFeatureFlags() {
   const queryClient = useQueryClient()
 

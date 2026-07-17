@@ -1,9 +1,10 @@
-// Envoi d'un email libre rédigé par l'agent (souvent depuis un brouillon MEGGA AI).
-// S'appuie sur l'edge function `send-email` (case `default`, gaté requireAgentAuth) :
-// on passe le corps déjà mis en forme dans `data.html`. AUCUN backend neuf.
-// Human-in-the-loop : cet envoi est toujours déclenché par l'agent depuis le modal
-// de revue (EmailReviewModal), jamais automatiquement (règle CLAUDE.md).
-
+/**
+ * Envoi d'un email libre rédigé par l'agent (souvent depuis un brouillon MEGGA AI).
+ * S'appuie sur l'edge function `send-email` (case `default`, gaté requireAgentAuth) :
+ * on passe le corps déjà mis en forme dans `data.html`. AUCUN backend neuf.
+ * Human-in-the-loop : cet envoi est toujours déclenché par l'agent depuis le modal
+ * de revue (EmailReviewModal), jamais automatiquement (règle CLAUDE.md).
+ */
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { FunctionsHttpError } from '@supabase/supabase-js'
@@ -17,6 +18,7 @@ export interface SendAgentEmailParams {
   scheduledAt?: string
 }
 
+/** Échappe les caractères HTML sensibles (&, <, >) avant injection dans le gabarit. */
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -43,6 +45,7 @@ interface SendAgentEmailResult {
   emailId?: string
 }
 
+/** Mutation d'envoi de l'email agent : met le corps en forme puis invoque `send-email`. */
 export function useSendAgentEmail() {
   return useMutation({
     mutationFn: async ({ to, subject, body, scheduledAt }: SendAgentEmailParams): Promise<SendAgentEmailResult> => {

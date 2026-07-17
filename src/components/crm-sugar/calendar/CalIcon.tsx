@@ -7,7 +7,7 @@ export type CalIconName =
   | 'home' | 'signature' | 'stamp' | 'check' | 'upload' | 'chevL' | 'chevR'
   | 'plus' | 'close' | 'sparkle' | 'pin' | 'clock' | 'phone' | 'flame'
   | 'warn' | 'list' | 'grid' | 'map' | 'mic' | 'arrowR' | 'eye' | 'car'
-  | 'user'
+  | 'user' | 'users' | 'edit' | 'trash' | 'route' | 'grip' | 'calendar' | 'repeat'
 
 const PATHS: Record<CalIconName, ReactNode> = {
   home: (
@@ -122,6 +122,47 @@ const PATHS: Record<CalIconName, ReactNode> = {
     <>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.4" />
+      <path d="M2.5 21a6.5 6.5 0 0 1 13 0" />
+      <path d="M16 5.2a3.4 3.4 0 0 1 0 6.4" />
+      <path d="M17.5 21a6.5 6.5 0 0 0-3-5.5" />
+    </>
+  ),
+  edit: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </>
+  ),
+  trash: <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />,
+  route: (
+    <>
+      <circle cx="6" cy="18" r="2.4" />
+      <circle cx="18" cy="6" r="2.4" />
+      <path d="M8.4 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.6" />
+    </>
+  ),
+  grip: (
+    <>
+      <path d="M4 9h16M4 15h16" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3" y="4.5" width="18" height="16.5" rx="2.4" />
+      <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
+    </>
+  ),
+  repeat: (
+    <>
+      <path d="m17 2 4 4-4 4" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <path d="m7 22-4-4 4-4" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
     </>
   ),
 }

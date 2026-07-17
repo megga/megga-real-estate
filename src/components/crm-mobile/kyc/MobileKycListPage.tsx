@@ -1,3 +1,7 @@
+/**
+ * Page mobile (route /dashboard/kyc) : coque à onglets. L'UI et le câblage
+ * données vivent dans MobileKycListScreen.
+ */
 import MobileShell from '../shell/MobileShell'
 import { MobileKycListScreen } from './MobileKycListScreen'
 

@@ -14,8 +14,3 @@ export const HOME_M = {
   muted: '#847D6E',
   border: '#DDE2EA',
 } as const
-
-export type HomeM = typeof HOME_M
-
-export const formatCHF = (n: number): string =>
-  'CHF ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '’')

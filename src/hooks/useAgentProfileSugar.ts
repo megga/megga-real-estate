@@ -35,21 +35,8 @@ import {
 // Champs persistés via save() — tout le formulaire est désormais sauvegardé.
 // `avatarUrl` est persisté séparément par useAvatar (upload Storage + avatar_url),
 // donc absent de cette liste qui couvre uniquement le payload de save().
-const PERSISTED_FIELDS = [
-  'firstName',
-  'lastName',
-  'title',
-  'phone',
-  'mobile',
-  'rcc',
-  'bio',
-  'languages',
-  'specialties',
-  'signature',
-  'signatureHtml',
-  'signatureMode',
-] as const
 
+/** Sépare un nom complet en prénom / nom (premier mot vs. le reste). */
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const trimmed = (fullName ?? '').trim()
   if (!trimmed) return { firstName: '', lastName: '' }
@@ -59,6 +46,7 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
   return { firstName, lastName }
 }
 
+/** Initiales majuscules depuis prénom + nom (`??` si vides). */
 function initialsOf(firstName: string, lastName: string): string {
   return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || '??'
 }
@@ -85,9 +73,13 @@ interface ProfileJoinRow {
   avatar_url: string | null
   agency_id: string | null
   agencies: { name: string | null } | { name: string | null }[] | null
-  agent_profile: { bio: string | null; languages: string[] | null; specialties: string[] | null } | { bio: string | null; languages: string[] | null; specialties: string[] | null }[] | null
+  agent_profile:
+    | { bio: string | null; languages: string[] | null; specialties: string[] | null; website_url: string | null; linkedin_url: string | null }
+    | { bio: string | null; languages: string[] | null; specialties: string[] | null; website_url: string | null; linkedin_url: string | null }[]
+    | null
 }
 
+/** Déballe une relation Supabase (objet ou tableau) en un seul enregistrement ou null. */
 function unwrap<T>(v: T | T[] | null | undefined): T | null {
   if (!v) return null
   return Array.isArray(v) ? v[0] ?? null : v
@@ -98,9 +90,22 @@ export interface UseAgentProfileSugarReturn {
   isLoading: boolean
   isSaving: boolean
   hasBackend: boolean   // false → utilisateur non connecté, save() est un no-op
+  /**
+   * false → aucune ligne `agent_profiles` pour cet agent. save() ne PEUT PAS
+   * persister bio/languages/specialties/website/linkedin (UPDATE-only + INSERT
+   * réservé au super-admin par RLS). L'UI doit alors éviter d'afficher un faux
+   * « Enregistré » sur ces champs d'annuaire.
+   */
+  hasAgentProfile: boolean
   save: (next: ProfileData) => Promise<void>
 }
 
+/**
+ * Source de vérité du ProfileSection (Réglages) : joint `profiles` + `agencies`
+ * + `agent_profiles` en un `ProfileData` éditable et le persiste via `save()`.
+ * Fallback vide (jamais le mock) hors session ; `hasAgentProfile` signale si les
+ * champs d'annuaire (bio, langues…) sont réellement persistables.
+ */
 export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentProfileSugarReturn {
   const enabled = options?.enabled ?? true
   const { profile: authProfile } = useAuth()
@@ -113,7 +118,7 @@ export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentP
       if (!profileId) return null
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, phone, mobile_phone, agent_role, rcc, email_signature, email_signature_html, signature_mode, avatar_url, agency_id, agencies:agencies!agency_id(name), agent_profile:agent_profiles!profile_id(bio, languages, specialties)')
+        .select('id, email, full_name, phone, mobile_phone, agent_role, rcc, email_signature, email_signature_html, signature_mode, avatar_url, agency_id, agencies:agencies!agency_id(name), agent_profile:agent_profiles!profile_id(bio, languages, specialties, website_url, linkedin_url)')
         .eq('id', profileId)
         .single()
       if (error) throw error
@@ -141,6 +146,8 @@ export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentP
       languages: agent?.languages ?? [],
       specialties: agent?.specialties ?? [],
       bio: agent?.bio ?? '',
+      website: agent?.website_url ?? '',
+      linkedin: agent?.linkedin_url ?? '',
       signature: row.email_signature ?? '',
       signatureHtml: row.email_signature_html ?? '',
       signatureMode: row.signature_mode === 'html' ? 'html' : 'text',
@@ -159,6 +166,7 @@ export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentP
       firstName: '', lastName: '', title: '', agency: '',
       email: '', phone: '', mobile: '', rcc: '',
       languages: [], specialties: [], bio: '', signature: '',
+      website: '', linkedin: '',
       signatureMode: 'text', signatureHtml: '', avatarUrl: null,
       initials: '?', avatarBg: '#7A8088',
     }
@@ -204,6 +212,8 @@ export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentP
             languages: next.languages,
             specialties: next.specialties,
             phone: next.phone || null,
+            website_url: next.website || null,
+            linkedin_url: next.linkedin || null,
           })
           .eq('id', existing.id)
         if (aErr) throw aErr
@@ -218,14 +228,16 @@ export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentP
     },
   })
 
+  const hasAgentProfile = !!(row && unwrap(row.agent_profile))
+
   return {
     profile,
     isLoading,
     isSaving: mutation.isPending,
     hasBackend: !!profileId,
+    hasAgentProfile,
     save: async (next) => { await mutation.mutateAsync(next) },
   }
 }
 
 // Helper exposé pour les tests / debug — liste des champs effectivement persistés
-export const AGENT_PROFILE_PERSISTED_FIELDS = PERSISTED_FIELDS

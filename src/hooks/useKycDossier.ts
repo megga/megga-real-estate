@@ -18,7 +18,6 @@ import type {
   KycDossierStatus,
   KycDossierSummary,
   KycVigilance,
-  KycCountByStatus,
   KycType,
 } from '@/types/kyc'
 import type { TablesUpdate } from '@/types/database'
@@ -41,6 +40,12 @@ interface KycDossiersFilter {
   status?: KycDossierStatus | 'all' | 'blocking' | 'risk'
 }
 
+/**
+ * Liste des dossiers KYC (contact joint + compteurs de checks). « Fait » =
+ * complété OU non requis (règle LBA, miroir de la fiche). Le filtre
+ * `blocking`/`risk`/statut est appliqué côté client ; `enabled:false` garde les
+ * surfaces démo inertes (aucun fetch PII).
+ */
 export function useKycDossiers(filters?: KycDossiersFilter, opts?: { enabled?: boolean }) {
   return useQuery<KycDossierRow[]>({
     queryKey: ['kyc-dossiers', filters],
@@ -62,8 +67,8 @@ export function useKycDossiers(filters?: KycDossiersFilter, opts?: { enabled?: b
       const rows: KycDossierRow[] = (data ?? []).map((raw) => {
         const checks = (raw as { checks?: Array<{ is_completed: boolean; is_required: boolean }> }).checks ?? []
         const checksTotal = checks.length
-        // « Fait » = complété OU non requis (règle canonique LBA, miroir du détail
-        // KycDossierDetail.tsx:223-226) — sinon la jauge de la liste diverge du détail.
+        // « Fait » = complété OU non requis (règle canonique LBA, miroir de la
+        // fiche) — sinon la jauge de la liste diverge du détail.
         const checksCompleted = checks.filter((c) => c.is_completed || c.is_required === false).length
         // Strip nested checks from the returned row (UI consumes counters only).
         const { checks: _omit, ...rest } = raw as unknown as KycDossierRow & {
@@ -77,7 +82,7 @@ export function useKycDossiers(filters?: KycDossiersFilter, opts?: { enabled?: b
         }
       })
 
-      // Filtre côté client pour les vues spéciales (handoff KycListView).
+      // Filtre côté client pour les vues spéciales de la liste.
       if (!filters?.status || filters.status === 'all') return rows
       if (filters.status === 'blocking')
         return rows.filter((r) => r.dossier_status !== 'verified')
@@ -93,6 +98,7 @@ export function useKycDossiers(filters?: KycDossiersFilter, opts?: { enabled?: b
 
 // ─── Dossier par contact (deep-link RPC) ──────────────────────────────
 
+/** Dossier KYC d'un contact via la RPC `kyc_by_contact_id` (deep-link, renvoie la 1re ligne). */
 export function useKycDossierByContact(contactId: string | undefined) {
   return useQuery<KycDossierSummary | null>({
     queryKey: ['kyc-dossier-by-contact', contactId],
@@ -111,20 +117,9 @@ export function useKycDossierByContact(contactId: string | undefined) {
 }
 
 // ─── Compteurs par statut (KPIs) ───────────────────────────────────────
-
-export function useKycCountByStatus() {
-  return useQuery<KycCountByStatus>({
-    queryKey: ['kyc-count-by-status'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('kyc_count_by_status')
-      if (error) throw error
-      return (data as KycCountByStatus) ?? {}
-    },
-  })
-}
-
 // ─── Mark check completed (trigger auto-valide le dossier) ─────────────
 
+/** Coche/décoche un check ; le trigger DB `auto_verify_kyc_dossier` logge l'audit et auto-valide le dossier. */
 export function useMarkKycCheck() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -154,6 +149,7 @@ export function useMarkKycCheck() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-case'] })
@@ -191,10 +187,61 @@ export function useMarkAllChecksCompleted() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-case'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-audit'] })
+      queryClient.invalidateQueries({ queryKey: ['audit-events'] })
+    },
+  })
+}
+
+// ─── Invalidation KYC à l'édition d'identité (règle métier LBA) ───────
+// Refonte Contacts : modifier l'identité (prénom/nom) d'un contact au KYC
+// VÉRIFIÉ invalide la vérification — toute la procédure LBA doit être
+// recommencée (refs/CLAUDE.md §215). On downgrade le dossier vérifié le plus
+// récent (verified → pending, validated_at effacé) + trace un AuditEvent.
+// Le trigger guard_manual_kyc_verified n'interdit QUE le passage VERS 'verified',
+// pas ce downgrade. Human-in-the-loop : appelé après confirmation + consentement.
+export function useInvalidateKycForContact() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ contactId, actorId }: { contactId: string; actorId: string }) => {
+      const { data: cases, error: selErr } = await supabase
+        .from('kyc_cases')
+        .select('id, agency_id, dossier_status')
+        .eq('contact_id', contactId)
+        .order('created_at', { ascending: false })
+      if (selErr) throw selErr
+      // Un contact peut détenir plusieurs dossiers : on invalide TOUS ceux qui
+      // sont vérifiés (sinon un dossier vérifié « oublié » resterait valide).
+      const verifiedCases = (cases ?? []).filter((c) => c.dossier_status === 'verified')
+      if (verifiedCases.length === 0) return null // rien à invalider
+
+      for (const vc of verifiedCases) {
+        const { error: updErr } = await supabase
+          .from('kyc_cases')
+          .update({ dossier_status: 'pending', status: 'pending', validated_at: null } as TablesUpdate<'kyc_cases'>)
+          .eq('id', vc.id)
+        if (updErr) throw updErr
+
+        await supabase.from('activity_events').insert({
+          agency_id: vc.agency_id,
+          actor_id: actorId,
+          action: 'KYC invalidé — identité du contact modifiée',
+          entity_type: 'contact',
+          entity_id: contactId,
+          metadata: { reason: 'identity_change', kyc_case_id: vc.id },
+        })
+      }
+      return verifiedCases.map((v) => v.id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['audit-events'] })
     },
   })
@@ -211,6 +258,7 @@ interface CreateKycDossierInput {
   transactionAmount?: number | null
 }
 
+/** Crée un dossier KYC ; le trigger `seed_kyc_lba_checks` sème 5 checks + l'AuditEvent d'ouverture. */
 export function useCreateKycDossier() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -236,6 +284,7 @@ export function useCreateKycDossier() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kyc-dossiers'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['audit-events'] })

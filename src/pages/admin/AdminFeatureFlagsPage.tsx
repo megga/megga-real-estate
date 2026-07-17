@@ -1,3 +1,10 @@
+/**
+ * Page super-admin — feature flags.
+ *
+ * Route : `/dashboard/admin/feature-flags` (SuperAdminGuard, accent violet).
+ * Chaque flag est activable globalement ou restreint à certains plans
+ * (starter/pro/agency) ; les toggles écrivent directement via `useFeatureFlags`.
+ */
 import { ToggleLeft, ToggleRight, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'

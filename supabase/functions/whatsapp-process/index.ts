@@ -15,9 +15,11 @@ import { fetchMetaMedia, buildMediaKey } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { describeInboundMedia, threadTextFor, isReadableDocMime } from '../_shared/vision.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
+import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
-import { deriveFollowups, persistFollowups } from '../_shared/whatsapp-followups.ts'
+import { deriveFollowups, persistFollowups, fetchContactDefaultHour } from '../_shared/whatsapp-followups.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -25,6 +27,7 @@ const BATCH = 10            // messages média réclamés / tick (chaque op peut
 const MAX_RETRIES = 3
 const MAX_VISION_BYTES = 12 * 1024 * 1024  // au-delà : on garde le média mais on ne le lit pas (coût/latence)
 const INSIGHT_BATCH = 5     // contacts ré-analysés / tick (borne coût DeepSeek + temps)
+const INSIGHT_MSG_WINDOW = 30  // fenêtre = N DERNIERS messages (le contexte plus ancien vit dans rolling_summary)
 const NOTICE_BATCH = 10     // avis LPD envoyés / tick
 const BUDGET_MS = 90_000    // budget temps : on rend la main avant la limite edge (~150s)
 
@@ -157,23 +160,46 @@ serve(async (req) => {
   let insights = 0
   if (deepseekKey && !overBudget()) {
     const { data: stale } = await admin.rpc('whatsapp_stale_insight_contacts', { p_limit: INSIGHT_BATCH })
-    for (const c of (stale ?? []) as Array<{ contact_id: string; agency_id: string; last_message_at: string }>) {
+    const staleContacts = (stale ?? []) as Array<{ contact_id: string; agency_id: string; last_message_at: string }>
+    // Mémoire longue : on lit le résumé progressif antérieur (une requête pour tout le batch)
+    // pour le réinjecter au prompt — le digest ne montre que les N derniers messages.
+    const priorSummaryById = new Map<string, string | null>()
+    if (staleContacts.length) {
+      const { data: priors } = await admin
+        .from('whatsapp_conversation_insights')
+        .select('contact_id, rolling_summary')
+        .in('contact_id', staleContacts.map((c) => c.contact_id))
+      for (const p of (priors ?? []) as Array<{ contact_id: string; rolling_summary: string | null }>)
+        priorSummaryById.set(p.contact_id, p.rolling_summary)
+    }
+    for (const c of staleContacts) {
       if (overBudget()) break
       try {
-        const { data: thread } = await admin
+        // N DERNIERS messages (descending + limit), remis en ordre chronologique pour le digest.
+        // (Fix : l'ancienne requête ascending prenait les 30 plus ANCIENS → insight figé.)
+        const { data: recent } = await admin
           .from('whatsapp_messages')
           .select('direction, body, transcript, created_at')
           .eq('contact_id', c.contact_id)
-          .order('created_at', { ascending: true })
-          .limit(30)
-        const digest = buildThreadDigest((thread ?? []) as ThreadMessage[])
+          .order('created_at', { ascending: false })
+          .limit(INSIGHT_MSG_WINDOW)
+        const thread = ((recent ?? []) as ThreadMessage[]).slice().reverse()
+        const digest = buildThreadDigest(thread)
         if (!digest) continue
-        const insight = await comprehend(buildMessages(digest), deepseekKey)
+        const priorSummary = priorSummaryById.get(c.contact_id) ?? null
+        const insight = await comprehend(buildMessages(digest, priorSummary), deepseekKey, (usage, latencyMs) =>
+          logDeepSeekUsageWith(admin, usage, {
+            edgeFunction: 'whatsapp-process', module: 'whatsapp-comprehend',
+            latencyMs, agencyId: c.agency_id,
+          }))
         await admin.from('whatsapp_conversation_insights').upsert({
           contact_id: c.contact_id, agency_id: c.agency_id,
-          summary: insight.summary, intent: insight.intent, entities: insight.entities,
-          commitments: insight.commitments, sentiment: insight.sentiment, next_action: insight.next_action,
-          model: 'deepseek-chat', source_message_count: (thread ?? []).length,
+          summary: insight.summary, rolling_summary: insight.rolling_summary,
+          intent: insight.intent, entities: insight.entities,
+          commitments: insight.commitments, objections: insight.objections,
+          sentiment: insight.sentiment, urgency: insight.urgency, language: insight.language,
+          next_action: insight.next_action,
+          model: 'deepseek-chat', source_message_count: thread.length,
           source_last_message_at: c.last_message_at, generated_at: new Date().toISOString(),
         }, { onConflict: 'contact_id' })
         insights++
@@ -185,7 +211,10 @@ serve(async (req) => {
         // Engagements actionnables : transforme les commitments/next_action en
         // suggestions de suivi datées (l'agent accepte → vrai rappel). Best-effort.
         try {
-          const followups = deriveFollowups(insight, { nowISO: new Date().toISOString() })
+          // Timing appris : dater les suivis à l'heure médiane de réponse du contact
+          // (paires out→in, ≥5) plutôt qu'à 09:00 fixe. Best-effort → 09:00 si erreur.
+          const defaultHour = await fetchContactDefaultHour(admin, c.contact_id)
+          const followups = deriveFollowups(insight, { nowISO: new Date().toISOString(), defaultHour })
           if (followups.length) await persistFollowups(admin, c.agency_id, c.contact_id, followups, c.last_message_at)
         } catch (e) {
           console.error('whatsapp followups failed:', String((e as Error)?.message ?? 'error').slice(0, 120))
@@ -204,12 +233,16 @@ serve(async (req) => {
     const cfg: SendConfig = { metaToken, metaPhoneNumberId, metaApiVersion: apiVersion }
     for (const n of (pendingNotices ?? []) as Array<{ agency_id: string; wa_phone: string }>) {
       if (overBudget()) break
-      try {
-        const sreq = provider.buildSendTextRequest({ toPhone: n.wa_phone, body: NOTICE_TEXT }, cfg)
-        await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-      } catch (e) {
-        console.error('whatsapp notice send failed:', String((e as Error)?.message ?? 'error').slice(0, 80))
-      }
+      // Retry court (profil resserré : 2 tentatives, timeout 6s) sur erreur transitoire.
+      // L'avis LPD va au CLIENT (n.wa_phone) et l'API Meta n'est pas idempotente, donc
+      // retryNetworkError:false → on ne rejoue QUE les refus de QUOTA (429 + throttle Meta 400),
+      // rejetés avant mise en file = sûrs ; JAMAIS un 5xx ni un timeout (ambigus : Meta a
+      // peut-être livré → doublonnerait la notice). Jamais 131047. Un 5xx non rejoué est
+      // re-tenté au prochain tick (whatsapp_pending_notices borne la fenêtre 24h). Profil borné
+      // pour ne pas déborder le budget du cron (overBudget() en tête de boucle borne déjà).
+      const sreq = provider.buildSendTextRequest({ toPhone: n.wa_phone, body: NOTICE_TEXT }, cfg)
+      const sr = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b), { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false })
+      if (!sr.ok) console.error('whatsapp notice send failed:', String(sr.error ?? 'error').slice(0, 80))
       // Une tentative par numéro : on enregistre l'avis quoi qu'il arrive (la fenêtre
       // 24h de whatsapp_pending_notices borne déjà les renvois).
       await admin.from('whatsapp_notices').upsert(

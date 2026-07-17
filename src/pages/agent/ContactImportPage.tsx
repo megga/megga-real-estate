@@ -1,3 +1,11 @@
+/**
+ * Page agent — import de contacts en masse.
+ *
+ * Route : `/dashboard/contacts/import`. Assistant à quatre méthodes : CSV (upload +
+ * mapping de colonnes), vCard, texte libre (extraction via ai-copilot/DeepSeek) et
+ * saisie manuelle. L'import déduplique sur email/téléphone (base + intra-lot, match
+ * exact) et consigne un `activity_events` de synthèse par lot (piste LBA).
+ */
 import { useState, useRef, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -33,6 +41,7 @@ type ImportMethod = 'choose' | 'csv' | 'vcard' | 'text'
 
 // ─── CSV Parser ──────────────────────────────────────────────────────────────
 
+/** Parse un CSV/TSV brut (séparateur `,` ou `;`, guillemets gérés) en en-têtes + lignes. */
 function parseCsv(text: string): { headers: string[]; rows: string[][] } {
   const lines = text.split(/\r?\n/).filter(l => l.trim())
   if (lines.length < 2) return { headers: [], rows: [] }
@@ -57,6 +66,7 @@ function parseCsv(text: string): { headers: string[]; rows: string[][] } {
 
 // ─── vCard Parser ────────────────────────────────────────────────────────────
 
+/** Extrait les contacts d'un fichier vCard (blocs BEGIN/END:VCARD → prénom/nom/email/tél). */
 function parseVcard(text: string): ImportedContact[] {
   const cards = text.split('BEGIN:VCARD').filter(c => c.includes('END:VCARD'))
   return cards.map(card => {
@@ -83,6 +93,7 @@ function parseVcard(text: string): ImportedContact[] {
 
 type FieldOption = { value: string; label: string }
 
+/** Options de mapping colonne→champ contact, libellés résolus via i18n. */
 function fieldOptions(t: (key: string) => string): FieldOption[] {
   return [
     { value: '', label: t('import.batch.field.ignore') },
@@ -96,6 +107,7 @@ function fieldOptions(t: (key: string) => string): FieldOption[] {
   ]
 }
 
+/** Devine le champ contact cible d'un en-tête CSV (heuristique multilingue FR/EN/DE). */
 function autoMapColumn(header: string): string {
   const h = header.toLowerCase().replace(/[_\s-]/g, '')
   if (['prénom', 'prenom', 'firstname', 'vorname'].some(k => h.includes(k))) return 'first_name'
@@ -111,6 +123,7 @@ function autoMapColumn(header: string): string {
 
 // ─── Method Selection Screen ─────────────────────────────────────────────────
 
+/** Écran de choix de la méthode d'import (CSV, vCard, texte libre, saisie manuelle). */
 function MethodSelectionScreen({ onSelect }: { onSelect: (m: ImportMethod) => void }) {
   const { t } = useTranslation('contacts')
   const methods = [
@@ -154,6 +167,7 @@ function MethodSelectionScreen({ onSelect }: { onSelect: (m: ImportMethod) => vo
 
 // ─── CSV Import ──────────────────────────────────────────────────────────────
 
+/** Import CSV : upload du fichier puis mapping des colonnes avant confirmation. */
 function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedContact[]) => void; onBack: () => void }) {
   const { t } = useTranslation('contacts')
   const [step, setStep] = useState<'upload' | 'map'>('upload')
@@ -270,6 +284,7 @@ function CsvImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedCo
 
 // ─── vCard Import ────────────────────────────────────────────────────────────
 
+/** Import vCard : upload, aperçu des contacts détectés, confirmation. */
 function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedContact[]) => void; onBack: () => void }) {
   const { t } = useTranslation('contacts')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -345,6 +360,7 @@ function VcardImportScreen({ onImport, onBack }: { onImport: (contacts: Imported
 
 // ─── Text Free Import (AI) ───────────────────────────────────────────────────
 
+/** Import texte libre : extraction des contacts par l'IA (ai-copilot/DeepSeek) puis aperçu. */
 function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedContact[]) => void; onBack: () => void }) {
   const { t } = useTranslation('contacts')
   const [text, setText] = useState('')
@@ -365,7 +381,8 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
         },
       })
       if (fnError) throw new Error(fnError.message)
-      const content = data?.response ?? data?.content ?? ''
+      // L'edge function ai-copilot renvoie { result }, pas { response }.
+      const content = (data as { result?: string } | null)?.result ?? ''
       const jsonMatch = content.match(/\[[\s\S]*\]/)
       if (!jsonMatch) throw new Error(t('import.batch.text.errorNotFound'))
       const contacts = JSON.parse(jsonMatch[0]) as ImportedContact[]
@@ -457,6 +474,7 @@ function TextImportScreen({ onImport, onBack }: { onImport: (contacts: ImportedC
 
 // ─── Import Results Screen ───────────────────────────────────────────────────
 
+/** Écran de résultat : compteurs importés / doublons / ignorés et erreurs éventuelles. */
 function ImportResultScreen({ result, onDone }: { result: ImportResult; onDone: () => void }) {
   const { t } = useTranslation('contacts')
   return (
@@ -490,6 +508,7 @@ function ImportResultScreen({ result, onDone }: { result: ImportResult; onDone: 
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
+/** Page : orchestre le choix de méthode, l'import (dédup + audit LBA) et l'écran de résultat. */
 export default function ContactImportPage() {
   const { t } = useTranslation('contacts')
   const navigate = useNavigate()

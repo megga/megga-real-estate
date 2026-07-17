@@ -1,3 +1,8 @@
+/**
+ * Wizard mobile de création de bien : formulaire principal (export) + primitives
+ * UI (Title, SectionLabel, field, Chip, Stepper) + les 4 étapes (StepType,
+ * StepLocation, StepSpecs, StepPrice).
+ */
 import { useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -56,6 +61,7 @@ const STEPS = 4
 // Sans ce mapping, 3 tuiles sur 4 violent l'enum et l'insert échoue.
 const WTYPE_TO_ENUM: Record<WType, string> = { appartement: 'apartment', maison: 'house', villa: 'villa', terrain: 'land' }
 
+/** Parse une saisie libre en nombre (ne garde que chiffres/point) ; null si vide ou invalide. */
 const num = (s: string): number | null => {
   const cleaned = s.replace(/[^\d.]/g, '')
   const n = Number(cleaned)
@@ -207,6 +213,7 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
 type Tk = ReturnType<typeof useMobileTokens>['tk']
 interface StepProps { d: WData; set: (p: Partial<WData>) => void; tk: Tk; t: TFunction }
 
+/** En-tête d'étape : sur-titre (eyebrow) discret + titre. */
 function Title({ tk, eyebrow, children }: { tk: Tk; eyebrow: string; children: string }) {
   return (
     <div style={{ marginBottom: 18 }}>
@@ -215,12 +222,15 @@ function Title({ tk, eyebrow, children }: { tk: Tk; eyebrow: string; children: s
     </div>
   )
 }
+/** Intitulé de sous-section (label majuscule discret). */
 function SectionLabel({ tk, children }: { tk: Tk; children: string }) {
   return <div style={{ fontSize: 10.5, fontWeight: 800, color: tk.muted, letterSpacing: 0.8, textTransform: 'uppercase', margin: '22px 2px 10px' }}>{children}</div>
 }
+/** Style partagé des champs texte / select du wizard. */
 function field(tk: Tk): CSSProperties {
   return { width: '100%', height: 50, padding: '0 15px', borderRadius: 14, border: `1px solid ${tk.cardBorder}`, outline: 'none', background: tk.card, boxShadow: tk.shadowSm, fontFamily: 'inherit', fontSize: 15, fontWeight: 600, color: tk.ink }
 }
+/** Puce sélectionnable (toggle) — état actif = fond accent. */
 function Chip({ tk, on, onClick, children }: { tk: Tk; on: boolean; onClick: () => void; children: string }) {
   return (
     <button type="button" onClick={onClick} style={{ height: 40, padding: '0 15px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: on ? 800 : 700, letterSpacing: -0.2, background: on ? tk.accent : tk.card, color: on ? tk.accentInk : tk.ink, boxShadow: on ? tk.shadow : tk.shadowSm }}>
@@ -228,6 +238,7 @@ function Chip({ tk, on, onClick, children }: { tk: Tk; on: boolean; onClick: () 
     </button>
   )
 }
+/** Incrémenteur −/+ pour une valeur numérique (pièces, chambres, salles de bain). */
 function Stepper({ tk, label, value, step = 1, onChange }: { tk: Tk; label: string; value: number | null; step?: number; onChange: (v: number | null) => void }) {
   const v = value ?? 0
   return (
@@ -246,6 +257,7 @@ function Stepper({ tk, label, value, step = 1, onChange }: { tk: Tk; label: stri
   )
 }
 
+/** Étape 1 : type de bien (4 tuiles) + type de transaction (vente / location). */
 function StepType({ d, set, tk, t }: StepProps) {
   return (
     <div>
@@ -270,6 +282,7 @@ function StepType({ d, set, tk, t }: StepProps) {
   )
 }
 
+/** Étape 2 : localisation (adresse, NPA, ville, canton). */
 function StepLocation({ d, set, tk, t }: StepProps) {
   return (
     <div>
@@ -289,6 +302,7 @@ function StepLocation({ d, set, tk, t }: StepProps) {
   )
 }
 
+/** Étape 3 : caractéristiques (pièces/surface/chambres/SdB), classe énergétique, prestations. */
 function StepSpecs({ d, set, tk, t }: StepProps) {
   const toggleFeature = (f: string) => set({ features: d.features.includes(f) ? d.features.filter((x) => x !== f) : [...d.features, f] })
   return (
@@ -327,6 +341,7 @@ function StepSpecs({ d, set, tk, t }: StepProps) {
   )
 }
 
+/** Étape 4 : prix ou loyer (+ charges), description, mandat, mode de publication. */
 function StepPrice({ d, set, tk, t, error }: StepProps & { error: string | null }) {
   const isRent = d.transaction === 'location'
   return (

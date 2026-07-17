@@ -19,7 +19,7 @@ import {
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   execCreateDeal, execSearchListings, execGetKycStatus,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink,
-  prepareSendClientEmail,
+  prepareSendClientEmail, prepareDeleteContact,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   execSummarizeGroupThread, execCheckGroupLeak,
   execDraftListingCopy, execPrepareMeeting,
@@ -30,6 +30,10 @@ import {
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
+import { composeAgentSystemPrompt } from '../_shared/agent-system-prompt.ts'
+import { redactPII } from '../_shared/pii-redaction.ts'
+import { redactLlmMessages } from '../_shared/wa-agent-redaction.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -39,7 +43,7 @@ const SYSTEM = `Tu es MEGGA, l'assistante de l'agent immobilier sur WhatsApp. Co
 Ton : naturel, comme un vrai humain qui texte — JAMAIS comme une IA. Phrases courtes et variées, droit au but, chaleureux mais sobre. Tutoiement avec l'agent. Pas de jargon ni d'identifiants bruts. (La langue de réponse est précisée plus bas.)
 Écris humain — bannis : les formules creuses (« n'hésite pas », « je reste à ta disposition », « avec plaisir », « bien sûr ! »), la règle de trois systématique, les adjectifs gonflés (« parfait », « excellent », « ravi »), les emojis en série, le ton commercial. Si une phrase suffit, une seule phrase.
 Mise en forme WhatsApp : le gras s'écrit avec UNE étoile *comme ça* (jamais ** **), l'italique avec _underscores_, les listes avec « - ». N'utilise pas la syntaxe Markdown.
-Tu peux AGIR via les outils fournis : créer/qualifier des contacts, ajouter des notes, planifier des visites, créer des rappels, ouvrir un dossier, déplacer un dossier dans le pipeline, enregistrer une offre, rechercher des biens sur le marché, envoyer une sélection de biens au client, consulter l'agenda / les fiches / les correspondances, préparer un rendez-vous (synthèse + 3 points à aborder, pour l'agent), lire un document que l'agent t'envoie (photo/scan/PDF) et le classer dans une fiche, et côté conformité : ouvrir un KYC, lancer le screening, joindre une pièce, consulter le statut KYC, envoyer le lien KYC au client.
+Tu peux AGIR via les outils fournis : créer/qualifier des contacts, ajouter des notes, supprimer un contact, planifier des visites, créer des rappels, ouvrir un dossier, déplacer un dossier dans le pipeline, enregistrer une offre, rechercher des biens sur le marché, envoyer une sélection de biens au client, consulter l'agenda / les fiches / les correspondances, préparer un rendez-vous (synthèse + 3 points à aborder, pour l'agent), lire un document que l'agent t'envoie (photo/scan/PDF) et le classer dans une fiche, et côté conformité : ouvrir un KYC, lancer le screening, joindre une pièce, consulter le statut KYC, envoyer le lien KYC au client.
 Règles:
 - Le KYC est FACULTATIF et ne bloque jamais rien (ni pipeline, ni offre, ni visite). Ne le présente jamais comme obligatoire ; propose-le quand c'est utile, sans l'imposer.
 - Si une offre ou un changement de pipeline échoue faute de dossier, ouvre le dossier (create_deal) puis réessaie.
@@ -51,6 +55,7 @@ Règles:
 - Pour AGIR (créer/qualifier un contact, planifier une visite, créer un rappel, déplacer le pipeline, enregistrer une offre, envoyer au client), appelle DIRECTEMENT l'outil correspondant. Ne demande pas toi-même « tu confirmes ? » et n'annonce pas que tu vas le faire : le système ajoute lui-même l'étape de confirmation quand elle est nécessaire. Ne refuse jamais une action en supposant l'état du CRM (dossier, disponibilité…) — appelle l'outil, c'est lui qui te dira.
 - Si une info manque (quel contact ? quel bien ? quelle date ?), pose UNE question courte au lieu de deviner.
 - Pour agir sur un contact existant, retrouve d'abord son id via search_contacts. N'invente jamais d'identifiant.
+- Suppression (delete_contact) : réservée à une VRAIE demande explicite de suppression (« supprime la fiche de Dubois », « efface ce contact »). C'est DÉFINITIF et irréversible. Ne l'utilise JAMAIS pour « archiver », « marquer perdu » ou ranger un dossier (ça, c'est update_pipeline vers « Perdu »). Ne propose jamais toi-même de supprimer un contact ; appelle l'outil seulement quand l'agent le demande, et le système ajoutera la confirmation.
 - Après une action, confirme en une phrase, en langage humain. Sois proactive : propose l'étape suivante utile quand c'est pertinent.
 - Recherche de biens (search_listings) : annonce le NOMBRE TOTAL renvoyé par l'outil (champ \`total\`, formulé « environ X biens » car c'est une estimation) et présente le reste comme un échantillon / une sélection. search_listings interroge l'inventaire MARCHÉ réel — n'invente JAMAIS d'excuse sur l'accès aux plateformes (ImmoScout, Homegate, etc.) et ne confonds pas le marché avec le CRM de l'agence.
 - Un message destiné à un CLIENT se soigne comme la vitrine de l'agence : courtois, clair, sans faute — il sera soumis à l'agent avant tout envoi.
@@ -105,7 +110,11 @@ serve(async (req) => {
   // Mimétisme de voix (few-shot) : vrais messages clients de l'agence, pour les messages DESTINÉS À UN CLIENT.
   // NB: fetché à chaque tour (le corps de send_client_message est composé inline) ; TODO lazy si le budget requêtes se tend.
   const voiceLang = lang === 'en' ? 'en' : 'fr'
-  const voiceSamples = await fetchClientVoiceSamples(supabase, ctx.agencyId, { profileId })
+  // PII : ces corps proviennent de whatsapp_messages (stockés bruts) — un agent a pu y taper un
+  // IBAN/N° AVS. Rédigés AVANT injection dans le prompt LLM (même invariant que le copilote,
+  // ai-copilot/index.ts). La rédaction préserve le TON, qui est tout ce que le mimétisme exploite.
+  const voiceSamples = (await fetchClientVoiceSamples(supabase, ctx.agencyId, { profileId }))
+    .map((s) => ({ body: redactPII(s.body).redactedText }))
   const rawVoice = formatVoiceExamples(voiceSamples, voiceLang)
   // Cadrage : la voix ne s'applique QU'aux messages client (send_client_message), jamais au chat avec l'agent.
   const voiceBlock = rawVoice
@@ -117,7 +126,10 @@ serve(async (req) => {
   // Apprentissage T2 (par l'exemple) : corrections passées de l'agent sur tes
   // brouillons client (brouillon rejeté → message envoyé), réinjectées pour ne pas
   // refaire la même erreur. Par agent, auto (ne façonne qu'un brouillon validé).
-  const correctionsBlock = formatCorrectionExamples(await fetchCorrectionExamples(supabase, profileId), voiceLang)
+  // Rédigées aussi (même raison que la voix : brouillons + messages envoyés stockés bruts).
+  const correctionExamples = (await fetchCorrectionExamples(supabase, profileId))
+    .map((c) => ({ draft: redactPII(c.draft).redactedText, final: redactPII(c.final).redactedText }))
+  const correctionsBlock = formatCorrectionExamples(correctionExamples, voiceLang)
 
   // Comportement GROUPE (v1) : le brain aide l'agent À PROPOS d'un groupe ; il ne poste jamais lui-même.
   const groupBlock = lang === 'en'
@@ -143,6 +155,9 @@ serve(async (req) => {
 - search_contacts : si plusieurs contacts correspondent, liste les noms et demande lequel — ne devine pas avant d'agir.
 - attach_kyc_document : ne dis jamais qu'une pièce est validée ni le dossier complet (la validation n'est pas faite par l'IA) ; ne restitue que les champs réellement lus.`
 
+  // Le garde-fou NBA (anti-initiative) est injecté par composeAgentSystemPrompt (baked-in),
+  // gardé par agent-system-prompt.test.ts — plus besoin de le concaténer à la main ici.
+
   // C1 : mémoire de conversation — injecte les échanges récents agent↔MEGGA (24h, 12 max),
   // en excluant le message courant (déjà stocké par le webhook avant cet appel).
   // Garde : si waNumber est vide, .or('wa_from.eq.,wa_to.eq.') ne matche RIEN → amnésie
@@ -152,13 +167,21 @@ serve(async (req) => {
     console.warn('C1 skipped: no waNumber for profile', profileId)
   } else {
     const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    const { data: histRows } = await supabase
+    // Cloisonnement inter-agences (défense en profondeur) : borne l'historique à l'agence
+    // VÉRIFIÉE du lien (ctx.agencyId = link.agency_id, re-dérivé, jamais le body). Le fil
+    // agent↔MEGGA est déjà propre à l'agent (les messages clients ont d'autres wa_from/wa_to),
+    // mais ça ferme le cas limite d'un numéro recyclé entre agences dans la fenêtre 24h.
+    // Sauté si l'agent n'a pas d'agence (eq(null) ne matcherait rien d'utile ; aucun outil
+    // ne fonctionne de toute façon sans agence).
+    let histQ = supabase
       .from('whatsapp_messages')
       .select('direction, body, transcript')
       .or(`wa_from.eq.${waNumber},wa_to.eq.${waNumber}`)
       .eq('is_agent_error', false) // anti-écho : ne jamais relire une réponse d'échec (leçon 5)
       .neq('provider_message_id', currentMessageId ?? '')
       .gt('created_at', sinceIso)
+    if (ctx.agencyId) histQ = histQ.eq('agency_id', ctx.agencyId)
+    const { data: histRows } = await histQ
       .order('created_at', { ascending: false })
       .limit(12)
     history = buildHistoryMessages((histRows ?? []) as WaHistoryRow[])
@@ -166,9 +189,24 @@ serve(async (req) => {
 
   // Ancrage temporel : sans ça DeepSeek ne sait pas résoudre « demain », « vendredi 14h »
   // en ISO 8601 (indispensable pour schedule_visit / create_reminder / get_my_agenda).
+  // CACHE CONTEXTE : la valeur horodatée change à la minute. On la place en TOUT DERNIER
+  // du system message pour que le gros volume statique (SYSTEM + blocs) reste un préfixe
+  // stable ; le cache DeepSeek ne se réinvalide alors que sur le court suffixe daté, et non
+  // sur tout le prompt à chaque minute. L'instruction de conversion (statique) reste dans
+  // le préfixe et pointe vers la date fournie en fin de message.
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
+  const systemStable = composeAgentSystemPrompt({
+    system: SYSTEM,
+    styleGuide: MEGGA_STYLE_BLOCK,
+    learnedStyle: styleBlock,
+    voice: voiceBlock,
+    corrections: correctionsBlock,
+    group: groupBlock,
+    listing: listingBlock,
+    antiFab: antiFabBlock,
+  })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${SYSTEM}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}. Convertis toute date relative en ISO 8601 avec le décalage de Genève (+02:00 en été, +01:00 en hiver).\n\nLangue : réponds TOUJOURS dans la langue du dernier message de l'agent (français ou anglais). Ne mélange pas les langues.\n\n${MEGGA_STYLE_BLOCK}${styleBlock}${voiceBlock}${correctionsBlock}${groupBlock}${listingBlock}${antiFabBlock}` },
+    { role: 'system', content: `${systemStable}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.` },
     ...history,
     { role: 'user', content: message },
   ]
@@ -180,7 +218,7 @@ serve(async (req) => {
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     if (overBudget()) return json({ reply: t(lang, 'complexRetry'), isError: true }, 200)
-    const resp = await callDeepSeek(apiKey, messages)
+    const resp = await callDeepSeek(apiKey, messages, 'auto', { client: supabase, agencyId: ctx.agencyId })
     if (!resp) return json({ reply: t(lang, 'cantProcess'), isError: true }, 200)
     const msg = resp.choices?.[0]?.message
     const toolCalls = msg?.tool_calls as Array<{ id?: string; function?: { name?: string; arguments?: string } }> | undefined
@@ -273,7 +311,7 @@ serve(async (req) => {
   // F9 : la boucle d'outils est épuisée sans réponse finale (DeepSeek a continué à
   // appeler des outils sans conclure). On force une DERNIÈRE passe SANS outils : il doit
   // rédiger une réponse à partir de ce qu'il a déjà récolté, plutôt qu'un message d'échec.
-  const forced = await callDeepSeek(apiKey, messages, 'none')
+  const forced = await callDeepSeek(apiKey, messages, 'none', { client: supabase, agencyId: ctx.agencyId })
   const forcedContent = forced?.choices?.[0]?.message?.content as string | undefined
   if (forcedContent) {
     if (isFabricatedKycClaim(forcedContent, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
@@ -360,17 +398,32 @@ function safeEqual(a: string, b: string): boolean {
 
 async function callDeepSeek(
   apiKey: string, messages: Array<Record<string, unknown>>, toolChoice: 'auto' | 'none' = 'auto',
+  logCtx?: { client: SupabaseClient; agencyId: string | null },
 ) {
   try {
+    const started = Date.now()
+    // Rédaction PII AU FIL (P0 « PII→LLM ») : message agent + historique C1 + résultats
+    // d'outils passent par redactPII ici — point d'étranglement unique que ni la passe
+    // finale forcée ni un futur site de push d'outil ne peuvent contourner. Le system est
+    // exclu (composé de parties déjà rédigées : voix/corrections au fetch + texte statique).
+    // Voir _shared/wa-agent-redaction.ts pour le périmètre et le trade-off assumé.
     const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: 'deepseek-chat', messages, tools: WHATSAPP_TOOLS, tool_choice: toolChoice, max_tokens: 1500 }),
+      body: JSON.stringify({ model: 'deepseek-chat', messages: redactLlmMessages(messages), tools: WHATSAPP_TOOLS, tool_choice: toolChoice, max_tokens: 1500 }),
       signal: AbortSignal.timeout(DEEPSEEK_TIMEOUT_MS), // F13 : ne jamais pendre
     })
     // F14/I4 : on log le status seulement, JAMAIS le corps (PII des messages échoués).
     if (!r.ok) { console.error('deepseek http', r.status); return null }
-    return await r.json()
+    const j = await r.json()
+    // Journalisation coût + latence (fire-and-forget) : un log par tour de boucle.
+    if (logCtx) {
+      logDeepSeekUsageWith(logCtx.client, j?.usage, {
+        edgeFunction: 'whatsapp-agent', module: 'whatsapp-agent',
+        latencyMs: Date.now() - started, agencyId: logCtx.agencyId,
+      })
+    }
+    return j
   } catch (e) {
     console.error('deepseek fetch failed:', (e as Error)?.name ?? 'error')
     return null
@@ -431,7 +484,11 @@ async function stashPending(
   // (et on ne stocke rien), au lieu de promettre une action qui planterait au « oui ».
   let prompt = t(ctx.lang ?? 'fr', 'confirmGeneric')
   let storeArgs: Record<string, unknown> = args
-  if (tool === 'open_kyc_case') {
+  if (tool === 'delete_contact') {
+    const p = await prepareDeleteContact(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'open_kyc_case') {
     const p = await prepareOpenKycCase(ctx, args)
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload

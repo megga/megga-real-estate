@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — annuaire des agences.
+ *
+ * Route : `/dashboard/admin/agencies` (section admin, accent violet). Liste
+ * paginée (10/page) avec recherche, filtre de statut, export CSV et score de
+ * santé par agence. La santé s'appuie sur un résumé d'activité agrégé server-side
+ * (RPC `get_agency_activity_summary`) pour éviter de scanner activity_events.
+ */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -20,6 +28,7 @@ const PLAN_LABEL: Record<string, string> = {
   agency: 'Agency',
 }
 
+/** Pastille initiale, couleur dérivée déterministiquement du nom (somme des char codes). */
 function AgencyAvatar({ name }: { name: string }) {
   const letter = (name || '?')[0].toUpperCase()
   const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500']
@@ -32,6 +41,7 @@ function AgencyAvatar({ name }: { name: string }) {
   )
 }
 
+/** Placeholder pulsant du tableau desktop pendant le chargement. */
 function SkeletonRows() {
   return (
     <>
@@ -54,26 +64,34 @@ function SkeletonRows() {
   )
 }
 
+/** Écran annuaire : chargement, filtres, pagination et calcul du score de santé. */
 export default function AdminAgenciesPage() {
   'use no memo'
   const { t } = useTranslation('admin')
   const { agencies, isLoading, updateStatus } = useAdminAgencies()
 
-  // Activity data for health scores
+  // Activity data for health scores.
+  // Agrégé SERVER-SIDE via RPC : l'ancien code chargeait toutes les lignes
+  // activity_events des 30 derniers jours dans le navigateur (SELECT non borné
+  // sur une table d'audit append-only → des dizaines de milliers de lignes pour
+  // un super_admin réel). La RPC renvoie ~1 ligne par agence. Voir migration
+  // 20260705210000_agency_activity_summary_rpc + CLAUDE.md §7.
+  const agencyIds = useMemo(() => agencies.map((a) => a.id), [agencies])
   const activityQuery = useQuery({
-    queryKey: ['admin-agency-activity-summary'],
+    queryKey: ['admin-agency-activity-summary', agencyIds],
+    enabled: agencyIds.length > 0,
     queryFn: async () => {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      const { data } = await supabase
-        .from('activity_events')
-        .select('agency_id, created_at')
-        .gte('created_at', thirtyDaysAgo)
+      const { data } = await supabase.rpc('get_agency_activity_summary', {
+        agency_ids: agencyIds,
+        since_days: 30,
+      })
       const byAgency: Record<string, { count: number; lastAt: string }> = {}
-      for (const evt of data ?? []) {
-        if (!evt.agency_id) continue
-        if (!byAgency[evt.agency_id]) byAgency[evt.agency_id] = { count: 0, lastAt: evt.created_at }
-        byAgency[evt.agency_id].count++
-        if (evt.created_at > byAgency[evt.agency_id].lastAt) byAgency[evt.agency_id].lastAt = evt.created_at
+      for (const row of data ?? []) {
+        if (!row.agency_id) continue
+        byAgency[row.agency_id] = {
+          count: Number(row.event_count),
+          lastAt: row.last_activity_at,
+        }
       }
       return byAgency
     },
@@ -395,6 +413,7 @@ export default function AdminAgenciesPage() {
   )
 }
 
+/** État vide, messages distincts selon qu'un filtre est actif ou non. */
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   const { t } = useTranslation('admin')
   return (

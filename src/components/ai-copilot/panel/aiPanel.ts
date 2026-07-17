@@ -13,10 +13,6 @@ export const PANEL_W = 372
 export const COPILOT_WIDTH = PANEL_W + 32
 
 // ── Bleu identité MEGGA AI (chantier 1) ─────────────────────────────────────
-export const AI_BLUE_LIGHT = '#1E5BC6'
-export const AI_BLUE_DARK = '#7FB0FF'
-export const aiBlue = (dark: boolean) => (dark ? AI_BLUE_DARK : AI_BLUE_LIGHT)
-
 // ── Palette dérivée du panneau ──────────────────────────────────────────────
 // Étend le SugarPalette de base avec les surfaces propres au panneau (accent
 // noir plein #0B0C0E en clair / surface claire en sombre, canvas, composer…).
@@ -297,6 +293,29 @@ export function isAnnonceRequest(query: string | undefined): boolean {
 export function isLettreRequest(query: string | undefined): boolean {
   if (!query) return false
   return /\blettre|courrier(?!\s*électronique)/i.test(query)
+}
+
+// ── Phases d'outils RÉELLES (chantier tool-loop) ────────────────────────────
+// Libellé humain d'une consultation d'outil en cours, affiché en direct pendant
+// le streaming SSE (remplace les phases cosmétiques quand les outils sont ON).
+// Inconnu → libellé générique (jamais le nom technique brut à l'agent).
+const TOOL_PHASE_LABELS: Record<string, string> = {
+  get_my_agenda: "Consultation de l'agenda",
+  search_contacts: 'Recherche dans les contacts',
+  get_contact_brief: 'Lecture de la fiche contact',
+  list_followups: 'Analyse des relances',
+  get_matches: 'Recherche des correspondances',
+  get_daily_brief: 'Préparation du briefing',
+  search_listings: 'Recherche de biens sur le marché',
+  get_kyc_status: 'Vérification du dossier KYC',
+  get_publication_status: 'Vérification de la publication',
+  prepare_meeting: 'Préparation du rendez-vous',
+  suggest_priorities_today: 'Analyse de tes priorités',
+  get_analytics_snapshot: 'Lecture de tes chiffres',
+  get_market_stats: 'Analyse du marché',
+}
+export function toolPhaseLabel(name: string): string {
+  return TOOL_PHASE_LABELS[name] || 'Consultation du CRM'
 }
 
 // ── Phases de réflexion selon la demande ────────────────────────────────────

@@ -24,6 +24,8 @@ import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useAuth } from '@/hooks/useAuth'
 import { formatTodayHeader } from '@/lib/utils'
 import { CockpitAiInsights } from '@/components/crm-sugar/ai/CockpitAiInsights'
+import { CockpitWhatsAppFollowups } from '@/components/crm-sugar/ai/CockpitWhatsAppFollowups'
+import { MorningBriefing } from './MorningBriefing'
 
 // ─── « Ensuite » — file d'attente compacte ──────────────────────────────
 // `e.tag` reste un CODE stable (clé de tonalité + de libellé). La tonalité et le
@@ -170,9 +172,15 @@ export function PageAujourdhui({ demo = false }: { demo?: boolean } = {}) {
           <FocusPill onClick={() => setFocusMode(true)} />
         </div>
 
-        {/* Bandeau proactif MEGGA AI — sous la salutation, avant la grille bento.
-            Branché sur le pipeline live ; se masque s'il n'y a aucun signal réel. */}
+        {/* Bandeaux proactifs MEGGA AI — sous la salutation, avant la grille bento.
+            Branchés sur des données live ; chacun se masque s'il n'y a aucun signal réel.
+            1) Priorités pipeline · 2) Suivis WhatsApp extraits des conversations. */}
         {!demo && <CockpitAiInsights />}
+        {!demo && <CockpitWhatsAppFollowups />}
+
+        {/* Briefing matinal généré (Phase 3) — gated app_config + cache 1×/jour ;
+            se masque tant que le flag est OFF ou qu'il n'y a rien à dire. */}
+        {!demo && <MorningBriefing />}
 
         <div style={{ flex: 1, display: 'flex', gap: 14, minHeight: 0 }}>
 

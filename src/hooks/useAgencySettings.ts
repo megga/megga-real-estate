@@ -20,6 +20,8 @@ export interface AgencySettingsData {
   website: string
   logoUrl: string
   legal: string
+  /** Forme juridique (SA, Sàrl…) — agencies.legal_form. */
+  legalForm: string
   ide: string
   tva: string
   /** Année de création — string côté form, parsée en int au save. */
@@ -39,6 +41,7 @@ const EMPTY_AGENCY: AgencySettingsData = {
   website: '',
   logoUrl: '',
   legal: '',
+  legalForm: '',
   ide: '',
   tva: '',
   foundedYear: '',
@@ -57,6 +60,7 @@ interface AgencyRow {
   website: string | null
   logo_url: string | null
   legal_name: string | null
+  legal_form: string | null
   ide: string | null
   tva: string | null
   founded_year: number | null
@@ -82,6 +86,11 @@ export interface UseAgencySettingsReturn {
   save: (next: AgencySettingsData) => Promise<void>
 }
 
+/**
+ * Réglages de l'agence courante (dérivée de `profile.agency_id`) : hydrate un état
+ * local éditable depuis la ligne `agencies` et le persiste via `save()`. `plan` est
+ * exposé en lecture seule. `enabled: false` évite de charger hors du contexte Réglages.
+ */
 export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySettingsReturn {
   const enabled = options?.enabled ?? true
   const { profile } = useAuth()
@@ -95,7 +104,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
       if (!agencyId) return { settings: EMPTY_AGENCY, plan: null }
       const { data: row, error } = await supabase
         .from('agencies')
-        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, ide, tva, founded_year, postal_code, country, about_short, plan')
+        .select('name, address, city, canton, phone, email, website, logo_url, legal_name, legal_form, ide, tva, founded_year, postal_code, country, about_short, plan')
         .eq('id', agencyId)
         .single<AgencyRow>()
       if (error) throw error
@@ -110,6 +119,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
           website: row?.website ?? '',
           logoUrl: row?.logo_url ?? '',
           legal: row?.legal_name ?? '',
+          legalForm: row?.legal_form ?? '',
           ide: row?.ide ?? '',
           tva: row?.tva ?? '',
           foundedYear: row?.founded_year != null ? String(row.founded_year) : '',
@@ -148,6 +158,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
           website: next.website || null,
           logo_url: next.logoUrl || null,
           legal_name: next.legal || null,
+          legal_form: next.legalForm || null,
           ide: next.ide || null,
           tva: next.tva || null,
           founded_year: foundedYear,

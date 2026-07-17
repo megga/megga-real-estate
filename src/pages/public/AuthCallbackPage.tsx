@@ -1,3 +1,10 @@
+/**
+ * Page de callback d'authentification — route `/auth/callback`.
+ * Aiguille après SIGNED_IN : sauvegarde des tokens Google/Outlook Calendar
+ * (params `gcal` / `outlook`), sinon redirection selon le rôle en corrigeant au
+ * passage le rôle du profil si l'inscription visait un rôle différent.
+ * PASSWORD_RECOVERY → écran de reset ; timeout de secours après 5 s.
+ */
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
@@ -7,11 +14,13 @@ import type { UserRole } from '@/types/auth'
 
 const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'manager', 'admin', 'assistant']
 
+/** Destination post-login selon le rôle : agents vers le CRM, particuliers vers le portail. */
 function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role)) return '/dashboard'
   return '/portal'
 }
 
+/** Écran transitoire « Connexion en cours » ; l'aiguillage réel se fait dans onAuthStateChange. */
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
 

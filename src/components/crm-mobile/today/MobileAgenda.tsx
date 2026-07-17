@@ -1,3 +1,6 @@
+/**
+ * Agenda du jour du cockpit « Aujourd'hui » mobile (crm-mobile/today).
+ */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useCalendarSugar } from '@/hooks/useCalendarSugar'
@@ -30,6 +33,7 @@ function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
+/** Ligne d'agenda : heure, pastille couleur, libellé (barré si passé) et badge « maintenant ». */
 function Row({ a, last }: { a: AgendaRow; last: boolean }) {
   const { t } = useTranslation('dashboard')
   const { tk } = useMobileTokens()

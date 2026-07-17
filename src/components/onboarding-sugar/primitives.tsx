@@ -257,22 +257,6 @@ export function ObCard({
 }
 
 // ─── Drapeau suisse SVG ──────────────────────────────────────────────
-
-export function ObSwissFlag({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 32 32"
-      style={{ display: 'block', flexShrink: 0 }}
-    >
-      <rect width="32" height="32" rx="3" fill="#D52B1E" />
-      <rect x="13" y="6" width="6" height="20" fill="#fff" />
-      <rect x="6" y="13" width="20" height="6" fill="#fff" />
-    </svg>
-  )
-}
-
 // ─── Champ Sugar (label + control) ───────────────────────────────────
 
 export const obInputStyle = (t: ObTheme): CSSProperties => ({

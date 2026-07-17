@@ -325,6 +325,7 @@ serve(async (req) => {
       body: outText,
       status: 'received',
       is_agent_error: false,
+      is_automated: true, // brief quotidien généré (vers l'agent) : jamais du corpus de voix
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
 
     try {

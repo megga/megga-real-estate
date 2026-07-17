@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — modération marketplace.
+ *
+ * Route : `/dashboard/admin/marketplace` (SuperAdminGuard, accent violet).
+ * Table paginée des annonces avec actions approuver / signaler / retirer
+ * (`useAdminModeration`), export CSV, plus les inbox leads vendeurs et messages
+ * storefront en pied de page (P4 admin).
+ */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Search, ShieldCheck, AlertTriangle, Trash2, Check, Building2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
@@ -31,6 +39,7 @@ const STATUS_LABEL_KEY: Record<string, string> = {
   removed: 'common.status.removed',
 }
 
+/** Lignes fantômes du tableau desktop pendant le chargement. */
 function SkeletonRows() {
   return (
     <>
@@ -51,6 +60,7 @@ function SkeletonRows() {
   )
 }
 
+/** État vide de la liste ; message distinct selon qu'un filtre est actif ou non. */
 function EmptyState({ hasFilters, t }: { hasFilters: boolean; t: (key: string) => string }) {
   return (
     <div className="px-4 py-16 text-center">
@@ -65,6 +75,7 @@ function EmptyState({ hasFilters, t }: { hasFilters: boolean; t: (key: string) =
   )
 }
 
+/** Page de modération : recherche + filtre statut, table responsive, dialog de confirmation. */
 export default function AdminMarketplacePage() {
   const { t } = useTranslation('admin')
   const { listings, isLoading, stats, statsLoading, moderate } = useAdminModeration()

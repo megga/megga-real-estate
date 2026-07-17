@@ -1,8 +1,10 @@
-// Catalogue des outils du copilote WhatsApp (nom + tier), MIROIR FRONTEND de la source de vérité
-// edge : supabase/functions/_shared/whatsapp-agent-router.ts (TOOL_TIERS). Le bundle Vite ne peut
-// pas importer le code edge (Deno) → ce miroir est maintenu à la main.
-// ⚠ À garder en SYNC quand on ajoute/retire un outil côté agent.
-// Sert à passer p_known_tools à get_whatsapp_tool_usage_stats pour révéler les outils JAMAIS utilisés.
+/**
+ * Catalogue des outils du copilote WhatsApp (nom + tier), MIROIR FRONTEND de la source de vérité
+ * edge : supabase/functions/_shared/whatsapp-agent-router.ts (TOOL_TIERS). Le bundle Vite ne peut
+ * pas importer le code edge (Deno) → ce miroir est maintenu à la main.
+ * ⚠ À garder en SYNC quand on ajoute/retire un outil côté agent.
+ * Sert à passer p_known_tools à get_whatsapp_tool_usage_stats pour révéler les outils JAMAIS utilisés.
+ */
 
 export type WaToolTier = 'read' | 'auto' | 'confirm' | 'slow_async'
 
@@ -53,5 +55,3 @@ export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
   { name: 'run_kyc_screening', tier: 'slow_async' },
   { name: 'send_kyc_report', tier: 'slow_async' },
 ]
-
-export const WHATSAPP_TOOL_NAMES: string[] = WHATSAPP_TOOL_CATALOG.map((tt) => tt.name)

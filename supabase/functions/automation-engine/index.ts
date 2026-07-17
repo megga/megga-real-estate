@@ -5,6 +5,9 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import {
+  RADAR_DEFAULTS, isDealStagnant, isMatchIgnored, stagnantDealReason, ignoredMatchReason,
+} from '../_shared/radar-detectors.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -147,7 +150,12 @@ serve(async (req) => {
     async function reminderExists(
       contactId: string,
       type: string,
-      extraFilters?: { property_id?: string; match_id?: string; transaction_id?: string }
+      extraFilters?: { property_id?: string; match_id?: string; transaction_id?: string },
+      // anyStatus=true : dédup sur TOUS les statuts (y compris done/cancelled). Utilisé
+      // par le RADAR pour ne PAS re-créer un signal qu'un agent a déjà classé sans
+      // toucher le fond (sinon re-nag horaire). Les 6 détecteurs historiques gardent
+      // la dédup « active seulement » (défaut) pour pouvoir re-relancer après clôture.
+      anyStatus = false,
     ): Promise<boolean> {
       let query = supabase
         .from('reminders')
@@ -155,7 +163,7 @@ serve(async (req) => {
         .eq('agency_id', agency_id)
         .eq('contact_id', contactId)
         .eq('type', type)
-        .in('status', ['pending', 'triggered', 'snoozed'])
+      if (!anyStatus) query = query.in('status', ['pending', 'triggered', 'snoozed'])
 
       if (extraFilters?.property_id) {
         query = query.eq('property_id', extraFilters.property_id)
@@ -425,6 +433,82 @@ serve(async (req) => {
             channel: 'email',
             message_template: null,
           })
+        }
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // RADAR (fin de Phase 3) — 2 détecteurs déterministes SUPPLÉMENTAIRES, gardés
+    // par app_config automation_radar_enabled (OFF par défaut). Ils créent des
+    // rappels TYPÉS avec une raison chiffrée (message_template) que la file Focus
+    // affiche et que le copilote relaie. Seuils : radar-detectors.ts (module pur).
+    // ══════════════════════════════════════════════════════════════════════════
+    {
+      const { data: radarFlag } = await supabase
+        .from('app_config').select('value').eq('key', 'automation_radar_enabled').maybeSingle()
+      if (radarFlag?.value === 'true') {
+        const nowMs = now.getTime()
+
+        // (R1) Dossier stagnant : transaction active, étape en cours, updated_at ancien.
+        // Bornée (.limit) + dédup TOUS-STATUTS : au 1er scan on ne flague qu'un lot ;
+        // les scans suivants épongent le reste, sans jamais re-nager un objet déjà classé.
+        {
+          const cutoff = new Date(nowMs - RADAR_DEFAULTS.dealStagnantDays * 24 * 60 * 60 * 1000).toISOString()
+          const { data: deals } = await supabase
+            .from('transactions')
+            .select('id, stage, status, updated_at, contact_buyer_id, contact_seller_id')
+            .eq('agency_id', agency_id)
+            .eq('status', 'active')
+            .lt('updated_at', cutoff)
+            .order('updated_at', { ascending: true })
+            .limit(50)
+          for (const d of deals || []) {
+            const contactId = (d.contact_buyer_id ?? d.contact_seller_id) as string | null
+            if (!contactId) continue
+            if (!isDealStagnant({ status: d.status, stage: d.stage, updatedAt: d.updated_at, now: nowMs })) continue
+            const exists = await reminderExists(contactId, 'deal_stagnant', { transaction_id: d.id }, true)
+            if (exists) continue
+            const days = Math.floor((nowMs - Date.parse(d.updated_at)) / 86_400_000)
+            await createReminder({
+              agency_id, contact_id: contactId, property_id: null, transaction_id: d.id, match_id: null,
+              type: 'deal_stagnant', trigger_rule: 'inactivity', trigger_days: RADAR_DEFAULTS.dealStagnantDays,
+              status: 'pending', trigger_at: now.toISOString(), channel: 'notification',
+              message_template: stagnantDealReason(d.stage, days),
+            })
+          }
+        }
+
+        // (R2) Correspondance forte ignorée : match suggéré, score élevé, jamais envoyé, ancien.
+        // matches est volumineux et 100% 'suggested' → la requête est bornée (.limit) ET
+        // plafonnée en âge (on ignore les suggestions > 90 j, mortes) pour éviter une
+        // rafale de rappels au 1er scan ; dédup TOUS-STATUTS anti re-nag.
+        {
+          const cutoff = new Date(nowMs - RADAR_DEFAULTS.matchIgnoredDays * 24 * 60 * 60 * 1000).toISOString()
+          const floor = new Date(nowMs - 90 * 24 * 60 * 60 * 1000).toISOString()
+          const { data: matches } = await supabase
+            .from('matches')
+            .select('id, contact_id, property_id, score, status, sent_at, created_at')
+            .eq('agency_id', agency_id)
+            .eq('status', 'suggested')
+            .is('sent_at', null)
+            .gte('score', RADAR_DEFAULTS.matchIgnoredMinScore)
+            .lt('created_at', cutoff)
+            .gte('created_at', floor)
+            .order('score', { ascending: false })
+            .limit(50)
+          for (const m of matches || []) {
+            if (!m.contact_id) continue
+            if (!isMatchIgnored({ status: m.status, score: m.score, sentAt: m.sent_at, createdAt: m.created_at, now: nowMs })) continue
+            const exists = await reminderExists(m.contact_id, 'match_ignored', { match_id: m.id }, true)
+            if (exists) continue
+            const days = Math.floor((nowMs - Date.parse(m.created_at)) / 86_400_000)
+            await createReminder({
+              agency_id, contact_id: m.contact_id, property_id: m.property_id, transaction_id: null, match_id: m.id,
+              type: 'match_ignored', trigger_rule: 'no_response', trigger_days: RADAR_DEFAULTS.matchIgnoredDays,
+              status: 'pending', trigger_at: now.toISOString(), channel: 'notification',
+              message_template: ignoredMatchReason(m.score, days),
+            })
+          }
         }
       }
     }

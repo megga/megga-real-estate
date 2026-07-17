@@ -21,6 +21,7 @@ export interface LearnedStyleRow {
   } | null
 }
 
+/** File les styles de communication appris par agent (RPC `get_agent_learned_styles`, lignes non-nulles seulement). */
 export function useAdminLearning() {
   return useQuery({
     queryKey: ['admin', 'learned-styles'],
@@ -34,6 +35,7 @@ export function useAdminLearning() {
   })
 }
 
+/** Active ou révise un style appris (RPC `set_agent_learned_style`) ; le super-admin valide explicitement avant mise en production. */
 export function useSetLearnedStyle() {
   const qc = useQueryClient()
   return useMutation({

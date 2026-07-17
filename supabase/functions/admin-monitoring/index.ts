@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { checkMetaToken, tokenDaysMetric, tokenNeedsAlert } from '../_shared/whatsapp-token.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
-import { evaluateAndSendAlerts } from '../_shared/admin-alerts.ts'
+import { evaluateAndSendAlerts, type WhatsAppDeadletters } from '../_shared/admin-alerts.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -160,6 +160,36 @@ serve(async (req) => {
       }
     } catch (e) { console.error('whatsapp token check failed:', (e as Error)?.name ?? 'error') }
 
+    // ── Dead-letters WhatsApp (audit WA) — files d'échec ni enregistrées ni
+    // surveillées jusqu'ici. RPC serveur (une passe indexée par signal). 5
+    // compteurs → tendance dans platform_metrics + alerting du taux 24h.
+    // Best-effort : ne casse jamais la collecte.
+    let waDeadletters: WhatsAppDeadletters | undefined
+    try {
+      const { data: dl, error: dlErr } = await supabaseAdmin.rpc('get_whatsapp_deadletter_metrics')
+      // supabase-js ne LÈVE PAS sur erreur DB (RAISE 42501 / statement timeout /
+      // permission) : il faut lire `error`. Sur échec → métriques ABSENTES (pas
+      // de fausse-zéro qui masquerait un backlog réel) et alerte non évaluée.
+      if (dlErr) throw dlErr
+      const c = (dl ?? {}) as Record<string, unknown>
+      const n = (k: string) => Number(c[k] ?? 0) || 0
+      waDeadletters = {
+        processing_failed: n('processing_failed'),
+        processing_deadletter: n('processing_deadletter'),
+        processing_deadletter_24h: n('processing_deadletter_24h'),
+        agent_errors_24h: n('agent_errors_24h'),
+        delivery_failed_24h: n('delivery_failed_24h'),
+        async_jobs_failed_24h: n('async_jobs_failed_24h'),
+      }
+      metrics.push(
+        { metric_type: 'wa_processing_failed', metric_value: waDeadletters.processing_failed },
+        { metric_type: 'wa_processing_deadletter', metric_value: waDeadletters.processing_deadletter },
+        { metric_type: 'wa_agent_errors_24h', metric_value: waDeadletters.agent_errors_24h },
+        { metric_type: 'wa_delivery_failed_24h', metric_value: waDeadletters.delivery_failed_24h },
+        { metric_type: 'wa_async_jobs_failed_24h', metric_value: waDeadletters.async_jobs_failed_24h },
+      )
+    } catch (e) { console.error('whatsapp deadletter metrics failed:', (e as Error)?.message ?? 'error') }
+
     await supabaseAdmin.from('platform_metrics').insert(metrics)
 
     // ── Alerting proactif (P3) — seuils app_config, dédup 24h, email aux
@@ -168,6 +198,7 @@ serve(async (req) => {
       await evaluateAndSendAlerts(supabaseAdmin, {
         errorCount24h: errorCount.count ?? 0,
         flatfoxLastSeen,
+        waDeadletters,
         now,
       })
     } catch (e) {

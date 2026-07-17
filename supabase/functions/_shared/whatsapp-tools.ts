@@ -73,6 +73,20 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_contact',
+      description: "Supprime DÉFINITIVEMENT un contact du CRM de l'agence (le système confirme d'abord). Action IRRÉVERSIBLE, réservée à une vraie demande de suppression : « supprime le contact Dubois », « efface cette fiche », « retire Jean Martin du CRM ». Ne l'utilise JAMAIS pour archiver, marquer perdu ou déplacer dans le pipeline (c'est update_pipeline). Les dossiers KYC et transactions du contact sont conservés (déliés), le reste (correspondances, visites) part avec la fiche. contact_id obtenu via search_contacts — n'invente jamais d'identifiant ; si plusieurs contacts correspondent, demande lequel.",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string', description: 'ID du contact à supprimer (via search_contacts).' },
+        },
+        required: ['contact_id'],
+      },
+    },
+  },
   // create_task : DIFFÉRÉ (4A.1) — modèle reminders vs ai_actions_queue à trancher.
   {
     type: 'function',
@@ -93,7 +107,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'get_contact_brief',
-      description: "Fiche synthétique d'un contact (infos, critères, 5 dernières actions) + compréhension de la dernière conversation WhatsApp (résumé, intention, prochaine action suggérée). Pour « résume Dubois », « où en est X », « rédige une réponse pour X ». contact_id via search_contacts.",
+      description: "Fiche synthétique d'un contact (infos, critères, 5 dernières actions) + compréhension de la dernière conversation WhatsApp (résumé, mémoire longue, piste évoquée en conversation) + prochaine action du dossier (next_action_estimee, estimation déterministe interne). Pour « résume Dubois », « où en est X », « rédige une réponse pour X ». contact_id via search_contacts.",
       parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
     },
   },

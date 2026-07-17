@@ -1,3 +1,14 @@
+/**
+ * Page agent — assistant de création / édition d'un bien.
+ *
+ * Route : `/dashboard/listings/:id/edit`. Le même composant gère aussi la création
+ * (choix de méthode : manuel, duplication `?duplicate=`, import URL/PDF). Cinq sections
+ * en accordéon (infos, localisation, prix, photos, description) validées par des schémas
+ * Zod par étape + un `fullSchema` fusionné. Auto-save brouillon toutes les 30 s (hors
+ * édition), verrou optimiste `expected_updated_at`, verrou LBA (mandat signé requis pour
+ * publier une vente ≥ CHF 100'000 ou toute location) et signature C2PA des photos en
+ * tâche de fond.
+ */
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useForm, type UseFormReturn } from 'react-hook-form'
@@ -36,12 +47,12 @@ import { useSignPhotos } from '@/hooks/useC2pa'
 import { useVirtualStaging, STAGING_STYLES, ROOM_TYPES, type StagingStyle, type RoomType } from '@/hooks/useVirtualStaging'
 import FloorPlanEditor from '@/components/listings/FloorPlanEditor'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
-import GalleryLayoutPicker from '@/components/listing/GalleryLayoutPicker'
+import GalleryLayoutPicker from '@/components/listings/GalleryLayoutPicker'
 import {
   ContactLayoutPicker,
   NeighborhoodVariantPicker,
   PartnerAgencyPicker,
-} from '@/components/listing/ListingDisplayPickers'
+} from '@/components/listings/ListingDisplayPickers'
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
@@ -374,6 +385,7 @@ const AVAILABILITY_OPTIONS = [
 
 // ─── Number Stepper component ───
 
+/** Sélecteur numérique +/- (pièces, chambres, salles de bain) avec bornes et pas configurables. */
 function NumberStepper({
   value,
   onChange,
@@ -444,6 +456,7 @@ function NumberStepper({
 
 // ─── Field helpers ───
 
+/** Label de champ de formulaire, style uniforme. */
 function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return (
     <label htmlFor={htmlFor} className="block text-sm font-medium text-theme-primary mb-1.5">
@@ -452,11 +465,13 @@ function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.R
   )
 }
 
+/** Message d'erreur de validation sous un champ ; rien si `message` absent. */
 function FieldError({ message }: { message?: string }) {
   if (!message) return null
   return <p className="text-xs text-red-500 mt-1">{message}</p>
 }
 
+/** Sous-titre de section à l'intérieur d'une étape. */
 function SectionDivider({ title }: { title: string }) {
   return (
     <div className="pt-2">
@@ -470,6 +485,7 @@ const selectClass = 'w-full h-11 px-4 text-sm bg-transparent border border-theme
 
 // ─── Step 1: Infos générales (refonte) ───
 
+/** Étape 1 — Infos générales : titre, type de bien, pièces/surface, état, classe énergétique (CECB). */
 function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
   const { t } = useTranslation('listings')
   const { register, watch, setValue, formState: { errors } } = form
@@ -648,6 +664,7 @@ function Step1({ form }: { form: UseFormReturn<ListingFormData> }) {
 
 // ─── Step 2: Localisation (refonte avec autocomplete) ───
 
+/** Étape 2 — Localisation : autocomplete d'adresse suisse (ou saisie manuelle), EGID, mini-carte. */
 function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
   const { t } = useTranslation('listings')
   const { register, watch, setValue, formState: { errors } } = form
@@ -854,6 +871,7 @@ function Step2({ form }: { form: UseFormReturn<ListingFormData> }) {
 
 // ─── Step 3: Prix & détails (refonte features catégorisées) ───
 
+/** Étape 3 — Prix & détails : prix vente/loyer, mandat, caution/meublé (location), équipements, disponibilité. */
 function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
   const { t } = useTranslation('listings')
   const { register, watch, setValue, formState: { errors } } = form
@@ -1138,6 +1156,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
 
 // ─── Sortable Photo item for dnd-kit ───
 
+/** Vignette photo réordonnable (dnd-kit) avec badge « couverture » et sélecteur de pièce. */
 function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
   id: string
   url: string
@@ -1215,6 +1234,7 @@ function SortablePhoto({ id, url, index, onRemove, roomTag, onRoomTagChange }: {
 
 // ─── Step 4: Photos (refonte drag-and-drop) ───
 
+/** Étape 4 — Photos : upload + grille réordonnable, disposition de la fiche, staging IA, C2PA, plan interactif. */
 function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId }: {
   propertyId?: string
   form: UseFormReturn<ListingFormData>
@@ -1479,6 +1499,7 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
 
 // ── C2PA Certification Section ────────────────────────────────────────────
 
+/** Bloc de certification C2PA des photos (Content Credentials) ; inactif tant que le bien n'a pas d'id. */
 function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; photoUrls: string[] }) {
   const { t } = useTranslation('listings')
   const signPhotos = useSignPhotos()
@@ -1562,6 +1583,7 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
   )
 }
 
+/** Panneau MEGGA Staging : meublement virtuel d'une photo par l'IA (Gemini), avec avant/après. */
 function StagingSection({ photos, propertyId, onStagedPhoto }: {
   photos: string[]
   propertyId: string
@@ -1728,6 +1750,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
 
 // ─── Step 5: Description & publication ───
 
+/** Étape 5 — Description & publication : texte, tags et carte d'aperçu de la fiche. */
 function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
   const { t } = useTranslation('listings')
   const { register, watch, setValue, formState: { errors } } = form
@@ -1845,6 +1868,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
 
 // ─── Method Selection Screen ───
 
+/** Choix de la méthode de création d'un bien : manuel, duplication, import URL ou PDF. */
 function MethodSelectionScreen({ hasProperties, onSelect }: {
   hasProperties: boolean
   onSelect: (method: 'manual' | 'duplicate' | 'url' | 'pdf') => void
@@ -1921,6 +1945,7 @@ function MethodSelectionScreen({ hasProperties, onSelect }: {
 
 // ─── Duplicate Property Selector ───
 
+/** Sélecteur du bien source à dupliquer (recherche sur titre / adresse / ville). */
 function DuplicateSelector({ onSelect, onBack }: {
   onSelect: (propertyId: string) => void
   onBack: () => void
@@ -2001,6 +2026,7 @@ const SUPPORTED_PORTALS = [
   'immomig.ch', 'acheter-louer.ch', 'flatfox.ch', 'newhome.ch',
 ]
 
+/** Import par URL : extrait les données d'une annonce d'un portail supporté (Edge Function). */
 function UrlImportScreen({ onExtracted, onBack }: {
   onExtracted: (data: ExtractedPropertyData & { photos?: string[] }) => void
   onBack: () => void
@@ -2086,6 +2112,7 @@ function UrlImportScreen({ onExtracted, onBack }: {
 
 // ─── PDF Upload Screen ───
 
+/** Import par PDF : extrait les données d'une plaquette de bien (vision Gemini). */
 function PdfUploadScreen({ onExtracted, onBack }: {
   onExtracted: (data: ExtractedPropertyData) => void
   onBack: () => void
@@ -2175,6 +2202,7 @@ function PdfUploadScreen({ onExtracted, onBack }: {
 
 // ─── Main wizard ───
 
+/** Assistant en 5 sections (accordéon) : orchestre méthode de création, auto-save brouillon, verrou LBA et publication. */
 export default function ListingFormPage() {
   const { t } = useTranslation('listings')
   const navigate = useNavigate()

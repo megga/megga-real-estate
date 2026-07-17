@@ -14,6 +14,7 @@ import MeggaWordmark from '../shell/MeggaWordmark'
 import { MobileFocusHero } from './MobileFocusHero'
 import { MobileStatCards } from './MobileStatCards'
 import { MobileAgenda } from './MobileAgenda'
+import { MobileWhatsAppFollowups } from './MobileWhatsAppFollowups'
 import { MobileRelancesIA } from './MobileRelancesIA'
 
 /**
@@ -76,6 +77,7 @@ export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
       />
       <MobileStatCards demo={demo} />
       <MobileAgenda demo={demo} onSeeAll={() => navigate('/dashboard/calendar')} />
+      {!demo && <MobileWhatsAppFollowups />}
       <MobileRelancesIA demo={demo} onStart={() => setRelanceOpen(true)} />
 
       {relanceOpen ? <RelanceSession onClose={() => setRelanceOpen(false)} /> : null}

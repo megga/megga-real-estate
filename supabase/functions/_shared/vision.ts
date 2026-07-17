@@ -44,7 +44,7 @@ export async function readDocument(
   bytes: Uint8Array,
   mime: string | null,
   apiKey: string,
-  opts?: { model?: string; prompt?: string },
+  opts?: { model?: string; prompt?: string; json?: boolean },
 ): Promise<DocReadResult> {
   if (!apiKey) return { ok: false, text: '', error: 'no_api_key' }
   if (!isReadableDocMime(mime)) return { ok: false, text: '', error: `unsupported_mime:${mime ?? 'none'}` }
@@ -61,7 +61,12 @@ export async function readDocument(
             { inlineData: { mimeType: mime, data: toBase64(bytes) } },
             { text: prompt },
           ] }],
-          generationConfig: { temperature: 0, maxOutputTokens: 4096 },
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 4096,
+            // json:true → sortie JSON stricte (extraction/classification structurée).
+            ...(opts?.json ? { responseMimeType: 'application/json' } : {}),
+          },
         }),
         signal: AbortSignal.timeout(30000), // vision = plus lent, mais jamais infini
       },

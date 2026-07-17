@@ -1,3 +1,9 @@
+/**
+ * Page publique — référence des raccourcis clavier.
+ *
+ * Route : `/help/shortcuts`. Groupe `KEYBOARD_SHORTCUTS` par contexte et rend
+ * chaque raccourci description + touches.
+ */
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

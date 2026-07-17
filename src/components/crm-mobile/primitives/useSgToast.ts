@@ -1,3 +1,4 @@
+/** Hook d'état de toast du CRM mobile — primitive « Sugar ». */
 import { useCallback, useRef, useState } from 'react'
 
 /**

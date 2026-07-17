@@ -1,529 +1,69 @@
-// MEGGA CRM Sugar v2 — Calendar Day view + NextHero
-// 1:1 port from `crm-calendar-sugar-day.jsx`.
+// MEGGA CRM Sugar — Calendar — Vue Jour (refonte « façon Google »)
+// Une seule colonne timeline, aérée. Réutilise la gouttière + la colonne
+// partagées (CalGrid). Pas de héro, pas de panneau.
 
-import { useMemo } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalIcon } from './CalIcon'
-import { CAL_EVENT_TYPES, calLayout, eventTypeColors, useCalPalette, type CalEvent } from './data'
-import { fmtTime, sameDay } from './helpers'
+import { useCalPalette } from './data'
+import { CAL_HOUR_END, CAL_HOUR_START, sameDay } from './helpers'
+import { CalAllDayBand, CalDayColumn, CalHourGutter } from './CalGrid'
+import type { CalViewProps } from './CalWeekView'
 
-interface CalDayViewProps {
-  events: CalEvent[]
-  currentDate: Date
-  now: Date
-  selectedId: string | null
-  onSelect: (id: string) => void
-  onEdit?: (id: string) => void
-}
+const MIN_H = 1680
 
-export function CalDayView({ events, currentDate, now, selectedId, onSelect, onEdit }: CalDayViewProps) {
+export function CalDayView({
+  events, currentDate, now, selectedId, onSelectEvent, onUpdateEvent, onCommitEvent, onCreateAt,
+}: CalViewProps) {
   const { t } = useTranslation('calendar')
   const SP = useCalPalette()
-  const TYPES = CAL_EVENT_TYPES
-
-  const dayEvents = useMemo(() => {
-    return events
-      .filter(e => sameDay(e.start, currentDate))
-      .sort((a, b) => a.start.getTime() - b.start.getTime())
-  }, [events, currentDate])
-
-  // Chevauchement (#4) : colonnes côte-à-côte pour les events qui se recouvrent.
-  const dayLayout = calLayout(dayEvents)
-
-  const HOUR_START = 7
-  const HOUR_END = 21
-  const ROW_H = 64
-  const TOTAL_H = (HOUR_END - HOUR_START) * ROW_H
-
-  const eventTop = (d: Date) => {
-    const h = d.getHours() + d.getMinutes() / 60
-    return (h - HOUR_START) * ROW_H
-  }
-  const eventHeight = (e: CalEvent) => {
-    const mins = (e.end.getTime() - e.start.getTime()) / 60000
-    return Math.max(36, (mins / 60) * ROW_H - 6)
-  }
-
   const isToday = sameDay(currentDate, now)
-  const nowTop = isToday ? eventTop(now) : -1
+  const count = events.filter(e => sameDay(e.start, currentDate)).length
 
-  const nextEvent = isToday ? dayEvents.find(e => e.end > now) : dayEvents[0]
+  // Au montage, cadrer sur l'heure courante (aujourd'hui) sinon le matin (~7 h).
+  const bodyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let r1 = 0
+    let r2 = 0
+    const doScroll = () => {
+      const el = bodyRef.current
+      if (!el || !el.scrollHeight) return
+      const th = CAL_HOUR_END - CAL_HOUR_START
+      const target = isToday ? Math.max(CAL_HOUR_START, now.getHours() - 1) : 7
+      el.scrollTop = Math.max(0, ((target - CAL_HOUR_START) / th) * el.scrollHeight - 10)
+    }
+    r1 = requestAnimationFrame(() => { doScroll(); r2 = requestAnimationFrame(doScroll) })
+    return () => { cancelAnimationFrame(r1); cancelAnimationFrame(r2) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
-      {nextEvent && (
-        <CalNextHero
-          event={nextEvent}
-          now={now}
-          isToday={isToday}
-          onOpen={() => onSelect(nextEvent.id)}
-        />
-      )}
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* En-tête léger : contexte du jour */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '11px 22px',
+        borderBottom: `1px solid ${SP.line}`, flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 11.5, color: SP.muted, fontWeight: 700 }}>
+          {count === 0 ? t('views.dayEmpty') : t('views.timelineCount', { count })}
+        </span>
+      </div>
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          background: SP.card,
-          borderRadius: 24,
-          padding: '20px 8px 20px 0',
-          boxShadow: SP.shadow,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div
-          style={{
-            padding: '0 24px 12px 84px',
-            borderBottom: `1px solid ${SP.line}`,
-            marginBottom: 8,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: SP.muted,
-              letterSpacing: 1.4,
-              textTransform: 'uppercase',
-            }}
-          >
-            {t('views.timelineCount', { count: dayEvents.length })}
-          </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {Object.values(TYPES)
-              .slice(0, 5)
-              .map(t => (
-                <div
-                  key={t.id}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 2,
-                      background: ((c) => (c.dark ? c.bg : c.accent))(eventTypeColors(t, SP.isDark)),
-                    }}
-                  />
-                  <span style={{ fontSize: 11, color: SP.muted, fontWeight: 600 }}>
-                    {t.label}
-                  </span>
-                </div>
-              ))}
-          </div>
-        </div>
+      <CalAllDayBand days={[currentDate]} events={events} selectedId={selectedId} onSelect={onSelectEvent} />
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 20px 0' }}>
-          <div
-            style={{
-              position: 'relative',
-              height: TOTAL_H,
-              paddingLeft: 84,
-            }}
-          >
-            {/* Hour lines */}
-            {Array.from({ length: HOUR_END - HOUR_START }).map((_, i) => {
-              const hour = HOUR_START + i
-              return (
-                <div
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    top: i * ROW_H,
-                    height: ROW_H,
-                    borderTop: `1px solid ${SP.line}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: 16,
-                      top: -8,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: SP.muted,
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    {String(hour).padStart(2, '0')}:00
-                  </div>
-                </div>
-              )
-            })}
-
-            {/* "Now" indicator */}
-            {isToday && nowTop >= 0 && nowTop <= TOTAL_H && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 70,
-                  right: 0,
-                  top: nowTop,
-                  height: 0,
-                  zIndex: 5,
-                  pointerEvents: 'none',
-                }}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: -8,
-                    top: -6,
-                    width: 12,
-                    height: 12,
-                    borderRadius: 999,
-                    background: SP.nowColor,
-                    boxShadow: '0 0 0 3px rgba(229,77,56,0.18)',
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: 8,
-                    right: 8,
-                    top: -1,
-                    height: 2,
-                    background: SP.nowColor,
-                    borderRadius: 2,
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: -22,
-                    fontSize: 10.5,
-                    fontWeight: 800,
-                    color: SP.nowColor,
-                    letterSpacing: 0.6,
-                    background: SP.card,
-                    padding: '2px 8px',
-                    borderRadius: 999,
-                  }}
-                >
-                  {t('views.now', { time: fmtTime(now) })}
-                </div>
-              </div>
-            )}
-
-            {/* Events */}
-            {dayEvents.map(e => {
-              const t = TYPES[e.type]
-              const tc = eventTypeColors(t, SP.isDark)
-              const top = eventTop(e.start)
-              const h = eventHeight(e)
-              const isSelected = e.id === selectedId
-              const isPast = e.end < now && isToday
-              const slot = dayLayout.get(e.id) ?? { col: 0, cols: 1 }
-              const leftCalc = `calc(84px + (100% - 100px) * ${slot.col} / ${slot.cols})`
-              const widthCalc = `calc((100% - 100px) / ${slot.cols} - 4px)`
-              const cancelled = e.status === 'cancelled'
-              const statusMuted = e.status === 'done' || cancelled
-              const compact = h < 52
-              const roomy = h >= 78
-              return (
-                <button
-                  key={e.id}
-                  onClick={() => onSelect(e.id)}
-                  onDoubleClick={() => onEdit?.(e.id)}
-                  style={{
-                    position: 'absolute',
-                    left: leftCalc,
-                    width: widthCalc,
-                    top,
-                    height: h,
-                    borderRadius: 14,
-                    border: 0,
-                    background: tc.bg,
-                    color: tc.ink,
-                    padding: '10px 14px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    gap: 2,
-                    opacity: statusMuted ? 0.5 : isPast ? 0.55 : 1,
-                    boxShadow: isSelected
-                      ? `0 0 0 2px ${SP.ring}, 0 8px 20px rgba(11,12,14,0.16)`
-                      : '0 1px 3px rgba(11,12,14,0.06)',
-                    transition: 'all .18s ease',
-                    overflow: 'hidden',
-                  }}
-                  onMouseEnter={ev => {
-                    if (!isSelected) ev.currentTarget.style.transform = 'translateX(2px)'
-                  }}
-                  onMouseLeave={ev => {
-                    ev.currentTarget.style.transform = 'translateX(0)'
-                  }}
-                >
-                  {!compact && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: 0.4,
-                        opacity: 0.75,
-                      }}
-                    >
-                      <span>
-                        {fmtTime(e.start)} – {fmtTime(e.end)}
-                      </span>
-                      <span style={{ opacity: 0.5 }}>·</span>
-                      <span style={{ textTransform: 'uppercase' }}>{t.label}</span>
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      fontSize: compact ? 12 : 14,
-                      fontWeight: 700,
-                      letterSpacing: -0.2,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      textDecoration: cancelled ? 'line-through' : 'none',
-                    }}
-                  >
-                    {compact ? `${fmtTime(e.start)}  ${e.title}` : e.title}
-                  </div>
-                  {roomy && e.location && (
-                    <div
-                      style={{
-                        fontSize: 11.5,
-                        fontWeight: 500,
-                        opacity: 0.7,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      <CalIcon name="pin" size={11} stroke={tc.ink} sw={2} />
-                      {e.location}
-                    </div>
-                  )}
-                </button>
-              )
-            })}
-
-            {dayEvents.length === 0 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: SP.muted,
-                  fontSize: 14,
-                  fontWeight: 500,
-                }}
-              >
-                {t('views.dayEmpty')}
-              </div>
-            )}
-          </div>
+      {/* Timeline scrollable */}
+      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 18px 12px' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '64px minmax(0,1fr)',
+          height: '100%', minHeight: MIN_H, position: 'relative',
+        }}>
+          <CalHourGutter />
+          <CalDayColumn
+            day={currentDate} events={events} now={now} selectedId={selectedId}
+            onSelect={onSelectEvent} onUpdate={onUpdateEvent} onCommit={onCommitEvent}
+            onCreateAt={onCreateAt} isToday={isToday} showLocation
+          />
         </div>
       </div>
     </div>
-  )
-}
-
-interface CalNextHeroProps {
-  event: CalEvent
-  now: Date
-  isToday: boolean
-  onOpen: () => void
-}
-
-function CalNextHero({ event, now, isToday, onOpen }: CalNextHeroProps) {
-  const { t } = useTranslation('calendar')
-  const SP = useCalPalette()
-  const type = CAL_EVENT_TYPES[event.type]
-
-  const diffMin = Math.round((event.start.getTime() - now.getTime()) / 60000)
-  const inProgress = event.start <= now && event.end > now
-  const upcoming = !inProgress && diffMin > 0
-
-  const headline = !isToday
-    ? t('views.heroFirst')
-    : inProgress
-      ? t('views.heroInProgress')
-      : upcoming
-        ? diffMin <= 60
-          ? t('views.heroInMinutes', { count: diffMin })
-          : t('views.heroAtTime', { time: fmtTime(event.start) })
-        : t('views.heroLast')
-
-  return (
-    <button
-      onClick={onOpen}
-      style={{
-        width: '100%',
-        textAlign: 'left',
-        border: 0,
-        fontFamily: 'inherit',
-        background: SP.heroBg,
-        color: SP.heroInk,
-        borderRadius: 24,
-        padding: 22,
-        cursor: 'pointer',
-        boxShadow: SP.heroShadow,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 22,
-        transition: 'transform .2s ease',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
-      onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
-    >
-      {/* Time block */}
-      <div
-        style={{
-          flexShrink: 0,
-          padding: '14px 18px',
-          borderRadius: 16,
-          background: 'rgba(255,255,255,0.08)',
-          textAlign: 'center',
-          minWidth: 110,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 28,
-            fontWeight: 800,
-            letterSpacing: -1,
-            lineHeight: 1,
-          }}
-        >
-          {fmtTime(event.start)}
-        </div>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 700,
-            opacity: 0.6,
-            letterSpacing: 1,
-            marginTop: 6,
-            textTransform: 'uppercase',
-          }}
-        >
-          {fmtTime(event.end)}
-        </div>
-      </div>
-
-      {/* Body */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 10.5,
-            fontWeight: 800,
-            opacity: 0.55,
-            letterSpacing: 1.6,
-            marginBottom: 6,
-            textTransform: 'uppercase',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          {headline}
-          <span style={{ opacity: 0.5 }}>·</span>
-          <span>{type.label}</span>
-        </div>
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            letterSpacing: -0.6,
-            marginBottom: 6,
-            lineHeight: 1.2,
-          }}
-        >
-          {event.title}
-        </div>
-        {event.location && (
-          <div
-            style={{
-              fontSize: 13,
-              opacity: 0.75,
-              fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <CalIcon name="pin" size={13} stroke="#fff" sw={1.8} />
-            {event.location}
-          </div>
-        )}
-      </div>
-
-      {/* Right column */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 18 }}>
-        {event.contact && (
-          <div style={{ textAlign: 'right' }}>
-            <div
-              style={{
-                fontSize: 10.5,
-                fontWeight: 800,
-                opacity: 0.55,
-                letterSpacing: 1.4,
-                textTransform: 'uppercase',
-                marginBottom: 4,
-              }}
-            >
-              {event.contact.role}
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: -0.2 }}>
-              {event.contact.name}
-            </div>
-            {event.contact.warm && (
-              <div
-                style={{
-                  marginTop: 6,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '3px 9px',
-                  borderRadius: 999,
-                  background: 'rgba(255,255,255,0.10)',
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  letterSpacing: 0.4,
-                }}
-              >
-                <CalIcon name="flame" size={10} stroke="#FCD34D" sw={2} />
-                {t('views.warmBadge', { pct: event.contact.warm })}
-              </div>
-            )}
-          </div>
-        )}
-        <div
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 999,
-            background: 'rgba(255,255,255,0.10)',
-            display: 'grid',
-            placeItems: 'center',
-          }}
-        >
-          <CalIcon name="arrowR" size={18} stroke="#fff" sw={2} />
-        </div>
-      </div>
-    </button>
   )
 }

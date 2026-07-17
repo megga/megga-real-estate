@@ -395,33 +395,18 @@
     }
   },
   "dossier": {
-    "row": {
-      "incomplete": "À compléter",
-      "incompleteHint": "Rappel doux, KYC à compléter (non bloquant pour le pipeline)"
-    },
     "detail": {
       "loadError": "Impossible de charger ce dossier KYC.",
       "loadErrorHint": "Erreur réseau ou base de données.",
-      "backToList": "Retour à la liste",
       "retry": "Réessayer",
       "loading": "Chargement du dossier…",
       "reviewSanctionsFirst": "Examinez d’abord le match sanctions",
       "reviewPepFirst": "Examinez d’abord le match PEP",
       "screeningRunning": "Screening en cours…",
       "runScreeningFirst": "Lancez le screening avant de valider",
-      "contactNotFound": "Contact introuvable pour ce dossier.",
-      "contactNameMissing": "Nom du contact manquant.",
-      "nationalityRequired": "Nationalité requise pour le screening Dilisense. Mettez à jour le contact.",
-      "screeningRestarted": "Screening Dilisense relancé.",
-      "screeningFailed": "Échec du screening.",
-      "agencyMissing": "agency_id manquant, connexion requise.",
-      "decisionSaved": "Décision « {{verdict}} » enregistrée.",
       "saveFailed": "Échec de l’enregistrement.",
-      "fileUploaded": "« {{name}} » téléversé.",
-      "uploadFailed": "Échec du téléversement.",
       "fiveChecks": "5 contrôles obligatoires (LBA art. 3-7)",
-      "previewError": "Aperçu impossible : {{message}}",
-      "downloadError": "Téléchargement impossible : {{message}}"
+      "previewError": "Aperçu impossible : {{message}}"
     },
     "tabs": {
       "synthese": "Synthèse",
@@ -431,29 +416,7 @@
     },
     "alert": {
       "matchSanctions": "Match sanctions détecté · examen requis (LBA art. 9).",
-      "matchPep": "Match PEP détecté · examen requis (LBA art. 9).",
-      "lastDecision": "Dernière décision :",
-      "reExamine": "Réexaminer",
-      "examineMatch": "Examiner ce match",
-      "clearedFalsePositive": "Match Dilisense écarté par décision compliance (faux positif) · LBA art. 7 documenté."
-    },
-    "verdict": {
-      "false_positive": {
-        "label": "Faux positif",
-        "hint": "Examen humain : le match Dilisense ne correspond pas au client. Autorise la validation."
-      },
-      "true_match": {
-        "label": "Vrai match",
-        "hint": "Le client est bien la personne sanctionnée/PEP. Déclaration MROS (art. 9 LBA) obligatoire."
-      },
-      "escalated": {
-        "label": "Escaladé direction",
-        "hint": "Renvoyé au MLRO / direction compliance pour décision."
-      },
-      "awaiting_evidence": {
-        "label": "En attente d’éléments",
-        "hint": "Examen en pause, éléments complémentaires demandés au client."
-      }
+      "matchPep": "Match PEP détecté · examen requis (LBA art. 9)."
     },
     "confirm": {
       "eyebrow": "Validation conformité · LBA art. 7",
@@ -473,43 +436,9 @@
         "not_checked": "Non vérifié"
       }
     },
-    "upload": {
-      "eyebrow": "Téléversement de pièce",
-      "title": "Ajouter un document",
-      "categoryLabel": "Catégorie LBA",
-      "fileLabel": "Fichier (PDF, JPG, PNG, WEBP)",
-      "cancel": "Annuler",
-      "uploading": "Téléversement…",
-      "submit": "Téléverser",
-      "cat": {
-        "identity": "Pièce d’identité",
-        "domicile": "Justificatif de domicile",
-        "financial": "Document financier",
-        "compliance": "Pièce compliance (Form A, UBO…)",
-        "other": "Autre"
-      },
-      "errTooLarge": "Fichier trop volumineux (max 20 Mo).",
-      "errEmpty": "Fichier vide.",
-      "errInvalidName": "Nom de fichier invalide.",
-      "errUnknownCategory": "Catégorie inconnue.",
-      "errMimeNotAllowed": "Type de fichier non autorisé pour cette catégorie (reçu : {{mime}}).",
-      "errExtNotAllowed": "Extension non autorisée (.{{ext}}). Utilisez PDF, JPG, PNG ou WEBP."
-    },
     "examine": {
-      "eyebrowSanctions": "Examen compliance · Sanctions · LBA art. 7",
-      "eyebrowPep": "Examen compliance · PEP · LBA art. 7",
       "matchCount_one": "{{count}} correspondance Dilisense",
-      "matchCount_other": "{{count}} correspondances Dilisense",
-      "intro": "Examinez les éléments retournés par Dilisense, choisissez un verdict et justifiez-le (minimum 30 caractères, conservé 10 ans).",
-      "noRecords": "Aucun détail de match n’a été stocké pour ce dossier. Relancez un screening si nécessaire.",
-      "previousDecision": "Décision précédente :",
-      "willSupersede": "Une nouvelle décision écrasera celle-ci (chaînage supersedes).",
-      "verdictLabel": "Verdict",
-      "justificationLabel": "Justification ({{count}}/30 caractères min)",
-      "justificationPlaceholder": "Ex : Date de naissance différente (1985 vs 1972), pays différent (CH vs RU), homonymie confirmée par pièce d’identité.",
-      "cancel": "Annuler",
-      "saving": "Enregistrement…",
-      "submit": "Enregistrer la décision"
+      "matchCount_other": "{{count}} correspondances Dilisense"
     },
     "funds": {
       "eyebrow": "Origine économique · LBA art. 6 al. 1 lit. b",
@@ -592,71 +521,17 @@
       "openedOn": "Dossier ouvert le",
       "lastScreening": "Dernier screening",
       "expiry": "Échéance",
-      "reference": "Référence",
-      "screeningRunning": "Screening en cours…",
-      "screeningUpToDate": "Screening à jour",
-      "rescreen": "Re-screener",
-      "exportRunning": "Génération…",
-      "exportDone": "Dossier exporté",
-      "export": "Exporter le dossier"
-    },
-    "audit": {
-      "eyebrow": "Conformité nLPD · LBA",
-      "title": "Piste d'audit",
-      "empty": "Aucune action enregistrée, dossier non démarré.",
-      "retention": "Traçabilité conservée 10 ans (art. 7 LBA)",
-      "exportPdf": "Exporter PDF horodaté",
-      "actorSystem": "Système",
-      "actorUnknown": "Agent inconnu"
+      "reference": "Référence"
     },
     "docs": {
-      "eyebrow": "Pièces du dossier",
-      "title": "Documents joints",
-      "upload": "Téléverser",
-      "emptyTitle": "Aucun document joint pour l'instant.",
-      "emptySubtitle": "Demandez les pièces au contact pour démarrer la vérification.",
-      "expired": "Expiré",
       "expiresInDays_one": "Expire dans {{count}} j",
-      "expiresInDays_other": "Expire dans {{count}} j",
-      "validUntil": "Valide jusqu’au {{date}}",
-      "fileSize": "{{size}} Mo",
-      "addedOn": "Ajouté le {{date}}",
-      "shaPrefix": "sha {{hash}}…",
-      "shaFull": "SHA-256 : {{hash}}",
-      "preview": "Aperçu",
-      "download": "Télécharger"
-    },
-    "check": {
-      "awaiting": "En attente",
-      "markVerified": "Marquer vérifié"
+      "expiresInDays_other": "Expire dans {{count}} j"
     }
   },
   "list": {
-    "heading": "Dossiers KYC.",
     "intro": "Toute transaction immobilière en Suisse exige une vérification documentée de l'identité, du domicile et de l'origine des fonds. Le KYC reste recommandé avant la signature, un rappel doux, jamais bloquant.",
-    "export": "Exporter",
-    "newDossier": "Nouveau dossier",
-    "stats": {
-      "verifiedLabel": "Vérifiés",
-      "verifiedSub": "Transactions autorisées",
-      "pendingLabel": "En cours",
-      "pendingSub": "Pièces manquantes ou screening en attente",
-      "noneLabel": "À démarrer",
-      "noneSub": "Aucun document collecté",
-      "riskLabel": "Vigilance",
-      "riskSub": "Risque modéré ou élevé identifié"
-    },
-    "filters": {
-      "all": "Tous · {{count}}",
-      "pending": "En cours · {{count}}",
-      "none": "À démarrer · {{count}}",
-      "verified": "Vérifiés · {{count}}",
-      "highRisk": "Risque élevé · {{count}}"
-    },
     "errorTitle": "Impossible de charger les dossiers KYC.",
-    "errorFallback": "Erreur réseau ou base de données.",
     "retry": "Réessayer",
-    "loading": "Chargement des dossiers…",
     "emptyFilter": "Aucun dossier ne correspond à ce filtre.",
     "staleCount_one": "{{count}} dossier à re-screener (échéance dépassée).",
     "staleCount_other": "{{count}} dossiers à re-screener (échéance dépassée)."
@@ -948,15 +823,6 @@
     "none": "KYC à faire",
     "stale": "KYC périmé",
     "failed": "KYC échec"
-  },
-  "detail": {
-    "backToList": "Retour aux dossiers",
-    "eyebrow": "Dossier KYC · LBA"
-  },
-  "gauge": {
-    "riskFallback": "Risque",
-    "checksCount": "{{done}}/{{total}} contrôles",
-    "checksLabel": "contrôles"
   },
   "mobile": {
     "back": "Plus",

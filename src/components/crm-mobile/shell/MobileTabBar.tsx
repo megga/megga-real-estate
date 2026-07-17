@@ -1,3 +1,7 @@
+/**
+ * Barre d'onglets du CRM mobile (crm-mobile/shell) : navigation principale à
+ * 5 destinations, rendue par MobileShell en variant 'tabs'.
+ */
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'

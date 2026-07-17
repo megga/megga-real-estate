@@ -1,3 +1,12 @@
+/**
+ * Racine de l'app CRM (app.megga.ch) : providers globaux (React Query, Auth,
+ * Toast, panneau IA) + table de routage complète.
+ *
+ * Presque toutes les pages sont en lazy() — seuls les shells/guards restent
+ * statiques — pour garder le main bundle minimal. La marketplace publique est
+ * désactivée (pivot CRM-first) : ses routes redirigent vers la vitrine megga.ch.
+ * Route racine « / » → /dashboard.
+ */
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import ResponsiveRoute from '@/components/crm-mobile/shell/ResponsiveRoute'
@@ -12,7 +21,7 @@ import { AiPanelProvider } from '@/hooks/useAiPanel'
 // /home et les routes publiques à fort trafic SEO.
 //
 // Avant cette optimisation : ~30 components publics étaient eager, dont les
-// 11 DesignSystem pages + TodaySugarPage (dashboard agent) — résultat : 153 KB
+// 11 pages DesignSystem (depuis retirées) + TodaySugarPage (dashboard agent) — résultat : 153 KB
 // JS inutilisé sur /louer d'après Lighthouse, FCP/LCP à 4.6s. Convertir tout
 // le reste en lazy() ramène le main bundle à ~50 KB.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -30,11 +39,14 @@ import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 // Lazy-loaded public pages
 // Property X storefront pages were removed — the public storefront on
 // megga.ch is now the static V3 HTML site (sites/property-preview), overlaid
-// at the deploy root by the npm postbuild hook. The Px* atom library under
-// src/components/propertyx/ stays (used by the CRM, auth and skeletons).
+// at the deploy root by the npm postbuild hook. Only the Property X icon
+// system remains under src/components/propertyx/ (MEIcon/PxIconFont/
+// PxSocialIcon/PxWhatsAppButton + PX.* tokens), used across the CRM.
 
 // Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
 const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
+// Réception acheteur — page publique par token (boucle de match, refonte juil. 2026)
+const BuyerReceptionPage = lazy(() => import('@/pages/public/BuyerReceptionPage'))
 // Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
 const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
@@ -108,13 +120,15 @@ const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugar
 // visit capture is a separate sprint.
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
 const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
-const MatchingAtelierPage = lazy(() => import('@/pages/agent/MatchingAtelierPage'))
+const MatchingPagerPage = lazy(() => import('@/pages/agent/MatchingPagerPage'))
 const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
 const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
+// Refonte KYC (handoff) — onboarding « Première ouverture » (empty-state).
+const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 // Sprint 4.4 — Export PDF dossier KYC (route print-friendly, hors layout agent)
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
@@ -356,6 +370,8 @@ function AnimatedRoutes() {
               <Route path="/auth/mot-de-passe-oublie/redefinir" element={<Navigate to="/auth/forgot-password/reset" replace />} />
               {/* Sprint 4.7.C — Parcours client KYC self-service via lien magique */}
               <Route path="/kyc/:token" element={<KycPublicPage />} />
+              {/* Réception acheteur — sélection de biens transmise par lien privé (boucle de match) */}
+              <Route path="/reception/:token" element={<BuyerReceptionPage />} />
               {/* Sprint 4.7.D — Rendu PDF tokenisé (Cloudflare Browser Rendering → WhatsApp) */}
               <Route path="/kyc-report/:token" element={<KycReportRenderPage />} />
               {/* Marketplace publique désactivée → vitrine. (SearchPage/RentPage
@@ -508,8 +524,12 @@ function AnimatedRoutes() {
                 <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
                 {/* Contacts — mobile (< 768px) : liste (P8). */}
                 <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsSugarV2Page />} mobile={<MobileContactsListPage />} />} />
-                {/* Création contact — mobile only (desktop : drawer dans la liste). */}
+                {/* Création contact — mobile only (desktop : modale dans le pager). */}
                 <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
+                {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
+                    Sous AgentSugarLayout (chrome Sugar auto-porté) pour cohérence
+                    liste↔fiche. Mobile (< 768px) : fiche détail P8/2. */}
+                <Route path="contacts/:id" element={<ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} />} />
                 {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
                 <Route path="listings" element={<ResponsiveRoute desktop={<BiensSugarV2Page />} mobile={<MobileBiensPage />} />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
@@ -528,10 +548,12 @@ function AnimatedRoutes() {
                 <Route path="visites/:id" element={<DashboardVisitRedirect />} />
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
                 <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
-                {/* Atelier Matching — triptyque plein écran (handoff juin 2026).
-                    Deep-links : ?annonce=p:<id>|m:<id> · ?contact=<id>.
-                    Mobile (< 768px) : inbox acheteurs + focus (P5). */}
-                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingAtelierPage />} mobile={<MobileMatchingPage />} />} />
+                {/* Matching — pager vertical (refonte Claude Design juil. 2026) :
+                    page 0 = atelier triptyque « par score » · page 1 = recherche
+                    hybride du marché (vente + location). Deep-links portés par
+                    l'atelier : ?annonce=p:<id>|m:<id> · ?contact=<id>.
+                    Mobile (< 768px) : inbox acheteurs + focus. */}
+                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingPagerPage />} mobile={<MobileMatchingPage />} />} />
                 {/* Parcours — mobile (< 768px) : dossiers en vue panoramique (P9). */}
                 <Route path="journey" element={<ResponsiveRoute desktop={<JourneySugarV2Page />} mobile={<MobileJourneyPage />} />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
@@ -540,11 +562,16 @@ function AnimatedRoutes() {
                 {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}
                 <Route path="settings" element={<ResponsiveRoute desktop={<SettingsSugarV2Page />} mobile={<MobileSettingsPage />} />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
-                {/* KYC — mobile (< 768px) : liste des dossiers (P9) ; détail = desktop. */}
+                {/* KYC — pager 2 pages (Dossiers · Vigie). Mobile (< 768px) : liste (P9). */}
                 <Route path="kyc" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycListPage />} />} />
-                {/* Détail dossier KYC — mobile (< 768px) : 4 onglets + garde LBA art.9 + read-log (P9). */}
+                {/* Onboarding « Première ouverture » (desktop) — refonte KYC. */}
+                <Route
+                  path="kyc/bienvenue"
+                  element={<ResponsiveRoute desktop={<KycOnboardingPage />} mobile={<Navigate to="/dashboard/kyc" replace />} />}
+                />
+                {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
                 <Route path="kyc/:dossierId" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} />} />
-                {/* Réseau inter-agences — hors périmètre v1 (page conservée, route neutralisée) */}
+                {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
                 <Route path="network" element={<Navigate to="/dashboard" replace />} />
                 <Route path="reseau" element={<Navigate to="/dashboard" replace />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
@@ -576,8 +603,6 @@ function AnimatedRoutes() {
                 }
               >
                 <Route path="contacts/import" element={<ContactImportPage />} />
-                {/* Sprint 1 — Fiche contact Sugar v3 (livrable #3) ; mobile = fiche détail P8/2 */}
-                <Route path="contacts/:id" element={<ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} />} />
                 <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
                 {/* Créer un bien — mobile (< 768px) : wizard 4 étapes (P7/2). */}
@@ -624,6 +649,7 @@ function CopilotPanelHost() {
   )
 }
 
+/** Point d'entrée : empile les providers globaux autour des routes et des widgets globaux (cookies, Intercom, panneau IA). */
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

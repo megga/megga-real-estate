@@ -1,3 +1,8 @@
+/**
+ * Page publique — journal des nouveautés produit.
+ *
+ * Route : `/help/changelog`. Rend la constante `CHANGELOG` en timeline verticale.
+ */
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +11,7 @@ import Footer from '@/components/layout/Footer'
 import { CHANGELOG } from '@/lib/helpArticles'
 import ChangelogIllustration from '@/components/illustrations/ChangelogIllustration'
 
+/** Date longue localisée fr-CH (ex. « 3 mars 2026 »). */
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr)
   return d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' })

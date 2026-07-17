@@ -1,42 +1,49 @@
-// MEGGA CRM — Dashboard Analytics « Le Cockpit Commission » — assemblage UI.
-// Port 1:1 du handoff `analytics-app.jsx`. Consomme les tokens AX + le graphe.
-// Différences prod assumées :
-//  - icônes statiques = AxIcon inline (mêmes glyphes que la maquette) ;
-//  - boutons toolbar animés = AnimatedTopIcon du shell (pop + self-draw au survol,
-//    même grammaire que la sidebar / top-nav) ;
-//  - les rows sont extraites en sous-composants (le proto appelait useState dans
-//    des .map — interdit par les règles des hooks).
+// MEGGA CRM — Dashboard « Cockpit Commission » — écran FUSION (mono-écran).
+// Port du handoff `analytics-fusion.jsx` (refonte juillet 2026) : Performance +
+// Analyse sur un seul écran, zéro-scroll, l'ancien pager 2 pages est supprimé.
+//   Rangée haute  : héro « double stat » (commission projetée) · trajectoire
+//                   immersive + cône (sélecteur de période intégré).
+//   Rangée basse  : treemap de composition (drill = popover ancré) · sources en
+//                   colonnes · 4 KPI sparkline.
+// Accent dataviz : périwinkle #6F8CFF — RÉSERVÉ aux graphiques. L'UI reste Sugar
+//   Pure : titres noirs, sélection noire, ombres douces, zéro bordure décorative.
+//
+// Différences prod assumées vs la maquette :
+//  - données 100 % live via useAxDashboardData (3 RPC analytics_*), jamais de fixture ;
+//  - parcours « compte neuf » piloté par les VRAIS signaux (objectif défini ? activité ?),
+//    pas par des flags window.* de démo : porte AxGate → cockpit fantôme AxFirstRun → réel ;
+//  - la porte écrit l'objectif via useAgencyTargets().saveYearly (RPC analytics_set_target),
+//    PAS en localStorage (l'ancien 'megga-analytics-target' a été supprimé).
 
-import { useState, useEffect, useRef, useCallback, type CSSProperties, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useEffect, useRef, useLayoutEffect, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AnimatedTopIcon } from '@/components/crm-sugar/LiquidGlassRail'
-import { TrajectoryChart, Sparkline } from './TrajectoryChart'
 import { useAxDashboardData } from '@/hooks/useAxDashboardData'
+import { useAgencyTargets } from '@/hooks/useAgencyTargets'
+import AxGate from './AxGate'
+import AxFirstRun from './AxFirstRun'
 import {
-  useAX, axCHF, axPace, type AxTheme, type AxPeriodId, type AxPeriodData,
-  type AxDeal, type AxBucketId, type AxRecord, type AxKpi, type AxCompositionItem, type AxSource,
+  useAX, axCHF, axShort, axPace, type AxPeriodId, type AxPeriodData,
+  type AxBucketId, type AxBucket,
 } from './tokens'
 
-// ── Icônes statiques (mêmes tracés que la maquette) ──────────────────────────
-type AxIconName = 'refresh' | 'download' | 'arrow' | 'up' | 'down' | 'spark' | 'sun' | 'moon' | 'close' | 'pencil' | 'check' | 'target' | 'lock'
-
-const AX_ICON_PATHS: Record<AxIconName, ReactNode> = {
-  refresh: <><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></>,
-  download: <><path d="M12 3v12m-5-5 5 5 5-5" /><path d="M5 21h14" /></>,
-  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
-  up: <path d="M5 15l7-7 7 7" />,
-  down: <path d="M5 9l7 7 7-7" />,
-  spark: <path d="m12 4 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z" />,
-  sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" /></>,
-  moon: <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />,
-  close: <path d="M6 6l12 12M18 6 6 18" />,
-  pencil: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></>,
-  check: <path d="M4 12l5 5L20 6" />,
-  target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" /></>,
-  lock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>,
+// ── Accent dataviz périwinkle (déclinaisons) — jamais en accent UI ────────────
+export interface AxfAccent { accent: string; soft: string; ghost: string; area: string }
+const AXF_ACCENTS: { light: AxfAccent; dark: AxfAccent } = {
+  light: { accent: '#6F8CFF', soft: '#A9BBFF', ghost: '#DDE5FF', area: 'rgba(111,140,255,0.13)' },
+  dark: { accent: '#8CA3FF', soft: '#5B70C9', ghost: '#2E3552', area: 'rgba(140,163,255,0.16)' },
 }
 
+// Couleur de pilule d'état dans le popover (couleurs de phase MEGGA, par bucket).
+const AXF_BUCKET_TONE: Record<AxBucketId, string> = { secured: '#059669', probable: '#C45A00', possible: '#1E5BC6' }
+
+// ── Icônes statiques (mêmes tracés que la maquette) ──────────────────────────
+type AxIconName = 'up' | 'down' | 'arrow' | 'check'
+const AX_ICON_PATHS: Record<AxIconName, ReactNode> = {
+  up: <path d="M5 15l7-7 7 7" />,
+  down: <path d="M5 9l7 7 7-7" />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  check: <path d="M4 13l5 5 11-12" />,
+}
 function AxIcon({ name, size = 16, stroke = 'currentColor', sw = 1.8 }: { name: AxIconName; size?: number; stroke?: string; sw?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
@@ -46,7 +53,7 @@ function AxIcon({ name, size = 16, stroke = 'currentColor', sw = 1.8 }: { name: 
 }
 
 // ── Compteur animé (défaut = valeur finale ; anime au changement ; filet timer) ──
-function useCountUp(value: number, dur = 700): number {
+function useCountUp(value: number, dur = 750): number {
   const [disp, setDisp] = useState(value)
   const prev = useRef(value)
   useEffect(() => {
@@ -70,579 +77,510 @@ function useCountUp(value: number, dur = 700): number {
   return disp
 }
 
-// ── Segmented control ────────────────────────────────────────────────────────
-function AxSeg<T extends string>({ items, value, onChange }: { items: { id: T; label: string }[]; value: T; onChange: (id: T) => void }) {
-  const A = useAX()
-  return (
-    <div style={{ display: 'inline-flex', padding: 4, borderRadius: 999, background: A.cardSubtle, boxShadow: `inset 0 0 0 1px ${A.hairline}`, gap: 2 }}>
-      {items.map(o => {
-        const on = value === o.id
-        return (
-          <button key={o.id} onClick={() => onChange(o.id)} style={{
-            height: 36, padding: '0 16px', borderRadius: 999, border: 0,
-            background: on ? A.ink : 'transparent', color: on ? A.onAccent : A.inkSoft,
-            fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-            letterSpacing: -0.1, whiteSpace: 'nowrap', transition: 'background .15s ease',
-            boxShadow: on ? '0 4px 12px rgba(11,12,14,0.20)' : 'none',
-          }}>{o.label}</button>
-        )
-      })}
-    </div>
-  )
+// ── Keyframes injectées une fois (fondu du graphe + montée des blocs) ─────────
+function axEnsureKeyframes() {
+  if (typeof document === 'undefined' || document.getElementById('axf-kf')) return
+  const s = document.createElement('style')
+  s.id = 'axf-kf'
+  s.textContent =
+    '@keyframes axfFade{from{opacity:0}to{opacity:1}}' +
+    '@keyframes axRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}' +
+    '@keyframes axShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}' +
+    '@keyframes axSkIn{from{opacity:0}to{opacity:1}}'
+  document.head.appendChild(s)
 }
 
-// ── Pilule de delta ──────────────────────────────────────────────────────────
-function AxDelta({ v, pts, abs }: { v: number; pts?: boolean; abs?: boolean }) {
+// ── Pilule de delta (statique, couleurs sémantiques) ─────────────────────────
+function AxfDelta({ v, pts, abs }: { v: number; pts?: boolean; abs?: boolean }) {
   const A = useAX()
   if (v === 0) return <span style={{ fontSize: 11, fontWeight: 700, color: A.muted }}>—</span>
   const up = v > 0
   const p = up ? A.pillAhead : A.pillBehind
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 999, background: p.bg, color: p.fg, boxShadow: p.sh, fontSize: 10.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 999, background: p.bg, color: p.fg, boxShadow: p.sh, fontSize: 10.5, fontWeight: 800, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>
       <AxIcon name={up ? 'up' : 'down'} size={9} stroke="#fff" sw={3} />
       {up ? '+' : ''}{v}{pts ? ' pt' : abs ? '' : '%'}
     </span>
   )
 }
 
-// ── Pace bar ─────────────────────────────────────────────────────────────────
-function AxPaceBar({ d }: { d: AxPeriodData }) {
+// ═══════════════════════════════════════════════════════════════════════════
+//   HÉRO — commission projetée (double stat) : projeté en grand, verdict,
+//   colonnes Réalisé/Reste, pace bar muette + objectif éditable.
+// ═══════════════════════════════════════════════════════════════════════════
+function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; onGoSettings: (() => void) | null }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
-  const realW = Math.min(100, (d.realizedNow / d.target) * 100)
-  const projW = Math.min(100, (d.projectedEnd / d.target) * 100)
-  const paceX = Math.min(100, d.paceFrac * 100)
-  const legend: { sw: string | null | 'hatch'; t: string; v: string }[] = [
-    { sw: A.ink, t: tr('analytics.pace.realized'), v: axCHF(d.realizedNow) },
-    { sw: 'hatch', t: tr('analytics.pace.projected'), v: axCHF(d.projectedEnd) },
-    { sw: null, t: tr('analytics.pace.target'), v: axCHF(d.target) },
-  ]
-  return (
-    <div>
-      <div style={{ position: 'relative', height: 18, borderRadius: 999, background: A.cardSubtle, overflow: 'visible', boxShadow: `inset 0 0 0 1px ${A.hairline}` }}>
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${projW}%`, borderRadius: 999, backgroundImage: `repeating-linear-gradient(45deg, ${A.probable} 0 5px, ${A.cardSubtle} 5px 10px)`, opacity: 0.55 }} />
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: `${realW}%`, borderRadius: 999, background: A.ink, transition: 'width .8s cubic-bezier(.2,.8,.2,1)' }} />
-        <div style={{ position: 'absolute', left: `${paceX}%`, top: -6, bottom: -6, width: 2, background: A.inkSoft, transform: 'translateX(-1px)', borderRadius: 2 }} />
-        <div style={{ position: 'absolute', left: `${paceX}%`, top: -22, transform: 'translateX(-50%)', fontSize: 9.5, fontWeight: 700, color: A.muted, letterSpacing: 0.3, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{tr('analytics.pace.tempo')}</div>
-      </div>
-      <div style={{ marginTop: 14, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        {legend.map((l, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{
-              width: 11, height: 11, borderRadius: 3, flexShrink: 0,
-              background: l.sw === 'hatch' ? undefined : (l.sw || 'transparent'),
-              backgroundImage: l.sw === 'hatch' ? `repeating-linear-gradient(45deg, ${A.probable} 0 3px, ${A.card} 3px 6px)` : undefined,
-              boxShadow: l.sw ? 'none' : `inset 0 0 0 1.5px ${A.ghost}`,
-            }} />
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: A.muted }}>{l.t}</span>
-            <span style={{ fontSize: 12.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{l.v}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── Hero ─────────────────────────────────────────────────────────────────────
-function AxHero({ d, onGoSettings }: { d: AxPeriodData; onGoSettings: (() => void) | null }) {
-  const A = useAX()
-  const { t: tr } = useTranslation('dashboard')
-  const targetIsSet = d.targetIsSet ?? d.target > 0
   const pace = axPace(d)
   const num = useCountUp(d.projectedEnd)
   const verdict = pace.ahead ? A.pillAhead : A.pillBehind
+  const reste = Math.max(0, d.target - d.projectedEnd)
+  const realPct = d.target > 0 ? Math.min(100, (d.realizedNow / d.target) * 100) : 0
+  const projPct = d.target > 0 ? Math.min(100, (d.projectedEnd / d.target) * 100) : 0
+  const pacePct = d.target > 0 ? Math.min(100, (pace.paceNow / d.target) * 100) : 0
+  const [on, setOn] = useState(false)
+  useEffect(() => { const t = window.setTimeout(() => setOn(true), 60); return () => window.clearTimeout(t) }, [])
   return (
-    <div style={{ background: A.card, borderRadius: 26, padding: '30px 34px', boxShadow: A.shadowLg, display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,0.95fr)', gap: 30, alignItems: 'center' }}>
+    <div style={{ background: A.card, borderRadius: 26, padding: '24px 28px', boxShadow: A.shadowLg, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 18, minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <div>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.3, textTransform: 'uppercase', color: A.muted, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-          {tr('analytics.hero.eyebrow')} · {d.label}
-          {/* estimation : projection pondérée par probabilité de réalisation */}
-          <span title={tr('analytics.estimateTooltip')} style={{ display: 'inline-flex' }}>
-            <AxIcon name="spark" size={12} stroke={A.muted} sw={1.6} />
-          </span>
-        </div>
-        <div style={{ marginTop: 12, fontSize: 52, fontWeight: 800, letterSpacing: -2, color: A.ink, lineHeight: 0.96, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.3, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.eyebrow')}</div>
+        <div style={{ marginTop: 12, fontSize: 'clamp(30px, 2.45vw, 46px)', fontWeight: 800, letterSpacing: -1.6, color: A.ink, lineHeight: 0.96, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
           {axCHF(num)}
         </div>
-        {targetIsSet ? (
-          <>
-            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 12, fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                <AxIcon name={pace.ahead ? 'up' : 'down'} size={11} stroke="#fff" sw={2.6} />
-                {pace.ahead ? tr('analytics.hero.ahead') : tr('analytics.hero.behind')} {axCHF(Math.abs(pace.diff))} {tr('analytics.hero.vsTempo')}
-              </span>
-            </div>
-            <p style={{ margin: '16px 0 0', fontSize: 14.5, color: A.inkSoft, fontWeight: 500, lineHeight: 1.5, maxWidth: 440 }}>
-              {tr('analytics.hero.projectionLead', { period: d.period })} <strong style={{ color: A.ink, fontWeight: 800 }}>{axCHF(d.projectedEnd)}</strong><br />{tr('analytics.hero.projectionMid')} <strong style={{ color: A.ink, fontWeight: 800 }}>{pace.projPct} %</strong> {tr('analytics.hero.projectionTail')}
-            </p>
-          </>
-        ) : (
-          <p style={{ margin: '16px 0 0', fontSize: 14.5, color: A.inkSoft, fontWeight: 500, lineHeight: 1.5, maxWidth: 440 }}>
-            {tr('analytics.hero.noTarget', { period: d.period })}{' '}
-            {onGoSettings ? (
-              <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                {tr('analytics.hero.setInSettings')}
-              </button>
-            ) : (
-              <strong style={{ color: A.ink, fontWeight: 800 }}>{tr('analytics.hero.setInSettingsAgency')}</strong>
-            )}
-          </p>
-        )}
-      </div>
-      <div>
-        {targetIsSet ? (
-          <>
-            <AxPaceBar d={d} />
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: A.muted }}>
-              <AxIcon name="lock" size={12} stroke={A.muted} />
-              <span>{tr('analytics.hero.targetSetByAgency')}</span>
-              {onGoSettings && (
-                <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
-                  {tr('analytics.hero.editInSettings')}
-                </button>
-              )}
-            </div>
-          </>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 96, borderRadius: 16, background: A.cardSubtle, boxShadow: `inset 0 0 0 1px ${A.hairline}`, padding: '20px 22px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: A.muted }}>
-              <AxIcon name="target" size={16} stroke={A.muted} />
-              <span>{tr('analytics.hero.targetUnsetHint')}</span>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Bandeau d'honnêteté commission (fallback taux 3% / prix manquant) ────────
-function AxFallbackBanner({ d }: { d: AxPeriodData }) {
-  const A = useAX()
-  const { t: tr } = useTranslation('dashboard')
-  const flags = d.commissionFlags
-  if (!flags || (flags.nDefaultPct === 0 && flags.nMissingPrice === 0)) return null
-  const parts: string[] = []
-  if (flags.nDefaultPct > 0) parts.push(tr('analytics.fallback.defaultRate', { count: flags.nDefaultPct }))
-  if (flags.nMissingPrice > 0) parts.push(tr('analytics.fallback.missingPrice', { count: flags.nMissingPrice }))
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: A.cardSubtle, borderRadius: 14, padding: '12px 16px', boxShadow: `inset 0 0 0 1px ${A.hairline}` }}>
-      <AxIcon name="spark" size={14} stroke={A.muted} sw={1.6} />
-      <span style={{ fontSize: 12.5, fontWeight: 600, color: A.inkSoft }}>
-        {tr('analytics.fallback.summary', { parts: parts.join(' · ') })}
-      </span>
-    </div>
-  )
-}
-
-// ── Bandeau KPI ──────────────────────────────────────────────────────────────
-function AxKpiTile({ k }: { k: AxKpi }) {
-  const A = useAX()
-  const [h, setH] = useState(false)
-  return (
-    <div onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{
-      background: A.card, borderRadius: 18, padding: '16px 18px', boxShadow: h ? A.shadow : A.shadowSm,
-      transform: h ? 'translateY(-2px)' : 'none', transition: 'transform .18s ease, box-shadow .18s ease',
-      display: 'flex', flexDirection: 'column', gap: 10,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, minHeight: 30 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: A.muted, lineHeight: 1.25 }}>{k.label}</span>
-        <AxDelta v={k.delta} pts={k.pts} abs={k.abs} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: k.value.length > 14 ? 15 : 23, fontWeight: 800, color: A.ink, letterSpacing: -0.7, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.value}</span>
-        {/* Sparkline rendue seulement si la série live a ≥2 points (sinon Sparkline crashe). */}
-        {k.spark.length >= 2 && <Sparkline data={k.spark} up={k.delta >= 0} />}
-      </div>
-    </div>
-  )
-}
-
-function AxKpiStrip({ d }: { d: AxPeriodData }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-      {d.kpis.map((k, i) => <AxKpiTile key={i} k={k} />)}
-    </div>
-  )
-}
-
-// ── Ce qui se signe bientôt ──────────────────────────────────────────────────
-function AxDealRow({ dl, onDrill }: { dl: AxDeal; onDrill: (x: Drill) => void }) {
-  const A = useAX()
-  const { t: tr } = useTranslation('dashboard')
-  const [h, setH] = useState(false)
-  return (
-    <button onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} onClick={() => onDrill({ type: 'deal', deal: dl })} style={{
-      border: 0, background: h ? A.cardSubtle : 'transparent', borderRadius: 14, padding: '13px 14px',
-      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', display: 'grid',
-      gridTemplateColumns: '1.5fr 1fr 0.9fr auto', gap: 14, alignItems: 'center', transition: 'background .14s ease',
-    }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dl.loc ? `${dl.prop} · ${dl.loc}` : dl.prop}</div>
-        {(dl.gmv > 0 || dl.when) && (
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: A.muted, marginTop: 2 }}>{[dl.gmv > 0 ? axCHF(dl.gmv) : null, dl.when || null].filter(Boolean).join(' · ')}</div>
-        )}
-      </div>
-      <div>
-        <div style={{ fontSize: 14.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{dl.comm > 0 ? axCHF(dl.comm) : 'CHF —'}</div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, marginTop: 2 }}>{dl.comm > 0 ? tr('analytics.deal.commission') : tr('analytics.deal.missingPrice')}</div>
-      </div>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <div style={{ flex: 1, height: 5, borderRadius: 999, background: A.cardSubtle, overflow: 'hidden', minWidth: 30 }}>
-            <div style={{ height: '100%', width: `${dl.prob}%`, background: A.ink, borderRadius: 999 }} />
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{dl.prob}%</span>
+        <div style={{ marginTop: 12 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 12, fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+            <AxIcon name={pace.ahead ? 'up' : 'down'} size={11} stroke="#fff" sw={2.6} />
+            {axCHF(Math.abs(pace.diff))} {pace.ahead ? tr('analytics.hero.aheadShort') : tr('analytics.hero.behindShort')} · {pace.projPct} %
+          </span>
         </div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, marginTop: 4 }}>{dl.stage}</div>
       </div>
-      <span style={{ display: 'inline-flex', opacity: h ? 1 : 0.25, transform: h ? 'translateX(2px)' : 'none', transition: 'all .14s ease' }}>
-        <AxIcon name="arrow" size={16} stroke={A.ink} />
-      </span>
-    </button>
+      {/* colonnes Réalisé / Reste */}
+      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: 18 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.realized')}</div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: A.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(d.realizedNow)}</div>
+        </div>
+        <div style={{ width: 1, background: A.hairline, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0, paddingLeft: 18 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.remaining')}</div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: acc.accent, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
+        </div>
+      </div>
+      {/* pace bar muette + objectif */}
+      <div>
+        <div style={{ position: 'relative', height: 12, borderRadius: 999, background: A.cardSubtle }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${projPct}%` : 0, background: acc.ghost, borderRadius: 999, transition: 'width .9s cubic-bezier(.2,.8,.2,1) .15s' }} />
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${realPct}%` : 0, background: acc.accent, borderRadius: 999, transition: 'width .9s cubic-bezier(.2,.8,.2,1)' }} />
+          </div>
+          <div title={tr('analytics.hero.paceMarkerTitle')} style={{ position: 'absolute', top: -4, bottom: -4, left: `${pacePct}%`, width: 2.5, borderRadius: 2, background: A.ink }} />
+        </div>
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: A.muted }}>
+          <span>{tr('analytics.hero.objectiveLabel')} <strong style={{ color: A.ink, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{axCHF(d.target)}</strong></span>
+          {onGoSettings && (
+            <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+              · {tr('analytics.hero.modify')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
-function AxClosing({ deals, onDrill }: { deals: AxDeal[]; onDrill: (x: Drill) => void }) {
+// ═══════════════════════════════════════════════════════════════════════════
+//   TRAJECTOIRE — sélecteur de période intégré (thumb qui glisse)
+// ═══════════════════════════════════════════════════════════════════════════
+function AxfSeg({ items, value, onChange, dark }: { items: { id: AxPeriodId; label: string }[]; value: AxPeriodId; onChange: (id: AxPeriodId) => void; dark: boolean }) {
+  const A = useAX()
+  const idx = Math.max(0, items.findIndex(it => it.id === value))
+  const n = items.length
+  return (
+    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, background: A.cardSubtle, borderRadius: 999, padding: 3, boxShadow: dark ? 'inset 0 1px 3px rgba(0,0,0,.35)' : 'inset 0 1px 3px rgba(15,23,42,.07)' }}>
+      <div aria-hidden="true" style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: `calc((100% - 6px) / ${n})`, transform: `translateX(${idx * 100}%)`, transition: 'transform .38s cubic-bezier(.2,.8,.2,1)', borderRadius: 999, background: A.ink, boxShadow: dark ? '0 2px 8px rgba(0,0,0,.30)' : '0 2px 8px rgba(15,23,42,.18)' }} />
+      {items.map(it => {
+        const active = it.id === value
+        return (
+          <button key={it.id} role="tab" aria-selected={active} onClick={() => onChange(it.id)} className="axf-seg-btn" style={{
+            position: 'relative', zIndex: 1, border: 0, background: 'transparent', fontFamily: 'inherit',
+            padding: '6px 15px', borderRadius: 999, cursor: active ? 'default' : 'pointer',
+            fontSize: 12.5, fontWeight: active ? 800 : 700, letterSpacing: -0.1, whiteSpace: 'nowrap',
+            color: active ? A.onAccent : A.muted,
+          }}>{it.label}</button>
+        )
+      })}
+    </div>
+  )
+}
+
+// Trajectoire immersive + cône : zéro grille, aire + courbe réalisé, projection
+// pointillée + cône d'incertitude, ligne objectif, survol fluide (écart coloré).
+function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; acc: AxfAccent; dark: boolean }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
+  const s = d.series
+  const VBW = 1000
+  const VBH = vbH || 400
+  const PAD = { l: 22, r: 22, t: 34, b: 30 }
+  const plotW = VBW - PAD.l - PAD.r
+  const plotH = VBH - PAD.t - PAD.b
+  const baseY = PAD.t + plotH
+  const nSafe = Math.max(2, s.n)
+  const x = (i: number) => PAD.l + (i / (nSafe - 1)) * plotW
+  const y = (v: number) => PAD.t + (1 - v / (s.yMax || 1)) * plotH
+  const realAt = (i: number) => s.real[i] ?? 0
+  const valAt = (i: number) => (i <= s.elapsed ? realAt(i) : (s.proj[i - s.elapsed] ?? d.projectedEnd))
+  const toPath = (pts: [number, number][]) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ')
+
+  const realLen = Math.min(s.real.length, s.elapsed + 1) || s.real.length
+  const realPts = s.real.slice(0, realLen > 0 ? realLen : s.real.length).map((v, i) => [x(i), y(v)] as [number, number])
+  const realPath = realPts.length ? toPath(realPts) : ''
+  const eIdx = Math.min(Math.max(0, s.elapsed), Math.max(0, s.real.length - 1))
+  const realNow = s.real.length ? realAt(eIdx) : d.realizedNow
+  const areaPath = realPath ? `${realPath} L ${x(eIdx).toFixed(1)} ${baseY.toFixed(1)} L ${PAD.l} ${baseY.toFixed(1)} Z` : ''
+
+  const xEnd = x(nSafe - 1)
+  const px0 = x(eIdx)
+  const py0 = y(realNow)
+  const hasProj = s.elapsed < s.n - 1 && d.projectedEnd > 0
+  const coneHi = Math.min(s.yMax * 0.985, d.projectedEnd * 1.115)
+  const coneLo = Math.max(0, d.projectedEnd * 0.885)
+
+  const rv = axCHF(realNow)
+  const rw = rv.length * 7.4 + 24
+  const rx0 = Math.max(PAD.l, Math.min(VBW - PAD.r - rw, px0 - rw / 2))
+  const pv = axCHF(d.projectedEnd)
+  const pw = pv.length * 7.4 + 24
+
+  const goalEnd = s.goal[nSafe - 1] ?? d.target
+  const labs = d.axisLabels.map((lab, i) => ({ lab, i })).filter(o => o.lab && (s.n !== 12 || [0, 3, 6, 9, 11].includes(o.i)))
+
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [hov, setHov] = useState<number | null>(null)
+  const onMove = (e: React.MouseEvent | React.TouchEvent) => {
+    const el = wrapRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const cx = clientX - r.left
+    const frac = (cx / r.width) * VBW
+    setHov(Math.max(0, Math.min(nSafe - 1, Math.round(((frac - PAD.l) / plotW) * (nSafe - 1)))))
+  }
+  const hovVal = hov == null ? null : valAt(hov)
+  const hovGoal = hov == null ? null : (s.goal[hov] ?? goalEnd)
+  const hovDiff = hov == null || hovVal == null || hovGoal == null ? null : hovVal - hovGoal
+
   return (
-    <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.closing.title')}</h3>
-      </div>
-      {deals.length === 0 ? (
-        <div style={{ padding: '28px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
-          {tr('analytics.closing.empty')}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {deals.map((dl, i) => <AxDealRow key={i} dl={dl} onDrill={onDrill} />)}
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%', cursor: 'crosshair' }}
+      onMouseMove={onMove} onMouseLeave={() => setHov(null)} onTouchStart={onMove} onTouchMove={onMove} onTouchEnd={() => setHov(null)}>
+      <svg viewBox={`0 0 ${VBW} ${VBH}`} width="100%" style={{ display: 'block', width: '100%', height: 'auto' }}>
+        <defs>
+          <linearGradient id="axfArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={acc.accent} stopOpacity="0.38" />
+            <stop offset="1" stopColor={acc.accent} stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="axfCone" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor={acc.accent} stopOpacity="0.20" />
+            <stop offset="1" stopColor={acc.accent} stopOpacity="0.07" />
+          </linearGradient>
+        </defs>
+        {/* objectif */}
+        <path d={`M ${x(0)} ${y(s.goal[0] ?? 0)} L ${xEnd} ${y(goalEnd)}`} fill="none" stroke={A.goal} strokeWidth="2" strokeDasharray="3 6" strokeLinecap="round" opacity="0.85" />
+        <text x={xEnd - 2} y={y(goalEnd) - 9} textAnchor="end" fontSize="12" fontWeight="700" fill={A.muted} fontFamily="Manrope">{tr('analytics.trajectory.objectiveShort', { amount: axShort(d.target) })}</text>
+        {/* cône d'incertitude + projection */}
+        {hasProj && (
+          <>
+            <path d={`M ${px0} ${py0} L ${xEnd} ${y(coneHi)} L ${xEnd} ${y(coneLo)} Z`} fill="url(#axfCone)" />
+            <path d={`M ${px0} ${py0} L ${xEnd} ${y(d.projectedEnd)}`} fill="none" stroke={acc.accent} strokeWidth="2.4" strokeDasharray="2 8" strokeLinecap="round" opacity="0.6" />
+            <text x={xEnd - 2} y={y(coneLo) + 17} textAnchor="end" fontSize="11" fontWeight="700" fill={A.muted} fontFamily="Manrope">{tr('analytics.trajectory.prudent', { amount: axShort(coneLo) })}</text>
+          </>
+        )}
+        {/* réalisé */}
+        {areaPath && <path d={areaPath} fill="url(#axfArea)" stroke="none" />}
+        {realPath && <path d={realPath} fill="none" stroke={acc.accent} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />}
+        {/* aujourd'hui */}
+        <circle cx={px0} cy={py0} r="11" fill={acc.accent} opacity="0.22" />
+        <circle cx={px0} cy={py0} r="5.5" fill={acc.accent} />
+        <circle cx={px0} cy={py0} r="5.5" fill="none" stroke={A.card} strokeWidth="2" />
+        <g>
+          <rect x={rx0} y={py0 - 46} width={rw} height={26} rx="13" fill="#1A1C20" stroke="rgba(255,255,255,0.12)" />
+          <text x={rx0 + rw / 2} y={py0 - 28} textAnchor="middle" fontSize="12" fontWeight="800" fill="#FFFFFF" fontFamily="Manrope">{rv}</text>
+        </g>
+        {/* projeté (fin de période) */}
+        {hasProj && (
+          <g>
+            <rect x={xEnd - pw} y={y(d.projectedEnd) - 13} width={pw} height={26} rx="13" fill="#1A1C20" stroke="rgba(255,255,255,0.12)" />
+            <text x={xEnd - pw / 2} y={y(d.projectedEnd) + 4} textAnchor="middle" fontSize="12" fontWeight="800" fill={acc.accent} fontFamily="Manrope">{pv}</text>
+          </g>
+        )}
+        {/* repères X épars */}
+        {labs.map(o => (
+          <text key={o.i} x={x(o.i)} y={VBH - 8} textAnchor={o.i === 0 ? 'start' : o.i === nSafe - 1 ? 'end' : 'middle'} fontSize="12.5" fontWeight={hov === o.i ? '800' : '600'} fill={hov === o.i ? A.ink : A.muted} fontFamily="Manrope">{o.lab}</text>
+        ))}
+        {/* crosshair fluide : écart vs objectif */}
+        {hov != null && hovVal != null && hovGoal != null && hovDiff != null && (
+          <g style={{ transform: `translateX(${x(hov)}px)`, transition: 'transform .16s cubic-bezier(.2,.8,.2,1)' }}>
+            <line x1="0" x2="0" y1={PAD.t} y2={baseY} stroke={A.ink} strokeWidth="1.2" opacity="0.3" />
+            <rect x="-1.25" width="2.5" rx="1.25"
+              y={Math.min(y(hovVal), y(hovGoal))}
+              height={Math.max(2, Math.abs(y(hovVal) - y(hovGoal)))}
+              fill={hovDiff >= 0 ? (dark ? '#3FCF8E' : '#1C7A4E') : (dark ? '#F0A05A' : '#B4612A')}
+              style={{ transition: 'y .16s cubic-bezier(.2,.8,.2,1), height .16s cubic-bezier(.2,.8,.2,1)' }} />
+            <circle cx="0" cy={y(hovGoal)} r="4.5" fill={A.card} stroke={A.goal} strokeWidth="2" style={{ transition: 'cy .16s cubic-bezier(.2,.8,.2,1)' }} />
+            <circle cx="0" cy={y(hovVal)} r="5.5" fill={A.card} stroke={acc.accent} strokeWidth="2.5" style={{ transition: 'cy .16s cubic-bezier(.2,.8,.2,1)' }} />
+          </g>
+        )}
+      </svg>
+      {hov != null && hovVal != null && hovDiff != null && (
+        <div style={{
+          position: 'absolute', top: 6, left: `${(x(hov) / VBW) * 100}%`,
+          transform: `translateX(${hov > nSafe * 0.7 ? '-104%' : hov < nSafe * 0.3 ? '4%' : '-50%'})`,
+          transition: 'left .16s cubic-bezier(.2,.8,.2,1), transform .16s cubic-bezier(.2,.8,.2,1)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: '#1A1C20', borderRadius: 999, padding: '7px 13px',
+          boxShadow: '0 10px 28px rgba(0,0,0,0.38)', border: '1px solid rgba(255,255,255,0.10)',
+          pointerEvents: 'none', whiteSpace: 'nowrap', fontFamily: 'Manrope',
+        }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}>
+            {(d.axisLabels[hov] || `${d.pointWord || tr('analytics.trajectory.pointWordFallback')} ${hov + 1}`)}{hov > s.elapsed ? ` · ${tr('analytics.trajectory.projectedShort')}` : ''}
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{axCHF(hovVal)}</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: hovDiff >= 0 ? '#3FCF8E' : '#F0A05A', fontVariantNumeric: 'tabular-nums' }}>
+            {hovDiff >= 0 ? '▲ +' : '▼ −'}{axCHF(Math.abs(hovDiff)).replace('CHF ', '')}
+          </span>
         </div>
       )}
     </div>
   )
 }
 
-// ── De quoi est fait le projeté ──────────────────────────────────────────────
-function AxCompRow({ c, total, color, onDrill }: { c: AxCompositionItem; total: number; color: string; onDrill: (x: Drill) => void }) {
-  const A = useAX()
-  const [h, setH] = useState(false)
-  return (
-    <button onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} onClick={() => onDrill({ type: 'bucket', bucket: c.k })} style={{
-      border: 0, background: h ? A.cardSubtle : 'transparent', borderRadius: 12, padding: '11px 12px',
-      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, transition: 'background .14s ease',
-    }}>
-      <span style={{ width: 12, height: 12, borderRadius: 4, background: color, flexShrink: 0, boxShadow: c.k === 'possible' ? `inset 0 0 0 1px ${A.ghost}` : 'none' }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: A.ink }}>{c.label}</div>
-        <div style={{ fontSize: 11.5, fontWeight: 600, color: A.muted }}>{c.hint}</div>
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(c.v)}</div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, fontVariantNumeric: 'tabular-nums' }}>{total > 0 ? Math.round((c.v / total) * 100) : 0} %</div>
-      </div>
-      <span style={{ display: 'inline-flex', opacity: h ? 0.9 : 0.2, transition: 'opacity .14s ease' }}>
-        <AxIcon name="arrow" size={15} stroke={A.ink} />
-      </span>
-    </button>
-  )
-}
-
-function AxComposition({ d, onDrill }: { d: AxPeriodData; onDrill: (x: Drill) => void }) {
+function AxfChartCard({ d, acc, dark, seg }: { d: AxPeriodData; acc: AxfAccent; dark: boolean; seg: ReactNode }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
-  const total = d.composition.reduce((s, c) => s + c.v, 0)
-  const colOf: Record<AxBucketId, string> = { secured: A.secured, probable: A.probable, possible: A.possible }
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const [vbH, setVbH] = useState(400)
+  useLayoutEffect(() => {
+    const el = bodyRef.current
+    if (!el) return
+    const fit = () => {
+      const r = el.getBoundingClientRect()
+      if (r.width > 80 && r.height > 80) setVbH(Math.max(300, Math.min(640, Math.round((r.height / r.width) * 1000))))
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   return (
-    <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
-      <h3 style={{ margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 7, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>
-        {tr('analytics.composition.title')}
-        <span title={tr('analytics.estimateTooltip')} style={{ display: 'inline-flex' }}>
-          <AxIcon name="spark" size={12} stroke={A.muted} sw={1.6} />
-        </span>
-      </h3>
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: A.muted, marginBottom: 16 }}>{tr('analytics.composition.total', { amount: axCHF(total) })}</div>
-      {total === 0 ? (
-        <div style={{ padding: '22px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
-          {tr('analytics.composition.empty')}
-        </div>
-      ) : (
-        <>
-          <div style={{ display: 'flex', height: 16, borderRadius: 999, overflow: 'hidden', gap: 2, marginBottom: 18 }}>
-            {d.composition.map((c, i) => (
-              <div key={i} title={c.label} style={{ width: `${(c.v / total) * 100}%`, background: colOf[c.k], transition: 'width .7s cubic-bezier(.2,.8,.2,1)' }} />
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {d.composition.map((c, i) => <AxCompRow key={i} c={c} total={total} color={colOf[c.k]} onDrill={onDrill} />)}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-// ── Carte graphe ─────────────────────────────────────────────────────────────
-function AxChartCard({ d, chartKey }: { d: AxPeriodData; chartKey: number }) {
-  const A = useAX()
-  const { t: tr } = useTranslation('dashboard')
-  return (
-    <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px 16px', boxShadow: A.shadow }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 6 }}>
-        <div>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.chart.title')}</h3>
-        </div>
-        <div style={{ display: 'flex', gap: 16 }}>
+    <div style={{ background: A.card, borderRadius: 26, padding: '20px 26px 12px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', flexShrink: 0 }}>
+        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.chart.title')}</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: A.inkSoft }}>
-            <span style={{ width: 16, height: 3, borderRadius: 2, background: A.ink }} /> {tr('analytics.chart.realized')}
+            <span style={{ width: 16, height: 3, borderRadius: 2, background: acc.accent }} /> {tr('analytics.chart.realized')}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: A.inkSoft }}>
             <span style={{ width: 16, height: 0, borderTop: `2px dashed ${A.goal}` }} /> {tr('analytics.chart.target')}
           </span>
+          {seg}
         </div>
       </div>
-      <TrajectoryChart key={chartKey} d={d} />
-    </div>
-  )
-}
-
-// ── Sources des deals ────────────────────────────────────────────────────────
-const SRC_OPAC = [1, 0.74, 0.54, 0.4, 0.3]
-
-function AxSourceRow({ s, rank }: { s: AxSource; rank: number }) {
-  const A = useAX()
-  const { t: tr } = useTranslation('dashboard')
-  const [h, setH] = useState(false)
-  return (
-    <div onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{
-      display: 'grid', gridTemplateColumns: 'minmax(240px,1.7fr) minmax(110px,1.4fr) auto',
-      gap: 16, alignItems: 'center', padding: '12px 12px', borderRadius: 12,
-      background: h ? A.cardSubtle : 'transparent', transition: 'background .14s ease',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
-        <span style={{ width: 22, fontSize: 12, fontWeight: 800, color: A.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{rank + 1}</span>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</div>
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{s.sub}</div>
+      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, marginTop: 8 }}>
+        <div key={d.key} style={{ height: '100%', animation: 'axfFade .35s ease both' }}>
+          <AxfTrajectory key={vbH} d={d} vbH={vbH} acc={acc} dark={dark} />
         </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ flex: 1, height: 10, borderRadius: 999, background: A.cardSubtle, overflow: 'hidden', minWidth: 40 }}>
-          <div style={{ height: '100%', width: `${s.pct}%`, background: A.ink, opacity: SRC_OPAC[rank] ?? 0.3, borderRadius: 999, transition: 'width .7s cubic-bezier(.2,.8,.2,1)' }} />
-        </div>
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', width: 34, textAlign: 'right' }}>{s.pct}%</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{s.deals}</div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: A.muted, whiteSpace: 'nowrap' }}>{tr('analytics.sources.leadCount', { count: s.deals })}</div>
-        </div>
-        <AxDelta v={s.delta} />
       </div>
     </div>
   )
 }
 
-function AxSources({ d }: { d: AxPeriodData }) {
+// ═══════════════════════════════════════════════════════════════════════════
+//   COMPOSITION — treemap vertical (le % EST le bloc, clic → popover ancré)
+// ═══════════════════════════════════════════════════════════════════════════
+export interface AxDrill { bucket: AxBucketId; rect: DOMRect }
+function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: AxfAccent; dark: boolean; onDrill: (x: AxDrill) => void }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
-  const srcs = d.sources || []
-  const top = srcs[0]
+  const total = d.composition.reduce((s, c) => s + c.v, 0)
+  const colOf: Record<AxBucketId, string> = { secured: acc.accent, probable: acc.soft, possible: acc.ghost }
+  const txtOf: Record<AxBucketId, string> = dark
+    ? { secured: '#0B0C0E', probable: '#FFFFFF', possible: A.ink }
+    : { secured: '#0B0C0E', probable: '#0B0C0E', possible: '#0B0C0E' }
   return (
-    <div style={{ background: A.card, borderRadius: 22, padding: '22px 24px', boxShadow: A.shadow }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-        <div>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.sources.title')}</h3>
-          {/* commission par canal non stockée en DB → on affiche le volume de leads */}
-          <div style={{ fontSize: 12, fontWeight: 600, color: A.muted, marginTop: 3 }}>{tr('analytics.sources.subtitle')} · {d.label}</div>
-        </div>
-        {top && (
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: A.inkSoft }}>
-            <strong style={{ color: A.ink, fontWeight: 800 }}>{top.label}</strong> {tr('analytics.sources.bestChannel')}
-          </span>
-        )}
-      </div>
-      {srcs.length === 0 ? (
-        <div style={{ padding: '24px 8px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
-          {tr('analytics.sources.empty')}
+    <div style={{ background: A.card, borderRadius: 26, padding: '18px 22px 20px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.composition.title')}</h3>
+      {total === 0 ? (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
+          {tr('analytics.composition.empty')}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {srcs.map((s, i) => <AxSourceRow key={i} s={s} rank={i} />)}
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+          {d.composition.map((c, i) => {
+            const pct = Math.round((c.v / total) * 100)
+            const big = i === 0
+            return (
+              <button key={c.k} className="axf-block" onClick={e => onDrill({ bucket: c.k, rect: e.currentTarget.getBoundingClientRect() })} style={{
+                flexGrow: Math.max(0.0001, c.v), flexShrink: 1, flexBasis: '0%', minHeight: 40, border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                transition: 'flex-grow .65s cubic-bezier(.2,.8,.2,1)',
+                background: colOf[c.k], color: txtOf[c.k], borderRadius: 16,
+                padding: big ? '13px 16px' : '8px 16px',
+                display: 'flex', flexDirection: big ? 'column' : 'row', justifyContent: 'space-between',
+                alignItems: big ? 'stretch' : 'center', gap: big ? 4 : 10,
+                minWidth: 0, overflow: 'hidden',
+                animation: `axRise .5s cubic-bezier(.2,.8,.2,1) ${0.16 + i * 0.08}s both`,
+              }}>
+                {big ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+                      <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.72, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(c.v)}</div>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+                    <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
+                  </>
+                )}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>
   )
 }
 
-// ── Drawer de drill-down ─────────────────────────────────────────────────────
-type Drill = { type: 'deal'; deal: AxDeal } | { type: 'bucket'; bucket: AxBucketId }
-
-function AxRecRow({ r }: { r: AxRecord }) {
-  const A = useAX()
-  const [h, setH] = useState(false)
-  return (
-    <button onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{
-      border: 0, background: h ? A.cardSubtle : 'transparent', borderRadius: 14, padding: '13px 14px',
-      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%',
-      display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center', transition: 'background .14s ease',
-    }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: A.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.prop} · {r.loc}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: A.inkSoft, background: A.cardSubtle, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}>{r.state}</span>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: A.muted, fontVariantNumeric: 'tabular-nums' }}>{axCHF(r.gmv)}</span>
-        </div>
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: 14.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(r.comm)}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, justifyContent: 'flex-end' }}>
-          <div style={{ width: 44, height: 5, borderRadius: 999, background: A.cardSubtle, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${r.prob}%`, background: A.ink, borderRadius: 999 }} />
-          </div>
-          <span style={{ fontSize: 11.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{r.prob}%</span>
-        </div>
-      </div>
-    </button>
-  )
-}
-
-const AX_BUCKET_META: Record<AxBucketId, { labelKey: string; hintKey: string }> = {
-  secured: { labelKey: 'analytics.drawer.bucket.secured.label', hintKey: 'analytics.drawer.bucket.secured.hint' },
-  probable: { labelKey: 'analytics.drawer.bucket.probable.label', hintKey: 'analytics.drawer.bucket.probable.hint' },
-  possible: { labelKey: 'analytics.drawer.bucket.possible.label', hintKey: 'analytics.drawer.bucket.possible.hint' },
-}
-
-function AxDrawer({ drill, records: recordsByBucket, onClose }: {
-  drill: Drill
-  records: Record<AxBucketId, { label: string; hint: string; items: AxRecord[] }> | null | undefined
+// ═══════════════════════════════════════════════════════════════════════════
+//   DRILL — popover ancré contre le bloc cliqué (Échap / clic dehors ferme)
+// ═══════════════════════════════════════════════════════════════════════════
+// Total = valeur de composition du bucket (source unique, IDENTIQUE au treemap) —
+// PAS la somme des items listés : les contributeurs cockpit sont un top-5 GLOBAL,
+// donc un sous-ensemble par bucket. La liste est explicitement « principaux dossiers »
+// (jamais présentée comme exhaustive), et un bucket dont aucun deal n'entre dans le
+// top-5 n'est PAS affiché « vide » — le total réel reste au bandeau.
+function AxfDrillPopover({ drill, bucket, compValue, onClose, onNavigate }: {
+  drill: AxDrill
+  bucket: AxBucket
+  compValue: number
   onClose: () => void
+  onNavigate?: (id: string) => void
 }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
-  const [closing, setClosing] = useState(false)
-  const close = useCallback(() => { setClosing(true); window.setTimeout(onClose, 240) }, [onClose])
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [close])
-
-  let eyebrow: string
-  let title: string
-  let records: AxRecord[]
-  let hint: string
-  let total: number
-  let count: number | null
-  const isDeal = drill.type === 'deal'
-  if (drill.type === 'bucket') {
-    const meta = AX_BUCKET_META[drill.bucket]
-    const b = recordsByBucket?.[drill.bucket] ?? null
-    const bucketLabel = b?.label ?? tr(meta.labelKey)
-    eyebrow = tr('analytics.drawer.compositionEyebrow', { label: bucketLabel })
-    title = bucketLabel
-    records = b?.items ?? []
-    hint = b?.hint ?? tr(meta.hintKey)
-    total = records.reduce((s, x) => s + x.comm, 0)
-    count = records.length
-  } else {
-    const dl = drill.deal
-    eyebrow = tr('analytics.drawer.dealEyebrow', { stage: dl.stage })
-    title = dl.loc ? `${dl.prop} ${dl.loc}` : dl.prop
-    records = []
-    hint = tr('analytics.drawer.comparableDeals')
-    total = dl.comm
-    count = null
-  }
-
-  // Drill-down par dossier différé V1 : si aucun record n'est fourni, on dégrade
-  // honnêtement (« détails indisponibles ») plutôt que d'afficher une fixture.
-  const detailsUnavailable = records.length === 0
-
-  const overlay = (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 2000, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: 24, boxSizing: 'border-box' }}>
-      <div onClick={close} style={{ position: 'absolute', inset: 0, background: A.scrim, opacity: closing ? 0 : 1, transition: 'opacity .24s ease', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }} />
-      <div style={{
-        position: 'relative', width: 460, maxWidth: '92vw', height: '100%', maxHeight: '100%', background: A.card,
-        boxShadow: A.shadowLg, borderRadius: 24, display: 'flex', flexDirection: 'column',
-        transform: closing ? 'translateX(108%)' : 'translateX(0)',
-        transition: 'transform .26s cubic-bezier(.2,.85,.25,1)', overflow: 'hidden',
-      }}>
-        <div style={{ padding: '24px 26px 18px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.1, textTransform: 'uppercase', color: A.muted }}>{eyebrow}</div>
-            <h3 style={{ margin: '8px 0 0', fontSize: 24, fontWeight: 800, letterSpacing: -0.7, color: A.ink, lineHeight: 1.1 }}>{title}</h3>
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums' }}>{total > 0 ? axCHF(total) : 'CHF —'}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: A.muted }}>{isDeal ? tr('analytics.deal.commission') : tr('analytics.drawer.fileCount', { count: count ?? 0 })}</span>
-            </div>
-          </div>
-          <button onClick={close} title={tr('analytics.drawer.close')} style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: A.cardSubtle, cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-            <AxIcon name="close" size={16} stroke={A.inkSoft} />
-          </button>
+  }, [onClose])
+  const items = bucket.items
+  const tone = AXF_BUCKET_TONE[drill.bucket]
+  const W = 390
+  const H = Math.min(460, 132 + Math.max(1, items.length) * 44)
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const r = drill.rect
+  const fitsRight = r.right + 14 + W <= vw - 12
+  const left = fitsRight ? r.right + 14 : Math.max(12, r.left - W - 14)
+  const top = Math.max(12, Math.min(r.top + r.height / 2 - H / 3, vh - H - 12))
+  const arrowY = Math.max(18, Math.min(r.top + r.height / 2 - top - 7, H - 32))
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'transparent' }} />
+      <div style={{ position: 'absolute', left, top, width: W, maxHeight: H, background: A.card, borderRadius: 20, boxShadow: A.shadowLg, padding: '18px 20px', display: 'flex', flexDirection: 'column', animation: 'axRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div style={{ position: 'absolute', [fitsRight ? 'left' : 'right']: -7, top: arrowY, width: 14, height: 14, background: A.card, transform: 'rotate(45deg)', borderRadius: 3 } as CSSProperties} />
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexShrink: 0 }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: A.ink, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bucket.label}</span>
+          {compValue > 0 && <span style={{ fontSize: 15, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{axCHF(compValue)}</span>}
         </div>
-
-        {drill.type === 'deal' && (
-          <div style={{ padding: '0 26px 6px' }}>
-            <div style={{ background: A.cardSubtle, borderRadius: 16, padding: '16px 18px', display: 'flex', flexWrap: 'wrap', gap: 18 }}>
-              {[
-                { l: tr('analytics.drawer.field.commission'), v: drill.deal.comm > 0 ? axCHF(drill.deal.comm) : 'CHF —' },
-                { l: tr('analytics.drawer.field.probability'), v: drill.deal.prob + ' %' },
-                { l: tr('analytics.drawer.field.stage'), v: drill.deal.stage },
-              ].map((x, i) => (
-                <div key={i}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: A.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>{x.l}</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: A.ink, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{x.v}</div>
+        {items.length === 0 ? (
+          <div style={{ marginTop: 12, marginBottom: 6, fontSize: 12.5, fontWeight: 600, color: A.muted, lineHeight: 1.5 }}>
+            {bucket.hint ? `${bucket.hint}. ` : ''}{tr('analytics.drill.emptyBucket')}
+          </div>
+        ) : (
+          <>
+            <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: A.muted, flexShrink: 0 }}>{tr('analytics.drill.topFiles')}</div>
+            <div style={{ marginTop: 4, overflowY: 'auto', minHeight: 0 }}>
+              {items.map((x, i) => (
+                <div key={i} className="axf-row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 12, minWidth: 0 }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800, color: A.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.prop}</span>
+                  <span style={{ padding: '3px 10px', borderRadius: 999, background: tone, color: '#FFFFFF', fontSize: 10.5, fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{x.state}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{x.comm > 0 ? axCHF(x.comm).replace('CHF ', '') : '—'}</span>
                 </div>
               ))}
             </div>
-          </div>
+          </>
         )}
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 18px 18px' }}>
-          {detailsUnavailable ? (
-            <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted, lineHeight: 1.5 }}>
-              {tr('analytics.drawer.detailsUnavailable')}<br />
-              <span style={{ fontSize: 12, fontWeight: 500, color: A.muted }}>{tr('analytics.drawer.detailsUnavailableHint')}</span>
-            </div>
-          ) : (
-            <>
-              <div style={{ fontSize: 12, fontWeight: 600, color: A.muted, padding: '8px 8px 4px' }}>{hint}</div>
-              {records.map((r, i) => <AxRecRow key={i} r={r} />)}
-            </>
-          )}
-        </div>
-
-        <div style={{ padding: '16px 26px 22px', borderTop: `1px solid ${A.hairline}` }}>
-          <button style={{
-            width: '100%', height: 46, borderRadius: 999, border: 0, background: A.ink, color: A.onAccent,
-            fontFamily: 'inherit', fontSize: 13.5, fontWeight: 800, cursor: 'pointer', letterSpacing: -0.1,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: A.shadow,
-          }}>
-            {tr('analytics.drawer.openInPipeline')}
-            <AxIcon name="arrow" size={15} stroke={A.onAccent} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, flexShrink: 0 }}>
+          <button onClick={() => { onClose(); onNavigate?.('pipeline') }} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            {tr('analytics.drill.openInPipeline')}
           </button>
         </div>
       </div>
     </div>
   )
-
-  return createPortal(overlay, document.body)
 }
 
-// ── Skeleton de transition de période ────────────────────────────────────────
-function axEnsureKeyframes() {
-  if (typeof document === 'undefined' || document.getElementById('ax-kf')) return
-  const s = document.createElement('style')
-  s.id = 'ax-kf'
-  s.textContent =
-    '@keyframes axRise{from{transform:translateY(12px)}to{transform:translateY(0)}}' +
-    '@keyframes axShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}' +
-    '@keyframes axSkIn{from{opacity:0}to{opacity:1}}'
-  document.head.appendChild(s)
+// ═══════════════════════════════════════════════════════════════════════════
+//   COMMISSION PAR CANAL — colonnes = commission RÉALISÉE attribuée par canal
+//   (décompose le « Réalisé » du héro ; hauteur relative au meilleur canal)
+// ═══════════════════════════════════════════════════════════════════════════
+function AxfSourcesCard({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
+  const A = useAX()
+  const { t: tr } = useTranslation('dashboard')
+  const opac = [1, 0.76, 0.56, 0.42, 0.3]
+  // Seuls les canaux ayant produit de la commission réalisée (tri par commission
+  // décroissante ; le RPC trie déjà ainsi, on reste défensif).
+  const chans = (d.sources || []).filter(s => (s.comm ?? 0) > 0).sort((a, b) => (b.comm ?? 0) - (a.comm ?? 0))
+  const maxComm = Math.max(1, ...chans.map(s => s.comm))
+  const [on, setOn] = useState(false)
+  useEffect(() => { const t = window.setTimeout(() => setOn(true), 60); return () => window.clearTimeout(t) }, [])
+  return (
+    <div style={{ background: A.card, borderRadius: 26, padding: '18px 22px 16px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.commissionTitle')}</h3>
+      {chans.length === 0 ? (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 13, fontWeight: 600, color: A.muted }}>
+          {tr('analytics.sources.commissionEmpty')}
+        </div>
+      ) : (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'stretch', gap: 14, paddingTop: 12 }}>
+          {chans.map((s, i) => (
+            <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }} title={`${s.label} · ${axCHF(s.comm)} · ${tr('analytics.sources.wonDeals', { count: s.won ?? 0 })}`}>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axShort(s.comm)}</span>
+              <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', borderRadius: 10, background: A.cardSubtle, overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.comm / maxComm) * 100)}%` : 0, background: acc.accent, opacity: opac[i] ?? 0.3, borderRadius: 10, transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
+              </div>
+              <span style={{ maxWidth: '100%', fontSize: 11, fontWeight: 700, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//   KPI — 4 tuiles (sparkline « aire » en bandeau bas)
+// ═══════════════════════════════════════════════════════════════════════════
+function AxfAreaSpark({ data, acc, h = 40 }: { data: number[]; acc: AxfAccent; h?: number }) {
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const n = data.length
+  const W = 160
+  const H = 42
+  const sx = (i: number) => (i / (n - 1)) * W
+  const sy = (v: number) => H - 5 - ((v - min) / (max - min || 1)) * (H - 14)
+  const line = data.map((v, i) => (i ? 'L' : 'M') + sx(i).toFixed(1) + ' ' + sy(v).toFixed(1)).join(' ')
+  return (
+    <svg style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', display: 'block' }} height={h} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+      <path d={`${line} L ${W} ${H} L 0 ${H} Z`} fill={acc.area} />
+      <path d={line} fill="none" stroke={acc.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  )
+}
+
+function AxfKpiGrid({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
+  const A = useAX()
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 12, minHeight: 0, minWidth: 0, width: '100%', height: '100%' }}>
+      {d.kpis.map((k, i) => (
+        <div key={i} style={{ position: 'relative', background: A.card, borderRadius: 18, boxShadow: A.shadowSm, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ position: 'relative', zIndex: 1, padding: '13px 15px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: A.muted, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={k.label}>{k.label}</span>
+              <AxfDelta v={k.delta} pts={k.pts} abs={k.abs} />
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: A.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 8 }}>{k.value}</div>
+          </div>
+          {k.spark.length >= 2 && <AxfAreaSpark data={k.spark} acc={acc} h={40} />}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Squelette de la grille fusion ─────────────────────────────────────────────
 function AxSk({ h = 14, w = '100%', r = 8, style }: { h?: number; w?: number | string; r?: number; style?: CSSProperties }) {
   const A = useAX()
   return (
@@ -653,103 +591,100 @@ function AxSk({ h = 14, w = '100%', r = 8, style }: { h?: number; w?: number | s
     }} />
   )
 }
-
-function AxSkCard({ children, pad = '22px 24px', style }: { children: ReactNode; pad?: string; style?: CSSProperties }) {
-  const A = useAX()
-  return <div style={{ background: A.card, borderRadius: 22, padding: pad, boxShadow: A.shadow, ...style }}>{children}</div>
-}
-
 function AxSkeleton() {
+  const A = useAX()
+  const card = (children: ReactNode, extra?: CSSProperties): ReactNode => (
+    <div style={{ background: A.card, borderRadius: 26, boxShadow: A.shadow, padding: '20px 24px', display: 'flex', flexDirection: 'column', minHeight: 0, ...extra }}>{children}</div>
+  )
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, animation: 'axSkIn .2s ease both' }}>
-      <AxSkCard pad="26px 28px" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 28, alignItems: 'center' }}>
-        <div>
-          <AxSk h={12} w={150} r={6} />
-          <AxSk h={46} w={300} r={12} style={{ marginTop: 16 }} />
-          <AxSk h={26} w={200} r={999} style={{ marginTop: 18 }} />
-          <AxSk h={14} w="80%" r={6} style={{ marginTop: 18 }} />
-          <AxSk h={14} w="60%" r={6} style={{ marginTop: 8 }} />
-        </div>
-        <div>
-          <AxSk h={10} w="100%" r={999} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, gap: 10 }}>
-            {[0, 1, 2].map(i => <AxSk key={i} h={12} w={70} r={6} />)}
+    <div className="axf-grid" style={{ height: '100%', width: '100%', display: 'flex', gap: 16, animation: 'axSkIn .2s ease both' }}>
+      <div className="axf-col-left" style={{ flex: '0 0 clamp(300px, 27%, 396px)', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ flex: '0.86 1 0', minHeight: 0, display: 'grid' }}>{card(<><AxSk h={12} w={140} r={6} /><AxSk h={42} w="70%" r={12} style={{ marginTop: 16 }} /><AxSk h={22} w={180} r={999} style={{ marginTop: 16 }} /><AxSk h={12} w="100%" r={999} style={{ marginTop: 'auto' }} /></>, { justifyContent: 'center' })}</div>
+        <div style={{ flex: '1.14 1 0', minHeight: 0, display: 'grid' }}>{card(<><AxSk h={14} w={160} r={6} /><div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}><AxSk h={0} w="100%" r={16} style={{ flex: 58 }} /><AxSk h={0} w="100%" r={16} style={{ flex: 28 }} /><AxSk h={0} w="100%" r={16} style={{ flex: 14 }} /></div></>)}</div>
+      </div>
+      <div className="axf-col-right" style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ flex: '1.9 1 0', minHeight: 0, display: 'grid' }}>{card(<><div style={{ display: 'flex', justifyContent: 'space-between' }}><AxSk h={16} w={180} r={6} /><AxSk h={28} w={200} r={999} /></div><AxSk h={0} w="100%" r={14} style={{ flex: 1, marginTop: 16 }} /></>)}</div>
+        <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, display: 'flex', gap: 16 }}>
+          <div style={{ flex: '1.42 1 0', minWidth: 0, display: 'grid' }}>{card(<><AxSk h={14} w={140} r={6} /><div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 14 }}>{[100, 68, 44, 27, 15].map((hh, i) => <AxSk key={i} h={0} w="100%" r={10} style={{ flex: 1, alignSelf: 'stretch', minHeight: `${hh}%` }} />)}</div></>)}</div>
+          <div style={{ flex: '1.05 1 0', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 12 }}>
+            {[0, 1, 2, 3].map(i => <div key={i} style={{ background: A.card, borderRadius: 18, boxShadow: A.shadowSm, padding: '13px 15px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}><AxSk h={9} w="55%" r={999} /><AxSk h={16} w="72%" r={999} /></div>)}
           </div>
         </div>
-      </AxSkCard>
-      <AxSkCard pad="24px 26px">
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 22 }}>
-          <AxSk h={16} w={180} r={6} />
-          <AxSk h={28} w={150} r={999} />
-        </div>
-        <AxSk h={230} w="100%" r={14} />
-      </AxSkCard>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        {[0, 1, 2, 3].map(i => (
-          <AxSkCard key={i} pad="18px 20px">
-            <AxSk h={11} w="70%" r={6} />
-            <AxSk h={24} w="55%" r={8} style={{ marginTop: 14 }} />
-            <AxSk h={28} w="100%" r={8} style={{ marginTop: 16 }} />
-          </AxSkCard>
-        ))}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 18, alignItems: 'start' }}>
-        <AxSkCard>
-          <AxSk h={16} w={200} r={6} style={{ marginBottom: 18 }} />
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0' }}>
-              <div style={{ flex: 1.5 }}><AxSk h={13} w="80%" r={6} /><AxSk h={10} w="50%" r={6} style={{ marginTop: 7 }} /></div>
-              <div style={{ flex: 1 }}><AxSk h={13} w="60%" r={6} /></div>
-              <div style={{ flex: 0.9 }}><AxSk h={6} w="100%" r={999} /></div>
-            </div>
-          ))}
-        </AxSkCard>
-        <AxSkCard>
-          <AxSk h={16} w={160} r={6} style={{ marginBottom: 18 }} />
-          <AxSk h={16} w="100%" r={999} style={{ marginBottom: 20 }} />
-          {[0, 1, 2].map(i => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0' }}>
-              <AxSk h={12} w={12} r={999} />
-              <div style={{ flex: 1 }}><AxSk h={12} w="55%" r={6} /></div>
-              <AxSk h={12} w={70} r={6} />
-            </div>
-          ))}
-        </AxSkCard>
       </div>
     </div>
   )
 }
 
-// ── Bouton toolbar animé (pop + self-draw au survol, via AnimatedTopIcon) ─────
-function AxToolBtn({ name, title, onClick, disabled, iconRef, A }: {
-  name: string; title: string; onClick?: () => void; disabled?: boolean; iconRef?: React.Ref<HTMLSpanElement>; A: AxTheme
-}) {
-  const [hover, setHover] = useState(false)
+// ── Styles locaux de la grille (hover statiques + responsive) ────────────────
+export function AxfStyles({ dark }: { dark: boolean }) {
+  const A = useAX()
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      onMouseEnter={() => { if (!disabled) setHover(true) }}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        width: 36, height: 36, borderRadius: 999, border: 0, background: A.card,
-        display: 'grid', placeItems: 'center', boxShadow: A.shadowSm,
-        cursor: disabled ? 'wait' : 'pointer',
-        transition: 'transform 200ms cubic-bezier(.34,1.4,.5,1), box-shadow .2s ease',
-        transform: hover && !disabled ? 'scale(1.08)' : 'scale(1)',
-      }}
-    >
-      <span ref={iconRef} style={{ display: 'inline-flex', lineHeight: 0 }}>
-        {/* size 17 = 23 × 0.74 et signature scale-0.6 pure : pop identique à la maquette
-            (la maquette n'a pas de signature dédiée pour refresh/download/sun/moon). */}
-        <AnimatedTopIcon name={name} color={A.inkSoft} size={17} signature={{ scale: 0.6 }} />
-      </span>
-    </button>
+    <style>{`
+      .axf-row { outline: none !important; -webkit-tap-highlight-color: transparent; }
+      .axf-row:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'} !important; }
+      .axf-block { outline: none !important; -webkit-tap-highlight-color: transparent; }
+      .axf-block:hover { filter: brightness(${dark ? '1.07' : '0.97'}); }
+      .axf-seg-btn { outline: none !important; -webkit-tap-highlight-color: transparent; }
+      .axf-seg-btn:not([aria-selected="true"]):hover { color: ${A.inkSoft} !important; }
+      @media (max-width: 1180px) {
+        .axf-grid { flex-direction: column !important; overflow-y: auto !important; }
+        .axf-col-left, .axf-col-right { flex: none !important; }
+        .axf-col-left { flex-direction: row !important; }
+        .axf-col-left > * { flex: 1 1 0 !important; min-height: 260px; }
+        .axf-col-right > *:first-child { min-height: 340px; }
+        .axf-strip { flex-direction: column !important; }
+        .axf-strip > * { min-height: 220px; }
+      }
+      @media (max-width: 760px) {
+        .axf-col-left { flex-direction: column !important; }
+      }
+    `}</style>
   )
 }
 
-// ── Body du dashboard (partagé standalone / embed CRM) ───────────────────────
+// ── Grille fusion présentationnelle (drill interne) — réutilisable/testable ───
+export function AxFusionGrid({ d, dark, acc, seg, onNavigate }: {
+  d: AxPeriodData; dark: boolean; acc: AxfAccent; seg: ReactNode; onNavigate?: (id: string) => void
+}) {
+  const [drill, setDrill] = useState<AxDrill | null>(null)
+  const goSettings = onNavigate ? () => onNavigate('settings') : null
+  const compItem = drill ? d.composition.find(c => c.k === drill.bucket) : null
+  const bucket = drill
+    ? (d.records?.[drill.bucket] ?? ({ label: compItem?.label ?? '', hint: compItem?.hint ?? '', items: [] } as AxBucket))
+    : null
+  return (
+    <>
+      <div className="axf-grid" style={{ height: '100%', width: '100%', display: 'flex', gap: 16 }}>
+        <div className="axf-col-left" style={{ flex: '0 0 clamp(300px, 27%, 396px)', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ flex: '0.86 1 0', minHeight: 0, minWidth: 0, display: 'grid' }}>
+            <AxfHero d={d} acc={acc} onGoSettings={goSettings} />
+          </div>
+          <div style={{ flex: '1.14 1 0', minHeight: 0, minWidth: 0, display: 'grid' }}>
+            <AxfCompositionCard d={d} acc={acc} dark={dark} onDrill={setDrill} />
+          </div>
+        </div>
+        <div className="axf-col-right" style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ flex: '1.9 1 0', minHeight: 0, minWidth: 0, display: 'grid' }}>
+            <AxfChartCard d={d} acc={acc} dark={dark} seg={seg} />
+          </div>
+          <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, minWidth: 0, display: 'flex', gap: 16 }}>
+            <div style={{ flex: '1.42 1 0', minWidth: 0, minHeight: 0, display: 'grid' }}>
+              <AxfSourcesCard d={d} acc={acc} />
+            </div>
+            <div style={{ flex: '1.05 1 0', minWidth: 0, minHeight: 0, display: 'grid' }}>
+              <AxfKpiGrid d={d} acc={acc} />
+            </div>
+          </div>
+        </div>
+      </div>
+      {drill && bucket && <AxfDrillPopover drill={drill} bucket={bucket} compValue={compItem?.v ?? 0} onClose={() => setDrill(null)} onNavigate={onNavigate} />}
+    </>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//   BODY — écran fusion (mono-écran), embarqué dans le shell CRM (page)
+// ═══════════════════════════════════════════════════════════════════════════
 const AX_PERIODS: { id: AxPeriodId; labelKey: string }[] = [
   { id: 'month', labelKey: 'analytics.selector.month' },
   { id: 'quarter', labelKey: 'analytics.selector.quarter' },
@@ -763,102 +698,49 @@ export interface AxDashboardBodyProps {
   onNavigate?: (id: string) => void
 }
 
-export default function AxDashboardBody({ embedded = false, dark = false, setDark, onNavigate }: AxDashboardBodyProps) {
+export default function AxDashboardBody({ dark = false, onNavigate }: AxDashboardBodyProps) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
+  const acc = dark ? AXF_ACCENTS.dark : AXF_ACCENTS.light
   const [period, setPeriod] = useState<AxPeriodId>('year')
-  const [chartKey, setChartKey] = useState(0)
-  const [spin, setSpin] = useState(false)
-  const [drill, setDrill] = useState<Drill | null>(null)
-  const spinRef = useRef<HTMLSpanElement>(null)
 
-  // Données live via les 3 RPC d'agrégation (scope figé 'me' en V1 — la page est
-  // le cockpit de l'agent ; toggle scope = backlog quand l'agence devient multi-agents).
   const { data: d, isLoading, isError, refetch } = useAxDashboardData(period, 'me')
+  const { saveYearly, isSaving } = useAgencyTargets()
 
   useEffect(() => { axEnsureKeyframes() }, [])
+  const onPeriod = (p: AxPeriodId) => { if (p !== period) setPeriod(p) }
+  const goSettings = onNavigate ? () => onNavigate('settings') : null
 
-  const refresh = () => {
-    if (spin) return
-    const el = spinRef.current
-    if (el && el.animate) el.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-720deg)' }], { duration: 1100, easing: 'cubic-bezier(.2,.8,.2,1)' })
-    setSpin(true); setChartKey(k => k + 1)
-    refetch()
-    window.setTimeout(() => setSpin(false), 1100)
-  }
-  const onPeriod = (p: AxPeriodId) => {
-    if (p === period) return
-    setPeriod(p); setChartKey(k => k + 1)
+  const seg = <AxfSeg items={AX_PERIODS.map(p => ({ id: p.id, label: tr(p.labelKey) }))} value={period} onChange={onPeriod} dark={dark} />
+
+  // ── États : erreur · chargement · porte (objectif absent) · fantôme · réel ──
+  let content: ReactNode
+  if (isError && !d) {
+    content = (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, textAlign: 'center', color: A.ink }}>
+        <div style={{ fontSize: 16, fontWeight: 800 }}>{tr('analytics.error.title')}</div>
+        <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, maxWidth: 360 }}>{tr('analytics.error.body')}</div>
+        <button onClick={() => refetch()} style={{ height: 40, padding: '0 20px', borderRadius: 999, background: A.ink, color: A.onAccent, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 800 }}>{tr('analytics.error.retry')}</button>
+      </div>
+    )
+  } else if (isLoading || !d) {
+    content = <AxSkeleton />
+  } else {
+    const targetSet = d.targetIsSet ?? d.target > 0
+    const hasActivity = d.realizedNow > 0 || d.projectedEnd > 0 || d.composition.some(c => c.v > 0)
+    if (!targetSet) {
+      content = <AxGate dark={dark} saving={isSaving} onDone={saveYearly} />
+    } else if (!hasActivity) {
+      content = <AxFirstRun acc={acc} dark={dark} target={d.target} onGoSettings={goSettings} />
+    } else {
+      content = <AxFusionGrid d={d} dark={dark} acc={acc} seg={seg} onNavigate={onNavigate} />
+    }
   }
 
   return (
-    <div style={{ minHeight: embedded ? 'auto' : '100vh', paddingBottom: embedded ? 0 : 56, fontFamily: "'Manrope', system-ui, sans-serif" }}>
-      {/* toolbar */}
-      <div style={{ position: embedded ? 'static' : 'sticky', top: 0, zIndex: 30, background: embedded ? 'transparent' : A.appBlur, backdropFilter: embedded ? 'none' : 'saturate(160%) blur(14px)', WebkitBackdropFilter: embedded ? 'none' : 'saturate(160%) blur(14px)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? '0 0 16px' : '20px 36px 16px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 0 }}>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.6, color: A.ink }}>{tr('analytics.title')}</h1>
-          </div>
-          <div style={{ flex: 1 }} />
-          <AxSeg items={AX_PERIODS.map(p => ({ id: p.id, label: tr(p.labelKey) }))} value={period} onChange={onPeriod} />
-          <div style={{ display: 'inline-flex', gap: 6 }}>
-            {!embedded && (
-              <AxToolBtn name={dark ? 'sun' : 'moon'} title={dark ? tr('analytics.toolbar.lightMode') : tr('analytics.toolbar.darkMode')} onClick={() => setDark && setDark(v => !v)} A={A} />
-            )}
-            <AxToolBtn name="refresh" title={tr('analytics.toolbar.refresh')} onClick={refresh} disabled={spin} iconRef={spinRef} A={A} />
-            <AxToolBtn name="download" title={tr('analytics.toolbar.exportPdf')} A={A} />
-          </div>
-        </div>
-      </div>
-
-      {/* content */}
-      {isError && !d ? (
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0' }}>
-          <div style={{ textAlign: 'center', padding: '64px 20px', color: A.ink }}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
-              {tr('analytics.error.title')}
-            </div>
-            <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, marginBottom: 16 }}>
-              {tr('analytics.error.body')}
-            </div>
-            <button
-              onClick={() => refetch()}
-              style={{
-                height: 36,
-                padding: '0 18px',
-                borderRadius: 999,
-                background: 'transparent',
-                color: A.ink,
-                border: `1px solid ${A.ink}33`,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
-              {tr('analytics.error.retry')}
-            </button>
-          </div>
-        </div>
-      ) : isLoading || !d ? (
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0' }}>
-          <AxSkeleton />
-        </div>
-      ) : (
-        <div key={period} style={{ maxWidth: 1280, margin: '0 auto', padding: embedded ? 0 : '16px 36px 0', display: 'flex', flexDirection: 'column', gap: 18, animation: 'axRise .45s cubic-bezier(.2,.8,.2,1) both' }}>
-          <AxHero d={d} onGoSettings={onNavigate ? () => onNavigate('settings') : null} />
-          <AxFallbackBanner d={d} />
-          <AxChartCard d={d} chartKey={chartKey} />
-          <AxKpiStrip d={d} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 18, alignItems: 'start' }}>
-            <AxClosing deals={d.closing ?? []} onDrill={setDrill} />
-            <AxComposition d={d} onDrill={setDrill} />
-          </div>
-          <AxSources d={d} />
-        </div>
-      )}
-
-      {drill && <AxDrawer drill={drill} records={d?.records ?? null} onClose={() => setDrill(null)} />}
+    <div style={{ height: '100%', width: '100%', minHeight: 0, minWidth: 0, fontFamily: "'Manrope', system-ui, sans-serif" }}>
+      <AxfStyles dark={dark} />
+      {content}
     </div>
   )
 }

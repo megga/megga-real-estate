@@ -1,3 +1,7 @@
+/**
+ * Bottom-sheet de détail d'un événement d'agenda (mobile), rendu dans `SgSheet`.
+ * Composant présentationnel pur, en lecture seule (v1).
+ */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { formatCHF } from '@/lib/utils'

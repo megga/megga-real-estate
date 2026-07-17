@@ -19,30 +19,18 @@
 > - Pages MVP (42 écrans) : [docs/pages.md](docs/pages.md)
 > - Modules IA (specs Gregory) : [docs/ai-modules.md](docs/ai-modules.md)
 > - Design system patterns (Sugar v2 CRM) : [docs/design-system.md](docs/design-system.md)
-> - Design system Property X (Marketplace) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
+> - Design system Property X (Marketplace — ⚠ ARCHIVÉ, marketplace désactivée) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
 > - Roadmap sprints : [docs/roadmap.md](docs/roadmap.md)
 > - Changelog : [docs/CHANGELOG.md](docs/CHANGELOG.md)
 >
-> **Migration Figma → Code :**
-> - Catalogue de mapping `Figma node ID → composant React` : [src/lib/figma-catalog.ts](src/lib/figma-catalog.ts)
-> - **Avant** de migrer un node Figma : consulter le catalogue. **Après** : l'enrichir.
-> - Remplace Figma Code Connect (qui nécessite un plan Org/Enterprise).
->
-> **🎨 Design System Property X — SOURCE DE VÉRITÉ INTERNE :**
-> Toutes les pages `/design-system/*` (11 pages : Buttons, Links, Badges, Lists, Icons, Icon Fonts,
-> Avatars, Inputs, Colors, Typography, Shadows) sont la source de vérité ABSOLUE pour les
-> composants et tokens du marketplace.
->
-> **AVANT** de créer une nouvelle page ou un nouveau composant :
-> 1. Consulter `/design-system/<page>` dans le navigateur pour voir les atoms disponibles
-> 2. Vérifier [src/lib/figma-catalog.ts](src/lib/figma-catalog.ts) pour le mapping Figma → React
-> 3. **NE JAMAIS recréer** un atom existant (PxButton, PxBadge, PxCheckbox, PxLink, PxInput, etc.)
-> 4. **TOUJOURS utiliser les tokens** `PX.*` (couleurs, ombres, radii, font, spacing) — pas de valeurs hardcodées
-> 5. Pour ajouter un nouvel atom : valider d'abord qu'il n'existe pas, puis enrichir la DS
->
-> Routes DS internes :
-> - Basic Styles : `/design-system/colors` · `/design-system/typography` · `/design-system/shadows`
-> - Components : `/design-system/buttons` · `/links` · `/badges` · `/lists` · `/icons` · `/iconfonts` · `/avatars` · `/inputs`
+> **🎨 Vestiges Property X (marketplace désactivée — pivot CRM-first) :**
+> Le design system Property X, ses 11 pages `/design-system/*` et le catalogue `figma-catalog.ts`
+> (ainsi que le skill `figma-to-section`) ont été **retirés** avec la marketplace. Il ne subsiste
+> que le **système d'icônes** utilisé par tout le CRM — `MEIcon`, `PxIconFont`, `PxSocialIcon`,
+> `PxWhatsAppButton` — et les **tokens `PX.*`** ([src/components/propertyx/tokens.ts](src/components/propertyx/tokens.ts)).
+> Utiliser ces tokens pour tout ce qui touche à l'iconographie ; ne pas réintroduire d'atomes Px
+> de présentation (PxButton, PxBadge, PxInput…). Seule route DS survivante : `/design-system/megga-x`
+> (MeggaX, port de la vitrine — voir [src/components/megga-x/](src/components/megga-x)).
 
 ---
 
@@ -82,8 +70,8 @@ i18n :         react-i18next (FR/DE/EN/IT)
 
 Backend :      Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1)
                PostgreSQL 15+ / Edge Functions (Deno) / Auth / Storage / Realtime / pgvector / pg_cron
-IA :           DeepSeek (deepseek-chat) par défaut via Edge Functions — décision coût
-               Claude (Sonnet 4) sur surfaces ciblées : dashboard-ai-hint, extract-lead, kyc-screening
+IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions — décision coût
+               Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
 Email :        Resend (megga.ch DKIM/SPF)
 Payments :     Stripe
 Hosting :      Cloudflare Pages
@@ -141,6 +129,26 @@ Composants : PascalCase (ListingCard.tsx) | Hooks : use* (useListings.ts)
 Types : PascalCase | SQL : snake_case | Edge Functions : kebab-case
 ```
 
+### Structure des dossiers (où va quoi) — 3 runtimes séparés
+
+Le code vit dans **3 runtimes distincts** ; un fichier ne « déménage » pas librement de l'un à l'autre.
+
+| Dossier | Runtime | Contenu autorisé |
+|---|---|---|
+| `src/` | Navigateur (bundle Vite, **TS only**) | Code d'app **importé et rendu**, rien d'autre |
+| `scripts/` | Node (`node scripts/*.mjs`, brut, **aucun loader TS**) | **Exécutables** seuls ; helpers partagés → `scripts/_shared/`, fixtures de données → `scripts/_data/` |
+| `supabase/functions/` | Deno (edge) | Edge functions ; code partagé → `_shared/` |
+
+- ⛔ **JAMAIS de helper ni de donnée de script dans `src/`** : c'est le bundle navigateur, et un script Node ne peut importer ni un `.ts` ni l'arbre frontend. Un helper de script va dans `scripts/_shared/`, pas dans `src/lib/`.
+- `src/lib/` et `src/hooks/` sont **PLATS volontairement** — ne PAS les réorganiser en sous-dossiers thématiques (churn massif d'imports + conflits de merge ; le plat est idiomatique, l'alias `@/` suffit). `src/components/` est foldered par thème.
+- Pas de dossier vide (`.gitkeep` orphelin), pas de code mort (0 fichier non-joignable depuis `main.tsx`, 0 export mort — `npm run lint:deadcode`).
+- **Avant tout déplacement/renommage** : `git mv` (préserve l'historique) + greper TOUS les usages (imports relatifs ET `@/`, docs, skills, workflows CI), corriger les chemins, puis `npm run build`.
+
+### Documentation du code
+
+- En-tête `/** */` par fichier (rôle, route si page, comportements non-évidents) + docstring concise par unité **exportée** (composant/hook/TSDoc lib) + commentaires **« pourquoi »** là où la logique n'est pas évidente.
+- ⛔ PAS de glose ligne-à-ligne, PAS de docstring sur chaque helper trivial, PAS de commentaire qui répète le code. Le commentaire dit le **pourquoi**, pas le **quoi** ; match la densité existante.
+
 ### Pattern composant
 ```tsx
 import { cn } from '@/lib/utils';
@@ -191,6 +199,9 @@ useEffect(() => {
 - Audit trail : `activity_events` pour toute action (y compris IA avec `actor_id = 'ai'`)
 - Scores IA affichés comme "estimation" (icône sparkle/ai)
 - Timeline unifiée par contact
+- `scripts/` = exécutables seuls (helpers → `scripts/_shared/`, données → `scripts/_data/`)
+- Documenter le **pourquoi** : en-tête `/** */` par fichier + docstring par export
+- `git mv` + corriger tous les imports (relatifs ET `@/`) avant `npm run build`
 
 ### DON'T ❌
 - `any` en TypeScript
@@ -209,6 +220,10 @@ useEffect(() => {
 - Mentionner "Lovable", "Claude", "ChatGPT" dans l'interface
 - IA présentée comme "automatique" ou "garantie" → "assistance"
 - Fonctionnalité hors les 5 objectifs du Document Maître
+- Helper ou donnée de script dans `src/` (mauvais runtime — va dans `scripts/_shared/` ou `_data/`)
+- Réorganiser `src/lib/` ou `src/hooks/` en sous-dossiers (churn d'imports + conflits de merge)
+- Commenter chaque ligne / docstring-er chaque helper trivial (bruit qui se périme)
+- Laisser un dossier vide (`.gitkeep` orphelin) ou du code mort
 
 ---
 
@@ -218,7 +233,7 @@ useEffect(() => {
 Devise :     CHF (apostrophe : CHF 720'000)
 Surface :    120 m²
 Date :       16.03.2026 (DD.MM.YYYY) ou relatif
-Langues :    FR (défaut), DE, EN, IT — react-i18next, 15 namespaces
+Langues :    FR (défaut), DE, EN, IT — react-i18next, 12 namespaces
 Cantons :    GE VD VS NE FR BE JU BS BL AG SO ZH LU ZG SZ NW OW UR GL SH TG AR AI SG GR TI
 ```
 
@@ -277,9 +292,9 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline (14 stades DB → 8 colonnes UI), Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
 
-**Réseau inter-agences (`/dashboard/network`, `NetworkSugarV2Page`) : 🚧 EN CONSTRUCTION.** Prototype hi-fi en données d'exemple (5 vues, dont 3 « Coming soon ») — aucun backend (pas de table `agency_partners`/`shared_listings`, pas de RLS cross-agence). Un bandeau « en construction » est affiché sur la page. Le module réel (partage de biens inter-agences + RLS + modèles PDF) arrivera plus tard ; ne pas présenter cette page comme livrée.
+**Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 
-**MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. Inférence = DeepSeek par défaut (coût) ; Claude réservé à dashboard-ai-hint / extract-lead et kyc-screening.
+**MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. **Inférence texte = DeepSeek partout** ; **vision/OCR/PDF = Gemini** (photo-vision, extract-property-pdf via `_shared/vision.ts`). **AUCUN Claude/Anthropic** (retiré ; kyc-screening = Dilisense déterministe seul).
 
 **Portail vendeur :** `/portail/:token` — page unique « Votre vente » (VotreVentePage, lecture seule), dev route `/portail` (PortalDevWrapper + mock data).
 
@@ -289,7 +304,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 ### Secrets Supabase
 ```
-ANTHROPIC_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
+DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 ```

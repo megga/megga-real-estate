@@ -1,3 +1,7 @@
+/**
+ * Encart d'upsell affiché à la place d'une fonctionnalité verrouillée par le plan.
+ * Le bouton renvoie vers l'onglet Abonnement des réglages.
+ */
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
@@ -8,6 +12,7 @@ interface UpgradePromptProps {
   className?: string
 }
 
+/** L'appelant décide quand l'afficher ; `requiredPlan` n'ajuste que le libellé (Pro/Entreprise), il ne verrouille rien ici. */
 export default function UpgradePrompt({
   title = 'Fonctionnalité disponible avec le plan Pro',
   description = 'Passez à un plan supérieur pour débloquer cette fonctionnalité.',

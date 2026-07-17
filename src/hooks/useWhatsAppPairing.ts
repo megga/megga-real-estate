@@ -12,6 +12,10 @@ export interface WhatsAppLinkStatus {
   pairing_expires_at: string | null
 }
 
+/**
+ * Statut du lien WhatsApp de l'agent (`status`) + génération d'un code d'appairage
+ * (`generateCode`, RPC `generate_whatsapp_pairing_code`). Un succès invalide le statut.
+ */
 export function useWhatsAppPairing() {
   const qc = useQueryClient()
 

@@ -20,7 +20,7 @@ MEGGA has 38K+ listings from RealAdvisor in `market_listings`. Data quality dire
 
 ## Quality Score System
 
-Each listing has a `quality_score` (0-100) calculated by `scripts/lib/validate-listing.mjs`.
+Each listing has a `quality_score` (0-100) calculated by `scripts/_shared/validate-listing.mjs`.
 
 ### Scoring Criteria
 

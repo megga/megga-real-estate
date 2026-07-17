@@ -1,3 +1,8 @@
+/**
+ * Glossaire immobilier suisse — route `/help/glossary` (public).
+ * ~40 termes répartis en 5 catégories (Juridique, Fiscal, Technique, Financement,
+ * Conformité), avec recherche plein-texte et navigation alphabétique ancrée.
+ */
 import { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import HomeStickyHeader from '@/components/home/HomeStickyHeader';
@@ -220,6 +225,7 @@ const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
+/** Liste des termes filtrée par recherche puis groupée par lettre, avec rail alphabétique. */
 export default function GlossaryPage() {
   const { t } = useTranslation('common');
   const [search, setSearch] = useState('');

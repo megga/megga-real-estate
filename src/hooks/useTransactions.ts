@@ -35,6 +35,7 @@ interface TransactionFilters {
   assigned_to?: string
 }
 
+/** Liste des transactions (deals) avec relations bien/acheteur/vendeur/agent, filtrable par stade/statut/agent. */
 export function useTransactions(filters?: TransactionFilters) {
   const { user } = useAuth()
 
@@ -56,6 +57,7 @@ export function useTransactions(filters?: TransactionFilters) {
   }
 }
 
+/** Une transaction par id, relations complètes ; désactivé tant que `id` est absent. */
 export function useTransaction(id: string | undefined) {
   const result = useQuery(
     supabase
@@ -75,16 +77,6 @@ export function useTransaction(id: string | undefined) {
 // documents auparavant SYNTHÉTISÉE (offres + KYC + stage, avec nombres de pages
 // inventés) côté DealDetail. RLS agency-scopée sur `documents`. Vide tant qu'aucun
 // document n'est rattaché — état honnête, pas de fabrication.
-export function useTransactionDocuments(transactionId: string | undefined) {
-  return useQuery(
-    supabase
-      .from('documents')
-      .select('id, name, type, status, created_at')
-      .eq('transaction_id', transactionId ?? '00000000-0000-0000-0000-000000000000')
-      .order('created_at', { ascending: false }),
-    { enabled: !!transactionId }
-  )
-}
 
 interface CreateTransactionInput {
   agency_id: string
@@ -97,6 +89,7 @@ interface CreateTransactionInput {
   notes?: string
 }
 
+/** Crée une transaction et émet l'événement Intercom « affaire créée ». */
 export function useCreateTransaction() {
   const insert = useInsertMutation(supabase.from('transactions'), ['id'])
   return {
@@ -188,42 +181,4 @@ export interface ContactTransaction {
   price_final: number | null
   updated_at: string
   property: { title: string; address: string; city: string; price: number; photos: string[] } | null
-}
-
-export function useContactTransactions(contactId: string | undefined) {
-  const result = useQuery(
-    supabase
-      .from('transactions')
-      .select('id, stage, status, price_offered, price_final, updated_at, property:properties(title, address, city, price, photos)')
-      .or(`contact_buyer_id.eq.${contactId ?? '00000000-0000-0000-0000-000000000000'},contact_seller_id.eq.${contactId ?? '00000000-0000-0000-0000-000000000000'}`)
-      .order('updated_at', { ascending: false }),
-    { enabled: !!contactId, staleTime: 30_000 }
-  )
-  const data = ((result.data ?? []) as unknown as Array<{
-    id: string
-    stage: string
-    status: string
-    price_offered: number | null
-    price_final: number | null
-    updated_at: string
-    property:
-      | { title: string; address: string; city: string; price: number; photos: string[] }
-      | { title: string; address: string; city: string; price: number; photos: string[] }[]
-      | null
-  }>).map((row) => {
-    const prop = Array.isArray(row.property) ? row.property[0] ?? null : row.property ?? null
-    return {
-      id: row.id,
-      stage: row.stage,
-      status: row.status,
-      price_offered: row.price_offered,
-      price_final: row.price_final,
-      updated_at: row.updated_at,
-      property: prop,
-    } satisfies ContactTransaction
-  })
-  return {
-    ...result,
-    data,
-  }
 }

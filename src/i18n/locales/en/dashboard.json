@@ -253,6 +253,15 @@
       "pipelineAtRisk": "{{count}} at risk",
       "objectifUnset": "Not set"
     },
+    "waFollowups": {
+      "title": "WhatsApp follow-ups",
+      "pending_one": "{{countLabel}} follow-up pending",
+      "pending_other": "{{countLabel}} follow-ups pending",
+      "more_one": "+{{count}} more",
+      "more_other": "+{{count}} more",
+      "accept": "Accept (create a reminder)",
+      "dismiss": "Dismiss"
+    },
     "agenda": {
       "error": {
         "title": "Data unavailable"
@@ -485,6 +494,11 @@
         "explainer": "Postponed leads will come back tomorrow; discarded ones are out of the loop.",
         "backToDashboard": "Back to dashboard"
       }
+    },
+    "brief": {
+      "eyebrow": "MEGGA AI · Daily briefing",
+      "deepen": "Go deeper",
+      "deepenQuestion": "Detail my priorities for today and suggest the next action for each."
     }
   },
   "analytics": {
@@ -543,7 +557,8 @@
     "stage": {
       "signed": "Signed",
       "compromis": "Sale agreement",
-      "offer": "Offer"
+      "offer": "Offer",
+      "visit": "Visit"
     },
     "dealFallback": "Deal",
     "title": "Performance",
@@ -583,7 +598,14 @@
       "setInSettingsAgency": "Set it in Settings › Agency.",
       "targetSetByAgency": "Target set by the agency",
       "editInSettings": "Edit in Settings",
-      "targetUnsetHint": "Target not set · set it in Settings"
+      "targetUnsetHint": "Target not set · set it in Settings",
+      "realized": "Realized",
+      "remaining": "Remaining",
+      "objectiveLabel": "Target",
+      "modify": "Edit",
+      "aheadShort": "ahead",
+      "behindShort": "behind",
+      "paceMarkerTitle": "Where you should be at this point"
     },
     "fallback": {
       "defaultRate_one": "{{count}} property at the default 3 % rate",
@@ -611,7 +633,12 @@
       "bestChannel": "= your best channel",
       "empty": "No source for the period",
       "leadCount_one": "lead",
-      "leadCount_other": "leads"
+      "leadCount_other": "leads",
+      "dealsTitle": "Deal sources",
+      "commissionTitle": "Commission by channel",
+      "commissionEmpty": "No realized commission by channel for the period",
+      "wonDeals_one": "{{count}} signed deal",
+      "wonDeals_other": "{{count}} signed deals"
     },
     "drawer": {
       "bucket": {
@@ -647,7 +674,35 @@
       "goalLabel": "target",
       "pointFallback": "Point {{n}}",
       "projected": "projected",
-      "vsPace": "vs pace"
+      "vsPace": "vs pace",
+      "objectiveShort": "target {{amount}}",
+      "prudent": "cautious {{amount}}",
+      "projectedShort": "proj.",
+      "pointWordFallback": "Point"
+    },
+    "drill": {
+      "filesCount_one": "{{count}} file",
+      "filesCount_other": "{{count}} files",
+      "openInPipeline": "Open in Pipeline",
+      "openNFiles": "Open the {{count}} files in Pipeline",
+      "emptyBucket": "Open the Pipeline to see the files in this category.",
+      "topFiles": "Top files"
+    },
+    "gate": {
+      "eyebrow": "First sign-in",
+      "title": "Set your annual target",
+      "placeholder": "1'200'000",
+      "cta": "Set my target",
+      "saving": "Saving…",
+      "error": "Saving failed. Try again."
+    },
+    "firstrun": {
+      "objectiveEyebrow": "Annual target",
+      "objectiveSet": "Target set",
+      "objectiveCaption": "Your trajectory starts at your first commission. Editable in Settings.",
+      "compositionCaption": "Your first deal will fill this card.",
+      "trajectoryStart": "Your curve starts here, at your first commission",
+      "sourcesCaption": "Your channels will appear with your first deal."
     }
   },
   "task": {

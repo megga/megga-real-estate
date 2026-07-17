@@ -1,3 +1,10 @@
+/**
+ * Presets & helpers du thème du dashboard agent (accent, rayon, densité, police).
+ * `ACCENT_PRESETS` = 7 accents figés, chaque variante en RGB « R G B » prête à
+ * injecter dans les CSS variables ; `generatePresetFromHex` dérive un accent
+ * « custom » depuis une seule couleur. Consommé par les préférences UI.
+ */
+
 /* ─── Dashboard Preferences Types ─── */
 
 export type AccentColor = 'sapphire' | 'graphite' | 'burgundy' | 'forest' | 'ocean' | 'mauve' | 'bronze' | 'custom'
@@ -164,17 +171,4 @@ export const BORDER_RADIUS_PRESETS: Record<BorderRadiusTheme, { card: string; bu
 }
 
 /* ─── Density Presets ─── */
-
-export const DENSITY_PRESETS: Record<DensityLevel, { cardPadding: string; gap: string; fontSize: string }> = {
-  compact: { cardPadding: '16px', gap: '12px', fontSize: '13px' },
-  comfortable: { cardPadding: '20px', gap: '16px', fontSize: '14px' },
-  spacious: { cardPadding: '24px', gap: '20px', fontSize: '15px' },
-}
-
 /* ─── Font Size Presets ─── */
-
-export const FONT_SIZE_PRESETS: Record<FontSizeLevel, string> = {
-  small: '13px',
-  medium: '14px',
-  large: '15px',
-}

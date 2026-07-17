@@ -10,6 +10,8 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
+import { buildStyleDistillPrompt } from '../_shared/agent-style.ts'
 
 const MIN_MSGS = 10            // pas de profil tant qu'on n'a pas assez de signal
 const SAMPLE = 30              // derniers messages échantillonnés
@@ -36,21 +38,27 @@ serve(async (req) => {
 
   // Agents vérifiés avec un numéro WhatsApp.
   const { data: links } = await admin.from('whatsapp_agent_links')
-    .select('profile_id, wa_number').eq('verified', true).not('wa_number', 'is', null).limit(BATCH)
+    .select('profile_id, wa_number, agency_id').eq('verified', true).not('wa_number', 'is', null).limit(BATCH)
   let done = 0
   for (const link of links ?? []) {
     const waNumber = (link.wa_number as string) ?? ''
     if (!waNumber) continue
     // Messages ENTRANTS de l'agent (son style), récents.
+    // is_agent_error=false : no-op sur l'entrant (le flag ne marque que le SORTANT en échec)
+    // mais requis pour que le planner utilise l'index partiel idx_wa_messages_wafrom_created.
     const { data: msgs } = await admin.from('whatsapp_messages')
       .select('body').eq('wa_from', waNumber).eq('direction', 'inbound')
+      .eq('is_agent_error', false)
       .not('body', 'is', null).order('created_at', { ascending: false }).limit(SAMPLE)
     const texts = (msgs ?? []).map((m) => (m.body as string)).filter((b) => b && b.trim().length > 1)
     if (texts.length < MIN_MSGS) continue
 
-    const prompt = `Voici des messages écrits par un agent immobilier à son assistante. Résume SON style de communication. Réponds UNIQUEMENT en JSON strict: {"language":"fr|en|mixed","formality":"tu|vous|direct","emoji":true|false,"traits":"1-2 phrases sur ses tournures/préférences"}. RÈGLE ABSOLUE: décris le STYLE seulement — AUCUN nom, adresse, montant, ni donnée de contact. Messages:\n${texts.slice(0, SAMPLE).map((t) => `- ${t.slice(0, 200)}`).join('\n')}`
+    // Prompt distillé + PII scrubbées (AVS/IBAN/… jamais envoyées à DeepSeek).
+    // Helper PUR → couvert par agent-style.test.ts (edge fn Deno hors vitest).
+    const prompt = buildStyleDistillPrompt(texts)
     let style: { language: string; formality: string; emoji: boolean; traits: string } | null = null
     try {
+      const started = Date.now()
       const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], temperature: 0, max_tokens: 300, response_format: { type: 'json_object' } }),
@@ -58,6 +66,7 @@ serve(async (req) => {
       })
       if (!r.ok) { console.error('deepseek http', r.status); continue }
       const d = await r.json()
+      logDeepSeekUsageWith(admin, d?.usage, { edgeFunction: 'learn-agent-style', module: 'learn-agent-style', latencyMs: Date.now() - started, agencyId: (link.agency_id as string) ?? null })
       style = JSON.parse(d?.choices?.[0]?.message?.content ?? 'null')
     } catch (e) { console.error('distill failed:', (e as Error)?.name ?? 'error'); continue }
     if (!style || !['fr', 'en', 'mixed'].includes(style.language)) continue

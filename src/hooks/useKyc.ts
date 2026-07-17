@@ -1,39 +1,24 @@
+/**
+ * Hooks KYC/LBA (fiche dossier) : lecture d'un dossier + checklist, documents,
+ * journal d'audit, upload de pièces (hash SHA-256), screening Dilisense,
+ * origine des fonds et workflow de décision compliance (kyc_screening_decisions).
+ * Chaque écriture est tracée dans `activity_events` (LBA art. 7 / nLPD art. 12).
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type {
-  KycCase, KycCaseWithChecklist, KycChecklistItem,
-  KycDocument, KycAuditEvent, KycStatus, ScreeningResult,
+  KycCase, KycCaseWithChecklist, 
+  KycDocument, KycAuditEvent, ScreeningResult,
   KycScreeningDecision, KycLatestScreeningDecision,
   ScreeningDecisionTarget, ScreeningDecisionVerdict,
   KycSourceOfFundsType,
 } from '@/types/kyc'
-import type { TablesUpdate } from '@/types/database'
 
-interface KycFilters {
-  status?: KycStatus
-}
 
 // ─── List all KYC cases ────────────────────────────────────────────────────
-
-export function useKycCases(filters?: KycFilters) {
-  return useQuery({
-    queryKey: ['kyc-cases', filters],
-    queryFn: async () => {
-      let query = supabase
-        .from('kyc_cases')
-        .select('*, contact:contacts(first_name, last_name)')
-
-      if (filters?.status) query = query.eq('status', filters.status)
-
-      const { data, error } = await query.order('created_at', { ascending: false })
-      if (error) throw error
-      return data as KycCase[]
-    },
-  })
-}
-
 // ─── Single KYC case with checklist ────────────────────────────────────────
 
+/** Charge un dossier KYC unique avec son contact et sa checklist jointe. */
 export function useKycCase(id: string | undefined) {
   return useQuery({
     queryKey: ['kyc-case', id],
@@ -53,6 +38,7 @@ export function useKycCase(id: string | undefined) {
 
 // ─── Documents for a KYC case ──────────────────────────────────────────────
 
+/** Documents d'un dossier KYC (métadonnées seules, ordre antéchronologique). */
 export function useKycDocuments(kycCaseId: string | undefined) {
   return useQuery({
     queryKey: ['kyc-documents', kycCaseId],
@@ -72,6 +58,7 @@ export function useKycDocuments(kycCaseId: string | undefined) {
 
 // ─── Audit events for a KYC case ───────────────────────────────────────────
 
+/** Journal d'audit d'un dossier KYC (accepte les entity_type legacy `kyc`/`kyc_case`/`kyc_check`). */
 export function useKycAuditEvents(kycCaseId: string | undefined) {
   return useQuery({
     queryKey: ['kyc-audit', kycCaseId],
@@ -97,257 +84,24 @@ export function useKycAuditEvents(kycCaseId: string | undefined) {
 // ─── Toggle checklist item ─────────────────────────────────────────────────
 // WCAG/LBA compliance: every checklist toggle is logged in activity_events
 // (LBA art. 7 — documentation obligation, fix for audit trail violation M2).
-
-export function useUpdateKycItem() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      id,
-      is_completed,
-      actorId,
-    }: {
-      id: string
-      is_completed: boolean
-      actorId: string
-    }) => {
-      const updates: Record<string, unknown> = { is_completed }
-      if (is_completed) {
-        updates.completed_at = new Date().toISOString()
-        updates.completed_by = actorId
-      } else {
-        updates.completed_at = null
-        updates.completed_by = null
-      }
-
-      const { data, error } = await supabase
-        .from('kyc_checklist_items')
-        .update(updates as TablesUpdate<'kyc_checklist_items'>)
-        .eq('id', id)
-        .select('*, kyc_case:kyc_cases(id, agency_id)')
-        .single()
-      if (error) throw error
-
-      // Log checklist action (LBA audit trail)
-      const kycCase = (data as KycChecklistItem & { kyc_case?: { id: string; agency_id: string } }).kyc_case
-      if (kycCase) {
-        await supabase.from('activity_events').insert({
-          agency_id: kycCase.agency_id,
-          actor_id: actorId,
-          action: is_completed ? 'Item KYC complété' : 'Item KYC décoché',
-          entity_type: 'kyc',
-          entity_id: kycCase.id,
-          metadata: { item_id: id, item_label: (data as KycChecklistItem).label, is_completed },
-        })
-      }
-
-      return data as KycChecklistItem
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc-case'] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-audit'] })
-    },
-  })
-}
-
 // ─── Validate KYC case (human-in-the-loop) ─────────────────────────────────
-
-export function useValidateKycCase() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async ({ id, validated_by }: { id: string; validated_by: string }) => {
-      const { data, error } = await supabase
-        .from('kyc_cases')
-        .update({
-          status: 'validated' as KycStatus,
-          validated_by,
-          validated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select()
-        .single()
-      if (error) throw error
-
-      // Log validation event
-      const kycCase = data as KycCase
-      await supabase.from('activity_events').insert({
-        agency_id: kycCase.agency_id,
-        actor_id: validated_by,
-        action: 'Dossier KYC validé',
-        entity_type: 'kyc',
-        entity_id: id,
-        metadata: { validated_by },
-      })
-
-      return data as KycCase
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.id] })
-    },
-  })
-}
-
 // ─── Update KYC status ─────────────────────────────────────────────────────
 // LBA compliance: every status change is logged in activity_events.
 // Refuses 'validated' status — use useValidateKycCase() instead (human-in-the-loop
 // with explicit confirmation modal). Fix for LBA-C3.
-
-export function useUpdateKycStatus() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      id,
-      status,
-      actorId,
-    }: {
-      id: string
-      status: KycStatus
-      actorId: string
-    }) => {
-      // Safeguard: 'validated' must go through useValidateKycCase (LBA-C3)
-      if (status === 'validated') {
-        throw new Error(
-          'Le statut "validated" doit passer par useValidateKycCase (human-in-the-loop obligatoire).'
-        )
-      }
-
-      const { data, error } = await supabase
-        .from('kyc_cases')
-        .update({ status })
-        .eq('id', id)
-        .select()
-        .single()
-      if (error) throw error
-
-      // Log status change (LBA audit trail)
-      const kycCase = data as KycCase
-      await supabase.from('activity_events').insert({
-        agency_id: kycCase.agency_id,
-        actor_id: actorId,
-        action: `Statut KYC modifié → ${status}`,
-        entity_type: 'kyc',
-        entity_id: id,
-        metadata: { new_status: status },
-      })
-
-      return kycCase
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.id] })
-    },
-  })
-}
-
 // ─── Update notes ──────────────────────────────────────────────────────────
 // LBA compliance: note changes are logged (without the note content to avoid
 // leaking sensitive data in audit trail — just a marker that notes were edited).
-
-export function useUpdateKycNotes() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      id,
-      notes,
-      actorId,
-    }: {
-      id: string
-      notes: string
-      actorId: string
-    }) => {
-      const { data, error } = await supabase
-        .from('kyc_cases')
-        .update({ notes })
-        .eq('id', id)
-        .select()
-        .single()
-      if (error) throw error
-
-      // Log note change (LBA audit trail) — content NOT logged (sensitive)
-      const kycCase = data as KycCase
-      await supabase.from('activity_events').insert({
-        agency_id: kycCase.agency_id,
-        actor_id: actorId,
-        action: 'Notes KYC modifiées',
-        entity_type: 'kyc',
-        entity_id: id,
-        metadata: { notes_length: notes.length },
-      })
-
-      return kycCase
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.id] })
-    },
-  })
-}
-
 // ─── Update KYC document status (validate/reject) ──────────────────────────
 // LBA compliance: document validation is a compliance decision — audit trail
 // mandatory (LBA art. 7). Fix for LBA-C2.
-
-export function useUpdateKycDocumentStatus() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      documentId,
-      status,
-      actorId,
-    }: {
-      documentId: string
-      status: 'pending' | 'validated' | 'rejected'
-      actorId: string
-    }) => {
-      // Fetch current state for audit metadata
-      const { data: currentDoc, error: fetchError } = await supabase
-        .from('documents')
-        .select('id, agency_id, kyc_case_id, name, status')
-        .eq('id', documentId)
-        .single()
-      if (fetchError) throw fetchError
-
-      const { error } = await supabase
-        .from('documents')
-        .update({ status })
-        .eq('id', documentId)
-      if (error) throw error
-
-      // Log the compliance decision
-      await supabase.from('activity_events').insert({
-        agency_id: currentDoc.agency_id,
-        actor_id: actorId,
-        action:
-          status === 'validated'
-            ? 'Document KYC validé'
-            : status === 'rejected'
-            ? 'Document KYC rejeté'
-            : 'Statut document KYC modifié',
-        entity_type: 'kyc',
-        entity_id: currentDoc.kyc_case_id ?? documentId,
-        metadata: {
-          document_id: documentId,
-          document_name: currentDoc.name,
-          previous_status: currentDoc.status,
-          new_status: status,
-        },
-      })
-
-      return { documentId, status }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc-documents'] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-case'] })
-      queryClient.invalidateQueries({ queryKey: ['kyc-audit'] })
-    },
-  })
-}
-
 // ─── Upload document to Supabase Storage ───────────────────────────────────
 
+/**
+ * Téléverse une pièce KYC : sanitize le nom (anti path-traversal), calcule le
+ * SHA-256 du contenu (preuve d'intégrité LBA art. 7) avant l'upload Storage,
+ * insère la ligne `documents` puis trace l'event d'audit.
+ */
 export function useUploadKycDocument() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -435,53 +189,13 @@ export function useUploadKycDocument() {
 }
 
 // ─── Create KYC case ───────────────────────────────────────────────────────
-
-export function useCreateKycCase() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async (input: {
-      agencyId: string
-      contactId: string
-      transactionId?: string
-      type: 'buyer_pp' | 'buyer_pm' | 'seller_pp' | 'seller_pm'
-      contactNationality?: string
-      transactionAmount?: number
-    }) => {
-      const { data, error } = await supabase
-        .from('kyc_cases')
-        .insert({
-          agency_id: input.agencyId,
-          contact_id: input.contactId,
-          transaction_id: input.transactionId || null,
-          type: input.type,
-          risk_level: 'unassessed',
-          status: 'pending',
-          completion_pct: 0,
-          pep_status: 'not_checked',
-          sanctions_status: 'not_checked',
-          contact_nationality: input.contactNationality || null,
-          transaction_amount: input.transactionAmount || null,
-        })
-        .select()
-        .single()
-      if (error) throw error
-
-      // La checklist LBA est posée par le trigger DB seed_kyc_lba_checks (source
-      // UNIQUE, server-side, jeu PP/PM détaillé) — plus d'insert frontend, qui
-      // doublonnait la checklist (trigger + cet insert = deux jeux côte à côte
-      // sous les yeux de l'agent). Tout writer (CRM, WhatsApp, insert direct)
-      // reçoit désormais une checklist unique et identique.
-      const kycCase = data as KycCase
-      return kycCase
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
-    },
-  })
-}
-
 // ─── Screen KYC case via dilisense Edge Function ───────────────────────────
 
+/**
+ * Screening sanctions/PEP via l'Edge Function `kyc-screening` (Dilisense).
+ * Décode le body d'erreur pour remonter un message clair (429 idempotence,
+ * 401, 500) au lieu du message générique non-2xx.
+ */
 export function useScreenKycCase() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -531,6 +245,7 @@ export function useScreenKycCase() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
       queryClient.invalidateQueries({ queryKey: ['kyc-cases'] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })
     },
   })
@@ -538,6 +253,11 @@ export function useScreenKycCase() {
 
 // ─── Sprint 3 — Source of funds (LBA art. 6 al. 1 lit. b) ─────────────────
 
+/**
+ * Renseigne l'origine des fonds (LBA art. 6 al. 1 lit. b). Description ≥ 20
+ * caractères obligatoire pour crypto/mixed/other ; trace l'audit (severity
+ * `warn` pour crypto/mixed).
+ */
 export function useUpdateKycSourceOfFunds() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -631,25 +351,6 @@ export function useLogKycRead() {
 // Documente humainement chaque match Dilisense (faux positif / vrai match /
 // escalade / en attente d'éléments). Append-only, immuable, audit trail.
 
-export function useKycScreeningDecisions(kycCaseId: string | undefined) {
-  return useQuery({
-    queryKey: ['kyc-screening-decisions', kycCaseId],
-    queryFn: async () => {
-      if (!kycCaseId) throw new Error('No KYC case ID')
-      const { data, error } = await supabase
-        .from('kyc_screening_decisions')
-        .select('*, decider:profiles!decided_by(full_name)')
-        .eq('kyc_case_id', kycCaseId)
-        .order('decided_at', { ascending: false })
-      if (error) throw error
-      return data as unknown as (KycScreeningDecision & {
-        decider: { full_name: string | null } | null
-      })[]
-    },
-    enabled: !!kycCaseId,
-  })
-}
-
 /** Récupère la décision la plus récente non-supersedée pour une cible donnée. */
 export function useLatestKycScreeningDecision(
   kycCaseId: string | undefined,
@@ -671,6 +372,10 @@ export function useLatestKycScreeningDecision(
   })
 }
 
+/**
+ * Enregistre une décision compliance humaine sur un match Dilisense
+ * (append-only, immuable). Justification ≥ 30 caractères (LBA art. 7 al. 1 lit. b).
+ */
 export function useCreateKycScreeningDecision() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -708,6 +413,7 @@ export function useCreateKycScreeningDecision() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kyc-screening-decisions', variables.kycCaseId] })
+      queryClient.invalidateQueries({ queryKey: ['kyc-vigie'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-screening-decision-latest', variables.kycCaseId] })
       queryClient.invalidateQueries({ queryKey: ['kyc-case', variables.kycCaseId] })
       queryClient.invalidateQueries({ queryKey: ['kyc-audit', variables.kycCaseId] })

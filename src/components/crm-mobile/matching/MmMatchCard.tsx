@@ -1,3 +1,4 @@
+/** Carte « bien correspondant » du focus matching mobile (VUE 2), avec gestes par bien. */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'

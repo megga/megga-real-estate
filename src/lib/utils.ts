@@ -1,3 +1,9 @@
+/**
+ * Utilitaires transverses : fusion de classes Tailwind (`cn`) et formateurs
+ * localisés (CHF à l'apostrophe suisse, dates DD.MM.YYYY, surfaces, loyer). Les
+ * formateurs monétaires sont type-defensive (acceptent string/null) pour
+ * encaisser sans planter les valeurs brutes des <input> RHF.
+ */
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, formatDistanceToNow, type Locale } from 'date-fns'
@@ -84,62 +90,4 @@ export function formatSurface(m2: number): string {
  */
 export function formatRent(amount: number | string | null | undefined): string {
   return `${formatCHF(amount)}/mois`
-}
-
-/**
- * Resolve which contact to display for a rental listing.
- * external_regie (JSONB per-listing override) > agency fallback.
- * Returns the regie/agency contact object, or null if neither available.
- */
-export interface RegieContact {
-  name: string
-  phone?: string
-  email?: string
-  website?: string
-}
-
-/**
- * Merge external_regie (per-listing override) over agency fallback,
- * field by field. Any field that exists is surfaced — we no longer
- * require all of {name, phone, email} to be present.
- * Returns null only when NO usable info exists at all.
- */
-export function resolveRegieContact(
-  listing: { external_regie?: Partial<RegieContact> | null },
-  agency: { name?: string; phone?: string; email?: string; website?: string } | null | undefined
-): RegieContact | null {
-  const r = listing.external_regie ?? {}
-  const a = agency ?? {}
-  const name = r.name || a.name || ''
-  const phone = r.phone || a.phone || undefined
-  const email = r.email || a.email || undefined
-  const website = r.website || a.website || undefined
-  if (!name && !phone && !email && !website) return null
-  return { name, phone, email, website }
-}
-
-/**
- * Format price for map pin display (compact)
- * Rent: 2500 → "2.5K/mois", 3000 → "3K/mois"
- * Buy: 1_200_000 → "1.2M", 720_000 → "720K"
- */
-export function formatPricePin(price: number, transactionType: 'buy' | 'rent' = 'buy'): string {
-  if (transactionType === 'rent') {
-    if (price >= 1000) {
-      const k = price / 1000
-      return k % 1 === 0 ? `${k.toFixed(0)}K/mois` : `${k.toFixed(1)}K/mois`
-    }
-    return `${price}/mois`
-  }
-
-  if (price >= 1_000_000) {
-    const m = price / 1_000_000
-    return m % 1 === 0 ? `${m.toFixed(0)}M` : `${m.toFixed(1)}M`
-  }
-
-  if (price >= 1000) {
-    return `${(price / 1000).toFixed(0)}K`
-  }
-
-  return String(price)
 }

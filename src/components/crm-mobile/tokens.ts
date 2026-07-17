@@ -51,6 +51,9 @@ export interface MobileTokens {
   /** CTA / confirmation destructive (rouge foncé opaque, texte blanc). */
   danger: string
   dangerInk: string
+  /** Pastille de STATUT « en retard » — tint doux (paire bg/fg), jamais le CTA solide. */
+  dangerBg: string
+  dangerFg: string
   /** Sceau KYC vérifié (bluecheck). */
   kycSeal: string
 }
@@ -91,6 +94,8 @@ export const MT_LIGHT: MobileTokens = {
   cardBorder: 'transparent',
   danger: '#8E1F3D',
   dangerInk: '#FFFFFF',
+  dangerBg: '#FADBE2',
+  dangerFg: '#8E1F3D',
   kycSeal: '#0041D9',
 }
 
@@ -130,22 +135,14 @@ export const MT_DARK: MobileTokens = {
   cardBorder: 'rgba(255,255,255,0.07)',
   danger: '#E0738C',
   dangerInk: '#FFFFFF',
+  dangerBg: 'rgba(224,115,140,0.20)',
+  dangerFg: '#F0A6B6',
   kycSeal: '#6F8CFF',
 }
 
 // Couleurs fonctionnelles métier — pilules/pastilles UNIQUEMENT, jamais accent
 // UI. Identiques clair/sombre (reconnaissance). Canoniques : résout les
 // divergences Offre (#C45A00) / Compromis (#059669) des maquettes.
-export const MT_PHASES = {
-  mandat: '#1E5BC6',
-  preparation: '#0891B2',
-  visites: '#0891B2',
-  offre: '#C45A00',
-  compromis: '#059669',
-  acte: '#0B0C0E',
-} as const
-export type MobilePhase = keyof typeof MT_PHASES
-
 // Manrope chargé globalement (index.html). Fallback système si indisponible.
 export const MOBILE_FONT =
   "'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"

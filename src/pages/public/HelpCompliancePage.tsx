@@ -1,3 +1,9 @@
+/**
+ * Page publique — FAQ conformité (LAB/KYC, LPD).
+ *
+ * Route : `/help/compliance`. Accordéon single-open sur `COMPLIANCE_FAQ`,
+ * première entrée dépliée par défaut.
+ */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, ChevronDown } from 'lucide-react'

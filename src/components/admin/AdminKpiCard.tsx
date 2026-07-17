@@ -1,3 +1,4 @@
+/** Carte KPI réutilisable de la section super-admin (accent violet). */
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 
@@ -18,6 +19,7 @@ const VARIANT_ICON = {
   blue: 'text-blue-500',
 }
 
+/** Indicateur : icône colorée par `variant`, valeur, sous-titre et tendance +/−. `compact` = version ligne dense. */
 export default function AdminKpiCard({ label, value, subtitle, icon: Icon, trend, variant = 'default', compact }: AdminKpiCardProps) {
   const iconColor = VARIANT_ICON[variant]
 

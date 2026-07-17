@@ -1,5 +1,13 @@
 # MEGGA Marketplace — Property X Design System
 
+> ## ⚠️ DOCUMENT ARCHIVÉ — marketplace désactivée (pivot CRM-first, juin 2026)
+> Les pages storefront, les atomes Px de présentation (PxButton, PxBadge, PxInput, PxLink,
+> PxList, PxAvatar, PxImage, PxLogo, PxSectionLabel, PxUploadCard, PxGoodDealBadge, PxFigmaIcon)
+> et le catalogue `figma-catalog.ts` ont été **supprimés**. Ne subsiste, sous
+> `src/components/propertyx/`, que le système d'icônes du CRM (`MEIcon`, `PxIconFont`,
+> `PxSocialIcon`, `PxWhatsAppButton`) et les tokens `PX.*` (`tokens.ts`). Ce document est
+> conservé à titre historique ; ne pas s'en servir comme référence de composants actifs.
+
 > **Source** : Template Property X par BRIX Templates (licence achetée par MEGGA).
 > Extrait via Figma MCP depuis le fichier `fZovI4RREX4XHpLazsz8JB`, page `⚙️ Components` (node `1:5`).
 >

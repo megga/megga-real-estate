@@ -69,7 +69,6 @@
   "common.none": "Keine",
   "common.user": "Benutzer",
   "common.current": "aktuell",
-
   "dashboard.title": "Uebersicht",
   "dashboard.platformHealthy": "Plattform gesund",
   "dashboard.attentionRequired": "Aufmerksamkeit erforderlich",
@@ -85,7 +84,6 @@
   "dashboard.alert.subscriptionCancelled": "Abonnement gekuendigt",
   "dashboard.alert.edgeFunctionError": "Edge Function Fehler",
   "dashboard.alert.ticketCreated": "Neues Support-Ticket",
-
   "agencies.title": "Agenturen",
   "agencies.subtitle": "{{count}} registrierte Agentur",
   "agencies.subtitle_plural": "{{count}} registrierte Agenturen",
@@ -105,7 +103,6 @@
   "agencies.empty.titleFiltered": "Keine Agenturen gefunden",
   "agencies.empty.subtitle": "Agenturen erscheinen hier nach der Registrierung",
   "agencies.empty.subtitleFiltered": "Passen Sie Ihre Suchfilter an",
-
   "agencyDetail.back": "Agenturen",
   "agencyDetail.notFound": "Agentur nicht gefunden",
   "agencyDetail.tab.infos": "Infos",
@@ -151,7 +148,6 @@
   "agencyDetail.stage.closed": "Abgeschlossen",
   "agencyDetail.stage.lost": "Verloren",
   "agencyDetail.stage.toRecontact": "Erneut kontaktieren",
-
   "users.title": "Benutzer",
   "users.subtitle": "{{count}} registrierter Benutzer",
   "users.subtitle_plural": "{{count}} registrierte Benutzer",
@@ -165,7 +161,6 @@
   "users.empty.titleFiltered": "Keine Benutzer gefunden",
   "users.empty.subtitle": "Benutzer erscheinen hier nach der Registrierung",
   "users.empty.subtitleFiltered": "Passen Sie Ihre Suchfilter an",
-
   "compliance.title": "Compliance",
   "compliance.subtitle": "{{count}} KYC-Dossier",
   "compliance.subtitle_plural": "{{count}} KYC-Dossiers",
@@ -206,7 +201,6 @@
   "compliance.empty.validated.subtitle": "Validierte Dossiers erscheinen hier",
   "compliance.empty.all.title": "Keine KYC-Dossiers",
   "compliance.empty.all.subtitle": "Compliance-Dossiers erscheinen hier",
-
   "support.title": "Support",
   "support.subtitle": "{{count}} Ticket",
   "support.subtitle_plural": "{{count}} Tickets",
@@ -254,7 +248,6 @@
   "support.event.noteAdded": "Interne Notiz hinzugefuegt",
   "support.event.csatSubmitted": "Zufriedenheit uebermittelt",
   "support.stale": "+24h",
-
   "marketplace.title": "Marketplace",
   "marketplace.subtitle": "{{count}} aktives Objekt",
   "marketplace.subtitle_plural": "{{count}} aktive Objekte",
@@ -279,7 +272,6 @@
   "marketplace.empty.titleFiltered": "Keine Objekte gefunden",
   "marketplace.empty.subtitle": "Veroeffentlichte Objekte erscheinen hier",
   "marketplace.empty.subtitleFiltered": "Passen Sie Ihre Suchfilter an",
-
   "monitoring.title": "Monitoring",
   "monitoring.planPro": "Plan Pro",
   "monitoring.health.database": "Database",
@@ -295,7 +287,7 @@
   "monitoring.edgeFunctions.filter.all": "Alle",
   "monitoring.edgeFunctions.filter.ok": "OK",
   "monitoring.edgeFunctions.filter.error": "Fehler",
-  "monitoring.edgeFunctions.filter.unknown": "Unbekannt",
+  "monitoring.edgeFunctions.filter.unknown": "Keine Telemetrie",
   "monitoring.edgeFunctions.filterPlaceholder": "Filtern...",
   "monitoring.edgeFunctions.table.function": "Funktion",
   "monitoring.edgeFunctions.table.status": "Status",
@@ -330,6 +322,11 @@
   "monitoring.whatsapp.stale": "inaktiv >24h",
   "monitoring.whatsapp.lastInbound": "Letzter Eingang:",
   "monitoring.whatsapp.topErrors": "Zustellfehler (7T)",
+  "monitoring.whatsapp.deadletters": "Fehlerwarteschlangen",
+  "monitoring.whatsapp.processingFailed": "Medien fehlgeschlagen",
+  "monitoring.whatsapp.processingDeadletter": "Nicht wiederholbar",
+  "monitoring.whatsapp.agentErrors24h": "Copilot-Fehler 24h",
+  "monitoring.whatsapp.asyncJobsFailed24h": "KYC-Jobs fehlgeschlagen 24h",
   "monitoring.cronHealth.job": "Job",
   "monitoring.cronHealth.schedule": "Zeitplan",
   "monitoring.cronHealth.lastRun": "Letzte Ausführung",
@@ -338,7 +335,6 @@
   "monitoring.cronHealth.stale": "Überfällig",
   "monitoring.cronHealth.never": "Nie",
   "monitoring.cronHealth.empty": "Kein Cron-Job erkannt (normal ausserhalb der Produktion).",
-
   "liveFeed.title": "Live Feed",
   "liveFeed.realtime": "Echtzeit",
   "liveFeed.paused": "Pausiert",
@@ -385,7 +381,6 @@
   "liveFeed.action.documentUploaded": "Dokument hochgeladen",
   "liveFeed.action.login": "Anmeldung",
   "liveFeed.action.logout": "Abmeldung",
-
   "nps.title": "Zufriedenheit (NPS)",
   "nps.score": "NPS-Score",
   "nps.scoreRange": "-100 bis +100",
@@ -402,7 +397,6 @@
   "nps.rating.3": "Neutral",
   "nps.rating.4": "Zufrieden",
   "nps.rating.5": "Sehr zufrieden",
-
   "changelog.title": "Changelog",
   "changelog.subtitle": "Veroeffentlichen Sie Neuigkeiten fuer die Agenturen",
   "changelog.newEntry": "Neuer Eintrag",
@@ -418,14 +412,12 @@
   "changelog.modal.titlePlaceholder": "Neue Funktion: ...",
   "changelog.modal.description": "Beschreibung",
   "changelog.modal.descriptionPlaceholder": "Beschreiben Sie die Aenderungen...",
-
   "featureFlags.title": "Feature Flags",
   "featureFlags.subtitle": "Aktivieren oder deaktivieren Sie Funktionen nach Plan oder Agentur",
   "featureFlags.toggle": "Diese Funktion aktivieren/deaktivieren",
   "featureFlags.plans": "Plaene",
   "featureFlags.activeFor": "Aktiv fuer:",
   "featureFlags.empty.title": "Keine Feature Flags konfiguriert",
-
   "plans.title": "Plaene & Kontingente",
   "plans.subtitle": "Plankonfiguration und Verwaltung der Agentur-Abonnements",
   "plans.comparison": "Planvergleich",
@@ -441,7 +433,6 @@
   "plans.perMonth": "/Monat",
   "plans.annual": "oder {{price}}/Monat (jaehrlich)",
   "plans.noAgency": "Keine Agentur registriert",
-
   "securityAudit.title": "Sicherheitsaudit",
   "securityAudit.subtitle": "Protokoll sensibler Aktionen auf der Plattform",
   "securityAudit.exportPdf": "PDF-Export (Hash-Kette)",
@@ -464,7 +455,6 @@
   "securityAudit.empty.title": "Keine Ereignisse gefunden",
   "securityAudit.empty.subtitle": "Passen Sie Ihre Filter an, um mehr Ergebnisse zu sehen",
   "securityAudit.megaAi": "MEGGA AI",
-
   "activityLog.title": "Plattform-Aktivitaet",
   "activityLog.realtime": "Echtzeit",
   "activityLog.loadMore": "Mehr laden",
@@ -492,7 +482,6 @@
   "activityLog.action.agencyCreated": "Agentur registriert",
   "activityLog.action.subscriptionCancelled": "Abonnement gekuendigt",
   "activityLog.action.systemError": "Systemfehler",
-
   "billing.title": "Einnahmen & Abonnements",
   "billing.stripeConnected": "Stripe verbunden",
   "billing.supabaseSource": "Supabase-Daten (admin-stripe-metrics fuer Stripe deployen)",
@@ -516,7 +505,6 @@
   "billing.payment.status.succeeded": "Erfolgreich",
   "billing.payment.status.failed": "Fehlgeschlagen",
   "billing.payment.status.refunded": "Erstattet",
-
   "onboarding.title": "Agentur-Aktivierung",
   "onboarding.noAgencies": "Keine Agentur registriert",
   "onboarding.table.agency": "Agentur",
@@ -534,7 +522,6 @@
   "onboarding.status.atRisk": "Gefaehrdet",
   "onboarding.status.dormant": "Inaktiv",
   "onboarding.noActivity": "Keine",
-
   "notifications.title": "Benachrichtigungen",
   "notifications.markAllRead": "Alle als gelesen markieren",
   "notifications.close": "Benachrichtigungen schliessen",
@@ -544,7 +531,6 @@
   "notifications.action.subscriptionCancelled": "Abonnement gekuendigt",
   "notifications.action.systemError": "Systemfehler",
   "notifications.action.newTicket": "Neues Ticket",
-
   "search.placeholder": "Agenturen, Benutzer, Objekte suchen...",
   "search.noResult": "Keine Ergebnisse",
   "search.minChars": "Geben Sie mindestens 2 Zeichen ein",
@@ -552,7 +538,6 @@
   "search.type.users": "Benutzer",
   "search.type.properties": "Objekte",
   "search.type.tickets": "Tickets",
-
   "moderation.flagTitle": "Dieses Objekt melden",
   "moderation.removeTitle": "Dieses Objekt entfernen",
   "moderation.reason": "Grund",
@@ -564,7 +549,6 @@
   "moderation.customReasonPlaceholder": "Beschreiben Sie den Grund...",
   "moderation.action.flag": "Melden",
   "moderation.action.remove": "Entfernen",
-
   "userDrawer.notFound": "Benutzer nicht gefunden",
   "userDrawer.close": "Schliessen",
   "userDrawer.phone": "Telefon",
@@ -614,7 +598,6 @@
   "marketplace.messages.status.answered": "Beantwortet",
   "marketplace.messages.status.archived": "Archiviert",
   "marketplace.messages.status.spam": "Spam",
-
   "mfa.title": "Zwei-Faktor-Authentifizierung erforderlich",
   "mfa.subtitle": "Der Admin-Zugriff erfordert 2FA (TOTP). Aktivieren Sie sie, um fortzufahren.",
   "mfa.enable": "2FA aktivieren",
@@ -626,20 +609,17 @@
   "mfa.verifying": "Pruefung...",
   "mfa.qrAlt": "QR-Code fuer die 2FA-Einrichtung",
   "mfa.qrUnavailable": "QR nicht verfuegbar",
-
   "widgetConfig.title": "Dashboard anpassen",
   "widgetConfig.button": "Anpassen",
   "widgetConfig.moveUp": "Nach oben verschieben",
   "widgetConfig.moveDown": "Nach unten verschieben",
   "widgetConfig.reset": "Zuruecksetzen",
-
   "weeklyReport.title": "Wochenbericht",
   "weeklyReport.sendNow": "Jetzt senden",
   "weeklyReport.sending": "Wird gesendet...",
   "weeklyReport.sent": "Gesendet",
   "weeklyReport.description": "Ein automatischer Bericht wird jeden Montag um 8 Uhr an die Super-Admins gesendet. Er fasst die KPIs der Woche zusammen: Agenturen, Benutzer, Transaktionen, KYC, Fehler.",
   "weeklyReport.deployHint": "Deployen: supabase functions deploy weekly-report",
-
   "autonomy.title": "Agenten-Autonomie",
   "autonomy.subtitle": "{{count}} Vorschlag/Vorschläge - MEGGA beobachtet, Sie entscheiden",
   "autonomy.error": "Vorschläge konnten nicht geladen werden.",
@@ -651,7 +631,6 @@
   "autonomy.col.tool": "Werkzeug",
   "autonomy.col.yesno": "Ja / Nein",
   "autonomy.col.suggestion": "Vorschlag",
-
   "toolUsage.title": "Tool-Nutzung",
   "toolUsage.subtitle": "{{neverUsed}} Tool(s) nie verwendet von {{total}} - WhatsApp-Copilot-Observability",
   "toolUsage.error": "Nutzungsstatistik konnte nicht geladen werden.",
@@ -677,7 +656,6 @@
   "toolUsage.tier.auto": "Auto",
   "toolUsage.tier.confirm": "Bestätigung",
   "toolUsage.tier.slow_async": "Asynchron",
-
   "learning.title": "Gelernte Stile",
   "learning.subtitle": "{{count}} aktive(r) Stil(e) - MEGGA schlägt vor, Sie aktivieren",
   "learning.error": "Gelernte Stile konnten nicht geladen werden.",

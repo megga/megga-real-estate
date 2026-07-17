@@ -1,3 +1,7 @@
+/**
+ * Garde de route enveloppant la section super-admin : ne rend `children` que si
+ * l'accès est autorisé, sinon redirige vers `/dashboard` ou force l'enrôlement TOTP.
+ */
 import { Navigate } from 'react-router-dom'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import AdminMfaRequired from '@/components/admin/AdminMfaRequired'

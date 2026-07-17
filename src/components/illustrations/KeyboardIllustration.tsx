@@ -1,3 +1,4 @@
+/** Illustration décorative « raccourcis clavier » (SVG Maggy servi statiquement). */
 interface Props { className?: string }
 
 export default function KeyboardIllustration({ className = 'w-full h-full' }: Props) {

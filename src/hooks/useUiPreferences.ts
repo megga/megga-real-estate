@@ -19,9 +19,11 @@ const DEFAULT_PREFS: PrefsData = {
   defaultPipelineView: 'kanban',
   density: 'comfort',
   theme: 'system',
+  accent: 'black',
   spellcheck: true,
   autosave: true,
   aiAssist: 'balanced',
+  aiTone: 'neutre',
 }
 
 interface ProfilePrefsRow {
@@ -36,6 +38,11 @@ export interface UseUiPreferencesReturn {
   save: (next: PrefsData) => Promise<void>
 }
 
+/**
+ * Lit/écrit les préférences UI de l'agent (sous-objet `ui` de `profiles.preferences`).
+ * `save` fait un read-modify-write pour préserver les autres sous-clés (notifications…).
+ * `hasBackend` reste `false` tant que le profil n'est pas chargé.
+ */
 export function useUiPreferences(): UseUiPreferencesReturn {
   const { profile } = useAuth()
   const profileId = profile?.id

@@ -62,6 +62,7 @@ export interface VisitDetail {
 
 // ─── Read : single visit avec joins ─────────────────────────────────────
 
+/** Charge une visite unique avec ses joins (bien, contact, agent), normalisée en `VisitDetail`. */
 export function useVisitDetail(visitId: string | undefined) {
   return useQuery({
     queryKey: ['visit-detail', visitId],
@@ -90,6 +91,7 @@ export function useVisitDetail(visitId: string | undefined) {
 // CLAUDE.md §7 — TOUJOURS useId() pour le channel name (sinon crash re-mount
 // en StrictMode/navigation). Pattern obligatoire.
 
+/** Invalide le cache `visit-detail` sur UPDATE de la ligne (sync compagnon mobile ↔ desktop). */
 export function useVisitRealtime(visitId: string | undefined) {
   const queryClient = useQueryClient()
   const channelId = useId()
@@ -135,6 +137,7 @@ export interface CreateVisitInput {
   }
 }
 
+/** Crée une visite côté agent ; génère optionnellement le bon de visite et les toggles d'automatisation. */
 export function useCreateAgentVisit() {
   const { user, profile } = useAuth()
   const queryClient = useQueryClient()
@@ -193,6 +196,7 @@ export function useCreateAgentVisit() {
 
 // ─── Write : signer le bon ──────────────────────────────────────────────
 
+/** Horodate `signedAt` sur le bon de visite (signature du visiteur). */
 export function useSignVisitBon() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -217,37 +221,6 @@ export function useSignVisitBon() {
 }
 
 // ─── Write : enregistrer le rapport (marque la visite 'done') ───────────
-
-export function useSaveVisitRapport() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async ({
-      visitId,
-      rapport,
-    }: {
-      visitId: string
-      rapport: VisitRapport
-    }) => {
-      const { data, error } = await supabase
-        .from('visits')
-        .update({
-          rapport: rapport as unknown as Json,
-          status: 'done',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', visitId)
-        .select('id')
-        .single()
-      if (error) throw error
-      return data as { id: string }
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['visit-detail', vars.visitId] })
-      queryClient.invalidateQueries({ queryKey: ['visits'] })
-    },
-  })
-}
-
 // ─── Normalisation row Supabase → type VisitDetail ──────────────────────
 
 function unwrap<T>(v: T | T[] | null | undefined): T | null {
@@ -255,6 +228,7 @@ function unwrap<T>(v: T | T[] | null | undefined): T | null {
   return v ?? null
 }
 
+/** Convertit une row Supabase brute en `VisitDetail` typé (déballe les joins, dérive `kind`). */
 function normalizeVisitRow(row: unknown): VisitDetail {
   const r = row as Record<string, unknown>
   return {

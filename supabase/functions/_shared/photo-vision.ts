@@ -1,12 +1,16 @@
 // supabase/functions/_shared/photo-vision.ts
-// Claude Vision wrapper qui classe une photo immobilière (type de pièce +
-// scores qualité + flags). Partagé entre `photo-labeler` (bulk au moment de
-// l'upload) et `virtual-staging` (gate pré-Gemini sur 1 photo).
+// Gemini Vision wrapper qui classe une photo immobilière (type de pièce +
+// scores qualité + flags). Utilisé par `virtual-staging` (gate pré-staging
+// sur 1 photo). NB : `photo-labeler` (bulk à l'upload) a été retiré au
+// nettoyage code mort — plus aucun appelant frontend.
 //
 // Returns: { room, confidence, quality{...}, flags }
-// On garde le shape stable car `photo-labeler` est consommé par le frontend.
+//
+// VISION = Gemini (décision Gregory, 2 juin 2026 ; DeepSeek n'a pas de vision).
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') || ''
+import { readDocument } from './vision.ts'
+
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || Deno.env.get('GOOGLE_AI_API_KEY') || ''
 
 export const ROOM_TYPES = [
   'salon', 'cuisine', 'chambre', 'salle_de_bain', 'bureau',
@@ -71,12 +75,12 @@ const FAILED_ANALYSIS: PhotoAnalysis = {
 }
 
 /**
- * Analyse une photo via Claude Vision.
+ * Analyse une photo via Gemini Vision.
  * Ne throw jamais — toute erreur est encodée dans le retour (room=autre + flag).
  */
 export async function analyzePhoto(photoUrl: string): Promise<PhotoAnalysis> {
-  if (!ANTHROPIC_API_KEY) {
-    return { ...FAILED_ANALYSIS, flags: ['api_key_missing'], error: 'ANTHROPIC_API_KEY missing' }
+  if (!GEMINI_API_KEY) {
+    return { ...FAILED_ANALYSIS, flags: ['api_key_missing'], error: 'GEMINI_API_KEY missing' }
   }
 
   try {
@@ -85,44 +89,21 @@ export async function analyzePhoto(photoUrl: string): Promise<PhotoAnalysis> {
       return { ...FAILED_ANALYSIS, error: `fetch failed: HTTP ${imgResp.status}` }
     }
 
-    const imgBuffer = await imgResp.arrayBuffer()
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)))
+    const imgBytes = new Uint8Array(await imgResp.arrayBuffer())
     const contentType = imgResp.headers.get('content-type') || 'image/jpeg'
 
-    const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 300,
-        system: SYSTEM_PROMPT,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: contentType, data: base64 } },
-            { type: 'text', text: 'Analyse cette photo immobilière.' },
-          ],
-        }],
-      }),
-    })
-
-    if (!claudeResp.ok) {
-      const errText = await claudeResp.text()
+    // Gemini Vision en JSON strict — même prompt et même contrat de sortie que l'ancien Claude.
+    const res = await readDocument(imgBytes, contentType, GEMINI_API_KEY, { prompt: SYSTEM_PROMPT, json: true })
+    if (!res.ok) {
       return {
         ...FAILED_ANALYSIS,
         quality: clampQuality(undefined),
         flags: ['api_error'],
-        error: `Claude API: ${errText.slice(0, 200)}`,
+        error: res.error ?? 'gemini_error',
       }
     }
 
-    const claudeData = await claudeResp.json()
-    const text = (claudeData?.content?.[0]?.text as string | undefined) || '{}'
-    const parsed = JSON.parse(text)
+    const parsed = JSON.parse(res.text)
 
     return {
       room: (ROOM_TYPES as readonly string[]).includes(parsed.room) ? parsed.room : 'autre',

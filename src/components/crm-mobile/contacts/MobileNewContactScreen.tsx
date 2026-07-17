@@ -133,12 +133,15 @@ export function MobileNewContactScreen({ demo = false }: { demo?: boolean }) {
 }
 
 type Tk = ReturnType<typeof useMobileTokens>['tk']
+/** Style d'un champ plein (input/select) : hauteur 46, fond subtil, sans bordure. */
 function field(tk: Tk): CSSProperties {
   return { height: 46, padding: '0 13px', borderRadius: 12, border: 0, outline: 'none', background: tk.cardSubtle, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, letterSpacing: -0.2, color: tk.ink }
 }
+/** Style d'un input nu (transparent, sans bordure) posé dans un `Field`. */
 function inputBare(tk: Tk): CSSProperties {
   return { flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, letterSpacing: -0.2, color: tk.ink }
 }
+/** Rangée de champ avec icône de tête (téléphone, e-mail) enveloppant un `inputBare`. */
 function Field({ tk, icon, children }: { tk: Tk; icon: MEIconName; children: ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 9, height: 46, padding: '0 13px', borderRadius: 12, background: tk.cardSubtle }}>
@@ -147,6 +150,7 @@ function Field({ tk, icon, children }: { tk: Tk; icon: MEIconName; children: Rea
     </div>
   )
 }
+/** Intertitre de section en petites capitales (identité, coordonnées, origine). */
 function SectionLabel({ tk, children }: { tk: Tk; children: string }) {
   return <div style={{ fontSize: 9.5, fontWeight: 800, color: tk.muted, letterSpacing: 0.6, textTransform: 'uppercase', margin: '4px 2px -6px' }}>{children}</div>
 }

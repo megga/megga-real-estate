@@ -18,6 +18,12 @@
   var TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
   var turnstileWidgetId = null;
 
+  // Messages réutilisés. Le message « compte existant » oriente vers la
+  // connexion ET vers Google : un compte OAuth-only n'a pas de mot de passe,
+  // donc « e-mail déjà pris » sans cette précision laisse l'utilisateur bloqué.
+  var CAPTCHA_FAIL_MSG = 'Vérification anti-robot impossible. Désactivez un éventuel bloqueur de pub, puis réessayez.';
+  var EXISTING_ACCOUNT_MSG = 'Un compte existe déjà avec cet e-mail. Connectez-vous via « Se connecter » — et si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google » (dans ce cas, aucun mot de passe n’a été défini).';
+
   function loadScript(src, test) {
     return new Promise(function (resolve, reject) {
       if (test && test()) return resolve();
@@ -136,7 +142,7 @@
         }).then(function (res) {
           if (res.error) { setBusy(loginForm, false); return showError(loginForm, traduire(res.error.message)); }
           window.location.href = CRM_URL;
-        }).catch(function () { setBusy(loginForm, false); showError(loginForm, 'Vérification anti-robot impossible. Réessayez.'); });
+        }).catch(function () { setBusy(loginForm, false); showError(loginForm, CAPTCHA_FAIL_MSG); });
       }, true);
 
       // "Mot de passe oublié ?" → reset par email
@@ -154,7 +160,7 @@
             var done = (loginForm.closest('.w-form') || loginForm.parentElement).querySelector('.w-form-done');
             if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = 'E-mail de réinitialisation envoyé.'; }
             else alert('E-mail de réinitialisation envoyé.');
-          }).catch(function () { showError(loginForm, 'Vérification anti-robot impossible. Réessayez.'); });
+          }).catch(function () { showError(loginForm, CAPTCHA_FAIL_MSG); });
         });
       });
     }
@@ -178,28 +184,55 @@
             options: {
               emailRedirectTo: AUTH_REDIRECT,
               captchaToken: captchaToken,
-              data: { full_name: name, agency_name: agency },
+              // role:'agent' — cohérence avec le signup interne de l'app
+              // (AuthBentoApp). Sans ça, le trigger handle_new_user retombe sur
+              // 'buyer' et l'inscrit vitrine part dans le mauvais parcours.
+              data: { full_name: name, agency_name: agency, role: 'agent' },
             },
           });
         }).then(function (res) {
-          if (res.error) { setBusy(signupForm, false); return showError(signupForm, traduire(res.error.message)); }
-          // Supabase exige souvent une confirmation e-mail → message + CTA.
+          if (res.error) {
+            setBusy(signupForm, false);
+            return showExistingOrError(signupForm, res.error.message);
+          }
+          // Protection anti-énumération de Supabase : un e-mail DÉJÀ enregistré
+          // renvoie un « faux succès » (res.error null) avec identities:[] et
+          // n'envoie AUCUN e-mail de confirmation. Sans ce test, on afficherait
+          // « Vérifiez vos e-mails » pour un message qui n'arrivera jamais — le
+          // scénario exact où l'utilisateur croit s'inscrire et reste bloqué.
+          var u = res.data && res.data.user;
+          if (u && Array.isArray(u.identities) && u.identities.length === 0) {
+            setBusy(signupForm, false);
+            return showExistingAccount(signupForm);
+          }
+          // Vrai nouveau compte → confirmation e-mail.
           var wrap = signupForm.closest('.w-form') || signupForm.parentElement;
           var done = wrap.querySelector('.w-form-done');
           signupForm.style.display = 'none';
           if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = 'Compte créé ! Vérifiez votre e-mail pour confirmer, puis connectez-vous.'; }
           else { window.location.href = CRM_URL; }
-        }).catch(function () { setBusy(signupForm, false); showError(signupForm, 'Vérification anti-robot impossible. Réessayez.'); });
+        }).catch(function () { setBusy(signupForm, false); showError(signupForm, CAPTCHA_FAIL_MSG); });
       }, true);
     }
+  }
+
+  // Compte déjà existant : on NE crée rien, on oriente vers la connexion.
+  function showExistingAccount(form) { showError(form, EXISTING_ACCOUNT_MSG); }
+  function looksExistingAccount(msg) {
+    var m = (msg || '').toLowerCase();
+    return m.indexOf('already') >= 0 || m.indexOf('exists') >= 0 || m.indexOf('registered') >= 0;
+  }
+  function showExistingOrError(form, msg) {
+    if (looksExistingAccount(msg)) return showExistingAccount(form);
+    return showError(form, traduire(msg));
   }
 
   // Messages d'erreur Supabase courants → FR.
   function traduire(msg) {
     var m = (msg || '').toLowerCase();
-    if (m.indexOf('invalid login') >= 0) return 'E-mail ou mot de passe incorrect.';
-    if (m.indexOf('email not confirmed') >= 0) return 'E-mail pas encore confirmé. Vérifiez votre boîte de réception.';
-    if (m.indexOf('already registered') >= 0 || m.indexOf('already exists') >= 0) return 'Un compte existe déjà avec cet e-mail.';
+    if (m.indexOf('invalid login') >= 0) return 'E-mail ou mot de passe incorrect. Si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google ».';
+    if (m.indexOf('email not confirmed') >= 0) return 'E-mail pas encore confirmé. Vérifiez votre boîte de réception (pensez aux spams).';
+    if (looksExistingAccount(m)) return EXISTING_ACCOUNT_MSG;
     if (m.indexOf('rate limit') >= 0) return 'Trop de tentatives. Réessayez dans quelques minutes.';
     return msg || 'Une erreur est survenue.';
   }

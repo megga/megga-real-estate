@@ -1,3 +1,4 @@
+/** Carte acheteur du matching mobile (VUE 1 liste) — un item de l'inbox par acheteur. */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'

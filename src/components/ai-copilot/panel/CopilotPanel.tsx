@@ -11,7 +11,8 @@ import {
   type ReactNode, type KeyboardEvent as ReactKeyboardEvent, type ChangeEvent as ReactChangeEvent,
 } from 'react'
 import { CRM_TOKENS, crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId } from '@/components/crm-sugar/tokens'
-import { useCopilot } from '@/hooks/useCopilot'
+import { useCopilot, type PendingActionCard } from '@/hooks/useCopilot'
+import { useUploadChatPhoto } from '@/hooks/useProperties'
 import { useAuth } from '@/hooks/useAuth'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -20,6 +21,8 @@ import { CpIcon, AiGlyph } from './panelIcons'
 import EmailReviewModal, { type EmailDraft } from './EmailReviewModal'
 import AnnonceReviewModal from './AnnonceReviewModal'
 import LetterReviewModal from './LetterReviewModal'
+import PublishReviewModal from './PublishReviewModal'
+import DeleteContactReviewModal from './DeleteContactReviewModal'
 import {
   PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
   type AiPalette,
@@ -55,10 +58,15 @@ interface PanelMsg {
   loading?: boolean
   query?: string
   screen?: string
+  /** Libellé RÉEL de l'outil en cours (tool_start SSE) — null = aucun. */
+  phase?: string | null
 }
 
-// ── Statut « réflexion » dynamique ──────────────────────────────────────────
-function CpThinking({ sp, query }: { sp: AiPalette; query?: string }) {
+// ── Statut « réflexion » ─────────────────────────────────────────────────────
+// Si un outil réel tourne (phase fournie par le SSE), on affiche SON libellé —
+// c'est de la transparence, pas une animation fabriquée. Sinon, repli sur les
+// phases heuristiques dérivées de la question (le temps de la 1re inférence).
+function CpThinking({ sp, query, phase }: { sp: AiPalette; query?: string; phase?: string | null }) {
   const phases = useMemo(() => thinkingPhases(query || ''), [query])
   const [i, setI] = useState(0)
   useEffect(() => {
@@ -66,9 +74,10 @@ function CpThinking({ sp, query }: { sp: AiPalette; query?: string }) {
     const id = window.setInterval(() => setI((n) => Math.min(n + 1, phases.length - 1)), 1100)
     return () => window.clearInterval(id)
   }, [phases])
+  const label = phase || phases[i]
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
-      <span key={i} style={{
+      <span key={label} style={{
         fontSize: 13.5, fontWeight: 600, lineHeight: 1.5,
         color: sp.dark ? 'rgba(255,255,255,0.55)' : '#7A8088',
         background: `linear-gradient(100deg, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 30%, ${sp.dark ? '#FFFFFF' : '#0B0C0E'} 50%, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 70%)`,
@@ -76,7 +85,7 @@ function CpThinking({ sp, query }: { sp: AiPalette; query?: string }) {
         WebkitBackgroundClip: 'text', backgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         animation: 'cpShimmer 1.6s linear infinite, cpFadeIn .3s ease both',
-      }}>{phases[i]}</span>
+      }}>{label}</span>
     </div>
   )
 }
@@ -188,21 +197,19 @@ function CpRichText({ content, sp }: { content: string; sp: AiPalette }) {
 // ── Carte d'action : brouillon rédigé (chantier 4 — boucle fermée) ──────────
 function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGenerateLetter }: { lang: string; body: string; open: boolean; sp: AiPalette; onInsertEmail?: (draft: EmailDraft) => void; onUseAnnonce?: (annonce: string) => void; onGenerateLetter?: (letter: string) => void }) {
   const [copied, setCopied] = useState(false)
-  const [inserted, setInserted] = useState(false)
-  const [done2, setDone2] = useState(false)
   const isEmail = /^(courriel|email|e-mail|mail)$/i.test(lang)
   const isAnnonce = /annonce/i.test(lang)
   const isLettre = /lettre/i.test(lang)
+  // Un brouillon a une action « boucle fermée » RÉELLE seulement pour email
+  // (modal d'envoi Resend), annonce (enregistrement sur le bien) et lettre (PDF).
+  // Un message/SMS n'a pas de canal d'envoi web → on ne montre PAS de fausse
+  // action « Programmer l'envoi » : l'agent copie et envoie par son canal.
+  const hasAction = isEmail || isAnnonce || isLettre
   const kind = isEmail ? "Brouillon d'email"
     : /sms/i.test(lang) ? 'Brouillon de SMS'
     : isLettre ? 'Brouillon de courrier'
     : isAnnonce ? "Brouillon d'annonce"
     : 'Brouillon de message'
-  const followUp = isAnnonce
-    ? { cta: 'Publier le bien', ok: 'Annonce en file de publication', icon: 'send' }
-    : isLettre
-      ? { cta: 'Générer le PDF', ok: 'PDF généré — prêt à imprimer', icon: 'draft' }
-      : { cta: "Programmer l'envoi", ok: 'Envoi programmé — demain 09:00', icon: 'calendar' }
   let subject: string | null = null
   let text = body
   const firstNl = body.indexOf('\n')
@@ -234,26 +241,27 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
       <div style={{ fontSize: 13.5, lineHeight: 1.6, color: sp.soft, fontWeight: 500, whiteSpace: 'pre-wrap' }}>
         {text}{open && <span style={{ opacity: 0.4 }}>▍</span>}
       </div>
-      {!open && !inserted && (
+      {!open && (
         <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-          <button
-            onClick={() => {
-              // Email → modal envoi ; annonce → modal « utiliser sur le bien »
-              // (human-in-the-loop). Autres types (message/lettre) : stub visuel (PR suivante).
-              if (isEmail && onInsertEmail) onInsertEmail({ subject: subject ?? '', body: text })
-              else if (isAnnonce && onUseAnnonce) onUseAnnonce(text)
-              else if (isLettre && onGenerateLetter) onGenerateLetter(text)
-              else setInserted(true)
-            }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
-              borderRadius: 999, background: sp.accent, color: sp.onAccent, transition: 'background .15s, transform .15s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'none' }}>
-            {isEmail ? 'Insérer dans un email' : isAnnonce ? 'Utiliser sur le bien' : isLettre ? 'Générer le PDF' : 'Utiliser ce message'}
-          </button>
+          {hasAction && (
+            <button
+              onClick={() => {
+                // Boucle fermée réelle (human-in-the-loop) : email → modal d'envoi,
+                // annonce → enregistrement sur le bien, lettre → génération PDF.
+                if (isEmail && onInsertEmail) onInsertEmail({ subject: subject ?? '', body: text })
+                else if (isAnnonce && onUseAnnonce) onUseAnnonce(text)
+                else if (isLettre && onGenerateLetter) onGenerateLetter(text)
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
+                borderRadius: 999, background: sp.accent, color: sp.onAccent, transition: 'background .15s, transform .15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none' }}>
+              {isEmail ? 'Insérer dans un email' : isAnnonce ? 'Utiliser sur le bien' : 'Générer le PDF'}
+            </button>
+          )}
           <button onClick={copy} style={{
             display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 13px',
@@ -263,39 +271,6 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
             <CpIcon name={copied ? 'check' : 'copy'} size={13} color={copied ? sp.ink : sp.soft} sw={2} />
             {copied ? 'Copié' : 'Copier'}
           </button>
-        </div>
-      )}
-      {!open && inserted && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 10, marginTop: 2,
-          animation: 'cpFade .32s cubic-bezier(.2,.8,.2,1) both',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              width: 20, height: 20, borderRadius: 999, flexShrink: 0,
-              background: sp.dark ? 'rgba(80,200,140,0.18)' : 'rgba(5,150,105,0.12)',
-              display: 'grid', placeItems: 'center',
-            }}>
-              <CpIcon name="check" size={13} color={sp.dark ? '#5FD39A' : '#059669'} sw={2.6} />
-            </span>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, letterSpacing: -0.1 }}>
-              {done2 ? followUp.ok : (isEmail ? "Ajouté au brouillon d'email" : 'Message inséré')}
-            </span>
-          </div>
-          {!done2 && (
-            <button onClick={() => setDone2(true)} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, border: 0, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
-              borderRadius: 999, alignSelf: 'flex-start', color: sp.soft,
-              background: sp.dark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
-              boxShadow: sp.dark ? 'none' : '0 1px 4px rgba(15,23,42,0.06)', transition: 'background .14s, transform .14s',
-            }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = sp.rowHov; e.currentTarget.style.transform = 'translateY(-1px)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = sp.dark ? 'rgba(255,255,255,0.06)' : '#FFFFFF'; e.currentTarget.style.transform = 'none' }}>
-              <CpIcon name={followUp.icon} size={14} color={sp.soft} sw={1.9} />
-              {followUp.cta}
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -378,7 +353,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
       <AiGlyph size={22} bg="transparent" on={sp.dark ? '#7FB0FF' : '#1E5BC6'} />
       <div style={{ flex: 1, minWidth: 0, paddingTop: 4 }}>
         {msg.loading
-          ? <CpThinking sp={sp} query={msg.query} />
+          ? <CpThinking sp={sp} query={msg.query} phase={msg.phase} />
           : <CpAnswerBody content={msg.content} sp={sp} query={msg.query} onInsertEmail={onInsertEmail} onUseAnnonce={onUseAnnonce} onGenerateLetter={onGenerateLetter} />}
       </div>
     </div>
@@ -386,13 +361,38 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
 }
 
 // ── Barre de saisie ancrée ──────────────────────────────────────────────────
-function Composer({ onSend, loading, sp }: { onSend: (t: string) => void; loading: boolean; sp: AiPalette }) {
+interface ComposerPhoto { id: string; url: string | null; error: boolean }
+
+function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string[]) => void; loading: boolean; sp: AiPalette }) {
   const [val, setVal] = useState('')
+  const [photos, setPhotos] = useState<ComposerPhoto[]>([])
+  const [dragOver, setDragOver] = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const upload = useUploadChatPhoto()
+
+  const uploading = photos.some((p) => p.url === null && !p.error)
+  const readyUrls = photos.filter((p) => p.url).map((p) => p.url as string)
+
+  // Chaque photo est stagée en parallèle (bucket property-photos) ; l'URL revient dans la
+  // vignette. À l'envoi, seules les URLs prêtes partent dans context.attached_photos.
+  const addFiles = (files: FileList | File[]) => {
+    const imgs = Array.from(files).filter((f) => f.type.startsWith('image/')).slice(0, 6)
+    for (const file of imgs) {
+      const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      setPhotos((ps) => [...ps, { id, url: null, error: false }])
+      upload.mutateAsync(file)
+        .then((url) => setPhotos((ps) => ps.map((p) => (p.id === id ? { ...p, url } : p))))
+        .catch(() => setPhotos((ps) => ps.map((p) => (p.id === id ? { ...p, error: true } : p))))
+    }
+  }
+  const removePhoto = (id: string) => setPhotos((ps) => ps.filter((p) => p.id !== id))
+
   const submit = () => {
     const v = val.trim()
-    if (!v || loading) return
-    onSend(v); setVal('')
+    if ((!v && readyUrls.length === 0) || loading || uploading) return
+    onSend(v, readyUrls.length ? readyUrls : undefined)
+    setVal(''); setPhotos([])
     if (ref.current) ref.current.style.height = 'auto'
   }
   const onKey = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
@@ -403,12 +403,37 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string) => void; loadin
     e.target.style.height = 'auto'
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
   }
-  const canSend = !!val.trim() && !loading
+  const canSend = (!!val.trim() || readyUrls.length > 0) && !loading && !uploading
+
   return (
-    <div style={{
-      background: sp.dark ? '#0B0C0E' : sp.composerBg, borderRadius: 22, padding: '10px 10px 10px 16px',
-      boxShadow: sp.dark ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : sp.composerShadow, display: 'flex', flexDirection: 'column', gap: 8,
-    }}>
+    <div
+      onDragOver={(e) => { e.preventDefault(); if (!dragOver) setDragOver(true) }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files) }}
+      style={{
+        background: sp.dark ? '#0B0C0E' : sp.composerBg, borderRadius: 22, padding: '10px 10px 10px 16px',
+        boxShadow: dragOver ? `inset 0 0 0 2px ${sp.accent}` : (sp.dark ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : sp.composerShadow),
+        display: 'flex', flexDirection: 'column', gap: 8, transition: 'box-shadow .14s',
+      }}
+    >
+      {photos.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 2 }}>
+          {photos.map((p) => (
+            <div key={p.id} style={{
+              position: 'relative', width: 46, height: 46, borderRadius: 9, overflow: 'hidden',
+              background: sp.dark ? 'rgba(255,255,255,0.08)' : '#E9ECF1', display: 'grid', placeItems: 'center',
+            }}>
+              {p.url
+                ? <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontSize: 11, fontWeight: 700, color: p.error ? '#E5484D' : sp.sub }}>{p.error ? '!' : '…'}</span>}
+              <button onClick={() => removePhoto(p.id)} title="Retirer" aria-label="Retirer la photo" style={{
+                position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: 999, border: 0, cursor: 'pointer',
+                background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, lineHeight: '16px', padding: 0,
+              }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
       <textarea ref={ref} value={val} onChange={grow} onKeyDown={onKey} rows={1}
         className={sp.dark ? 'cp-composer-input' : undefined}
         placeholder="Demander à MEGGA AI"
@@ -417,7 +442,17 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string) => void; loadin
           resize: 'none', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.5,
           color: sp.dark ? '#FFFFFF' : sp.ink, padding: '4px 0', maxHeight: 120,
         }} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <button onClick={() => fileRef.current?.click()} title="Joindre des photos" aria-label="Joindre des photos"
+          style={{
+            width: 34, height: 34, borderRadius: 999, border: 0, cursor: 'pointer',
+            background: sp.dark ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.05)',
+            display: 'grid', placeItems: 'center',
+          }}>
+          <CpIcon name="image" size={18} color={sp.sub} sw={1.9} />
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+          onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
         <button onClick={submit} disabled={!canSend} title="Envoyer" aria-label="Envoyer"
           style={{
             width: 36, height: 36, borderRadius: 999, border: 0, cursor: canSend ? 'pointer' : 'default',
@@ -514,7 +549,7 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
   consumeSeed: () => void
   onClose: () => void
 }) {
-  const { sendMessageStream, isLoading, clearHistory } = useCopilot()
+  const { sendMessageStream, executePending, isLoading, clearHistory } = useCopilot()
   const { profile } = useAuth()
   const { deals } = usePipelineSugar()
   const { entity } = useAiPanel()
@@ -532,6 +567,12 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
   // Modal lettre → génère un PDF A4 (impression navigateur, pattern KycExportPage).
   const [letterModal, setLetterModal] = useState<{ open: boolean; letter: string }>({ open: false, letter: '' })
   const openLetterModal = useCallback((letter: string) => setLetterModal({ open: true, letter }), [])
+  // Carte de publication (Phase C) : ouverte par l'event serveur onPendingAction quand
+  // le copilote a PRÉPARÉ une publication/retrait. Rien ne part sans le clic de l'agent.
+  const [publishModal, setPublishModal] = useState<{ open: boolean; pending: PendingActionCard | null }>({ open: false, pending: null })
+  // Carte de suppression de contact : même mécanique HITL (le copilote a PRÉPARÉ la
+  // suppression), routée à part par le kind de l'action. Rien n'est supprimé sans le clic.
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; pending: PendingActionCard | null }>({ open: false, pending: null })
 
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || ''
 
@@ -560,19 +601,40 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
     return ctx
   }, [deals, firstName, profile])
 
-  const send = useCallback((text: string) => {
+  const send = useCallback((text: string, photoUrls?: string[]) => {
     const t = text.trim()
-    if (!t || isLoading) return
+    const hasPhotos = !!photoUrls?.length
+    if ((!t && !hasPhotos) || isLoading) return
     const uid = (idRef.current += 1)
     const lid = (idRef.current += 1)
+    // Message envoyé au copilote : non vide même sans texte (sinon l'edge le rejette).
+    const msg = t || 'Voici des photos pour un bien.'
+    // Bulle utilisateur : texte + indicateur photo si des photos sont jointes.
+    const shown = hasPhotos
+      ? `${t ? t + '\n\n' : ''}📷 ${photoUrls!.length} photo${photoUrls!.length > 1 ? 's' : ''}`
+      : t
     setMessages((m) => [
       ...m,
-      { id: uid, role: 'user', content: t },
-      { id: lid, role: 'assistant', content: '', loading: true, query: t },
+      { id: uid, role: 'user', content: shown },
+      { id: lid, role: 'assistant', content: '', loading: true, query: msg, phase: null },
     ])
     const ctx = buildContext(screen)
-    void sendMessageStream(t, ctx, (chunk) => {
-      setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, content: (x.content || '') + chunk } : x))
+    if (hasPhotos) ctx.attached_photos = photoUrls
+    void sendMessageStream(msg, ctx, {
+      // Token streamé → on sort du mode « réflexion » et on APPEND le fragment.
+      onDelta: (chunk) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, phase: null, content: (x.content || '') + chunk } : x)),
+      // Un appel d'outil est survenu après du texte → on efface l'ébauche.
+      onReset: () => setMessages((m) => m.map((x) => x.id === lid ? { ...x, content: '' } : x)),
+      // Phase d'outil RÉELLE (« Analyse du marché… ») affichée pendant la consultation.
+      onPhase: (label) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, phase: label } : x)),
+      // Texte final normalisé (meggaProse serveur) → remplace l'accumulation brute.
+      onFinal: (finalText) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, phase: null, content: finalText } : x)),
+      // Action confirm préparée → ouvre la carte de validation adaptée à son type
+      // (suppression de contact vs publication). Aucune exécution avant le clic.
+      onPendingAction: (pending) => {
+        if (pending.kind === 'delete_contact') setDeleteModal({ open: true, pending })
+        else setPublishModal({ open: true, pending })
+      },
     })
   }, [isLoading, sendMessageStream, buildContext, screen])
 
@@ -662,6 +724,30 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
         dark={sp.dark}
         letter={letterModal.letter}
         onClose={() => setLetterModal((m) => ({ ...m, open: false }))}
+      />
+      <PublishReviewModal
+        open={publishModal.open}
+        sp={sp}
+        dark={sp.dark}
+        pending={publishModal.pending}
+        executePending={executePending}
+        onExecuted={(resultText) => {
+          const id = (idRef.current += 1)
+          setMessages((m) => [...m, { id, role: 'assistant', content: resultText }])
+        }}
+        onClose={() => setPublishModal((m) => ({ ...m, open: false }))}
+      />
+      <DeleteContactReviewModal
+        open={deleteModal.open}
+        sp={sp}
+        dark={sp.dark}
+        pending={deleteModal.pending}
+        executePending={executePending}
+        onExecuted={(resultText) => {
+          const id = (idRef.current += 1)
+          setMessages((m) => [...m, { id, role: 'assistant', content: resultText }])
+        }}
+        onClose={() => setDeleteModal((m) => ({ ...m, open: false }))}
       />
     </>
   )

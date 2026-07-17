@@ -1,3 +1,4 @@
+/** Pilule de verdict qualitatif du matching (mobile). */
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 import { verdictKey } from './vm'

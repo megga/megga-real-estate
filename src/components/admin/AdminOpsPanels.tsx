@@ -177,6 +177,40 @@ export function WhatsAppOpsPanel() {
             ))}
           </div>
 
+          {/* Dead-letters : files d'échec surveillées (migration 20260710163000).
+              « Échecs livraison 24h » est déjà rendu ci-dessus (failed_24h). */}
+          <div>
+            <p className="text-xs font-medium text-theme-secondary mb-1.5">
+              {t('monitoring.whatsapp.deadletters')}
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-theme-muted">{t('monitoring.whatsapp.processingFailed')}</p>
+                <p className={cn('font-semibold', data.processing_failed > 0 ? 'text-amber-500' : 'text-theme-primary')}>
+                  {data.processing_failed}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-theme-muted">{t('monitoring.whatsapp.processingDeadletter')}</p>
+                <p className={cn('font-semibold', data.processing_deadletter > 0 ? 'text-red-500' : 'text-theme-primary')}>
+                  {data.processing_deadletter}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-theme-muted">{t('monitoring.whatsapp.agentErrors24h')}</p>
+                <p className={cn('font-semibold', data.agent_errors_24h > 0 ? 'text-amber-500' : 'text-theme-primary')}>
+                  {data.agent_errors_24h}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-theme-muted">{t('monitoring.whatsapp.asyncJobsFailed24h')}</p>
+                <p className={cn('font-semibold', data.async_jobs_failed_24h > 0 ? 'text-red-500' : 'text-theme-primary')}>
+                  {data.async_jobs_failed_24h}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {data.top_errors.length > 0 && (
             <div>
               <p className="text-xs font-medium text-theme-secondary mb-1.5">

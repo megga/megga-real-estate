@@ -17,6 +17,7 @@ export interface AutonomyRow {
   suggest_resume: boolean
 }
 
+/** File les suggestions d'autonomie WhatsApp (RPC `get_whatsapp_autonomy_suggestions`), agrégées par agent × outil. */
 export function useAdminAutonomy() {
   return useQuery({
     queryKey: ['admin', 'autonomy-suggestions'],

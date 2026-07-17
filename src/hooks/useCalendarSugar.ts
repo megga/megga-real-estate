@@ -32,6 +32,7 @@ interface ReminderJoin {
   property: { title: string | null; address: string | null } | { title: string | null; address: string | null }[] | null
 }
 
+/** Aplatit une jointure Supabase (objet, tableau à 1 élément ou null) en une valeur unique. */
 function unwrap<T>(v: T | T[] | null | undefined): T | null {
   if (!v) return null
   return Array.isArray(v) ? v[0] ?? null : v
@@ -47,6 +48,7 @@ function toneFromId(id: string): string {
   return tones[Math.abs(h) % tones.length]
 }
 
+/** Convertit une ligne `visits` en `CalEvent` type='visite' (bloc d'1 h par défaut). */
 function visitToCalEvent(v: VisitJoin): CalEvent {
   const contact = unwrap(v.contact)
   const property = unwrap(v.property)
@@ -58,8 +60,10 @@ function visitToCalEvent(v: VisitJoin): CalEvent {
   const propTitle = property?.title || property?.address || 'Bien'
   return {
     id: v.id,
+    origin: 'visit',
     type: 'visite',
     title: `Visite — ${contactName}`,
+    bienId: property?.id ?? null,
     property: property ? {
       id: property.id,
       title: propTitle,
@@ -78,6 +82,7 @@ function visitToCalEvent(v: VisitJoin): CalEvent {
   }
 }
 
+/** Convertit un reminder actif en `CalEvent` type='task' (relance à traiter). */
 function reminderToCalEvent(r: ReminderJoin): CalEvent {
   const contact = unwrap(r.contact)
   const property = unwrap(r.property)
@@ -86,6 +91,7 @@ function reminderToCalEvent(r: ReminderJoin): CalEvent {
   const contactName = contact ? `${contact.first_name} ${contact.last_name}`.trim() : ''
   return {
     id: r.id,
+    origin: 'reminder',
     type: 'task',
     title: contactName ? `Relance ${contactName}` : 'Tâche',
     contact: contactName ? { name: contactName, role: 'Contact' } : undefined,
@@ -114,10 +120,12 @@ interface HotBuyerRow {
   last_interaction_at: string | null
 }
 
+/** Initiales majuscules d'un contact ; `??` si prénom et nom sont vides. */
 function initialsOf(first: string, last: string): string {
   return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase() || '??'
 }
 
+/** Libellé relatif court (Aujourd'hui / Hier / Il y a N j·sem·mois) depuis un ISO. */
 function relativeDay(iso: string | null): string {
   if (!iso) return '—'
   const diffDays = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24))
@@ -137,6 +145,10 @@ function warmScore(row: HotBuyerRow): number {
   return Math.max(30, base - days)
 }
 
+/**
+ * Source de données de CalendarSugarV2Page : agrège visites + reminders actifs en
+ * `CalEvent` (fenêtre ±60 j) et expose le top 5 des acheteurs chauds/tièdes.
+ */
 export function useCalendarSugar(): UseCalendarSugarReturn {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -194,7 +206,7 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
   }, [visits, reminders])
 
   // Hot buyers : contacts.score IN ('hot','warm') ordonnés par last_interaction_at,
-  // top 5 affichés dans CalRightPanel.
+  // top 5 acheteurs chauds (exposés pour d'éventuels consommateurs — Today/mobile).
   const { data: hotBuyerRows = [], isLoading: hotLoading, isError: hotError, refetch: refetchHot } = useQuery({
     queryKey: ['calendar-sugar-hot-buyers', agencyId],
     queryFn: async (): Promise<HotBuyerRow[]> => {

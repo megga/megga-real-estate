@@ -17,6 +17,7 @@ const ICON_PATHS: Record<string, ReactNode> = {
   plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
   send: <><path d="M12 19V5" /><path d="M6 11l6-6 6 6" /></>,
   folder: <path d="M3 7a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />,
+  image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.6" /><path d="m21 15-5-5L5 21" /></>,
   draft: <><path d="M4 4h11l5 5v11a0 0 0 0 1 0 0H4Z" /><path d="M15 4v5h5" /><path d="M8 13h8" /><path d="M8 17h5" /></>,
   pipeline: <><path d="M4 6h16" /><path d="M4 12h10" /><path d="M4 18h6" /></>,
   user: <><circle cx="12" cy="8" r="3.4" /><path d="M5.5 19a6.5 6.5 0 0 1 13 0" /></>,

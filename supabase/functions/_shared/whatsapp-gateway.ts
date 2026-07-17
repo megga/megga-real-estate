@@ -224,9 +224,14 @@ class MetaProvider implements WhatsAppProvider {
       providerMessageId: message.id as string,
       sessionId: (metadata?.phone_number_id as string) ?? null,
       fromPhone: normalizePhone(message.from as string),
+      // UNIQUEMENT le vrai numéro Business (display_phone_number), JAMAIS phone_number_id
+      // (ID de compte Meta ~15 chiffres, déjà en sessionId) : ce toPhone route l'attribution
+      // d'agence (agency_for_wa_business_number) via normalize_phone = 9 derniers chiffres ;
+      // un phone_number_id pourrait collisionner par ses 9 derniers chiffres → lead + avis LPD
+      // sous la MAUVAISE agence. Absent → null → repli sur l'heuristique de comptage.
       toPhone: metadata?.display_phone_number
         ? normalizePhone(metadata.display_phone_number as string)
-        : ((metadata?.phone_number_id as string) ?? null),
+        : null,
       body: text?.body ?? mediaObj?.caption ?? null,
       mediaType: META_TYPE_TO_MEDIA[type] ?? null,
       mediaUrl: null, // bytes récupérés en différé via Graph API (whatsapp-media)

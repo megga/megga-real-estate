@@ -1,3 +1,7 @@
+/**
+ * Coque racine du CRM mobile : enveloppe partagée que montent tous les écrans
+ * mobiles (crm-mobile/shell), avec ou sans barre d'onglets selon `variant`.
+ */
 import type { ReactNode } from 'react'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'

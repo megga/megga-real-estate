@@ -1,3 +1,4 @@
+/** Illustration décorative « choix de plan » (SVG Maggy servi statiquement). */
 interface Props { className?: string }
 
 export default function PlansIllustration({ className = 'w-full h-full' }: Props) {

@@ -1,3 +1,9 @@
+/**
+ * Contexte d'authentification (Supabase Auth) — source unique session / user / profile.
+ * Expose les gestes de connexion (mot de passe, OTP e-mail, OAuth Google/Microsoft/
+ * Facebook), inscription, reset, updatePassword et signOut, plus les dérivés de rôle
+ * (isAgent / isParticulier). DEV_BYPASS_AUTH (dev-only) injecte un mock sans réseau.
+ */
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
@@ -58,9 +64,15 @@ async function reportDevice(accessToken: string) {
 // set VITE_DEV_BYPASS_ROLE=super_admin dans .env.local
 const MOCK_ROLE = (import.meta.env.VITE_DEV_BYPASS_ROLE as UserRole | undefined) ?? 'agent'
 
+// Email en `.local` (TLD non routable) : c'est l'échappatoire CI/dev de
+// l'allowlist super-admin (cf. src/lib/superAdmin.ts + la source SQL). Sans ça,
+// le mock VITE_DEV_BYPASS_ROLE=super_admin échoue au `emailOk` de
+// useSuperAdminGate et se fait rediriger vers /dashboard — la suite E2E
+// super-admin (playwright.admin.config.ts) testait alors « Aujourd'hui » au
+// lieu des pages admin. Sans effet en prod (DEV_BYPASS dev-only + mur DB/edge).
 const MOCK_USER = {
   id: 'dev-mock-user',
-  email: 'agent@megga.ch',
+  email: 'dev@megga.local',
   user_metadata: { full_name: 'Gregory Lyonnet', role: MOCK_ROLE },
   app_metadata: {},
   aud: 'authenticated',
@@ -69,7 +81,7 @@ const MOCK_USER = {
 
 const MOCK_PROFILE: UserProfile = {
   id: 'dev-mock-user',
-  email: 'agent@megga.ch',
+  email: 'dev@megga.local',
   full_name: 'Gregory Lyonnet',
   role: MOCK_ROLE,
   avatar_url: null,
@@ -82,6 +94,7 @@ const MOCK_PROFILE: UserProfile = {
   first_day_done: true,
 }
 
+/** Charge le profil depuis `profiles` ; un retry à 500 ms couvre la race « trigger de création pas encore passé », sinon repli minimal construit depuis user_metadata. */
 async function fetchProfile(userId: string, user?: User | null, retry = true): Promise<UserProfile | null> {
   try {
     const { data, error } = await supabase
@@ -122,6 +135,7 @@ async function fetchProfile(userId: string, user?: User | null, retry = true): P
   }
 }
 
+/** Provider racine : hydrate session + profil au montage, suit onAuthStateChange, expose les gestes d'auth. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(DEV_BYPASS_AUTH ? MOCK_PROFILE : null)
@@ -340,6 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/** Accès au contexte d'auth ; lève si appelé hors d'un `AuthProvider`. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)

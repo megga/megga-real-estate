@@ -120,6 +120,11 @@ function calendarEventToVisitPayload(event: CalendarEvent, agencyId: string) {
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
+/**
+ * Visites de l'agence courante mappées en `CalendarEvent` pour le calendrier agent,
+ * plus les mutations create/update/delete (Cache Helpers, invalidation auto).
+ * L'update est partiel : le `status` n'est écrasé que s'il est explicitement fourni.
+ */
 export function useVisits() {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -157,13 +162,17 @@ export function useVisits() {
   }
 
   const updateVisitFn = async (event: CalendarEvent) => {
+    // Mise à jour partielle : on ne touche au `status` QUE s'il est explicitement
+    // fourni (un simple re-scheduling ne doit pas écraser confirmed/done/no_show).
     const updatePayload: Record<string, unknown> = {
       id: event.id,
       scheduled_at: event.start.toISOString(),
-      status: event.visitStatus || 'planned',
     }
-    if (event.visitStatus === 'done') {
-      updatePayload.completed_at = new Date().toISOString()
+    if (event.visitStatus !== undefined) {
+      updatePayload.status = event.visitStatus
+      if (event.visitStatus === 'done') {
+        updatePayload.completed_at = new Date().toISOString()
+      }
     }
     if (event.feedbackBuyer !== undefined) {
       updatePayload.feedback_buyer = event.feedbackBuyer
@@ -211,6 +220,10 @@ export interface FocusVisitRow {
   propertyCity: string | null
 }
 
+/**
+ * Colonnes de signal brutes des visites pour la file Focus (débrief manquant, no-show),
+ * bornées à la fenêtre actionnable [-21 j … fin de journée]. Voir le commentaire du WHERE.
+ */
 export function useFocusVisits(limit = 100) {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -262,144 +275,12 @@ export function useFocusVisits(limit = 100) {
 }
 
 // ── Public visit booking (no auth required) ─────────────────────────────────
-
-export interface VisitBookingInput {
-  propertyId: string
-  agencyId: string
-  scheduledAt: string // ISO string
-  buyerName: string
-  buyerEmail: string
-  buyerPhone?: string
-  buyerMessage?: string
-  visitType?: 'sur_place' | 'video'
-  videoPlatform?: 'google_meet' | 'facetime'
-  qualification?: {
-    budget?: string
-    financing?: string
-    firstVisit?: boolean
-  }
-}
-
 // useBookVisit stays on raw useMutation because it issues N sequential
 // queries (lookup contact, maybe insert contact, fetch agent email, insert
 // visit, 2 edge function calls, activity log). The contact + visit inserts
 // flow through raw Supabase calls — the agent-side cache lives in
 // useContacts() / useVisits() which use Cache Helpers and will pick up the
 // new rows on next refetch (RLS-scoped data anyway).
-export function useBookVisit() {
-  return useMutation({
-    mutationFn: async (input: VisitBookingInput) => {
-      // 1. Upsert contact by email
-      const { data: existingContacts } = await supabase
-        .from('contacts')
-        .select('id')
-        .eq('email', input.buyerEmail)
-        .eq('agency_id', input.agencyId)
-        .limit(1)
-
-      let contactId: string
-      if (existingContacts && existingContacts.length > 0) {
-        contactId = existingContacts[0].id
-      } else {
-        const nameParts = input.buyerName.trim().split(/\s+/)
-        const firstName = nameParts[0] || ''
-        const lastName = nameParts.slice(1).join(' ') || ''
-        const { data: newContact, error: contactError } = await supabase
-          .from('contacts')
-          .insert({
-            agency_id: input.agencyId,
-            first_name: firstName,
-            last_name: lastName,
-            email: input.buyerEmail,
-            phone: input.buyerPhone || null,
-            type: 'buyer',
-            source: 'website',
-            score: 'warm',
-          })
-          .select('id')
-          .single()
-        if (contactError) throw contactError
-        contactId = newContact.id
-      }
-
-      // 2. Generate video link if needed
-      let videoLink: string | null = null
-      if (input.visitType === 'video' && input.videoPlatform === 'facetime') {
-        // Fetch agent email for FaceTime link
-        const { data: agents } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('agency_id', input.agencyId)
-          .limit(1)
-        const agentEmail = agents?.[0]?.email
-        if (agentEmail) {
-          videoLink = `facetime:${agentEmail}`
-        }
-      }
-      // Google Meet link will be generated server-side via Calendar API when agent confirms
-
-      // 3. Create visit
-      const { data: visit, error: visitError } = await supabase
-        .from('visits')
-        .insert({
-          agency_id: input.agencyId,
-          property_id: input.propertyId,
-          contact_id: contactId,
-          scheduled_at: input.scheduledAt,
-          status: 'planned',
-          buyer_name: input.buyerName,
-          buyer_email: input.buyerEmail,
-          buyer_phone: input.buyerPhone || null,
-          buyer_message: input.buyerMessage || null,
-          qualification: input.qualification || {},
-          visit_type: input.visitType || 'sur_place',
-          video_platform: input.visitType === 'video' ? (input.videoPlatform || 'google_meet') : null,
-          video_link: videoLink,
-        })
-        .select('id, manage_token')
-        .single()
-      if (visitError) throw visitError
-
-      // 4. Send confirmation email via Edge Function
-      try {
-        await supabase.functions.invoke('send-visit-email', {
-          body: {
-            type: 'confirmation_buyer',
-            visit_id: visit.id,
-            agency_id: input.agencyId,
-          },
-        })
-        // Also notify agent
-        await supabase.functions.invoke('send-visit-email', {
-          body: {
-            type: 'notification_agent',
-            visit_id: visit.id,
-            agency_id: input.agencyId,
-          },
-        })
-      } catch {
-        // Email failure shouldn't block the visit creation
-      }
-
-      // 5. Log activity
-      await supabase.from('activity_events').insert({
-        agency_id: input.agencyId,
-        action: 'visit_requested',
-        entity_type: 'visit',
-        entity_id: visit.id,
-        metadata: {
-          buyer_name: input.buyerName,
-          buyer_email: input.buyerEmail,
-          property_id: input.propertyId,
-          scheduled_at: input.scheduledAt,
-        },
-      })
-
-      return { visitId: visit.id, manageToken: visit.manage_token }
-    },
-  })
-}
-
 // ── Public visit lookup by manage token ──────────────────────────────────────
 
 export interface PublicVisitData {
@@ -412,23 +293,24 @@ export interface PublicVisitData {
   property: { title: string; address: string; city: string; photos: string[] } | null
 }
 
-// Public token-based lookup — kept on classic useQuery because the response
-// shape needs post-processing (`property` join unwrap + cast to
-// PublicVisitData). Cache Helpers' useQuery returns the raw row; we keep the
-// shape consumers expect.
+// Public token-based lookup — via RPC SECURITY DEFINER `get_visit_by_token`
+// (migration 20260711190000). L'ancienne lecture directe de `visits` reposait
+// sur une policy anon `manage_token IS NOT NULL` qui exposait TOUTES les
+// visites (faille advisor rls_policy_always_true) ; la RPC ne renvoie que la
+// visite dont le client détient le token (uuid = capability non devinable).
+// Les RPC token ne sont pas dans les types générés (database.ts en retard) →
+// cast localisé, même pattern que useFollowupSuggestions.
+/** Lecture publique d'une visite par capability token (RPC SECURITY DEFINER `get_visit_by_token`). */
 export function usePublicVisit(token: string | undefined) {
   return useRqQuery({
     queryKey: ['public-visit', token],
     queryFn: async (): Promise<PublicVisitData | null> => {
       if (!token) return null
-      const { data, error } = await supabase
-        .from('visits')
-        .select('id, scheduled_at, status, buyer_name, buyer_email, manage_token, property:properties(title, address, city, photos)')
-        .eq('manage_token', token)
-        .single()
-      if (error) return null
-      const property = Array.isArray(data.property) ? data.property[0] : data.property
-      return { ...data, property } as PublicVisitData
+      const res = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(
+        'get_visit_by_token', { p_token: token },
+      )
+      if (res.error || !res.data) return null
+      return res.data as PublicVisitData
     },
     enabled: !!token,
   })
@@ -436,28 +318,27 @@ export function usePublicVisit(token: string | undefined) {
 
 // ── Public visit reschedule/cancel ──────────────────────────────────────────
 
-// Token-based update (no `id` in WHERE) — Cache Helpers' useUpdateMutation
-// expects the primary key in the input; we update by `manage_token`. Keep raw.
+// Mutations par token — via RPC SECURITY DEFINER (mêmes transitions que les
+// anciens updates directs ; la policy anon UPDATE barn-door a été supprimée).
+const rpcByToken = (fn: string, args: Record<string, unknown>) =>
+  (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(fn, args)
+
+/** Replanification publique (par token) via RPC `reschedule_visit_by_token`. */
 export function useRescheduleVisit() {
   return useMutation({
     mutationFn: async ({ token, newDate }: { token: string; newDate: string }) => {
-      const { error } = await supabase
-        .from('visits')
-        .update({ scheduled_at: newDate, status: 'planned' })
-        .eq('manage_token', token)
-      if (error) throw error
+      const { error } = await rpcByToken('reschedule_visit_by_token', { p_token: token, p_new_at: newDate })
+      if (error) throw new Error(error.message)
     },
   })
 }
 
+/** Annulation publique (par token) via RPC `cancel_visit_by_token`. */
 export function useCancelVisit() {
   return useMutation({
     mutationFn: async (token: string) => {
-      const { error } = await supabase
-        .from('visits')
-        .update({ status: 'cancelled' })
-        .eq('manage_token', token)
-      if (error) throw error
+      const { error } = await rpcByToken('cancel_visit_by_token', { p_token: token })
+      if (error) throw new Error(error.message)
     },
   })
 }
@@ -473,25 +354,23 @@ export interface VisitFeedbackInput {
   offerInterest: 'yes' | 'maybe' | 'no'
 }
 
+/** Dépôt public du feedback visite (note + objections/intérêt) via RPC `submit_visit_feedback_by_token`. */
 export function useSubmitFeedback() {
   return useMutation({
     mutationFn: async (input: VisitFeedbackInput) => {
-      const { error } = await supabase
-        .from('visits')
-        .update({
-          rating: input.rating,
-          feedback_buyer: input.comment || null,
-          ai_objections: {
-            strengths: input.strengths,
-            objections: input.objections,
-            offer_interest: input.offerInterest,
-          },
-          status: 'done',
-          completed_at: new Date().toISOString(),
-          feedback_sent: true,
-        })
-        .eq('manage_token', input.token)
-      if (error) throw error
+      // Même capability token que la lecture/replanification : RPC SECURITY DEFINER
+      // (submit_visit_feedback_by_token) — l'update direct anon n'existe plus.
+      const { error } = await rpcByToken('submit_visit_feedback_by_token', {
+        p_token: input.token,
+        p_rating: input.rating,
+        p_comment: input.comment || '',
+        p_ai: {
+          strengths: input.strengths,
+          objections: input.objections,
+          offer_interest: input.offerInterest,
+        },
+      })
+      if (error) throw new Error(error.message)
     },
   })
 }

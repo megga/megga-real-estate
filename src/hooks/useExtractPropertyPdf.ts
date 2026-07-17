@@ -1,3 +1,8 @@
+/**
+ * Extraction d'une fiche bien depuis un PDF. Le fichier est converti en base64
+ * côté client puis envoyé à l'edge `extract-property-pdf` (vision/OCR = Gemini).
+ * Retourne des champs structurés (+ location) et un score de confiance.
+ */
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -41,6 +46,7 @@ interface ExtractionResult {
   filename: string
 }
 
+/** Pilote l'upload PDF → extraction structurée, avec états isExtracting/error/result. */
 export function useExtractPropertyPdf() {
   const [isExtracting, setIsExtracting] = useState(false)
   const [error, setError] = useState<string | null>(null)

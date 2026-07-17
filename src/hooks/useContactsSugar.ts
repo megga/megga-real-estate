@@ -1,3 +1,10 @@
+/**
+ * Adapter Supabase → `CrmContact[]` pour ContactsSugarV2Page (design Sugar v2).
+ *
+ * Charge les contacts de l'agence + leur dossier KYC acheteur, adapte vers les
+ * shapes que les panes Sugar consomment déjà, et alimente le registry runtime
+ * `registerLiveContact` (nettoyé au démontage) pour `crmContactById`.
+ */
 // MEGGA CRM Sugar v2 — Adapter Supabase → CrmContact[] pour ContactsSugarV2Page.
 // Charge tous les contacts de l'agence + leurs dossiers KYC (Sprint 1
 // dossier_status), adapte vers les shapes mock que ContactsListPane et
@@ -28,6 +35,7 @@ export interface UseContactsSugarReturn {
   refetch: () => void
 }
 
+/** Contacts de l'agence enrichis de leur dossier KYC acheteur, au format Sugar v2. */
 export function useContactsSugar(): UseContactsSugarReturn {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id

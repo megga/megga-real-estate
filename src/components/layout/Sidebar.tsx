@@ -1,3 +1,10 @@
+/**
+ * Sidebar principale du CRM agent. Trois points de rupture partageant le même
+ * contenu (`sidebarContent(isCol)`) : desktop pleine largeur et réductible,
+ * tablette toujours réduite, overlay mobile. Deux modes de navigation : agent
+ * (sections `NAV_SECTIONS`) et admin (super_admin uniquement, accent violet),
+ * bascule via l'état local `adminMode`.
+ */
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -50,8 +57,7 @@ interface SidebarProps {
   onQuickContact?: () => void
 }
 
-// ─── HELPER: fade label (always rendered, hidden via opacity + overflow) ────
-
+/** Classe d'un libellé toujours monté mais masqué (opacité + largeur nulle) quand la sidebar est réduite. */
 const fadeLabel = (collapsed: boolean) =>
   cn(
     'overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-200 ease-out',
@@ -60,6 +66,7 @@ const fadeLabel = (collapsed: boolean) =>
 
 // ─── SUB-COMPONENTS ─────────────────────────────────────────────────────────
 
+/** Avatar utilisateur : photo si disponible, sinon initiales sur fond accent. */
 function UserAvatar({ name, avatarUrl, size = 'default' }: { name: string; avatarUrl?: string | null; size?: 'default' | 'small' }) {
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const s = size === 'small' ? 'h-7 w-7 text-xs' : 'h-8 w-8 text-xs'
@@ -73,6 +80,7 @@ function UserAvatar({ name, avatarUrl, size = 'default' }: { name: string; avata
   )
 }
 
+/** Info-bulle affichée à droite d'une icône quand la sidebar est réduite (rendue seulement si `show`). */
 function CollapsedTooltip({ show, children }: { show: boolean; children: React.ReactNode }) {
   if (!show) return null
   return (
@@ -84,6 +92,7 @@ function CollapsedTooltip({ show, children }: { show: boolean; children: React.R
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 
+/** Rend la sidebar aux trois points de rupture et pilote la bascule agent/admin. */
 export default function Sidebar({ mobileOpen, collapsed = false, onClose, onToggleCollapse, onOpenCommandPalette, onQuickContact }: SidebarProps) {
   const location = useLocation()
   const { signOut, profile } = useAuth()

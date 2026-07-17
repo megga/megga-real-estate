@@ -1,34 +1,19 @@
 // MEGGA — Hooks React Query pour le module KYC Magic Link (Sprint 4.7)
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type {
   CreateMagicLinkInput,
   CreateMagicLinkResponse,
-  KycMagicLinkSummary,
-  RegenerateMagicLinkInput,
 } from '@/types/magicLink'
 
 // ─── Liste des liens magiques d'un dossier KYC (vue agent) ─────────────────
-
-export function useKycMagicLinks(kycCaseId: string | undefined) {
-  return useQuery({
-    queryKey: ['kyc-magic-links', kycCaseId],
-    queryFn: async () => {
-      if (!kycCaseId) return []
-      const { data, error } = await supabase.rpc('kyc_magic_link_summary', {
-        p_kyc_case_id: kycCaseId,
-      })
-      if (error) throw error
-      return (data ?? []) as KycMagicLinkSummary[]
-    },
-    enabled: !!kycCaseId,
-    staleTime: 30_000, // 30s — pas besoin de re-fetch trop souvent
-  })
-}
-
 // ─── Créer un lien magique (auth agent → Edge function) ────────────────────
 
+/**
+ * Crée un lien magique KYC via l'Edge function `magic-link-create` (auth agent).
+ * Invalide la liste des liens, le dossier et l'audit trail au succès.
+ */
 export function useCreateMagicLink() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -48,22 +33,3 @@ export function useCreateMagicLink() {
 }
 
 // ─── Régénérer un lien (nouveau token, ancien invalidé) ────────────────────
-
-export function useRegenerateMagicLink(kycCaseId?: string) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async (input: RegenerateMagicLinkInput) => {
-      const { data, error } = await supabase.functions.invoke('magic-link-regenerate', {
-        body: input,
-      })
-      if (error) throw error
-      return data as CreateMagicLinkResponse
-    },
-    onSuccess: () => {
-      if (kycCaseId) {
-        queryClient.invalidateQueries({ queryKey: ['kyc-magic-links', kycCaseId] })
-        queryClient.invalidateQueries({ queryKey: ['kyc-audit', kycCaseId] })
-      }
-    },
-  })
-}

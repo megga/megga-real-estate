@@ -128,51 +128,6 @@ export function SgGhostPill({
 }
 
 // ─── Stepper Sugar — 8 cercles connectés ──────────────────────────────
-export function SgStepper({
-  steps, current, onJump,
-}: {
-  steps: ReadonlyArray<{ id: string; label: string }>
-  current: number
-  onJump?: (i: number) => void
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-      {steps.map((s, i) => {
-        const done = i < current
-        const active = i === current
-        const reachable = i <= current
-        return (
-          <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <button onClick={() => reachable && onJump?.(i)} title={s.label}
-              style={{
-                width: 32, height: 32, borderRadius: 999, border: 0,
-                background: active ? SugarV2.black : (done ? SugarV2.inkSoft : SugarV2.card),
-                color: (active || done) ? SugarV2.onBlack : SugarV2.muted,
-                fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
-                cursor: reachable ? 'pointer' : 'default',
-                display: 'grid', placeItems: 'center',
-                boxShadow: active
-                  ? `${SugarV2.pillShadow}, 0 0 0 4px ${SugarV2.ringSoft}`
-                  : SugarV2.shadowSm,
-                transition: 'all .2s ease',
-                flexShrink: 0,
-              }}>
-              {done ? '✓' : i + 1}
-            </button>
-            {i < steps.length - 1 && (
-              <span style={{
-                width: 28, height: 2, flexShrink: 0,
-                background: i < current ? SugarV2.inkSoft : SugarV2.line,
-                transition: 'background .3s ease',
-              }} />
-            )}
-          </span>
-        )
-      })}
-    </div>
-  )
-}
-
 // ─── Carte porte (Step 0) ─────────────────────────────────────────────
 export function SgGateCard({
   icon, title, sub, onClick, recommended, disabled,

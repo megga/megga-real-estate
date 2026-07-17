@@ -1,3 +1,8 @@
+/**
+ * Hook des notifications super-admin : 30 derniers `activity_events`, avec
+ * état lu/non-lu persisté en localStorage (aucune colonne DB). Polling 60s +
+ * abonnement Supabase Realtime, channel suffixé par `useId()` (cf. bug A1).
+ */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -32,6 +37,7 @@ function readReadIds(): string[] {
   }
 }
 
+/** Persiste la liste des IDs lus ; échoue en silence (quota / stockage désactivé). */
 function writeReadIds(ids: string[]): void {
   try {
     localStorage.setItem(READ_IDS_KEY, JSON.stringify(ids))
@@ -41,6 +47,11 @@ function writeReadIds(ids: string[]): void {
   }
 }
 
+/**
+ * Flux de notifications admin + compteur de non-lus et actions markAsRead /
+ * markAllAsRead. L'état de lecture vit côté client (localStorage), le serveur
+ * ne le connaît pas.
+ */
 export function useAdminNotifications() {
   const queryClient = useQueryClient()
   // Unique channel name per hook instance to avoid Supabase Realtime channel

@@ -1,3 +1,4 @@
+/** Route `/portal` (dev, sans token) : rend le portail vendeur sur données mock. */
 import { SellerPortalProvider } from '@/hooks/useSellerPortalContext'
 import { MOCK_SELLER_DATA } from '@/lib/mockSellerData'
 import VotreVentePage from './VotreVentePage'

@@ -264,46 +264,6 @@ export function MlkBlackPill({
   )
 }
 
-interface GhostPillProps {
-  children: ReactNode
-  onClick?: () => void
-  icon?: ReactNode
-  disabled?: boolean
-}
-
-export function MlkGhostPill({ children, onClick, icon, disabled }: GhostPillProps) {
-  const [hover, setHover] = useState(false)
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      onMouseEnter={() => !disabled && setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        height: 44,
-        padding: '0 20px',
-        borderRadius: 999,
-        border: 0,
-        background: hover ? MLK.card : 'transparent',
-        color: disabled ? MLK.muted : MLK.inkSoft,
-        fontFamily: 'inherit',
-        fontSize: 13,
-        fontWeight: 600,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-        boxShadow: hover && !disabled ? MLK.shadowSm : 'none',
-        transition: 'all .18s ease',
-      }}
-    >
-      {icon}
-      {children}
-    </button>
-  )
-}
 
 // ─── Wordmark, Avatar, ReassureRow, Footer, Shell ─────────────────────────
 

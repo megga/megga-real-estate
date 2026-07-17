@@ -144,6 +144,7 @@ function gallery(photos: string[] | null): AtelierListing['gallery'] {
   }))
 }
 
+/** Bien de veille marché (market_listings) → AtelierListing : clé `m:<id>`, prix courant + prix barré si baisse détectée. */
 export function mapMarketListing(row: RawMarketRow): AtelierListing {
   const features = featureList(row.features).map(f => f.toLowerCase())
   const price = num(row.current_price) ?? num(row.price) ?? 0
@@ -186,6 +187,7 @@ export function mapMarketListing(row: RawMarketRow): AtelierListing {
   }
 }
 
+/** Bien interne (properties) → AtelierListing : clé `p:<id>`, jours-sur-marché dérivés de created_at. */
 export function mapProperty(row: RawPropertyRow): AtelierListing {
   const features = featureList(row.features).map(f => f.toLowerCase())
   const photos = row.photos ?? []
@@ -291,6 +293,11 @@ export interface UseAtelierMatchingReturn {
   refresh: () => void
 }
 
+/**
+ * Données de l'Atelier Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
+ * groupés par annonce (pivots) et re-groupables par acheteur (poolFor / buyerFor).
+ * Les couples écartés/rejetés sont exclus de la file.
+ */
 export function useAtelierMatching(): UseAtelierMatchingReturn {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -439,6 +446,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }
 }
 
+/** true tant que le report (snooze) d'un match n'est pas échu. */
 export const isSnoozed = (until: string | null): boolean =>
   until != null && new Date(until).getTime() > Date.now()
 
@@ -462,11 +470,13 @@ export async function execSendDossier(
   ctx: GesteContext,
   buyer: AtelierBuyer,
   listing: AtelierListing,
+  channel: 'email' | 'reception' = 'email',
 ): Promise<SendResult> {
-  // 1. Match → sent
+  const viaReception = channel === 'reception'
+  // 1. Match → sent (canal 'reception' = lien privé déjà transmis, pas d'email)
   const { error: mErr } = await supabase
     .from('matches')
-    .update({ status: 'sent', sent_via: 'email', sent_at: new Date().toISOString() })
+    .update({ status: 'sent', sent_via: viaReception ? 'reception' : 'email', sent_at: new Date().toISOString() })
     .eq('id', buyer.matchId)
   if (mErr) throw mErr
 
@@ -516,7 +526,7 @@ export async function execSendDossier(
       deal_id: dealId,
       bien_ref: listing.ref,
       bien_key: listing.key,
-      canal: buyer.email ? 'email' : 'aucun',
+      canal: viaReception ? 'reception' : (buyer.email ? 'email' : 'aucun'),
       score: buyer.score,
     },
   })
@@ -538,9 +548,10 @@ export async function execSendDossier(
     message_template: `Sans réponse au dossier ${listing.ref} — relancer ${buyer.first} ${buyer.last}`,
   })
 
-  // 5. Notification e-mail (l'agent a validé dans la confirmation — human-in-the-loop)
+  // 5. Notification e-mail (l'agent a validé dans la confirmation — human-in-the-loop).
+  // Canal 'reception' : le lien privé A DÉJÀ été transmis (WhatsApp / lien copié) → pas d'email.
   let emailSent = false
-  if (buyer.email) {
+  if (!viaReception && buyer.email) {
     const { error: eErr } = await supabase.functions.invoke('send-property-email', {
       body: {
         to: buyer.email,

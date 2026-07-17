@@ -1,3 +1,12 @@
+/**
+ * Préférences d'apparence du dashboard agent (accent, arrondis, densité,
+ * taille de police, style de sidebar).
+ *
+ * Doublement persistées : cache localStorage (lecture synchrone au montage,
+ * évite le flash) et colonne `profiles.preferences` (source de vérité,
+ * écriture debounced). Chaque changement est appliqué aux variables CSS de
+ * `:root` via `applyPreferences` (writes DOM groupés en rAF).
+ */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -20,6 +29,7 @@ const STORAGE_KEY = 'megga-preferences'
 
 const customPresetCache = new Map<string, ReturnType<typeof generatePresetFromHex>>()
 
+/** Preset d'accent effectif : `custom` → généré depuis le hex (mémoïsé, cache borné à 20), sinon preset nommé (repli `sapphire`). */
 function resolveAccentPreset(prefs: DashboardPreferences) {
   if (prefs.accentColor === 'custom' && prefs.customAccentHex) {
     const hex = prefs.customAccentHex
@@ -43,6 +53,7 @@ function resolveAccentPreset(prefs: DashboardPreferences) {
 let cachedPrefs: DashboardPreferences = { ...DEFAULT_PREFERENCES }
 let cacheLoaded = false
 
+/** Lecture mémoïsée des préférences localStorage (un seul JSON.parse par session). */
 function loadFromStorage(): DashboardPreferences {
   if (cacheLoaded) return cachedPrefs
   try {
@@ -57,6 +68,7 @@ function loadFromStorage(): DashboardPreferences {
   return cachedPrefs
 }
 
+/** Met à jour le cache mémoire puis persiste dans localStorage hors du chemin de rendu (queueMicrotask). */
 function writeToStorage(prefs: DashboardPreferences) {
   cachedPrefs = prefs
   // Defer localStorage write to avoid blocking the render
@@ -67,6 +79,11 @@ function writeToStorage(prefs: DashboardPreferences) {
 
 /* ─── Apply preferences to CSS variables (batched DOM writes) ─── */
 
+/**
+ * Applique les préférences aux variables CSS de `:root` (accent, arrondis,
+ * zoom densité×police, attributs `data-*`). Tous les writes DOM sont groupés
+ * dans un seul `requestAnimationFrame` pour éviter les reflows multiples.
+ */
 export function applyPreferences(prefs: DashboardPreferences, theme: 'light' | 'dark') {
   const root = document.documentElement
 
@@ -106,6 +123,7 @@ export function applyPreferences(prefs: DashboardPreferences, theme: 'light' | '
 
 /* ─── Hook ─── */
 
+/** Hook d'accès aux préférences + mutateurs (`updatePreference`, `updatePreferences`, `resetPreferences`) ; chaque mutation applique aux CSS et persiste. */
 export function usePreferences() {
   const { profile } = useAuth()
   const profileId = profile?.id

@@ -4,8 +4,8 @@
 // Pipeline :
 //   1. Auth JWT côté caller (agent CRM uniquement)
 //   2. Validation entrée (longueur, non-vide)
-//   3. PII redaction côté serveur (jamais envoyer AVS/IBAN/password à Claude)
-//   4. Appel Claude Sonnet avec prompt strict JSON
+//   3. PII redaction côté serveur (jamais envoyer AVS/IBAN/password à l'IA)
+//   4. Appel DeepSeek avec prompt strict JSON
 //   5. Parse + double-pass verbatim : email/phone doivent apparaître dans
 //      le texte source (sinon hallucination → null)
 //   6. Log AuditEvent dans activity_events (actor_kind='ai')
@@ -19,7 +19,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { callClaude } from '../_shared/ai-provider.ts'
+import { callDeepSeek } from '../_shared/ai-provider.ts'
 import { redactPII, formatRedactionSummary } from '../_shared/pii-redaction.ts'
 
 // CORS — restreint aux origines MEGGA (audit Sprint 3a §A.4).
@@ -136,7 +136,7 @@ interface ParseResult {
 }
 
 function parseAndValidate(rawJson: string, sourceText: string): ParseResult | null {
-  // Strip d'éventuels code fences ```json ... ``` que Claude ajoute parfois.
+  // Strip d'éventuels code fences ```json ... ``` que le modèle ajoute parfois.
   const cleaned = rawJson
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```\s*$/i, '')
@@ -428,13 +428,13 @@ serve(async (req) => {
   const { redactedText, counts, total } = redactPII(capped)
   const redactionSummary = formatRedactionSummary(counts)
 
-  // 4. Appel Claude
-  let claudeResponse
+  // 4. Appel DeepSeek
+  let aiResponse
   try {
-    claudeResponse = await callClaude(
+    aiResponse = await callDeepSeek(
       [{ role: 'user', content: redactedText }],
       SYSTEM_PROMPT,
-      { model: 'sonnet', maxTokens: 600, temperature: 0.0, agencyId: ctx.agencyId ?? undefined, module: 'extract-lead' },
+      { maxTokens: 600, temperature: 0.0, timeoutMs: 30000, responseFormat: 'json_object', agencyId: ctx.agencyId ?? undefined, module: 'extract-lead' },
     )
   } catch (err) {
     await logExtraction({
@@ -453,7 +453,7 @@ serve(async (req) => {
   }
 
   // 5. Parse + double-pass verbatim (sur redactedText pour cohérence)
-  const parseResult = parseAndValidate(claudeResponse.text, redactedText)
+  const parseResult = parseAndValidate(aiResponse.text, redactedText)
   if (!parseResult) {
     await logExtraction({
       agencyId: ctx.agencyId,
@@ -462,8 +462,8 @@ serve(async (req) => {
       redactionSummary,
       confidence: 0,
       truncated,
-      inputTokens: claudeResponse.input_tokens,
-      outputTokens: claudeResponse.output_tokens,
+      inputTokens: aiResponse.input_tokens,
+      outputTokens: aiResponse.output_tokens,
       error: 'parse_failed',
     })
     return new Response(JSON.stringify({ error: 'parse_failed' }), {
@@ -482,8 +482,8 @@ serve(async (req) => {
     redactionSummary,
     confidence: extracted.confidence,
     truncated,
-    inputTokens: claudeResponse.input_tokens,
-    outputTokens: claudeResponse.output_tokens,
+    inputTokens: aiResponse.input_tokens,
+    outputTokens: aiResponse.output_tokens,
     severity: coercions.length > 0 ? 'warn' : undefined,
     coercions: coercions.length > 0 ? coercions : undefined,
   })

@@ -36,12 +36,17 @@ import type { AtelierBuyer, AtelierListing } from '@/components/matching-atelier
 import { useToast } from '@/components/ui/Toast'
 import '@/components/matching-atelier/atelier.css'
 
-export default function MatchingAtelierPage() {
+export default function MatchingAtelierPage(
+  { embedded = false, dark: darkOverride }: { embedded?: boolean; dark?: boolean } = {},
+) {
   const { t } = useTranslation('matching')
   const toast = useToast()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const dark = useSugarDark()
+  // Embarqué dans le pager, le thème vient du parent (même onglet — le toggle du
+  // rail n'émet pas d'event `storage` local) ; sinon on suit le thème global.
+  const darkAuto = useSugarDark()
+  const dark = darkOverride ?? darkAuto
   const { user, profile } = useAuth()
   const { isLoading, isError, pivots, pivotByKey, defaultPivotKey, poolFor, buyerFor, refresh } = useAtelierMatching()
 
@@ -80,10 +85,10 @@ export default function MatchingAtelierPage() {
   const showError = useCallback(() => setErrorKey(k => k + 1), [])
 
   const gestes: AtelierGestes = useMemo(() => ({
-    send: matchId => registry.defer(async () => {
+    send: (matchId, channel) => registry.defer(async () => {
       const e = matchIndex.get(matchId)
       if (!e || !ctx) return null
-      return execSendDossier(ctx, e.buyer, e.listing)
+      return execSendDossier(ctx, e.buyer, e.listing, channel)
     }, { onSettled: refresh, onError: showError }),
     relance: matchId => registry.defer(async () => {
       const e = matchIndex.get(matchId)
@@ -168,6 +173,7 @@ export default function MatchingAtelierPage() {
   return (
     <AtelierStage
       key={errorKey /* une erreur post-flush rafraîchit l'étage (rows réelles) */}
+      embedded={embedded}
       dark={dark}
       isLoading={isLoading}
       isError={isError}

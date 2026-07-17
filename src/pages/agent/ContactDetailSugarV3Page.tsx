@@ -1,54 +1,43 @@
-// MEGGA CRM Sugar v3 — Fiche détail Contact (livrable Sprint 1)
-// Port pixel-près de crm-screen-contact-detail-sugar.jsx (CRMScreenContactDetailSugar).
+// MEGGA CRM — Fiche contact « Pager » (refonte Claude Design, conteneur).
+// Monte le chrome Sugar puis le pager 2 pages (Ses informations ↕ Boucle de
+// match). Normalise le Contact Supabase → FicheContact et câble la persistance
+// (édition inline, invalidation KYC à l'édition d'identité vérifiée, suppression).
+// Décision produit : FIDÈLE STRICT au design (fiche minimale, pas de cartes hors-design).
+// Réf. handoff : crm-screen-contact-detail-pager.jsx.
 //
-// Structure :
-//   - CdKycBanner (top, si KYC ≠ verified)
-//   - CdHero (avatar 96px + meta + actions)
-//   - Grid 1.6fr / 1fr :
-//      Main : CdTimelineCard + CdNotesCard
-//      Sidebar : CdKycCard + CdCriteriaCard + CdDocsCard
-//
-// Deep-link contact → KYC : window.location → /dashboard/kyc?openContactId=<id>
+// NB : l'ancienne fiche (cartes Cd* de crm-sugar-v3/contact-detail/) a été
+// SUPPRIMÉE (fiche strict-faithful minimale, nouvelle version finale). Les
+// hooks/service de ses features (signature Skribble, fil WhatsApp, insight IA,
+// relances, docs, score de contact) restent dans src/hooks/* — sans caller UI
+// desktop pour l'instant — prêts à re-câbler si on ré-expose ces surfaces.
 
-import { useMemo, useState, useEffect } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '@/hooks/useAuth'
-import {
-  SugarTopNav,
-  SugarIconRail,
-  SUGAR_KEYFRAMES,
-  type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
+import { useQueryClient } from '@tanstack/react-query'
 import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
-import {
-  SugarV3,
-  SUGAR_V3_KEYFRAMES,
-} from '@/components/crm-sugar-v3/tokens'
-import { CdKycBanner } from '@/components/crm-sugar-v3/contact-detail/CdKycBanner'
-import { CdHero } from '@/components/crm-sugar-v3/contact-detail/CdHero'
-import { CdKycCard } from '@/components/crm-sugar-v3/contact-detail/CdKycCard'
-import { CdTimelineCard } from '@/components/crm-sugar-v3/contact-detail/CdTimelineCard'
-import { CdNotesCard } from '@/components/crm-sugar-v3/contact-detail/CdNotesCard'
-import { CdDocsCard } from '@/components/crm-sugar-v3/contact-detail/CdDocsCard'
-import { CdSignatureCard } from '@/components/crm-sugar-v3/contact-detail/CdSignatureCard'
-import { CdCriteriaCard } from '@/components/crm-sugar-v3/contact-detail/CdCriteriaCard'
-import { CdWhatsAppCard } from '@/components/crm-sugar-v3/contact-detail/CdWhatsAppCard'
-import { CdConversationInsight } from '@/components/crm-sugar-v3/contact-detail/CdConversationInsight'
-import { CdFollowupSuggestions } from '@/components/crm-sugar-v3/contact-detail/CdFollowupSuggestions'
-import { useContact } from '@/hooks/useContacts'
-import { useKycDossierByContact } from '@/hooks/useKycDossier'
-import { useAuditEvents } from '@/hooks/useAuditLog'
-import { supabase } from '@/lib/supabase'
-import { useQuery } from '@tanstack/react-query'
+import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
+import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
+import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { useAuth } from '@/hooks/useAuth'
+import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
+import { useContactSentMatches } from '@/hooks/useContactSentMatches'
+import { useKycDossierByContact, useInvalidateKycForContact } from '@/hooks/useKycDossier'
+import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
+import { pickAvatarBg } from '@/lib/sugarAdapters'
+import ContactDetailPager, {
+  type FicheContact,
+  type FicheNba,
+} from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
+import { useContactNextAction } from '@/hooks/useContactNextAction'
+import { nbaToI18n } from '@/lib/contactNba'
 
 const DARK_TONE: DarkTone = 'meggaAi'
 
 export default function ContactDetailSugarV3Page() {
+  const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { id } = useParams<{ id: string }>()
-  const { profile } = useAuth()
-  // `t` est déjà pris par les tokens de thème (CRM_TOKENS) plus bas → alias `tr`.
+  const { user } = useAuth()
   const { t: tr } = useTranslation('contacts')
 
   const [dark, setDark] = useState<boolean>(() => {
@@ -59,43 +48,27 @@ export default function ContactDetailSugarV3Page() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
-  const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
+  const sp = crmSugarPalette(t, dark, DARK_TONE)
 
-  const { data: contact, isLoading, isError, refetch } = useContact(id)
-  const { data: dossier } = useKycDossierByContact(id)
+  const { data: contact, isLoading, isError } = useContact(id)
+  const loop = useContactSentMatches(id)
+  const { data: kyc } = useKycDossierByContact(id)
+  // NBA (cerveau partagé) — best-effort : null si RPC absent/erreur, la fiche vit sans.
+  const { data: nbaRaw } = useContactNextAction(id)
+  const update = useUpdateContact()
+  const del = useDeleteContact()
+  const invalidateKyc = useInvalidateKycForContact()
+  const qc = useQueryClient()
+  // La liste (useContactsSugar) est un useQuery « plain » ['contacts-sugar'] que
+  // les mutations cache-helpers n'invalident PAS → on la rafraîchit à la main
+  // après chaque écriture (sinon suppression = ligne fantôme, édition non reflétée).
+  const refreshList = () => { void qc.invalidateQueries({ queryKey: ['contacts-sugar'] }) }
+  // Note : sauvegarde auto débouncée (le textarea émet à chaque frappe).
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Activity events filtrés sur cet entity_id
-  const { data: allEvents = [] } = useAuditEvents({ days: 90 })
-  const contactEvents = useMemo(
-    () => allEvents.filter((e) => e.entity_id === id || (e.entity_type === 'contact' && e.entity_id === id)),
-    [allEvents, id],
-  )
-
-  // Documents pour ce contact
-  const { data: docs = [] } = useQuery({
-    queryKey: ['contact-docs', id, profile?.agency_id],
-    queryFn: async () => {
-      if (!id || !profile?.agency_id) return []
-      const { data, error } = await supabase
-        .from('documents')
-        .select('id, name, created_at')
-        .eq('contact_id', id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-      if (error) throw error
-      return data ?? []
-    },
-    enabled: !!id && !!profile?.agency_id,
-  })
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
-    }
-  }, [dark])
-
-  const onNavigate = (screenId: SugarScreenId | string) => {
-    switch (screenId) {
+  const onCmd = () => openSugarSearch()
+  const onNavigate = (screen: SugarScreenId | string) => {
+    switch (screen) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
       case 'matching': navigate('/dashboard/matching'); break
@@ -104,129 +77,141 @@ export default function ContactDetailSugarV3Page() {
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'reseau': navigate('/dashboard/network'); break
-      case 'audit': navigate('/dashboard/audit'); break
+      case 'parcours': navigate('/dashboard/journey'); break
       case 'ai':
       case 'julien': navigate('/dashboard/julien'); break
+      case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings'); break
       default:
     }
   }
-  const onCmd = () => {}
 
-  const onOpenKyc = () => {
-    // Deep-link via query param (KYC_ENRICHISSEMENTS §6)
-    if (id) navigate(`/dashboard/kyc?openContactId=${encodeURIComponent(id)}`)
-  }
-
-  if (isError && !contact) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: SugarV3.bgGradient,
-          fontFamily: SugarV3.font,
-          color: SugarV3.muted,
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        <div style={{ textAlign: 'center', padding: '0 24px' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: SugarV3.ink, marginBottom: 6 }}>{tr('cd.error.title')}</div>
-          <div style={{ fontSize: 12.5, lineHeight: 1.5, marginBottom: 14 }}>{tr('cd.error.message')}</div>
-          <button
-            onClick={() => refetch()}
-            style={{ height: 34, padding: '0 16px', borderRadius: 999, background: 'transparent', color: SugarV3.ink, border: `1px solid ${SugarV3.muted}`, cursor: 'pointer', fontFamily: SugarV3.font, fontSize: 12.5, fontWeight: 700 }}
-          >
-            {tr('cd.error.retry')}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (isLoading || !contact) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: SugarV3.bgGradient,
-          fontFamily: SugarV3.font,
-          color: SugarV3.muted,
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        {tr('cd.loading')}
-      </div>
-    )
-  }
-
-  return (
-    <div
-      data-screen-label="CRM Contact détail (sugar v3)"
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        background: SugarV3.bgGradient,
-        fontFamily: SugarV3.font,
-        color: SugarV3.ink,
-      }}
-    >
-      <style>{SUGAR_KEYFRAMES}</style>
-      <style>{SUGAR_V3_KEYFRAMES}</style>
-
-      <SugarTopNav
-        active={'contacts' as SugarScreenId}
-        t={t}
-        sp={sp}
-        onNavigate={onNavigate}
-        onCmd={onCmd}
-      />
-
-      <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <SugarIconRail
-          active="contacts"
-          onNavigate={onNavigate}
-          onCmd={onCmd}
-          dark={dark}
-          setDark={setDark}
-          sp={sp}
-        />
-
-        <main className="sg-main-padded" style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px 40px' }}>
-          <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-            <CdKycBanner dossier={dossier ?? null} onOpenKyc={onOpenKyc} />
-            <CdHero
-              contact={contact}
-              onBack={() => navigate('/dashboard/contacts')}
-              agentName={profile?.full_name ?? undefined}
-              onSchedule={() => navigate('/dashboard/calendar')}
-              onNewAction={() => navigate('/dashboard/visits/new')}
-            />
-
-            <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 18 }}>
-              {/* COLONNE PRINCIPALE */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <CdTimelineCard events={contactEvents} />
-                <CdNotesCard key={contact.id} contactId={contact.id} notes={contact.notes} />
-                <CdWhatsAppCard contactId={contact.id} />
-                <CdConversationInsight contactId={contact.id} />
-                <CdFollowupSuggestions contactId={contact.id} />
-              </div>
-
-              {/* COLONNE LATÉRALE */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <CdKycCard dossier={dossier ?? null} onOpenKyc={onOpenKyc} />
-                {contact.search_criteria && (
-                  <CdCriteriaCard criteria={contact.search_criteria} />
-                )}
-                <CdDocsCard docs={docs} />
-                <CdSignatureCard contact={contact} />
-              </div>
-            </div>
-          </div>
-        </main>
+  const shell = (inner: ReactNode) => (
+    <div style={{
+      position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', fontFamily: 'Inter Tight, system-ui, sans-serif', color: sp.ink,
+    }}>
+      <SugarTopNav active="contacts" t={t} sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <SugarIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        {inner}
       </div>
     </div>
+  )
+
+  if (isLoading) {
+    return shell(
+      <main style={{ flex: 1, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 14, fontWeight: 600 }}>
+        {tr('cd.loading')}
+      </main>,
+    )
+  }
+  if (isError || !contact) {
+    return shell(
+      <main style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: sp.ink }}>{tr('detail.notFound')}</div>
+          <button onClick={() => navigate('/dashboard/contacts')} style={{
+            marginTop: 14, height: 36, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 700, background: sp.ink, color: sp.pageBg,
+          }}>{tr('detail.backToContacts')}</button>
+        </div>
+      </main>,
+    )
+  }
+
+  // ── Normalisation Contact → FicheContact ─────────────────────────────
+  const fd = (contact.form_data ?? {}) as Record<string, unknown>
+  const isTenant = contact.type === 'tenant' || contact.search_criteria?.transaction_type === 'rent'
+  const audience: FicheContact['audience'] =
+    contact.type === 'seller' ? 'Vendeur'
+      : contact.type === 'landlord' ? 'Bailleur'
+        : isTenant ? 'Locataire'
+          : 'Acheteur'
+  const fiche: FicheContact = {
+    id: contact.id,
+    firstName: contact.first_name,
+    lastName: contact.last_name,
+    verified: kyc?.dossier_status === 'verified',
+    email: contact.email ?? '',
+    phone: contact.phone ?? '',
+    // La langue vit dans form_data.lang (la table contacts n'a PAS de colonne
+    // `language` en prod) — cohérent avec le flux de création.
+    lang: typeof fd.lang === 'string' ? fd.lang : 'fr',
+    civ: typeof fd.civility === 'string' ? fd.civility : '',
+    canal: typeof fd.canal === 'string' ? fd.canal : '',
+    audience,
+    isTenant,
+    avatarBg: pickAvatarBg(contact.id),
+    // Acheteur/Locataire : critères depuis search_criteria (matching). Vendeur/
+    // Bailleur : le « bien proposé » est écrit dans form_data.offer (pas de
+    // matching) → symétrie lecture/écriture, sinon l'édition ne se ré-affiche pas.
+    crit: (contact.type === 'seller' || contact.type === 'landlord') && fd.offer
+      ? (fd.offer as CriteriaInput)
+      : parseSearchCriteria(contact.search_criteria),
+    notes: contact.notes ?? '',
+  }
+
+  // ── NBA → ligne du héro (chaînes traduites ici ; le pager reste présentationnel).
+  // `none` → null (sobre, pas de bruit « aucune action »).
+  const nbaI = nbaRaw ? nbaToI18n(nbaRaw) : null
+  const nba: FicheNba | null = nbaI
+    ? {
+        label: tr(nbaI.key, nbaI.params as Record<string, string | number>),
+        estimateTag: tr('nba.estimateTag'),
+        kycNote: nbaRaw?.hasKycNote ? tr('nba.kycNote') : null,
+      }
+    : null
+
+  return shell(
+    <ContactDetailPager
+      fiche={fiche}
+      nba={nba}
+      loop={{ items: loop.items, pendingLikes: loop.pendingLikes, transmitted: loop.transmitted, opened: loop.opened }}
+      sp={sp}
+      dark={dark}
+      onBack={() => navigate('/dashboard/contacts')}
+      onSaveIdentity={async (firstName, lastName) => {
+        await update.mutateAsync({ id, first_name: firstName, last_name: lastName })
+        refreshList()
+      }}
+      onInvalidateKyc={async () => {
+        if (user?.id) await invalidateKyc.mutateAsync({ contactId: id, actorId: user.id })
+      }}
+      onSaveCoord={async (v) => {
+        // Pas de colonne `language` en base : la langue va dans form_data.lang.
+        await update.mutateAsync({
+          id,
+          email: v.email || null,
+          phone: v.phone || null,
+          form_data: { ...fd, civility: v.civ, canal: v.canal, lang: v.lang },
+        })
+        refreshList()
+      }}
+      onSaveCriteria={async (c) => {
+        // Seuls les critères d'un ACHETEUR/LOCATAIRE (côté demande) partent dans
+        // search_criteria — ce qui déclenche l'auto-matching via le pont DB.
+        // Pour un Vendeur/Bailleur, ce sont les caractéristiques du bien qu'il
+        // PROPOSE : les écrire dans search_criteria le ferait matcher comme
+        // acheteur. On les range donc dans form_data.offer (aucun matching).
+        if (contact.type === 'seller' || contact.type === 'landlord') {
+          await update.mutateAsync({ id, form_data: { ...fd, offer: c } })
+        } else {
+          await update.mutateAsync({ id, search_criteria: buildSearchCriteria(c) })
+        }
+        refreshList()
+      }}
+      onSaveNote={(note) => {
+        if (noteTimer.current) clearTimeout(noteTimer.current)
+        noteTimer.current = setTimeout(() => {
+          void update.mutateAsync({ id, notes: note.trim() || null }).then(refreshList)
+        }, 600)
+      }}
+      onDelete={async () => { await del.mutateAsync(id); refreshList(); navigate('/dashboard/contacts') }}
+      onOpenKyc={() => navigate(`/dashboard/kyc?openContactId=${id}`)}
+      onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`)}
+      onOpenListings={() => navigate('/dashboard/listings')}
+      onProposeVisit={() => navigate(`/dashboard/matching?contact=${id}`)}
+    />,
   )
 }

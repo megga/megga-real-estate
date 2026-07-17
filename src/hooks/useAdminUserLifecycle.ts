@@ -8,6 +8,10 @@ import { supabase } from '@/lib/supabase'
 
 export type UserLifecycleAction = 'suspend' | 'reactivate' | 'force_password_reset'
 
+/**
+ * Mutations de cycle de vie compte (suspend / reactivate / force_password_reset
+ * + suppression) déléguées aux edges admin. Invalide `admin-users` au succès.
+ */
 export function useAdminUserLifecycle() {
   const queryClient = useQueryClient()
 
@@ -38,22 +42,4 @@ export function useAdminUserLifecycle() {
   })
 
   return { lifecycle, deleteAccount }
-}
-
-export function useAdminAgencyLifecycle() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ action, agencyId }: { action: 'suspend' | 'reactivate'; agencyId: string }) => {
-      const { data, error } = await supabase.functions.invoke('admin-agency-lifecycle', {
-        body: { action, agency_id: agencyId },
-      })
-      if (error) throw error
-      return data
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin-agencies'] })
-      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-    },
-  })
 }

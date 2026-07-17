@@ -1,3 +1,9 @@
+/**
+ * Page publique — comparatif des plans et de leurs limites.
+ *
+ * Route : `/help/limits`. Table Starter / Pro / Agency alimentée par `PLAN_LIMITS`,
+ * colonne Pro mise en avant.
+ */
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

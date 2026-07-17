@@ -1,3 +1,10 @@
+/**
+ * Page publique — index des articles d'aide d'une catégorie (persona).
+ *
+ * Route : `/help/:category` (agent / vendeur / acheteur). Regroupe les articles
+ * de la catégorie par section dans une grille masonry. Rend un état "introuvable"
+ * si le paramètre ne correspond à aucune catégorie connue.
+ */
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, ChevronRight } from 'lucide-react'

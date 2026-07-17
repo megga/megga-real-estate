@@ -1,5 +1,9 @@
+/**
+ * Contexte React partageant l'état ambiant du copilote (page courante, contact
+ * actif) pour que MEGGA AI dispose du contexte de navigation sans prop drilling.
+ */
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useState, useCallback, type ReactNode } from 'react'
 
 interface ContactContext {
   id: string
@@ -24,6 +28,7 @@ const CopilotContext = createContext<CopilotContextValue>({
   setActiveContact: () => {},
 })
 
+/** Provider du contexte copilote — à monter au-dessus du shell CRM. */
 export function CopilotContextProvider({ children }: { children: ReactNode }) {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [activeContact, setActiveContact] = useState<ContactContext | null>(null)
@@ -48,8 +53,4 @@ export function CopilotContextProvider({ children }: { children: ReactNode }) {
       {children}
     </CopilotContext.Provider>
   )
-}
-
-export function useCopilotContext() {
-  return useContext(CopilotContext)
 }

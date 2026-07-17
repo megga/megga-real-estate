@@ -19,12 +19,16 @@ import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDe
 import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
-import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
+import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint, confirmDeleteContact, deleteContactPreview } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from './agent-style.ts'
+import { buildInsightContext } from './whatsapp-followup-draft.ts'
 import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts'
+import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
+import { logDeepSeekUsageWith } from './ai-usage.ts'
+import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -35,10 +39,28 @@ export interface ActionCtx {
   inboundMedia?: { mediaId: string; messageId: string; ocrText?: string | null } | null
   lang?: WaLang
   agentPhone?: string  // numéro WhatsApp de l'agent (pour lui renvoyer un document)
+  // Canal d'origine, pour l'audit activity_events (défaut 'whatsapp'). Le copilote
+  // web (ai-copilot) pose 'web' → les mêmes exécuteurs journalisent la bonne source.
+  via?: 'web' | 'whatsapp'
+  // Copilote WEB : URLs de photos DÉJÀ STAGÉES par le frontend dans le bucket public
+  // property-photos (préfixe agence, EXIF strippé côté client) et jointes au message.
+  // execWebAttachPropertyPhotos les attache au bien résolu — jamais fournies par le LLM,
+  // et re-validées côté exécuteur contre le préfixe de l'agence (garde SSRF).
+  attachedPhotos?: string[]
 }
 
 type Args = Record<string, unknown>
 const s = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
+
+// Attribution des coûts IA pour les exécuteurs PARTAGÉS (WhatsApp ⇄ copilote web) :
+// le même code tourne dans deux Edge Functions, donc edge_function/module doivent suivre
+// ctx.via (comme l'audit activity_events le fait déjà) — sinon un appel du copilote web
+// est faussement imputé au canal WhatsApp.
+function usageChannel(ctx: ActionCtx): { edgeFunction: string; modulePrefix: string } {
+  return ctx.via === 'web'
+    ? { edgeFunction: 'ai-copilot', modulePrefix: 'copilot' }
+    : { edgeFunction: 'whatsapp-agent', modulePrefix: 'wa' }
+}
 
 // Garde commune : aucune action si l'agent n'a pas d'agence (évite tout accès hors RLS).
 const NO_AGENCY = 'Erreur: ton compte n’est rattaché à aucune agence. Contacte un administrateur.'
@@ -193,7 +215,7 @@ async function logTimeline(ctx: ActionCtx, action: string, objectLabel: string, 
     object_label: objectLabel.slice(0, 500),
     category: 'contact',
     severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId },
+    metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId },
   })
   if (error) { console.error('activity_events insert failed'); return false }
   return true
@@ -211,17 +233,51 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .select('id, first_name, last_name, phone, email, type, score, tags, notes, search_criteria, last_interaction_at')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
   if (!c) return 'Contact introuvable dans votre agence.'
+  // Sous-requêtes bornées à l'agence (défense en profondeur) : le contact est déjà validé
+  // in-agency ci-dessus, on double la garde sur ses events/recherches (activity_events et
+  // client_searches portent agency_id) — jamais de contenu d'une autre agence dans le brief.
   const { data: timeline } = await ctx.supabase
     .from('activity_events').select('action, object_label, created_at')
-    .eq('entity_type', 'contact').eq('entity_id', contactId)
+    .eq('entity_type', 'contact').eq('entity_id', contactId).eq('agency_id', ctx.agencyId)
     .order('created_at', { ascending: false }).limit(5)
   const { data: searches } = await ctx.supabase
     .from('client_searches').select('label, criteria')
-    .eq('contact_id', contactId).eq('is_active', true).limit(3)
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const { data: insight } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, intent, sentiment, next_action, commitments, source_message_count, generated_at')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at')
     .eq('contact_id', c.id).eq('agency_id', ctx.agencyId).maybeSingle()
-  return JSON.stringify({ contact: c, recherches_actives: searches ?? [], timeline: timeline ?? [], comprehension: insight ?? null })
+  // NBA déterministe (cerveau partagé WhatsApp ⇄ copilote) — best-effort : ne casse
+  // JAMAIS le brief. supabase.rpc() ne throw pas → on consulte `error` explicitement
+  // (le try/catch n'est qu'un filet réseau).
+  let nextActionEstimee: Record<string, unknown> | null = null
+  try {
+    const { data: nbaRaw, error: nbaErr } = await ctx.supabase.rpc('contact_next_action', {
+      p_contact: c.id,
+      p_agency: ctx.agencyId,
+    })
+    if (nbaErr) {
+      console.error('contact_next_action rpc failed')
+    } else {
+      const nba = parseNextAction(nbaRaw)
+      if (nba) {
+        nextActionEstimee = {
+          action: nba.action,
+          label: formatNextAction(nba, ctx.lang ?? 'fr'),
+          due_at: nba.dueAt,
+          kyc_note: nba.kycNote ? formatKycNote(nba.kycNote, ctx.lang ?? 'fr') : null,
+        }
+      }
+    }
+  } catch (_e) {
+    console.error('contact_next_action threw')
+  }
+  return JSON.stringify({
+    contact: c,
+    recherches_actives: searches ?? [],
+    timeline: timeline ?? [],
+    comprehension: insight ?? null,
+    next_action_estimee: nextActionEstimee,
+  })
 }
 
 /** Leads à compléter / relancer (marqués par MEGGA). */
@@ -787,7 +843,9 @@ function fmtCHF(n: number): string {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export type Prepared =
-  | { ok: true; prompt: string; payload: Record<string, unknown> }
+  // preview/kind : renseignés par les prepare de publication pour la carte HITL web
+  // (aperçu déterministe de l'annonce + type d'action) ; ignorés par le canal WhatsApp.
+  | { ok: true; prompt: string; payload: Record<string, unknown>; preview?: string; kind?: string }
   | { ok: false; error: string }
 
 type ListingRow = {
@@ -954,6 +1012,96 @@ export async function executeRecordOffer(ctx: ActionCtx, payload: Args): Promise
   return lang === 'en'
     ? `Offer of ${fmtCHF(amount)} recorded on the deal (status: pending).`
     : `Offre de ${fmtCHF(amount)} enregistrée sur le dossier (statut : en attente).`
+}
+
+// -- Suppression de contact (delete_contact, tier confirm) -------------------
+// Miroir IA de la suppression manuelle (bouton fiche contact → useDeleteContact),
+// exposé aux DEUX canaux. DESTRUCTIVE + IRRÉVERSIBLE → tier confirm partout (jamais
+// auto) : WhatsApp exige le « oui » de l'agent, le copilote web une carte HITL
+// (execute_pending) gatée copilot_delete_enabled. Suppression DURE, scopée à
+// l'agence au SQL. Rétention LBA préservée par le SCHÉMA : kyc_cases.contact_id et
+// transactions.contact_* sont ON DELETE SET NULL → les dossiers KYC (art. 7, 10 ans)
+// et les transactions survivent, simplement déliés ; matches/visits/scores/insights
+// cascadent (données dérivées). Certaines FK sont NO ACTION (offers, seller_leads,
+// message_threads, agent_reviews, support_tickets) : un contact qui y est référencé
+// BLOQUE la suppression (23503) → on remonte un message humain, pas un code brut.
+
+/** Confirm-tier : valide le contact dans l'agence + construit prompt/aperçu/charge figée. */
+export async function prepareDeleteContact(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(a.contact_id)
+  if (!contactId) {
+    return { ok: false, error: lang === 'en'
+      ? 'Which contact should I delete? Find them via search_contacts first.'
+      : 'Quel contact veux-tu supprimer ? Retrouve-le d’abord via search_contacts.' }
+  }
+  const { data: contact } = await ctx.supabase
+    .from('contacts').select('id, first_name, last_name, phone, email')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (!contact) return { ok: false, error: lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.' }
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
+    || s(contact.email) || s(contact.phone) || (lang === 'en' ? 'this contact' : 'ce contact')
+  return {
+    ok: true,
+    kind: 'delete_contact',
+    prompt: confirmDeleteContact(lang, name),
+    preview: deleteContactPreview(lang, name),
+    // payload.title : titre de la carte HITL web (convention lue par makePrepareConfirm).
+    payload: { contact_id: contactId, title: name },
+  }
+}
+
+/** Post-« oui » (WhatsApp) / clic carte (web) : suppression DURE scopée agence.
+ *  Contrat {ok,message} aligné sur executePublishToPortals (l'UI n'affiche un succès
+ *  que si ok ; le webhook WhatsApp relaie r.message). `retryable:false` signale un échec
+ *  DÉFINITIF (contact déjà supprimé, action incomplète) → le copilote ne réarme pas la
+ *  carte HITL (un 23503 réversible, lui, reste réessayable = retryable absent). */
+export async function executeDeleteContact(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string; retryable?: boolean }> {
+  if (!hasAgency(ctx)) return { ok: false, message: NO_AGENCY, retryable: false }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(payload.contact_id)
+  if (!contactId) return { ok: false, message: lang === 'en' ? 'Incomplete action — nothing deleted.' : 'Action incomplète, rien supprimé.', retryable: false }
+  // Re-résolution DANS l'agence (garde SQL, helper partagé contactInAgency) + capture du nom
+  // pour l'audit AVANT le delete. Contact déjà disparu = échec DÉFINITIF (re-résoudre ne le
+  // fera pas revenir) → retryable:false pour ne pas réarmer une carte web vouée à échouer.
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return { ok: false, message: lang === 'en' ? 'Contact not found in your agency (already deleted?).' : 'Contact introuvable dans votre agence (déjà supprimé ?).', retryable: false }
+  const label = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || (lang === 'en' ? 'the contact' : 'le contact')
+
+  const { error } = await ctx.supabase
+    .from('contacts').delete().eq('id', contactId).eq('agency_id', ctx.agencyId)
+  if (error) {
+    // 23503 = FK NO ACTION (offre / dossier vendeur / fil / avis / ticket lié) → bloqué.
+    // RÉESSAYABLE (retryable absent) : l'agent détache l'élément puis relance depuis la carte.
+    if ((error as { code?: string }).code === '23503') {
+      return { ok: false, message: lang === 'en'
+        ? `Can't delete ${label}: they're still linked to records that must be kept (an offer, a seller lead, a conversation…). Remove those links first.`
+        : `Impossible de supprimer ${label} : il reste rattaché à des éléments à conserver (une offre, un dossier vendeur, une conversation…). Détache-les d'abord.` }
+    }
+    return { ok: false, message: (lang === 'en' ? 'Deletion failed: ' : 'Échec de la suppression : ') + error.message }
+  }
+
+  // Audit LBA (append-only) APRÈS succès : le contact a disparu (entity_id pointe vers une
+  // ligne absente, activity_events n'a pas de FK vers contacts) mais son nom est conservé en
+  // metadata pour la traçabilité. Best-effort (jamais bloquant) MAIS observable : un audit
+  // manquant sur une action IRRÉVERSIBLE doit se voir dans les logs (comme logTimeline) —
+  // on trace donc l'erreur RETOURNÉE (contrainte CHECK) autant que l'exception (réseau).
+  try {
+    const { error: auditErr } = await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'contact_deleted', entity_type: 'contact', entity_id: contactId,
+      object_label: label.slice(0, 500), category: 'contact', severity: 'warn',
+      metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, deleted_contact_name: label },
+    })
+    if (auditErr) console.error('[delete_contact] audit insert failed:', auditErr.message)
+  } catch (e) {
+    console.error('[delete_contact] audit insert threw:', (e as Error)?.message ?? 'error')
+  }
+
+  return { ok: true, message: lang === 'en'
+    ? `${label} deleted. Their KYC files and transactions are kept (unlinked), as the law requires.`
+    : `${label} supprimé. Ses dossiers KYC et transactions sont conservés (déliés), comme la loi l'exige.` }
 }
 
 // -- KYC par WhatsApp (Task 4) : open_kyc_case (tier confirm) -----------------
@@ -1249,7 +1397,7 @@ export async function execAttachKycDocument(ctx: ActionCtx, a: Args): Promise<st
     agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
     action: 'kyc_document_attached', entity_type: 'kyc_case', entity_id: kc.id,
     category: 'kyc', severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, category, document_id: docRow.id },
+    metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, category, document_id: docRow.id },
   })
   if (auditErr) console.error('kyc attach audit failed')
 
@@ -1375,7 +1523,7 @@ export async function executeSendKycLink(ctx: ActionCtx, payload: Args): Promise
   await ctx.supabase.from('activity_events').insert({
     agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
     action: 'kyc_link_sent', entity_type: 'kyc_case', entity_id: kycCaseId, category: 'kyc', severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, magic_link_id: inserted.id, email_sent: sent },
+    metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, magic_link_id: inserted.id, email_sent: sent },
   }).then(() => {}, () => {})
 
   if (sent) {
@@ -1442,18 +1590,9 @@ export async function prepareSendClientEmail(ctx: ActionCtx, a: Args): Promise<P
   const lastName = (contact.last_name ?? '').trim()
   const clientName = [firstName, lastName].filter(Boolean).join(' ') || 'le client'
 
-  // Résumé du fil pour le contexte DeepSeek.
-  const insightContext = insight
-    ? [
-        insight.summary ? `Résumé du fil : ${insight.summary}` : null,
-        insight.intent ? `Intention du client : ${insight.intent}` : null,
-        insight.next_action && typeof insight.next_action === 'object' && insight.next_action !== null
-          && typeof (insight.next_action as Record<string, unknown>).label === 'string'
-          ? `Prochaine action suggérée : ${(insight.next_action as Record<string, unknown>).label}` : null,
-        Array.isArray(insight.commitments) && (insight.commitments as unknown[]).length
-          ? `Engagements pris : ${(insight.commitments as string[]).slice(0, 5).join(' / ')}` : null,
-      ].filter(Boolean).join('\n')
-    : ''
+  // Résumé du fil pour le contexte DeepSeek (helper partagé, testé — même bloc que le
+  // brouillon de relance ; évite la dérive entre les deux rédactions client).
+  const insightContext = buildInsightContext(insight, 'fr')
 
   const systemPrompt = `Tu es un assistant immobilier suisse expert en rédaction d'emails professionnels pour agents immobiliers.
 Tu rédiges un email POUR LE CLIENT de l'agent, au nom de l'agence.
@@ -1476,6 +1615,7 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
   let subject = ''
   let body = ''
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -1497,7 +1637,8 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
       console.error('DeepSeek draft email HTTP', res.status)
       return { ok: false, error: lang === 'en' ? "I couldn't draft the email — try again or rephrase." : "Je n'ai pas réussi à rédiger l'email, tu peux reformuler ?" }
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: 'whatsapp-agent', module: 'wa-draft-email', latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const raw = data?.choices?.[0]?.message?.content ?? ''
     let parsed: Record<string, unknown> = {}
     try { parsed = JSON.parse(raw) } catch { /* laisse subject/body vides */ }
@@ -1578,7 +1719,7 @@ export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Pro
     agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
     action: 'whatsapp_ai_send_client_email', entity_type: 'contact', entity_id: contactId,
     category: 'contact', severity: 'info',
-    metadata: { via: 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, email_sent: emailSent },
+    metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, contact_id: contactId, email_sent: emailSent },
   }).then(() => {}, () => {})
 
   if (emailSent) {
@@ -1624,6 +1765,7 @@ export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise
 
   let parsed: Record<string, unknown> = {}
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -1640,7 +1782,8 @@ export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise
       console.error('DeepSeek summarize group HTTP', res.status)
       return failMsg
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: 'whatsapp-agent', module: 'wa-summarize-group', latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const raw = data?.choices?.[0]?.message?.content ?? ''
     // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`123`/`[]` passent et
     // feraient throw `typeof parsed.resume` HORS du try/catch (→ 500). Garde de forme :
@@ -1731,6 +1874,7 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
 
   let parsed: Record<string, unknown> = {}
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -1747,7 +1891,8 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
       console.error('DeepSeek check_group_leak HTTP', res.status)
       return failMsg
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: 'whatsapp-agent', module: 'wa-check-group-leak', latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const raw = data?.choices?.[0]?.message?.content ?? ''
     // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`123`/`[]` passent et
     // feraient throw `parsed.fuite` HORS du try/catch (→ 500). Garde de forme : fail CLOSED
@@ -2007,6 +2152,7 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
 
   let parsed: Record<string, unknown> = {}
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -2026,7 +2172,9 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
       console.error('DeepSeek draft listing HTTP', res.status)
       return failMsg
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    const chDraft = usageChannel(ctx)
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: chDraft.edgeFunction, module: `${chDraft.modulePrefix}-draft-listing`, latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const raw = data?.choices?.[0]?.message?.content ?? ''
     // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`[]` passent et feraient
     // throw les accès `parsed.titre` HORS du try/catch (→ 500). Garde de forme : fail CLOSED.
@@ -2144,22 +2292,25 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
   // 2. Compréhension du fil + timeline + recherches actives (mêmes requêtes que execGetContactBrief).
   const { data: insightRow } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, intent, sentiment, next_action, commitments')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments')
     .eq('contact_id', contact.id).eq('agency_id', ctx.agencyId).maybeSingle()
   const insight = insightRow as {
-    summary: string | null; intent: string | null; sentiment: string | null
+    summary: string | null; rolling_summary: string | null; intent: string | null; sentiment: string | null
+    urgency: string | null; language: string | null; objections: unknown
     next_action: unknown; commitments: unknown
   } | null
 
+  // Sous-requêtes bornées à l'agence (défense en profondeur, comme execGetContactBrief) :
+  // contact déjà validé in-agency, on double la garde sur ses events/recherches.
   const { data: timelineRows } = await ctx.supabase
     .from('activity_events').select('action, object_label, created_at')
-    .eq('entity_type', 'contact').eq('entity_id', contactId)
+    .eq('entity_type', 'contact').eq('entity_id', contactId).eq('agency_id', ctx.agencyId)
     .order('created_at', { ascending: false }).limit(5)
   const timeline = (timelineRows ?? []) as Array<{ action: string | null; object_label: string | null; created_at: string | null }>
 
   const { data: searchRows } = await ctx.supabase
     .from('client_searches').select('label, criteria')
-    .eq('contact_id', contactId).eq('is_active', true).limit(3)
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const searches = (searchRows ?? []) as Array<{ label: string | null; criteria: unknown }>
 
   // 3. Biens correspondants (matches top 5) — mêmes requête/scope que execGetMatches, enrichis
@@ -2193,6 +2344,25 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     visitTitle = (vp as { title: string | null } | null)?.title ?? null
   }
 
+  // 4bis. NBA déterministe (cerveau partagé) — best-effort, jamais bloquant.
+  let nbaLabel: string | null = null
+  let nbaKycNote: string | null = null
+  try {
+    const { data: nbaRaw, error: nbaErr } = await ctx.supabase.rpc('contact_next_action', {
+      p_contact: contact.id,
+      p_agency: ctx.agencyId,
+    })
+    if (nbaErr) {
+      console.error('contact_next_action rpc failed')
+    } else {
+      const nba = parseNextAction(nbaRaw)
+      if (nba && nba.reasonKey !== 'none') nbaLabel = formatNextAction(nba, lang)
+      if (nba?.kycNote) nbaKycNote = formatKycNote(nba.kycNote, lang)
+    }
+  } catch (_e) {
+    console.error('contact_next_action threw')
+  }
+
   // 5. « Où on en est » assemblé EN CODE depuis les vraies données.
   const nextActionLabel = insight && insight.next_action && typeof insight.next_action === 'object' && insight.next_action !== null
     && typeof (insight.next_action as Record<string, unknown>).label === 'string'
@@ -2200,6 +2370,9 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     : ''
   const commitments = insight && Array.isArray(insight.commitments)
     ? (insight.commitments as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    : []
+  const objections = insight && Array.isArray(insight.objections)
+    ? (insight.objections as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
     : []
   const lastEvent = timeline[0]
   const lastEventLabel = lastEvent
@@ -2221,9 +2394,15 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     const ctxLines: string[] = []
     ctxLines.push(`Contact : ${fullName}${contact.type ? ` (${contact.type})` : ''}${typeof contact.score === 'number' ? `, score ${contact.score}` : ''}`)
     if (insight?.summary) ctxLines.push(`Résumé de la dernière conversation : ${insight.summary}`)
+    if (insight?.rolling_summary) ctxLines.push(`Mémoire longue de la conversation : ${insight.rolling_summary}`)
     if (insight?.intent) ctxLines.push(`Intention : ${insight.intent}`)
     if (insight?.sentiment) ctxLines.push(`Ressenti : ${insight.sentiment}`)
-    if (nextActionLabel) ctxLines.push(`Prochaine action suggérée : ${nextActionLabel}`)
+    if (insight?.urgency) ctxLines.push(`Urgence du besoin : ${insight.urgency}`)
+    if (objections.length) ctxLines.push(`Objections / freins : ${objections.slice(0, 5).join(' / ')}`)
+    if (insight?.language) ctxLines.push(`Langue du client : ${insight.language}`)
+    if (nbaLabel) ctxLines.push(`Prochaine action (dossier, estimation interne) : ${nbaLabel}`)
+    if (nbaKycNote) ctxLines.push(`Conformité (jamais bloquant) : ${nbaKycNote}`)
+    if (nextActionLabel) ctxLines.push(`Piste évoquée en conversation : ${nextActionLabel}`)
     if (commitments.length) ctxLines.push(`Engagements pris : ${commitments.slice(0, 5).join(' / ')}`)
     if (lastEventLabel) ctxLines.push(`Dernière action au dossier : ${lastEventLabel}`)
     if (searchLabels.length) ctxLines.push(`Recherches actives : ${searchLabels.join(' ; ')}`)
@@ -2250,6 +2429,7 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
     let parsed: Record<string, unknown> = {}
     try {
+      const started = Date.now()
       const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -2266,7 +2446,9 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
         console.error('DeepSeek prepare_meeting HTTP', res.status)
         pointsUnavailable = true
       } else {
-        const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+        const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+        const chMeeting = usageChannel(ctx)
+        logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: chMeeting.edgeFunction, module: `${chMeeting.modulePrefix}-prepare-meeting`, latencyMs: Date.now() - started, agencyId: ctx.agencyId })
         const raw = data?.choices?.[0]?.message?.content ?? ''
         // JSON.parse ne throw QUE sur du JSON malformé : `null`/`true`/`[]` passent et feraient
         // throw les accès `parsed.brief` HORS du try/catch (→ 500). Garde de forme : dégradation
@@ -2436,6 +2618,7 @@ async function readInboundDocument(ctx: ActionCtx, focus: string | null): Promis
     'Pas de préambule, pas de formule commerciale.' + focusLine + '\n\nTEXTE OCR :\n' + ocrText
 
   try {
+    const started = Date.now()
     const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -2451,7 +2634,8 @@ async function readInboundDocument(ctx: ActionCtx, focus: string | null): Promis
       console.error('DeepSeek read_document HTTP', res.status)
       return { ok: true, digest: rawFallback, failMessage: null }
     }
-    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> }
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
+    logDeepSeekUsageWith(ctx.supabase, data.usage, { edgeFunction: 'whatsapp-agent', module: 'wa-read-document', latencyMs: Date.now() - started, agencyId: ctx.agencyId })
     const digest = (data?.choices?.[0]?.message?.content ?? '').trim()
     return { ok: true, digest: digest || rawFallback, failMessage: null }
   } catch (e) {
@@ -2684,7 +2868,7 @@ export async function preparePublishToPortals(ctx: ActionCtx, a: Args): Promise<
   const prompt = lang === 'en'
     ? `${preview}\n\nPublish this on ${names}? ("yes" / "no")`
     : `${preview}\n\nJe publie ça sur ${names} ? (« oui » / « non »)`
-  return { ok: true, prompt, payload: { property_id: p.id, portals, title } }
+  return { ok: true, prompt, payload: { property_id: p.id, portals, title }, preview, kind: 'publish' }
 }
 
 // Déclenche le push FTP du feed tout de suite (au lieu d'attendre le cron 05h30).
@@ -2719,21 +2903,25 @@ async function maybeRepushOnChange(ctx: ActionCtx, propertyId: string): Promise<
 
 /** Post-« oui » : inscrit le bien au feed (upsert property_syndications status='queued')
  *  puis déclenche le push immédiat. */
-export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
+export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string }> {
   const lang = ctx.lang ?? 'fr'
+  // Contrat {ok,message} : le canal appelant (carte HITL web / WhatsApp) doit pouvoir
+  // distinguer un vrai succès d'un échec métier (bien hors marché, introuvable, erreur
+  // DB) — sinon un échec serait présenté comme un succès. ok reflète la réalité.
+  const fail = (message: string) => ({ ok: false, message })
+  if (!hasAgency(ctx)) return fail(NO_AGENCY)
   const propertyId = s(payload.property_id)
   const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
-  if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing published.' : 'Action incomplète, rien n’a été publié.'
+  if (!propertyId || portals.length === 0) return fail(lang === 'en' ? 'Action incomplete, nothing published.' : 'Action incomplète, rien n’a été publié.')
 
   // Re-garde (défense en profondeur) : bien de l'agence, actif. PAS de mandat
   // (optionnel, jamais bloquant).
   const { data: prop } = await ctx.supabase.from('properties')
     .select('id, title, status')
     .eq('id', propertyId).eq('agency_id', ctx.agencyId).is('deleted_at', null).maybeSingle()
-  if (!prop) return lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.'
+  if (!prop) return fail(lang === 'en' ? 'Property not found in your agency.' : 'Bien introuvable dans votre agence.')
   if (OFFMARKET_LABEL_FR[prop.status ?? '']) {
-    return lang === 'en' ? 'Property is off-market (reserved/sold/archived), nothing published.' : 'Bien hors marché (réservé/vendu/archivé), rien publié.'
+    return fail(lang === 'en' ? 'Property is off-market (reserved/sold/archived), nothing published.' : 'Bien hors marché (réservé/vendu/archivé), rien publié.')
   }
 
   const nowIso = new Date().toISOString()
@@ -2741,7 +2929,7 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
     property_id: propertyId, agency_id: ctx.agencyId, portal, status: 'queued', error: null, updated_at: nowIso,
   }))
   const { error } = await ctx.supabase.from('property_syndications').upsert(rows, { onConflict: 'property_id,portal' })
-  if (error) return (lang === 'en' ? 'Error publishing: ' : 'Erreur publication: ') + error.message
+  if (error) return fail((lang === 'en' ? 'Error publishing: ' : 'Erreur publication: ') + error.message)
 
   // Publier ACTIVE un brouillon (draft → active), comme le wizard. published_at est
   // posé par le trigger set_property_published_at au 1er passage en active.
@@ -2755,7 +2943,7 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_published_to_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', portals, profile_id: ctx.profileId },
     })
   } catch { /* non bloquant */ }
 
@@ -2765,9 +2953,9 @@ export async function executePublishToPortals(ctx: ActionCtx, payload: Args): Pr
 
   const names = portals.map(portalLabel).join(', ')
   const title = s(payload.title) ?? prop.title ?? (lang === 'en' ? 'the property' : 'le bien')
-  return lang === 'en'
+  return { ok: true, message: lang === 'en'
     ? `"${title}" published on ${names} — it goes to the portal at the next feed deposit.`
-    : `« ${title} » publié sur ${names} — il part au portail au prochain dépôt du feed.`
+    : `« ${title} » publié sur ${names} — il part au portail au prochain dépôt du feed.` }
 }
 
 /** Confirm-tier : retire un bien des portails où il est actuellement publié. */
@@ -2795,38 +2983,42 @@ export async function prepareWithdrawFromPortals(ctx: ActionCtx, a: Args): Promi
   }
 
   const names = targets.map(portalLabel).join(', ')
+  const preview = lang === 'en'
+    ? `Withdraw "${title}" from ${names}.`
+    : `Retirer « ${title} » de ${names}.`
   const prompt = lang === 'en'
     ? `I'll withdraw "${title}" from ${names}. Confirm? ("yes" / "no")`
     : `Je retire « ${title} » de ${names}. Tu confirmes ? (« oui » / « non »)`
-  return { ok: true, prompt, payload: { property_id: p.id, portals: targets, title } }
+  return { ok: true, prompt, payload: { property_id: p.id, portals: targets, title }, preview, kind: 'withdraw' }
 }
 
 /** Post-« oui » : passe les lignes ciblées en status='withdrawn' (sortent du feed). */
-export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
+export async function executeWithdrawFromPortals(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string }> {
   const lang = ctx.lang ?? 'fr'
+  const fail = (message: string) => ({ ok: false, message })
+  if (!hasAgency(ctx)) return fail(NO_AGENCY)
   const propertyId = s(payload.property_id)
   const portals = Array.isArray(payload.portals) ? payload.portals.filter((x): x is string => typeof x === 'string') : []
-  if (!propertyId || portals.length === 0) return lang === 'en' ? 'Action incomplete, nothing withdrawn.' : 'Action incomplète, rien n’a été retiré.'
+  if (!propertyId || portals.length === 0) return fail(lang === 'en' ? 'Action incomplete, nothing withdrawn.' : 'Action incomplète, rien n’a été retiré.')
 
   const { error } = await ctx.supabase.from('property_syndications')
     .update({ status: 'withdrawn', updated_at: new Date().toISOString() })
     .eq('property_id', propertyId).eq('agency_id', ctx.agencyId).in('portal', portals).in('status', ['queued', 'published'])
-  if (error) return (lang === 'en' ? 'Error withdrawing: ' : 'Erreur retrait: ') + error.message
+  if (error) return fail((lang === 'en' ? 'Error withdrawing: ' : 'Erreur retrait: ') + error.message)
 
   try {
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_withdrawn_from_portal', entity_type: 'property', entity_id: propertyId, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', portals, profile_id: ctx.profileId },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', portals, profile_id: ctx.profileId },
     })
   } catch { /* non bloquant */ }
 
   const names = portals.map(portalLabel).join(', ')
   const title = s(payload.title) ?? (lang === 'en' ? 'the property' : 'le bien')
-  return lang === 'en'
+  return { ok: true, message: lang === 'en'
     ? `"${title}" withdrawn from ${names} — it drops off at the portal's next import.`
-    : `« ${title} » retiré de ${names} — il disparaîtra au prochain import du portail.`
+    : `« ${title} » retiré de ${names} — il disparaîtra au prochain import du portail.` }
 }
 
 /** Read-tier : sur quels portails un bien est publié + état (en ligne / en file). */
@@ -2964,7 +3156,7 @@ export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_photo_added', entity_type: 'property', entity_id: p.id, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId },
     })
   } catch { /* non bloquant */ }
 
@@ -2974,6 +3166,102 @@ export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise
   return lang === 'en'
     ? `Photo added to "${title}" (${n} photo${n > 1 ? 's' : ''} now).${suffix}`
     : `Photo ajoutée à « ${title} » (${n} photo${n > 1 ? 's' : ''} maintenant).${suffix}`
+}
+
+// ── Photos de bien PAR LE CHAT WEB : execWebAttachPropertyPhotos (tier auto) ──
+// Miroir web de execAttachPropertyPhotos. La SOURCE n'est plus un média Meta mais des URLs
+// DÉJÀ STAGÉES par le frontend dans le bucket public property-photos (EXIF strippé côté
+// client, préfixe {agencyId}/chat-staging/ imposé par la policy d'insertion). Les URLs
+// viennent du CONTEXTE (ctx.attachedPhotos), jamais du LLM. Garde SSRF : on n'accepte QUE
+// des objets property-photos de l'AGENCE de l'agent (photo-processor va fetcher l'URL).
+// Ensuite, même pipeline que WhatsApp : photo-processor (R2) → append_property_photo.
+export async function execWebAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const lang = ctx.lang ?? 'fr'
+  const staged = Array.isArray(ctx.attachedPhotos)
+    ? ctx.attachedPhotos.filter((u): u is string => typeof u === 'string' && u.length > 0)
+    : []
+  if (staged.length === 0) {
+    return lang === 'en'
+      ? "I don't see a photo attached to this message. Attach the photo(s) and tell me which property."
+      : 'Je ne vois pas de photo jointe à ce message. Joins la/les photo(s) et dis-moi pour quel bien.'
+  }
+  const query = s(a.query)
+  if (!query) return lang === 'en' ? 'Which property are these photos for?' : 'Ces photos sont pour quel bien ?'
+
+  const baseUrl = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '')
+  const serviceKey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim()
+  if (!baseUrl || !serviceKey) return lang === 'en' ? 'Photo pipeline not configured.' : 'Pipeline photo non configuré.'
+
+  // Garde SSRF (helper pur testé) : QUE des objets property-photos du préfixe staging de
+  // l'agence de l'agent — jamais une URL arbitraire (le photo-processor va la fetcher).
+  const publicBase = `${baseUrl}/storage/v1/object/public/property-photos/`
+  const urls = stagedPhotoUrlsForAgency(baseUrl, ctx.agencyId, staged)
+  if (urls.length === 0) {
+    return lang === 'en' ? "Those photos aren't valid staged uploads." : 'Ces photos ne sont pas des envois valides.'
+  }
+  // Nettoyage du staging (best-effort) — appelé sur TOUTE sortie une fois les URLs validées,
+  // pour ne jamais laisser d'orphelins dans le bucket public quand l'exécuteur tourne. (Le
+  // cas « l'outil n'est jamais appelé » — écritures OFF, LLM qui n'appelle pas — est couvert
+  // par le cron purge-chat-staging-daily.)
+  const stagePaths = urls.map((u) => u.slice(publicBase.length))
+  const cleanupStaging = () => ctx.supabase.storage.from('property-photos').remove(stagePaths).then(() => {}, () => {})
+
+  const found = await lookupAgencyProperty(ctx, query, lang)
+  if (found.kind === 'error') { await cleanupStaging(); return lang === 'en' ? "I couldn't look up that property — try again." : 'Je n’ai pas réussi à retrouver ce bien, réessaie.' }
+  if (found.kind === 'none') { await cleanupStaging(); return lang === 'en' ? "I can't find that property in your mandates." : 'Je ne trouve pas ce bien dans tes mandats.' }
+  if (found.kind === 'many') { await cleanupStaging(); return (lang === 'en' ? 'Several properties match — which one? (re-attach the photos)\n' : 'Plusieurs biens correspondent — lequel ? (rejoins les photos)\n') + found.labels }
+  const p = found.property
+  const title = p.title ?? (lang === 'en' ? 'this property' : 'ce bien')
+
+  // Traitement EN PARALLÈLE (borne le temps total ≈ 1 photo, évite un timeout du tour) :
+  // photo-processor (R2, keyPrefix par photo) → append_property_photo (RPC atomique, robuste
+  // à la concurrence). Un count null (bien disparu entre-temps) = cette photo échoue, jamais
+  // tout le lot.
+  const results = await Promise.all(urls.map(async (url) => {
+    const keyPrefix = `properties/${p.id.toLowerCase()}/photos/${hash36(url)}`
+    let r2Url: string | null = null
+    try {
+      const res = await fetch(`${baseUrl}/functions/v1/photo-processor`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: p.id, photoUrls: [url], keyPrefix }),
+        signal: AbortSignal.timeout(25000),
+      })
+      const j = (await res.json()) as { success?: boolean; photos_cf?: Array<{ detail?: string; hero?: string; thumb?: string }> }
+      const v = j.photos_cf?.[0]
+      r2Url = v ? (v.detail ?? v.hero ?? v.thumb ?? null) : null
+    } catch { /* photo échouée */ }
+    if (!r2Url) return { ok: false, count: null as number | null }
+    const { data: count, error: rpcErr } = await ctx.supabase.rpc('append_property_photo', {
+      p_property_id: p.id, p_agency_id: ctx.agencyId, p_url: r2Url,
+    })
+    return { ok: !rpcErr && count != null, count: (typeof count === 'number' ? count : null) }
+  }))
+
+  // Staging consommé → nettoie tout (best-effort), quel que soit le résultat.
+  await cleanupStaging()
+
+  const added = results.filter((r) => r.ok).length
+  const lastCount = results.reduce((m, r) => (typeof r.count === 'number' && r.count > m ? r.count : m), 0)
+
+  if (added === 0) {
+    return lang === 'en' ? "I couldn't process those photos — try again." : 'Je n’ai pas pu traiter ces photos — réessaie.'
+  }
+
+  try {
+    await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'property_photo_added', entity_type: 'property', entity_id: p.id, category: 'bien',
+      severity: 'info', metadata: { via: ctx.via ?? 'web', profile_id: ctx.profileId, count: added },
+    })
+  } catch { /* non bloquant */ }
+
+  const live = await maybeRepushOnChange(ctx, p.id)
+  const suffix = live ? (lang === 'en' ? ' Portal updated.' : ' Le portail est mis à jour.') : ''
+  return lang === 'en'
+    ? `${added} photo${added > 1 ? 's' : ''} added to "${title}" (${lastCount} total).${suffix}`
+    : `${added} photo${added > 1 ? 's' : ''} ajoutée${added > 1 ? 's' : ''} à « ${title} » (${lastCount} au total).${suffix}`
 }
 
 // ── Compléter / corriger un bien par WhatsApp : update_property (tier auto) ───
@@ -3104,7 +3392,7 @@ export async function execUpdateProperty(ctx: ActionCtx, a: Args): Promise<strin
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_updated', entity_type: 'property', entity_id: p.id, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(patch).filter((k) => k !== 'updated_at') },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(patch).filter((k) => k !== 'updated_at') },
     })
   } catch { /* non bloquant */ }
 
@@ -3151,7 +3439,7 @@ export async function execCreateProperty(ctx: ActionCtx, a: Args): Promise<strin
     await ctx.supabase.from('activity_events').insert({
       agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
       action: 'property_created', entity_type: 'property', entity_id: created.id, category: 'bien',
-      severity: 'info', metadata: { via: 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(fields) },
+      severity: 'info', metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, fields: Object.keys(fields) },
     })
   } catch { /* non bloquant */ }
 
@@ -3160,9 +3448,10 @@ export async function execCreateProperty(ctx: ActionCtx, a: Args): Promise<strin
   const titlePrefix = lang === 'en' ? 'title ' : 'titre '
   const details = applied.filter((x) => !x.startsWith(titlePrefix)).join(', ')
   const note = notes.length ? ' ' + notes.join(' ') : ''
+  const web = ctx.via === 'web'
   const tail = lang === 'en'
-    ? ' Send me photos or say "publish it" when ready.'
-    : ' Envoie-moi des photos ou dis « publie-le » quand c\'est prêt.'
+    ? (web ? ' Add the photos from the property sheet, then say "publish it" when ready.' : ' Send me photos or say "publish it" when ready.')
+    : (web ? ' Ajoutez les photos depuis la fiche du bien, puis dites « publie-le » quand c\'est prêt.' : ' Envoie-moi des photos ou dis « publie-le » quand c\'est prêt.')
   return (lang === 'en'
     ? `Draft created: "${created.title}"${details ? ` (${details})` : ''}.`
     : `Brouillon créé : « ${created.title} »${details ? ` (${details})` : ''}.`) + note + tail

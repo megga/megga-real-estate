@@ -4,7 +4,8 @@
     "mandate": "Mandate / Valuation",
     "notary": "Notary signing",
     "task": "Task / Follow-up",
-    "publish": "Publication"
+    "publish": "Publication",
+    "autre": "Other"
   },
   "days": [
     "Sun",
@@ -82,7 +83,8 @@
       "week": "Week",
       "month": "Month",
       "agenda": "Agenda"
-    }
+    },
+    "eventTypes": "Event types"
   },
   "edit": {
     "newEvent": "New event",
@@ -324,5 +326,121 @@
     "dayFreeTitle": "Free day",
     "dayFreeDesc": "Block time for your hot buyers or move the pipeline forward.",
     "retry": "Retry"
+  },
+  "monthsShort": [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec"
+  ],
+  "busy": "Busy",
+  "popover": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "statusDone": "Done",
+    "statusCancelled": "Cancelled",
+    "from": "From",
+    "to": "to",
+    "fullDay": "All day",
+    "recurrent": "Recurring",
+    "until": "until",
+    "conflictOne": "Overlaps",
+    "conflictMany": "Overlaps {{count}} other appointments",
+    "openBien": "Open property",
+    "openContact": "Open contact",
+    "itinerary": "Directions",
+    "readOnly": "Synced from {{source}} · read-only. Private detail (“Busy”).",
+    "markDone": "Mark done",
+    "done": "Done"
+  },
+  "modal": {
+    "newEvent": "New event",
+    "editEvent": "Edit event",
+    "type": "Type",
+    "color": "Colour",
+    "title": "Title",
+    "allDay": "All day",
+    "startDate": "Start date",
+    "start": "Start",
+    "endDate": "End date",
+    "end": "End",
+    "recurrence": "Recurrence",
+    "recurEnd": "Recurrence end",
+    "recurNone": "None",
+    "recurNever": "No end",
+    "recurUntil": "Until…",
+    "location": "Location",
+    "linkedBien": "Linked property",
+    "associateBien": "Link a property",
+    "linkedContact": "Linked contact",
+    "associateContact": "Link a contact",
+    "notes": "Notes",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "create": "Create",
+    "save": "Save",
+    "search": "Search…",
+    "noResults": "No results",
+    "change": "Change",
+    "remove": "Remove"
+  },
+  "role": {
+    "buyer": "Buyer",
+    "seller": "Seller",
+    "investor": "Investor",
+    "tenant": "Tenant",
+    "landlord": "Landlord",
+    "both": "Mixed",
+    "lead": "Lead",
+    "contact": "Contact"
+  },
+  "color": {
+    "slate": "Slate",
+    "raspberry": "Raspberry",
+    "amber": "Amber",
+    "olive": "Olive",
+    "emerald": "Emerald",
+    "teal": "Teal",
+    "indigo": "Indigo"
+  },
+  "recur": {
+    "daily": "Every day",
+    "weekly": "Every week",
+    "biweekly": "Every 2 weeks",
+    "monthly": "Every month"
+  },
+  "toast": {
+    "syncing": "Syncing…",
+    "synced": "Synced",
+    "created": "Created",
+    "modified": "Modified",
+    "deleted": "Deleted",
+    "durationChanged": "Duration changed: {{start}} to {{end}}",
+    "moved": "Moved: {{date}}, {{time}}",
+    "markedDone": "Marked done",
+    "markedTodo": "Marked to do",
+    "markedCancelled": "Marked cancelled",
+    "reactivated": "Reactivated"
+  },
+  "onboarding": {
+    "kicker": "First connection",
+    "title": "Connect your calendar",
+    "connectGoogle": "Connect Google",
+    "connectOutlook": "Connect Outlook",
+    "later": "Later",
+    "privacy": "Your personal events stay private.",
+    "laterTitle": "You can connect later",
+    "laterBody": "Link Google or Outlook whenever you want, from",
+    "laterPath": "Settings › Integrations",
+    "goToCalendar": "Go to calendar"
   }
 }

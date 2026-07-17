@@ -1,3 +1,8 @@
+/**
+ * Hook d'envoi d'un email « fiche bien » à un contact via l'edge function
+ * `send-property-email`. Sert à transmettre une annonce marché (photo, prix,
+ * lien source) avec un message optionnel de l'agent.
+ */
 import { useMutation } from '@tanstack/react-query'
 
 interface PropertyEmailPayload {
@@ -30,6 +35,7 @@ interface SendEmailResult {
   error?: string
 }
 
+/** POST vers `send-property-email` ; applique le repli agent par défaut (nom/téléphone). */
 async function sendPropertyEmail(params: SendPropertyEmailParams): Promise<SendEmailResult> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
@@ -56,6 +62,7 @@ async function sendPropertyEmail(params: SendPropertyEmailParams): Promise<SendE
   return data
 }
 
+/** Mutation React Query enveloppant {@link sendPropertyEmail}. */
 export function useSendPropertyEmail() {
   return useMutation({
     mutationFn: sendPropertyEmail,

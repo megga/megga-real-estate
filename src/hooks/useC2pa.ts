@@ -1,4 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+/**
+ * Hooks C2PA — provenance/authenticité des photos de biens.
+ *
+ * `useSignPhotos` appose les Content Credentials (C2PA) sur les photos d'un bien
+ * via l'Edge Function `c2pa-sign` (signature = action agent explicite).
+ */
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 // ── Sign photos (agent action) ─────────────────────────────────────────────
@@ -11,6 +17,7 @@ interface SignResult {
   verifiedAt: string | null
 }
 
+/** Signe les photos d'un bien (Content Credentials C2PA) ; invalide le bien et la liste d'agence au succès. */
 export function useSignPhotos() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -29,52 +36,5 @@ export function useSignPhotos() {
   })
 }
 
-// ── Verify a single photo (public, no auth) ────────────────────────────────
-
-interface VerifyResult {
-  verified: boolean
-  manifest: {
-    signer: string
-    signedAt: string
-    claimGenerator: string
-    assertions: Array<{ label: string; data: unknown }>
-  } | null
-  photoUrl: string
-  verifiedAt: string | null
-}
-
-export function useVerifyPhoto(photoUrl: string | undefined) {
-  return useQuery({
-    queryKey: ['c2pa-verify', photoUrl],
-    queryFn: async () => {
-      if (!photoUrl) return null
-      const { data, error } = await supabase.functions.invoke<VerifyResult>('c2pa-verify', {
-        body: { photoUrl },
-      })
-      if (error) throw error
-      return data as VerifyResult
-    },
-    enabled: !!photoUrl,
-    staleTime: 1000 * 60 * 30, // Cache 30 min — la vérification ne change pas souvent
-    retry: false,
-  })
-}
 
 // ── Property C2PA status (simple DB query) ──────────────────────────────────
-
-export function usePropertyC2paStatus(propertyId: string | undefined) {
-  return useQuery({
-    queryKey: ['c2pa-status', propertyId],
-    queryFn: async () => {
-      if (!propertyId) return null
-      const { data, error } = await supabase
-        .from('properties')
-        .select('c2pa_verified, c2pa_verified_at')
-        .eq('id', propertyId)
-        .single()
-      if (error) throw error
-      return data as { c2pa_verified: boolean; c2pa_verified_at: string | null }
-    },
-    enabled: !!propertyId,
-  })
-}

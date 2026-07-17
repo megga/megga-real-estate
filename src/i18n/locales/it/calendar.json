@@ -4,7 +4,8 @@
     "mandate": "Mandate / Valuation",
     "notary": "Notary signing",
     "task": "Task / Follow-up",
-    "publish": "Publication"
+    "publish": "Publication",
+    "autre": "Altro"
   },
   "days": [
     "Sun",
@@ -82,7 +83,8 @@
       "week": "Week",
       "month": "Month",
       "agenda": "Agenda"
-    }
+    },
+    "eventTypes": "Tipi di evento"
   },
   "edit": {
     "newEvent": "New event",
@@ -319,5 +321,121 @@
     "dayFreeTitle": "Giornata libera",
     "dayFreeDesc": "Blocca del tempo per i tuoi acquirenti caldi o fai avanzare la pipeline.",
     "retry": "Riprova"
+  },
+  "monthsShort": [
+    "gen.",
+    "feb.",
+    "mar.",
+    "apr.",
+    "mag.",
+    "giu.",
+    "lug.",
+    "ago.",
+    "set.",
+    "ott.",
+    "nov.",
+    "dic."
+  ],
+  "busy": "Occupato",
+  "popover": {
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "close": "Chiudi",
+    "statusDone": "Completato",
+    "statusCancelled": "Annullato",
+    "from": "Dal",
+    "to": "al",
+    "fullDay": "Tutto il giorno",
+    "recurrent": "Ricorrente",
+    "until": "fino al",
+    "conflictOne": "Si sovrappone a",
+    "conflictMany": "Si sovrappone ad altri {{count}} appuntamenti",
+    "openBien": "Apri immobile",
+    "openContact": "Apri contatto",
+    "itinerary": "Itinerario",
+    "readOnly": "Sincronizzato da {{source}} · sola lettura. Dettaglio privato (“Occupato”).",
+    "markDone": "Segna come completato",
+    "done": "Completato"
+  },
+  "modal": {
+    "newEvent": "Nuovo evento",
+    "editEvent": "Modifica evento",
+    "type": "Tipo",
+    "color": "Colore",
+    "title": "Titolo",
+    "allDay": "Tutto il giorno",
+    "startDate": "Data di inizio",
+    "start": "Inizio",
+    "endDate": "Data di fine",
+    "end": "Fine",
+    "recurrence": "Ricorrenza",
+    "recurEnd": "Fine ricorrenza",
+    "recurNone": "Nessuna",
+    "recurNever": "Senza fine",
+    "recurUntil": "Fino al…",
+    "location": "Luogo",
+    "linkedBien": "Immobile collegato",
+    "associateBien": "Collega un immobile",
+    "linkedContact": "Contatto collegato",
+    "associateContact": "Collega un contatto",
+    "notes": "Note",
+    "delete": "Elimina",
+    "cancel": "Annulla",
+    "create": "Crea",
+    "save": "Salva",
+    "search": "Cerca…",
+    "noResults": "Nessun risultato",
+    "change": "Cambia",
+    "remove": "Rimuovi"
+  },
+  "role": {
+    "buyer": "Acquirente",
+    "seller": "Venditore",
+    "investor": "Investitore",
+    "tenant": "Inquilino",
+    "landlord": "Proprietario",
+    "both": "Misto",
+    "lead": "Lead",
+    "contact": "Contatto"
+  },
+  "color": {
+    "slate": "Ardesia",
+    "raspberry": "Lampone",
+    "amber": "Ambra",
+    "olive": "Oliva",
+    "emerald": "Smeraldo",
+    "teal": "Foglia di tè",
+    "indigo": "Indaco"
+  },
+  "recur": {
+    "daily": "Ogni giorno",
+    "weekly": "Ogni settimana",
+    "biweekly": "Ogni 2 settimane",
+    "monthly": "Ogni mese"
+  },
+  "toast": {
+    "syncing": "Sincronizzazione…",
+    "synced": "Sincronizzato",
+    "created": "Creato",
+    "modified": "Modificato",
+    "deleted": "Eliminato",
+    "durationChanged": "Durata modificata: da {{start}} a {{end}}",
+    "moved": "Spostato: {{date}}, {{time}}",
+    "markedDone": "Segnato come completato",
+    "markedTodo": "Segnato da fare",
+    "markedCancelled": "Segnato come annullato",
+    "reactivated": "Riattivato"
+  },
+  "onboarding": {
+    "kicker": "Prima connessione",
+    "title": "Collega la tua agenda",
+    "connectGoogle": "Collega Google",
+    "connectOutlook": "Collega Outlook",
+    "later": "Più tardi",
+    "privacy": "I tuoi eventi personali restano privati.",
+    "laterTitle": "Puoi collegarti più tardi",
+    "laterBody": "Collega Google o Outlook quando vuoi, da",
+    "laterPath": "Impostazioni › Integrazioni",
+    "goToCalendar": "Vai al calendario"
   }
 }

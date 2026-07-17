@@ -1,3 +1,10 @@
+/**
+ * Types TypeScript générés depuis le schéma Postgres Supabase (source de vérité DB).
+ *
+ * Fichier AUTO-GÉNÉRÉ (`supabase gen types typescript`) — ne pas éditer à la main :
+ * toute modification est écrasée à la prochaine régénération. Expose `Database`
+ * (Tables / Views / Functions / Enums du schéma `public`) consommé par le client typé.
+ */
 export type Json =
   | string
   | number
@@ -255,6 +262,7 @@ export type Database = {
           id: string
           ide: string | null
           legal_name: string | null
+          legal_form: string | null
           logo_url: string | null
           monthly_target: number | null
           name: string
@@ -284,6 +292,7 @@ export type Database = {
           id?: string
           ide?: string | null
           legal_name?: string | null
+          legal_form?: string | null
           logo_url?: string | null
           monthly_target?: number | null
           name: string
@@ -313,6 +322,7 @@ export type Database = {
           id?: string
           ide?: string | null
           legal_name?: string | null
+          legal_form?: string | null
           logo_url?: string | null
           monthly_target?: number | null
           name?: string
@@ -589,6 +599,7 @@ export type Database = {
           updated_at: string | null
           verified_at: string | null
           website_url: string | null
+          linkedin_url: string | null
         }
         Insert: {
           agency_profile_id?: string | null
@@ -625,6 +636,7 @@ export type Database = {
           updated_at?: string | null
           verified_at?: string | null
           website_url?: string | null
+          linkedin_url?: string | null
         }
         Update: {
           agency_profile_id?: string | null
@@ -661,6 +673,7 @@ export type Database = {
           updated_at?: string | null
           verified_at?: string | null
           website_url?: string | null
+          linkedin_url?: string | null
         }
         Relationships: [
           {
@@ -827,36 +840,53 @@ export type Database = {
       }
       ai_usage_logs: {
         Row: {
+          agency_id: string | null
           created_at: string
           edge_function: string
           estimated_cost_usd: number
           id: string
           input_tokens: number
+          latency_ms: number | null
+          module: string | null
           output_tokens: number
           provider: string
           was_fallback: boolean
         }
         Insert: {
+          agency_id?: string | null
           created_at?: string
           edge_function: string
           estimated_cost_usd: number
           id?: string
           input_tokens: number
+          latency_ms?: number | null
+          module?: string | null
           output_tokens: number
           provider: string
           was_fallback?: boolean
         }
         Update: {
+          agency_id?: string | null
           created_at?: string
           edge_function?: string
           estimated_cost_usd?: number
           id?: string
           input_tokens?: number
+          latency_ms?: number | null
+          module?: string | null
           output_tokens?: number
           provider?: string
           was_fallback?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       app_config: {
         Row: {
@@ -1004,6 +1034,95 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buyer_reception_links: {
+        Row: {
+          agency_id: string
+          agent_id: string | null
+          channel: string | null
+          client_ip: string | null
+          client_user_agent: string | null
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          match_ids: string[]
+          reacted_at: string | null
+          sent_at: string
+          status: string
+          token: string
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          agency_id: string
+          agent_id?: string | null
+          channel?: string | null
+          client_ip?: string | null
+          client_user_agent?: string | null
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          match_ids: string[]
+          reacted_at?: string | null
+          sent_at?: string
+          status?: string
+          token: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          agency_id?: string
+          agent_id?: string | null
+          channel?: string | null
+          client_ip?: string | null
+          client_user_agent?: string | null
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          match_ids?: string[]
+          reacted_at?: string | null
+          sent_at?: string
+          status?: string
+          token?: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_reception_links_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_reception_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_reception_links_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_reception_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3115,6 +3234,8 @@ export type Database = {
           id: string
           market_listing_id: string | null
           property_id: string | null
+          reaction_motif: string | null
+          reaction_note: string | null
           reasons: Json | null
           response_at: string | null
           score: number
@@ -3133,6 +3254,8 @@ export type Database = {
           id?: string
           market_listing_id?: string | null
           property_id?: string | null
+          reaction_motif?: string | null
+          reaction_note?: string | null
           reasons?: Json | null
           response_at?: string | null
           score: number
@@ -3151,6 +3274,8 @@ export type Database = {
           id?: string
           market_listing_id?: string | null
           property_id?: string | null
+          reaction_motif?: string | null
+          reaction_note?: string | null
           reasons?: Json | null
           response_at?: string | null
           score?: number
@@ -5588,6 +5713,7 @@ export type Database = {
           intent: string | null
           model: string | null
           next_action: Json | null
+          rolling_summary: string | null
           sentiment: string | null
           source_last_message_at: string | null
           source_message_count: number
@@ -5603,6 +5729,7 @@ export type Database = {
           intent?: string | null
           model?: string | null
           next_action?: Json | null
+          rolling_summary?: string | null
           sentiment?: string | null
           source_last_message_at?: string | null
           source_message_count?: number
@@ -5618,6 +5745,7 @@ export type Database = {
           intent?: string | null
           model?: string | null
           next_action?: Json | null
+          rolling_summary?: string | null
           sentiment?: string | null
           source_last_message_at?: string | null
           source_message_count?: number
@@ -6593,6 +6721,14 @@ export type Database = {
           sla_breached_open: number
         }[]
       }
+      get_agency_activity_summary: {
+        Args: { agency_ids: string[]; since_days?: number }
+        Returns: {
+          agency_id: string
+          event_count: number
+          last_activity_at: string
+        }[]
+      }
       get_agency_stats: {
         Args: { agency_ids: string[] }
         Returns: {
@@ -6843,6 +6979,7 @@ export type Database = {
           p_budget_max?: number
           p_budget_min?: number
           p_cantons?: string[]
+          p_city?: string
           p_limit?: number
           p_margin?: number
           p_min_quality?: number
@@ -6858,10 +6995,20 @@ export type Database = {
           lat: number
           lng: number
           price: number
+          price_at_first_seen: number
           rooms: number
+          status: string
           surface_m2: number
           transaction_type: string
           type: string
+        }[]
+      }
+      search_cities: {
+        Args: { p_prefix: string; p_tx?: string; p_limit?: number }
+        Returns: {
+          city: string
+          canton: string
+          n: number
         }[]
       }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
@@ -7820,82 +7967,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      agency_plan: ["starter", "pro", "agency", "enterprise"],
-      contact_score: ["hot", "warm", "cold"],
-      contact_type: ["buyer", "seller", "both", "lead"],
-      crm_offer_kind: ["offer", "counter"],
-      crm_offer_party: ["buyer", "seller"],
-      crm_offer_status: [
-        "pending",
-        "accepted",
-        "rejected",
-        "expired",
-        "withdrawn",
-      ],
-      document_status: ["pending", "validated", "rejected"],
-      invitation_status: ["pending", "accepted", "cancelled", "expired"],
-      kyc_magic_link_mode: ["libre", "verifiee"],
-      kyc_magic_link_status: [
-        "pending",
-        "opened",
-        "uploading",
-        "verifying",
-        "submitted",
-        "expired",
-      ],
-      kyc_magic_link_upload_type: ["identity", "address", "funds", "other"],
-      kyc_person_type: ["buyer_pp", "buyer_pm", "seller_pp", "seller_pm"],
-      kyc_risk_level: ["low", "medium", "high", "unassessed"],
-      kyc_source_of_funds_type: [
-        "salary",
-        "sale_property",
-        "sale_business",
-        "inheritance",
-        "investment",
-        "crypto",
-        "loan",
-        "mixed",
-        "other",
-      ],
-      kyc_status: ["pending", "in_progress", "review", "validated", "rejected"],
-      listing_report_reason: [
-        "wrong_price",
-        "already_taken",
-        "wrong_photos",
-        "inaccurate_description",
-        "spam_fraud",
-        "other",
-      ],
-      listing_report_status: ["open", "reviewing", "resolved", "dismissed"],
-      mandate_type: ["simple", "semi_exclusive", "exclusive"],
-      property_status: ["draft", "active", "reserved", "sold", "archived"],
-      property_type: ["apartment", "house", "villa", "commercial", "land"],
-      transaction_stage: [
-        "lead",
-        "qualified",
-        "visit_planned",
-        "offer",
-        "negotiation",
-        "reserved",
-        "financing",
-        "notary",
-        "signed",
-        "closed",
-        "new_lead",
-        "to_qualify",
-        "active_search",
-        "visit_done",
-        "interest_confirmed",
-        "lost",
-        "to_recontact",
-        "visit_planned_legacy",
-      ],
-      transaction_status: ["active", "on_hold", "cancelled", "completed"],
-      user_role: ["buyer", "seller", "agent", "manager", "admin", "assistant"],
-    },
-  },
-} as const

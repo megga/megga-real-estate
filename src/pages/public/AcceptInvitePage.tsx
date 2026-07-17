@@ -1,3 +1,9 @@
+/**
+ * Page publique d'acceptation d'invitation d'équipe — route `/accept-invite/:token`.
+ * Aperçu puis réclamation via l'edge function `accept-team-invite` (actions preview / claim).
+ * L'UI s'adapte à l'état de session : connecté + email concordant → bouton accepter,
+ * mauvais compte → avertissement, non connecté → login/register avec redirect vers cette page.
+ */
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +19,7 @@ interface InvitationDetails {
   expiresAt: string
 }
 
+/** Charge l'aperçu de l'invitation puis gère sa réclamation (claim) après contrôle d'email. */
 export default function AcceptInvitePage() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()

@@ -15,43 +15,6 @@ export type MagicLinkStatus =
 
 export type MagicLinkUploadType = 'identity' | 'address' | 'funds' | 'other'
 
-/** Row complète `kyc_magic_links` (vue agent, RLS agency-scoped). */
-export interface KycMagicLink {
-  id: string
-  token: string
-  agency_id: string
-  kyc_case_id: string
-  contact_id: string
-  mode: MagicLinkMode
-  channels: MagicLinkChannel[]
-  custom_message: string | null
-  status: MagicLinkStatus
-  expires_at: string
-  sent_at: string
-  opened_at: string | null
-  uploaded_at: string | null
-  confirmed_at: string | null
-  expired_at: string | null
-  client_ip: string | null
-  client_user_agent: string | null
-  created_by: string | null
-  created_at: string
-  updated_at: string
-}
-
-/** Vue résumée renvoyée par la RPC `kyc_magic_link_summary`. */
-export interface KycMagicLinkSummary {
-  id: string
-  status: MagicLinkStatus
-  mode: MagicLinkMode
-  sent_at: string
-  expires_at: string
-  opened_at: string | null
-  confirmed_at: string | null
-  uploads_count: number
-  channels: MagicLinkChannel[]
-}
-
 /** Row `kyc_magic_link_uploads`. */
 export interface KycMagicLinkUpload {
   id: string
@@ -92,11 +55,6 @@ export interface CreateMagicLinkResponse {
   url: string
   expires_at: string
   status: MagicLinkStatus
-}
-
-export interface RegenerateMagicLinkInput {
-  magic_link_id: string
-  expiration_days?: number
 }
 
 /** Vue publique servie par GET /magic-link-get?token=... (côté client). */

@@ -1,3 +1,8 @@
+/**
+ * Extraction d'une fiche bien depuis l'URL d'une annonce, via l'edge
+ * `extract-property-url`. Enrichit `ExtractedPropertyData` avec photos, portail
+ * source et référence.
+ */
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { ExtractedPropertyData } from './useExtractPropertyPdf'
@@ -9,6 +14,7 @@ export interface ExtractedUrlData extends ExtractedPropertyData {
   reference_id: string | null
 }
 
+/** Scrape + extraction structurée d'une annonce à partir de son URL. */
 export function useExtractPropertyUrl() {
   const [isExtracting, setIsExtracting] = useState(false)
   const [error, setError] = useState<string | null>(null)

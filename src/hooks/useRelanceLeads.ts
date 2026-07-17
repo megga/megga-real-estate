@@ -1,3 +1,8 @@
+/**
+ * Source de données réelle pour la session de relance du dashboard : les
+ * contacts dormants de l'agence (dernière interaction > 14 j ou jamais).
+ * Renvoie `isEmpty` pour que l'appelant retombe sur le seed `RELANCE_LEADS`.
+ */
 // Real-data source for the dashboard relance session.
 //
 // Replaces the seed RELANCE_LEADS array (still kept in
@@ -15,6 +20,7 @@
 // UX usable. The session also surfaces a "Mode démo" banner in that
 // case so the agent knows nothing is being persisted to real recipients.
 
+import { useState } from 'react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -91,13 +97,25 @@ export interface UseRelanceLeadsResult {
   isEmpty: boolean
 }
 
+/** Requête les contacts dormants (buyer/seller/tenant/landlord), les adapte en `RelanceLead`, triés du plus froid au plus récent. */
 export function useRelanceLeads(): UseRelanceLeadsResult {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id ?? null
 
   // Cut-off: contacts whose last_interaction_at is older than DORMANT_DAYS,
   // OR null (no interaction recorded). PostgREST `.or()` express both.
-  const cutoff = new Date(Date.now() - DORMANT_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  //
+  // MUST be stable across renders. @supabase-cache-helpers dérive la clé de
+  // cache de l'URL PostgREST — or `cutoff` embarquait un `Date.now()` à la
+  // milliseconde. Recalculé à chaque render, il faisait muter l'URL → nouvelle
+  // clé → refetch → setState → re-render → boucle infinie de requêtes /contacts
+  // (jamais de `networkidle`, cf. E2E admin + le contournement domcontentloaded
+  // dans agent-dashboard.spec.ts). L'initialiseur paresseux de useState garantit
+  // un calcul unique au montage (contrairement à useMemo, que React peut
+  // rejeter) ; la précision milliseconde n'a aucune valeur pour un seuil 14 j.
+  const [cutoff] = useState(() =>
+    new Date(Date.now() - DORMANT_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+  )
 
   const query = supabase
     .from('contacts')

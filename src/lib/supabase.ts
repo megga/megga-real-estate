@@ -1,3 +1,11 @@
+/**
+ * Client Supabase singleton (typé via src/types/database.ts) partagé par tout le
+ * frontend. Gère aussi le cycle de vie des tokens auth : stockage « Se souvenir
+ * de moi » (local vs sessionStorage), purge des JWT expirés au boot et
+ * récupération runtime sur 401 PGRST301. Anon key publique par design (sécurité
+ * via RLS), codée en dur en fallback pour éviter qu'un service_role fuite dans
+ * le bundle public.
+ */
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
@@ -46,6 +54,12 @@ if (role === 'service_role') {
   supabaseAnonKey = DEFAULT_ANON_KEY
 }
 
+// Exposés pour les appels fetch directs (SSE du copilote MEGGA AI) —
+// supabase.functions.invoke ne sait pas lire une réponse streamée. Valeurs
+// publiques (l'anon key est publique par design, la sécurité vient de RLS).
+export const SUPABASE_FUNCTIONS_URL = `${supabaseUrl}/functions/v1`
+export const SUPABASE_PUBLIC_ANON_KEY = supabaseAnonKey
+
 // ─── "Remember me" storage switch ──────────────────────────────────────
 // When the user opts out of "Se souvenir de moi" we want the session to die
 // with the browser tab. Supabase's JS client only accepts one storage adapter
@@ -90,6 +104,7 @@ const rememberAwareStorage = {
   },
 }
 
+/** Supprime toutes les clés `sb-*-auth-token` (local + session). `reason` sert au log. */
 function purgeAuthTokens(reason: string) {
   if (typeof window === 'undefined') return
   for (const store of [window.localStorage, window.sessionStorage]) {
@@ -136,6 +151,7 @@ async function authAwareFetch(input: RequestInfo | URL, init?: RequestInit): Pro
   return response
 }
 
+/** Purge au boot les tokens auth déjà expirés (grâce 60s) ou corrompus, pour partir d'une session propre avant d'instancier le client. */
 function purgeExpiredAuthTokens() {
   if (typeof window === 'undefined') return
   try {

@@ -5,28 +5,29 @@
 // Flow :
 //   1. Auth + ownership check (cross-tenant guard)
 //   2. Quota mensuel (Starter=0 / Pro=50 / Agency=200)
-//   3. PHOTO-VISION GATE (Claude Vision)
+//   3. PHOTO-VISION GATE (Gemini Vision)
 //      - Refuse si type de pièce détecté ≠ demandé (confidence ≥ 85%)
 //      - Refuse si qualité < 50/100 ou flag critique (blur/dark/low_res)
 //      - Refuse si personne identifiable (LPD art. 6)
-//   4. PROMPT MASTER (Claude Haiku)
+//   4. PROMPT MASTER (DeepSeek)
 //      - Enrichit le prompt Gemini avec le contexte photo (lumière, qualité,
 //        observations Vision) et le style/roomType choisi par l'agent
-//      - Fallback statique si Haiku échoue
+//      - Fallback statique si l'appel échoue
 //   5. Gemini Nano Banana 2 → image staged
 //   6. Upload Storage + `ai_generated_photos` array + audit event
 //
-// Coût total à 2K (déc. 2026, sources Anthropic + Google AI) :
-//   - Claude Sonnet 4 Vision  : ~CHF 0.008
-//   - Claude Haiku 4.5        : ~CHF 0.002
-//   - Gemini Nano Banana 2 2K : ~CHF 0.089
-//   - TOTAL ~CHF 0.10/image (provisionne CHF 0.12 pour buffer +20%)
+// Coût total à 2K (déc. 2026, sources Google AI + DeepSeek) :
+//   - Gemini Vision (gate)     : ~CHF 0.003
+//   - DeepSeek (prompt master) : ~CHF 0.001
+//   - Gemini Nano Banana 2 2K  : ~CHF 0.089
+//   - TOTAL ~CHF 0.09/image (provisionne CHF 0.12 pour buffer)
 // Quotas mensuels Pro=50 (~CHF 5/agent), Agency=200 (~CHF 20/agent).
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { analyzePhoto, judgePhotoForStaging, type PhotoAnalysis, type RoomType } from '../_shared/photo-vision.ts'
 import { assertPublicUrl } from '../_shared/safe-fetch.ts'
+import { callDeepSeek } from '../_shared/ai-provider.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,15 +35,11 @@ const corsHeaders = {
 }
 
 const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY') || ''
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') || ''
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
 // Nano Banana 2 (Gemini 3.1 Flash Image Preview) — image generation endpoint
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${GOOGLE_AI_API_KEY}`
-
-// Cheap, fast model — used as a prompt engineer, not for image work.
-const HAIKU_MODEL = 'claude-haiku-4-5-20251001'
 
 type StagingStyle = 'modern' | 'classic' | 'luxury' | 'scandinavian' | 'minimal'
 type StagingRoomType =
@@ -113,7 +110,7 @@ function isOutdoorRoom(r: StagingRoomType): boolean {
 }
 
 /**
- * Prompt Master — utilise Claude Haiku pour adapter le prompt Gemini au
+ * Prompt Master — utilise DeepSeek pour adapter le prompt Gemini au
  * contexte précis de la photo. Renvoie un prompt enrichi en français.
  *
  * Fallback silencieux sur le prompt statique si Haiku flanche (timeout,
@@ -127,14 +124,12 @@ async function masterPrompt({
   style: StagingStyle
   roomType: StagingRoomType
   analysis: PhotoAnalysis
-}): Promise<string> {
+}, agencyId: string | null): Promise<string> {
   const baseStyle = STYLE_PROMPTS[style] || STYLE_PROMPTS.modern
   const baseRoom = ROOM_PROMPTS[roomType] || ROOM_PROMPTS.autre
   const outdoor = isOutdoorRoom(roomType)
 
   const staticPrompt = buildStaticPrompt({ baseStyle, baseRoom, outdoor })
-
-  if (!ANTHROPIC_API_KEY) return staticPrompt
 
   const sceneSummary = JSON.stringify({
     detected_room: analysis.room,
@@ -167,33 +162,20 @@ Le prompt doit :
 Réponds UNIQUEMENT avec le prompt final, sans introduction ni explication.`
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: HAIKU_MODEL,
-        max_tokens: 400,
-        system: systemPrompt,
-        messages: [{
-          role: 'user',
-          content:
-            `Contexte photo : ${sceneSummary}\n` +
-            `Style demandé : ${style} → ${baseStyle}\n` +
-            `Type de pièce demandé : ${roomType} → ${baseRoom}\n` +
-            `Pièce extérieure : ${outdoor ? 'oui' : 'non'}\n\n` +
-            `Construis le prompt Gemini optimal.`,
-        }],
-      }),
-    })
-
-    if (!resp.ok) return staticPrompt
-
-    const data = await resp.json()
-    const text = (data?.content?.[0]?.text as string | undefined)?.trim() || ''
+    const resp = await callDeepSeek(
+      [{
+        role: 'user',
+        content:
+          `Contexte photo : ${sceneSummary}\n` +
+          `Style demandé : ${style} → ${baseStyle}\n` +
+          `Type de pièce demandé : ${roomType} → ${baseRoom}\n` +
+          `Pièce extérieure : ${outdoor ? 'oui' : 'non'}\n\n` +
+          `Construis le prompt Gemini optimal.`,
+      }],
+      systemPrompt,
+      { maxTokens: 400, agencyId: agencyId ?? undefined, module: 'virtual-staging-prompt' },
+    )
+    const text = (resp.text ?? '').trim()
     // Sanity guard — si Haiku rend trop court (ratio < 0.4 vs static) ou trop
     // long (> 2000 char), on fallback. Évite un prompt cassé qui ruine Gemini.
     if (text.length < staticPrompt.length * 0.4 || text.length > 2000) {
@@ -375,7 +357,7 @@ serve(async (req) => {
 
     // ── PHOTO-VISION GATE ────────────────────────────────────────────
     // Évite de brûler ~CHF 0.034 de Gemini sur une photo qui foirera. Coût
-    // ajouté : ~CHF 0.003 de Claude Vision. Break-even dès qu'on évite 1
+    // ajouté : ~CHF 0.003 de Gemini Vision. Break-even dès qu'on évite 1
     // staging raté sur 12 (large marge en pratique).
     const analysis = await analyzePhoto(photoUrl)
     const compatibleRooms = expectedDetectedRooms(roomType || 'autre')
@@ -449,7 +431,7 @@ serve(async (req) => {
     const mimeType = photoResponse.headers.get('content-type') || 'image/jpeg'
 
     // ── PROMPT MASTER ────────────────────────────────────────────────
-    // Claude Haiku enrichit le prompt en se basant sur l'analyse Vision. Si
+    // DeepSeek enrichit le prompt en se basant sur l'analyse Vision. Si
     // l'agent l'a explicitement désactivé (debug) ou si Haiku flanche, on
     // tombe sur le prompt statique (buildStaticPrompt).
     const prompt = skipPromptMaster
@@ -458,7 +440,7 @@ serve(async (req) => {
           baseRoom: ROOM_PROMPTS[roomType] || ROOM_PROMPTS.autre,
           outdoor: isOutdoorRoom(roomType),
         })
-      : await masterPrompt({ style, roomType, analysis })
+      : await masterPrompt({ style, roomType, analysis }, profile.agency_id)
 
     // Call Gemini API
     const geminiResponse = await fetch(GEMINI_URL, {

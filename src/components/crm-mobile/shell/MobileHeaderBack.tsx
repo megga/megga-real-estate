@@ -1,3 +1,4 @@
+/** Primitive de shell crm-mobile : en-tête sticky (retour + titre) des vues détail. */
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'

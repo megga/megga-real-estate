@@ -123,6 +123,7 @@ async function fetchProfileAvatar(userId: string): Promise<string | null> {
   }
 }
 
+/** Avatar utilisateur : état global partagé (localStorage + sync Storage/profil), upload avec redimensionnement 256px, suppression et validation de fichier. */
 export function useAvatar() {
   const [, setTick] = useState(0)
 

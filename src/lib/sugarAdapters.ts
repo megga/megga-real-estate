@@ -1,16 +1,18 @@
-// MEGGA CRM Sugar v2 — Adaptateurs partagés Supabase → shapes mock (CrmContact / CrmBien / etc).
-// Centralise les mappings réutilisés par useMatchingSugar, useContactsSugar,
-// useDealsSugar, etc. Les pages UI continuent de consommer Crm* shapes du mock,
-// et les hooks adapter remplissent le registry runtime de mockData.ts.
+/**
+ * MEGGA CRM Sugar v2 — Adaptateurs partagés Supabase → shapes mock (CrmContact / CrmBien / etc).
+ * Centralise les mappings réutilisés par useMatchingSugar, useContactsSugar,
+ * useDealsSugar, etc. Les pages UI continuent de consommer Crm* shapes du mock,
+ * et les hooks adapter remplissent le registry runtime de mockData.ts.
+ */
 
 import type { Contact, SearchCriteria } from '@/types/contact'
+import { splitZones, PROP_TYPE_EN_TO_FR } from '@/lib/contactCriteria'
 import type { KycCase, KycDossierStatus } from '@/types/kyc'
 import type { Property } from '@/types/listing'
 import type { ContactTransaction } from '@/hooks/useTransactions'
-import type { TimelineEvent } from '@/hooks/useContactTimeline'
 import type { TransactionStage } from '@/lib/constants'
 import type {
-  CrmContact, CrmBien, CrmDeal, CrmActivity,
+  CrmContact, CrmBien, CrmDeal,
 } from '@/components/crm-sugar/mockData'
 import type { StageId } from '@/components/crm-sugar/tokens'
 
@@ -25,7 +27,7 @@ export function mapKycStatus(
   return dbDossierStatus  // 'none' | 'pending' | 'verified' | 'stale'
 }
 
-// ─── Mapping Contact.type DB → CrmContact.type ─────────────────────────
+/** Contact.type (DB) → CrmContact.type (UI). investor et lead retombent sur 'buyer'. */
 export function mapContactType(t: Contact['type']): CrmContact['type'] {
   switch (t) {
     case 'buyer':    return 'buyer'
@@ -39,14 +41,18 @@ export function mapContactType(t: Contact['type']): CrmContact['type'] {
   }
 }
 
-// ─── SearchCriteria DB → CrmContact.criteria ───────────────────────────
+/** SearchCriteria (DB) → bloc `criteria` du CrmContact (sépare villes/cantons, libellés de type en FR). */
 export function mapCriteria(c: SearchCriteria | null): CrmContact['criteria'] {
   if (!c) return undefined
+  // `zones` mélange villes et codes cantons → on sépare. `type` est en anglais
+  // (apartment/house…) → on repasse au libellé FR de l'UI. `transaction_type`
+  // discrimine location/vente (lu par le matching-engine).
+  const { cantons, cities } = splitZones(c.zones)
   return {
-    transaction: 'vente',  // pas de discriminant côté DB pour l'instant
-    types: c.type ? [c.type] : [],
-    cantons: [],
-    cities: c.zones ?? [],
+    transaction: c.transaction_type === 'rent' ? 'location' : 'vente',
+    types: c.type ? [PROP_TYPE_EN_TO_FR[c.type] ?? c.type] : [],
+    cantons,
+    cities,
     budgetMin: c.budget_min,
     budgetMax: c.budget_max ?? 0,
     areaMin: c.surface_min,
@@ -67,7 +73,7 @@ export function pickAvatarBg(id: string): string {
   return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
 }
 
-// ─── Score (ContactScore enum DB) → number UI ──────────────────────────
+/** Score qualitatif DB (hot/warm/cold) → note numérique 0–90 attendue par l'UI. */
 export function mapContactScore(score: Contact['score']): number {
   return score === 'hot' ? 90 : score === 'warm' ? 60 : score === 'cold' ? 30 : 0
 }
@@ -80,7 +86,7 @@ function mapContactStatus(t: Contact['type']): CrmContact['status'] {
   return t === 'lead' ? 'lead' : 'active'
 }
 
-// ─── Contact + KycCase → CrmContact ────────────────────────────────────
+/** Assemble un CrmContact complet depuis un Contact DB et son KycCase éventuel. */
 export function contactToCrm(c: Contact, kyc: KycCase | undefined): CrmContact {
   return {
     id: c.id,
@@ -112,54 +118,6 @@ export function contactToCrm(c: Contact, kyc: KycCase | undefined): CrmContact {
 
 // ─── MatchResult.listing → CrmBien ─────────────────────────────────────
 // (utilisé par useMatchingSugar — exposé ici pour partage potentiel futur)
-import type { MatchResult } from '@/hooks/useMatching'
-export function listingToBien(m: MatchResult): CrmBien {
-  const l = m.listing
-  const bienId = m.propertyId ?? m.marketListingId ?? m.id
-  const typeMap: Record<string, CrmBien['type']> = {
-    apartment:   'appartement',
-    appartement: 'appartement',
-    house:       'maison',
-    maison:      'maison',
-    villa:       'villa',
-    commercial:  'commercial',
-    office:      'office',
-    parking:     'parking',
-    storage:     'storage',
-    land:        'land',
-  }
-  // Heuristique location/vente quand pas de discriminant explicite : un loyer
-  // dépasse rarement CHF 20'000/mois. À remplacer dès qu'un champ
-  // `transaction` apparaît dans MatchResult.listing.
-  const isRental = l.days_on_market !== undefined && l.price > 0 && l.price < 20000
-  return {
-    id: bienId,
-    ref: bienId.slice(0, 12).toUpperCase(),
-    status: 'active',
-    type: typeMap[l.type?.toLowerCase()] ?? 'appartement',
-    transaction: isRental ? 'location' : 'vente',
-    title: l.title || `${typeMap[l.type] ?? 'Bien'} ${l.city ?? ''}`.trim(),
-    addr: [l.address, l.city].filter(Boolean).join(', '),
-    canton: l.canton ?? '',
-    price: isRental ? null : (l.price || null),
-    rent: isRental ? l.price : null,
-    charges: l.charges_monthly || null,
-    area: l.surface_m2 || 0,
-    rooms: l.rooms || 0,
-    beds: l.bedrooms || 0,
-    baths: 0,
-    year: l.year_built || 0,
-    energy: '',
-    ownerContactId: null,
-    mandat: { type: 'simple' },
-    visibility: m.source === 'market' ? 'public' : 'agency',
-    stats: { views: 0, favorites: 0, visitRequests: 0 },
-    photoCount: l.photos?.length ?? 0,
-    signedPhotoCount: l.photos?.length ?? 0,
-    accent: pickAvatarBg(bienId),
-  }
-}
-
 // ─── TransactionStage DB → StageId mock ────────────────────────────────
 // Mock utilise des dashes ('new-lead'), DB utilise des underscores ('new_lead').
 // Plusieurs stages DB collapsent sur un seul StageId mock (negotiation/financing/
@@ -250,45 +208,6 @@ export function transactionToCrmDeal(
 // Le mock CrmActivity attend `text` (string narratif). On dérive le texte
 // depuis action + metadata (best-effort, fallback action brut). bienId/
 // contactId sont laissés undefined (les widgets s'en sortent sans).
-const ACTION_LABELS: Record<string, string> = {
-  stage_change:         'Étape changée',
-  match_sent:           'Dossier matching envoyé',
-  visit_planned:        'Visite planifiée',
-  visit_done:           'Visite effectuée',
-  kyc_created:          'Dossier KYC ouvert',
-  kyc_validated:        'KYC validé',
-  property_sent:        'Bien envoyé au client',
-  email_sent:           'Email envoyé',
-  call_logged:          'Appel enregistré',
-  note_added:           'Note ajoutée',
-  seller_lead_created:  'Lead vendeur reçu',
-}
-
-export function timelineToActivity(e: TimelineEvent, contactId?: string): CrmActivity {
-  const baseLabel = ACTION_LABELS[e.action] ?? e.action
-  const meta = e.metadata ?? {}
-  let text = baseLabel
-  // Enrichir si metadata pertinent (best-effort, ne crash pas si shape diffère)
-  if (e.action === 'stage_change' && typeof meta.new_stage === 'string') {
-    text = `Étape passée à « ${meta.new_stage} »`
-  } else if (e.action === 'match_sent' && typeof meta.count === 'number') {
-    text = `${meta.count} bien${meta.count > 1 ? 's' : ''} envoyé${meta.count > 1 ? 's' : ''} au client`
-  } else if (e.action === 'property_sent' && typeof meta.property_title === 'string') {
-    text = `« ${meta.property_title} » envoyé au client`
-  } else if (e.action === 'email_sent' && typeof meta.subject === 'string') {
-    text = `Email envoyé — « ${meta.subject} »`
-  } else if (e.action === 'visit_done' && typeof meta.property_title === 'string') {
-    text = `Visite effectuée — ${meta.property_title}`
-  }
-  return {
-    id: e.id,
-    at: e.created_at,
-    kind: e.action,
-    contactId,
-    text,
-  }
-}
-
 // ─── Property (Supabase) → CrmBien (mock) — pour CtSellerStats ─────────
 // Utilisé pour afficher les biens dont un contact vendeur est propriétaire.
 // Le mock CrmBien est très riche (mandat, stats, photoCount/signedPhotoCount,

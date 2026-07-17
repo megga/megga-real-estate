@@ -1,3 +1,4 @@
+/** Primitive du kit mobile (crm-mobile/primitives) : socle bottom-card partagé (menu d'actions, confirmation). */
 import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'

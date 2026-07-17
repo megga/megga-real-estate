@@ -1,3 +1,4 @@
+/** Illustration décorative « support / FAQ » (SVG Maggy servi statiquement). */
 interface Props { className?: string }
 
 export default function SupportIllustration({ className = 'w-full h-full' }: Props) {

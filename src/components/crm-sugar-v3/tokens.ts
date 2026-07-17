@@ -55,9 +55,6 @@ export const SugarV3 = {
   // Police
   font: '"Inter Tight", system-ui, sans-serif',
 } as const
-
-export type SugarV3Palette = typeof SugarV3
-
 // ─── Animations keyframe (à injecter dans le DOM via <style>) ──────────
 // Animation d'entrée signature Sugar : .5s cubic-bezier(.2,.8,.2,1) both
 export const SUGAR_V3_KEYFRAMES = `
@@ -68,24 +65,6 @@ export const SUGAR_V3_KEYFRAMES = `
 `
 
 // ─── Formatters ─────────────────────────────────────────────────────────
-
-/** Formate un nombre en CHF avec apostrophes suisses : `CHF 1'250'000`. */
-export function fmtCHF(n: number | string | null | undefined): string {
-  if (n == null || n === '') return ''
-  const num = typeof n === 'number' ? n : parseInt(String(n).replace(/\D/g, ''), 10)
-  if (Number.isNaN(num)) return ''
-  return `CHF ${num.toLocaleString('fr-CH').replace(/[\u00A0\u202F,]/g, "'")}`
-}
-
-/** Formate une date en `12 avril 2026`. */
-export function fmtDateLong(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('fr-CH', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
-}
 
 /** Formate une date en `12 avr. 2026`. */
 export function fmtDateShort(iso: string | null | undefined): string {
@@ -135,15 +114,6 @@ export const KYC_CHECK_LABELS: Record<
     get title() { return i18n.t('kyc:check.funds.title') },
     get sub() { return i18n.t('kyc:check.funds.sub') },
   },
-}
-
-/** Mapping canonique catégorie LBA → icône Sg. */
-export const KYC_CHECK_ICONS: Record<KycCheckCategory, string> = {
-  id: 'id',
-  address: 'home',
-  pep: 'flag',
-  sanctions: 'ban',
-  funds: 'coins',
 }
 
 /** Labels + pastilles colorées pour les 5 statuts dossier (handoff). */

@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v3 — Stepper wizard KYC (contrôle segmenté, handoff §1.5)
 // Port de crm-kyc-wizard.jsx §KwStepItem/KwStepper.
 //
-// Même grammaire que KycSegTabs de la fiche KYC : pilule sur l'étape ACTIVE
+// Même grammaire que les seg-tabs de la fiche KYC : pilule sur l'étape ACTIVE
 // uniquement ; étapes FAITES = libellé simple + badge ✓ vert, cliquables pour
 // revenir ; étapes À VENIR = sourdine + badge numéro bordé, non cliquables.
 // Palette-aware (useKycPalette) — pas de couleur en dur (sauf le vert/✓ §1.5).

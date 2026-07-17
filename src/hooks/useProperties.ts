@@ -1,3 +1,9 @@
+/**
+ * Hooks React Query pour le CRUD des biens (`properties`) : lecture unité/
+ * liste, création, mise à jour (verrou optimiste) et uploads
+ * photos/plans (staging Supabase → miroir Cloudflare R2, EXIF strippé côté
+ * client). Partiellement migré vers @supabase-cache-helpers — détail ci-dessous.
+ */
 // Migrated to @supabase-cache-helpers/postgrest-react-query (partial).
 //
 // What migrated:
@@ -25,7 +31,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   useQuery,
   useInsertMutation,
-  useUpdateMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -36,6 +41,7 @@ import type { TablesInsert, TablesUpdate } from '@/types/database'
 
 // ── Query single property (for edit mode) ──
 
+/** Lecture d'un bien par id pour l'édition ; `enabled` gère l'absence d'id (UUID sentinelle sinon, car Cache Helpers exige une requête valide). */
 export function useProperty(id: string | undefined) {
   // Cache Helpers needs a valid query expression even when disabled; we pass
   // a sentinel UUID and gate via `enabled`.
@@ -56,6 +62,7 @@ export function useProperty(id: string | undefined) {
 
 // ── Query all agency properties (including drafts without listings) ──
 
+/** Liste des biens de l'agence (portée par RLS), brouillons inclus, enrichie des stats du listing joint. */
 export function useAgencyProperties() {
   const result = useQuery(
     supabase
@@ -111,6 +118,7 @@ export interface CreatePropertyInput {
   published_at?: string
 }
 
+/** Insertion d'un bien ; injecte `agency_id`/`created_by` depuis le profil et renvoie `{ id, updated_at }`. */
 export function useCreateProperty() {
   const { user, profile } = useAuth()
   const insert = useInsertMutation(
@@ -146,6 +154,7 @@ export function useCreateProperty() {
 // only filters by primary key. The conflict-detection contract used by
 // ListingFormPage would break otherwise.
 
+/** Levée quand une mise à jour à verrou optimiste ne matche aucune ligne : le bien a été modifié ailleurs entre-temps. */
 export class PropertyUpdateConflictError extends Error {
   constructor() {
     super('Ce bien a été modifié ailleurs. Rechargez la page avant de re-sauvegarder.')
@@ -153,6 +162,7 @@ export class PropertyUpdateConflictError extends Error {
   }
 }
 
+/** Mise à jour d'un bien avec verrou optimiste optionnel (`expected_updated_at`) ; invalide manuellement les caches property/listings liés. */
 export function useUpdateProperty() {
   const queryClient = useQueryClient()
 
@@ -197,20 +207,6 @@ export function useUpdateProperty() {
 // into a `bien_soft_deleted` event so the audit trail survives the deletion
 // (LBA art. 7 al. 3 retention). Hard delete is reserved for the pg_cron
 // orphan-draft cleanup; agents should never need it.
-
-export function useDeleteProperty() {
-  const update = useUpdateMutation(supabase.from('properties'), ['id'])
-  return {
-    mutateAsync: async (id: string) => {
-      await update.mutateAsync({
-        id,
-        deleted_at: new Date().toISOString(),
-      } as unknown as Parameters<typeof update.mutateAsync>[0])
-    },
-    isPending: update.isPending,
-  }
-}
-
 // Miroir des photos staging Supabase → Cloudflare R2 via le broker agent-auth
 // `property-photo-r2` (ownership vérifié server-side). Renvoie les URLs R2 dans le
 // MÊME ordre, ou null si échec/partiel (l'appelant garde alors les URLs Supabase :
@@ -236,6 +232,7 @@ async function mirrorPhotosToR2(
 
 // ── Upload floor plan image to Supabase Storage (puis miroir R2) ──
 
+/** Upload d'un plan d'étage (staging Supabase, EXIF strippé) puis miroir R2 ; renvoie l'URL R2 ou l'URL Supabase en repli. */
 export function useUploadFloorPlan() {
   const { profile } = useAuth()
 
@@ -327,6 +324,39 @@ async function stripImageMetadata(file: File): Promise<File> {
   }
 }
 
+// Upload d'UNE photo dans le staging du chat copilote (bucket public property-photos,
+// préfixe {agencyId}/chat-staging/ — imposé par la policy d'insertion ET par la garde
+// SSRF de l'exécuteur execWebAttachPropertyPhotos). EXIF strippé côté client. Renvoie
+// l'URL publique ; le copilote (attach_property_photos) la miroir vers R2, l'attache au
+// bien résolu, puis nettoie le staging. Une photo par appel (le composer parallélise).
+export function useUploadChatPhoto() {
+  const { profile } = useAuth()
+
+  return useMutation({
+    mutationFn: async (file: File): Promise<string> => {
+      const agencyId = profile?.agency_id
+      if (!agencyId) throw new Error('Agence introuvable — connectez-vous')
+      if (!ALLOWED_PHOTO_MIME.has(file.type)) {
+        throw new Error(`Format ${file.type || 'inconnu'} refusé (JPG/PNG/WebP uniquement)`)
+      }
+      if (file.size > 10 * 1024 * 1024) throw new Error('Photo trop lourde (10 Mo max)')
+
+      const stripped = await stripImageMetadata(file)
+      const ext = EXT_FOR_MIME[file.type]
+      const uid = crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+      const filePath = `${agencyId}/chat-staging/${uid}.${ext}`
+
+      const { error } = await supabase.storage
+        .from('property-photos')
+        .upload(filePath, stripped, { contentType: file.type })
+      if (error) throw error
+
+      return supabase.storage.from('property-photos').getPublicUrl(filePath).data.publicUrl
+    },
+  })
+}
+
+/** Upload de N photos de bien (staging Supabase, EXIF strippé) puis miroir R2 en lot ; renvoie les URLs R2, ou les URLs Supabase si le miroir échoue. */
 export function useUploadPropertyPhotos() {
   const { profile } = useAuth()
 

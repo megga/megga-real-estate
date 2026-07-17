@@ -1,3 +1,9 @@
+/**
+ * Hook super-admin — supervision compliance/KYC de toutes les agences.
+ * `useAdminCompliance` liste les dossiers KYC (+ stats agrégées via RPC) et permet
+ * de réviser leur niveau de risque. Deux hooks nLPD complètent : couverture des
+ * consentements et journal des suppressions de comptes.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -22,6 +28,7 @@ export interface ComplianceStats {
   avgCompletion: number
 }
 
+/** Dossiers KYC de toutes les agences (contact/agence résolus côté client), stats agrégées et révision du niveau de risque. */
 export function useAdminCompliance() {
   const queryClient = useQueryClient()
 
@@ -121,6 +128,7 @@ export interface ConsentStats {
   users_total: number
 }
 
+/** Couverture des consentements nLPD (RPC `get_admin_consent_stats`) : nombre d'acceptations par type/version. */
 export function useConsentStats() {
   return useQuery({
     queryKey: ['admin-consent-stats'],
@@ -142,6 +150,7 @@ export interface AccountDeletionEvent {
   metadata: Record<string, unknown> | null
 }
 
+/** Journal des suppressions de comptes (activity_events `account_deleted`, 50 dernières) — traçabilité nLPD art. 32. */
 export function useAccountDeletions() {
   return useQuery({
     queryKey: ['admin-account-deletions'],

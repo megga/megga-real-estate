@@ -1,3 +1,8 @@
+/**
+ * Cloche + panneau de notifications super-admin (portal, z-[100]).
+ * Agrège les événements sensibles (nouvelle agence, alerte PEP KYC, résiliation,
+ * erreur système, ticket) via `useAdminNotifications` : badge non-lus, marquer-lu.
+ */
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -16,8 +21,10 @@ const ACTION_CONFIG: Record<string, { icon: MEIconName; i18nKey: string }> = {
   ticket_created: { icon: 'message', i18nKey: 'notifications.action.newTicket' },
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
+/**
+ * Cloche déroulant un panneau de notifications ; ferme au clic extérieur ou Échap.
+ * Le panneau passe par createPortal pour échapper à l'overflow de la sidebar.
+ */
 export default function AdminNotificationPanel() {
   const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)

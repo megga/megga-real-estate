@@ -1,0 +1,65 @@
+name: Comprehension Golden Eval (DeepSeek)
+
+# Golden set d'éval de la compréhension WhatsApp (whatsapp-comprehend → DeepSeek).
+# Mesure la précision catégorielle de l'extraction (langue/sentiment/urgence/
+# next_action/lead/intention) contre ~24 conversations synthétiques labellisées, pour
+# qu'une MIGRATION DE MODÈLE ne soit pas un saut dans le vide.
+#
+# Pourquoi un workflow dédié (et pas backend.yml sur chaque PR) : chaque run appelle
+# DeepSeek ~24 fois. On le lance donc là où ça compte, pas sur chaque PR UI/docs :
+#   - nuit (schedule)         → détecte une dérive du modèle en prod
+#   - manuel (workflow_dispatch avec `model`) → A/B tester un modèle CANDIDAT avant bascule
+#   - PR touchant la compréhension (paths) → régression du prompt/parser attrapée tôt
+# Le garde-fou déterministe (redaction PII) tourne, lui, sur CHAQUE PR via backend.yml.
+#
+# PRÉREQUIS : secret repo `DEEPSEEK_API_KEY`. Absent → l'éval live se SKIP proprement
+# (skipIf dans le spec) et le job reste vert (jamais bloquant faute de clé).
+
+on:
+  schedule:
+    - cron: '0 3 * * *'          # 03:00 UTC chaque nuit
+  workflow_dispatch:
+    inputs:
+      model:
+        description: 'Modèle DeepSeek à évaluer (A/B avant migration)'
+        required: false
+        default: 'deepseek-chat'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/functions/_shared/whatsapp-comprehend.ts'
+      - 'tests/backend/whatsapp-comprehension-golden.spec.ts'
+      - 'tests/backend/fixtures/comprehension-golden.ts'
+      - 'tests/backend/helpers/comprehension-eval.ts'
+      - '.github/workflows/comprehension-eval.yml'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  eval:
+    name: Golden eval (${{ github.event.inputs.model || 'deepseek-chat' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      DEEPSEEK_EVAL_MODEL: ${{ github.event.inputs.model || 'deepseek-chat' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run comprehension golden eval
+        # Pas de Supabase requis : le spec n'appelle que DeepSeek + des helpers purs.
+        # Sans DEEPSEEK_API_KEY le bloc live se skip (le déterministe redaction reste vert).
+        run: npm run test:eval

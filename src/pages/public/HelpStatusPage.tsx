@@ -1,3 +1,10 @@
+/**
+ * Page publique — statut des services (Help Center).
+ *
+ * Route : `/help/status`. Liste l'état de chaque service depuis `SERVICES_STATUS`
+ * (statique) avec bandeau récapitulatif si tout est opérationnel. Aucun sondage
+ * temps réel : uptime et incidents sont figés.
+ */
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
