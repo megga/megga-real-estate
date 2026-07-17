@@ -18,6 +18,8 @@ const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_T
 describe.skipIf(!HAS_KEYS)('Phase A batch 2 — durcissement sécurité', () => {
   let setup: TwoAgenciesSetup
   let leadId: string | null = null
+  let mktLeadId: string | null = null
+  let mnlLeadId: string | null = null
   let contactId: string | null = null
   let propertyId: string | null = null
   let portalId: string | null = null
@@ -41,6 +43,28 @@ describe.skipIf(!HAS_KEYS)('Phase A batch 2 — durcissement sécurité', () => 
       .single()
     if (leadErr) console.warn('seed seller_lead (website) failed:', leadErr.message)
     else leadId = lead.id
+
+    // Non-régression : le funnel storefront (source='marketplace') doit TOUJOURS notifier.
+    const { data: mkt } = await svc
+      .from('seller_leads')
+      .insert({
+        contact_name: `MktLead ${setup.stamp}`, contact_email: `mkt-${setup.stamp}@megga-test.local`,
+        source: 'marketplace', status: 'new', assigned_agency_id: setup.agencyAId,
+        property_data: { city: 'Lausanne', type: 'house' },
+      })
+      .select('id').single()
+    mktLeadId = mkt?.id ?? null
+
+    // Cas négatif : une source agent-créée (hors funnel web) NE doit PAS notifier.
+    const { data: mnl } = await svc
+      .from('seller_leads')
+      .insert({
+        contact_name: `MnlLead ${setup.stamp}`, contact_email: `mnl-${setup.stamp}@megga-test.local`,
+        source: 'manual', status: 'new', assigned_agency_id: setup.agencyAId,
+        property_data: { city: 'Sion', type: 'apartment' },
+      })
+      .select('id').single()
+    mnlLeadId = mnl?.id ?? null
 
     // Contact + bien + portail actif (FK NOT NULL) pour le test anon.
     const { data: contact } = await svc
@@ -81,7 +105,9 @@ describe.skipIf(!HAS_KEYS)('Phase A batch 2 — durcissement sécurité', () => 
     if (portalId) await svc.from('seller_portals').delete().eq('id', portalId).then(() => {}, () => {})
     if (propertyId) await svc.from('properties').delete().eq('id', propertyId).then(() => {}, () => {})
     if (contactId) await svc.from('contacts').delete().eq('id', contactId).then(() => {}, () => {})
-    if (leadId) await svc.from('seller_leads').delete().eq('id', leadId).then(() => {}, () => {})
+    for (const id of [leadId, mktLeadId, mnlLeadId]) {
+      if (id) await svc.from('seller_leads').delete().eq('id', id).then(() => {}, () => {})
+    }
     await svc.from('profiles').update({ role: 'agent' }).eq('id', setup.agentAId).then(() => {}, () => {})
     await setup.cleanup()
   })
@@ -97,6 +123,28 @@ describe.skipIf(!HAS_KEYS)('Phase A batch 2 — durcissement sécurité', () => 
       .eq('action', 'seller_lead_received')
     expect(error).toBeNull()
     expect((data ?? []).length).toBeGreaterThan(0)
+  })
+
+  it('notify_new_seller_lead : un lead source=marketplace notifie toujours (non-régression)', async () => {
+    expect(mktLeadId).toBeTruthy()
+    const svc = serviceRoleClient()
+    const { data } = await svc
+      .from('activity_events')
+      .select('id')
+      .eq('entity_id', mktLeadId)
+      .eq('action', 'seller_lead_received')
+    expect((data ?? []).length).toBeGreaterThan(0)
+  })
+
+  it('notify_new_seller_lead : une source agent-créée (manual) ne notifie PAS', async () => {
+    expect(mnlLeadId).toBeTruthy()
+    const svc = serviceRoleClient()
+    const { data } = await svc
+      .from('activity_events')
+      .select('id')
+      .eq('entity_id', mnlLeadId)
+      .eq('action', 'seller_lead_received')
+    expect(data ?? []).toHaveLength(0)
   })
 
   // ── 2. Fuite de tokens de portail ──────────────────────────────────────────
@@ -122,18 +170,23 @@ describe.skipIf(!HAS_KEYS)('Phase A batch 2 — durcissement sécurité', () => 
   })
 
   // ── 3. Gardes RPC admin (avant promotion : agent simple) ───────────────────
-  it('get_admin_dashboard_stats : un agent simple est refusé (42501)', async () => {
-    const { data, error } = await setup.clientA.rpc('get_admin_dashboard_stats')
-    expect(data).toBeNull()
-    expect(error).toBeTruthy()
-    expect(error?.code).toBe('42501')
-  })
-
-  it('get_agency_stats : un agent simple est refusé (42501)', async () => {
-    const { error } = await setup.clientA.rpc('get_agency_stats', { agency_ids: [setup.agencyAId] })
-    expect(error).toBeTruthy()
-    expect(error?.code).toBe('42501')
-  })
+  // Les 5 RPC durcies : un agent simple (authenticated non super-admin) doit être
+  // refusé en 42501 sur CHACUNE (une garde manquante/typotée passerait sinon).
+  const GUARDED_RPCS = [
+    'get_admin_dashboard_stats',
+    'get_admin_compliance_stats',
+    'get_admin_moderation_stats',
+    'get_admin_monitoring_health',
+    'get_agency_stats',
+  ] as const
+  for (const rpc of GUARDED_RPCS) {
+    it(`${rpc} : un agent simple est refusé (42501)`, async () => {
+      const args = rpc === 'get_agency_stats' ? { agency_ids: [setup.agencyAId] } : undefined
+      const { error } = await setup.clientA.rpc(rpc, args)
+      expect(error).toBeTruthy()
+      expect(error?.code).toBe('42501')
+    })
+  }
 
   it('service_role : accès autorisé (is_service_role)', async () => {
     const svc = serviceRoleClient()
