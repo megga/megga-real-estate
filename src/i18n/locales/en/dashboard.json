@@ -258,7 +258,9 @@
       "pending_one": "{{countLabel}} follow-up pending",
       "pending_other": "{{countLabel}} follow-ups pending",
       "more_one": "+{{count}} more",
-      "more_other": "+{{count}} more"
+      "more_other": "+{{count}} more",
+      "accept": "Accept (create a reminder)",
+      "dismiss": "Dismiss"
     },
     "agenda": {
       "error": {

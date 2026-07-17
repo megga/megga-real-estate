@@ -1,15 +1,16 @@
 // src/hooks/useAgencyFollowupSuggestions.ts
 // Suivis WhatsApp en attente À TRAVERS les contacts de l'agence — pour la surface
-// proactive du cockpit « Aujourd'hui ». Lecture seule : l'action HITL (accepter →
-// vrai rappel / écarter) reste sur la fiche contact (CdFollowupSuggestions +
-// useFollowupActions) ; ici on ne fait que RENDRE VISIBLE + deep-linker.
+// proactive du cockpit « Aujourd'hui » : lecture + actions HITL (accepter → vrai
+// rappel / écarter) directement sur les puces. L'accept vivait sur la fiche contact
+// (carte #768) jusqu'à la refonte #823 qui l'a retirée — le cockpit est depuis la
+// SEULE surface des suivis, les actions vivent donc ici (restaurées de #842).
 //
-// RLS : wa_followups_agency_select (agency_id = get_my_agency_id()) — borne déjà à
-// l'agence de l'agent connecté, comme le partage des contacts. La table n'est pas
-// encore dans les types générés (database.ts en retard sur la prod) → client casté,
-// même pattern que useFollowupSuggestions.
+// RLS : wa_followups_agency_select / _update (agency_id = get_my_agency_id()) —
+// borné à l'agence de l'agent connecté, comme le partage des contacts. La table
+// n'est pas encore dans les types générés (database.ts en retard sur la prod) →
+// client casté, entrées/sorties typées fort.
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { FollowupKind } from './useFollowupSuggestions'
@@ -84,4 +85,44 @@ export function useAgencyFollowupSuggestions(limit = AGENCY_FOLLOWUPS_LIMIT) {
       }))
     },
   })
+}
+
+/**
+ * Actions HITL sur un suivi — restaurées de #842 (l'ancien `useFollowupActions`
+ * per-contact est tombé avec la carte fiche à la refonte #823).
+ * - accept : RPC `accept_followup_suggestion` (SECURITY DEFINER, scopé agence,
+ *   idempotent — re-jouable sans doublon) → crée un VRAI rappel à l'échéance.
+ * - dismiss : update RLS (`wa_followups_agency_update`) → la suggestion ne
+ *   revient jamais (dedup_key, upsert ignoreDuplicates côté producteur).
+ * NB : l'enrichissement « brouillon dans la voix de l'agent » (edge fn
+ * whatsapp-followup-draft, gate T1) a été retiré — data-gated, régénérable
+ * depuis #842 quand des suivis réels existeront et qu'un style T1 sera actif.
+ */
+export function useAgencyFollowupActions() {
+  const qc = useQueryClient()
+  // Préfixe = toutes les limites de lecture (['wa-agency-followups', limit]).
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['wa-agency-followups'] })
+
+  const accept = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await db.rpc('accept_followup_suggestion', { p_id: id })
+      const { error } = res as unknown as { error: { message: string } | null }
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: invalidate,
+  })
+
+  const dismiss = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await db
+        .from('whatsapp_followup_suggestions')
+        .update({ status: 'dismissed' })
+        .eq('id', id)
+      const { error } = res as unknown as { error: { message: string } | null }
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: invalidate,
+  })
+
+  return { accept, dismiss }
 }
