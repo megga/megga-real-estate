@@ -233,13 +233,16 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .select('id, first_name, last_name, phone, email, type, score, tags, notes, search_criteria, last_interaction_at')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
   if (!c) return 'Contact introuvable dans votre agence.'
+  // Sous-requêtes bornées à l'agence (défense en profondeur) : le contact est déjà validé
+  // in-agency ci-dessus, on double la garde sur ses events/recherches (activity_events et
+  // client_searches portent agency_id) — jamais de contenu d'une autre agence dans le brief.
   const { data: timeline } = await ctx.supabase
     .from('activity_events').select('action, object_label, created_at')
-    .eq('entity_type', 'contact').eq('entity_id', contactId)
+    .eq('entity_type', 'contact').eq('entity_id', contactId).eq('agency_id', ctx.agencyId)
     .order('created_at', { ascending: false }).limit(5)
   const { data: searches } = await ctx.supabase
     .from('client_searches').select('label, criteria')
-    .eq('contact_id', contactId).eq('is_active', true).limit(3)
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const { data: insight } = await ctx.supabase.from('whatsapp_conversation_insights')
     .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at')
     .eq('contact_id', c.id).eq('agency_id', ctx.agencyId).maybeSingle()
@@ -2297,15 +2300,17 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     next_action: unknown; commitments: unknown
   } | null
 
+  // Sous-requêtes bornées à l'agence (défense en profondeur, comme execGetContactBrief) :
+  // contact déjà validé in-agency, on double la garde sur ses events/recherches.
   const { data: timelineRows } = await ctx.supabase
     .from('activity_events').select('action, object_label, created_at')
-    .eq('entity_type', 'contact').eq('entity_id', contactId)
+    .eq('entity_type', 'contact').eq('entity_id', contactId).eq('agency_id', ctx.agencyId)
     .order('created_at', { ascending: false }).limit(5)
   const timeline = (timelineRows ?? []) as Array<{ action: string | null; object_label: string | null; created_at: string | null }>
 
   const { data: searchRows } = await ctx.supabase
     .from('client_searches').select('label, criteria')
-    .eq('contact_id', contactId).eq('is_active', true).limit(3)
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const searches = (searchRows ?? []) as Array<{ label: string | null; criteria: unknown }>
 
   // 3. Biens correspondants (matches top 5) — mêmes requête/scope que execGetMatches, enrichis
