@@ -22,8 +22,12 @@ import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
 
 const SET = SET_PALETTE
 
-// Numéro test Meta WhatsApp (constante front — à remplacer par le n° prod).
-const MEGGA_WA_NUMBER = '+1 555 657 2763'
+// Numéro Meta Business MEGGA (prod pilote — vérifié dans agency_wa_numbers,
+// label « MEGGA Business (pilote Gregory) »). C'est LE numéro auquel l'agent
+// envoie son code d'appairage ; le webhook route l'inbound par ce wa_to.
+// TODO(multi-agence, V2) : dériver ce numéro de agency_wa_numbers plutôt que
+// le figer en dur quand chaque agence aura son propre numéro Business.
+const MEGGA_WA_NUMBER = '+41 79 874 94 84'
 const WA_BRAND = '#25D366' // vert WhatsApp officiel — réservé au glyphe, jamais au fond/bouton
 
 // ── Glyphe WhatsApp (pastille verte officielle) ───────────────────────────
@@ -41,12 +45,16 @@ function WAGlyphSolid({ size = 20, waColor = WA_BRAND }: { size?: number; waColo
   )
 }
 
-// Masque un numéro suisse : indicatif + 2 derniers chiffres.
+// Masque un numéro : indicatif pays + préfixe opérateur RÉELS + 2 derniers
+// chiffres (dérivés des chiffres du numéro lié, pas figés à « +41 79 » — un
+// mobile +41 76/78 ou étranger affichait sinon un préfixe faux).
 function maskNumber(num: string | null | undefined): string {
   const digits = (num || '').replace(/\D/g, '')
-  if (digits.length < 4) return num || '—'
+  if (digits.length < 6) return num || '—'
+  const cc = digits.slice(0, 2) // indicatif pays (41)
+  const op = digits.slice(2, 4) // préfixe opérateur (79/78/76…)
   const last2 = digits.slice(-2)
-  return `+41 79 ••• •• ${last2}`
+  return `+${cc} ${op} ••• •• ${last2}`
 }
 
 // ── Tuile glyphe d'en-tête ────────────────────────────────────────────────

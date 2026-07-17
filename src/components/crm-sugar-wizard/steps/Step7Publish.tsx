@@ -5,7 +5,7 @@ import { useState, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { SugarV2, sgOn, sgAcc, fmtCHF, shade, type WizardData } from '../tokens'
-import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
+import { crmContactById } from '@/components/crm-sugar/mockData'
 
 interface StepProps {
   data: WizardData
@@ -15,9 +15,11 @@ interface StepProps {
 
 export function Step7Publish({ data, set }: StepProps) {
   const { t: tr } = useTranslation('listings')
-  const allContacts = CRM_CONTACTS
+  // Résout le vendeur via le registry runtime (rempli par useContactsSugar avec
+  // les vrais contacts) puis le brouillon inline — jamais le mock statique, qui
+  // afficherait le mauvais propriétaire pour un contact Supabase réel.
   const owner = data.ownerContactId
-    ? (allContacts.find(c => c.id === data.ownerContactId) || data._newContact)
+    ? (crmContactById(data.ownerContactId) ?? data._newContact)
     : null
 
   const mode = data.publishMode || 'now'
@@ -203,10 +205,10 @@ export function Step7Publish({ data, set }: StepProps) {
                 background: SugarV2.black, color: sgOn(),
                 display: 'grid', placeItems: 'center',
                 fontSize: 12, fontWeight: 700,
-              }}>{owner ? `${owner.firstName?.[0] || ''}${owner.lastName?.[0] || ''}`.toUpperCase() : 'GL'}</div>
+              }}>{owner ? `${owner.firstName?.[0] || ''}${owner.lastName?.[0] || ''}`.toUpperCase() : '—'}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: SugarV2.ink }}>
-                  {owner ? `${owner.firstName} ${owner.lastName}` : 'Gregory Lyonnet'}
+                  {owner ? `${owner.firstName} ${owner.lastName}` : '—'}
                 </div>
                 <div style={{ fontSize: 11, color: SugarV2.muted, fontWeight: 500 }}>
                   {tr('wizard.step7.agentLine', { canton: data.canton || tr('wizard.country') })}

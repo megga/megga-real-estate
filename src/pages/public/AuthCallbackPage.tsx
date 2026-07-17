@@ -36,7 +36,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/app/settings?tab=applications&gcal=success', { replace: true })
+        navigate('/dashboard/settings?tab=integrations&gcal=success', { replace: true })
         return
       }
 
@@ -58,7 +58,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/app/settings?tab=applications&outlook=success', { replace: true })
+        navigate('/dashboard/settings?tab=integrations&outlook=success', { replace: true })
         return
       }
 

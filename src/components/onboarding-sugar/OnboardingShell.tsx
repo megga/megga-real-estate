@@ -345,23 +345,31 @@ export function OnboardingShell({ dark: darkProp }: { dark?: boolean } = {}) {
     }
     setSaving(true)
     try {
-      await supabase
+      const { error: completeErr } = await supabase
         .from('profiles')
         .update({
           onboarding_completed: true,
           onboarding_step: STEPS.length,
         })
         .eq('id', profile.id)
+      // Écriture CRITIQUE : supabase-js ne throw pas sur {error}. Si
+      // onboarding_completed n'est pas écrit (RLS/réseau), NE PAS entrer — le
+      // gate (resolveOnboardingGate) renverrait en boucle sur l'onboarding
+      // (boucle silencieuse). On affiche l'erreur et on laisse réessayer.
+      if (completeErr) {
+        setError('Impossible de finaliser votre inscription. Vérifiez votre connexion et réessayez.')
+        return
+      }
       await refreshProfile()
       // Signal produit → Intercom : alimente Fin + déclenche les Series / le ciblage
       // Outbound (ex. nudge onboarding). No-op si Intercom n'est pas configuré.
       trackIntercomEvent(INTERCOM_EVENTS.ONBOARDING_COMPLETED)
-    } finally {
-      setSaving(false)
-      // Sortie de l'onboarding → sas Premier jour (calibrage IA + Today fantôme).
+      // Succès uniquement → sas Premier jour (calibrage IA + Today fantôme).
       // Si l'agent l'a déjà joué (relogin), ProtectedRoute le by-passera vers
       // /dashboard automatiquement.
       navigate('/dashboard/premier-jour', { replace: true })
+    } finally {
+      setSaving(false)
     }
   }
 

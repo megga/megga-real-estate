@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, sgAcc, type WizardData } from '../tokens'
-import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
+import { crmContactById } from '@/components/crm-sugar/mockData'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
@@ -109,9 +109,9 @@ export function Step1Mandate({ data, set }: StepProps) {
     setM({ type: v, commission: t.defaultCom })
   }
 
-  const allContacts = CRM_CONTACTS
+  // Registry runtime (vrais contacts via useContactsSugar) puis brouillon inline.
   const linkedOwner = data.ownerContactId
-    ? (allContacts.find(c => c.id === data.ownerContactId) || data._newContact)
+    ? (crmContactById(data.ownerContactId) ?? data._newContact)
     : null
 
   return (
