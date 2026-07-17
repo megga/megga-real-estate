@@ -311,7 +311,7 @@ async function deleteDemo() {
 }
 
 // ───────────────────────── Publication d'articles (MT1) ─────────────────────────
-// Crée de NOUVEAUX articles Help Center à partir de scripts/intercom-articles-content.json
+// Crée de NOUVEAUX articles Help Center à partir de scripts/_data/intercom-articles-content.json
 // (rédigés grounded dans le code). Par défaut en BROUILLON (revue + passage live au dashboard).
 // Contenu FR : texte dans la locale par défaut + traduction `fr` (miroir des 7 articles existants).
 // Dédup par titre → re-run sûr. ARTICLE_STATE=published pour publier direct.
@@ -321,7 +321,7 @@ const ARTICLE_STATE = (process.env.ARTICLE_STATE || 'draft').toLowerCase()
 
 async function articlesPublish() {
   console.log(`→ Articles publish (état=${ARTICLE_STATE}, author=${AUTHOR_ID}, ${BASE})\n`)
-  const items = JSON.parse(readFileSync(new URL('./intercom-articles-content.json', import.meta.url), 'utf8'))
+  const items = JSON.parse(readFileSync(new URL('./_data/intercom-articles-content.json', import.meta.url), 'utf8'))
 
   const existing = await listAll('/articles')
   const existingTitles = new Set(existing.map((a) => a.title))
@@ -495,12 +495,12 @@ async function articlesPromote(dry) {
 }
 
 // ───────────────────────── Réécriture v2 : MAJ + créations (articles-update) ─────────────────────────
-// Source : scripts/intercom-articles-v2.json. `id` présent → MAJ de la locale FR d'un article live
+// Source : scripts/_data/intercom-articles-v2.json. `id` présent → MAJ de la locale FR d'un article live
 // (PRÉSERVE EN et les autres locales, ne touche pas le top-level) ; `id` absent → création (FR, publié).
 // `articles-update-dry` liste le plan sans rien écrire. Re-run sûr (dédup création par titre).
 
 async function articlesUpdateRun(dry) {
-  const items = JSON.parse(readFileSync(new URL('./intercom-articles-v2.json', import.meta.url), 'utf8'))
+  const items = JSON.parse(readFileSync(new URL('./_data/intercom-articles-v2.json', import.meta.url), 'utf8'))
   console.log(`→ Articles update${dry ? ' [DRY-RUN]' : ''} (${items.length} entrées · ${BASE})\n`)
   const existing = await listAll('/articles')
   const existingByTitle = new Map(existing.map((a) => [a.title, a]))
