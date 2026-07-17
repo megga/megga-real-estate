@@ -247,6 +247,12 @@ export interface WizardData {
   importFile: File | null
   ownerContactId: string | null
   _newContact: { id: string; firstName: string; lastName: string; email: string; phone: string; type: string; kyc: { status: string }; avatarBg: string } | null
+  // Snapshot d'affichage du vendeur EXISTANT sélectionné (nom/avatar/kyc), figé
+  // au moment du choix. Indispensable car les étapes aval (Mandat/Adresse/
+  // Publication) ne peuvent PAS re-résoudre le contact par id : le registry
+  // runtime (useContactsSugar) est vidé au démontage de Step1Vendor. Distinct
+  // de _newContact (brouillon à créer) : ici le contact existe déjà (UUID réel).
+  _ownerContact: { id: string; firstName: string; lastName: string; email: string; phone: string; type: string; kyc: { status: string }; avatarBg: string } | null
   mandate: WizardMandate
   addr: string
   addrConfirmed?: boolean
@@ -286,7 +292,7 @@ export interface WizardData {
 
 export const EMPTY_WIZARD: WizardData = {
   source: null, fromSubmissionId: null, importUrl: '', importFile: null,
-  ownerContactId: null, _newContact: null,
+  ownerContactId: null, _newContact: null, _ownerContact: null,
   mandate: { type: 'exclusive', duration: 6, commission: 3.5, signed: false, fees: 'owner' },
   addr: '', canton: 'Vaud', postCode: '', country: 'Suisse',
   type: 'appartement', area: null, rooms: null, bedrooms: null, bathrooms: null,

@@ -85,7 +85,7 @@ export async function saveDay0Payload(
     return { alreadyDone: true }
   }
 
-  await supabase
+  const { error: doneErr } = await supabase
     .from('profiles')
     .update({
       first_day_done: true,
@@ -93,6 +93,16 @@ export async function saveDay0Payload(
       first_day_completed_at: new Date().toISOString(),
     })
     .eq('id', userId)
+
+  // Écriture CRITIQUE : supabase-js ne throw pas de lui-même sur {error}. Si
+  // first_day_done n'est pas écrit (RLS/réseau) et qu'on continue quand même,
+  // l'appelant (PremierJourShell) entrerait dans le CRM alors que le gate
+  // renverrait en boucle sur le Premier jour (boucle silencieuse). On LÈVE →
+  // le try/catch de PremierJourShell affiche « Connexion perdue » et laisse
+  // réessayer, sans naviguer.
+  if (doneErr) {
+    throw new Error(`saveDay0Payload: échec écriture first_day_done — ${doneErr.message}`)
+  }
 
   // AuditEvent nLPD : trace l'événement avec snapshot du payload pour
   // traçabilité (cf. handoff §"Modèle de données" point 6).

@@ -25,11 +25,12 @@ import { useCreateContact } from '@/hooks/useContacts'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 import { useAuth } from '@/hooks/useAuth'
 
-// Mock-ID guard — Step1Vendor's saveNew assigns `c-new-${Date.now()}` to
-// `data.ownerContactId` when the agent fills the inline new-contact form.
-// We detect that here so handlePublish knows to create the contact first
-// before linking it via a transaction row.
-const NEW_CONTACT_PREFIX = 'c-new-'
+// Vendeur brouillon vs existant : un brouillon (créé inline dans Step1Vendor,
+// id `c-new-…`, ou dérivé d'un seller_lead sans contact_id dans Step0Start, id
+// `c-from-…`) est reconnu par `data._newContact` dont l'`id` égale
+// `data.ownerContactId` — handlePublish le persiste alors avant de lier la
+// transaction. Un `ownerContactId` sans `_newContact` correspondant = un UUID
+// de contact existant, utilisé tel quel.
 
 // Wizard type (FR) → enum DB `property_type` (EN only : apartment|house|villa|
 // commercial|land). Sans ce mapping, 3 tuiles sur 4 ('appartement'/'maison'/
@@ -124,11 +125,14 @@ export default function WizardShell({ onClose }: WizardShellProps) {
       // selected contact id. Without this, the new vendor used to be
       // silently dropped — property published with NO linkage (data loss).
       let sellerContactId: string | null = null
-      if (
-        data._newContact &&
-        data.ownerContactId &&
-        data.ownerContactId.startsWith(NEW_CONTACT_PREFIX)
-      ) {
+      if (data._newContact && data.ownerContactId === data._newContact.id) {
+        // Vendeur brouillon à persister : créé inline dans Step1Vendor (id
+        // « c-new-… ») OU issu d'un seller_lead sans contact_id dans Step0Start
+        // (id « c-from-… »). On le crée d'abord et on lie l'id RÉEL. Le test
+        // d'IDENTITÉ (ownerContactId === _newContact.id), et non de préfixe,
+        // couvre les deux origines ET ignore un _newContact résiduel si l'agent
+        // a finalement choisi un contact existant. Sans ça l'id synthétique
+        // partait dans transactions.contact_seller_id → 22P02 avalé, lien perdu.
         const newC = await createContact.mutateAsync({
           firstName: data._newContact.firstName,
           lastName: data._newContact.lastName,
@@ -138,10 +142,13 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           source: 'manual',
         })
         sellerContactId = newC.id
-      } else if (
-        data.ownerContactId &&
-        !data.ownerContactId.startsWith(NEW_CONTACT_PREFIX)
-      ) {
+        // Idempotence : si une étape suivante (createProperty…) échoue et que
+        // l'agent recommence « Publier », on ne doit PAS recréer le contact.
+        // On remplace le brouillon par l'id réel → au retry, la branche ci-dessus
+        // est fausse et on retombe dans le `else if` (contact existant).
+        set({ ownerContactId: newC.id, _newContact: null, _ownerContact: null })
+      } else if (data.ownerContactId) {
+        // Contact existant sélectionné → UUID réel.
         sellerContactId = data.ownerContactId
       }
 
