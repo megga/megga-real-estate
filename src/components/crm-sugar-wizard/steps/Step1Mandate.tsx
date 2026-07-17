@@ -109,9 +109,9 @@ export function Step1Mandate({ data, set }: StepProps) {
     setM({ type: v, commission: t.defaultCom })
   }
 
-  // Registry runtime (vrais contacts via useContactsSugar) puis brouillon inline.
+  // Brouillon inline → snapshot du vendeur existant (figé) → fallback registry.
   const linkedOwner = data.ownerContactId
-    ? (crmContactById(data.ownerContactId) ?? data._newContact)
+    ? (data._newContact ?? data._ownerContact ?? crmContactById(data.ownerContactId))
     : null
 
   return (

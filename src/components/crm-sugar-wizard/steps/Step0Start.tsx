@@ -17,6 +17,10 @@ interface CrmSubmission {
   title: string
   contactId?: string
   contactDraft?: { firstName: string; lastName: string; email: string; phone: string }
+  // Affichage du contact (nom/email/tél) toujours présent — sert de snapshot
+  // _ownerContact quand la soumission a déjà un contact_id (le chemin saute
+  // Step1Vendor, donc rien ne peuple le registry en aval).
+  contactDisplay: { firstName: string; lastName: string; email: string; phone: string }
   type: 'appartement' | 'maison' | 'villa' | 'terrain'
   transaction: 'vente' | 'location'
   addr: string
@@ -60,6 +64,12 @@ function leadToSubmission(lead: SellerLeadRow): CrmSubmission {
           email: lead.contact_email,
           phone: lead.contact_phone ?? '',
         },
+    contactDisplay: {
+      firstName: fullName[0] || '',
+      lastName: fullName.slice(1).join(' ') || '',
+      email: lead.contact_email,
+      phone: lead.contact_phone ?? '',
+    },
     type: mapPropertyType(lead.property_data.type),
     transaction: 'vente',
     addr: lead.property_data.address,
@@ -197,8 +207,18 @@ function SubmissionsCard({
   const selectSubmission = (sub: CrmSubmission) => {
     let ownerId: string | null = null
     let newContact: WizardData['_newContact'] = null
+    let ownerContact: WizardData['_ownerContact'] = null
     if (sub.contactId) {
       ownerId = sub.contactId
+      // Contact existant → snapshot d'affichage pour les étapes aval (ce chemin
+      // saute Step1Vendor ; sans snapshot le vendeur s'afficherait « — »).
+      ownerContact = {
+        id: sub.contactId, type: 'seller',
+        firstName: sub.contactDisplay.firstName, lastName: sub.contactDisplay.lastName,
+        email: sub.contactDisplay.email, phone: sub.contactDisplay.phone,
+        kyc: { status: 'none' },
+        avatarBg: sub.accent || '#0041D9',
+      }
     } else if (sub.contactDraft) {
       const id = `c-from-${sub.id}`
       newContact = {
@@ -215,6 +235,7 @@ function SubmissionsCard({
       fromSubmissionId: sub.id,
       ownerContactId: ownerId,
       _newContact: newContact,
+      _ownerContact: ownerContact,
       type: sub.type, transaction: sub.transaction,
       addr: sub.addr, canton: sub.canton,
       area: sub.area, rooms: sub.rooms, bedrooms: sub.beds, bathrooms: sub.baths,

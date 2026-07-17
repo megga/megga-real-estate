@@ -34,7 +34,18 @@ export function Step1Vendor({ data, set }: StepProps) {
 
   const selected = data.ownerContactId ? allContacts.find(c => c.id === data.ownerContactId) : null
 
-  const selectContact = (c: CrmContact) => set({ ownerContactId: c.id })
+  // Vendeur EXISTANT : on fige un snapshot d'affichage (les étapes aval ne
+  // peuvent pas re-résoudre par id — registry vidé au démontage) et on efface
+  // tout brouillon éventuel (l'agent a finalement choisi un contact réel).
+  const selectContact = (c: CrmContact) => set({
+    ownerContactId: c.id,
+    _ownerContact: {
+      id: c.id, firstName: c.firstName, lastName: c.lastName,
+      email: c.email, phone: c.phone, type: c.type,
+      kyc: { status: c.kyc?.status ?? 'none' }, avatarBg: c.avatarBg,
+    },
+    _newContact: null,
+  })
 
   const startCreate = () => {
     setCreating(true)
@@ -53,6 +64,7 @@ export function Step1Vendor({ data, set }: StepProps) {
     set({
       ownerContactId: id,
       _newContact: { ...newContact, id, type: 'seller', kyc: { status: 'none' }, avatarBg: SugarV2.pop1 },
+      _ownerContact: null,
     })
     setCreating(false)
   }
@@ -98,7 +110,7 @@ export function Step1Vendor({ data, set }: StepProps) {
               {selected.email} · {selected.phone}
             </div>
           </div>
-          <button onClick={() => set({ ownerContactId: null })} style={{
+          <button onClick={() => set({ ownerContactId: null, _ownerContact: null, _newContact: null })} style={{
             height: 36, padding: '0 16px', borderRadius: 999, border: 0,
             background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',

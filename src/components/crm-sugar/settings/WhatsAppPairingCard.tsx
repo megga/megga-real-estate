@@ -45,9 +45,10 @@ function WAGlyphSolid({ size = 20, waColor = WA_BRAND }: { size?: number; waColo
   )
 }
 
-// Masque un numéro : indicatif pays + préfixe opérateur RÉELS + 2 derniers
-// chiffres (dérivés des chiffres du numéro lié, pas figés à « +41 79 » — un
-// mobile +41 76/78 ou étranger affichait sinon un préfixe faux).
+// Masque un numéro suisse : indicatif pays (2 chiffres) + préfixe opérateur
+// RÉELS + 2 derniers chiffres (dérivés des chiffres, plus figés à « +41 79 » —
+// un mobile +41 76/78 affichait sinon un préfixe faux). Hypothèse CC=2 chiffres
+// (E.164 CH, ce que renvoie le wa_id Meta du pilote) ; pas de parse E.164 complet.
 function maskNumber(num: string | null | undefined): string {
   const digits = (num || '').replace(/\D/g, '')
   if (digits.length < 6) return num || '—'

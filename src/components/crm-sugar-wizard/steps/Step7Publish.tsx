@@ -15,11 +15,11 @@ interface StepProps {
 
 export function Step7Publish({ data, set }: StepProps) {
   const { t: tr } = useTranslation('listings')
-  // Résout le vendeur via le registry runtime (rempli par useContactsSugar avec
-  // les vrais contacts) puis le brouillon inline — jamais le mock statique, qui
-  // afficherait le mauvais propriétaire pour un contact Supabase réel.
+  // Résout le vendeur pour l'affichage : brouillon inline, puis snapshot du
+  // contact existant sélectionné (figé, indépendant du registry volatile), puis
+  // fallback registry runtime. Jamais le mock statique.
   const owner = data.ownerContactId
-    ? (crmContactById(data.ownerContactId) ?? data._newContact)
+    ? (data._newContact ?? data._ownerContact ?? crmContactById(data.ownerContactId))
     : null
 
   const mode = data.publishMode || 'now'

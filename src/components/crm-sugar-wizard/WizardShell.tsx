@@ -142,6 +142,11 @@ export default function WizardShell({ onClose }: WizardShellProps) {
           source: 'manual',
         })
         sellerContactId = newC.id
+        // Idempotence : si une étape suivante (createProperty…) échoue et que
+        // l'agent recommence « Publier », on ne doit PAS recréer le contact.
+        // On remplace le brouillon par l'id réel → au retry, la branche ci-dessus
+        // est fausse et on retombe dans le `else if` (contact existant).
+        set({ ownerContactId: newC.id, _newContact: null, _ownerContact: null })
       } else if (data.ownerContactId) {
         // Contact existant sélectionné → UUID réel.
         sellerContactId = data.ownerContactId

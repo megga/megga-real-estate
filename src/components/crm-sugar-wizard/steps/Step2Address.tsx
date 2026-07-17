@@ -39,9 +39,9 @@ declare global {
 
 export function Step2Address({ data, set }: StepProps) {
   const { t } = useTranslation('listings')
-  // Registry runtime (vrais contacts via useContactsSugar) puis brouillon inline.
+  // Brouillon inline → snapshot du vendeur existant (figé) → fallback registry.
   const linkedOwner = data.ownerContactId
-    ? (crmContactById(data.ownerContactId) ?? data._newContact)
+    ? (data._newContact ?? data._ownerContact ?? crmContactById(data.ownerContactId))
     : null
 
   const [query, setQuery] = useState(data.addr || '')
