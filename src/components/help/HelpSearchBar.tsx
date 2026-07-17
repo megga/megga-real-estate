@@ -1,3 +1,10 @@
+/**
+ * Barre de recherche du centre d'aide — recherche floue (Fuse.js) sur titre,
+ * description et mots-clés de `ALL_ARTICLES`, max 6 résultats.
+ *
+ * Navigation clavier (flèches / Entrée / Échap), fermeture au clic extérieur.
+ * État vide : illustration + liens de repli MEGGA AI et ticket support.
+ */
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'

@@ -1,3 +1,10 @@
+/**
+ * Abonnement Stripe de l'agence courante (table `subscriptions`, RLS agency-scopée).
+ *
+ * Expose le plan/statut actifs + deux flux Stripe redirigés (Edge Functions) :
+ * `stripe-checkout` (souscription) et `stripe-portal` (gestion). En cas d'échec
+ * de la requête, on retombe sur « aucun abonnement » plutôt que de bloquer l'UI.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -21,6 +28,7 @@ interface Subscription {
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
+/** Abonnement courant + plan/statut dérivés et actions Stripe (checkout, portail). */
 export function useSubscription() {
   const { user } = useAuth()
   const queryClient = useQueryClient()

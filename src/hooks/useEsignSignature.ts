@@ -1,8 +1,10 @@
-// Hook front pour l'edge function `sign-document` (backend e-signature, PR #597).
-// Couvre tout le cycle : connexion provider (Skribble/DocuSign), liste des
-// connexions, et — pour les phases 2/3 — création/suivi/annulation d'une
-// signature. L'auth (Bearer JWT) est portée automatiquement par
-// supabase.functions.invoke quand une session existe.
+/**
+ * Hook front pour l'edge function `sign-document` (backend e-signature, PR #597).
+ * Couvre tout le cycle : connexion provider (Skribble/DocuSign), liste des
+ * connexions, et — pour les phases 2/3 — création/suivi/annulation d'une
+ * signature. L'auth (Bearer JWT) est portée automatiquement par
+ * supabase.functions.invoke quand une session existe.
+ */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -93,6 +95,11 @@ async function callSignDocument<T = unknown>(
   return data as T
 }
 
+/**
+ * Expose l'état des connexions e-signature de l'agence et les mutations du cycle
+ * de signature (connect/disconnect, create/status/cancel). `getConnection` ne
+ * retourne qu'un provider au statut `connected`.
+ */
 export function useEsignSignature() {
   const { user } = useAuth()
   const queryClient = useQueryClient()

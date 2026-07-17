@@ -1,3 +1,10 @@
+/**
+ * Presets & helpers du thème du dashboard agent (accent, rayon, densité, police).
+ * `ACCENT_PRESETS` = 7 accents figés, chaque variante en RGB « R G B » prête à
+ * injecter dans les CSS variables ; `generatePresetFromHex` dérive un accent
+ * « custom » depuis une seule couleur. Consommé par les préférences UI.
+ */
+
 /* ─── Dashboard Preferences Types ─── */
 
 export type AccentColor = 'sapphire' | 'graphite' | 'burgundy' | 'forest' | 'ocean' | 'mauve' | 'bronze' | 'custom'

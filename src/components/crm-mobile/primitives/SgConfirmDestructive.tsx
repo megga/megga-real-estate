@@ -1,3 +1,4 @@
+/** Primitive du kit mobile (crm-mobile/primitives) : dialogue de confirmation destructive. */
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 import SgBottomCard from './SgBottomCard'

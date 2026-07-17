@@ -1,3 +1,11 @@
+/**
+ * Catalogue des plans d'abonnement (Starter / Pro / Entreprise).
+ *
+ * Deux structures distinctes à ne pas confondre : `PLANS` = données d'affichage
+ * (prix + liste de features pour la table de pricing), `PLAN_LIMITS` = quotas et
+ * feature-flags consommés côté enforcement (gating des fonctionnalités).
+ */
+
 export interface PlanFeature {
   key: string
   label: string
@@ -13,6 +21,7 @@ export interface PlanConfig {
   features: PlanFeature[]
 }
 
+/** Données d'affichage de la table de pricing (prix mensuel/annuel + features par plan). */
 export const PLANS: PlanConfig[] = [
   {
     id: 'starter',
@@ -76,6 +85,7 @@ export const PLANS: PlanConfig[] = [
   },
 ]
 
+/** Quotas + feature-flags par plan, consommés côté gating (`Infinity` = illimité). */
 export const PLAN_LIMITS = {
   starter: {
     maxProperties: 10,

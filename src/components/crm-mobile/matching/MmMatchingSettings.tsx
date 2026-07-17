@@ -1,3 +1,7 @@
+/**
+ * Overlay mobile « Réglages du matching ». Seul choix exposé à l'agent : la
+ * « largeur » du filet (mode wide/balanced/precise), persistée en localStorage.
+ */
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
@@ -11,6 +15,7 @@ const MS_DEFAULT_MODE = 'balanced'
 const MS_MODE_IDS = ['wide', 'balanced', 'precise'] as const
 type MsMode = (typeof MS_MODE_IDS)[number]
 
+/** Lit le mode persisté ; fallback `balanced` si absent, invalide ou localStorage indisponible. */
 function msLoadMode(): MsMode {
   try {
     const v = window.localStorage.getItem(MS_LS_KEY)
@@ -25,6 +30,7 @@ const GLYPHS: Record<string, string> = {
   check: 'M5 13l4 4 10-12',
 }
 
+/** Glyphe SVG inline (jeu `GLYPHS`) — évite une dépendance icônes pour deux tracés. */
 function Glyph({ name, size = 18, sw = 1.85, color = 'currentColor' }: { name: string; size?: number; sw?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ display: 'block', flexShrink: 0 }}>

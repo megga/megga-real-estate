@@ -1,3 +1,9 @@
+/**
+ * Témoin « job cron en retard » côté admin (monitoring pg_cron). Déduit un seuil
+ * de retard de la cadence cron puis le compare au dernier run. Pur et
+ * déterministe, `now` injectable pour les tests.
+ */
+
 export type CronHealthRow = {
   jobname: string
   schedule: string

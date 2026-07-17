@@ -34,6 +34,10 @@ export interface SuperAdminGateState {
   recheck: () => void
 }
 
+/**
+ * Résout l'accès super-admin côté UI : rôle + email allowlisté + facteur TOTP vérifié.
+ * Renvoie `needsEnrollment` pour forcer l'enrôlement MFA. Enforcement réel = DB/edges.
+ */
 export function useSuperAdminGate(): SuperAdminGateState {
   const { user, profile, loading } = useAuth()
 

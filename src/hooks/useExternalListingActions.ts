@@ -1,3 +1,9 @@
+/**
+ * État local des actions agent sur un bien externe (issu du matching
+ * hors-catalogue) : notes, envois et flag « importé ». Purement client
+ * (localStorage) — ces annotations survivent au refresh mais pas au changement
+ * d'appareil, aucune persistance Supabase.
+ */
 import { useState, useCallback } from 'react'
 import type { ExternalListing } from './useExternalMatching'
 
@@ -29,6 +35,7 @@ type StateMap = Record<string, ExternalListingState>
 
 const STORAGE_KEY = 'megga_external_listing_actions'
 
+/** Lit la map d'états depuis localStorage ; `{}` si absente ou corrompue. */
 function loadState(): StateMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -38,6 +45,7 @@ function loadState(): StateMap {
   }
 }
 
+/** Persiste la map d'états (échec silencieux si le quota localStorage est plein). */
 function saveState(state: StateMap) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
@@ -46,12 +54,17 @@ function saveState(state: StateMap) {
   }
 }
 
+/** État d'un bien donné, avec valeurs par défaut s'il n'a jamais été annoté. */
 function getListingState(stateMap: StateMap, externalId: string): ExternalListingState {
   return stateMap[externalId] || { notes: [], sends: [], imported: false, imported_at: null }
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────────
 
+/**
+ * Notes/envois/import mémorisés pour un bien externe, avec écriture localStorage
+ * transparente. Retourne l'état courant du bien + les actions de mutation.
+ */
 export function useExternalListingActions(listing: ExternalListing | undefined) {
   const [stateMap, setStateMap] = useState<StateMap>(loadState)
 

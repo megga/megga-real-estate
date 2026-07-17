@@ -1,7 +1,9 @@
-// MEGGA CRM Sugar v2 — Adaptateurs partagés Supabase → shapes mock (CrmContact / CrmBien / etc).
-// Centralise les mappings réutilisés par useMatchingSugar, useContactsSugar,
-// useDealsSugar, etc. Les pages UI continuent de consommer Crm* shapes du mock,
-// et les hooks adapter remplissent le registry runtime de mockData.ts.
+/**
+ * MEGGA CRM Sugar v2 — Adaptateurs partagés Supabase → shapes mock (CrmContact / CrmBien / etc).
+ * Centralise les mappings réutilisés par useMatchingSugar, useContactsSugar,
+ * useDealsSugar, etc. Les pages UI continuent de consommer Crm* shapes du mock,
+ * et les hooks adapter remplissent le registry runtime de mockData.ts.
+ */
 
 import type { Contact, SearchCriteria } from '@/types/contact'
 import { splitZones, PROP_TYPE_EN_TO_FR } from '@/lib/contactCriteria'
@@ -25,7 +27,7 @@ export function mapKycStatus(
   return dbDossierStatus  // 'none' | 'pending' | 'verified' | 'stale'
 }
 
-// ─── Mapping Contact.type DB → CrmContact.type ─────────────────────────
+/** Contact.type (DB) → CrmContact.type (UI). investor et lead retombent sur 'buyer'. */
 export function mapContactType(t: Contact['type']): CrmContact['type'] {
   switch (t) {
     case 'buyer':    return 'buyer'
@@ -39,7 +41,7 @@ export function mapContactType(t: Contact['type']): CrmContact['type'] {
   }
 }
 
-// ─── SearchCriteria DB → CrmContact.criteria ───────────────────────────
+/** SearchCriteria (DB) → bloc `criteria` du CrmContact (sépare villes/cantons, libellés de type en FR). */
 export function mapCriteria(c: SearchCriteria | null): CrmContact['criteria'] {
   if (!c) return undefined
   // `zones` mélange villes et codes cantons → on sépare. `type` est en anglais
@@ -71,7 +73,7 @@ export function pickAvatarBg(id: string): string {
   return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
 }
 
-// ─── Score (ContactScore enum DB) → number UI ──────────────────────────
+/** Score qualitatif DB (hot/warm/cold) → note numérique 0–90 attendue par l'UI. */
 export function mapContactScore(score: Contact['score']): number {
   return score === 'hot' ? 90 : score === 'warm' ? 60 : score === 'cold' ? 30 : 0
 }
@@ -84,7 +86,7 @@ function mapContactStatus(t: Contact['type']): CrmContact['status'] {
   return t === 'lead' ? 'lead' : 'active'
 }
 
-// ─── Contact + KycCase → CrmContact ────────────────────────────────────
+/** Assemble un CrmContact complet depuis un Contact DB et son KycCase éventuel. */
 export function contactToCrm(c: Contact, kyc: KycCase | undefined): CrmContact {
   return {
     id: c.id,

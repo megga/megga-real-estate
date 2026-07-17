@@ -1,3 +1,7 @@
+/**
+ * Type d'une transaction (`Transaction`) — un deal du pipeline reliant un bien,
+ * un acheteur et un vendeur, positionné sur un `stage` (14 stades DB → 8 colonnes UI).
+ */
 import type { TransactionStage } from '@/lib/constants'
 
 export type TransactionStatus = 'active' | 'on_hold' | 'cancelled' | 'completed'

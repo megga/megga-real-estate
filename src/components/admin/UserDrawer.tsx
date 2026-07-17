@@ -1,3 +1,11 @@
+/**
+ * Drawer latéral de gestion d'un utilisateur (section super-admin).
+ *
+ * Rendu via `createPortal` (z-100, focus trap, Escape/clic overlay pour fermer).
+ * Affiche l'identité, permet le changement de rôle, l'impersonation (audit-first),
+ * l'export DSAR (nLPD art. 25) et les actions de cycle de vie
+ * (suspendre / réinitialiser le mot de passe / supprimer), plus la timeline d'activité.
+ */
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -23,6 +31,7 @@ interface UserDrawerProps {
   onClose: () => void
 }
 
+/** Avatar utilisateur : photo si fournie, sinon initiales sur fond de couleur déterministe dérivée du nom. */
 function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500']
@@ -47,6 +56,7 @@ function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
   )
 }
 
+/** Panneau de détail/gestion d'un compte, résolu depuis la liste `useAdminUsers` par `userId`. */
 export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { t } = useTranslation('admin')
   const { users, updateRole } = useAdminUsers()

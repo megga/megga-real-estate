@@ -1,8 +1,14 @@
+/**
+ * Bandeau flottant (bas d'écran) invitant un visiteur non connecté à s'authentifier
+ * pour persister ses favoris cross-appareils. Piloté par `useFavoritesLoginPrompt` ;
+ * masqué dès qu'une session existe ou tant que le prompt n'est pas déclenché.
+ */
 import { Link } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { useFavoritesLoginPrompt } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
 
+/** Logo Google multicolore (SVG inline). */
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -14,6 +20,7 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
+/** Carte bottom-sheet : titre, boutons Google/Email vers /login, et « Pas maintenant ». */
 export default function FavoritesLoginPrompt() {
   const { showLoginPrompt, dismissLoginPrompt } = useFavoritesLoginPrompt()
   const { user } = useAuth()

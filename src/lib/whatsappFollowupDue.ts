@@ -13,6 +13,10 @@ export interface FollowupDue {
   urgency: FollowupUrgency
 }
 
+/**
+ * Traduit une échéance ISO en libellé relatif + niveau d'urgence.
+ * `dueAt` nul ou invalide ⇒ « à faire » / `none` (jamais de throw).
+ */
 export function followupDueLabel(dueAt: string | null): FollowupDue {
   if (!dueAt) return { text: 'à faire', urgency: 'none' }
   const due = new Date(dueAt)

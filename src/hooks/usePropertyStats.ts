@@ -1,3 +1,8 @@
+/**
+ * Stats live d'un bien pour la fiche détail : vues + favoris (depuis le
+ * `listing` joint, 1 max par bien) et nombre de demandes de visite (count
+ * sur `visits`). staleTime 60 s.
+ */
 // MEGGA CRM Sugar v2 — Stats live d'un bien (Vues / Favoris / Demandes de visite).
 // Utilisé par BienDetailSugarV3Page pour remplacer les KPI hardcodés à 0.
 
@@ -10,6 +15,7 @@ export interface PropertyStats {
   visitRequests: number
 }
 
+/** Renvoie `{ stats, isLoading }` ; défauts à 0 tant que la requête n'a pas résolu ou si `propertyId` est absent. */
 export function usePropertyStats(propertyId: string | undefined): {
   stats: PropertyStats
   isLoading: boolean

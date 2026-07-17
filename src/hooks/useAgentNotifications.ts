@@ -29,6 +29,7 @@ interface RawEvent {
   object_label: string | null
 }
 
+/** Classe une action/catégorie d'événement en `NotifKind` (kyc, visite, offre…). */
 function toKind(action: string, category: string | null): NotifKind {
   const a = (action || '').toLowerCase()
   if (/kyc|screening|pep|sanction/.test(a) || category === 'kyc') return 'kyc'
@@ -43,12 +44,14 @@ function toKind(action: string, category: string | null): NotifKind {
   return 'system'
 }
 
+/** Mappe la sévérité de l'événement en priorité d'affichage (high / med / low). */
 function toPriority(severity: string | null): NotifPriority {
   if (severity === 'critical' || severity === 'error') return 'high'
   if (severity === 'warning' || severity === 'warn') return 'med'
   return 'low'
 }
 
+/** Range un horodatage ISO dans le bucket temporel : aujourd'hui / hier / plus ancien. */
 function toGroup(iso: string): NotifGroup {
   const t = new Date(iso).getTime()
   const now = new Date()
@@ -58,6 +61,7 @@ function toGroup(iso: string): NotifGroup {
   return 'older'
 }
 
+/** Libellé relatif français (« Il y a 3 min ») depuis un ISO. */
 function relTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60_000)
@@ -73,6 +77,7 @@ const ACTION_TITLES: Record<string, string> = {
   whatsapp_inbound_lead_created: 'Nouveau prospect WhatsApp',
 }
 
+/** Titre lisible d'un événement : label serveur, sinon mapping connu, sinon action humanisée. */
 function titleFor(ev: RawEvent): string {
   if (ev.object_label) return ev.object_label
   if (ACTION_TITLES[ev.action]) return ACTION_TITLES[ev.action]
@@ -85,6 +90,7 @@ function ctaFor(): { cta: string; ctaTo: string } {
   return { cta: '', ctaTo: '' }
 }
 
+/** Set des ids marqués lus, restauré depuis localStorage (le point rouge, pas l'audit). */
 function loadReadIds(): Set<string> {
   try {
     const raw = localStorage.getItem(READ_IDS_KEY)
@@ -94,6 +100,7 @@ function loadReadIds(): Set<string> {
   }
 }
 
+/** Timestamp last-seen restauré depuis localStorage (0 si absent). */
 function loadLastSeen(): number {
   try {
     return Number(localStorage.getItem(LAST_SEEN_KEY)) || 0
@@ -110,6 +117,11 @@ export interface AgentNotifications {
   markAllRead: () => void
 }
 
+/**
+ * Centre de notifications agent : dérive des `SugarNotif` depuis les
+ * `activity_events` non-utilisateur, avec compteur non-lu (last-seen + set
+ * localStorage) et rafraîchissement Realtime. `limit` borne la lecture.
+ */
 export function useAgentNotifications(limit = 30): AgentNotifications {
   const queryClient = useQueryClient()
   const channelId = useId()

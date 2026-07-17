@@ -40,6 +40,12 @@ interface KycDossiersFilter {
   status?: KycDossierStatus | 'all' | 'blocking' | 'risk'
 }
 
+/**
+ * Liste des dossiers KYC (contact joint + compteurs de checks). « Fait » =
+ * complété OU non requis (règle LBA, miroir de la fiche). Le filtre
+ * `blocking`/`risk`/statut est appliqué côté client ; `enabled:false` garde les
+ * surfaces démo inertes (aucun fetch PII).
+ */
 export function useKycDossiers(filters?: KycDossiersFilter, opts?: { enabled?: boolean }) {
   return useQuery<KycDossierRow[]>({
     queryKey: ['kyc-dossiers', filters],
@@ -92,6 +98,7 @@ export function useKycDossiers(filters?: KycDossiersFilter, opts?: { enabled?: b
 
 // ─── Dossier par contact (deep-link RPC) ──────────────────────────────
 
+/** Dossier KYC d'un contact via la RPC `kyc_by_contact_id` (deep-link, renvoie la 1re ligne). */
 export function useKycDossierByContact(contactId: string | undefined) {
   return useQuery<KycDossierSummary | null>({
     queryKey: ['kyc-dossier-by-contact', contactId],
@@ -112,6 +119,7 @@ export function useKycDossierByContact(contactId: string | undefined) {
 // ─── Compteurs par statut (KPIs) ───────────────────────────────────────
 // ─── Mark check completed (trigger auto-valide le dossier) ─────────────
 
+/** Coche/décoche un check ; le trigger DB `auto_verify_kyc_dossier` logge l'audit et auto-valide le dossier. */
 export function useMarkKycCheck() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -250,6 +258,7 @@ interface CreateKycDossierInput {
   transactionAmount?: number | null
 }
 
+/** Crée un dossier KYC ; le trigger `seed_kyc_lba_checks` sème 5 checks + l'AuditEvent d'ouverture. */
 export function useCreateKycDossier() {
   const queryClient = useQueryClient()
   return useMutation({

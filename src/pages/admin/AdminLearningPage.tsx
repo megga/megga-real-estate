@@ -1,3 +1,10 @@
+/**
+ * Page super-admin — style appris des agents WhatsApp.
+ *
+ * Route : `/dashboard/admin/learning` (SuperAdminGuard, accent violet). Liste par
+ * agent le style distillé (langue, registre, emoji, traits) et permet de
+ * l'activer/désactiver ou d'éditer les traits à la main via `useSetLearnedStyle`.
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sparkles } from 'lucide-react'

@@ -10,6 +10,7 @@ const KYC_ONBOARDED_KEY = 'megga.kyc.onboarded'
 // session SPA (pas de reload) même quand le stockage est indisponible.
 let kycOnboardedInMemory = false
 
+/** Pose le flag « onboarding KYC vu » (localStorage + repli mémoire). */
 export function markKycOnboarded(): void {
   kycOnboardedInMemory = true
   try {
@@ -19,6 +20,7 @@ export function markKycOnboarded(): void {
   }
 }
 
+/** True si l'onboarding KYC a déjà été vu — pilote l'affichage onboarding vs pager. */
 export function isKycOnboarded(): boolean {
   if (kycOnboardedInMemory) return true
   try {

@@ -23,6 +23,11 @@ export interface UseBiensSugarReturn {
   refetch: () => void
 }
 
+/**
+ * Biens de l'agence adaptés au shape mock CrmBien pour BiensSugarV2Page : injecte
+ * vues/favoris réels (jointure listings) + score de bien, et publie chaque bien au
+ * registry runtime Sugar pour crmBienById().
+ */
 export function useBiensSugar(): UseBiensSugarReturn {
   // useAgencyProperties renvoie un sur-ensemble de Property (joint avec
   // listings(views_count, favorites_count) — pas utile pour CrmBien).

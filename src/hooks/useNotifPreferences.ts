@@ -34,6 +34,12 @@ export interface UseNotifPreferencesReturn {
   save: (next: NotifPreferences) => Promise<void>
 }
 
+/**
+ * Lit et écrit les préférences de notifications (email/sms/whatsapp/inapp) de
+ * l'agent, stockées sous `profiles.preferences.notifications`. La sauvegarde
+ * fait un read-modify-write pour préserver les autres sous-clés du JSON.
+ * @param options.enabled coupe la query quand le panneau est masqué.
+ */
 export function useNotifPreferences(options?: { enabled?: boolean }): UseNotifPreferencesReturn {
   const enabled = options?.enabled ?? true
   const { profile } = useAuth()

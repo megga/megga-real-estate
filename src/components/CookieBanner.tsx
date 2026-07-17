@@ -1,3 +1,8 @@
+/**
+ * Bannière de consentement cookies (nLPD/RGPD) : essentiels toujours actifs,
+ * analytics en opt-in. Montée globalement dans App. Le choix est persisté en
+ * localStorage et diffusé au reste de l'app via l'event `cookie-consent-changed`.
+ */
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -12,6 +17,7 @@ interface CookieConsent {
   version: string
 }
 
+/** Persiste le consentement en localStorage puis notifie l'app via un CustomEvent. */
 function emitConsent(consent: CookieConsent) {
   try {
     localStorage.setItem(CONSENT_KEY, JSON.stringify(consent))
@@ -21,6 +27,7 @@ function emitConsent(consent: CookieConsent) {
   window.dispatchEvent(new CustomEvent('cookie-consent-changed', { detail: consent }))
 }
 
+/** Affiche la bannière tant qu'aucun consentement n'est enregistré ; propose accepter / refuser / préférences fines. */
 export default function CookieBanner() {
   const { t } = useTranslation('common')
   const [visible, setVisible] = useState(false)

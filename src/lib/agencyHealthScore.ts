@@ -1,3 +1,9 @@
+/**
+ * Score de santé d'une agence (vue super-admin). Agrège 5 facteurs pondérés
+ * (récence d'activité, biens actifs, contacts, transactions, volume 30 j) en un
+ * score /100 et un niveau healthy/warning/critical. Déterministe, 0 LLM.
+ */
+
 interface AgencyMetrics {
   daysSinceLastActivity: number
   activePropertiesCount: number
@@ -6,6 +12,7 @@ interface AgencyMetrics {
   eventsLast30Days: number
 }
 
+/** Combine les 5 facteurs en un score /100, un niveau et le détail par facteur (affichage). */
 export function calculateAgencyHealth(metrics: AgencyMetrics): {
   score: number
   level: 'healthy' | 'warning' | 'critical'

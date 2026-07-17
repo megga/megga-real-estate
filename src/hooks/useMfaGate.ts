@@ -27,6 +27,11 @@ export interface MfaGateState {
   recheck: () => void
 }
 
+/**
+ * Gate step-up AAL2 : indique si l'agent connecté (AAL1 avec facteur TOTP vérifié)
+ * doit saisir son code 2FA avant d'entrer dans le CRM. Le passage est mémoïsé par
+ * `userId` (cache module) ; en cas d'absence de session réelle ou d'erreur, ne bloque pas.
+ */
 export function useMfaGate(userId: string | null | undefined): MfaGateState {
   const cached = !!userId && satisfiedFor === userId
   const [checking, setChecking] = useState<boolean>(!cached && !!userId)

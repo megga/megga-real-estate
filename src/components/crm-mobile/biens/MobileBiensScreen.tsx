@@ -26,6 +26,7 @@ const DEMO: CrmBien[] = [
   { id: 'p4', ref: 'MG-004', status: 'draft', type: 'appartement', transaction: 'vente', title: '4 pièces à rénover', addr: 'Rue de la Servette 90, Genève', canton: 'GE', price: 720000, charges: null, area: 95, rooms: 4, beds: 2, baths: 1, year: 1972, energy: 'E', ownerContactId: null, mandat: { type: 'recherche' }, visibility: 'private', stats: { views: 0, favorites: 0, visitRequests: 0 }, photoCount: 0, signedPhotoCount: 0, coverPhoto: null, health: null, accent: '#6366F1' },
 ]
 
+/** Libellé de prix : loyer si location, sinon prix de vente. */
 function priceLabel(b: CrmBien): string {
   return b.transaction === 'location' ? formatRent(b.rent) : formatCHF(b.price)
 }
@@ -185,6 +186,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
   )
 }
 
+/** Puce spec compacte : icône + valeur (surface, pièces…). */
 function Spec({ icon, value, color }: { icon: 'surface' | 'home' | 'bed' | 'bath'; value: string; color: string }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -194,6 +196,7 @@ function Spec({ icon, value, color }: { icon: 'surface' | 'home' | 'bed' | 'bath
   )
 }
 
+/** Carte bien de la galerie : couverture, statut, prix, specs et score de santé ; ••• ouvre le menu contextuel. */
 function BienCard({ b, t, onOpen, onMenu }: { b: CrmBien; t: TFunction; onOpen: () => void; onMenu: () => void }) {
   const { tk } = useMobileTokens()
   const tone = statusTone(b.status)

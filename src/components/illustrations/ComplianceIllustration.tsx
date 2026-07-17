@@ -1,3 +1,4 @@
+/** Illustration Maggy « conformité » (bouclier, SVG statique). */
 interface Props { className?: string }
 
 export default function ComplianceIllustration({ className = 'w-full h-full' }: Props) {

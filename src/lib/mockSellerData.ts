@@ -1,5 +1,10 @@
-// Mock data for the Seller Portal (Portail Vendeur)
-// This simulates a seller's view of their property sale
+/**
+ * Données factices du portail vendeur (Portail Vendeur).
+ *
+ * Simule la vue d'un vendeur sur sa vente (bien, visites, offres, KPIs, agent).
+ * Sert la route de dev `/portail` (PortalDevWrapper) ; le portail réel `/portail/:token`
+ * lit Supabase. Types partagés entre le mock et la version live.
+ */
 
 export interface SellerProperty {
   id: string
@@ -84,6 +89,7 @@ export interface SellerPortalData {
 
 // ── Mock data ────────────────────────────────────────────────────────────
 
+/** Jeu de données de démo complet (bien genevois à l'étape « offres ») pour la route dev. */
 export const MOCK_SELLER_DATA: SellerPortalData = {
   property: {
     id: 'prop-seller-1',

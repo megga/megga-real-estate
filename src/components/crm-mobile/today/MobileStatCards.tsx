@@ -1,3 +1,7 @@
+/**
+ * Cartes stats du cockpit « Aujourd'hui » mobile : jauge circulaire (Ring) +
+ * tuiles Pipeline / Objectif.
+ */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
@@ -5,6 +9,7 @@ import { useAxDashboardData } from '@/hooks/useAxDashboardData'
 import { axPace } from '@/components/crm-sugar/analytics/tokens'
 import { useMobileTokens } from '../useMobileTokens'
 
+/** Jauge circulaire SVG (0-100 %, clampé) : anneau + arc de progression animé, pourcentage centré. */
 function Ring({ pct, color }: { pct: number; color: string }) {
   const { tk } = useMobileTokens()
   const size = 66

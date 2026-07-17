@@ -1,3 +1,8 @@
+/**
+ * Article du centre d'aide — route `/help/:category/:slug` (public).
+ * Récupère l'article depuis `helpArticles`, le rend via un mini-moteur markdown
+ * maison, et affiche fil d'Ariane, sommaire (TOC), articles liés et bloc de feedback.
+ */
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight } from 'lucide-react'
@@ -13,6 +18,7 @@ const CATEGORY_LABEL_KEYS: Record<string, string> = {
   acheteur: 'help.categoryBuyer',
 }
 
+/** Normalise un titre en slug minuscule (accents latins conservés) pour les ancres du sommaire. */
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -20,7 +26,11 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, '')
 }
 
-// Simple markdown-to-JSX renderer with editorial typography
+/**
+ * Mini-moteur markdown → JSX (titres, listes, tables, gras/code/liens inline).
+ * `dangerouslySetInnerHTML` est sûr ici : le contenu provient de la lib locale
+ * `helpArticles`, jamais d'une saisie utilisateur.
+ */
 function renderMarkdown(content: string) {
   const lines = content.split('\n')
   const elements: React.ReactNode[] = []
@@ -120,6 +130,7 @@ function renderMarkdown(content: string) {
   return elements
 }
 
+/** Rend l'article ou l'état introuvable ; calcule le temps de lecture et le sommaire depuis les `##`. */
 export default function HelpArticlePage() {
   const { t } = useTranslation('common')
   const { category, slug } = useParams<{ category: string; slug: string }>()

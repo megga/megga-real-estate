@@ -1,3 +1,7 @@
+/**
+ * Popover (shadcn/ui) — surface flottante bâtie sur Radix Popover, rendue en portail.
+ * Réexporte Root/Trigger/Anchor/Close tels quels ; seul `PopoverContent` est stylé.
+ */
 import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 import { cn } from "@/lib/utils"
@@ -7,6 +11,7 @@ const PopoverTrigger = PopoverPrimitive.Trigger
 const PopoverAnchor = PopoverPrimitive.Anchor
 const PopoverClose = PopoverPrimitive.Close
 
+/** Contenu du popover, porté et animé selon le côté d'ouverture ; défauts : `align` « center », `sideOffset` 4px du déclencheur. */
 const PopoverContent = React.forwardRef<
   React.ComponentRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>

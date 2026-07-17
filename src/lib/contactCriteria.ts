@@ -70,6 +70,7 @@ const CANTON_CODES = new Set([
   'AG', 'SZ', 'UR', 'OW', 'NW', 'GL', 'SH', 'TG', 'AR', 'AI', 'SG', 'GR', 'TI',
 ])
 
+/** Vrai si `z` est un code canton suisse (2 lettres), pour trier zones cantons ↔ villes. */
 export function isCantonCode(z: string): boolean {
   return CANTON_CODES.has(z.trim().toUpperCase())
 }

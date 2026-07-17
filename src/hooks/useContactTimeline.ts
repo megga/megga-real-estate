@@ -1,3 +1,9 @@
+/**
+ * Hook timeline d'un contact : 50 derniers `activity_events` (audit trail) dont
+ * `entity_id` = contactId, avec le nom de l'acteur joint depuis `profiles`.
+ * Repli sans la jointure acteur si la RLS `profiles` la bloque, et [] en dernier
+ * recours plutôt que de casser la fiche.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -11,6 +17,7 @@ export interface TimelineEvent {
   actor_name: string | null
 }
 
+/** Charge les 50 derniers événements d'audit rattachés au contact (repli si la jointure acteur est bloquée par la RLS). */
 export function useContactTimeline(contactId: string | undefined) {
   return useQuery({
     queryKey: ['contact-timeline', contactId],

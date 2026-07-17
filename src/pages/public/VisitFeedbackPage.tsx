@@ -1,3 +1,10 @@
+/**
+ * Page publique — retour de visite pour l'acheteur (sans login).
+ *
+ * Route : `/visit/:id/feedback` ; l'auth se fait via le `?token=` du lien
+ * (le `:id` n'est qu'affichage). Formulaire note étoiles + points forts /
+ * objections + intérêt d'offre ; le retour est anonymisé côté vendeur.
+ */
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Star, Check, Loader2, MapPin } from 'lucide-react'

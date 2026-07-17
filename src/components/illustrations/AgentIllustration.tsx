@@ -1,3 +1,4 @@
+/** Illustration Maggy « agent immobilier » (SVG statique). */
 interface Props { className?: string }
 
 export default function AgentIllustration({ className = 'w-full h-full' }: Props) {

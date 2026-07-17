@@ -1,3 +1,8 @@
+/**
+ * Hook super-admin — modération des annonces publiées.
+ * Liste les biens actifs/réservés (+ agence résolue), stats agrégées via RPC, et
+ * mutation `moderate` (approve/flag/remove) qui journalise dans `moderation_actions`.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -22,6 +27,7 @@ export interface ModerationStats {
   removedThisMonth: number
 }
 
+/** Annonces à modérer (biens actifs/réservés), stats agrégées et action de modération (approve/flag/remove + audit). */
 export function useAdminModeration() {
   const { profile } = useAuth()
   const queryClient = useQueryClient()

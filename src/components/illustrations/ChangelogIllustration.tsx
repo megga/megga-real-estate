@@ -1,3 +1,4 @@
+/** Illustration Maggy « nouveautés » (réveil, SVG statique). */
 interface Props { className?: string }
 
 export default function ChangelogIllustration({ className = 'w-full h-full' }: Props) {

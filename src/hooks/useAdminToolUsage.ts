@@ -17,6 +17,7 @@ export interface ToolUsageRow {
   last_used_at: string | null
 }
 
+/** Stats d'usage des outils WhatsApp en mode observé (tout outil réellement appelé, catalogué ou non). */
 export function useAdminToolUsage() {
   return useQuery({
     queryKey: ['admin', 'tool-usage-stats'],

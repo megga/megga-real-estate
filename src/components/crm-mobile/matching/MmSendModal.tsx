@@ -1,3 +1,7 @@
+/**
+ * Modale mobile de confirmation d'envoi de dossier (bottom-sheet). Étape
+ * human-in-the-loop avant le geste `send` réel du matching.
+ */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'

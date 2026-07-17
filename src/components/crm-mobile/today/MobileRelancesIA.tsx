@@ -1,3 +1,7 @@
+/**
+ * Bloc « Relances IA » de l'écran « Aujourd'hui » mobile (crm-mobile/today) :
+ * compte les contacts dormants et ouvre la session de relance.
+ */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useRelanceLeads } from '@/hooks/useRelanceLeads'

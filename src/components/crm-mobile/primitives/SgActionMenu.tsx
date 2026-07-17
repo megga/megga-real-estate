@@ -1,3 +1,4 @@
+/** Primitive du kit mobile (crm-mobile/primitives) : menu d'actions ••• réutilisable, monté sur SgBottomCard. */
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'
 import SgBottomCard from './SgBottomCard'

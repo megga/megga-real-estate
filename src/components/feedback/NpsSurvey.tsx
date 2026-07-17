@@ -1,3 +1,10 @@
+/**
+ * Sondage NPS flottant (bas-droite) proposé aux agents après 30 jours d'ancienneté.
+ *
+ * Note 1-5 étoiles + commentaire optionnel, écrit dans `admin_nps_responses`.
+ * Masqué pour les super_admin. Cooldown localStorage : re-proposé 30 jours après
+ * un rejet, jamais réaffiché une fois soumis. Apparition différée de 5 s.
+ */
 import { useState, useEffect } from 'react'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { cn } from '@/lib/utils'

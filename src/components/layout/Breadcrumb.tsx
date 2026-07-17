@@ -1,3 +1,8 @@
+/**
+ * Fil d'Ariane du CRM agent (desktop only, ≥ md). Dérive les segments depuis
+ * `location.pathname` et les libellise via `routeLabels` ; rien sous 3 niveaux.
+ * Un ID de contact est résolu en nom via un sous-composant dédié.
+ */
 import { Link, useLocation, useParams } from 'react-router-dom'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useContact } from '@/hooks/useContacts'
@@ -22,6 +27,7 @@ const routeLabels: Record<string, string> = {
   new: 'Nouveau',
 }
 
+/** Résout un ID de contact en « Prénom Nom » (fallback : l'ID brut). */
 // Inner component that can call hooks conditionally
 function ContactBreadcrumb({ id, path, isLast }: { id: string; path: string; isLast: boolean }) {
   const { data: contact } = useContact(id)
@@ -36,6 +42,7 @@ function ContactBreadcrumb({ id, path, isLast }: { id: string; path: string; isL
   )
 }
 
+/** Construit les segments depuis l'URL et rend le fil (null si < 3 niveaux). */
 export default function Breadcrumb() {
   const location = useLocation()
   const params = useParams()

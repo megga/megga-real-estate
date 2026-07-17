@@ -1,3 +1,8 @@
+/**
+ * Hook super-admin — flux d'activité temps réel de la plateforme.
+ * Lit les derniers `activity_events` (toutes agences) et s'abonne au Realtime
+ * Supabase pour invalider la liste à chaque INSERT.
+ */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -13,6 +18,7 @@ export interface LiveEvent {
   actor_id: string | null
 }
 
+/** Derniers événements d'activité (défaut 50) rafraîchis en direct via Supabase Realtime. */
 export function useAdminLiveFeed(limit = 50) {
   const queryClient = useQueryClient()
   // Unique channel name per hook instance — see useAdminNotifications for

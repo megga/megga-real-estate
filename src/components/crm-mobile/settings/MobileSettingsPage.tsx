@@ -1,3 +1,4 @@
+/** Wrapper de route mobile : monte `MobileSettingsScreen` dans la coque à onglets. */
 import MobileShell from '../shell/MobileShell'
 import { MobileSettingsScreen } from './MobileSettingsScreen'
 

@@ -1,3 +1,4 @@
+/** Illustration décorative « statut / analyse » (SVG Maggy servi statiquement). */
 interface Props { className?: string }
 
 export default function StatusIllustration({ className = 'w-full h-full' }: Props) {

@@ -1,3 +1,11 @@
+/**
+ * Suivi d'onboarding des agences (section super-admin).
+ *
+ * Deux vues : un funnel agrégé (part des agences ayant franchi chaque étape) et
+ * la liste des agences triée par complétion croissante — les plus à risque en
+ * tête. Étapes et statut (active / at_risk / dormant) viennent de
+ * `useOnboardingTracker`.
+ */
 import { useTranslation } from 'react-i18next'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useOnboardingTracker } from '@/hooks/useOnboardingTracker'
@@ -19,6 +27,7 @@ const STATUS_CONFIG: Record<AgencyOnboarding['status'], { i18nKey: string; dotCl
   dormant: { i18nKey: 'onboarding.status.dormant', dotClass: 'bg-red-500' },
 }
 
+/** Carte funnel + table des agences, chacune avec barre de progression, pastilles d'étapes et statut. */
 export default function OnboardingTracker() {
   const { t } = useTranslation('admin')
   const { data: agencies, isLoading } = useOnboardingTracker()

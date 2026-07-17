@@ -1,3 +1,11 @@
+/**
+ * Shell du CRM agent — layout de toutes les routes `/dashboard/*` (React Router
+ * `<Outlet>`). Assemble sidebar, header mobile, breadcrumb, command palette (⌘K),
+ * création rapide de contact (⌘⇧C), bannière d'impersonation, bottom tab bar et
+ * sondage NPS. Enveloppé de `ThemeProvider` (dark mode limité au dashboard) et
+ * `CopilotContextProvider`. En mobile, court-circuite le chrome legacy au profit
+ * du MobileShell fourni par les pages, sauf sous `/dashboard/admin`.
+ */
 import { useState, useEffect, useCallback } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -12,6 +20,7 @@ import BottomTabBar from '@/components/layout/BottomTabBar'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import NpsSurvey from '@/components/feedback/NpsSurvey'
 
+/** Corps du layout (à l'intérieur des providers) : gère l'état du chrome et les raccourcis globaux. */
 function AgentLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -110,6 +119,7 @@ function AgentLayoutInner() {
   )
 }
 
+/** Point d'entrée exporté : monte les providers (thème, contexte copilote) autour du shell. */
 // Wrap with ThemeProvider so dark mode only applies to the dashboard
 export default function AgentLayout() {
   return (

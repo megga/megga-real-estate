@@ -1,3 +1,9 @@
+/**
+ * Hooks React Query pour le CRUD des biens (`properties`) : lecture unité/
+ * liste, création, mise à jour (verrou optimiste) et uploads
+ * photos/plans (staging Supabase → miroir Cloudflare R2, EXIF strippé côté
+ * client). Partiellement migré vers @supabase-cache-helpers — détail ci-dessous.
+ */
 // Migrated to @supabase-cache-helpers/postgrest-react-query (partial).
 //
 // What migrated:
@@ -35,6 +41,7 @@ import type { TablesInsert, TablesUpdate } from '@/types/database'
 
 // ── Query single property (for edit mode) ──
 
+/** Lecture d'un bien par id pour l'édition ; `enabled` gère l'absence d'id (UUID sentinelle sinon, car Cache Helpers exige une requête valide). */
 export function useProperty(id: string | undefined) {
   // Cache Helpers needs a valid query expression even when disabled; we pass
   // a sentinel UUID and gate via `enabled`.
@@ -55,6 +62,7 @@ export function useProperty(id: string | undefined) {
 
 // ── Query all agency properties (including drafts without listings) ──
 
+/** Liste des biens de l'agence (portée par RLS), brouillons inclus, enrichie des stats du listing joint. */
 export function useAgencyProperties() {
   const result = useQuery(
     supabase
@@ -110,6 +118,7 @@ export interface CreatePropertyInput {
   published_at?: string
 }
 
+/** Insertion d'un bien ; injecte `agency_id`/`created_by` depuis le profil et renvoie `{ id, updated_at }`. */
 export function useCreateProperty() {
   const { user, profile } = useAuth()
   const insert = useInsertMutation(
@@ -145,6 +154,7 @@ export function useCreateProperty() {
 // only filters by primary key. The conflict-detection contract used by
 // ListingFormPage would break otherwise.
 
+/** Levée quand une mise à jour à verrou optimiste ne matche aucune ligne : le bien a été modifié ailleurs entre-temps. */
 export class PropertyUpdateConflictError extends Error {
   constructor() {
     super('Ce bien a été modifié ailleurs. Rechargez la page avant de re-sauvegarder.')
@@ -152,6 +162,7 @@ export class PropertyUpdateConflictError extends Error {
   }
 }
 
+/** Mise à jour d'un bien avec verrou optimiste optionnel (`expected_updated_at`) ; invalide manuellement les caches property/listings liés. */
 export function useUpdateProperty() {
   const queryClient = useQueryClient()
 
@@ -221,6 +232,7 @@ async function mirrorPhotosToR2(
 
 // ── Upload floor plan image to Supabase Storage (puis miroir R2) ──
 
+/** Upload d'un plan d'étage (staging Supabase, EXIF strippé) puis miroir R2 ; renvoie l'URL R2 ou l'URL Supabase en repli. */
 export function useUploadFloorPlan() {
   const { profile } = useAuth()
 
@@ -344,6 +356,7 @@ export function useUploadChatPhoto() {
   })
 }
 
+/** Upload de N photos de bien (staging Supabase, EXIF strippé) puis miroir R2 en lot ; renvoie les URLs R2, ou les URLs Supabase si le miroir échoue. */
 export function useUploadPropertyPhotos() {
   const { profile } = useAuth()
 

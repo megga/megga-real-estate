@@ -1,3 +1,7 @@
+/**
+ * Hooks React Query pour la table `listings` (annonce publiée d'un bien).
+ * Actuellement limité à la création d'une annonce.
+ */
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -11,6 +15,7 @@ interface CreateListingInput {
   is_hot?: boolean
 }
 
+/** Insère une annonce et invalide les listes `listings` / `agency-listings`. */
 export function useCreateListing() {
   const queryClient = useQueryClient()
   return useMutation({

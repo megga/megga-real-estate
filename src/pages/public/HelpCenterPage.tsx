@@ -1,3 +1,9 @@
+/**
+ * Page publique — accueil du centre d'aide.
+ *
+ * Route : `/help`. Hero + recherche, 3 cartes persona (agent/vendeur/acheteur),
+ * carrousel d'articles populaires et CTA contact.
+ */
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -51,8 +57,11 @@ const FALLBACK_ARTICLES = [
   { title: 'Financer votre achat en Suisse', slug: 'financer-achat-suisse', category: 'acheteur', description: 'Fonds propres, hypothèque, taux d\'intérêt, amortissement.' },
 ]
 
-// ── Popular Articles Carousel ──────────────────────────────────────────
-
+/**
+ * Carrousel des articles populaires, paginé 3 par 3. Charge le classement réel
+ * via la RPC `get_popular_articles` ; retombe sur `FALLBACK_ARTICLES` tant que
+ * moins de 3 articles valides sont résolus.
+ */
 function PopularArticlesCarousel() {
   const { t } = useTranslation('common')
   const [page, setPage] = useState(0)

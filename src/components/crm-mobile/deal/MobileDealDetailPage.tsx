@@ -1,3 +1,7 @@
+/**
+ * Page mobile (route /dashboard/transactions/:id) : coque de détail + retour
+ * pipeline. L'UI et le câblage données vivent dans MobileDealDetailScreen.
+ */
 import { useNavigate } from 'react-router-dom'
 import MobileShell from '../shell/MobileShell'
 import MobileHeaderBack from '../shell/MobileHeaderBack'

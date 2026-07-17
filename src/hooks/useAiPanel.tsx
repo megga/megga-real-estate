@@ -32,6 +32,7 @@ const AiPanelContext = createContext<AiPanelValue>({
   open: noop, close: noop, askAi: noop, consumeSeed: noop,
 })
 
+/** Provider du panneau MEGGA AI : dérive écran + entité de la route et expose open/close/askAi/seed. */
 export function AiPanelProvider({ children }: { children: ReactNode }) {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
@@ -52,6 +53,7 @@ export function AiPanelProvider({ children }: { children: ReactNode }) {
   return <AiPanelContext.Provider value={value}>{children}</AiPanelContext.Provider>
 }
 
+/** Accès au contexte du panneau MEGGA AI (`enabled: false` hors provider → surfaces en fallback). */
 export function useAiPanel(): AiPanelValue {
   return useContext(AiPanelContext)
 }

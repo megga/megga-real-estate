@@ -1,3 +1,4 @@
+/** Illustration décorative « scan de carte » (états vides Contacts), variantes clair/sombre. */
 import type { CSSProperties } from 'react'
 
 interface Props {

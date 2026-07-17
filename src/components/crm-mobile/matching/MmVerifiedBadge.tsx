@@ -1,3 +1,4 @@
+/** Sceau SVG « KYC vérifié » (mobile). */
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 

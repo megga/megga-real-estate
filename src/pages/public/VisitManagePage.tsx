@@ -1,3 +1,11 @@
+/**
+ * Page publique — gestion d'une visite par l'acheteur (sans login).
+ *
+ * Route : `/visit/:id/edit` ; l'auth se fait via le `?token=` du lien (le `:id`
+ * n'est qu'affichage). Permet de reporter (choix date + créneau) ou d'annuler
+ * la visite ; l'agent est notifié. Machine à 4 états : view / reschedule /
+ * cancelled / rescheduled.
+ */
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CalendarDays, MapPin, Check, X, Loader2 } from 'lucide-react'

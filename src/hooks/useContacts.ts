@@ -1,3 +1,10 @@
+/**
+ * Hooks CRUD des contacts CRM, adossés à Supabase Cache Helpers.
+ *
+ * Toutes les requêtes sont agency-scopées par RLS. Les clés de cache sont
+ * dérivées de la forme de la requête (table + filtres) : les mutations
+ * invalident automatiquement les listes/détails qui touchent `contacts`.
+ */
 // Migrated to @supabase-cache-helpers/postgrest-react-query.
 //
 // What changed:
@@ -42,6 +49,10 @@ interface ContactFilters {
   search?: string
 }
 
+/**
+ * Liste des contacts de l'agence, filtrable par type/score/recherche.
+ * Expose aussi `createFromOnboarding` (insertion depuis le tunnel onboarding).
+ */
 export function useContacts(filters?: ContactFilters) {
   const { user, profile } = useAuth()
 
@@ -106,6 +117,7 @@ export function useContacts(filters?: ContactFilters) {
   }
 }
 
+/** Un contact par id (retourne la shape legacy `Contact`, cf. note ci-dessous). */
 export function useContact(id: string | undefined) {
   // Preserve the legacy `Contact` return shape — consumers (e.g.
   // ContactChatPane) still read fields like `ai_seriousness_score` /
@@ -121,6 +133,7 @@ export function useContact(id: string | undefined) {
   }
 }
 
+/** Création manuelle d'un contact (source `manual` par défaut, score `cold`). */
 export function useCreateContact() {
   const { user, profile } = useAuth()
   const insert = useInsertMutation(supabase.from('contacts'), ['id'])
@@ -163,6 +176,7 @@ export function useCreateContact() {
   }
 }
 
+/** Mise à jour partielle d'un contact identifié par `id`. */
 export function useUpdateContact() {
   const update = useUpdateMutation(supabase.from('contacts'), ['id'])
   return {
@@ -175,6 +189,7 @@ export function useUpdateContact() {
   }
 }
 
+/** Suppression d'un contact par id. */
 export function useDeleteContact() {
   const del = useDeleteMutation(supabase.from('contacts'), ['id'])
   return {

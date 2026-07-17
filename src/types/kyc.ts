@@ -1,6 +1,15 @@
+/**
+ * Vocabulaire de domaine KYC/LBA (front) : statuts, niveaux de vigilance, contrôles
+ * obligatoires, dossiers, documents, audit nLPD et couche d'analyse IA.
+ *
+ * Aligné sur les sprints du handoff LBA (voir dividers `Sprint N`). Coexistence
+ * assumée de deux vocabulaires : `KycStatus` (legacy) et `KycDossierStatus` (UI Sugar Pure).
+ */
 import type { KycRiskLevel, PepStatus, SanctionsStatus } from '@/lib/constants'
 
+/** pp = personne physique, pm = personne morale ; côté acheteur ou vendeur. */
 export type KycType = 'buyer_pp' | 'buyer_pm' | 'seller_pp' | 'seller_pm'
+/** Statut legacy du case KYC (workflow de validation agent). */
 export type KycStatus = 'pending' | 'in_progress' | 'review' | 'validated' | 'rejected'
 export type DocumentCategory = 'identity' | 'domicile' | 'financial' | 'compliance' | 'other'
 
@@ -38,6 +47,7 @@ export type KycSourceOfFundsType =
   | 'mixed'
   | 'other'
 
+/** Dossier KYC complet d'un contact sur une transaction (entité centrale, agrège screening + champs des sprints 1/3/4.5). */
 export interface KycCase {
   id: string
   agency_id: string
@@ -108,6 +118,7 @@ export interface KycCaseWithChecklist extends KycCase {
   checklist: KycChecklistItem[]
 }
 
+/** Ligne de checklist d'un dossier (un contrôle requis, cochable, liée à un document). */
 export interface KycChecklistItem {
   id: string
   kyc_case_id: string
@@ -121,6 +132,7 @@ export interface KycChecklistItem {
   completed_by: string | null
 }
 
+/** Pièce justificative stockée (identité, domicile, fonds…) rattachée à un dossier KYC. */
 export interface KycDocument {
   id: string
   agency_id: string
@@ -143,6 +155,7 @@ export interface KycDocument {
   sha256_hash: string | null
 }
 
+/** Évènement d'audit propre au module KYC (append-only, distingue acteur humain/IA/système). */
 export interface KycAuditEvent {
   id: string
   agency_id: string
@@ -188,6 +201,7 @@ export interface AuditEvent {
   ip_address: string | null
 }
 
+/** Résultat d'un screening (PEP + sanctions Dilisense, score/niveau, analyse IA optionnelle). */
 export interface ScreeningResult {
   pep_status: PepStatus
   pep_hits: number
@@ -236,6 +250,7 @@ export type ScreeningDecisionVerdict =
   | 'escalated'             // remonté à la direction
   | 'awaiting_evidence'     // en attente d'éléments complémentaires
 
+/** Décision humaine sur un hit de screening (faux positif, vrai match, escalade…), avec justification et chaînage `supersedes_id`. */
 export interface KycScreeningDecision {
   id: string
   agency_id: string

@@ -40,6 +40,7 @@ interface SsoIdentitiesState {
   refresh: () => Promise<void>
 }
 
+/** Traduit une erreur d'auth Supabase en message FR actionnable (fallback : message brut). */
 function friendlyError(message: string): string {
   const m = message.toLowerCase()
   if (m.includes('manual linking') || (m.includes('linking') && m.includes('disabled'))) {
@@ -52,6 +53,7 @@ function friendlyError(message: string): string {
   return message
 }
 
+/** État + actions pour lier/délier les identités SSO (Google/Microsoft) du compte courant. */
 export function useSsoIdentities(): SsoIdentitiesState {
   const [identities, setIdentities] = useState<UserIdentity[]>([])
   const [isLoading, setIsLoading] = useState(true)

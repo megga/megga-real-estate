@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — supervision compliance (LAB/KYC + nLPD).
+ *
+ * Route : `/dashboard/admin/compliance` (section admin, accent violet). KPIs,
+ * table de dossiers KYC filtrable par onglet (à risque / en attente / validé /
+ * tous), recherche, export CSV, et deux cartes nLPD (couverture des consentements,
+ * suppressions de comptes art. 32). Chaque ligne ouvre le dossier KYC agent.
+ */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -13,6 +21,7 @@ const ITEMS_PER_PAGE = 10
 
 type TabValue = 'risk' | 'pending' | 'validated' | 'all'
 
+/** Classe de fond du point de risque (rouge/ambre/vert). */
 function riskDotColor(level: string): string {
   switch (level) {
     case 'high': return 'bg-red-500'
@@ -22,6 +31,7 @@ function riskDotColor(level: string): string {
   }
 }
 
+/** Classe de couleur de texte du libellé de risque (rouge/ambre/vert). */
 function riskTextColor(level: string): string {
   switch (level) {
     case 'high': return 'text-red-500'
@@ -31,6 +41,7 @@ function riskTextColor(level: string): string {
   }
 }
 
+/** Restreint les dossiers à l'onglet actif. « À risque » = high OU match de screening. */
 function filterCases(cases: ComplianceCase[], tab: TabValue): ComplianceCase[] {
   switch (tab) {
     case 'risk':
@@ -45,6 +56,7 @@ function filterCases(cases: ComplianceCase[], tab: TabValue): ComplianceCase[] {
   }
 }
 
+/** Placeholder pulsant de la table de dossiers pendant le chargement. */
 function SkeletonRows() {
   return (
     <>
@@ -66,6 +78,7 @@ function SkeletonRows() {
   )
 }
 
+/** État vide de la table, message contextualisé selon l'onglet actif. */
 function EmptyState({ tab }: { tab: TabValue }) {
   const { t } = useTranslation('admin')
 
@@ -99,7 +112,7 @@ function EmptyState({ tab }: { tab: TabValue }) {
   )
 }
 
-// ── Consentements nLPD — couverture par type × version (P2 admin) ───────────
+/** Carte nLPD : couverture des consentements par type × version (P2 admin). */
 function ConsentStatsCard() {
   const { t } = useTranslation('admin')
   const { data, isLoading } = useConsentStats()
@@ -139,7 +152,7 @@ function ConsentStatsCard() {
   )
 }
 
-// ── Suppressions de comptes (delete-account, nLPD art. 32) ──────────────────
+/** Carte nLPD : journal des suppressions de comptes (delete-account, art. 32). */
 function AccountDeletionsCard() {
   const { t } = useTranslation('admin')
   const { data, isLoading } = useAccountDeletions()
@@ -168,6 +181,7 @@ function AccountDeletionsCard() {
   )
 }
 
+/** Barre de progression compacte de complétude d'un dossier (valeur bornée 0–100). */
 function CompletionBar({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-2">
@@ -182,6 +196,7 @@ function CompletionBar({ value }: { value: number }) {
   )
 }
 
+/** Écran compliance : KPIs, table de dossiers filtrable/paginée et cartes nLPD. */
 export default function AdminCompliancePage() {
   const { t } = useTranslation('admin')
   const { cases, isLoading, stats, statsLoading } = useAdminCompliance()

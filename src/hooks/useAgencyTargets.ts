@@ -22,6 +22,11 @@ interface AgencyTargetsRow {
   yearly_target: number | string | null
 }
 
+/**
+ * Objectifs commerciaux de l'agence. Lecture des 3 champs `*_target` ; l'écriture
+ * ne prend que l'annuel (`saveYearly`) — le RPC `analytics_set_target` dérive
+ * trimestre/mois et journalise l'audit atomiquement.
+ */
 export function useAgencyTargets(options?: { enabled?: boolean }): {
   targets: AgencyTargets
   isLoading: boolean

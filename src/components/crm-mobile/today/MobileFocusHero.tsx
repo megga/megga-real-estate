@@ -1,3 +1,7 @@
+/**
+ * Héros Focus de l'écran « Aujourd'hui » mobile (crm-mobile/today) : traite la
+ * file de priorités une situation à la fois, en carte photo plein cadre.
+ */
 import { useEffect, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
