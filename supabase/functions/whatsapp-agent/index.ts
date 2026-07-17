@@ -167,13 +167,21 @@ serve(async (req) => {
     console.warn('C1 skipped: no waNumber for profile', profileId)
   } else {
     const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    const { data: histRows } = await supabase
+    // Cloisonnement inter-agences (défense en profondeur) : borne l'historique à l'agence
+    // VÉRIFIÉE du lien (ctx.agencyId = link.agency_id, re-dérivé, jamais le body). Le fil
+    // agent↔MEGGA est déjà propre à l'agent (les messages clients ont d'autres wa_from/wa_to),
+    // mais ça ferme le cas limite d'un numéro recyclé entre agences dans la fenêtre 24h.
+    // Sauté si l'agent n'a pas d'agence (eq(null) ne matcherait rien d'utile ; aucun outil
+    // ne fonctionne de toute façon sans agence).
+    let histQ = supabase
       .from('whatsapp_messages')
       .select('direction, body, transcript')
       .or(`wa_from.eq.${waNumber},wa_to.eq.${waNumber}`)
       .eq('is_agent_error', false) // anti-écho : ne jamais relire une réponse d'échec (leçon 5)
       .neq('provider_message_id', currentMessageId ?? '')
       .gt('created_at', sinceIso)
+    if (ctx.agencyId) histQ = histQ.eq('agency_id', ctx.agencyId)
+    const { data: histRows } = await histQ
       .order('created_at', { ascending: false })
       .limit(12)
     history = buildHistoryMessages((histRows ?? []) as WaHistoryRow[])
