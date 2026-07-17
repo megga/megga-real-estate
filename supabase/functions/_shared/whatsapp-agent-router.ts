@@ -70,6 +70,10 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   send_client_message: 'confirm',
   send_listings: 'confirm',
   record_offer: 'confirm',
+  // delete_contact : suppression DÉFINITIVE d'une fiche contact → confirm obligatoire
+  // (destructif + irréversible, jamais dans la boucle). Le socle légal ne peut jamais
+  // quitter confirm (canLeaveConfirm ne renvoie true que pour update_pipeline).
+  delete_contact: 'confirm',
   open_kyc_case: 'confirm',
   attach_kyc_document: 'auto',          // reste synchrone (P2b : async + R2)
   run_kyc_screening: 'slow_async',      // ~50s Dilisense → hors boucle (file + cron)

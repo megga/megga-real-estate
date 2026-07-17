@@ -131,6 +131,9 @@ describe('toolTier', () => {
   it('open_kyc_case est confirm (création de dossier LBA → validation agent)', () => {
     expect(toolTier('open_kyc_case')).toBe('confirm')
   })
+  it('delete_contact est confirm (suppression DÉFINITIVE → jamais auto, jamais dans la boucle)', () => {
+    expect(toolTier('delete_contact')).toBe('confirm')
+  })
   it('run_kyc_screening est slow_async (Palier 2 : ~50s Dilisense → hors boucle)', () => {
     expect(toolTier('run_kyc_screening')).toBe('slow_async')
   })

@@ -19,7 +19,7 @@ import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDe
 import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
-import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
+import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint, confirmDeleteContact, deleteContactPreview } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
@@ -1009,6 +1009,96 @@ export async function executeRecordOffer(ctx: ActionCtx, payload: Args): Promise
   return lang === 'en'
     ? `Offer of ${fmtCHF(amount)} recorded on the deal (status: pending).`
     : `Offre de ${fmtCHF(amount)} enregistrée sur le dossier (statut : en attente).`
+}
+
+// -- Suppression de contact (delete_contact, tier confirm) -------------------
+// Miroir IA de la suppression manuelle (bouton fiche contact → useDeleteContact),
+// exposé aux DEUX canaux. DESTRUCTIVE + IRRÉVERSIBLE → tier confirm partout (jamais
+// auto) : WhatsApp exige le « oui » de l'agent, le copilote web une carte HITL
+// (execute_pending) gatée copilot_delete_enabled. Suppression DURE, scopée à
+// l'agence au SQL. Rétention LBA préservée par le SCHÉMA : kyc_cases.contact_id et
+// transactions.contact_* sont ON DELETE SET NULL → les dossiers KYC (art. 7, 10 ans)
+// et les transactions survivent, simplement déliés ; matches/visits/scores/insights
+// cascadent (données dérivées). Certaines FK sont NO ACTION (offers, seller_leads,
+// message_threads, agent_reviews, support_tickets) : un contact qui y est référencé
+// BLOQUE la suppression (23503) → on remonte un message humain, pas un code brut.
+
+/** Confirm-tier : valide le contact dans l'agence + construit prompt/aperçu/charge figée. */
+export async function prepareDeleteContact(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(a.contact_id)
+  if (!contactId) {
+    return { ok: false, error: lang === 'en'
+      ? 'Which contact should I delete? Find them via search_contacts first.'
+      : 'Quel contact veux-tu supprimer ? Retrouve-le d’abord via search_contacts.' }
+  }
+  const { data: contact } = await ctx.supabase
+    .from('contacts').select('id, first_name, last_name, phone, email')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (!contact) return { ok: false, error: lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.' }
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
+    || s(contact.email) || s(contact.phone) || (lang === 'en' ? 'this contact' : 'ce contact')
+  return {
+    ok: true,
+    kind: 'delete_contact',
+    prompt: confirmDeleteContact(lang, name),
+    preview: deleteContactPreview(lang, name),
+    // payload.title : titre de la carte HITL web (convention lue par makePrepareConfirm).
+    payload: { contact_id: contactId, title: name },
+  }
+}
+
+/** Post-« oui » (WhatsApp) / clic carte (web) : suppression DURE scopée agence.
+ *  Contrat {ok,message} aligné sur executePublishToPortals (l'UI n'affiche un succès
+ *  que si ok ; le webhook WhatsApp relaie r.message). `retryable:false` signale un échec
+ *  DÉFINITIF (contact déjà supprimé, action incomplète) → le copilote ne réarme pas la
+ *  carte HITL (un 23503 réversible, lui, reste réessayable = retryable absent). */
+export async function executeDeleteContact(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string; retryable?: boolean }> {
+  if (!hasAgency(ctx)) return { ok: false, message: NO_AGENCY, retryable: false }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(payload.contact_id)
+  if (!contactId) return { ok: false, message: lang === 'en' ? 'Incomplete action — nothing deleted.' : 'Action incomplète, rien supprimé.', retryable: false }
+  // Re-résolution DANS l'agence (garde SQL, helper partagé contactInAgency) + capture du nom
+  // pour l'audit AVANT le delete. Contact déjà disparu = échec DÉFINITIF (re-résoudre ne le
+  // fera pas revenir) → retryable:false pour ne pas réarmer une carte web vouée à échouer.
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return { ok: false, message: lang === 'en' ? 'Contact not found in your agency (already deleted?).' : 'Contact introuvable dans votre agence (déjà supprimé ?).', retryable: false }
+  const label = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || (lang === 'en' ? 'the contact' : 'le contact')
+
+  const { error } = await ctx.supabase
+    .from('contacts').delete().eq('id', contactId).eq('agency_id', ctx.agencyId)
+  if (error) {
+    // 23503 = FK NO ACTION (offre / dossier vendeur / fil / avis / ticket lié) → bloqué.
+    // RÉESSAYABLE (retryable absent) : l'agent détache l'élément puis relance depuis la carte.
+    if ((error as { code?: string }).code === '23503') {
+      return { ok: false, message: lang === 'en'
+        ? `Can't delete ${label}: they're still linked to records that must be kept (an offer, a seller lead, a conversation…). Remove those links first.`
+        : `Impossible de supprimer ${label} : il reste rattaché à des éléments à conserver (une offre, un dossier vendeur, une conversation…). Détache-les d'abord.` }
+    }
+    return { ok: false, message: (lang === 'en' ? 'Deletion failed: ' : 'Échec de la suppression : ') + error.message }
+  }
+
+  // Audit LBA (append-only) APRÈS succès : le contact a disparu (entity_id pointe vers une
+  // ligne absente, activity_events n'a pas de FK vers contacts) mais son nom est conservé en
+  // metadata pour la traçabilité. Best-effort (jamais bloquant) MAIS observable : un audit
+  // manquant sur une action IRRÉVERSIBLE doit se voir dans les logs (comme logTimeline) —
+  // on trace donc l'erreur RETOURNÉE (contrainte CHECK) autant que l'exception (réseau).
+  try {
+    const { error: auditErr } = await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'contact_deleted', entity_type: 'contact', entity_id: contactId,
+      object_label: label.slice(0, 500), category: 'contact', severity: 'warn',
+      metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, deleted_contact_name: label },
+    })
+    if (auditErr) console.error('[delete_contact] audit insert failed:', auditErr.message)
+  } catch (e) {
+    console.error('[delete_contact] audit insert threw:', (e as Error)?.message ?? 'error')
+  }
+
+  return { ok: true, message: lang === 'en'
+    ? `${label} deleted. Their KYC files and transactions are kept (unlinked), as the law requires.`
+    : `${label} supprimé. Ses dossiers KYC et transactions sont conservés (déliés), comme la loi l'exige.` }
 }
 
 // -- KYC par WhatsApp (Task 4) : open_kyc_case (tier confirm) -----------------

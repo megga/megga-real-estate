@@ -22,6 +22,7 @@ import EmailReviewModal, { type EmailDraft } from './EmailReviewModal'
 import AnnonceReviewModal from './AnnonceReviewModal'
 import LetterReviewModal from './LetterReviewModal'
 import PublishReviewModal from './PublishReviewModal'
+import DeleteContactReviewModal from './DeleteContactReviewModal'
 import {
   PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
   type AiPalette,
@@ -569,6 +570,9 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
   // Carte de publication (Phase C) : ouverte par l'event serveur onPendingAction quand
   // le copilote a PRÉPARÉ une publication/retrait. Rien ne part sans le clic de l'agent.
   const [publishModal, setPublishModal] = useState<{ open: boolean; pending: PendingActionCard | null }>({ open: false, pending: null })
+  // Carte de suppression de contact : même mécanique HITL (le copilote a PRÉPARÉ la
+  // suppression), routée à part par le kind de l'action. Rien n'est supprimé sans le clic.
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; pending: PendingActionCard | null }>({ open: false, pending: null })
 
   const firstName = profile?.full_name?.trim().split(/\s+/)[0] || ''
 
@@ -625,8 +629,12 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
       onPhase: (label) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, phase: label } : x)),
       // Texte final normalisé (meggaProse serveur) → remplace l'accumulation brute.
       onFinal: (finalText) => setMessages((m) => m.map((x) => x.id === lid ? { ...x, loading: false, phase: null, content: finalText } : x)),
-      // Publication préparée → ouvre la carte de validation (aucune exécution avant le clic).
-      onPendingAction: (pending) => setPublishModal({ open: true, pending }),
+      // Action confirm préparée → ouvre la carte de validation adaptée à son type
+      // (suppression de contact vs publication). Aucune exécution avant le clic.
+      onPendingAction: (pending) => {
+        if (pending.kind === 'delete_contact') setDeleteModal({ open: true, pending })
+        else setPublishModal({ open: true, pending })
+      },
     })
   }, [isLoading, sendMessageStream, buildContext, screen])
 
@@ -728,6 +736,18 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
           setMessages((m) => [...m, { id, role: 'assistant', content: resultText }])
         }}
         onClose={() => setPublishModal((m) => ({ ...m, open: false }))}
+      />
+      <DeleteContactReviewModal
+        open={deleteModal.open}
+        sp={sp}
+        dark={sp.dark}
+        pending={deleteModal.pending}
+        executePending={executePending}
+        onExecuted={(resultText) => {
+          const id = (idRef.current += 1)
+          setMessages((m) => [...m, { id, role: 'assistant', content: resultText }])
+        }}
+        onClose={() => setDeleteModal((m) => ({ ...m, open: false }))}
       />
     </>
   )
