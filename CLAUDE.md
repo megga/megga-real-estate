@@ -129,6 +129,26 @@ Composants : PascalCase (ListingCard.tsx) | Hooks : use* (useListings.ts)
 Types : PascalCase | SQL : snake_case | Edge Functions : kebab-case
 ```
 
+### Structure des dossiers (où va quoi) — 3 runtimes séparés
+
+Le code vit dans **3 runtimes distincts** ; un fichier ne « déménage » pas librement de l'un à l'autre.
+
+| Dossier | Runtime | Contenu autorisé |
+|---|---|---|
+| `src/` | Navigateur (bundle Vite, **TS only**) | Code d'app **importé et rendu**, rien d'autre |
+| `scripts/` | Node (`node scripts/*.mjs`, brut, **aucun loader TS**) | **Exécutables** seuls ; helpers partagés → `scripts/_shared/`, fixtures de données → `scripts/_data/` |
+| `supabase/functions/` | Deno (edge) | Edge functions ; code partagé → `_shared/` |
+
+- ⛔ **JAMAIS de helper ni de donnée de script dans `src/`** : c'est le bundle navigateur, et un script Node ne peut importer ni un `.ts` ni l'arbre frontend. Un helper de script va dans `scripts/_shared/`, pas dans `src/lib/`.
+- `src/lib/` et `src/hooks/` sont **PLATS volontairement** — ne PAS les réorganiser en sous-dossiers thématiques (churn massif d'imports + conflits de merge ; le plat est idiomatique, l'alias `@/` suffit). `src/components/` est foldered par thème.
+- Pas de dossier vide (`.gitkeep` orphelin), pas de code mort (0 fichier non-joignable depuis `main.tsx`, 0 export mort — `npm run lint:deadcode`).
+- **Avant tout déplacement/renommage** : `git mv` (préserve l'historique) + greper TOUS les usages (imports relatifs ET `@/`, docs, skills, workflows CI), corriger les chemins, puis `npm run build`.
+
+### Documentation du code
+
+- En-tête `/** */` par fichier (rôle, route si page, comportements non-évidents) + docstring concise par unité **exportée** (composant/hook/TSDoc lib) + commentaires **« pourquoi »** là où la logique n'est pas évidente.
+- ⛔ PAS de glose ligne-à-ligne, PAS de docstring sur chaque helper trivial, PAS de commentaire qui répète le code. Le commentaire dit le **pourquoi**, pas le **quoi** ; match la densité existante.
+
 ### Pattern composant
 ```tsx
 import { cn } from '@/lib/utils';
@@ -179,6 +199,9 @@ useEffect(() => {
 - Audit trail : `activity_events` pour toute action (y compris IA avec `actor_id = 'ai'`)
 - Scores IA affichés comme "estimation" (icône sparkle/ai)
 - Timeline unifiée par contact
+- `scripts/` = exécutables seuls (helpers → `scripts/_shared/`, données → `scripts/_data/`)
+- Documenter le **pourquoi** : en-tête `/** */` par fichier + docstring par export
+- `git mv` + corriger tous les imports (relatifs ET `@/`) avant `npm run build`
 
 ### DON'T ❌
 - `any` en TypeScript
@@ -197,6 +220,10 @@ useEffect(() => {
 - Mentionner "Lovable", "Claude", "ChatGPT" dans l'interface
 - IA présentée comme "automatique" ou "garantie" → "assistance"
 - Fonctionnalité hors les 5 objectifs du Document Maître
+- Helper ou donnée de script dans `src/` (mauvais runtime — va dans `scripts/_shared/` ou `_data/`)
+- Réorganiser `src/lib/` ou `src/hooks/` en sous-dossiers (churn d'imports + conflits de merge)
+- Commenter chaque ligne / docstring-er chaque helper trivial (bruit qui se périme)
+- Laisser un dossier vide (`.gitkeep` orphelin) ou du code mort
 
 ---
 
