@@ -64,6 +64,12 @@ jobs:
         # Baseline nettoyée (PR #848). Allowlist des gardes intentionnels dans le script.
         run: npm run lint:deadcode
 
+      - name: Roster edge functions (dérive tree ↔ monitoring)
+        # Garde-fou monitoring : src/lib/edgeFunctionRoster.ts est GÉNÉRÉ depuis
+        # supabase/functions/ ; échoue si une fonction est ajoutée/retirée sans
+        # régénérer (node scripts/check-edge-roster.mjs --write).
+        run: npm run lint:roster
+
       - name: Setup Deno
         # Edge Functions (supabase/functions/**) tournent sur Deno, pas Node : elles
         # échappent à tsc (exclu du build front) et à vitest (imports https: non résolus).
