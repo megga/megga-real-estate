@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — gestion du changelog produit.
+ *
+ * Route : `/dashboard/admin/changelog` (section admin, accent violet). Liste des
+ * entrées avec création (modale) et suppression ; chaque entrée porte version,
+ * titre, contenu et un drapeau publié/brouillon (les brouillons ne sortent pas
+ * vers les utilisateurs finaux).
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Megaphone, Eye, EyeOff } from 'lucide-react'
@@ -5,6 +13,7 @@ import { cn, formatDate } from '@/lib/utils'
 import { useChangelog } from '@/hooks/useChangelog'
 import Modal from '@/components/ui/modal'
 
+/** Écran changelog : rendu de la liste + formulaire de création en modale. */
 export default function AdminChangelogPage() {
   const { t } = useTranslation('admin')
   const { entries, isLoading, createEntry, deleteEntry } = useChangelog()

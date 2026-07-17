@@ -1,3 +1,7 @@
+/**
+ * Écran « Parcours » (mobile, P9) : UI + données des dossiers actifs, monté par
+ * MobileJourneyPage.
+ */
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -17,12 +21,14 @@ const URG: Record<Urgency, { bg: string; dot: string }> = {
 const FILTERS: (Urgency | 'all')[] = ['all', 'high', 'medium', 'low']
 const STAGE_ORDER: StageId[] = ['mandat', 'market', 'nego', 'closing']
 
+/** Tâche mise en avant sur la carte : la tâche pointée par le dossier, sinon la première active. */
 function activeTask(d: ParcoursDossier): ParcoursTask | null {
   const col = d.columns[d.stageActive] ?? []
   return col.find((t) => t.id === d.activeTaskId) ?? col.find((t) => t.state === 'active') ?? null
 }
 
 // ─── Démo (harnais /dev/mobile) — gated, jamais de fetch/nav ──────────────
+/** Colonnes de démo : une tâche active dans le stade voulu, les autres vides. */
 function demoCols(stage: StageId, id: string, label: string): Record<StageId, ParcoursTask[]> {
   return { mandat: [], market: [], nego: [], closing: [], [stage]: [{ id, agentId: 't-greg', label, state: 'active' }] }
 }
@@ -105,6 +111,7 @@ export function MobileJourneyScreen({ demo = false }: { demo?: boolean }) {
   )
 }
 
+/** Carte dossier : titre, sous-titre, pastille d'urgence, stepper 4 étapes, tâche en cours ; tap ouvre la fiche deal. */
 function Card({ d, t, tk, onOpen }: { d: ParcoursDossier; t: TFunction; tk: MobileTokens; onOpen: () => void }) {
   const u = URG[d.urgency]
   const task = activeTask(d)
@@ -137,6 +144,7 @@ function Card({ d, t, tk, onOpen }: { d: ParcoursDossier; t: TFunction; tk: Mobi
   )
 }
 
+/** Frise horizontale des 4 stades (mandat → market → nego → closing) avec état fait / actif / à venir. */
 function Stepper({ activeIdx, tk }: { activeIdx: number; tk: MobileTokens }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', marginTop: 14 }}>

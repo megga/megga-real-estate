@@ -23,6 +23,11 @@ export interface MagicLinkLoadError {
 
 // ─── GET — Vue publique du lien (status, contact, agency, agent, uploads) ──
 
+/**
+ * Vue publique d'un lien magique (statut, contact, agence, agent, uploads).
+ * Renvoie un `MagicLinkLoadError` typé au lieu de throw sur réponse non-OK ;
+ * pas de retry sur 401/410/404 (token invalide ou expiré).
+ */
 export function useMagicLinkClient(token: string | undefined) {
   return useQuery({
     queryKey: ['magic-link-client', token],
@@ -69,6 +74,7 @@ export interface UploadResponse {
   status: 'received'
 }
 
+/** Téléverse une pièce (multipart) côté client ; rafraîchit la vue du lien au succès. */
 export function useMagicLinkUploadClient() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -110,6 +116,7 @@ export interface ConfirmResponse {
   idempotent?: boolean
 }
 
+/** Soumission finale du dossier par le client (idempotente côté Edge function). */
 export function useMagicLinkConfirmClient() {
   const queryClient = useQueryClient()
   return useMutation({

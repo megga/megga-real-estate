@@ -1,3 +1,9 @@
+/**
+ * Intégration calendrier Outlook (Microsoft Graph) via OAuth Azure.
+ * Statut de connexion + événements + mutations de synchro (connect/disconnect,
+ * push/update/remove d'une visite, sync complète) déléguées à l'Edge Function
+ * `outlook-calendar-sync`. Pendant de `useGoogleCalendar` pour le calendrier V3.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -23,8 +29,7 @@ interface OutlookCalendarEventRaw {
   isAllDay?: boolean
 }
 
-// ── Convert Outlook event to CalendarEvent ──
-
+/** Mappe un événement Microsoft Graph brut vers le `CalendarEvent` interne (normalise le fuseau). */
 function outlookEventToCalendarEvent(oe: OutlookCalendarEventRaw): CalendarEvent {
   // Microsoft Graph returns dateTime without Z suffix for timezone-aware events
   const startStr = oe.start?.dateTime ?? ''
@@ -43,8 +48,11 @@ function outlookEventToCalendarEvent(oe: OutlookCalendarEventRaw): CalendarEvent
   }
 }
 
-// ── Hook ──
-
+/**
+ * Expose l'état de connexion Outlook, les événements du calendrier sur `dateRange`,
+ * et les actions de synchro (connect/disconnect, push d'une visite, sync complète).
+ * Toutes les mutations passent par l'Edge Function `outlook-calendar-sync`.
+ */
 export function useOutlookCalendar(dateRange?: { start: Date; end: Date }) {
   const { user } = useAuth()
   const queryClient = useQueryClient()

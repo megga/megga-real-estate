@@ -55,6 +55,7 @@ function isPastOrAt(current: StageId, target: StageId): boolean {
   return STAGE_ORDER.indexOf(current) >= STAGE_ORDER.indexOf(target)
 }
 
+/** Le stage courant est-il exactement `target` ? (colonne active de la frise). */
 function isCurrent(current: StageId, target: StageId): boolean {
   return current === target
 }
@@ -79,17 +80,20 @@ interface TransactionJoin {
   property: { title: string | null; address: string | null; city: string | null; price: number | null; surface_m2: number | null; rooms: number | null } | { title: string | null; address: string | null; city: string | null; price: number | null; surface_m2: number | null; rooms: number | null }[] | null
 }
 
+/** Supabase renvoie parfois une jointure to-one comme tableau ; renvoie le 1er élément. */
 function unwrap<T>(v: T | T[] | null | undefined): T | null {
   if (!v) return null
   return Array.isArray(v) ? v[0] ?? null : v
 }
 
+/** Formate un prix en `CHF 720'000` (apostrophe suisse) ; chaîne vide si null/0. */
 function formatPrice(n: number | null): string {
   if (n == null || n === 0) return ''
   const s = String(Math.round(n))
   return "CHF " + s.replace(/\B(?=(\d{3})+(?!\d))/g, "'")
 }
 
+/** Compose le sous-titre d'un dossier : pièces · surface · prix (parties non vides jointes par ·). */
 function subtitleFor(rooms: number | null, surface: number | null, price: number | null, t: TFunction): string {
   const parts: string[] = []
   if (rooms) parts.push(`${rooms} ${t('journey.roomsAbbr')}`)
@@ -152,6 +156,11 @@ export interface UseParcoursSugarReturn {
   refetch: () => void
 }
 
+/**
+ * Source de vérité de ParcoursSugarV2Page : charge les transactions actives de
+ * l'agence et les projette en `ParcoursDossier[]` (frise 4 stages + colonnes de
+ * jalons dérivées). Les libellés se recalculent au changement de langue.
+ */
 export function useParcoursSugar(): UseParcoursSugarReturn {
   const { profile } = useAuth()
   const { t, i18n } = useTranslation('pipeline')

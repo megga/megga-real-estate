@@ -1,3 +1,9 @@
+/**
+ * Écran Analytics mobile (« Ton cockpit commission ») et l'ensemble de ses
+ * sous-blocs de présentation : hero, barre de rythme, trajectoire, KPI,
+ * closing, composition, sources. Le composant exporté `MobileAnalyticsScreen`
+ * porte le câblage données ; les fonctions plus bas sont purement visuelles.
+ */
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -123,6 +129,7 @@ export function MobileAnalyticsScreen({ demo = false }: { demo?: boolean }) {
 }
 
 // ─── Période ──────────────────────────────────────────────────────────────
+/** Sélecteur de période (mois / trimestre / année) en pilule segmentée. */
 function Segment({ period, onChange, t, tk }: { period: AxPeriodId; onChange: (p: AxPeriodId) => void; t: TFunction; tk: MobileTokens }) {
   return (
     <div style={{ marginTop: 16, display: 'flex', padding: 4, borderRadius: 999, background: tk.cardSubtle, gap: 3 }}>
@@ -139,6 +146,7 @@ function Segment({ period, onChange, t, tk }: { period: AxPeriodId; onChange: (p
 }
 
 // ─── Hero (commission projetée, carte immersive) ──────────────────────────
+/** Carte hero : commission projetée en fin de période, avec barre de rythme si un objectif est fixé, sinon CTA « fixer un objectif ». */
 function Hero({ d, t, tk, onSettings }: { d: AxPeriodData; t: TFunction; tk: MobileTokens; onSettings: () => void }) {
   const targetSet = d.targetIsSet ?? d.target > 0
   const ink = tk.relanceInk
@@ -183,6 +191,7 @@ function Hero({ d, t, tk, onSettings }: { d: AxPeriodData; t: TFunction; tk: Mob
   )
 }
 
+/** Barre de rythme : réalisé (plein) vs projeté (hachures) vs objectif, avec repère « tempo » = fraction de période écoulée. */
 function PaceBar({ d, ink, mut, t }: { d: AxPeriodData; ink: string; mut: string; t: TFunction }) {
   const realW = d.target ? Math.min(100, (d.realizedNow / d.target) * 100) : 0
   const projW = d.target ? Math.min(100, (d.projectedEnd / d.target) * 100) : 0
@@ -214,6 +223,7 @@ function PaceBar({ d, ink, mut, t }: { d: AxPeriodData; ink: string; mut: string
 }
 
 // ─── Bannière d'honnêteté (commissions estimées) ──────────────────────────
+/** Bandeau d'honnêteté : signale les commissions estimées (taux par défaut / prix manquant) ; masqué si aucun flag. */
 function HonestyBanner({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens }) {
   const f = d.commissionFlags
   if (!f || (f.nDefaultPct === 0 && f.nMissingPrice === 0)) return null
@@ -229,6 +239,7 @@ function HonestyBanner({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: Mobile
 }
 
 // ─── Trajectoire ──────────────────────────────────────────────────────────
+/** Graphe SVG de trajectoire : réalisé (trait plein), projeté (pointillé), objectif (tirets) ; masqué si la série est vide. */
 function Trajectory({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens }) {
   const s = d.series
   const W = 300, H = 132, padT = 12, padB = 16, padX = 2
@@ -267,6 +278,7 @@ function Trajectory({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTok
 }
 
 // ─── KPI 2×2 ───────────────────────────────────────────────────────────────
+/** Pastille de variation ±% (vert au-dessus / ocre en-dessous) ; `pts` affiche « pt », `abs` masque le suffixe. */
 function Delta({ v, pts, abs, tk }: { v: number; pts?: boolean; abs?: boolean; tk: MobileTokens }) {
   if (v === 0) return <span style={{ fontSize: 11, fontWeight: 800, color: tk.muted }}>—</span>
   const up = v > 0
@@ -278,6 +290,7 @@ function Delta({ v, pts, abs, tk }: { v: number; pts?: boolean; abs?: boolean; t
   )
 }
 
+/** Mini-sparkline SVG d'un KPI ; rien en dessous de 2 points. */
 function Spark({ data, up, tk }: { data: number[]; up: boolean; tk: MobileTokens }) {
   if (data.length < 2) return null
   const W = 58, H = 22
@@ -294,6 +307,7 @@ function Spark({ data, up, tk }: { data: number[]; up: boolean; tk: MobileTokens
   )
 }
 
+/** Grille 2×2 de cartes KPI (valeur + delta + sparkline). */
 function Kpis({ d, tk }: { d: AxPeriodData; tk: MobileTokens }) {
   return (
     <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
@@ -314,6 +328,7 @@ function Kpis({ d, tk }: { d: AxPeriodData; tk: MobileTokens }) {
 }
 
 // ─── Ce qui se signe bientôt ──────────────────────────────────────────────
+/** « Ce qui se signe bientôt » : deals proches du closing (probabilité, bien, commission estimée). */
 function Closing({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens }) {
   const deals = d.closing ?? []
   return (
@@ -348,6 +363,7 @@ function Closing({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens
 }
 
 // ─── Composition (drill différé : records null en prod) ───────────────────
+/** Composition du pipeline (sécurisé / probable / possible) en barre empilée + détail ; drill-down différé (`records` null en prod). */
 function Composition({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens }) {
   const total = d.composition.reduce((s, c) => s + c.v, 0)
   const ramp: Record<string, string> = tk.mode === 'dark'
@@ -388,6 +404,7 @@ function Composition({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTo
 }
 
 // ─── Sources des leads (comm toujours 0 en prod → on montre le volume) ────
+/** Sources des leads classées par volume — la commission par source valant toujours 0 en prod, on affiche le nombre de deals. */
 function Sources({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens }) {
   const opac = [1, 0.72, 0.52, 0.38, 0.28]
   return (
@@ -420,12 +437,14 @@ function Sources({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens
 }
 
 // ─── États / atomes partagés ──────────────────────────────────────────────
+/** Carte « vide » générique : une ligne de texte centrée. */
 function EmptyRow({ text, tk }: { text: string; tk: MobileTokens }) {
   return (
     <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 18, boxShadow: tk.shadowSm, padding: '22px 18px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: tk.muted }}>{text}</div>
   )
 }
 
+/** Placeholder de chargement (hero + trajectoire + grille KPI). */
 function Skeleton({ tk }: { tk: MobileTokens }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 18 }}>
@@ -438,6 +457,7 @@ function Skeleton({ tk }: { tk: MobileTokens }) {
   )
 }
 
+/** Carte d'erreur avec bouton « réessayer » (échec du fetch). */
 function ErrorCard({ t, tk, onRetry }: { t: TFunction; tk: MobileTokens; onRetry: () => void }) {
   return (
     <div style={{ marginTop: 24, textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 20, boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>

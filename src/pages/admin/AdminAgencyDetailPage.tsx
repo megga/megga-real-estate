@@ -1,3 +1,12 @@
+/**
+ * Page super-admin — détail d'une agence.
+ *
+ * Route : `/dashboard/admin/agencies/:id` (section admin, accent violet). Vue en
+ * lecture seule organisée en 5 onglets (infos, équipe, activité, biens,
+ * transactions), chacun alimenté par un hook `useAgency*` dédié. Sert aussi de
+ * point d'entrée à l'impersonation d'un membre — précédée d'un audit serveur
+ * (cf. `EquipeTab`).
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
@@ -63,6 +72,7 @@ const STAGE_I18N: Record<string, string> = {
   to_recontact: 'agencyDetail.stage.toRecontact',
 }
 
+/** Pastille ronde avec les initiales d'un membre ; couleur déterministe dérivée du nom. */
 function MemberAvatar({ name }: { name: string }) {
   const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500']
@@ -74,6 +84,7 @@ function MemberAvatar({ name }: { name: string }) {
   )
 }
 
+/** Placeholder animé affiché pendant le chargement du détail de l'agence. */
 function SkeletonDetail() {
   return (
     <div className="space-y-4 animate-pulse">
@@ -89,6 +100,10 @@ function SkeletonDetail() {
   )
 }
 
+/**
+ * Composant de page : en-tête agence (nom, plan, statut) + barre d'onglets.
+ * Gère les états chargement / introuvable, puis délègue le contenu à l'onglet actif.
+ */
 export default function AdminAgencyDetailPage() {
   const { t } = useTranslation('admin')
   const { id } = useParams<{ id: string }>()
@@ -204,7 +219,7 @@ export default function AdminAgencyDetailPage() {
   )
 }
 
-/* ─── Tab: Infos ─── */
+/** Onglet « Infos » : coordonnées de l'agence + carte d'abonnement (override manuel du plan). */
 function InfosTab({ agency }: { agency: Record<string, unknown> }) {
   const { t } = useTranslation('admin')
   const fields = [
@@ -234,7 +249,11 @@ function InfosTab({ agency }: { agency: Record<string, unknown> }) {
   )
 }
 
-/* ─── Tab: Equipe ─── */
+/**
+ * Onglet « Équipe » : liste des membres de l'agence. Chaque ligne expose (au
+ * survol) un bouton d'impersonation qui passe par un audit serveur avant de
+ * basculer sur le compte du membre.
+ */
 function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: string }) {
   const { t } = useTranslation('admin')
   const { data: members, isLoading } = useAgencyMembers(agencyId)
@@ -317,7 +336,7 @@ function EquipeTab({ agencyId, agencyName }: { agencyId: string; agencyName: str
   )
 }
 
-/* ─── Tab: Activite ─── */
+/** Onglet « Activité » : flux chronologique des événements de l'agence. */
 function ActiviteTab({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
   const { data: events, isLoading } = useAgencyActivity(agencyId)
@@ -363,7 +382,7 @@ function ActiviteTab({ agencyId }: { agencyId: string }) {
   )
 }
 
-/* ─── Tab: Biens ─── */
+/** Onglet « Biens » : tableau des annonces de l'agence (titre, statut, prix, ville, date). */
 function BiensTab({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
   const { data: properties, isLoading } = useAgencyProperties(agencyId)
@@ -431,7 +450,7 @@ function BiensTab({ agencyId }: { agencyId: string }) {
   )
 }
 
-/* ─── Tab: Transactions ─── */
+/** Onglet « Transactions » : tableau des affaires (stade pipeline, statut, montant, date). */
 function TransactionsTab({ agencyId }: { agencyId: string }) {
   const { t } = useTranslation('admin')
   const { data: transactions, isLoading } = useAgencyTransactions(agencyId)

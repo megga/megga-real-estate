@@ -1,3 +1,12 @@
+/**
+ * Racine de l'app CRM (app.megga.ch) : providers globaux (React Query, Auth,
+ * Toast, panneau IA) + table de routage complète.
+ *
+ * Presque toutes les pages sont en lazy() — seuls les shells/guards restent
+ * statiques — pour garder le main bundle minimal. La marketplace publique est
+ * désactivée (pivot CRM-first) : ses routes redirigent vers la vitrine megga.ch.
+ * Route racine « / » → /dashboard.
+ */
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import ResponsiveRoute from '@/components/crm-mobile/shell/ResponsiveRoute'
@@ -640,6 +649,7 @@ function CopilotPanelHost() {
   )
 }
 
+/** Point d'entrée : empile les providers globaux autour des routes et des widgets globaux (cookies, Intercom, panneau IA). */
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

@@ -1,3 +1,7 @@
+/**
+ * Hook React Query du journal d'activité (super-admin) : lit `activity_events`
+ * (audit trail global), filtrable par agence et action, rafraîchi automatiquement.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -18,6 +22,7 @@ interface ActivityLogFilters {
   limit?: number
 }
 
+/** Événements d'audit récents (défaut 100), filtrables par agence et action ; refetch toutes les 30 s. */
 export function useActivityLog(filters?: ActivityLogFilters) {
   return useQuery({
     queryKey: ['admin-activity-log', filters],

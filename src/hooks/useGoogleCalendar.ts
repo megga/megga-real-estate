@@ -1,3 +1,8 @@
+/**
+ * Hook de synchronisation Google Calendar pour l'agent (calendrier V3).
+ * Statut de connexion + événements (via l'Edge Function `google-calendar-sync`),
+ * connexion OAuth, et synchro visite→Google (create/update/delete + sync complet).
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -25,6 +30,7 @@ interface GoogleCalendarEventRaw {
 
 // ── Convert Google event to CalendarEvent ──
 
+/** Normalise un événement brut de l'API Google en `CalendarEvent` (id préfixé `gcal_`). */
 function googleEventToCalendarEvent(ge: GoogleCalendarEventRaw): CalendarEvent {
   const startStr = ge.start?.dateTime ?? ge.start?.date ?? ''
   const endStr = ge.end?.dateTime ?? ge.end?.date ?? ''
@@ -45,6 +51,11 @@ function googleEventToCalendarEvent(ge: GoogleCalendarEventRaw): CalendarEvent {
 
 // ── Hook ──
 
+/**
+ * Connexion Google Calendar + synchro des visites de l'agent. `dateRange` borne
+ * la requête d'événements ; toutes les mutations passent par l'Edge Function
+ * `google-calendar-sync`. Aucun fetch tant que le compte n'est pas connecté.
+ */
 export function useGoogleCalendar(dateRange?: { start: Date; end: Date }) {
   const { user } = useAuth()
   const queryClient = useQueryClient()

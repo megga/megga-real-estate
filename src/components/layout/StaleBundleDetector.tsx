@@ -1,3 +1,8 @@
+/**
+ * Filet de sécurité runtime : bannière de rechargement quand un import lazy
+ * échoue parce que l'index.html en cache référence des chunks renommés depuis un
+ * redeploy. Mécanisme et modes d'échec détaillés dans le bloc ci-dessous.
+ */
 import { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { RefreshCw, X } from 'lucide-react'
@@ -34,6 +39,7 @@ const STALE_PATTERNS = [
 // flood the UI with copies — and to stop our own retry-loop triggering it.
 const SESSION_FLAG = 'megga-stale-bundle-shown'
 
+/** True si l'erreur correspond à un échec de chargement de chunk périmé (cf. STALE_PATTERNS). */
 function isStaleBundleError(reason: unknown): boolean {
   if (!reason) return false
   const msg = reason instanceof Error ? reason.message : String(reason)

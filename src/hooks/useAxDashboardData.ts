@@ -19,12 +19,18 @@ export type AxScope = 'me' | 'agency'
 const rpcUntyped = supabase.rpc as unknown as
   (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>
 
+/** Appel d'une RPC Supabase non typée ; remonte l'erreur. */
 async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await rpcUntyped(name, args)
   if (error) throw error
   return data as T
 }
 
+/**
+ * Données live du cockpit Analytics : 3 RPC agrégés (cockpit / objectif / funnel)
+ * pour une période et un scope (moi / agence), assemblés par buildAxData.
+ * `enabled: false` garde les surfaces démo inertes (aucun appel RPC).
+ */
 export function useAxDashboardData(period: AxPeriodId, scope: AxScope, opts?: { enabled?: boolean }): {
   data: AxPeriodData | null
   isLoading: boolean

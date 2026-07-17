@@ -1,3 +1,9 @@
+/**
+ * Page publique — index complet de tous les articles d'aide.
+ *
+ * Route : `/help/resources`. Grille masonry de toutes les sections, toutes
+ * catégories confondues, avec recherche et CTA contact.
+ */
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight } from 'lucide-react'
@@ -15,6 +21,7 @@ interface SectionGroup {
   articles: { slug: string; title: string; category: string }[]
 }
 
+/** Agrège `ALL_ARTICLES` en groupes uniques (catégorie + section), ordre de première apparition. */
 function buildSectionGroups(): SectionGroup[] {
   const map = new Map<string, SectionGroup>()
 

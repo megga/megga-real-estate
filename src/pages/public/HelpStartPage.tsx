@@ -1,3 +1,10 @@
+/**
+ * Page publique — guide de démarrage rapide du Help Center.
+ *
+ * Route : `/help/start`. Parcours en 5 étapes (profil → contacts → Action Board
+ * → premier deal → KYC) renvoyant chacune vers son guide détaillé. Les vignettes
+ * sont des placeholders « capture à venir ».
+ */
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight, ArrowRight } from 'lucide-react'

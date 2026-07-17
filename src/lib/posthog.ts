@@ -1,3 +1,10 @@
+/**
+ * Wrapper PostHog — analytics produit gated par le consentement cookies (LPD).
+ *
+ * Rien ne part tant que l'utilisateur n'a pas opté pour les cookies analytics
+ * (`initPostHogIfConsented`) ou que `VITE_POSTHOG_KEY` n'est pas défini. Hébergement
+ * EU par défaut ; session recording désactivé. Miroir fonctionnel de `intercom.ts`.
+ */
 import posthog from 'posthog-js'
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined
@@ -25,6 +32,7 @@ function readConsent(): CookieConsent | null {
   }
 }
 
+/** Initialise le SDK (idempotent). No-op sans clé ; à réserver au cas consenti. */
 export function initPostHog() {
   if (!POSTHOG_KEY || posthogInitialized) return
 
@@ -81,16 +89,19 @@ export function initPostHogIfConsented() {
   }) as EventListener)
 }
 
+/** Associe les events suivants à un utilisateur identifié. No-op si non initialisé. */
 export function identifyUser(userId: string, properties?: Record<string, string>) {
   if (!POSTHOG_KEY || !posthogInitialized) return
   posthog.identify(userId, properties)
 }
 
+/** Capture un event produit. No-op si non consenti/initialisé. */
 export function trackEvent(event: string, properties?: Record<string, unknown>) {
   if (!POSTHOG_KEY || !posthogInitialized) return
   posthog.capture(event, properties)
 }
 
+/** Réinitialise l'identité (au logout) pour repartir en anonyme. */
 export function resetPostHog() {
   if (!POSTHOG_KEY || !posthogInitialized) return
   posthog.reset()

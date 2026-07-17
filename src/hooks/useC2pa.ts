@@ -1,3 +1,9 @@
+/**
+ * Hooks C2PA — provenance/authenticité des photos de biens.
+ *
+ * `useSignPhotos` appose les Content Credentials (C2PA) sur les photos d'un bien
+ * via l'Edge Function `c2pa-sign` (signature = action agent explicite).
+ */
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -11,6 +17,7 @@ interface SignResult {
   verifiedAt: string | null
 }
 
+/** Signe les photos d'un bien (Content Credentials C2PA) ; invalide le bien et la liste d'agence au succès. */
 export function useSignPhotos() {
   const queryClient = useQueryClient()
   return useMutation({

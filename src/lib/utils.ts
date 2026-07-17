@@ -1,3 +1,9 @@
+/**
+ * Utilitaires transverses : fusion de classes Tailwind (`cn`) et formateurs
+ * localisés (CHF à l'apostrophe suisse, dates DD.MM.YYYY, surfaces, loyer). Les
+ * formateurs monétaires sont type-defensive (acceptent string/null) pour
+ * encaisser sans planter les valeurs brutes des <input> RHF.
+ */
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, formatDistanceToNow, type Locale } from 'date-fns'

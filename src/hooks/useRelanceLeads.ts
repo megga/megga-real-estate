@@ -1,3 +1,8 @@
+/**
+ * Source de données réelle pour la session de relance du dashboard : les
+ * contacts dormants de l'agence (dernière interaction > 14 j ou jamais).
+ * Renvoie `isEmpty` pour que l'appelant retombe sur le seed `RELANCE_LEADS`.
+ */
 // Real-data source for the dashboard relance session.
 //
 // Replaces the seed RELANCE_LEADS array (still kept in
@@ -92,6 +97,7 @@ export interface UseRelanceLeadsResult {
   isEmpty: boolean
 }
 
+/** Requête les contacts dormants (buyer/seller/tenant/landlord), les adapte en `RelanceLead`, triés du plus froid au plus récent. */
 export function useRelanceLeads(): UseRelanceLeadsResult {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id ?? null

@@ -1,3 +1,8 @@
+/**
+ * Composant Modal partagé du CRM — dialog accessible (WCAG 2.1 AA) sur Radix Dialog.
+ * Satisfait la règle DS « modals toujours en portail sur document.body, z-[100] ».
+ * API et garanties d'accessibilité détaillées dans le bloc ci-dessous.
+ */
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
@@ -59,6 +64,7 @@ export interface ModalProps {
   ariaLabel?: string
 }
 
+/** Racine du modal : câble l'état contrôlé (`open`/`onClose`) sur Radix, rend l'overlay + le contenu porté, en-tête optionnel selon `title`. */
 export function Modal({
   open,
   onClose,

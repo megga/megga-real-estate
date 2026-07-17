@@ -10,6 +10,10 @@ import type {
 // ─── Liste des liens magiques d'un dossier KYC (vue agent) ─────────────────
 // ─── Créer un lien magique (auth agent → Edge function) ────────────────────
 
+/**
+ * Crée un lien magique KYC via l'Edge function `magic-link-create` (auth agent).
+ * Invalide la liste des liens, le dossier et l'audit trail au succès.
+ */
 export function useCreateMagicLink() {
   const queryClient = useQueryClient()
   return useMutation({

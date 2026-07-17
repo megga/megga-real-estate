@@ -1,3 +1,12 @@
+/**
+ * Page super-admin — journal d'audit de sécurité.
+ *
+ * Route : `/dashboard/admin/security` (SuperAdminGuard, accent violet). Liste les
+ * actions sensibles d'`activity_events` (filtres sévérité/action/acteur, recherche,
+ * pagination, métadonnées dépliables) avec un bandeau KPI sur 7 jours. Deux exports :
+ * CSV de la vue filtrée, et PDF juridique de la chaîne d'audit PLATEFORME complète
+ * (hash-chain nLPD/LBA — volontairement non filtré).
+ */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Shield, AlertTriangle, AlertCircle, Info, Download, FileDown, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -28,6 +37,7 @@ const SEVERITY_PILL_VALUES: SeverityFilter[] = ['all', 'critical', 'warning', 'i
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
+/** Classe Tailwind de la pastille colorée selon la sévérité. */
 function severityDot(severity: 'critical' | 'warning' | 'info'): string {
   switch (severity) {
     case 'critical': return 'bg-red-500'
@@ -38,6 +48,7 @@ function severityDot(severity: 'critical' | 'warning' | 'info'): string {
 
 // severityLabel is now resolved via t() inside the component
 
+/** Formate un timestamp ISO en `dd.MM.yyyy HH:mm` (locale FR) ; renvoie la chaîne brute si invalide. */
 function formatTimestamp(dateStr: string): string {
   try {
     const d = new Date(dateStr)
@@ -47,6 +58,7 @@ function formatTimestamp(dateStr: string): string {
   }
 }
 
+/** Condense un objet metadata en une ligne `clé: valeur`, tronquée à 80 caractères. */
 function summarizeMetadata(metadata: Record<string, unknown>): string {
   if (!metadata || Object.keys(metadata).length === 0) return '-'
   const parts: string[] = []
@@ -59,10 +71,12 @@ function summarizeMetadata(metadata: Record<string, unknown>): string {
   return summary.length > 80 ? summary.slice(0, 77) + '...' : summary
 }
 
+/** Sévérité d'une action d'audit via la table `AUDIT_SEVERITY` (défaut `info`). */
 function getActionSeverity(action: string): 'critical' | 'warning' | 'info' {
   return AUDIT_SEVERITY[action] ?? 'info'
 }
 
+/** Vrai si la date tombe dans les `days` derniers jours (fenêtre des KPI). */
 function isWithinDays(dateStr: string, days: number): boolean {
   const d = new Date(dateStr)
   const cutoff = new Date()
@@ -72,6 +86,7 @@ function isWithinDays(dateStr: string, days: number): boolean {
 
 // ─── SKELETON ───────────────────────────────────────────────────────────────
 
+/** Lignes squelette affichées pendant le chargement du journal. */
 function SkeletonRows() {
   return (
     <>
@@ -90,6 +105,7 @@ function SkeletonRows() {
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 
+/** Page : KPI 7 jours + filtres + table paginée du journal d'audit de sécurité. */
 export default function AdminSecurityAuditPage() {
   const { t } = useTranslation('admin')
   const { data: entries, isLoading } = useSecurityAudit({ limit: 500 })

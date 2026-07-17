@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — monitoring plateforme (Supabase Pro).
+ *
+ * Route : `/dashboard/admin/monitoring` (SuperAdminGuard, accent violet). Agrège
+ * santé DB/storage/edge, statut Flatfox sync, santé pg_cron, panneaux ops
+ * (syndication IDX, WhatsApp), facturation IA (solde DeepSeek + coûts) et logs
+ * d'erreurs dépliables. Données via `useAdminMonitoring` + hooks dédiés.
+ */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Database, Zap, Mail, CheckCircle, AlertTriangle, Search, HardDrive, Globe, Home, Sparkles, DollarSign, Clock } from 'lucide-react'
@@ -550,6 +558,7 @@ export default function AdminMonitoringPage() {
   )
 }
 
+/** Abrège un nombre de tokens en k/M pour l'affichage compact des cartes IA. */
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`

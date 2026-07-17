@@ -1,3 +1,7 @@
+/**
+ * Aiguillage responsive au niveau d'un élément de route (crm-mobile/shell) :
+ * enrobe une paire desktop/mobile et monte l'un ou l'autre selon la largeur du viewport.
+ */
 import type { ReactElement } from 'react'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 

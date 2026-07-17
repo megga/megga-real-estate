@@ -1,3 +1,9 @@
+/**
+ * Hooks KYC/LBA (fiche dossier) : lecture d'un dossier + checklist, documents,
+ * journal d'audit, upload de pièces (hash SHA-256), screening Dilisense,
+ * origine des fonds et workflow de décision compliance (kyc_screening_decisions).
+ * Chaque écriture est tracée dans `activity_events` (LBA art. 7 / nLPD art. 12).
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type {
@@ -12,6 +18,7 @@ import type {
 // ─── List all KYC cases ────────────────────────────────────────────────────
 // ─── Single KYC case with checklist ────────────────────────────────────────
 
+/** Charge un dossier KYC unique avec son contact et sa checklist jointe. */
 export function useKycCase(id: string | undefined) {
   return useQuery({
     queryKey: ['kyc-case', id],
@@ -31,6 +38,7 @@ export function useKycCase(id: string | undefined) {
 
 // ─── Documents for a KYC case ──────────────────────────────────────────────
 
+/** Documents d'un dossier KYC (métadonnées seules, ordre antéchronologique). */
 export function useKycDocuments(kycCaseId: string | undefined) {
   return useQuery({
     queryKey: ['kyc-documents', kycCaseId],
@@ -50,6 +58,7 @@ export function useKycDocuments(kycCaseId: string | undefined) {
 
 // ─── Audit events for a KYC case ───────────────────────────────────────────
 
+/** Journal d'audit d'un dossier KYC (accepte les entity_type legacy `kyc`/`kyc_case`/`kyc_check`). */
 export function useKycAuditEvents(kycCaseId: string | undefined) {
   return useQuery({
     queryKey: ['kyc-audit', kycCaseId],
@@ -88,6 +97,11 @@ export function useKycAuditEvents(kycCaseId: string | undefined) {
 // mandatory (LBA art. 7). Fix for LBA-C2.
 // ─── Upload document to Supabase Storage ───────────────────────────────────
 
+/**
+ * Téléverse une pièce KYC : sanitize le nom (anti path-traversal), calcule le
+ * SHA-256 du contenu (preuve d'intégrité LBA art. 7) avant l'upload Storage,
+ * insère la ligne `documents` puis trace l'event d'audit.
+ */
 export function useUploadKycDocument() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -177,6 +191,11 @@ export function useUploadKycDocument() {
 // ─── Create KYC case ───────────────────────────────────────────────────────
 // ─── Screen KYC case via dilisense Edge Function ───────────────────────────
 
+/**
+ * Screening sanctions/PEP via l'Edge Function `kyc-screening` (Dilisense).
+ * Décode le body d'erreur pour remonter un message clair (429 idempotence,
+ * 401, 500) au lieu du message générique non-2xx.
+ */
 export function useScreenKycCase() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -234,6 +253,11 @@ export function useScreenKycCase() {
 
 // ─── Sprint 3 — Source of funds (LBA art. 6 al. 1 lit. b) ─────────────────
 
+/**
+ * Renseigne l'origine des fonds (LBA art. 6 al. 1 lit. b). Description ≥ 20
+ * caractères obligatoire pour crypto/mixed/other ; trace l'audit (severity
+ * `warn` pour crypto/mixed).
+ */
 export function useUpdateKycSourceOfFunds() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -348,6 +372,10 @@ export function useLatestKycScreeningDecision(
   })
 }
 
+/**
+ * Enregistre une décision compliance humaine sur un match Dilisense
+ * (append-only, immuable). Justification ≥ 30 caractères (LBA art. 7 al. 1 lit. b).
+ */
 export function useCreateKycScreeningDecision() {
   const queryClient = useQueryClient()
   return useMutation({

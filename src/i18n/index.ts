@@ -1,3 +1,10 @@
+/**
+ * Configuration i18next (FR/DE/EN/IT, 12 namespaces).
+ *
+ * FR est bundlé synchronement (fallback + langue par défaut) ; DE/EN/IT sont
+ * lazy-loadés à la demande (~420KB hors du main bundle). Détection de langue
+ * limitée à localStorage (`megga-language`) — jamais le navigateur (charte FR-first).
+ */
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
@@ -80,6 +87,7 @@ async function loadIt() {
   return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default }
 }
 
+/** Dispatch vers le loader lazy voulu ; FR renvoie directement les bundles déjà importés. */
 async function loadLanguage(lng: SupportedLang): Promise<Record<Namespace, unknown>> {
   if (lng === 'de') return loadDe()
   if (lng === 'en') return loadEn()
@@ -122,6 +130,7 @@ i18n
     partialBundledLanguages: true,
   })
 
+/** Enregistre à la volée les bundles d'une langue non-FR puis bascule dessus ; idempotent (no-op si déjà chargée). */
 async function ensureLanguageLoaded(lng: string) {
   if (lng === 'fr' || !['de', 'en', 'it'].includes(lng)) return
   if (i18n.hasResourceBundle(lng, 'common')) return

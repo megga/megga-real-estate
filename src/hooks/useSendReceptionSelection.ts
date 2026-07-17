@@ -1,16 +1,17 @@
-// Matching · Recherche — envoi d'une SÉLECTION de biens marché à un acheteur.
-// Ferme la boucle recherche → réception : l'agent sélectionne N biens pour un
-// acheteur et les transmet en UN lien de réception (partagé WhatsApp / copié).
-//
-// Étapes (toutes autorisées côté agent — RLS agency-scopée) :
-//   1. insert_market_matches (RPC, SECURITY INVOKER, idempotent ON CONFLICT) crée
-//      les matches marché manquants (contact × market_listing) pour cette agence ;
-//   2. on relit TOUS les match ids de la sélection (nouveaux + déjà existants —
-//      le DO NOTHING ne renvoie pas les existants) ;
-//   3. on récupère le téléphone du contact (pour l'option WhatsApp) ;
-//   4. buyer-reception-create (edge, revalide l'appartenance agence+contact) mint
-//      le lien privé. Zéro email. L'acheteur réagit ♥/✕ → remonte dans sa fiche.
-
+/**
+ * Matching · Recherche — envoi d'une SÉLECTION de biens marché à un acheteur.
+ * Ferme la boucle recherche → réception : l'agent sélectionne N biens pour un
+ * acheteur et les transmet en UN lien de réception (partagé WhatsApp / copié).
+ *
+ * Étapes (toutes autorisées côté agent — RLS agency-scopée) :
+ *   1. insert_market_matches (RPC, SECURITY INVOKER, idempotent ON CONFLICT) crée
+ *      les matches marché manquants (contact × market_listing) pour cette agence ;
+ *   2. on relit TOUS les match ids de la sélection (nouveaux + déjà existants —
+ *      le DO NOTHING ne renvoie pas les existants) ;
+ *   3. on récupère le téléphone du contact (pour l'option WhatsApp) ;
+ *   4. buyer-reception-create (edge, revalide l'appartenance agence+contact) mint
+ *      le lien privé. Zéro email. L'acheteur réagit ♥/✕ → remonte dans sa fiche.
+ */
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/types/database'
@@ -39,6 +40,7 @@ export interface SendSelectionResult {
   count: number
 }
 
+/** Mutation orchestrant les 4 étapes ci-dessus ; retourne le lien de réception minté. */
 export function useSendReceptionSelection() {
   return useMutation({
     mutationFn: async ({ contactId, agencyId, clientSearchId, items }: SendSelectionInput): Promise<SendSelectionResult> => {

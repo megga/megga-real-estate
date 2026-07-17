@@ -1,3 +1,10 @@
+/**
+ * Types TypeScript générés depuis le schéma Postgres Supabase (source de vérité DB).
+ *
+ * Fichier AUTO-GÉNÉRÉ (`supabase gen types typescript`) — ne pas éditer à la main :
+ * toute modification est écrasée à la prochaine régénération. Expose `Database`
+ * (Tables / Views / Functions / Enums du schéma `public`) consommé par le client typé.
+ */
 export type Json =
   | string
   | number

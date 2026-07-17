@@ -1,3 +1,10 @@
+/**
+ * Hooks du portail vendeur (`/portail/:token`, page « Votre vente », lecture seule).
+ * L'accès passe UNIQUEMENT par l'edge function `seller-portal-action` (service_role,
+ * scopée au token) : aucune requête anon directe, un lien fuité n'expose que les
+ * données de son propre token. Le hook réassemble le payload serveur (crm_offers,
+ * transactions, visites…) vers le modèle de vue `SellerPortalData`.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { SellerPortalData, SellerVisit, SellerActivity, SellerOffer, MandateStep } from '@/lib/mockSellerData'
@@ -53,7 +60,7 @@ interface GetDataPayload {
   offers?: PortalOfferRow[]
 }
 
-// ── Mapping crm_offers (réel) → SellerOffer (vue vendeur) ──────────────────
+/** Traduit un statut/kind `crm_offers` (réel) vers le statut d'offre affiché côté vendeur. */
 function mapOfferStatus(o: { status: string; kind: string }): SellerOffer['status'] {
   if (o.status === 'accepted') return 'accepted'
   if (o.status === 'rejected' || o.status === 'withdrawn') return 'rejected'
@@ -61,7 +68,7 @@ function mapOfferStatus(o: { status: string; kind: string }): SellerOffer['statu
   return o.kind === 'counter' ? 'counter_offer' : 'pending'
 }
 
-// conditions JSONB de l'offre → texte lisible (toggles standards + 'autres') ; null si rien.
+/** Conditions JSONB de l'offre → texte lisible (toggles standards + 'autres') ; null si rien. */
 function conditionsToText(c: unknown): string | null {
   if (!c) return null
   if (typeof c === 'string') return c.trim() || null
@@ -76,8 +83,7 @@ function conditionsToText(c: unknown): string | null {
   return parts.length ? parts.join(' · ') : null
 }
 
-// ── Map transaction stage to mandate step ────────────────────────────────
-
+/** Projette un stade de transaction (14 stades DB) sur l'étape de mandat affichée au vendeur. */
 function stageToMandateStep(stage: string | null): MandateStep {
   switch (stage) {
     case 'new_lead':
@@ -105,8 +111,7 @@ function stageToMandateStep(stage: string | null): MandateStep {
   }
 }
 
-// ── Map activity events to SellerActivity ────────────────────────────────
-
+/** Devine le type d'activité vendeur à partir du nom d'action de l'`activity_event`. */
 function mapActivityType(action: string): SellerActivity['type'] {
   if (action.includes('visit') && action.includes('plan')) return 'visit_planned'
   if (action.includes('visit')) return 'visit_done'
@@ -119,8 +124,10 @@ function mapActivityType(action: string): SellerActivity['type'] {
   return 'mandate_signed'
 }
 
-// ── Hook: validate token and load data (seller side) ─────────────────────
-
+/**
+ * Valide le token de portail et charge les données du vendeur via l'edge function.
+ * Retourne un état discret (valide / expiré / révoqué / chargement) + `SellerPortalData`.
+ */
 export function useSellerPortalAccess(token: string | undefined): PortalValidation {
   const { data, isLoading } = useQuery({
     queryKey: ['seller-portal', token],
@@ -258,8 +265,7 @@ export function useSellerPortalAccess(token: string | undefined): PortalValidati
   }
 }
 
-// ── Helper: describe activity in French ─────────────────────────────────
-
+/** Rend une phrase FR lisible par le vendeur pour un événement d'activité donné. */
 function describeActivity(action: string, metadata: Record<string, unknown> | null): string {
   switch (action) {
     case 'seller_lead_accepted':

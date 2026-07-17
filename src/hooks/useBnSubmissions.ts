@@ -52,6 +52,7 @@ function parseRooms(raw: string | number | null | undefined): number {
   return isNaN(n) ? 0 : n
 }
 
+/** Mappe une ligne seller_leads vers CrmSubmission (champs non persistés = defaults ; autoChecks non câblés restent 'pending', cf. en-tête). */
 function leadToSubmission(lead: SellerLeadRow): CrmSubmission {
   const p = lead.property_data ?? ({} as SellerLeadRow['property_data'])
   const { firstName, lastName } = splitName(lead.contact_name)
@@ -109,6 +110,7 @@ export interface UseBnSubmissionsReturn {
   isLoading: boolean
 }
 
+/** Soumissions vendeurs (seller_leads en statut 'new') mappées vers CrmSubmission pour le banner/drawer de BiensSugarV2Page. */
 export function useBnSubmissions(): UseBnSubmissionsReturn {
   // On ne lit que les leads 'new' (= non traités) — les autres sont gérés via
   // le pipeline / parcours.

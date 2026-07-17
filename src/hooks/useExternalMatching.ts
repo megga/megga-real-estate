@@ -1,4 +1,9 @@
 
+/**
+ * Type partagé `ExternalListing` : un bien issu du matching hors-catalogue
+ * (portails externes). La logique de matching a été retirée ; seul le contrat de
+ * données subsiste, consommé par `useExternalListingActions` et les vues liées.
+ */
 export interface ExternalListing {
   external_id: string
   title: string

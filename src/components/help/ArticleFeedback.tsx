@@ -1,3 +1,9 @@
+/**
+ * Bloc de vote « Cet article vous a-t-il aidé ? » en pied d'article du centre d'aide.
+ *
+ * Enregistre une vue (`article_views`) au montage puis un vote (`article_feedback`).
+ * Un vote négatif déroule un champ commentaire ; positif = remerciement immédiat.
+ */
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ThumbsUp, ThumbsDown, Check } from 'lucide-react'

@@ -1,3 +1,4 @@
+/** Illustration Maggy « premiers pas » (ampoule, SVG statique). */
 interface Props { className?: string }
 
 export default function GettingStartedIllustration({ className = 'w-full h-full' }: Props) {

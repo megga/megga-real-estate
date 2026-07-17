@@ -1,3 +1,12 @@
+/**
+ * Page agent — fiche détaillée d'une annonce externe (marché Flatfox/portails).
+ *
+ * Route : `/dashboard/market/:externalId`. Le bien arrive via `location.state`
+ * (depuis le matching) ; sans état → message « introuvable ». Carrousel photos, analyse
+ * prix/m² honnête (sans comparables fabriqués), notes agent, envoi par email au client
+ * (Resend) avec historique, et import au portefeuille. Actions déléguées à
+ * `useExternalListingActions`.
+ */
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -23,6 +32,7 @@ const PROPERTY_TYPE_DETAIL_KEYS: Record<string, string> = {
   apartment_terrasse_flat: 'external.subtypes.apartment_terrasse_flat',
 }
 
+/** Fiche lecture seule d'une annonce externe + actions CRM (notes, envoi email, import). */
 export default function ExternalListingDetailPage() {
   const { t } = useTranslation('listings')
   const location = useLocation()

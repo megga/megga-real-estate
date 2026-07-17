@@ -1,3 +1,7 @@
+/**
+ * Hook d'accessibilité : piège le focus clavier dans un conteneur tant que
+ * `active` est vrai (modales, panneaux), puis restaure le focus au démontage.
+ */
 import { useEffect, useRef } from 'react'
 
 const FOCUSABLE_SELECTOR =

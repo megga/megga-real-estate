@@ -23,6 +23,7 @@ interface ChangelogRow {
   created_at: string
 }
 
+/** Changelog admin (table `admin_changelog`) : liste triée par date + mutations create/delete, invalidées au succès. */
 export function useChangelog() {
   const queryClient = useQueryClient()
 

@@ -1,3 +1,8 @@
+/**
+ * Vestige du système de favoris (marketplace désactivée) : seul l'état du prompt
+ * de connexion subsiste. Partagé entre composants via un singleton module + un
+ * set de listeners ; le refus est mémorisé dans localStorage.
+ */
 import { useState, useEffect, useCallback } from 'react'
 import { } from '@/lib/supabase'
 const PROMPT_DISMISSED_KEY = 'megga-favorites-prompt-dismissed'
@@ -5,11 +10,13 @@ const PROMPT_DISMISSED_KEY = 'megga-favorites-prompt-dismissed'
 let loginPromptVisible = false
 const promptListeners = new Set<() => void>()
 
+/** Réveille tous les composants abonnés après un changement d'état du prompt. */
 function notifyPromptListeners() { promptListeners.forEach((fn) => fn()) }
 
 // ─── Supabase sync ──────────────────────────────────────────────────────────
 // ─── Hook ───────────────────────────────────────────────────────────────────
 // Hook for the login prompt state
+/** S'abonne au singleton et expose la visibilité du prompt de connexion + son dismiss. */
 export function useFavoritesLoginPrompt() {
   const [, setTick] = useState(0)
 

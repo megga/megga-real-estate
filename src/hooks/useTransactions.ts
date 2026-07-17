@@ -35,6 +35,7 @@ interface TransactionFilters {
   assigned_to?: string
 }
 
+/** Liste des transactions (deals) avec relations bien/acheteur/vendeur/agent, filtrable par stade/statut/agent. */
 export function useTransactions(filters?: TransactionFilters) {
   const { user } = useAuth()
 
@@ -56,6 +57,7 @@ export function useTransactions(filters?: TransactionFilters) {
   }
 }
 
+/** Une transaction par id, relations complètes ; désactivé tant que `id` est absent. */
 export function useTransaction(id: string | undefined) {
   const result = useQuery(
     supabase
@@ -87,6 +89,7 @@ interface CreateTransactionInput {
   notes?: string
 }
 
+/** Crée une transaction et émet l'événement Intercom « affaire créée ». */
 export function useCreateTransaction() {
   const insert = useInsertMutation(supabase.from('transactions'), ['id'])
   return {

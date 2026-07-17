@@ -1,3 +1,10 @@
+/**
+ * Garde de route de toute surface `/dashboard/*`. Enchaîne les gates dans
+ * l'ordre : session en cours de résolution → non authentifié (redirige vers
+ * megga.ch/login) → step-up 2FA (session AAL1 avec facteur TOTP) → onboarding /
+ * agence / premier-jour (décision pure `resolveOnboardingGate`) → consentements
+ * nLPD (`ConsentGate`), puis rend le contenu protégé.
+ */
 import { lazy, Suspense } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
@@ -19,6 +26,7 @@ interface ProtectedRouteProps {
   skipOnboardingCheck?: boolean
 }
 
+/** Applique la chaîne de gates puis rend `children` (enveloppés du gate consentement). */
 export default function ProtectedRoute({ children, skipOnboardingCheck }: ProtectedRouteProps) {
   const { user, profile, loading } = useAuth()
   // Gate 2FA — hook appelé inconditionnellement (règle des hooks). Ne touche pas

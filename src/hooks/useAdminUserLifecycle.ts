@@ -8,6 +8,10 @@ import { supabase } from '@/lib/supabase'
 
 export type UserLifecycleAction = 'suspend' | 'reactivate' | 'force_password_reset'
 
+/**
+ * Mutations de cycle de vie compte (suspend / reactivate / force_password_reset
+ * + suppression) déléguées aux edges admin. Invalide `admin-users` au succès.
+ */
 export function useAdminUserLifecycle() {
   const queryClient = useQueryClient()
 

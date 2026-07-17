@@ -1,9 +1,15 @@
+/**
+ * Bouton super-admin déclenchant l'envoi immédiat du rapport hebdomadaire
+ * (edge function `weekly-report`). État transitoire sending → sent (retour à
+ * l'état neutre après 5 s) ; échec silencieux si la fonction n'est pas déployée.
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Send, CheckCircle, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
+/** Bouton « envoyer maintenant » avec libellé/icône reflétant l'état d'envoi. */
 export default function WeeklyReportPreview() {
   const { t } = useTranslation('admin')
   const [sending, setSending] = useState(false)

@@ -1,3 +1,10 @@
+/**
+ * Tableau de bord facturation (section super-admin, accent violet).
+ *
+ * Alimenté par `useAdminBilling` — source Stripe si connecté, repli Supabase
+ * sinon. Agrège KPI (MRR, revenu, ARPU, churn, échecs), répartition par plan,
+ * historique de revenus sur 6 mois, renouvellements à venir et paiements récents.
+ */
 import { useTranslation } from 'react-i18next'
 import { formatCHF, formatRelativeDate, cn } from '@/lib/utils'
 import { useAdminBilling } from '@/hooks/useAdminBilling'
@@ -25,6 +32,7 @@ const PAYMENT_STATUS_KEYS: Record<string, { dot: string; key: string }> = {
   refunded: { dot: 'bg-amber-500', key: 'billing.payment.status.refunded' },
 }
 
+/** Vue facturation complète : bloc KPI + trois panneaux (plans, revenus, renouvellements) + table paiements. */
 export default function BillingDashboard() {
   'use no memo'
   const { t } = useTranslation('admin')

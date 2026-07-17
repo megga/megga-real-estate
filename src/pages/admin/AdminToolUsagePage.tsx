@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — usage des outils WhatsApp de l'agent IA.
+ *
+ * Route : `/dashboard/admin/tool-usage` (SuperAdminGuard, accent violet). Croise la
+ * RPC des appels observés avec le catalogue `WHATSAPP_TOOL_CATALOG` (outils jamais
+ * appelés inclus en lignes à 0), affiche tier + taux d'erreur par outil, puis les
+ * coûts IA par agence via `AiCostsSection`. Vue observe-only, aucune action.
+ */
 import { useTranslation } from 'react-i18next'
 import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -7,6 +15,7 @@ import { AiCostsSection } from '@/components/admin/AdminOpsPanels'
 
 const TIER_BY_TOOL = new Map(WHATSAPP_TOOL_CATALOG.map((tt) => [tt.name, tt.tier]))
 
+/** Table d'usage des outils (observés + jamais utilisés) suivie de la section coûts IA. */
 export default function AdminToolUsagePage() {
   const { t } = useTranslation('admin')
   const { data: observed = [], isLoading, error } = useAdminToolUsage()

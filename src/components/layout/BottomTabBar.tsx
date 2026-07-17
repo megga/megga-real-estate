@@ -1,3 +1,8 @@
+/**
+ * Barre d'onglets mobile (< md) du CRM agent, fixée en bas de l'écran.
+ * 4 onglets principaux + bouton « Plus » ouvrant un <Sheet> (drag-to-dismiss)
+ * avec les surfaces secondaires. Masquée en desktop (`md:hidden`).
+ */
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
@@ -31,6 +36,7 @@ const MORE_ITEMS: TabItem[] = [
 const TAP_SPRING = { type: 'spring' as const, stiffness: 480, damping: 28, mass: 0.6 }
 const INDICATOR_SPRING = { type: 'spring' as const, stiffness: 520, damping: 38 }
 
+/** Onglet actif détecté par préfixe de path ; l'indicateur glisse via `layoutId`. */
 export default function BottomTabBar() {
   const location = useLocation()
   const navigate = useNavigate()

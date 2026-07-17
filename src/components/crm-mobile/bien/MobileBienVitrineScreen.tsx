@@ -1,3 +1,8 @@
+/**
+ * Fiche bien mobile et ses atomes de présentation (Card, Eyebrow, RibbonSpec,
+ * Stat, Row) + la visionneuse plein écran (Lightbox). `MobileBienVitrineScreen`
+ * porte le câblage Supabase ; voir sa docstring pour la portée v1 et les différés.
+ */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +22,7 @@ interface MobileBienVitrineScreenProps {
   demoData?: Property
 }
 
+/** Coerce une valeur inconnue vers un nombre fini, sinon null (tolère les string numériques). */
 const num = (v: unknown): number | null => {
   const n = typeof v === 'string' ? Number(v) : (v as number)
   return typeof n === 'number' && Number.isFinite(n) ? n : null
@@ -248,12 +254,15 @@ function frType(t: Property['type']): BienType {
 
 type Tk = ReturnType<typeof useMobileTokens>['tk']
 
+/** Carte de section (fond, bordure, coins arrondis). */
 function Card({ tk, children }: { tk: Tk; children: ReactNode }) {
   return <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 22, boxShadow: tk.shadowSm, padding: 20 }}>{children}</div>
 }
+/** Sur-titre de section en petites capitales. */
 function Eyebrow({ tk, children }: { tk: Tk; children: ReactNode }) {
   return <div style={{ fontSize: 10.5, fontWeight: 800, color: tk.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>{children}</div>
 }
+/** Cellule de la bande de specs : icône + valeur + label. */
 function RibbonSpec({ icon, label, value, tk }: { icon: 'surface' | 'home' | 'bed' | 'bath' | 'clock' | 'bolt'; label: string; value: string; tk: Tk }) {
   return (
     <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 52 }}>
@@ -263,6 +272,7 @@ function RibbonSpec({ icon, label, value, tk }: { icon: 'surface' | 'home' | 'be
     </div>
   )
 }
+/** Tuile de performance : icône + valeur + label. */
 function Stat({ tk, icon, label, value }: { tk: Tk; icon: 'eye' | 'heart' | 'calendar'; label: string; value: number }) {
   return (
     <div style={{ flex: 1, background: tk.cardSubtle, borderRadius: 16, padding: '14px 12px' }}>
@@ -272,6 +282,7 @@ function Stat({ tk, icon, label, value }: { tk: Tk; icon: 'eye' | 'heart' | 'cal
     </div>
   )
 }
+/** Ligne clé/valeur d'un bloc (mandat…) ; séparateur bas sauf `last`. */
 function Row({ tk, label, value, last }: { tk: Tk; label: string; value: string; last?: boolean }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '11px 0', borderBottom: last ? 'none' : `1px solid ${tk.cardSubtle}` }}>
@@ -281,6 +292,7 @@ function Row({ tk, label, value, last }: { tk: Tk; label: string; value: string;
   )
 }
 
+/** Visionneuse photo plein écran : swipe tactile, flèches clavier, Échap pour fermer. */
 function Lightbox({ photos, index, onClose, onIndex, t }: { photos: string[]; index: number; onClose: () => void; onIndex: (i: number) => void; t: TFunction }) {
   const touch = useRef<number | null>(null)
   const go = (dx: number) => {

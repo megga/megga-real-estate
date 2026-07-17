@@ -1,3 +1,8 @@
+/**
+ * Rappels/relances de l'agence (table `reminders`) : liste filtrée aux
+ * statuts actifs, création manuelle (dialog Calendrier) et transitions
+ * (fait / snooze +3 j / annulé). Migré vers @supabase-cache-helpers.
+ */
 // Migrated to @supabase-cache-helpers/postgrest-react-query.
 //
 // useReminders + useMessageTemplates: fully migrated — list query + simple
@@ -79,6 +84,7 @@ interface ReminderRow {
 
 // ── Row converters ─────────────────────────────────────────────────────────
 
+/** Convertit une ligne DB (jointures contact/property parfois en tableau) en `Reminder` d'UI ; la raison chiffrée prime sur le libellé de type. */
 function rowToReminder(row: ReminderRow): Reminder {
   const contact = Array.isArray(row.contact) ? row.contact[0] : row.contact
   const property = Array.isArray(row.property) ? row.property[0] : row.property
@@ -115,6 +121,7 @@ function rowToReminder(row: ReminderRow): Reminder {
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
 
+/** Rappels actifs de l'agence + mutateurs (create/markAsDone/snooze/cancel) et sous-listes dérivées (active/triggered/pending). */
 export function useReminders() {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id

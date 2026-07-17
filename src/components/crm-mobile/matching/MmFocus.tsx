@@ -1,3 +1,4 @@
+/** VUE 2 du matching mobile — écran focus acheteur plein écran. Voir `MmFocus`. */
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 import MmKyc from './MmKyc'

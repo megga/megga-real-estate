@@ -12,6 +12,7 @@ export interface SyndicationHealth {
   last_push_at: string | null
 }
 
+/** Santé de la syndication IDX : statuts par portail, erreurs récentes, config des agences. */
 export function useSyndicationHealth() {
   return useQuery({
     queryKey: ['admin-syndication-health'],
@@ -45,6 +46,10 @@ export interface WhatsAppHealth {
   webhook_stale: boolean
 }
 
+/**
+ * Santé des ops WhatsApp : envois/échecs 24h-7d, dead-letters, verrous cron.
+ * `webhook_stale` est dérivé au fetch (pas au render) pour la pureté hooks.
+ */
 export function useWhatsAppHealth() {
   return useQuery({
     queryKey: ['admin-whatsapp-health'],
@@ -73,6 +78,7 @@ export interface AiCostRow {
   cost_usd: number
 }
 
+/** Coûts IA agrégés par mois / agence / provider / module sur les `months` derniers mois. */
 export function useAiCosts(months = 6) {
   return useQuery({
     queryKey: ['admin-ai-costs', months],

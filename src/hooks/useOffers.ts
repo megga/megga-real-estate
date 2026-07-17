@@ -59,6 +59,7 @@ export interface ExpiringOffer {
   by_id: string | null
 }
 
+/** Query agence-wide des offres 'pending', triées par échéance la plus proche (file Focus radar). */
 export function useExpiringOffers(limit = 50) {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -112,6 +113,7 @@ export interface CreateOfferInput {
   notes?: string | null
 }
 
+/** Insère une offre racine ou une contre-offre ; l'audit 'deal' est loggé par trigger DB. */
 export function useCreateOffer() {
   const { user, profile } = useAuth()
   const queryClient = useQueryClient()
@@ -165,6 +167,7 @@ export interface UpdateOfferStatusInput {
   status: Exclude<OfferStatus, 'pending'>
 }
 
+/** Applique une transition de status (accept/reject/withdraw) ; accepter SIGNE le deal (cf. corps). */
 export function useUpdateOfferStatus() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -234,6 +237,7 @@ interface RawOfferRow {
   responded_at: string | null
 }
 
+/** Convertit une row `crm_offers` brute (bigint sérialisé en string, jsonb) vers le type `Offer`. */
 function normalizeOfferRow(row: RawOfferRow): Offer {
   return {
     id: row.id,
@@ -265,6 +269,7 @@ function normalizeOfferRow(row: RawOfferRow): Offer {
   }
 }
 
+/** Normalise le jsonb `conditions` en `OfferConditions` complet (valeurs par défaut si absent/malformé). */
 function normalizeConditions(raw: unknown): OfferConditions {
   if (!raw || typeof raw !== 'object') return EMPTY_OFFER_CONDITIONS
   const r = raw as Partial<OfferConditions>

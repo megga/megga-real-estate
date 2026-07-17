@@ -1,3 +1,7 @@
+/**
+ * Bloc mobile « Suivis WhatsApp » : mapping d'échéance (duePill), ligne tappable
+ * avec HITL (FollowupRow), et bloc plafonné (export).
+ */
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -16,6 +20,7 @@ function duePill(urgency: FollowupUrgency, tk: MobileTokens): { bg: string; fg: 
   return { bg: tk.cardSubtle, fg: tk.muted }
 }
 
+/** Ligne d'un suivi : contact + action + pastille d'échéance ; tap → fiche, boutons ✓/✕ = HITL accepter/écarter. */
 function FollowupRow({ row, last, tk }: { row: AgencyFollowupRow; last: boolean; tk: MobileTokens }) {
   const { t } = useTranslation('dashboard')
   const navigate = useNavigate()

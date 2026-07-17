@@ -40,6 +40,11 @@ interface UserDevicesState {
 
 const COLS = 'id,user_agent,browser,os,ip,country,city,trusted,first_seen_at,last_seen_at'
 
+/**
+ * Charge les appareils/sessions de l'utilisateur courant (`user_devices`, RLS self).
+ * `revoke` invalide la vraie session GoTrue via l'edge `revoke-device-session`
+ * (retrait optimiste, rollback par rechargement si l'appel échoue).
+ */
 export function useUserDevices(): UserDevicesState {
   const [devices, setDevices] = useState<UserDevice[]>([])
   const [isLoading, setIsLoading] = useState(true)

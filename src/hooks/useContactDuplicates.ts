@@ -45,6 +45,7 @@ interface FindDuplicatesInput {
   lastName?: string | null
 }
 
+/** true si l'input porte au moins un critère de matching : email, téléphone, ou prénom+nom complets. */
 function hasAnySignal(input: FindDuplicatesInput): boolean {
   return Boolean(
     (input.email && input.email.trim()) ||
@@ -53,6 +54,7 @@ function hasAnySignal(input: FindDuplicatesInput): boolean {
   )
 }
 
+/** Doublons potentiels d'un contact via la RPC `find_contact_duplicates` ; désactivée tant qu'aucun signal exploitable n'est fourni. */
 export function useFindContactDuplicates(input: FindDuplicatesInput) {
   return useQuery({
     queryKey: ['contact-duplicates', input.email, input.phone, input.firstName, input.lastName],

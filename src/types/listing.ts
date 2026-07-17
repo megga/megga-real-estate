@@ -1,3 +1,10 @@
+/**
+ * Type d'un bien (`Property`) côté CRM — annonce vente ou location.
+ *
+ * Modèle applicatif de la table `listings`. Champs optionnels ajoutés par vagues
+ * (Fiche Bien sprint 2, support location 2026-04, plans interactifs, C2PA) — d'où
+ * les nombreux `?` référencés à leur migration.
+ */
 import type { PropertyType, PropertyStatus } from '@/lib/constants'
 import type { FloorPlanHotspot, PhotoTag } from './floorPlan'
 

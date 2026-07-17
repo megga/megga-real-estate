@@ -49,6 +49,11 @@ export interface UsePipelineSugarReturn {
   kycByContact: Map<string, KycCase>
 }
 
+/**
+ * Adapter Supabase → `CrmDeal[]` de PipelineSugarV2Page : charge transactions +
+ * contacts + KYC acheteur + properties de l'agence, hydrate le registry runtime
+ * (registerLive*) et expose des index par id (contacts/biens/KYC) pour les items Focus.
+ */
 export function usePipelineSugar(): UsePipelineSugarReturn {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id

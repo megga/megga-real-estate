@@ -60,6 +60,12 @@ interface ImportLeadResult {
   dealId: string | null
 }
 
+/**
+ * Crée Contact (+ Deal optionnel) via la RPC transactionnelle
+ * `create_lead_with_optional_deal`, puis écrit les events d'audit nLPD.
+ * Rollback DB si le deal échoue (pas d'orphelin) ; un échec d'audit ne jette
+ * pas (le métier est déjà persisté) mais est loggé.
+ */
 async function persistLead(input: ImportLeadInput, agencyId: string | null, userId: string): Promise<ImportLeadResult> {
   const { extracted, createDeal, redactionSummary, rawText } = input
 
@@ -171,6 +177,7 @@ async function persistLead(input: ImportLeadInput, agencyId: string | null, user
   return { contactId: contact.id, dealId }
 }
 
+/** Libellé FR de l'action suivante suggérée (inséré dans les notes du deal). */
 function labelForNextAction(a: LeadNextAction): string {
   const map: Record<LeadNextAction, string> = {
     call:  'Appel de qualification',
@@ -181,6 +188,11 @@ function labelForNextAction(a: LeadNextAction): string {
   return map[a]
 }
 
+/**
+ * Mutation d'import : orchestre `persistLead` avec l'agence/user courant,
+ * invalide les listes contacts/transactions et pousse l'event Intercom.
+ * À appeler APRÈS validation de la dédup côté UI.
+ */
 export function useImportLead() {
   const { user, profile } = useAuth()
   const queryClient = useQueryClient()

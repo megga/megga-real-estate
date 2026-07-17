@@ -1,3 +1,8 @@
+/**
+ * Flux d'activité (super-admin) : liste chronologique des `activity_events`,
+ * groupée par jour et filtrable par type d'action.
+ * Alimenté par `useActivityLog` (polling 30 s, pas de canal Realtime, malgré le badge « temps réel »).
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Users, Home, GitBranch, ShieldCheck, Mail, Calendar, Shuffle, Building2, Activity } from 'lucide-react'
@@ -34,6 +39,7 @@ const ENTITY_ICONS: Record<string, React.ElementType> = {
   agency: Building2,
 }
 
+/** Regroupe les entrées par jour (Aujourd'hui / Hier / date longue fr-CH), en préservant l'ordre reçu. */
 function groupByDate(entries: ActivityLogEntry[], todayLabel: string, yesterdayLabel: string): { label: string; items: ActivityLogEntry[] }[] {
   const groups: Record<string, ActivityLogEntry[]> = {}
   const today = new Date().toDateString()
@@ -59,6 +65,7 @@ const ACTION_TYPE_KEYS = [
   { value: 'edge_function_error', key: 'activityLog.filter.errors' },
 ]
 
+/** Bento du flux d'activité : filtre par action + pagination « charger plus » (+50). */
 export default function ActivityLog() {
   const { t } = useTranslation('admin')
   const [actionFilter, setActionFilter] = useState('')

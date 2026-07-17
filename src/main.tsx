@@ -1,3 +1,8 @@
+/**
+ * Point d'entrée de l'application React (bundle Vite). Monte <App/> dans #root
+ * sous StrictMode et amorce la télémétrie : Sentry inconditionnel (opérationnel),
+ * PostHog gaté au consentement LPD.
+ */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@/i18n'

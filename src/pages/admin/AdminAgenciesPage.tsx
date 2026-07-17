@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — annuaire des agences.
+ *
+ * Route : `/dashboard/admin/agencies` (section admin, accent violet). Liste
+ * paginée (10/page) avec recherche, filtre de statut, export CSV et score de
+ * santé par agence. La santé s'appuie sur un résumé d'activité agrégé server-side
+ * (RPC `get_agency_activity_summary`) pour éviter de scanner activity_events.
+ */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -20,6 +28,7 @@ const PLAN_LABEL: Record<string, string> = {
   agency: 'Agency',
 }
 
+/** Pastille initiale, couleur dérivée déterministiquement du nom (somme des char codes). */
 function AgencyAvatar({ name }: { name: string }) {
   const letter = (name || '?')[0].toUpperCase()
   const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500']
@@ -32,6 +41,7 @@ function AgencyAvatar({ name }: { name: string }) {
   )
 }
 
+/** Placeholder pulsant du tableau desktop pendant le chargement. */
 function SkeletonRows() {
   return (
     <>
@@ -54,6 +64,7 @@ function SkeletonRows() {
   )
 }
 
+/** Écran annuaire : chargement, filtres, pagination et calcul du score de santé. */
 export default function AdminAgenciesPage() {
   'use no memo'
   const { t } = useTranslation('admin')
@@ -402,6 +413,7 @@ export default function AdminAgenciesPage() {
   )
 }
 
+/** État vide, messages distincts selon qu'un filtre est actif ou non. */
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   const { t } = useTranslation('admin')
   return (

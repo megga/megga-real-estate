@@ -1,3 +1,8 @@
+/**
+ * Briefing matinal MEGGA AI pour la page « Aujourd'hui ». Génère le texte une
+ * fois par jour (cache localStorage keyé agent+date) pour éviter de régénérer et
+ * refacturer à chaque montage ; gated par le flag `copilot_briefing_enabled`.
+ */
 // Briefing matinal MEGGA AI — appelle l'action daily_brief de l'edge ai-copilot
 // UNE FOIS PAR JOUR (cache localStorage keyé par agent + date), pour éviter de
 // régénérer (et refacturer) à chaque montage de la page « Aujourd'hui ».
@@ -26,6 +31,7 @@ interface CacheEntry {
 const CACHE_PREFIX = 'megga.today.brief.v1'
 const today = () => new Date().toISOString().slice(0, 10)
 
+/** Lit l'entrée de cache du jour ; null si absente ou périmée (date ≠ aujourd'hui). */
 function readCache(key: string): CacheEntry | null {
   try {
     const raw = window.localStorage.getItem(key)
@@ -36,10 +42,12 @@ function readCache(key: string): CacheEntry | null {
     return null
   }
 }
+/** Persiste l'entrée de cache ; silencieux en navigation privée (localStorage indisponible). */
 function writeCache(key: string, entry: CacheEntry) {
   try { window.localStorage.setItem(key, JSON.stringify(entry)) } catch { /* incognito */ }
 }
 
+/** Texte du briefing du jour prêt à afficher (vide → la carte ne se rend pas), + `disabled`/`isLoading`. */
 export function useDailyBrief(): { text: string; isLoading: boolean; disabled: boolean } {
   const { profile } = useAuth()
   const userId = profile?.id ?? null

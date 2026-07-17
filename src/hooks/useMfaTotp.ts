@@ -36,6 +36,7 @@ interface MfaTotpState {
   error: string | null
 }
 
+/** Traduit un message d'erreur Supabase MFA (EN) en message FR affichable à l'agent. */
 function friendlyError(message: string): string {
   const m = message.toLowerCase()
   if (m.includes('mfa') && (m.includes('disabled') || m.includes('not enabled'))) {
@@ -47,6 +48,11 @@ function friendlyError(message: string): string {
   return message
 }
 
+/**
+ * Gère l'activation/désactivation de la 2FA TOTP via l'auth MFA Supabase.
+ * Expose l'état (isEnabled/qr/secret) et les actions enroll/verify/disable ;
+ * les erreurs backend remontent en FR via {@link friendlyError} sans crasher l'UI.
+ */
 export function useMfaTotp(): MfaTotpState {
   const [isEnabled, setIsEnabled] = useState(false)
   const [isLoading, setIsLoading] = useState(true)

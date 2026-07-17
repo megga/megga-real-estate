@@ -48,6 +48,7 @@ export type ExtractLeadErrorCode =
   | 'parse_failed'
   | 'unknown'
 
+/** Erreur typée portant un `code` machine (voir `ExtractLeadErrorCode`) en plus du message lisible. */
 export class ExtractLeadError extends Error {
   readonly code: ExtractLeadErrorCode
   constructor(message: string, code: ExtractLeadErrorCode) {
@@ -56,6 +57,7 @@ export class ExtractLeadError extends Error {
   }
 }
 
+/** Invoque l'edge `extract-lead` et remonte le `code` d'erreur métier depuis le body JSON. */
 async function callExtractLead(text: string): Promise<ExtractLeadResult> {
   const { data, error } = await supabase.functions.invoke<ExtractLeadResult>('extract-lead', {
     body: { text },
@@ -85,6 +87,7 @@ async function callExtractLead(text: string): Promise<ExtractLeadResult> {
   return data
 }
 
+/** Mutation React Query autour de `extract-lead` : texte libre → lead structuré. */
 export function useExtractLead() {
   return useMutation<ExtractLeadResult, ExtractLeadError, { text: string }>({
     mutationFn: ({ text }) => callExtractLead(text),

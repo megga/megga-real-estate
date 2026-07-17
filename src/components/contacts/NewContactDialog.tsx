@@ -1,3 +1,8 @@
+/**
+ * Modale de création rapide d'un contact CRM. Champs essentiels (nom, email, type)
+ * visibles d'emblée ; téléphone / score / source / notes repliés derrière « Ajouter
+ * des détails ». Soumet via `useCreateContact` (React Query gère l'erreur).
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -38,6 +43,7 @@ interface NewContactDialogProps {
   onCreated?: () => void
 }
 
+/** Formulaire contrôlé ; valide sur prénom + nom, réinitialise à la fermeture comme après création. */
 export default function NewContactDialog({ open, onClose, onCreated }: NewContactDialogProps) {
   const { t } = useTranslation('contacts')
   const createContact = useCreateContact()

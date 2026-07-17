@@ -1,3 +1,10 @@
+/**
+ * Page super-admin — flux d'activité temps réel.
+ *
+ * Route : `/dashboard/admin/live` (SuperAdminGuard, accent violet). Stream des
+ * `activity_events` (via `useAdminLiveFeed`) avec pause, filtres par type
+ * d'entité / action, stats du jour et détail metadata dépliable par ligne.
+ */
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Radio, Pause, Play, Filter, ChevronDown } from 'lucide-react'
@@ -41,6 +48,7 @@ const ENTITY_COLORS: Record<string, string> = {
   agency: 'bg-purple-500',
 }
 
+/** Couleur de pastille pour un type d'entité ; gris neutre par défaut. */
 function getEntityColor(entityType: string): string {
   return ENTITY_COLORS[entityType] ?? 'bg-theme-muted'
 }
@@ -59,15 +67,13 @@ const ENTITY_TYPE_KEYS: Array<{ value: string; labelKey: string }> = [
   { value: 'agency', labelKey: 'liveFeed.entityType.agencies' },
 ]
 
-// ─── HELPER: format HH:MM:SS ───────────────────────────────────────────────
-
+/** Formate un ISO en HH:MM:SS (fuseau fr-CH) pour la colonne horodatage. */
 function formatTime(isoDate: string): string {
   const d = new Date(isoDate)
   return d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-// ─── HELPER: summarize metadata ─────────────────────────────────────────────
-
+/** Résumé une ligne des 3 premières entrées metadata (valeurs tronquées à 40 car.). */
 function summarizeMetadata(metadata: Record<string, unknown>): string {
   if (!metadata || Object.keys(metadata).length === 0) return ''
   const entries = Object.entries(metadata).slice(0, 3)
@@ -78,8 +84,7 @@ function summarizeMetadata(metadata: Record<string, unknown>): string {
   }).join(' | ')
 }
 
-// ─── STAT CARD ──────────────────────────────────────────────────────────────
-
+/** Carte KPI compacte du bandeau de stats. */
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-xl border border-theme-border p-4">
@@ -89,8 +94,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   )
 }
 
-// ─── EVENT ROW ──────────────────────────────────────────────────────────────
-
+/** Ligne d'événement ; cliquable pour déplier le JSON metadata brut si présent. */
 function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: boolean; getActionLabel: (action: string) => string }) {
   const [expanded, setExpanded] = useState(false)
   const metaSummary = summarizeMetadata(event.metadata)
@@ -153,8 +157,7 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
   )
 }
 
-// ─── MAIN PAGE ──────────────────────────────────────────────────────────────
-
+/** Vue principale : bandeau stats, filtres et liste temps réel des 100 derniers events. */
 export default function AdminLiveFeedPage() {
   const { t } = useTranslation('admin')
   const { events, isLoading } = useAdminLiveFeed(100)

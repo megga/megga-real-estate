@@ -1,7 +1,9 @@
-// Cantons suisses — donnée de référence générique (26 cantons + libellés FR).
-// Extrait de l'ancien hook marketplace useMarketFilters lors du retrait de la
-// marketplace (2026-06-08) ; conservé car utilisé par l'onboarding agence et la
-// préférence de localisation du CRM.
+/**
+ * Cantons suisses — donnée de référence générique (26 cantons + libellés FR).
+ * Extrait de l'ancien hook marketplace useMarketFilters lors du retrait de la
+ * marketplace (2026-06-08) ; conservé car utilisé par l'onboarding agence et la
+ * préférence de localisation du CRM.
+ */
 
 export const SWISS_CANTONS = [
   'GE', 'VD', 'VS', 'NE', 'FR', 'BE', 'JU', 'BS', 'BL', 'AG', 'SO', 'ZH', 'LU', 'ZG',

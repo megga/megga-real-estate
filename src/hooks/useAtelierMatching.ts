@@ -144,6 +144,7 @@ function gallery(photos: string[] | null): AtelierListing['gallery'] {
   }))
 }
 
+/** Bien de veille marché (market_listings) → AtelierListing : clé `m:<id>`, prix courant + prix barré si baisse détectée. */
 export function mapMarketListing(row: RawMarketRow): AtelierListing {
   const features = featureList(row.features).map(f => f.toLowerCase())
   const price = num(row.current_price) ?? num(row.price) ?? 0
@@ -186,6 +187,7 @@ export function mapMarketListing(row: RawMarketRow): AtelierListing {
   }
 }
 
+/** Bien interne (properties) → AtelierListing : clé `p:<id>`, jours-sur-marché dérivés de created_at. */
 export function mapProperty(row: RawPropertyRow): AtelierListing {
   const features = featureList(row.features).map(f => f.toLowerCase())
   const photos = row.photos ?? []
@@ -291,6 +293,11 @@ export interface UseAtelierMatchingReturn {
   refresh: () => void
 }
 
+/**
+ * Données de l'Atelier Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
+ * groupés par annonce (pivots) et re-groupables par acheteur (poolFor / buyerFor).
+ * Les couples écartés/rejetés sont exclus de la file.
+ */
 export function useAtelierMatching(): UseAtelierMatchingReturn {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -439,6 +446,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }
 }
 
+/** true tant que le report (snooze) d'un match n'est pas échu. */
 export const isSnoozed = (until: string | null): boolean =>
   until != null && new Date(until).getTime() > Date.now()
 

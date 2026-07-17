@@ -1,3 +1,9 @@
+/**
+ * Hook du module Matching pour MatchingPage : charge les `matches` de l'agence
+ * (biens internes + market_listings Flatfox), normalise les deux formes en une
+ * forme unifiée `MatchResult`, et expose les gestes agent (envoi, ignore,
+ * réaction client, relance du matching via l'Edge function `matching-engine`).
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -119,6 +125,7 @@ export interface MatchResult {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+/** Normalise un match Supabase (bien interne OU market_listing) en `MatchResult` unifié pour l'UI. */
 function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
   const contact = m.contact
   const isMarket = m.source === 'market'
@@ -204,6 +211,10 @@ function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
+/**
+ * Matches de l'agence (optionnellement filtrés par contact) + actions associées.
+ * Passer `{ enabled: false }` garde les surfaces démo inertes (aucun fetch Supabase).
+ */
 export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
   const { profile } = useAuth()
   const queryClient = useQueryClient()

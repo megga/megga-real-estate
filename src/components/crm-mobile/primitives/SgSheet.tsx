@@ -1,3 +1,4 @@
+/** Feuille modale (bottom sheet) du CRM mobile — primitive « Sugar ». */
 import type { CSSProperties, ReactNode } from 'react'
 import Sheet from '@/components/ui/Sheet'
 import { useMobileTokens } from '../useMobileTokens'

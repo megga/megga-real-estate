@@ -1,3 +1,9 @@
+/**
+ * Contexte d'authentification (Supabase Auth) — source unique session / user / profile.
+ * Expose les gestes de connexion (mot de passe, OTP e-mail, OAuth Google/Microsoft/
+ * Facebook), inscription, reset, updatePassword et signOut, plus les dérivés de rôle
+ * (isAgent / isParticulier). DEV_BYPASS_AUTH (dev-only) injecte un mock sans réseau.
+ */
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
@@ -88,6 +94,7 @@ const MOCK_PROFILE: UserProfile = {
   first_day_done: true,
 }
 
+/** Charge le profil depuis `profiles` ; un retry à 500 ms couvre la race « trigger de création pas encore passé », sinon repli minimal construit depuis user_metadata. */
 async function fetchProfile(userId: string, user?: User | null, retry = true): Promise<UserProfile | null> {
   try {
     const { data, error } = await supabase
@@ -128,6 +135,7 @@ async function fetchProfile(userId: string, user?: User | null, retry = true): P
   }
 }
 
+/** Provider racine : hydrate session + profil au montage, suit onAuthStateChange, expose les gestes d'auth. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(DEV_BYPASS_AUTH ? MOCK_PROFILE : null)
@@ -346,6 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/** Accès au contexte d'auth ; lève si appelé hors d'un `AuthProvider`. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)

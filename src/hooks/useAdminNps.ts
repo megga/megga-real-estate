@@ -37,6 +37,10 @@ interface NpsRow {
   submitted_at: string
 }
 
+/**
+ * Réponses NPS + stats agrégées côté client (moyenne, score NPS -100..100,
+ * distribution 1-5, promoteurs/passifs/détracteurs) depuis `admin_nps_responses`.
+ */
 export function useAdminNps() {
   return useQuery({
     queryKey: ['admin-nps'],

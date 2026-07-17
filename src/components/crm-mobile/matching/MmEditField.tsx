@@ -1,3 +1,4 @@
+/** Carte critère de recherche (matching mobile) — champ label/valeur en lecture seule. */
 import type { CSSProperties } from 'react'
 import { useMobileTokens } from '../useMobileTokens'
 

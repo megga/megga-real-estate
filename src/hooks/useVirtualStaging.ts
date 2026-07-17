@@ -1,3 +1,10 @@
+/**
+ * Hook du home-staging virtuel.
+ *
+ * Génère une photo meublée via l'Edge Function `virtual-staging` (gate Vision +
+ * quota par plan). Expose l'état de génération, le résultat (URL + usage) et des
+ * erreurs typées : quota dépassé, mismatch de pièce, blocage LPD, pièce déjà meublée.
+ */
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -73,6 +80,7 @@ export const ROOM_TYPES: { value: RoomType; label: string }[] = [
 // ─── Plan quotas (mirrored from Edge Function) ──────────────────────────
 // ─── Hook ───────────────────────────────────────────────────────────────
 
+/** Pilote une génération de staging (une pièce, un style) et conserve résultat / erreur / état. */
 export function useVirtualStaging() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<StagingError | null>(null)

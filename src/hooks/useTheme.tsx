@@ -1,3 +1,11 @@
+/**
+ * Contexte thème light/dark du dashboard agent (`data-theme` sur <html>).
+ *
+ * Persiste le choix en localStorage et respecte la préférence système au 1er rendu.
+ * Réapplique les couleurs d'accent à chaque bascule (cache invalidé si un autre
+ * onglet modifie les préférences) et nettoie les attributs au démontage (les pages
+ * publiques restent en clair).
+ */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { applyPreferences } from '@/hooks/usePreferences'
 import { DEFAULT_PREFERENCES, type DashboardPreferences } from '@/lib/accentPresets'
@@ -15,6 +23,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 const STORAGE_KEY = 'megga-theme'
 const PREFS_STORAGE_KEY = 'megga-preferences'
 
+/** Thème initial : choix persisté sinon préférence système (clair par défaut en SSR). */
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'light'
   const stored = localStorage.getItem(STORAGE_KEY)
@@ -28,6 +37,7 @@ function getInitialTheme(): Theme {
 let _cachedPrefs: DashboardPreferences = DEFAULT_PREFERENCES
 let _cacheLoaded = false
 
+/** Préférences dashboard depuis localStorage, mémoïsées pour éviter un JSON.parse à chaque bascule. */
 function getStoredPreferences(): DashboardPreferences {
   if (_cacheLoaded) return _cachedPrefs
   try {
@@ -49,6 +59,7 @@ if (typeof window !== 'undefined') {
   })
 }
 
+/** Fournit le contexte thème et applique/retire `data-theme` sur le document. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme)
 
@@ -113,6 +124,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
+/** Accède au thème courant ; lève si utilisé hors d'un <ThemeProvider>. */
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext)
   if (!ctx) throw new Error('useTheme must be used within <ThemeProvider>')

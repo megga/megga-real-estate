@@ -1,3 +1,9 @@
+/**
+ * Contenu de la liste contacts mobile, rendu par `MobileContactsListPage`
+ * sur `/dashboard/contacts` (onglet « Plus »). Recherche + segments +
+ * lignes cliquables + FAB de création + menu d'actions. Détail du câblage réel
+ * sur le docstring de `MobileContactsListScreen`.
+ */
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +20,7 @@ import ContactSeal from './ContactSeal'
 import { CONTACT_SEGS, SEG_KEY, typeKey, type ContactSeg } from './shared'
 
 const AV = ['#0041D9', '#C45A00', '#0891B2', '#6366F1', '#0E9F6E', '#9333EA']
+/** Couleur d'avatar déterministe dérivée de l'id (repli si le contact n'a pas d'`avatarBg`). */
 function avatarColor(id: string): string {
   let h = 0
   for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) | 0
@@ -154,6 +161,7 @@ export function MobileContactsListScreen({ demo = false }: { demo?: boolean }) {
   )
 }
 
+/** Ligne de contact : avatar + nom (+ sceau KYC si vérifié) + type/score ; corps → fiche, bouton ••• → menu. */
 function Row({ c, t, last, onOpen, onMenu }: { c: CrmContact; t: TFunction; last: boolean; onOpen: () => void; onMenu: () => void }) {
   const { tk } = useMobileTokens()
   const initials = `${(c.firstName || ' ')[0]}${(c.lastName || ' ')[0]}`.toUpperCase()

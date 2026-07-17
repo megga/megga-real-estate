@@ -32,6 +32,7 @@ const DashboardSkeleton = lazy(
   () => import('@/components/skeletons/DashboardSkeleton'),
 )
 
+/** Spinner générique — fallback pour toute route sans skeleton dédié. */
 function DefaultLoader() {
   return (
     <div className="flex items-center justify-center h-64">

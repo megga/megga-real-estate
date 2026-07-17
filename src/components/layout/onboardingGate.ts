@@ -1,3 +1,7 @@
+/**
+ * Décision pure (testable, sans effet de bord) de la redirection du gate CRM :
+ * onboarding → agence → premier-jour. Consommée par `ProtectedRoute`.
+ */
 import { isAgentRole, type UserProfile } from '@/types/auth'
 
 export type OnboardingGateRedirect =

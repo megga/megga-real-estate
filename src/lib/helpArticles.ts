@@ -1,4 +1,11 @@
-// Help Center articles — 45 articles across 3 personas + special pages
+/**
+ * Contenu statique du Help Center — source unique des articles + pages annexes.
+ *
+ * Articles répartis en 3 personas (agent / vendeur / acheteur) et regroupés par
+ * section ; `ALL_ARTICLES` les concatène et les helpers en bas font le lookup
+ * (par slug, catégorie, sections). Exporte aussi les données des pages spéciales
+ * (changelog, statut services, raccourcis clavier, limites plan, FAQ conformité).
+ */
 
 export interface HelpArticle {
   slug: string
@@ -1637,18 +1644,22 @@ export const ALL_ARTICLES: HelpArticle[] = [
   ...ACHETEUR_GUIDES,
 ]
 
+/** Tous les articles d'une persona (agent / vendeur / acheteur). */
 export function getArticlesByCategory(category: HelpArticle['category']): HelpArticle[] {
   return ALL_ARTICLES.filter(a => a.category === category)
 }
 
+/** Lookup d'un article par slug ; `undefined` si inconnu. */
 export function getArticle(slug: string): HelpArticle | undefined {
   return ALL_ARTICLES.find(a => a.slug === slug)
 }
 
+/** Résout une liste de slugs en articles (ex. `relatedSlugs`) ; ignore les slugs inconnus. */
 export function getArticlesBySlugs(slugs: string[]): HelpArticle[] {
   return slugs.map(s => ALL_ARTICLES.find(a => a.slug === s)).filter(Boolean) as HelpArticle[]
 }
 
+/** Libellés de sections distincts d'une persona, dans l'ordre d'apparition. */
 export function getSections(category: HelpArticle['category']): string[] {
   const sections = new Set(ALL_ARTICLES.filter(a => a.category === category).map(a => a.section))
   return [...sections]

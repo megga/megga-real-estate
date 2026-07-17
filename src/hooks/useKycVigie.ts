@@ -75,6 +75,7 @@ function latestDecision(decisions: RawDecision[], target: 'pep' | 'sanctions'): 
 const DAY = 24 * 3600 * 1000
 const EXPIRY_WINDOW_DAYS = 60
 
+/** Nombre de jours entiers écoulés depuis `iso` ; null si la date est absente. */
 function daysSince(iso: string | null): number | null {
   if (!iso) return null
   return Math.floor((Date.now() - new Date(iso).getTime()) / DAY)
@@ -104,6 +105,11 @@ const MISSING_META: Record<'id' | 'address' | 'funds', { title: string; cta: str
   funds: { title: 'Attestation de source des fonds attendue', cta: 'Relancer le client' },
 }
 
+/**
+ * Dérive les deux flux Vigie depuis les dossiers KYC bruts : pièces à collecter
+ * côté client, contrôles & échéances côté conformité. Compte au passage le nombre
+ * d'items en retard (`nLate`).
+ */
 function deriveVigie(rows: RawVigieRow[]): KycVigie {
   const client: KycVigieItem[] = []
   const agent: KycVigieItem[] = []
@@ -213,6 +219,7 @@ function deriveVigie(rows: RawVigieRow[]): KycVigie {
   return { client, agent, nLate }
 }
 
+/** Charge les `kyc_cases` (contact + checklist + décisions) et en dérive la Vigie. */
 export function useKycVigie() {
   return useQuery<KycVigie>({
     queryKey: ['kyc-vigie'],

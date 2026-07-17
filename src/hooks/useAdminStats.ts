@@ -1,3 +1,8 @@
+/**
+ * KPIs du dashboard super-admin (agences/users/biens/transactions actifs, KYC à
+ * risque, nouveaux ce mois) via une RPC unique, plus les 10 derniers événements
+ * d'alerte.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -31,6 +36,7 @@ interface AdminStatsRow {
   new_users_this_month: number
 }
 
+/** KPIs admin (RPC unique) + flux des 10 derniers événements d'alerte. */
 export function useAdminStats() {
   // Single RPC call replaces 7 parallel count:'exact' queries (red-team perf
   // fix — CLAUDE.md §7 violation, 7 full table scans → 1 SQL function).

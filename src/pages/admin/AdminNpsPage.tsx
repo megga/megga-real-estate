@@ -1,3 +1,10 @@
+/**
+ * Page super-admin — satisfaction (NPS).
+ *
+ * Route : `/dashboard/admin/nps` (SuperAdminGuard, accent violet). Score NPS,
+ * note moyenne, répartition 1-5 étoiles et liste des réponses avec commentaires
+ * (via `useAdminNps`).
+ */
 import { useTranslation } from 'react-i18next'
 import { Star, MessageSquare, TrendingUp, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -13,12 +20,14 @@ const RATING_COLORS: Record<number, string> = {
   5: 'bg-emerald-500',
 }
 
+/** Couleur du score NPS : vert ≥ 50, ambre ≥ 0, rouge sinon. */
 function NpsScoreColor(score: number): string {
   if (score >= 50) return 'text-emerald-500'
   if (score >= 0) return 'text-amber-500'
   return 'text-red-500'
 }
 
+/** Ligne d'une réponse NPS : étoiles, identité, rôle, commentaire et date. */
 function ResponseCard({ response }: { response: NpsResponse }) {
   const { t } = useTranslation('admin')
   return (
@@ -66,6 +75,7 @@ function ResponseCard({ response }: { response: NpsResponse }) {
   )
 }
 
+/** Vue principale : 4 cartes stats, barre de distribution empilée et liste des réponses. */
 export default function AdminNpsPage() {
   const { t } = useTranslation('admin')
   const { data, isLoading } = useAdminNps()

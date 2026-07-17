@@ -1,3 +1,9 @@
+/**
+ * Hook super-admin — monitoring santé plateforme.
+ * Agrège quatre requêtes : santé globale (RPC), statuts par Edge Function (24 h),
+ * journal d'erreurs (100 dernières) et historique de métriques (sparklines). Le roster des
+ * fonctions est PASSIF (aucun ping) — voir la note sur EDGE_FUNCTION_NAMES.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { EDGE_FUNCTION_ROSTER } from '@/lib/edgeFunctionRoster'
@@ -46,6 +52,7 @@ interface ErrorLog {
 // Management API, ou émission par les fns) = chantier produit séparé.
 const EDGE_FUNCTION_NAMES: readonly string[] = EDGE_FUNCTION_ROSTER
 
+/** Santé plateforme, statuts Edge Functions, logs d'erreurs et historique de métriques pour le dashboard monitoring. */
 export function useAdminMonitoring() {
   // RPC unique (migration 20260518_004) — remplace 6 queries parallèles
   // (4 count:'exact' sur activity_events + 2 SELECT metric_value sur

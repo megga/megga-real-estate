@@ -1,3 +1,10 @@
+/**
+ * Export CSV côté client : sérialise `rows` et déclenche le téléchargement du fichier.
+ *
+ * `columns` fige l'ordre + les libellés d'en-tête ; sinon les clés du 1er objet sont
+ * reprises telles quelles. Écrit un BOM UTF-8 pour qu'Excel lise correctement les accents.
+ * No-op si `rows` est vide.
+ */
 export function exportToCsv(filename: string, rows: Record<string, unknown>[], columns?: { key: string; label: string }[]) {
   if (rows.length === 0) return
 

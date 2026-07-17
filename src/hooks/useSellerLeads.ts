@@ -1,3 +1,8 @@
+/**
+ * Hook CRM — leads vendeurs (`seller_leads`), demandes d'estimation captées par
+ * l'entonnoir public. Alimente le cockpit Focus et les vues admin. Renvoie le
+ * bien saisi, l'estimation, le contact et le statut du dossier.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -27,6 +32,10 @@ export interface SellerLeadRow {
   created_at: string
 }
 
+/**
+ * Liste les leads vendeurs, filtrable par `status` et bornable par `limit`
+ * (voir le garde-fou ci-dessous pour les vues « liste courte »).
+ */
 export function useSellerLeads(status?: string, limit?: number) {
   return useQuery({
     queryKey: ['seller-leads', status, limit],

@@ -21,6 +21,7 @@ export interface AuditEventsFilters {
   search?: string
 }
 
+/** Lecture du journal d'audit nLPD (activity_events) : filtres catégorie/sévérité/fenêtre jours + recherche plein-texte côté client (action, libellé, metadata). */
 export function useAuditEvents(filters: AuditEventsFilters = {}) {
   return useQuery<AuditEvent[]>({
     queryKey: ['audit-events', filters],
@@ -78,6 +79,7 @@ export interface LogAuditInput {
   ipAddress?: string | null
 }
 
+/** Écrit un AuditEvent (insert append-only — aucune policy UPDATE/DELETE) et invalide la liste. */
 export function useLogAudit() {
   const { user, profile } = useAuth()
   const queryClient = useQueryClient()

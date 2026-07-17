@@ -1,3 +1,7 @@
+/**
+ * Carte d'événement de la vue Liste (agenda mobile) : rail horaire à gauche, carte
+ * type/durée/titre/contact à droite. Les événements passés sont grisés + cochés.
+ */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'
