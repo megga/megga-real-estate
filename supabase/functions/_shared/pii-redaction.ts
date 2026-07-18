@@ -89,9 +89,17 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   // suisse de clé/code d'accès (« le passe : 4521 »), qui n'est pas un identifiant LBA/LPD et sort
   // du périmètre. Les tournures réelles restent couvertes, et l'ancrage explicite aligne PASSWORD
   // sur PASSPORT et DOB (seul homographe verbal du catalogue).
+  //
+  // La capture est bornée par `"` au lieu de \S+ : les résultats d'outils CRM réinjectés dans les
+  // boucles LLM sont du JSON COMPACT, où plus rien n'est blanc après la valeur. Un `(\S+)` glouton
+  // avalait donc le guillemet fermant puis tout le document jusqu'au prochain espace — perte
+  // SILENCIEUSE mesurée à 106 caractères sur un brief à 2 contacts, le second contact et son UUID
+  // entièrement effacés, JSON invalide, sans que le modèle puisse savoir qu'il lisait une vue
+  // amputée. Exclure le seul `"` suffit (une valeur JSON s'y termine) et redacte STRICTEMENT PLUS
+  // qu'exclure aussi `,;}]` : un mot de passe contenant une virgule reste couvert en entier.
   {
     kind: 'PASSWORD',
-    pattern: /\b(?:password|mot[\s-]?de[\s-]?passe|mdp|pwd)\s*[:=]\s*(\S+)/gi,
+    pattern: /\b(?:password|mot[\s-]?de[\s-]?passe|mdp|pwd)\s*[:=]\s*([^\s"]+)/gi,
   },
 
   // Clés API typiques — préfixes connus + 16-64 chars alphanumériques.

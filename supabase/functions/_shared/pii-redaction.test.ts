@@ -117,6 +117,41 @@ describe('redactPII — motif PASSWORD', () => {
     expect(r.redactedText).not.toContain('12.03.1985')
   })
 
+  // Les résultats d'outils CRM réinjectés dans les boucles LLM sont du JSON COMPACT : plus rien
+  // n'est blanc après une valeur. Une capture gloutonne (\S+) avalait le guillemet fermant puis
+  // tout le reste du document — perte silencieuse d'enregistrements entiers.
+  it('ne tronque plus le JSON compact : le reste du document survit', () => {
+    const payload = JSON.stringify({
+      contacts: [
+        { id: '3f2a9c1e-77b4-4d21-9a55-0e1b2c3d4e5f', first_name: 'Marie', note: 'mdp: Hunter2' },
+        { id: 'b2c3d4e5-6f70-4812-934a-5b6c7d8e9f01', first_name: 'Luc', last_name: 'Perret', note: 'RAS' },
+      ],
+      total: 2,
+    })
+    const out = redactPII(payload).redactedText
+
+    expect(out).not.toContain('Hunter2')          // le secret est bien masqué
+    expect(() => JSON.parse(out)).not.toThrow()   // …sans casser la structure
+    expect(out).toContain('Perret')               // le 2e enregistrement survit
+    expect(out).toContain('b2c3d4e5-6f70-4812-934a-5b6c7d8e9f01')
+    expect(JSON.parse(out).total).toBe(2)
+  })
+
+  it('borne au guillemet seulement : un mot de passe à virgule reste couvert en entier', () => {
+    // Exclure aussi `,;}]` fermerait le JSON de la même façon mais laisserait fuir la queue du
+    // secret. Le guillemet suffit, et c'est le choix le plus sûr.
+    for (const [input, secret] of [
+      ['mdp: p@ss,word', 'p@ss,word'],
+      ['mdp: p@ss}word', 'p@ss}word'],
+      ['mdp: p@ss;word', 'p@ss;word'],
+      ["mdp: p@ss'word", "p@ss'word"],
+    ]) {
+      const out = redactPII(input).redactedText
+      expect(out, `fuite sur ${input}`).toBe('[REDACTED:PASSWORD]')
+      expect(out).not.toContain(secret.split(/[,;}']/)[1])
+    }
+  })
+
   it('« mot de passe » reste couvert même collé à de la prose contenant « se passe »', () => {
     // Garde-fou d'alternance : le retrait de `passe` nu ne doit pas empêcher l'alternative
     // longue de matcher quand les deux tournures cohabitent dans le même message.
