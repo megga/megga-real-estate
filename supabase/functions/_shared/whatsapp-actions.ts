@@ -1614,10 +1614,13 @@ RÈGLES ABSOLUES (s'imposent à tout le reste) :
 
 Réponds UNIQUEMENT en JSON strict : {"subject":"…","body":"…"}`
 
-  const userPrompt = `Rédige un email immobilier suisse au client "${clientName}".
+  // Frontière DeepSeek rédigée par elle-même (même invariant que prepare_meeting) : instruction
+  // et insight sont déjà rédigés en amont, mais la défense en profondeur ne suppose rien.
+  // Aucun identifiant fonctionnel dans ce prompt → redaction du bloc assemblé sans blindage.
+  const userPrompt = redactPII(`Rédige un email immobilier suisse au client "${clientName}".
 
 Instruction de l'agent : ${instruction}
-${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
+${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`).redactedText
 
   let subject = ''
   let body = ''
@@ -1764,11 +1767,13 @@ export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise
 
   // Prompt : digest strict en JSON, attribution aux intervenants quand c'est clair, AUCUNE
   // invention. Fil borné à ~4000 caractères (anti-explosion de tokens).
+  // Redaction AVANT troncature (un slice qui coupe un IBAN/AVS en deux le rend invisible au
+  // pattern) : le fil collé peut contenir n'importe quoi — frontière DeepSeek rédigée elle-même.
   const prompt =
     'Voici un fil de groupe (plusieurs intervenants). Résume en JSON ' +
     '{"resume":"2-3 phrases","decisions":["…"],"en_attente":["qui attend quoi"],"bloquant":"le point qui bloque ou null"}. ' +
     "Attribue les propos aux intervenants quand c'est clair. AUCUNE invention.\n\n" +
-    thread.slice(0, 4000)
+    redactPII(thread).redactedText.slice(0, 4000)
 
   let parsed: Record<string, unknown> = {}
   try {
@@ -1870,10 +1875,12 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
     ? "I couldn't verify the draft — read it carefully before posting."
     : "Je n'ai pas pu vérifier, relis à la main avant de poster."
 
+  // Redaction AVANT troncature (cf. summarize_group_thread). Un marqueur [REDACTED:*] dans le
+  // brouillon reste détectable comme fuite par DeepSeek — la vérification n'est pas affaiblie.
   const prompt =
     "Tu es un garde-fou de confidentialité immobilière. " +
-    "Parties dans le groupe : " + parties.slice(0, 500) + ". " +
-    "Brouillon que l'agent veut poster À TOUT LE GROUPE : " + draft.slice(0, 2000) + ". " +
+    "Parties dans le groupe : " + redactPII(parties).redactedText.slice(0, 500) + ". " +
+    "Brouillon que l'agent veut poster À TOUT LE GROUPE : " + redactPII(draft).redactedText.slice(0, 2000) + ". " +
     "Y a-t-il une info qui ne devrait PAS être vue par une des parties " +
     "(budget/plafond/plancher d'une partie, sa motivation/urgence, son KYC, une stratégie) ? " +
     'Réponds en JSON {"fuite":true|false,"raison":"courte, sans répéter le secret en clair","reformulation":"version sûre sans la fuite, ou null"}. ' +
@@ -2149,13 +2156,16 @@ RÈGLES ABSOLUES :
 
 Réponds UNIQUEMENT en JSON strict : {"titre":"…","description_fr":"…","description_en":"…"}`
 
-  const userPrompt = `Rédige le contenu d'une annonce immobilière suisse à partir de ces données (n'utilise QUE celles-ci) :
+  // Frontière DeepSeek rédigée par elle-même (même invariant que prepare_meeting). Les facts
+  // sont des données de bien (pièces, m², CHF avec apostrophes — aucun pattern ne mord),
+  // mais l'invariant ne se raisonne pas champ par champ : redaction du bloc assemblé.
+  const userPrompt = redactPII(`Rédige le contenu d'une annonce immobilière suisse à partir de ces données (n'utilise QUE celles-ci) :
 Type de transaction : ${txLabel || (lang === 'en' ? 'not specified' : 'non précisé')}
 Localisation : ${locationForCopy || (lang === 'en' ? 'not specified' : 'non précisée')}
 Détails :
 ${facts || (lang === 'en' ? '(none)' : '(aucun)')}
 
-Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). Description élégante et sobre, 2 à 4 paragraphes, en français (description_fr) et en anglais (description_en).`
+Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). Description élégante et sobre, 2 à 4 paragraphes, en français (description_fr) et en anglais (description_en).`).redactedText
 
   let parsed: Record<string, unknown> = {}
   try {

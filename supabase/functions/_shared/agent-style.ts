@@ -57,9 +57,13 @@ export async function fetchClientVoiceSamples(
   if (!agencyId) return []
   const limit = opts.limit ?? 8
 
+  // Redaction À LA SOURCE : ces corps sortent de whatsapp_messages (stockés bruts — un agent
+  // a pu y taper un IBAN/N° AVS) et ne servent QU'à du few-shot LLM. Rédiger ici couvre tous
+  // les consommateurs (copilote, whatsapp-agent, rédactions email/annonce de whatsapp-actions)
+  // sans dépendre d'une redaction à chaque call-site. Idempotent si un appelant re-rédige.
   const toSamples = (data: unknown): VoiceSample[] =>
     ((data ?? []) as Array<{ body: string | null }>)
-      .map((r) => ({ body: (r.body ?? '').trim() }))
+      .map((r) => ({ body: redactPII((r.body ?? '').trim()).redactedText }))
       .filter((s) => s.body.length > 1)
 
   // 1. PAR AGENT : ses propres messages clients (= ses corrections, validées au fil
