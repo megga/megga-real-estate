@@ -1,7 +1,7 @@
 /**
- * Stats live d'un bien pour la fiche détail : vues + favoris (depuis le
- * `listing` joint, 1 max par bien) et nombre de demandes de visite (count
- * sur `visits`). staleTime 60 s.
+ * Stats live d'un bien pour la fiche détail : vues + favoris (compteurs
+ * portés par `properties`) et nombre de demandes de visite (count sur
+ * `visits`). staleTime 60 s.
  */
 // MEGGA CRM Sugar v2 — Stats live d'un bien (Vues / Favoris / Demandes de visite).
 // Utilisé par BienDetailSugarV3Page pour remplacer les KPI hardcodés à 0.
@@ -25,11 +25,11 @@ export function usePropertyStats(propertyId: string | undefined): {
     queryFn: async (): Promise<PropertyStats> => {
       if (!propertyId) return { views: 0, favorites: 0, visitRequests: 0 }
 
-      // 1. listings : views_count + favorites_count (1 listing par property au max)
+      // 1. properties : compteurs vues/favoris portés par le bien lui-même
       const { data: listing } = await supabase
-        .from('listings')
+        .from('properties')
         .select('views_count, favorites_count')
-        .eq('property_id', propertyId)
+        .eq('id', propertyId)
         .maybeSingle()
 
       // 2. visits : count des demandes (publiques + agent)

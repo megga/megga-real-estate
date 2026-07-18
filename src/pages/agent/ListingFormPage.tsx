@@ -41,8 +41,6 @@ import {
 } from '@/hooks/useProperties'
 import { useExtractPropertyPdf, type ExtractedPropertyData } from '@/hooks/useExtractPropertyPdf'
 import { useExtractPropertyUrl } from '@/hooks/useExtractPropertyUrl'
-import { useCreateListing } from '@/hooks/useListings'
-import { useAuth } from '@/hooks/useAuth'
 import { useSignPhotos } from '@/hooks/useC2pa'
 import { useVirtualStaging, STAGING_STYLES, ROOM_TYPES, type StagingStyle, type RoomType } from '@/hooks/useVirtualStaging'
 import FloorPlanEditor from '@/components/listings/FloorPlanEditor'
@@ -2209,7 +2207,6 @@ export default function ListingFormPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const isEditMode = Boolean(id)
-  const { profile } = useAuth()
 
   // Method selection state
   const [method, setMethod] = useState<'choosing' | 'duplicate' | 'pdf' | 'url' | 'form'>(
@@ -2227,7 +2224,6 @@ export default function ListingFormPage() {
   const updateProperty = useUpdateProperty()
   const uploadPhotos = useUploadPropertyPhotos()
   const uploadFloorPlan = useUploadFloorPlan()
-  const createListing = useCreateListing()
   const signPhotosMutation = useSignPhotos()
   const { canAccess } = usePlanLimits()
 
@@ -2694,14 +2690,6 @@ export default function ListingFormPage() {
         } else {
           publishedPhotos = (values.photos ?? []) as string[]
         }
-
-        await createListing.mutateAsync({
-          property_id: property.id,
-          agency_id: profile?.agency_id ?? '',
-          title: values.title,
-          description_ai: values.description,
-          price_display: formatCHF(values.price),
-        })
       }
 
       // ── C2PA auto-sign ────────────────────────────────────────────────
