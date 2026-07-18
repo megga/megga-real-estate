@@ -50,6 +50,13 @@ agentdb.rvf*
 .claude-flow/logs/
 .claude-flow/sessions/
 .claude-flow/neural/
+# Daemon/session runtime state (PID, live state, active policy) — per-machine,
+# regenerated each run; must never be committed.
+.claude-flow/daemon-state.json
+.claude-flow/daemon.pid
+.claude-flow/harness-active-policy.json
+.claude/proven-config.json
+.claude/.proven-config-version
 
 # Deno (edge functions checked via `deno check`, no lockfile tracked)
 deno.lock
