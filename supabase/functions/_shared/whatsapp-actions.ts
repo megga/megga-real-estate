@@ -29,6 +29,7 @@ import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts
 import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 import { logDeepSeekUsageWith } from './ai-usage.ts'
 import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
+import { touchHotContact } from './contact-memory.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -233,6 +234,8 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .select('id, first_name, last_name, phone, email, type, score, tags, notes, search_criteria, last_interaction_at')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
   if (!c) return 'Contact introuvable dans votre agence.'
+  // Mémoire cross-canal : consulter la fiche = travailler ce contact (fire-and-forget).
+  touchHotContact(ctx.supabase, ctx.profileId, ctx.agencyId, c.id)
   // Sous-requêtes bornées à l'agence (défense en profondeur) : le contact est déjà validé
   // in-agency ci-dessus, on double la garde sur ses events/recherches (activity_events et
   // client_searches portent agency_id) — jamais de contenu d'une autre agence dans le brief.
@@ -369,13 +372,16 @@ export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<strin
 const frDateTime = (iso: string): string =>
   new Date(iso).toLocaleString('fr-CH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Zurich' })
 
-/** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null. */
+/** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null.
+ *  Effet de bord voulu : pose le « contact chaud » de l'agent (mémoire cross-canal),
+ *  fire-and-forget — résoudre un contact = travailler dessus. */
 async function contactInAgency(
   ctx: ActionCtx, contactId: string,
 ): Promise<{ id: string; first_name: string | null; last_name: string | null } | null> {
   const { data } = await ctx.supabase
     .from('contacts').select('id, first_name, last_name')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (data) touchHotContact(ctx.supabase, ctx.profileId, ctx.agencyId, (data as { id: string }).id)
   return (data as { id: string; first_name: string | null; last_name: string | null } | null) ?? null
 }
 
