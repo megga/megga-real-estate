@@ -1,8 +1,7 @@
 // MEGGA CRM Sugar v2 — Mes biens · Galerie — atomes
 // Port fidèle du handoff Claude Design (crm-screen-biens-galerie.jsx).
 // GalPhoto (photo réelle + fallback placeholder), GalStatusPill (façon KYC),
-// GalKpi (bandeau portefeuille), GalSegmented (statut + bascule vue),
-// GalSortDropdown (tri en surface opaque).
+// GalSegmented (statut + bascule vue), GalSortDropdown (tri en surface opaque).
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -109,136 +108,6 @@ export function GalStatusPill({
     >
       {st.label}
     </span>
-  )
-}
-
-// ─── Sparkline + delta (tendance, façon maquette) ────────────────────────────
-function GalSpark({
-  points,
-  color,
-  w = 240,
-  h = 34,
-}: {
-  points: number[]
-  color: string
-  w?: number
-  h?: number
-}) {
-  const max = Math.max(...points)
-  const min = Math.min(...points)
-  const span = max - min || 1
-  const d = points
-    .map((p, i) => `${(i / (points.length - 1)) * w},${h - ((p - min) / span) * (h - 4) - 2}`)
-    .join(' ')
-  return (
-    <svg
-      width="100%"
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-      fill="none"
-      style={{ display: 'block', marginTop: 14, overflow: 'visible' }}
-    >
-      <polyline
-        points={d}
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-        opacity="0.9"
-      />
-    </svg>
-  )
-}
-
-function GalDelta({ children, color }: { children: ReactNode; color: string }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        fontSize: 12,
-        fontWeight: 700,
-        color,
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-        <path
-          d="M5 8V2M2 5l3-3 3 3"
-          stroke={color}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      {children}
-    </span>
-  )
-}
-
-// ─── Carte KPI portefeuille (tendance : sparkline + évolution 30 j) ──────────
-// `value` = donnée réelle ; `spark`/`delta` = tendance illustrative de la maquette.
-export function GalKpi({
-  label,
-  value,
-  sub,
-  spark,
-  delta,
-  sp,
-  surf,
-  dark,
-}: {
-  label: string
-  value: string
-  sub?: string
-  spark: number[]
-  delta?: string
-  sp: SugarPalette
-  surf: GalSurfaces
-  dark: boolean
-}) {
-  const ok = dark ? '#34D399' : '#0B7A53'
-  return (
-    <div
-      style={{
-        flex: 1,
-        minWidth: 0,
-        background: surf.card,
-        borderRadius: 18,
-        padding: '18px 20px',
-        boxShadow: surf.shadow,
-        border: surf.hairline,
-      }}
-    >
-      <div style={{ marginBottom: 14 }}>
-        <span style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600, letterSpacing: 0.1 }}>
-          {label}
-        </span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-        <div
-          style={{
-            fontSize: 30,
-            fontWeight: 800,
-            color: sp.ink,
-            letterSpacing: -1,
-            lineHeight: 1,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {value}
-        </div>
-        {delta ? (
-          <GalDelta color={ok}>{delta}</GalDelta>
-        ) : (
-          sub && <span style={{ fontSize: 12, color: sp.sub, fontWeight: 500 }}>{sub}</span>
-        )}
-      </div>
-      <GalSpark points={spark} color={delta ? ok : sp.sub} />
-    </div>
   )
 }
 

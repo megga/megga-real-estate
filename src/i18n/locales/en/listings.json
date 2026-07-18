@@ -529,6 +529,87 @@
       },
       "noRequests": "No request or match for this property.",
       "noHistory": "No event recorded."
+    },
+    "followUp": {
+      "title": "Follow-up",
+      "filter": {
+        "all": "All actions",
+        "mandates": "Mandates",
+        "drafts": "Drafts",
+        "diffusion": "To publish"
+      },
+      "bucket": {
+        "mandates": "Mandates to renew",
+        "drafts": "Drafts to finish",
+        "diffusion": "To publish on Immobilier.ch"
+      },
+      "expiresIn_one": "Expires in {{count}}d",
+      "expiresIn_other": "Expires in {{count}}d",
+      "photos_one": "{{count}} photo",
+      "photos_other": "{{count}} photos",
+      "meggaOnly": "MEGGA only",
+      "action": {
+        "renew": "Renew",
+        "complete": "Complete",
+        "publish": "Publish"
+      },
+      "priority": "Handle first",
+      "priorityFirst": "Handle first",
+      "mandateEcheance": "{{type}} mandate · expiry",
+      "viewOthers_one": "See 1 more",
+      "viewOthers_other": "See {{count}} more",
+      "reduce": "Collapse",
+      "empty": {
+        "title": "All up to date",
+        "subtitle": "No mandate to renew, no listing pending."
+      },
+      "emptyFirstRun": {
+        "title": "Nothing to follow up yet",
+        "subtitle": "Your actions will appear here from your first mandate."
+      },
+      "expiredSince_one": "Expired {{count}}d ago",
+      "expiredSince_other": "Expired {{count}}d ago",
+      "expiresToday": "Expires today"
+    },
+    "renewModal": {
+      "title": "Renew mandate",
+      "duration": "Renewal duration",
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "newExpiry": "New expiry",
+      "commission": "Commission",
+      "send": "Send for signature",
+      "delete": "Delete listing",
+      "successTitle": "Mandate updated",
+      "successBody": "The expiry of {{title}} moves to {{date}}. Send the renewal to the owner for signature.",
+      "done": "Done",
+      "error": "Update failed. Please try again."
+    },
+    "deleteFlow": {
+      "confirmTitle": "Delete this listing?",
+      "confirmBody": "{{title}} will be deleted. This action is permanent.",
+      "confirm": "Delete",
+      "cancel": "Cancel",
+      "deleting": "Deleting…",
+      "deletedTitle": "Listing deleted",
+      "deletedBody": "{{title}} has been deleted.",
+      "error": "Deletion failed. Please try again."
+    },
+    "firstRun": {
+      "title": "Your mandates,\nall in one place",
+      "step1": {
+        "title": "Create the property",
+        "sub": "By hand or imported from an existing listing.\nMEGGA pre-fills the sheet."
+      },
+      "step2": {
+        "title": "Complete the sheet",
+        "sub": "Certified photos, mandate, price."
+      },
+      "step3": {
+        "title": "Publish",
+        "sub": "On MEGGA in one click."
+      },
+      "start": "Get started"
     }
   },
   "detail": {
@@ -792,7 +873,7 @@
       },
       "import": {
         "title": "Import a mandate",
-        "sub": "Mandate PDF. MEGGA AI extracts the details to pre-fill the form."
+        "sub": "Automatic PDF extraction, coming soon."
       },
       "autosave": {
         "title": "Draft saved automatically",
