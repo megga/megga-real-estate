@@ -10,7 +10,6 @@
 //   - useProperty (single read)
 //   - useAgencyProperties (list read)
 //   - useCreateProperty
-//   - useDeleteProperty (soft-delete via UPDATE deleted_at)
 //
 // What stayed on classic React Query (with reason):
 //   - useUpdateProperty: optimistic locking adds `.eq('updated_at', expected)`
@@ -18,6 +17,8 @@
 //     PropertyUpdateConflictError. Cache Helpers' useUpdateMutation forces
 //     PK-only WHERE and discards row count. Migrating it would lose the
 //     conflict detection used by ListingFormPage.
+//   - useDeleteProperty: RPC `soft_delete_property` (pas une mutation
+//     postgrest — voir le commentaire du hook) → invalidations manuelles.
 //   - useUploadFloorPlan / useUploadPropertyPhotos: storage uploads, not
 //     postgrest mutations.
 //
@@ -207,27 +208,26 @@ export function useUpdateProperty() {
 }
 
 // ── Delete property (soft-delete) ──
-// Soft-delete via UPDATE deleted_at : le trigger DB `bien_soft_deleted`
-// (baseline schema) convertit ce touch en événement d'audit `activity_events`
-// — la trace survit à la suppression (rétention LBA art. 7 al. 3). Les lectures
-// filtrent `.is('deleted_at', null)`, donc le bien disparaît des listes. Raw
-// supabase (comme useUpdateProperty) : l'appelant déclenche le refetch de la
-// liste Cache Helpers (useBiensSugar.refetch) après succès.
+// Soft-delete via la RPC SECURITY DEFINER `soft_delete_property` (migration
+// 20260718032751). Un UPDATE client posant `deleted_at` est IMPOSSIBLE sous
+// RLS : la policy SELECT (`deleted_at IS NULL`) est aussi appliquée à la ligne
+// modifiée dès que l'UPDATE lit la table → « new row violates row-level
+// security policy » (vérifié empiriquement en rôle authenticated). La RPC
+// re-vérifie l'agence côté serveur, et le trigger `trg_properties_audit`
+// journalise `bien_soft_deleted` dans activity_events — la trace survit à la
+// suppression (rétention LBA art. 7 al. 3). Les lectures filtrent
+// `.is('deleted_at', null)`, donc le bien disparaît des listes ; l'appelant
+// déclenche le refetch (useBiensSugar.refetch) après succès.
 
-/** Soft-delete d'un bien (pose `deleted_at`) — dépublie et retire des listes ; le trigger DB journalise l'audit. */
+/** Soft-delete d'un bien (RPC agency-scopée) — dépublie et retire des listes ; le trigger DB journalise l'audit. */
 export function useDeleteProperty() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
-        .from('properties')
-        .update({ deleted_at: new Date().toISOString() } as unknown as TablesUpdate<'properties'>)
-        .eq('id', id)
-        .is('deleted_at', null)
-        .select('id')
+      const { data, error } = await supabase.rpc('soft_delete_property', { p_property_id: id })
       if (error) throw error
-      if (!data || data.length === 0) throw new Error('Bien introuvable ou déjà supprimé')
+      if (!data) throw new Error('Bien introuvable ou déjà supprimé')
       return id
     },
     onSuccess: (id) => {
