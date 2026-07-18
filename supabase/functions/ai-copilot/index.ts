@@ -48,7 +48,7 @@ import {
   prepareDeleteContact, executeDeleteContact,
   type ActionCtx, type Prepared,
 } from '../_shared/whatsapp-actions.ts'
-import { fetchHotContactBlock } from '../_shared/contact-memory.ts'
+import { fetchHotContactBlock, distillCrmTurn } from '../_shared/contact-memory.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -371,9 +371,16 @@ function makeCallModel(opts: {
   }
 }
 
+// Outils dont l'argument contact_id désigne le contact TRAVAILLÉ ce tour (pour le
+// distillat mémoire CRM). search_contacts est exclu : chercher n'est pas travailler.
+const CONTACT_TOOLS = new Set(['get_contact_brief', 'add_note', 'create_reminder', 'prepare_meeting', 'get_kyc_status', 'get_matches'])
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // ─── Exécuteurs d'outils (partagés WhatsApp + web) ───────────────────────────
-function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx) {
+function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx, onContact?: (id: string) => void) {
   return async (name: string, args: Record<string, unknown>): Promise<string> => {
+    const cid = typeof args.contact_id === 'string' ? args.contact_id : ''
+    if (onContact && CONTACT_TOOLS.has(name) && UUID_RE.test(cid)) onContact(cid)
     switch (name) {
       case 'get_my_agenda': return execGetMyAgenda(actionCtx, args)
       case 'search_contacts': return execSearchContacts(actionCtx, args)
@@ -681,7 +688,7 @@ async function buildSystemPrompt(params: {
     systemPrompt += formatCorrectionExamples(corrections, voiceLang)
 
     // Mémoire cross-canal : bloc « contact chaud » (<6h, posé par les exécuteurs des DEUX
-    // canaux — un contact travaillé sur WhatsApp resurfaça ici). VOLATIL → appendu juste
+    // canaux — un contact travaillé sur WhatsApp resurface ici). VOLATIL → appendu juste
     // avant l'horodatage, jamais dans les blocs stables (cache DeepSeek). Déjà rédigé + borné.
     // Gated hotBlockOn (comme copilot_tools et knowledge) : detect_intent n'en reçoit
     // jamais — et on évite aussi ses lectures DB sur ce chemin.
@@ -891,10 +898,11 @@ serve(async (req: Request) => {
     let writesOn = false
     let publishOn = false
     let deleteOn = false
+    let crmWritebackOn = false
     if (action !== 'detect_intent') {
       try {
         const { data: flags } = await auth.supabase
-          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled', 'copilot_publish_enabled', 'copilot_delete_enabled'])
+          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled', 'copilot_publish_enabled', 'copilot_delete_enabled', 'contact_memory_crm_writeback_enabled'])
         const val = (k: string) => flags?.find((f) => f.key === k)?.value
         toolsOn = val('copilot_tools_enabled') === 'true'
         writesOn = toolsOn && val('copilot_writes_enabled') === 'true'
@@ -904,7 +912,9 @@ serve(async (req: Request) => {
         // Suppression de contact : 4e flag, indépendant. Confirm-tier + destructif →
         // jamais dans la boucle, validé par carte HITL (execute_pending). OFF par défaut.
         deleteOn = toolsOn && val('copilot_delete_enabled') === 'true'
-      } catch { toolsOn = false; writesOn = false; publishOn = false; deleteOn = false }
+        // Write-back mémoire CRM (distillat post-tour) : 5e flag, indépendant. OFF par défaut.
+        crmWritebackOn = toolsOn && val('contact_memory_crm_writeback_enabled') === 'true'
+      } catch { toolsOn = false; writesOn = false; publishOn = false; deleteOn = false; crmWritebackOn = false }
     }
 
     const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn, publishOn, deleteOn, hotBlockOn: action !== 'detect_intent' })
@@ -979,7 +989,8 @@ serve(async (req: Request) => {
       profileId: auth.user.id,
       agencyId: auth.profile.agency_id,
     }
-    const runTool = makeRunTool(actionCtx, webCtx)
+    let turnContactId: string | null = null
+    const runTool = makeRunTool(actionCtx, webCtx, (id) => { turnContactId = id })
 
     // ── Un tour complet (boucle d'outils ou appel simple) + post-traitements. ──
     const runTurn = async (emit: (ev: LoopEvent) => void): Promise<{
@@ -1081,6 +1092,21 @@ serve(async (req: Request) => {
         streamed: stream,
         degraded,
       })
+
+      // Write-back mémoire CRM (gated) : distille ce tour dans le dossier par-contact
+      // partagé (whatsapp_conversation_insights.crm_summary) — le canal WhatsApp le lira.
+      // Fire-and-forget via waitUntil : zéro latence ajoutée ; substance minimale exigée.
+      if (crmWritebackOn && turnContactId && action !== 'detect_intent' && final.trim().length >= 80) {
+        const work = distillCrmTurn({
+          supabase: auth.supabase, apiKey: deepseekApiKey,
+          agencyId: auth.profile.agency_id, contactId: turnContactId,
+          userMessage: red.message, assistantText: final,
+          lang: language === 'en' ? 'en' : 'fr',
+        })
+        const edge = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime
+        if (edge?.waitUntil) edge.waitUntil(work)
+        else void work
+      }
 
       let conversationId: string | null = null
       if (persist) {
