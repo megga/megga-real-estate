@@ -247,7 +247,7 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .from('client_searches').select('label, criteria')
     .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const { data: insight } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at, crm_summary, crm_summary_updated_at')
     .eq('contact_id', c.id).eq('agency_id', ctx.agencyId).maybeSingle()
   // NBA déterministe (cerveau partagé WhatsApp ⇄ copilote) — best-effort : ne casse
   // JAMAIS le brief. supabase.rpc() ne throw pas → on consulte `error` explicitement
@@ -2298,12 +2298,13 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
   // 2. Compréhension du fil + timeline + recherches actives (mêmes requêtes que execGetContactBrief).
   const { data: insightRow } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, crm_summary, crm_summary_updated_at')
     .eq('contact_id', contact.id).eq('agency_id', ctx.agencyId).maybeSingle()
   const insight = insightRow as {
     summary: string | null; rolling_summary: string | null; intent: string | null; sentiment: string | null
     urgency: string | null; language: string | null; objections: unknown
     next_action: unknown; commitments: unknown
+    crm_summary: string | null; crm_summary_updated_at: string | null
   } | null
 
   // Sous-requêtes bornées à l'agence (défense en profondeur, comme execGetContactBrief) :
@@ -2401,6 +2402,8 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     ctxLines.push(`Contact : ${fullName}${contact.type ? ` (${contact.type})` : ''}${typeof contact.score === 'number' ? `, score ${contact.score}` : ''}`)
     if (insight?.summary) ctxLines.push(`Résumé de la dernière conversation : ${insight.summary}`)
     if (insight?.rolling_summary) ctxLines.push(`Mémoire longue de la conversation : ${insight.rolling_summary}`)
+    // mémoire CRM cross-canal : ce que le copilote CRM a travaillé sur ce contact (autre canal).
+    if (insight?.crm_summary) ctxLines.push(`Travail effectué côté CRM (autre canal) : ${insight.crm_summary}`)
     if (insight?.intent) ctxLines.push(`Intention : ${insight.intent}`)
     if (insight?.sentiment) ctxLines.push(`Ressenti : ${insight.sentiment}`)
     if (insight?.urgency) ctxLines.push(`Urgence du besoin : ${insight.urgency}`)
