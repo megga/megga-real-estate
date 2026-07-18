@@ -142,12 +142,22 @@ export async function upsertCrmSummary(
 }
 
 /** Distille un tour copilote → crm_summary (DeepSeek json_object, coût logué).
- *  Appelé fire-and-forget (EdgeRuntime.waitUntil) — jamais bloquant pour la réponse. */
+ *  Appelé fire-and-forget (EdgeRuntime.waitUntil) — jamais bloquant pour la réponse.
+ *  Garde tenant en tête : contactId issu des args du modèle → s'il n'est pas résolu
+ *  DANS l'agence, no-op (ni appel DeepSeek, ni écriture). */
 export async function distillCrmTurn(p: {
   supabase: SupabaseClient; apiKey: string; agencyId: string; contactId: string
   userMessage: string; assistantText: string; lang: 'fr' | 'en'
 }): Promise<void> {
   try {
+    // Garde tenant (CRITIQUE) : le contactId vient des ARGS du modèle (capturé avant
+    // exécution) — un UUID étranger (injection/collage) ne doit ni coûter un appel
+    // DeepSeek ni surtout écrire hors agence (upsert onConflict contact_id = vol de
+    // ligne possible). Même discipline que touchHotContact : on ne travaille que ce
+    // qui est résolu DANS l'agence.
+    const { data: owned } = await p.supabase.from('contacts')
+      .select('id').eq('id', p.contactId).eq('agency_id', p.agencyId).maybeSingle()
+    if (!owned) return
     const { data: prior } = await p.supabase.from('whatsapp_conversation_insights')
       .select('crm_summary').eq('contact_id', p.contactId).eq('agency_id', p.agencyId).maybeSingle()
     const messages = buildDistillMessages({
