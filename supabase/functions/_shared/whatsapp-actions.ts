@@ -29,6 +29,7 @@ import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts
 import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 import { logDeepSeekUsageWith } from './ai-usage.ts'
 import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
+import { touchHotContact } from './contact-memory.ts'
 import { redactPII } from './pii-redaction.ts'
 
 export interface ActionCtx {
@@ -234,6 +235,8 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .select('id, first_name, last_name, phone, email, type, score, tags, notes, search_criteria, last_interaction_at')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
   if (!c) return 'Contact introuvable dans votre agence.'
+  // Mémoire cross-canal : consulter la fiche = travailler ce contact (fire-and-forget).
+  touchHotContact(ctx.supabase, ctx.profileId, ctx.agencyId, c.id)
   // Sous-requêtes bornées à l'agence (défense en profondeur) : le contact est déjà validé
   // in-agency ci-dessus, on double la garde sur ses events/recherches (activity_events et
   // client_searches portent agency_id) — jamais de contenu d'une autre agence dans le brief.
@@ -245,7 +248,7 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .from('client_searches').select('label, criteria')
     .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const { data: insight } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at, crm_summary, crm_summary_updated_at')
     .eq('contact_id', c.id).eq('agency_id', ctx.agencyId).maybeSingle()
   // NBA déterministe (cerveau partagé WhatsApp ⇄ copilote) — best-effort : ne casse
   // JAMAIS le brief. supabase.rpc() ne throw pas → on consulte `error` explicitement
@@ -370,13 +373,16 @@ export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<strin
 const frDateTime = (iso: string): string =>
   new Date(iso).toLocaleString('fr-CH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Zurich' })
 
-/** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null. */
+/** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null.
+ *  Effet de bord voulu : pose le « contact chaud » de l'agent (mémoire cross-canal),
+ *  fire-and-forget — résoudre un contact = travailler dessus. */
 async function contactInAgency(
   ctx: ActionCtx, contactId: string,
 ): Promise<{ id: string; first_name: string | null; last_name: string | null } | null> {
   const { data } = await ctx.supabase
     .from('contacts').select('id, first_name, last_name')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (data) touchHotContact(ctx.supabase, ctx.profileId, ctx.agencyId, (data as { id: string }).id)
   return (data as { id: string; first_name: string | null; last_name: string | null } | null) ?? null
 }
 
@@ -2293,12 +2299,13 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
   // 2. Compréhension du fil + timeline + recherches actives (mêmes requêtes que execGetContactBrief).
   const { data: insightRow } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, crm_summary, crm_summary_updated_at')
     .eq('contact_id', contact.id).eq('agency_id', ctx.agencyId).maybeSingle()
   const insight = insightRow as {
     summary: string | null; rolling_summary: string | null; intent: string | null; sentiment: string | null
     urgency: string | null; language: string | null; objections: unknown
     next_action: unknown; commitments: unknown
+    crm_summary: string | null; crm_summary_updated_at: string | null
   } | null
 
   // Sous-requêtes bornées à l'agence (défense en profondeur, comme execGetContactBrief) :
@@ -2396,6 +2403,8 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     ctxLines.push(`Contact : ${fullName}${contact.type ? ` (${contact.type})` : ''}${typeof contact.score === 'number' ? `, score ${contact.score}` : ''}`)
     if (insight?.summary) ctxLines.push(`Résumé de la dernière conversation : ${insight.summary}`)
     if (insight?.rolling_summary) ctxLines.push(`Mémoire longue de la conversation : ${insight.rolling_summary}`)
+    // mémoire CRM cross-canal : ce que le copilote CRM a travaillé sur ce contact (autre canal).
+    if (insight?.crm_summary) ctxLines.push(`Travail effectué côté CRM (autre canal) : ${insight.crm_summary}`)
     if (insight?.intent) ctxLines.push(`Intention : ${insight.intent}`)
     if (insight?.sentiment) ctxLines.push(`Ressenti : ${insight.sentiment}`)
     if (insight?.urgency) ctxLines.push(`Urgence du besoin : ${insight.urgency}`)

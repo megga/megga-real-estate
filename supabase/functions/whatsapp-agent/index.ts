@@ -34,6 +34,7 @@ import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import { composeAgentSystemPrompt } from '../_shared/agent-system-prompt.ts'
 import { redactPII } from '../_shared/pii-redaction.ts'
 import { redactLlmMessages } from '../_shared/wa-agent-redaction.ts'
+import { fetchHotContactBlock } from '../_shared/contact-memory.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -104,7 +105,7 @@ serve(async (req) => {
 
   // Apprentissage T1 : style appris de l'agent, injecté SEULEMENT si activé (human-in-the-loop).
   const { data: prof } = await supabase.from('agent_ai_profiles')
-    .select('learned_style').eq('agent_id', profileId).maybeSingle()
+    .select('learned_style, hot_contact_id, hot_contact_at').eq('agent_id', profileId).maybeSingle()
   const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
 
   // Mimétisme de voix (few-shot) : vrais messages clients de l'agence, pour les messages DESTINÉS À UN CLIENT.
@@ -154,6 +155,11 @@ serve(async (req) => {
 - summarize_group_thread / check_group_leak : c'est une lecture du texte que l'agent a collé. N'affirme une décision ou un montant que si la phrase exacte y figure ; rends le verdict de fuite tel quel — n'autorise ni n'interdis le post à la place de l'agent.
 - search_contacts : si plusieurs contacts correspondent, liste les noms et demande lequel — ne devine pas avant d'agir.
 - attach_kyc_document : ne dis jamais qu'une pièce est validée ni le dossier complet (la validation n'est pas faite par l'IA) ; ne restitue que les champs réellement lus.`
+
+  // Mémoire cross-canal : bloc « contact chaud » (<6h, posé par les exécuteurs des DEUX
+  // canaux). VOLATIL → injecté dans le SUFFIXE system avec l'horodatage, jamais dans le
+  // préfixe stable (cache DeepSeek). Déjà rédigé (redactPII) et borné par le module.
+  const hotBlock = await fetchHotContactBlock(supabase, ctx.agencyId, prof ?? null, lang === 'en' ? 'en' : 'fr')
 
   // Le garde-fou NBA (anti-initiative) est injecté par composeAgentSystemPrompt (baked-in),
   // gardé par agent-system-prompt.test.ts — plus besoin de le concaténer à la main ici.
@@ -206,7 +212,7 @@ serve(async (req) => {
     antiFab: antiFabBlock,
   })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${systemStable}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.` },
+    { role: 'system', content: `${systemStable}${hotBlock}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.` },
     ...history,
     { role: 'user', content: message },
   ]
