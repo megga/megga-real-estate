@@ -61,7 +61,7 @@ avoir livré une feature ou changé l'architecture :
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
 CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin.
 Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~90k
-`market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, ~69 edge functions,
+`market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 67 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
 humaine obligatoire).
 
@@ -77,9 +77,12 @@ fragmenté.
 Frontend   React 18 / TS / Vite / Tailwind · React Router v6 · React Query (+ supabase-cache-helpers)
            i18n react-i18next (FR/DE/EN/IT) · Mapbox GL (lazy) · Recharts · Sentry · PostHog
 Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 15, Auth, Storage,
-           Realtime, pgvector, pg_cron, pg_net · ~69 Edge Functions (Deno)
-IA         Claude (Sonnet/Haiku, côté agent) + DeepSeek V3 (côté public + fallback)
-           via abstraction _shared/ai-provider.ts (tracking coût → ai_usage_logs)
+           Realtime, pgvector, pg_cron, pg_net · 67 Edge Functions (Deno)
+IA         Texte = DeepSeek (deepseek-chat) PARTOUT · Vision/OCR/PDF = Gemini
+           (_shared/vision.ts, photo-vision.ts) · AUCUN Claude/Anthropic au runtime
+           (retiré PR #829 ; 0 appel api.anthropic.com). Abstraction
+           _shared/ai-provider.ts = callDeepSeek + callPublicAI (tracking coût
+           → ai_usage_logs) ; ai-copilot et whatsapp-agent appellent DeepSeek en direct.
 Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · Google AI (staging)
            Deepgram (STT) · Cloudflare R2 (photos) · Flatfox + RealAdvisor (sync marché entrant)
            immobilier.ch (syndication IDX 3.01 SORTANTE, juin 2026 — cf §5 + brain megga/syndication-idx)
@@ -99,14 +102,14 @@ kyc.megga.ch (magic links KYC publics)        ─┘         ▲
 
 ## 2. Frontend — audiences & routing
 
-5 audiences, gardées par `PasswordGate → StaleBundleDetector → ProtectedRoute / SuperAdminGuard`.
+4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD), plus `SuperAdminGuard` pour l'admin. `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
 QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `networkMode: always`.
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|
 | **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
 | **Marketing public** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` `/help*` | pages secondaires + centre d'aide |
-| **Compte visiteur** | `/account` | favoris, recherches sauvegardées, messagerie acheteur |
+| ~~Compte visiteur~~ | ~~`/account`~~ | **retiré au pivot CRM-first** — la route redirige vers `/dashboard` |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
 | **Portail vendeur** | `/portal/:token` (+ `/portal` dev) | `VotreVentePage` — page unique « Votre vente » (Sugar Pure, lecture seule) : carte bien + galerie/lightbox, parcours arc 6 étapes, 3 jauges donut, offres (+modal décision), timeline, carte agent WhatsApp |
 | **CRM agent** | `/dashboard/*` | voir ci-dessous |
@@ -115,8 +118,8 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 **CRM agent** (layout `AgentSugarLayout`, dark CRM) — pages principales :
 `dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
 `listings` (**design final juil. 2026, PR #871 : pager vertical Galerie · « À suivre »** — voir l'encadré ci-dessous ; + `/:id`, `/new` wizard, `/:id/edit`) · `transactions/:id` (stepper 8 étapes + bannière KYC + offres) ·
-`matching` (**Atelier triptyque plein écran**, juin 2026 — legacy `matching/v2`, démo QA `/dev/matching-atelier`) · `journey` · `calendar` (Google/Outlook) ·
-`kyc` (**refonte pager juil. 2026, PR #853** : 2 pages verticales Dossiers · Vigie dans un bento ; `/:dossierId` = fiche stricte en overlay ; `/bienvenue` = onboarding première ouverture ; `/export` PDF ; wizard embedded + voie import PDF réelle — cf `megga/kyc-ui-hooks`) · `network` · `audit` (journal nLPD) · `analytics` (**Cockpit Commission** live — 3 RPC agrégées `SECURITY DEFINER`, objectif persisté dans Réglages › Agence ; **refonte FUSION mono-écran juil. 2026** : cockpit zéro-scroll + parcours compte-neuf porte→fantôme→réel + popover ancré ; cf `megga/analytics-cockpit-commission`) · `settings`.
+`matching` (**refonte pager juil. 2026, PR #813** : conteneur `MatchingPagerPage` — page 0 = atelier triptyque embarqué, page 1 = recherche hybride marché ; démo QA `/dev/matching-atelier`) · `journey` · `calendar` (Google/Outlook) ·
+`kyc` (**refonte pager juil. 2026, PR #853** : 2 pages verticales Dossiers · Vigie dans un bento ; `/:dossierId` = fiche stricte en overlay ; `/bienvenue` = onboarding première ouverture ; `/export` PDF ; wizard embedded + voie import PDF réelle — cf `megga/kyc-ui-hooks`) · `audit` (journal nLPD) · `analytics` (**Cockpit Commission** live — 3 RPC agrégées `SECURITY DEFINER`, objectif persisté dans Réglages › Agence ; **refonte FUSION mono-écran juil. 2026** : cockpit zéro-scroll + parcours compte-neuf porte→fantôme→réel + popover ancré ; cf `megga/analytics-cockpit-commission`) · `settings`. ⚠️ L'écran **Réseau inter-agences** a été retiré (hors périmètre v1) : `NetworkSugarV2Page` supprimée, `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`.
 > ⚠️ L'écran **Documents** autonome (`/dashboard/documents` + générateur/viewer/templates) a été **retiré** (juin 2026, décision produit). Le KYC garde son onglet « Documents » + le flux d'upload/magic-link + la table/bucket `documents`. La génération de contenu d'annonce IA (`megga/doc-generation`) est indépendante et conservée.
 
 **🟦 Cockpit « Aujourd'hui »** (`/dashboard` index, refonte juin 2026, **PR #638**). N'est plus l'écran KPI simple : c'est un cockpit en **2 pages avec pager molette vertical** (code dans `src/components/crm-sugar/today/`, entrée `src/pages/agent/TodaySugarPage.tsx`). Page 0 = cockpit (**colonne Focus** dynamique = file de priorités + rangée Ensuite + bento 2×2 **Agenda / Relances IA / Pipeline / Objectif**), page 1 = **Catalogue de matchs** (mur + fiche détail + lightbox + galerie). Overlays **Mode Focus** + **Session de relance**. Tokens `TK` dark/light (`today/tk.ts`, mutés par `applyTK`), atomes `today/kit.tsx`, fallback démo `today/data.ts` (honnête, et **aucune écriture sur données démo**). **Câblage Supabase** (tuile ← source) :
@@ -135,25 +138,30 @@ en prod). Remplacement : `handle_new_user()` auto-provisionne une **agence solo*
 rôles agence via `provision_solo_agency` (SECURITY DEFINER interne, best-effort — n'échoue jamais le
 signup), renommable dans Réglages › Agence. Migration `20260718130000`. Conservés et dormants :
 `day0_payload` / `compute_agent_preferences` / gate d'autonomie WhatsApp (défauts NULL sûrs) et
-`agent_ai_profiles` ; le futur réglage d'autonomie vivra dans Réglages.
+`agent_ai_profiles` ; le futur réglage d'autonomie vivra dans Réglages. `day0-activation-setup`
+**undeployée le 18 juil.** (cf. asymétrie de déploiement edge en fin de carte). Anciennes URLs
+`/dashboard/onboarding` et `/dashboard/premier-jour` → redirect `/dashboard`. ⚠ L'auto-provision
+n'est **pas couverte par la CI** (`onboarding-agency-rpc.spec` pose le profil à la main et
+court-circuite le trigger) : toute modif de `handle_new_user` se vérifie à la main (insert
+`auth.users` jetable → contrôle `agency_id` → suppression).
 **Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/sentry-test`.
 
 ### Composants (`src/components/`)
 - `propertyx/` — atoms Design System Property X (`Px*` : Button, Badge, Icon, Input, Avatar, Logo… — **source de vérité**, ne pas recréer) + `sections/`.
 - `megga-x/` — **MEGGA X**, 2ᵉ design system (port 1:1 Webflow de la vitrine), scopé `.megga-x` parallèle à Sugar : `MeggaX` + 12 wrappers `Mx*`, CSS générée `src/styles/megga-x.generated.css`, route dev `/design-system/megga-x`. Règle **zéro-invention** ; résidus de marques Webflow encore présents dans la CSS/fontes. Cf. `megga/design-megga-x`.
 - `ui/` — primitives headless + Motion (modal, dialog, Sheet, Toast, Shimmer, popover, tabs…).
-- `layout/` — `ProtectedRoute`, `PasswordGate`, `StaleBundleDetector`, `AgentLayout`, `AgentSugarLayout`.
+- `layout/` — `ProtectedRoute`, `ConsentGate` (gate nLPD), `StaleBundleDetector`, `AgentLayout`, `AgentSugarLayout`.
 - `crm-sugar/` + `crm-sugar-v3/` — shell CRM, contact detail, KYC (**pager `kyc-pager/`** : frame + liste + vigie + fiche stricte + liseuse ; wizard `kyc-wizard/` avec voie import ; l'ancien écran `kyc/` [KycDossierDetail/KycListView] n'est plus routé, conservé transitoirement), **biens** (`biens/pager/` [BiensPager/BpTopGallery/BpFollowupPage/BpRenewModal/BiensFirstRun/followupData] + `biens/gallery/` + BnScoreBadge — les anciens BnSubmissions/BnDetailOverlay/BnPhoto/biensData/helpers sont **retirés**, superseded par le design final), tokens dark.
 - `crm-sugar-wizard/` — wizard « Créer un bien » (`/dashboard/listings/new`, `WizardShell` + 10 étapes + `StagingStudio`). **Dark mode** : `SugarV2` (`tokens.ts`) est un **Proxy** qui résout la palette light/dark à chaque lecture depuis `document.documentElement[data-theme]` (pas de mutation de global au render → robuste React 18 StrictMode/concurrent) ; helpers `sgOn()` / `sgAcc()` pour les littéraux posés **sur l'accent** (accent → near-white en dark, `onBlack` → `#0A0A0F`). Stepper retiré du header (nav Précédent/Continuer + compteur `N/8`). Système distinct du wizard KYC (`kyc-wizard/`, `KycPaletteContext`). **Embedded (juil. 2026, #871)** : prop `embedded` → `position:absolute` (au lieu de `fixed z-9000`), monté en overlay dans le bento du pager Mes biens. **Porte « Importer un mandat » désactivée** : l'ancien chemin injectait un mandat fictif (exclusif, 3.5 %, signé) en base pour n'importe quel PDF — dormante jusqu'à un vrai OCR.
 - Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `portal/` `seller-portal/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
 
 ### Hooks (`src/hooks/`, ~100, React Query)
-Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsSugar`, `useContactTimeline`…) · **biens** (`useListings`, `useBiensSugar`, `usePropertyEstimation`, `useNeighborhood`, `useNaturalHazards`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineSugar`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useTodaySugarKpi`, `useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDashboardAiHint` ; les `useDashboardCockpit/Funnel/Objectif` v3 servent de référence de compute, non routés) · **marketplace** (`useMarketListings`, `useMapPoints`, `useSmartSearchParser`, `useFavorites`, `useSavedSearches`) · **calendrier** (`useCalendarSugar`, `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).
+Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsSugar`, `useContactTimeline`…) · **biens** (`useListings`, `useBiensSugar`, `useProperties`, `usePropertyScores`, `usePropertyStats`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineSugar`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDailyBrief`, `useContactNextAction`) · **calendrier** (`useCalendarSugar`, `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).
 
-> ⚠️ Realtime : **toujours** `useId()` pour le nom de channel (sinon crash au re-mount). Cf. `useAdminLiveFeed`, `useMessaging`, `useAdminNotifications`, `useAgentNotifications` (centre de notif agent réel, dérivé d'`activity_events` non-user).
+> ⚠️ Realtime : **toujours** `useId()` pour le nom de channel (sinon crash au re-mount). Cf. `useAdminLiveFeed`, `useAdminNotifications`, `useAgentNotifications` (centre de notif agent réel, dérivé d'`activity_events` non-user).
 
 ### lib (`src/lib/`)
-`supabase.ts` (client typé, anon key) · `utils.ts` (`formatCHF` → `CHF 720'000`, `formatDate` DD.MM.YYYY, `cn`) · `constants.ts` (CANTONS, types, stages) · `sugarAdapters.ts` (Supabase → vues CRM) · logique métier (`matching`, `plans`) · export (`auditPdfExport`, `exportCsv`) · intégrations (`mapboxClient`, `captcha`, `sentry`, `posthog`).
+`supabase.ts` (client typé, anon key) · `utils.ts` (`formatCHF` → `CHF 720'000`, `formatDate` DD.MM.YYYY, `cn`) · `constants.ts` (CANTONS, types, stages) · `sugarAdapters.ts` (Supabase → vues CRM) · logique métier (`plans`, `contactNba`, `contactCriteria`) · export (`auditPdfExport`, `exportCsv`) · intégrations (`mapbox`, `captcha`, `sentry`, `posthog`).
 
 ### i18n
 FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth` (`directory`/`compte`/`comingSoon` retirés en juil. 2026 — orphelins post-pivot). Switch = overlay shimmer 350ms.
@@ -231,7 +239,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
 > (~40 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
-> auto-hébergés — 0 CDN sauf Finsweet filter.js). CTA → `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
+> auto-hébergés — 0 CDN sauf Finsweet filter.js). CTA → `signup.html` / `login.html` : **l'inscription et la connexion vivent sur la vitrine** (inversion post-pivot), pas sur `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
 > `megga`/`preview` seul, pas de proxy Supabase).
 > **Blog + SEO + légal (28-29 juin 2026, cf. brain `megga/vitrine-content-seo`)** : `blog.html` + 13 articles
 > dans `blog-posts/` (filtrable + recherche câblée + FAQ accordéon, angle **demand-led** avec byline experts MEGGA) ·
@@ -254,27 +262,27 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
-## 5. Edge functions (69) — catalogue par domaine
+## 5. Edge functions (67) — catalogue par domaine
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
 
-**`_shared/`** : `ai-provider.ts` (`callClaude` / `callDeepSeek` / `callPublicAI`=DeepSeek seul — pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `photo-vision.ts` (Claude Vision) · `pii-redaction.ts` (scrub AVS/IBAN/passeport avant IA) · `require-agent-auth.ts`.
+**`_shared/`** : `ai-provider.ts` (`callDeepSeek` / `callPublicAI`=DeepSeek seul — **plus de `callClaude`** depuis PR #829, pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `vision.ts` + `photo-vision.ts` (**Gemini** `gemini-2.5-flash-lite` — DeepSeek n'a pas de vision) · `pii-redaction.ts` (scrub AVS/IBAN/passeport avant IA) · `require-agent-auth.ts`.
 
 | Domaine | Functions |
 |---|---|
-| **IA / copilote** | `ai-copilot` (chat agent + actions, **DeepSeek** deepseek-chat) · `ai-search` (sémantique pgvector) · `parse-search-query` (DeepSeek) |
+| **IA / copilote** | `ai-copilot` (chat agent + actions, **DeepSeek** deepseek-chat) — `ai-search` et `parse-search-query` retirées à l'assainissement #671 |
 | **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions déterministe — l'analyse Claude a été retirée) · `kyc-report-import` (**PR #853** : lit un rapport KYC/AML externe PDF via Gemini, contrôles proposés jamais auto-validés [MLRO], quota par agence) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32, + branche admin `target_user_id`) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans ; branche super-admin = scope plateforme) |
 | **Admin (P1-P4 07/2026)** | `admin-dsar-export` (JSON nLPD art. 25, journalisé avant retour) · `admin-user-lifecycle` (suspend/reactivate/reset, ban GoTrue, anti-lockout allowlist) · `admin-agency-lifecycle` (suspension agence + ban membres) · `_shared/require-super-admin.ts` (rôle + allowlist + AAL2, adopté par toutes les edges admin) · `_shared/admin-alerts.ts` (alerting cron : seuils `app_config.admin_alert_thresholds`, dédup 24h, destinataires `super_admin_allowlist()`, Resend) |
-| **Magic link KYC** | `magic-link-create/get/confirm/regenerate/send-email/upload` |
+| **Magic link KYC** | `magic-link-create/get/confirm/send-email/upload` (`magic-link-regenerate` retirée, 0 appelant, undeployée le 18 juil.) |
 | **Email (Resend)** | `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
 | **Paiements (Stripe)** | `stripe-checkout` · `stripe-portal` · `stripe-webhook` (signature) · `admin-stripe-metrics` (MRR/ARR/churn) |
 | **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (cron) |
 | **Calendrier** | `google-calendar-sync` · `outlook-calendar-sync` (OAuth) |
-| **Marketplace / scraping** | `flatfox-sync` (cron) · `realadvisor-sync` (cron) · `market-scraper` (worker dormant) — `external-matching` retirée (élagage juil. 2026, l'UI lit `external_listings` en direct) |
+| **Marketplace / scraping** | `flatfox-sync` (cron) · `realadvisor-sync` (cron) · `market-scraper` (worker dormant) — `external-matching` retirée du dépôt (élagage juil. 2026, l'UI lit `external_listings` en direct) **et undeployée le 18 juil. 2026** (elle était restée en ligne 15 jours ; `useExternalMatching.ts` ne garde plus que le type `ExternalListing`) |
 | **Syndication IDX (sortant)** | `idx-feed` (GET, pull token, CSV IDX 3.01) · `idx-syndicate` (POST push FTP, cron `idx-syndicate-daily` 05:30 + on-demand WhatsApp) — cœur `_shared/idx-feed-core.ts` / `idx-mapper.ts` / `idx-ftp.ts` ; cf. brain `megga/syndication-idx`. **⛔ Go-live BLOQUÉ** sur l'obtention des accès FTP d'immobilier.ch (host/user/password) — blocant **externe** de même nature que la **vérification entreprise Meta** pour le WhatsApp public : tout est construit/déployé/testé, on attend un tiers. |
 | **Matching / scoring** | `matching-engine` · `search-alert` (cron) — _score de contact = RPC `calculate_contact_scores` + cron nocturne ; score de bien = RPC `calculate_property_scores` + cron nocturne (santé/chaleur d'un bien interne, 4 axes, PR #654), surfacé dans Focus (famille « bien à pousser », #656) + galerie Mes biens (pastille estimation, #657) ; l'edge `score-engine` a été supprimée (PR #652) ; **référence de loyer marché** = MV `market_rent_stats` + module pur `rent-reference.ts` → axe bonus `pricePosition` du matching en location (position du loyer vs marché, PR #673/#674) ; cf `megga/contact-score`, `megga/property-score`, `megga/market-rent-reference` ; **NBA par contact** = RPC dual-mode `contact_next_action` (cœur service-role, le param = le scope) + wrapper JWT `get_contact_next_action` = « prochaine meilleure action » déterministe (7 règles à priorité absolue, 0 LLM dans le tri, `kyc_note` jamais l'action) partagée par l'agent WhatsApp et le copilote via `get_contact_brief` / `prepare_meeting` (champ `next_action_estimee`, PR #834) ; trigger pré-requis `touch_transactions_updated_at` ; cf `megga/contact-nba`_ |
 | **Documents / media** | `extract-lead` · `extract-property-pdf` · `extract-property-url` · `photo-processor` (R2) · `backfill-cf-images` · `c2pa-sign` / `c2pa-verify` |
-| **Media IA** | `public-staging` (Gemini, rate-limit IP) · `virtual-staging` (garde-fous LPD : Vision gate + quota plan) |
+| **Media IA** | `virtual-staging` (garde-fous LPD : gate **Gemini** Vision + quota plan) — `public-staging` retirée (#671) |
 | **Divers** | `translate-on-demand` (DeepSeek + cache ; conservée pour réemploi CRM multilingue — ⚠ à durcir #784 avant usage) · `speech-to-text` · `intercom-identity` (JWT Messenger Security Intercom) · `accept-team-invite` · `automation-engine` (cron) |
 
 **Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), `contact-score-nightly` (03:00 UTC, `calculate_contact_scores`), `property-score-nightly` (03:50 UTC, `calculate_property_scores`), `market-rent-stats-refresh` (04:45 UTC, `REFRESH MATERIALIZED VIEW CONCURRENTLY market_rent_stats` — après le sync Flatfox), `idx-syndicate-daily` (`30 5 * * *`, 05:30 UTC, push FTP des feeds IDX agence), + automation-engine / ai-billing-monitor / weekly-report / search-alert.
@@ -283,7 +291,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 **Révocation de session** (Réglages > Sécurité) : `revoke-device-session` (`--no-verify-jwt`) → RPC `revoke_user_session` (SECURITY DEFINER, DELETE `auth.sessions`) coupe le refresh distant ; `user_devices.session_id` lié par `detect-new-device`. L'access token déjà émis reste valide jusqu'à son exp (~1h). Cf. `megga/settings-session-revocation`.
 
-**Secrets par service** : `ANTHROPIC_API_KEY` (8 fn IA) · `DEEPSEEK_API_KEY` · `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` · `RESEND_API_KEY` · `DILISENSE_API_KEY` · `GOOGLE_AI_API_KEY` · `DEEPGRAM_API_KEY` · `GOOGLE_/MICROSOFT_CLIENT_*` · R2 (`CF_ACCOUNT_ID`, `R2_*`).
+**Secrets par service** : `DEEPSEEK_API_KEY` (toute l'inférence texte) · `GEMINI_API_KEY` / `GOOGLE_AI_API_KEY` (vision/OCR/PDF) · `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` · `RESEND_API_KEY` · `DILISENSE_API_KEY` · `GOOGLE_AI_API_KEY` · `DEEPGRAM_API_KEY` · `GOOGLE_/MICROSOFT_CLIENT_*` · R2 (`CF_ACCOUNT_ID`, `R2_*`).
 
 ---
 
@@ -295,7 +303,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 **C · Portail vendeur (token)** : agent crée `seller_portals` (token 6 mois) → vendeur `/portal/:token` (sans login) → **page unique « Votre vente »** (`VotreVentePage` + `components/seller-portal/votre-vente/`, Sugar Pure, lecture seule ; remplace l'ancien mini-CRM 8 pages) → RLS via token (READ property/transac, UPLOAD documents) → updates visibles côté CRM → expiry révoque. Décisions d'offre + paramètres : edge function `seller-portal-action` (token validé, `--no-verify-jwt`) → `offer_decision` journalise un `activity_event` (`actor_kind='system'`) **transmis à l'agent** (jamais de mutation directe `crm_offers`/`transactions`) ; `save/get_preferences` → table `seller_preferences`.
 
-**D · KYC (Dilisense)** : transaction reserved/negotiation → `kyc_cases` (vigilance standard/renforcée selon montant + source des fonds) → magic link upload (`kyc_magic_link_uploads`, OCR, sha256) → screening async Dilisense → `kyc_screening_decisions` (PEP/sanctions) → **revue humaine MLRO** → analyse qualitative Claude (assist optionnelle, **désactivée par défaut** depuis juil. 2026 — flag `KYC_AI_ANALYSIS_ENABLED`, registre nLPD #5 ; le screening factuel Dilisense + la revue MLRO restent le socle). **Canal WhatsApp (livré, cf. brain `kyc-whatsapp-spec`)** : l'agent ouvre/joint/screene depuis sa conversation via **6 outils copilote KYC** (`get_kyc_status` *read* ; `attach_kyc_document` *auto* ; `open_kyc_case`/`send_kyc_link` *confirm* ; `run_kyc_screening`/`send_kyc_report` *slow_async*) ; même moteur, le MLRO valide toujours (jamais `is_completed`/`verified` côté IA). **Rapport KYC en PDF par WhatsApp (livré, cf. brain `kyc-report-pdf-whatsapp`)** : `send_kyc_report` (tier *slow_async*, ~60 s → hors boucle) → edge `kyc-report-pdf` mint un token HMAC court → Cloudflare Browser Rendering (REST API, pas de Worker) rend la route publique `/kyc-report/:token` (même template `PdfPage1/2/3` que le CRM) → PDF officiel uploadé en média Meta éphémère et envoyé en document **qu'à l'agent** ; lecture seule (seul write = audit `kyc_report_sent`), aucune migration. **Import d'un rapport externe (PR #853)** : wizard voie import (dépôt PDF ≤7 Mo) → edge `kyc-report-import` (Gemini, `_shared/kyc-extract.ts`) → contrôles identité/PEP/sanctions **proposés, jamais auto-validés** (garde-fou MLRO) + PDF attaché au dossier en catégorie compliance.
+**D · KYC (Dilisense)** : transaction reserved/negotiation → `kyc_cases` (vigilance standard/renforcée selon montant + source des fonds) → magic link upload (`kyc_magic_link_uploads`, OCR, sha256) → screening async Dilisense → `kyc_screening_decisions` (PEP/sanctions) → **revue humaine MLRO** (fin de flux). L'ancienne **analyse qualitative Claude** a été **retirée du code**, pas seulement désactivée par flag : `ai_analysis` est forcé à `null` en dur (`kyc-screening/index.ts:251`, retrait #794/#829 — Claude banni au runtime). Le rapport masque la section « Analyse de risque » quand `ai_analysis` est null. Socle = screening factuel Dilisense + revue MLRO. **Canal WhatsApp (livré, cf. brain `kyc-whatsapp-spec`)** : l'agent ouvre/joint/screene depuis sa conversation via **6 outils copilote KYC** (`get_kyc_status` *read* ; `attach_kyc_document` *auto* ; `open_kyc_case`/`send_kyc_link` *confirm* ; `run_kyc_screening`/`send_kyc_report` *slow_async*) ; même moteur, le MLRO valide toujours (jamais `is_completed`/`verified` côté IA). **Rapport KYC en PDF par WhatsApp (livré, cf. brain `kyc-report-pdf-whatsapp`)** : `send_kyc_report` (tier *slow_async*, ~60 s → hors boucle) → edge `kyc-report-pdf` mint un token HMAC court → Cloudflare Browser Rendering (REST API, pas de Worker) rend la route publique `/kyc-report/:token` (même template `PdfPage1/2/3` que le CRM) → PDF officiel uploadé en média Meta éphémère et envoyé en document **qu'à l'agent** ; lecture seule (seul write = audit `kyc_report_sent`), aucune migration. **Import d'un rapport externe (PR #853)** : wizard voie import (dépôt PDF ≤7 Mo) → edge `kyc-report-import` (Gemini, `_shared/kyc-extract.ts`) → contrôles identité/PEP/sanctions **proposés, jamais auto-validés** (garde-fou MLRO) + PDF attaché au dossier en catégorie compliance.
 
 **E · Matching & alertes** : `client_searches` (criteria JSONB) → `matching-engine` **v2** (durci PR #634 : pré-filtre **DUR** `transaction_type`+budget±15%+canton via RPC `match_candidate_listings`, puis scoring **soft** 0-100 — barème dans `app_config.matching_scoring_v2`, déterministe ; + axe **bonus** `pricePosition` en location = position du loyer vs marché du secteur via la MV `market_rent_stats`, PR #674, raison dans `budget.detail`, activation = redéploiement edge) sur `market_listings`+`properties` → `matches` (score+raisons, `score_version`, dédup dure par couple contact×bien, insert via RPC `ON CONFLICT`) → **Atelier Matching** (triptyque plein écran, gestes `E/X/P/R/V`) : Envoyer = deal `new_lead` (créé/rattaché, `transactions.market_listing_id` si bien de veille) + timeline contact (`dossier_envoye`) + reminder +5 j (→ Aujourd'hui, dédup avec `automation-engine`) + `send-property-email` ; Relancer = `sent_at` reset + reminder repoussé + `send-relance-email` ; Plus tard = `snoozed_until`+7 j + reminder custom à échéance ; Écarter = `ignored` (jamais re-proposé) ; Visite = bascule `/dashboard/visits/new` (bien interne). Écritures différées 4,5 s (undo toast avant toute écriture). Alertes email publiques (`market_alerts`/`search-alert` cron via Resend) inchangées.
 
@@ -307,7 +315,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ## 6bis · Agent WhatsApp (feature phare #2) 📱
 
-Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEGGA agir depuis la conversation (mieux qu'une app). **État : copilote agentique complet en production** (plus un simple miroir entrant). **5 Edge Functions** : `whatsapp-webhook` (inbound + appairage + confirmations/undo + envoi post-« oui »), `whatsapp-agent` (cerveau boucle function-calling DeepSeek, **36 outils**, HITL), `whatsapp-agent-async` (outils KYC lents, file), `whatsapp-process` (cron minute : média→R2, transcription, insights, avis LPD, purges), `whatsapp-morning-brief` (push proactif quotidien, cf. bullet dédié). L'ancienne `whatsapp-send` (envoi manuel depuis la fiche) a été retirée (élagage juil. 2026) — l'outbound vit dans `_shared/whatsapp-gateway`, appelé inline par les fns ci-dessus. `whatsapp-followup-draft` (brouillon T1 à l'accept d'un suivi) a été retirée aussi (data-gated, 0 usage ; builders de prompt en réserve dans `_shared/whatsapp-followup-draft.ts`, régénérable depuis #842) ; l'accept/écarte des suivis vit désormais **directement sur les puces du cockpit** (desktop + mobile, `useAgencyFollowupActions` → RPC `accept_followup_suggestion`), la carte fiche étant tombée à la refonte #823. Tiers d'autonomie : `read`/`auto` exécutés, `confirm` = « oui » requis (socle légal client jamais auto), `slow_async` = file.
+Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEGGA agir depuis la conversation (mieux qu'une app). **État : copilote agentique complet en production** (plus un simple miroir entrant). **5 Edge Functions** : `whatsapp-webhook` (inbound + appairage + confirmations/undo + envoi post-« oui »), `whatsapp-agent` (cerveau boucle function-calling DeepSeek, **36 outils**, HITL), `whatsapp-agent-async` (outils KYC lents, file), `whatsapp-process` (cron minute : média→R2, transcription, insights, avis LPD, purges), `whatsapp-morning-brief` (push proactif quotidien, cf. bullet dédié). L'ancienne `whatsapp-send` (envoi manuel depuis la fiche) a été retirée (élagage juil. 2026, **undeployée le 18 juil.**) — l'outbound vit dans `_shared/whatsapp-gateway`, appelé inline par les fns ci-dessus. `whatsapp-followup-draft` (brouillon T1 à l'accept d'un suivi) a été retirée aussi (data-gated, 0 usage, **undeployée le 18 juil.** ; builders de prompt en réserve dans `_shared/whatsapp-followup-draft.ts`, régénérable depuis #842) ; l'accept/écarte des suivis vit désormais **directement sur les puces du cockpit** (desktop + mobile, `useAgencyFollowupActions` → RPC `accept_followup_suggestion`), la carte fiche étant tombée à la refonte #823. Tiers d'autonomie : `read`/`auto` exécutés, `confirm` = « oui » requis (socle légal client jamais auto), `slow_async` = file.
 
 - **Archi** : abstraction `_shared/whatsapp-gateway.ts` (`WhatsAppProvider`). **Provider prod = Meta Cloud API** (`MetaProvider`) ; `OpenWAProvider` = prototype legacy **dormant** (encore branché + défaut de `getProvider()` → foot-gun, pas du code mort). Webhook signé **HMAC-SHA256** (`verifyHmac` timing-safe), provider détecté par header (`x-hub-signature-256` Meta / `x-openwa-signature`).
 - **Inbound** (`whatsapp-webhook`) : message → vérif HMAC (401 sinon) → parse gateway → map `wa_from` → `contacts.phone` (9 derniers chiffres) → INSERT idempotent `whatsapp_messages` (`UNIQUE(provider, provider_message_id)`) → `activity_events` (best-effort) → 200.
@@ -338,6 +346,20 @@ npm run lint         # eslint
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
 ```
 CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy.
+
+**⚠ Asymétrie déploiement edge (source de dette)** : `deploy.yml` ne fait que **déployer** ce qu'il
+trouve dans `supabase/functions/` — rien ne supprime. Retirer une fonction du dépôt ne la retire donc
+**pas** de Supabase : elle reste en ligne, souvent en `verify_jwt=false`, joignable et non surveillée.
+Purge = workflow **manuel** `.github/workflows/purge-orphan-functions.yml` (PR #877), le MCP Supabase
+n'exposant aucune suppression et le jeton de management n'existant que comme secret GitHub :
+```
+gh workflow run purge-orphan-functions.yml -f slugs="fn-a,fn-b" -f confirm=SUPPRIMER
+```
+3 garde-fous : confirmation littérale · liste protégée · refus d'un slug encore versionné (il serait
+redéployé au merge suivant — la suppression doit partir du dépôt). Inventaire réconcilié le 18 juil.
+2026 : **68 déployées ↔ 67 au dépôt**, seul écart volontaire = `sync-service-key` (déployée hors dépôt,
+self-heal de la clé service-role, PROTÉGÉE). Contrôle : diff `supabase functions list` ↔
+`git ls-tree -d --name-only origin/main:supabase/functions`.
 Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA — accès restreint"`, pré-lancement).
 
 **Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
