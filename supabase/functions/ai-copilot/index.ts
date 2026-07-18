@@ -628,8 +628,9 @@ async function buildSystemPrompt(params: {
   writesOn: boolean
   publishOn: boolean
   deleteOn: boolean
+  hotBlockOn: boolean  // injection mémoire contact chaud — false pour detect_intent (classifieur JSON strict, jamais de contexte contact ambiant)
 }): Promise<string> {
-  const { auth, language, toolsOn, writesOn, publishOn, deleteOn } = params
+  const { auth, language, toolsOn, writesOn, publishOn, deleteOn, hotBlockOn } = params
   let systemPrompt = MEGGA_SYSTEM
   systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
   if (toolsOn) systemPrompt += copilotToolsBlock(writesOn, publishOn, deleteOn)
@@ -682,7 +683,11 @@ async function buildSystemPrompt(params: {
     // Mémoire cross-canal : bloc « contact chaud » (<6h, posé par les exécuteurs des DEUX
     // canaux — un contact travaillé sur WhatsApp resurfaça ici). VOLATIL → appendu juste
     // avant l'horodatage, jamais dans les blocs stables (cache DeepSeek). Déjà rédigé + borné.
-    hotBlock = await fetchHotContactBlock(sb, auth.profile.agency_id, aiProfile ?? null, language === 'en' ? 'en' : 'fr')
+    // Gated hotBlockOn (comme copilot_tools et knowledge) : detect_intent n'en reçoit
+    // jamais — et on évite aussi ses lectures DB sur ce chemin.
+    if (hotBlockOn) {
+      hotBlock = await fetchHotContactBlock(sb, auth.profile.agency_id, aiProfile ?? null, language === 'en' ? 'en' : 'fr')
+    }
   } catch (_) {
     // personnalisation optionnelle — ne jamais bloquer la réponse IA
   }
@@ -902,7 +907,7 @@ serve(async (req: Request) => {
       } catch { toolsOn = false; writesOn = false; publishOn = false; deleteOn = false }
     }
 
-    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn, publishOn, deleteOn })
+    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn, publishOn, deleteOn, hotBlockOn: action !== 'detect_intent' })
 
     // ── Savoir métier vérifié (Phase 2) : retrieval déterministe de snippets
     // juridiques suisses SOURCÉS + DATÉS, injectés selon l'intent. Gated par
