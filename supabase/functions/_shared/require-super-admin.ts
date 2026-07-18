@@ -7,9 +7,6 @@
 //   3. Email allowlisté via la RPC SQL super_admin_allowlist_match — MÊME
 //      source de vérité que is_super_admin() (migration 20260705160000) :
 //      un rôle super_admin posé sur un email hors allowlist ne passe PAS.
-//   4. AAL2 (step-up MFA) : le claim `aal` du JWT doit valoir 'aal2'
-//      (opts.requireAal2, défaut true). Le claim est fiable ici : le token
-//      vient d'être validé côté GoTrue par getUser().
 //
 // Retourne `{ user, supabase }` (client service-role) si tout passe, sinon
 // une `Response` 401/403 que l'appelant doit renvoyer telle quelle.
@@ -33,26 +30,10 @@ function json(status: number, body: unknown, corsHeaders: Record<string, string>
   })
 }
 
-// Décode le payload d'un JWT (base64url) SANS vérifier la signature — utilisé
-// uniquement pour lire `aal` APRÈS que getUser() a validé le token.
-function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
-  try {
-    const parts = jwt.split('.')
-    if (parts.length !== 3) return null
-    const padded = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-    const padding = '='.repeat((4 - (padded.length % 4)) % 4)
-    return JSON.parse(atob(padded + padding))
-  } catch {
-    return null
-  }
-}
-
 export async function requireSuperAdmin(
   req: Request,
   corsHeaders: Record<string, string>,
-  opts: { requireAal2?: boolean } = {},
 ): Promise<SuperAdminContext | Response> {
-  const requireAal2 = opts.requireAal2 ?? true
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
@@ -91,16 +72,6 @@ export async function requireSuperAdmin(
   })
   if (allowError || allowed !== true) {
     return json(403, { error: 'Forbidden: account not allowlisted' }, corsHeaders)
-  }
-
-  if (requireAal2) {
-    const payload = decodeJwtPayload(token)
-    if ((payload?.aal as string | undefined) !== 'aal2') {
-      return json(403, {
-        error: 'mfa_required',
-        hint: 'Admin access requires an MFA-verified session (AAL2).',
-      }, corsHeaders)
-    }
   }
 
   return { user: { id: user.id, email: user.email ?? '' }, supabase }

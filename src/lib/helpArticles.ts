@@ -1567,7 +1567,6 @@ Chaque agence est isolée grâce au **Row Level Security** (RLS) de PostgreSQL. 
 
 - Email + mot de passe (bcrypt)
 - Google OAuth (connexion en un clic)
-- **2FA** : authentification à deux facteurs (en préparation)
 
 ### Conformité nFADP
 
