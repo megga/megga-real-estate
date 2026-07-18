@@ -109,6 +109,26 @@ describe('fetchClientVoiceSamples — par agent (T2)', () => {
     expect(calls).toEqual(['agency'])
   })
 
+  it('rédige les PII à la source (IBAN/AVS tapés par un agent → marqueurs)', async () => {
+    // Invariant « aucune PII sensible vers DeepSeek » : les corps sortent de whatsapp_messages
+    // (bruts) et ne servent qu'à du few-shot LLM → la redaction vit DANS le fetcher, pour que
+    // chaque consommateur (copilote, whatsapp-agent, rédactions email/annonce) soit couvert.
+    const dirty: Row[] = [
+      { body: 'Versez l’acompte sur CH93 0076 2011 6238 5295 7 avant vendredi.' },
+      { body: 'Son AVS est 756.1234.5678.90 pour le dossier.' },
+      { body: 'Je reviens vers vous très vite.' },
+    ]
+    const { client } = makeClient(dirty, [])
+    const out = await fetchClientVoiceSamples(client, 'ag1', { profileId: 'p1' })
+    const joined = out.map((s) => s.body).join('\n')
+    expect(joined).toContain('[REDACTED:IBAN]')
+    expect(joined).toContain('[REDACTED:AVS]')
+    expect(joined).not.toContain('CH93')
+    expect(joined).not.toContain('756.1234')
+    // Le TON survit à la redaction (c'est tout ce que le mimétisme exploite).
+    expect(joined).toContain('Je reviens vers vous très vite.')
+  })
+
   it('agencyId null → [] (jamais de requête)', async () => {
     const { client, calls } = makeClient(agentRows, agencyRows)
     expect(await fetchClientVoiceSamples(client, null, { profileId: 'p1' })).toEqual([])
