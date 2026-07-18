@@ -35,6 +35,8 @@ describe('formatHotContactBlock', () => {
     expect(fr.length).toBeLessThanOrEqual(900)      // bloc borné (700c contenu + entête)
     const en = formatHotContactBlock({ name: 'Jean', rollingSummary: 's', crmSummary: null }, 'en')
     expect(en).toMatch(/internal memory/i)
+    expect(fr).toMatch(/aucun outil d'action/i)   // la clause anti-initiative est épinglée
+    expect(en).toMatch(/no action tool/i)
   })
 
   it('borne le bloc ENTIER même avec nom et mémoires pathologiques (name = text sans CHECK)', () => {
