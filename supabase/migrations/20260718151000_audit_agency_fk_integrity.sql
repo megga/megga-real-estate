@@ -9,6 +9,9 @@
 -- IF NOT EXISTS car deploy.yml rejoue les fichiers datés du jour au merge.
 
 -- Garde-fou : échoue si des orphelins existent au moment de la pose.
+-- Tolérant aux tables absentes : offers et message_threads sont droppées par
+-- la 20260718152000 — au REJEU sur une base déjà purgée (deploy.yml rejoue
+-- les fichiers du jour), elles n'existent plus et doivent être sautées.
 do $$
 declare
   t text;
@@ -19,6 +22,9 @@ begin
     'whatsapp_async_jobs','whatsapp_confirmation_log',
     'whatsapp_recent_auto_actions','whatsapp_tool_usage']
   loop
+    if to_regclass('public.' || t) is null then
+      continue;
+    end if;
     execute format(
       'select count(*) from public.%I x where x.agency_id is not null
          and not exists (select 1 from public.agencies a where a.id = x.agency_id)', t)
@@ -47,9 +53,12 @@ begin
       ('whatsapp_tool_usage',          'whatsapp_tool_usage_agency_id_fkey',          true)
     ) as v(tbl, con, cascade_delete)
   loop
+    if to_regclass('public.' || spec.tbl) is null then
+      continue; -- table droppée par la 152000 : rien à contraindre au rejeu
+    end if;
     if not exists (
       select 1 from pg_constraint
-      where conname = spec.con and conrelid = ('public.' || spec.tbl)::regclass
+      where conname = spec.con and conrelid = to_regclass('public.' || spec.tbl)
     ) then
       execute format(
         'alter table public.%I add constraint %I foreign key (agency_id) references public.agencies(id)%s',
