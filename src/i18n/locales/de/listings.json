@@ -596,14 +596,14 @@
       "error": "Löschen fehlgeschlagen. Bitte erneut versuchen."
     },
     "firstRun": {
-      "title": "Ihre Mandate, an einem Ort",
+      "title": "Ihre Mandate,\nan einem Ort",
       "step1": {
         "title": "Objekt erstellen",
-        "sub": "Manuell oder aus einem bestehenden Inserat importiert."
+        "sub": "Manuell oder aus einem bestehenden Inserat importiert.\nMEGGA füllt das Objektblatt vor."
       },
       "step2": {
         "title": "Objektblatt vervollständigen",
-        "sub": "Fotos, Mandat, Preis."
+        "sub": "Zertifizierte Fotos, Mandat, Preis."
       },
       "step3": {
         "title": "Veröffentlichen",

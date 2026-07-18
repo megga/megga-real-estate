@@ -203,7 +203,7 @@ export function BiensPager({
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
             {fresh ? (
-              <BiensFirstRun sp={sp} surf={surf} onStart={onCreate} />
+              <BiensFirstRun onStart={onCreate} />
             ) : (
               <BpTopGallery
                 biens={biens}

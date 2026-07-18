@@ -596,14 +596,14 @@
       "error": "Eliminazione non riuscita. Riprova."
     },
     "firstRun": {
-      "title": "I tuoi mandati, in un unico posto",
+      "title": "I tuoi mandati,\nin un unico posto",
       "step1": {
         "title": "Crea l'immobile",
-        "sub": "A mano o importato da un annuncio esistente."
+        "sub": "A mano o importato da un annuncio esistente.\nMEGGA precompila la scheda."
       },
       "step2": {
         "title": "Completa la scheda",
-        "sub": "Foto, mandato, prezzo."
+        "sub": "Foto certificate, mandato, prezzo."
       },
       "step3": {
         "title": "Pubblica",

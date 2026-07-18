@@ -596,14 +596,14 @@
       "error": "La suppression a échoué. Réessayez."
     },
     "firstRun": {
-      "title": "Vos mandats, au même endroit",
+      "title": "Vos mandats,\nau même endroit",
       "step1": {
         "title": "Créez le bien",
-        "sub": "À la main ou importé d'une annonce existante."
+        "sub": "À la main ou importé d'une annonce existante.\nMEGGA pré-remplit la fiche."
       },
       "step2": {
         "title": "Complétez la fiche",
-        "sub": "Photos, mandat, prix."
+        "sub": "Photos certifiées, mandat, prix."
       },
       "step3": {
         "title": "Publiez",

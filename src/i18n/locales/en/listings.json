@@ -596,14 +596,14 @@
       "error": "Deletion failed. Please try again."
     },
     "firstRun": {
-      "title": "Your mandates, all in one place",
+      "title": "Your mandates,\nall in one place",
       "step1": {
         "title": "Create the property",
-        "sub": "By hand or imported from an existing listing."
+        "sub": "By hand or imported from an existing listing.\nMEGGA pre-fills the sheet."
       },
       "step2": {
         "title": "Complete the sheet",
-        "sub": "Photos, mandate, price."
+        "sub": "Certified photos, mandate, price."
       },
       "step3": {
         "title": "Publish",
