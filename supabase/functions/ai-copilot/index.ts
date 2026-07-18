@@ -60,6 +60,7 @@ const CALL_TIMEOUT_MS = 60_000   // par appel modèle (streaming inclus)
 const LOOP_BUDGET_MS = 90_000    // budget global de la boucle d'outils
 const MAX_TURNS = 5
 const MAX_TOOL_CALLS = 8
+const MIN_SUBSTANCE_CHARS = 80  // en-deçà, le tour n'a rien à distiller (écho, question courte)
 
 // LBA/IA compliance : log de TOUTE interaction copilote dans activity_events,
 // actor_kind='ai'. Le free chat (aucune entité CRM dans le contexte) est
@@ -989,8 +990,8 @@ serve(async (req: Request) => {
       profileId: auth.user.id,
       agencyId: auth.profile.agency_id,
     }
-    let turnContactId: string | null = null
-    const runTool = makeRunTool(actionCtx, webCtx, (id) => { turnContactId = id })
+    const turnContactIds = new Set<string>()
+    const runTool = makeRunTool(actionCtx, webCtx, (id) => { turnContactIds.add(id) })
 
     // ── Un tour complet (boucle d'outils ou appel simple) + post-traitements. ──
     const runTurn = async (emit: (ev: LoopEvent) => void): Promise<{
@@ -1096,10 +1097,12 @@ serve(async (req: Request) => {
       // Write-back mémoire CRM (gated) : distille ce tour dans le dossier par-contact
       // partagé (whatsapp_conversation_insights.crm_summary) — le canal WhatsApp le lira.
       // Fire-and-forget via waitUntil : zéro latence ajoutée ; substance minimale exigée.
-      if (crmWritebackOn && turnContactId && action !== 'detect_intent' && final.trim().length >= 80) {
+      // Exactement UN contact travaillé ce tour — 0 ou 2+ = ambigu, on ne distille pas (mésattribution).
+      if (crmWritebackOn && turnContactIds.size === 1 && action !== 'detect_intent' && final.trim().length >= MIN_SUBSTANCE_CHARS) {
+        const [soleContactId] = turnContactIds
         const work = distillCrmTurn({
           supabase: auth.supabase, apiKey: deepseekApiKey,
-          agencyId: auth.profile.agency_id, contactId: turnContactId,
+          agencyId: auth.profile.agency_id, contactId: soleContactId,
           userMessage: red.message, assistantText: final,
           lang: language === 'en' ? 'en' : 'fr',
         })
