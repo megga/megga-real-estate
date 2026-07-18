@@ -135,7 +135,6 @@ const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
-const MfaShowcasePage = lazy(() => import('@/pages/dev/MfaShowcasePage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
 const D0ConfiguringDemoPage = lazy(() => import('@/pages/dev/D0ConfiguringDemoPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
@@ -461,7 +460,6 @@ function AnimatedRoutes() {
               <Route path="/dev/mandate-sign" element={<MandateSignDemoPage />} />
               {/* Atelier Matching — démo QA visuelle (mocks handoff, zéro écriture) */}
               <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
-              <Route path="/dev/mfa" element={<MfaShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/configuring" element={<D0ConfiguringDemoPage />} />
               <Route path="/dev/activation" element={<D0ActivationDemoPage />} />

@@ -421,30 +421,6 @@
       "strengthGood": "Bon",
       "strengthStrong": "Robuste"
     },
-    "twoFactor": {
-      "title": "Double authentification",
-      "enabled": "Activé, votre compte est protégé",
-      "disabled": "Désactivé, recommandé pour plus de sécurité",
-      "comingSoon": "Bientôt disponible",
-      "recommendation": "Nous recommandons d'activer la 2FA pour protéger votre compte, surtout pour un outil de conformité LAB/KYC.",
-      "badgeEnabled": "Activée",
-      "badgeRecommended": "Recommandé",
-      "stepScan": "Étape 1 sur 2, Scannez ce QR code dans votre application d'authentification.",
-      "stepVerify": "Étape 2 sur 2, Saisissez le code à 6 chiffres affiché dans l'application.",
-      "stepDone": "Votre compte est protégé. Un code sera demandé à chaque nouvelle connexion.",
-      "authenticatorApp": "Application d'authentification",
-      "enable": "Activer la 2FA",
-      "preparing": "Préparation…",
-      "qrAlt": "QR code 2FA",
-      "qrUnavailable": "QR indisponible",
-      "manualEntry": "Saisie manuelle",
-      "scanned": "J'ai scanné",
-      "codeCaption": "Le code change toutes les 30 secondes. Saisissez celui affiché actuellement.",
-      "verifying": "Vérification…",
-      "verifyEnable": "Vérifier & activer",
-      "configuredPrimary": "Configurée · facteur principal",
-      "disable": "Désactiver"
-    },
     "sessions": {
       "title": "Appareils & sessions",
       "devicesConnected": "{{count}} appareils connectés",
@@ -517,12 +493,6 @@
       "title": "Sécurité du compte",
       "subtitleLine1": "MEGGA traite des données de transaction sensibles.",
       "subtitleLine2": "Gardez votre compte verrouillé et surveillez son activité."
-    },
-    "posture": {
-      "verdictExcellent": "Excellent",
-      "verdictGood": "Bon",
-      "fullyProtected": "Compte entièrement protégé",
-      "oneActionRecommended": "1 action recommandée"
     },
     "sso": {
       "title": "Méthodes de connexion",

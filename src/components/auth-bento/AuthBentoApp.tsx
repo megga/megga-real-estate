@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/lib/supabase'
 import { BENTO_GLOBAL_CSS, bentoTokens } from './tokens'
 import { BentoLogoGG } from './primitives'
 import { BentoPortalToggle, BentoThemeToggle, type Portail } from './toggles'
@@ -58,15 +57,11 @@ export type AuthRoute =
   | { portail: 'agent'; etat: 'reset' }
   | { portail: 'agent'; etat: 'resetsent' }
   | { portail: 'agent'; etat: 'setNewPassword' }
-  | { portail: 'agent'; etat: 'mfa' }
 
 export function AuthBentoApp({
   route,
-  onVerified,
 }: {
   route: AuthRoute
-  /** Appelé quand le step-up 2FA (etat 'mfa') a réussi — utilisé par le gate. */
-  onVerified?: () => void
 }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -208,34 +203,6 @@ export function AuthBentoApp({
     onGoSignUp: () => navigate('/auth/signup', { replace: true }),
     onGoSignIn: () => navigate('/auth/login?pro', { replace: true }),
     onBackToSignIn: () => navigate('/auth/login?pro', { replace: true }),
-    // Step-up 2FA au login : intervient APRÈS la session AAL1 (signInWithPassword
-    // n'est pas touché). Challenge + verify du facteur TOTP vérifié → AAL2.
-    onMfaVerify: async (code) => {
-      try {
-        const { data: factors, error: lErr } = await supabase.auth.mfa.listFactors()
-        if (lErr) throw lErr
-        const totp = (factors?.all ?? []).find(
-          (f) => f.factor_type === 'totp' && f.status === 'verified',
-        )
-        if (!totp) return { ok: false }
-        const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({ factorId: totp.id })
-        if (cErr) throw cErr
-        const { error: vErr } = await supabase.auth.mfa.verify({
-          factorId: totp.id,
-          challengeId: ch.id,
-          code,
-        })
-        if (vErr) return { ok: false }
-        onVerified?.()
-        return { ok: true }
-      } catch {
-        return { ok: false }
-      }
-    },
-    onMfaCancel: async () => {
-      await auth.signOut()
-      navigate('/auth/login?pro', { replace: true })
-    },
   }
 
   return (
