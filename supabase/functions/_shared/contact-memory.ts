@@ -27,7 +27,9 @@ export function clampSummary(s: string | null | undefined): string {
 
 /** Bloc mémoire injecté dans le SUFFIXE system (zone volatile, après le préfixe stable
  *  — discipline cache DeepSeek). Cadré « mémoire interne à vérifier » : jamais une
- *  source d'affirmation d'action (anti-fabrication). Vide si rien à dire. */
+ *  source d'affirmation d'action (anti-fabrication) NI d'initiative (les outils tier
+ *  auto s'exécutent sans confirmation — parité NBA_PROMPT_GUARDRAIL, contact-nba.ts).
+ *  Vide si rien à dire. */
 export function formatHotContactBlock(
   m: { name: string; rollingSummary: string | null; crmSummary: string | null },
   lang: 'fr' | 'en',
@@ -45,8 +47,8 @@ export function formatHotContactBlock(
   // Filet dur : le bloc ENTIER (entête + nom + corps) est borné à 900c, FR comme EN —
   // garantie de coût indépendante des longueurs d'entrée.
   return (lang === 'en'
-    ? `\n\nRecently worked contact (internal memory, cross-channel — treat as context to VERIFY via tools, never as proof an action happened): ${name}. ${body}`
-    : `\n\nContact travaillé récemment (mémoire interne, cross-canal — contexte à VÉRIFIER via les outils, jamais une preuve qu'une action a eu lieu) : ${name}. ${body}`
+    ? `\n\nRecently worked contact (internal memory, cross-channel — treat as context to VERIFY via tools, never as proof an action happened, NOR a reason to act on your own: call no action tool on this basis, the agent decides): ${name}. ${body}`
+    : `\n\nContact travaillé récemment (mémoire interne, cross-canal — contexte à VÉRIFIER via les outils, jamais une preuve qu'une action a eu lieu, NI une raison d'agir de ta propre initiative : n'appelle aucun outil d'action sur cette base, l'agent décide) : ${name}. ${body}`
   ).slice(0, 900)
 }
 
