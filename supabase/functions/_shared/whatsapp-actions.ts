@@ -29,6 +29,7 @@ import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts
 import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 import { logDeepSeekUsageWith } from './ai-usage.ts'
 import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
+import { redactPII } from './pii-redaction.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -2413,7 +2414,11 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     if (visit?.scheduled_at) {
       ctxLines.push(`Visite prévue : ${swissDateTime(visit.scheduled_at)}${visitTitle ? ` — ${visitTitle}` : ''}${visit.visit_type ? ` (${visit.visit_type})` : ''}`)
     }
-    const context = ctxLines.join('\n').slice(0, 3000)
+    // Redaction AVANT troncature : un slice qui coupe un IBAN/AVS en deux empêcherait le
+    // pattern de matcher et laisserait fuir la moitié restante. Les champs (insight, NBA,
+    // engagements) sont rédigés à l'écriture par ailleurs, mais cette frontière DeepSeek
+    // doit être propre par elle-même — même invariant que wa-agent-redaction/copilot-redaction.
+    const context = redactPII(ctxLines.join('\n')).redactedText.slice(0, 3000)
 
     const prompt =
       "Voici le contexte d'un rendez-vous immobilier (fiche client, compréhension de la dernière " +
