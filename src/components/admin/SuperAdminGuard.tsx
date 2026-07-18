@@ -1,26 +1,21 @@
 /**
  * Garde de route enveloppant la section super-admin : ne rend `children` que si
- * l'accès est autorisé, sinon redirige vers `/dashboard` ou force l'enrôlement TOTP.
+ * l'accès est autorisé (rôle + email allowlisté), sinon redirige vers `/dashboard`.
  */
 import { Navigate } from 'react-router-dom'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
-import AdminMfaRequired from '@/components/admin/AdminMfaRequired'
 
 // Garde UX de la section super-admin : rôle + email allowlisté (miroir de la
-// liste SQL, cf. src/lib/superAdmin.ts) + enrôlement TOTP forcé. L'enforcement
-// réel est en DB (is_super_admin, migration 20260705160000) et sur les edges
+// liste SQL, cf. src/lib/superAdmin.ts). L'enforcement réel est en DB
+// (is_super_admin, migration 20260705160000) et sur les edges
 // (_shared/require-super-admin.ts).
 export default function SuperAdminGuard({ children }: { children: React.ReactNode }) {
-  const { checking, allowed, needsEnrollment, recheck } = useSuperAdminGate()
+  const { checking, allowed } = useSuperAdminGate()
 
   if (checking) return null
 
   if (!allowed) {
     return <Navigate to="/dashboard" replace />
-  }
-
-  if (needsEnrollment) {
-    return <AdminMfaRequired onEnrolled={recheck} />
   }
 
   return <>{children}</>

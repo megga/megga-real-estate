@@ -529,6 +529,87 @@
       },
       "noRequests": "Aucune demande ni match pour ce bien.",
       "noHistory": "Aucun événement enregistré."
+    },
+    "followUp": {
+      "title": "À suivre",
+      "filter": {
+        "all": "Toutes les actions",
+        "mandates": "Mandats",
+        "drafts": "Brouillons",
+        "diffusion": "À diffuser"
+      },
+      "bucket": {
+        "mandates": "Mandats à renouveler",
+        "drafts": "Brouillons à finaliser",
+        "diffusion": "À diffuser sur Immobilier.ch"
+      },
+      "expiresIn_one": "Expire dans {{count}} j",
+      "expiresIn_other": "Expire dans {{count}} j",
+      "photos_one": "{{count}} photo",
+      "photos_other": "{{count}} photos",
+      "meggaOnly": "MEGGA seul",
+      "action": {
+        "renew": "Renouveler",
+        "complete": "Compléter",
+        "publish": "Diffuser"
+      },
+      "priority": "À traiter en priorité",
+      "priorityFirst": "À traiter en premier",
+      "mandateEcheance": "Mandat {{type}} · échéance",
+      "viewOthers_one": "Voir l'autre",
+      "viewOthers_other": "Voir les {{count}} autres",
+      "reduce": "Réduire",
+      "empty": {
+        "title": "Tout est à jour",
+        "subtitle": "Aucun mandat à renouveler, aucune annonce en attente."
+      },
+      "emptyFirstRun": {
+        "title": "Rien à suivre pour l'instant",
+        "subtitle": "Vos actions à traiter apparaîtront ici dès votre premier mandat."
+      },
+      "expiredSince_one": "Expiré depuis {{count}} j",
+      "expiredSince_other": "Expiré depuis {{count}} j",
+      "expiresToday": "Expire aujourd'hui"
+    },
+    "renewModal": {
+      "title": "Renouveler le mandat",
+      "duration": "Durée de reconduction",
+      "months_one": "{{count}} mois",
+      "months_other": "{{count}} mois",
+      "newExpiry": "Nouvelle échéance",
+      "commission": "Commission",
+      "send": "Envoyer pour signature",
+      "delete": "Supprimer l'annonce",
+      "successTitle": "Mandat mis à jour",
+      "successBody": "L'échéance de {{title}} passe au {{date}}. Transmettez la reconduction au propriétaire pour signature.",
+      "done": "Terminé",
+      "error": "La mise à jour a échoué. Réessayez."
+    },
+    "deleteFlow": {
+      "confirmTitle": "Supprimer l'annonce ?",
+      "confirmBody": "{{title}} sera supprimée. Cette action est définitive.",
+      "confirm": "Supprimer",
+      "cancel": "Annuler",
+      "deleting": "Suppression…",
+      "deletedTitle": "Annonce supprimée",
+      "deletedBody": "{{title}} a été supprimée.",
+      "error": "La suppression a échoué. Réessayez."
+    },
+    "firstRun": {
+      "title": "Vos mandats,\nau même endroit",
+      "step1": {
+        "title": "Créez le bien",
+        "sub": "À la main ou importé d'une annonce existante.\nMEGGA pré-remplit la fiche."
+      },
+      "step2": {
+        "title": "Complétez la fiche",
+        "sub": "Photos certifiées, mandat, prix."
+      },
+      "step3": {
+        "title": "Publiez",
+        "sub": "Sur MEGGA en un clic."
+      },
+      "start": "Commencer"
     }
   },
   "detail": {
@@ -792,7 +873,7 @@
       },
       "import": {
         "title": "Importer un mandat",
-        "sub": "PDF de mandat. MEGGA AI extrait les infos pour pré-remplir."
+        "sub": "Extraction PDF automatique, bientôt disponible."
       },
       "autosave": {
         "title": "Brouillon sauvegardé automatiquement",

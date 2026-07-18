@@ -137,11 +137,16 @@ export function Step0Start({ data, set }: StepProps) {
             onClick={() => set({ source: 'manual', fromSubmissionId: null, ownerContactId: null })} />
         </div>
         <div style={{ display: 'flex' }}>
+          {/* Porte « Importer un mandat » DÉSACTIVÉE : l'extraction PDF réelle n'est
+              pas branchée. L'ancien chemin injectait des données de mandat FICTIVES
+              (type exclusif, commission 3.5 %, signé) écrites en base — fabrication
+              de données compliance interdite. Dormante (comme la diffusion IDX)
+              jusqu'à un vrai OCR (Gemini via une edge function d'extraction). */}
           <SgGateCard
+            disabled
             icon={<SgIcon name="upload" size={26} stroke={SugarV2.black} />}
             title={t('wizard.step0.import.title')}
-            sub={t('wizard.step0.import.sub')}
-            onClick={() => set({ source: 'import', fromSubmissionId: null, ownerContactId: null })} />
+            sub={t('wizard.step0.import.sub')} />
         </div>
         <div style={{ display: 'flex' }}>
           <SubmissionsCard subs={subs} data={data} set={set} />

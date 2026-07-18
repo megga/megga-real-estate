@@ -41,7 +41,7 @@ export type SettingsIconName =
 //   - Integrations  → useGoogleCalendar + useOutlookCalendar (real OAuth)
 //   - Privacy       → delete-account Edge Function + mailto DSAR (PR #453)
 //   - Security      → password change/reset via supabase.auth.updateUser
-//                     / resetPasswordForEmail + SSO. MFA TOTP = chip (PR #454)
+//                     / resetPasswordForEmail + SSO
 //   - Billing       → reads still partial; chip pour Stripe Checkout
 //
 // Team + Brand : composants supprimés en PR #455 (suivi via issues GitHub

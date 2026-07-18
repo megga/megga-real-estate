@@ -212,6 +212,22 @@ export function transactionToCrmDeal(
 // Utilisé pour afficher les biens dont un contact vendeur est propriétaire.
 // Le mock CrmBien est très riche (mandat, stats, photoCount/signedPhotoCount,
 // energy, accent). On remplit ce qu'on peut depuis Property + listing joints.
+/** `properties.mandate_type` (texte libre : enum DB 'exclusive|semi_exclusive|simple'
+ *  OU valeurs héritées) → CrmBien.mandat.type. semi_exclusive retombe sur 'simple'
+ *  (l'UI ne réserve le badge exclusif qu'au vrai mandat exclusif). */
+function mapMandateType(t?: string | null): CrmBien['mandat']['type'] {
+  switch ((t ?? '').toLowerCase()) {
+    case 'exclusive':
+    case 'exclusif':
+      return 'exclusif'
+    case 'recherche':
+    case 'search':
+      return 'recherche'
+    default:
+      return 'simple'
+  }
+}
+
 export function propertyToCrmBien(p: Property, ownerContactId: string | null): CrmBien {
   const typeMap: Record<string, CrmBien['type']> = {
     apartment: 'appartement', appartement: 'appartement',
@@ -219,7 +235,11 @@ export function propertyToCrmBien(p: Property, ownerContactId: string | null): C
     commercial: 'commercial', office: 'office',
     parking: 'parking', storage: 'storage', land: 'land',
   }
-  const isRental = !!p.price && p.price < 20000   // heuristique idem listingToBien
+  // Vente/Location = vrai `transaction_type` DB ('buy' | 'rent') en priorité ;
+  // repli sur l'heuristique de prix quand la colonne n'est pas renseignée.
+  const isRental = p.transaction_type
+    ? p.transaction_type === 'rent'
+    : (!!p.price && p.price < 20000)
   return {
     id: p.id,
     ref: p.id.slice(0, 12).toUpperCase(),
@@ -237,9 +257,17 @@ export function propertyToCrmBien(p: Property, ownerContactId: string | null): C
     beds: p.bedrooms ?? 0,
     baths: p.bathrooms ?? 0,
     year: p.year_built ?? 0,
-    energy: '',
+    energy: p.energy_class ?? '',
     ownerContactId,
-    mandat: { type: 'simple' },
+    // Mandat réel (colonnes `mandate_*` du bien) — alimente le bucket « Mandats à
+    // renouveler » de « À suivre » et le §Mandat de la fiche. `expiresAt` est
+    // informatif (le cron d'auto-dépublication à l'échéance est dormant).
+    mandat: {
+      type: mapMandateType(p.mandate_type),
+      commission: p.mandate_commission_pct ?? undefined,
+      signedAt: p.mandate_signed_at ?? undefined,
+      expiresAt: p.mandate_expires_at ?? undefined,
+    },
     visibility: 'agency',
     stats: { views: 0, favorites: 0, visitRequests: 0 },
     photoCount: p.photos?.length ?? 0,

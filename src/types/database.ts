@@ -7012,6 +7012,7 @@ export type Database = {
         }[]
       }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      soft_delete_property: { Args: { p_property_id: string }; Returns: boolean }
       pg_database_size_mb: { Args: never; Returns: number }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }

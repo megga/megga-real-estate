@@ -45,13 +45,19 @@ const TYPE_TO_ENUM: Record<WizardData['type'], 'apartment' | 'house' | 'villa' |
 
 interface WizardShellProps {
   onClose: () => void
+  /**
+   * Embarqué dans un bento (pager « Mes biens ») : le shell remplit son conteneur
+   * (`position:absolute; inset:0`) au lieu de couvrir tout l'écran
+   * (`position:fixed; inset:0; z-index:9000`). Le bento parent gère le clip (coins
+   * + overflow) et le z-index de l'overlay.
+   */
+  embedded?: boolean
 }
 
-export default function WizardShell({ onClose }: WizardShellProps) {
+export default function WizardShell({ onClose, embedded = false }: WizardShellProps) {
   const { t } = useTranslation('listings')
-  // Le wizard suit le mode clair/sombre du CRM. On bascule le thème actif lu par
-  // le Proxy SugarV2 AU RENDER (avant que les step files lisent leurs couleurs),
-  // exactement comme le prototype Sugar (window.__setSugarV2Dark).
+  // Le wizard suit le mode clair/sombre du CRM via useTheme → `data-theme`
+  // (source de vérité lue par le Proxy SugarV2, robuste au rendu concurrent).
   const { theme } = useTheme()
   const dark = theme === 'dark'
   // Épingle le thème du wizard sur celui de l'app. Quand l'override est levé (cleanup),
@@ -290,7 +296,7 @@ export default function WizardShell({ onClose }: WizardShellProps) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 9000,
+      position: embedded ? 'absolute' : 'fixed', inset: 0, zIndex: embedded ? 1 : 9000,
       // En dark on pose le wizard sur le noir plat #0A0A0F (= bg du CRM), pas le
       // radial Sugar — il colle ainsi au fond exact de l'app. En clair, radial.
       background: dark ? SugarV2.bg : SugarV2.bgGradient,
