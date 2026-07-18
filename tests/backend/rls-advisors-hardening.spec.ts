@@ -1,6 +1,7 @@
 // Durcissement RLS (migration 20260711190000) — verrouille les failles advisors :
-//   (a) support_tickets / ticket_messages : plus AUCUNE lecture anon (l'ancienne policy
+//   (a) support_tickets : plus AUCUNE lecture anon (l'ancienne policy
 //       `anon_select_own_ticket` avait qual `true` → tous les tickets lisibles anon).
+//       (ticket_messages, droppée à l'audit du 18.07.2026, était couverte ici aussi.)
 //   (b) visits : les policies anon `manage_token IS NOT NULL` (≈ true) sont remplacées
 //       par des RPC SECURITY DEFINER scopées token — l'anon ne lit/modifie plus la table
 //       en direct, mais le flux public /visit/:id/edit (lire, replanifier, annuler,
@@ -63,7 +64,6 @@ describe.skipIf(!HAS_KEYS)('durcissement RLS — tickets + visites par token', (
 
   afterAll(async () => {
     const svc = serviceRoleClient()
-    if (ticketId) await svc.from('ticket_messages').delete().eq('ticket_id', ticketId).then(() => {}, () => {})
     if (ticketId) await svc.from('support_tickets').delete().eq('id', ticketId).then(() => {}, () => {})
     if (visitId) await svc.from('visits').delete().eq('id', visitId).then(() => {}, () => {})
     if (propertyId) await svc.from('properties').delete().eq('id', propertyId).then(() => {}, () => {})
@@ -74,16 +74,6 @@ describe.skipIf(!HAS_KEYS)('durcissement RLS — tickets + visites par token', (
   // ── (a) tickets : lecture anon coupée ──────────────────────────────────────
   it('anon ne lit AUCUN ticket support (ancienne policy qual=true supprimée)', async () => {
     const { data } = await anonClient().from('support_tickets').select('id').eq('id', ticketId)
-    expect(data ?? []).toEqual([])
-  })
-
-  it('anon ne lit AUCUN message de ticket', async () => {
-    const svc = serviceRoleClient()
-    const { error } = await svc.from('ticket_messages').insert({
-      ticket_id: ticketId, author_type: 'user', author_name: 'Test RLS', body: 'message du test',
-    })
-    expect(error).toBeNull() // le message existe bien → le [] anon ci-dessous n'est pas creux
-    const { data } = await anonClient().from('ticket_messages').select('id').eq('ticket_id', ticketId)
     expect(data ?? []).toEqual([])
   })
 

@@ -22,7 +22,6 @@ const FUNCTIONS_DIR = path.join(REPO_ROOT, 'supabase/functions')
 const CRITICAL_TABLES = [
   'agent_profiles',
   'agency_profiles',
-  'agent_reviews',
   'support_tickets',
   'kyc_cases',
   'transactions',
@@ -31,7 +30,6 @@ const CRITICAL_TABLES = [
 ]
 
 const CRITICAL_EDGE_FUNCTIONS = [
-  'ticket-ai-reply',
   'weekly-report',
   'admin-stripe-metrics',
   'admin-monitoring',
