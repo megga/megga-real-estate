@@ -162,6 +162,70 @@ describe('redactPII — motif PASSWORD', () => {
   })
 })
 
+describe('ordre du catalogue — un motif à valeur libre ne doit pas désarmer les suivants', () => {
+  // PASSWORD capture une valeur LIBRE, donc il peut avaler le token qui suit son marqueur.
+  // Tant qu'il tournait AVANT CARD et DOB, ce token avalé fragmentait le secret d'après et le
+  // rendait invisible au détecteur suivant. Ces tests épinglent l'ORDRE, pas le motif : ils
+  // tombent si quelqu'un remonte PASSWORD dans le tableau PATTERNS.
+
+  it('une date de naissance à la ligne suivante reste détectée', () => {
+    // Avant correction : « [REDACTED:PASSWORD] le 12.03.1985 » — l'ancre « Né » mangée par la
+    // capture (le \s* du séparateur traverse le saut de ligne), la date en clair.
+    const r = redactPII('Mot de passe :\nNé le 12.03.1985')
+    expect(r.redactedText).not.toContain('12.03.1985')
+  })
+
+  it('un numéro de carte à la ligne suivante reste détecté', () => {
+    const r = redactPII('mdp :\n4111 1111 1111 1111')
+    expect(r.redactedText).not.toContain('1111 1111 1111')
+  })
+
+  it('le cas nominal sur une seule ligne reste couvert', () => {
+    // Garde-fou : la correction d'ordre ne doit pas coûter de vrai positif.
+    expect(redactPII('mdp: hunter2').redactedText).not.toContain('hunter2')
+    expect(redactPII('mot de passe :\nHunter2Geneve').redactedText).not.toContain('Hunter2Geneve')
+  })
+})
+
+describe('redactPII — ACCESS_CODE (digicode, wifi, boîte à clés)', () => {
+  // Le marqueur seul produirait des faux positifs : en note d'agent, « code d'accès : » sert
+  // surtout à dire qui détient le code. C'est la CONTRAINTE DE FORME sur la valeur qui sépare
+  // les deux usages — 3-12 caractères alphanumériques dont au moins un chiffre.
+
+  it.each([
+    'Digicode : 4521B',
+    'Code d’accès : 78A45',
+    'Code wifi : Chalet2026',
+    'code du portail: 9981',
+    'Code PIN = 4417',
+    'Code de la boîte à clés : 7788',
+  ])('marque un vrai code : %s', (input) => {
+    const r = redactPII(input)
+    expect(r.counts.ACCESS_CODE).toBe(1)
+    expect(r.redactedText).toContain('[REDACTED:ACCESS_CODE]')
+  })
+
+  it.each([
+    "Code d'accès : le propriétaire le donnera chez le notaire.",
+    'Code wifi : la fibre n’est pas encore installée.',
+    'Digicode : à demander à la régie.',
+    "Code d'accès : à convenir avec la régie.",
+    'Code wifi : demander au concierge.',
+  ])('laisse intacte la prose logistique : %s', (input) => {
+    const r = redactPII(input)
+    expect(r.counts.ACCESS_CODE).toBe(0)
+    expect(r.redactedText).toBe(input)
+  })
+
+  it('n’attrape PAS le marqueur « code » nu — un code postal n’est pas un secret', () => {
+    // 48 des 155 phrases du corpus immobilier contiennent « code » (code postal, EGID, CO…),
+    // et « Code : 1201 » est indiscernable d'un secret par la seule forme.
+    for (const s of ['Code : 1201 pour les Pâquis.', 'Code postal : 1206', 'Code EGID : 302145']) {
+      expect(redactPII(s).counts.ACCESS_CODE, `mordu sur ${s}`).toBe(0)
+    }
+  })
+})
+
 describe('redactPII — messages réalistes', () => {
   it('message Import Lead réaliste : aucune PII sensible, texte inchangé', () => {
     const text = `Bonjour Marie,
@@ -200,7 +264,7 @@ mdp: hunter2`
 
 describe('formatRedactionSummary', () => {
   it('vide vs renseigné', () => {
-    expect(formatRedactionSummary({ AVS: 0, IBAN: 0, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0 })).toBe('')
-    expect(formatRedactionSummary({ AVS: 2, IBAN: 1, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0 })).toBe('AVS×2, IBAN×1')
+    expect(formatRedactionSummary({ AVS: 0, IBAN: 0, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0 })).toBe('')
+    expect(formatRedactionSummary({ AVS: 2, IBAN: 1, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0 })).toBe('AVS×2, IBAN×1')
   })
 })
