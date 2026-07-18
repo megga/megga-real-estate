@@ -4,6 +4,8 @@
 // (Node), pour couvrir le gap « les edge functions échappent à tsc/vitest ».
 // Ne fait AUCUN appel LLM ni DB : ces effets restent dans index.ts.
 
+import { redactLlmMessages } from './wa-agent-redaction.ts'
+
 /** Sérialise le contexte CRM en bloc Markdown (ignore null / chaîne vide ;
  *  JSON.stringify pour les objets). Renvoie '' si rien à montrer. */
 export function serializeContext(context: Record<string, unknown> | undefined): string {
@@ -46,4 +48,51 @@ export function resolveAuditEntity(
   if (!entityId) return null
   const entityType = kyc ? 'kyc' : contact ? 'contact' : property ? 'property' : 'transaction'
   return { entityType, entityId }
+}
+
+/**
+ * Construit le corps de la requête DeepSeek du copilote.
+ *
+ * PII — point d'étranglement unique de la BOUCLE CONVERSATIONNELLE du copilote (miroir de
+ * `callDeepSeek` côté whatsapp-agent). Portée exacte : tout ce que la boucle envoie, y compris la
+ * passe finale forcée. Les autres appels DeepSeek atteignables depuis ai-copilot (daily-brief,
+ * distillCrmTurn, draft_listing_copy, prepare_meeting) rédigent à leur propre frontière — ce
+ * helper ne les couvre pas et n'a pas à le faire.
+ *
+ * Le trou fermé : `copilot-redaction` ne couvre que message + contexte + historique, donc seul le
+ * PREMIER tour était propre. `agent-loop` réinjecte les résultats d'outils tels quels
+ * (`{role:'tool', content}`), et `get_contact_brief` renvoie `contacts.notes` — du texte libre
+ * saisi par l'agent, exactement là où un IBAN ou un N° AVS atterrit.
+ *
+ * La redaction vit ICI plutôt qu'à chaque site de push : un outil ajouté demain ne peut pas
+ * rouvrir le trou. `redactLlmMessages` exclut `role:'system'` (déjà propre) et blinde les UUID,
+ * qui sont des clés fonctionnelles d'outils et non des identifiants sensibles.
+ *
+ * Résidu connu : les arguments d'un tool_call émis par le modèle (`tool_calls[].function.arguments`)
+ * ne sont pas rédigés — ils sont produits PAR DeepSeek à partir de ce qu'il a déjà reçu, donc la
+ * boucle est fermée et rien de neuf ne lui est divulgué.
+ */
+export function buildCopilotModelBody(params: {
+  messages: Array<Record<string, unknown>>
+  /** Catalogue d'outils (typé `unknown[]` pour rester découplé d'index.ts). */
+  tools?: unknown[] | null
+  withTools?: boolean
+  responseFormat?: 'json_object'
+  maxTokens?: number
+}): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    model: 'deepseek-chat',
+    max_tokens: params.maxTokens ?? 2000,
+    messages: redactLlmMessages(params.messages),
+    // Toujours en flux : l'assemblage SSE est le seul chemin de lecture, `wantStream` ne
+    // décide que de la ré-émission des événements vers le client.
+    stream: true,
+    stream_options: { include_usage: true },
+  }
+  if (params.tools) {
+    body.tools = params.tools
+    body.tool_choice = params.withTools ? 'auto' : 'none'
+  }
+  if (params.responseFormat) body.response_format = { type: params.responseFormat }
+  return body
 }
