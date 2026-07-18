@@ -1072,9 +1072,9 @@
         "title": "MEGGA AI writes it for you",
         "hint": "Uses the type, surface area, rooms, features and municipality.",
         "thinking": "Thinking…",
-        "writing": "Writing…",
         "regenerate": "Regenerate",
-        "generate": "Generate"
+        "generate": "Generate",
+        "error": "Die KI-Texterstellung ist fehlgeschlagen. Erneut versuchen oder Beschreibung manuell eingeben."
       },
       "tone": {
         "neutre": "Neutral",

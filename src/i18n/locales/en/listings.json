@@ -1072,9 +1072,9 @@
         "title": "MEGGA AI writes it for you",
         "hint": "Uses the type, surface area, rooms, features and municipality.",
         "thinking": "Thinking…",
-        "writing": "Writing…",
         "regenerate": "Regenerate",
-        "generate": "Generate"
+        "generate": "Generate",
+        "error": "AI drafting failed. Try again, or write the description manually."
       },
       "tone": {
         "neutre": "Neutral",
