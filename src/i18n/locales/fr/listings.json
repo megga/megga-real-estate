@@ -1072,9 +1072,9 @@
         "title": "MEGGA AI rédige pour vous",
         "hint": "Utilise le type, la surface, les pièces, les équipements et la commune.",
         "thinking": "Réflexion…",
-        "writing": "Rédaction…",
         "regenerate": "Régénérer",
-        "generate": "Générer"
+        "generate": "Générer",
+        "error": "La rédaction IA a échoué. Réessayez, ou saisissez la description à la main."
       },
       "tone": {
         "neutre": "Neutre",

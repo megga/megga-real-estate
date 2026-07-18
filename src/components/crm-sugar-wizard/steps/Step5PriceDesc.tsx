@@ -4,8 +4,25 @@
 import { useState, useRef } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, fmtCHF, type WizardData } from '../tokens'
+import { supabase } from '@/lib/supabase'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
+
+// Indication de ton passée à MEGGA AI (draft_description). Chaîne d'API, pas du
+// JSX → hors périmètre du garde i18n (jsx-text-only).
+const TONE_HINT: Record<NonNullable<WizardData['descTone']>, string> = {
+  neutre: 'neutre et factuel',
+  premium: 'premium, prestige',
+  famille: 'orienté vie de famille',
+  invest: 'orienté investisseur (rendement locatif)',
+}
+
+// Quand le modèle ne produit rien (tour vide en HTTP 200), l'edge renvoie cette
+// phrase-sentinelle NON vide comme result (ai-copilot/index.ts:1038). Elle ne
+// doit JAMAIS atterrir dans la description comme un vrai brouillon → on la
+// traite comme un échec, au même titre qu'un résultat trop court pour être une
+// description (le prompt exige 150-250 mots).
+const AI_EMPTY_SENTINEL = 'Je n\'ai pas pu générer de réponse'
 
 export function Step5PriceDesc({ data, set }: StepProps) {
   const { t: tr } = useTranslation('listings')
@@ -31,8 +48,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
 
   const descRef = useRef<HTMLTextAreaElement>(null)
   const [, setAiOn] = useState(!!data.aiAssist)
-  const [aiPhase, setAiPhase] = useState<'idle' | 'thinking' | 'streaming' | 'done'>('idle')
-  const [streamText, setStreamText] = useState('')
+  const [aiPhase, setAiPhase] = useState<'idle' | 'thinking' | 'done' | 'error'>('idle')
   const [tone, setTone] = useState<NonNullable<WizardData['descTone']>>(data.descTone || 'neutre')
 
   const TONES: { v: NonNullable<WizardData['descTone']>; l: string }[] = [
@@ -42,24 +58,44 @@ export function Step5PriceDesc({ data, set }: StepProps) {
     { v: 'invest',  l: tr('wizard.step5.tone.invest') },
   ]
 
-  const generate = () => {
+  // Rédaction RÉELLE via l'edge ai-copilot (action draft_description, DeepSeek) —
+  // one-shot, non persistant (on ne crée pas de conversation copilote pour un
+  // brouillon d'annonce). Le prompt d'action interdit d'inventer une
+  // caractéristique absente des données. En cas d'échec : état d'erreur honnête
+  // + retry, JAMAIS de repli silencieux vers un texte fabriqué.
+  const generate = async () => {
+    // Garde in-flight : le `disabled` du bouton ne s'applique qu'après le
+    // re-render ; un double-clic physique rapide lancerait 2 appels DeepSeek.
+    if (aiPhase === 'thinking') return
     setAiOn(true)
     setAiPhase('thinking')
-    setStreamText('')
-    const text = buildAITemplate(data, tone)
-    setTimeout(() => {
-      setAiPhase('streaming')
-      let i = 0
-      const id = window.setInterval(() => {
-        i += Math.max(2, Math.round(Math.random() * 5))
-        setStreamText(text.slice(0, i))
-        if (i >= text.length) {
-          window.clearInterval(id)
-          setAiPhase('done')
-          set({ description: text, aiAssist: true, descTone: tone })
-        }
-      }, 18)
-    }, 700)
+    const price = transaction === 'location' ? data.rent : data.price
+    const context: Record<string, unknown> = {
+      type: data.type, transaction,
+      address: data.addr || undefined,
+      canton: data.canton || undefined, postal_code: data.postCode || undefined,
+      surface_m2: data.area || undefined, rooms: data.rooms || undefined,
+      bedrooms: data.bedrooms || undefined, bathrooms: data.bathrooms || undefined,
+      features: data.features?.length ? data.features : undefined,
+      year_built: data.year || undefined, energy_class: data.energy || undefined,
+      price: price || undefined,
+    }
+    const message = `Rédige la description de cette annonce immobilière. Ton souhaité : ${TONE_HINT[tone]}. Réponds UNIQUEMENT avec la description (2-3 paragraphes), sans titre ni préambule.`
+    try {
+      const { data: res, error } = await supabase.functions.invoke<{ result?: string }>('ai-copilot', {
+        body: { action: 'draft_description', message, context, language: 'fr', persist: false, stream: false },
+      })
+      if (error) throw error
+      const text = (res?.result ?? '').trim()
+      // Échec honnête si : vide, phrase-sentinelle d'excuse de l'edge (tour vide
+      // en 200), ou trop court pour être une description. Jamais écrit comme
+      // brouillon « MEGGA AI ».
+      if (!text || text.length < 60 || text.startsWith(AI_EMPTY_SENTINEL)) throw new Error('degraded')
+      set({ description: text, aiAssist: true, descTone: tone })
+      setAiPhase('done')
+    } catch {
+      setAiPhase('error')
+    }
   }
 
   const onManualEdit = (v: string) => {
@@ -68,7 +104,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
     setAiPhase('idle')
   }
 
-  const visibleDesc = aiPhase === 'streaming' ? streamText : (data.description || '')
+  const visibleDesc = data.description || ''
   const charCount = (data.description || '').length
   const minChars = 200, idealChars = 600
 
@@ -292,17 +328,17 @@ export function Step5PriceDesc({ data, set }: StepProps) {
         </div>
 
         <button onClick={generate}
-          disabled={aiPhase === 'thinking' || aiPhase === 'streaming'}
+          disabled={aiPhase === 'thinking'}
           style={{
             height: 40, padding: '0 18px', borderRadius: 999, border: 0,
             background: SugarV2.black, color: sgOn(),
             fontFamily: 'inherit', fontSize: 13, fontWeight: 700, letterSpacing: 0.1,
-            cursor: (aiPhase === 'thinking' || aiPhase === 'streaming') ? 'wait' : 'pointer',
+            cursor: (aiPhase === 'thinking') ? 'wait' : 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 8,
             boxShadow: '0 6px 16px rgba(0,0,0,0.20)',
-            opacity: (aiPhase === 'thinking' || aiPhase === 'streaming') ? 0.85 : 1,
+            opacity: (aiPhase === 'thinking') ? 0.85 : 1,
           }}>
-          {aiPhase === 'thinking' || aiPhase === 'streaming' ? (
+          {aiPhase === 'thinking' ? (
             <>
               <span style={{
                 width: 14, height: 14, borderRadius: 999,
@@ -310,7 +346,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
                 borderTopColor: sgOn(),
                 animation: 'sgSpin .8s linear infinite', display: 'inline-block',
               }} />
-              {aiPhase === 'thinking' ? tr('wizard.step5.ai.thinking') : tr('wizard.step5.ai.writing')}
+              {tr('wizard.step5.ai.thinking')}
             </>
           ) : (
             <>
@@ -323,6 +359,16 @@ export function Step5PriceDesc({ data, set }: StepProps) {
         </button>
       </div>
 
+      {aiPhase === 'error' && (
+        <div style={{
+          marginBottom: 14, padding: '10px 14px', borderRadius: 12,
+          background: 'rgba(220,38,38,0.08)', color: '#DC2626',
+          fontSize: 13, fontWeight: 600,
+        }}>
+          {tr('wizard.step5.ai.error')}
+        </div>
+      )}
+
       <div style={{
         background: SugarV2.card, borderRadius: 22,
         boxShadow: SugarV2.shadow, overflow: 'hidden',
@@ -331,7 +377,7 @@ export function Step5PriceDesc({ data, set }: StepProps) {
           ref={descRef}
           value={visibleDesc}
           onChange={e => onManualEdit(e.target.value)}
-          readOnly={aiPhase === 'streaming' || aiPhase === 'thinking'}
+          readOnly={aiPhase === 'thinking'}
           placeholder={tr('wizard.step5.descPlaceholder')}
           style={{
             width: '100%', minHeight: 220, boxSizing: 'border-box',
@@ -474,60 +520,3 @@ function computeEstimation(data: WizardData): { low: number; mid: number; high: 
   const label = `${labelMap[type] || type} de ${area} m² ${canton ? `dans le canton de ${canton}` : ''}`.trim()
   return { low, mid, high, label }
 }
-
-function buildAITemplate(data: WizardData, tone: NonNullable<WizardData['descTone']>): string {
-  const type = data.type || 'bien'
-  const area = data.area || '—'
-  const rooms = data.rooms
-  const bedrooms = data.bedrooms
-  const baths = data.bathrooms
-  const features = data.features || []
-  const canton = data.canton || ''
-  const addr = data.addr || ''
-  const tx = data.transaction || 'vente'
-  const energy = data.energy
-
-  const featureClause = features.length > 0
-    ? `Le bien est complété par : ${features.slice(0, 5).map(prettyFeature).join(', ')}.`
-    : ''
-  const energyClause = energy
-    ? ` Sa classe énergétique ${energy} ${['A', 'B', 'C'].includes(energy) ? 'garantit une excellente performance' : 'permet une consommation maîtrisée'}.`
-    : ''
-
-  const intros: Record<string, string> = {
-    neutre:  `Bel ${typeLabel(type)} de ${area} m²${rooms ? `, ${rooms} pièces` : ''}${bedrooms ? `, ${bedrooms} chambre${bedrooms > 1 ? 's' : ''}` : ''}${baths ? `, ${baths} salle${baths > 1 ? 's' : ''} de bain` : ''}${addr || canton ? `, situé ${addr ? `${addr}` : `dans le canton de ${canton}`}` : ''}.`,
-    premium: `Exception architecturale : cet ${typeLabel(type)} de ${area} m² incarne un art de vivre raffiné${addr || canton ? `, au cœur ${canton ? `du canton de ${canton}` : `de ${addr}`}` : ''}. ${rooms ? `Ses ${rooms} pièces` : 'Ses volumes'} offrent un cadre rare.`,
-    famille: `Pensé pour la vie de famille : ${typeLabel(type)} de ${area} m² qui combine confort et fonctionnalité${addr || canton ? `, idéalement situé ${addr ? `à ${addr}` : `dans le canton de ${canton}`}` : ''}. ${bedrooms ? `Avec ${bedrooms} chambres et` : 'Avec'} ${baths ? `${baths} salle${baths > 1 ? 's' : ''} de bain,` : ''} l'espace est généreux pour tous.`,
-    invest:  `Opportunité d'investissement solide : ${typeLabel(type)} de ${area} m²${addr || canton ? `, ${canton ? `canton de ${canton}` : addr}` : ''}, dans une zone à fort potentiel locatif. Rendement estimé conforme aux standards du marché.`,
-  }
-  const middles: Record<string, string> = {
-    neutre:  ' Les espaces sont lumineux, bien agencés et propices à la vie au quotidien.',
-    premium: ' Finitions haut de gamme, matériaux nobles et prestations sur mesure caractérisent ce bien rare.',
-    famille: " Les pièces de jour s'ouvrent sur l'extérieur ; chaque chambre a été pensée pour offrir intimité et tranquillité.",
-    invest:  ` Bien actuellement ${tx === 'location' ? 'loué avec un bail en cours' : 'en parfait état, prêt à être loué ou revendu'}.`,
-  }
-  const closings: Record<string, string> = {
-    neutre:  ' Un coup de cœur à découvrir lors d\'une visite.',
-    premium: " Une visite s'impose pour saisir toute la dimension de ce bien d'exception.",
-    famille: ' À découvrir sans tarder, idéal pour s\'installer durablement.',
-    invest:  ' Dossier complet disponible sur demande. À étudier sans délai.',
-  }
-
-  return [
-    intros[tone],
-    middles[tone],
-    featureClause,
-    energyClause.trim(),
-    closings[tone],
-  ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
-}
-
-const typeLabel = (t: string) => ({
-  appartement: 'appartement', maison: 'maison', villa: 'villa', terrain: 'terrain',
-} as Record<string, string>)[t] || 'bien'
-
-const prettyFeature = (v: string) => ({
-  balcon: 'balcon', terrasse: 'terrasse', jardin: 'jardin', garage: 'garage',
-  parking: 'place de parc', cave: 'cave', ascenseur: 'ascenseur', piscine: 'piscine',
-  cheminée: 'cheminée', clim: 'climatisation', buanderie: 'buanderie', vue: 'vue dégagée',
-} as Record<string, string>)[v] || v
