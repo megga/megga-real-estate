@@ -20,11 +20,6 @@ export interface UserProfile {
   phone: string | null
   canton: string | null
   created_at: string
-  onboarding_completed: boolean
-  onboarding_step: number
-  // Premier jour (Day 0 calibration) — one-shot après l'onboarding wizard.
-  // Voir handoff-premier-jour/HANDOFF_PREMIER_JOUR_CLAUDE_CODE.md.
-  first_day_done: boolean
 }
 
 /** Rôles donnant accès au CRM agent. */

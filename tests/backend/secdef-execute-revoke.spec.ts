@@ -90,12 +90,6 @@ describe.skipIf(!HAS_KEYS)('secdef — EXECUTE révoqué (API) sans casser les t
     expect(error?.code).toBe(DENIED)
   })
 
-  it('search_agencies : anon refusé, authenticated OK (onboarding)', async () => {
-    const { error: anonErr } = await anonClient().rpc('search_agencies', { q: 'megga', lim: 3 })
-    expect(anonErr?.code).toBe(DENIED)
-    const { error: authErr } = await setup.clientA.rpc('search_agencies', { q: 'megga', lim: 3 })
-    expect(authErr).toBeNull()
-  })
 
   // ── (4) surfaces publiques voulues : toujours ouvertes ──────────────────────
   it('get_popular_articles (/help public) : anon toujours autorisé', async () => {

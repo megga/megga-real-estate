@@ -6,6 +6,15 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Suppression de l'onboarding post-login + auto-provision d'agence (18 juillet 2026)
+> Sert l'objectif 1 (temps admin) : un nouvel agent entre directement dans le CRM. Le calibrage « Premier jour » n'avait jamais produit de donnée en prod (0 `day0_payload` sur 9 profils).
+
+Retrait complet du wizard d'onboarding (`/dashboard/onboarding`, `onboarding-sugar/`), du Premier jour (`/dashboard/premier-jour`, `premier-jour-sugar/`), du gate `resolveOnboardingGate` (ProtectedRoute), des routes dev `/dev/configuring` `/dev/activation` et de l'edge function `day0-activation-setup` — ~9 600 lignes.
+- **Remplacement `agency_id`** (le wizard était le seul chemin qui le posait) : `handle_new_user()` auto-provisionne une **agence solo** au signup pour les rôles agence via `provision_solo_agency()` (SECURITY DEFINER interne, EXECUTE révoqué aux clients, best-effort — un échec ne bloque jamais le signup). Agence renommable dans Réglages › Agence. Backfill des 4 comptes qui étaient piégés dans le wizard.
+- **Migration `20260718130000`** (appliquée live) : trigger + backfill, `onboarding_completed`/`first_day_done` `DEFAULT true` + backfill (cohérence attribut Intercom), `DROP` de `onboarding_checklist` (0 ligne) et `search_agencies` (orphelin).
+- **Conservés et dormants** : `create_agency_and_join`/`join_agency` (chemins légitimes `agency_id`), `day0_payload` + `compute_agent_preferences` + gate d'autonomie WhatsApp (défauts NULL sûrs — jamais d'auto-envoi) + `agent_ai_profiles` ; le futur réglage d'autonomie vivra dans Réglages.
+- **Retombées nettoyées** : événement/attribut Intercom `onboarding_completed`, bloc i18n mort `common.onboarding` (×4 langues, relique du tunnel marketplace), export mort `useContacts.createFromOnboarding`, `swissCantons.ts` orphelin, allowlists ESLint/i18n-scan, e2e coverage, spec `onboarding-gate`. ⚠ Undeploy manuel de `day0-activation-setup` au dashboard Supabase.
+
 #### Morning brief WhatsApp proactif 07h30 (5 juillet 2026 — livré, gated OFF)
 > Inverse le pull (outil `get_daily_brief`) en push quotidien. Sert les objectifs 1 (temps admin) et 3 (closing). 0 LLM, agent-facing (pas de HITL).
 

@@ -396,54 +396,6 @@
       "noIncidents": "No incidents reported in the last 30 days."
     }
   },
-  "onboarding": {
-    "steps": {
-      "profile": "Profil",
-      "contacts": "Kontakte",
-      "done": "Fertig!"
-    },
-    "profile": {
-      "title": "Ihr Profil",
-      "subtitle": "Einige Angaben zur Personalisierung Ihrer Erfahrung.",
-      "firstName": "Vorname",
-      "lastName": "Nachname",
-      "phone": "Telefon",
-      "canton": "Kanton",
-      "language": "Sprache",
-      "saving": "Wird gespeichert...",
-      "continue": "Weiter"
-    },
-    "contacts": {
-      "title": "Ihre Kontakte",
-      "subtitle": "Importieren Sie bestehende Kunden oder erkunden Sie mit Demodaten.",
-      "importCsv": "CSV / vCard-Datei importieren",
-      "importCsvDesc": "Importieren Sie Kontakte aus einer bestehenden Datei.",
-      "addManually": "Manuell hinzufügen",
-      "addManuallyDesc": "1 bis 10 Kontakte schnell erstellen.",
-      "seedDemo": "Mit Demodaten erkunden",
-      "seedDemoDesc": "10 Kontakte, 5 Objekte, 3 Transaktionen - realistische Schweizer Daten.",
-      "seeding": "Wird erstellt...",
-      "skip": "Diesen Schritt überspringen →",
-      "addTitle": "Kontakte hinzufügen",
-      "addSubtitle": "Erstellen Sie einige Kontakte zum Starten.",
-      "addContact": "Kontakt hinzufügen",
-      "back": "← Zurück",
-      "saving": "Wird gespeichert...",
-      "saveAndContinue": "Speichern und weiter",
-      "importedCount": "{{count}} Kontakte importiert",
-      "crmReady": "Ihr CRM ist bereit.",
-      "buyer": "Käufer",
-      "seller": "Verkäufer"
-    },
-    "done": {
-      "title": "Ihr Arbeitsbereich ist bereit",
-      "subtitle": "Ihr Action Board führt Sie täglich - Nachfassen, Matches, Besichtigungen, alles zentralisiert.",
-      "dataEurope": "Daten in Europa",
-      "compliant": "nFADP-konform",
-      "loading": "Wird geladen...",
-      "access": "Zu meinem Dashboard"
-    }
-  },
   "search": {
     "seoTitle": "Immobilien zum Verkauf in der Schweiz",
     "seoDescription": "Entdecken Sie Immobilien zum Verkauf in der Schweiz. Filtern Sie nach Kanton, Preis, Zimmern, Fläche und Eigenschaften.",

@@ -396,54 +396,6 @@
       "noIncidents": "No incidents reported in the last 30 days."
     }
   },
-  "onboarding": {
-    "steps": {
-      "profile": "Profilo",
-      "contacts": "Contatti",
-      "done": "Tutto pronto!"
-    },
-    "profile": {
-      "title": "Il Suo profilo",
-      "subtitle": "Alcune informazioni per personalizzare la Sua esperienza.",
-      "firstName": "Nome",
-      "lastName": "Cognome",
-      "phone": "Telefono",
-      "canton": "Cantone",
-      "language": "Lingua",
-      "saving": "Salvataggio...",
-      "continue": "Continua"
-    },
-    "contacts": {
-      "title": "I Suoi contatti",
-      "subtitle": "Importi i Suoi clienti esistenti o esplori con dati demo.",
-      "importCsv": "Importa file CSV / vCard",
-      "importCsvDesc": "Importi i Suoi contatti da un file esistente.",
-      "addManually": "Aggiungi manualmente",
-      "addManuallyDesc": "Crei da 1 a 10 contatti rapidamente.",
-      "seedDemo": "Esplora con dati demo",
-      "seedDemoDesc": "10 contatti, 5 immobili, 3 transazioni - dati svizzeri realistici.",
-      "seeding": "Creazione in corso...",
-      "skip": "Salta questo passaggio →",
-      "addTitle": "Aggiungere contatti",
-      "addSubtitle": "Crei alcuni contatti per iniziare.",
-      "addContact": "Aggiungi un contatto",
-      "back": "← Indietro",
-      "saving": "Salvataggio...",
-      "saveAndContinue": "Salva e continua",
-      "importedCount": "{{count}} contatti importati",
-      "crmReady": "Il Suo CRM è pronto.",
-      "buyer": "Acquirente",
-      "seller": "Venditore"
-    },
-    "done": {
-      "title": "Il Suo spazio è pronto",
-      "subtitle": "Il Suo Action Board La guida quotidianamente - follow-up, match, visite, tutto centralizzato.",
-      "dataEurope": "Dati in Europa",
-      "compliant": "Conforme nFADP",
-      "loading": "Caricamento...",
-      "access": "Accedi al mio dashboard"
-    }
-  },
   "search": {
     "seoTitle": "Immobili in vendita in Svizzera",
     "seoDescription": "Sfoglia gli immobili in vendita in Svizzera. Filtra per cantone, prezzo, stanze, superficie e caratteristiche.",

@@ -33,14 +33,12 @@ import { useAuth } from '@/hooks/useAuth'
 import type { Contact, ContactType } from '@/types/contact'
 import type { ContactScore } from '@/lib/constants'
 
-export interface CreateContactInput {
+interface CreateContactInput {
   firstName: string
   lastName: string
   email: string
   phone?: string
   type: ContactType
-  entityType?: 'pp' | 'pm'
-  formData?: Record<string, unknown>
 }
 
 interface ContactFilters {
@@ -49,12 +47,9 @@ interface ContactFilters {
   search?: string
 }
 
-/**
- * Liste des contacts de l'agence, filtrable par type/score/recherche.
- * Expose aussi `createFromOnboarding` (insertion depuis le tunnel onboarding).
- */
+/** Liste des contacts de l'agence, filtrable par type/score/recherche. */
 export function useContacts(filters?: ContactFilters) {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
 
   // Build the query — Cache Helpers derives the query key from its shape.
   // SELECT * kept intentionally — Contact type requires all columns and
@@ -76,44 +71,10 @@ export function useContacts(filters?: ContactFilters) {
     { enabled: !!user }
   )
 
-  // INSERT — auto-invalidates any cached query against `contacts`, including
-  // the list above and the per-id useContact() below. Primary key needed so
-  // Cache Helpers knows how to identify the row.
-  const createFromOnboarding = useInsertMutation(
-    supabase.from('contacts'),
-    ['id'],
-    null, // no result selection
-    {
-      onSuccess: () => {
-        // Cache Helpers handles invalidation; nothing extra to do here.
-      },
-    }
-  )
-
-  async function callCreateFromOnboarding(input: CreateContactInput): Promise<Contact> {
-    const row = await createFromOnboarding.mutateAsync([
-      {
-        first_name: input.firstName,
-        last_name: input.lastName,
-        email: input.email,
-        phone: input.phone ?? null,
-        type: input.type,
-        source: 'onboarding',
-        user_id: user?.id ?? null,
-        agency_id: profile?.agency_id ?? null,
-        form_data: (input.formData ?? null) as unknown as import('@/types/database').Json | null,
-      },
-    ])
-    // useInsertMutation returns an array (because insert can accept many);
-    // we only inserted one row.
-    return (Array.isArray(row) ? row[0] : row) as unknown as Contact
-  }
 
   return {
     contacts: (contactsQuery.data ?? []) as unknown as Contact[],
     isLoading: contactsQuery.isLoading,
-    createFromOnboarding: callCreateFromOnboarding,
-    isCreating: createFromOnboarding.isPending,
   }
 }
 
@@ -140,7 +101,7 @@ export function useCreateContact() {
 
   return {
     mutateAsync: async (
-      input: Omit<CreateContactInput, 'entityType' | 'formData'> & {
+      input: CreateContactInput & {
         agency_id?: string
         source?: string
         score?: ContactScore

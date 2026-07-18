@@ -378,7 +378,6 @@ async function articlesPublish() {
 const CDA_DEFS = [
   { name: 'role', model: 'contact', data_type: 'string', description: "Rôle de l'agent MEGGA (agent, admin, …)" },
   { name: 'canton', model: 'contact', data_type: 'string', description: "Canton suisse de l'agent" },
-  { name: 'onboarding_completed', model: 'contact', data_type: 'boolean', description: "L'agent a terminé l'onboarding MEGGA" },
   { name: 'stripe_customer_id', model: 'company', data_type: 'string', description: "ID client Stripe de l'agence (facturation)" },
 ]
 

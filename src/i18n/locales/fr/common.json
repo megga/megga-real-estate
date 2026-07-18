@@ -402,54 +402,6 @@
       "noIncidents": "Aucun incident signalé ces 30 derniers jours."
     }
   },
-  "onboarding": {
-    "steps": {
-      "profile": "Profil",
-      "contacts": "Contacts",
-      "done": "C'est prêt !"
-    },
-    "profile": {
-      "title": "Votre profil",
-      "subtitle": "Quelques informations pour personnaliser votre expérience.",
-      "firstName": "Prénom",
-      "lastName": "Nom",
-      "phone": "Téléphone",
-      "canton": "Canton",
-      "language": "Langue",
-      "saving": "Enregistrement...",
-      "continue": "Continuer"
-    },
-    "contacts": {
-      "title": "Vos contacts",
-      "subtitle": "Importez vos clients existants ou explorez avec des données de démo.",
-      "importCsv": "Importer un fichier CSV / vCard",
-      "importCsvDesc": "Importez vos contacts depuis un fichier existant.",
-      "addManually": "Ajouter manuellement",
-      "addManuallyDesc": "Créez 1 à 10 contacts rapidement.",
-      "seedDemo": "Explorer avec des données de démo",
-      "seedDemoDesc": "10 contacts, 5 biens, 3 transactions - données réalistes suisses.",
-      "seeding": "Création en cours...",
-      "skip": "Passer cette étape →",
-      "addTitle": "Ajouter des contacts",
-      "addSubtitle": "Créez quelques contacts pour démarrer.",
-      "addContact": "Ajouter un contact",
-      "back": "← Retour",
-      "saving": "Enregistrement...",
-      "saveAndContinue": "Enregistrer et continuer",
-      "importedCount": "{{count}} contacts importés",
-      "crmReady": "Votre CRM est prêt.",
-      "buyer": "Acheteur",
-      "seller": "Vendeur"
-    },
-    "done": {
-      "title": "Votre espace est prêt",
-      "subtitle": "Votre Action Board vous guide au quotidien - relances, matchs, visites, tout est centralisé.",
-      "dataEurope": "Données en Europe",
-      "compliant": "Conforme nFADP",
-      "loading": "Chargement...",
-      "access": "Accéder à mon dashboard"
-    }
-  },
   "search": {
     "seoTitle": "Biens à vendre en Suisse",
     "seoDescription": "Parcourez les biens à vendre en Suisse. Filtrez par canton, prix, pièces, surface et caractéristiques.",

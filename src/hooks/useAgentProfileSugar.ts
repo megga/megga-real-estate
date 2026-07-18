@@ -219,9 +219,9 @@ export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentP
         if (aErr) throw aErr
       }
       // Note : si pas de record agent_profiles, on ne le crée pas ici (besoin
-      // d'un slug unique). À gérer lors de l'onboarding ou via un Edge Function
-      // dédié. C'est OK : l'agent peut sauvegarder profiles, le reste reviendra
-      // en sync quand son agent_profile sera créé.
+      // d'un slug unique). À gérer via un Edge Function dédié. C'est OK :
+      // l'agent peut sauvegarder profiles, le reste reviendra en sync quand
+      // son agent_profile sera créé.
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-profile-sugar', profileId] })

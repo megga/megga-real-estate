@@ -402,54 +402,6 @@
       "noIncidents": "No incidents reported in the last 30 days."
     }
   },
-  "onboarding": {
-    "steps": {
-      "profile": "Profile",
-      "contacts": "Contacts",
-      "done": "All set!"
-    },
-    "profile": {
-      "title": "Your profile",
-      "subtitle": "A few details to personalise your experience.",
-      "firstName": "First name",
-      "lastName": "Last name",
-      "phone": "Phone",
-      "canton": "Canton",
-      "language": "Language",
-      "saving": "Saving...",
-      "continue": "Continue"
-    },
-    "contacts": {
-      "title": "Your contacts",
-      "subtitle": "Import your existing clients or explore with demo data.",
-      "importCsv": "Import a CSV / vCard file",
-      "importCsvDesc": "Import your contacts from an existing file.",
-      "addManually": "Add manually",
-      "addManuallyDesc": "Create 1 to 10 contacts quickly.",
-      "seedDemo": "Explore with demo data",
-      "seedDemoDesc": "10 contacts, 5 properties, 3 transactions - realistic Swiss data.",
-      "seeding": "Creating...",
-      "skip": "Skip this step →",
-      "addTitle": "Add contacts",
-      "addSubtitle": "Create a few contacts to get started.",
-      "addContact": "Add a contact",
-      "back": "← Back",
-      "saving": "Saving...",
-      "saveAndContinue": "Save and continue",
-      "importedCount": "{{count}} contacts imported",
-      "crmReady": "Your CRM is ready.",
-      "buyer": "Buyer",
-      "seller": "Seller"
-    },
-    "done": {
-      "title": "Your workspace is ready",
-      "subtitle": "Your Action Board guides you daily - follow-ups, matches, visits, everything is centralised.",
-      "dataEurope": "Data in Europe",
-      "compliant": "nFADP compliant",
-      "loading": "Loading...",
-      "access": "Access my dashboard"
-    }
-  },
   "search": {
     "seoTitle": "Properties for sale in Switzerland",
     "seoDescription": "Browse properties for sale in Switzerland. Filter by canton, price, rooms, surface and features.",
