@@ -71,9 +71,27 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
 
   // Mot de passe explicite — capture la valeur après marker.
   // Cible "mot de passe: xxx", "password = xxx", "mdp xxx", "pwd: xxx".
+  //
+  // L'alternative `passe` NUE a été retirée. En français « passe » est d'abord un verbe, et le
+  // motif mordait sur de la prose courante : « ce qui se passe : on attend le notaire » devenait
+  // « ce qui se [REDACTED:PASSWORD] attend le notaire », la capture (\S+) avalant en prime le mot
+  // suivant. Ce catalogue étant partagé par TOUS les sites de redaction, le texte arrivait mutilé
+  // au LLM (brouillon d'email, résumé) et donc sous les yeux de l'agent.
+  //
+  // Ce n'était pas qu'un défaut cosmétique. PASSWORD tourne AVANT CARD et DOB, et le mot avalé
+  // FRAGMENTAIT le secret suivant, désarmant le détecteur d'après. Mesuré : « ce qui se passe :
+  // 4111 1111 1111 1111 » laissait 12 chiffres de carte EN CLAIR (CARD exige 13-19 chiffres, donc
+  // ne matchait plus le reste) ; « ce qui se passe : Né le 12.03.1985 » laissait la date de
+  // naissance, son ancre « Né » ayant été mangée. Le retrait ferme ces deux fuites — l'alternative
+  // était un danger, pas un filet.
+  //
+  // Perte assumée : « passe : <valeur> » sans « mot de » n'est plus couvert — y compris au sens
+  // suisse de clé/code d'accès (« le passe : 4521 »), qui n'est pas un identifiant LBA/LPD et sort
+  // du périmètre. Les tournures réelles restent couvertes, et l'ancrage explicite aligne PASSWORD
+  // sur PASSPORT et DOB (seul homographe verbal du catalogue).
   {
     kind: 'PASSWORD',
-    pattern: /\b(?:password|mot[\s-]?de[\s-]?passe|mdp|pwd|passe)\s*[:=]\s*(\S+)/gi,
+    pattern: /\b(?:password|mot[\s-]?de[\s-]?passe|mdp|pwd)\s*[:=]\s*(\S+)/gi,
   },
 
   // Clés API typiques — préfixes connus + 16-64 chars alphanumériques.
