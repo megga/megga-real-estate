@@ -1,0 +1,107 @@
+# Purge manuelle d'edge functions ORPHELINES (déployées mais absentes du dépôt).
+#
+# Pourquoi un workflow : le jeton de management (SUPABASE_ACCESS_TOKEN) ne vit
+# que comme secret GitHub, et le MCP Supabase n'expose aucune suppression. Sans
+# ça, la seule voie est le clic manuel au dashboard — non tracé, non reproductible.
+#
+# Les orphelines s'accumulent parce que `deploy.yml` ne fait que déployer ce
+# qu'il trouve dans supabase/functions/ : retirer une fonction du dépôt ne la
+# retire PAS de la plateforme. Elle reste en ligne, souvent en verify_jwt=false,
+# donc joignable et non surveillée — d'où ce nettoyage.
+#
+# ⚠ Déclenchement MANUEL uniquement (workflow_dispatch), jamais sur push.
+name: Purge orphan edge functions (manuel)
+
+on:
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: 'Slugs à supprimer, séparés par des virgules (ex: whatsapp-send,magic-link-regenerate)'
+        required: true
+        type: string
+      confirm:
+        description: 'Taper SUPPRIMER (en majuscules) pour confirmer'
+        required: true
+        type: string
+
+# Fonctions déployées HORS dépôt de façon INTENTIONNELLE — ne jamais purger.
+env:
+  PROJECT_REF: eayczugyrvmtqnnmvjod
+  PROTECTED: 'sync-service-key'
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Garde-fou — confirmation explicite
+        run: |
+          if [ "${{ inputs.confirm }}" != "SUPPRIMER" ]; then
+            echo "::error::Confirmation absente ou incorrecte (attendu : SUPPRIMER). Rien n'a été supprimé."
+            exit 1
+          fi
+
+      # Deux refus, dans cet ordre :
+      #  1. slug protégé (déploiement manuel voulu, ex. self-heal de la clé service-role) ;
+      #  2. slug ENCORE VERSIONNÉ dans supabase/functions/ → ce n'est pas une orpheline,
+      #     et `deploy.yml` la redéploierait au prochain merge. Supprimer serait un
+      #     aller-retour trompeur : on veut que la suppression parte du dépôt.
+      - name: Garde-fou — slugs protégés et fonctions encore versionnées
+        run: |
+          set -euo pipefail
+          IFS=',' read -ra SLUGS <<< "${{ inputs.slugs }}"
+          FAIL=0
+          for raw in "${SLUGS[@]}"; do
+            slug=$(echo "$raw" | tr -d '[:space:]')
+            [ -z "$slug" ] && continue
+            for p in ${PROTECTED}; do
+              if [ "$slug" = "$p" ]; then
+                echo "::error::'$slug' est PROTÉGÉE (déployée hors dépôt volontairement). Refus."
+                FAIL=1
+              fi
+            done
+            if [ -f "supabase/functions/$slug/index.ts" ]; then
+              echo "::error::'$slug' existe encore dans supabase/functions/ — ce n'est pas une orpheline. Retire-la d'abord du dépôt."
+              FAIL=1
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Supprimer les fonctions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set +e
+          IFS=',' read -ra SLUGS <<< "${{ inputs.slugs }}"
+          OK=0; KO=0; KO_LIST=""
+          for raw in "${SLUGS[@]}"; do
+            slug=$(echo "$raw" | tr -d '[:space:]')
+            [ -z "$slug" ] && continue
+            echo "::group::Suppression de $slug"
+            supabase functions delete "$slug" --project-ref "$PROJECT_REF" --yes
+            RC=$?
+            echo "::endgroup::"
+            if [ $RC -eq 0 ]; then
+              OK=$((OK + 1)); echo "supprimée : $slug"
+            else
+              KO=$((KO + 1)); KO_LIST="$KO_LIST $slug"
+              echo "::warning::Échec sur $slug (rc=$RC) — on continue"
+            fi
+          done
+          echo "----"
+          echo "Supprimées : $OK · Échecs : $KO$KO_LIST"
+          [ "$KO" -eq 0 ] || exit 1
+
+      - name: Inventaire restant
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Fonctions encore déployées :"
+          supabase functions list --project-ref "$PROJECT_REF"
