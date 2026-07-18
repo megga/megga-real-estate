@@ -61,7 +61,7 @@ avoir livré une feature ou changé l'architecture :
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
 CRM transactionnel agent + pipeline LAB/KYC + portail vendeur + copilote IA + super-admin.
 Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~90k
-`market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, ~69 edge functions,
+`market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 67 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
 humaine obligatoire).
 
@@ -77,9 +77,12 @@ fragmenté.
 Frontend   React 18 / TS / Vite / Tailwind · React Router v6 · React Query (+ supabase-cache-helpers)
            i18n react-i18next (FR/DE/EN/IT) · Mapbox GL (lazy) · Recharts · Sentry · PostHog
 Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 15, Auth, Storage,
-           Realtime, pgvector, pg_cron, pg_net · ~69 Edge Functions (Deno)
-IA         Claude (Sonnet/Haiku, côté agent) + DeepSeek V3 (côté public + fallback)
-           via abstraction _shared/ai-provider.ts (tracking coût → ai_usage_logs)
+           Realtime, pgvector, pg_cron, pg_net · 67 Edge Functions (Deno)
+IA         Texte = DeepSeek (deepseek-chat) PARTOUT · Vision/OCR/PDF = Gemini
+           (_shared/vision.ts, photo-vision.ts) · AUCUN Claude/Anthropic au runtime
+           (retiré PR #829 ; 0 appel api.anthropic.com). Abstraction
+           _shared/ai-provider.ts = callDeepSeek + callPublicAI (tracking coût
+           → ai_usage_logs) ; ai-copilot et whatsapp-agent appellent DeepSeek en direct.
 Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · Google AI (staging)
            Deepgram (STT) · Cloudflare R2 (photos) · Flatfox + RealAdvisor (sync marché entrant)
            immobilier.ch (syndication IDX 3.01 SORTANTE, juin 2026 — cf §5 + brain megga/syndication-idx)
@@ -135,7 +138,12 @@ en prod). Remplacement : `handle_new_user()` auto-provisionne une **agence solo*
 rôles agence via `provision_solo_agency` (SECURITY DEFINER interne, best-effort — n'échoue jamais le
 signup), renommable dans Réglages › Agence. Migration `20260718130000`. Conservés et dormants :
 `day0_payload` / `compute_agent_preferences` / gate d'autonomie WhatsApp (défauts NULL sûrs) et
-`agent_ai_profiles` ; le futur réglage d'autonomie vivra dans Réglages.
+`agent_ai_profiles` ; le futur réglage d'autonomie vivra dans Réglages. `day0-activation-setup`
+**undeployée le 18 juil.** (cf. asymétrie de déploiement edge en fin de carte). Anciennes URLs
+`/dashboard/onboarding` et `/dashboard/premier-jour` → redirect `/dashboard`. ⚠ L'auto-provision
+n'est **pas couverte par la CI** (`onboarding-agency-rpc.spec` pose le profil à la main et
+court-circuite le trigger) : toute modif de `handle_new_user` se vérifie à la main (insert
+`auth.users` jetable → contrôle `agency_id` → suppression).
 **Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/sentry-test`.
 
 ### Composants (`src/components/`)
@@ -258,7 +266,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
 
-**`_shared/`** : `ai-provider.ts` (`callClaude` / `callDeepSeek` / `callPublicAI`=DeepSeek seul — pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `photo-vision.ts` (Claude Vision) · `pii-redaction.ts` (scrub AVS/IBAN/passeport avant IA) · `require-agent-auth.ts`.
+**`_shared/`** : `ai-provider.ts` (`callDeepSeek` / `callPublicAI`=DeepSeek seul — **plus de `callClaude`** depuis PR #829, pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `vision.ts` + `photo-vision.ts` (**Gemini** `gemini-2.5-flash-lite` — DeepSeek n'a pas de vision) · `pii-redaction.ts` (scrub AVS/IBAN/passeport avant IA) · `require-agent-auth.ts`.
 
 | Domaine | Functions |
 |---|---|
@@ -270,7 +278,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Paiements (Stripe)** | `stripe-checkout` · `stripe-portal` · `stripe-webhook` (signature) · `admin-stripe-metrics` (MRR/ARR/churn) |
 | **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (cron) |
 | **Calendrier** | `google-calendar-sync` · `outlook-calendar-sync` (OAuth) |
-| **Marketplace / scraping** | `flatfox-sync` (cron) · `realadvisor-sync` (cron) · `market-scraper` (worker dormant) — `external-matching` retirée (élagage juil. 2026, l'UI lit `external_listings` en direct) |
+| **Marketplace / scraping** | `flatfox-sync` (cron) · `realadvisor-sync` (cron) · `market-scraper` (worker dormant) — `external-matching` retirée du dépôt (élagage juil. 2026, l'UI lit `external_listings` en direct) **et undeployée le 18 juil. 2026** (elle était restée en ligne 15 jours ; `useExternalMatching.ts` ne garde plus que le type `ExternalListing`) |
 | **Syndication IDX (sortant)** | `idx-feed` (GET, pull token, CSV IDX 3.01) · `idx-syndicate` (POST push FTP, cron `idx-syndicate-daily` 05:30 + on-demand WhatsApp) — cœur `_shared/idx-feed-core.ts` / `idx-mapper.ts` / `idx-ftp.ts` ; cf. brain `megga/syndication-idx`. **⛔ Go-live BLOQUÉ** sur l'obtention des accès FTP d'immobilier.ch (host/user/password) — blocant **externe** de même nature que la **vérification entreprise Meta** pour le WhatsApp public : tout est construit/déployé/testé, on attend un tiers. |
 | **Matching / scoring** | `matching-engine` · `search-alert` (cron) — _score de contact = RPC `calculate_contact_scores` + cron nocturne ; score de bien = RPC `calculate_property_scores` + cron nocturne (santé/chaleur d'un bien interne, 4 axes, PR #654), surfacé dans Focus (famille « bien à pousser », #656) + galerie Mes biens (pastille estimation, #657) ; l'edge `score-engine` a été supprimée (PR #652) ; **référence de loyer marché** = MV `market_rent_stats` + module pur `rent-reference.ts` → axe bonus `pricePosition` du matching en location (position du loyer vs marché, PR #673/#674) ; cf `megga/contact-score`, `megga/property-score`, `megga/market-rent-reference` ; **NBA par contact** = RPC dual-mode `contact_next_action` (cœur service-role, le param = le scope) + wrapper JWT `get_contact_next_action` = « prochaine meilleure action » déterministe (7 règles à priorité absolue, 0 LLM dans le tri, `kyc_note` jamais l'action) partagée par l'agent WhatsApp et le copilote via `get_contact_brief` / `prepare_meeting` (champ `next_action_estimee`, PR #834) ; trigger pré-requis `touch_transactions_updated_at` ; cf `megga/contact-nba`_ |
 | **Documents / media** | `extract-lead` · `extract-property-pdf` · `extract-property-url` · `photo-processor` (R2) · `backfill-cf-images` · `c2pa-sign` / `c2pa-verify` |
@@ -307,7 +315,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ## 6bis · Agent WhatsApp (feature phare #2) 📱
 
-Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEGGA agir depuis la conversation (mieux qu'une app). **État : copilote agentique complet en production** (plus un simple miroir entrant). **5 Edge Functions** : `whatsapp-webhook` (inbound + appairage + confirmations/undo + envoi post-« oui »), `whatsapp-agent` (cerveau boucle function-calling DeepSeek, **36 outils**, HITL), `whatsapp-agent-async` (outils KYC lents, file), `whatsapp-process` (cron minute : média→R2, transcription, insights, avis LPD, purges), `whatsapp-morning-brief` (push proactif quotidien, cf. bullet dédié). L'ancienne `whatsapp-send` (envoi manuel depuis la fiche) a été retirée (élagage juil. 2026) — l'outbound vit dans `_shared/whatsapp-gateway`, appelé inline par les fns ci-dessus. `whatsapp-followup-draft` (brouillon T1 à l'accept d'un suivi) a été retirée aussi (data-gated, 0 usage ; builders de prompt en réserve dans `_shared/whatsapp-followup-draft.ts`, régénérable depuis #842) ; l'accept/écarte des suivis vit désormais **directement sur les puces du cockpit** (desktop + mobile, `useAgencyFollowupActions` → RPC `accept_followup_suggestion`), la carte fiche étant tombée à la refonte #823. Tiers d'autonomie : `read`/`auto` exécutés, `confirm` = « oui » requis (socle légal client jamais auto), `slow_async` = file.
+Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEGGA agir depuis la conversation (mieux qu'une app). **État : copilote agentique complet en production** (plus un simple miroir entrant). **5 Edge Functions** : `whatsapp-webhook` (inbound + appairage + confirmations/undo + envoi post-« oui »), `whatsapp-agent` (cerveau boucle function-calling DeepSeek, **36 outils**, HITL), `whatsapp-agent-async` (outils KYC lents, file), `whatsapp-process` (cron minute : média→R2, transcription, insights, avis LPD, purges), `whatsapp-morning-brief` (push proactif quotidien, cf. bullet dédié). L'ancienne `whatsapp-send` (envoi manuel depuis la fiche) a été retirée (élagage juil. 2026, **undeployée le 18 juil.**) — l'outbound vit dans `_shared/whatsapp-gateway`, appelé inline par les fns ci-dessus. `whatsapp-followup-draft` (brouillon T1 à l'accept d'un suivi) a été retirée aussi (data-gated, 0 usage, **undeployée le 18 juil.** ; builders de prompt en réserve dans `_shared/whatsapp-followup-draft.ts`, régénérable depuis #842) ; l'accept/écarte des suivis vit désormais **directement sur les puces du cockpit** (desktop + mobile, `useAgencyFollowupActions` → RPC `accept_followup_suggestion`), la carte fiche étant tombée à la refonte #823. Tiers d'autonomie : `read`/`auto` exécutés, `confirm` = « oui » requis (socle légal client jamais auto), `slow_async` = file.
 
 - **Archi** : abstraction `_shared/whatsapp-gateway.ts` (`WhatsAppProvider`). **Provider prod = Meta Cloud API** (`MetaProvider`) ; `OpenWAProvider` = prototype legacy **dormant** (encore branché + défaut de `getProvider()` → foot-gun, pas du code mort). Webhook signé **HMAC-SHA256** (`verifyHmac` timing-safe), provider détecté par header (`x-hub-signature-256` Meta / `x-openwa-signature`).
 - **Inbound** (`whatsapp-webhook`) : message → vérif HMAC (401 sinon) → parse gateway → map `wa_from` → `contacts.phone` (9 derniers chiffres) → INSERT idempotent `whatsapp_messages` (`UNIQUE(provider, provider_message_id)`) → `activity_events` (best-effort) → 200.
@@ -338,6 +346,20 @@ npm run lint         # eslint
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
 ```
 CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy.
+
+**⚠ Asymétrie déploiement edge (source de dette)** : `deploy.yml` ne fait que **déployer** ce qu'il
+trouve dans `supabase/functions/` — rien ne supprime. Retirer une fonction du dépôt ne la retire donc
+**pas** de Supabase : elle reste en ligne, souvent en `verify_jwt=false`, joignable et non surveillée.
+Purge = workflow **manuel** `.github/workflows/purge-orphan-functions.yml` (PR #877), le MCP Supabase
+n'exposant aucune suppression et le jeton de management n'existant que comme secret GitHub :
+```
+gh workflow run purge-orphan-functions.yml -f slugs="fn-a,fn-b" -f confirm=SUPPRIMER
+```
+3 garde-fous : confirmation littérale · liste protégée · refus d'un slug encore versionné (il serait
+redéployé au merge suivant — la suppression doit partir du dépôt). Inventaire réconcilié le 18 juil.
+2026 : **68 déployées ↔ 67 au dépôt**, seul écart volontaire = `sync-service-key` (déployée hors dépôt,
+self-heal de la clé service-role, PROTÉGÉE). Contrôle : diff `supabase functions list` ↔
+`git ls-tree -d --name-only origin/main:supabase/functions`.
 Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA — accès restreint"`, pré-lancement).
 
 **Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm-sugar/crm-sugar-v3/crm-sugar-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
