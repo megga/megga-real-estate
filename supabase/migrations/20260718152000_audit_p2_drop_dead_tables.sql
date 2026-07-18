@@ -11,12 +11,17 @@
 -- par crm_offers), favorites (pointait sur listings).
 
 -- Chaîne search-alerts (alertes marketplace) : cron + fonction SQL.
--- Guard pg_cron : planifié en prod, absent en local/CI.
+-- Guard sur pg_extension (pattern du repo) et PAS sur le schéma : en local/CI
+-- le schéma `cron` existe SANS la table cron.job, et plpgsql planifie toute
+-- l'expression d'un IF — référencer cron.job dans la même condition casse
+-- même si le premier test est faux. Ici la référence vit dans un IF imbriqué,
+-- jamais planifié quand l'extension est absente.
 do $$
 begin
-  if exists (select 1 from pg_namespace where nspname = 'cron')
-     and exists (select 1 from cron.job where jobname = 'search-alerts-30min') then
-    perform cron.unschedule('search-alerts-30min');
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    if exists (select 1 from cron.job where jobname = 'search-alerts-30min') then
+      perform cron.unschedule('search-alerts-30min');
+    end if;
   end if;
 end $$;
 drop function if exists public.run_search_alerts();
