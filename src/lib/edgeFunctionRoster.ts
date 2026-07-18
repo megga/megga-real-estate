@@ -24,7 +24,6 @@ export const EDGE_FUNCTION_ROSTER = [
   'buyer-reception-react',
   'c2pa-sign',
   'c2pa-verify',
-  'day0-activation-setup',
   'delete-account',
   'detect-new-device',
   'esign-webhook',

@@ -98,7 +98,6 @@ export function showIntercomArticle(articleId: string) {
  *  Tout nouvel event passe par ici : évite les typos et garde le ciblage cohérent.
  *  ⚠️ Un event custom ne devient ciblable dans Intercom qu'après réception d'un VRAI user en prod. */
 export const INTERCOM_EVENTS = {
-  ONBOARDING_COMPLETED: 'onboarding_completed',
   PROFILE_COMPLETED: 'profile_completed',
   LEAD_IMPORTED: 'lead_imported',
   FIRST_CONTACTS_IMPORTED: 'first_contacts_imported',

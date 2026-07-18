@@ -7,8 +7,8 @@
 //   On ne veut PAS bloquer une PR là-dessus ici. Ce script n'échoue QUE sur la
 //   règle `i18next/no-literal-string` au niveau ERROR, et uniquement sur les
 //   familles déjà migrées + vérifiées (vagues i18n 1→3). Les surfaces différées
-//   (onboarding, premier-jour, réseau « en construction », mandat vendeur) sont
-//   en WARN dans eslint.config.js → ignorées ici.
+//   (réseau « en construction », mandat vendeur) sont en WARN dans
+//   eslint.config.js → ignorées ici.
 //
 // ⚠ Garder cette liste synchronisée avec le bloc « verrouillées » d'eslint.config.js.
 import { ESLint } from 'eslint'

@@ -2682,41 +2682,6 @@ export type Database = {
           },
         ]
       }
-      onboarding_checklist: {
-        Row: {
-          agency_id: string | null
-          completed: boolean | null
-          completed_at: string | null
-          id: string
-          step_key: string
-          user_id: string
-        }
-        Insert: {
-          agency_id?: string | null
-          completed?: boolean | null
-          completed_at?: string | null
-          id?: string
-          step_key: string
-          user_id: string
-        }
-        Update: {
-          agency_id?: string | null
-          completed?: boolean | null
-          completed_at?: string | null
-          id?: string
-          step_key?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "onboarding_checklist_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       outlook_calendar_sync: {
         Row: {
           created_at: string | null
@@ -5895,16 +5860,9 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string }
         Returns: undefined
       }
-      search_agencies: {
-        Args: { lim?: number; q: string }
-        Returns: {
-          canton: string
-          city: string
-          id: string
-          logo_url: string
-          member_count: number
-          name: string
-        }[]
+      provision_solo_agency: {
+        Args: { p_display_name: string; p_user: string }
+        Returns: string
       }
       search_directory: {
         Args: {

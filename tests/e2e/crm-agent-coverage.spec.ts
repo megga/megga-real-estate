@@ -40,8 +40,6 @@ const CRM_AGENT_ROUTES: RouteSpec[] = [
   { path: '/dashboard/listings/new', label: 'Listings > Nouveau bien' },
   { path: '/dashboard/import-lead', label: 'Import lead IA' },
   { path: '/dashboard/visits/nouveau', label: 'Visites > Nouvelle' },
-  { path: '/dashboard/onboarding', label: 'Onboarding' },
-  { path: '/dashboard/premier-jour', label: 'Premier jour' },
 ]
 
 test.describe('CRM agent — parametric route coverage', () => {

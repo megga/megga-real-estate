@@ -136,17 +136,13 @@ const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
 const MandateSignDemoPage = lazy(() => import('@/pages/dev/MandateSignDemoPage'))
 const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
-const D0ConfiguringDemoPage = lazy(() => import('@/pages/dev/D0ConfiguringDemoPage'))
 const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
-const D0ActivationDemoPage = lazy(() => import('@/pages/dev/D0ActivationDemoPage'))
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
 // MEGGA AI — panneau docké monté AU-DESSUS des Routes keyées (key={pathname})
 // pour survivre au remount de navigation : le panneau + la conversation
 // persistent d'une page à l'autre (suivi de contexte, chantier 5).
 const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPanel'))
 const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
-const OnboardingWizardPage = lazy(() => import('@/pages/agent/OnboardingWizardPage'))
-const PremierJourPage = lazy(() => import('@/pages/agent/PremierJourPage'))
 
 // Lazy-loaded seller portal — page unique « Votre vente » (lecture seule, lien personnel).
 // PortalDevWrapper (mock) et PortalGateway (token) rendent désormais VotreVentePage.
@@ -461,8 +457,6 @@ function AnimatedRoutes() {
               {/* Atelier Matching — démo QA visuelle (mocks handoff, zéro écriture) */}
               <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
-              <Route path="/dev/configuring" element={<D0ConfiguringDemoPage />} />
-              <Route path="/dev/activation" element={<D0ActivationDemoPage />} />
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
 
               {/* Seller portal — accès tokenisé (production), page unique « Votre vente ».
@@ -477,27 +471,6 @@ function AnimatedRoutes() {
               <Route path="/portail/:token/messages" element={<PortalTokenRedirect />} />
               <Route path="/portail/:token/analyse" element={<PortalTokenRedirect />} />
 
-              {/* Onboarding wizard (protected, no sidebar) */}
-              <Route
-                path="/dashboard/onboarding"
-                element={
-                  <ProtectedRoute skipOnboardingCheck>
-                    <OnboardingWizardPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Premier jour — calibrage IA + atterrissage Aujourd'hui (one-shot)
-                  Se joue immédiatement après l'onboarding, avant la première
-                  session CRM. Voir handoff-premier-jour. */}
-              <Route
-                path="/dashboard/premier-jour"
-                element={
-                  <ProtectedRoute skipOnboardingCheck>
-                    <PremierJourPage />
-                  </ProtectedRoute>
-                }
-              />
 
               {/* Sprint 4.4 — Export PDF dossier KYC (protected, no layout — print-friendly) */}
               <Route
@@ -572,6 +545,9 @@ function AnimatedRoutes() {
                 {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
                 <Route path="network" element={<Navigate to="/dashboard" replace />} />
                 <Route path="reseau" element={<Navigate to="/dashboard" replace />} />
+                {/* Onboarding post-login supprimé (juil. 2026) — anciens liens/onglets ouverts → dashboard */}
+                <Route path="onboarding" element={<Navigate to="/dashboard" replace />} />
+                <Route path="premier-jour" element={<Navigate to="/dashboard" replace />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
                 <Route path="audit" element={<AuditSugarPage />} />
                 <Route path="julien" element={<JulienSugarV2Page />} />
