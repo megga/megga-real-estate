@@ -48,6 +48,7 @@ import {
   prepareDeleteContact, executeDeleteContact,
   type ActionCtx, type Prepared,
 } from '../_shared/whatsapp-actions.ts'
+import { fetchHotContactBlock } from '../_shared/contact-memory.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -643,11 +644,12 @@ async function buildSystemPrompt(params: {
   if (language !== 'fr') systemPrompt += `\n\nLangue de réponse : ${language}`
 
   // Personnalisation (Day 0 + style appris + voix + corrections). Best-effort.
+  let hotBlock = ''
   try {
     const sb = auth.supabase
     const { data: aiProfile } = await sb
       .from('agent_ai_profiles')
-      .select('brief, learned_style')
+      .select('brief, learned_style, hot_contact_id, hot_contact_at')
       .eq('agent_id', auth.user.id)
       .maybeSingle()
     const addendum = (aiProfile?.brief as { system_addendum?: string } | null)?.system_addendum
@@ -676,6 +678,11 @@ async function buildSystemPrompt(params: {
     const corrections = (await fetchCorrectionExamples(sb, auth.user.id))
       .map((c) => ({ draft: redactPII(c.draft).redactedText, final: redactPII(c.final).redactedText }))
     systemPrompt += formatCorrectionExamples(corrections, voiceLang)
+
+    // Mémoire cross-canal : bloc « contact chaud » (<6h, posé par les exécuteurs des DEUX
+    // canaux — un contact travaillé sur WhatsApp resurfaça ici). VOLATIL → appendu juste
+    // avant l'horodatage, jamais dans les blocs stables (cache DeepSeek). Déjà rédigé + borné.
+    hotBlock = await fetchHotContactBlock(sb, auth.profile.agency_id, aiProfile ?? null, language === 'en' ? 'en' : 'fr')
   } catch (_) {
     // personnalisation optionnelle — ne jamais bloquer la réponse IA
   }
@@ -683,6 +690,7 @@ async function buildSystemPrompt(params: {
   // Horodatage volatil en DERNIER (voir note CACHE CONTEXTE plus haut) : tout le préfixe
   // ci-dessus (système + style + outils + personnalisation) reste stable d'une minute à
   // l'autre ; seul ce court suffixe daté change, donc le cache n'est invalidé que là.
+  systemPrompt += hotBlock
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   systemPrompt += `\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.`
 
