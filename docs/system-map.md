@@ -128,18 +128,15 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 
 **🟩 Mes biens** (`/dashboard/listings`, design final juil. 2026, **PR #871** — port du handoff Claude Design Sugar Pure). Pager vertical 2 pages dans un bento (mécanique ContactsPager), code `src/components/crm-sugar/biens/pager/`, entrée `BiensSugarV2Page.tsx`. **Page 0 Galerie** épurée (recherche · statut · tri · Galerie/Liste ; l'ex-bandeau KPI à sparklines illustratives et Export sont retirés). **Page 1 « À suivre »** = file d'actions volume-adaptative (héro / bandeau dense) sur données **réelles** : mandats à renouveler (`mandate_expires_at` ≤ 60 j, adapter enrichi) + brouillons ; bucket diffusion Immobilier.ch **dormant** (gate `idxEnabled`, go-live FTP bloqué). Renouveler → `useUpdateProperty` + audit ; Supprimer → **RPC `soft_delete_property`** (cf. §RLS) ; wizard « Créer un bien » **embarqué** dans le bento ; « Finir/Compléter » un brouillon → `/:id/edit` (édition en place). First-run = cover exacte maquette (`public/biens/`, fond `#0A0B0D` permanent, texte HTML i18n par-dessus). ⚠ Piège connu : le wizard embarqué suit `data-theme` alors que la page suit `megga.sugar.dark` → peut s'ouvrir clair sur bento sombre (unification différée). Cerveau : `megga/biens-pager`.
 
-**Onboarding** : `/dashboard/onboarding` (wizard) → `/dashboard/premier-jour` (calibrage IA one-shot).
-Flux `PremierJourShell` : `welcome → q0..q3 → synthesis → configuring → today`. La phase `configuring`
-rend **`D0Activation`** (écran d'activation IA « atterrissage » grand format, épuré : anneau Meta +
-phrases pilotées par les réponses + état succès + toggle thème animé ; pas de particules/progress/ETA) ;
-remplace l'ancien `D0Configuring`. Animations **Framer Motion** (anneau Meta rotate + `pathLength`,
-anneau de fin spring, défilement texte `AnimatePresence`). Roadmap 4 phases : 1) classic ✅ →
-2) Supabase (durée = init réel) ✅ → 3) Framer Motion ✅ → 4) setup IA réel en arrière-plan ✅.
-**Provisioning réel (Phase 2+4)** : edge function `day0-activation-setup` (prop `onProvision`) → persiste
-`day0_payload`, dérive `compute_agent_preferences` (déterministe, déjà consommé par les engines), génère
-un brief LLM de personnalisation (`callClaude`), upsert `agent_ai_profiles` (RLS). L'écran ne passe à
-l'état succès qu'une fois le provisioning résolu (durée d'affichage min 14s, cap 22s, fallback gracieux).
-**Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/mfa`, `/dev/sentry-test`, `/dev/configuring`, `/dev/activation`.
+**Onboarding : SUPPRIMÉ (18 juil. 2026).** L'ancien wizard (`/dashboard/onboarding`, onboarding-sugar)
++ Premier jour (`/dashboard/premier-jour`, calibrage D0) + gate `resolveOnboardingGate` + edge fn
+`day0-activation-setup` ont été retirés (~9 600 lignes ; le calibrage n'avait jamais produit de donnée
+en prod). Remplacement : `handle_new_user()` auto-provisionne une **agence solo** au signup pour les
+rôles agence via `provision_solo_agency` (SECURITY DEFINER interne, best-effort — n'échoue jamais le
+signup), renommable dans Réglages › Agence. Migration `20260718130000`. Conservés et dormants :
+`day0_payload` / `compute_agent_preferences` / gate d'autonomie WhatsApp (défauts NULL sûrs) et
+`agent_ai_profiles` ; le futur réglage d'autonomie vivra dans Réglages.
+**Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/sentry-test`.
 
 ### Composants (`src/components/`)
 - `propertyx/` — atoms Design System Property X (`Px*` : Button, Badge, Icon, Input, Avatar, Logo… — **source de vérité**, ne pas recréer) + `sections/`.
@@ -148,7 +145,7 @@ l'état succès qu'une fois le provisioning résolu (durée d'affichage min 14s,
 - `layout/` — `ProtectedRoute`, `PasswordGate`, `StaleBundleDetector`, `AgentLayout`, `AgentSugarLayout`.
 - `crm-sugar/` + `crm-sugar-v3/` — shell CRM, contact detail, KYC (**pager `kyc-pager/`** : frame + liste + vigie + fiche stricte + liseuse ; wizard `kyc-wizard/` avec voie import ; l'ancien écran `kyc/` [KycDossierDetail/KycListView] n'est plus routé, conservé transitoirement), **biens** (`biens/pager/` [BiensPager/BpTopGallery/BpFollowupPage/BpRenewModal/BiensFirstRun/followupData] + `biens/gallery/` + BnScoreBadge — les anciens BnSubmissions/BnDetailOverlay/BnPhoto/biensData/helpers sont **retirés**, superseded par le design final), tokens dark.
 - `crm-sugar-wizard/` — wizard « Créer un bien » (`/dashboard/listings/new`, `WizardShell` + 10 étapes + `StagingStudio`). **Dark mode** : `SugarV2` (`tokens.ts`) est un **Proxy** qui résout la palette light/dark à chaque lecture depuis `document.documentElement[data-theme]` (pas de mutation de global au render → robuste React 18 StrictMode/concurrent) ; helpers `sgOn()` / `sgAcc()` pour les littéraux posés **sur l'accent** (accent → near-white en dark, `onBlack` → `#0A0A0F`). Stepper retiré du header (nav Précédent/Continuer + compteur `N/8`). Système distinct du wizard KYC (`kyc-wizard/`, `KycPaletteContext`). **Embedded (juil. 2026, #871)** : prop `embedded` → `position:absolute` (au lieu de `fixed z-9000`), monté en overlay dans le bento du pager Mes biens. **Porte « Importer un mandat » désactivée** : l'ancien chemin injectait un mandat fictif (exclusif, 3.5 %, signé) en base pour n'importe quel PDF — dormante jusqu'à un vrai OCR.
-- Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `portal/` `seller-portal/` `onboarding*/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
+- Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `portal/` `seller-portal/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
 
 ### Hooks (`src/hooks/`, ~100, React Query)
 Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsSugar`, `useContactTimeline`…) · **biens** (`useListings`, `useBiensSugar`, `usePropertyEstimation`, `useNeighborhood`, `useNaturalHazards`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineSugar`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useTodaySugarKpi`, `useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDashboardAiHint` ; les `useDashboardCockpit/Funnel/Objectif` v3 servent de référence de compute, non routés) · **marketplace** (`useMarketListings`, `useMapPoints`, `useSmartSearchParser`, `useFavorites`, `useSavedSearches`) · **calendrier** (`useCalendarSugar`, `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).

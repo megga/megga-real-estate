@@ -122,10 +122,6 @@ C'est la **première page que vous voyez** en vous connectant. Elle résume votr
 
 Cliquez sur le bouton d'action (Appeler, Envoyer, Voir dossier) ou sur la coche pour marquer l'action comme complétée. Elle disparaît de la liste.
 
-### Checklist d'onboarding
-
-Si vous venez de créer votre compte, une barre de progression vous guide à travers les 5 étapes essentielles.
-
 ### Leads vendeurs
 
 Les nouveaux leads vendeurs (soumis via /sell) apparaissent dans une section dédiée avec les boutons Accepter / Rejeter.`,
