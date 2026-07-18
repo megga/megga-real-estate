@@ -529,6 +529,87 @@
       },
       "noRequests": "No request or match for this property.",
       "noHistory": "No event recorded."
+    },
+    "followUp": {
+      "title": "Nachverfolgung",
+      "filter": {
+        "all": "Alle Aktionen",
+        "mandates": "Mandate",
+        "drafts": "Entwürfe",
+        "diffusion": "Zu veröffentlichen"
+      },
+      "bucket": {
+        "mandates": "Zu erneuernde Mandate",
+        "drafts": "Entwürfe fertigstellen",
+        "diffusion": "Auf Immobilier.ch veröffentlichen"
+      },
+      "expiresIn_one": "Läuft in {{count}} T ab",
+      "expiresIn_other": "Läuft in {{count}} T ab",
+      "photos_one": "{{count}} Foto",
+      "photos_other": "{{count}} Fotos",
+      "meggaOnly": "Nur MEGGA",
+      "action": {
+        "renew": "Erneuern",
+        "complete": "Vervollständigen",
+        "publish": "Veröffentlichen"
+      },
+      "priority": "Zuerst bearbeiten",
+      "priorityFirst": "Zuerst bearbeiten",
+      "mandateEcheance": "{{type}}-Mandat · Fälligkeit",
+      "viewOthers_one": "1 weiteres anzeigen",
+      "viewOthers_other": "{{count}} weitere anzeigen",
+      "reduce": "Reduzieren",
+      "empty": {
+        "title": "Alles aktuell",
+        "subtitle": "Kein Mandat zu erneuern, kein Inserat ausstehend."
+      },
+      "emptyFirstRun": {
+        "title": "Noch nichts nachzuverfolgen",
+        "subtitle": "Ihre Aufgaben erscheinen hier ab Ihrem ersten Mandat."
+      },
+      "expiredSince_one": "Seit {{count}} T abgelaufen",
+      "expiredSince_other": "Seit {{count}} T abgelaufen",
+      "expiresToday": "Läuft heute ab"
+    },
+    "renewModal": {
+      "title": "Mandat erneuern",
+      "duration": "Verlängerungsdauer",
+      "months_one": "{{count}} Monat",
+      "months_other": "{{count}} Monate",
+      "newExpiry": "Neue Fälligkeit",
+      "commission": "Provision",
+      "send": "Zur Unterschrift senden",
+      "delete": "Inserat löschen",
+      "successTitle": "Mandat aktualisiert",
+      "successBody": "Die Fälligkeit von {{title}} wechselt zum {{date}}. Senden Sie die Verlängerung dem Eigentümer zur Unterschrift.",
+      "done": "Fertig",
+      "error": "Aktualisierung fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "deleteFlow": {
+      "confirmTitle": "Inserat löschen?",
+      "confirmBody": "{{title}} wird gelöscht. Diese Aktion ist endgültig.",
+      "confirm": "Löschen",
+      "cancel": "Abbrechen",
+      "deleting": "Löschen…",
+      "deletedTitle": "Inserat gelöscht",
+      "deletedBody": "{{title}} wurde gelöscht.",
+      "error": "Löschen fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "firstRun": {
+      "title": "Ihre Mandate, an einem Ort",
+      "step1": {
+        "title": "Objekt erstellen",
+        "sub": "Manuell oder aus einem bestehenden Inserat importiert."
+      },
+      "step2": {
+        "title": "Objektblatt vervollständigen",
+        "sub": "Fotos, Mandat, Preis."
+      },
+      "step3": {
+        "title": "Veröffentlichen",
+        "sub": "Auf MEGGA mit einem Klick."
+      },
+      "start": "Loslegen"
     }
   },
   "detail": {
@@ -792,7 +873,7 @@
       },
       "import": {
         "title": "Import a mandate",
-        "sub": "Mandate PDF. MEGGA AI extracts the details to pre-fill the form."
+        "sub": "Automatische PDF-Extraktion, bald verfügbar."
       },
       "autosave": {
         "title": "Draft saved automatically",

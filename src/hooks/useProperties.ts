@@ -67,7 +67,11 @@ export function useAgencyProperties() {
   const result = useQuery(
     supabase
       .from('properties')
-      .select('id, title, type, status, price, rooms, bedrooms, surface_m2, address, city, canton, postal_code, photos, created_at, updated_at, listing:listings(id, views_count, favorites_count, published_at)')
+      // Colonnes mandat + transaction_type + attributs (baths/année/charges/énergie)
+      // ajoutées pour la page « Mes biens » (galerie honnête + bucket « À suivre »
+      // Mandats à renouveler). Toutes scalaires légères → pas de coût liste (cf.
+      // CLAUDE.md §7 : jamais de colonne lourde type description en liste).
+      .select('id, title, type, status, price, transaction_type, rooms, bedrooms, bathrooms, surface_m2, year_built, charges_monthly, energy_class, address, city, canton, postal_code, photos, mandate_type, mandate_commission_pct, mandate_signed_at, mandate_expires_at, published_at, created_at, updated_at, listing:listings(id, views_count, favorites_count, published_at)')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
   )
@@ -202,7 +206,40 @@ export function useUpdateProperty() {
   })
 }
 
-// ── Soft-delete property ──
+// ── Delete property (soft-delete) ──
+// Soft-delete via UPDATE deleted_at : le trigger DB `bien_soft_deleted`
+// (baseline schema) convertit ce touch en événement d'audit `activity_events`
+// — la trace survit à la suppression (rétention LBA art. 7 al. 3). Les lectures
+// filtrent `.is('deleted_at', null)`, donc le bien disparaît des listes. Raw
+// supabase (comme useUpdateProperty) : l'appelant déclenche le refetch de la
+// liste Cache Helpers (useBiensSugar.refetch) après succès.
+
+/** Soft-delete d'un bien (pose `deleted_at`) — dépublie et retire des listes ; le trigger DB journalise l'audit. */
+export function useDeleteProperty() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('properties')
+        .update({ deleted_at: new Date().toISOString() } as unknown as TablesUpdate<'properties'>)
+        .eq('id', id)
+        .is('deleted_at', null)
+        .select('id')
+      if (error) throw error
+      if (!data || data.length === 0) throw new Error('Bien introuvable ou déjà supprimé')
+      return id
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ['property', id] })
+      queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
+      queryClient.invalidateQueries({ queryKey: ['listings'] })
+    },
+  })
+}
+
+// ── Soft-delete property (photos R2 mirror helper) ──
 // Soft-delete by default (sets deleted_at). The audit trigger turns this
 // into a `bien_soft_deleted` event so the audit trail survives the deletion
 // (LBA art. 7 al. 3 retention). Hard delete is reserved for the pg_cron

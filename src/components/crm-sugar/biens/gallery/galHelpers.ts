@@ -30,13 +30,6 @@ export function galCompact(n: number | null | undefined): string {
   return '' + n
 }
 
-/** Entier formaté FR-CH avec apostrophe suisse. */
-export function galNum(n: number | null | undefined): string {
-  return (n || 0)
-    .toLocaleString('fr-CH')
-    .replace(/ /g, "'")
-    .replace(/[\s,]/g, "'")
-}
 
 export interface GalStatusMeta {
   label: string

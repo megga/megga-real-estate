@@ -529,6 +529,87 @@
       },
       "noRequests": "No request or match for this property.",
       "noHistory": "No event recorded."
+    },
+    "followUp": {
+      "title": "Da seguire",
+      "filter": {
+        "all": "Tutte le azioni",
+        "mandates": "Mandati",
+        "drafts": "Bozze",
+        "diffusion": "Da pubblicare"
+      },
+      "bucket": {
+        "mandates": "Mandati da rinnovare",
+        "drafts": "Bozze da completare",
+        "diffusion": "Da pubblicare su Immobilier.ch"
+      },
+      "expiresIn_one": "Scade tra {{count}} g",
+      "expiresIn_other": "Scade tra {{count}} g",
+      "photos_one": "{{count}} foto",
+      "photos_other": "{{count}} foto",
+      "meggaOnly": "Solo MEGGA",
+      "action": {
+        "renew": "Rinnova",
+        "complete": "Completa",
+        "publish": "Pubblica"
+      },
+      "priority": "Da trattare per prime",
+      "priorityFirst": "Da trattare per prima",
+      "mandateEcheance": "Mandato {{type}} · scadenza",
+      "viewOthers_one": "Vedi 1 altro",
+      "viewOthers_other": "Vedi altri {{count}}",
+      "reduce": "Riduci",
+      "empty": {
+        "title": "Tutto aggiornato",
+        "subtitle": "Nessun mandato da rinnovare, nessun annuncio in sospeso."
+      },
+      "emptyFirstRun": {
+        "title": "Ancora nulla da seguire",
+        "subtitle": "Le tue azioni appariranno qui dal primo mandato."
+      },
+      "expiredSince_one": "Scaduto da {{count}} g",
+      "expiredSince_other": "Scaduto da {{count}} g",
+      "expiresToday": "Scade oggi"
+    },
+    "renewModal": {
+      "title": "Rinnova il mandato",
+      "duration": "Durata del rinnovo",
+      "months_one": "{{count}} mese",
+      "months_other": "{{count}} mesi",
+      "newExpiry": "Nuova scadenza",
+      "commission": "Commissione",
+      "send": "Invia per la firma",
+      "delete": "Elimina annuncio",
+      "successTitle": "Mandato aggiornato",
+      "successBody": "La scadenza di {{title}} passa al {{date}}. Trasmetti il rinnovo al proprietario per la firma.",
+      "done": "Fatto",
+      "error": "Aggiornamento non riuscito. Riprova."
+    },
+    "deleteFlow": {
+      "confirmTitle": "Eliminare l'annuncio?",
+      "confirmBody": "{{title}} sarà eliminato. Questa azione è definitiva.",
+      "confirm": "Elimina",
+      "cancel": "Annulla",
+      "deleting": "Eliminazione…",
+      "deletedTitle": "Annuncio eliminato",
+      "deletedBody": "{{title}} è stato eliminato.",
+      "error": "Eliminazione non riuscita. Riprova."
+    },
+    "firstRun": {
+      "title": "I tuoi mandati, in un unico posto",
+      "step1": {
+        "title": "Crea l'immobile",
+        "sub": "A mano o importato da un annuncio esistente."
+      },
+      "step2": {
+        "title": "Completa la scheda",
+        "sub": "Foto, mandato, prezzo."
+      },
+      "step3": {
+        "title": "Pubblica",
+        "sub": "Su MEGGA con un clic."
+      },
+      "start": "Inizia"
     }
   },
   "detail": {
@@ -792,7 +873,7 @@
       },
       "import": {
         "title": "Import a mandate",
-        "sub": "Mandate PDF. MEGGA AI extracts the details to pre-fill the form."
+        "sub": "Estrazione PDF automatica, presto disponibile."
       },
       "autosave": {
         "title": "Draft saved automatically",
