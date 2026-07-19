@@ -50,7 +50,7 @@ export function redactCopilotRequest(params: {
   history?: ChatTurn[]
 }): RedactedRequest {
   const counts: Record<RedactionKind, number> = {
-    AVS: 0, IBAN: 0, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0,
+    AVS: 0, IBAN: 0, CARD: 0, PASSPORT: 0, PASSWORD: 0, API_KEY: 0, DOB: 0, ACCESS_CODE: 0,
   }
 
   const msg = redactPII(params.message || '')
