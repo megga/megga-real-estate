@@ -432,7 +432,9 @@
     "h": "{{n}}h ago",
     "j": "{{n}}d ago",
     "sem": "{{n}}w ago",
-    "mois": "{{n}}mo ago"
+    "mois": "{{n}}mo ago",
+    "ans_one": "vor {{count}} Jahr",
+    "ans_other": "vor {{count}} Jahren"
   },
   "segments": {
     "all": "All",
@@ -618,12 +620,6 @@
   "newContact": {
     "title": "New contact",
     "subtitle": "Create a record",
-    "typeDesc": {
-      "buyer": "Looking to buy a property",
-      "tenant": "Looking to rent",
-      "seller": "Listing a property for sale",
-      "landlord": "Listing a property to rent"
-    },
     "civility": {
       "mr": "Mr",
       "mrs": "Mrs",
@@ -643,7 +639,6 @@
       "land": "Land",
       "commercial": "Commercial"
     },
-    "identity": "Identity",
     "civilityLabel": "Title",
     "firstName": "First name *",
     "firstNamePlaceholder": "Marie",
@@ -681,7 +676,6 @@
       "openWizard": "Open the full property wizard",
       "mandateKycHint": "The <strong>mandate signature</strong> and KYC will be offered as next steps after creation."
     },
-    "gdprConsent": "I have obtained the contact's <strong>GDPR consent</strong>",
     "shortcutCreate": "⌘⏎ to create",
     "creating": "Creating…",
     "submit": "Create contact"
@@ -1008,7 +1002,8 @@
       "verified": "Verified",
       "pending": "Pending",
       "stale": "Expired",
-      "noneShort": "None"
+      "noneShort": "None",
+      "verifiedTitle": "KYC verifiziert"
     },
     "src": {
       "website": "Website",
@@ -1024,6 +1019,12 @@
       "manual": "Manual entry",
       "portal": "Portal",
       "other": "Other"
+    },
+    "goToPage": "Zu {{page}}",
+    "error": {
+      "title": "Laden nicht möglich",
+      "message": "Ihre Kontakte konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "retry": "Erneut versuchen"
     }
   },
   "health": {
@@ -1046,11 +1047,16 @@
     }
   },
   "firstRun": {
-    "title": "Your first contact",
-    "manualTitle": "Manually",
-    "manualDesc": "You enter their contact details and search criteria.",
-    "whatsappTitle": "Connect WhatsApp",
-    "whatsappDesc": "Your contacts and conversations flow into MEGGA."
+    "title": "Ihre Kontakte, bereit zum Matching",
+    "subtitleLine1": "Führen Sie Käufer und Mieter hier zusammen.",
+    "subtitleLine2": "Sobald ein Kontakt Kriterien hat, bringt MEGGA ihn Ihren Mandaten näher.",
+    "step1Title": "Ihre Kontakte kommen über WhatsApp",
+    "step1Sub": "Jede eingehende Unterhaltung wird zu einem Datensatz.",
+    "step1Cta": "WhatsApp verbinden",
+    "step2Title": "MEGGA verknüpft sie mit Ihren Objekten",
+    "step2Sub": "Das Matching läuft von selbst.",
+    "step2Cta": "Automatisch",
+    "manualLink": "Kontakt manuell erstellen"
   },
   "waConnect": {
     "title": "Connect your WhatsApp account",
@@ -1069,9 +1075,7 @@
     "connectedBadge": "Account connected"
   },
   "newContactPager": {
-    "heroTitle": "Who's joining your portfolio?",
     "close": "Close",
-    "photo": "Photo",
     "addPhoto": "Add a photo",
     "removePhoto": "Remove photo",
     "civ": "Title",
@@ -1124,7 +1128,22 @@
       "ficheTitle": "Profile",
       "ficheSub": "Complete, schedule",
       "createAnother": "Create another"
-    }
+    },
+    "expressCard": "Kurzprofil",
+    "birth": "Geburtsdatum",
+    "birthPlaceholder": "TT.MM.JJJJ",
+    "moreIdentity": "Vollständige Identität",
+    "moreIdentityHint": "Nationalität, Wohnsitz, Adresse",
+    "nationality": "Nationalität",
+    "residence": "Wohnsitzland",
+    "homeAddress": "Adresse",
+    "preview": {
+      "name": "Neuer Kontakt",
+      "budget": "Budget",
+      "rentMax": "Max. Miete",
+      "propertyAddress": "Adresse des Objekts"
+    },
+    "birthError": "Ungültiges Geburtsdatum: Format TT.MM.JJJJ."
   },
   "fiche": {
     "back": "Contacts",
@@ -1147,7 +1166,9 @@
       "title": "Delete {{name}}?",
       "thisContact": "this contact",
       "body": "The profile, its search criteria and its match-loop history will be <1>permanently deleted</1>. This action is irreversible.",
-      "confirm": "Delete"
+      "confirm": "Delete",
+      "done": "Kontakt gelöscht",
+      "error": "Löschen fehlgeschlagen. Bitte erneut versuchen."
     },
     "kycWarn": {
       "title": "Edit a verified identity?",
@@ -1159,13 +1180,25 @@
       "title": "Edit identity",
       "firstName": "First name",
       "lastName": "Last name",
-      "kycWarn": "This contact has a verified KYC. Saving a new identity <1>will invalidate the verification</1>. The AML procedure will have to be redone."
+      "kycWarn": "This contact has a verified KYC. Saving a new identity <1>will invalidate the verification</1>. The AML procedure will have to be redone.",
+      "birth": "Geburtsdatum",
+      "birthPlaceholder": "TT.MM.JJJJ",
+      "nationality": "Nationalität",
+      "residence": "Wohnsitzland",
+      "address": "Adresse",
+      "addressPlaceholder": "Strasse…, PLZ Ort",
+      "countryNone": "Nicht angegeben",
+      "saveError": "Die Identität konnte nicht gespeichert werden. Bitte erneut versuchen."
     },
     "coord": {
       "civility": "Title",
       "channel": "Preferred channel",
       "emailPlaceholder": "name@example.ch",
-      "phonePlaceholder": "+41 79 …"
+      "phonePlaceholder": "+41 79 …",
+      "birth": "Geburtsdatum",
+      "nationality": "Nationalität",
+      "residence": "Wohnsitzland",
+      "address": "Adresse"
     },
     "toFill": "To fill in",
     "civ": {
@@ -1230,7 +1263,13 @@
       "transmittedCount": "Properties sent ({{count}})",
       "openInMatching": "Open in Matching",
       "ignore": "Ignore",
-      "nothingToHandle": "Nothing to handle right now."
+      "nothingToHandle": "Alles aktuell, derzeit nichts zu bearbeiten.",
+      "emptyTitle": "Noch keine Objekte gesendet",
+      "emptyBody": "Senden Sie {{name}} eine Auswahl an Objekten.<1/>Die Rückmeldungen erscheinen hier."
+    },
+    "saved": {
+      "coord": "Kontaktdaten gespeichert",
+      "crit": "Kriterien gespeichert"
     }
   },
   "nba": {

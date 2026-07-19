@@ -112,6 +112,11 @@ export function useCreateContact() {
         /** Catch-all for non-mapped UI fields (civility, lang, assigned_to,
          * linked_bien, etc.) — preserved for future migration. */
         form_data?: Record<string, unknown> | null
+        /** Identité LBA art. 3 — date ISO `yyyy-mm-dd`, pays en ISO 3166-1 alpha-2. */
+        birth_date?: string | null
+        nationality?: string | null
+        residence_country?: string | null
+        home_address?: string | null
       }
     ) => {
       const rows = await insert.mutateAsync([
@@ -125,6 +130,10 @@ export function useCreateContact() {
           score: input.score ?? 'cold',
           tags: input.tags ?? [],
           notes: input.notes ?? null,
+          birth_date: input.birth_date ?? null,
+          nationality: input.nationality ?? null,
+          residence_country: input.residence_country ?? null,
+          home_address: input.home_address ?? null,
           agency_id: input.agency_id ?? profile?.agency_id ?? null,
           user_id: user?.id ?? null,
           search_criteria: (input.search_criteria ?? null) as unknown as import('@/types/database').Json | null,

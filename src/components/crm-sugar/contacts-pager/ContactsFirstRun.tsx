@@ -1,48 +1,73 @@
 // MEGGA CRM — Contacts · État « Compte neuf » (premier lancement).
-// Port fidèle de `crm-contacts-firstrun.jsx` (ContactsFirstRun) : colonne centrée,
-// illustration ScanCard, 2 cartes méthode (À la main / Associer WhatsApp), et
-// l'animation SKELETON qui enchaîne sur la vraie modale (durées 900/1300ms,
-// shimmer 1.25s, cascade, respect prefers-reduced-motion).
+// Port du handoff Beta v1 (`crm-contacts-firstrun.jsx`) : couverture pleine page
+// « Vos contacts, prêts à matcher » + 2 étapes (WhatsApp / matching) sur fond nu.
+//
+// EXCEPTION TOKENS ASSUMÉE — comme BiensFirstRun.tsx et la couverture Pipeline,
+// cette couverture est MONO-THÈME : fond sombre #0A0B0D et textes blancs en dur,
+// quel que soit le thème de l'app. Ne PAS « corriger » ces couleurs vers les
+// tokens bg-theme-* / sp.* : la maquette repose dessus. Seule la modale WhatsApp,
+// qui reste thémée, consomme `sp` et `dark`.
+//
+// COUVERTURE (D9) : illustration vectorielle plein cadre, servie depuis
+// `public/contacts/contacts-cover.svg` (~2,3 Mo brut, ~420 Ko sur le réseau une
+// fois compressée). Elle est purement décorative (aria-hidden) et le fond
+// #0A0B0D reste sous elle : si le fichier manque ou tarde, l'écran est lisible
+// sans lui. Repasser COVER_SRC à `null` suffit à la retirer.
 //
 // La modale WhatsApp est gérée en interne (état `waOpen`) → l'API se limite à
 // { sp, dark, onManual }. `onManual` est appelé APRÈS le skeleton (le parent
-// ouvre alors la modale Nouveau contact qui recouvre le skeleton).
+// ouvre alors la modale Nouveau contact qui recouvre le skeleton) : le premier
+// lancement conserve volontairement un accès discret à la création manuelle,
+// sans quoi un compte neuf sans WhatsApp serait dans un cul-de-sac.
 
-import { useEffect, useRef, useState, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
-import ScanCardIllustration from '@/components/illustrations/ScanCardIllustration'
-import { WhatsAppGlyph } from '@/components/crm-sugar/contacts-pager/glyphs'
 import { NcvIcon } from '@/components/crm-sugar/contacts-pager/ncvIcon'
 import WhatsAppConnectModal from '@/components/crm-sugar/contacts-pager/WhatsAppConnectModal'
 
-const WA_GREEN = '#25D366'
+/** Illustration plein cadre de la couverture. `null` ⇒ fond plat #0A0B0D. */
+const COVER_SRC: string | null = '/contacts/contacts-cover.svg'
 
-// ── Carte « méthode » (bouton plein-surface, Sugar) ────────────────────
-function CfrMethodCard({
-  sp, soft, iconNode, title, desc, onClick,
+/** Marque WhatsApp officielle en couleur (pastille verte) — étape 1 seulement. */
+const WA_BRAND_SRC = '/contacts/whatsapp.svg'
+
+// ── Étape de la couverture : pastille + titre + sous-titre + pilule ──────
+// Rendue en <button> quand elle est actionnable (étape 1 → modale WhatsApp),
+// en <div> inerte sinon (étape 2 : la pilule « Automatique » constate le
+// comportement du matching, elle n'ouvre aucun réglage).
+function CfrStep({
+  iconNode, title, sub, ctaLabel, onClick,
 }: {
-  sp: SugarPalette
-  soft: string
-  iconNode: React.ReactNode
+  iconNode: ReactNode
   title: string
-  desc: string
-  onClick: () => void
+  sub: string
+  ctaLabel: string
+  onClick?: () => void
 }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left',
-        padding: '22px 22px 24px', borderRadius: 18, border: 0, cursor: 'pointer',
-        background: sp.cardBg, boxShadow: sp.shadow, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
-      }}
-    >
-      <div style={{ marginBottom: 14, lineHeight: 0 }}>{iconNode}</div>
-      <div style={{ fontSize: 16.5, fontWeight: 800, letterSpacing: -0.3, color: sp.ink }}>{title}</div>
-      <div style={{ marginTop: 6, fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: soft, textWrap: 'pretty' }}>{desc}</div>
-    </button>
+  const body = (
+    <>
+      <span aria-hidden="true" style={{ width: 56, height: 56, borderRadius: 999, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        {iconNode}
+      </span>
+      <span style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: -0.3, color: '#FFFFFF', lineHeight: 1.25, marginTop: 16 }}>{title}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.6)', marginTop: 6, textWrap: 'pretty' }}>{sub}</span>
+      <span style={{
+        marginTop: 18, height: 34, padding: '0 16px', borderRadius: 999, display: 'inline-flex', alignItems: 'center',
+        background: 'rgba(255,255,255,0.1)', color: '#FFFFFF', fontSize: 12, fontWeight: 700,
+      }}>
+        {ctaLabel}
+      </span>
+    </>
   )
+  const shell: React.CSSProperties = {
+    background: 'transparent', border: 0, borderRadius: 18, padding: '30px 24px 26px',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+    fontFamily: 'inherit',
+  }
+  return onClick
+    ? <button type="button" onClick={onClick} style={{ ...shell, cursor: 'pointer' }}>{body}</button>
+    : <div style={{ ...shell, cursor: 'default' }}>{body}</div>
 }
 
 // ── Skeleton « création de la fiche » — mime la mise en page de NewContactModal
@@ -111,6 +136,7 @@ function CfrBuildSkeleton({ sp, dark }: { sp: SugarPalette; dark: boolean }) {
   )
 }
 
+/** Couverture premier lancement (page 0 quand l'agence n'a encore aucun contact). */
 export default function ContactsFirstRun({
   sp,
   dark,
@@ -121,8 +147,10 @@ export default function ContactsFirstRun({
   onManual: () => void
 }): JSX.Element {
   const { t } = useTranslation('contacts')
-  const soft = sp.soft || sp.sub
-  const ring = dark ? '#8DA4FF' : '#0041D9'
+  // Anneau de focus figé clair : la couverture est mono-thème sombre (#0A0B0D), donc
+  // la variante « thème clair » #0041D9 y serait un bleu foncé sur presque-noir.
+  // `dark` reste utilisé par la modale WhatsApp, qui a son propre traitement.
+  const ring = '#8DA4FF'
   const [waOpen, setWaOpen] = useState(false)
   const [building, setBuilding] = useState(false)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -139,8 +167,8 @@ export default function ContactsFirstRun({
     <div
       className="cfr-root"
       style={{
-        position: 'absolute', inset: 0, background: sp.pageBg, overflowY: 'auto',
-        fontFamily: "'Inter Tight', system-ui, sans-serif", color: sp.ink, fontVariantNumeric: 'tabular-nums',
+        position: 'absolute', inset: 0, background: '#0A0B0D', overflowY: 'auto', overflowX: 'hidden',
+        fontFamily: "'Inter Tight', system-ui, sans-serif", color: '#FFFFFF', fontVariantNumeric: 'tabular-nums',
       }}
     >
       <style>{`
@@ -148,48 +176,70 @@ export default function ContactsFirstRun({
         @keyframes cfrOv { from { opacity: 0; } to { opacity: 1; } }
         .cfr-root button:focus-visible { outline: 2.5px solid ${ring}; outline-offset: 3px; }
         .cfr-root :focus:not(:focus-visible) { outline: none; }
+        .cfr-manual:hover { text-decoration: underline; }
         @keyframes cfrShimmer { 0% { background-position: -40% 0; } 100% { background-position: 160% 0; } }
         .cfr-build { animation: cfrOv .26s ease both; }
         .cfr-build-card { animation: cfrFadeUp .5s cubic-bezier(.2,.8,.2,1) both; }
         .cfr-sk { background-color: var(--sk); background-image: linear-gradient(90deg, transparent, var(--skHi), transparent);
           background-size: 220% 100%; background-repeat: no-repeat; animation: cfrShimmer 1.25s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) { .cfr-sk { animation: none; } .cfr-build-card { animation: none; } }
-        @media (max-width: 620px) { .cfr-cards { grid-template-columns: 1fr !important; } }
+        @media (max-width: 820px) { .cfr-steps { grid-template-columns: 1fr !important; } }
       `}</style>
 
+      {COVER_SRC && (
+        <img
+          src={COVER_SRC}
+          alt=""
+          aria-hidden="true"
+          style={{ position: 'absolute', top: 0, bottom: 0, left: -3, width: 'calc(100% + 6px)', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }}
+        />
+      )}
+
       <div style={{
-        minHeight: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', padding: '56px 40px',
+        position: 'relative', zIndex: 2, minHeight: '100%', boxSizing: 'border-box', display: 'flex',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '56px 40px',
       }}>
         <div style={{
-          maxWidth: 528, width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center',
+          maxWidth: 920, width: '100%', textAlign: 'center',
           animation: 'cfrFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
         }}>
-          <ScanCardIllustration dark={dark} size={208} style={{ marginBottom: 4 }} />
-
-          <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: -1.1, lineHeight: 1.08, color: sp.ink }}>
+          <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: -1, lineHeight: 1.1, color: '#FFFFFF', textShadow: '0 0 24px rgba(255,255,255,0.5)' }}>
             {t('firstRun.title')}
           </h1>
-
-          <div className="cfr-cards" style={{ marginTop: 26, width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <CfrMethodCard
-              sp={sp}
-              soft={soft}
-              iconNode={<NcvIcon name="edit" size={44} stroke={sp.ink} sw={1.6} />}
-              title={t('firstRun.manualTitle')}
-              desc={t('firstRun.manualDesc')}
-              onClick={openNew}
-            />
-            <CfrMethodCard
-              sp={sp}
-              soft={soft}
-              iconNode={<WhatsAppGlyph size={46} color={WA_GREEN} />}
-              title={t('firstRun.whatsappTitle')}
-              desc={t('firstRun.whatsappDesc')}
-              onClick={() => setWaOpen(true)}
-            />
-          </div>
+          {/* Coupure de ligne volontaire (handoff) : deux clés plutôt qu'une balise en JSON. */}
+          <p style={{ margin: '12px auto 0', maxWidth: 560, fontSize: 14.5, lineHeight: 1.55, fontWeight: 500, color: 'rgba(255,255,255,0.78)', textWrap: 'pretty' }}>
+            {t('firstRun.subtitleLine1')}<br />{t('firstRun.subtitleLine2')}
+          </p>
         </div>
+
+        <div className="cfr-steps" style={{ display: 'grid', gridTemplateColumns: 'auto auto', justifyContent: 'center', gap: 18, width: '100%', marginTop: 40 }}>
+          <CfrStep
+            iconNode={<img src={WA_BRAND_SRC} alt="" aria-hidden="true" width="42" height="42" style={{ width: 42, height: 42, display: 'block' }} />}
+            title={t('firstRun.step1Title')}
+            sub={t('firstRun.step1Sub')}
+            ctaLabel={t('firstRun.step1Cta')}
+            onClick={() => setWaOpen(true)}
+          />
+          <CfrStep
+            iconNode={<NcvIcon name="sparkle" size={34} stroke="#FFFFFF" />}
+            title={t('firstRun.step2Title')}
+            sub={t('firstRun.step2Sub')}
+            ctaLabel={t('firstRun.step2Cta')}
+          />
+        </div>
+
+        {/* Sortie de secours : sans elle, un compte neuf sans WhatsApp ne peut rien créer. */}
+        <button
+          type="button"
+          className="cfr-manual"
+          onClick={openNew}
+          style={{
+            marginTop: 10, background: 'transparent', border: 0, padding: '6px 8px', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.6)',
+          }}
+        >
+          {t('firstRun.manualLink')}
+        </button>
       </div>
 
       {building && <CfrBuildSkeleton sp={sp} dark={dark} />}

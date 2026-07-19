@@ -6,6 +6,10 @@
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
 // Gel du pager (freezeRef) pendant une édition inline ou une modale ouverte.
 //
+// Beta v1 : le bloc Coordonnées porte l'identité LBA (9 lignes, « À renseigner » si
+// vide) et la modale d'identité édite les 6 champs correspondants — toute
+// modification d'un d'eux invalide un KYC vérifié (cf. lib/contactIdentity).
+//
 // Conventions : inline styles (PAS de Tailwind), 'Inter Tight', composants au
 // NIVEAU MODULE (hors render) pour ne pas perdre le focus des inputs.
 // Le chrome (SugarTopNav + SugarIconRail) est monté par la page conteneur ; ce
@@ -16,8 +20,11 @@ import {
   useCallback, useEffect, useLayoutEffect, useRef, useState,
   type ReactNode, type ReactElement, type CSSProperties, type MutableRefObject,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { Trans, useTranslation } from 'react-i18next'
 import type { CriteriaInput } from '@/lib/contactCriteria'
+import { COUNTRIES, countryName } from '@/lib/countries'
+import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmFmtCHF } from '@/components/crm-sugar/tokens'
 
@@ -37,6 +44,13 @@ export interface FicheContact {
   audience: 'Acheteur' | 'Vendeur' | 'Locataire' | 'Bailleur'
   isTenant: boolean
   avatarBg: string
+  /** Identité LBA art. 3 — date au format suisse JJ.MM.AAAA, pays en ISO alpha-2. */
+  birth: string
+  nationality: string
+  residence: string
+  homeAddress: string
+  /** Photo du contact (form_data.photo) — remplace les initiales du héro. */
+  photo: string | null
   crit: CriteriaInput            // critères parsés (voir @/lib/contactCriteria)
   notes: string
 }
@@ -66,12 +80,15 @@ export interface ContactDetailPagerProps {
   sp: SugarPalette
   dark: boolean
   onBack: () => void
-  onSaveIdentity: (firstName: string, lastName: string) => Promise<void>
+  /** Persiste les 6 champs d'identité LBA (nom + naissance/nationalité/résidence/adresse). */
+  onSaveIdentity: (v: ContactIdentity) => Promise<void>
   onInvalidateKyc: () => Promise<void>
   onSaveCoord: (v: { civ: string; email: string; phone: string; lang: string; canal: string }) => Promise<void>
   onSaveCriteria: (c: CriteriaInput) => Promise<void>
   onSaveNote: (note: string) => void
-  onDelete: () => void
+  /** Doit résoudre APRÈS la suppression réelle : la carte « Contact supprimé » n'est
+   *  montrée qu'ensuite, et c'est `onBack` (pas ce callback) qui ramène à la liste. */
+  onDelete: () => Promise<void>
   onOpenKyc: () => void
   onOpenMatching: () => void
   /** CTA principal d'un Vendeur/Bailleur (côté offre) — vers ses biens, jamais le Matching acheteur. */
@@ -96,7 +113,6 @@ interface FichePal {
   accentInk: string
   buyer: string
   ok: string
-  like: string
   cyan: string
   wait: string
   danger: string
@@ -119,7 +135,6 @@ function buildPal(sp: SugarPalette, dark: boolean): FichePal {
     accentInk: dark ? '#0B0C0E' : '#FFFFFF',
     buyer: dark ? '#6F8CFF' : '#1E5BC6',
     ok: dark ? '#34D399' : '#059669',
-    like: dark ? '#FF6B72' : '#E5484D',
     cyan: dark ? '#38BDD8' : '#0891B2',
     wait: dark ? '#8A909B' : '#7A8088',
     danger: dark ? '#E0738C' : '#8E1F3D',
@@ -203,8 +218,10 @@ const cap = (s: string) => (s || '').charAt(0).toUpperCase() + (s || '').slice(1
 const fmtCHF = (n: number | null | undefined) => crmFmtCHF(n)
 
 // État de la boucle → clé couleur de la palette + clé i18n du pill.
-const LOOP_STATE: Record<FicheLoopItem['state'], { key: 'like' | 'cyan' | 'wait' | 'ghost'; labelK: string }> = {
-  liked: { key: 'like', labelK: 'loop.pillLiked' },
+// `liked` est VERT (clé `ok`) et non rouge : le like est un signal positif, et c'est
+// la couleur du handoff. Passer par une clé de palette garde le mode sombre correct.
+const LOOP_STATE: Record<FicheLoopItem['state'], { key: 'ok' | 'cyan' | 'wait' | 'ghost'; labelK: string }> = {
+  liked: { key: 'ok', labelK: 'loop.pillLiked' },
   seen: { key: 'cyan', labelK: 'loop.pillSeen' },
   sent: { key: 'wait', labelK: 'loop.pillSent' },
   dismissed: { key: 'ghost', labelK: 'loop.pillDismissed' },
@@ -282,15 +299,48 @@ function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label
 
 const cdLbl = (P: FichePal): CSSProperties => ({ fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: P.muted, marginBottom: 7 })
 
-function CdTextInput({ value, onChange, placeholder, type = 'text', mono, P }: {
-  value: string; onChange: (v: string) => void; placeholder?: string; type?: string; mono?: boolean; P: FichePal
+function CdTextInput({ value, onChange, placeholder, type = 'text', mono, invalid, P }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; type?: string; mono?: boolean; invalid?: boolean; P: FichePal
 }) {
   const [f, setF] = useState(false)
+  // L'anneau d'erreur prime sur l'anneau de focus : une date impossible doit rester
+  // visible même curseur dedans (c'est là que l'utilisateur la corrige).
+  const ring = invalid ? P.danger : f ? P.accent : null
   return (
     <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
-      onFocus={() => setF(true)} onBlur={() => setF(false)}
-      style={{ width: '100%', height: 38, padding: '0 12px', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 12, color: P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', outline: 'none', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', boxShadow: f ? `inset 0 0 0 2px ${P.accent}` : 'none', transition: 'box-shadow 140ms ease' }} />
+      onFocus={() => setF(true)} onBlur={() => setF(false)} aria-invalid={invalid || undefined}
+      style={{ width: '100%', height: 38, padding: '0 12px', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 12, color: P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', outline: 'none', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', boxShadow: ring ? `inset 0 0 0 2px ${ring}` : 'none', transition: 'box-shadow 140ms ease' }} />
   )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//   TOAST « enregistré » — pilule noire auto-effacée
+// ═══════════════════════════════════════════════════════════════════════
+/** Pilule de confirmation. Montée en PORTAL : le viewport du pager est en
+ *  `overflow: hidden`, un `position: fixed` enfant y serait clippé. */
+function CdSavedToast({ label }: { label: string }) {
+  return createPortal(
+    <div style={{ position: 'fixed', bottom: 30, left: '50%', zIndex: 100, display: 'flex', alignItems: 'center', gap: 9, height: 42, padding: '0 18px 0 14px', borderRadius: 999, background: '#0B0C0E', color: '#FFFFFF', fontSize: 12.5, fontWeight: 700, fontFamily: "'Inter Tight', system-ui, sans-serif", boxShadow: '0 16px 44px rgba(0,0,0,0.35)', animation: 'cdpToast .28s cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none' }}>
+      <span style={{ width: 20, height: 20, borderRadius: 999, background: '#059669', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <FcpIcon name="check" size={11} stroke="#FFFFFF" sw={2.6} />
+      </span>
+      {label}
+    </div>,
+    document.body,
+  )
+}
+
+/** Flash de 1700 ms après un enregistrement réussi (timer nettoyé au démontage). */
+function useSavedFlash(): [boolean, () => void] {
+  const [saved, setSaved] = useState(false)
+  const tRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flash = useCallback(() => {
+    setSaved(true)
+    if (tRef.current) clearTimeout(tRef.current)
+    tRef.current = setTimeout(() => setSaved(false), 1700)
+  }, [])
+  useEffect(() => () => { if (tRef.current) clearTimeout(tRef.current) }, [])
+  return [saved, flash]
 }
 
 function CdSelect({ value, onChange, options, P }: {
@@ -329,6 +379,9 @@ function CdMenu({ P, dark, onEditId, onEditCoord, onEditCrit, onDelete }: {
   const { t } = useTranslation('contacts')
   const [hi, setHi] = useState(-1)
   const menuShadow = dark ? `inset 0 0 0 1px ${P.hairline}, ${P.sp.shadow}` : P.sp.shadow
+  // Fond neutre dédié en sombre (même famille que la modale destructive), pas la carte.
+  const menuBg = dark ? '#17181A' : P.card
+  const menuHov = dark ? '#26272A' : P.sub
   const items = [
     { icon: 'pencil', label: t('fiche.menu.editIdentity'), act: onEditId },
     { icon: 'msg', label: t('fiche.menu.editCoord'), act: onEditCoord },
@@ -336,10 +389,10 @@ function CdMenu({ P, dark, onEditId, onEditCoord, onEditCrit, onDelete }: {
   ]
   const rowBase: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 11px', borderRadius: 11, border: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 120ms ease' }
   return (
-    <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 264, background: P.card, borderRadius: 16, boxShadow: menuShadow, padding: 7, zIndex: 41, transformOrigin: 'top right', animation: 'cdpMenuIn .16s cubic-bezier(.2,.8,.2,1)' }}>
+    <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 264, background: menuBg, borderRadius: 16, boxShadow: menuShadow, padding: 7, zIndex: 41, transformOrigin: 'top right', animation: 'cdpMenuIn .16s cubic-bezier(.2,.8,.2,1)' }}>
       {items.map((it, i) => (
         <button key={it.label} role="menuitem" onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(-1)} onClick={it.act}
-          style={{ ...rowBase, background: hi === i ? P.sub : 'transparent' }}>
+          style={{ ...rowBase, background: hi === i ? menuHov : 'transparent' }}>
           <FcpIcon name={it.icon} size={16} stroke={P.inkSoft} />
           <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: P.ink }}>{it.label}</span>
         </button>
@@ -357,11 +410,33 @@ function CdMenu({ P, dark, onEditId, onEditCoord, onEditCrit, onDelete }: {
 // ═══════════════════════════════════════════════════════════════════════
 //   MODALES
 // ═══════════════════════════════════════════════════════════════════════
-function CdDeleteModal({ P, dark, name, onCancel, onConfirm }: { P: FichePal; dark: boolean; name: string; onCancel: () => void; onConfirm: () => void }) {
+/** Modale destructive. `done` bascule sur la carte « Contact supprimé » (le retour à
+ *  la liste est temporisé par l'appelant, sinon l'état ne serait jamais visible).
+ *  Palette neutre Beta v1 (#17181A / voile noir) — les deux autres modales gardent
+ *  la teinte bleutée d'origine, le changement est isolé au geste destructif. */
+function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
+  P: FichePal; dark: boolean; name: string; done?: boolean; error: string | null; onCancel: () => void; onConfirm: () => void
+}) {
   const { t } = useTranslation('contacts')
-  const modalBg = dark ? '#202124' : '#FFFFFF'
-  return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
+  const modalBg = dark ? '#17181A' : '#FFFFFF'
+  const veil: CSSProperties = { position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: "'Inter Tight', system-ui, sans-serif" }
+
+  if (done) {
+    return createPortal(
+      <div style={veil}>
+        <div style={{ width: 360, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '32px 30px', textAlign: 'center', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
+          <span style={{ width: 48, height: 48, borderRadius: 999, background: '#059669', display: 'inline-grid', placeItems: 'center' }}>
+            <FcpIcon name="check" size={22} stroke="#FFFFFF" sw={2.4} />
+          </span>
+          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: P.ink, marginTop: 14 }}>{t('fiche.delete.done')}</div>
+        </div>
+      </div>,
+      document.body,
+    )
+  }
+
+  return createPortal(
+    <div style={veil}>
       <div style={{ width: 440, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
         <span style={{ width: 44, height: 44, borderRadius: 999, background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
           <FcpIcon name="trash" size={20} stroke={P.danger} sw={2} />
@@ -370,12 +445,16 @@ function CdDeleteModal({ P, dark, name, onCancel, onConfirm }: { P: FichePal; da
         <div style={{ fontSize: 13.5, fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
           <Trans t={t} i18nKey="fiche.delete.body" components={{ 1: <b style={{ color: P.inkSoft, fontWeight: 700 }} /> }} />
         </div>
+        {error && (
+          <div role="alert" style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
+        )}
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
           <button onClick={onConfirm} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.danger, color: '#FFFFFF' }}>{t('fiche.delete.confirm')}</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -413,13 +492,19 @@ function CdKycWarn({ P, dark, name, onCancel, onConfirm }: { P: FichePal; dark: 
   )
 }
 
-interface NmDraft { firstName: string; lastName: string }
-function CdIdentityModal({ P, dark, draft, setDraft, verified, onCancel, onSave }: {
-  P: FichePal; dark: boolean; draft: NmDraft; setDraft: (fn: (s: NmDraft) => NmDraft) => void; verified: boolean; onCancel: () => void; onSave: () => void
+/** Brouillon d'identité = les 6 champs LBA comparés par `hasIdentityChanged`. */
+type NmDraft = ContactIdentity
+
+/** Modale « Modifier l'identité » — 6 champs LBA. Les pays sont des SELECTS sur
+ *  COUNTRIES (la base attend un code ISO alpha-2, pas un libellé libre). */
+function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, onSave }: {
+  P: FichePal; dark: boolean; draft: NmDraft; setDraft: (fn: (s: NmDraft) => NmDraft) => void; verified: boolean; error: string | null; onCancel: () => void; onSave: () => void
 }) {
   const { t } = useTranslation('contacts')
   const modalBg = dark ? '#202124' : '#FFFFFF'
-  const canSave = !!draft.firstName.trim() && !!draft.lastName.trim()
+  const birthKo = isInvalidSwissDate(draft.birth)
+  const canSave = !!draft.firstName.trim() && !!draft.lastName.trim() && !birthKo
+  const countryOpts = [{ v: '', l: t('fiche.identity.countryNone') }, ...COUNTRIES.map((c) => ({ v: c.code, l: c.name }))]
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
       <div style={{ width: 452, background: modalBg, borderRadius: 24, boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
@@ -433,6 +518,22 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, onCancel, onSave 
             <div style={cdLbl(P)}>{t('fiche.identity.lastName')}</div>
             <CdTextInput value={draft.lastName} onChange={(val) => setDraft((s) => ({ ...s, lastName: val }))} placeholder={t('fiche.identity.lastName')} P={P} />
           </div>
+          <div>
+            <div style={cdLbl(P)}>{t('fiche.identity.birth')}</div>
+            <CdTextInput value={draft.birth} onChange={(val) => setDraft((s) => ({ ...s, birth: val }))} placeholder={t('fiche.identity.birthPlaceholder')} mono invalid={birthKo} P={P} />
+          </div>
+          <div>
+            <div style={cdLbl(P)}>{t('fiche.identity.nationality')}</div>
+            <CdSelect value={draft.nationality} onChange={(val) => setDraft((s) => ({ ...s, nationality: val }))} options={countryOpts} P={P} />
+          </div>
+          <div>
+            <div style={cdLbl(P)}>{t('fiche.identity.residence')}</div>
+            <CdSelect value={draft.residence} onChange={(val) => setDraft((s) => ({ ...s, residence: val }))} options={countryOpts} P={P} />
+          </div>
+          <div>
+            <div style={cdLbl(P)}>{t('fiche.identity.address')}</div>
+            <CdTextInput value={draft.homeAddress} onChange={(val) => setDraft((s) => ({ ...s, homeAddress: val }))} placeholder={t('fiche.identity.addressPlaceholder')} P={P} />
+          </div>
         </div>
         {verified && (
           <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', marginTop: 16, background: P.danger + (dark ? '22' : '14'), borderRadius: 12, padding: '12px 14px' }}>
@@ -441,6 +542,9 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, onCancel, onSave 
               <Trans t={t} i18nKey="fiche.identity.kycWarn" components={{ 1: <b style={{ fontWeight: 700 }} /> }} />
             </div>
           </div>
+        )}
+        {error && (
+          <div role="alert" style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
         )}
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
@@ -469,9 +573,12 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
   const cancel = () => setEditing(false)
   useEffect(() => { if (editSignal > 0) { setDraft(form); setEditing(true) } }, [editSignal]) // eslint-disable-line react-hooks/exhaustive-deps
   useFreeze(freezeRef, editing)
+  const [saved, flashSaved] = useSavedFlash()
+  // Le toast confirme une écriture RÉELLE : on attend la résolution de onSave
+  // (le repo persiste en async là où le proto était synchrone).
   const save = () => {
     setForm(draft); setEditing(false)
-    void onSave({ civ: draft.civ, email: draft.email, phone: draft.phone, lang: draft.lang, canal: draft.canal })
+    void onSave({ civ: draft.civ, email: draft.email, phone: draft.phone, lang: draft.lang, canal: draft.canal }).then(flashSaved)
   }
 
   const civOpts = [{ v: '', l: t('fiche.civ.none') }, ...CD_CIV.map((v) => ({ v, l: t('fiche.civ.' + v) }))]
@@ -480,12 +587,15 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
   const emptyLbl = t('fiche.toFill')
 
   return (
-    <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadowSm, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 0, overflowY: editing ? 'auto' : 'visible' }}>
+    // Défilement permanent (pas seulement en édition) : les 9 lignes d'identité
+    // débordent la colonne dès qu'elles sont renseignées.
+    <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadowSm, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 0, overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
         <CdGrp P={P}>{t('detail.contactInfo')}</CdGrp>
         <div style={{ flex: 1 }} />
         {!editing && <span onClick={start} style={{ fontSize: 11.5, fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
       </div>
+      {saved && <CdSavedToast label={t('fiche.saved.coord')} />}
 
       {editing ? (
         <>
@@ -518,15 +628,18 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
           </div>
         </>
       ) : (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <CdReadRow label={t('fiche.coord.civility')} value={form.civ ? t('fiche.civ.' + form.civ) : ''} empty={!form.civ} emptyLabel={emptyLbl} P={P} />
-            <CdReadRow label={t('detail.language')} value={form.lang ? t('fiche.lang.' + form.lang) : ''} empty={!form.lang} emptyLabel={emptyLbl} P={P} />
-          </div>
+        // Une seule grille 2 colonnes, ordre du handoff : état civil → identité LBA → contact.
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <CdReadRow label={t('fiche.coord.civility')} value={form.civ ? t('fiche.civ.' + form.civ) : ''} empty={!form.civ} emptyLabel={emptyLbl} P={P} />
+          <CdReadRow label={t('detail.language')} value={form.lang ? t('fiche.lang.' + form.lang) : ''} empty={!form.lang} emptyLabel={emptyLbl} P={P} />
+          <CdReadRow label={t('fiche.coord.birth')} value={fiche.birth} empty={!fiche.birth} emptyLabel={emptyLbl} mono P={P} />
+          <CdReadRow label={t('fiche.coord.nationality')} value={countryName(fiche.nationality)} empty={!fiche.nationality} emptyLabel={emptyLbl} P={P} />
+          <CdReadRow label={t('fiche.coord.residence')} value={countryName(fiche.residence)} empty={!fiche.residence} emptyLabel={emptyLbl} P={P} />
+          <CdReadRow label={t('fiche.coord.address')} value={fiche.homeAddress} empty={!fiche.homeAddress} emptyLabel={emptyLbl} P={P} />
           <CdReadRow label={t('detail.email')} value={form.email} empty={!form.email} emptyLabel={emptyLbl} P={P} />
           <CdReadRow label={t('detail.phone')} value={form.phone} empty={!form.phone} emptyLabel={emptyLbl} mono P={P} />
           <CdReadRow label={t('fiche.coord.channel')} value={form.canal ? t('fiche.canal.' + form.canal) : ''} empty={!form.canal} emptyLabel={emptyLbl} P={P} />
-        </>
+        </div>
       )}
     </div>
   )
@@ -563,6 +676,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
   const cancel = () => setEditing(false)
   useEffect(() => { if (editSignal > 0) { setD(v); setEditing(true) } }, [editSignal]) // eslint-disable-line react-hooks/exhaustive-deps
   useFreeze(freezeRef, editing)
+  const [saved, flashSaved] = useSavedFlash()
   const setF = (key: keyof CritForm) => (val: string) => setD((s) => ({ ...s, [key]: val }))
   const toggle = (key: 'types' | 'cantons' | 'mustHave', item: string) =>
     setD((s) => ({ ...s, [key]: s[key].includes(item) ? s[key].filter((x) => x !== item) : [...s[key], item] }))
@@ -578,7 +692,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
       areaMin: d.areaMin === '' ? null : Number(d.areaMin),
       mustHave: d.mustHave,
     }
-    void onSave(out)
+    void onSave(out).then(flashSaved)
   }
 
   const budgetLabel = isTenant ? t('fiche.crit.rentMax') : t('fiche.crit.buyBudget')
@@ -596,6 +710,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
         <div style={{ flex: 1 }} />
         {!editing && <span onClick={start} style={{ fontSize: 11.5, fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
       </div>
+      {saved && <CdSavedToast label={t('fiche.saved.crit')} />}
 
       {editing ? (
         <>
@@ -714,24 +829,33 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
   onSaveNote: ContactDetailPagerProps['onSaveNote']; onDelete: ContactDetailPagerProps['onDelete']
 }) {
   const { t } = useTranslation('contacts')
-  const [nm, setNm] = useState<NmDraft>({ firstName: fiche.firstName, lastName: fiche.lastName })
-  const [nmDraft, setNmDraft] = useState<NmDraft>({ firstName: fiche.firstName, lastName: fiche.lastName })
+  const ficheIdentity = useCallback((): ContactIdentity => ({
+    firstName: fiche.firstName, lastName: fiche.lastName, birth: fiche.birth,
+    nationality: fiche.nationality, residence: fiche.residence, homeAddress: fiche.homeAddress,
+  }), [fiche.firstName, fiche.lastName, fiche.birth, fiche.nationality, fiche.residence, fiche.homeAddress])
+  const [nm, setNm] = useState<NmDraft>(ficheIdentity)
+  const [nmDraft, setNmDraft] = useState<NmDraft>(ficheIdentity)
   const [verified, setVerified] = useState(fiche.verified)
   const [idEdit, setIdEdit] = useState(false)
+  const [idErr, setIdErr] = useState<string | null>(null)
   const [kycWarn, setKycWarn] = useState(false)
   const [delOpen, setDelOpen] = useState(false)
+  const [delDone, setDelDone] = useState(false)
+  const [delErr, setDelErr] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [coordSig, setCoordSig] = useState(0)
   const [critSig, setCritSig] = useState(0)
   const moreRef = useRef<HTMLDivElement>(null)
+  const delTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Re-sync quand le contact change (nouveau contact ou re-fetch parent).
   useEffect(() => {
-    setNm({ firstName: fiche.firstName, lastName: fiche.lastName })
-    setNmDraft({ firstName: fiche.firstName, lastName: fiche.lastName })
+    setNm(ficheIdentity()); setNmDraft(ficheIdentity())
     setVerified(fiche.verified)
     setIdEdit(false); setKycWarn(false); setMenuOpen(false); setDelOpen(false); setCoordSig(0); setCritSig(0)
-  }, [fiche.id, fiche.firstName, fiche.lastName, fiche.verified])
+  }, [fiche.id, fiche.verified, ficheIdentity])
+
+  useEffect(() => () => { if (delTimer.current) clearTimeout(delTimer.current) }, [])
 
   // Fermeture du menu ⋯ au clic extérieur / Escape.
   useEffect(() => {
@@ -744,36 +868,73 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
   }, [menuOpen])
 
   // Gel du pager tant qu'une modale ou le menu est ouvert.
-  useFreeze(freezeRef, idEdit || kycWarn || delOpen || menuOpen)
+  useFreeze(freezeRef, idEdit || kycWarn || delOpen || delDone || menuOpen)
 
   const initials = ((nm.firstName[0] || '') + (nm.lastName[0] || '')).toUpperCase()
-  const startId = () => { setNmDraft(nm); setIdEdit(true) }
+  const startId = () => { setNmDraft(nm); setIdErr(null); setIdEdit(true) }
+
+  /**
+   * Échec d'enregistrement de l'identité : on garde la modale ouverte avec le message.
+   * Laisser la promesse rejeter en silence ferait croire à un enregistrement réussi
+   * alors que l'identité LBA n'a pas bougé.
+   */
+  const runApplyId = (invalidate: boolean) => {
+    void applyId(invalidate).catch((e: unknown) => {
+      setIdErr(e instanceof Error ? e.message : t('fiche.identity.saveError'))
+      setKycWarn(false)
+      setIdEdit(true)
+    })
+  }
 
   const applyId = async (invalidate: boolean) => {
-    const fn = nmDraft.firstName.trim(), ln = nmDraft.lastName.trim()
-    await onSaveIdentity(fn, ln)
+    setIdErr(null)
+    const next: ContactIdentity = {
+      firstName: nmDraft.firstName.trim(), lastName: nmDraft.lastName.trim(),
+      birth: nmDraft.birth.trim(), nationality: nmDraft.nationality.trim(),
+      residence: nmDraft.residence.trim(), homeAddress: nmDraft.homeAddress.trim(),
+    }
+    // Invalider AVANT d'écrire. Les deux appels sont deux requêtes réseau distinctes,
+    // sans transaction : si l'écriture passait d'abord et que l'invalidation échouait,
+    // il resterait un dossier « vérifié » portant une identité qui n'a jamais été
+    // contrôlée — l'état le plus dangereux. Dans l'ordre inverse, le pire cas est un
+    // dossier repassé en `pending` sans que l'identité change : récupérable.
     if (invalidate) { await onInvalidateKyc(); setVerified(false) }
-    setNm({ firstName: fn, lastName: ln })
+    await onSaveIdentity(next)
+    setNm(next)
     setIdEdit(false); setKycWarn(false)
   }
+  // Les 6 champs LBA déclenchent l'avertissement, pas seulement prénom/nom : changer
+  // la nationalité ou la date de naissance change l'identité vérifiée (cf. contactIdentity).
   const requestSaveId = () => {
-    const changed = nmDraft.firstName.trim() !== nm.firstName || nmDraft.lastName.trim() !== nm.lastName
-    if (!changed) { setIdEdit(false); return }
+    if (!hasIdentityChanged(nm, nmDraft)) { setIdEdit(false); return }
     if (verified) setKycWarn(true)
-    else void applyId(false)
+    else runApplyId(false)
+  }
+
+  // La carte « Contact supprimé » doit être VUE : on affiche d'abord, on quitte après.
+  // L'échec est affiché plutôt qu'avalé : sans ça, la modale reste ouverte sans rien
+  // dire et l'agent croit à un blocage de l'interface alors que le contact est intact.
+  const confirmDelete = async () => {
+    setDelErr(null)
+    try {
+      await onDelete()
+      setDelOpen(false); setDelDone(true)
+      delTimer.current = setTimeout(onBack, 1100)
+    } catch (e) {
+      setDelErr(e instanceof Error ? e.message : t('fiche.delete.error'))
+    }
   }
 
   // CTA principal orienté par le côté marché du contact (pas d'invention de route).
   const isSeller = fiche.audience === 'Vendeur' || fiche.audience === 'Bailleur'
-  const primary = isSeller
-    ? { label: t('fiche.cta.viewMandate'), icon: 'eye' }
-    : { label: t('fiche.cta.transmit'), icon: 'send' }
+  // Beta v1 : les deux CTA du héro sont sans icône, label seul.
+  const primaryLabel = isSeller ? t('fiche.cta.viewMandate') : t('fiche.cta.transmit')
 
   return (
     <div style={{ position: 'absolute', inset: 0, padding: '22px 30px 24px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
-      {kycWarn && <CdKycWarn P={P} dark={dark} name={nm.firstName} onCancel={() => setKycWarn(false)} onConfirm={() => void applyId(true)} />}
-      {delOpen && <CdDeleteModal P={P} dark={dark} name={(nm.firstName + ' ' + nm.lastName).trim()} onCancel={() => setDelOpen(false)} onConfirm={() => { setDelOpen(false); onDelete() }} />}
-      {idEdit && <CdIdentityModal P={P} dark={dark} draft={nmDraft} setDraft={setNmDraft} verified={verified} onCancel={() => { setIdEdit(false); setNmDraft(nm) }} onSave={requestSaveId} />}
+      {kycWarn && <CdKycWarn P={P} dark={dark} name={nm.firstName} onCancel={() => setKycWarn(false)} onConfirm={() => runApplyId(true)} />}
+      {(delOpen || delDone) && <CdDeleteModal P={P} dark={dark} done={delDone} error={delErr} name={(nm.firstName + ' ' + nm.lastName).trim()} onCancel={() => { setDelOpen(false); setDelErr(null) }} onConfirm={() => void confirmDelete()} />}
+      {idEdit && <CdIdentityModal P={P} dark={dark} draft={nmDraft} setDraft={setNmDraft} verified={verified} error={idErr} onCancel={() => { setIdEdit(false); setNmDraft(nm) }} onSave={requestSaveId} />}
 
       {/* Retour */}
       <div style={{ display: 'flex' }}>
@@ -784,7 +945,9 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
 
       {/* Héro */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ width: 60, height: 60, borderRadius: 999, background: fiche.avatarBg || P.buyer, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 19, fontWeight: 700, flexShrink: 0 }}>{initials}</div>
+        <div style={{ width: 60, height: 60, borderRadius: 999, background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: '#fff', display: 'grid', placeItems: 'center', fontSize: 19, fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
+          {fiche.photo ? <img src={fiche.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+        </div>
         <div style={{ minWidth: 0, flex: '0 1 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <h1 style={{ margin: 0, fontSize: 27, fontWeight: 800, letterSpacing: -0.8, color: P.ink, lineHeight: 1 }}>{nm.firstName} {nm.lastName}</h1>
@@ -804,8 +967,8 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
         </div>
         <div style={{ flex: 1 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CdCta tone="ghost" P={P} onClick={onOpenKyc}><FcpIcon name="shield" size={14} stroke={P.inkSoft} /> {t('fiche.kycDossier')}</CdCta>
-          <CdCta P={P} onClick={isSeller ? onOpenListings : onOpenMatching}><FcpIcon name={primary.icon} size={14} stroke={P.accentInk} /> {primary.label}</CdCta>
+          <CdCta tone="ghost" P={P} onClick={onOpenKyc}>{t('fiche.kycDossier')}</CdCta>
+          <CdCta P={P} onClick={isSeller ? onOpenListings : onOpenMatching}>{primaryLabel}</CdCta>
           <div ref={moreRef} style={{ position: 'relative' }}>
             <CdRoundBtn icon="more" P={P} onClick={() => setMenuOpen((o) => !o)} />
             {menuOpen && (
@@ -834,8 +997,8 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGE 1 — BOUCLE DE MATCH
 // ═══════════════════════════════════════════════════════════════════════
-function CdBoucle({ P, loop, onOpenMatching, onProposeVisit }: {
-  P: FichePal; loop: ContactDetailPagerProps['loop']; onOpenMatching: () => void; onProposeVisit: (matchId: string) => void
+function CdBoucle({ P, loop, firstName, onOpenMatching, onProposeVisit }: {
+  P: FichePal; loop: ContactDetailPagerProps['loop']; firstName: string; onOpenMatching: () => void; onProposeVisit: (matchId: string) => void
 }) {
   const { t } = useTranslation('contacts')
   const [hidden, setHidden] = useState<Set<string>>(new Set())
@@ -858,15 +1021,27 @@ function CdBoucle({ P, loop, onOpenMatching, onProposeVisit }: {
         <div style={{ flex: 1 }} />
         {counters.map((c) => (
           <div key={c.l} style={{ textAlign: 'center', minWidth: 62 }}>
-            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: c.liked ? P.like : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
             <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: P.muted, marginTop: 4 }}>{c.l}</div>
           </div>
         ))}
       </div>
 
       {totallyEmpty ? (
+        // Boucle jamais démarrée → invitation à transmettre, pas un cul-de-sac gris.
         <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: P.muted }}>{t('loop.empty')}</div>
+          <div style={{ maxWidth: 430, textAlign: 'center', background: P.card, borderRadius: 22, boxShadow: P.shadowSm, padding: '34px 32px' }}>
+            <span style={{ display: 'inline-grid', placeItems: 'center' }}>
+              <FcpIcon name="send" size={30} stroke={P.inkSoft} />
+            </span>
+            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.3, color: P.ink, marginTop: 16 }}>{t('fiche.loop.emptyTitle')}</div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 8 }}>
+              <Trans t={t} i18nKey="fiche.loop.emptyBody" values={{ name: firstName }} components={{ 1: <br /> }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+              <CdCta P={P} onClick={onOpenMatching}>{t('fiche.cta.transmit')}</CdCta>
+            </div>
+          </div>
         </div>
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -874,11 +1049,14 @@ function CdBoucle({ P, loop, onOpenMatching, onProposeVisit }: {
           <div style={{ background: P.card, borderRadius: 20, boxShadow: P.shadow, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 11, minHeight: 0, overflowY: 'auto' }}>
             <CdGrp P={P}>{t('fiche.loop.toHandleCount', { count: pending.length })}</CdGrp>
             {pending.length === 0 ? (
-              <div style={{ padding: '20px 4px', fontSize: 12.5, fontWeight: 500, color: P.muted }}>{t('fiche.loop.nothingToHandle')}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: P.sub, borderRadius: 15, padding: '16px 15px' }}>
+                <FcpIcon name="check" size={16} stroke={P.ok} />
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: P.inkSoft }}>{t('fiche.loop.nothingToHandle')}</div>
+              </div>
             ) : pending.map((p) => (
               <div key={p.matchId} style={{ background: P.sub, borderRadius: 15, padding: '14px 15px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 999, background: 'rgba(229,72,77,0.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><FcpIcon name="heart" size={15} stroke="#E5484D" fill="#E5484D" sw={1.5} /></span>
+                  <span style={{ width: 34, height: 34, borderRadius: 999, background: 'rgba(5,150,105,0.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><FcpIcon name="heart" size={15} stroke={P.ok} fill={P.ok} sw={1.5} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: P.ink }}>{t('loop.likedTitle', { title: p.title })}</div>
                   </div>
@@ -1028,6 +1206,7 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
         @keyframes cdpMenuIn { from { opacity: 0; transform: translateY(-6px) scale(.97) } to { opacity: 1; transform: none } }
         @keyframes cdpFade { from { opacity: 0 } to { opacity: 1 } }
         @keyframes cdpRise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+        @keyframes cdpToast { from { opacity: 0; transform: translate(-50%, 10px) } to { opacity: 1; transform: translate(-50%, 0) } }
       `}</style>
       <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
@@ -1036,7 +1215,7 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
               onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} onSaveNote={onSaveNote} onDelete={onDelete} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            <CdBoucle P={P} loop={loop} onOpenMatching={onOpenMatching} onProposeVisit={onProposeVisit} />
+            <CdBoucle P={P} loop={loop} firstName={fiche.firstName} onOpenMatching={onOpenMatching} onProposeVisit={onProposeVisit} />
           </div>
         </div>
         <CdDots page={page} onGo={goTo} P={P} labels={pageLabels} />
