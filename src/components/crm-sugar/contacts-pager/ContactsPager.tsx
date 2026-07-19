@@ -1,7 +1,10 @@
 // MEGGA CRM — Pager « Contacts » (refonte Claude Design, port fidèle).
 // Un grand bento arrondi (viewport) qui glisse verticalement entre deux pages :
-//   Page 0 → La liste (recherche, sous-nav audience, lignes)          [en haut]
+//   Page 0 → La liste (sous-nav audience, lignes)                      [en haut]
 //   Page 1 → Santé du portefeuille (agrégats + segments cliquables)   [en bas]
+// Pas de champ de recherche local : la recherche globale est assurée par
+// `openSugarSearch()` (câblé sur `onCmd` dans ContactsSugarV2Page). Ne pas en
+// réintroduire un ici — ni le handoff Beta v1 ni le port n'en prévoient.
 // Cliquer un segment de la Santé filtre la liste et remonte en page 0.
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
 // Réf. handoff : `crm-screen-contacts-proto.jsx` (CRMScreenContactsProto).
@@ -11,7 +14,7 @@
 
 import {
   useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
-  type ReactNode,
+  type CSSProperties, type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CrmContact } from '@/components/crm-sugar/mockData'
@@ -21,6 +24,23 @@ import { crmInitials } from '@/components/crm-sugar/tokens'
 // ── Couleurs fonctionnelles (données métier — jamais accent UI) ─────────
 const CTP_FN = { buyer: '#1E5BC6', seller: '#C45A00', tenant: '#0891B2', ok: '#059669' } as const
 type Audience = 'buyer' | 'seller' | 'tenant'
+
+/**
+ * Encre bleue des libellés TEXTE (KYC vérifié, pilule de filtre).
+ *
+ * Le handoff utilise `CTP_FN.buyer` (#1E5BC6) dans les deux thèmes ; sur fond
+ * sombre ce bleu tombe sous le seuil de contraste, d'où le #6F8CFF. C'est un
+ * correctif VOLONTAIRE, à conserver — ne pas « réaligner » sur #1E5BC6 en sombre
+ * au nom de la fidélité au prototype.
+ *
+ * Ne s'applique QU'au texte : `CtpTypePill` garde #1E5BC6 en fond plein (texte
+ * blanc, contraste déjà bon) pour rester raccord avec le point de couleur de la
+ * page Santé (`CTP_FN[r.a]`).
+ */
+const FN_BUYER_INK = (dark: boolean): string => (dark ? '#6F8CFF' : CTP_FN.buyer)
+
+/** Grille des colonnes de la liste — partagée par l'en-tête, les lignes et le squelette. */
+const CTP_GRID = '1.7fr .8fr 1fr 1fr 1.1fr 34px'
 
 // ── Dérivations depuis un CrmContact ────────────────────────────────────
 function audienceOf(c: CrmContact): Audience {
@@ -105,10 +125,10 @@ function CtpKyc({ status, sp, dark, labels }: {
   status: ReturnType<typeof kycStatusOf>
   sp: SugarPalette
   dark: boolean
-  labels: { verified: string; pending: string; stale: string }
+  labels: { verified: string; verifiedTitle: string; pending: string; stale: string }
 }) {
   if (status === 'verified')
-    return <span title={labels.verified} style={{ display: 'inline-flex', alignItems: 'center', color: dark ? '#6F8CFF' : CTP_FN.buyer, fontSize: 12, fontWeight: 700 }}>{labels.verified}</span>
+    return <span title={labels.verifiedTitle} style={{ display: 'inline-flex', alignItems: 'center', color: FN_BUYER_INK(dark), fontSize: 12, fontWeight: 700 }}>{labels.verified}</span>
   if (status === 'pending')
     return <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub }}>{labels.pending}</span>
   if (status === 'stale')
@@ -134,13 +154,50 @@ function CtpCta({ children, dark, onClick }: { children: ReactNode; dark: boolea
   )
 }
 
+/**
+ * Squelette de chargement de la liste — reprend la grille et les gabarits de
+ * ligne réels pour que l'apparition des vraies données ne décale rien.
+ * Même grammaire de shimmer que `ContactsFirstRun` (1.25 s, garde
+ * `prefers-reduced-motion`), classe distincte car ces deux écrans ne coexistent
+ * jamais mais vivent dans des blocs `<style>` séparés.
+ */
+function CtpSkeletonRows({ dark, hairSoft }: { dark: boolean; hairSoft: string }) {
+  const skVars = {
+    '--sk': dark ? 'rgba(255,255,255,.08)' : '#E7EAF0',
+    '--skHi': dark ? 'rgba(255,255,255,.17)' : '#F5F7FA',
+  } as CSSProperties
+  const bar = (w: number) => ({ width: w, height: 11, borderRadius: 6 })
+  return (
+    <div aria-hidden="true" style={skVars}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} style={{
+          display: 'grid', gridTemplateColumns: CTP_GRID, gap: 12, alignItems: 'center',
+          padding: '13px 22px', borderBottom: i < 5 ? `1px solid ${hairSoft}` : '0',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="ctp-sk" style={{ width: 38, height: 38, borderRadius: 999, flexShrink: 0 }} />
+            <div className="ctp-sk" style={bar(140)} />
+          </div>
+          <div className="ctp-sk" style={bar(60)} />
+          <div className="ctp-sk" style={bar(70)} />
+          <div className="ctp-sk" style={bar(50)} />
+          <div className="ctp-sk" style={bar(70)} />
+          <div />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGE 0 — LA LISTE
 // ═══════════════════════════════════════════════════════════════════════
-function CtpTopList({ contacts, sp, dark, filter, setFilter, onOpenContact, onNewContact }: {
+function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenContact, onNewContact }: {
   contacts: CrmContact[]
   sp: SugarPalette
   dark: boolean
+  /** Chargement Supabase en cours → squelette, jamais le message d'empty-filter. */
+  isLoading: boolean
   filter: Filter
   setFilter: (f: Filter) => void
   onOpenContact: (id: string) => void
@@ -154,6 +211,9 @@ function CtpTopList({ contacts, sp, dark, filter, setFilter, onOpenContact, onNe
 
   const kycLabels = {
     verified: t('pager.kyc.verified'),
+    // Le title qualifie la donnée (« KYC vérifié ») là où le libellé visible
+    // dit juste « Vérifié » — sinon l'infobulle n'apporte rien.
+    verifiedTitle: t('pager.kyc.verifiedTitle'),
     pending: t('pager.kyc.pending'),
     stale: t('pager.kyc.stale'),
   }
@@ -168,7 +228,8 @@ function CtpTopList({ contacts, sp, dark, filter, setFilter, onOpenContact, onNe
     if (d === 1) return t('pager.yesterday')
     if (d < 30) return t('relativeTime.j', { n: d })
     if (d < 365) return t('relativeTime.mois', { n: Math.round(d / 30) })
-    return t('relativeTime.mois', { n: Math.round(d / 30) })
+    // Au-delà d'un an, basculer en années : « il y a 36 mois » est illisible.
+    return t('relativeTime.ans', { count: Math.floor(d / 365) })
   }
 
   const tabs: { id: 'all' | Audience; label: string; n: number }[] = [
@@ -179,7 +240,7 @@ function CtpTopList({ contacts, sp, dark, filter, setFilter, onOpenContact, onNe
   ]
   const rows = useMemo(() => contacts.filter(c => matchFilter(c, filter)), [contacts, filter])
   const segActive = filter.type !== 'audience'
-  const GRID = '1.7fr .8fr 1fr 1fr 1.1fr 34px'
+  const GRID = CTP_GRID
 
   return (
     <div style={{ position: 'absolute', inset: 0, padding: '26px 34px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden', background: sp.pageBg }}>
@@ -207,7 +268,7 @@ function CtpTopList({ contacts, sp, dark, filter, setFilter, onOpenContact, onNe
         {segActive && (
           <button onClick={() => setFilter({ type: 'audience', value: 'all' })} title={t('pager.removeFilter')} style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, height: 36, padding: '0 8px 0 14px', borderRadius: 999,
-            border: 0, background: dark ? 'rgba(30,91,198,0.22)' : '#E8EFFE', color: CTP_FN.buyer,
+            border: 0, background: dark ? 'rgba(30,91,198,0.22)' : '#E8EFFE', color: FN_BUYER_INK(dark),
             fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
           }}>
             {filter.label}
@@ -222,10 +283,11 @@ function CtpTopList({ contacts, sp, dark, filter, setFilter, onOpenContact, onNe
           <div>{t('pager.col.contact')}</div><div>{t('pager.col.type')}</div><div>{t('pager.col.budget')}</div><div>{t('pager.col.kyc')}</div><div>{t('pager.col.last')}</div><div />
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          {rows.length === 0 && (
+          {isLoading && <CtpSkeletonRows dark={dark} hairSoft={hairSoft} />}
+          {!isLoading && rows.length === 0 && (
             <div style={{ padding: '48px 22px', textAlign: 'center', color: sp.sub, fontSize: 14, fontWeight: 600 }}>{t('pager.emptyFilter')}</div>
           )}
-          {rows.map((c, i) => {
+          {!isLoading && rows.map((c, i) => {
             const aud = audienceOf(c)
             const budget = budgetShort(c)
             return (
@@ -387,16 +449,60 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//   ÉTAT D'ERREUR DE CHARGEMENT
+// ═══════════════════════════════════════════════════════════════════════
+/**
+ * Écran d'échec du chargement Supabase.
+ *
+ * Indispensable pour ne PAS confondre « la requête a échoué » avec « ce compte
+ * n'a aucun contact » : sans lui, une panne réseau présentait le carnet de
+ * l'agent comme vide via la couverture premier lancement.
+ */
+function CtpLoadError({ sp, dark, onRetry, title, message, retryLabel }: {
+  sp: SugarPalette
+  dark: boolean
+  onRetry?: () => void
+  title: string
+  message: string
+  retryLabel: string
+}) {
+  return (
+    <div role="alert" style={{
+      position: 'absolute', inset: 0, background: sp.pageBg, padding: '34px 36px', boxSizing: 'border-box',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center',
+    }}>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>{title}</h2>
+      <p style={{ margin: 0, maxWidth: 420, fontSize: 13.5, fontWeight: 500, lineHeight: 1.5, color: sp.sub }}>{message}</p>
+      {onRetry && (
+        <button className="ctp-seg" onClick={onRetry} style={{
+          marginTop: 8, height: 34, padding: '0 15px', borderRadius: 999, background: 'transparent', color: sp.ink,
+          border: `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(11,12,14,.1)'}`,
+          fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+        }}>{retryLabel}</button>
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //   POINTS + INDICE
 // ═══════════════════════════════════════════════════════════════════════
-function CtpPageDots({ page, onGo, dark, count, labels }: { page: number; onGo: (i: number) => void; dark: boolean; count: number; labels: string[] }) {
+function CtpPageDots({ page, onGo, dark, count, labels, goLabel }: {
+  page: number
+  onGo: (i: number) => void
+  dark: boolean
+  count: number
+  labels: string[]
+  /** Annonce l'interaction ET la destination — un point nu ne dit rien au lecteur d'écran. */
+  goLabel: (target: string) => string
+}) {
   const activeCol = dark ? '#F2F2F6' : '#0B0C0E'
   const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(11,12,14,.18)'
   if (count < 2) return null
   return (
     <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
       {Array.from({ length: count }).map((_, i) => (
-        <button key={i} onClick={() => onGo(i)} title={labels[i]} style={{
+        <button key={i} onClick={() => onGo(i)} title={labels[i]} aria-label={goLabel(labels[i])} style={{
           width: 8, height: i === page ? 26 : 8, borderRadius: 999, border: 0, cursor: 'pointer', padding: 0,
           background: i === page ? activeCol : idleCol, transition: 'height .5s cubic-bezier(.76,0,.24,1), background .4s ease',
         }} />
@@ -405,14 +511,22 @@ function CtpPageDots({ page, onGo, dark, count, labels }: { page: number; onGo: 
   )
 }
 
-function CtpScrollHint({ page, onGo, sp, labels, count }: { page: number; onGo: (i: number) => void; sp: SugarPalette; labels: string[]; count: number }) {
+function CtpScrollHint({ page, onGo, sp, labels, count, goLabel }: {
+  page: number
+  onGo: (i: number) => void
+  sp: SugarPalette
+  labels: string[]
+  count: number
+  /** Annonce l'interaction ET la destination : le libellé visible n'apparaît qu'au survol. */
+  goLabel: (target: string) => string
+}) {
   const nextLabel = page + 1 < count ? labels[page + 1] : null
   const prevLabel = page > 0 ? labels[page - 1] : null
   const target = nextLabel || prevLabel
   if (!target) return null
   const dir = nextLabel ? 1 : -1
   return (
-    <button className="ctp-scroll-hint" onClick={() => onGo(page + dir)} aria-label={target} style={{
+    <button className="ctp-scroll-hint" onClick={() => onGo(page + dir)} aria-label={goLabel(target)} style={{
       position: 'absolute', bottom: 18, left: 24, zIndex: 60, display: 'flex', alignItems: 'center', gap: 11,
       padding: 6, border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer',
     }}>
@@ -437,7 +551,18 @@ export interface ContactsPagerProps {
   dark: boolean
   onOpenContact: (id: string) => void
   onNewContact: () => void
-  /** Liste vide (compte neuf) → page 0 = firstRunSlot, pager mono-page. */
+  /** Chargement Supabase en cours → squelette de liste (jamais « aucun contact »). */
+  isLoading?: boolean
+  /**
+   * Le chargement a ÉCHOUÉ. Distinct de `fresh` : une base injoignable ne doit
+   * jamais être présentée comme un carnet vide.
+   */
+  loadError?: boolean
+  onRetry?: () => void
+  /**
+   * Liste vide alors que le chargement a RÉUSSI (compte neuf) → page 0 =
+   * firstRunSlot, pager mono-page.
+   */
   fresh: boolean
   firstRunSlot?: ReactNode
   /** Modale « Nouveau contact » embarquée dans le cadre (overlay). */
@@ -446,13 +571,18 @@ export interface ContactsPagerProps {
 }
 
 export default function ContactsPager({
-  contacts, sp, dark, onOpenContact, onNewContact, fresh, firstRunSlot, modalOpen, modalSlot,
+  contacts, sp, dark, onOpenContact, onNewContact, isLoading = false, loadError = false, onRetry,
+  fresh, firstRunSlot, modalOpen, modalSlot,
 }: ContactsPagerProps) {
   const { t } = useTranslation('contacts')
   const [page, setPage] = useState(0)
   const [filter, setFilter] = useState<Filter>({ type: 'audience', value: 'all' })
-  const pageCount = fresh ? 1 : 2
+  // Premier lancement ET erreur de chargement réduisent le pager à une seule
+  // page : dans les deux cas la Santé du portefeuille n'a rien à agréger.
+  const mono = fresh || loadError
+  const pageCount = mono ? 1 : 2
   const pageLabels = [t('pager.title'), t('health.title')]
+  const goLabel = useCallback((target: string) => t('pager.goToPage', { page: target }), [t])
 
   const pageRef = useRef(0)
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -464,8 +594,8 @@ export default function ContactsPager({
   const accTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const modalOpenRef = useRef(modalOpen)
   useEffect(() => { modalOpenRef.current = modalOpen }, [modalOpen])
-  const freshRef = useRef(fresh)
-  useEffect(() => { freshRef.current = fresh; if (fresh) setPage(0) }, [fresh])
+  const monoRef = useRef(mono)
+  useEffect(() => { monoRef.current = mono; if (mono) setPage(0) }, [mono])
 
   const animateTo = useCallback((target: number, instant?: boolean) => {
     const vp = viewportRef.current, track = trackRef.current
@@ -489,7 +619,7 @@ export default function ContactsPager({
   }, [])
 
   const go = useCallback((dir: number) => {
-    const max = (freshRef.current ? 1 : 2) - 1
+    const max = (monoRef.current ? 1 : 2) - 1
     setPage((p) => Math.min(max, Math.max(0, p + dir)))
   }, [])
   const goTo = useCallback((i: number) => {
@@ -527,14 +657,17 @@ export default function ContactsPager({
       return false
     }
     const onWheel = (e: WheelEvent) => {
-      if (modalOpenRef.current || freshRef.current) return
+      if (modalOpenRef.current || monoRef.current) return
       if (canScrollNatively(e.target, e.deltaY > 0 ? 1 : -1)) { acc.current = 0; return }
       e.preventDefault()
       if (lock.current) return
       acc.current += e.deltaY
       if (accTimer.current) clearTimeout(accTimer.current)
-      accTimer.current = setTimeout(() => { acc.current = 0 }, 180)
-      if (Math.abs(acc.current) > 40) {
+      // Seuil du handoff : un geste FRANC (560 accumulés, fenêtre 220 ms) fait
+      // tourner la page. Descendre ce seuil rend le pager fébrile au trackpad
+      // et le désaligne de MatchingPagerPage, qui partage la même grammaire.
+      accTimer.current = setTimeout(() => { acc.current = 0 }, 220)
+      if (Math.abs(acc.current) > 560) {
         const dir = acc.current > 0 ? 1 : -1
         acc.current = 0
         lock.current = true
@@ -544,7 +677,7 @@ export default function ContactsPager({
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     const onKey = (e: KeyboardEvent) => {
-      if (modalOpenRef.current || freshRef.current) return
+      if (modalOpenRef.current || monoRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
       if (['ArrowDown', 'PageDown'].includes(e.key)) { e.preventDefault(); if (!lock.current) { lock.current = true; go(1); setTimeout(() => { lock.current = false }, 820) } }
@@ -554,7 +687,7 @@ export default function ContactsPager({
     let touchY: number | null = null
     const onTS = (e: TouchEvent) => { touchY = e.touches[0].clientY }
     const onTM = (e: TouchEvent) => {
-      if (touchY == null || lock.current || modalOpenRef.current || freshRef.current) return
+      if (touchY == null || lock.current || modalOpenRef.current || monoRef.current) return
       const dy = touchY - e.touches[0].clientY
       if (Math.abs(dy) > 60) { lock.current = true; go(dy > 0 ? 1 : -1); touchY = null; setTimeout(() => { lock.current = false }, 820) }
     }
@@ -580,6 +713,10 @@ export default function ContactsPager({
         /* Pas d'anneau à la souris ; anneau visible au clavier (a11y). */
         .ctp-seg:focus:not(:focus-visible), .ctp-seg-row:focus:not(:focus-visible), .ctp-row:focus:not(:focus-visible), .ctp-scroll-hint:focus:not(:focus-visible) { outline: none; }
         .ctp-seg:focus-visible, .ctp-seg-row:focus-visible, .ctp-row:focus-visible, .ctp-scroll-hint:focus-visible { outline: 2px solid ${dark ? '#8DA4FF' : '#0041D9'}; outline-offset: 2px; border-radius: 10px; }
+        @keyframes ctpShimmer { 0% { background-position: -40% 0; } 100% { background-position: 160% 0; } }
+        .ctp-sk { background-color: var(--sk); background-image: linear-gradient(90deg, transparent, var(--skHi), transparent);
+          background-size: 220% 100%; background-repeat: no-repeat; animation: ctpShimmer 1.25s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) { .ctp-sk { animation: none; } }
       `}</style>
       <div ref={viewportRef} style={{
         position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
@@ -587,24 +724,26 @@ export default function ContactsPager({
       }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            {fresh
-              ? firstRunSlot
-              : <CtpTopList contacts={contacts} sp={sp} dark={dark} filter={filter} setFilter={setFilter} onOpenContact={onOpenContact} onNewContact={onNewContact} />}
+            {loadError
+              ? <CtpLoadError sp={sp} dark={dark} onRetry={onRetry} title={t('pager.error.title')} message={t('pager.error.message')} retryLabel={t('pager.error.retry')} />
+              : fresh
+                ? firstRunSlot
+                : <CtpTopList contacts={contacts} sp={sp} dark={dark} isLoading={isLoading} filter={filter} setFilter={setFilter} onOpenContact={onOpenContact} onNewContact={onNewContact} />}
           </div>
-          {!fresh && (
+          {!mono && (
             <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
               <CtpHealthPage contacts={contacts} sp={sp} dark={dark} onSegment={applySegment} />
             </div>
           )}
         </div>
-        <CtpPageDots page={page} onGo={goTo} dark={dark} count={pageCount} labels={pageLabels} />
+        <CtpPageDots page={page} onGo={goTo} dark={dark} count={pageCount} labels={pageLabels} goLabel={goLabel} />
         {modalOpen && modalSlot && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 45, borderRadius: 26, overflow: 'hidden' }}>
             {modalSlot}
           </div>
         )}
       </div>
-      {!fresh && <CtpScrollHint page={page} onGo={goTo} sp={sp} labels={pageLabels} count={pageCount} />}
+      {!mono && <CtpScrollHint page={page} onGo={goTo} sp={sp} labels={pageLabels} count={pageCount} goLabel={goLabel} />}
     </main>
   )
 }

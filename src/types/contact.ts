@@ -37,7 +37,15 @@ export interface Contact {
   // Enriched CRM fields (Étape 1)
   whatsapp_phone: string | null
   language: string
+
+  /** Identité LBA art. 3 — colonnes réelles depuis la migration 20260718160000. */
+  birth_date: string | null
+  /** ISO 3166-1 alpha-2 (même format que kyc_cases.contact_nationality). */
   nationality: string | null
+  /** ISO 3166-1 alpha-2. */
+  residence_country: string | null
+  home_address: string | null
+
   budget_announced: number | null
   budget_estimated_ai: number | null
   search_zones: string[]

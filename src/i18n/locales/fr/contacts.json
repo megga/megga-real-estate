@@ -432,7 +432,9 @@
     "h": "il y a {{n}} h",
     "j": "il y a {{n}} j",
     "sem": "il y a {{n}} sem",
-    "mois": "il y a {{n}} mois"
+    "mois": "il y a {{n}} mois",
+    "ans_one": "il y a {{count}} an",
+    "ans_other": "il y a {{count}} ans"
   },
   "segments": {
     "all": "Tous",
@@ -462,7 +464,8 @@
       "verified": "Vérifié",
       "pending": "En attente",
       "stale": "Expiré",
-      "noneShort": "Aucun"
+      "noneShort": "Aucun",
+      "verifiedTitle": "KYC vérifié"
     },
     "src": {
       "website": "Site web",
@@ -478,6 +481,12 @@
       "manual": "Saisie manuelle",
       "portal": "Portail",
       "other": "Autre"
+    },
+    "goToPage": "Aller à {{page}}",
+    "error": {
+      "title": "Chargement impossible",
+      "message": "Vos contacts n'ont pas pu être chargés. Vérifiez votre connexion, puis réessayez.",
+      "retry": "Réessayer"
     }
   },
   "health": {
@@ -673,12 +682,6 @@
   "newContact": {
     "title": "Nouveau contact",
     "subtitle": "Crée une fiche",
-    "typeDesc": {
-      "buyer": "Recherche un bien à acheter",
-      "tenant": "Recherche une location",
-      "seller": "Met un bien en vente",
-      "landlord": "Met un bien en location"
-    },
     "civility": {
       "mr": "M.",
       "mrs": "Mme",
@@ -698,7 +701,6 @@
       "land": "Terrain",
       "commercial": "Commercial"
     },
-    "identity": "Identité",
     "civilityLabel": "Civ.",
     "firstName": "Prénom *",
     "firstNamePlaceholder": "Marie",
@@ -736,7 +738,6 @@
       "openWizard": "Ouvrir le wizard bien complet",
       "mandateKycHint": "La <strong>signature de mandat</strong> et la KYC seront proposées comme prochaines étapes après création."
     },
-    "gdprConsent": "J'ai obtenu le <strong>consentement RGPD</strong> du contact",
     "shortcutCreate": "⌘⏎ pour créer",
     "creating": "Création…",
     "submit": "Créer le contact"
@@ -1051,11 +1052,16 @@
     }
   },
   "firstRun": {
-    "title": "Votre premier contact",
-    "manualTitle": "À la main",
-    "manualDesc": "Vous saisissez ses coordonnées et ses critères de recherche.",
-    "whatsappTitle": "Associer WhatsApp",
-    "whatsappDesc": "Vos contacts et vos échanges remontent dans MEGGA."
+    "title": "Vos contacts, prêts à matcher",
+    "subtitleLine1": "Réunissez acheteurs et locataires ici.",
+    "subtitleLine2": "Dès qu'un contact a ses critères, MEGGA le rapproche de vos mandats.",
+    "step1Title": "Vos contacts arrivent par WhatsApp",
+    "step1Sub": "Chaque discussion entrante devient une fiche.",
+    "step1Cta": "Connecter WhatsApp",
+    "step2Title": "MEGGA les relie à vos biens",
+    "step2Sub": "Le matching se fait tout seul.",
+    "step2Cta": "Automatique",
+    "manualLink": "Créer un contact à la main"
   },
   "waConnect": {
     "title": "Associer votre compte WhatsApp",
@@ -1074,9 +1080,7 @@
     "connectedBadge": "Compte associé"
   },
   "newContactPager": {
-    "heroTitle": "Qui rejoint votre portefeuille ?",
     "close": "Fermer",
-    "photo": "Photo",
     "addPhoto": "Ajouter une photo",
     "removePhoto": "Retirer la photo",
     "civ": "Civ.",
@@ -1129,7 +1133,22 @@
       "ficheTitle": "Fiche",
       "ficheSub": "Compléter, planifier",
       "createAnother": "Créer un autre"
-    }
+    },
+    "expressCard": "Fiche express",
+    "birth": "Date de naissance",
+    "birthPlaceholder": "JJ.MM.AAAA",
+    "moreIdentity": "Identité complète",
+    "moreIdentityHint": "Nationalité, résidence, adresse",
+    "nationality": "Nationalité",
+    "residence": "Pays de résidence",
+    "homeAddress": "Adresse",
+    "preview": {
+      "name": "Nouveau contact",
+      "budget": "Budget",
+      "rentMax": "Loyer max",
+      "propertyAddress": "Adresse du bien"
+    },
+    "birthError": "Date de naissance invalide : format JJ.MM.AAAA."
   },
   "fiche": {
     "back": "Contacts",
@@ -1152,7 +1171,9 @@
       "title": "Supprimer {{name}} ?",
       "thisContact": "ce contact",
       "body": "La fiche, ses critères de recherche et l'historique de sa boucle de match seront <1>définitivement supprimés</1>. Cette action est irréversible.",
-      "confirm": "Supprimer"
+      "confirm": "Supprimer",
+      "done": "Contact supprimé",
+      "error": "La suppression a échoué. Réessayez."
     },
     "kycWarn": {
       "title": "Modifier une identité vérifiée ?",
@@ -1164,13 +1185,25 @@
       "title": "Modifier l'identité",
       "firstName": "Prénom",
       "lastName": "Nom",
-      "kycWarn": "Ce contact a un KYC vérifié. Enregistrer une nouvelle identité <1>invalidera la vérification</1>. La procédure LBA devra être recommencée."
+      "kycWarn": "Ce contact a un KYC vérifié. Enregistrer une nouvelle identité <1>invalidera la vérification</1>. La procédure LBA devra être recommencée.",
+      "birth": "Date de naissance",
+      "birthPlaceholder": "JJ.MM.AAAA",
+      "nationality": "Nationalité",
+      "residence": "Pays de résidence",
+      "address": "Adresse",
+      "addressPlaceholder": "Rue…, NPA Ville",
+      "countryNone": "Non renseigné",
+      "saveError": "L'identité n'a pas pu être enregistrée. Réessayez."
     },
     "coord": {
       "civility": "Civilité",
       "channel": "Canal préféré",
       "emailPlaceholder": "nom@exemple.ch",
-      "phonePlaceholder": "+41 79 …"
+      "phonePlaceholder": "+41 79 …",
+      "birth": "Date de naissance",
+      "nationality": "Nationalité",
+      "residence": "Pays de résidence",
+      "address": "Adresse"
     },
     "toFill": "À renseigner",
     "civ": {
@@ -1235,7 +1268,13 @@
       "transmittedCount": "Biens transmis ({{count}})",
       "openInMatching": "Ouvrir dans le Matching",
       "ignore": "Ignorer",
-      "nothingToHandle": "Rien à traiter pour l'instant."
+      "nothingToHandle": "Tout est à jour, rien à traiter pour l'instant.",
+      "emptyTitle": "Aucun dossier transmis",
+      "emptyBody": "Envoyez une sélection de biens à {{name}}.<1/>Ses retours arrivent ici."
+    },
+    "saved": {
+      "coord": "Coordonnées enregistrées",
+      "crit": "Critères enregistrés"
     }
   },
   "nba": {

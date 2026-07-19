@@ -19,6 +19,7 @@ import { useContactTimeline, type TimelineEvent } from '@/hooks/useContactTimeli
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import type { Contact } from '@/types/contact'
 import type { KycDossierSummary } from '@/types/kyc'
+import { countryName } from '@/lib/countries'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import ContactSeal from './ContactSeal'
@@ -45,7 +46,8 @@ const DEMO_CONTACT: Contact = {
   email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02', type: 'buyer',
   source: 'website', score: 'hot', tags: ['Famille'], notes: null,
   created_at: '2026-04-02T09:00:00.000Z', whatsapp_phone: null, language: 'fr',
-  nationality: 'CH', budget_announced: 1250000, budget_estimated_ai: null,
+  birth_date: null, nationality: 'CH', residence_country: 'CH', home_address: null,
+  budget_announced: 1250000, budget_estimated_ai: null,
   search_zones: ['Carouge', 'Champel'],
   search_criteria: { type: 'vente', budget_min: 950000, budget_max: 1250000, zones: ['Carouge', 'Champel'], rooms_min: 4, surface_min: 110, features: ['Balcon', 'Ascenseur'] },
   ai_seriousness_score: null, ai_purchase_probability: 72, ai_timing: null,
@@ -291,7 +293,9 @@ function OverviewTab({ contact, t, tk, i18nLang, onRefine }: { contact: Contact;
   const features = (sc?.features ?? []).filter(Boolean)
   const infos: { labelKey: string; value: string | null }[] = [
     { labelKey: 'mobile.detail.infos.language', value: contact.language ? contact.language.toUpperCase() : null },
-    { labelKey: 'mobile.detail.infos.nationality', value: contact.nationality },
+    // `nationality` est stocké en ISO alpha-2 depuis la migration 20260718160000 :
+    // sans countryName() la fiche afficherait « RU » au lieu de « Russie ».
+    { labelKey: 'mobile.detail.infos.nationality', value: contact.nationality ? countryName(contact.nationality) : null },
     { labelKey: 'mobile.detail.infos.created', value: contact.created_at ? fmtDateFull(contact.created_at, i18nLang) : null },
     { labelKey: 'mobile.detail.infos.lastInteraction', value: contact.last_interaction_at ? fmtDay(contact.last_interaction_at, i18nLang) : null },
   ].filter((r) => r.value)
