@@ -11,6 +11,9 @@
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWN6dWd5cnZtdHFubm12am9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM4ODgsImV4cCI6MjA4OTE4OTg4OH0.T257g0ws-PmTTBSDBcUQF6WFvVRLmTFHUwIYMgmCrMw';
   var CRM_URL = 'https://app.megga.ch/dashboard';
   var AUTH_REDIRECT = 'https://app.megga.ch/auth/callback'; // l'app gère le retour OAuth/email
+  // Cible du lien de réinitialisation : l'app monte là l'écran « nouveau mot de
+  // passe » (seule route d'auth in-app encore vivante).
+  var RESET_REDIRECT = 'https://app.megga.ch/auth/forgot-password/reset';
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
   // (signin / signup / reset). Site key publique (même projet que l'app).
@@ -74,17 +77,23 @@
   // mais si un challenge apparaît, il apparaît là où l'utilisateur peut le
   // résoudre. L'ancien conteneur en position:absolute;left:-9999px rendait ce
   // cas insoluble : personne ne pouvait répondre, donc aucun callback.
+  // UN conteneur PAR formulaire (classe, pas id : la page en compte plusieurs).
+  // Le chercher globalement rendait le défi insoluble dès qu'un second
+  // formulaire entrait en jeu : le widget du modal « mot de passe oublié » se
+  // serait monté dans le formulaire de connexion, donc SOUS le voile du modal,
+  // hors de portée du clic — et le token n'arrivait jamais.
   function ensureTurnstileContainer(form) {
-    var box = document.getElementById('megga-turnstile');
+    var scope = form || document.body;
+    var box = scope.querySelector('.megga-turnstile');
     if (box && box.parentNode) return box;
     box = document.createElement('div');
-    box.id = 'megga-turnstile';
+    box.className = 'megga-turnstile';
     // grid-column : les formulaires Webflow sont des grilles — sans ça le widget
     // occuperait une seule cellule et décalerait la mise en page.
     box.style.cssText = 'display:flex;justify-content:center;grid-column:1/-1';
-    var btn = form && form.querySelector('input[type="submit"], button[type="submit"]');
+    var btn = scope.querySelector('input[type="submit"], button[type="submit"]');
     if (btn && btn.parentNode) btn.parentNode.insertBefore(box, btn);
-    else (form || document.body).appendChild(box);
+    else scope.appendChild(box);
     return box;
   }
 
@@ -231,25 +240,79 @@
         }).catch(function (err) { setBusy(loginForm, false); failFrom(loginForm, err); });
       }, true);
 
-      // "Mot de passe oublié ?" → reset par email
+      // « Mot de passe oublié ? » → ouvre le modal (l'envoi se fait dedans).
+      //
+      // Avant : le lien déclenchait l'envoi depuis le formulaire de connexion,
+      // ce qui obligeait à saisir son e-mail PUIS à recliquer sur le lien, et la
+      // confirmation s'affichait dans le bloc de succès du formulaire de
+      // connexion. Le modal donne un endroit à soi à cette demande.
       Array.prototype.forEach.call(loginForm.querySelectorAll('a'), function (a) {
         if (!/oubli/i.test(a.textContent)) return;
         a.setAttribute('href', '#');
-        a.addEventListener('click', function (e) {
-          e.preventDefault();
-          var email = (byId('Email') && byId('Email').value || '').trim();
-          if (!email) return showError(loginForm, 'Saisissez d’abord votre e-mail, puis recliquez sur « Mot de passe oublié ? ».');
-          getCaptchaToken(loginForm, function () { showCaptchaPrompt(loginForm); }).then(function (captchaToken) {
-            clearError(loginForm);
-            return client.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.megga.ch/auth/forgot-password/reset', captchaToken: captchaToken });
-          }).then(function () {
-            clearError(loginForm);
-            var done = (loginForm.closest('.w-form') || loginForm.parentElement).querySelector('.w-form-done');
-            if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = 'E-mail de réinitialisation envoyé.'; }
-            else alert('E-mail de réinitialisation envoyé.');
-          }).catch(function (err) { failFrom(loginForm, err); });
-        });
+        a.addEventListener('click', function (e) { e.preventDefault(); openReset(); });
       });
+    }
+
+    // ── MODAL « MOT DE PASSE OUBLIÉ » ──────────────────────────────────
+    var resetModal = byId('megga-reset-modal');
+    var resetForm = byId('megga-reset-form');
+    var resetEmail = byId('megga-reset-email');
+    var resetDone = resetModal && resetModal.querySelector('.w-form-done');
+    var focusBeforeModal = null;
+
+    function openReset() {
+      if (!resetModal) return;
+      focusBeforeModal = document.activeElement;
+      // Remet le dialogue à zéro : sans ça, une 2e demande dans la même page
+      // rouvrirait sur l'écran de confirmation, formulaire toujours masqué.
+      if (resetForm) { resetForm.style.display = ''; clearError(resetForm); }
+      if (resetDone) resetDone.style.display = 'none';
+      // Reprend l'e-mail déjà saisi côté connexion, s'il y en a un.
+      var typed = (byId('Email') && byId('Email').value || '').trim();
+      if (resetEmail && typed) resetEmail.value = typed;
+      resetModal.hidden = false;
+      document.body.classList.add('megga-modal-open');
+      if (resetEmail) resetEmail.focus();
+    }
+
+    function closeReset() {
+      if (!resetModal || resetModal.hidden) return;
+      resetModal.hidden = true;
+      document.body.classList.remove('megga-modal-open');
+      if (focusBeforeModal && focusBeforeModal.focus) focusBeforeModal.focus();
+    }
+
+    if (resetModal) {
+      Array.prototype.forEach.call(resetModal.querySelectorAll('[data-megga-close]'), function (el) {
+        el.addEventListener('click', function (e) { e.preventDefault(); closeReset(); });
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' || e.keyCode === 27) closeReset();
+      });
+    }
+
+    if (resetForm) {
+      resetForm.addEventListener('submit', function (e) {
+        e.preventDefault(); e.stopPropagation(); clearError(resetForm);
+        var email = (resetEmail && resetEmail.value || '').trim();
+        if (!email) return showError(resetForm, 'Indiquez votre e-mail professionnel.');
+        setBusy(resetForm, true);
+        getCaptchaToken(resetForm, function () { showCaptchaPrompt(resetForm); }).then(function (captchaToken) {
+          clearError(resetForm);
+          return client.auth.resetPasswordForEmail(email, {
+            redirectTo: RESET_REDIRECT,
+            captchaToken: captchaToken,
+          });
+        }).then(function (res) {
+          setBusy(resetForm, false);
+          if (res && res.error) return showError(resetForm, traduire(res.error.message));
+          // Supabase ne révèle jamais si l'adresse est connue (anti-énumération) :
+          // le message reste donc conditionnel — affirmer « e-mail envoyé »
+          // serait faux une fois sur deux.
+          resetForm.style.display = 'none';
+          if (resetDone) resetDone.style.display = 'block';
+        }).catch(function (err) { setBusy(resetForm, false); failFrom(resetForm, err); });
+      }, true);
     }
 
     // ── SIGNUP (Sign-Up) : nom + email + password (+ agence) ──
