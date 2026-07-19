@@ -32,6 +32,13 @@ const MATCHING_PAGES = [
   { id: 'recherche', labelKey: 'pager.recherche' },
 ]
 
+// Page d'atterrissage = « Recherche ». Les deux pages sont montées d'emblée, mais
+// celle-ci était positionnée une hauteur d'écran plus bas et clippée : le marché
+// connecté n'apparaissait qu'après un geste (molette / PageDown / point latéral).
+// L'Atelier « par score » reste à un cran vers le haut. Index DÉRIVÉ (pas `1` en
+// dur) pour ne pas atterrir sur la mauvaise page si l'ordre du pager change.
+const LANDING_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'recherche'))
+
 // ─── Points de page (droite) ────────────────────────────────────────────
 function MatchingPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: number) => void; lightMode: boolean }) {
   const { t } = useTranslation('matching')
@@ -141,8 +148,11 @@ export default function MatchingPagerPage() {
   }
 
   // ─── Pager molette ──────────────────────────────────────────────────
-  const [page, setPage] = useState(0)
-  const pageRef = useRef(0)
+  const [page, setPage] = useState(LANDING_PAGE)
+  // `pageRef` sert au positionnement initial SANS animation (useLayoutEffect plus
+  // bas) : il doit démarrer sur la page d'atterrissage, sinon on verrait l'Atelier
+  // une frame avant de glisser vers Recherche.
+  const pageRef = useRef(LANDING_PAGE)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)
@@ -314,7 +324,7 @@ export default function MatchingPagerPage() {
           }}>
             <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
               <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-                <MatchingAtelierPage embedded dark={dark} onOpenRecherche={() => goTo(1)} />
+                <MatchingAtelierPage embedded dark={dark} onOpenRecherche={() => goTo(LANDING_PAGE)} />
               </div>
               <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
                 <MatchingRechercheHybride t={t} dark={dark} darkTone={DARK_TONE} />

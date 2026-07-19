@@ -64,8 +64,15 @@ async function candidateIds(p: MatchingSearchParams, tx: 'buy' | 'rent'): Promis
  * Enabled même sans filtre (vue « Tout » = meilleures annonces des deux transactions).
  */
 export function useMatchingSearch(params: MatchingSearchParams) {
-  const { profile } = useAuth()
-  const enabled = !!profile?.agency_id
+  // Gate sur la SESSION, pas sur `agency_id` : `market_listings` est le marché
+  // connecté (données publiques des portails), lisible par tout `authenticated`
+  // (policy « Authenticated users can read market_listings » USING true) — ce
+  // n'est pas de la donnée agence-scopée. Gater sur l'agence rendait la Recherche
+  // définitivement vide pour les profils sans agence (super_admin), et de façon
+  // SILENCIEUSE : une query React Query désactivée reste `isPending` sans être
+  // `isLoading`, donc l'UI tombait direct sur l'état vide « aucune annonce ».
+  const { user } = useAuth()
+  const enabled = !!user
   return useQuery<MrhBien[]>({
     queryKey: ['mrh-search', params],
     enabled,
