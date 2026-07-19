@@ -383,9 +383,11 @@ export default function AtelierStage({
               onPick={setSelId}
             />
 
+            {/* Panneau immersif : la photo EST le panneau, et TOUT clic mène à la
+                fiche annonce (handoff atelier-a.jsx:478) — plus de sortie vers la
+                lightbox depuis la colonne 2. */}
             <SgaListing
               L={pivot.listing}
-              onOpenPhoto={i => setGallery({ index: i })}
               onOpenListing={() => setAnnonce(true)}
             />
 

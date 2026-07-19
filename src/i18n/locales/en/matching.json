@@ -410,7 +410,18 @@
       "skipped": "{{name}} removed from the queue",
       "backInQueue": "{{name}} is back in the queue",
       "seeDeal": "View deal →"
-    }
+    },
+    "sendDossier": "Send the dossier",
+    "priceBefore": "Was",
+    "queueSortedBy": "sorted by",
+    "sortByMatch": "match strength",
+    "sortByRelance": "follow-up signal",
+    "toSchedule": "To schedule",
+    "toScheduleCount": "To schedule · {{count}}",
+    "scheduleThisWeek": "This week",
+    "scheduleLater": "Later",
+    "resume": "Resume",
+    "changeDate": "Change"
   },
   "cockpit": {
     "switchTitle": "Match another listing",

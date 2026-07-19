@@ -410,7 +410,18 @@
       "skipped": "{{name}} écarté·e de la file",
       "backInQueue": "{{name}} est de retour dans la file",
       "seeDeal": "Voir le deal →"
-    }
+    },
+    "sendDossier": "Envoyer le dossier",
+    "priceBefore": "Avant",
+    "queueSortedBy": "triée par",
+    "sortByMatch": "force du match",
+    "sortByRelance": "signal de relance",
+    "toSchedule": "À programmer",
+    "toScheduleCount": "À programmer · {{count}}",
+    "scheduleThisWeek": "Cette semaine",
+    "scheduleLater": "Ensuite",
+    "resume": "Reprendre",
+    "changeDate": "Changer"
   },
   "cockpit": {
     "switchTitle": "Matcher une autre annonce",
