@@ -12,11 +12,14 @@ import SgaQueue, { type SnoozedEntry } from './SgaQueue'
 import SgaListing from './SgaListing'
 import SgaWhy from './SgaWhy'
 import SgaConfirm from './SgaConfirm'
+import SgaOverlayHost from './SgaOverlayHost'
 import SgaSendSheet from './SgaSendSheet'
 import SgaGallery from './SgaGallery'
 import SgaAnnonceVue from './SgaAnnonceVue'
 import SgaAcheteurMode from './SgaAcheteurMode'
-import { SGA_TABS, sgaMatchQuery, sgaMatchTab } from './constants'
+import { sgaMatchQuery, sgaMatchTab } from './constants'
+import SgaCockpit from './SgaCockpit'
+import { SgaEmptyBody, SgaEmptyCockpit } from './SgaEmptyState'
 import { sgaReturnDate } from './format'
 import { isSnoozed } from '@/hooks/useAtelierMatching'
 import type { AtelierGestes, PendingHandle } from './pendingTriage'
@@ -39,6 +42,12 @@ export interface AtelierStageProps {
   onRetry?: () => void
   /** pivot annonce courant (null = aucun match) */
   pivot: AtelierPivot | null
+  /** toutes les annonces pivots — alimente la bascule d'annonce du cockpit */
+  pivots: AtelierPivot[]
+  /** bascule vers une autre annonce pivot (clé `p:<uuid>` / `m:<uuid>`) */
+  onPickPivot: (key: string) => void
+  /** glisse le pager vers la Recherche — absent hors pager (démo, plein écran) */
+  onOpenRecherche?: () => void
   /** pivot acheteur (mode « Par acheteur ») */
   pivotBuyer: AtelierBuyer | null
   pool: AtelierPoolMatch[]
@@ -49,6 +58,8 @@ export interface AtelierStageProps {
   onOpenBuyerPivot: (contactId: string) => void
   onCloseBuyerPivot: () => void
   onStartKyc: (contactId: string) => void
+  /** sortie « Voir mes contacts » de l'état vide */
+  onOpenContacts?: () => void
   /** action de l'état vide (scan moteur) — absente en démo */
   emptyAction?: { label: string; busy: boolean; run: () => void }
   /**
@@ -61,8 +72,10 @@ export interface AtelierStageProps {
 }
 
 export default function AtelierStage({
-  dark, isLoading, isError, onRetry, pivot, pivotBuyer, pool, poolCountFor, gestes,
-  onClose, onOpenDeal, onOpenBuyerPivot, onCloseBuyerPivot, onStartKyc, emptyAction, embedded,
+  dark, isLoading, isError, onRetry, pivot, pivots, onPickPivot, onOpenRecherche,
+  pivotBuyer, pool, poolCountFor, gestes,
+  onClose, onOpenDeal, onOpenBuyerPivot, onCloseBuyerPivot, onStartKyc, onOpenContacts,
+  emptyAction, embedded,
 }: AtelierStageProps) {
   const { t } = useTranslation('matching')
   const [tab, setTab] = useState<AtelierTab>('to-send')
@@ -78,6 +91,7 @@ export default function AtelierStage({
   const [gallery, setGallery] = useState<{ index: number } | null>(null)
   const [annonce, setAnnonce] = useState(false)
   const [selId, setSelId] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const handles = useRef(new Map<string, PendingHandle>())
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -91,6 +105,21 @@ export default function AtelierStage({
 
   const canVisit = pivot?.listing.kind === 'property'
   const buyers = useMemo(() => pivot?.buyers ?? [], [pivot])
+  const pivotKey = pivot?.listing.key ?? null
+
+  // Changer d'annonce ouvre une NOUVELLE session de triage : sans cette remise à
+  // zéro, l'historique d'annulation et les rangées « traitées » d'une annonce
+  // fuiraient sur la suivante (latent tant que la bascule n'existait pas).
+  useEffect(() => {
+    setProcessed({})
+    setLaterInfo({})
+    setHistory([])
+    setSelId(null)
+    setMenuOpen(false)
+  }, [pivotKey])
+
+  // Progression de session — bornée aux acheteurs de l'annonce courante.
+  const doneCount = useMemo(() => buyers.filter(b => processed[b.matchId]).length, [buyers, processed])
 
   const isOpen = useCallback(
     (b: AtelierBuyer) => !processed[b.matchId] && !isSnoozed(b.snoozedUntil) && sgaMatchTab(b, tab) && sgaMatchQuery(b, query),
@@ -212,14 +241,17 @@ export default function AtelierStage({
       const tag = ((e.target as HTMLElement)?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       const k = e.key.toLowerCase()
-      if (k === 'e' || e.key === 'ArrowRight') { e.preventDefault(); if (selected) requestSend(selected.matchId) }
-      else if (k === 'x' || e.key === 'ArrowLeft') { e.preventDefault(); if (selected) triage(selected.matchId, 'skipped') }
+      // ←/→ NAVIGUENT (handoff atelier-a.jsx:957-958) : seules `e` et `x` agissent.
+      // Auparavant ArrowLeft écrivait un triage « écarté » persisté — une touche de
+      // déplacement ne doit pas produire d'écriture.
+      if (k === 'e') { e.preventDefault(); if (selected) requestSend(selected.matchId) }
+      else if (k === 'x') { e.preventDefault(); if (selected) triage(selected.matchId, 'skipped') }
       else if (k === 'p') { e.preventDefault(); if (selected) triage(selected.matchId, 'later') }
       else if (k === 'r') { e.preventDefault(); if (selected && selected.status === 'no-reply') requestRelance(selected.matchId) }
       else if (k === 'i') { e.preventDefault(); if (selected && selected.status === 'no-reply') triage(selected.matchId, 'interested') }
       else if (k === 'v') { e.preventDefault(); if (selected && selected.status === 'engaged' && canVisit) gestes.visit(selected.matchId) }
-      else if (k === 'j' || e.key === 'ArrowDown') { e.preventDefault(); move(1) }
-      else if (k === 'k' || e.key === 'ArrowUp') { e.preventDefault(); move(-1) }
+      else if (k === 'j' || e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); move(1) }
+      else if (k === 'k' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); move(-1) }
       else if (e.key === 'Backspace') { e.preventDefault(); undo() }
     }
     window.addEventListener('keydown', onKey)
@@ -253,25 +285,38 @@ export default function AtelierStage({
             <SgaIcon d="close" size={18} />
           </button>
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.18, minWidth: 0 }}>
-          <span className="t3 semi" style={{ color: 'var(--ink)' }}>
-            {pivotBuyer ? t('atelier.buyerTitle') : t('atelier.listingTitle')}
-          </span>
-        </div>
-        <div style={{ flex: 1 }} />
         {pivotBuyer ? (
-          <button className="btn btn-ghost" style={{ padding: '10px 18px' }} onClick={onCloseBuyerPivot}>
-            {t('atelier.backToListing')}
-          </button>
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.18, minWidth: 0 }}>
+              <span className="t3 semi" style={{ color: 'var(--ink)' }}>{t('atelier.buyerTitle')}</span>
+            </div>
+            <div style={{ flex: 1 }} />
+            <button className="btn btn-ghost sgk-back" onClick={onCloseBuyerPivot}>
+              {t('atelier.backToListing')}
+            </button>
+          </>
         ) : pivot ? (
-          <div className="seg">
-            {SGA_TABS.map(tb => (
-              <button key={tb.key} className="sga-seg-btn" data-active={tab === tb.key} onClick={() => setTab(tb.key)}>
-                {tb.label}{tab === tb.key && <span className="cnt nums">{countFor(tb.key)}</span>}
-              </button>
-            ))}
+          <SgaCockpit
+            listing={pivot.listing}
+            pivots={pivots}
+            currentKey={pivotKey}
+            onPickPivot={onPickPivot}
+            onOpenRecherche={onOpenRecherche}
+            done={doneCount}
+            total={buyers.length}
+            tab={tab}
+            setTab={setTab}
+            countFor={countFor}
+            menuOpen={menuOpen}
+            setMenuOpen={setMenuOpen}
+          />
+        ) : isLoading || isError ? (
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.18, minWidth: 0 }}>
+            <span className="t3 semi" style={{ color: 'var(--ink)' }}>{t('atelier.listingTitle')}</span>
           </div>
-        ) : null}
+        ) : (
+          <SgaEmptyCockpit />
+        )}
       </div>
 
       {/* ── triptyque ── */}
@@ -299,21 +344,7 @@ export default function AtelierStage({
             </div>
           </section>
         ) : !pivot ? (
-          <section className="sga-panel sga-enter" style={{ gridColumn: '1 / -1' }}>
-            <div className="sga-empty">
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-                <div className="t4 semi" style={{ color: 'var(--ink)' }}>{t('atelier.empty.title')}</div>
-                <div className="t1 muted" style={{ maxWidth: 320 }}>
-                  {t('atelier.empty.desc')}
-                </div>
-                {emptyAction && (
-                  <button className="btn btn-ghost" onClick={emptyAction.run} disabled={emptyAction.busy}>
-                    <SgaIcon d="refresh" size={15} /> {emptyAction.busy ? t('atelier.empty.scanning') : emptyAction.label}
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
+          <SgaEmptyBody scan={emptyAction} onOpenContacts={onOpenContacts} />
         ) : (
           <>
             <SgaQueue
@@ -367,30 +398,37 @@ export default function AtelierStage({
 
       {/* ── confirmation d'envoi / relance ── */}
       {confirmSend && confirmBuyer && pivot && (
-        <SgaConfirm
-          b={confirmBuyer}
-          L={pivot.listing}
-          relance={confirmSend.relance}
-          onClose={() => setConfirmSend(null)}
-          onConfirm={() => {
-            const rel = confirmSend.relance
-            setConfirmSend(null)
-            triage(confirmBuyer.matchId, rel ? 'relance' : 'sent')
-          }}
-        />
+        <SgaOverlayHost dark={dark}>
+          <SgaConfirm
+            b={confirmBuyer}
+            L={pivot.listing}
+            relance={confirmSend.relance}
+            onClose={() => setConfirmSend(null)}
+            onConfirm={() => {
+              const rel = confirmSend.relance
+              setConfirmSend(null)
+              triage(confirmBuyer.matchId, rel ? 'relance' : 'sent')
+            }}
+          />
+        </SgaOverlayHost>
       )}
 
       {/* ── feuille d'envoi (lien privé réception — WhatsApp / lien copié, zéro email) ── */}
       {sendSheet && sendBuyer && pivot && (
-        <SgaSendSheet
-          b={sendBuyer}
-          L={pivot.listing}
-          onClose={() => setSendSheet(null)}
-          onSent={() => { const mid = sendSheet; setSendSheet(null); triage(mid, 'sent', 'reception') }}
-        />
+        <SgaOverlayHost dark={dark}>
+          <SgaSendSheet
+            b={sendBuyer}
+            L={pivot.listing}
+            onClose={() => setSendSheet(null)}
+            onSent={() => { const mid = sendSheet; setSendSheet(null); triage(mid, 'sent', 'reception') }}
+          />
+        </SgaOverlayHost>
       )}
 
-      {/* ── vue annonce complète (modal hi-fi) ── */}
+      {/* ── vue annonce complète (immersive, montée inline dans l'étage) ──
+          Pas de sortie vers la galerie ici : le concept immersif du handoff est
+          « zéro modal », la pellicule change la photo sur place. La lightbox
+          reste accessible depuis la colonne 2. */}
       {annonce && pivot && (
         <SgaAnnonceVue
           L={pivot.listing}
@@ -398,13 +436,14 @@ export default function AtelierStage({
           buyer={selected}
           onClose={() => setAnnonce(false)}
           onPropose={selected ? () => { setAnnonce(false); requestSend(selected.matchId) } : null}
-          onOpenPhoto={i => setGallery({ index: i })}
         />
       )}
 
       {/* ── galerie photo (lightbox) ── */}
       {gallery && pivot && (
-        <SgaGallery L={pivot.listing} openIndex={gallery.index} onClose={() => setGallery(null)} />
+        <SgaOverlayHost dark={dark}>
+          <SgaGallery L={pivot.listing} openIndex={gallery.index} onClose={() => setGallery(null)} />
+        </SgaOverlayHost>
       )}
 
       {/* ── toast triage (undo 5 s · voir le deal) ── */}

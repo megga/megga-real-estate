@@ -22,7 +22,7 @@ const CARD_COLS =
   'id,title,address,city,postal_code,canton,type,transaction_type,price,current_price,' +
   'price_at_first_seen,price_per_m2,rooms,bedrooms,bathrooms,surface_m2,features,photos,photos_cf,' +
   'status,source_portal,source_url,source_id,agency_name,agency_phone,agency_logo_url,lat,lng,' +
-  'year_built,days_on_market'
+  'year_built,days_on_market,land_surface'
 
 export type SearchTx = 'buy' | 'rent' | null
 

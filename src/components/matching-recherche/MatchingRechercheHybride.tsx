@@ -157,9 +157,13 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
 
   // « Proches des critères » : biens du set serveur qui ne passent PAS un filtre
   // client (texte / pièces) mais scorent bien (≥55). Nécessite un acheteur (score).
+  // La transaction, elle, reste une frontière DURE : sur le segment « Tout » le set
+  // serveur mélange vente et location, et la pénalité de score (−30) ne suffit pas
+  // à écarter une location d'un acheteur qui achète (plafond 76 > seuil 55).
   const near: MrhItem[] = useMemo(() => {
     if (!buyer) return []
     return biens
+      .filter((b) => b.transaction === buyer.criteria.transaction)
       .filter((b) => !strictPass(b))
       .map((b) => ({ b, m: scoreBien(buyer, b) }))
       .filter((x) => (x.m?.score ?? 0) >= 55)
