@@ -11,9 +11,17 @@
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWN6dWd5cnZtdHFubm12am9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM4ODgsImV4cCI6MjA4OTE4OTg4OH0.T257g0ws-PmTTBSDBcUQF6WFvVRLmTFHUwIYMgmCrMw';
   var CRM_URL = 'https://app.megga.ch/dashboard';
   var AUTH_REDIRECT = 'https://app.megga.ch/auth/callback'; // l'app gère le retour OAuth/email
-  // Cible du lien de réinitialisation : l'app monte là l'écran « nouveau mot de
-  // passe » (seule route d'auth in-app encore vivante).
-  var RESET_REDIRECT = 'https://app.megga.ch/auth/forgot-password/reset';
+  // Cible du lien de réinitialisation.
+  //
+  // ⚠ Cette URL doit figurer dans Supabase → Authentication → URL Configuration
+  // → Redirect URLs. Sans quoi Supabase l'ignore et renvoie sur la Site URL :
+  // le lien du mail n'atterrit alors nulle part d'utile.
+  //
+  // Elle vivait sur app.megga.ch (ancienne coquille auth du CRM). Rapatriée ici :
+  // cet écran ne renvoyait de toute façon PAS vers le dashboard mais vers
+  // megga.ch/login une fois le mot de passe changé — le détour par l'app ne
+  // servait donc qu'à traverser un second domaine dans une autre peau.
+  var RESET_REDIRECT = 'https://megga.ch/nouveau-mot-de-passe.html';
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
   // (signin / signup / reset). Site key publique (même projet que l'app).
@@ -365,6 +373,65 @@
         }).catch(function (err) { setBusy(signupForm, false); failFrom(signupForm, err); });
       }, true);
     }
+
+    // ── NOUVEAU MOT DE PASSE (nouveau-mot-de-passe.html) ───────────────
+    //
+    // Cible du lien reçu par e-mail. Le lien passe par /auth/v1/verify, qui
+    // renvoie ici avec les jetons dans le FRAGMENT d'URL (flux implicite — le
+    // client est créé sans flowType, donc pas de PKCE). Le SDK les consomme à
+    // l'initialisation : au moment où l'on interroge getSession(), la session
+    // de récupération est posée.
+    var newPwdForm = byId('wf-form-New-Password-Form');
+    if (newPwdForm) {
+      var pwd1 = byId('New-Password');
+      var pwd2 = byId('Confirm-Password');
+
+      // Pas de session = lien périmé, déjà consommé, ou page ouverte à la main.
+      // On le dit au lieu de laisser saisir un mot de passe qui serait refusé.
+      function refuserLienMort() {
+        newPwdForm.style.display = 'none';
+        showError(newPwdForm, 'Ce lien n’est plus valable : il expire après 1 h et ne sert qu’une fois. Retournez à la page de connexion pour en demander un nouveau.');
+      }
+
+      client.auth.getSession().then(function (res) {
+        if (res && res.data && res.data.session) return;
+        // Le SDK peut poser la session juste après (lecture du fragment) : on
+        // laisse une fenêtre courte avant de conclure que le lien est mort.
+        var tranche = false;
+        client.auth.onAuthStateChange(function (_event, session) {
+          if (tranche || !session) return;
+          tranche = true;
+        });
+        setTimeout(function () {
+          if (tranche) return;
+          tranche = true;
+          refuserLienMort();
+        }, 1500);
+      }).catch(function () { refuserLienMort(); });
+
+      newPwdForm.addEventListener('submit', function (e) {
+        e.preventDefault(); e.stopPropagation(); clearError(newPwdForm);
+        var a = (pwd1 && pwd1.value) || '';
+        var b = (pwd2 && pwd2.value) || '';
+        if (a.length < 8) return showError(newPwdForm, 'Le mot de passe doit faire au moins 8 caractères.');
+        if (a !== b) return showError(newPwdForm, 'Les deux mots de passe ne correspondent pas.');
+        setBusy(newPwdForm, true);
+        // updateUser est un endpoint AUTHENTIFIÉ : aucun captcha ici,
+        // contrairement à /recover et /token qui sont gatés au niveau du projet.
+        client.auth.updateUser({ password: a }).then(function (res) {
+          setBusy(newPwdForm, false);
+          if (res && res.error) return showError(newPwdForm, traduire(res.error.message));
+          var wrap = newPwdForm.closest('.w-form') || newPwdForm.parentElement;
+          var done = wrap && wrap.querySelector('.w-form-done');
+          newPwdForm.style.display = 'none';
+          if (done) done.style.display = 'block';
+          // La session de récupération a fait son office : on la referme pour ne
+          // pas laisser traîner un jeton sur le domaine vitrine. L'agent se
+          // reconnecte avec son nouveau mot de passe.
+          client.auth.signOut()['catch'](function () { /* sans conséquence */ });
+        }).catch(function (err) { setBusy(newPwdForm, false); failFrom(newPwdForm, err); });
+      }, true);
+    }
   }
 
   // Compte déjà existant : on NE crée rien, on oriente vers la connexion.
@@ -385,17 +452,28 @@
     if (m.indexOf('email not confirmed') >= 0) return 'E-mail pas encore confirmé. Vérifiez votre boîte de réception (pensez aux spams).';
     if (looksExistingAccount(m)) return EXISTING_ACCOUNT_MSG;
     if (m.indexOf('rate limit') >= 0) return 'Trop de tentatives. Réessayez dans quelques minutes.';
+    // Le jeton du lien de réinitialisation a expiré ou a déjà servi entre
+    // l'ouverture de la page et l'envoi du formulaire.
+    if (m.indexOf('session missing') >= 0 || m.indexOf('session_not_found') >= 0 || m.indexOf('session from session_id') >= 0) {
+      return 'Votre lien de réinitialisation a expiré. Retournez à la page de connexion pour en demander un nouveau.';
+    }
+    if (m.indexOf('should be different from the old password') >= 0 || m.indexOf('same_password') >= 0) {
+      return 'Ce mot de passe est déjà le vôtre. Choisissez-en un autre.';
+    }
+    if (m.indexOf('password should be at least') >= 0 || m.indexOf('weak_password') >= 0) {
+      return 'Mot de passe trop court ou trop simple. Allongez-le et mélangez lettres, chiffres et symboles.';
+    }
     return msg || 'Une erreur est survenue.';
   }
 
   function run() {
-    if (!byId('wf-form-Sign-In-Form') && !byId('wf-form-Sign-Up-Form')) return;
+    if (!byId('wf-form-Sign-In-Form') && !byId('wf-form-Sign-Up-Form') && !byId('wf-form-New-Password-Form')) return;
     loadSdk().then(function () {
       var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
       wire(client);
     }).catch(function () {
       // SDK indisponible : on ne casse pas la page, on prévient au submit.
-      var f = byId('wf-form-Sign-In-Form') || byId('wf-form-Sign-Up-Form');
+      var f = byId('wf-form-Sign-In-Form') || byId('wf-form-Sign-Up-Form') || byId('wf-form-New-Password-Form');
       if (f) f.addEventListener('submit', function (e) { e.preventDefault(); showError(f, 'Service d’authentification indisponible. Réessayez.'); }, true);
     });
   }
