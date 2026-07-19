@@ -1306,6 +1306,10 @@ export type Database = {
           phone: string | null
           score: string | null
           search_criteria: Json | null
+          birth_date: string | null
+          nationality: string | null
+          residence_country: string | null
+          home_address: string | null
           source: string
           tags: string[] | null
           type: string
@@ -1329,6 +1333,10 @@ export type Database = {
           phone?: string | null
           score?: string | null
           search_criteria?: Json | null
+          birth_date?: string | null
+          nationality?: string | null
+          residence_country?: string | null
+          home_address?: string | null
           source?: string
           tags?: string[] | null
           type?: string
@@ -1352,6 +1360,10 @@ export type Database = {
           phone?: string | null
           score?: string | null
           search_criteria?: Json | null
+          birth_date?: string | null
+          nationality?: string | null
+          residence_country?: string | null
+          home_address?: string | null
           source?: string
           tags?: string[] | null
           type?: string

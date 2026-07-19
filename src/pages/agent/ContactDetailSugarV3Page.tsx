@@ -23,8 +23,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactSentMatches } from '@/hooks/useContactSentMatches'
 import { useKycDossierByContact, useInvalidateKycForContact } from '@/hooks/useKycDossier'
+import type { Contact } from '@/types/contact'
 import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
+import { formatSwissDate, identityToColumns } from '@/lib/contactIdentity'
 import { pickAvatarBg } from '@/lib/sugarAdapters'
+import { supabase } from '@/lib/supabase'
 import ContactDetailPager, {
   type FicheContact,
   type FicheNba,
@@ -50,7 +53,12 @@ export default function ContactDetailSugarV3Page() {
   const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
-  const { data: contact, isLoading, isError } = useContact(id)
+  const { data: fetched, isLoading } = useContact(id)
+  // La suppression retire la ligne du cache : sans cet instantané pris juste avant
+  // la mutation, le pager serait démonté avant d'avoir pu afficher sa carte
+  // « Contact supprimé » (le retour à la liste est piloté par onBack, ~1,1 s plus tard).
+  const [ghost, setGhost] = useState<Contact | null>(null)
+  const contact = fetched ?? ghost
   const loop = useContactSentMatches(id)
   const { data: kyc } = useKycDossierByContact(id)
   // NBA (cerveau partagé) — best-effort : null si RPC absent/erreur, la fiche vit sans.
@@ -99,14 +107,16 @@ export default function ContactDetailSugarV3Page() {
     </div>
   )
 
-  if (isLoading) {
+  if (isLoading && !contact) {
     return shell(
       <main style={{ flex: 1, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 14, fontWeight: 600 }}>
         {tr('cd.loading')}
       </main>,
     )
   }
-  if (isError || !contact) {
+  // `contact` retombe sur l'instantané de suppression : une erreur de refetch après
+  // le DELETE ne doit pas remplacer la carte de confirmation par « introuvable ».
+  if (!contact) {
     return shell(
       <main style={{ flex: 1, display: 'grid', placeItems: 'center' }}>
         <div style={{ textAlign: 'center' }}>
@@ -143,6 +153,13 @@ export default function ContactDetailSugarV3Page() {
     audience,
     isTenant,
     avatarBg: pickAvatarBg(contact.id),
+    // Identité LBA : vraies colonnes (migration 20260718160000), pas form_data.
+    // La base stocke une date ISO ; l'UI manipule le format suisse JJ.MM.AAAA.
+    birth: formatSwissDate(contact.birth_date),
+    nationality: contact.nationality ?? '',
+    residence: contact.residence_country ?? '',
+    homeAddress: contact.home_address ?? '',
+    photo: typeof fd.photo === 'string' ? fd.photo : null,
     // Acheteur/Locataire : critères depuis search_criteria (matching). Vendeur/
     // Bailleur : le « bien proposé » est écrit dans form_data.offer (pas de
     // matching) → symétrie lecture/écriture, sinon l'édition ne se ré-affiche pas.
@@ -171,8 +188,26 @@ export default function ContactDetailSugarV3Page() {
       sp={sp}
       dark={dark}
       onBack={() => navigate('/dashboard/contacts')}
-      onSaveIdentity={async (firstName, lastName) => {
-        await update.mutateAsync({ id, first_name: firstName, last_name: lastName })
+      onSaveIdentity={async (v) => {
+        const cols = identityToColumns(v)
+        await update.mutateAsync({ id, first_name: v.firstName, last_name: v.lastName, ...cols })
+        // `kyc_cases.contact_nationality` est une COPIE dénormalisée qui alimente le
+        // scoring de risque pays : la laisser périmée est un défaut de conformité.
+        // Les triggers kyc_cases ne bloquent que les DELETE et le passage manuel à
+        // `verified` — un UPDATE de cette seule colonne passe.
+        // Borné aux dossiers encore ouverts : un dossier validé porte une nationalité
+        // constatée au moment du screening (avec son risk_score et ses résultats
+        // PEP/sanctions). La réécrire laisserait un dossier « vérifié » dont l'identité
+        // ne correspond plus aux contrôles qui l'ont validé. C'est à l'invalidation
+        // (onInvalidateKyc, verified→pending) de rouvrir le dossier d'abord.
+        if (cols.nationality !== (contact.nationality ?? null)) {
+          const { error } = await supabase
+            .from('kyc_cases')
+            .update({ contact_nationality: cols.nationality })
+            .eq('contact_id', id)
+            .is('validated_at', null)
+          if (error) throw error
+        }
         refreshList()
       }}
       onInvalidateKyc={async () => {
@@ -207,7 +242,9 @@ export default function ContactDetailSugarV3Page() {
           void update.mutateAsync({ id, notes: note.trim() || null }).then(refreshList)
         }, 600)
       }}
-      onDelete={async () => { await del.mutateAsync(id); refreshList(); navigate('/dashboard/contacts') }}
+      // Pas de navigate ici : le pager affiche « Contact supprimé » puis appelle
+      // onBack (naviguer tout de suite démonterait la carte avant qu'on la voie).
+      onDelete={async () => { setGhost(contact); await del.mutateAsync(id); refreshList() }}
       onOpenKyc={() => navigate(`/dashboard/kyc?openContactId=${id}`)}
       onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`)}
       onOpenListings={() => navigate('/dashboard/listings')}
