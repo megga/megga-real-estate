@@ -271,19 +271,6 @@
       "website": "Site : "
     }
   },
-  "cookieBanner": {
-    "title": "Respect de votre vie privée",
-    "description": "Nous utilisons des cookies essentiels pour le fonctionnement du site. Avec votre accord, nous utilisons également des cookies de statistiques pour améliorer nos services. Vous pouvez modifier vos préférences à tout moment.",
-    "acceptAll": "Accepter tout",
-    "rejectNonEssential": "Refuser non essentiels",
-    "managePreferences": "Gérer mes préférences",
-    "savePreferences": "Enregistrer",
-    "essentials": "Cookies essentiels (obligatoires)",
-    "essentialsDescription": "Nécessaires au fonctionnement du site (authentification, sécurité).",
-    "analytics": "Statistiques (opt-in)",
-    "analyticsDescription": "Nous aident à comprendre comment vous utilisez MEGGA pour améliorer le service.",
-    "privacyLink": "En savoir plus dans notre politique de confidentialité"
-  },
   "glossary": {
     "title": "Glossaire immobilier suisse",
     "subtitle": "Tous les termes essentiels de l'immobilier suisse expliqués simplement.",

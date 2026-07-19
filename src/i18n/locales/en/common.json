@@ -271,19 +271,6 @@
       "website": "Website: "
     }
   },
-  "cookieBanner": {
-    "title": "We respect your privacy",
-    "description": "We use essential cookies to make the site work. With your consent, we also use analytics cookies to improve our services. You can change your preferences at any time.",
-    "acceptAll": "Accept all",
-    "rejectNonEssential": "Reject non-essential",
-    "managePreferences": "Manage preferences",
-    "savePreferences": "Save",
-    "essentials": "Essential cookies (required)",
-    "essentialsDescription": "Required for the site to work (authentication, security).",
-    "analytics": "Analytics (opt-in)",
-    "analyticsDescription": "Help us understand how you use MEGGA to improve the service.",
-    "privacyLink": "Learn more in our privacy policy"
-  },
   "glossary": {
     "title": "Swiss real estate glossary",
     "subtitle": "All essential Swiss real estate terms explained simply.",
