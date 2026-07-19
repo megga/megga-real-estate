@@ -11,7 +11,7 @@
 //     butée : l'atelier a des colonnes scrollables (file d'acheteurs) — un scroll
 //     léger défile la colonne, seul un geste franc bascule vers « Recherche ».
 //   - clavier = PageUp/PageDown UNIQUEMENT (les flèches restent à l'atelier :
-//     J/K/←/→ pilotent le triage).
+//     J/K/←/→ y déplacent la sélection ; seules `e` et `x` agissent).
 //
 // Réf. handoff : `crm-screen-matching-proto.jsx` (CRMScreenMatchingProto).
 

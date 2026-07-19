@@ -110,7 +110,23 @@ export default function AtelierStage({
   // Changer d'annonce ouvre une NOUVELLE session de triage : sans cette remise à
   // zéro, l'historique d'annulation et les rangées « traitées » d'une annonce
   // fuiraient sur la suivante (latent tant que la bascule n'existait pas).
+  //
+  // La purge doit être COMPLÈTE. Vider `history` seul laissait un toast « Annuler »
+  // affiché dont le bouton devenait un no-op silencieux (`undo` sort sur history
+  // vide) pendant que l'écriture différée, elle, partait quand même 4,5 s plus tard :
+  // une commande d'annulation qui ment, avec un envoi client derrière. On tranche
+  // donc explicitement — l'agent n'a pas annulé, les gestes en vol sont CONFIRMÉS
+  // (flush) — puis on retire l'affordance et on ferme les surfaces de l'ancienne
+  // annonce (la vue immersive garderait sinon son index photo sur un autre bien).
   useEffect(() => {
+    if (toastTimer.current) { clearTimeout(toastTimer.current); toastTimer.current = null }
+    if (exitTimer.current) { clearTimeout(exitTimer.current); exitTimer.current = null }
+    for (const h of handles.current.values()) void h.flushNow()
+    handles.current.clear()
+    setToast(null)
+    setExiting(null)
+    setAnnonce(false)
+    setGallery(null)
     setProcessed({})
     setLaterInfo({})
     setHistory([])
@@ -118,8 +134,13 @@ export default function AtelierStage({
     setMenuOpen(false)
   }, [pivotKey])
 
-  // Progression de session — bornée aux acheteurs de l'annonce courante.
-  const doneCount = useMemo(() => buyers.filter(b => processed[b.matchId]).length, [buyers, processed])
+  // Progression de session — bornée aux acheteurs de l'annonce courante, et calculée
+  // sur la MÊME assiette que la file : un acheteur déjà reporté en base n'entre jamais
+  // dans `isOpen`, donc le compter au dénominateur rendait « File traitée » inatteignable.
+  // Volontairement indépendant de l'onglet actif : sinon le dénominateur sauterait à
+  // chaque bascule d'onglet.
+  const triageable = useMemo(() => buyers.filter(b => !isSnoozed(b.snoozedUntil)), [buyers])
+  const doneCount = useMemo(() => triageable.filter(b => processed[b.matchId]).length, [triageable, processed])
 
   const isOpen = useCallback(
     (b: AtelierBuyer) => !processed[b.matchId] && !isSnoozed(b.snoozedUntil) && sgaMatchTab(b, tab) && sgaMatchQuery(b, query),
@@ -237,7 +258,10 @@ export default function AtelierStage({
   useEffect(() => {
     if (pivotBuyer) return
     const onKey = (e: KeyboardEvent) => {
-      if (confirmSend || gallery || annonce || sendSheet) return
+      // `menuOpen` compte comme un overlay : son voile est plein écran mais laisse la
+      // file montée derrière. Sans cette garde, une frappe destinée au menu (`x`, `p`,
+      // une flèche) partait trier l'acheteur caché dessous, écriture Supabase comprise.
+      if (menuOpen || confirmSend || gallery || annonce || sendSheet) return
       const tag = ((e.target as HTMLElement)?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       const k = e.key.toLowerCase()
@@ -256,7 +280,7 @@ export default function AtelierStage({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pivotBuyer, selected, confirmSend, gallery, annonce, sendSheet, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
+  }, [pivotBuyer, selected, menuOpen, confirmSend, gallery, annonce, sendSheet, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
 
   // ── parking « Reportés » : session + base ───────────────────────────────
   const snoozedList: SnoozedEntry[] = useMemo(() => [
@@ -303,7 +327,7 @@ export default function AtelierStage({
             onPickPivot={onPickPivot}
             onOpenRecherche={onOpenRecherche}
             done={doneCount}
-            total={buyers.length}
+            total={triageable.length}
             tab={tab}
             setTab={setTab}
             countFor={countFor}
@@ -425,18 +449,27 @@ export default function AtelierStage({
         </SgaOverlayHost>
       )}
 
-      {/* ── vue annonce complète (immersive, montée inline dans l'étage) ──
+      {/* ── vue annonce complète (immersive) ──
           Pas de sortie vers la galerie ici : le concept immersif du handoff est
           « zéro modal », la pellicule change la photo sur place. La lightbox
-          reste accessible depuis la colonne 2. */}
+          reste accessible depuis la colonne 2.
+
+          PORTALISÉE comme les autres overlays. Le handoff la voulait inline pour
+          qu'elle épouse le bento du pager, mais montée sous le track translaté elle
+          restait dans le stacking context de celui-ci : la molette sur la photo
+          (zone non scrollable) remontait au pager et PAGINAIT vers « Recherche »
+          alors que la vue était encore ouverte, et les points de page passaient
+          par-dessus la feuille. Plein cadre = le rendu d'origine de la maquette. */}
       {annonce && pivot && (
-        <SgaAnnonceVue
-          L={pivot.listing}
-          keysOff={!!gallery}
-          buyer={selected}
-          onClose={() => setAnnonce(false)}
-          onPropose={selected ? () => { setAnnonce(false); requestSend(selected.matchId) } : null}
-        />
+        <SgaOverlayHost dark={dark}>
+          <SgaAnnonceVue
+            L={pivot.listing}
+            keysOff={!!gallery}
+            buyer={selected}
+            onClose={() => setAnnonce(false)}
+            onPropose={selected ? () => { setAnnonce(false); requestSend(selected.matchId) } : null}
+          />
+        </SgaOverlayHost>
       )}
 
       {/* ── galerie photo (lightbox) ── */}

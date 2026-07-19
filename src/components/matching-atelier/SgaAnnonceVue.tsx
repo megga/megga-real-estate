@@ -4,10 +4,11 @@
 // (modal magazine à collage), non retenue.
 //
 // Choix non évidents :
-//  · Montée INLINE dans l'étage (pas de createPortal) : `.sga-stage.sga-embedded`
-//    pose `contain:layout paint`, ce qui fait de `position:fixed` un cadre local —
-//    la vue épouse le bento du pager au lieu de couvrir le shell CRM. La galerie,
-//    elle, reste portée (SgaOverlayHost) et passe au-dessus.
+//  · Montée dans un PORTAIL (SgaOverlayHost), comme les autres overlays. Le handoff
+//    la voulait inline pour qu'elle épouse le bento du pager, mais sous le track
+//    translaté la molette sur la photo remontait au pager et paginait vers
+//    « Recherche » sans fermer la vue, et les points de page peignaient par-dessus
+//    la feuille. Plein cadre = le rendu d'origine de la maquette, de toute façon.
 //  · La feuille est réductible (open → folding → mini → unfolding) : l'agent peut
 //    dégager la photo sans fermer la vue. Les états intermédiaires existent pour
 //    laisser jouer l'animation avant de démonter le nœud.

@@ -507,11 +507,15 @@
   animation:sgaFadeUp .6s cubic-bezier(.2,.8,.2,1) .12s both; }
 .sgi-title{ margin:0; font-size:clamp(28px, 3.2vw, 42px); font-weight:800; letter-spacing:-1.4px;
   line-height:1.05; color:#fff; text-shadow:0 2px 26px rgba(0,0,0,.4); text-wrap:balance; }
-.sgi-addr{ display:flex; align-items:center; gap:8px; color:rgba(255,255,255,.82); font-size:15px; font-weight:500; }
+/* Même voile de lisibilité que le titre : l'adresse est posée sur la photo et n'est
+   affichée nulle part ailleurs dans cette vue — sur un cliché clair, du blanc à 82 %
+   sans ombre devient illisible. */
+.sgi-addr{ display:flex; align-items:center; gap:8px; color:rgba(255,255,255,.82); font-size:15px; font-weight:500;
+  text-shadow:0 2px 18px rgba(0,0,0,.45); }
 /* Annonce sans photo : en clair le placeholder est clair → texte encre (le blanc
    deviendrait invisible). En sombre le placeholder reste foncé → blanc conservé. */
 .sga[data-theme="light"] .sgi-photo.noimg .sgi-title{ color:var(--ink); text-shadow:none; }
-.sga[data-theme="light"] .sgi-photo.noimg .sgi-addr{ color:var(--ink-muted); }
+.sga[data-theme="light"] .sgi-photo.noimg .sgi-addr{ color:var(--ink-muted); text-shadow:none; }
 
 .sgi-film{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; max-width:100%; }
 .sgi-film .fr{ position:relative; width:66px; height:48px; border-radius:11px; overflow:hidden; border:none;
@@ -590,7 +594,10 @@
   white-space:nowrap; padding-right:2px; }
 
 @media (max-width: 1180px){
-  .sgi-id{ width:min(520px, calc(100% - 60px)); bottom:auto; top:84px; }
+  /* Réserver la LARGEUR DE LA FEUILLE, pas 60px : sinon, sous ~1106px, la feuille
+     opaque (z-6) recouvre le bloc identité (z-5) — titre, adresse et pellicule
+     masqués ET incliquables sur toute la bande 769–1106px. */
+  .sgi-id{ width:min(520px, calc(100% - 500px)); bottom:auto; top:84px; }
   .sgi-sheet{ width:min(440px, 52vw); }
 }
 @media (prefers-reduced-motion:reduce){
