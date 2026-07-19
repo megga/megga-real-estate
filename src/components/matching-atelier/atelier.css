@@ -3,9 +3,9 @@
  * Port 1:1 du handoff design_handoff_matching_atelier/atelier-a-sugar.css,
  * trimé des variantes non retenues (galeries mosaïque/volet/cinéma, critères
  * « barres », composer canal/templates — cf. README handoff §6.4/6.7).
- * 3 panneaux flottants : file · annonce (pivot) · pourquoi ça matche.
- * Grammaire : canvas gradient gris-bleu, surfaces blanches FLOTTANTES,
- * ZÉRO bordure décorative (ombres douces), accent NOIR pur #0B0C0E, Manrope,
+ * 3 colonnes d'une même surface : file · annonce (pivot) · pourquoi ça matche.
+ * Grammaire : triptyque FUSIONNÉ (une seule surface, filets de séparation),
+ * ZÉRO bordure décorative, accent NOIR pur #0B0C0E, Manrope,
  * coins très arrondis, sélection = ring noir 2px inset. Clair + sombre.
  * Scope : .sga — autonome, ne dépend ni de Tailwind ni des tokens Sugar v2.
  * ========================================================================== */
@@ -25,7 +25,6 @@
   --sh-sm:0 4px 16px rgba(15,23,42,.04);
   --sh:0 12px 40px rgba(15,23,42,.07), 0 2px 8px rgba(15,23,42,.03);
   --sh-lg:0 24px 60px rgba(15,23,42,.10), 0 4px 16px rgba(15,23,42,.04);
-  --canvas:radial-gradient(ellipse 120% 90% at 50% 100%, #C8D5E0 0%, #E2E5EB 48%, #EDEFF3 100%);
   font-family:"Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color:var(--ink); -webkit-font-smoothing:antialiased; letter-spacing:-0.01em;
 }
@@ -39,7 +38,6 @@
   --sh-sm:0 4px 16px rgba(0,0,0,.30);
   --sh:0 12px 40px rgba(0,0,0,.36), 0 2px 8px rgba(0,0,0,.24);
   --sh-lg:0 24px 60px rgba(0,0,0,.45);
-  --canvas:radial-gradient(ellipse 120% 90% at 50% 0%, #15181F 0%, #101218 50%, #0C0E12 100%);
 }
 .sga *{ box-sizing:border-box; }
 
@@ -91,12 +89,15 @@
 .sga .av{ border-radius:var(--r-pill); display:grid; place-items:center; color:#fff; font-weight:700; flex-shrink:0; letter-spacing:0; }
 
 /* ════════════════════ STAGE & TOP BAR ══════════════════════════════ */
-.sga-stage{ position:fixed; inset:0; z-index:120; background:var(--canvas); display:flex; flex-direction:column; overflow:hidden; }
+/* Fond = surface OPAQUE, pas un canvas contrasté : le triptyque est une seule
+   surface continue (panneaux fusionnés ci-dessous), pas trois cartes flottantes. */
+.sga-stage{ position:fixed; inset:0; z-index:120; background:var(--surface-solid); display:flex; flex-direction:column; overflow:hidden; }
 /* Embarqué dans le pager Matching (page 0) : l'étage s'épouse au bento central
    au lieu de couvrir tout l'écran. contain:layout paint → il devient le bloc
    conteneur des overlays position:fixed internes (vue annonce, galerie). */
 .sga-stage.sga-embedded{ position:absolute; z-index:1; contain:layout paint; }
-.sga-top{ flex-shrink:0; height:76px; display:flex; align-items:center; gap:16px; padding:0 22px; }
+.sga-top{ flex-shrink:0; height:76px; display:flex; align-items:center; gap:16px; padding:0 22px;
+  box-shadow:inset 0 -1px 0 var(--hairline); }
 .sga-top .seg{ display:flex; gap:3px; padding:5px; background:var(--surface); border-radius:var(--r-pill); box-shadow:var(--sh-sm); }
 .sga-seg-btn{ font-family:inherit; cursor:pointer; border:none; background:transparent; color:var(--ink-muted);
   font-size:13px; font-weight:600; padding:8px 15px; border-radius:var(--r-pill); display:flex; align-items:center; gap:7px;
@@ -108,10 +109,18 @@
 .sga-seg-btn[data-active="true"] .cnt{ opacity:.8; }
 
 /* ════════════════════ TRIPTYQUE ════════════════════════════════════ */
+/* Triptyque FUSIONNÉ (handoff atelier-a-sugar.css:136-141) : une seule surface qui
+   épouse le bento, séparée par des filets, au lieu de trois cartes flottantes. */
 .sga-body{ flex:1; display:grid; grid-template-columns:var(--col-queue, 332px) minmax(0,1fr) var(--col-why, 404px);
-  gap:16px; padding:0 16px 16px; min-height:0; }
-.sga-panel{ background:var(--surface); border-radius:var(--r-panel); box-shadow:var(--sh);
+  gap:0; padding:0; min-height:0; }
+.sga-panel{ background:transparent; border-radius:0; box-shadow:none;
   display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+/* Filets de séparation, portés par les colonnes EXTÉRIEURES et tournés vers
+   l'intérieur. Le `:not()` est indispensable : l'état d'erreur ne rend qu'un seul
+   panneau en `gridColumn:'1 / -1'`, qui est à la fois premier ET dernier enfant et
+   récolterait sinon deux filets parasites au milieu de nulle part. */
+.sga-body > .sga-panel:first-child:not(:last-child){ box-shadow:inset -1px 0 0 var(--hairline); }
+.sga-body > .sga-panel:last-child:not(:first-child){ box-shadow:inset 1px 0 0 var(--hairline); }
 @keyframes sgaFadeUp{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
 .sga-enter{ animation:sgaFadeUp .5s cubic-bezier(.2,.8,.2,1) both; }
 .sga-enter.d1{ animation-delay:.05s; } .sga-enter.d2{ animation-delay:.11s; }
