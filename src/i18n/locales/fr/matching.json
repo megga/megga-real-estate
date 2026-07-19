@@ -177,6 +177,23 @@
     "desc": "Le matching compare automatiquement les critères de vos acheteurs avec les biens disponibles.",
     "cta": "Voir mes contacts"
   },
+  "firstRun": {
+    "title": "Votre boucle de match démarre ici",
+    "subtitle": "Le Matching croise vos mandats avec les attentes de vos contacts, puis suit leurs retours. Deux ingrédients suffisent pour le mettre en route.",
+    "mandat": {
+      "title": "Créez votre premier mandat",
+      "sub": "Un bien à vendre ou à louer."
+    },
+    "contact": {
+      "title": "Ajoutez un contact",
+      "sub": "Budget, secteur, pièces."
+    },
+    "scores": {
+      "title": "MEGGA calcule les matchs",
+      "sub": "Rien à configurer."
+    },
+    "start": "Continuer"
+  },
   "card": {
     "sendTo": "Envoyer →",
     "sentBy": "Envoyé par {{channel}}",
@@ -240,6 +257,10 @@
     "viewListing": "Voir l'annonce",
     "viewFullListing": "Voir l'annonce complète",
     "mainPhoto": "photo principale",
+    "noPhotoYet": "Photos à venir",
+    "nextPhoto": "Photo suivante (→)",
+    "allPhotos": "Toutes les photos",
+    "collapseFilmstrip": "Replier la pellicule",
     "photo": "photo",
     "photos": "Photos",
     "photoGallery": "Galerie photo",
@@ -260,6 +281,7 @@
     "chargesPerMonth": "+ {{value}} charges / mois",
     "priceDrop": "Baisse constatée",
     "sectionSpecs": "Caractéristiques",
+    "sectionEssential": "L'essentiel",
     "sectionFeatures": "Atouts",
     "sectionDescription": "Description",
     "sectionLocation": "Localisation",
@@ -292,7 +314,10 @@
     "marketing": "Commercialisation",
     "contactVerified": "Coordonnées vérifiées par la veille marché.",
     "proposeToBuyer": "Proposer à {{name}}",
+    "propose": "Proposer",
     "proposeToBuyers": "Proposer aux acheteurs",
+    "collapseSheet": "Réduire la fiche",
+    "expandSheet": "Rouvrir la fiche",
     "searchProfile": "Profil de recherche",
     "budget": "Budget",
     "targetZones": "Zones ciblées",
@@ -352,6 +377,21 @@
       "scanning": "Scan en cours…",
       "scanError": "Le scan a échoué, réessayez dans un instant."
     },
+    "emptyStage": {
+      "cockpitTitle": "Aucun match à trier",
+      "cockpitSub": "Le moteur n'a encore rapproché aucune annonce",
+      "queueAria": "File acheteurs",
+      "queueEyebrow": "File d'attente",
+      "sortedBy": "triée par\nforce du match",
+      "queueTitle": "Aucun acheteur en file",
+      "queueSub": "Ajoutez des critères de recherche à vos contacts : MEGGA les fait remonter ici.",
+      "listingAria": "Annonce",
+      "listingTitle": "Rien à présenter pour l'instant",
+      "listingSub": "Relancez le moteur : il recroise vos annonces avec les critères de vos contacts.",
+      "whyAria": "Pourquoi ça matche",
+      "whyTitle": "Rien à comparer",
+      "whySub": "Le détail du score s'affiche dès le premier match."
+    },
     "error": {
       "title": "Impossible de charger les matchs",
       "desc": "Une erreur est survenue lors du chargement de l'atelier. Réessayez.",
@@ -370,7 +410,29 @@
       "skipped": "{{name}} écarté·e de la file",
       "backInQueue": "{{name}} est de retour dans la file",
       "seeDeal": "Voir le deal →"
-    }
+    },
+    "sendDossier": "Envoyer le dossier",
+    "priceBefore": "Avant",
+    "queueSortedBy": "triée par",
+    "sortByMatch": "force du match",
+    "sortByRelance": "signal de relance",
+    "toSchedule": "À programmer",
+    "toScheduleCount": "À programmer · {{count}}",
+    "scheduleThisWeek": "Cette semaine",
+    "scheduleLater": "Ensuite",
+    "resume": "Reprendre",
+    "changeDate": "Changer"
+  },
+  "cockpit": {
+    "switchTitle": "Matcher une autre annonce",
+    "switchHint": "Changer d'annonce recharge la file avec ses acheteurs candidats.",
+    "switchAria": "Matcher une autre annonce",
+    "currentListing": "Annonce en cours",
+    "browseAll": "Parcourir toutes les annonces",
+    "filterAria": "Filtrer la file",
+    "processed": "{{total}} traités",
+    "progressAria": "{{done}} sur {{total}} acheteurs traités",
+    "queueDone": "File traitée"
   },
   "confirm": {
     "sendTitle": "Transmettre le dossier",

@@ -3,9 +3,9 @@
  * Port 1:1 du handoff design_handoff_matching_atelier/atelier-a-sugar.css,
  * trimé des variantes non retenues (galeries mosaïque/volet/cinéma, critères
  * « barres », composer canal/templates — cf. README handoff §6.4/6.7).
- * 3 panneaux flottants : file · annonce (pivot) · pourquoi ça matche.
- * Grammaire : canvas gradient gris-bleu, surfaces blanches FLOTTANTES,
- * ZÉRO bordure décorative (ombres douces), accent NOIR pur #0B0C0E, Manrope,
+ * 3 colonnes d'une même surface : file · annonce (pivot) · pourquoi ça matche.
+ * Grammaire : triptyque FUSIONNÉ (une seule surface, filets de séparation),
+ * ZÉRO bordure décorative, accent NOIR pur #0B0C0E, Manrope,
  * coins très arrondis, sélection = ring noir 2px inset. Clair + sombre.
  * Scope : .sga — autonome, ne dépend ni de Tailwind ni des tokens Sugar v2.
  * ========================================================================== */
@@ -14,6 +14,9 @@
   --ink:#0B0C0E; --ink-soft:#3A3D44; --ink-muted:#7A8088; --ink-dim:#B5BAC2;
   --black:#0B0C0E; --black-hover:#1F2024;
   --surface:#FFFFFF; --surface-2:#F4F6F8; --cardsub:#F2F4F7;
+  /* Surface OPAQUE garantie (contre-texte des pastilles pleines). Ici identique à
+     --surface : le repo n'a pas adopté la surface translucide du handoff. */
+  --surface-solid:#FFFFFF;
   --hairline:rgba(15,23,42,.07); --hairline-2:rgba(15,23,42,.06);
   --field:#F4F6F8; --field-bd:rgba(15,23,42,.06);
   /* couleurs FONCTIONNELLES (données métier — jamais d'accent UI) */
@@ -22,20 +25,19 @@
   --sh-sm:0 4px 16px rgba(15,23,42,.04);
   --sh:0 12px 40px rgba(15,23,42,.07), 0 2px 8px rgba(15,23,42,.03);
   --sh-lg:0 24px 60px rgba(15,23,42,.10), 0 4px 16px rgba(15,23,42,.04);
-  --canvas:radial-gradient(ellipse 120% 90% at 50% 100%, #C8D5E0 0%, #E2E5EB 48%, #EDEFF3 100%);
   font-family:"Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color:var(--ink); -webkit-font-smoothing:antialiased; letter-spacing:-0.01em;
 }
 .sga[data-theme="dark"]{
   --ink:#F4F6F8; --ink-soft:#C8CCD2; --ink-muted:#878D96; --ink-dim:#5B616B;
   --surface:#1A1C22; --surface-2:#14161B; --cardsub:#212430;
+  --surface-solid:#1A1C22;
   --hairline:rgba(255,255,255,.06); --hairline-2:rgba(255,255,255,.05);
   --field:#14161B; --field-bd:rgba(255,255,255,.07);
   --black:#FFFFFF; --black-hover:#E7E9EE;
   --sh-sm:0 4px 16px rgba(0,0,0,.30);
   --sh:0 12px 40px rgba(0,0,0,.36), 0 2px 8px rgba(0,0,0,.24);
   --sh-lg:0 24px 60px rgba(0,0,0,.45);
-  --canvas:radial-gradient(ellipse 120% 90% at 50% 0%, #15181F 0%, #101218 50%, #0C0E12 100%);
 }
 .sga *{ box-sizing:border-box; }
 
@@ -87,12 +89,15 @@
 .sga .av{ border-radius:var(--r-pill); display:grid; place-items:center; color:#fff; font-weight:700; flex-shrink:0; letter-spacing:0; }
 
 /* ════════════════════ STAGE & TOP BAR ══════════════════════════════ */
-.sga-stage{ position:fixed; inset:0; z-index:120; background:var(--canvas); display:flex; flex-direction:column; overflow:hidden; }
+/* Fond = surface OPAQUE, pas un canvas contrasté : le triptyque est une seule
+   surface continue (panneaux fusionnés ci-dessous), pas trois cartes flottantes. */
+.sga-stage{ position:fixed; inset:0; z-index:120; background:var(--surface-solid); display:flex; flex-direction:column; overflow:hidden; }
 /* Embarqué dans le pager Matching (page 0) : l'étage s'épouse au bento central
    au lieu de couvrir tout l'écran. contain:layout paint → il devient le bloc
    conteneur des overlays position:fixed internes (vue annonce, galerie). */
 .sga-stage.sga-embedded{ position:absolute; z-index:1; contain:layout paint; }
-.sga-top{ flex-shrink:0; height:76px; display:flex; align-items:center; gap:16px; padding:0 22px; }
+.sga-top{ flex-shrink:0; height:76px; display:flex; align-items:center; gap:16px; padding:0 22px;
+  box-shadow:inset 0 -1px 0 var(--hairline); }
 .sga-top .seg{ display:flex; gap:3px; padding:5px; background:var(--surface); border-radius:var(--r-pill); box-shadow:var(--sh-sm); }
 .sga-seg-btn{ font-family:inherit; cursor:pointer; border:none; background:transparent; color:var(--ink-muted);
   font-size:13px; font-weight:600; padding:8px 15px; border-radius:var(--r-pill); display:flex; align-items:center; gap:7px;
@@ -104,10 +109,18 @@
 .sga-seg-btn[data-active="true"] .cnt{ opacity:.8; }
 
 /* ════════════════════ TRIPTYQUE ════════════════════════════════════ */
+/* Triptyque FUSIONNÉ (handoff atelier-a-sugar.css:136-141) : une seule surface qui
+   épouse le bento, séparée par des filets, au lieu de trois cartes flottantes. */
 .sga-body{ flex:1; display:grid; grid-template-columns:var(--col-queue, 332px) minmax(0,1fr) var(--col-why, 404px);
-  gap:16px; padding:0 16px 16px; min-height:0; }
-.sga-panel{ background:var(--surface); border-radius:var(--r-panel); box-shadow:var(--sh);
+  gap:0; padding:0; min-height:0; }
+.sga-panel{ background:transparent; border-radius:0; box-shadow:none;
   display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+/* Filets de séparation, portés par les colonnes EXTÉRIEURES et tournés vers
+   l'intérieur. Le `:not()` est indispensable : l'état d'erreur ne rend qu'un seul
+   panneau en `gridColumn:'1 / -1'`, qui est à la fois premier ET dernier enfant et
+   récolterait sinon deux filets parasites au milieu de nulle part. */
+.sga-body > .sga-panel:first-child:not(:last-child){ box-shadow:inset -1px 0 0 var(--hairline); }
+.sga-body > .sga-panel:last-child:not(:first-child){ box-shadow:inset 1px 0 0 var(--hairline); }
 @keyframes sgaFadeUp{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
 .sga-enter{ animation:sgaFadeUp .5s cubic-bezier(.2,.8,.2,1) both; }
 .sga-enter.d1{ animation-delay:.05s; } .sga-enter.d2{ animation-delay:.11s; }
@@ -429,11 +442,7 @@
   .sgal-lightbox, .sgal-lb-photo{ animation:none; }
 }
 
-/* ════════════════════════════════════════════════════════════════════════
- * VUE « ANNONCE COMPLÈTE » — modal hi-fi. Scope : .sgv-
- * ══════════════════════════════════════════════════════════════════════ */
-
-/* bouton « Voir l'annonce » — en haut à droite de la photo */
+/* bouton « Voir l'annonce » — en haut à droite de la photo (colonne annonce) */
 .sga-hero-cta{ position:absolute; top:12px; right:12px; z-index:2; border:none; cursor:pointer;
   display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:var(--r-pill);
   background:rgba(255,255,255,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
@@ -442,81 +451,391 @@
   transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s, background-color .2s; }
 .sga-hero-cta:hover{ transform:translateY(-1px); background:#FFFFFF; box-shadow:0 12px 32px rgba(15,23,42,.26); }
 
-.sgv-eyebrow-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; }
-.sgv-title{ font-size:26px; font-weight:700; letter-spacing:-0.02em; color:var(--ink); line-height:1.15; }
-.sgv-ref{ font-family:inherit; border:none; cursor:pointer; transition:background-color .2s, transform .2s cubic-bezier(.2,.8,.2,1); }
-.sgv-ref:hover{ background:var(--cardsub); transform:translateY(-1px); }
-.sgv-card{ background:var(--cardsub); border-radius:var(--r-lg); padding:18px 20px;
-  display:flex; flex-direction:column; gap:12px; }
-.sgv-price{ font-size:33px; font-weight:700; letter-spacing:-0.03em; line-height:1; color:var(--ink); }
-.sgv-delta{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.sgv-rows{ display:flex; flex-direction:column; }
-.sgv-row{ display:flex; align-items:center; gap:11px; padding:9px 0; border-bottom:1px solid var(--hairline-2); font-size:13px; }
-.sgv-row:first-child{ padding-top:0; }
-.sgv-row:last-child{ border-bottom:none; padding-bottom:0; }
-.sgv-row .ic{ width:28px; height:28px; border-radius:9px; background:var(--surface); box-shadow:var(--sh-sm);
-  display:grid; place-items:center; color:var(--ink-muted); flex-shrink:0; }
-.sgv-row .lb{ flex:1; color:var(--ink-muted); font-weight:600; min-width:0; }
-.sgv-row .vl{ font-weight:700; color:var(--ink); text-align:right; white-space:nowrap; }
-.sgv-qgauge{ height:7px; border-radius:var(--r-pill); background:var(--surface); overflow:hidden; }
-.sgv-qgauge i{ display:block; height:100%; background:var(--black); border-radius:var(--r-pill); }
-.sgv-specgrid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:10px; }
-.sgv-speccell{ background:var(--cardsub); border-radius:var(--r-sm); padding:13px 15px;
-  display:flex; flex-direction:column; gap:6px; min-width:0; }
-.sgv-speccell svg{ color:var(--ink-muted); }
-.sgv-speccell .k{ font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted); white-space:nowrap; }
-.sgv-speccell .v{ font-size:15px; font-weight:700; color:var(--ink); white-space:nowrap; }
-.sgv-map{ position:relative; border-radius:var(--r-lg); overflow:hidden; min-height:170px; }
-.sgv-foot{ flex-shrink:0; padding:14px 28px 16px; background:var(--surface-2); display:flex; align-items:center; gap:11px; }
+/* ════════════════════════════════════════════════════════════════════════
+ * VUE « ANNONCE COMPLÈTE » — concept IMMERSIF (variante actée) : photo pleine
+ * page + feuille dossier flottante, bento « chiffres » pour L'essentiel.
+ * Scope : .sgi- (vue) et .sgn- (blocs de contenu partagés).
+ * z-index 70 : au-dessus des panneaux du triptyque, sous la galerie photo
+ * (portée dans .sga-portal, z-index 200). Grammaire Sugar Pure : ZÉRO
+ * animation au survol (fond/opacité seuls), ZÉRO bordure 1px décorative.
+ * ══════════════════════════════════════════════════════════════════════ */
 
-/* ── collage photo éditorial (1 hero + 2 tuiles, labels de pièce) ───── */
-.sgv-collage{ display:grid; grid-template-columns:1.85fr 1fr; grid-auto-rows:1fr; gap:9px; height:338px; }
-.sgv-cphoto{ position:relative; border-radius:var(--r-md); overflow:hidden; background:var(--surface-2); cursor:pointer; }
-.sgv-cphoto.main{ grid-row:span 2; border-radius:var(--r-lg); }
-.sgv-cphoto img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
-  transition:transform .55s cubic-bezier(.2,.8,.2,1); }
-.sgv-cphoto:hover img{ transform:scale(1.045); }
-.sgv-cphoto .cap{ position:absolute; left:10px; bottom:10px; z-index:1; background:rgba(11,12,14,.62);
-  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); color:#fff; font-size:10.5px; font-weight:700;
-  padding:4px 9px; border-radius:var(--r-pill); white-space:nowrap; }
-.sgv-cphoto .rest{ position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:6px; background:rgba(11,12,14,.46); color:#fff; font-size:14px; font-weight:700;
-  transition:background-color .25s; }
-.sgv-cphoto:hover .rest{ background:rgba(11,12,14,.56); }
-.sgv-cphoto.main:hover .sga-zoomcue{ opacity:1; transform:none; }
+/* ── blocs de contenu partagés (.sgn-) ─────────────────────────────── */
+.sgn-block{ display:flex; flex-direction:column; gap:11px; }
+.sgn-card{ background:var(--cardsub); border-radius:var(--r-lg); padding:19px 20px;
+  display:flex; flex-direction:column; gap:13px; }
+.sgn-feats{ display:flex; flex-wrap:wrap; gap:8px; }
+.sgn-feat{ display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:var(--r-pill);
+  background:var(--cardsub); color:var(--ink-soft); font-size:13px; font-weight:600; line-height:1; }
+.sgn-desc{ margin:0; font-size:14.5px; line-height:1.68; color:var(--ink-soft); text-wrap:pretty; max-width:64ch; }
+.sgn-refchip{ cursor:pointer; border:none; font-family:inherit; transition:background-color .2s; }
+.sgn-refchip:hover{ background:var(--cardsub); }
+.sgn-ell{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-/* ── sparkline évolution du prix (veille marché) ─────────────────── */
-.sgv-spark{ display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:var(--r-sm);
-  background:var(--surface); box-shadow:var(--sh-sm); color:var(--ink); }
-.sgv-spark svg{ width:100%; height:32px; display:block; overflow:visible; }
-.sgv-spark .lbls{ display:flex; justify-content:space-between; gap:10px; font-size:11px; font-weight:600; color:var(--ink-muted); }
-.sgv-spark .lbls .now{ color:var(--ink); font-weight:700; }
+/* ── étage plein cadre ─────────────────────────────────────────────── */
+@keyframes sgiFadeOut{ to{ opacity:0; } }
+@keyframes sgiSlideIn{ from{ opacity:0; transform:translateX(30px); } to{ opacity:1; transform:none; } }
+@keyframes sgiSlideOut{ to{ opacity:0; transform:translateX(26px); } }
+@keyframes sgiKen{ from{ opacity:0; transform:scale(1.045); } to{ opacity:1; transform:scale(1); } }
+@keyframes sgiMiniOut{ to{ opacity:0; transform:translateY(10px) scale(.96); } }
 
-/* ── modal ─────────────────────────────────────────────────────── */
-@keyframes sgvFadeOut{ from{ opacity:1; } to{ opacity:0; } }
-@keyframes sgvDrop{ from{ opacity:1; transform:none; } to{ opacity:0; transform:translateY(12px) scale(.985); } }
-.sgv-wrap{ z-index:70; }
-.sgv-wrap.is-closing{ animation:sgvFadeOut .22s both; }
-.sgv-wrap.is-closing .sgv-modal{ animation:sgvDrop .22s both; }
-.sgv-modal{ width:min(1120px, 100%); max-height:calc(100vh - 56px); background:var(--surface); border-radius:28px;
-  overflow:hidden; display:flex; flex-direction:column;
-  box-shadow:0 40px 100px rgba(15,23,42,.20), 0 8px 24px rgba(15,23,42,.10);
-  animation:sgaFadeUp .45s cubic-bezier(.2,.8,.2,1) both; }
-.sgv-mo-head{ flex-shrink:0; display:flex; align-items:flex-start; gap:16px; padding:24px 28px 16px; }
-.sgv-mo-scroll{ flex:1; overflow-y:auto; padding:4px 28px 26px; scrollbar-width:thin; }
-.sgv-mo-scroll::-webkit-scrollbar{ width:8px; }
-.sgv-mo-scroll::-webkit-scrollbar-thumb{ background:var(--hairline); border-radius:8px; }
-.sgv-mo-grid{ display:grid; grid-template-columns:minmax(0,1.55fr) minmax(310px,1fr); gap:24px; align-items:start; }
-.sgv-mo-grid > .col{ display:flex; flex-direction:column; gap:22px; min-width:0; }
-.sgv-mo-grid > .col.side{ position:sticky; top:0; gap:14px; }
-.sgv-mo-grid > .col > *{ animation:sgaFadeUp .5s cubic-bezier(.2,.8,.2,1) both; }
-.sgv-mo-grid > .col > *:nth-child(1){ animation-delay:.04s; }
-.sgv-mo-grid > .col > *:nth-child(2){ animation-delay:.09s; }
-.sgv-mo-grid > .col > *:nth-child(3){ animation-delay:.14s; }
-.sgv-mo-grid > .col > *:nth-child(4){ animation-delay:.19s; }
-.sgv-mo-grid > .col > *:nth-child(5){ animation-delay:.24s; }
+.sgi-stage{ position:fixed; inset:0; z-index:70; background:#0A0B0D; animation:sgaFade .3s both; }
+.sgi-stage.is-closing{ animation:sgiFadeOut .26s both; }
+.sgi-stage.is-closing .sgi-sheet{ animation:sgiSlideOut .26s both; }
+
+/* ── photo pleine page ─────────────────────────────────────────────── */
+.sgi-photo{ position:absolute; inset:0; overflow:hidden; cursor:pointer; }
+.sgi-photo.noimg{ cursor:default; }
+.sgi-photo img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+  animation:sgiKen .9s cubic-bezier(.2,.8,.2,1) both; }
+/* voiles haut/bas : lisibilité du chrome et du bloc identité sur n'importe quelle photo */
+.sgi-photo::before{ content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
+  background:linear-gradient(180deg, rgba(8,8,12,.44) 0%, rgba(8,8,12,0) 24%); }
+.sgi-photo::after{ content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
+  background:linear-gradient(180deg, rgba(8,8,12,0) 42%, rgba(8,8,12,.72) 100%); }
+.sgi-photo.noimg::before, .sgi-photo.noimg::after{ display:none; }
+.sgi-photo .sga-ph{ position:absolute; inset:0; }
+
+.sgi-chrome{ position:absolute; top:20px; left:20px; z-index:5; display:flex; align-items:center; gap:10px; }
+.sgi-xcircle{ width:40px; height:40px; border-radius:var(--r-pill); border:none; cursor:pointer; flex-shrink:0;
+  display:grid; place-items:center; background:rgba(10,10,14,.55); color:#fff; font-family:inherit;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); transition:background-color .2s; }
+.sgi-xcircle:hover{ background:rgba(10,10,14,.78); }
+.sgi-glass{ display:inline-flex; align-items:center; gap:7px; padding:9px 15px; border-radius:var(--r-pill);
+  border:none; font-family:inherit; font-size:12.5px; font-weight:600; line-height:1; white-space:nowrap;
+  background:rgba(10,10,14,.55); color:#fff; cursor:pointer;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); transition:background-color .2s; }
+.sgi-glass:hover{ background:rgba(10,10,14,.78); }
+.sgi-glass.static{ cursor:default; }
+.sgi-glass.static:hover{ background:rgba(10,10,14,.55); }
+
+/* ── identité (titre · adresse · pellicule) ────────────────────────── */
+.sgi-id{ position:absolute; left:34px; bottom:32px; z-index:5; cursor:default;
+  width:min(640px, calc(100% - 560px)); min-width:280px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:13px;
+  animation:sgaFadeUp .6s cubic-bezier(.2,.8,.2,1) .12s both; }
+.sgi-title{ margin:0; font-size:clamp(28px, 3.2vw, 42px); font-weight:800; letter-spacing:-1.4px;
+  line-height:1.05; color:#fff; text-shadow:0 2px 26px rgba(0,0,0,.4); text-wrap:balance; }
+/* Même voile de lisibilité que le titre : l'adresse est posée sur la photo et n'est
+   affichée nulle part ailleurs dans cette vue — sur un cliché clair, du blanc à 82 %
+   sans ombre devient illisible. */
+.sgi-addr{ display:flex; align-items:center; gap:8px; color:rgba(255,255,255,.82); font-size:15px; font-weight:500;
+  text-shadow:0 2px 18px rgba(0,0,0,.45); }
+/* Annonce sans photo : en clair le placeholder est clair → texte encre (le blanc
+   deviendrait invisible). En sombre le placeholder reste foncé → blanc conservé. */
+.sga[data-theme="light"] .sgi-photo.noimg .sgi-title{ color:var(--ink); text-shadow:none; }
+.sga[data-theme="light"] .sgi-photo.noimg .sgi-addr{ color:var(--ink-muted); text-shadow:none; }
+
+.sgi-film{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; max-width:100%; }
+.sgi-film .fr{ position:relative; width:66px; height:48px; border-radius:11px; overflow:hidden; border:none;
+  padding:0; cursor:pointer; background:rgba(255,255,255,.10); flex-shrink:0; opacity:.78;
+  font-family:inherit; transition:opacity .2s, box-shadow .2s; }
+.sgi-film .fr img{ width:100%; height:100%; object-fit:cover; display:block; }
+.sgi-film .fr:hover{ opacity:1; }
+/* ring de sélection (état fonctionnel, pas un liseré décoratif) */
+.sgi-film .fr.on{ opacity:1; box-shadow:0 0 0 2px #fff, 0 6px 18px rgba(0,0,0,.4); }
+.sgi-film .fr.more{ display:grid; place-items:center; color:#fff; font-size:12.5px; font-weight:700;
+  background:rgba(10,10,14,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); opacity:1; }
+
+/* ── feuille dossier ───────────────────────────────────────────────── */
+.sgi-sheet{ position:absolute; top:16px; right:16px; bottom:16px; z-index:6; width:min(478px, 44vw);
+  background:var(--surface-solid); border-radius:26px; overflow:hidden; display:flex; flex-direction:column;
+  box-shadow:0 40px 100px rgba(0,0,0,.42), 0 8px 24px rgba(0,0,0,.22);
+  animation:sgiSlideIn .55s cubic-bezier(.2,.8,.2,1) .06s both; }
+.sga[data-theme="dark"] .sgi-sheet{ box-shadow:0 40px 100px rgba(0,0,0,.7), 0 8px 24px rgba(0,0,0,.4); }
+.sgi-sheet.is-folding{ animation:sgiSlideOut .28s cubic-bezier(.4,0,.2,1) both; }
+.sgi-sh-head{ flex-shrink:0; padding:24px 26px 6px; }
+.sgi-sh-toprow{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.sgi-sh-head .chips{ display:flex; gap:7px; flex-wrap:wrap; margin-bottom:13px; }
+.sgi-price{ font-size:33px; font-weight:800; letter-spacing:-1.1px; color:var(--ink); line-height:1.05; }
+.sgi-fold{ width:30px; height:30px; border-radius:var(--r-pill); border:none; cursor:pointer; flex-shrink:0;
+  display:grid; place-items:center; background:var(--cardsub); color:var(--ink-muted); font-family:inherit;
+  transition:background-color .18s, color .18s; }
+.sgi-fold:hover{ color:var(--ink); background:var(--surface-2); }
+
+.sgi-sh-scroll{ flex:1; min-height:0; overflow-y:auto; padding:18px 26px 22px; scrollbar-width:thin;
+  display:flex; flex-direction:column; gap:24px; }
+.sgi-sh-scroll::-webkit-scrollbar{ width:8px; }
+.sgi-sh-scroll::-webkit-scrollbar-thumb{ background:var(--hairline); border-radius:8px; }
+.sgi-sh-scroll > *{ animation:sgaFadeUp .5s cubic-bezier(.2,.8,.2,1) both; }
+.sgi-sh-scroll > *:nth-child(1){ animation-delay:.10s; }
+.sgi-sh-scroll > *:nth-child(2){ animation-delay:.15s; }
+.sgi-sh-scroll > *:nth-child(3){ animation-delay:.20s; }
+.sgi-sh-scroll > *:nth-child(4){ animation-delay:.25s; }
+
+/* « L'essentiel » — bento CHIFFRES : carte blanc pur (même en sombre),
+   typographie seule, gros nombres tabulaires, zéro icône, zéro bordure. */
+/* ÉCART ASSUMÉ vs handoff : la maquette force `background:#FFFFFF` sur ce bento
+   quel que soit le thème. En sombre cela produit une carte blanche flottante, que
+   la grammaire du projet interdit explicitement (CLAUDE.md : jamais `bg-white` ;
+   surfaces flottantes sombres = gris neutre opaque). On passe donc par les tokens
+   de thème — le rendu clair est identique à la maquette, le sombre est cohérent
+   avec le reste du CRM. */
+.sgi-bento-num{ background:var(--surface-solid); border-radius:var(--r-lg); padding:20px 20px 17px;
+  display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); row-gap:20px; column-gap:12px;
+  box-shadow:0 1px 2px rgba(15,23,42,.05), 0 12px 30px -14px rgba(40,55,90,.18); }
+.sga[data-theme="dark"] .sgi-bento-num{ background:var(--cardsub);
+  box-shadow:0 2px 8px rgba(0,0,0,.4), 0 18px 44px -14px rgba(0,0,0,.6); }
+.sgi-bento-num .ncell{ min-width:0; display:flex; flex-direction:column; gap:5px; }
+.sgi-bento-num .nv{ font-size:23px; font-weight:800; letter-spacing:-0.8px; line-height:1; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sgi-bento-num .nk{ font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-muted); }
+
+.sgi-sh-foot{ flex-shrink:0; position:relative; z-index:2; display:flex; gap:10px; padding:14px 20px 20px;
+  background:var(--surface-solid); box-shadow:0 -14px 34px -22px rgba(15,23,42,.30); }
+.sga[data-theme="dark"] .sgi-sh-foot{ box-shadow:0 -14px 34px -22px rgba(0,0,0,.8); }
+/* Duo cohérent : le secondaire reprend le neutre surélevé du reste de l'UI sombre. */
+.sga[data-theme="dark"] .sgi-sh-foot .btn-ghost{ background:var(--cardsub); }
+
+/* ── feuille réduite (carte compacte : prix + CTA) ─────────────────── */
+.sgi-mini{ position:absolute; right:16px; bottom:16px; z-index:6; display:flex; align-items:center; gap:12px;
+  padding:9px 9px 9px 10px; border-radius:var(--r-pill); background:var(--surface-solid);
+  box-shadow:0 24px 60px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.2);
+  animation:sgaFadeUp .42s cubic-bezier(.2,.8,.2,1) both; }
+.sga[data-theme="dark"] .sgi-mini{ box-shadow:0 24px 60px rgba(0,0,0,.6), 0 6px 18px rgba(0,0,0,.4); }
+.sgi-mini.is-closing{ animation:sgiMiniOut .2s cubic-bezier(.4,0,.2,1) both; }
+.sgi-mini .mopen{ width:34px; height:34px; border-radius:var(--r-pill); border:none; cursor:pointer; flex-shrink:0;
+  display:grid; place-items:center; background:var(--cardsub); color:var(--ink-soft); font-family:inherit;
+  transition:background-color .18s, color .18s; }
+.sgi-mini .mopen:hover{ color:var(--ink); background:var(--surface-2); }
+.sgi-mini .mp{ font-size:16.5px; font-weight:800; letter-spacing:-0.4px; color:var(--ink);
+  white-space:nowrap; padding-right:2px; }
+
+@media (max-width: 1180px){
+  /* Réserver la LARGEUR DE LA FEUILLE, pas 60px : sinon, sous ~1106px, la feuille
+     opaque (z-6) recouvre le bloc identité (z-5) — titre, adresse et pellicule
+     masqués ET incliquables sur toute la bande 769–1106px. */
+  .sgi-id{ width:min(520px, calc(100% - 500px)); bottom:auto; top:84px; }
+  .sgi-sheet{ width:min(440px, 52vw); }
+}
+@media (prefers-reduced-motion:reduce){
+  .sgi-stage, .sgi-stage.is-closing, .sgi-sheet, .sgi-sheet.is-folding,
+  .sgi-stage.is-closing .sgi-sheet, .sgi-photo img, .sgi-id,
+  .sgi-sh-scroll > *, .sgi-mini, .sgi-mini.is-closing{ animation:none; }
+}
+
+/* ============================================================================
+ * COCKPIT « PUPITRE » (handoff atelier-a-cockpit-v2.jsx / .css — concept A,
+ * seule variante actée : `cockpit: "pupitre"`).
+ * Barre haute unifiée : identité de l'annonce (bascule) · progression de
+ * session · filtres. Le concept B « Régie » n'est PAS porté.
+ * ========================================================================== */
+
+.sga .sgk{ position:relative; flex:1; min-width:0; }
+.sga .sgk-flex{ flex:1; min-width:12px; }
+.sga .sgk-veil{ position:fixed; inset:0; z-index:1; }
+.sga .sgk-thumb{ overflow:hidden; flex-shrink:0; position:relative; background:var(--surface-2);
+  display:grid; place-items:center; }
+.sga .sgk-thumb img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.sga .sgk-title{ font-size:14.5px; font-weight:700; letter-spacing:-.01em; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sga .sgk-price{ font-size:12.5px; font-weight:600; color:var(--ink-muted); white-space:nowrap; flex-shrink:0; }
+
+/* identité annonce (bouton) — hover = changement de fond seul (grammaire Sugar Pure) */
+.sga .sgk-id{ position:relative; z-index:2; display:flex; align-items:center; gap:12px; min-width:0;
+  border:0; background:transparent; font-family:inherit; text-align:left; color:inherit;
+  padding:5px 10px 5px 5px; border-radius:999px; cursor:pointer; transition:background-color .18s;
+  flex-shrink:1; }
+.sga .sgk-id[data-static="true"]{ cursor:default; }
+.sga .sgk-id:not([data-static="true"]):hover{ background:var(--cardsub); }
+.sga .sgk-id-txt{ min-width:0; display:flex; flex-direction:column; gap:3px; }
+.sga .sgk-id-line{ display:flex; align-items:center; gap:8px; min-width:0; }
+
+/* chevron discret sur l'annonce (bascule) */
+.sga .sgk-chev{ display:grid; place-items:center; flex-shrink:0; color:var(--ink-muted);
+  transition:transform .25s, color .18s; }
+.sga .sgk-id:not([data-static="true"]):hover .sgk-chev{ color:var(--ink); }
+.sga .sgk-chev[data-open="true"]{ transform:rotate(180deg); color:var(--ink); }
+
+/* onglets — reprend .seg/.sga-seg-btn, posés sur fond doux dans la pilule */
+.sga .sgk-seg{ position:relative; z-index:2; background:var(--cardsub); box-shadow:none; flex-shrink:0; }
+.sga .sgk-seg .sga-seg-btn{ padding:7px 13px; }
+.sga .sgk-back{ position:relative; z-index:2; padding:10px 18px; }
+
+/* progression de session — fraction + jauge continue */
+.sga .sgk-file{ flex-shrink:0; display:flex; align-items:center; gap:10px; }
+.sga .sgk-frac{ font-size:12.5px; font-weight:600; color:var(--ink-muted); white-space:nowrap; }
+.sga .sgk-frac b{ font-weight:800; color:var(--ink); }
+.sga .sgk-frac i{ font-style:normal; }
+.sga .sgk-track{ width:110px; height:5px; border-radius:999px; background:rgba(15,23,42,.10);
+  overflow:hidden; flex-shrink:0; }
+.sga[data-theme="dark"] .sgk-track{ background:rgba(255,255,255,.13); }
+.sga .sgk-fill{ height:100%; background:var(--black); border-radius:999px;
+  transition:width .5s cubic-bezier(.2,.8,.2,1); }
+.sga .sgk-file-done{ display:inline-flex; align-items:center; gap:6px; font-size:13px;
+  font-weight:700; color:var(--ink); white-space:nowrap; }
+
+/* pilule Pupitre — fondue dans la barre haute */
+.sga .sgk-pupitre{ display:flex; align-items:center; gap:16px; height:60px;
+  padding:0 10px 0 4px; background:transparent; border-radius:0; box-shadow:none; }
+.sga .sgk-div{ width:1px; height:30px; background:var(--hairline); flex-shrink:0; }
+
+/* menu de bascule d'annonce (bento gris neutre — aucune teinte bleue) */
+.sga .sgk-menu{ position:absolute; top:calc(100% + 8px); left:-6px; z-index:3; width:404px;
+  --ink:#1A1A1C; --ink-soft:#3B3B3D; --ink-muted:#7E7E82; --ink-dim:#B3B3B5;
+  --cardsub:#EAEAEB; --surface-2:#EAEAEB;
+  background:#FFFFFF; border-radius:22px; padding:9px;
+  box-shadow:0 24px 60px rgba(0,0,0,.14), 0 4px 16px rgba(0,0,0,.08);
+  animation:sgaFadeUp .35s cubic-bezier(.2,.8,.2,1) both;
+  max-height:min(70vh, 520px); overflow-y:auto; }
+.sga[data-theme="dark"] .sgk-menu{
+  --ink:#F2F2F3; --ink-soft:#C9C9CB; --ink-muted:#8C8C90; --ink-dim:#5C5C5E;
+  --cardsub:rgba(255,255,255,.07); --surface-2:#2C2C2E;
+  background:#171719; box-shadow:0 24px 60px rgba(0,0,0,.55), 0 4px 16px rgba(0,0,0,.45); }
+.sga .sgk-menu-h{ padding:9px 12px 11px; }
+.sga .sgk-menu-sub{ margin:4px 0 0; font-size:12.5px; font-weight:500; line-height:1.45; color:var(--ink-muted); }
+.sga .sgk-menu-row{ display:flex; align-items:center; gap:12px; width:100%; border:0;
+  font-family:inherit; text-align:left; cursor:pointer; padding:10px 11px; border-radius:15px;
+  color:inherit; background:transparent; transition:background-color .16s, box-shadow .16s; }
+.sga .sgk-menu-row:hover{ background:rgba(0,0,0,.05); }
+.sga[data-theme="dark"] .sgk-menu-row:hover{ background:rgba(255,255,255,.05); }
+.sga .sgk-menu-row[data-current="true"]{ background:rgba(0,0,0,.06);
+  box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.15); cursor:default; }
+.sga[data-theme="dark"] .sgk-menu-row[data-current="true"]{ background:rgba(255,255,255,.07);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.16); }
+.sga .sgk-menu-txt{ flex:1; min-width:0; }
+.sga .sgk-menu-txt .ttl{ font-size:14px; font-weight:700; letter-spacing:-.01em; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sga .sgk-menu-txt .meta{ margin-top:2px; font-size:12.5px; font-weight:600; color:var(--ink-muted); }
+.sga .sgk-menu-check{ width:20px; height:20px; border-radius:999px; background:var(--ink);
+  color:var(--surface-solid); display:grid; place-items:center; flex-shrink:0; }
+.sga[data-theme="dark"] .sgk-menu-check{ color:#0B0C0E; }
+.sga .sgk-menu-f{ margin:9px 3px 3px; }
+.sga .sgk-menu-f .btn{ width:100%; justify-content:center; background:rgba(0,0,0,.05);
+  color:var(--ink-soft); box-shadow:none; }
+.sga .sgk-menu-f .btn:hover{ background:rgba(0,0,0,.09); color:var(--ink); transform:none; box-shadow:none; }
+.sga[data-theme="dark"] .sgk-menu-f .btn{ background:rgba(255,255,255,.05); }
+.sga[data-theme="dark"] .sgk-menu-f .btn:hover{ background:rgba(255,255,255,.09); }
+
+/* densité compacte + écrasement (l'annonce cède en premier) */
+.sga[data-density="compact"] .sgk-pupitre{ height:56px; }
+.sga[data-density="compact"] .sgk-pupitre .sgk-thumb{ width:40px !important; height:40px !important; }
 
 @media (prefers-reduced-motion:reduce){
-  .sgv-wrap, .sgv-wrap.is-closing, .sgv-modal, .sgv-wrap.is-closing .sgv-modal,
-  .sgv-mo-grid > .col > *{ animation:none; }
+  .sga .sgk-menu{ animation:none; }
+  .sga .sgk-fill{ transition:none; }
 }
+
+/* En-tête de la colonne File dans l'état vide (compteur à zéro). */
+.sga .sga-emptyhead{ display:flex; align-items:flex-start; justify-content:space-between;
+  gap:14px; padding:20px 20px 0; flex-shrink:0; }
+.sga .sga-emptyhead-n{ font-size:40px; font-weight:800; letter-spacing:-.03em; line-height:1;
+  color:var(--ink); }
+
+/* Nœud d'accueil des overlays portés dans document.body : rétablit le scope
+   `.sga` (tokens) et passe au-dessus du shell CRM. */
+.sga-portal{ position:fixed; inset:0; z-index:200; }
+
+/* ════════════════════════════════════════════════════════════════════════
+ * COL 2 · ANNONCE IMMERSIVE — la photo EST le panneau (variante actée
+ * annonce:"immersive"). Remplace l'ancienne carte scrollée (.sga-listing-scroll,
+ * .sga-hero, .sga-thumbs, .sga-specs, .sga-desc, .sga-map — devenues orphelines).
+ * Grammaire alignée sur la vue .sgi- déjà portée : voiles en dégradé plutôt que
+ * liserés, pastilles verre au fond seul. AUCUN survol transformant : le survol
+ * ne joue que sur le fond ou l'opacité. */
+.sga-immersive{ position:relative; }
+
+/* photo de scène — <button> à plat, occupe tout le panneau */
+.sga-stagephoto{ position:absolute; inset:0; z-index:1; display:block; width:100%; padding:0; border:none;
+  overflow:hidden; background:var(--surface-2); font-family:inherit; cursor:pointer; }
+/* voile haut (pastille verre) + voile bas (titre/prix/specs) : lisibilité sur
+   n'importe quel cliché, y compris une façade blanche en plein soleil */
+.sga-stagephoto::after{ content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(180deg, rgba(8,8,12,.42) 0%, rgba(8,8,12,.06) 32%, rgba(8,8,12,.08) 55%, rgba(8,8,12,.86) 100%); }
+.sga-stagephoto.noimg::after{ display:none; }
+
+/* pastille « Voir l'annonce » */
+.sga-lst-top{ position:absolute; top:16px; left:16px; right:16px; z-index:3;
+  display:flex; justify-content:flex-end; gap:10px; pointer-events:none; }
+.sga-lst-top > *{ pointer-events:auto; }
+.sga-glasspill{ display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 15px; border-radius:var(--r-pill);
+  border:none; font-family:inherit; font-size:12.5px; font-weight:700; line-height:1; white-space:nowrap; cursor:pointer;
+  background:rgba(10,10,14,.55); color:#fff;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); transition:background-color .2s; }
+.sga-glasspill:hover{ background:rgba(10,10,14,.78); }
+
+/* pellicule verticale — 3 cadres, « +N » sur le dernier */
+.sga-filmstrip{ position:absolute; right:16px; top:50%; transform:translateY(-50%); z-index:3;
+  display:flex; flex-direction:column; gap:8px; }
+.sga-filmstrip .fr{ position:relative; width:52px; height:52px; border-radius:var(--r-sm); overflow:hidden;
+  padding:0; border:none; cursor:pointer; flex-shrink:0; background:rgba(255,255,255,.10);
+  opacity:.82; box-shadow:0 8px 20px rgba(0,0,0,.35); transition:opacity .2s; }
+.sga-filmstrip .fr:hover{ opacity:1; }
+.sga-filmstrip .fr .more{ position:absolute; inset:0; z-index:1; display:grid; place-items:center;
+  background:rgba(8,8,12,.55); color:#fff; font-size:12px; font-weight:800; }
+
+/* bloc identité superposé — pointer-events:none pour laisser le clic filer
+   jusqu'au bouton photo situé dessous */
+.sga-lst-bottom{ position:absolute; left:22px; right:22px; bottom:20px; z-index:2; color:#fff; pointer-events:none; }
+.sga-lst-bottom .row{ display:flex; align-items:flex-end; justify-content:space-between; gap:18px; }
+.sga-lst-bottom .ttl{ font-size:28px; font-weight:800; letter-spacing:-1.1px; line-height:1.04; text-wrap:balance;
+  text-shadow:0 2px 26px rgba(0,0,0,.4); }
+.sga-lst-bottom .addr{ display:flex; align-items:center; gap:7px; margin-top:9px; font-size:13px; font-weight:600;
+  color:rgba(255,255,255,.78); text-shadow:0 2px 18px rgba(0,0,0,.45); }
+.sga-lst-bottom .price{ text-align:right; flex-shrink:0; }
+.sga-lst-bottom .price .v{ font-size:24px; font-weight:800; letter-spacing:-.8px; text-shadow:0 2px 26px rgba(0,0,0,.4); }
+.sga-lst-bottom .price .was{ font-size:12px; font-weight:600; color:rgba(255,255,255,.66); margin-top:3px;
+  text-shadow:0 2px 18px rgba(0,0,0,.45); }
+.sga-lst-bottom .gspecs{ display:flex; gap:7px; flex-wrap:wrap; margin-top:15px; }
+.sga-gspec{ display:inline-flex; align-items:center; height:32px; padding:0 13px; border-radius:var(--r-pill);
+  background:rgba(10,10,14,.5); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  font-size:12px; font-weight:700; color:#fff; white-space:nowrap; }
+/* repli sans photo : en thème clair le placeholder est clair, le blanc disparaîtrait */
+.sga-lst-bottom.noimg{ color:var(--ink); }
+.sga-lst-bottom.noimg .ttl,
+.sga-lst-bottom.noimg .price .v{ text-shadow:none; }
+.sga-lst-bottom.noimg .addr,
+.sga-lst-bottom.noimg .price .was{ color:var(--ink-muted); text-shadow:none; }
+.sga-lst-bottom.noimg .sga-gspec{ background:var(--cardsub); color:var(--ink-soft);
+  backdrop-filter:none; -webkit-backdrop-filter:none; }
+
+/* densité compacte — remplace l'ancien `.sga[data-density="compact"] .sga-hero` */
+.sga[data-density="compact"] .sga-lst-bottom .ttl{ font-size:24px; }
+/* ── COL 1 · tête éditoriale de file (port bundle, variante recherche:"auto") ── */
+.sga{ --sga-kyc-seal:#0041D9; }
+.sga[data-theme="dark"]{ --sga-kyc-seal:#6F8CFF; }
+
+.sga-queue-h[data-pos="top"]{ padding:18px 18px 6px; }
+.sga-queue-head{ flex-shrink:0; padding:20px 18px 0; display:flex; align-items:flex-end; justify-content:space-between; gap:12px; }
+.sga-queue-head .big{ font-size:40px; font-weight:800; letter-spacing:-2px; line-height:.9; color:var(--ink); }
+.sga-queue-head .lb{ padding-bottom:4px; text-align:right; line-height:1.45; }
+/* En-tête compact — recherche promue en tête (file longue) : une ligne, plus d'acheteurs visibles */
+.sga-queue-head[data-compact="true"]{ align-items:center; gap:8px; padding:14px 18px 6px; }
+.sga-queue-head[data-compact="true"] .eyebrow{ margin-bottom:0; line-height:1; }
+.sga-queue-head[data-compact="true"] .big{ font-size:18px; letter-spacing:-0.4px; line-height:1; }
+.sga-queue-head[data-compact="true"] .lb{ margin-left:auto; padding-bottom:0; text-align:right; text-transform:none;
+  font-size:11px; font-weight:600; letter-spacing:0; line-height:1.2; color:var(--ink-muted); white-space:nowrap; }
+
+/* ── Parking « À programmer » — groupes de date + hauteur plafonnée ─────────── */
+.sga-prog-group{ display:flex; align-items:center; gap:9px; padding:9px 8px 4px; }
+.sga-prog-group > span:first-child{ font-size:10px; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-dim); white-space:nowrap; }
+.sga-prog-group .rule{ flex:1; height:1px; background:var(--hairline-2); }
+.sga-prog-group .nums{ font-size:10.5px; font-weight:700; color:var(--ink-dim); }
+.sga-prog-actions{ margin-left:auto; display:flex; gap:6px; flex-shrink:0; }
+/* même déplié, l'écho local ne bloque jamais la file : le foyer des rappels, c'est Aujourd'hui */
+.sga-snoozed.sga-programmer[data-open="true"] .sga-snoozed-body > .inner{ max-height:212px; overflow-y:auto; scrollbar-width:thin; }
+.sga-snoozed.sga-programmer .sga-snoozed-body > .inner::-webkit-scrollbar{ width:7px; }
+.sga-snoozed.sga-programmer .sga-snoozed-body > .inner::-webkit-scrollbar-thumb{ background:var(--hairline); border-radius:7px; }
+.sga-snooze-row .wake.ghost{ background:none; box-shadow:inset 0 0 0 1.5px var(--hairline-2); color:var(--ink-soft); }
+.sga-snooze-row .wake.ghost:hover{ background:var(--surface-2); color:var(--ink); }
+.sga[data-theme="dark"] .sga-snooze-row .wake.ghost:hover{ background:rgba(255,255,255,0.08); color:var(--ink); }
+/* la règle existante `.sga[data-theme="dark"] .sga-snooze-row .wake:hover{color:#0B0C0E}`
+   ne doit pas repeindre le bouton fantôme */
+.sga[data-theme="dark"] .sga-snooze-row .wake.ghost:hover{ color:var(--ink); }/* ── Atelier · COL 3 « Pourquoi ça matche » ─────────────────────────── */
+.sga-why-nm{ font-size:22px; font-weight:800; letter-spacing:-.7px; line-height:1; }
+
+/* Triage · deux ronds ghost + primaire qui prend le reste de la largeur */
+.sga-triage .btns.btns-icon{ display:flex; gap:9px; }
+.sga-triage .btns.btns-icon .btn-primary{ flex:1; }
+.sga .btn.sga-ghostact{ width:46px; min-width:46px; height:46px; padding:0;
+  background:var(--cardsub); color:var(--ink-soft); box-shadow:none; }
+/* Pas de translate au survol (grammaire projet) : seul le fond change, sans délai.
+   `.sga .circle:hover` pose un transform → on le neutralise explicitement. */
+.sga .btn.sga-ghostact:hover{ transform:none; background:var(--surface-2); color:var(--ink); box-shadow:none; }
+/* « Écarter » = geste destructif → teinte rouge fonctionnelle au survol */
+.sga .btn.sga-ghostact.sga-danger:hover{ color:#8E1F3D;
+  background:color-mix(in srgb, #8E1F3D 8%, var(--cardsub)); }
+.sga[data-theme="dark"] .btn.sga-ghostact.sga-danger:hover{ color:#E0738C;
+  background:color-mix(in srgb, #E0738C 12%, var(--cardsub)); }

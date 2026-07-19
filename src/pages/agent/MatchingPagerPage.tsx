@@ -11,7 +11,7 @@
 //     butée : l'atelier a des colonnes scrollables (file d'acheteurs) — un scroll
 //     léger défile la colonne, seul un geste franc bascule vers « Recherche ».
 //   - clavier = PageUp/PageDown UNIQUEMENT (les flèches restent à l'atelier :
-//     J/K/←/→ pilotent le triage).
+//     J/K/←/→ y déplacent la sélection ; seules `e` et `x` agissent).
 //
 // Réf. handoff : `crm-screen-matching-proto.jsx` (CRMScreenMatchingProto).
 
@@ -221,6 +221,10 @@ export default function MatchingPagerPage() {
 
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return // geste horizontal → ignore
+      // Pendant la transition, on avale TOUT : sinon l'élan résiduel du geste part
+      // défiler la colonne de la page qui vient d'apparaître (et repousse `cool`
+      // à chaque événement, ce qui gèle la bascule suivante).
+      if (lock.current) { e.preventDefault(); acc.current = 0; return }
       if (canScrollNatively(e.target, e.deltaY > 0 ? 1 : -1)) { acc.current = 0; cool.current = Date.now() + 450; return }
       e.preventDefault()
       // L'élan qui déborde d'une colonne interne arrivée en butée ne doit JAMAIS
@@ -310,7 +314,7 @@ export default function MatchingPagerPage() {
           }}>
             <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
               <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-                <MatchingAtelierPage embedded dark={dark} />
+                <MatchingAtelierPage embedded dark={dark} onOpenRecherche={() => goTo(1)} />
               </div>
               <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
                 <MatchingRechercheHybride t={t} dark={dark} darkTone={DARK_TONE} />

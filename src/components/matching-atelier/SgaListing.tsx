@@ -1,107 +1,108 @@
-// Atelier Matching — COL 2 · annonce pivot (hero photo, vignettes, prix,
-// pilules specs, description, mini-carte placeholder). Port hi-fi du handoff.
+// Atelier Matching — COL 2 · annonce pivot, refonte « la photo devient le panneau ».
+// La photo occupe tout le panneau ; titre, adresse, prix et specs sont superposés
+// en bas sur un voile dégradé. Le détail complet (description, carte, atouts) vit
+// désormais dans la fiche immersive : chaque zone cliquable mène à `onOpenListing`,
+// la galerie n'est plus une destination depuis cette colonne.
+//
+// Choix non évidents :
+// - photo et vignettes sont des <button> (accès clavier) plutôt que des div/role ;
+//   le bloc bas est en pointer-events:none pour laisser passer le clic vers la photo.
+// - pas d'effet de survol transformant (règle projet) : le survol ne change que
+//   l'opacité ou le fond, jamais l'échelle ou la position.
+// - annonce sans photo (`gallery` vide, cas réel des biens sans média) : voile et
+//   pellicule retirés, le bloc bas repasse en encre normale via `.noimg`.
 
 import { useTranslation } from 'react-i18next'
-import SgaIcon, { type SgaIconName } from './SgaIcon'
-import SgaMiniMap from './SgaMiniMap'
+import SgaIcon from './SgaIcon'
 import { sgaFmtCHF } from './format'
 import type { AtelierListing } from './types'
 
 interface SgaListingProps {
   L: AtelierListing
-  onOpenPhoto: (index: number) => void
   onOpenListing: () => void
 }
 
-export default function SgaListing({ L, onOpenPhoto, onOpenListing }: SgaListingProps) {
+export default function SgaListing({ L, onOpenListing }: SgaListingProps) {
   const { t } = useTranslation('matching')
   const G = L.gallery
-  const specs: Array<{ i: SgaIconName; t: string }> = []
-  if (L.rooms != null) specs.push({ i: 'home', t: t('atelier.roomsCount', { count: L.rooms }) })
-  if (L.area != null) specs.push({ i: 'surface', t: `${L.area} m²` })
-  if (L.beds != null) specs.push({ i: 'bed', t: t('atelier.bedsAbbr', { count: L.beds }) })
-  if (L.baths != null) specs.push({ i: 'bath', t: t('atelier.bathsAbbr', { count: L.baths }) })
-  if (L.year != null) specs.push({ i: 'calendar', t: `${L.year}` })
-  if (L.floor != null && L.floor > 0) specs.push({ i: 'lift', t: t('atelier.floorOrdinal', { floor: L.floor }) })
+  const hasImg = !!G[0]?.url
+
+  // Pellicule : jusqu'à 3 vignettes après la photo de scène.
+  const strip = G.slice(1, 4).filter(p => !!p.url)
+  const shown = 1 + strip.length
+  const remaining = Math.max(0, (L.photos || G.length) - shown)
+
+  // Gardes nullables conservées : la maquette écrit « null pièces » sans elles.
+  const specs: string[] = []
+  if (L.rooms != null) specs.push(t('atelier.roomsCount', { count: L.rooms }))
+  if (L.area != null) specs.push(`${L.area} m²`)
+  if (L.beds != null) specs.push(t('atelier.bedsAbbr', { count: L.beds }))
+  if (L.baths != null) specs.push(t('atelier.bathsAbbr', { count: L.baths }))
+  if (L.year != null) specs.push(`${L.year}`)
+  if (L.floor != null && L.floor > 0) specs.push(t('atelier.floorOrdinal', { floor: L.floor }))
 
   return (
-    <section className="sga-panel sga-enter d1" aria-label={t('atelier.listing')}>
-      <div className="sga-listing-scroll">
-        <div className="sga-hero sga-photo-trigger" onClick={() => onOpenPhoto(0)}>
-          {G[0]?.url ? (
-            <img className="sga-hero-img" src={G[0].url} alt={G[0].label} draggable="false" />
-          ) : (
-            <div className="sga-ph">
-              <div className="ph-lbl"><SgaIcon d="camera" size={26} /><span>{t('atelier.mainPhoto')}</span></div>
-            </div>
-          )}
-          <button
-            className="sga-hero-cta"
-            title={t('atelier.viewFullListing')}
-            onClick={e => { e.stopPropagation(); onOpenListing() }}
-          >
-            {t('atelier.viewListing')}
-          </button>
-          <div className="count"><SgaIcon d="layers" size={13} /> {t('atelier.photosCount', { count: L.photos })}</div>
-          <div className="sga-zoomcue"><SgaIcon d="search" size={13} /> {t('atelier.openGallery')}</div>
-        </div>
+    <section className="sga-panel sga-enter d1 sga-immersive" aria-label={t('atelier.listing')}>
+      <button
+        type="button"
+        className={`sga-stagephoto${hasImg ? '' : ' noimg'}`}
+        aria-label={t('atelier.viewFullListing')}
+        onClick={onOpenListing}
+      >
+        {hasImg ? (
+          <img className="sga-hero-img" src={G[0].url} alt={G[0].label} draggable="false" />
+        ) : (
+          <div className="sga-ph">
+            <div className="ph-lbl"><SgaIcon d="camera" size={26} /><span>{t('atelier.noPhotoYet')}</span></div>
+          </div>
+        )}
+      </button>
 
-        <div className="sga-thumbs">
-          {[1, 2, 3].map(n => (
-            <div className="sga-thumb sga-photo-trigger" key={n} onClick={() => onOpenPhoto(n)}>
-              {G[n]?.url ? (
-                <img className="sga-hero-img" src={G[n].url} alt={G[n].label} draggable="false" />
-              ) : (
-                <div className="sga-ph" />
+      <div className="sga-lst-top">
+        <button type="button" className="sga-glasspill" title={t('atelier.viewFullListing')} onClick={onOpenListing}>
+          {t('atelier.viewListing')}
+        </button>
+      </div>
+
+      {strip.length > 0 && (
+        <div className="sga-filmstrip">
+          {strip.map((p, i) => (
+            <button
+              type="button"
+              className="fr"
+              key={p.url}
+              aria-label={t('atelier.viewFullListing')}
+              onClick={onOpenListing}
+            >
+              <img className="sga-hero-img" src={p.url} alt={p.label} draggable="false" />
+              {i === strip.length - 1 && remaining > 0 && (
+                <span className="more nums">{`+${remaining}`}</span>
               )}
-            </div>
+            </button>
           ))}
-          <div className="sga-thumb sga-photo-trigger" onClick={() => onOpenPhoto(4)}>
-            {G[4]?.url ? (
-              <img className="sga-hero-img dim" src={G[4].url} alt={G[4].label} draggable="false" />
-            ) : (
-              <div className="sga-ph" />
-            )}
-            {L.photos > 3 && <div className="more nums">{`+${L.photos - 3}`}</div>}
-          </div>
         </div>
+      )}
 
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div className={`sga-lst-bottom${hasImg ? '' : ' noimg'}`}>
+        <div className="row">
           <div style={{ minWidth: 0 }}>
-            <div className="t5 semi" style={{ marginBottom: 5, color: 'var(--ink)' }}>{L.title}</div>
-            <div className="t2 muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <SgaIcon d="location" size={15} /> {L.addr}
-            </div>
-            <div className="t1 dim nums" style={{ marginTop: 6 }}>{L.ref}</div>
+            <div className="ttl">{L.title}</div>
+            <div className="addr"><SgaIcon d="location" size={14} /> {L.addr}</div>
           </div>
-          <div style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
-            <div className="t5 semi nums" style={{ color: 'var(--ink)' }}>{sgaFmtCHF(L.price)}</div>
+          <div className="price nums">
+            <div className="v">{sgaFmtCHF(L.price)}</div>
             {L.priceWas ? (
-              <div className="t1 dim nums" style={{ textDecoration: 'line-through' }}>{sgaFmtCHF(L.priceWas)}</div>
+              <div className="was">{t('atelier.priceBefore')} <s>{sgaFmtCHF(L.priceWas)}</s></div>
             ) : L.charges != null ? (
-              <div className="t1 dim nums">{t('atelier.chargesPerMonth', { value: sgaFmtCHF(L.charges) })}</div>
+              <div className="was">{t('atelier.chargesPerMonth', { value: sgaFmtCHF(L.charges) })}</div>
             ) : null}
           </div>
         </div>
-
         {specs.length > 0 && (
-          <div className="sga-specs">
-            {specs.map(s => (
-              <span className="sga-spec" key={s.t}><SgaIcon d={s.i} size={15} /> {s.t}</span>
-            ))}
+          <div className="gspecs">
+            {specs.map(s => <span className="sga-gspec nums" key={s}>{s}</span>)}
           </div>
         )}
-
-        {L.desc && <div className="sga-desc">{L.desc}</div>}
-
-        <SgaMiniMap
-          lat={L.lat}
-          lng={L.lng}
-          address={L.addr}
-          label={t('atelier.neighborhoodLabel', { area: L.quartier || L.canton })}
-          className="sga-map"
-          style={{ flex: 1 }}
-        />
       </div>
     </section>
   )

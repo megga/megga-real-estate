@@ -141,7 +141,7 @@ export function mapListingRow(row: Record<string, unknown>): MrhBien {
     baths: num(row.bathrooms),
     area: num(row.surface_m2),
     year: num(row.year_built),
-    land_surface: null,
+    land_surface: num(row.land_surface),
     canton: (row.canton as string) ?? null,
     city: (row.city as string) ?? null,
     postal_code: (row.postal_code as string) ?? null,

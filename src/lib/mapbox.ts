@@ -2,7 +2,7 @@
 // en paramètre (jamais lu de l'env ici) → les helpers d'URL restent purs/testables, et
 // les composants décident d'où vient le token (import.meta.env.VITE_MAPBOX_TOKEN côté app).
 //
-// Choix d'archi (cf. PropertyStaticMap / SgaMiniMap) : on rend des IMAGES STATIQUES
+// Choix d'archi (cf. PropertyStaticMap) : on rend des IMAGES STATIQUES
 // (une <img>, zéro instance WebGL) → la carte se charge sur CHAQUE annonce / match sans
 // saturer le navigateur (pas de limite de contextes GL). Coords stockées d'abord, le
 // géocodage n'est qu'un fallback rare (et dédupé) pour les biens sans lat/lng.
