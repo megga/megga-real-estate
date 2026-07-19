@@ -266,7 +266,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
 
-**`_shared/`** : `ai-provider.ts` (`callDeepSeek` / `callPublicAI`=DeepSeek seul — **plus de `callClaude`** depuis PR #829, pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `vision.ts` + `photo-vision.ts` (**Gemini** `gemini-2.5-flash-lite` — DeepSeek n'a pas de vision) · `pii-redaction.ts` (scrub AVS/IBAN/passeport avant IA) · `require-agent-auth.ts`.
+**`_shared/`** : `ai-provider.ts` (`callDeepSeek` / `callPublicAI`=DeepSeek seul — **plus de `callClaude`** depuis PR #829, pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `vision.ts` + `photo-vision.ts` (**Gemini** `gemini-2.5-flash-lite` — DeepSeek n'a pas de vision) · `pii-redaction.ts` (catalogue partagé, 8 kinds — l'**ordre compte** : valeur libre en dernier, cf. cerveau `megga/pii-catalogue-traps`) · `wa-agent-redaction.ts` (`redactLlmMessages` = les **2 points d'étranglement** DeepSeek : `whatsapp-agent` et `buildCopilotModelBody`) · `whatsapp-doc-prompt.ts` (OCR rédigé avant troncature) · `require-agent-auth.ts`.
 
 | Domaine | Functions |
 |---|---|
@@ -331,7 +331,7 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 ## 7. Compliance (Suisse) 🇨🇭
 
 - **LAB/KYC (LBA)** : `kyc_cases` vigilance standard/renforcée, source des fonds (crypto/mixte → description ≥20 car. requise), screening PEP/sanctions Dilisense, **validation humaine MLRO obligatoire**, rétention 10 ans.
-- **nLPD/LPD** : `activity_events` immutable, `retention_until`, droit à l'effacement (`delete-account`), redaction PII **avant** tout appel IA (`_shared/pii-redaction.ts`), IP hashées (salt quotidien).
+- **nLPD/LPD** : `activity_events` immutable, `retention_until`, droit à l'effacement (`delete-account`), redaction PII **avant** tout appel IA (`_shared/pii-redaction.ts`), IP hashées (salt quotidien). **Couverture (19 juil. 2026, #872/#879/#884/#885/#886/#892)** : toutes les frontières DeepSeek sont rédigées — tour live WhatsApp, copilote web **y compris les résultats d'outils réinjectés** (le trou historique : ils repartaient en clair dès le 2ᵉ tour), `prepare_meeting`, email/annonce/outils groupe, voix few-shot, et l'OCR de document. Détail : cerveau `megga/pii-redaction-chain` ; pièges regex coûteux : `megga/pii-catalogue-traps`.
 - **Intégrité média** : C2PA Content Credentials (`c2pa-sign`/`verify`) sur photos IA.
 - **IA responsable** : présentée comme « assistance/estimation » (jamais « automatique/garantie »), human-in-the-loop sur KYC + envoi client.
 
