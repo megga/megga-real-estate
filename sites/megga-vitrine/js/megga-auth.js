@@ -14,7 +14,7 @@
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
   // (signin / signup / reset). Site key publique (même projet que l'app).
-  var TURNSTILE_SITE_KEY = '0x4AAAAAAADT4gba9sDd8Uo4Y';
+  var TURNSTILE_SITE_KEY = '0x4AAAAAADT4gba9sDd8Uo4Y';
   var TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
   var turnstileWidgetId = null;
 
