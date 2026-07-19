@@ -133,6 +133,31 @@ describe.skipIf(!HAS_KEYS)('RLS policies — surfaces anon mortes refermées', (
     }
   })
 
+  it('anon ne peut plus lire market_listings (marketplace désactivée)', async () => {
+    // La policy `Public can read active market_listings` servait la marketplace
+    // publique, retirée au pivot CRM-first. Les lecteurs restants (Matching CRM,
+    // monitoring admin, edge functions en service_role) sont tous hors du rôle anon.
+    const supabase = anonClient()
+    const { data, error } = await supabase.from('market_listings').select('id').limit(5)
+
+    if (error) {
+      expect(error.message.toLowerCase()).toMatch(/permission|policy|denied|row.?level/i)
+    } else {
+      expect(data, 'market_listings ne doit plus être lisible en anon').toEqual([])
+    }
+  })
+
+  it('anon ne peut plus lire market_price_history', async () => {
+    const supabase = anonClient()
+    const { data, error } = await supabase.from('market_price_history').select('id').limit(5)
+
+    if (error) {
+      expect(error.message.toLowerCase()).toMatch(/permission|policy|denied|row.?level/i)
+    } else {
+      expect(data, 'market_price_history ne doit plus être lisible en anon').toEqual([])
+    }
+  })
+
   it('seller_leads : anon ne peut pas cibler une agence (policy de référence)', async () => {
     // Contre-garde : cette policy est CORRECTEMENT écrite (WITH CHECK force
     // assigned_agency_id IS NULL). On vérifie qu'elle le reste — c'est le patron
