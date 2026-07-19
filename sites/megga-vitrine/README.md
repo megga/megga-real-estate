@@ -4,7 +4,7 @@ Site **vitrine SaaS B2B** de MEGGA CRM — landing marketing publique qui prése
 **Transaction OS immobilier compliance-first** et pousse vers le CRM (`app.megga.ch`).
 
 > **Pivot juin 2026 — CRM-first.** megga.ch sert cette vitrine (et non plus la
-> marketplace, mise en sommeil dans `sites/_marketplace-phase-ulterieure/`).
+> marketplace, supprimee du depot en juillet 2026 — recuperable via git).
 > Déployé via `scripts/overlay-storefront.mjs` (`storefront = sites/megga-vitrine`).
 
 ## Base
