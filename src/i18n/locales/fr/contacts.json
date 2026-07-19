@@ -1172,7 +1172,8 @@
       "thisContact": "ce contact",
       "body": "La fiche, ses critères de recherche et l'historique de sa boucle de match seront <1>définitivement supprimés</1>. Cette action est irréversible.",
       "confirm": "Supprimer",
-      "done": "Contact supprimé"
+      "done": "Contact supprimé",
+      "error": "La suppression a échoué. Réessayez."
     },
     "kycWarn": {
       "title": "Modifier une identité vérifiée ?",

@@ -200,7 +200,11 @@ export default function ContactDetailSugarV3Page() {
         // PEP/sanctions). La réécrire laisserait un dossier « vérifié » dont l'identité
         // ne correspond plus aux contrôles qui l'ont validé. C'est à l'invalidation
         // (onInvalidateKyc, verified→pending) de rouvrir le dossier d'abord.
-        if (cols.nationality !== (contact.nationality ?? null)) {
+        // On ne propage QU'UNE nationalité renseignée. Effacer le champ sur la fiche
+        // ne constate rien : pousser NULL ici ferait retomber le screening sur son
+        // défaut `?? 'CH'` (kyc-screening/index.ts), et un ressortissant d'une
+        // juridiction FATF haut risque perdrait son drapeau sans la moindre trace.
+        if (cols.nationality && cols.nationality !== (contact.nationality ?? null)) {
           const { error } = await supabase
             .from('kyc_cases')
             .update({ contact_nationality: cols.nationality })

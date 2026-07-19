@@ -414,8 +414,8 @@ function CdMenu({ P, dark, onEditId, onEditCoord, onEditCrit, onDelete }: {
  *  la liste est temporisé par l'appelant, sinon l'état ne serait jamais visible).
  *  Palette neutre Beta v1 (#17181A / voile noir) — les deux autres modales gardent
  *  la teinte bleutée d'origine, le changement est isolé au geste destructif. */
-function CdDeleteModal({ P, dark, name, done, onCancel, onConfirm }: {
-  P: FichePal; dark: boolean; name: string; done?: boolean; onCancel: () => void; onConfirm: () => void
+function CdDeleteModal({ P, dark, name, done, error, onCancel, onConfirm }: {
+  P: FichePal; dark: boolean; name: string; done?: boolean; error: string | null; onCancel: () => void; onConfirm: () => void
 }) {
   const { t } = useTranslation('contacts')
   const modalBg = dark ? '#17181A' : '#FFFFFF'
@@ -445,6 +445,9 @@ function CdDeleteModal({ P, dark, name, done, onCancel, onConfirm }: {
         <div style={{ fontSize: 13.5, fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
           <Trans t={t} i18nKey="fiche.delete.body" components={{ 1: <b style={{ color: P.inkSoft, fontWeight: 700 }} /> }} />
         </div>
+        {error && (
+          <div role="alert" style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
+        )}
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
           <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
           <button onClick={onConfirm} style={{ flex: 1, height: 44, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: P.danger, color: '#FFFFFF' }}>{t('fiche.delete.confirm')}</button>
@@ -838,6 +841,7 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
   const [kycWarn, setKycWarn] = useState(false)
   const [delOpen, setDelOpen] = useState(false)
   const [delDone, setDelDone] = useState(false)
+  const [delErr, setDelErr] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [coordSig, setCoordSig] = useState(0)
   const [critSig, setCritSig] = useState(0)
@@ -908,10 +912,17 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
   }
 
   // La carte « Contact supprimé » doit être VUE : on affiche d'abord, on quitte après.
+  // L'échec est affiché plutôt qu'avalé : sans ça, la modale reste ouverte sans rien
+  // dire et l'agent croit à un blocage de l'interface alors que le contact est intact.
   const confirmDelete = async () => {
-    await onDelete()
-    setDelOpen(false); setDelDone(true)
-    delTimer.current = setTimeout(onBack, 1100)
+    setDelErr(null)
+    try {
+      await onDelete()
+      setDelOpen(false); setDelDone(true)
+      delTimer.current = setTimeout(onBack, 1100)
+    } catch (e) {
+      setDelErr(e instanceof Error ? e.message : t('fiche.delete.error'))
+    }
   }
 
   // CTA principal orienté par le côté marché du contact (pas d'invention de route).
@@ -922,7 +933,7 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
   return (
     <div style={{ position: 'absolute', inset: 0, padding: '22px 30px 24px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
       {kycWarn && <CdKycWarn P={P} dark={dark} name={nm.firstName} onCancel={() => setKycWarn(false)} onConfirm={() => runApplyId(true)} />}
-      {(delOpen || delDone) && <CdDeleteModal P={P} dark={dark} done={delDone} name={(nm.firstName + ' ' + nm.lastName).trim()} onCancel={() => setDelOpen(false)} onConfirm={() => void confirmDelete()} />}
+      {(delOpen || delDone) && <CdDeleteModal P={P} dark={dark} done={delDone} error={delErr} name={(nm.firstName + ' ' + nm.lastName).trim()} onCancel={() => { setDelOpen(false); setDelErr(null) }} onConfirm={() => void confirmDelete()} />}
       {idEdit && <CdIdentityModal P={P} dark={dark} draft={nmDraft} setDraft={setNmDraft} verified={verified} error={idErr} onCancel={() => { setIdEdit(false); setNmDraft(nm) }} onSave={requestSaveId} />}
 
       {/* Retour */}

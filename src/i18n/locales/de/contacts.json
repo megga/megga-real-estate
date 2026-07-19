@@ -1167,7 +1167,8 @@
       "thisContact": "this contact",
       "body": "The profile, its search criteria and its match-loop history will be <1>permanently deleted</1>. This action is irreversible.",
       "confirm": "Delete",
-      "done": "Kontakt gelöscht"
+      "done": "Kontakt gelöscht",
+      "error": "Löschen fehlgeschlagen. Bitte erneut versuchen."
     },
     "kycWarn": {
       "title": "Edit a verified identity?",

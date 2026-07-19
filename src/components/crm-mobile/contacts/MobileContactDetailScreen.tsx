@@ -19,6 +19,7 @@ import { useContactTimeline, type TimelineEvent } from '@/hooks/useContactTimeli
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import type { Contact } from '@/types/contact'
 import type { KycDossierSummary } from '@/types/kyc'
+import { countryName } from '@/lib/countries'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import ContactSeal from './ContactSeal'
@@ -292,7 +293,9 @@ function OverviewTab({ contact, t, tk, i18nLang, onRefine }: { contact: Contact;
   const features = (sc?.features ?? []).filter(Boolean)
   const infos: { labelKey: string; value: string | null }[] = [
     { labelKey: 'mobile.detail.infos.language', value: contact.language ? contact.language.toUpperCase() : null },
-    { labelKey: 'mobile.detail.infos.nationality', value: contact.nationality },
+    // `nationality` est stocké en ISO alpha-2 depuis la migration 20260718160000 :
+    // sans countryName() la fiche afficherait « RU » au lieu de « Russie ».
+    { labelKey: 'mobile.detail.infos.nationality', value: contact.nationality ? countryName(contact.nationality) : null },
     { labelKey: 'mobile.detail.infos.created', value: contact.created_at ? fmtDateFull(contact.created_at, i18nLang) : null },
     { labelKey: 'mobile.detail.infos.lastInteraction', value: contact.last_interaction_at ? fmtDay(contact.last_interaction_at, i18nLang) : null },
   ].filter((r) => r.value)
