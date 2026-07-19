@@ -101,25 +101,6 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
     pattern: /\b(?:n[ée](?:\(?e\)?)?\s+le|date\s+de\s+naissance|ddn|d\.n\.)\s*:?\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}/gi,
   },
 
-  // Code d'accès physique ou wifi (digicode, boîte à clés, PIN, portail).
-  //
-  // Ce n'est pas une donnée LBA/LPD, mais c'est un SECRET qui n'a rien à faire chez un
-  // fournisseur LLM. Le marqueur seul ne suffit pas : mesuré sur 155 phrases de prose
-  // immobilière, « code d'accès : » et « code wifi : » introduisent des faux positifs, parce
-  // qu'en note d'agent ces lignes servent surtout à dire QUI détient le code et QUAND il sera
-  // transmis (« Code d'accès : le propriétaire le donnera chez le notaire »).
-  //
-  // D'où la CONTRAINTE DE FORME sur la valeur, comme le fait PASSPORT : 3 à 12 caractères
-  // alphanumériques dont AU MOINS UN CHIFFRE. La prose ne la satisfait jamais, un vrai code
-  // toujours. Résultat mesuré : 0 faux positif sur les 155 phrases, 5/5 vrais codes attrapés.
-  // Le marqueur « code » NU est délibérément absent : 48 des 155 phrases le contiennent
-  // (code postal, code EGID, Code des obligations…) et « Code : 1201 » — un code postal
-  // genevois — est indiscernable d'un secret par la seule forme.
-  {
-    kind: 'ACCESS_CODE',
-    pattern: /\b(?:digicode|code[\s-]?pin|code\s+(?:d['’]acc[èe]s|secret|wifi|(?:du|de\s+la|de|des)\s+(?:portail|bo[îi]te\s+[àa]\s+cl[ée]s|parking|immeuble)))[ \t]*[:=][ \t]*((?=[0-9A-Za-z*#-]{3,12}\b)(?=[^ \t]*\d)[0-9A-Za-z*#-]{3,12})\b/gi,
-  },
-
   // Mot de passe explicite — capture la valeur après marker.
   // Cible "mot de passe: xxx", "password = xxx", "mdp xxx", "pwd: xxx".
   //
@@ -140,9 +121,11 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   // laissait la date, son ancre « Né » ayant été mangée. Deux corrections indépendantes ferment
   // cette classe de fuite : le retrait de l'alternative, et le déplacement en fin de tableau.
   //
-  // Perte assumée : « passe : <valeur> » sans « mot de » n'est plus couvert. Le cas suisse de la
-  // clé/du code d'accès (« le passe : 4521 ») est repris par ACCESS_CODE ci-dessus, qui l'attrape
-  // par la FORME de la valeur sans dépendre d'un homographe verbal.
+  // Perte assumée et NON compensée : « passe : <valeur> » sans « mot de » n'est plus couvert,
+  // y compris au sens suisse de la clé (« le passe : 4521 »). ACCESS_CODE ne le rattrape PAS —
+  // « passe » ne figure pas dans ses marqueurs, volontairement : l'ajouter rouvrirait l'homographe
+  // verbal que ce retrait ferme. Un code d'accès reste couvert dès qu'il est nommé comme tel
+  // (« digicode : 4521 », « code d'accès : 4521 »).
   //
   // La capture est bornée par `"` au lieu de \S+ : les résultats d'outils CRM réinjectés dans les
   // boucles LLM sont du JSON COMPACT, où plus rien n'est blanc après la valeur. Un `(\S+)` glouton
@@ -154,6 +137,34 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   {
     kind: 'PASSWORD',
     pattern: /\b(?:password|mot[\s-]?de[\s-]?passe|mdp|pwd)\s*[:=]\s*([^\s"]+)/gi,
+  },
+
+  // Code d'accès physique ou wifi (digicode, boîte à clés, PIN, portail).
+  //
+  // Ce n'est pas une donnée LBA/LPD, mais c'est un SECRET qui n'a rien à faire chez un
+  // fournisseur LLM. Le marqueur seul ne suffit pas : mesuré sur 155 phrases de prose
+  // immobilière, « code d'accès : » et « code wifi : » introduisent des faux positifs, parce
+  // qu'en note d'agent ces lignes servent surtout à dire QUI détient le code et QUAND il sera
+  // transmis (« Code d'accès : le propriétaire le donnera chez le notaire »).
+  //
+  // D'où la CONTRAINTE DE FORME sur la valeur, comme le fait PASSPORT : 3 à 12 caractères
+  // alphanumériques dont AU MOINS UN CHIFFRE. La prose ne la satisfait jamais, un vrai code
+  // toujours. Mesuré : 0 faux positif sur les 155 phrases, 6/6 vrais codes attrapés.
+  // Le marqueur « code » NU est délibérément absent : 48 des 155 phrases le contiennent
+  // (code postal, code EGID, Code des obligations…) et « Code : 1201 » — un code postal
+  // genevois — est indiscernable d'un secret par la seule forme.
+  //
+  // DEUX GARDE-FOUS, appris d'une régression attrapée en revue :
+  //  1. le lookahead « au moins un chiffre » est borné à la MÊME classe que la valeur
+  //     ([0-9A-Za-z*#-]* et non [^ \t]*). Avec [^ \t]*, le lookahead TRAVERSAIT un deux-points :
+  //     sur « Code d'accès : mdp:Hunter2024 » il validait « mdp » comme un code, ACCESS_CODE
+  //     avalait le marqueur de PASSWORD, et le mot de passe partait EN CLAIR — exactement la
+  //     classe de panne que ce tableau documente ;
+  //  2. ACCESS_CODE passe APRÈS PASSWORD, si bien qu'un marqueur de mot de passe est de toute
+  //     façon consommé en premier. Défense en profondeur : chacun des deux suffit.
+  {
+    kind: 'ACCESS_CODE',
+    pattern: /\b(?:digicode|code[\s-]?pin|code\s+(?:d['’]acc[èe]s|secret|wifi|(?:du|de\s+la|de|des)\s+(?:portail|bo[îi]te\s+[àa]\s+cl[ée]s|parking|immeuble)))[ \t]*[:=][ \t]*((?=[0-9A-Za-z*#-]{3,12}\b)(?=[0-9A-Za-z*#-]*\d)[0-9A-Za-z*#-]{3,12})\b/gi,
   },
 ]
 

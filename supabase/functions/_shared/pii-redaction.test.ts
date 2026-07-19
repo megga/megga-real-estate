@@ -217,6 +217,21 @@ describe('redactPII — ACCESS_CODE (digicode, wifi, boîte à clés)', () => {
     expect(r.redactedText).toBe(input)
   })
 
+  // Régression attrapée en revue : une première version du lookahead « au moins un chiffre »
+  // utilisait [^ \t]*, qui traverse un deux-points. « Code d'accès : mdp:Hunter2024 » validait
+  // alors « mdp » comme valeur de code, ACCESS_CODE avalait le marqueur de PASSWORD, et le mot
+  // de passe partait EN CLAIR — la classe de panne même que ce catalogue documente.
+  it.each([
+    ["Code d'accès : mdp:Hunter2024", 'Hunter2024'],
+    ['Code wifi : pwd:abc123', 'abc123'],
+    ['Code du portail: password=Qwerty12', 'Qwerty12'],
+    ["Code d'accès : mot de passe:Secret99", 'Secret99'],
+  ])('ne mange pas le marqueur de PASSWORD : %s', (input, secret) => {
+    const r = redactPII(input)
+    expect(r.redactedText, `secret en clair sur « ${input} »`).not.toContain(secret)
+    expect(r.counts.PASSWORD).toBe(1)
+  })
+
   it('n’attrape PAS le marqueur « code » nu — un code postal n’est pas un secret', () => {
     // 48 des 155 phrases du corpus immobilier contiennent « code » (code postal, EGID, CO…),
     // et « Code : 1201 » est indiscernable d'un secret par la seule forme.
