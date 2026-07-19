@@ -31,7 +31,6 @@ import { AiPanelProvider } from '@/hooks/useAiPanel'
 import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ErrorBoundary from '@/components/layout/ErrorBoundary'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
-import CookieBanner from '@/components/CookieBanner'
 import { ToastProvider } from '@/components/ui/Toast'
 import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
@@ -648,7 +647,6 @@ export default function App() {
               <FavoritesLoginPrompt />
               <IntercomMessenger />
             </Suspense>
-            <CookieBanner />
           </ToastProvider>
         </AuthProvider>
       </QueryClientProvider>
