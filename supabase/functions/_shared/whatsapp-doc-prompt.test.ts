@@ -7,6 +7,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { buildDocReadPrompt } from './whatsapp-doc-prompt'
+import { redactPII } from './pii-redaction'
 
 const RELEVE = [
   'BANQUE CANTONALE DE GENÈVE — Relevé de compte',
@@ -37,18 +38,20 @@ describe('buildDocReadPrompt — redaction PII de la lecture de document', () =>
   })
 
   it('rédige AVANT de tronquer : un IBAN à cheval sur la borne ne fuit pas par fragment', () => {
-    // Le piège central de toute la famille. L'IBAN (26 caractères) démarre à l'index 7981 et
-    // déborde donc la borne des 8000.
-    const ocrText = 'a'.repeat(7980) + ' CH93 0076 2011 6238 5295 7 fin du document'
+    // Le piège central de toute la famille. Le décalage est choisi avec soin : l'IBAN démarre à
+    // l'index 7991, donc seul « CH93 0076 » survit à la troncature — 4 caractères après le
+    // préfixe pays, trop peu pour que le pattern IBAN (qui en exige 11+) rattrape le fragment.
+    // Avec un décalage plus petit, le reste tronqué serait ENCORE assez long pour matcher, et le
+    // test passerait même sur le code bogué : c'est ainsi qu'une première version de ce test
+    // était VACUOUS. Ne pas changer 7990 sans revérifier le contrôle ci-dessous.
+    const ocrText = 'a'.repeat(7990) + ' CH93 0076 2011 6238 5295 7 fin du document'
 
-    // Contrôle : sous l'ORDRE INVERSE (tronquer puis rédiger), la queue garderait « CH93 0076
-    // 2011 6238 » en clair — un fragment que le pattern IBAN ne rattrape plus (il exige 11+
-    // caractères après le préfixe pays). C'est exactement la régression que ce test interdit.
-    expect(ocrText.slice(0, 8000)).toContain('CH93')
+    // CONTRÔLE — l'ordre inverse (tronquer PUIS rédiger) laisse bien « CH93 » en clair. Cette
+    // assertion est ce qui rend le test discriminant : si elle tombe, c'est le test qu'il faut
+    // corriger, pas le code.
+    expect(redactPII(ocrText.slice(0, 8000)).redactedText).toContain('CH93')
 
-    const prompt = buildDocReadPrompt({ ocrText, focus: null, lang: 'fr' })
-    expect(prompt).not.toContain('CH93')
-    expect(prompt).toContain('[REDACTED:IBAN]')
+    expect(buildDocReadPrompt({ ocrText, focus: null, lang: 'fr' })).not.toContain('CH93')
   })
 
   it('rédige aussi la consigne de l’agent (focus)', () => {
