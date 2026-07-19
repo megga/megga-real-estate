@@ -57,6 +57,31 @@ describe.skipIf(!HAS_KEYS)('RLS policies — anon cannot read internal tables', 
   })
 })
 
+describe.skipIf(!HAS_KEYS)('RLS policies — anon cannot write contacts', () => {
+  // Garde de non-régression pour la policy `contacts_anon_onboarding_insert`
+  // (retirée par la migration 20260719090000). Son WITH CHECK ne contraignait
+  // que `source`, pas `agency_id` : la clé anon étant publique, n'importe qui
+  // pouvait écrire dans le carnet de n'importe quelle agence. La suite RLS ne
+  // couvrait que la LECTURE de contacts, ce qui a laissé le trou survivre au
+  // durcissement précédent. On teste donc explicitement l'écriture.
+  it('anon ne peut pas insérer un contact, même avec source=onboarding', async () => {
+    const supabase = anonClient()
+    const { error } = await supabase.from('contacts').insert({
+      first_name: 'Anon',
+      last_name: 'Intrusion',
+      email: `anon-rls-guard-${Date.now()}@megga-test.local`,
+      type: 'buyer',
+      // La valeur que l'ancienne policy laissait passer.
+      source: 'onboarding',
+      // agency_id volontairement omis : l'ancienne policy ne le contraignait pas,
+      // n'importe quelle valeur (ou aucune) passait.
+    })
+
+    expect(error, 'anon doit être refusé en écriture sur contacts').not.toBeNull()
+    expect(error!.message.toLowerCase()).toMatch(/permission|policy|denied|row.?level/i)
+  })
+})
+
 describe.skipIf(!HAS_KEYS)('RPC behavior — get_user_agency_id (bug #404 guard)', () => {
   it('returns null or errors gracefully for anonymous callers', async () => {
     // This was the bug behind #404: the RPC was called for anon users on /rent
