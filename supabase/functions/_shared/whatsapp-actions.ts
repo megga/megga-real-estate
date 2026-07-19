@@ -31,6 +31,7 @@ import { logDeepSeekUsageWith } from './ai-usage.ts'
 import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
 import { touchHotContact } from './contact-memory.ts'
 import { redactPII } from './pii-redaction.ts'
+import { buildDocReadPrompt } from './whatsapp-doc-prompt.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -2627,19 +2628,17 @@ async function readInboundDocument(ctx: ActionCtx, focus: string | null): Promis
   // 3. Lecture STRUCTURÉE via DeepSeek (compréhension = DeepSeek). Fidèle, aucune invention.
   //    Dégradation propre : sans clé ou si DeepSeek tombe, on rend un extrait OCR borné — fidèle,
   //    juste non mis en forme (on ne perd jamais la lecture brute).
-  ocrText = ocrText.slice(0, 8000)
+  //    rawFallback n'est PAS rédigé, et ce n'est pas parce qu'il resterait hors du modèle : il
+  //    remonte en résultat d'outil (role:'tool') et traverse donc redactLlmMessages, le point
+  //    d'étranglement de whatsapp-agent, qui le rédige à ce moment-là. Le rédiger ici en plus ne
+  //    protégerait rien. Contrepartie assumée : la note timeline d'execFileDocument garde les
+  //    valeurs réelles sur ce chemin de repli, là où elle porte des marqueurs quand DeepSeek répond.
   const rawFallback = ocrText.slice(0, 1500)
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
   if (!apiKey) return { ok: true, digest: rawFallback, failMessage: null }
 
-  const focusLine = focus ? `\nCONSIGNE de l'agent (priorise ça) : ${focus.slice(0, 300)}` : ''
-  const prompt =
-    'Tu lis un document professionnel (souvent immobilier : mandat, relevé, courrier, attestation, pièce). ' +
-    'À partir du TEXTE OCR ci-dessous, rends une lecture FIDÈLE et COMPACTE en ' +
-    (lang === 'en' ? 'anglais' : 'français') + ' (quelques lignes, ~500 caractères max). Structure : ' +
-    'type de document ; personnes / parties ; montants et chiffres clés ; dates / échéances ; objet en une phrase. ' +
-    "N'invente RIEN : une info absente est OMISE ; une info partiellement lisible est suivie de « (à vérifier) ». " +
-    'Pas de préambule, pas de formule commerciale.' + focusLine + '\n\nTEXTE OCR :\n' + ocrText
+  // Prompt assemblé par un helper PUR (testable) qui rédige ocrText + focus avant troncature.
+  const prompt = buildDocReadPrompt({ ocrText, focus, lang })
 
   try {
     const started = Date.now()

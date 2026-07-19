@@ -37,9 +37,9 @@ import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Lazy-loaded public pages
-// Property X storefront pages were removed — the public storefront on
-// megga.ch is now the static V3 HTML site (sites/property-preview), overlaid
-// at the deploy root by the npm postbuild hook. Only the Property X icon
+// Property X storefront pages were removed — megga.ch now serves the static
+// MEGGA vitrine (sites/megga-vitrine), overlaid at the deploy root by the npm
+// postbuild hook. Only the Property X icon
 // system remains under src/components/propertyx/ (MEIcon/PxIconFont/
 // PxSocialIcon/PxWhatsAppButton + PX.* tokens), used across the CRM.
 
@@ -318,7 +318,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
               {/* Public storefront (home, about, properties, contact, FAQ,
                   blog, agents, property single, design-system…) is served by
-                  the static V3 HTML site (sites/property-preview) on megga.ch.
+                  the static MEGGA vitrine (sites/megga-vitrine) on megga.ch.
                   This React app is deployed separately on app.megga.ch, where
                   "/" lands on the dashboard (which bounces to login if needed). */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

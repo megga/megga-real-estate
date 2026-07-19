@@ -14,24 +14,49 @@
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
   // (signin / signup / reset). Site key publique (même projet que l'app).
-  var TURNSTILE_SITE_KEY = '0x4AAAAAAADT4gba9sDd8Uo4Y';
+  var TURNSTILE_SITE_KEY = '0x4AAAAAADT4gba9sDd8Uo4Y';
   var TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
   var turnstileWidgetId = null;
+  // Délai machine. Porté à 2 min dès qu'un challenge visible démarre : c'est
+  // alors un humain qui répond, pas le réseau.
+  var CAPTCHA_TIMEOUT_MS = 20000;
+  var CAPTCHA_INTERACTIVE_TIMEOUT_MS = 120000;
 
   // Messages réutilisés. Le message « compte existant » oriente vers la
   // connexion ET vers Google : un compte OAuth-only n'a pas de mot de passe,
   // donc « e-mail déjà pris » sans cette précision laisse l'utilisateur bloqué.
-  var CAPTCHA_FAIL_MSG = 'Vérification anti-robot impossible. Désactivez un éventuel bloqueur de pub, puis réessayez.';
+  var CAPTCHA_FAIL_MSG = 'La vérification de sécurité n’a pas abouti. Réessayez dans un instant ; si cela se reproduit, écrivez-nous à hello@megga.ch.';
+  var CAPTCHA_INTERACTIVE_MSG = 'Confirmez que vous n’êtes pas un robot pour continuer.';
+  var SERVICE_FAIL_MSG = 'Connexion au service impossible. Vérifiez votre connexion, puis réessayez.';
   var EXISTING_ACCOUNT_MSG = 'Un compte existe déjà avec cet e-mail. Connectez-vous via « Se connecter » — et si vous vous êtes inscrit avec Google, utilisez « Continuer avec Google » (dans ce cas, aucun mot de passe n’a été défini).';
 
+  var scriptPromises = {};
+
   function loadScript(src, test) {
-    return new Promise(function (resolve, reject) {
+    if (scriptPromises[src]) return scriptPromises[src];
+    var p = new Promise(function (resolve, reject) {
       if (test && test()) return resolve();
       var s = document.createElement('script');
       s.src = src; s.async = true; s.defer = true;
-      s.onload = resolve; s.onerror = reject;
+      // `onload` ne garantit pas que le global soit déjà posé (Turnstile
+      // s'enregistre de façon asynchrone) : on sonde avant de rendre la main,
+      // sinon une soumission rapide part alors que window.turnstile est absent.
+      s.onload = function () {
+        if (!test) return resolve();
+        var tries = 40;
+        (function wait() {
+          if (test()) return resolve();
+          if (--tries <= 0) return reject(new Error('script sans API: ' + src));
+          setTimeout(wait, 50);
+        })();
+      };
+      s.onerror = function () { reject(new Error('script indisponible: ' + src)); };
       document.head.appendChild(s);
     });
+    // Un échec ne doit pas condamner la page : on autorise un nouvel essai.
+    scriptPromises[src] = p;
+    p['catch'](function () { delete scriptPromises[src]; });
+    return p;
   }
 
   function loadSdk() {
@@ -40,42 +65,96 @@
       function () { return window.supabase && window.supabase.createClient; });
   }
 
-  // Conteneur du widget Turnstile. Le widget « MEGGA Auth » est en mode INVISIBLE
-  // (pas de friction visuelle) → conteneur caché + size:'invisible' + execute().
-  function ensureTurnstileContainer() {
-    var c = document.getElementById('megga-turnstile');
-    if (!c) {
-      c = document.createElement('div');
-      c.id = 'megga-turnstile';
-      c.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:0;height:0;overflow:hidden';
-      document.body.appendChild(c);
-    }
-    return c;
+  // Marque les rejets issus du captcha, pour que le .catch() des formulaires
+  // n'accuse pas la vérification quand c'est le réseau ou Supabase qui a lâché.
+  function captchaError(msg) { var e = new Error(msg); e.captcha = true; return e; }
+
+  // Conteneur du widget, placé DANS le formulaire juste avant le bouton d'envoi.
+  // Invisible tant que Turnstile n'exige rien (appearance:'interaction-only') ;
+  // mais si un challenge apparaît, il apparaît là où l'utilisateur peut le
+  // résoudre. L'ancien conteneur en position:absolute;left:-9999px rendait ce
+  // cas insoluble : personne ne pouvait répondre, donc aucun callback.
+  function ensureTurnstileContainer(form) {
+    var box = document.getElementById('megga-turnstile');
+    if (box && box.parentNode) return box;
+    box = document.createElement('div');
+    box.id = 'megga-turnstile';
+    // grid-column : les formulaires Webflow sont des grilles — sans ça le widget
+    // occuperait une seule cellule et décalerait la mise en page.
+    box.style.cssText = 'display:flex;justify-content:center;grid-column:1/-1';
+    var btn = form && form.querySelector('input[type="submit"], button[type="submit"]');
+    if (btn && btn.parentNode) btn.parentNode.insertBefore(box, btn);
+    else (form || document.body).appendChild(box);
+    return box;
   }
 
-  // Renvoie un token frais à chaque appel (Turnstile invalide le token après
-  // usage → reset + execute pour chaque tentative). Mode invisible.
-  function getCaptchaToken() {
-    return loadScript(TURNSTILE_SRC, function () { return window.turnstile; })
+  // Renvoie un token frais par tentative.
+  //
+  // Turnstile fige ses callbacks à l'appel de render() : reset() ne les
+  // ré-enregistre PAS. Réutiliser le widget laissait donc vivantes les callbacks
+  // de la 1re tentative, dont le garde `done` avalait le token de toutes les
+  // suivantes — d'où l'échec systématique au bout du délai dès la 2e soumission
+  // d'une même page (« mot de passe faux, je réessaie » tombait pile dedans).
+  // On repart d'un widget neuf : aucun état ne survit d'un appel à l'autre.
+  function getCaptchaToken(form, onInteractive) {
+    return loadScript(TURNSTILE_SRC, function () { return !!window.turnstile; })
       .then(function () {
         return new Promise(function (resolve, reject) {
-          if (!window.turnstile) return reject(new Error('turnstile indisponible'));
+          if (!window.turnstile) return reject(captchaError('turnstile indisponible'));
+
+          var box = ensureTurnstileContainer(form);
           var done = false;
-          var to = setTimeout(function () { if (!done) { done = true; reject(new Error('captcha timeout')); } }, 30000);
-          var opts = {
-            sitekey: TURNSTILE_SITE_KEY,
-            size: 'invisible',
-            callback: function (token) { if (done) return; done = true; clearTimeout(to); resolve(token); },
-            'error-callback': function () { if (done) return; done = true; clearTimeout(to); reject(new Error('captcha erreur')); },
-            'expired-callback': function () { try { window.turnstile.reset(turnstileWidgetId); } catch (e) { /* */ } },
-          };
-          if (turnstileWidgetId === null) {
-            turnstileWidgetId = window.turnstile.render(ensureTurnstileContainer(), opts);
-          } else {
-            try { window.turnstile.reset(turnstileWidgetId); } catch (e) { /* */ }
+          var timer = null;
+
+          // Sortie unique : garantit l'annulation du timer sur TOUS les chemins.
+          function settle(fn, arg) {
+            if (done) return;
+            done = true;
+            if (timer) { clearTimeout(timer); timer = null; }
+            fn(arg);
           }
-          try { window.turnstile.execute(turnstileWidgetId); } catch (e) { /* render() déclenche déjà execute en invisible */ }
+          function arm(ms) {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(function () { settle(reject, captchaError('captcha timeout')); }, ms);
+          }
+
+          if (turnstileWidgetId !== null) {
+            try { window.turnstile.remove(turnstileWidgetId); } catch (e) { /* déjà détruit */ }
+            turnstileWidgetId = null;
+          }
+
+          arm(CAPTCHA_TIMEOUT_MS);
+          try {
+            turnstileWidgetId = window.turnstile.render(box, {
+              sitekey: TURNSTILE_SITE_KEY,
+              execution: 'execute',
+              appearance: 'interaction-only',
+              callback: function (token) { settle(resolve, token); },
+              'error-callback': function () { settle(reject, captchaError('captcha erreur')); },
+              'timeout-callback': function () { settle(reject, captchaError('captcha expire')); },
+              'expired-callback': function () { settle(reject, captchaError('captcha expire')); },
+              // Un challenge visible démarre : c'est un humain qui agit. On lui
+              // laisse le temps et on le prévient, sinon le bouton attend sans
+              // que rien n'explique pourquoi.
+              'before-interactive-callback': function () {
+                box.style.margin = '12px 0';
+                arm(CAPTCHA_INTERACTIVE_TIMEOUT_MS);
+                if (onInteractive) { try { onInteractive(); } catch (e) { /* */ } }
+              },
+            });
+          } catch (e) {
+            return settle(reject, captchaError('captcha non rendu'));
+          }
+          // render() renvoie undefined quand il refuse de monter le widget :
+          // sans ce test l'id resterait empoisonné pour toute la session.
+          if (turnstileWidgetId === null || turnstileWidgetId === undefined) {
+            return settle(reject, captchaError('captcha non rendu'));
+          }
+          try { window.turnstile.execute(turnstileWidgetId); }
+          catch (e) { settle(reject, captchaError('captcha non lancé')); }
         });
+      }, function () {
+        return Promise.reject(captchaError('turnstile indisponible'));
       });
   }
 
@@ -97,6 +176,12 @@
     var wrap = form.closest('.w-form') || form.parentElement;
     var fail = wrap && wrap.querySelector('.w-form-fail');
     if (fail) fail.style.display = 'none';
+  }
+  function showCaptchaPrompt(form) { showError(form, CAPTCHA_INTERACTIVE_MSG); }
+  // N'accuse la vérification que si le rejet vient bien d'elle : un réseau coupé
+  // pendant l'appel Supabase n'est pas un problème de captcha.
+  function failFrom(form, err) {
+    showError(form, err && err.captcha ? CAPTCHA_FAIL_MSG : SERVICE_FAIL_MSG);
   }
   function setBusy(form, busy, original) {
     var btn = form.querySelector('input[type="submit"], button[type="submit"]');
@@ -137,12 +222,13 @@
         var pwd = (pwdEl && pwdEl.value) || '';
         if (!email || !pwd) return showError(loginForm, 'E-mail et mot de passe requis.');
         setBusy(loginForm, true);
-        getCaptchaToken().then(function (captchaToken) {
+        getCaptchaToken(loginForm, function () { showCaptchaPrompt(loginForm); }).then(function (captchaToken) {
+          clearError(loginForm);
           return client.auth.signInWithPassword({ email: email, password: pwd, options: { captchaToken: captchaToken } });
         }).then(function (res) {
           if (res.error) { setBusy(loginForm, false); return showError(loginForm, traduire(res.error.message)); }
           window.location.href = CRM_URL;
-        }).catch(function () { setBusy(loginForm, false); showError(loginForm, CAPTCHA_FAIL_MSG); });
+        }).catch(function (err) { setBusy(loginForm, false); failFrom(loginForm, err); });
       }, true);
 
       // "Mot de passe oublié ?" → reset par email
@@ -153,14 +239,15 @@
           e.preventDefault();
           var email = (byId('Email') && byId('Email').value || '').trim();
           if (!email) return showError(loginForm, 'Saisissez d’abord votre e-mail, puis recliquez sur « Mot de passe oublié ? ».');
-          getCaptchaToken().then(function (captchaToken) {
+          getCaptchaToken(loginForm, function () { showCaptchaPrompt(loginForm); }).then(function (captchaToken) {
+            clearError(loginForm);
             return client.auth.resetPasswordForEmail(email, { redirectTo: 'https://app.megga.ch/auth/forgot-password/reset', captchaToken: captchaToken });
           }).then(function () {
             clearError(loginForm);
             var done = (loginForm.closest('.w-form') || loginForm.parentElement).querySelector('.w-form-done');
             if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = 'E-mail de réinitialisation envoyé.'; }
             else alert('E-mail de réinitialisation envoyé.');
-          }).catch(function () { showError(loginForm, CAPTCHA_FAIL_MSG); });
+          }).catch(function (err) { failFrom(loginForm, err); });
         });
       });
     }
@@ -177,7 +264,8 @@
         if (!name || !email || !pwd) return showError(signupForm, 'Nom, e-mail et mot de passe requis.');
         if (pwd.length < 8) return showError(signupForm, 'Le mot de passe doit faire au moins 8 caractères.');
         setBusy(signupForm, true);
-        getCaptchaToken().then(function (captchaToken) {
+        getCaptchaToken(signupForm, function () { showCaptchaPrompt(signupForm); }).then(function (captchaToken) {
+          clearError(signupForm);
           return client.auth.signUp({
             email: email,
             password: pwd,
@@ -211,7 +299,7 @@
           signupForm.style.display = 'none';
           if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = 'Compte créé ! Vérifiez votre e-mail pour confirmer, puis connectez-vous.'; }
           else { window.location.href = CRM_URL; }
-        }).catch(function () { setBusy(signupForm, false); showError(signupForm, CAPTCHA_FAIL_MSG); });
+        }).catch(function (err) { setBusy(signupForm, false); failFrom(signupForm, err); });
       }, true);
     }
   }

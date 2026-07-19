@@ -165,7 +165,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           # Pin wrangler v4 (matches the Rockwell deploy). The V3 Basic Auth
-          # gate is sites/property-preview/_worker.js (Advanced mode), copied
+          # gate is sites/megga-vitrine/_worker.js (Advanced mode), copied
           # into dist/ by the postbuild hook — _worker.js is detected natively
           # on every deploy, so megga.ch stays behind ai/ai.
           wranglerVersion: "4.86.0"

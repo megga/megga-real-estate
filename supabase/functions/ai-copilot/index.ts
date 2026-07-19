@@ -5,7 +5,11 @@
 //  • Auth RÉELLE : requireAgentAuth (JWT vérifié, agency_id dérivé serveur) — le
 //    chemin principal ne se contente plus de la présence d'un header Bearer.
 //  • Rédaction PII (AVS/IBAN/carte/…) sur message + contexte + historique AVANT
-//    tout envoi au LLM (copilot-redaction).
+//    tout envoi au LLM (copilot-redaction), PUIS au fil dans makeCallModel via
+//    buildCopilotModelBody — point d'étranglement de la BOUCLE, qui couvre aussi
+//    les résultats d'outils réinjectés (le 1er tour seul était propre avant).
+//    Les autres appels DeepSeek d'ici (daily-brief) ou des outils rédigent à
+//    leur propre frontière.
 //  • Audit LBA complet : le free chat (sans entity id) est journalisé aussi.
 //  • Tool-calling read-only (flag app_config `copilot_tools_enabled`) : boucle
 //    portée de whatsapp-agent (agent-loop) + catalogue web (copilot-tools) —
@@ -18,7 +22,7 @@ import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supa
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { meggaProse, MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { persistCopilotTurn, persistenceFlagOn, type ConversationMessage, type ConversationStore } from '../_shared/copilot-persistence.ts'
-import { buildUserContent, resolveAuditEntity } from '../_shared/ai-copilot-request.ts'
+import { buildUserContent, resolveAuditEntity, buildCopilotModelBody } from '../_shared/ai-copilot-request.ts'
 import { requireAgentAuth, type AgentAuthContext } from '../_shared/require-agent-auth.ts'
 import { redactCopilotRequest } from '../_shared/copilot-redaction.ts'
 import { redactPII } from '../_shared/pii-redaction.ts'
@@ -315,18 +319,15 @@ function makeCallModel(opts: {
   module?: string
 }) {
   return async (messages: LoopMessage[], withTools: boolean): Promise<ModelTurn | null> => {
-    const body: Record<string, unknown> = {
-      model: 'deepseek-chat',
-      max_tokens: 2000,
+    // Assemblage PUR (testable) : c'est lui qui porte la redaction PII au fil — point
+    // d'étranglement unique de la frontière DeepSeek du copilote, que ni la passe finale
+    // forcée ni un futur site de push d'outil ne peuvent contourner.
+    const body = buildCopilotModelBody({
       messages,
-      stream: true,
-      stream_options: { include_usage: true },
-    }
-    if (opts.tools) {
-      body.tools = opts.tools
-      body.tool_choice = withTools ? 'auto' : 'none'
-    }
-    if (opts.responseFormat) body.response_format = { type: opts.responseFormat }
+      tools: opts.tools,
+      withTools,
+      responseFormat: opts.responseFormat,
+    })
 
     const started = Date.now()
     try {

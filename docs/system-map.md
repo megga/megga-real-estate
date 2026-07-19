@@ -227,15 +227,16 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
-## 4bis · Storefront public statique (megga.ch) 🌐
+## 4bis · Vitrine publique statique (megga.ch) 🌐
 
-> ⚠️ **PIVOT juin 2026 — recentrage CRM-first.** megga.ch ne sert **plus** la marketplace : il sert
-> désormais la **vitrine SaaS** [`sites/megga-vitrine/`](../sites/megga-vitrine/) (landing → CRM `app.megga.ch`).
-> Tout l'ancien storefront marketplace Property X décrit ci-dessous est **conservé en sommeil** dans
-> [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/) (ex-`sites/property-preview/`),
-> **rien supprimé**, réactivable en repointant `scripts/overlay-storefront.mjs`. La table `market_listings`
-> (~90k biens) **reste active** : elle nourrit le CRM (matching, estimation, stats copilote). La doc
-> ci-dessous reste valable pour ce dossier en sommeil (phase ultérieure = Sprint 7).
+> **PIVOT juin 2026 — recentrage CRM-first.** megga.ch sert la **vitrine SaaS**
+> [`sites/megga-vitrine/`](../sites/megga-vitrine/) (landing → CRM `app.megga.ch`).
+> L'ancien storefront marketplace Property X, resté en sommeil dans
+> `sites/_marketplace-phase-ulterieure/` depuis le pivot, a été **SUPPRIMÉ du dépôt**
+> (juillet 2026, 373 fichiers / 22 Mo). Il reste récupérable dans l'historique git
+> (commit `0b321bc5` et antérieurs) si la marketplace est un jour relancée — mais il
+> n'encombre plus l'arbre de travail. La table `market_listings` (~90k biens) **reste
+> active** : elle nourrit le CRM (matching, estimation, stats copilote).
 
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
 > (~40 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
@@ -246,27 +247,12 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > fondations SEO (`sitemap.xml` 21 URLs, `robots.txt`, canonical, JSON-LD) · pages légales `mentions-legales.html`
 > (12 sections) + `confidentialite.html` · About refondu (rôle Reto Brunner). **Reste** : image hero encore CodeAI.
 
-> **Marketplace (en sommeil)** : un site **Webflow Property X V3** statique dans [`sites/_marketplace-phase-ulterieure/`](../sites/_marketplace-phase-ulterieure/), distinct de la SPA React (app.megga.ch, §2). Overlay sur `dist/` au build via `scripts/overlay-storefront.mjs` (`MEGGA_BUILD_TARGET`).
-
-- **Worker** (`_worker.js`, Cloudflare Pages advanced) : Basic Auth (`ai`/`ai`, gate pré-lancement) + proxy GET **`/api/listings`** → `market_listings` / **`/api/agencies`** → `agency_profiles` (anon key côté serveur, évite CORS navigateur) + endpoint **POST `/api/seller-lead`** → insère dans `seller_leads` (cf. « Publier une annonce »).
-- **Home** `index.html` : hero (recherche `megga-search.js` + CTA) + section « Annonces en vedette » (`featured-property-item---main`) branchée par `js/megga-home.js` — annonces récentes via `/api/listings`, photo/titre/prix injectés, lien vers la fiche ; force-visible IX2 + sweep du démo, panneaux hover masqués.
-- **Grille** `company-pages/properties.html` : peuplée par `js/megga-properties.js` (clone la demo card Webflow, remplit photo/titre/prix/adresse/features ; recherche lieu via `js/megga-supabase.js` + `js/ch-cities.js`). Photos cartes pinnées **4:3** (`object-fit:cover`, fix `megga-card-image-fix`).
-- **Fiche bien** `property/luxury-loft-in-san-francisco.html` (cible unique de toutes les cartes, `?id=<uuid>`) : `js/megga-property.js` lit `?id` → fetch `/api/listings` → remplit galerie (image + miniatures + lightbox `w-json`), titre, prix CHF, adresse, détails (m²/pièces/sdb/garage), Description, équipements FR (Piscine/Ascenseur/Garage/Cheminée via `has_*`) ; retire l'agent démo + tout le « Lorem ipsum » ; `referrerpolicy=no-referrer` sur les photos (anti-hotlink Flatfox). Sans `?id` → reste la démo.
-- **Annuaire agences** `company-pages/agencies.html` (copie relabellée de la page agents) : `js/megga-agencies.js` → proxy **`/api/agencies`** (worker → `agency_profiles`, ~5662 agences) clone la carte agent, remplit logo (`object-fit:contain` sur fond blanc — pas rogné comme un avatar), nom, ville·canton, lien vers le site de l'agence ; **barre de recherche** (design du hero home), **filtre canton** et **pagination « Charger plus »** (24/page ; **chargement progressif** — 1re page affichée tout de suite, le reste en arrière-plan) ; lien nav « Agences » ajouté (index/properties/agents). Le worker expose un map `API_TABLES { listings→market_listings, agencies→agency_profiles }`.
-- **Détail agence** : la page agent-single `agent/john-carter.html?id=<agency_id>` est réutilisée comme fiche agence (`js/megga-agency-single.js`) — hero (logo, nom, ville·canton, site) + **« Annonces de l'agence »** (listings matchés par `agency_profile_id` **OU** `agency_name` ; ~1158 agences / ~20% en ont) ; masque la bio/articles démo, force-visible les sections Webflow IX2 (scopé `<section>`). Les cartes de l'annuaire y mènent.
-- **Publier une annonce** `company-pages/submit-property.html` (branché CRM) : `js/megga-submit.js` francise le formulaire Webflow + unités CH (m²/CHF), remplace les `<select>` démo par les types marketplace canoniques (`apartment…land`, `buy/rent`), injecte un select « Délai de vente » (→ `motivation`), puis **intercepte le submit** (capture-phase, neutralise le handler Webflow mort) → **POST `/api/seller-lead`**. Le worker bâtit une ligne `seller_leads` *whitelistée* côté serveur (`property_data` jsonb + `contact_*` + `motivation`, `source='marketplace'`, `status='new'`, `assigned_agency_id=NULL`) et l'insère avec l'anon key (RLS `seller_leads_anon_insert`). **Réception agent** : (1) **CRM « Biens »** → bandeau Soumissions vendeurs (`useBnSubmissions`→`useSellerLeads('new')`, RLS montre les leads non assignés à tout agent), claim via `useAcceptSellerLead` ; (2) **cloche de notifications** (`useAgentNotifications`) en temps réel — un **trigger** `notify_new_seller_lead()` (SECURITY DEFINER, scopé `source='marketplace'`) écrit un `activity_events` (`actor_kind='system'`, `action='seller_lead_received'`, `category='deal'`) car l'anon ne peut pas insérer dans `activity_events` (immuable 10 ans, LBA). Le funnel React `/vendre` (`source='website'`) reste inchangé.
-- **Contact** `company-pages/contact-v1.html` (branché CRM) : `js/megga-contact.js` francise le formulaire, corrige le label erroné du message, **injecte une case de consentement obligatoire** (RLS exige `consent_privacy=true`), **retire la colonne démo « Reach us directly »** (Lorem + fausse boîte mail + réseaux sociaux) et centre le formulaire, dé-Lorem le sous-titre + H1 « Contactez-nous », puis intercepte le submit → **POST `/api/contact-message`**. Le worker insère dans **`contact_messages`** (`source='storefront'`, anon RLS `contact_messages_anon_insert`). **Réception** : trigger `notify_new_contact_message()` (SECURITY DEFINER, scopé `source='storefront'`) → `activity_events` `action='contact_message_received'` → **cloche** (super-admins via `super_admin_read_all_events`) ; le message reste lisible en back-office (RLS super_admin). Le funnel React `/contact` (`source='contact_page'`, 2 emails Resend) reste inchangé. Worker mutualisé : helpers `insertRow()` + `readJsonBody()` partagés par `/api/seller-lead` et `/api/contact-message`.
-- **Menu « Pages » (nav + footer)** : `js/megga-nav.js` (injecté sur les 18 pages avec nav/footer) réécrit **tous** les liens démo lieu/type/catégorie → la grille **Annonces** réelle (`/company-pages/properties.html?…`). Mapping par texte : `Los Angeles/San Francisco/San Diego` → `?ville=Genève/Lausanne/Zürich` ; `Apartments/Houses/Lofts/Offices` → `?type=apartment/house/commercial/office` (types à inventaire réel — marché **rent-only**, buy≈12) ; `For sale/For rent` → `?transaction=acheter/louer` ; liens génériques (« Par localisation »…) → grille complète. Redirige aussi les 3 pages démo encore existantes (`los-angeles`/`houses`/`for-sale`) en cas d'accès direct. **Plus aucun lien mort (404) ni grille US**. Filtre `type` ajouté à `megga-supabase.js`/`megga-properties.js` (couvert par `idx_ml_active_tx_canton_type`, <1 s).
-- **Terminologie** : le storefront dit « **Annonces** » (plus « Biens ») partout — nav, CTA, filtres (« Type d'annonce »), messages JS ; `megga-search.js` matche le label « Type d'annonce ».
-- **Limite connue** : section « More properties » de la fiche **masquée** (pas encore peuplée d'annonces similaires). Formulaire de soumission : `canton`/`postalCode` non collectés (l'agent complète au claim). Pages Agents/About/FAQ/Blog encore démo ; pied de page global encore Lorem (anglais).
-
 ---
-
 ## 5. Edge functions (67) — catalogue par domaine
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
 
-**`_shared/`** : `ai-provider.ts` (`callDeepSeek` / `callPublicAI`=DeepSeek seul — **plus de `callClaude`** depuis PR #829, pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `vision.ts` + `photo-vision.ts` (**Gemini** `gemini-2.5-flash-lite` — DeepSeek n'a pas de vision) · `pii-redaction.ts` (scrub AVS/IBAN/passeport avant IA) · `require-agent-auth.ts`.
+**`_shared/`** : `ai-provider.ts` (`callDeepSeek` / `callPublicAI`=DeepSeek seul — **plus de `callClaude`** depuis PR #829, pas de wrapper `callAgentAI` ni de fallback ; coût) · `magic-link-token.ts` (HMAC-SHA256) · `vision.ts` + `photo-vision.ts` (**Gemini** `gemini-2.5-flash-lite` — DeepSeek n'a pas de vision) · `pii-redaction.ts` (catalogue partagé, 8 kinds — l'**ordre compte** : valeur libre en dernier, cf. cerveau `megga/pii-catalogue-traps`) · `wa-agent-redaction.ts` (`redactLlmMessages` = les **2 points d'étranglement** DeepSeek : `whatsapp-agent` et `buildCopilotModelBody`) · `whatsapp-doc-prompt.ts` (OCR rédigé avant troncature) · `require-agent-auth.ts`.
 
 | Domaine | Functions |
 |---|---|
@@ -331,7 +317,7 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 ## 7. Compliance (Suisse) 🇨🇭
 
 - **LAB/KYC (LBA)** : `kyc_cases` vigilance standard/renforcée, source des fonds (crypto/mixte → description ≥20 car. requise), screening PEP/sanctions Dilisense, **validation humaine MLRO obligatoire**, rétention 10 ans.
-- **nLPD/LPD** : `activity_events` immutable, `retention_until`, droit à l'effacement (`delete-account`), redaction PII **avant** tout appel IA (`_shared/pii-redaction.ts`), IP hashées (salt quotidien).
+- **nLPD/LPD** : `activity_events` immutable, `retention_until`, droit à l'effacement (`delete-account`), redaction PII **avant** tout appel IA (`_shared/pii-redaction.ts`), IP hashées (salt quotidien). **Couverture (19 juil. 2026, #872/#879/#884/#885/#886/#892)** : toutes les frontières DeepSeek sont rédigées — tour live WhatsApp, copilote web **y compris les résultats d'outils réinjectés** (le trou historique : ils repartaient en clair dès le 2ᵉ tour), `prepare_meeting`, email/annonce/outils groupe, voix few-shot, et l'OCR de document. Détail : cerveau `megga/pii-redaction-chain` ; pièges regex coûteux : `megga/pii-catalogue-traps`.
 - **Intégrité média** : C2PA Content Credentials (`c2pa-sign`/`verify`) sur photos IA.
 - **IA responsable** : présentée comme « assistance/estimation » (jamais « automatique/garantie »), human-in-the-loop sur KYC + envoi client.
 
