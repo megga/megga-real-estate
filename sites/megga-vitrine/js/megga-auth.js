@@ -21,7 +21,7 @@
   // cet écran ne renvoyait de toute façon PAS vers le dashboard mais vers
   // megga.ch/login une fois le mot de passe changé — le détour par l'app ne
   // servait donc qu'à traverser un second domaine dans une autre peau.
-  var RESET_REDIRECT = 'https://megga.ch/nouveau-mot-de-passe.html';
+  var RESET_REDIRECT = 'https://megga.ch/reset-password.html';
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
   // (signin / signup / reset). Site key publique (même projet que l'app).
@@ -374,7 +374,7 @@
       }, true);
     }
 
-    // ── NOUVEAU MOT DE PASSE (nouveau-mot-de-passe.html) ───────────────
+    // ── NOUVEAU MOT DE PASSE (reset-password.html) ─────────────────────
     //
     // Cible du lien reçu par e-mail. Le lien passe par /auth/v1/verify, qui
     // renvoie ici avec les jetons dans le FRAGMENT d'URL (flux implicite — le
