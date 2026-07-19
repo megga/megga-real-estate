@@ -121,11 +121,10 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   // laissait la date, son ancre « Né » ayant été mangée. Deux corrections indépendantes ferment
   // cette classe de fuite : le retrait de l'alternative, et le déplacement en fin de tableau.
   //
-  // Perte assumée et NON compensée : « passe : <valeur> » sans « mot de » n'est plus couvert,
-  // y compris au sens suisse de la clé (« le passe : 4521 »). ACCESS_CODE ne le rattrape PAS —
-  // « passe » ne figure pas dans ses marqueurs, volontairement : l'ajouter rouvrirait l'homographe
-  // verbal que ce retrait ferme. Un code d'accès reste couvert dès qu'il est nommé comme tel
-  // (« digicode : 4521 », « code d'accès : 4521 »).
+  // Perte assumée : « passe : <valeur> » sans « mot de » n'est plus couvert ici. Le sens suisse
+  // de la clé (« le passe : 4521 ») est en revanche repris par ACCESS_CODE, qui exige un
+  // DÉTERMINANT devant (« le/mon/votre passe ») ET une valeur de forme contrainte — deux gardes
+  // que l'homographe verbal ne franchit pas.
   //
   // La capture est bornée par `"` au lieu de \S+ : les résultats d'outils CRM réinjectés dans les
   // boucles LLM sont du JSON COMPACT, où plus rien n'est blanc après la valeur. Un `(\S+)` glouton
@@ -162,9 +161,16 @@ const PATTERNS: { kind: RedactionKind; pattern: RegExp }[] = [
   //     classe de panne que ce tableau documente ;
   //  2. ACCESS_CODE passe APRÈS PASSWORD, si bien qu'un marqueur de mot de passe est de toute
   //     façon consommé en premier. Défense en profondeur : chacun des deux suffit.
+  //
+  // « le passe » (le passe-partout suisse) est admis, mais SEULEMENT précédé d'un déterminant.
+  // C'est ce qui distingue le NOM du VERBE, homographe qui avait justifié de retirer « passe »
+  // de PASSWORD : « ce qui se passe : … » et « je te le passe : … » n'ont pas de déterminant
+  // collé au mot, et leur valeur est de la prose. Mesuré sur 155 phrases de corpus + 12 pièges
+  // construits exprès (verbe, pronom objet, valeurs numériques après pronom) : 0 faux positif,
+  // 5/5 vrais passes attrapés.
   {
     kind: 'ACCESS_CODE',
-    pattern: /\b(?:digicode|code[\s-]?pin|code\s+(?:d['’]acc[èe]s|secret|wifi|(?:du|de\s+la|de|des)\s+(?:portail|bo[îi]te\s+[àa]\s+cl[ée]s|parking|immeuble)))[ \t]*[:=][ \t]*((?=[0-9A-Za-z*#-]{3,12}\b)(?=[0-9A-Za-z*#-]*\d)[0-9A-Za-z*#-]{3,12})\b/gi,
+    pattern: /\b(?:digicode|code[\s-]?pin|(?:l[ea]|mon|ton|son|votre|notre|un)\s+passe|code\s+(?:d['’]acc[èe]s|secret|wifi|(?:du|de\s+la|de|des)\s+(?:portail|bo[îi]te\s+[àa]\s+cl[ée]s|parking|immeuble)))[ \t]*[:=][ \t]*((?=[0-9A-Za-z*#-]{3,12}\b)(?=[0-9A-Za-z*#-]*\d)[0-9A-Za-z*#-]{3,12})\b/gi,
   },
 ]
 

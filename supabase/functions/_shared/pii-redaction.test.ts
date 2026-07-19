@@ -232,6 +232,33 @@ describe('redactPII — ACCESS_CODE (digicode, wifi, boîte à clés)', () => {
     expect(r.counts.PASSWORD).toBe(1)
   })
 
+  // « le passe » = le passe-partout suisse. Récupéré ici, et pas dans PASSWORD, parce que deux
+  // gardes s'y ajoutent : le DÉTERMINANT collé au mot (qui sépare le nom du verbe homographe) et
+  // la contrainte de forme sur la valeur.
+  it.each([
+    ['le passe : 4521', '4521'],
+    ['Le passe : 78A45', '78A45'],
+    ['mon passe : 9981', '9981'],
+    ['votre passe : 1234', '1234'],
+  ])('marque le passe-partout : %s', (input, secret) => {
+    const r = redactPII(input)
+    expect(r.counts.ACCESS_CODE).toBe(1)
+    expect(r.redactedText).not.toContain(secret)
+  })
+
+  it.each([
+    'ce qui se passe : on attend le notaire',
+    'je te le passe : il expliquera mieux que moi',
+    'le dossier passe : au notaire jeudi',
+    'je le passe : 2 fois par semaine à l’agence',
+    'on la passe : 3 semaines en moyenne',
+    'le mandat passe : 12 mois renouvelables',
+  ])('ne mord pas sur le VERBE « passe » : %s', (input) => {
+    const r = redactPII(input)
+    expect(r.counts.ACCESS_CODE).toBe(0)
+    expect(r.redactedText).toBe(input)
+  })
+
   it('n’attrape PAS le marqueur « code » nu — un code postal n’est pas un secret', () => {
     // 48 des 155 phrases du corpus immobilier contiennent « code » (code postal, EGID, CO…),
     // et « Code : 1201 » est indiscernable d'un secret par la seule forme.
