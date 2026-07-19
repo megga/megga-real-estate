@@ -12,7 +12,6 @@ import { useAiPanel } from '@/hooks/useAiPanel'
 import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
 import { CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
-import NpsSurvey from '@/components/feedback/NpsSurvey'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
 
 /** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
@@ -41,7 +40,6 @@ function readSugarDark(): boolean {
  *  - Push du contenu quand le panneau MEGGA AI est ouvert (le panneau lui-même
  *    est monté dans App.tsx, au-dessus des Routes keyées, pour persister à la nav)
  *  - ImpersonateBanner (super-admin must always see they are impersonating)
- *  - NpsSurvey (user feedback flow)
  */
 function AgentSugarInner() {
   const { isOpen } = useAiPanel()
@@ -72,7 +70,6 @@ function AgentSugarInner() {
         <Outlet />
       </div>
       <CrmSugarSearchHost />
-      <NpsSurvey />
       {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus des Routes keyées)
           pour persister à la navigation ; ici on ne fait que « pousser » le contenu. */}
     </>
