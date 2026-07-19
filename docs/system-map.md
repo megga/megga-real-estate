@@ -189,7 +189,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, setti
 
 ### RLS (modèle agency-first)
 - **Agents** : visibilité `WHERE agency_id IN (SELECT agency_id FROM profiles WHERE id = auth.uid())`.
-- **Anon (marketplace)** : `market_listings` → `SELECT WHERE status='active'` ; `marketplace_inquiries` / `newsletter_subscribers` → INSERT only.
+- **Anon (ex-marketplace)** : plus aucune lecture publique d'annonces — `market_listings` et `market_price_history` révoqués pour `anon` (migration `20260719110000`), `contact_messages` fermé (`20260719100000`). Subsiste `seller_leads_anon_insert` (INSERT seul, borné `assigned_agency_id IS NULL` + `status='new'`), **sans écrivain** depuis la suppression du storefront (juil. 2026). Accès anon restants, hors marketplace : `article_views` / `article_feedback` → INSERT, `translation_cache` → SELECT.
 - **Acheteur authentifié** : ses `message_threads` (`buyer_user_id = auth.uid()`), favoris.
 - **Vendeur** : via `seller_portals.token` (stateless, pas d'auth.users) → READ property/transaction, UPLOAD documents.
 - **service_role** (edge functions) : full access ; triggers écrivent `activity_events` (`actor_kind='system'`).
