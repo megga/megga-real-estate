@@ -82,6 +82,11 @@ REVOKE ALL ON TABLE public.agency_profiles FROM anon;
 -- scopée au lieu de retirer. (`authenticated` a bien EXECUTE sur is_super_admin(),
 -- contrairement à anon — vérifié via has_function_privilege.)
 DROP POLICY IF EXISTS public_read_agent_profiles ON public.agent_profiles;
+-- IF EXISTS sur la policy CRÉÉE ci-dessous : le workflow de deploy rejoue toute migration
+-- dont l'horodatage est >= TODAY (UTC), donc celle-ci est ré-appliquée à chaque push du jour
+-- de son merge. Sans ce DROP, le rejeu échoue en 42710 (« policy already exists ») et bloque
+-- le déploiement des edge functions pour toute la journée.
+DROP POLICY IF EXISTS agent_profiles_select_own ON public.agent_profiles;
 CREATE POLICY agent_profiles_select_own ON public.agent_profiles
   FOR SELECT TO authenticated
   USING (profile_id = auth.uid() OR is_super_admin());
