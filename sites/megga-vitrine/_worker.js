@@ -3,8 +3,8 @@
 // Single-file Pages Worker (Advanced mode): gates 100% of traffic with Basic
 // Auth, then serves the static vitrine assets. No Supabase proxy here — the
 // vitrine is a marketing landing that points to the CRM (app.megga.ch); it does
-// not query listings. (The marketplace proxy lives in
-// sites/_marketplace-phase-ulterieure/_worker.js, kept for the later phase.)
+// not query listings. (The marketplace storefront that did proxy Supabase was
+// deleted from the repo in July 2026; recoverable via git if it ever returns.)
 //
 // Credentials: megga / preview  (browser-native Basic Auth prompt, pre-launch).
 
