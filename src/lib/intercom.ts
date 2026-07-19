@@ -1,5 +1,5 @@
 // src/lib/intercom.ts
-// Intercom Messenger — boot / identify / track wrapper. Miroir de `posthog.ts`.
+// Intercom Messenger — boot / identify / track wrapper.
 //
 // Intercom est le système de support UNIQUE de MEGGA (Messenger + Fin + Inbox +
 // Help Center). C'est une intégration PLATEFORME bootée globalement (≠ connexion
@@ -53,7 +53,7 @@ let booted = false
 
 /**
  * Boote (ou re-boote) le Messenger. Anonyme si aucun argument utilisateur.
- * No-op tant que `VITE_INTERCOM_APP_ID` n'est pas défini (comme PostHog sans clé).
+ * No-op tant que `VITE_INTERCOM_APP_ID` n'est pas défini.
  */
 export function bootIntercom(args: IntercomBootArgs = {}) {
   if (!APP_ID || typeof window === 'undefined') return

@@ -21,7 +21,6 @@ const ALLOW_SYMBOLS = new Set([
   'src/components/propertyx/PxWhatsAppButton.tsx:default', // composant du cœur Px (buildWaMeUrl, lui, est utilisé)
   'src/components/crm-sugar/SugarShell.tsx:SugarIconRailProps', // re-export type (faux positif ts-prune)
   // lib API / compliance conservée (surface API + données réglementaires) :
-  'src/lib/posthog.ts:identifyUser', 'src/lib/posthog.ts:trackEvent', 'src/lib/posthog.ts:resetPostHog',
   'src/lib/sentry.ts:identifySentryUser', 'src/lib/sentry.ts:clearSentryUser',
   'src/lib/constants.ts:Canton', 'src/lib/constants.ts:KycStatus', 'src/lib/constants.ts:KycType',
   'src/lib/constants.ts:FATF_HIGH_RISK_COUNTRIES', 'src/lib/constants.ts:FATF_INCREASED_MONITORING',

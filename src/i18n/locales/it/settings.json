@@ -647,17 +647,6 @@
       },
       "connectHint": "Importi i Suoi contatti esistenti per iniziare rapidamente."
     },
-    "posthog": {
-      "name": "PostHog",
-      "shortDesc": "Analytics e adozione del team",
-      "description": "Analizzi l'utilizzo di MEGGA da parte del Suo team: pagine visitate, funzionalità utilizzate, adozione.",
-      "features": {
-        "pageViews": "Monitoraggio pagine visitate",
-        "featureAdoption": "Adozione delle funzionalità",
-        "teamInsights": "Informazioni per agente"
-      },
-      "connectHint": "Configuri la Sua chiave PostHog per attivare le analytics."
-    },
     "cloudStorage": {
       "name": "Cloud Storage",
       "shortDesc": "Google Drive, OneDrive",
@@ -818,10 +807,6 @@
     "csv-import": {
       "name": "Import / Export",
       "desc": "Importa dati da file CSV o Excel"
-    },
-    "posthog": {
-      "name": "PostHog",
-      "desc": "Analytics di utilizzo e adozione del team"
     },
     "google-drive": {
       "name": "Google Drive",

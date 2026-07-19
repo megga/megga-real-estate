@@ -647,17 +647,6 @@
       },
       "connectHint": "Import your existing contacts for a quick start."
     },
-    "posthog": {
-      "name": "PostHog",
-      "shortDesc": "Team analytics and adoption",
-      "description": "Analyze how your team uses MEGGA: pages visited, features used, adoption rates.",
-      "features": {
-        "pageViews": "Page view tracking",
-        "featureAdoption": "Feature adoption",
-        "teamInsights": "Per-agent insights"
-      },
-      "connectHint": "Configure your PostHog key to enable analytics."
-    },
     "cloudStorage": {
       "name": "Cloud Storage",
       "shortDesc": "Google Drive, OneDrive",
@@ -818,10 +807,6 @@
     "csv-import": {
       "name": "Import / Export",
       "desc": "Import data from CSV or Excel files"
-    },
-    "posthog": {
-      "name": "PostHog",
-      "desc": "Usage analytics and team adoption"
     },
     "google-drive": {
       "name": "Google Drive",

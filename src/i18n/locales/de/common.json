@@ -240,7 +240,6 @@
         "stripe": "Stripe - Zahlungen und Abonnements - Vereinigte Staaten - DPF",
         "resend": "Resend - Transaktions-E-Mails - Vereinigte Staaten - SCCs",
         "mapbox": "Mapbox - Karten und Geolokalisierung - Vereinigte Staaten - SCCs",
-        "posthog": "PostHog - Produkt-Analytik - Europäische Union (eu.posthog.com)",
         "supabase": "Supabase - Hosting, Datenbank, Authentifizierung - Europäische Union (eu-west-1, Irland)",
         "dilisense": "Dilisense - PEP-/Sanktions-Screening (GwG) - Europäische Union"
       }
@@ -255,7 +254,6 @@
       "google": "Google (Calendar API, Gemini) - Kalendersynchronisation, KI",
       "dilisense": "Dilisense - PEP-/Sanktions-Screening (Zweck: GwG-Compliance)",
       "mapbox": "Mapbox - Karten und Immobiliensuche",
-      "posthog": "PostHog - Produkt-Analytik (einwilligungsbasiert)",
       "microsoft": "Microsoft Outlook - Kalendersynchronisation (Agent-Tools-Integration)"
     },
     "complaint": {
