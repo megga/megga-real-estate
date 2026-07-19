@@ -208,6 +208,35 @@
     btn.disabled = false;
   }
 
+  // ── Handoff de session vers le CRM (app.megga.ch) ──────────────────
+  //
+  // La connexion vit sur megga.ch, le CRM sur app.megga.ch : DEUX ORIGINES,
+  // donc deux localStorage cloisonnés. Une redirection nue vers le CRM y arrive
+  // SANS session (elle est restée sur megga.ch) → le CRM ne voit personne et
+  // renvoie au login → boucle infinie (bug confirmé le 19.07.2026 : login OK,
+  // 3× /token 200, mais l'agent tourne en rond).
+  //
+  // On transmet donc les jetons dans le FRAGMENT d'URL vers /auth/callback :
+  // le fragment n'est jamais envoyé au serveur (aucune fuite en logs), et le
+  // client Supabase du CRM le consomme à son initialisation (detectSessionInUrl),
+  // posant la session dans le storage de app.megga.ch AVANT de router vers le
+  // dashboard. C'est exactement le mécanisme du retour OAuth, qui fonctionne.
+  function goToCrm(session) {
+    if (!session || !session.access_token || !session.refresh_token) {
+      // Pas de session exploitable : redirection nue plutôt qu'un écran vide —
+      // le CRM renverra proprement au login.
+      window.location.href = CRM_URL;
+      return;
+    }
+    var frag = [
+      'access_token=' + encodeURIComponent(session.access_token),
+      'refresh_token=' + encodeURIComponent(session.refresh_token),
+      'expires_in=' + (session.expires_in || 3600),
+      'token_type=' + (session.token_type || 'bearer'),
+    ].join('&');
+    window.location.href = AUTH_REDIRECT + '#' + frag;
+  }
+
   function wire(client) {
     // ── OAuth Google / Microsoft (boutons .secondary-button.app-button) ──
     Array.prototype.forEach.call(document.querySelectorAll('a.app-button, .secondary-button.app-button'), function (btn) {
@@ -244,7 +273,7 @@
           return client.auth.signInWithPassword({ email: email, password: pwd, options: { captchaToken: captchaToken } });
         }).then(function (res) {
           if (res.error) { setBusy(loginForm, false); return showError(loginForm, traduire(res.error.message)); }
-          window.location.href = CRM_URL;
+          goToCrm(res.data && res.data.session);
         }).catch(function (err) { setBusy(loginForm, false); failFrom(loginForm, err); });
       }, true);
 
@@ -369,7 +398,7 @@
           var done = wrap.querySelector('.w-form-done');
           signupForm.style.display = 'none';
           if (done) { done.style.display = 'block'; var d = done.querySelector('div'); if (d) d.textContent = 'Compte créé ! Vérifiez votre e-mail pour confirmer, puis connectez-vous.'; }
-          else { window.location.href = CRM_URL; }
+          else { goToCrm(res.data && res.data.session); }
         }).catch(function (err) { setBusy(signupForm, false); failFrom(signupForm, err); });
       }, true);
     }
