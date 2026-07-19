@@ -134,7 +134,8 @@ describe.skipIf(!HAS_KEYS)('bump_contact_last_interaction — un bump doit être
 
     const { data: ag, error: agErr } = await svc
       .from('agencies')
-      .insert({ name: `Agence Definer ${STAMP}`, city: 'Genève', canton: 'GE' })
+      // `slug` est NOT NULL sans défaut — motif repris des specs existantes.
+      .insert({ name: `Agence Definer ${STAMP}`, slug: `agence-definer-${STAMP}` })
       .select('id')
       .single()
     expect(agErr, `agence: ${agErr?.message}`).toBeNull()
@@ -183,11 +184,12 @@ describe.skipIf(!HAS_KEYS)('bump_contact_last_interaction — un bump doit être
   it('un événement AVEC la bonne agence bumpe toujours (pas de régression)', async () => {
     const svc = serviceRoleClient()
 
-    const { data: ag } = await svc
+    const { data: ag, error: agErr } = await svc
       .from('agencies')
-      .insert({ name: `Agence Definer OK ${STAMP}`, city: 'Genève', canton: 'GE' })
+      .insert({ name: `Agence Definer OK ${STAMP}`, slug: `agence-definer-ok-${STAMP}` })
       .select('id')
       .single()
+    expect(agErr, `agence: ${agErr?.message}`).toBeNull()
     createdAgencyIds.push(ag!.id)
 
     const { data: contact } = await svc
