@@ -27,8 +27,23 @@ import { test, expect } from '@playwright/test'
 // juin 2026) : page entièrement refondue, contenu dynamique (temps relatifs
 // « dans X min », file de priorités, données live) → impropre au diff pixel.
 // Couverture fonctionnelle assurée par agent-dashboard.spec.ts.
+//
+// Élargi (juil. 2026) lors de la bascule vers les icônes Iconly : une seule
+// page ne couvrait rien d'un changement qui touche l'iconographie de tout le
+// CRM. Les trois ajouts ont été vérifiés en 1280×720 avec le bypass agent —
+// aucune date relative, aucune heure, aucune date absolue dans le rendu, donc
+// pas de dérive dans le temps. Densité d'icônes au moment de l'ajout :
+// settings 36, listings 23, journey 13.
+//
+// `/dashboard/kyc` écarté : il redirige vers `/kyc/bienvenue`, le nom de
+// l'instantané ne correspondrait pas au chemin. Les surfaces `/admin/*` le sont
+// aussi — le bypass de cette config est en rôle `agent`, elles sont hors
+// d'atteinte.
 const PAGES_TO_SNAPSHOT = [
   { path: '/dashboard/pipeline', name: 'dashboard-pipeline' },
+  { path: '/dashboard/settings', name: 'dashboard-settings' },
+  { path: '/dashboard/listings', name: 'dashboard-listings' },
+  { path: '/dashboard/journey', name: 'dashboard-journey' },
 ] as const
 
 test.describe('Visual regression — key pages', () => {

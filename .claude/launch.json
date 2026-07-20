@@ -16,6 +16,13 @@
       "autoPort": true
     },
     {
+      "name": "dev-bypass",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH && cd /Users/megga/Desktop/megga-real-estate/.claude/worktrees/crm-backend-roadmap-922aba && VITE_DEV_BYPASS_AUTH=true VITE_DEV_BYPASS_ROLE=agent VITE_PASSWORD_GATE_BYPASS=true npm run dev"],
+      "port": 5175,
+      "autoPort": true
+    },
+    {
       "name": "preview",
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "export PATH=/usr/local/bin:$PATH && npm run preview"],
