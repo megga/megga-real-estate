@@ -12,7 +12,6 @@ import SugarNotificationsPopover from './notifications/SugarNotificationsPopover
 import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import SugarProfileDropdown from './profile/SugarProfileDropdown'
 import { useAuth } from '@/hooks/useAuth'
-import { showIntercomSpace, isIntercomEnabled } from '@/lib/intercom'
 import { openHelpFor } from '@/lib/help-articles'
 import { openSugarSearch } from './search/openSearch'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -147,8 +146,8 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <SugarRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
         {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
-            Centre d'aide à défaut). Fallback /help si Intercom n'est pas configuré. */}
-        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => { if (!openHelpFor(active)) navigate('/help') }}><AnimatedTopIcon name="help" color={sp.soft} size={18} /></SugarRoundIconBtn>
+            Centre d'aide à défaut, public si Intercom n'est pas configuré). */}
+        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => openHelpFor(active)}><AnimatedTopIcon name="help" color={sp.soft} size={18} /></SugarRoundIconBtn>
         {/* Bouton Megga — ouvre le panneau MEGGA AI docké (ou la page Julien en repli) */}
         <button
           onClick={() => {
@@ -241,7 +240,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
               onSettings={() => navigate('/dashboard/settings')}
               onKyc={() => navigate('/dashboard/kyc')}
               onAgencyPublic={() => window.open('/agencies', '_blank', 'noopener,noreferrer')}
-              onHelp={() => { if (isIntercomEnabled()) showIntercomSpace('help'); else navigate('/help') }}
+              onHelp={() => openHelpFor()}
               onLogout={async () => { await signOut(); navigate('/login') }}
             />
           )}
