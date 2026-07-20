@@ -1,74 +1,48 @@
 import { describe, it, expect } from 'vitest'
-import {
-  percentile, salePriceM2, buildSaleStats, salePosition, MIN_COMPARABLES,
-  type SaleCandidateRow,
-} from './copilot-market'
+import { pickSaleStats, salePosition, MIN_COMPARABLES, type SaleStatsRow } from './copilot-market'
 
-const row = (over: Partial<SaleCandidateRow>): SaleCandidateRow => ({
-  price: 1_000_000, current_price: null, city: 'Genève', rooms: 4, surface_m2: 100, ...over,
+// L'agrégation vit désormais en SQL (RPC market_sale_stats) : ce module ne
+// choisit plus que le cran géographique. Les fixtures imitent donc la sortie
+// de la RPC — deux lignes ('city' puis 'canton'), déjà agrégées.
+const stat = (over: Partial<SaleStatsRow>): SaleStatsRow => ({
+  level: 'canton', n: 300, median_price_m2: 12_000, p25_price_m2: 10_000, p75_price_m2: 14_000, ...over,
 })
 
-describe('percentile', () => {
-  it('médiane d\'un tableau trié impair', () => {
-    expect(percentile([10, 20, 30], 0.5)).toBe(20)
+describe('pickSaleStats — seuil + fallback ville→canton', () => {
+  it('ville au-dessus du seuil → cran ville', () => {
+    const s = pickSaleStats([stat({ level: 'city', n: 25, median_price_m2: 15_000 }), stat({})])
+    expect(s!.level).toBe('city')
+    expect(s!.n).toBe(25)
+    expect(s!.median_price_m2).toBe(15_000)
   })
-  it('médiane d\'un tableau pair (interpolation)', () => {
-    expect(percentile([10, 20, 30, 40], 0.5)).toBe(25)
-  })
-  it('p25 / p75', () => {
-    expect(percentile([10, 20, 30, 40, 50], 0.25)).toBe(20)
-    expect(percentile([10, 20, 30, 40, 50], 0.75)).toBe(40)
-  })
-  it('tableau vide → 0, singleton → sa valeur', () => {
-    expect(percentile([], 0.5)).toBe(0)
-    expect(percentile([42], 0.9)).toBe(42)
-  })
-})
 
-describe('salePriceM2', () => {
-  it('current_price prioritaire sur price', () => {
-    expect(salePriceM2(row({ price: 1_000_000, current_price: 1_200_000, surface_m2: 100 }))).toBe(12_000)
-  })
-  it('surface aberrante → null (garde anti-données)', () => {
-    expect(salePriceM2(row({ surface_m2: 3 }))).toBeNull()
-    expect(salePriceM2(row({ surface_m2: 5000 }))).toBeNull()
-  })
-  it('prix/m² hors fenêtre suisse plausible → null', () => {
-    expect(salePriceM2(row({ price: 60_000, current_price: null, surface_m2: 200 }))).toBeNull() // 300/m2 trop bas... mais 60k<50k? non 60k ok, 300/m2 <500 → null
-    expect(salePriceM2(row({ price: 90_000_000, current_price: null, surface_m2: 1000 }))).toBeNull() // 90k/m2 > 60k → null
-  })
-  it('prix manquant → null', () => {
-    expect(salePriceM2(row({ price: null, current_price: null }))).toBeNull()
-  })
-})
-
-describe('buildSaleStats — seuil + fallback ville→canton', () => {
-  // 25 lignes Genève à 12'000/m², 5 lignes Carouge à 10'000/m².
-  const rows: SaleCandidateRow[] = [
-    ...Array.from({ length: 25 }, () => row({ city: 'Genève', price: 1_200_000, surface_m2: 100 })),
-    ...Array.from({ length: 5 }, () => row({ city: 'Carouge', price: 1_000_000, surface_m2: 100 })),
-  ]
-
-  it('ville sous le seuil → fallback canton (toutes lignes)', () => {
-    const s = buildSaleStats(rows, 'Carouge')
-    expect(s).not.toBeNull()
+  it('ville sous le seuil → fallback canton', () => {
+    const s = pickSaleStats([stat({ level: 'city', n: MIN_COMPARABLES - 1 }), stat({ n: 300 })])
     expect(s!.level).toBe('canton')
-    expect(s!.n).toBe(30)
+    expect(s!.n).toBe(300)
   })
-  it('ville au-dessus du seuil → stats ville', () => {
-    const s = buildSaleStats(rows, 'Genève')
-    expect(s!.level).toBe('city')
-    expect(s!.n).toBe(25)
+
+  it('ville non demandée (n=0, médianes NULL) → canton', () => {
+    const empty = stat({ level: 'city', n: 0, median_price_m2: null, p25_price_m2: null, p75_price_m2: null })
+    const s = pickSaleStats([empty, stat({ n: 300 })])
+    expect(s!.level).toBe('canton')
+  })
+
+  it('canton lui-même sous le seuil → null (échantillon insuffisant)', () => {
+    expect(pickSaleStats([stat({ n: MIN_COMPARABLES - 1 })])).toBeNull()
+    expect(pickSaleStats([])).toBeNull()
+  })
+
+  it('numeric SQL sérialisé en string → parsé (pas de NaN publié)', () => {
+    // PostgREST renvoie les `numeric` en string : sans parsing, la médiane
+    // partirait en NaN dans le prompt.
+    const s = pickSaleStats([stat({ median_price_m2: '12000', p25_price_m2: '10000', p75_price_m2: '14000' })])
     expect(s!.median_price_m2).toBe(12_000)
+    expect(s!.p25_price_m2).toBe(10_000)
   })
-  it('canton total sous le seuil → null (échantillon insuffisant)', () => {
-    const few = Array.from({ length: MIN_COMPARABLES - 1 }, () => row({}))
-    expect(buildSaleStats(few, 'Genève')).toBeNull()
-  })
-  it('normalisation ville insensible à la casse/accents', () => {
-    const s = buildSaleStats(rows, 'geneve')
-    expect(s!.level).toBe('city')
-    expect(s!.n).toBe(25)
+
+  it('n suffisant mais médiane NULL → null (jamais de chiffre bidon)', () => {
+    expect(pickSaleStats([stat({ n: 300, median_price_m2: null })])).toBeNull()
   })
 })
 

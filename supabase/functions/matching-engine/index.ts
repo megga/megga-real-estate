@@ -191,15 +191,30 @@ serve(async (req) => {
         const tx = inferTransactionType(criteria)
         const { cantons } = normalizeZones(criteria.zones)
 
+        // p_limit borne le coût, mais c'est une TRONCATURE : au-delà, des biens
+        // éligibles sont écartés sans être scorés. Depuis le 20/07/2026 la RPC
+        // tronque sans corrélation au prix (budget strict d'abord, puis id) —
+        // avant, `prix ASC` ne laissait passer que le bas de la fourchette,
+        // c'est-à-dire précisément ce que scorePrice pénalise.
+        const CANDIDATE_CAP = 400
         const { data: candidates, error } = await supabase.rpc('match_candidate_listings', {
           p_tx: tx,
           p_budget_min: numOrNull(criteria.budget_min),
           p_budget_max: numOrNull(criteria.budget_max),
           p_cantons: cantons.length > 0 ? cantons : null,
           p_types: null, // le type reste un axe SOFT (scoring), pas un filtre dur
-          p_limit: 400,
+          p_limit: CANDIDATE_CAP,
         })
         if (error) throw error
+
+        // Plafond atteint = candidats écartés. Jamais silencieux : si ça arrive
+        // souvent, c'est le plafond (ou le filtre dur) qu'il faut revoir.
+        if ((candidates?.length ?? 0) >= CANDIDATE_CAP) {
+          console.warn(
+            `[matching-engine] plafond de candidats atteint (${CANDIDATE_CAP}) pour la recherche ${search.id} ` +
+            `(${tx}, cantons=${cantons.join(',') || 'tous'}) — des biens éligibles n'ont pas été scorés.`,
+          )
+        }
 
         for (const ml of (candidates ?? []) as Record<string, unknown>[]) {
           // Sujet pour la référence loyer : loyer canonique = COALESCE(current_price, price).

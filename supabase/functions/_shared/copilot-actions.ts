@@ -8,7 +8,7 @@
 //    (focus_top_matches, analytics_*) → get_user_agency_id()/auth.uid() résolvent,
 //    RLS et scoping garantis par la DB, zéro paramètre d'agence forgeable.
 //  - `supabase` : service-role, pour les données marché SANS PII ni scope agence
-//    (market_rent_stats — SELECT authenticated révoqué — et match_candidate_listings).
+//    (market_rent_stats — SELECT authenticated révoqué — et market_sale_stats).
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { canonicalPropertyType } from './whatsapp-lead.ts'
@@ -16,7 +16,7 @@ import {
   buildRentStatsIndex, rentPosition, surfaceBand,
   type RentStatsRow, type RentPosition,
 } from './rent-reference.ts'
-import { buildSaleStats, salePosition, MIN_COMPARABLES, type SaleCandidateRow } from './copilot-market.ts'
+import { pickSaleStats, salePosition, MIN_COMPARABLES, type SaleStatsRow } from './copilot-market.ts'
 
 export interface WebToolCtx {
   supabase: SupabaseClient
@@ -186,8 +186,9 @@ export async function execGetAnalyticsSnapshot(ctx: WebToolCtx, a: Args): Promis
 
 // ─── get_market_stats ────────────────────────────────────────────────────────
 // 100% déterministe. Locatif : MV market_rent_stats (médianes pré-calculées,
-// n>=20 par construction) via rent-reference. Vente : échantillon réel
-// match_candidate_listings (RPC indexée, colonnes légères) agrégé en TS.
+// n>=20 par construction) via rent-reference. Vente : RPC market_sale_stats
+// (percentile_cont EN SQL sur toute la population filtrée — aucun échantillon,
+// donc aucun biais de troncature possible).
 export async function execGetMarketStats(ctx: WebToolCtx, a: Args): Promise<string> {
   const tx = a.transaction_type === 'buy' ? 'buy' : 'rent'
   const type = canonicalPropertyType(strArg(a.property_type) ?? 'appartement') ?? 'apartment'
@@ -263,23 +264,29 @@ export async function execGetMarketStats(ctx: WebToolCtx, a: Args): Promise<stri
     return JSON.stringify(out)
   }
 
-  // ── Vente : échantillon réel via la RPC de matching (indexée, plafonnée). ──
+  // ── Vente : agrégat SQL sur TOUTE la population (market_sale_stats). ──
+  // Surtout PAS match_candidate_listings : cette RPC est plafonnée (p_limit) et
+  // triée `quality_score DESC, prix ASC`. Le quality_score étant saturé (36 222
+  // annonces à 100), la troncature revenait à ne garder que les moins chères —
+  // jusqu'à −39,5 % sur la médiane CHF/m² (Tessin maisons, mesuré en prod le
+  // 20/07/2026). Ici : agrégat sur la population entière, zéro échantillon.
   if (!canton) return 'Pour la vente, précise le canton (ex. GE, VD) en plus de la ville.'
-  const { data, error } = await ctx.supabase.rpc('match_candidate_listings', {
-    p_tx: 'buy',
-    p_cantons: [canton],
-    p_types: [type],
+  const { data, error } = await ctx.supabase.rpc('market_sale_stats', {
+    p_canton: canton,
+    p_type: type,
+    p_city: city ?? null,
     p_min_quality: 50,
-    p_limit: 400,
   })
   if (error) return `Erreur stats vente: ${error.message}`
-  const rows = (data ?? []) as SaleCandidateRow[]
-  const stats = buildSaleStats(rows, city)
+  const stats = pickSaleStats((data ?? []) as SaleStatsRow[])
   if (!stats) {
     return `Échantillon insuffisant: moins de ${MIN_COMPARABLES} annonces de vente comparables (${type}, canton ${canton}${city ? `, ${city}` : ''}). Ne cite aucun chiffre de marché.`
   }
   const out: Record<string, unknown> = {
-    source: 'annonces de vente actives (sync quotidienne), prix au m2',
+    // Formulation exacte : la population est complète À L'INTÉRIEUR du segment
+    // retenu (qualité >= 50, prix/m2 plausibles) — surtout pas « toutes les
+    // annonces », que le modèle paraphraserait en une couverture qu'on n'a pas.
+    source: 'annonces de vente actives du segment, hors annonces incomplètes ou aberrantes (sync quotidienne) ; prix au m2 sur la population entière, sans échantillonnage',
     transaction: 'vente', type, canton,
     segment: {
       niveau: stats.level === 'city' ? `ville ${city}` : `canton ${canton}`,
