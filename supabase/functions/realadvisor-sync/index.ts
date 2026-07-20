@@ -393,6 +393,16 @@ function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, un
     first_seen_at: h.created_at || nowIso,
     last_seen_at: nowIso,
     status: 'active',
+    // On vient de récupérer ce bien depuis RA : il est vivant, l'historique d'absence est
+    // caduc. Même geste que realadvisor_probe_bookkeep sur sa branche « présent ». Sans ça,
+    // le crawl estampillait last_seen_at en laissant les compteurs intacts, et le bien
+    // restait candidat au retrait sur la foi de sondes périmées (47 cas mesurés le 20/07,
+    // dont 5 vérifiés vivants à la main via l'oracle id_in).
+    // Remettre absent_first_at à NULL est indispensable : c'est ce qui permet au
+    // `coalesce(absent_first_at, now())` de bookkeep de repartir d'une date fraîche si le
+    // bien redisparaît — sinon la garde last_seen_at du sweep le protégerait à vie.
+    absent_probe_count: 0,
+    absent_first_at: null,
     source_payload: h,
   }
   if (parking != null && parking > 0) row.has_parking = true
