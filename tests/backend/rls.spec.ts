@@ -173,19 +173,25 @@ describe.skipIf(!HAS_KEYS)('RLS policies — surfaces anon mortes refermées', (
   })
 })
 
-describe.skipIf(!HAS_KEYS)("RLS — le centre d'aide public reste écrivable", () => {
-  // Garde-fou anti-zèle : /help est une surface PUBLIQUE (routes placées avant le
-  // premier ProtectedRoute) et ArticleFeedback insère en anon au montage. Une passe
-  // de durcissement trop large fermerait cette écriture et figerait silencieusement
-  // les articles populaires — l'insert n'a pas de handler d'erreur côté client.
-  it('article_views : INSERT anon DOIT continuer de passer', async () => {
-    const supabase = anonClient()
-    const { error } = await supabase
-      .from('article_views')
-      .insert({ article_slug: `rls-guard-${Date.now()}` })
+describe.skipIf(!HAS_KEYS)("RLS — les tables du Help Center SPA sont retirées", () => {
+  // Ce bloc affirmait l'INVERSE jusqu'au 20.07.2026 : il exigeait que l'INSERT anon
+  // sur article_views « continue de passer », parce que /help était une surface
+  // publique et qu'ArticleFeedback y insérait au montage. Les 12 pages SPA /help/*
+  // ont été retirées (#919, corpus déplacé vers Intercom), ce qui a laissé deux
+  // tables en écriture NON AUTHENTIFIÉE sans aucun consommateur — anon y détenait
+  // GRANT DELETE/INSERT/UPDATE/TRUNCATE. Elles ont été droppées le lendemain.
+  //
+  // Le garde-fou est donc inversé : il verrouille désormais le retrait, pour que
+  // personne ne recrée une table anon-writable au motif d'un Help Center in-app.
+  it.each(['article_views', 'article_feedback'])(
+    '%s : anon ne peut plus écrire (table retirée)',
+    async (table) => {
+      const supabase = anonClient()
+      const { error } = await supabase.from(table).insert({ article_slug: `rls-guard-${Date.now()}` })
 
-    expect(error, 'ne pas fermer article_views : /help est public').toBeNull()
-  })
+      expect(error, `${table} doit rester inaccessible à anon`).not.toBeNull()
+    },
+  )
 })
 
 describe.skipIf(!HAS_KEYS)('RPC behavior — get_user_agency_id (bug #404 guard)', () => {
