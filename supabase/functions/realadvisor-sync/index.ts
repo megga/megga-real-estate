@@ -438,7 +438,13 @@ function buildSearchParams(offerType: string, slice: Slice, page: number): URLSe
   if (slice.gte != null) sp.set(`${pf}_gte`, String(slice.gte))
   if (slice.lte != null) sp.set(`${pf}_lte`, String(slice.lte))
   sp.set('sort', 'created_at_desc')
-  sp.set('page', String(page))
+  // ⚠ RA indexe ses pages à partir de 0 : `page=1` est la DEUXIÈME page. Les appelants
+  // comptent à partir de 1 (lisibilité des logs, tests `page === 1` = première page), on
+  // décale donc ici, au seul endroit qui parle à RA. Envoyer `page=1` pour la première
+  // page saute les 36 annonces les plus récentes (tri created_at_desc) et renvoie une
+  // liste VIDE pour tout slice de ≤ 36 biens — ce qui a stérilisé le découpage par bande
+  // de prix (174 slices vides sur 327) et bloqué l'énumération à ~720/canton.
+  sp.set('page', String(page - 1))
   return sp
 }
 
@@ -933,12 +939,17 @@ async function runSweepEnum(body: SyncRequest, supabase: any): Promise<void> {
 // ─── Oracle id_in : « sur ces ids, lesquels existent encore ? » ────
 // 1 requête légère pour jusqu'à 36 ids. Renvoie ok=false sur throttle (non-JSON/5xx)
 // → le batch est SAUTÉ (jamais compté comme absent). total_count = nb encore en ligne ;
-// presentIds = ids renvoyés (page 1, non tronquée tant que batch ≤ 36).
+// presentIds = ids renvoyés (première page, non tronquée tant que batch ≤ 36).
 async function fetchIdIn(offerType: string, ids: string[], ident: Identity): Promise<{ ok: boolean; total_count: number; presentIds: string[] }> {
   const sp = new URLSearchParams()
   sp.set('offerType_eq', offerType)
   sp.set('id_in', ids.join(','))
-  sp.set('page', '1')
+  // ⚠ Pagination RA indexée à 0 : la première page est `0`. Avec `page=1` sur un lot de
+  // ≤ 36 ids, RA renvoie une liste VIDE ⇒ TOUS les ids du lot seraient comptés absents.
+  // Ce chemin est dormant (la sonde vivante est realadvisor_probe_fire, en SQL/pg_net,
+  // qui n'envoie aucun `page` et tombe donc sur 0 par défaut) — corrigé pour qu'une
+  // réactivation ne déclenche pas un retrait de masse.
+  sp.set('page', '0')
   const url = `${RA_BASE}/api/listings?${sp.toString()}`
   let attempt = 0
   while (true) {
