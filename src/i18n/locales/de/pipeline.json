@@ -271,7 +271,12 @@
       "moveFailedTitle": "Could not move the deal",
       "moveFailedDescription": "The stage change was not saved. Check your connection, then try again."
     },
-    "empty": "Noch keine Geschäfte in der Pipeline."
+    "empty": "Noch keine Geschäfte in der Pipeline.",
+    "error": {
+      "title": "Pipeline konnte nicht geladen werden",
+      "message": "Ein Fehler ist aufgetreten. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "retry": "Erneut versuchen"
+    }
   },
   "kyc": {
     "lock": {
@@ -368,10 +373,39 @@
       "accepted": "Angenommen",
       "rejected": "Abgelehnt",
       "expired": "Abgelaufen",
-      "withdrawn": "Zurückgezogen"
+      "withdrawn": "Zurückgezogen",
+      "current": "Laufend"
     },
     "notes_cancel": "Abbrechen",
-    "notes_save": "Speichern"
+    "notes_save": "Speichern",
+    "step_counter": "Schritt {{index}}/{{total}}",
+    "negotiation": "Verhandlung",
+    "rounds_one": "{{count}} Runde",
+    "rounds_other": "{{count}} Runden",
+    "no_offer_hint": "Sobald der Käufer bereit ist, erfassen Sie hier sein Angebot.",
+    "offer_row": {
+      "offer": "Angebot · Käufer",
+      "counter": "Gegenangebot · Verkäufer"
+    },
+    "cond": {
+      "financing": "Finanzierung {{days}} T.",
+      "sale": "Verkauf eines anderen Objekts",
+      "diagnostic": "Gutachten"
+    },
+    "accept_offer": "Angebot annehmen",
+    "reject": "Ablehnen",
+    "relaunch_offer": "Neues Angebot anstossen",
+    "mark_lost": "Als verloren markieren",
+    "rejected_note": "Angebot abgelehnt. Gehen Sie mit einem neuen Vorschlag auf den Käufer zu oder schliessen Sie den Deal ab.",
+    "kyc_to_complete": "KYC zu vervollständigen",
+    "optional": "optional",
+    "toast": {
+      "accepted": "Angebot angenommen, Deal unterzeichnet",
+      "rejected": "Angebot abgelehnt",
+      "lost": "Deal als verloren markiert",
+      "offer_sent": "Angebot gesendet",
+      "counter_sent": "Gegenangebot gesendet"
+    }
   },
   "offerModal": {
     "cta": {
@@ -380,7 +414,9 @@
       "back": "Back",
       "continue": "Continue",
       "submit": "Save & send",
-      "submitting": "Sending…"
+      "submitting": "Sending…",
+      "save": "Speichern",
+      "saving": "Wird gespeichert…"
     },
     "label": {
       "buyerFallback": "Buyer"
@@ -451,7 +487,8 @@
         "placeholder": "E.g. Purchase in a personal capacity, cash payment of 35%."
       },
       "financingShort": "Financing · {{days}}d",
-      "diagnosticShort": "Survey"
+      "diagnosticShort": "Survey",
+      "noteTitle": "Notiz"
     },
     "step2": {
       "eyebrow": "Step 3 of 3 · Deadline & confirmation",
@@ -486,6 +523,15 @@
       "accept": "Accept",
       "reject": "Decline",
       "withdraw": "Withdraw"
+    },
+    "header": {
+      "fallback": "Angebot erfassen"
+    },
+    "section": {
+      "amount": "Angebotsbetrag",
+      "amountCounter": "Vorgeschlagener Gegenbetrag",
+      "conditions": "Aufschiebende Bedingungen",
+      "validity": "Gültigkeit des Angebots"
     }
   },
   "journey": {

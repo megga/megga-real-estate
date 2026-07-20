@@ -7,12 +7,19 @@
 //   - valeurs IDENTIQUES à FR dans EN (souvent = non traduit)      (avertissement)
 //
 // Usage :
-//   node scripts/i18n-parity.mjs            # FR↔EN strict, FR↔DE/IT informatif
-//   node scripts/i18n-parity.mjs --all      # strict sur les 3 langues
-//   node scripts/i18n-parity.mjs --ci       # exit 1 si dérive FR↔EN (gate CI)
+//   node scripts/i18n-parity.mjs            # strict sur EN, DE et IT
+//   node scripts/i18n-parity.mjs --ci       # exit 1 si dérive (gate CI)
 //
-// Le gate CI ne vérifie QUE FR↔EN (contrat bilingue v1). DE/IT = informatif
-// tant que leur retraduction n'est pas planifiée.
+// DE et IT sont STRICTS depuis le 20.07.2026. Ils étaient « informatifs tant que
+// leur retraduction n'est pas planifiée » — et cette tolérance a coûté cher : le
+// gate est resté VERT pendant que 224 clés manquaient dans chaque langue, dont
+// les 174 du module Matching (tout `pager.*` / `recherche.*` / `atelier.*`) et
+// `errorBoundary.*`, si bien que l'écran d'erreur global affichait la clé brute.
+// Un gate qui ne couvre pas une langue livrée ne protège pas cette langue.
+//
+// ⚠ Conséquence assumée : toute clé ajoutée en FR doit l'être dans les 3 langues,
+// sinon la CI casse. C'est le prix de la non-régression — ne pas re-assouplir
+// sans retirer la langue du bundle (src/i18n/index.ts).
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -21,10 +28,10 @@ const ROOT = process.cwd()
 const LOC = 'src/i18n/locales'
 const REF = 'fr'
 const args = process.argv.slice(2)
-const ALL = args.includes('--all')
 const CI = args.includes('--ci')
-const STRICT_LANGS = ALL ? ['en', 'de', 'it'] : ['en']
-const INFO_LANGS = ALL ? [] : ['de', 'it']
+// `--all` reste accepté sans effet : c'est désormais le comportement par défaut.
+const STRICT_LANGS = ['en', 'de', 'it']
+const INFO_LANGS = []
 
 function load(lang, ns) {
   try { return JSON.parse(readFileSync(join(ROOT, LOC, lang, ns), 'utf8')) }
