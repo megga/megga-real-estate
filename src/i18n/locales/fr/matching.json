@@ -17,6 +17,9 @@
     "countBuyer_other": "{{count}} annonces{{tx}} dans les critères de {{name}}",
     "countMarket_one": "{{count}} annonce{{tx}} sur le marché connecté",
     "countMarket_other": "{{count}} annonces{{tx}} sur le marché connecté",
+    "countTotal": "sur {{total}} au total",
+    "clientFilterScope_one": "Ce filtre texte ne porte que sur {{count}} annonce déjà chargée, pas sur l'ensemble du marché.",
+    "clientFilterScope_other": "Ce filtre texte ne porte que sur {{count}} annonces déjà chargées, pas sur l'ensemble du marché.",
     "trans": {
       "group": "Filtrer par transaction",
       "all": "Tout",

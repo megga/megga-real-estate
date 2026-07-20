@@ -25,7 +25,7 @@ import MrhGrid, { type MrhItem } from './MrhGrid'
 import MrhExtDetail from './MrhExtDetail'
 import MrhMapView from './MrhMapView'
 import MrhSendSheet from './MrhSendSheet'
-import { useMatchingSearch, useMatchingBuyers, useCitySuggest, type SearchTx } from '@/hooks/useMatchingRecherche'
+import { useMatchingSearch, useMatchingSearchTotal, useMatchingBuyers, useCitySuggest, type SearchTx } from '@/hooks/useMatchingRecherche'
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
 import { parseQuery, norm } from './omniParse'
@@ -120,7 +120,9 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     // Une seule ville à la fois (la plus récente) → filtre p_city exact en SQL.
     const cityTok = tokens.filter((tk) => tk.field === 'city')
     const city = cityTok.length ? (cityTok[cityTok.length - 1].value as string) : null
-    return { transaction: effTx, cantons, types, budgetMax, budgetMin, city, limitPerTx: 60 }
+    // Pas de `limitPerTx` ici : le plafond appartient au hook (MAX_PER_TX), qui
+    // sait aussi entrelacer vente/location avant de borner.
+    return { transaction: effTx, cantons, types, budgetMax, budgetMin, city }
   }, [trans, tokens, buyer])
 
   // `isPending` et NON `isLoading` : une query React Query v5 désactivée (gate `enabled`
@@ -130,6 +132,9 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
   // qu'AUCUNE requête n'était partie. Un état vide qui affirme quelque chose sur la DB
   // doit être gaté sur la query réellement résolue.
   const { data: biens = [], isPending, isError, refetch } = useMatchingSearch(serverParams)
+  // Total RÉEL du marché filtré — sert à ne jamais présenter la taille de la
+  // tranche chargée comme un nombre de marché.
+  const { data: marketTotal } = useMatchingSearchTotal(serverParams)
 
   // ── filtres client (texte libre + jetons pièces/quartier) + scoring ──
   const clientTokens = useMemo(() => tokens.filter((tk) => tk.field === 'rooms' || tk.field === 'text' || tk.field === 'surface'), [tokens])
@@ -339,6 +344,14 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     ? t('recherche.countBuyer', { count: strict.length, tx: txLabel, name: buyer.firstName })
     : t('recherche.countMarket', { count: strict.length, tx: txLabel })
 
+  // Le marché filtré dépasse-t-il ce qui est chargé ? Si oui l'écran doit le DIRE :
+  // sans ça, `strict.length` (une tranche) se lit comme une taille de marché.
+  const truncated = marketTotal != null && marketTotal > biens.length
+  // Un filtre client actif ne porte que sur la tranche chargée — le signaler tant
+  // que ce filtrage n'est pas poussé en SQL, sinon « aucun résultat » est un
+  // mensonge sur le marché plutôt qu'un fait sur les données chargées.
+  const clientFilterActive = !!q.trim() || clientTokens.length > 0
+
   // ── atomes locaux ──
   const Avatar = ({ name, size = 28 }: { name: string; size?: number }) => {
     const ini = name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
@@ -383,7 +396,18 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('recherche.title')}</h1>
-            <div style={{ fontSize: 13, color: sp.soft, fontWeight: 500, marginTop: 7 }} role="status" aria-live="polite">{countText}</div>
+            <div style={{ fontSize: 13, color: sp.soft, fontWeight: 500, marginTop: 7 }} role="status" aria-live="polite">
+              {countText}
+              {truncated && (
+                <span style={{ color: sp.sub }}> · {t('recherche.countTotal', { total: marketTotal })}</span>
+              )}
+            </div>
+            {truncated && clientFilterActive && (
+              <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 500, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <RechIcon name="spark" size={11} stroke={sp.sub} />
+                {t('recherche.clientFilterScope', { count: biens.length })}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <div role="group" aria-label={t('recherche.trans.group')} style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: chipBg, boxShadow: 'inset 0 0 0 1px ' + line }}>
