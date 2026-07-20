@@ -1,6 +1,11 @@
 {
   "title": "Matching",
   "subtitle": "Acquirenti ↔ Immobili compatibili",
+  "recherche": {
+    "countTotal": "su {{total}} in totale",
+    "clientFilterScope_one": "Questo filtro testuale si applica solo a {{count}} immobile già caricato, non all'intero mercato.",
+    "clientFilterScope_other": "Questo filtro testuale si applica solo a {{count}} immobili già caricati, non all'intero mercato."
+  },
   "runMatching": "Avvia matching",
   "running": "Analisi in corso...",
   "portfolio": "Portafoglio",
