@@ -18,7 +18,6 @@ import {
   Intercom,
   update as sdkUpdate,
   shutdown as sdkShutdown,
-  show as sdkShow,
   showSpace as sdkShowSpace,
   showArticle as sdkShowArticle,
   trackEvent as sdkTrackEvent,
@@ -71,12 +70,6 @@ export function shutdownIntercom() {
   if (!APP_ID) return
   sdkShutdown()
   booted = false
-}
-
-/** Ouvre le Messenger (déclencheur « Aide » de la sidebar / pages publiques). */
-export function showIntercom() {
-  if (!APP_ID || !booted) return
-  sdkShow()
 }
 
 /** Espaces du Messenger Intercom. */

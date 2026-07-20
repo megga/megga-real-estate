@@ -152,19 +152,8 @@ const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 // repo le 2026-06-08. /account → /dashboard. market_listings ne sert plus que
 // le Matching agent.
 
-// Lazy-loaded help center pages
-const HelpCenterPage = lazy(() => import('@/pages/public/HelpCenterPage'))
-const HelpCategoryPage = lazy(() => import('@/pages/public/HelpCategoryPage'))
-const HelpArticlePage = lazy(() => import('@/pages/public/HelpArticlePage'))
-const HelpStartPage = lazy(() => import('@/pages/public/HelpStartPage'))
-const HelpContactPage = lazy(() => import('@/pages/public/HelpContactPage'))
-const HelpStatusPage = lazy(() => import('@/pages/public/HelpStatusPage'))
-const HelpChangelogPage = lazy(() => import('@/pages/public/HelpChangelogPage'))
-const HelpShortcutsPage = lazy(() => import('@/pages/public/HelpShortcutsPage'))
-const HelpCompliancePage = lazy(() => import('@/pages/public/HelpCompliancePage'))
-const HelpLimitsPage = lazy(() => import('@/pages/public/HelpLimitsPage'))
-const HelpResourcesPage = lazy(() => import('@/pages/public/HelpResourcesPage'))
-const GlossaryPage = lazy(() => import('@/pages/public/GlossaryPage'))
+// Centre d'aide : plus de page SPA — tout `/help/*` redirige vers Intercom
+// (cf. HelpCenterRedirect plus bas).
 // Lazy-loaded super-admin pages
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
 const AdminAgenciesPage = lazy(() => import('@/pages/admin/AdminAgenciesPage'))
@@ -273,13 +262,15 @@ function PortalTokenRedirect() {
   const { token } = useParams()
   return <Navigate to={token ? `/portal/${token}` : '/portal'} replace />
 }
-function HelpCategoryRedirect() {
-  const { category } = useParams()
-  return <Navigate to={`/help/${category}`} replace />
-}
-function HelpArticleRedirect() {
-  const { category, slug } = useParams()
-  return <Navigate to={`/help/${category}/${slug}`} replace />
+// Centre d'aide : le corpus vit dans Intercom (18 articles FR+EN, maintenus via
+// `scripts/intercom-content.mjs`). Les 12 pages SPA `/help/*` étaient un second
+// corpus figé, hérité de l'ancien site public — retirées le 2026-07-20 : elles se
+// périmaient en silence et rendaient le chrome vitrine dans l'app CRM.
+// Toutes les anciennes URLs (`/help/*`, `/aide/*`) atterrissent sur le vrai centre.
+const HELP_CENTER_URL = 'https://intercom.help/megga/fr'
+function HelpCenterRedirect() {
+  if (typeof window !== 'undefined') window.location.replace(HELP_CENTER_URL)
+  return null
 }
 function DashboardVisitRedirect() {
   const { id } = useParams()
@@ -412,32 +403,12 @@ function AnimatedRoutes() {
               <Route path="/account" element={<Navigate to="/dashboard" replace />} />
               <Route path="/compte" element={<Navigate to="/dashboard" replace />} />
 
-              {/* Help Center */}
-              <Route path="/help" element={<HelpCenterPage />} />
-              <Route path="/help/start" element={<HelpStartPage />} />
-              <Route path="/help/contact" element={<HelpContactPage />} />
-              <Route path="/help/status" element={<HelpStatusPage />} />
-              <Route path="/help/changelog" element={<HelpChangelogPage />} />
-              <Route path="/help/shortcuts" element={<HelpShortcutsPage />} />
-              <Route path="/help/compliance" element={<HelpCompliancePage />} />
-              <Route path="/help/limits" element={<HelpLimitsPage />} />
-              <Route path="/help/resources" element={<HelpResourcesPage />} />
-              <Route path="/help/glossary" element={<GlossaryPage />} />
-              <Route path="/help/:category" element={<HelpCategoryPage />} />
-              <Route path="/help/:category/:slug" element={<HelpArticlePage />} />
-              {/* Legacy FR help routes */}
-              <Route path="/aide" element={<Navigate to="/help" replace />} />
-              <Route path="/aide/demarrage" element={<Navigate to="/help/start" replace />} />
-              <Route path="/aide/contact" element={<Navigate to="/help/contact" replace />} />
-              <Route path="/aide/statut" element={<Navigate to="/help/status" replace />} />
-              <Route path="/aide/nouveautes" element={<Navigate to="/help/changelog" replace />} />
-              <Route path="/aide/raccourcis" element={<Navigate to="/help/shortcuts" replace />} />
-              <Route path="/aide/conformite" element={<Navigate to="/help/compliance" replace />} />
-              <Route path="/aide/limites" element={<Navigate to="/help/limits" replace />} />
-              <Route path="/aide/ressources" element={<Navigate to="/help/resources" replace />} />
-              <Route path="/aide/glossaire" element={<Navigate to="/help/glossary" replace />} />
-              <Route path="/aide/:category" element={<HelpCategoryRedirect />} />
-              <Route path="/aide/:category/:slug" element={<HelpArticleRedirect />} />
+              {/* Centre d'aide → Intercom. Le catch-all `*` couvre les anciens
+                  sous-chemins (start, glossary, :category/:slug…) ; idem pour /aide. */}
+              <Route path="/help" element={<HelpCenterRedirect />} />
+              <Route path="/help/*" element={<HelpCenterRedirect />} />
+              <Route path="/aide" element={<HelpCenterRedirect />} />
+              <Route path="/aide/*" element={<HelpCenterRedirect />} />
 
               {/* Seller portal — page unique « Votre vente » (dev/test, mock data). */}
               <Route path="/portal" element={<PortalDevWrapper />} />

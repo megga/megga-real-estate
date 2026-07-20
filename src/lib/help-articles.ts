@@ -38,17 +38,24 @@ export const HELP_ARTICLES: Record<string, string> = {
 }
 
 /**
- * Ouvre l'aide contextuelle pour une surface donnée.
- * - Article publié connu → l'ouvre directement.
- * - Sinon → ouvre le Centre d'aide (l'agent y retrouve la recherche + Fin).
- *
- * @returns `false` si Intercom n'est pas configuré (l'appelant peut alors router
- *          vers la page `/help` interne, comme le fait le menu profil).
+ * Centre d'aide public (même corpus que le Messenger, hors authentification).
+ * Sert de repli quand Intercom n'est pas configuré — typiquement en dev local,
+ * où `VITE_INTERCOM_APP_ID` est absent.
  */
-export function openHelpFor(key?: string): boolean {
-  if (!isIntercomEnabled()) return false
+export const HELP_CENTER_URL = 'https://intercom.help/megga/fr'
+
+/**
+ * Ouvre l'aide contextuelle pour une surface donnée.
+ * - Article publié connu → l'ouvre directement dans le Messenger.
+ * - Sinon → ouvre le Centre d'aide (l'agent y retrouve la recherche + Fin).
+ * - Intercom absent → ouvre le Centre d'aide public dans un nouvel onglet.
+ */
+export function openHelpFor(key?: string): void {
+  if (!isIntercomEnabled()) {
+    window.open(HELP_CENTER_URL, '_blank', 'noopener,noreferrer')
+    return
+  }
   const articleId = key ? HELP_ARTICLES[key] : undefined
   if (articleId) showIntercomArticle(articleId)
   else showIntercomSpace('help')
-  return true
 }
