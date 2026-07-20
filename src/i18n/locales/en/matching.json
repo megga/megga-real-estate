@@ -17,6 +17,9 @@
     "countBuyer_other": "{{count}} listings{{tx}} in {{name}}'s criteria",
     "countMarket_one": "{{count}} listing{{tx}} on the connected market",
     "countMarket_other": "{{count}} listings{{tx}} on the connected market",
+    "countTotal": "out of {{total}} in total",
+    "clientFilterScope_one": "This text filter only applies to the {{count}} listing already loaded, not to the whole market.",
+    "clientFilterScope_other": "This text filter only applies to the {{count}} listings already loaded, not to the whole market.",
     "trans": {
       "group": "Filter by transaction",
       "all": "All",
@@ -135,7 +138,9 @@
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "nearHere": "None within the criteria · nearby listings"
-    }
+    },
+    "slow": "The search is taking unusually long.",
+    "blocked": "The search could not start."
   },
   "sendSheet": {
     "title": "Send to {{name}}",
@@ -176,6 +181,23 @@
     "title": "Add search criteria to your contacts",
     "desc": "Matching automatically compares your buyers' criteria with available properties.",
     "cta": "View my contacts"
+  },
+  "firstRun": {
+    "title": "Your match loop starts here",
+    "subtitle": "Matching pairs your mandates with what your contacts are looking for, then tracks their feedback. Two ingredients are all it takes to get started.",
+    "mandat": {
+      "title": "Create your first mandate",
+      "sub": "A property to sell or to rent."
+    },
+    "contact": {
+      "title": "Add a contact",
+      "sub": "Budget, area, rooms."
+    },
+    "scores": {
+      "title": "MEGGA computes the matches",
+      "sub": "Nothing to configure."
+    },
+    "start": "Continue"
   },
   "card": {
     "sendTo": "Send →",
@@ -240,6 +262,10 @@
     "viewListing": "View listing",
     "viewFullListing": "View full listing",
     "mainPhoto": "main photo",
+    "noPhotoYet": "Photos to come",
+    "nextPhoto": "Next photo (→)",
+    "allPhotos": "All photos",
+    "collapseFilmstrip": "Collapse filmstrip",
     "photo": "photo",
     "photos": "Photos",
     "photoGallery": "Photo gallery",
@@ -260,6 +286,7 @@
     "chargesPerMonth": "+ {{value}} charges / month",
     "priceDrop": "Price drop",
     "sectionSpecs": "Features",
+    "sectionEssential": "Key facts",
     "sectionFeatures": "Highlights",
     "sectionDescription": "Description",
     "sectionLocation": "Location",
@@ -292,7 +319,10 @@
     "marketing": "Marketing",
     "contactVerified": "Contact details verified by market watch.",
     "proposeToBuyer": "Propose to {{name}}",
+    "propose": "Propose",
     "proposeToBuyers": "Propose to buyers",
+    "collapseSheet": "Collapse details",
+    "expandSheet": "Reopen details",
     "searchProfile": "Search profile",
     "budget": "Budget",
     "targetZones": "Target areas",
@@ -352,6 +382,21 @@
       "scanning": "Scanning…",
       "scanError": "Scan failed, try again in a moment."
     },
+    "emptyStage": {
+      "cockpitTitle": "No matches to triage",
+      "cockpitSub": "The engine hasn't paired any listing yet",
+      "queueAria": "Buyer queue",
+      "queueEyebrow": "Queue",
+      "sortedBy": "sorted by\nmatch strength",
+      "queueTitle": "No buyer in the queue",
+      "queueSub": "Add search criteria to your contacts and MEGGA will surface them here.",
+      "listingAria": "Listing",
+      "listingTitle": "Nothing to show yet",
+      "listingSub": "Run the engine again: it re-crosses your listings with your contacts' criteria.",
+      "whyAria": "Why it matches",
+      "whyTitle": "Nothing to compare",
+      "whySub": "The score breakdown appears with the first match."
+    },
     "error": {
       "title": "Couldn't load matches",
       "desc": "Something went wrong while loading the workshop. Try again.",
@@ -370,7 +415,29 @@
       "skipped": "{{name}} removed from the queue",
       "backInQueue": "{{name}} is back in the queue",
       "seeDeal": "View deal →"
-    }
+    },
+    "sendDossier": "Send the dossier",
+    "priceBefore": "Was",
+    "queueSortedBy": "sorted by",
+    "sortByMatch": "match strength",
+    "sortByRelance": "follow-up signal",
+    "toSchedule": "To schedule",
+    "toScheduleCount": "To schedule · {{count}}",
+    "scheduleThisWeek": "This week",
+    "scheduleLater": "Later",
+    "resume": "Resume",
+    "changeDate": "Change"
+  },
+  "cockpit": {
+    "switchTitle": "Match another listing",
+    "switchHint": "Switching listing reloads the queue with its candidate buyers.",
+    "switchAria": "Match another listing",
+    "currentListing": "Current listing",
+    "browseAll": "Browse all listings",
+    "filterAria": "Filter the queue",
+    "processed": "{{total}} processed",
+    "progressAria": "{{done}} of {{total}} buyers processed",
+    "queueDone": "Queue cleared"
   },
   "confirm": {
     "sendTitle": "Send the file",

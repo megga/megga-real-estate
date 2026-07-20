@@ -1,6 +1,142 @@
 {
   "title": "Matching",
   "subtitle": "Käufer ↔ Passende Objekte",
+  "recherche": {
+    "countTotal": "von insgesamt {{total}}",
+    "clientFilterScope_one": "Dieser Textfilter gilt nur für {{count}} bereits geladenes Objekt, nicht für den gesamten Markt.",
+    "clientFilterScope_other": "Dieser Textfilter gilt nur für {{count}} bereits geladene Objekte, nicht für den gesamten Markt.",
+    "slow": "Die Suche dauert ungewöhnlich lange.",
+    "blocked": "Die Suche konnte nicht gestartet werden.",
+    "title": "Suche",
+    "loading": "Angebundener Markt wird geladen…",
+    "error": "Inserate konnten nicht geladen werden. Versuchen Sie es erneut.",
+    "retry": "Erneut versuchen",
+    "txSale": " zum Verkauf",
+    "txRent": " zur Miete",
+    "countBuyer_one": "{{count}} Inserat{{tx}} in den Kriterien von {{name}}",
+    "countBuyer_other": "{{count}} Inserate{{tx}} in den Kriterien von {{name}}",
+    "countMarket_one": "{{count}} Inserat{{tx}} auf dem angebundenen Markt",
+    "countMarket_other": "{{count}} Inserate{{tx}} auf dem angebundenen Markt",
+    "trans": {
+      "group": "Nach Transaktion filtern",
+      "all": "Alle",
+      "sale": "Verkauf",
+      "rent": "Miete",
+      "aria": "Transaktion: {{label}}"
+    },
+    "sort": {
+      "group": "Ergebnisse sortieren",
+      "aria": "Sortieren: {{label}}",
+      "relevance": "Relevanz",
+      "recent": "Neueste",
+      "priceAsc": "Preis aufsteigend",
+      "priceDesc": "Preis absteigend"
+    },
+    "omni": {
+      "aria": "Nach Objekt, Käufer oder Quartier suchen",
+      "placeholder": "Objekt, Käufer, Quartier suchen…",
+      "placeholderBuyer": "In den Kriterien von {{name}} eingrenzen…",
+      "placeholderRefine": "Eingrenzen…",
+      "restore": "Kriterien wiederherstellen",
+      "removeToken": "Entfernen",
+      "ddChange": "Kontakt wechseln",
+      "ddPick": "Für einen Käufer oder Mieter suchen",
+      "noBuyers": "Noch kein Kontakt mit Kriterien. Fügen Sie Ihren ersten Käufer oder Mieter hinzu, um den Match-Score jedes Inserats zu sehen.",
+      "addFirst": "Ersten Kontakt hinzufügen",
+      "groupPlaces": "Filter",
+      "groupContacts": "Kontakte",
+      "groupListings": "Inserate",
+      "place": "Quartier · {{place}}"
+    },
+    "alsoWants": "{{name}} wünscht ausserdem {{list}}",
+    "clearAll": "Alles löschen",
+    "empty": {
+      "title": "Kein Inserat in den Kriterien",
+      "rescue_one": "Ohne „{{label}}“ wird {{count}} Inserat angezeigt.",
+      "rescue_other": "Ohne „{{label}}“ werden {{count}} Inserate angezeigt.",
+      "rescueCta": "Kriterium entfernen",
+      "seeNear": "Unten finden Sie Objekte nahe an den Kriterien.",
+      "noMarket": "Kein Inserat vom angebundenen Markt für diese Filter."
+    },
+    "near": {
+      "title": "Nahe an den Kriterien",
+      "note": "1 Kriterium gelockert"
+    },
+    "send_one": "{{count}} Objekt an {{name}} senden",
+    "send_other": "{{count}} Objekte an {{name}} senden",
+    "sendSoon": "Auswahl aus der Suche senden, bald verfügbar.",
+    "card": {
+      "estimate": "Zu schätzen",
+      "perMonth": "/Mt.",
+      "roomsArea": "{{rooms}} Zimmer · {{area}} m²",
+      "priceDrop": "Preis gesenkt",
+      "photos_one": "{{count}} Foto",
+      "photos_other": "{{count}} Fotos",
+      "add": "Zur Auswahl hinzufügen",
+      "remove": "Aus der Auswahl entfernen",
+      "prevPhoto": "Vorheriges Foto",
+      "nextPhoto": "Nächstes Foto",
+      "noPhoto": "Kein Foto",
+      "aiMatch": "Diesen Match erklären · MEGGA AI",
+      "aiAnalyze": "Inserat analysieren · MEGGA AI",
+      "aiMatchQ": "Warum passt „{{title}}“ mit {{score}} % zu {{name}}?",
+      "aiAnalyzeQ": "Analysiere dieses Inserat: „{{title}}“ ({{addr}}): Stärken, Vorbehalte, Preis im Marktvergleich?"
+    },
+    "reason": {
+      "type": "Typ",
+      "zone": "Gebiet",
+      "budget": "Budget",
+      "rooms": "Zimmer",
+      "surface": "Fläche"
+    },
+    "detail": {
+      "back": "Zurück zur Suche",
+      "inSelection": "In der Auswahl",
+      "addToSelection": "Zur Auswahl hinzufügen",
+      "inSelectionOf": "In der Auswahl von {{name}}",
+      "perMonthLong": "pro Monat",
+      "priceOnRequest": "Preis auf Anfrage",
+      "seePhotos": "Fotos ansehen",
+      "factRooms": "Zimmer",
+      "factSurface": "Fläche",
+      "factLand": "Grundstück",
+      "factYear": "Baujahr",
+      "factPpm2Sale": "Preis / m²",
+      "factPpm2Rent": "Miete / m²",
+      "equip": "Ausstattung",
+      "details": "Details",
+      "location": "Lage",
+      "dType": "Typ",
+      "dTransaction": "Transaktion",
+      "dLocality": "Ort",
+      "dCanton": "Kanton",
+      "dOnMarket": "Am Markt",
+      "dMeggaRef": "MEGGA-Ref.",
+      "dPortalRef": "Portal-Ref.",
+      "onMarketLessDay": "weniger als ein Tag",
+      "onMarketDays_one": "{{count}} Tag",
+      "onMarketDays_other": "{{count}} Tage",
+      "agency": "Verwaltung",
+      "openOn": "Auf {{portal}} öffnen",
+      "lbCounter": "{{index}} / {{total}}",
+      "close": "Schliessen",
+      "prev": "Zurück",
+      "next": "Weiter"
+    },
+    "view": {
+      "group": "Ergebnisdarstellung",
+      "grid": "Raster",
+      "map": "Karte",
+      "aria": "Ansicht {{label}}"
+    },
+    "map": {
+      "noLocated": "Kein Inserat mit Standort",
+      "overview": "Übersicht",
+      "zoomIn": "Vergrössern",
+      "zoomOut": "Verkleinern",
+      "nearHere": "Keine in den Kriterien · nahe Objekte"
+    }
+  },
   "runMatching": "Matching starten",
   "running": "Analyse läuft...",
   "portfolio": "Portfolio",
@@ -218,7 +354,46 @@
       "skipped": "{{name}} removed from the queue",
       "backInQueue": "{{name}} is back in the queue",
       "seeDeal": "View deal →"
-    }
+    },
+    "noPhotoYet": "Fotos folgen",
+    "nextPhoto": "Nächstes Foto (→)",
+    "allPhotos": "Alle Fotos",
+    "collapseFilmstrip": "Filmstreifen einklappen",
+    "sectionEssential": "Das Wesentliche",
+    "propose": "Vorschlagen",
+    "collapseSheet": "Objektblatt einklappen",
+    "expandSheet": "Objektblatt ausklappen",
+    "emptyStage": {
+      "cockpitTitle": "Kein Match zu sortieren",
+      "cockpitSub": "Das Matching hat noch kein Inserat zugeordnet",
+      "queueAria": "Warteschlange Käufer",
+      "queueEyebrow": "Warteschlange",
+      "sortedBy": "sortiert nach\nMatch-Stärke",
+      "queueTitle": "Kein Käufer in der Warteschlange",
+      "queueSub": "Fügen Sie Ihren Kontakten Suchkriterien hinzu: MEGGA zeigt sie hier an.",
+      "listingAria": "Inserat",
+      "listingTitle": "Derzeit nichts zu präsentieren",
+      "listingSub": "Starten Sie das Matching neu: Es gleicht Ihre Inserate erneut mit den Kriterien Ihrer Kontakte ab.",
+      "whyAria": "Warum es passt",
+      "whyTitle": "Nichts zu vergleichen",
+      "whySub": "Die Score-Details erscheinen ab dem ersten Match."
+    },
+    "error": {
+      "title": "Matches konnten nicht geladen werden",
+      "desc": "Beim Laden des Arbeitsbereichs ist ein Fehler aufgetreten. Versuchen Sie es erneut.",
+      "retry": "Erneut versuchen"
+    },
+    "sendDossier": "Dossier senden",
+    "priceBefore": "Vorher",
+    "queueSortedBy": "sortiert nach",
+    "sortByMatch": "Match-Stärke",
+    "sortByRelance": "Nachfass-Signal",
+    "toSchedule": "Zu planen",
+    "toScheduleCount": "Zu planen · {{count}}",
+    "scheduleThisWeek": "Diese Woche",
+    "scheduleLater": "Danach",
+    "resume": "Fortsetzen",
+    "changeDate": "Ändern"
   },
   "confirm": {
     "sendTitle": "Send the file",
@@ -314,5 +489,49 @@
       "recommended": "Empfohlen",
       "save": "Speichern"
     }
+  },
+  "pager": {
+    "score": "Matching",
+    "recherche": "Suche",
+    "wheelTo": "Mausrad zu {{label}}"
+  },
+  "sendSheet": {
+    "title": "An {{name}} senden",
+    "body": "Privater Link, ohne E-Mail. Rückmeldungen von {{firstName}} erscheinen direkt im Kundendossier.",
+    "whatsapp": "Per WhatsApp senden",
+    "copyLink": "Link kopieren",
+    "copied": "Link kopiert",
+    "preview": "Käuferansicht öffnen",
+    "error": "Link konnte nicht vorbereitet werden. Versuchen Sie es erneut.",
+    "noPhone": "Dieser Kontakt hat keine Nummer. Kopieren Sie den Link, um ihn zu senden.",
+    "waMessage": "Guten Tag {{firstName}}, hier eine Auswahl an Objekten für Sie: {{url}}"
+  },
+  "firstRun": {
+    "title": "Hier beginnt Ihre Match-Schleife",
+    "subtitle": "Das Matching gleicht Ihre Mandate mit den Erwartungen Ihrer Kontakte ab und verfolgt deren Rückmeldungen. Zwei Zutaten genügen für den Start.",
+    "mandat": {
+      "title": "Erstellen Sie Ihr erstes Mandat",
+      "sub": "Ein Objekt zum Verkauf oder zur Miete."
+    },
+    "contact": {
+      "title": "Fügen Sie einen Kontakt hinzu",
+      "sub": "Budget, Gebiet, Zimmer."
+    },
+    "scores": {
+      "title": "MEGGA berechnet die Matches",
+      "sub": "Nichts einzurichten."
+    },
+    "start": "Weiter"
+  },
+  "cockpit": {
+    "switchTitle": "Ein anderes Inserat matchen",
+    "switchHint": "Beim Wechsel des Inserats wird die Warteschlange mit dessen Käuferkandidaten neu geladen.",
+    "switchAria": "Ein anderes Inserat matchen",
+    "currentListing": "Aktuelles Inserat",
+    "browseAll": "Alle Inserate durchsuchen",
+    "filterAria": "Warteschlange filtern",
+    "processed": "{{total}} bearbeitet",
+    "progressAria": "{{done}} von {{total}} Käufern bearbeitet",
+    "queueDone": "Warteschlange bearbeitet"
   }
 }

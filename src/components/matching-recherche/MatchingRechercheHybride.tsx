@@ -25,7 +25,7 @@ import MrhGrid, { type MrhItem } from './MrhGrid'
 import MrhExtDetail from './MrhExtDetail'
 import MrhMapView from './MrhMapView'
 import MrhSendSheet from './MrhSendSheet'
-import { useMatchingSearch, useMatchingBuyers, useCitySuggest, type SearchTx } from '@/hooks/useMatchingRecherche'
+import { useMatchingSearch, useMatchingSearchTotal, useMatchingBuyers, useCitySuggest, type SearchTx } from '@/hooks/useMatchingRecherche'
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
 import { parseQuery, norm } from './omniParse'
@@ -120,10 +120,37 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     // Une seule ville à la fois (la plus récente) → filtre p_city exact en SQL.
     const cityTok = tokens.filter((tk) => tk.field === 'city')
     const city = cityTok.length ? (cityTok[cityTok.length - 1].value as string) : null
-    return { transaction: effTx, cantons, types, budgetMax, budgetMin, city, limitPerTx: 60 }
+    // Pas de `limitPerTx` ici : le plafond appartient au hook (MAX_PER_TX), qui
+    // sait aussi entrelacer vente/location avant de borner.
+    return { transaction: effTx, cantons, types, budgetMax, budgetMin, city }
   }, [trans, tokens, buyer])
 
-  const { data: biens = [], isLoading, isError, refetch } = useMatchingSearch(serverParams)
+  // TROIS états, pas deux. `isLoading` seul faisait afficher « aucune annonce du
+  // marché » alors qu'aucune requête n'était partie (affirmation sur la base sans
+  // l'avoir interrogée) ; `isPending` seul faisait tourner un spinner ÉTERNEL dans
+  // le même cas, puisqu'une query désactivée reste `pending` avec `fetchStatus`
+  // à `idle`. On lit donc `status` ET `fetchStatus` :
+  //   (a) bloquée  — n'a pas pu partir : le dire, et proposer de réessayer
+  //   (b) en vol   — chargement légitime
+  //   (c) résolue  — seul cas où l'on a le droit d'affirmer « aucune annonce »
+  const { data: biens = [], status, fetchStatus, isError, refetch, blocked } = useMatchingSearch(serverParams)
+  const isFetchingFirst = status === 'pending' && fetchStatus === 'fetching'
+  // `blocked` (gate faux) OU `pending` sans requête en vol (query en pause).
+  const isBlocked = blocked || (status === 'pending' && !isFetchingFirst)
+  const isSettled = status === 'success'
+
+  // Chien de garde : au-delà de 15 s, une requête « en cours » n'est plus un
+  // chargement, c'est un incident. On le dit plutôt que de faire tourner le
+  // spinner à l'infini — c'est exactement ce qui a rendu ce bug indiagnosticable.
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    if (!isFetchingFirst) { setSlow(false); return }
+    const id = setTimeout(() => setSlow(true), 15_000)
+    return () => clearTimeout(id)
+  }, [isFetchingFirst])
+  // Total RÉEL du marché filtré — sert à ne jamais présenter la taille de la
+  // tranche chargée comme un nombre de marché.
+  const { data: marketTotal } = useMatchingSearchTotal(serverParams)
 
   // ── filtres client (texte libre + jetons pièces/quartier) + scoring ──
   const clientTokens = useMemo(() => tokens.filter((tk) => tk.field === 'rooms' || tk.field === 'text' || tk.field === 'surface'), [tokens])
@@ -157,9 +184,13 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
 
   // « Proches des critères » : biens du set serveur qui ne passent PAS un filtre
   // client (texte / pièces) mais scorent bien (≥55). Nécessite un acheteur (score).
+  // La transaction, elle, reste une frontière DURE : sur le segment « Tout » le set
+  // serveur mélange vente et location, et la pénalité de score (−30) ne suffit pas
+  // à écarter une location d'un acheteur qui achète (plafond 76 > seuil 55).
   const near: MrhItem[] = useMemo(() => {
     if (!buyer) return []
     return biens
+      .filter((b) => b.transaction === buyer.criteria.transaction)
       .filter((b) => !strictPass(b))
       .map((b) => ({ b, m: scoreBien(buyer, b) }))
       .filter((x) => (x.m?.score ?? 0) >= 55)
@@ -322,12 +353,20 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     ? [{ id: 'pertinence' as const, l: t('recherche.sort.relevance') }, { id: 'recent' as const, l: t('recherche.sort.recent') }, { id: 'price-asc' as const, l: t('recherche.sort.priceAsc') }]
     : [{ id: 'recent' as const, l: t('recherche.sort.recent') }, { id: 'price-asc' as const, l: t('recherche.sort.priceAsc') }, { id: 'price-desc' as const, l: t('recherche.sort.priceDesc') }]
 
-  const ctx: MrhCtx = { sp, surf, dark, ACC, ONACC, line, chipBg, cardSolid: popBg, sel, buyer, toggleSel, onOpen: openBien, onAskAi, animate: !isLoading }
+  const ctx: MrhCtx = { sp, surf, dark, ACC, ONACC, line, chipBg, cardSolid: popBg, sel, buyer, toggleSel, onOpen: openBien, onAskAi, animate: isSettled }
 
   const txLabel = trans === 'vente' ? t('recherche.txSale') : trans === 'location' ? t('recherche.txRent') : ''
   const countText = buyer
     ? t('recherche.countBuyer', { count: strict.length, tx: txLabel, name: buyer.firstName })
     : t('recherche.countMarket', { count: strict.length, tx: txLabel })
+
+  // Le marché filtré dépasse-t-il ce qui est chargé ? Si oui l'écran doit le DIRE :
+  // sans ça, `strict.length` (une tranche) se lit comme une taille de marché.
+  const truncated = marketTotal != null && marketTotal > biens.length
+  // Un filtre client actif ne porte que sur la tranche chargée — le signaler tant
+  // que ce filtrage n'est pas poussé en SQL, sinon « aucun résultat » est un
+  // mensonge sur le marché plutôt qu'un fait sur les données chargées.
+  const clientFilterActive = !!q.trim() || clientTokens.length > 0
 
   // ── atomes locaux ──
   const Avatar = ({ name, size = 28 }: { name: string; size?: number }) => {
@@ -373,7 +412,18 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('recherche.title')}</h1>
-            <div style={{ fontSize: 13, color: sp.soft, fontWeight: 500, marginTop: 7 }} role="status" aria-live="polite">{countText}</div>
+            <div style={{ fontSize: 13, color: sp.soft, fontWeight: 500, marginTop: 7 }} role="status" aria-live="polite">
+              {countText}
+              {truncated && (
+                <span style={{ color: sp.sub }}> · {t('recherche.countTotal', { total: marketTotal })}</span>
+              )}
+            </div>
+            {truncated && clientFilterActive && (
+              <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 500, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <RechIcon name="spark" size={11} stroke={sp.sub} />
+                {t('recherche.clientFilterScope', { count: biens.length })}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <div role="group" aria-label={t('recherche.trans.group')} style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: chipBg, boxShadow: 'inset 0 0 0 1px ' + line }}>
@@ -466,15 +516,28 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
       </div>
 
       {/* Résultats — grille OU vue carte (split liste ↔ carte à pins) */}
-      {view === 'map' && !isLoading && !isError && (strict.length + near.length) > 0 ? (
+      {view === 'map' && isSettled && !isError && (strict.length + near.length) > 0 ? (
         <MrhMapView strict={strict} near={near} ctx={ctx} />
       ) : (
         <div className="mrh-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 30px 34px' }}>
-          {isLoading ? (
-            <div style={{ display: 'grid', placeItems: 'center', minHeight: 240, color: sp.sub, fontSize: 14, fontWeight: 600 }}>{t('recherche.loading')}</div>
+          {isFetchingFirst ? (
+            <div style={{ display: 'grid', placeItems: 'center', minHeight: 240, gap: 14, color: sp.sub, fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
+              <span>{slow ? t('recherche.slow') : t('recherche.loading')}</span>
+              {slow && (
+                <button onClick={() => refetch()} style={{ height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>{t('recherche.retry')}</button>
+              )}
+            </div>
           ) : isError ? (
             <div style={{ background: surf.card, borderRadius: 20, boxShadow: surf.shadow, border: surf.hairline, padding: '48px 24px', textAlign: 'center', maxWidth: 540, margin: '12px auto 0' }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>{t('recherche.error')}</div>
+              <button onClick={() => refetch()} style={{ marginTop: 16, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>{t('recherche.retry')}</button>
+            </div>
+          ) : isBlocked ? (
+            // La query n'a pas pu partir. On n'affirme RIEN sur la base ici — c'est
+            // précisément la confusion entre ce cas et « résolue vide » qui a produit
+            // le faux « aucune annonce du marché » pendant des semaines.
+            <div style={{ background: surf.card, borderRadius: 20, boxShadow: surf.shadow, border: surf.hairline, padding: '48px 24px', textAlign: 'center', maxWidth: 540, margin: '12px auto 0' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>{t('recherche.blocked')}</div>
               <button onClick={() => refetch()} style={{ marginTop: 16, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>{t('recherche.retry')}</button>
             </div>
           ) : strict.length === 0 ? (

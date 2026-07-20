@@ -12,7 +12,7 @@ import { LoadingCircle1 as Loader2 } from '@/components/icons'
 import { Location as MapPin } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { usePublicVisit, useSubmitFeedback } from '@/hooks/useVisits'
-import HomeStickyHeader from '@/components/home/HomeStickyHeader'
+import PublicPageHeader from '@/components/layout/PublicPageHeader'
 
 const STRENGTHS = [
   'Luminosité', 'Agencement', 'Quartier', 'État général', 'Vue', 'Calme', 'Surface', 'Rangements',
@@ -45,7 +45,7 @@ export default function VisitFeedbackPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <HomeStickyHeader alwaysShow />
+        <PublicPageHeader />
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
         </div>
@@ -56,7 +56,7 @@ export default function VisitFeedbackPage() {
   if (!visit || !token) {
     return (
       <div className="min-h-screen bg-white">
-        <HomeStickyHeader alwaysShow />
+        <PublicPageHeader />
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <p className="text-xl font-semibold text-gray-900 mb-2">Lien invalide</p>
           <p className="text-sm text-gray-500">Ce lien de feedback est expiré ou invalide.</p>
@@ -68,7 +68,7 @@ export default function VisitFeedbackPage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-white">
-        <HomeStickyHeader alwaysShow />
+        <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <div className="h-12 w-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="h-6 w-6 text-emerald-600" />
@@ -100,7 +100,7 @@ export default function VisitFeedbackPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <HomeStickyHeader alwaysShow />
+      <PublicPageHeader />
       <div className="max-w-md mx-auto px-4 py-12">
         {/* Property card */}
         <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">

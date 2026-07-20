@@ -30,8 +30,9 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   { path: '/privacy', label: 'Privacy / LPD' },
 
   // ── Help center ────────────────────────────────────────────────────────
-  { path: '/help', label: 'Help center' },
-  { path: '/help/glossary', label: 'Help > Glossaire' },
+  // Plus de page in-app : /help/* et /aide/* sortent vers intercom.help/megga/fr
+  // (hors domaine de test), comme les routes marketplace. Le corpus vit dans
+  // Intercom depuis le 2026-07-20 ; les 12 pages SPA ont été retirées.
 
   // ── Auth ───────────────────────────────────────────────────────────────
   // Le modal de connexion vit sur la vitrine (megga.ch/login) : /login,
@@ -51,8 +52,8 @@ test.describe('Marketplace publique — parametric route coverage', () => {
       // Wait until React has rendered enough content — replaces the flaky
       // `networkidle` wait that timed out on /agencies (Supabase realtime and
       // parallel agency-directory fetches keep the network perpetually active).
-      // Public pages have no single shared shell element (PxNav vs
-      // HomeStickyHeader vs AuthBentoApp vs PortalGateway vs NotFoundPage),
+      // Public pages have no single shared shell element (PublicPageHeader vs
+      // AuthBentoApp vs PortalGateway vs NotFoundPage),
       // so we use the same condition that the assertion below verifies:
       // the page has meaningful text content.
       await page.waitForFunction(() => document.body.innerText.trim().length > 50, {

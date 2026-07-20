@@ -1,0 +1,106 @@
+/* Vitrine MEGGA — habillage du modal « mot de passe oublié » (login.html).
+ *
+ * Ce fichier ne contient QUE le chrome du dialogue : voile, cadre, bouton de
+ * fermeture, animations. Tout ce qui est à l'intérieur réutilise les classes de
+ * la vitrine (card sign-in-card, input, primary-button, display-*, w-form-*) —
+ * aucune couleur ni typo n'est réinventée, on lit les variables de :root.
+ *
+ * Fichier SÉPARÉ de css/styles.css à dessein : styles.css est l'export Webflow
+ * et sert de source à la transcription de l'app (scripts/build-megga-x-css.mjs).
+ * Y écrire à la main polluerait le design system côté CRM.
+ */
+
+.megga-modal[hidden] {
+  display: none;
+}
+
+.megga-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.megga-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 3, 3, 0.72);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: meggaModalFade 0.2s ease both;
+}
+
+/* Porte aussi les classes `card sign-in-card` : le fond translucide, le flou,
+   la bordure et le rayon viennent de la feuille vitrine, pas d'ici. */
+.megga-modal__dialog {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: meggaModalRise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.megga-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 100%;
+  background: transparent;
+  color: var(--neutral-colors--700);
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.megga-modal__close:hover {
+  color: var(--neutral-colors--1000);
+  border-color: var(--neutral-colors--600);
+}
+
+/* Le fond ne défile pas pendant que le dialogue est ouvert. */
+body.megga-modal-open {
+  overflow: hidden;
+}
+
+@keyframes meggaModalFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes meggaModalRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .megga-modal__backdrop,
+  .megga-modal__dialog {
+    animation: none;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .megga-modal {
+    padding: 16px;
+  }
+
+  .megga-modal__close {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+  }
+}

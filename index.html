@@ -6,26 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <!-- Indexable par les moteurs de recherche. Les pages sensibles (dashboard
-         agent, /portail vendeur, /admin) bloquent l'indexation via robots.txt
-         + meta robots conditionnels côté composant. -->
-    <meta name="robots" content="index, follow" />
-    <meta name="description" content="Trouvez, louez, estimez votre bien immobilier en Suisse. Recherche intelligente, conformité intégrée, accompagnement humain." />
+    <!-- app.megga.ch = CRM agent privé : rien à indexer. Tout est derrière
+         authentification, et les rares pages publiques sont des liens tokenisés
+         (portail vendeur, visites, KYC) qui ne doivent pas être crawlés.
+         La vitrine indexable vit sur megga.ch (sites/megga-vitrine). -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="MEGGA — CRM immobilier suisse. Espace de travail des agents." />
     <meta name="theme-color" content="#14161C" />
-    <!-- Open Graph pour partage social -->
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="fr_CH" />
-    <meta property="og:site_name" content="MEGGA Real Estate" />
-    <meta property="og:title" content="MEGGA Real Estate — Le portail immobilier suisse nouvelle génération" />
-    <meta property="og:description" content="Plus de 33'000 biens vérifiés à travers la Suisse. Trouvez votre prochain logement en quelques clics." />
-    <meta property="og:url" content="https://megga.ch" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://flatfox.ch" crossorigin />
     <link rel="preconnect" href="https://eayczugyrvmtqnnmvjod.supabase.co" crossorigin />
     <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
     <link rel="preconnect" href="https://accounts.google.com" crossorigin />
-    <link rel="dns-prefetch" href="https://flatfox.ch" />
     <link rel="dns-prefetch" href="https://eayczugyrvmtqnnmvjod.supabase.co" />
     <link rel="dns-prefetch" href="https://api.mapbox.com" />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -33,11 +25,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <!-- Inter Tight — typo du CRM agent (pages Sugar) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <!-- Fraunces + Geist — Quiet Confidence direction on public home (megga.ch) -->
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,30..100&family=Geist:wght@300..700&display=swap" rel="stylesheet" />
     <!-- Plus Jakarta Sans — fallback Property X (proche d'Objectivity, géométrie similaire) -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>MEGGA Real Estate — Le portail immobilier suisse nouvelle génération</title>
+    <title>MEGGA — CRM immobilier</title>
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],

@@ -294,6 +294,9 @@ export default function MatchingAtelierDemoPage() {
       dark={dark}
       isLoading={false}
       pivot={PIVOT}
+      /* La démo n'a qu'une annonce : la bascule du cockpit reste donc inerte. */
+      pivots={[PIVOT]}
+      onPickPivot={() => undefined}
       pivotBuyer={pivotBuyer}
       pool={pivotBuyer ? poolFor(pivotBuyer.id) : []}
       poolCountFor={cid => poolFor(cid).length}
