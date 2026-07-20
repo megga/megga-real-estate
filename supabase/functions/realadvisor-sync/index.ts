@@ -41,6 +41,31 @@ const TIME_BUDGET_MS = 100_000
 const MAX_HANDOFFS = 200
 const STALE_RUN_MS = 10 * 60 * 1000
 
+// Plafond de temps d'UN slice. Le budget global n'est testé qu'entre deux slices : sans
+// cette borne, un slice qui enchaîne les retries dépasse la tolérance de l'isolate, qui meurt
+// AVANT finalizeRun/selfInvoke — le run reste alors 'running' et tient le verrou singleton
+// jusqu'au reap (STALE_RUN_MS).
+//
+// Calibrage : RA plafonne à 20 pages (720 résultats), donc un slice PLEIN coûte
+// 19 × PACE_MS + 20 fetches ≈ 60-70 s — mesuré à ~59 s sur la slice non filtrée de Genève.
+// 90 s laisse de la marge sans tronquer un slice légitime.
+//
+// ⚠ Cette deadline n'est testée qu'en TÊTE de la boucle de pages, jamais pendant les retries
+// d'une page. Une page qui pend coûte encore jusqu'à BACKOFF_RETRIES+1 timeouts + les backoffs
+// (~155 s) PAR-DESSUS. Le pire cas d'invocation n'est donc pas TIME_BUDGET_MS + SLICE_MAX_MS :
+// il peut approcher ~255 s. Borner la deadline jusque dans fetchPage reste à faire.
+// La tolérance réelle de l'isolate n'est pas établie — seulement minorée par une invocation
+// de ~214 s observée le 20/07.
+const SLICE_MAX_MS = 90_000
+
+// Timeout dur par requête. Sans lui, un RA qui accepte la connexion sans jamais répondre
+// bloque l'invocation entière (le fetch de fetchPage était nu, contrairement à fetchIdIn).
+const FETCH_TIMEOUT_MS = 25_000
+
+// Nb de slices consécutifs en échec au-delà duquel on arrête le run : RA est en vrac,
+// insister ne fait qu'aggraver le throttle.
+const MAX_CONSECUTIVE_SLICE_FAILURES = 5
+
 // Le cap réel observé flotte vers ~750-900. On pagine jusqu'à MAX_PAGES_PER_SLICE
 // (la fenêtre atteignable) ; un slice dont total_count dépasse SLICE_CAP et qu'on
 // n'a pas pu épuiser est marqué "capped" (résidu connu, loggé).
@@ -50,7 +75,11 @@ const SLICE_CAP = 700
 const MAX_PHOTOS = 60
 const MAX_DESCRIPTION_CHARS = 8000
 
-const BACKOFF_ON = new Set([429, 500, 502, 503, 504])
+// RA est derrière Cloudflare, dont la famille 52x signale un incident TRANSITOIRE amont
+// (524 = l'origine n'a pas répondu à temps). Le 524 est attesté : il a tué une énumération
+// de 25 cantons au bout de 9 minutes le 20/07 parce qu'il ne figurait pas ici. Les autres
+// 52x sont ajoutés par analogie de famille — non observés à ce jour.
+const BACKOFF_ON = new Set([429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530])
 const BACKOFF_RETRIES = 4
 const BACKOFF_BASE_MS = 2000
 
@@ -116,6 +145,8 @@ interface SyncRequest {
   run_id?: string
   trigger_source?: string
   handoff_count?: number
+  slice_failures?: number          // cumul des slices en échec sur toute la chaîne de handoffs
+  consecutive_slice_failures?: number // idem, mais remis à 0 par le premier slice réussi
   max_batches?: number             // mode probe : nb de batchs id_in à sonder
 }
 
@@ -456,15 +487,24 @@ async function fetchPage(offerType: string, slice: Slice, page: number, ident: I
   const url = `${RA_BASE}/api/listings?${buildSearchParams(offerType, slice, page).toString()}`
   let attempt = 0
   while (true) {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': ident.ua,
-        'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8',
-        ...(ident.from ? { From: ident.from } : {}),
-      },
-    })
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': ident.ua,
+          'Accept-Language': 'fr-CH,fr;q=0.9,en;q=0.8',
+          ...(ident.from ? { From: ident.from } : {}),
+        },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
+    } catch (err) {
+      // Erreur de transport ou timeout : même politique de retry que les 5xx. Sans ce
+      // catch le fetch était nu — une socket qui pend tuait l'invocation sans retry.
+      if (attempt < BACKOFF_RETRIES) { await sleep(BACKOFF_BASE_MS * 2 ** attempt); attempt += 1; continue }
+      throw new Error(`realadvisor réseau (${slice.canton} ${slice.gte ?? ''}-${slice.lte ?? ''} p${page}) après ${attempt} retries: ${err}`)
+    }
     if (res.ok) {
       const text = await res.text()
       try {
@@ -515,7 +555,20 @@ async function processSlice(supabase: any, offerType: string, slice: Slice, nowI
   let total = 0
   let seen = 0
   let page = 1
+  let sliceUpsertErrors = 0
+  const deadline = Date.now() + SLICE_MAX_MS
   while (page <= MAX_PAGES_PER_SLICE) {
+    if (Date.now() > deadline) {
+      // On sort AVANT de paginer plus loin. Le reçu ci-dessous est calculé sur ce qu'on a
+      // réellement vu (seen < total ⇒ fully_enumerated=false), ce qui protège le sweep ENUM —
+      // qui, lui, lit les reçus. ⚠ Ça ne protégeait PAS runSweep, qui ne les lit jamais ; c'est
+      // pourquoi l'énumération n'enchaîne plus aucun retrait (cf. fin de runBackground).
+      // Cette sortie ne LÈVE pas : elle n'incrémente donc aucun compteur d'échec, et un cycle
+      // tronqué peut finir avec sliceFailures === 0. Ne jamais s'appuyer sur ce compteur pour
+      // décider d'un retrait.
+      console.warn(`[deadline] ${slice.canton} ${slice.gte ?? ''}-${slice.lte ?? ''}: arrêt à ${seen}/${total} après ${SLICE_MAX_MS}ms`)
+      break
+    }
     if (page > 1) await sleep(PACE_MS)
     // Sous throttle, RA renvoie des pages VIDES ou TRONQUÉES (< 36) même quand il
     // reste des résultats — on ne peut donc PAS prendre "page courte = dernière".
@@ -547,13 +600,17 @@ async function processSlice(supabase: any, offerType: string, slice: Slice, nowI
     const { upserted, errors } = await upsertRows(supabase, rows)
     stats.upserted += upserted
     stats.errors += errors
+    sliceUpsertErrors += errors
     const subCap = total > 0 && total <= SLICE_CAP
     if (subCap && seen >= total) break               // slice sous cap entièrement récupéré
     if (!subCap && listings.length < PAGE_SIZE) break // fin de la fenêtre d'un slice plafonné
     page++
   }
   stats.slices++
-  const fullyEnumerated = total > 0 && total <= SLICE_CAP && seen >= total
+  // `seen` s'incrémente AVANT l'upsert : un lot d'upsert en échec laisse donc seen >= total
+  // alors que les lignes ne sont pas en base. Sans la clause sur les erreurs, le reçu
+  // dirait "tout vu" et autoriserait le sweep ENUM à retirer des biens jamais écrits.
+  const fullyEnumerated = total > 0 && total <= SLICE_CAP && seen >= total && sliceUpsertErrors === 0
   if (total > SLICE_CAP && seen < total) {
     stats.capped++
     console.warn(`[capped] ${slice.canton} ${slice.gte ?? ''}-${slice.lte ?? ''}: total=${total} vu=${seen} (résidu au-dessus du cap d'API)`)
@@ -668,9 +725,20 @@ async function fetchOfferTotal(offerType: string, ident: Identity): Promise<numb
 }
 
 // ─── Sweep : marque 'removed' les biens non revus dans ce sync ────
-
+//
+// ⚠ CHEMIN LEGACY, LE PLUS DESTRUCTIF DU FICHIER. Contrairement à runSweepEnum, il n'a NI
+// plafond de volume, NI lecture des reçus de couverture : il retire tout ce qui n'a pas été
+// revu pendant le cycle. Plus aucun chemin interne ne l'enchaîne (l'énumération finalise sans
+// retrait) ; il n'est atteignable que par un POST explicite mode:'sweep'. Le kill-switch
+// ci-dessous le met en DRY-RUN par défaut, comme runSweepEnum, pour qu'un appel manuel ne
+// puisse pas vider la base par inadvertance.
+//
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function runSweep(supabase: any, offerType: string, syncStartAt: string, totalExpected: number): Promise<{ removed: number; skipped_safety: boolean }> {
+  if ((await getConfigValue(supabase, 'realadvisor_sweep_enabled')) !== 'true') {
+    console.warn('[sweep] DRY-RUN — app_config.realadvisor_sweep_enabled ≠ true, aucun retrait')
+    return { removed: 0, skipped_safety: true }
+  }
   // count: 'estimated' et PAS 'exact' — market_listings fait > 100k lignes, un
   // count exact force un seq scan -> statement timeout (cf CLAUDE.md §7). Un
   // estimé suffit pour le garde-fou grossier (seuil 80%).
@@ -865,25 +933,75 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       console.log(`[chunk] first invocation: offer=${offerType} slices=${worklist.length} total=${totalExpected} runId=${runId}`)
     }
 
+    // Compteur cumulé sur TOUTE la chaîne de handoffs (reconduit dans le body), sinon il
+    // se remettrait à zéro toutes les ~4 slices et ne protégerait de rien.
+    let sliceFailures = body.slice_failures ?? 0
+    // Reconduit lui aussi : une invocation ne traite que ~4 slices, donc un compteur local
+    // ne pourrait jamais atteindre le seuil — le garde-fou serait du code mort.
+    let consecutiveFailures = body.consecutive_slice_failures ?? 0
+
     while (sliceIdx < worklist.length) {
-      await processSlice(supabase, offerType, worklist[sliceIdx], nowIso, stats, ident, syncStartAt)
+      // Budget testé AVANT de démarrer : sinon un slice lancé à t=99 s peut courir jusqu'à
+      // SLICE_MAX_MS et faire dépasser la tolérance de l'isolate. Borne le pire cas.
+      if (Date.now() - startedAtMs > TIME_BUDGET_MS) {
+        console.log(`[chunk] budget atteint avant slice ${sliceIdx}/${worklist.length} — handoff`)
+        await selfInvoke({ ...body, slice_index: sliceIdx, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, handoff_count: handoffCount + 1, slice_failures: sliceFailures, consecutive_slice_failures: consecutiveFailures })
+        return
+      }
+      // Un slice qui échoue ne doit plus emporter les 800 suivants. L'insert du reçu de
+      // couverture est en fin de processSlice : un slice qui lève n'en produit AUCUN, donc
+      // il reste invisible au sweep ENUM — jamais un reçu faussement complet.
+      try {
+        await processSlice(supabase, offerType, worklist[sliceIdx], nowIso, stats, ident, syncStartAt)
+        consecutiveFailures = 0
+      } catch (err) {
+        sliceFailures += 1
+        consecutiveFailures += 1
+        const s = worklist[sliceIdx]
+        console.error(`[slice] échec ${s.canton} ${s.gte ?? ''}-${s.lte ?? ''} (${consecutiveFailures} d'affilée):`, err)
+        if (consecutiveFailures >= MAX_CONSECUTIVE_SLICE_FAILURES) {
+          await finalizeRun(supabase, runId, {
+            status: 'throttled',
+            totalSeen: stats.fetched,
+            errorMessage: `abandon: ${consecutiveFailures} slices consécutifs en échec au slice ${sliceIdx}/${worklist.length} — ${String(err).slice(0, 300)}`,
+          })
+          return
+        }
+      }
       sliceIdx++
       await updateRunChunk(supabase, runId, stats, totalExpected)
       if (Date.now() - startedAtMs > TIME_BUDGET_MS && sliceIdx < worklist.length) {
         console.log(`[chunk] budget atteint — handoff slice ${sliceIdx}/${worklist.length} (upserted=${stats.upserted})`)
-        await selfInvoke({ ...body, slice_index: sliceIdx, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, handoff_count: handoffCount + 1 })
+        await selfInvoke({ ...body, slice_index: sliceIdx, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, handoff_count: handoffCount + 1, slice_failures: sliceFailures, consecutive_slice_failures: consecutiveFailures })
         return
       }
       if (sliceIdx < worklist.length) await sleep(PACE_MS)
     }
 
-    // Work-list épuisée. Sweep seulement pour un run COMPLET (pas scopé).
-    console.log(`[chunk] worklist done — upserted=${stats.upserted} slices=${stats.slices} capped=${stats.capped}`)
-    if (isScoped) {
-      await finalizeRun(supabase, runId, { status: 'completed', totalSeen: stats.fetched, removed: 0 })
-    } else {
-      await selfInvoke({ mode: 'sweep', offer_type: offerType, sync_start_at: syncStartAt, stats, total_expected: totalExpected, run_id: runId, trigger_source: body.trigger_source })
-    }
+    // Work-list épuisée. Une énumération n'enchaîne PLUS de retrait, quel qu'il soit.
+    //
+    // `runSweep` (mode 'sweep') retire tout ce qui a last_seen_at < syncStartAt, SANS plafond
+    // de volume, SANS kill-switch app_config, et sans jamais lire les reçus de couverture —
+    // contrairement à runSweepEnum, qui a les deux plafonds et le flag realadvisor_sweep_enabled.
+    // Son unique filet est un ratio vus/attendus >= 80 % calculé sur un count ESTIMÉ.
+    //
+    // Compter les slices en échec ne suffisait PAS à s'en protéger : une slice tronquée par la
+    // deadline, plafonnée par le cap d'API, ou terminée sur une page vide après retries ne lève
+    // pas — elle n'incrémente donc aucun compteur d'échec. Un cycle largement incomplet pouvait
+    // sortir avec sliceFailures === 0 et armer le sweep. Pire, le ratio des 80 % ne nous protège
+    // aujourd'hui QUE parce que la couverture est mauvaise (~0,66) : il cesserait de mordre
+    // précisément le jour où l'énumération devient complète.
+    //
+    // Le retrait reste assuré par les deux chemins BORNÉS : realadvisor_probe_sweep (plafond
+    // min(1200, 3 % du live), gated realadvisor_probe_apply) et runSweepEnum (piloté par les
+    // reçus fully_enumerated, double plafond, gated realadvisor_sweep_enabled).
+    console.log(`[chunk] worklist done — upserted=${stats.upserted} slices=${stats.slices} capped=${stats.capped} failures=${sliceFailures}`)
+    await finalizeRun(supabase, runId, {
+      status: sliceFailures > 0 ? 'partial' : 'completed',
+      totalSeen: stats.fetched,
+      removed: 0,
+      ...(sliceFailures > 0 ? { errorMessage: `${sliceFailures} slice(s) en échec — cycle incomplet` } : {}),
+    })
   } catch (err) {
     console.error('realadvisor-sync background error:', err)
     await finalizeRun(supabase, runId, { status: 'failed', errorMessage: String(err).slice(0, 500) })
