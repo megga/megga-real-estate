@@ -28,19 +28,14 @@
 # Account
 /compte                                      /account                          301
 
-# Help center
-/aide                                        /help                             301
-/aide/demarrage                              /help/start                       301
-/aide/contact                                /help/contact                     301
-/aide/statut                                 /help/status                      301
-/aide/nouveautes                             /help/changelog                   301
-/aide/raccourcis                             /help/shortcuts                   301
-/aide/conformite                             /help/compliance                  301
-/aide/limites                                /help/limits                      301
-/aide/ressources                             /help/resources                   301
-/aide/glossaire                              /help/glossary                    301
-/aide/:category                              /help/:category                   301
-/aide/:category/:slug                        /help/:category/:slug             301
+# Help center — le corpus vit dans Intercom (18 articles FR+EN). Les 12 pages SPA
+# /help/* ont été retirées le 2026-07-20 (second corpus figé, hérité du site
+# public). On redirige au bord : l'utilisateur atterrit sur le centre d'aide sans
+# charger l'app React au passage.
+/aide                                        https://intercom.help/megga/fr    301
+/aide/*                                      https://intercom.help/megga/fr    301
+/help                                        https://intercom.help/megga/fr    301
+/help/*                                      https://intercom.help/megga/fr    301
 
 # Seller portal
 /portail                                     /portal                           301
