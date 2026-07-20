@@ -1,0 +1,35 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const CardKey = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M21 11.7979V8.50388C21 6.06188 19.48 4.33789 17.035 4.33789H6.965C4.528 4.33789 3 6.06188 3 8.50388V15.0909C3 17.5329 4.521 19.2589 6.965 19.2589H9.907" stroke="currentColor"></path>
+<path d="M3 9.63477H21" stroke="currentColor"></path>
+<path d="M14.3188 14.835L14.3289 14.845" stroke="currentColor"></path>
+<path d="M20.6282 18.7757L17.7799 15.9269C17.8276 15.7094 17.8603 15.4903 17.8603 15.2585C17.8603 13.5267 16.4564 12.1229 14.7247 12.1229C12.993 12.1229 11.5891 13.5267 11.5891 15.2585C11.5891 16.9902 12.993 18.394 14.7247 18.394C15.0609 18.394 15.386 18.3411 15.6896 18.2431L16.3352 18.8873H17.085V20.0306H18.2471V20.7743C18.2471 20.9847 18.4177 21.1553 18.6281 21.1553H20.3588C20.5692 21.1553 20.7397 20.9847 20.7397 20.7743V19.0451C20.7397 18.944 20.6996 18.8472 20.6282 18.7757Z" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+CardKey.displayName = 'CardKey'
+
+export default CardKey

@@ -1,0 +1,32 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const PaperFail = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <g id="Iconly/Light/Paper-Fail" stroke="none" fill="none" fillRule="evenodd"> <g id="Paper-Fail" transform="translate(3.500000, 2.000000)" stroke="currentColor"> <path d="M11.2372,0.7619 L4.4792,0.7619 C2.4192,0.7619 0.7502,2.4319 0.7502,4.4909 L0.7502,15.3399 C0.7622,17.4389 2.4732,19.1299 4.5722,19.1169745 C4.6122,19.1169745 4.6512,19.1159 4.6902,19.1149 L12.5732,19.1149 C14.6412,19.0939 16.3062,17.4089 16.3022072,15.3399 L16.3022072,6.0399 L11.2372,0.7619 Z" id="Stroke-1"></path> <path d="M10.974,0.7502 L10.974,3.6592 C10.974,5.0792 12.122,6.2302 13.542,6.2342 L16.297,6.2342" id="Stroke-3"></path> <line x1="10.0761" y1="12.6481" x2="6.6101" y2="9.1821" id="Stroke-5"></line> <line x1="6.6112" y1="12.6481" x2="10.0772" y2="9.1821" id="Stroke-7"></line> </g> </g>
+    </svg>
+  ),
+)
+
+PaperFail.displayName = 'PaperFail'
+
+export default PaperFail

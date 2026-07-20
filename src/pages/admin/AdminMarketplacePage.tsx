@@ -8,7 +8,8 @@
  */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, ShieldCheck, AlertTriangle, Trash2, Check, Building2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { Search, Check } from 'lucide-react'
+import { ShieldDone as ShieldCheck, Danger22 as AlertTriangle, Delete as Trash2, Building as Building2, ArrowLeft22 as ChevronLeft, ArrowRight22 as ChevronRight, Download } from '@/components/icons'
 import { exportToCsv } from '@/lib/exportCsv'
 import { cn, formatCHF, formatDate } from '@/lib/utils'
 import { useAdminModeration } from '@/hooks/useAdminModeration'

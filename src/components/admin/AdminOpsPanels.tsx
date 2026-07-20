@@ -3,7 +3,8 @@
 // (3 RPC serveur, migration 20260705172000).
 
 import { useTranslation } from 'react-i18next'
-import { Radio, MessageSquareWarning, Coins } from 'lucide-react'
+import { Radio, MessageSquareWarning } from 'lucide-react'
+import { Coins1 as Coins } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { useSyndicationHealth, useWhatsAppHealth, useAiCosts } from '@/hooks/useAdminOpsHealth'

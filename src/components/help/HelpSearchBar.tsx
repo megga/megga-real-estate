@@ -8,7 +8,8 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, UserCog, Home, ShoppingCart, X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
+import { UserSetting2 as UserCog, Home, Buy as ShoppingCart } from '@/components/icons'
 import Fuse from 'fuse.js'
 import { ALL_ARTICLES, type HelpArticle } from '@/lib/helpArticles'
 

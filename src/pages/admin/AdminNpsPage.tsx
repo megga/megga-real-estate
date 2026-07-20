@@ -6,7 +6,8 @@
  * (via `useAdminNps`).
  */
 import { useTranslation } from 'react-i18next'
-import { Star, MessageSquare, TrendingUp, Users } from 'lucide-react'
+import { Star } from 'lucide-react'
+import { Chat as MessageSquare, TrendUp as TrendingUp, Icon2Users as Users } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { useAdminNps } from '@/hooks/useAdminNps'
 import type { NpsResponse } from '@/hooks/useAdminNps'

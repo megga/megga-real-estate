@@ -9,7 +9,8 @@
  */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Shield, AlertTriangle, AlertCircle, Info, Download, FileDown, Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Shield, FileDown } from 'lucide-react'
+import { Danger22 as AlertTriangle, DangerCircle as AlertCircle, InfoSquare as Info, Download, Search, ArrowDown22 as ChevronDown, ArrowLeft22 as ChevronLeft, ArrowRight22 as ChevronRight } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'

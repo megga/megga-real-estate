@@ -8,7 +8,8 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2, Megaphone, Eye, EyeOff } from 'lucide-react'
+import { Plus, Megaphone } from 'lucide-react'
+import { Delete as Trash2, Show2 as Eye, Hide as EyeOff } from '@/components/icons'
 import { cn, formatDate } from '@/lib/utils'
 import { useChangelog } from '@/hooks/useChangelog'
 import Modal from '@/components/ui/modal'

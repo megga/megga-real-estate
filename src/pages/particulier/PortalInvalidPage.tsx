@@ -4,7 +4,8 @@
  */
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ShieldX, Clock, Ban } from 'lucide-react'
+import { ShieldX, Ban } from 'lucide-react'
+import { TimeCircle as Clock } from '@/components/icons'
 
 interface PortalInvalidPageProps {
   reason: 'not_found' | 'expired' | 'revoked'

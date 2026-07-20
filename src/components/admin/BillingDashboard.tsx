@@ -9,7 +9,8 @@ import { useTranslation } from 'react-i18next'
 import { formatCHF, formatRelativeDate, cn } from '@/lib/utils'
 import { useAdminBilling } from '@/hooks/useAdminBilling'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
-import { CreditCard, Users, TrendingDown, TrendingUp, DollarSign, AlertTriangle, Clock, Zap } from 'lucide-react'
+import { CreditCard, Zap } from 'lucide-react'
+import { Icon2Users as Users, TrendDown as TrendingDown, TrendUp as TrendingUp, Dollar as DollarSign, Danger22 as AlertTriangle, TimeCircle as Clock } from '@/components/icons'
 
 const PLAN_COLORS: Record<string, string> = {
   starter: '#94a3b8',

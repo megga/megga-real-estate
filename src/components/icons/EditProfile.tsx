@@ -1,0 +1,34 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const EditProfile = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path fillRule="evenodd" clipRule="evenodd" d="M15.5216 19.8062L14.7709 19.9324C14.2217 20.0241 13.7366 19.5666 13.7971 19.0131L13.8801 18.2382C13.9208 17.8646 14.0773 17.5135 14.3281 17.2324L17.2824 13.9789C17.669 13.5612 18.3211 13.5361 18.7379 13.9227L19.428 14.5618C19.8458 14.9475 19.8708 15.5996 19.4843 16.0173L16.5654 19.2311C16.293 19.5363 15.9246 19.7387 15.5216 19.8062Z" stroke="currentColor"></path>
+<path fillRule="evenodd" clipRule="evenodd" d="M14.4912 7.99553C14.4912 10.2017 12.7027 11.9911 10.4956 11.9911C8.28945 11.9911 6.50098 10.2017 6.50098 7.99553C6.50098 5.78934 8.28945 4 10.4956 4C12.7027 4 14.4912 5.78934 14.4912 7.99553Z" stroke="currentColor"></path>
+<path d="M10.4957 14.875C7.12024 14.875 4.24121 15.3853 4.24121 17.428C4.24121 19.4707 7.10381 19.9991 10.4957 19.9991" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+EditProfile.displayName = 'EditProfile'
+
+export default EditProfile

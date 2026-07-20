@@ -1,0 +1,34 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const ShieldQuestion = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path fillRule="evenodd" clipRule="evenodd" d="M11.9997 21.4526C11.9997 21.4526 19.3237 19.2352 19.3237 13.122C19.3237 7.00886 19.5897 6.53502 19.0017 5.94248C18.4127 5.34896 12.9607 3.45264 11.9997 3.45264C11.0397 3.45264 5.58669 5.35383 4.99769 5.94248C4.40969 6.53015 4.67669 7.00788 4.67669 13.122C4.67669 19.2362 11.9997 21.4526 11.9997 21.4526Z" stroke="currentColor"></path>
+<path d="M11.7886 15.9644V15.9712" stroke="currentColor"></path>
+<path d="M11.7865 13.8332C11.7761 13.0553 12.4842 12.7253 13.0103 12.4246C13.6523 12.071 14.087 11.5082 14.087 10.7266C14.087 9.56878 13.1508 8.63916 12.0005 8.63916C10.8427 8.63916 9.91406 9.56878 9.91406 10.7266" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+ShieldQuestion.displayName = 'ShieldQuestion'
+
+export default ShieldQuestion

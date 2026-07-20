@@ -7,7 +7,8 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CreditCard, Check, X, ChevronDown, Infinity as InfinityIcon } from 'lucide-react'
+import { CreditCard, Check, X, Infinity as InfinityIcon } from 'lucide-react'
+import { ArrowDown22 as ChevronDown } from '@/components/icons'
 import { cn, formatCHF } from '@/lib/utils'
 import { PLANS } from '@/lib/plans'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'

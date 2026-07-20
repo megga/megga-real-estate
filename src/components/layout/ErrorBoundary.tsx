@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
-import { RefreshCw, LayoutDashboard } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
+import { GridInterface13 as LayoutDashboard } from '@/components/icons'
 import { Sentry } from '@/lib/sentry'
 import i18n from '@/i18n'
 

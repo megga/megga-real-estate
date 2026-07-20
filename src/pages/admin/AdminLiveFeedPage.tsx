@@ -7,7 +7,8 @@
  */
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Radio, Pause, Play, Filter, ChevronDown } from 'lucide-react'
+import { Radio, Pause } from 'lucide-react'
+import { Play, Filter, ArrowDown22 as ChevronDown } from '@/components/icons'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminLiveFeed, type LiveEvent } from '@/hooks/useAdminLiveFeed'
 

@@ -1,0 +1,35 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const KeyPass = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M7.60477 21.2293L5.71611 19.3407L6.8318 17.9407L5.75128 16.7799L6.8318 15.3448L5.7529 14.2643L5.75414 12.8363C4.13183 12.1241 3 10.5034 3 8.61813C3 6.07516 5.06148 4.01367 7.60445 4.01367C10.1474 4.01367 12.2089 6.07516 12.2089 8.61813C12.2089 10.4866 11.0943 12.095 9.49519 12.8169L9.49342 19.3407L7.60477 21.2293Z" stroke="currentColor"></path>
+<path d="M8.57949 7.33444C8.04112 6.79607 7.16825 6.79607 6.62988 7.33444" stroke="currentColor"></path>
+<path d="M17.2988 19.7246V19.7326" stroke="currentColor"></path>
+<path d="M17.2961 17.0398C17.284 16.1265 18.1153 15.7391 18.733 15.386C19.4869 14.9708 19.9972 14.31 19.9972 13.3923C19.9972 12.0329 18.8979 10.9414 17.5474 10.9414C16.188 10.9414 15.0977 12.0329 15.0977 13.3923" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+KeyPass.displayName = 'KeyPass'
+
+export default KeyPass

@@ -1,0 +1,32 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const ShieldDone = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <g id="Iconly/Light/Shield-Done" stroke="none" fill="none" fillRule="evenodd"> <g id="Shield-Done" transform="translate(3.500000, 2.000000)" stroke="currentColor"> <path d="M8.4845,19.606 C8.4845,19.606 16.1565,17.283 16.1565,10.879 C16.1565,4.474 16.4345,3.974 15.8195,3.358 C15.2035,2.742 9.4905,0.75 8.4845,0.75 C7.4785,0.75 1.7655,2.742 1.1505,3.358 C0.5345,3.974 0.8125,4.474 0.8125,10.879 C0.8125,17.283 8.4845,19.606 8.4845,19.606 Z" id="Stroke-1"></path> <polyline id="Stroke-3" points="5.8859 9.8746 7.7779 11.7696 11.6759 7.8696"></polyline> </g> </g>
+    </svg>
+  ),
+)
+
+ShieldDone.displayName = 'ShieldDone'
+
+export default ShieldDone

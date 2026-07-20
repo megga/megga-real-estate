@@ -6,7 +6,8 @@
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, ChevronDown } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+import { ArrowDown22 as ChevronDown } from '@/components/icons'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'

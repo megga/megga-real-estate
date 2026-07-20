@@ -6,7 +6,8 @@
  * journal d'activité, le suivi d'onboarding et le dashboard de facturation.
  */
 import { useTranslation } from 'react-i18next'
-import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle } from 'lucide-react'
+import { Building2, GitBranch, CheckCircle } from 'lucide-react'
+import { Icon2Users as Users, Home, ShieldError as ShieldAlert, Danger22 as AlertTriangle, Notification as Bell, BankCard as CreditCard, DangerCircle as AlertCircle } from '@/components/icons'
 import { useAdminStats } from '@/hooks/useAdminStats'
 import AdminKpiCard from '@/components/admin/AdminKpiCard'
 import BillingDashboard from '@/components/admin/BillingDashboard'

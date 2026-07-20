@@ -7,7 +7,8 @@
  */
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Star, Check, Loader2, MapPin } from 'lucide-react'
+import { Star, Check, Loader2 } from 'lucide-react'
+import { Location as MapPin } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { usePublicVisit, useSubmitFeedback } from '@/hooks/useVisits'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'

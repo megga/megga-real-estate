@@ -10,7 +10,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, Mail, Phone, Clock, Eye } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import { Building as Building2, Message as Mail, Call as Phone, TimeCircle as Clock, Show2 as Eye } from '@/components/icons'
 import { cn, formatDate, formatRelativeDate, formatCHF } from '@/lib/utils'
 import {
   useAdminAgency,

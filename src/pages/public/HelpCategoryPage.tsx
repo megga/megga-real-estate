@@ -7,7 +7,8 @@
  */
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight, ChevronRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { ArrowRight22 as ChevronRight } from '@/components/icons'
 import HomeStickyHeader from '@/components/home/HomeStickyHeader'
 import Footer from '@/components/layout/Footer'
 import HelpSearchBar from '@/components/help/HelpSearchBar'

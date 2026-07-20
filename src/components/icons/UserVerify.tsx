@@ -1,0 +1,35 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const UserVerify = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M9.20479 14.0996C6.46912 14.2218 4.32617 14.8182 4.32617 16.5568C4.32617 18.1236 6.05744 18.7733 8.40715 18.9791" stroke="currentColor"></path>
+<path d="M13.5749 13.4311C13.0382 13.4311 12.6036 13.8667 12.6036 14.4024L12.6027 14.8426C12.6027 15.099 12.5007 15.3453 12.3205 15.5272L12.0109 15.8369L12.0072 15.8396L12.0054 15.8415C11.6286 16.2228 11.6313 16.8367 12.0118 17.2144L12.3205 17.5231C12.5016 17.7051 12.6036 17.9514 12.6036 18.2077V18.6516C12.6036 19.1882 13.0382 19.6229 13.5749 19.6229H14.016C14.2724 19.6229 14.5177 19.7249 14.6997 19.905L15.0084 20.2138L15.0121 20.2184L15.0139 20.2193C15.3944 20.596 16.0091 20.5933 16.3868 20.2129L16.6956 19.9041C16.8775 19.7231 17.1238 19.6211 17.3802 19.6211H17.824C18.3598 19.622 18.7954 19.1882 18.7954 18.6516V18.2087C18.7954 17.9523 18.8974 17.706 19.0775 17.5241L19.3871 17.2153L19.3908 17.2116C19.7694 16.8303 19.7676 16.2155 19.3862 15.8378L19.0775 15.5281C18.8964 15.3462 18.7954 15.0999 18.7954 14.8435V14.4024C18.7954 13.8658 18.3607 13.4302 17.824 13.4302H17.3811C17.1247 13.4302 16.8785 13.3291 16.6965 13.1481L16.3841 12.8357L16.3832 12.8347C16.0027 12.4571 15.3879 12.4589 15.0093 12.8393L14.7006 13.149C14.5186 13.3291 14.2733 13.4302 14.0169 13.4311H13.5749Z" stroke="currentColor"></path>
+<path d="M14.373 16.5797L15.246 17.4536L17.0444 15.6543" stroke="currentColor"></path>
+<path fillRule="evenodd" clipRule="evenodd" d="M14.2921 7.38238C14.2921 9.52809 12.5526 11.2676 10.4078 11.2676C8.26206 11.2676 6.52344 9.52809 6.52344 7.38238C6.52344 5.23759 8.26206 3.49805 10.4078 3.49805C12.5526 3.49805 14.2921 5.23759 14.2921 7.38238Z" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+UserVerify.displayName = 'UserVerify'
+
+export default UserVerify

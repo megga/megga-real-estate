@@ -1,0 +1,32 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const Download = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <g id="Iconly/Light/Download" stroke="none" fill="none" fillRule="evenodd"> <g id="Downlaod" transform="translate(2.000000, 3.000000)" stroke="currentColor"> <line x1="16.1427" y1="6.4156" x2="4.1017" y2="6.4156" id="Stroke-1" transform="translate(10.122200, 6.415600) rotate(-270.000000) translate(-10.122200, -6.415600) "></line> <polyline id="Stroke-3" transform="translate(10.122200, 10.972400) rotate(-270.000000) translate(-10.122200, -10.972400) " points="8.6582 8.0564 11.5862 10.9724 8.6582 13.8884"></polyline> <path d="M4,6.617 L4,5.684 C4,3.649 5.649,2 7.685,2 L12.569,2 C14.599,2 16.244,3.645 16.244,5.675 L16.244,16.815 C16.244,18.85 14.594,20.5 12.559,20.5 L7.674,20.5 C5.645,20.5 4,18.854 4,16.825 L4,15.883" id="Stroke-4" transform="translate(10.122000, 11.250000) rotate(-270.000000) translate(-10.122000, -11.250000) "></path> </g> </g>
+    </svg>
+  ),
+)
+
+Download.displayName = 'Download'
+
+export default Download

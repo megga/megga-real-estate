@@ -1,0 +1,33 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const CloudShield = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M18.5637 17.3579C19.9998 16.7089 21 15.2629 21 13.5839C21 10.9879 19.1699 9.44493 16.897 9.44293C16.897 7.81093 15.6166 4.54492 12 4.54492C8.3835 4.54492 7.103 7.81093 7.103 9.44293C4.8331 9.46293 3 10.9879 3 13.5839C3 15.2629 3.9993 16.7089 5.4363 17.3579" stroke="currentColor"></path>
+<path fillRule="evenodd" clipRule="evenodd" d="M11.9994 20.0197C11.9994 20.0197 15.0302 19.1017 15.0302 16.5717C15.0302 14.0407 15.1402 14.1227 14.8969 13.8777C14.6537 13.6307 12.3974 12.8457 11.9994 12.8457C11.6015 12.8457 9.34519 13.6327 9.10089 13.8777C8.85769 14.1207 8.96859 14.0407 8.96859 16.5717C8.96859 19.1017 11.9994 20.0197 11.9994 20.0197Z" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+CloudShield.displayName = 'CloudShield'
+
+export default CloudShield

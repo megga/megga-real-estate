@@ -1,0 +1,34 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const Lock6 = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M12 15.0918V17.2588" stroke="currentColor"></path>
+<path d="M16.4478 10.4171V8.3211C16.4176 5.8641 14.4004 3.8971 11.9442 3.9281C9.53778 3.9581 7.59168 5.8961 7.55078 8.3011V10.4171" stroke="currentColor"></path>
+<path d="M9.30375 21.9719H14.6956C16.2909 21.9719 17.0886 21.9719 17.7043 21.6759C18.319 21.3809 18.8148 20.8849 19.11 20.2709C19.4056 19.6549 19.4056 18.8569 19.4056 17.2619V15.1299C19.4056 13.5349 19.4056 12.7369 19.11 12.1219C18.8148 11.5069 18.319 11.0109 17.7043 10.7159C17.0886 10.4199 16.2909 10.4199 14.6956 10.4199H9.30375C7.70845 10.4199 6.91075 10.4199 6.29515 10.7159C5.68035 11.0109 5.18455 11.5069 4.88935 12.1219C4.59375 12.7369 4.59375 13.5349 4.59375 15.1299V17.2619C4.59375 18.8569 4.59375 19.6549 4.88935 20.2709C5.18455 20.8849 5.68035 21.3809 6.29515 21.6759C6.91075 21.9719 7.70845 21.9719 9.30375 21.9719Z" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+Lock6.displayName = 'Lock6'
+
+export default Lock6
