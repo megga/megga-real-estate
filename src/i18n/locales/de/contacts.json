@@ -769,7 +769,12 @@
     "followupFooter": "MEGGA suggestions to accept or dismiss.",
     "followupKind_commitment": "Commitment",
     "followupKind_next_action": "Next action",
-    "followupKind_client_availability": "Client availability"
+    "followupKind_client_availability": "Client availability",
+    "error": {
+      "title": "Dieser Kontakt konnte nicht geladen werden",
+      "message": "Ein Fehler ist aufgetreten. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "retry": "Erneut versuchen"
+    }
   },
   "ctKyc": {
     "title": "KYC / AML compliance",

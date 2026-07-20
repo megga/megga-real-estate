@@ -124,6 +124,11 @@
       "signing": "Signing scheduled",
       "deadline": "Deadline added",
       "personal": "Personal event added"
+    },
+    "error": {
+      "title": "Impossibile caricare l'agenda",
+      "message": "Si è verificato un errore durante il caricamento delle Sue visite e dei Suoi solleciti. Riprovi tra un istante.",
+      "retry": "Riprova"
     }
   },
   "createVisit": {

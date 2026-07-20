@@ -6,7 +6,136 @@
     "clientFilterScope_one": "Questo filtro testuale si applica solo a {{count}} immobile già caricato, non all'intero mercato.",
     "clientFilterScope_other": "Questo filtro testuale si applica solo a {{count}} immobili già caricati, non all'intero mercato.",
     "slow": "La ricerca sta impiegando un tempo anomalo.",
-    "blocked": "La ricerca non è potuta partire."
+    "blocked": "La ricerca non è potuta partire.",
+    "title": "Ricerca",
+    "loading": "Caricamento del mercato connesso…",
+    "error": "Impossibile caricare gli annunci. Riprovi.",
+    "retry": "Riprova",
+    "txSale": " in vendita",
+    "txRent": " in affitto",
+    "countBuyer_one": "{{count}} annuncio{{tx}} nei criteri di {{name}}",
+    "countBuyer_other": "{{count}} annunci{{tx}} nei criteri di {{name}}",
+    "countMarket_one": "{{count}} annuncio{{tx}} sul mercato connesso",
+    "countMarket_other": "{{count}} annunci{{tx}} sul mercato connesso",
+    "trans": {
+      "group": "Filtra per transazione",
+      "all": "Tutti",
+      "sale": "Vendita",
+      "rent": "Affitto",
+      "aria": "Transazione: {{label}}"
+    },
+    "sort": {
+      "group": "Ordina i risultati",
+      "aria": "Ordina: {{label}}",
+      "relevance": "Pertinenza",
+      "recent": "Recenti",
+      "priceAsc": "Prezzo crescente",
+      "priceDesc": "Prezzo decrescente"
+    },
+    "omni": {
+      "aria": "Cerca un immobile, un acquirente o un quartiere",
+      "placeholder": "Cerca un immobile, un acquirente, un quartiere…",
+      "placeholderBuyer": "Affina nei criteri di {{name}}…",
+      "placeholderRefine": "Affina…",
+      "restore": "Ripristina i suoi criteri",
+      "removeToken": "Rimuovi",
+      "ddChange": "Cambia contatto",
+      "ddPick": "Cerca per un acquirente o un locatario",
+      "noBuyers": "Nessun contatto con criteri per ora. Aggiunga il Suo primo acquirente o locatario per vedere il punteggio di match di ogni annuncio.",
+      "addFirst": "Aggiungi il primo contatto",
+      "groupPlaces": "Filtri",
+      "groupContacts": "Contatti",
+      "groupListings": "Annunci",
+      "place": "Quartiere · {{place}}"
+    },
+    "alsoWants": "{{name}} desidera anche {{list}}",
+    "clearAll": "Cancella tutto",
+    "empty": {
+      "title": "Nessun annuncio nei criteri",
+      "rescue_one": "Rimuovendo «{{label}}», si visualizza {{count}} annuncio.",
+      "rescue_other": "Rimuovendo «{{label}}», si visualizzano {{count}} annunci.",
+      "rescueCta": "Rimuovi questo criterio",
+      "seeNear": "Qui sotto trova gli immobili vicini ai criteri.",
+      "noMarket": "Nessun annuncio del mercato connesso per questi filtri."
+    },
+    "near": {
+      "title": "Vicini ai criteri",
+      "note": "1 criterio allentato"
+    },
+    "send_one": "Invia {{count}} immobile a {{name}}",
+    "send_other": "Invia {{count}} immobili a {{name}}",
+    "sendSoon": "Invio della selezione dalla ricerca, presto disponibile.",
+    "card": {
+      "estimate": "Da stimare",
+      "perMonth": "/mese",
+      "roomsArea": "{{rooms}} locali · {{area}} m²",
+      "priceDrop": "Prezzo ribassato",
+      "photos_one": "{{count}} foto",
+      "photos_other": "{{count}} foto",
+      "add": "Aggiungi alla selezione",
+      "remove": "Rimuovi dalla selezione",
+      "prevPhoto": "Foto precedente",
+      "nextPhoto": "Foto successiva",
+      "noPhoto": "Nessuna foto",
+      "aiMatch": "Spiega questo match · MEGGA AI",
+      "aiAnalyze": "Analizza l'annuncio · MEGGA AI",
+      "aiMatchQ": "Perché «{{title}}» corrisponde a {{name}} al {{score}}%?",
+      "aiAnalyzeQ": "Analizza questo annuncio: «{{title}}» ({{addr}}): punti di forza, punti di attenzione, prezzo rispetto al mercato?"
+    },
+    "reason": {
+      "type": "tipo",
+      "zone": "zona",
+      "budget": "budget",
+      "rooms": "locali",
+      "surface": "superficie"
+    },
+    "detail": {
+      "back": "Torna alla ricerca",
+      "inSelection": "Nella selezione",
+      "addToSelection": "Aggiungi alla selezione",
+      "inSelectionOf": "Nella selezione di {{name}}",
+      "perMonthLong": "al mese",
+      "priceOnRequest": "Prezzo su richiesta",
+      "seePhotos": "Vedi le foto",
+      "factRooms": "Locali",
+      "factSurface": "Superficie",
+      "factLand": "Terreno",
+      "factYear": "Anno",
+      "factPpm2Sale": "Prezzo / m²",
+      "factPpm2Rent": "Affitto / m²",
+      "equip": "Dotazioni",
+      "details": "Dettagli",
+      "location": "Posizione",
+      "dType": "Tipo",
+      "dTransaction": "Transazione",
+      "dLocality": "Località",
+      "dCanton": "Cantone",
+      "dOnMarket": "Sul mercato",
+      "dMeggaRef": "Rif. MEGGA",
+      "dPortalRef": "Rif. portale",
+      "onMarketLessDay": "meno di un giorno",
+      "onMarketDays_one": "{{count}} giorno",
+      "onMarketDays_other": "{{count}} giorni",
+      "agency": "Agenzia",
+      "openOn": "Apri su {{portal}}",
+      "lbCounter": "{{index}} / {{total}}",
+      "close": "Chiudi",
+      "prev": "Precedente",
+      "next": "Successivo"
+    },
+    "view": {
+      "group": "Visualizzazione dei risultati",
+      "grid": "Griglia",
+      "map": "Mappa",
+      "aria": "Vista {{label}}"
+    },
+    "map": {
+      "noLocated": "Nessun annuncio localizzato",
+      "overview": "Panoramica",
+      "zoomIn": "Ingrandisci",
+      "zoomOut": "Riduci",
+      "nearHere": "Nessuno nei criteri · immobili vicini"
+    }
   },
   "runMatching": "Avvia matching",
   "running": "Analisi in corso...",
@@ -225,7 +354,46 @@
       "skipped": "{{name}} removed from the queue",
       "backInQueue": "{{name}} is back in the queue",
       "seeDeal": "View deal →"
-    }
+    },
+    "noPhotoYet": "Foto in arrivo",
+    "nextPhoto": "Foto successiva (→)",
+    "allPhotos": "Tutte le foto",
+    "collapseFilmstrip": "Chiudi la striscia foto",
+    "sectionEssential": "L'essenziale",
+    "propose": "Proponi",
+    "collapseSheet": "Riduci la scheda",
+    "expandSheet": "Riapri la scheda",
+    "emptyStage": {
+      "cockpitTitle": "Nessun match da smistare",
+      "cockpitSub": "Il motore non ha ancora abbinato alcun annuncio",
+      "queueAria": "Coda acquirenti",
+      "queueEyebrow": "Coda d'attesa",
+      "sortedBy": "ordinata per\nforza del match",
+      "queueTitle": "Nessun acquirente in coda",
+      "queueSub": "Aggiunga criteri di ricerca ai Suoi contatti: MEGGA li fa risalire qui.",
+      "listingAria": "Annuncio",
+      "listingTitle": "Nulla da presentare per ora",
+      "listingSub": "Riavvii il motore: incrocerà di nuovo i Suoi annunci con i criteri dei Suoi contatti.",
+      "whyAria": "Perché combacia",
+      "whyTitle": "Nulla da confrontare",
+      "whySub": "Il dettaglio del punteggio appare dal primo match."
+    },
+    "error": {
+      "title": "Impossibile caricare i match",
+      "desc": "Si è verificato un errore durante il caricamento dello spazio di lavoro. Riprovi.",
+      "retry": "Riprova"
+    },
+    "sendDossier": "Invia il dossier",
+    "priceBefore": "Prima",
+    "queueSortedBy": "ordinata per",
+    "sortByMatch": "forza del match",
+    "sortByRelance": "segnale di sollecito",
+    "toSchedule": "Da pianificare",
+    "toScheduleCount": "Da pianificare · {{count}}",
+    "scheduleThisWeek": "Questa settimana",
+    "scheduleLater": "Poi",
+    "resume": "Riprendi",
+    "changeDate": "Cambia"
   },
   "confirm": {
     "sendTitle": "Send the file",
@@ -321,5 +489,49 @@
       "recommended": "Consigliato",
       "save": "Salva"
     }
+  },
+  "pager": {
+    "score": "Matching",
+    "recherche": "Ricerca",
+    "wheelTo": "Rotellina verso {{label}}"
+  },
+  "sendSheet": {
+    "title": "Invia a {{name}}",
+    "body": "Link privato, senza e-mail. I riscontri di {{firstName}} arrivano nella sua scheda.",
+    "whatsapp": "Invia via WhatsApp",
+    "copyLink": "Copia il link",
+    "copied": "Link copiato",
+    "preview": "Apri l'anteprima acquirente",
+    "error": "Impossibile preparare il link. Riprovi.",
+    "noPhone": "Questo contatto non ha un numero. Copi il link per inviarglielo.",
+    "waMessage": "Buongiorno {{firstName}}, ecco una selezione di immobili per Lei: {{url}}"
+  },
+  "firstRun": {
+    "title": "Il Suo ciclo di match inizia qui",
+    "subtitle": "Il Matching incrocia i Suoi mandati con le attese dei Suoi contatti, poi ne segue i riscontri. Bastano due ingredienti per avviarlo.",
+    "mandat": {
+      "title": "Crei il Suo primo mandato",
+      "sub": "Un immobile da vendere o da affittare."
+    },
+    "contact": {
+      "title": "Aggiunga un contatto",
+      "sub": "Budget, zona, locali."
+    },
+    "scores": {
+      "title": "MEGGA calcola i match",
+      "sub": "Nulla da configurare."
+    },
+    "start": "Continua"
+  },
+  "cockpit": {
+    "switchTitle": "Abbina un altro annuncio",
+    "switchHint": "Cambiare annuncio ricarica la coda con i suoi acquirenti candidati.",
+    "switchAria": "Abbina un altro annuncio",
+    "currentListing": "Annuncio in corso",
+    "browseAll": "Sfoglia tutti gli annunci",
+    "filterAria": "Filtra la coda",
+    "processed": "{{total}} gestiti",
+    "progressAria": "{{done}} di {{total}} acquirenti gestiti",
+    "queueDone": "Coda gestita"
   }
 }
