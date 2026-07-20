@@ -4,7 +4,9 @@
   "recherche": {
     "countTotal": "von insgesamt {{total}}",
     "clientFilterScope_one": "Dieser Textfilter gilt nur für {{count}} bereits geladenes Objekt, nicht für den gesamten Markt.",
-    "clientFilterScope_other": "Dieser Textfilter gilt nur für {{count}} bereits geladene Objekte, nicht für den gesamten Markt."
+    "clientFilterScope_other": "Dieser Textfilter gilt nur für {{count}} bereits geladene Objekte, nicht für den gesamten Markt.",
+    "slow": "Die Suche dauert ungewöhnlich lange.",
+    "blocked": "Die Suche konnte nicht gestartet werden."
   },
   "runMatching": "Matching starten",
   "running": "Analyse läuft...",

@@ -121,7 +121,7 @@ export function useMatchingSearch(params: MatchingSearchParams) {
   // `isLoading`, donc l'UI tombait direct sur l'état vide « aucune annonce ».
   const { user } = useAuth()
   const enabled = !!user
-  return useQuery<MrhBien[]>({
+  const query = useQuery<MrhBien[]>({
     queryKey: ['mrh-search', params],
     enabled,
     staleTime: 60_000,
@@ -154,6 +154,11 @@ export function useMatchingSearch(params: MatchingSearchParams) {
         .sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9))
     },
   })
+  // `blocked` = la query n'a pas le DROIT de partir (gate `enabled` faux). React
+  // Query ne distingue pas ce cas de « en vol » : les deux sont `isPending`. Sans
+  // cette information, l'UI ne peut choisir qu'entre mentir (état vide) et tourner
+  // indéfiniment (spinner) — on a successivement fait les deux.
+  return { ...query, blocked: !enabled }
 }
 
 /**

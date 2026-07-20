@@ -138,7 +138,9 @@
       "zoomIn": "Zoom avant",
       "zoomOut": "Zoom arrière",
       "nearHere": "Aucune dans les critères · biens proches"
-    }
+    },
+    "slow": "La recherche prend anormalement longtemps.",
+    "blocked": "La recherche n’a pas pu démarrer."
   },
   "sendSheet": {
     "title": "Envoyer à {{name}}",
