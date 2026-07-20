@@ -16,6 +16,18 @@ const ALLOW_FILES = new Set([
   'src/components/megga-x/index.ts',        // barrel re-exporté, consommé par MeggaXStyleGuidePage (lazy) — invisible pour ts-prune
 ]);
 
+// Répertoires entièrement exemptés (préfixe).
+// src/components/icons/ est une BIBLIOTHÈQUE générée : ses exports sont une
+// surface d'API, pas du code applicatif. Sur ~1440 icônes une quarantaine est
+// consommée aujourd'hui — ts-prune signalerait les 1400 autres et noierait tout
+// signal utile (la baseline hors icônes est à zéro).
+// Le garde-fou de ce répertoire n'est pas ts-prune mais scripts/iconly-ingest.mjs,
+// qui purge les composants sortis du manifeste. Ne pas y ajouter de code écrit
+// à la main : les fichiers y sont régénérés sans préavis.
+const ALLOW_DIRS = [
+  'src/components/icons/',
+];
+
 // Symboles précis exemptés : `chemin:symbole`.
 const ALLOW_SYMBOLS = new Set([
   'src/components/propertyx/PxWhatsAppButton.tsx:default', // composant du cœur Px (buildWaMeUrl, lui, est utilisé)
@@ -42,6 +54,7 @@ for (const line of raw.split('\n')) {
   if (!m) continue;
   const [, file, , symbol] = m;
   if (ALLOW_FILES.has(file)) continue;
+  if (ALLOW_DIRS.some((d) => file.startsWith(d))) continue;
   if (ALLOW_SYMBOLS.has(`${file}:${symbol}`)) continue;
   offenders.push(`${file} - ${symbol}`);
 }
