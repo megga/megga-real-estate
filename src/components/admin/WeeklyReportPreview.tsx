@@ -5,7 +5,8 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Send, CheckCircle, Loader2 } from 'lucide-react'
+import { Send, CheckCircle } from 'lucide-react'
+import { LoadingCircle1 as Loader2 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 

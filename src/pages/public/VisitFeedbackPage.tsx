@@ -7,7 +7,8 @@
  */
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Star, Check, Loader2 } from 'lucide-react'
+import { Star, Check } from 'lucide-react'
+import { LoadingCircle1 as Loader2 } from '@/components/icons'
 import { Location as MapPin } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { usePublicVisit, useSubmitFeedback } from '@/hooks/useVisits'

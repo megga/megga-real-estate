@@ -1,0 +1,33 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const ThumbLike5 = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M3.7334 8.47656C4.76956 8.47656 5.28764 8.47656 5.6848 8.67501C6.04933 8.85716 6.34489 9.15271 6.52703 9.51724C6.72548 9.9144 6.72548 10.4325 6.72548 11.4686V17.5072C6.72548 18.5433 6.72548 19.0614 6.52703 19.4586C6.34489 19.8231 6.04933 20.1187 5.6848 20.3008C5.28764 20.4992 4.76956 20.4992 3.7334 20.4992" stroke="currentColor"></path>
+<path d="M6.72656 9.73185C8.15782 9.73185 10.3293 8.22203 11.1745 4.42139C11.2828 3.93413 11.4079 3.69548 11.9248 3.5C15.5813 3.5 14.8237 8.52959 13.9924 9.88867H16.6082C20.4865 9.88867 20.2652 12.9034 20.2652 15.8784C20.2652 18.7287 18.4337 20.4477 15.7744 20.4477H11.1793C9.63719 20.4477 8.11302 19.5062 6.72656 18.9318" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+ThumbLike5.displayName = 'ThumbLike5'
+
+export default ThumbLike5

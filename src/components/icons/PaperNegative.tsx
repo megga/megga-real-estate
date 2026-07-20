@@ -7,7 +7,7 @@ interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
 }
 
 const PaperNegative = forwardRef<SVGSVGElement, Props>(
-  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
     <svg
       ref={ref}
       width={size}

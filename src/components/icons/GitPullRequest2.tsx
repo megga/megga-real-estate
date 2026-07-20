@@ -1,0 +1,36 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const GitPullRequest2 = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path fillRule="evenodd" clipRule="evenodd" d="M7.2917 20.0014C5.92604 20.0014 4.81836 18.8937 4.81836 17.528C4.81836 16.1624 5.92604 15.0547 7.2917 15.0547C8.65735 15.0547 9.76503 16.1624 9.76503 17.528C9.76503 18.8937 8.65735 20.0014 7.2917 20.0014Z" stroke="currentColor"></path>
+<path fillRule="evenodd" clipRule="evenodd" d="M16.7097 20.0014C15.344 20.0014 14.2363 18.8937 14.2363 17.528C14.2363 16.1624 15.344 15.0547 16.7097 15.0547C18.0753 15.0547 19.183 16.1624 19.183 17.528C19.183 18.8937 18.0753 20.0014 16.7097 20.0014Z" stroke="currentColor"></path>
+<path fillRule="evenodd" clipRule="evenodd" d="M7.2917 8.94667C5.92604 8.94667 4.81836 7.83899 4.81836 6.47334C4.81836 5.10768 5.92604 4 7.2917 4C8.65735 4 9.76503 5.10768 9.76503 6.47334C9.76503 7.83899 8.65735 8.94667 7.2917 8.94667Z" stroke="currentColor"></path>
+<path d="M7.29102 8.94531V15.052" stroke="currentColor"></path>
+<path d="M12.4805 6.13281H14.6814C15.7899 6.13281 16.6881 7.03105 16.6881 8.13958V15.0513" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+GitPullRequest2.displayName = 'GitPullRequest2'
+
+export default GitPullRequest2

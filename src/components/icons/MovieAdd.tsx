@@ -1,0 +1,34 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const MovieAdd = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M16.0077 21H7.99503C5.19484 21 3.45117 19.0234 3.45117 16.2251V7.77583C3.45117 4.97758 5.19484 3 7.99601 3H16.0077C18.8089 3 20.5506 4.97758 20.5506 7.77583V16.2251C20.5506 19.0234 18.8001 21 16.0077 21Z" stroke="currentColor"></path>
+<path d="M11.999 11.8281V16.7872M14.4786 14.3078H9.51953" stroke="currentColor"></path>
+<path d="M3.45703 7.47591H20.5428M9.02372 7.47563V3M14.9769 7.47563V3" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+MovieAdd.displayName = 'MovieAdd'
+
+export default MovieAdd

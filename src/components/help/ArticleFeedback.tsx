@@ -6,7 +6,8 @@
  */
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ThumbsUp, ThumbsDown, Check } from 'lucide-react'
+import { ThumbsUp, Check } from 'lucide-react'
+import { ThumbDislike as ThumbsDown } from '@/components/icons'
 import { supabase } from '@/lib/supabase'
 
 export default function ArticleFeedback({ slug }: { slug: string }) {

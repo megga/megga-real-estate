@@ -7,7 +7,7 @@ interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
 }
 
 const UserDelete4 = forwardRef<SVGSVGElement, Props>(
-  ({ size = 24, strokeWidth = 1.5, ...props }, ref) => (
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
     <svg
       ref={ref}
       width={size}

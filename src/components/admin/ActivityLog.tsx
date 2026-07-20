@@ -5,7 +5,8 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Users, GitBranch, Shuffle, Activity } from 'lucide-react'
+import { Users, Shuffle, Activity } from 'lucide-react'
+import { GitBranch3 as GitBranch } from '@/components/icons'
 import { Home, ShieldDone as ShieldCheck, Message as Mail, Calendar, Building as Building2 } from '@/components/icons'
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useActivityLog, type ActivityLogEntry } from '@/hooks/useActivityLog'

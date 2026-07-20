@@ -1,0 +1,35 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const ReelsLike = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M20.1283 11.0664V7.76655C20.1283 4.97414 18.3886 3 15.5933 3H7.59553C4.79825 3 3.05859 4.97414 3.05859 7.76655V15.38C3.05859 18.1724 4.79825 20.1465 7.59455 20.1465H11.2031" stroke="currentColor"></path>
+<path d="M3.06641 7.46875H20.1234" stroke="currentColor"></path>
+<path d="M8.62305 7.46785V3M14.5654 7.46785V3" stroke="currentColor"></path>
+<path fillRule="evenodd" clipRule="evenodd" d="M13.3164 17.1932C12.8822 15.8352 13.3901 14.2859 14.814 13.8271C15.5635 13.5868 16.3828 13.7238 17.0133 14.1967C17.6426 13.7289 18.4593 13.5907 19.2074 13.8271C20.6314 14.2859 21.1431 15.8352 20.709 17.1932C20.0331 19.3434 17.0133 21 17.0133 21C17.0133 21 14.0168 19.368 13.3164 17.1932Z" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+ReelsLike.displayName = 'ReelsLike'
+
+export default ReelsLike

@@ -1,0 +1,37 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const ServerRack = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M21 16.4133V18.5937C21 20.025 19.9901 20.9143 18.5608 20.9143H5.43924C4.00995 20.9143 3 20.025 3 18.5937V16.4133C3 14.983 4.00995 14.0928 5.43924 14.0928H18.5608C19.9901 14.0928 21 14.9869 21 16.4133Z" stroke="currentColor"></path>
+<path d="M16.2852 20.9055V14.0889" stroke="currentColor"></path>
+<path d="M6.58789 17.5029H7.56184" stroke="currentColor"></path>
+<path d="M21 5.40648V7.58691C21 9.01718 19.9901 9.90745 18.5608 9.90745H5.43924C4.00995 9.90745 3 9.01718 3 7.58691V5.40648C3 3.97621 4.00995 3.08594 5.43924 3.08594H18.5608C19.9901 3.08594 21 3.9801 21 5.40648Z" stroke="currentColor"></path>
+<path d="M16.2852 9.9065V3.09082" stroke="currentColor"></path>
+<path d="M6.58789 6.49707H7.56184" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+ServerRack.displayName = 'ServerRack'
+
+export default ServerRack

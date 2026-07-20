@@ -7,7 +7,8 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Lock, Check, Loader2 } from 'lucide-react'
+import { Lock, Check } from 'lucide-react'
+import { LoadingCircle1 as Loader2 } from '@/components/icons'
 import { supabase } from '@/lib/supabase'
 
 export default function ResetPasswordPage() {

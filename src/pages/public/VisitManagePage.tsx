@@ -8,7 +8,8 @@
  */
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarDays, Check, X, Loader2 } from 'lucide-react'
+import { CalendarDays, Check, X } from 'lucide-react'
+import { LoadingCircle1 as Loader2 } from '@/components/icons'
 import { Location as MapPin } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { usePublicVisit, useRescheduleVisit, useCancelVisit } from '@/hooks/useVisits'

@@ -8,7 +8,8 @@
  */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Database, Zap, CheckCircle, HardDrive, Globe } from 'lucide-react'
+import { Database, CheckCircle, Globe } from 'lucide-react'
+import { Flash3 as Zap, Server as HardDrive } from '@/components/icons'
 import { Message as Mail, Danger22 as AlertTriangle, Search, Home, Star3 as Sparkles, Dollar as DollarSign, TimeCircle as Clock } from '@/components/icons'
 import { useAdminMonitoring } from '@/hooks/useAdminMonitoring'
 import { useDeepSeekBalance, useAIUsageSummary, useAIUsageTimeseries } from '@/hooks/useAIBilling'

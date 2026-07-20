@@ -1,0 +1,35 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const ServerConnect2 = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path fillRule="evenodd" clipRule="evenodd" d="M21 9.42439V6.86936C21 5.44201 19.9901 4.54785 18.5608 4.54785H5.43924C4.00995 4.54785 3 5.43812 3 6.86936V9.42439C3 10.8556 4.00995 11.7449 5.43924 11.7449H18.5608C19.9901 11.7449 21 10.8556 21 9.42439Z" stroke="currentColor"></path>
+<path d="M11.2469 8.14746H6.69141" stroke="currentColor"></path>
+<path fillRule="evenodd" clipRule="evenodd" d="M13.6344 17.8162C13.6344 18.7201 12.9018 19.4518 11.9988 19.4518C11.095 19.4518 10.3633 18.7201 10.3633 17.8162C10.3633 16.9133 11.095 16.1807 11.9988 16.1807C12.9018 16.1807 13.6344 16.9133 13.6344 17.8162Z" stroke="currentColor"></path>
+<path d="M18.3521 17.8169H13.6099M10.379 17.8169H5.64648M11.9993 16.1763V11.8223" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+ServerConnect2.displayName = 'ServerConnect2'
+
+export default ServerConnect2

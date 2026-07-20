@@ -1,0 +1,34 @@
+// GÉNÉRÉ (ne pas éditer) — node scripts/iconly-ingest.mjs
+import { forwardRef, type SVGProps } from 'react'
+
+interface Props extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
+  /** Côté du carré de rendu, en px. */
+  size?: number | string
+}
+
+const RightSide = forwardRef<SVGSVGElement, Props>(
+  ({ size = 24, strokeWidth = 2, ...props }, ref) => (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path d="M16.2178 21H7.78313C4.83503 21 3 18.9188 3 15.9736V8.02638C3 5.08119 4.83503 3 7.78411 3H16.2178C19.1659 3 21 5.08119 21 8.02638V15.9736C21 18.9188 19.1572 21 16.2178 21Z" stroke="currentColor"></path>
+<path d="M15.458 21V3" stroke="currentColor"></path>
+<path d="M8.35156 14.6058L11.1557 12.0021L8.35156 9.39844" stroke="currentColor"></path>
+    </svg>
+  ),
+)
+
+RightSide.displayName = 'RightSide'
+
+export default RightSide

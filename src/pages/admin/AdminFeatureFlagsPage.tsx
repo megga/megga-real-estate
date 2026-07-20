@@ -5,7 +5,8 @@
  * Chaque flag est activable globalement ou restreint à certains plans
  * (starter/pro/agency) ; les toggles écrivent directement via `useFeatureFlags`.
  */
-import { ToggleLeft, ToggleRight, Zap } from 'lucide-react'
+import { ToggleLeft, ToggleRight } from 'lucide-react'
+import { Flash3 as Zap } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { useTranslation } from 'react-i18next'

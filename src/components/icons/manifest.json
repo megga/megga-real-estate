@@ -1,6 +1,6 @@
 {
   "style": "Light",
-  "count": 1030,
+  "count": 1440,
   "icons": {
     "Activity": {
       "hash": "f2a4c3ead8a2",
@@ -41,6 +41,14 @@
     "AddUser7": {
       "hash": "d4c02da878d2",
       "source": "Iconly-add-user-1784552553877.svg"
+    },
+    "AiIntent": {
+      "hash": "4a9d22b9bf51",
+      "source": "Iconly-Ai-intent--1784556435559.svg"
+    },
+    "Airplay": {
+      "hash": "06d2c8308e4b",
+      "source": "Iconly-Airplay-1784555825265.svg"
     },
     "AlignBottom": {
       "hash": "89e2c68e7c04",
@@ -90,6 +98,10 @@
       "hash": "5fb8629a636e",
       "source": "Iconly-Align-top-1784545841438.svg"
     },
+    "AndroidStudio": {
+      "hash": "587f508f3547",
+      "source": "Iconly-Android-studio-1784556125574.svg"
+    },
     "Anonymous": {
       "hash": "13b44ce83be3",
       "source": "Iconly-Anonymous-1784552354662.svg"
@@ -105,6 +117,10 @@
     "Anonymous4": {
       "hash": "dac50c171e55",
       "source": "Iconly-Anonymous-1784552354666.svg"
+    },
+    "Archive": {
+      "hash": "aefb2929d457",
+      "source": "Iconly-Archive--1784557120804.svg"
     },
     "ArcsChart": {
       "hash": "b55361173c78",
@@ -350,6 +366,58 @@
       "hash": "f17e27457520",
       "source": "Iconly-Arrow-Up-Square-1784541925037.svg"
     },
+    "AutoBrightness": {
+      "hash": "b35185bd768d",
+      "source": "Iconly-Auto-Brightness-1784556435560.svg"
+    },
+    "AutoFlash": {
+      "hash": "c5905462bea8",
+      "source": "Iconly-Auto-Flash--1784556435561.svg"
+    },
+    "AutofitContentHorizontal": {
+      "hash": "f999556ef5e8",
+      "source": "Iconly-autofit-content-Horizontal-1784557120857.svg"
+    },
+    "AutofitContentHorizontal2": {
+      "hash": "ef5fecbd1d2e",
+      "source": "Iconly-autofit-content-Horizontal-1784557120858.svg"
+    },
+    "AutofitContentVertical": {
+      "hash": "ec1bced57b42",
+      "source": "Iconly-autofit-content-Vertical-1784557120859.svg"
+    },
+    "Backward10s": {
+      "hash": "efed9cf34969",
+      "source": "Iconly-Backward-10s-1784555825267.svg"
+    },
+    "Backward10s2": {
+      "hash": "6b1209214a42",
+      "source": "Iconly-Backward-10s-2-1784555825267.svg"
+    },
+    "Backward15s": {
+      "hash": "0f8bbe009741",
+      "source": "Iconly-Backward-15s-1784555825270.svg"
+    },
+    "Backward15s2": {
+      "hash": "947ffa875e7b",
+      "source": "Iconly-Backward-15s-2-1784555825269.svg"
+    },
+    "Backward30s": {
+      "hash": "9d8df546578b",
+      "source": "Iconly-Backward-30s-1784555825272.svg"
+    },
+    "Backward30s2": {
+      "hash": "b68cb864b577",
+      "source": "Iconly-Backward-30s-2-1784555825271.svg"
+    },
+    "Backward5s": {
+      "hash": "efbf3ff88c07",
+      "source": "Iconly-Backward-5s-1784555825274.svg"
+    },
+    "Backward5s2": {
+      "hash": "7b88f2ac0daf",
+      "source": "Iconly-Backward-5s-2-1784555825273.svg"
+    },
     "Bag": {
       "hash": "54420346be35",
       "source": "Iconly-Bag-1784541886548.svg"
@@ -506,9 +574,33 @@
       "hash": "4e9e8b1fcfa1",
       "source": "Iconly-Bar-chart-Vertical-upward-1784545389450.svg"
     },
+    "BatteryElectric": {
+      "hash": "e4e0d32c88e2",
+      "source": "Iconly-Battery-electric--1784556435562.svg"
+    },
     "BinaryTree": {
       "hash": "a492f608e38c",
       "source": "Iconly-Binary-tree-1784545389455.svg"
+    },
+    "Bolt": {
+      "hash": "77e62730cc6c",
+      "source": "Iconly-Bolt--1784556435563.svg"
+    },
+    "Bolt2": {
+      "hash": "bea3c3c5ddab",
+      "source": "Iconly-Bolt--1784556435564.svg"
+    },
+    "BoltCircle": {
+      "hash": "2b46837f9fb8",
+      "source": "Iconly-Bolt-circle--1784556435566.svg"
+    },
+    "BoltLoading": {
+      "hash": "9744b7ac09fd",
+      "source": "Iconly-Bolt-loading--1784556435567.svg"
+    },
+    "BoltSquare": {
+      "hash": "0115ec4b8578",
+      "source": "Iconly-Bolt-square--1784556435568.svg"
     },
     "Bookmark": {
       "hash": "0a23d0b23e21",
@@ -521,6 +613,34 @@
     "Bookmark3": {
       "hash": "37ce78b1c51d",
       "source": "Iconly-Bookmark-1784541925042.svg"
+    },
+    "Bot": {
+      "hash": "e01d6d000676",
+      "source": "Iconly-Bot-1784556125576.svg"
+    },
+    "Bot2": {
+      "hash": "96102d0be2f3",
+      "source": "Iconly-Bot-1784556125577.svg"
+    },
+    "Bot3": {
+      "hash": "b3c7c9ac21f7",
+      "source": "Iconly-Bot-1784556125578.svg"
+    },
+    "BottomSheetClose": {
+      "hash": "056787ccfaab",
+      "source": "Iconly-Bottom-sheet-close-1784557120808.svg"
+    },
+    "BottomSheetClose2": {
+      "hash": "dc5c8ef7070a",
+      "source": "Iconly-Bottom-sheet-close-1784557120809.svg"
+    },
+    "BottomSheetOpen": {
+      "hash": "733e1c8f3884",
+      "source": "Iconly-Bottom-sheet-Open-1784557120806.svg"
+    },
+    "BottomSheetOpen2": {
+      "hash": "65d260a1ef03",
+      "source": "Iconly-Bottom-sheet-Open-1784557120808.svg"
     },
     "BubbleChart": {
       "hash": "885cdebc32f8",
@@ -694,6 +814,14 @@
       "hash": "21587b1c1bf7",
       "source": "Iconly-Camera-1784541925051.svg"
     },
+    "CameraVideo": {
+      "hash": "b508cdf5ab75",
+      "source": "Iconly-Camera-video-1784555825276.svg"
+    },
+    "CameraVideoClose": {
+      "hash": "cbabefbcee48",
+      "source": "Iconly-Camera-video-close-1784555825275.svg"
+    },
     "CandleChart": {
       "hash": "ddcdc22bbec2",
       "source": "Iconly-Candle-chart-1784545389472.svg"
@@ -749,6 +877,10 @@
     "Category": {
       "hash": "74aa95b28cc5",
       "source": "Iconly-Category-1784541925052.svg"
+    },
+    "ChargeBrightness": {
+      "hash": "219aa5b3ced9",
+      "source": "Iconly-charge-Brightness-1784556435645.svg"
     },
     "CharityCoins": {
       "hash": "b48d1441fbf0",
@@ -890,9 +1022,21 @@
       "hash": "e81ee99f4ae1",
       "source": "Iconly-Chat-1784541925054.svg"
     },
+    "ChatCode": {
+      "hash": "6be72c5b5382",
+      "source": "Iconly-Chat-code-1784556125580.svg"
+    },
+    "ChatCode2": {
+      "hash": "eca8cbca7415",
+      "source": "Iconly-Chat-code-1784556125581.svg"
+    },
     "Church": {
       "hash": "25e6a94b7a31",
       "source": "Iconly-Church-1784540775994.svg"
+    },
+    "Circle": {
+      "hash": "baa1f42e820d",
+      "source": "Iconly-Circle-1784557839985.svg"
     },
     "CircleChart": {
       "hash": "5ed01191854d",
@@ -946,9 +1090,25 @@
       "hash": "597ed489f100",
       "source": "Iconly-circular-chart-1784545389623.svg"
     },
+    "Clap": {
+      "hash": "35c591156179",
+      "source": "Iconly-Clap-1784557427250.svg"
+    },
+    "Clap2": {
+      "hash": "d19da0835b49",
+      "source": "Iconly-Clap-2-1784557427250.svg"
+    },
     "ClipboardCharts": {
       "hash": "a2ae453534f4",
       "source": "Iconly-Clipboard-charts-1784545389507.svg"
+    },
+    "CloseLeftSide": {
+      "hash": "e250a561f217",
+      "source": "Iconly-Close-left-side-1784556125582.svg"
+    },
+    "CloseRightSide": {
+      "hash": "52cfa7599c8e",
+      "source": "Iconly-Close-right-side-1784556125583.svg"
     },
     "CloseSquare": {
       "hash": "69f02bacd2b5",
@@ -973,6 +1133,50 @@
     "CloudShield": {
       "hash": "1c2099198587",
       "source": "Iconly-Cloud-shield-1784552354672.svg"
+    },
+    "Code": {
+      "hash": "ed1a643032ff",
+      "source": "Iconly-Code-1784556125585.svg"
+    },
+    "Code10": {
+      "hash": "d82c69016b88",
+      "source": "Iconly-Code-1784556125597.svg"
+    },
+    "Code2": {
+      "hash": "7d02bcab879e",
+      "source": "Iconly-Code-1784556125586.svg"
+    },
+    "Code3": {
+      "hash": "88a1a38e6bac",
+      "source": "Iconly-Code-1784556125587.svg"
+    },
+    "Code4": {
+      "hash": "d28b7b8e527b",
+      "source": "Iconly-Code-1784556125588.svg"
+    },
+    "Code5": {
+      "hash": "c1158ce0ebc4",
+      "source": "Iconly-Code-1784556125589.svg"
+    },
+    "Code6": {
+      "hash": "814f4088bd2a",
+      "source": "Iconly-Code-1784556125591.svg"
+    },
+    "Code7": {
+      "hash": "9bca885fe99b",
+      "source": "Iconly-Code-1784556125592.svg"
+    },
+    "Code8": {
+      "hash": "96ee3b13cddd",
+      "source": "Iconly-Code-1784556125594.svg"
+    },
+    "Code9": {
+      "hash": "67cb108a469a",
+      "source": "Iconly-Code-1784556125595.svg"
+    },
+    "CodeCloud": {
+      "hash": "8ef942c15299",
+      "source": "Iconly-Code-cloud-1784556125585.svg"
     },
     "CoinSwap": {
       "hash": "0074d28b45a1",
@@ -1006,6 +1210,58 @@
       "hash": "18496316bf5d",
       "source": "Iconly-Column-chart-1784545389506.svg"
     },
+    "Command": {
+      "hash": "4f1e7bdaeaef",
+      "source": "Iconly-Command-1784556125596.svg"
+    },
+    "Command2": {
+      "hash": "e1a58f5331a4",
+      "source": "Iconly-Command-1784556125598.svg"
+    },
+    "CommitGit": {
+      "hash": "bc7e25ecbcbc",
+      "source": "Iconly-Commit-git-1784556125599.svg"
+    },
+    "CommitGit2": {
+      "hash": "3162d624eca2",
+      "source": "Iconly-Commit-git-1784556125600.svg"
+    },
+    "CompareGitDiff": {
+      "hash": "cf3ac30848ca",
+      "source": "Iconly-Compare-git-diff-1784556125601.svg"
+    },
+    "ComputerCode": {
+      "hash": "a83d2ccb3e4a",
+      "source": "Iconly-Computer-code-1784556125602.svg"
+    },
+    "ComputerCode2": {
+      "hash": "3b7d972c9729",
+      "source": "Iconly-Computer-code-1784556125603.svg"
+    },
+    "ConnectedCable": {
+      "hash": "9cbb00d9bc23",
+      "source": "Iconly-Connected-Cable--1784556435569.svg"
+    },
+    "ConnectedCableCircle": {
+      "hash": "5450c6a5eeac",
+      "source": "Iconly-Connected-Cable-circle--1784556435570.svg"
+    },
+    "ConnectedCableSquare": {
+      "hash": "4bbf9f75dd57",
+      "source": "Iconly-Connected-Cable-square--1784556435571.svg"
+    },
+    "ConnectingCable": {
+      "hash": "5f97d40290df",
+      "source": "Iconly-Connecting-Cable--1784556435572.svg"
+    },
+    "ConnectingCableCircle": {
+      "hash": "2b39ddaeb135",
+      "source": "Iconly-Connecting-Cable-circle--1784556435573.svg"
+    },
+    "ConnectingCableSquare": {
+      "hash": "158ee9ebddfc",
+      "source": "Iconly-Connecting-Cable-square--1784556435574.svg"
+    },
     "ConnectionShield": {
       "hash": "afafc85fa064",
       "source": "Iconly-Connection-shield-1784552354673.svg"
@@ -1029,6 +1285,14 @@
     "Contacts4": {
       "hash": "14133c50e1ae",
       "source": "Iconly-contacts-4-1784552553883.svg"
+    },
+    "CutTweezers": {
+      "hash": "ef4e91072a9d",
+      "source": "Iconly-Cut-tweezers-1784555825278.svg"
+    },
+    "CutTweezers2": {
+      "hash": "f2c822d7e8de",
+      "source": "Iconly-Cut-tweezers-2-1784555825277.svg"
     },
     "Danger": {
       "hash": "7990b7effef3",
@@ -1054,6 +1318,14 @@
       "hash": "dfe30efd8bdd",
       "source": "Iconly-Danger-Circle-1784541925057.svg"
     },
+    "DashDown": {
+      "hash": "b43b1e8b79bd",
+      "source": "Iconly-Dash-down-1784555825279.svg"
+    },
+    "DashUp": {
+      "hash": "62c897b20625",
+      "source": "Iconly-Dash-up-1784555825280.svg"
+    },
     "Dashboard1": {
       "hash": "c71584def6c4",
       "source": "Iconly-Dashboard-1-1784545746717.svg"
@@ -1078,6 +1350,110 @@
       "hash": "6a9e5c3e1cfd",
       "source": "Iconly-Dashboard-6-1784545746722.svg"
     },
+    "Database": {
+      "hash": "a88fef36381d",
+      "source": "Iconly-Database-1784556772569.svg"
+    },
+    "Database2": {
+      "hash": "fce292413834",
+      "source": "Iconly-Database-2-1784556772567.svg"
+    },
+    "Database3Level": {
+      "hash": "ece937c0d8b7",
+      "source": "Iconly-Database-3-level-1784556772568.svg"
+    },
+    "DatabaseAdd": {
+      "hash": "f0b7cf0651fc",
+      "source": "Iconly-Database-add-1784556772570.svg"
+    },
+    "DatabaseAntenna": {
+      "hash": "a4120f317688",
+      "source": "Iconly-Database-antenna-1784556772571.svg"
+    },
+    "DatabaseCheck": {
+      "hash": "30b6762ccf7d",
+      "source": "Iconly-Database-check-1784556772572.svg"
+    },
+    "DatabaseCircle": {
+      "hash": "4d2ee97c95dc",
+      "source": "Iconly-Database-circle-1784556772574.svg"
+    },
+    "DatabaseDown": {
+      "hash": "45dc00b62cd6",
+      "source": "Iconly-Database-down-1784556772575.svg"
+    },
+    "DatabaseEdit": {
+      "hash": "78418589c7c9",
+      "source": "Iconly-Database-edit-1784556772576.svg"
+    },
+    "DatabaseError": {
+      "hash": "bc7c63cac22f",
+      "source": "Iconly-Database-error-1784556772578.svg"
+    },
+    "DatabaseHide": {
+      "hash": "7e96da15cfd3",
+      "source": "Iconly-Database-hide-1784556772577.svg"
+    },
+    "DatabaseLock": {
+      "hash": "f39015eaed64",
+      "source": "Iconly-Database-lock-1784556772580.svg"
+    },
+    "DatabaseLove": {
+      "hash": "fe5411c168a4",
+      "source": "Iconly-Database-love-1784556772579.svg"
+    },
+    "DatabasePrivacy": {
+      "hash": "3679e2006dd8",
+      "source": "Iconly-Database-privacy-1784556772581.svg"
+    },
+    "DatabaseQuestion": {
+      "hash": "ae33581acccb",
+      "source": "Iconly-Database-question-1784556772582.svg"
+    },
+    "DatabaseRefresh": {
+      "hash": "fcb863e00dcf",
+      "source": "Iconly-Database-refresh-1784556772584.svg"
+    },
+    "DatabaseRefresh2": {
+      "hash": "14bab363262f",
+      "source": "Iconly-Database-refresh-2-1784556772584.svg"
+    },
+    "DatabaseReload": {
+      "hash": "10b3222886c3",
+      "source": "Iconly-Database-reload-1784556772586.svg"
+    },
+    "DatabaseRemove": {
+      "hash": "aed7100deb5c",
+      "source": "Iconly-Database-remove-1784556772587.svg"
+    },
+    "DatabaseSearch": {
+      "hash": "d2c42c7935a3",
+      "source": "Iconly-Database-search-1784556772588.svg"
+    },
+    "DatabaseServer": {
+      "hash": "58a0956af360",
+      "source": "Iconly-database-server-1784554113719.svg"
+    },
+    "DatabaseSetting": {
+      "hash": "401b694aa3b8",
+      "source": "Iconly-Database-setting-1784556772589.svg"
+    },
+    "DatabaseSquare": {
+      "hash": "fd79e02429a5",
+      "source": "Iconly-Database-square-1784556772590.svg"
+    },
+    "DatabaseStarFavorite": {
+      "hash": "9c53ae3a2287",
+      "source": "Iconly-Database-star-favorite-1784556772591.svg"
+    },
+    "DatabaseSwitch": {
+      "hash": "9770fdf71cad",
+      "source": "Iconly-Database-switch-1784556772592.svg"
+    },
+    "DatabaseUp": {
+      "hash": "afb7dda871f4",
+      "source": "Iconly-Database-up-1784556772593.svg"
+    },
     "Delete": {
       "hash": "a0dba2cc8b74",
       "source": "Iconly-Delete-1784541886566.svg"
@@ -1097,6 +1473,10 @@
     "DigitalKeyDefinition": {
       "hash": "27f232a5e417",
       "source": "Iconly-Digital-key-definition-1784552354676.svg"
+    },
+    "Disallow": {
+      "hash": "5ddc86cc6775",
+      "source": "Iconly-disallow-1784557427252.svg"
     },
     "Discount": {
       "hash": "b33280eb690c",
@@ -1122,6 +1502,10 @@
       "hash": "2a6d5e6521fc",
       "source": "Iconly-Discovery-1784541925061.svg"
     },
+    "DoNotTouch": {
+      "hash": "9ddb14056da5",
+      "source": "Iconly-Do-not-touch-1784557427253.svg"
+    },
     "Document": {
       "hash": "a4728a7962e4",
       "source": "Iconly-Document-1784541886570.svg"
@@ -1145,6 +1529,10 @@
     "DocumentCharts2": {
       "hash": "557fd14aa574",
       "source": "Iconly-Document-charts-1784545389512.svg"
+    },
+    "DocumentCode": {
+      "hash": "2e570dbff8ec",
+      "source": "Iconly-Document-code-1784556125577.svg"
     },
     "DocumentLineChart": {
       "hash": "0f03ea72c51f",
@@ -1274,6 +1662,14 @@
       "hash": "7be87d152a2d",
       "source": "Iconly-Dot-bar-line-chart--1784545389520.svg"
     },
+    "DoubleTap": {
+      "hash": "57755314fdf8",
+      "source": "Iconly-Double-tap-1784557427255.svg"
+    },
+    "DoubleTicket": {
+      "hash": "19714999c09c",
+      "source": "Iconly-Double-ticket-1784555825281.svg"
+    },
     "DownChartAlertBox": {
       "hash": "d6219ebddbeb",
       "source": "Iconly-Down-chart-Alert-box--1784545389521.svg"
@@ -1286,6 +1682,10 @@
       "hash": "63abab6f5deb",
       "source": "Iconly-Down-chart-circle-alert--1784545389523.svg"
     },
+    "DownEnter": {
+      "hash": "ff0b509e09df",
+      "source": "Iconly-Down-Enter-1784557120811.svg"
+    },
     "DownGraphBox": {
       "hash": "cb889a3af4a5",
       "source": "Iconly-Down-graph-box--1784545389524.svg"
@@ -1293,6 +1693,10 @@
     "DownGraphCircle": {
       "hash": "2d748c3402d3",
       "source": "Iconly-Down-graph-circle--1784545389525.svg"
+    },
+    "DownSide": {
+      "hash": "503b62f94ade",
+      "source": "Iconly-Down-side-1784556125605.svg"
     },
     "Download": {
       "hash": "6d8a9b93f9f3",
@@ -1310,6 +1714,18 @@
       "hash": "86f5ff46bf52",
       "source": "Iconly-Download-1784541925064.svg"
     },
+    "Download4": {
+      "hash": "851cdf089fe4",
+      "source": "Iconly-Download-1784557120812.svg"
+    },
+    "Download5": {
+      "hash": "a37062c5ee05",
+      "source": "Iconly-Download-1784557120813.svg"
+    },
+    "Download6": {
+      "hash": "8e10a6d68fe0",
+      "source": "Iconly-Download-1784557120814.svg"
+    },
     "DownwardGraph": {
       "hash": "5af708be823c",
       "source": "Iconly-Downward-graph-1784545389526.svg"
@@ -1317,6 +1733,10 @@
     "DownwardGraph2": {
       "hash": "172b0398116e",
       "source": "Iconly-Downward-graph-1784545389527.svg"
+    },
+    "Drag": {
+      "hash": "f476606ac6c7",
+      "source": "Iconly-Drag-1784557427254.svg"
     },
     "EarthShield": {
       "hash": "0d370e87ccc4",
@@ -1366,6 +1786,14 @@
       "hash": "28459a2f8e2f",
       "source": "Iconly-Edit-Square-1784541925066.svg"
     },
+    "ElectricCharging": {
+      "hash": "8e86c0ffcdef",
+      "source": "Iconly-electric-charging--1784556435646.svg"
+    },
+    "ElectricCharging2": {
+      "hash": "0714b15ccd78",
+      "source": "Iconly-electric-charging--1784556435647.svg"
+    },
     "EmailLock": {
       "hash": "8b24d54c8571",
       "source": "Iconly-Email-lock-1784552354680.svg"
@@ -1381,6 +1809,14 @@
     "EuroSquare": {
       "hash": "30b0b2eb5b3b",
       "source": "Iconly-euro-square-1784546048428.svg"
+    },
+    "Export": {
+      "hash": "430dfe65f257",
+      "source": "Iconly-Export--1784557120815.svg"
+    },
+    "ExternalLink": {
+      "hash": "82209257a20d",
+      "source": "Iconly-External-link-1784557120816.svg"
     },
     "Eye": {
       "hash": "71e5482408aa",
@@ -1421,6 +1857,22 @@
     "FaceIDSucces": {
       "hash": "707c04b06db6",
       "source": "Iconly-Face-ID-succes-1784552354688.svg"
+    },
+    "Film": {
+      "hash": "555ca769aecf",
+      "source": "Iconly-Film-1784555825286.svg"
+    },
+    "Film2": {
+      "hash": "fa8fb6be47fb",
+      "source": "Iconly-Film-2-1784555825282.svg"
+    },
+    "Film3": {
+      "hash": "2d6370cfdd15",
+      "source": "Iconly-Film-3-1784555825284.svg"
+    },
+    "FilmCheck": {
+      "hash": "455c66bc644c",
+      "source": "Iconly-Film-check-1784555825283.svg"
     },
     "Filter": {
       "hash": "80b50e4a58fb",
@@ -1502,6 +1954,10 @@
       "hash": "ffbd22d2ab81",
       "source": "Iconly-Filter-edit-1784545746727.svg"
     },
+    "FilterEffect": {
+      "hash": "4ad522e07566",
+      "source": "Iconly-Filter-effect-1784555825286.svg"
+    },
     "FilterObjects": {
       "hash": "f3c013000abd",
       "source": "Iconly-Filter-objects-1784545746728.svg"
@@ -1534,6 +1990,98 @@
       "hash": "874db7bb6325",
       "source": "Iconly-Fingerprint-scan-1784552354692.svg"
     },
+    "Flash": {
+      "hash": "8599fba03ca0",
+      "source": "Iconly-Flash--1784556435575.svg"
+    },
+    "Flash2": {
+      "hash": "f2039261c9d6",
+      "source": "Iconly-Flash--1784556435576.svg"
+    },
+    "Flash3": {
+      "hash": "86fcfbcca666",
+      "source": "Iconly-Flash--1784556435578.svg"
+    },
+    "Flash4": {
+      "hash": "0804beafdddd",
+      "source": "Iconly-Flash-1784556435592.svg"
+    },
+    "FlashCharge": {
+      "hash": "768d5d00490e",
+      "source": "Iconly-Flash-charge--1784556435579.svg"
+    },
+    "FlashCircle": {
+      "hash": "93e8298cecdb",
+      "source": "Iconly-Flash-circle--1784556435580.svg"
+    },
+    "FlashCircle2": {
+      "hash": "7770a9577e83",
+      "source": "Iconly-Flash-circle--1784556435581.svg"
+    },
+    "FlashCircle3": {
+      "hash": "a11d5b33b473",
+      "source": "Iconly-Flash-circle--1784556435582.svg"
+    },
+    "FlashCircle4": {
+      "hash": "1374a45f790a",
+      "source": "Iconly-Flash-circle--1784556435583.svg"
+    },
+    "FlashCircleDisable": {
+      "hash": "d5ecf53bcfc3",
+      "source": "Iconly-Flash-circle-disable--1784556435584.svg"
+    },
+    "FlashCircleDisable2": {
+      "hash": "a7ebcf87ffd0",
+      "source": "Iconly-Flash-circle-disable--1784556435585.svg"
+    },
+    "FlashDisable": {
+      "hash": "7564cc822fa1",
+      "source": "Iconly-Flash-disable--1784556435586.svg"
+    },
+    "FlashElectric": {
+      "hash": "ff3561534534",
+      "source": "Iconly-Flash-electric--1784556435587.svg"
+    },
+    "FlashFire": {
+      "hash": "3640c66ab026",
+      "source": "Iconly-Flash-fire--1784556435588.svg"
+    },
+    "FlashFire2": {
+      "hash": "bb9f17201f7f",
+      "source": "Iconly-Flash-fire--1784556435589.svg"
+    },
+    "FlashSquare": {
+      "hash": "d0747275600a",
+      "source": "Iconly-Flash-square--1784556435591.svg"
+    },
+    "FlashSquare2": {
+      "hash": "d27a4b5f12a5",
+      "source": "Iconly-Flash-square--1784556435592.svg"
+    },
+    "FlashSquare3": {
+      "hash": "955550740cb0",
+      "source": "Iconly-Flash-square--1784556435593.svg"
+    },
+    "Flashlight": {
+      "hash": "16e23c6cadbc",
+      "source": "Iconly-Flashlight-1784556435595.svg"
+    },
+    "Flashlight2": {
+      "hash": "0161e135072f",
+      "source": "Iconly-Flashlight-1784556435596.svg"
+    },
+    "Flashlight3": {
+      "hash": "c79531bcf345",
+      "source": "Iconly-Flashlight-1784556435597.svg"
+    },
+    "FlickerLeft": {
+      "hash": "dbe04b6056b5",
+      "source": "Iconly-Flicker-left-1784557427256.svg"
+    },
+    "FlickerRight": {
+      "hash": "daea023fca70",
+      "source": "Iconly-Flicker-right-1784557427257.svg"
+    },
     "FlowChart": {
       "hash": "cb974ed0de00",
       "source": "Iconly-Flow-chart--1784545389528.svg"
@@ -1550,13 +2098,61 @@
       "hash": "cd49c5d6cacb",
       "source": "Iconly-Folder-1784541925070.svg"
     },
+    "FolderCode": {
+      "hash": "b9f28b57351a",
+      "source": "Iconly-Folder-code-1784556125605.svg"
+    },
     "FolderLock": {
       "hash": "ea9db7edbca0",
       "source": "Iconly-Folder-lock-1784552354694.svg"
     },
+    "FolderServer": {
+      "hash": "98332bdbd1c9",
+      "source": "Iconly-Folder-server-1784554113720.svg"
+    },
     "FolderShield": {
       "hash": "41e74811ce8d",
       "source": "Iconly-Folder-shield-1784552354693.svg"
+    },
+    "Forefinger": {
+      "hash": "ed3da3c025fb",
+      "source": "Iconly-forefinger-1784557427258.svg"
+    },
+    "Forward10s": {
+      "hash": "13b1a1e0dc7d",
+      "source": "Iconly-Forward-10s-1784555825289.svg"
+    },
+    "Forward10s2": {
+      "hash": "5c95bf2f8fb5",
+      "source": "Iconly-Forward-10s-2-1784555825288.svg"
+    },
+    "Forward15s": {
+      "hash": "c4f4bb5786cb",
+      "source": "Iconly-Forward-15s-1784555825291.svg"
+    },
+    "Forward15s2": {
+      "hash": "fc782ce142fe",
+      "source": "Iconly-Forward-15s-2-1784555825290.svg"
+    },
+    "Forward30s": {
+      "hash": "dc984396b797",
+      "source": "Iconly-Forward-30s-1784555825293.svg"
+    },
+    "Forward30s2": {
+      "hash": "73a310316c3d",
+      "source": "Iconly-Forward-30s-2-1784555825292.svg"
+    },
+    "Forward5s": {
+      "hash": "d0b68053640d",
+      "source": "Iconly-Forward-5s-1784555825295.svg"
+    },
+    "Forward5s2": {
+      "hash": "0fea63807b63",
+      "source": "Iconly-Forward-5s-2-1784555825294.svg"
+    },
+    "FullBrightness": {
+      "hash": "63e984a182c8",
+      "source": "Iconly-Full-Brightness-1784556435598.svg"
     },
     "GalleryView": {
       "hash": "10b8975eedae",
@@ -1589,6 +2185,82 @@
     "Game3": {
       "hash": "b70fb391fd2e",
       "source": "Iconly-Game-1784541925071.svg"
+    },
+    "GifFormat": {
+      "hash": "0249071de2ae",
+      "source": "Iconly-Gif-format-1784555825297.svg"
+    },
+    "GifFormat2": {
+      "hash": "2f472b86c857",
+      "source": "Iconly-Gif-format-2-1784555825296.svg"
+    },
+    "GitBranch": {
+      "hash": "285c0943318b",
+      "source": "Iconly-Git-branch-1784556125607.svg"
+    },
+    "GitBranch2": {
+      "hash": "3626773460e3",
+      "source": "Iconly-Git-branch-1784556125608.svg"
+    },
+    "GitBranch3": {
+      "hash": "f84c028b4b3a",
+      "source": "Iconly-Git-branch-1784556125609.svg"
+    },
+    "GitBranch4": {
+      "hash": "296f87df3fcf",
+      "source": "Iconly-Git-branch-1784556125610.svg"
+    },
+    "GitFork": {
+      "hash": "71dcbd71cf8a",
+      "source": "Iconly-Git-fork-1784556125611.svg"
+    },
+    "GitFork2": {
+      "hash": "f0fb1bada663",
+      "source": "Iconly-Git-fork-1784556125612.svg"
+    },
+    "GitFork3": {
+      "hash": "c75b0197295a",
+      "source": "Iconly-Git-fork-1784556125613.svg"
+    },
+    "GitFork4": {
+      "hash": "ec021fad6f41",
+      "source": "Iconly-Git-fork-1784556125614.svg"
+    },
+    "GitFork5": {
+      "hash": "0290b7d25276",
+      "source": "Iconly-Git-fork-1784556125615.svg"
+    },
+    "GitGithub": {
+      "hash": "e6c77e48e679",
+      "source": "Iconly-Git-github-1784556125617.svg"
+    },
+    "GitGithub2": {
+      "hash": "7c32ef5bced8",
+      "source": "Iconly-Git-github-1784556125618.svg"
+    },
+    "GitMerge": {
+      "hash": "42a49878c258",
+      "source": "Iconly-Git-merge-1784556125619.svg"
+    },
+    "GitPull": {
+      "hash": "997c66846bd7",
+      "source": "Iconly-Git-Pull-1784556125622.svg"
+    },
+    "GitPull2": {
+      "hash": "f3f99e9573fa",
+      "source": "Iconly-Git-Pull-1784556125623.svg"
+    },
+    "GitPull3": {
+      "hash": "8b8c95c07245",
+      "source": "Iconly-Git-Pull-1784556125624.svg"
+    },
+    "GitPullRequest": {
+      "hash": "d13d99988911",
+      "source": "Iconly-Git-Pull-request-1784556125620.svg"
+    },
+    "GitPullRequest2": {
+      "hash": "e14726c22c0f",
+      "source": "Iconly-Git-Pull-request-1784556125621.svg"
     },
     "Golds": {
       "hash": "8ac63f29a009",
@@ -1758,6 +2430,26 @@
       "hash": "49172736466c",
       "source": "Iconly-Grid-interface-tick-1784545841463.svg"
     },
+    "HDDisplay": {
+      "hash": "a99dcff182ba",
+      "source": "Iconly-HD-display-1784555825298.svg"
+    },
+    "HDFormat": {
+      "hash": "3e84d5ce49b5",
+      "source": "Iconly-HD-format-1784555825299.svg"
+    },
+    "HandiCamera": {
+      "hash": "780b24b23bcb",
+      "source": "Iconly-Handi-camera-1784555825301.svg"
+    },
+    "Hashtag": {
+      "hash": "2c5e1fa2415c",
+      "source": "Iconly-Hashtag-1784556125625.svg"
+    },
+    "Hashtag2": {
+      "hash": "640058fad9f7",
+      "source": "Iconly-Hashtag-1784556125626.svg"
+    },
     "Heart": {
       "hash": "e46b57b26bdf",
       "source": "Iconly-Heart-1784541886580.svg"
@@ -1802,6 +2494,10 @@
       "hash": "943d4e954615",
       "source": "Iconly-Histogram-chart--1784545389533.svg"
     },
+    "HoldRecord": {
+      "hash": "160618159f83",
+      "source": "Iconly-Hold-record-1784555825300.svg"
+    },
     "Home": {
       "hash": "989327b24dbf",
       "source": "Iconly-Home-1784541886583.svg"
@@ -1818,6 +2514,14 @@
       "hash": "eca9b1d58c70",
       "source": "Iconly-Home-1784541925075.svg"
     },
+    "HomeElectricity": {
+      "hash": "ebc6f23b02c3",
+      "source": "Iconly-Home-electricity--1784556435600.svg"
+    },
+    "HomeElectricity2": {
+      "hash": "e6fd8dddfb77",
+      "source": "Iconly-Home-electricity--1784556435601.svg"
+    },
     "HomeKey": {
       "hash": "c57d7c1576ad",
       "source": "Iconly-Home-Key-1784552354699.svg"
@@ -1825,6 +2529,10 @@
     "HomeKey2": {
       "hash": "9259d586f929",
       "source": "Iconly-Home-Key-1784552354700.svg"
+    },
+    "HomePower": {
+      "hash": "3c764b0c20fd",
+      "source": "Iconly-Home-Power--1784556435599.svg"
     },
     "HorizontalBarChart": {
       "hash": "f8f1721e2170",
@@ -1841,6 +2549,18 @@
     "HouseLock2": {
       "hash": "311cf74bc681",
       "source": "Iconly-House-lock-1784552354703.svg"
+    },
+    "HugContentHorizontal": {
+      "hash": "2d4ce222e594",
+      "source": "Iconly-Hug-content-Horizontal-1784557120817.svg"
+    },
+    "HugContentHorizontal2": {
+      "hash": "ab18e7ebf1c2",
+      "source": "Iconly-Hug-content-Horizontal-1784557120818.svg"
+    },
+    "HugContentVertical": {
+      "hash": "b63a6538d10c",
+      "source": "Iconly-Hug-content-Vertical-1784557120819.svg"
     },
     "Icon2Users": {
       "hash": "dec3778f7a6c",
@@ -1874,6 +2594,10 @@
       "hash": "164ae6877d8d",
       "source": "Iconly-2-users-1784552553792.svg"
     },
+    "Icon3DVideo": {
+      "hash": "e220c27a014c",
+      "source": "Iconly-3D-video-1784555825262.svg"
+    },
     "Icon3User": {
       "hash": "caba5880740f",
       "source": "Iconly-3-user-1784552553793.svg"
@@ -1881,6 +2605,14 @@
     "Icon3Users": {
       "hash": "500f72022c4e",
       "source": "Iconly-3-users-1784552553795.svg"
+    },
+    "Icon4KDisplay": {
+      "hash": "0e8f3d764703",
+      "source": "Iconly-4K-display-1784555825263.svg"
+    },
+    "Icon4KFormat": {
+      "hash": "b66b985bf8a8",
+      "source": "Iconly-4K-format-1784555825264.svg"
     },
     "Image": {
       "hash": "e4dac4581a6d",
@@ -1906,6 +2638,10 @@
       "hash": "d1881ca3b0a0",
       "source": "Iconly-Image-1784541925077.svg"
     },
+    "Import": {
+      "hash": "f140a577e5e7",
+      "source": "Iconly-Import--1784557120820.svg"
+    },
     "Incognito": {
       "hash": "f735a375d355",
       "source": "Iconly-Incognito-1784552354704.svg"
@@ -1913,6 +2649,10 @@
     "Incognito2": {
       "hash": "bc352e287428",
       "source": "Iconly-Incognito-1784552354705.svg"
+    },
+    "IncreaseBrightness": {
+      "hash": "dbe01e60b41b",
+      "source": "Iconly-Increase-Brightness-1784556435603.svg"
     },
     "InfoCircle": {
       "hash": "79c30868d181",
@@ -1925,6 +2665,10 @@
     "InfoSquare2": {
       "hash": "2aac6026888a",
       "source": "Iconly-Info-Square-1784541925079.svg"
+    },
+    "InternetServer": {
+      "hash": "85d6bb807708",
+      "source": "Iconly-internet-server-1784554113721.svg"
     },
     "IntoUser": {
       "hash": "59fe5d8f5aac",
@@ -1982,9 +2726,93 @@
       "hash": "d109402ceea2",
       "source": "Iconly-Key-setting-1784552354709.svg"
     },
+    "Lamp": {
+      "hash": "1d0502b31bdc",
+      "source": "Iconly-Lamp-1784556435604.svg"
+    },
+    "Lamp10": {
+      "hash": "47b0a2ad9207",
+      "source": "Iconly-Lamp-1784556435613.svg"
+    },
+    "Lamp11": {
+      "hash": "95779c1405d5",
+      "source": "Iconly-Lamp-1784556435614.svg"
+    },
+    "Lamp2": {
+      "hash": "cbe1e8908b1c",
+      "source": "Iconly-Lamp-1784556435605.svg"
+    },
+    "Lamp3": {
+      "hash": "940a7cc1575b",
+      "source": "Iconly-Lamp-1784556435606.svg"
+    },
+    "Lamp4": {
+      "hash": "55d164231011",
+      "source": "Iconly-Lamp-1784556435607.svg"
+    },
+    "Lamp5": {
+      "hash": "44dfb81dceb2",
+      "source": "Iconly-Lamp-1784556435608.svg"
+    },
+    "Lamp6": {
+      "hash": "f4baaec31ef3",
+      "source": "Iconly-Lamp-1784556435609.svg"
+    },
+    "Lamp7": {
+      "hash": "b3771e68e381",
+      "source": "Iconly-Lamp-1784556435610.svg"
+    },
+    "Lamp8": {
+      "hash": "7ebf9fe7e812",
+      "source": "Iconly-Lamp-1784556435611.svg"
+    },
+    "Lamp9": {
+      "hash": "1d6408f0eed8",
+      "source": "Iconly-Lamp-1784556435612.svg"
+    },
+    "Lampshade": {
+      "hash": "bb12f80f9cd8",
+      "source": "Iconly-Lampshade-1784556435615.svg"
+    },
+    "Lampshade2": {
+      "hash": "b93deee73f06",
+      "source": "Iconly-Lampshade-1784556435616.svg"
+    },
     "Leaves": {
       "hash": "fee125e09e7c",
       "source": "Iconly-Leaves-1784552553804.svg"
+    },
+    "LeftEnter": {
+      "hash": "6280872ac2d0",
+      "source": "Iconly-Left-Enter-1784557120821.svg"
+    },
+    "LeftHand": {
+      "hash": "0ef159ebc310",
+      "source": "Iconly-Left-Hand-1784557427260.svg"
+    },
+    "LeftSide": {
+      "hash": "744a53bd435b",
+      "source": "Iconly-Left-side-1784556125627.svg"
+    },
+    "Light": {
+      "hash": "549ee95d5da0",
+      "source": "Iconly-Light-1784556435617.svg"
+    },
+    "Light2": {
+      "hash": "8b8b4a1d051f",
+      "source": "Iconly-Light-1784556435618.svg"
+    },
+    "Light3": {
+      "hash": "d716a676bcf7",
+      "source": "Iconly-Light-1784556435619.svg"
+    },
+    "Light4": {
+      "hash": "44c852def30c",
+      "source": "Iconly-Light-1784556435620.svg"
+    },
+    "Lightbulb": {
+      "hash": "b462da532196",
+      "source": "Iconly-Lightbulb--1784556435621.svg"
     },
     "LineChart": {
       "hash": "357fbabc2bc3",
@@ -2045,6 +2873,38 @@
     "LiraSquare": {
       "hash": "9a23a9d698c7",
       "source": "Iconly-Lira-square-1784546048397.svg"
+    },
+    "LiveTv": {
+      "hash": "91497214ebc7",
+      "source": "Iconly-Live-tv-1784555825302.svg"
+    },
+    "Loading": {
+      "hash": "8533501a5757",
+      "source": "Iconly-Loading-1784556125629.svg"
+    },
+    "LoadingCircle1": {
+      "hash": "9683d7955f92",
+      "source": "Iconly-Loading-circle-1-1784557839986.svg"
+    },
+    "LoadingCircle2": {
+      "hash": "1bb4000295fd",
+      "source": "Iconly-Loading-circle-2-1784557839988.svg"
+    },
+    "LoadingCircle3": {
+      "hash": "00345e2eb89c",
+      "source": "Iconly-Loading-circle-3-1784557839989.svg"
+    },
+    "LoadingCircle4": {
+      "hash": "8dbac355dd61",
+      "source": "Iconly-Loading-circle-4-1784557839990.svg"
+    },
+    "LoadingPlay": {
+      "hash": "fd33a94b6c8d",
+      "source": "Iconly-Loading-play-1784555825305.svg"
+    },
+    "LoadingPlay2": {
+      "hash": "7a1c8cb13b34",
+      "source": "Iconly-Loading-play-2-1784555825304.svg"
     },
     "Location": {
       "hash": "c697ff7cdf23",
@@ -2126,6 +2986,14 @@
       "hash": "2a4c28ed2a12",
       "source": "Iconly-Lock-password-1784552354727.svg"
     },
+    "LogIn4": {
+      "hash": "de90856435de",
+      "source": "Iconly-Log-in--1784557120822.svg"
+    },
+    "LogOut4": {
+      "hash": "57a38896df0f",
+      "source": "Iconly-Log-out--1784557120823.svg"
+    },
     "Login": {
       "hash": "0602bf5109d0",
       "source": "Iconly-Login-1784541886590.svg"
@@ -2141,6 +3009,22 @@
     "Login3": {
       "hash": "3962e0395797",
       "source": "Iconly-Login-1784541925083.svg"
+    },
+    "Login5": {
+      "hash": "40d3b858e2b4",
+      "source": "Iconly-Login--1784557120825.svg"
+    },
+    "Login6": {
+      "hash": "7e662a3c8c36",
+      "source": "Iconly-Login-1784557120826.svg"
+    },
+    "Login7": {
+      "hash": "d8f2926be2ea",
+      "source": "Iconly-Login-1784557120827.svg"
+    },
+    "Login8": {
+      "hash": "023b027e2510",
+      "source": "Iconly-Login-1784557120829.svg"
     },
     "LoginUser": {
       "hash": "7ff3ac3c0998",
@@ -2166,6 +3050,34 @@
       "hash": "56e8f876d256",
       "source": "Iconly-Logout-1784541925084.svg"
     },
+    "Logout5": {
+      "hash": "7cbbe4eb4f0a",
+      "source": "Iconly-Logout--1784557120830.svg"
+    },
+    "Logout6": {
+      "hash": "7cb6a7f998ee",
+      "source": "Iconly-Logout-1784557120831.svg"
+    },
+    "Logout7": {
+      "hash": "9a55907b2f7c",
+      "source": "Iconly-Logout-1784557120832.svg"
+    },
+    "Logout8": {
+      "hash": "c721f957f3cf",
+      "source": "Iconly-Logout-1784557120833.svg"
+    },
+    "Logout9": {
+      "hash": "1cdba6e6b5dc",
+      "source": "Iconly-Logout-1784557120834.svg"
+    },
+    "LowBrightness": {
+      "hash": "533f398d383f",
+      "source": "Iconly-Low-Brightness-1784556435622.svg"
+    },
+    "MediumBrightness": {
+      "hash": "ea71abb8147b",
+      "source": "Iconly-Medium-Brightness-1784556435623.svg"
+    },
     "Menu1": {
       "hash": "6f3f79a0f6c3",
       "source": "Iconly-Menu-1-1784545746744.svg"
@@ -2177,6 +3089,22 @@
     "Menu3": {
       "hash": "0ef3111aadf9",
       "source": "Iconly-Menu-3-1784545746746.svg"
+    },
+    "MenuCloseLeft": {
+      "hash": "160413aa8cf0",
+      "source": "Iconly-Menu-close-left--1784557120835.svg"
+    },
+    "MenuCloseLeft2": {
+      "hash": "a17a0d1cc1e9",
+      "source": "Iconly-Menu-close-left--1784557120837.svg"
+    },
+    "MenuOpenRight": {
+      "hash": "28a4fc28f34d",
+      "source": "Iconly-Menu-open-right--1784557120836.svg"
+    },
+    "MenuOpenRight2": {
+      "hash": "03df7e139cc2",
+      "source": "Iconly-Menu-open-right--1784557120838.svg"
     },
     "Message": {
       "hash": "fc81aef00000",
@@ -2350,6 +3278,38 @@
       "hash": "02a119b7e90e",
       "source": "Iconly-More-Square-1784541925088.svg"
     },
+    "Movie": {
+      "hash": "89df64d00758",
+      "source": "Iconly-Movie-1784555825311.svg"
+    },
+    "Movie2": {
+      "hash": "91c8cdce660f",
+      "source": "Iconly-Movie-2-1784555825305.svg"
+    },
+    "MovieAdd": {
+      "hash": "b4cd08862f2b",
+      "source": "Iconly-Movie-add-1784555825307.svg"
+    },
+    "MovieClose": {
+      "hash": "e7a588f39209",
+      "source": "Iconly-Movie-close-1784555825308.svg"
+    },
+    "MovieReel": {
+      "hash": "928d4709e2ef",
+      "source": "Iconly-movie-reel-1784555825353.svg"
+    },
+    "MovieReel2": {
+      "hash": "28a0ff895e4e",
+      "source": "Iconly-movie-reel-2-1784555825352.svg"
+    },
+    "MovieStar": {
+      "hash": "f53fa7198330",
+      "source": "Iconly-Movie-star-1784555825309.svg"
+    },
+    "MovieTime": {
+      "hash": "f2171e452321",
+      "source": "Iconly-Movie-time-1784555825310.svg"
+    },
     "MultiChart": {
       "hash": "9fb2bf965f46",
       "source": "Iconly-Multi-chart-1784545389554.svg"
@@ -2377,6 +3337,10 @@
     "Multitasking4": {
       "hash": "939f83d13db9",
       "source": "Iconly-multitasking-1784545841493.svg"
+    },
+    "NightBrightness": {
+      "hash": "d167d0a63f21",
+      "source": "Iconly-Night-Brightness-1784556435624.svg"
     },
     "NoFilter": {
       "hash": "6a48fae10379",
@@ -2425,6 +3389,10 @@
     "OutUser3": {
       "hash": "97d2a9bd6299",
       "source": "Iconly-Out-user-1784552553809.svg"
+    },
+    "Palm": {
+      "hash": "b91891d1580a",
+      "source": "Iconly-Palm-1784557427261.svg"
     },
     "Paper": {
       "hash": "8cdf77d04c46",
@@ -2586,6 +3554,10 @@
       "hash": "1b9674c2936d",
       "source": "Iconly-Phone-shield-1784552354753.svg"
     },
+    "PictureInPicture": {
+      "hash": "0f17ce302b81",
+      "source": "Iconly-Picture-in-picture-1784555825312.svg"
+    },
     "PieChart": {
       "hash": "d4586c42a84a",
       "source": "Iconly-pie-chart-1784545389626.svg"
@@ -2634,6 +3606,22 @@
       "hash": "171bbd53c7e0",
       "source": "Iconly-Plus-1784541925100.svg"
     },
+    "PointingDown": {
+      "hash": "537a2e22a537",
+      "source": "Iconly-Pointing-down-1784557427262.svg"
+    },
+    "PointingLeft": {
+      "hash": "a1a505bda4e9",
+      "source": "Iconly-Pointing-left-1784557427263.svg"
+    },
+    "PointingRight": {
+      "hash": "20df917992b7",
+      "source": "Iconly-Pointing-right-1784557427264.svg"
+    },
+    "PointingUp": {
+      "hash": "7928ad1f44d1",
+      "source": "Iconly-Pointing-up-1784557427265.svg"
+    },
     "PolarGrid": {
       "hash": "3a20bc149d23",
       "source": "Iconly-Polar-grid-1784545389558.svg"
@@ -2661,6 +3649,86 @@
     "PoundSquare": {
       "hash": "3968f7ea2f40",
       "source": "Iconly-pound-square-1784546048433.svg"
+    },
+    "PowerButton": {
+      "hash": "f622e10308f3",
+      "source": "Iconly-Power-button-1784556125630.svg"
+    },
+    "PowerButton2": {
+      "hash": "fed2f9f8c964",
+      "source": "Iconly-Power-button-1784556125631.svg"
+    },
+    "PowerCharge": {
+      "hash": "277192cdbfad",
+      "source": "Iconly-Power-charge--1784556435626.svg"
+    },
+    "PowerEnergy": {
+      "hash": "695ed70954e1",
+      "source": "Iconly-Power-energy-1784556435627.svg"
+    },
+    "PowerEnergy2": {
+      "hash": "db795b70bdb4",
+      "source": "Iconly-Power-energy-1784556435628.svg"
+    },
+    "PowerOutlet": {
+      "hash": "f1a881019ee0",
+      "source": "Iconly-Power-outlet-1784556435639.svg"
+    },
+    "PowerOutlet2": {
+      "hash": "4881bf956903",
+      "source": "Iconly-Power-outlet-1784556435640.svg"
+    },
+    "PowerOutlet22": {
+      "hash": "507e2b3c29fa",
+      "source": "Iconly-Power-outlet-2-1784556435629.svg"
+    },
+    "PowerOutlet3": {
+      "hash": "f19c0d99772c",
+      "source": "Iconly-Power-outlet-1784556435641.svg"
+    },
+    "PowerOutlet4": {
+      "hash": "8b66d7b1d24d",
+      "source": "Iconly-Power-outlet-1784556435642.svg"
+    },
+    "PowerOutlet5": {
+      "hash": "cfd5cf228836",
+      "source": "Iconly-Power-outlet-1784556435643.svg"
+    },
+    "PowerOutletCharge": {
+      "hash": "76fc2d588a51",
+      "source": "Iconly-Power-outlet-charge-1784556435630.svg"
+    },
+    "PowerOutletCircle": {
+      "hash": "5e989f6e61ae",
+      "source": "Iconly-Power-outlet-circle--1784556435631.svg"
+    },
+    "PowerOutletCircle2": {
+      "hash": "91ad2ef70023",
+      "source": "Iconly-Power-outlet-circle--1784556435632.svg"
+    },
+    "PowerOutletCircle3": {
+      "hash": "bb9166f3a83b",
+      "source": "Iconly-Power-outlet-circle--1784556435633.svg"
+    },
+    "PowerOutletCircle4": {
+      "hash": "2a4457d0a8ad",
+      "source": "Iconly-Power-outlet-circle--1784556435634.svg"
+    },
+    "PowerOutletCircle5": {
+      "hash": "4e3b3e1dfe91",
+      "source": "Iconly-Power-outlet-circle--1784556435635.svg"
+    },
+    "PowerOutletRemove": {
+      "hash": "2877a1dfefb4",
+      "source": "Iconly-Power-outlet-remove-1784556435636.svg"
+    },
+    "PowerOutletSquare": {
+      "hash": "e7569f46e954",
+      "source": "Iconly-Power-outlet-square--1784556435637.svg"
+    },
+    "PowerOutletSquare2": {
+      "hash": "01835d75b327",
+      "source": "Iconly-Power-outlet-square--1784556435638.svg"
     },
     "Preferences": {
       "hash": "26d6501818bc",
@@ -2726,6 +3794,10 @@
       "hash": "df129f4217f2",
       "source": "Iconly-QR-code-1784541924419.svg"
     },
+    "QuestionVideo": {
+      "hash": "6a6007ac68f0",
+      "source": "Iconly-Question-Video-1784555825313.svg"
+    },
     "RadarChart": {
       "hash": "681c1321b98f",
       "source": "Iconly-radar-chart--1784545389637.svg"
@@ -2746,13 +3818,57 @@
       "hash": "70acef0dc554",
       "source": "Iconly-Radar-chart-1784545389563.svg"
     },
+    "Recieve": {
+      "hash": "862c0ee98cdd",
+      "source": "Iconly-Recieve-1784557120839.svg"
+    },
+    "Recieve2": {
+      "hash": "c4913160cf26",
+      "source": "Iconly-Recieve-1784557120840.svg"
+    },
+    "RecordVideo": {
+      "hash": "d428864dab08",
+      "source": "Iconly-Record-video-1784555825314.svg"
+    },
+    "ReduceBrightness": {
+      "hash": "7262a6138362",
+      "source": "Iconly-Reduce-Brightness-1784556435644.svg"
+    },
+    "Reels": {
+      "hash": "f03fac0fb125",
+      "source": "Iconly-Reels-1784555825318.svg"
+    },
+    "Reels2": {
+      "hash": "2664563cd8fb",
+      "source": "Iconly-Reels-2-1784555825315.svg"
+    },
+    "Reels3": {
+      "hash": "62251de8313a",
+      "source": "Iconly-Reels-3-1784555825316.svg"
+    },
+    "ReelsLike": {
+      "hash": "e8baca8fce1e",
+      "source": "Iconly-Reels-like-1784555825317.svg"
+    },
     "RefreshLock": {
       "hash": "458433052a2e",
       "source": "Iconly-Refresh-lock-1784552354756.svg"
     },
+    "RefreshPlayVideo": {
+      "hash": "1e0055450a08",
+      "source": "Iconly-Refresh-play-video-1784555825319.svg"
+    },
     "ReloadLock": {
       "hash": "f22828d856c6",
       "source": "Iconly-Reload-lock-1784552354758.svg"
+    },
+    "ReloadPlayVideo": {
+      "hash": "0c731255e644",
+      "source": "Iconly-Reload-play-video-1784555825320.svg"
+    },
+    "ReloadPlayVideo2": {
+      "hash": "a381aa4e82b3",
+      "source": "Iconly-Reload-play-video-1784555825322.svg"
     },
     "RemoveUser": {
       "hash": "9eee1199dfe8",
@@ -2790,6 +3906,14 @@
       "hash": "28ee7f5c288d",
       "source": "Iconly-Remove-user-1784552553818.svg"
     },
+    "Restart": {
+      "hash": "70892bf11a41",
+      "source": "Iconly-Restart-1784556125632.svg"
+    },
+    "Restart2": {
+      "hash": "7efe72b7b9e7",
+      "source": "Iconly-Restart-1784556125633.svg"
+    },
     "Retry": {
       "hash": "8c97849b6a3f",
       "source": "Iconly-Retry-1784545746749.svg"
@@ -2806,6 +3930,14 @@
       "hash": "067a4256efec",
       "source": "Iconly-rial-square-1784546048436.svg"
     },
+    "RightEnter": {
+      "hash": "24d9103d2bf9",
+      "source": "Iconly-Right-enter-1784557120842.svg"
+    },
+    "RightSide": {
+      "hash": "70ce91ad32b5",
+      "source": "Iconly-Right-side-1784556125634.svg"
+    },
     "Roadmap": {
       "hash": "c0dd317f5c48",
       "source": "Iconly-Roadmap--1784545389564.svg"
@@ -2821,6 +3953,10 @@
     "Roadmap4": {
       "hash": "daeeb9b8cce0",
       "source": "Iconly-Roadmap--1784545389567.svg"
+    },
+    "Rotate3D": {
+      "hash": "f26ce1661253",
+      "source": "Iconly-Rotate-3D-1784555825321.svg"
     },
     "Ruble": {
       "hash": "65f69968770d",
@@ -2906,6 +4042,26 @@
       "hash": "0a88a23b5a68",
       "source": "Iconly-Scanning-load-1784552354768.svg"
     },
+    "ScreemZoomOut": {
+      "hash": "7f8de2d71a1d",
+      "source": "Iconly-Screem-zoom-out-1784555825324.svg"
+    },
+    "ScreemZoomOut2": {
+      "hash": "b4d81f7e1bad",
+      "source": "Iconly-Screem-zoom-out-2-1784555825323.svg"
+    },
+    "ScreenSize": {
+      "hash": "12553387eb43",
+      "source": "Iconly-Screen-Size-1784555825326.svg"
+    },
+    "ScreenSize2": {
+      "hash": "356da42a8271",
+      "source": "Iconly-Screen-Size-2-1784555825327.svg"
+    },
+    "Scroll": {
+      "hash": "8eb5924816d9",
+      "source": "Iconly-Scroll-1784557427266.svg"
+    },
     "Search": {
       "hash": "b1da105c2eea",
       "source": "Iconly-Search-1784541886611.svg"
@@ -2917,6 +4073,10 @@
     "Search3": {
       "hash": "b30ff54e0bc4",
       "source": "Iconly-Search-1784541925104.svg"
+    },
+    "SearchFlash": {
+      "hash": "bbf92a621547",
+      "source": "Iconly-Search-flash--1784556435645.svg"
     },
     "SearchGraphDown": {
       "hash": "9c8791b86c95",
@@ -2965,6 +4125,122 @@
     "Send3": {
       "hash": "013f5721ae35",
       "source": "Iconly-Send-1784541925105.svg"
+    },
+    "Server": {
+      "hash": "aa58df6edc10",
+      "source": "Iconly-Server-1784554113722.svg"
+    },
+    "Server2": {
+      "hash": "4beded8a6b7f",
+      "source": "Iconly-Server-1784554113747.svg"
+    },
+    "Server22": {
+      "hash": "3201ed14e26f",
+      "source": "Iconly-Server-2-1784554113724.svg"
+    },
+    "ServerBlock": {
+      "hash": "2bb574377410",
+      "source": "Iconly-Server-block-1784554113725.svg"
+    },
+    "ServerCharge": {
+      "hash": "d972b4beab0a",
+      "source": "Iconly-Server-charge-1784554113726.svg"
+    },
+    "ServerCloud": {
+      "hash": "568842cc5f47",
+      "source": "Iconly-Server-cloud-1784554113727.svg"
+    },
+    "ServerConnect": {
+      "hash": "895c74884a9e",
+      "source": "Iconly-server-connect-1784554113728.svg"
+    },
+    "ServerConnect2": {
+      "hash": "95e4057c99ba",
+      "source": "Iconly-server-connect-1784554113729.svg"
+    },
+    "ServerConnected": {
+      "hash": "76bf27973f20",
+      "source": "Iconly-Server-connected-1784554113730.svg"
+    },
+    "ServerError": {
+      "hash": "38fdf78a22cf",
+      "source": "Iconly-Server-error-1784554113739.svg"
+    },
+    "ServerPrivacy": {
+      "hash": "265a1a875853",
+      "source": "Iconly-Server-privacy-1784554113731.svg"
+    },
+    "ServerRack": {
+      "hash": "ac260df5a333",
+      "source": "Iconly-server-rack-1784554113737.svg"
+    },
+    "ServerRack2": {
+      "hash": "36fbbdde4bbd",
+      "source": "Iconly-server-rack-2-1784554113748.svg"
+    },
+    "ServerRack4": {
+      "hash": "dc6e1d9fb2b2",
+      "source": "Iconly-server-rack-4-1784554113733.svg"
+    },
+    "ServerRack5": {
+      "hash": "81cbab7545de",
+      "source": "Iconly-server-rack-5-1784554113736.svg"
+    },
+    "ServerRack6": {
+      "hash": "d5234ac98031",
+      "source": "Iconly-server-rack-6-1784554113735.svg"
+    },
+    "ServerRefresh": {
+      "hash": "bbe3131bc171",
+      "source": "Iconly-Server-refresh-1784554113741.svg"
+    },
+    "ServerRefresh2": {
+      "hash": "99b50c2a56c4",
+      "source": "Iconly-Server-refresh-2-1784554113738.svg"
+    },
+    "ServerRefresh3": {
+      "hash": "de200f9d5d81",
+      "source": "Iconly-Server-refresh-3-1784554113735.svg"
+    },
+    "ServerReloud": {
+      "hash": "4ed328a749d4",
+      "source": "Iconly-Server-reloud-1784554113742.svg"
+    },
+    "ServerSearch": {
+      "hash": "6cc520862603",
+      "source": "Iconly-Server-search-1784554113739.svg"
+    },
+    "ServerSetting": {
+      "hash": "e1a711411a7f",
+      "source": "Iconly-Server-setting-1784554113743.svg"
+    },
+    "ServerTransfer": {
+      "hash": "cccbb0b85587",
+      "source": "Iconly-Server-transfer-1784554113744.svg"
+    },
+    "ServerTransfer2": {
+      "hash": "47b2e4ded8f5",
+      "source": "Iconly-Server-transfer-2-1784554113745.svg"
+    },
+    "ServerTree": {
+      "hash": "209f6ab701b2",
+      "source": "Iconly-Server-tree-1784554113746.svg"
+    },
+    "ServersConnect": {
+      "hash": "76e254848553",
+      "source": "Iconly-Servers-connect-1784554113753.svg"
+    },
+    "ServersConnect2": {
+      "hash": "0cc24d035d38",
+      "source": "Iconly-Servers-connect-2-1784554113751.svg"
+    },
+    "ServersConnect3": {
+      "hash": "0d2c4d2eeea8",
+      "source": "Iconly-Servers-connect-3-1784554113750.svg"
+    },
+    "ServersConnect7": {
+      "hash": "1e96c14a63a1",
+      "source": "Iconly-Servers-connect-7-1784554113752.svg"
     },
     "Setting": {
       "hash": "df7607daf420",
@@ -3046,6 +4322,10 @@
       "hash": "d73d9e78733d",
       "source": "Iconly-Share-1784545746771.svg"
     },
+    "Share10": {
+      "hash": "b6f8897a7c14",
+      "source": "Iconly-Share-1784557120847.svg"
+    },
     "Share2": {
       "hash": "24037d8c6c72",
       "source": "Iconly-Share-2-1784545746767.svg"
@@ -3061,6 +4341,22 @@
     "Share5": {
       "hash": "57635eb63e80",
       "source": "Iconly-Share-5-1784545746770.svg"
+    },
+    "Share6": {
+      "hash": "8fbdb60f68b3",
+      "source": "Iconly-Share-1784557120843.svg"
+    },
+    "Share7": {
+      "hash": "a514453bad78",
+      "source": "Iconly-Share-1784557120844.svg"
+    },
+    "Share8": {
+      "hash": "825d60251507",
+      "source": "Iconly-Share-1784557120845.svg"
+    },
+    "Share9": {
+      "hash": "088ac737a311",
+      "source": "Iconly-Share-1784557120846.svg"
     },
     "Shield": {
       "hash": "655dde0cc495",
@@ -3113,6 +4409,14 @@
     "ShieldFlash": {
       "hash": "917a0f959c3e",
       "source": "Iconly-Shield-flash-1784552354779.svg"
+    },
+    "ShieldFlash2": {
+      "hash": "7982e88523d3",
+      "source": "Iconly-Shield-Flash--1784556435647.svg"
+    },
+    "ShieldFlash3": {
+      "hash": "9a54956d466b",
+      "source": "Iconly-Shield-Flash--1784556435648.svg"
     },
     "ShieldHide": {
       "hash": "dd64e09df455",
@@ -3174,6 +4478,22 @@
       "hash": "0178ae1dcc27",
       "source": "Iconly-Show-1784541925110.svg"
     },
+    "SidebarClose": {
+      "hash": "a0a4b22f34a4",
+      "source": "Iconly-Sidebar-close-1784557120850.svg"
+    },
+    "SidebarClose2": {
+      "hash": "d339654b9ca5",
+      "source": "Iconly-Sidebar-close-1784557120851.svg"
+    },
+    "SidebarOpen": {
+      "hash": "321a9cae936a",
+      "source": "Iconly-Sidebar-Open-1784557120848.svg"
+    },
+    "SidebarOpen2": {
+      "hash": "ef99d3c4e66b",
+      "source": "Iconly-Sidebar-Open-1784557120850.svg"
+    },
     "SignOut": {
       "hash": "3160bedf9dfb",
       "source": "Iconly-Sign-out-1784552553819.svg"
@@ -3189,6 +4509,18 @@
     "Size": {
       "hash": "362d7e92a1f9",
       "source": "Iconly-Size-1784545746772.svg"
+    },
+    "SlideLeft": {
+      "hash": "e738e499df20",
+      "source": "Iconly-Slide-left-1784557427268.svg"
+    },
+    "SlideLeft2": {
+      "hash": "4af901a70493",
+      "source": "Iconly-Slide-left-2-1784557427267.svg"
+    },
+    "SlideUp": {
+      "hash": "a3d0a474f37b",
+      "source": "Iconly-Slide-up-1784557427269.svg"
     },
     "SquareChart": {
       "hash": "21a7c0e64356",
@@ -3354,6 +4686,18 @@
       "hash": "7bf3215ef4c0",
       "source": "Iconly-Store-1784540776003.svg"
     },
+    "StoryAdd": {
+      "hash": "41042053485a",
+      "source": "Iconly-Story-add-1784555825328.svg"
+    },
+    "Subtitle": {
+      "hash": "986630c078da",
+      "source": "Iconly-Subtitle-1784555825330.svg"
+    },
+    "SubtitleExplore": {
+      "hash": "3a9b6d86883f",
+      "source": "Iconly-Subtitle-explore-1784555825329.svg"
+    },
     "Support": {
       "hash": "fa38bd77f205",
       "source": "Iconly-Support-1784552354805.svg"
@@ -3369,6 +4713,78 @@
     "Swap3": {
       "hash": "06f41f841fdd",
       "source": "Iconly-Swap-1784541925111.svg"
+    },
+    "Swipe": {
+      "hash": "c7a11934937c",
+      "source": "Iconly-Swipe-1784557427277.svg"
+    },
+    "SwipeDown": {
+      "hash": "470199e784d1",
+      "source": "Iconly-Swipe-down-1784557427270.svg"
+    },
+    "SwipeLeft": {
+      "hash": "5a1447ffd5a8",
+      "source": "Iconly-Swipe-left-1784557427273.svg"
+    },
+    "SwipeLeft2": {
+      "hash": "03aedcbe72bc",
+      "source": "Iconly-Swipe-left-2-1784557427271.svg"
+    },
+    "SwipeLeftRight": {
+      "hash": "33e5727f6e34",
+      "source": "Iconly-Swipe-left-right-1784557427273.svg"
+    },
+    "SwipeRight": {
+      "hash": "3219b74b2d96",
+      "source": "Iconly-Swipe-right-1784557427276.svg"
+    },
+    "SwipeRight2": {
+      "hash": "e173c25c68be",
+      "source": "Iconly-Swipe-right-2-1784557427275.svg"
+    },
+    "SwipeUp": {
+      "hash": "e70899f2fb90",
+      "source": "Iconly-Swipe-up-1784557427277.svg"
+    },
+    "TVStand": {
+      "hash": "7228ef1cf4f6",
+      "source": "Iconly-TV-stand-1784555825331.svg"
+    },
+    "Tap": {
+      "hash": "1056f79818b5",
+      "source": "Iconly-tap-1784557427287.svg"
+    },
+    "TapClick": {
+      "hash": "5586463fed90",
+      "source": "Iconly-tap-click-1784557427280.svg"
+    },
+    "TapHold": {
+      "hash": "42e00739cf15",
+      "source": "Iconly-tap-hold-1784557427281.svg"
+    },
+    "TapLeftHand": {
+      "hash": "dcafe73ba4cc",
+      "source": "Iconly-tap-Left-hand-1784557427279.svg"
+    },
+    "TapMove": {
+      "hash": "4b2718a2c828",
+      "source": "Iconly-Tap-Move-1784557427282.svg"
+    },
+    "TapRefresh": {
+      "hash": "b95e35389d4b",
+      "source": "Iconly-tap-Refresh-1784557427283.svg"
+    },
+    "TapRotate": {
+      "hash": "a0ee1f7481ea",
+      "source": "Iconly-tap-rotate-1784557427285.svg"
+    },
+    "TapRotate2": {
+      "hash": "b87119452bc8",
+      "source": "Iconly-tap-rotate-2-1784557427284.svg"
+    },
+    "TapSwipe": {
+      "hash": "3423d8c3f847",
+      "source": "Iconly-Tap-swipe-1784557427286.svg"
     },
     "Target": {
       "hash": "390b7d647a1e",
@@ -3389,6 +4805,86 @@
     "Temple": {
       "hash": "67f28009adc6",
       "source": "Iconly-Temple-1784540776015.svg"
+    },
+    "Terminal": {
+      "hash": "7ed56957fb4b",
+      "source": "Iconly-Terminal-1784556125636.svg"
+    },
+    "Terminal2": {
+      "hash": "d4438f6aedfb",
+      "source": "Iconly-Terminal-1784556125637.svg"
+    },
+    "TerminalCode": {
+      "hash": "dd357083e6d8",
+      "source": "Iconly-Terminal-code-1784556125635.svg"
+    },
+    "ThumbDislike": {
+      "hash": "9c0da7109cf4",
+      "source": "Iconly-thumb-dislike-1784557427294.svg"
+    },
+    "ThumbDislike2": {
+      "hash": "f32861d92fe4",
+      "source": "Iconly-thumb-dislike-2-1784557427290.svg"
+    },
+    "ThumbDislike3": {
+      "hash": "7ed133c083ed",
+      "source": "Iconly-thumb-dislike-3-1784557427295.svg"
+    },
+    "ThumbDislike4": {
+      "hash": "dfeb59d383e3",
+      "source": "Iconly-thumb-dislike-4-1784557427289.svg"
+    },
+    "ThumbDislike5": {
+      "hash": "ccff58c58f81",
+      "source": "Iconly-thumb-dislike-5-1784557427291.svg"
+    },
+    "ThumbDislikeCircle": {
+      "hash": "a216ef57df0d",
+      "source": "Iconly-thumb-dislike-circle-1784557427293.svg"
+    },
+    "ThumbDislikeSquare": {
+      "hash": "4da7e82898dc",
+      "source": "Iconly-thumb-dislike-square-1784557427292.svg"
+    },
+    "ThumbLike": {
+      "hash": "d84fe76df629",
+      "source": "Iconly-thumb-like-1784557427304.svg"
+    },
+    "ThumbLike2": {
+      "hash": "99e6b816c7a0",
+      "source": "Iconly-thumb-like-2-1784557427296.svg"
+    },
+    "ThumbLike3": {
+      "hash": "09338f705647",
+      "source": "Iconly-thumb-like-3-1784557427297.svg"
+    },
+    "ThumbLike4": {
+      "hash": "89b3d9e5b344",
+      "source": "Iconly-thumb-like-4-1784557427298.svg"
+    },
+    "ThumbLike5": {
+      "hash": "5be5bcb148ef",
+      "source": "Iconly-thumb-like-5-1784557427299.svg"
+    },
+    "ThumbLikeCircle": {
+      "hash": "45edb7a9bac8",
+      "source": "Iconly-thumb-like-circle-1784557427300.svg"
+    },
+    "ThumbLikeDislike1": {
+      "hash": "0797634ba52f",
+      "source": "Iconly-thumb-like-dislike-1-1784557427301.svg"
+    },
+    "ThumbLikeDislike2": {
+      "hash": "5b8c504bf434",
+      "source": "Iconly-thumb-like-dislike-2-1784557427304.svg"
+    },
+    "ThumbLikeSquare": {
+      "hash": "32a60970f686",
+      "source": "Iconly-thumb-like-square-1784557427303.svg"
+    },
+    "Thunderbolt": {
+      "hash": "60572dfe2291",
+      "source": "Iconly-Thunderbolt--1784556435649.svg"
     },
     "TickSquare": {
       "hash": "a2ac6f29909a",
@@ -3461,6 +4957,10 @@
     "Tools2": {
       "hash": "1170abf57f2a",
       "source": "Iconly-Tools-1784545746774.svg"
+    },
+    "TopSide": {
+      "hash": "20b21385e5cb",
+      "source": "Iconly-Top-side-1784556125638.svg"
     },
     "TouchId": {
       "hash": "caa9008d6bf0",
@@ -3566,6 +5066,10 @@
       "hash": "1d0d37dc5dd9",
       "source": "Iconly-trend-Up-graph-box-1784545389641.svg"
     },
+    "Unarchive": {
+      "hash": "c692e567b2f2",
+      "source": "Iconly-Unarchive--1784557120853.svg"
+    },
     "University": {
       "hash": "d2a59506d1a5",
       "source": "Iconly-University-1784540776017.svg"
@@ -3602,6 +5106,10 @@
       "hash": "623ce0949156",
       "source": "Iconly-Up-chart-circle-alert--1784545389589.svg"
     },
+    "UpEnter": {
+      "hash": "c2d1c970421d",
+      "source": "Iconly-Up-Enter-1784557120854.svg"
+    },
     "UpGraphBox": {
       "hash": "9202b226b677",
       "source": "Iconly-Up-graph-box-1784545389591.svg"
@@ -3625,6 +5133,30 @@
     "Upload3": {
       "hash": "58447d7d23bf",
       "source": "Iconly-Upload-1784541925120.svg"
+    },
+    "Upload4": {
+      "hash": "4220af75d490",
+      "source": "Iconly-Upload--1784557120855.svg"
+    },
+    "Upload5": {
+      "hash": "d5739977a373",
+      "source": "Iconly-Upload--1784557120856.svg"
+    },
+    "Upload6": {
+      "hash": "86c373e0e8e8",
+      "source": "Iconly-Upload--1784557120858.svg"
+    },
+    "Upload7": {
+      "hash": "84f331d30f80",
+      "source": "Iconly-Upload-1784557120857.svg"
+    },
+    "Upload8": {
+      "hash": "2cb6e57158ea",
+      "source": "Iconly-Upload-1784557120859.svg"
+    },
+    "Upload9": {
+      "hash": "711152dcde93",
+      "source": "Iconly-Upload-1784557120860.svg"
     },
     "UpwardGraph": {
       "hash": "971b64d70e8f",
@@ -3954,6 +5486,10 @@
       "hash": "94fa4f8ccab5",
       "source": "Iconly-users-group-1784552553904.svg"
     },
+    "VdeoTv": {
+      "hash": "81f0dcb7a967",
+      "source": "Iconly-Vdeo-tv-1784555825332.svg"
+    },
     "VennDiagram": {
       "hash": "5d2d5144df7d",
       "source": "Iconly-Venn-Diagram--1784545389596.svg"
@@ -3985,6 +5521,78 @@
     "Video3": {
       "hash": "b2a2a275a9f6",
       "source": "Iconly-Video-1784541925122.svg"
+    },
+    "VideoBadge": {
+      "hash": "4fd1fd81127d",
+      "source": "Iconly-Video-badge-1784555825334.svg"
+    },
+    "VideoCamera": {
+      "hash": "b61a5348e7b6",
+      "source": "Iconly-Video-camera-1784555825340.svg"
+    },
+    "VideoCamera2": {
+      "hash": "afbe5da63133",
+      "source": "Iconly-Video-camera-2-1784555825335.svg"
+    },
+    "VideoCameraAdd": {
+      "hash": "cbb96087d00a",
+      "source": "Iconly-Video-camera-add-1784555825336.svg"
+    },
+    "VideoCameraDisbale": {
+      "hash": "2ef6ce3bb43a",
+      "source": "Iconly-Video-camera-disbale-1784555825337.svg"
+    },
+    "VideoCameraPlay": {
+      "hash": "2dd2865d8c7c",
+      "source": "Iconly-Video-camera-play-1784555825338.svg"
+    },
+    "VideoChat": {
+      "hash": "9fec1c0e3186",
+      "source": "Iconly-Video-chat-1784555825339.svg"
+    },
+    "VideoCutTrim": {
+      "hash": "0c58ba1e5a89",
+      "source": "Iconly-Video-cut-trim-1784555825342.svg"
+    },
+    "VideoCutTrim2": {
+      "hash": "83e5166e227d",
+      "source": "Iconly-Video-cut-trim-2-1784555825341.svg"
+    },
+    "VideoFolder": {
+      "hash": "41965a8c8cf2",
+      "source": "Iconly-Video-folder-1784555825344.svg"
+    },
+    "VideoLine": {
+      "hash": "35e63c795628",
+      "source": "Iconly-Video-line-1784555825343.svg"
+    },
+    "VideoPlaylist": {
+      "hash": "d3acc46a1a5d",
+      "source": "Iconly-Video-playlist-1784555825346.svg"
+    },
+    "VideoPlaylist2": {
+      "hash": "25520d5fb21a",
+      "source": "Iconly-Video-playlist-2-1784555825345.svg"
+    },
+    "VideoScan": {
+      "hash": "0cebd4323bda",
+      "source": "Iconly-Video-Scan-1784555825333.svg"
+    },
+    "VideoSlideProgress": {
+      "hash": "04297d91264e",
+      "source": "Iconly-Video-slide-progress-1784555825347.svg"
+    },
+    "VideoSlides": {
+      "hash": "f1daca541ad6",
+      "source": "Iconly-Video-slides-1784555825349.svg"
+    },
+    "VideoSlides2": {
+      "hash": "f0251c09034c",
+      "source": "Iconly-Video-slides-2-1784555825348.svg"
+    },
+    "VideoStand": {
+      "hash": "c1bcd9bc207f",
+      "source": "Iconly-Video-stand-1784555825350.svg"
     },
     "Virus": {
       "hash": "9539152fab9c",
@@ -4074,6 +5682,18 @@
       "hash": "e22d9e9874fb",
       "source": "Iconly-waterfall-chart-1784545389650.svg"
     },
+    "WavingHand": {
+      "hash": "65ef7d998993",
+      "source": "Iconly-Waving-hand-1784557427306.svg"
+    },
+    "WebsiteCode": {
+      "hash": "63ea8ee23404",
+      "source": "Iconly-Website-code-1784556125639.svg"
+    },
+    "WebsiteCode2": {
+      "hash": "0d75851fcbc3",
+      "source": "Iconly-Website-code-1784556125641.svg"
+    },
     "WebsiteKey": {
       "hash": "04507766ef28",
       "source": "Iconly-Website-key-1784552354821.svg"
@@ -4085,6 +5705,10 @@
     "WebsiteShield": {
       "hash": "11cce7abb2cd",
       "source": "Iconly-Website-shield-1784552354823.svg"
+    },
+    "WebsiteTerminal": {
+      "hash": "240c844d57d8",
+      "source": "Iconly-Website-terminal-1784556125642.svg"
     },
     "Work": {
       "hash": "9ae12e08d111",
@@ -4121,6 +5745,22 @@
     "YenSquare": {
       "hash": "295873105ae0",
       "source": "Iconly-yen-square-1784546055611.svg"
+    },
+    "ZoomIn": {
+      "hash": "98be346cba08",
+      "source": "Iconly-Zoom-in-1784555825351.svg"
+    },
+    "ZoomIn2": {
+      "hash": "c92eab0fef56",
+      "source": "Iconly-Zoom-in-1784557427307.svg"
+    },
+    "ZoomOut": {
+      "hash": "15b2f29a6206",
+      "source": "Iconly-Zoom-out-1784555825353.svg"
+    },
+    "ZoomOut2": {
+      "hash": "8833ec1b10be",
+      "source": "Iconly-Zoom-out-1784557427308.svg"
     }
   }
 }
