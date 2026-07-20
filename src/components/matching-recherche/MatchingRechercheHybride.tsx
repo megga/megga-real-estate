@@ -123,7 +123,13 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     return { transaction: effTx, cantons, types, budgetMax, budgetMin, city, limitPerTx: 60 }
   }, [trans, tokens, buyer])
 
-  const { data: biens = [], isLoading, isError, refetch } = useMatchingSearch(serverParams)
+  // `isPending` et NON `isLoading` : une query React Query v5 désactivée (gate `enabled`
+  // faux, ex. session pas encore hydratée) reste `isPending` sans jamais être `isLoading`
+  // (query-core : `isLoading = isPending && isFetching`). Se brancher sur `isLoading`
+  // faisait afficher « aucune annonce du marché » — une affirmation sur la base alors
+  // qu'AUCUNE requête n'était partie. Un état vide qui affirme quelque chose sur la DB
+  // doit être gaté sur la query réellement résolue.
+  const { data: biens = [], isPending, isError, refetch } = useMatchingSearch(serverParams)
 
   // ── filtres client (texte libre + jetons pièces/quartier) + scoring ──
   const clientTokens = useMemo(() => tokens.filter((tk) => tk.field === 'rooms' || tk.field === 'text' || tk.field === 'surface'), [tokens])
@@ -326,7 +332,7 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
     ? [{ id: 'pertinence' as const, l: t('recherche.sort.relevance') }, { id: 'recent' as const, l: t('recherche.sort.recent') }, { id: 'price-asc' as const, l: t('recherche.sort.priceAsc') }]
     : [{ id: 'recent' as const, l: t('recherche.sort.recent') }, { id: 'price-asc' as const, l: t('recherche.sort.priceAsc') }, { id: 'price-desc' as const, l: t('recherche.sort.priceDesc') }]
 
-  const ctx: MrhCtx = { sp, surf, dark, ACC, ONACC, line, chipBg, cardSolid: popBg, sel, buyer, toggleSel, onOpen: openBien, onAskAi, animate: !isLoading }
+  const ctx: MrhCtx = { sp, surf, dark, ACC, ONACC, line, chipBg, cardSolid: popBg, sel, buyer, toggleSel, onOpen: openBien, onAskAi, animate: !isPending }
 
   const txLabel = trans === 'vente' ? t('recherche.txSale') : trans === 'location' ? t('recherche.txRent') : ''
   const countText = buyer
@@ -470,11 +476,11 @@ export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'me
       </div>
 
       {/* Résultats — grille OU vue carte (split liste ↔ carte à pins) */}
-      {view === 'map' && !isLoading && !isError && (strict.length + near.length) > 0 ? (
+      {view === 'map' && !isPending && !isError && (strict.length + near.length) > 0 ? (
         <MrhMapView strict={strict} near={near} ctx={ctx} />
       ) : (
         <div className="mrh-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 30px 34px' }}>
-          {isLoading ? (
+          {isPending ? (
             <div style={{ display: 'grid', placeItems: 'center', minHeight: 240, color: sp.sub, fontSize: 14, fontWeight: 600 }}>{t('recherche.loading')}</div>
           ) : isError ? (
             <div style={{ background: surf.card, borderRadius: 20, boxShadow: surf.shadow, border: surf.hairline, padding: '48px 24px', textAlign: 'center', maxWidth: 540, margin: '12px auto 0' }}>
