@@ -138,7 +138,9 @@
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "nearHere": "None within the criteria · nearby listings"
-    }
+    },
+    "slow": "The search is taking unusually long.",
+    "blocked": "The search could not start."
   },
   "sendSheet": {
     "title": "Send to {{name}}",

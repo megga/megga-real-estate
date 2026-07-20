@@ -4,7 +4,9 @@
   "recherche": {
     "countTotal": "su {{total}} in totale",
     "clientFilterScope_one": "Questo filtro testuale si applica solo a {{count}} immobile già caricato, non all'intero mercato.",
-    "clientFilterScope_other": "Questo filtro testuale si applica solo a {{count}} immobili già caricati, non all'intero mercato."
+    "clientFilterScope_other": "Questo filtro testuale si applica solo a {{count}} immobili già caricati, non all'intero mercato.",
+    "slow": "La ricerca sta impiegando un tempo anomalo.",
+    "blocked": "La ricerca non è potuta partire."
   },
   "runMatching": "Avvia matching",
   "running": "Analisi in corso...",
