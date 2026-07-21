@@ -61,6 +61,8 @@ export interface CrmBien {
   title: string
   addr: string
   canton: string
+  /** Ville seule (properties.city) — bonus de proximité du matching fiche deal V4. */
+  city?: string
   price: number | null
   rent?: number | null
   charges: number | null
@@ -92,8 +94,15 @@ export interface CrmDeal {
   value: number
   probability: number
   ownerAgentId: string
-  nextAction: { kind: string; dueAt: string; note: string }
+  /** Prochaine action réelle (prochain reminder pending de la transaction) ;
+   *  null quand aucune relance n'est planifiée — la carte affiche alors le
+   *  gabarit une ligne « Planifier une action » (Pipeline v2). */
+  nextAction: { kind: string; dueAt: string; note: string; reminderId?: string } | null
   risk: 'healthy' | 'at-risk' | 'stalled'
+  /** Deal gagné (transactions.status='completed') — sort du board actif. */
+  won?: boolean
+  /** Deal rangé (transactions.archived_at non NULL) — sort du board, undo possible. */
+  archived?: boolean
   updatedAt: string
 }
 

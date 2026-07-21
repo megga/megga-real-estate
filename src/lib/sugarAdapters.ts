@@ -165,6 +165,45 @@ export function stageIdToTransactionStage(s: StageId): TransactionStage {
   }
 }
 
+// ─── Reminders (Supabase) → CrmDeal.nextAction ─────────────────────────
+// Pipeline v2 : la « prochaine action » d'un deal = son prochain reminder
+// actif (pending/triggered/snoozed, trigger_at le plus proche). `kind` (colonne
+// dédiée, migration 20260721150000) pilote l'icône ; pour les lignes historiques
+// et celles créées par l'automation (sans kind), repli statique type→kind.
+export const REMINDER_KIND_BY_TYPE: Record<string, string> = {
+  follow_up_sent_property: 'match',
+  match_ignored: 'match',
+  post_visit_feedback: 'visit',
+  missing_document: 'kyc',
+  dormant_lead: 'call',
+  deal_stagnant: 'call',
+  price_change: 'note',
+  custom: 'note',
+}
+
+/** Shape minimal d'une ligne `reminders` consommée par le pipeline. */
+export interface PipelineReminderRow {
+  id: string
+  transaction_id: string | null
+  type: string
+  kind: string | null
+  trigger_at: string | null
+  message_template: string | null
+}
+
+/** Ligne reminder → nextAction de CrmDeal. null si pas d'échéance exploitable.
+ *  `note` peut être vide (message_template absent) — l'UI retombe alors sur le
+ *  libellé localisé du kind (t('timeline.kind.*')). */
+export function reminderToNextAction(r: PipelineReminderRow): CrmDeal['nextAction'] {
+  if (!r.trigger_at) return null
+  return {
+    kind: r.kind ?? REMINDER_KIND_BY_TYPE[r.type] ?? 'note',
+    dueAt: r.trigger_at,
+    note: r.message_template?.trim() ?? '',
+    reminderId: r.id,
+  }
+}
+
 // ─── ContactTransaction (Supabase) → CrmDeal (mock UI shape) ───────────
 // Le hook `useContactTransactions(contactId)` renvoie un shape allégé
 // (id, stage, status, prix, updated_at, property). Le mock CrmDeal porte
@@ -174,7 +213,9 @@ export function stageIdToTransactionStage(s: StageId): TransactionStage {
 //   - risk : dérivé du status DB (pas de colonne risk dédiée). Enum réel
 //     transactions.status = {active,on_hold,cancelled,completed} :
 //     on_hold → at-risk, cancelled → stalled, sinon healthy.
-//   - nextAction : placeholder (à brancher quand `tasks` table existe)
+//   - nextAction : null ici — attachée par usePipelineSugar depuis `reminders`
+//     (reminderToNextAction) ; les consommateurs hors pipeline la laissent nulle.
+//   - won/archived : status='completed' / archived_at non NULL (exclusion board)
 //   - bienId : transaction.property?.id (peut être null)
 const STAGE_PROBABILITY: Record<StageId, number> = {
   'new-lead': 5, 'to-qualify': 15, 'searching': 30,
@@ -196,10 +237,12 @@ export function transactionToCrmDeal(
     stage,
     value,
     probability: STAGE_PROBABILITY[stage] ?? 0,
-    ownerAgentId: '',
-    nextAction: { kind: 'note', dueAt: t.updated_at, note: 'Prochaine étape à définir' },
+    ownerAgentId: t.assigned_to ?? '',
+    nextAction: null,
     risk: t.status === 'on_hold' ? 'at-risk' :
           t.status === 'cancelled' ? 'stalled' : 'healthy',
+    won: t.status === 'completed',
+    archived: t.archived_at != null,
     updatedAt: t.updated_at,
   }
 }
@@ -249,6 +292,7 @@ export function propertyToCrmBien(p: Property, ownerContactId: string | null): C
     title: p.title || `${typeMap[p.type] ?? 'Bien'} ${p.city ?? ''}`.trim(),
     addr: [p.address, p.city].filter(Boolean).join(', '),
     canton: p.canton ?? '',
+    city: p.city ?? undefined,
     price: isRental ? null : (p.price || null),
     rent: isRental ? p.price : null,
     charges: p.charges_monthly ?? null,

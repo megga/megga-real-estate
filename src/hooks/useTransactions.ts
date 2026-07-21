@@ -86,6 +86,8 @@ interface CreateTransactionInput {
   assigned_to?: string
   stage?: TransactionStage
   mandate_type?: MandateType
+  /** Valeur du deal saisie à la création (modale Nouveau deal / inline). */
+  price_offered?: number
   notes?: string
 }
 
@@ -180,5 +182,9 @@ export interface ContactTransaction {
   price_offered: number | null
   price_final: number | null
   updated_at: string
+  /** Agent assigné — optionnel : seul le pipeline (usePipelineSugar) le fournit. */
+  assigned_to?: string | null
+  /** Deal rangé hors pipeline — optionnel : seul le pipeline le fournit. */
+  archived_at?: string | null
   property: { title: string; address: string; city: string; price: number; photos: string[] } | null
 }

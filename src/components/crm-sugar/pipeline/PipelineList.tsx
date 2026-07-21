@@ -91,16 +91,20 @@ export function PipelineList({ sp, deals, onOpenDeal }: PipelineListProps) {
               {deal.value ? crmFmtCHF(deal.value) : '—'}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <div style={{
-                width: 22, height: 22, borderRadius: 999, background: sp.cardSubBg,
-                display: 'grid', placeItems: 'center', flexShrink: 0,
-              }}>
-                <MEIcon name={actionIcon(deal.nextAction.kind)} size={10} color={sp.soft} />
-              </div>
-              <span style={{
-                fontSize: 12, color: sp.soft,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>{deal.nextAction.note}</span>
+              {deal.nextAction && (
+                <>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: 999, background: sp.cardSubBg,
+                    display: 'grid', placeItems: 'center', flexShrink: 0,
+                  }}>
+                    <MEIcon name={actionIcon(deal.nextAction.kind)} size={10} color={sp.soft} />
+                  </div>
+                  <span style={{
+                    fontSize: 12, color: sp.soft,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{deal.nextAction.note}</span>
+                </>
+              )}
             </div>
             <span style={{
               justifySelf: 'end',
