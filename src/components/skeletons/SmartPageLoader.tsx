@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
+import BootSplash from '@/components/layout/BootSplash'
 
 /**
  * `<SmartPageLoader>` is the Suspense fallback for the entire app. It uses
@@ -43,6 +44,15 @@ function DefaultLoader() {
 
 export default function SmartPageLoader() {
   const { pathname } = useLocation()
+
+  // Trajet post-connexion (retour de megga.ch/login) : on prolonge l'écran
+  // d'arrivée plutôt que d'ouvrir un spinner nu, sinon le fond blanc réapparaît
+  // le temps de télécharger le chunk AuthCallbackPage. Volontairement HORS du
+  // Suspense ci-dessous et non lazy : un écran d'arrivée qui attendrait son
+  // propre chunk raterait précisément le moment qu'il doit couvrir.
+  if (pathname === '/' || pathname === '/auth/callback') {
+    return <BootSplash />
+  }
 
   const skeleton = (() => {
     // Marketplace listings (highest-traffic public routes)
