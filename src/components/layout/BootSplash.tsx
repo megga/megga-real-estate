@@ -32,9 +32,10 @@ interface Props {
 export default function BootSplash({ className }: Props) {
   return (
     <div className={cn('megga-boot', className)} role="status" aria-live="polite">
-      {/* Halo bas — le dégradé du pied de page vitrine. L'image est servie
-          depuis public/ (22 Ko) : la mettre en data-URI alourdirait l'index.html,
-          qui est sur le chemin critique de TOUT le reste. */}
+      {/* Halo bas — le dégradé du pied de page vitrine, servi depuis public/.
+          Surtout pas en data-URI : il pèse 287 Ko et index.html est sur le
+          chemin critique de tout le reste. En image de fond il ne retarde rien,
+          l'écran peint sans lui. */}
       <div className="megga-boot__glow" />
       {/* Source de vérité du tracé : public/megga-wordmark.svg. Inline (et non
           <img>) pour que le logo soit déjà là à la première frame du jumeau —
