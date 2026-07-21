@@ -16,7 +16,7 @@
 > **Docs détaillés (externalisés pour économiser des tokens) :**
 > - 🧠 Carte système / rouages : [docs/system-map.md](docs/system-map.md)
 > - Schéma DB complet : [docs/schema.md](docs/schema.md)
-> - Pages MVP (42 écrans) : [docs/pages.md](docs/pages.md)
+> - Pages et routes réelles (inventaire, pas spec) : [docs/pages.md](docs/pages.md)
 > - Modules IA (specs Gregory) : [docs/ai-modules.md](docs/ai-modules.md)
 > - Design system patterns (Sugar v2 CRM) : [docs/design-system.md](docs/design-system.md)
 > - Design system Property X (Marketplace — ⚠ ARCHIVÉ, marketplace désactivée) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)

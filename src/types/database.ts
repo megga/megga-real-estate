@@ -5782,6 +5782,36 @@ export type Database = {
           n: number
         }[]
       }
+      search_market_listings: {
+        Args: {
+          p_tx: string
+          p_budget_min?: number
+          p_budget_max?: number
+          p_margin?: number
+          p_cantons?: string[]
+          p_types?: string[]
+          p_min_quality?: number
+          p_limit?: number
+          p_city?: string
+        }
+        Returns: {
+          id: string
+          created_at: string
+        }[]
+      }
+      count_market_listings: {
+        Args: {
+          p_tx: string
+          p_budget_min?: number
+          p_budget_max?: number
+          p_margin?: number
+          p_cantons?: string[]
+          p_types?: string[]
+          p_min_quality?: number
+          p_city?: string
+        }
+        Returns: number
+      }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
       soft_delete_property: { Args: { p_property_id: string }; Returns: boolean }
       pg_database_size_mb: { Args: never; Returns: number }

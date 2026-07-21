@@ -279,7 +279,10 @@
         "visit": "Viewing",
         "offer": "Offer"
       },
-      "nowBadge": "Jetzt"
+      "nowBadge": "Jetzt",
+      "error": {
+        "title": "Daten nicht verfügbar"
+      }
     },
     "relances": {
       "leadsToFollow": "leads to follow up",
@@ -298,12 +301,18 @@
       },
       "dealFallback": "Deal",
       "riskStalled": "Deal stalled",
-      "riskOverdue": "Deadline overdue"
+      "riskOverdue": "Deadline overdue",
+      "error": {
+        "title": "Daten nicht verfügbar"
+      }
     },
     "objectif": {
       "realized": "achieved",
       "realizedNoTarget": "achieved · no target set",
-      "target": "target"
+      "target": "target",
+      "error": {
+        "title": "Daten nicht verfügbar"
+      }
     },
     "pager": {
       "today": "Today",
@@ -485,6 +494,11 @@
         "explainer": "Postponed leads will come back tomorrow; discarded ones are out of the loop.",
         "backToDashboard": "Back to dashboard"
       }
+    },
+    "brief": {
+      "eyebrow": "MEGGA AI · Tagesbriefing",
+      "deepen": "Vertiefen",
+      "deepenQuestion": "Erläutere meine heutigen Prioritäten im Detail und schlage für jede die nächste Aktion vor."
     }
   },
   "analytics": {

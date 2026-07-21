@@ -23,8 +23,12 @@ interface Props {
 export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }: Props) {
   const { t } = useTranslation('matching')
   const { sp, surf, dark, ACC, ONACC, line, chipBg, sel, buyer, toggleSel, onOpen, onAskAi, animate } = ctx
-  // L'entrée « sgFadeUp » ne se joue qu'au 1er affichage (capture au montage).
-  const [doAnim] = useState(() => animate)
+  // L'entrée « sgFadeUp » ne se joue qu'au 1er affichage (capture au montage), et
+  // seulement sur les premières cartes : le délai plafonne à `index 8`, donc au-delà
+  // toutes les suivantes démarreraient leur animation au même instant — à 400 cartes
+  // ça fait ~390 animations simultanées pour un effet que personne ne voit, la carte
+  // étant hors écran.
+  const [doAnim] = useState(() => animate && index < 12)
   const [hov, setHov] = useState(false)
   const photos = useMemo(() => (bien.photos.length ? bien.photos : [null]), [bien.photos])
   const [pi, setPi] = useState(0)

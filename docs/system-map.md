@@ -105,10 +105,27 @@ kyc.megga.ch (magic links KYC publics)        ─┘         ▲
 4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD), plus `SuperAdminGuard` pour l'admin. `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
 QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `networkMode: always`.
 
+**🟪 Arrivée post-connexion** (juil. 2026). La connexion vit sur la vitrine (cf. §4bis) : `megga-auth.js`
+passe les jetons dans le **fragment** d'URL vers `app.megga.ch/auth/callback` (deux origines ⇒ deux
+`localStorage` ; une redirection nue vers `/dashboard` arrive sans session et reboucle — bug du 19.07.2026).
+L'agent traversait ensuite 4 écrans blancs successifs avant le CRM ; ils sont remplacés par **un seul écran**
+aux tokens de la vitrine (fond `#030303`, Inter Tight, barre `#424bfb`, halo bas = le dégradé du pied de page
+vitrine réduit à 22 Ko). Il existe en **deux jumeaux** : `#megga-boot` inline dans `index.html` (peint dès la
+1<sup>re</sup> frame, avant React) et [`BootSplash.tsx`](../src/components/layout/BootSplash.tsx) qui prend le
+relais. ⚠️ Les **styles ne vivent que dans `index.html`** (`<style id="megga-boot-style">`) — le composant React
+n'en réutilise que les classes, et les deux balisages doivent rester identiques sous peine de clignotement.
+Un second temps ([`BootCurtain`](../src/components/layout/BootCurtain.tsx) + `CurtainLift` + le drapeau module
+[`crmEntry.ts`](../src/lib/crmEntry.ts)) tient l'écran **au-dessus** du CRM jusqu'à sa première peinture, pour
+que le squelette `DashboardSkeleton` reste ce qu'il doit être : un état de navigation interne, pas un écran
+d'accueil. ⚠️ Le drapeau est au niveau du **module** et non dans un état React : les routes étant keyées par
+`pathname` (`AnimatedRoutes`), tout l'arbre protégé se remonte à chaque navigation. Cerveau :
+`megga/ecran-arrivee-post-login`.
+
 | Audience | Préfixe | Pages clés |
 |---|---|---|
 | **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
-| **Marketing public** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` `/help*` | pages secondaires + centre d'aide |
+| **Redirections hors app** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` | → vitrine megga.ch (aucune page rendue) |
+| **Centre d'aide** | `/help*` `/aide*` | → `intercom.help/megga/fr` (SPA retirée le 20.07.2026) |
 | ~~Compte visiteur~~ | ~~`/account`~~ | **retiré au pivot CRM-first** — la route redirige vers `/dashboard` |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link) |
 | **Portail vendeur** | `/portal/:token` (+ `/portal` dev) | `VotreVentePage` — page unique « Votre vente » (Sugar Pure, lecture seule) : carte bien + galerie/lightbox, parcours arc 6 étapes, 3 jauges donut, offres (+modal décision), timeline, carte agent WhatsApp |
@@ -147,7 +164,7 @@ court-circuite le trigger) : toute modif de `handle_new_user` se vérifie à la 
 **Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/sentry-test`.
 
 ### Composants (`src/components/`)
-- `propertyx/` — atoms Design System Property X (`Px*` : Button, Badge, Icon, Input, Avatar, Logo… — **source de vérité**, ne pas recréer) + `sections/`.
+- `propertyx/` — **système d'icônes seul** : `MEIcon`, `PxIconFont`, `PxSocialIcon`, `PxWhatsAppButton` + `tokens.ts` (`PX.*`). Les atomes de présentation (PxButton, PxBadge, PxInput, PxAvatar, PxLogo…) et `sections/` ont été retirés avec la marketplace — **ne pas les réintroduire** (cf. CLAUDE.md § Vestiges Property X).
 - `megga-x/` — **MEGGA X**, 2ᵉ design system (port 1:1 Webflow de la vitrine), scopé `.megga-x` parallèle à Sugar : `MeggaX` + 12 wrappers `Mx*`, CSS générée `src/styles/megga-x.generated.css`, route dev `/design-system/megga-x`. Règle **zéro-invention** ; résidus de marques Webflow encore présents dans la CSS/fontes. Cf. `megga/design-megga-x`.
 - `ui/` — primitives headless + Motion (modal, dialog, Sheet, Toast, Shimmer, popover, tabs…).
 - `layout/` — `ProtectedRoute`, `ConsentGate` (gate nLPD), `StaleBundleDetector`, `AgentLayout`, `AgentSugarLayout`.
@@ -175,22 +192,22 @@ FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, setti
 ### Tables par domaine
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`.
 - **Contacts & leads** : `contacts`, `seller_leads`, `contact_scores`.
-- **Biens** : `properties` (internes), `property_scores` (score de bien, RPC `calculate_property_scores`), `listings` (publiées), `market_listings` (marché : **Flatfox=location** ~34k + **RealAdvisor=vente** ~36k), `external_listings` (legacy). Ingestion marché = **2 surfaces séparées** : `flatfox-sync` (location, partenaire sanctionné, cron 04:00) et **`realadvisor-sync`** (vente only, `realadvisor_sync_runs`). RealAdvisor : accès accordé (Gregory), throttle Cloudflare sur les requêtes **filtrées** → détection de disparition par **oracle `id_in` en pg_net** (crons `probe-fire`/`probe-collect` + `probe-sweep`, dry-run) + `fresh` quotidien (national) + trigger `price_reduced`. Cf. brain `realadvisor-ingestion`. **Syndication SORTANTE** (juin 2026) : `property_syndications` (1 ligne par bien×portail, status `queued/published/error/withdrawn`, UNIQUE`(property_id,portal)`, RLS agence) + `agency_syndication_config` (kill-switch `idx_enabled`, token pull, transport `pull`/`ftp`, creds FTP ; write `service_role` seul) — publie les `properties` au format IDX 3.01 sur immobilier.ch. Cf. §5 + brain `megga/syndication-idx`.
+- **Biens** : `properties` (internes ; la publication est un **état de cette table** — `status` + `published_at` — il n'y a pas de table `listings` séparée), `property_scores` (score de bien, RPC `calculate_property_scores`), `market_listings` (marché — 144k lignes / 61k actives au 19 juil. 2026 : **Flatfox=location** 98k dont 35k actives, **RealAdvisor=vente** 46k dont 26k actives, + 27 lignes `megga-demo`). ⚠️ `external_listings` **n'existe plus en base** : seul le type TS `ExternalListing` survit (`useExternalMatching.ts`), et l'écran marché du CRM lit `market_listings`. Ingestion marché = **2 surfaces séparées** : `flatfox-sync` (location, partenaire sanctionné, cron 04:00) et **`realadvisor-sync`** (vente only, `realadvisor_sync_runs`). RealAdvisor : accès accordé (Gregory), throttle Cloudflare sur les requêtes **filtrées** → détection de disparition par **oracle `id_in` en pg_net** (crons `probe-fire`/`probe-collect` + `probe-sweep`, dry-run) + `fresh` quotidien (national) + trigger `price_reduced`. Cf. brain `realadvisor-ingestion`. **Syndication SORTANTE** (juin 2026) : `property_syndications` (1 ligne par bien×portail, status `queued/published/error/withdrawn`, UNIQUE`(property_id,portal)`, RLS agence) + `agency_syndication_config` (kill-switch `idx_enabled`, token pull, transport `pull`/`ftp`, creds FTP ; write `service_role` seul) — publie les `properties` au format IDX 3.01 sur immobilier.ch. Cf. §5 + brain `megga/syndication-idx`.
 - **Pipeline & transactions** : `transactions` (stages lead→…→closed), `crm_offers` (offres/contre-offres ; historique via `parent_offer_id` + audit `activity_events`, pas de table `crm_offers_history`), `visits`, `client_searches`, `matches`.
 - **KYC / compliance** : `kyc_cases`, `kyc_checklist_items`, `kyc_magic_links` + `kyc_magic_link_uploads`, `kyc_screening_decisions`, `documents` (sha256, retention).
-- **Portail vendeur** : `seller_portals` (token 6 mois), `vendor_dossiers`.
+- **Portail vendeur** : `seller_portals` (token 6 mois) + `seller_preferences`. Le portail est **stateless** — il n'a pas de table à lui : tout passe par l'edge function `seller-portal-action` authentifiée au token, qui lit `properties`, `transactions`, `crm_offers`, `visits`, `seller_leads`, `profiles` et journalise dans `activity_events`. ⚠️ `vendor_dossiers` **n'existe pas en base**.
 - **Billing** : `subscriptions` (Stripe).
-- **Messaging** : `message_threads`, `messages`, `email_messages_cache`, `message_templates`, `marketplace_inquiries`.
-- **Favoris/alertes** : `market_favorites`, `market_alerts`, `saved_searches`, `newsletter_subscribers`.
-- **Audit & monitoring** : `activity_events` (immutable, `actor_kind` user/system/ai), `auth_events`, `ticket_events`, `platform_metrics`, `flatfox_sync_runs`.
+- **Messaging** : le canal réel du CRM est **WhatsApp** — 14 tables `whatsapp_*` (`whatsapp_messages` journal, `whatsapp_agent_links` + `agency_wa_numbers` appairage numéro↔agent, `whatsapp_conversation_insights`, `whatsapp_pending_actions`, `whatsapp_confirmation_log`, `whatsapp_followup_suggestions`, `whatsapp_daily_briefs`, `whatsapp_notices`, `whatsapp_message_corrections`, `whatsapp_rejected_drafts`, `whatsapp_recent_auto_actions`, `whatsapp_tool_usage`, `whatsapp_async_jobs`, `whatsapp_cron_locks`) · `message_templates` · `contact_messages` (formulaire vitrine ; anon fermé juil. 2026). ⚠️ `message_threads`, `messages`, `email_messages_cache` (système Messages maison du CRM agent) et `marketplace_inquiries` **n'existent plus en base**.
+- **Favoris/alertes acheteur** : ❌ **plus rien en base** — `market_favorites`, `market_alerts`, `saved_searches` et `newsletter_subscribers` sont partis avec la marketplace publique. Les recherches côté CRM vivent dans `client_searches` (cf. Pipeline).
+- **Audit & monitoring** : `activity_events` (immutable, `actor_kind` user/system/ai), `auth_events`, `platform_metrics`, `flatfox_sync_runs`, `realadvisor_sync_runs`. ⚠️ `ticket_events` **n'existe plus** (parti avec le support maison, cf. Support).
 - **Admin** : `admin_feature_flags`, `admin_nps_responses`, `admin_notes`, `admin_changelog` · `user_consents` (preuves nLPD immuables user×type×version, INSERT via RPC `record_consent` seule) · `profiles.is_suspended` (miroir du ban GoTrue, écriture service/definer) · `ai_usage_logs.agency_id/module` (attribution coûts IA, historique NULL = « Plateforme »).
-- **Support** : `support_tickets`, `ticket_messages`, `ticket_canned_responses`, `chat_conversations`, `chat_messages` — ⚠️ **DORMANTES** depuis le passage à Intercom (support maison décommissionné ; tables conservées, réversibles ; `admin-monitoring` lit encore `open_tickets`→0). Cf. brain `intercom-support`.
-- **IA** : `ai_usage_logs`, `ai_balance_snapshots`, `ai_photo_labels`, `ai_generated_photos`, `translation_cache`, `ai_copilot_conversations` (persistance copilote web OPTIONNELLE double-gatée — flag `app_config.copilot_persistence_enabled` + `persist:true` client ; RLS owner-scoped ; cf. brain `megga/copilot-persistence`).
+- **Support** : `support_tickets` **seule survivante** (vide ; `admin-monitoring` lit encore `open_tickets`→0), dormante depuis le passage à Intercom. ⚠️ `ticket_messages`, `ticket_canned_responses`, `chat_conversations`, `chat_messages` et `ticket_events` ont été **supprimées de la base** : le support maison n'est pas « réversible », le rebrancher voudrait dire le reconstruire. Cf. brain `intercom-support`.
+- **IA** : `ai_usage_logs`, `ai_balance_snapshots`, `translation_cache`, `ai_copilot_conversations` (persistance copilote web OPTIONNELLE double-gatée — flag `app_config.copilot_persistence_enabled` + `persist:true` client ; RLS owner-scoped ; cf. brain `megga/copilot-persistence`). ⚠️ Les photos IA ne sont **pas des tables** mais des **colonnes de `properties`** : `photo_tags` (là où l'ancienne doc annonçait `ai_photo_labels`) et `ai_generated_photos` (colonne, pas table homonyme), à côté de `photos` / `photos_cf` / `photos_cf_processed_at` (R2). `photo-vision` et le virtual staging écrivent dans `properties`.
 
 ### RLS (modèle agency-first)
 - **Agents** : visibilité `WHERE agency_id IN (SELECT agency_id FROM profiles WHERE id = auth.uid())`.
-- **Anon (marketplace)** : `market_listings` → `SELECT WHERE status='active'` ; `marketplace_inquiries` / `newsletter_subscribers` → INSERT only.
-- **Acheteur authentifié** : ses `message_threads` (`buyer_user_id = auth.uid()`), favoris.
+- **Anon (ex-marketplace)** : plus aucune lecture publique d'annonces — `market_listings` et `market_price_history` révoqués pour `anon` (migration `20260719110000`), `contact_messages` fermé (`20260719100000`). Subsiste `seller_leads_anon_insert` (INSERT seul, borné `assigned_agency_id IS NULL` + `status='new'`), **sans écrivain** depuis la suppression du storefront (juil. 2026). Accès anon restants, hors marketplace : `article_views` / `article_feedback` → INSERT, `translation_cache` → SELECT.
+- **Acheteur authentifié** : réduit à une seule surface — `visits_select_by_buyer_email` (SELECT sur `visits` où `lower(buyer_email) = lower(auth.jwt()->>'email')`). Les `message_threads` et les tables de favoris qui portaient ce rôle n'existent plus.
 - **Vendeur** : via `seller_portals.token` (stateless, pas d'auth.users) → READ property/transaction, UPLOAD documents.
 - **service_role** (edge functions) : full access ; triggers écrivent `activity_events` (`actor_kind='system'`).
 - **super_admin** : silo séparé sur `admin_*` + impersonate audité (audit-first, RPC serveur). Depuis 20260705160000, `is_super_admin()` exige rôle **ET** email allowlisté en dur (lu dans `auth.users` — jamais `profiles.email`, auto-modifiable) : un rôle posé hors allowlist ne débloque rien.
@@ -358,7 +375,7 @@ Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA — ac
 |---|---|
 | [CLAUDE.md](../CLAUDE.md) | Source de vérité : règles, conventions, design, perf, état d'implémentation |
 | [schema.md](schema.md) | Schéma DB complet |
-| [pages.md](pages.md) | 42 écrans MVP |
+| [pages.md](pages.md) | Inventaire réel des pages et routes (dérivé de `src/App.tsx`) |
 | [ai-modules.md](ai-modules.md) | Specs modules IA |
 | [design-system.md](design-system.md) / [design-system-propertyx.md](design-system-propertyx.md) | Design systems CRM / marketplace |
 | [roadmap.md](roadmap.md) · [backlog.md](backlog.md) · [CHANGELOG.md](CHANGELOG.md) | Planning & historique |

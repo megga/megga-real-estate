@@ -22,3 +22,5 @@
 /user-pages/sign-up.html  /signup           301
 /user-pages/sign-in       /login            301
 /user-pages/sign-in.html  /login            301
+/integration-docusign      /integrations.html   301
+/integration-docusign.html /integrations.html  301

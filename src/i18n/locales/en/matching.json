@@ -17,6 +17,9 @@
     "countBuyer_other": "{{count}} listings{{tx}} in {{name}}'s criteria",
     "countMarket_one": "{{count}} listing{{tx}} on the connected market",
     "countMarket_other": "{{count}} listings{{tx}} on the connected market",
+    "countTotal": "out of {{total}} in total",
+    "clientFilterScope_one": "This text filter only applies to the {{count}} listing already loaded, not to the whole market.",
+    "clientFilterScope_other": "This text filter only applies to the {{count}} listings already loaded, not to the whole market.",
     "trans": {
       "group": "Filter by transaction",
       "all": "All",
@@ -135,7 +138,9 @@
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "nearHere": "None within the criteria · nearby listings"
-    }
+    },
+    "slow": "The search is taking unusually long.",
+    "blocked": "The search could not start."
   },
   "sendSheet": {
     "title": "Send to {{name}}",

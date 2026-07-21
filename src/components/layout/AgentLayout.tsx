@@ -18,7 +18,6 @@ import Breadcrumb from '@/components/layout/Breadcrumb'
 import NewContactDialog from '@/components/contacts/NewContactDialog'
 import BottomTabBar from '@/components/layout/BottomTabBar'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
-import NpsSurvey from '@/components/feedback/NpsSurvey'
 
 /** Corps du layout (à l'intérieur des providers) : gère l'état du chrome et les raccourcis globaux. */
 function AgentLayoutInner() {
@@ -61,7 +60,6 @@ function AgentLayoutInner() {
       <div className="min-h-[100dvh] bg-theme-section">
         <ImpersonateBanner />
         <Outlet />
-        <NpsSurvey />
       </div>
     )
   }
@@ -112,9 +110,6 @@ function AgentLayoutInner() {
 
       {/* Mobile bottom tab bar */}
       <BottomTabBar />
-
-      {/* NPS satisfaction survey (floating, bottom-right) */}
-      <NpsSurvey />
     </div>
   )
 }
