@@ -16,7 +16,7 @@
 // Réf. handoff : `crm-screen-matching-proto.jsx` (CRMScreenMatchingProto).
 
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
@@ -148,11 +148,20 @@ export default function MatchingPagerPage() {
   }
 
   // ─── Pager molette ──────────────────────────────────────────────────
-  const [page, setPage] = useState(LANDING_PAGE)
+  // Arrivée pivotée (fiche deal V4 « Transmettre à … », fiche contact) : un
+  // `?contact=` / `?annonce=` cible l'Atelier — on atterrit directement dessus
+  // au lieu de la page Recherche (le param était ignoré et l'atelier hors écran).
+  const [searchParams] = useSearchParams()
+  const [initialPage] = useState(() =>
+    searchParams.has('contact') || searchParams.has('annonce')
+      ? Math.max(0, MATCHING_PAGES.findIndex((pg) => pg.id === 'score'))
+      : LANDING_PAGE,
+  )
+  const [page, setPage] = useState(initialPage)
   // `pageRef` sert au positionnement initial SANS animation (useLayoutEffect plus
   // bas) : il doit démarrer sur la page d'atterrissage, sinon on verrait l'Atelier
   // une frame avant de glisser vers Recherche.
-  const pageRef = useRef(LANDING_PAGE)
+  const pageRef = useRef(initialPage)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)

@@ -286,7 +286,30 @@
       "lost": "Deal marked as lost",
       "offer_sent": "Offer sent",
       "counter_sent": "Counter-offer sent"
-    }
+    },
+    "buyer_eyebrow": "The buyer",
+    "affair_eyebrow": "The deal",
+    "next_action": "Next action",
+    "matches_title": "Properties to propose",
+    "matches_count_one": "{{count}} match",
+    "matches_count_other": "{{count}} matches",
+    "no_matches": "No portfolio property matches yet.",
+    "transmit": "Send to {{name}}",
+    "open_contact": "Open the contact profile",
+    "phone": "Phone",
+    "lang": {
+      "fr": "French",
+      "en": "English",
+      "de": "German",
+      "it": "Italian"
+    },
+    "crit": {
+      "buy": "Purchase",
+      "rent": "Rental",
+      "rooms_min": "≥ {{count}} rooms",
+      "budget_max": "≤ {{amount}}"
+    },
+    "property_line": "{{addr}} · {{area}} m² · {{rooms}} rooms"
   },
   "offerModal": {
     "cta": {

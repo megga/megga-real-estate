@@ -222,7 +222,7 @@
     "buyer": "Buyer",
     "view_full_profile": "View full profile",
     "call": "Call",
-    "email": "Email",
+    "email": "E-mail",
     "message": "Message",
     "capacity": "Budget",
     "purchase_probability": "{{value}}% purchase probability",
@@ -286,7 +286,30 @@
       "lost": "Trattativa segnata come persa",
       "offer_sent": "Offerta inviata",
       "counter_sent": "Controfferta inviata"
-    }
+    },
+    "buyer_eyebrow": "L'acquirente",
+    "affair_eyebrow": "L'affare",
+    "next_action": "Prossima azione",
+    "matches_title": "Immobili da proporre",
+    "matches_count_one": "{{count}} match",
+    "matches_count_other": "{{count}} match",
+    "no_matches": "Nessun immobile del portafoglio corrisponde ancora.",
+    "transmit": "Invia a {{name}}",
+    "open_contact": "Apri la scheda contatto",
+    "phone": "Telefono",
+    "lang": {
+      "fr": "Francese",
+      "en": "Inglese",
+      "de": "Tedesco",
+      "it": "Italiano"
+    },
+    "crit": {
+      "buy": "Acquisto",
+      "rent": "Affitto",
+      "rooms_min": "≥ {{count}} locali",
+      "budget_max": "≤ {{amount}}"
+    },
+    "property_line": "{{addr}} · {{area}} m² · {{rooms}} locali"
   },
   "offerModal": {
     "cta": {

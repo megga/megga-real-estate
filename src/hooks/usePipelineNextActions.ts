@@ -8,9 +8,34 @@
  */
 
 import { useCallback } from 'react'
-import { useInsertMutation, useUpdateMutation } from '@supabase-cache-helpers/postgrest-react-query'
+import {
+  useQuery,
+  useInsertMutation,
+  useUpdateMutation,
+} from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { reminderToNextAction, type PipelineReminderRow } from '@/lib/sugarAdapters'
+
+/** Prochain reminder actif d'une transaction (bloc « Prochaine action » de la
+ *  fiche deal V4). null si aucune relance planifiée. */
+export function useTransactionNextReminder(transactionId: string | undefined) {
+  const result = useQuery(
+    supabase
+      .from('reminders')
+      .select('id, transaction_id, type, kind, trigger_at, message_template')
+      .eq('transaction_id', transactionId ?? '00000000-0000-0000-0000-000000000000')
+      .in('status', ['pending', 'triggered', 'snoozed'])
+      .order('trigger_at', { ascending: true })
+      .limit(1),
+    { enabled: !!transactionId, staleTime: 30_000 },
+  )
+  const row = ((result.data ?? []) as unknown as PipelineReminderRow[])[0]
+  return {
+    nextAction: row ? reminderToNextAction(row) : null,
+    isLoading: result.isLoading,
+  }
+}
 
 /** Replanifie l'échéance d'un reminder (poignée de la vue Timeline) : jour
  *  choisi par le drag, heure d'origine conservée par l'appelant. Repasse le
