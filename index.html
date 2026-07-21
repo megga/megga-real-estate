@@ -96,12 +96,16 @@
 
       /* Halo bas — le dégradé du pied de page vitrine (`.colors-gradient-bottom`),
          mêmes règles : 422 px collés en bas, `cover`, ancré à 50% 0.
-         L'asset est le PNG de la vitrine ramené à 600 px et encodé en WebP :
-         287,5 Ko → 22,1 Ko, indiscernable à cette taille d'affichage (le poids
-         venait du tramage anti-banding, pas de la définition). Un dégradé n'a
-         aucun détail à perdre en montant en échelle.
-         Source : sites/megga-vitrine/images/6704750aa4d30828d675aa20_gradient-
-         bottom-bg-image-codeai-x-webflow-template.png → 600 px de large, WebP q85. */
+         L'asset est le PNG de la vitrine COPIÉ TEL QUEL (3159x633, 287 Ko,
+         somme de contrôle identique à sites/megga-vitrine/images/6704750aa4d…png).
+
+         ⚠ Ne pas « optimiser » en réduisant sa définition. Tentative précédente :
+         600 px de large / WebP q85 (22 Ko), retirée parce qu'elle rendait mal.
+         `cover` est contraint par la HAUTEUR de la boîte, pas par sa largeur :
+         422 px CSS = 844 px écran en Retina, donc une source de 120 px de haut
+         est étirée x7 — alors que les 633 px natifs ne le sont que x1,33.
+         Le poids paraît élevé pour une décoration, mais il ne retarde rien :
+         c'est une image de fond, l'écran peint sans elle et elle arrive après. */
       .megga-boot__glow {
         position: absolute;
         inset: auto 0 0;
@@ -110,7 +114,7 @@
            haut. En dessous (fenêtre réduite, mobile paysage) le halo noierait
            l'écran au lieu d'en border le bas : on le laisse suivre la hauteur. */
         height: min(422px, 52vh);
-        background-image: url('/megga-boot-glow.webp');
+        background-image: url('/megga-boot-glow.png');
         background-position: 50% 0;
         background-repeat: no-repeat;
         background-size: cover;
