@@ -5,7 +5,7 @@
 // zoom molette / pan glisser). Les deux partagent la liste, le survol synchronisé
 // liste↔pin et le mini-aperçu au survol.
 
-import { lazy, Suspense, useCallback, useMemo, useReducer, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent, WheelEvent as ReactWheelEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
@@ -26,6 +26,8 @@ const VIO = '#7C63F0', VIO_HOT = '#5B44D6', VIO_NEAR = '#9B86F2'
 interface Bounds { minLa: number; maxLa: number; minLo: number; maxLo: number }
 interface Pos { left: string; top: string; _x: number; _y: number; _in: boolean }
 interface MapItem extends MrhItem { near: boolean }
+/** Vue du fond stylisé : facteur de zoom + centre géographique (null = cadrage d'ensemble). */
+interface View { zoom: number; ctr: { lng: number; lat: number } | null }
 
 function mrhBounds(items: MapItem[]): Bounds | null {
   const pts = items.map((x) => x.b).filter((b) => b.lat != null && b.lng != null) as (MrhBien & { lat: number; lng: number })[]
@@ -171,10 +173,13 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
   const groups: MapItem[] = useMemo(() => [...strict.map((x) => ({ ...x, near: false })), ...near.map((x) => ({ ...x, near: true }))], [strict, near])
   const stageRef = useRef<HTMLDivElement>(null)
   const bnds0 = useMemo(() => mrhBounds(groups), [groups])
-  const [zoom, setZoom] = useState(1)
-  const [ctr, setCtr] = useState<{ lng: number; lat: number } | null>(null)
-  const zoomRef = useRef(1), ctrRef = useRef<{ lng: number; lat: number } | null>(null)
-  zoomRef.current = zoom; ctrRef.current = ctr
+  // Zoom + centre tenus dans UN seul état : molette et pan composent leur delta via
+  // l'updater fonctionnel, qui reçoit toujours la vue à jour. Deux events dans la même
+  // frame (React groupe les rendus) ne se marchent donc plus dessus, et aucune ref
+  // miroir n'est nécessaire — en écrire une pendant le rendu la désynchroniserait de
+  // l'état en mode concurrent (rendu interrompu/rejoué).
+  const [view, setView] = useState<View>({ zoom: 1, ctr: null })
+  const { zoom, ctr } = view
   const bnds = useMemo(() => {
     if (!bnds0) return null
     const cLng = ctr ? ctr.lng : (bnds0.minLo + bnds0.maxLo) / 2
@@ -189,26 +194,27 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
     if (bnds) located.forEach((x) => { m[x.b.id] = mrhPos(x.b, bnds) })
     return m
   }, [located, bnds])
-  const [, bump] = useReducer((x: number) => x + 1, 0)
 
   // zoom molette + pan glisser (fond stylisé — repli sans token Mapbox)
+  // Les lectures du DOM et de l'event restent HORS de l'updater : celui-ci doit être pur
+  // (React peut le rejouer), et l'event React est recyclé après le handler.
   const onWheel = (e: ReactWheelEvent) => {
     if (!bnds0) return
     e.preventDefault(); e.stopPropagation()
     const el = stageRef.current!
     const r = el.getBoundingClientRect()
     const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height
-    const z = zoomRef.current, c = ctrRef.current
-    const spanLo = bnds0.maxLo - bnds0.minLo, spanLa = bnds0.maxLa - bnds0.minLa
-    const baseLng = (bnds0.minLo + bnds0.maxLo) / 2, baseLat = (bnds0.minLa + bnds0.maxLa) / 2
-    const nz = Math.min(48, Math.max(1, z * (e.deltaY < 0 ? 1.25 : 0.8)))
-    const cLng = c ? c.lng : baseLng, cLat = c ? c.lat : baseLat
-    const hLo = spanLo / 2 / z, hLa = spanLa / 2 / z
-    const lng = cLng - hLo + px * 2 * hLo, lat = cLat + hLa - py * 2 * hLa
-    const nHLo = spanLo / 2 / nz, nHLa = spanLa / 2 / nz
-    setZoom(nz)
-    setCtr(nz <= 1 ? null : { lng: lng - (px - 0.5) * 2 * nHLo, lat: lat + (py - 0.5) * 2 * nHLa })
-    bump()
+    const step = e.deltaY < 0 ? 1.25 : 0.8
+    setView(({ zoom: z, ctr: c }) => {
+      const spanLo = bnds0.maxLo - bnds0.minLo, spanLa = bnds0.maxLa - bnds0.minLa
+      const baseLng = (bnds0.minLo + bnds0.maxLo) / 2, baseLat = (bnds0.minLa + bnds0.maxLa) / 2
+      const nz = Math.min(48, Math.max(1, z * step))
+      const cLng = c ? c.lng : baseLng, cLat = c ? c.lat : baseLat
+      const hLo = spanLo / 2 / z, hLa = spanLa / 2 / z
+      const lng = cLng - hLo + px * 2 * hLo, lat = cLat + hLa - py * 2 * hLa
+      const nHLo = spanLo / 2 / nz, nHLa = spanLa / 2 / nz
+      return { zoom: nz, ctr: nz <= 1 ? null : { lng: lng - (px - 0.5) * 2 * nHLo, lat: lat + (py - 0.5) * 2 * nHLa } }
+    })
   }
   const drag = useRef<{ x: number; y: number } | null>(null)
   const onDown = (e: ReactPointerEvent) => {
@@ -222,14 +228,18 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
     const r = el.getBoundingClientRect()
     const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y
     drag.current = { x: e.clientX, y: e.clientY }
-    const z = Math.max(1, zoomRef.current), c = ctrRef.current
-    const spanLo = bnds0.maxLo - bnds0.minLo, spanLa = bnds0.maxLa - bnds0.minLa
-    const baseLng = (bnds0.minLo + bnds0.maxLo) / 2, baseLat = (bnds0.minLa + bnds0.maxLa) / 2
-    const hLo = spanLo / 2 / z, hLa = spanLa / 2 / z
-    const cLng = c ? c.lng : baseLng, cLat = c ? c.lat : baseLat
-    setCtr({ lng: cLng - (dx / r.width) * 2 * hLo, lat: cLat + (dy / r.height) * 2 * hLa })
+    setView((v) => {
+      const z = Math.max(1, v.zoom), c = v.ctr
+      const spanLo = bnds0.maxLo - bnds0.minLo, spanLa = bnds0.maxLa - bnds0.minLa
+      const baseLng = (bnds0.minLo + bnds0.maxLo) / 2, baseLat = (bnds0.minLa + bnds0.maxLa) / 2
+      const hLo = spanLo / 2 / z, hLa = spanLa / 2 / z
+      const cLng = c ? c.lng : baseLng, cLat = c ? c.lat : baseLat
+      return { zoom: v.zoom, ctr: { lng: cLng - (dx / r.width) * 2 * hLo, lat: cLat + (dy / r.height) * 2 * hLa } }
+    })
   }
-  const onUp = (e: ReactPointerEvent) => { drag.current = null; (e.currentTarget as HTMLElement).style.cursor = zoomRef.current > 1 ? 'grab' : 'default' }
+  // `zoom` du rendu courant suffit ici : le pan ne change pas le zoom, et chaque geste
+  // de pan a déjà provoqué un rendu avant le relâchement.
+  const onUp = (e: ReactPointerEvent) => { drag.current = null; (e.currentTarget as HTMLElement).style.cursor = zoom > 1 ? 'grab' : 'default' }
 
   const act = groups.find((x) => x.b.id === hoverId)
   const actPos = act && posById[act.b.id] ? posById[act.b.id] : null
@@ -238,7 +248,7 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
 
   // Marqueurs pour la carte réelle (Mapbox) : pastilles prix + aperçu du survol.
   const mbBounds: [[number, number], [number, number]] | null = bnds0 ? [[bnds0.minLo, bnds0.minLa], [bnds0.maxLo, bnds0.maxLa]] : null
-  const mbMarkers: MrhMarker[] = located.map((x) => ({
+  const pinMarkers: MrhMarker[] = located.map((x) => ({
     id: x.b.id,
     lng: x.b.lng as number,
     lat: x.b.lat as number,
@@ -248,16 +258,19 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
     onEnter: () => setHover(x.b.id),
     onLeave: () => setHover(null),
   }))
-  if (act && act.b.lat != null && act.b.lng != null) {
-    mbMarkers.push({
-      id: 'pop-' + act.b.id,
-      lng: act.b.lng, lat: act.b.lat, anchor: 'bottom', z: 80,
-      el: <div style={{ marginBottom: 12, animation: 'sgFadeUp .16s cubic-bezier(.2,.8,.2,1) both' }}><MapPopoverCard b={act.b} m={act.m} ctx={ctx} /></div>,
-      onClick: () => ctx.onOpen(act.b),
-      onEnter: () => setHover(act.b.id),
-      onLeave: () => setHover(null),
-    })
-  }
+  // Concaténation par spread plutôt que .push() : ces marqueurs portent `setHover`, qui lit
+  // `hideTimer`, et passer un tel objet à une fonction pendant le rendu est interdit par les
+  // règles des hooks (la fonction pourrait en lire la ref au rendu).
+  const mbMarkers: MrhMarker[] = act && act.b.lat != null && act.b.lng != null
+    ? [...pinMarkers, {
+        id: 'pop-' + act.b.id,
+        lng: act.b.lng, lat: act.b.lat, anchor: 'bottom', z: 80,
+        el: <div style={{ marginBottom: 12, animation: 'sgFadeUp .16s cubic-bezier(.2,.8,.2,1) both' }}><MapPopoverCard b={act.b} m={act.m} ctx={ctx} /></div>,
+        onClick: () => ctx.onOpen(act.b),
+        onEnter: () => setHover(act.b.id),
+        onLeave: () => setHover(null),
+      }]
+    : pinMarkers
 
   return (
     <div className="mrh-split" style={{ flex: 1, minHeight: 0, padding: '8px 30px 30px' }}>
@@ -297,12 +310,12 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
           )}
           {bnds0 && (
             <div style={{ position: 'absolute', right: 12, top: 12, zIndex: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <button onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(48, z * 1.4)) }} title={t('recherche.map.zoomIn')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 20, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>+</button>
-              <button onClick={(e) => { e.stopPropagation(); setZoom((z) => { const n = Math.max(1, z / 1.4); if (n <= 1) setCtr(null); return n }) }} title={t('recherche.map.zoomOut')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 22, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>−</button>
+              <button onClick={(e) => { e.stopPropagation(); setView((v) => ({ ...v, zoom: Math.min(48, v.zoom * 1.4) })) }} title={t('recherche.map.zoomIn')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 20, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>+</button>
+              <button onClick={(e) => { e.stopPropagation(); setView((v) => { const n = Math.max(1, v.zoom / 1.4); return { zoom: n, ctr: n <= 1 ? null : v.ctr } }) }} title={t('recherche.map.zoomOut')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 22, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>−</button>
             </div>
           )}
           {zoom > 1 && (
-            <button onClick={(e) => { e.stopPropagation(); setZoom(1); setCtr(null) }} title={t('recherche.map.overview')}
+            <button onClick={(e) => { e.stopPropagation(); setView({ zoom: 1, ctr: null }) }} title={t('recherche.map.overview')}
               style={{ position: 'absolute', left: 12, top: 12, zIndex: 46, height: 32, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, boxShadow: '0 2px 8px rgba(15,23,42,.18)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {t('recherche.map.overview')}
             </button>
