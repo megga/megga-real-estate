@@ -4,7 +4,8 @@
   "new_deal": "Neuer Deal",
   "view": {
     "kanban": "Kanban",
-    "list": "Liste"
+    "list": "Liste",
+    "timeline": "Timeline"
   },
   "filter": {
     "stage": "Stufe"
@@ -501,7 +502,25 @@
       "offer": "Angebot",
       "note": "Notiz",
       "fallback": "Follow-up"
-    }
+    },
+    "groups": {
+      "late": "Überfällig",
+      "today": "Heute",
+      "week": "Diese Woche",
+      "month": "Diesen Monat",
+      "later": "Später"
+    },
+    "axis": {
+      "contact": "Kontakt",
+      "due": "Fälligkeit"
+    },
+    "todayChip": "Heute · {{date}}",
+    "jMinus": "T-{{count}}",
+    "dealsCount_one": "{{count}} Deal",
+    "dealsCount_other": "{{count}} Deals",
+    "dragHint": "Ziehen zum Umplanen",
+    "lastActivity": "Letzte Aktivität · {{date}}",
+    "emptySearch": "Kein Deal entspricht der Suche."
   },
   "modal": {
     "contact": "Kontakt",

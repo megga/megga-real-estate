@@ -168,6 +168,14 @@ export function sgStageTint(stage: StageId, dark: boolean): { hue: string; panel
     tintInk: dark ? sgMix(hue, '#FFFFFF', 0.35) : sgMix(hue, '#0B0C0E', 0.45),
   }
 }
+
+/** Fond des pilules d'étape à texte blanc : teinte assombrie en clair
+ *  (contraste ≥ 4.5:1), teinte vive inchangée en sombre. Réservé aux aplats
+ *  portant du texte — pastilles 8-9 px et barres restent en SG_STAGE_HUE pur. */
+export function sgStagePillBg(stage: StageId, dark: boolean): string {
+  const h = SG_STAGE_HUE[stage] || '#8A93A5'
+  return dark ? h : sgMix(h, '#0B0C0E', 0.32)
+}
 // ─── Formatters ─────────────────────────────────────────────────────────
 export function crmFmtCHF(n: number | null | undefined): string {
   if (n == null) return '—'

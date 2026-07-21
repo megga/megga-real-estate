@@ -12,10 +12,8 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { CRM_STAGE_ORDER, SG_STAGE_HUE, type SugarPalette, type StageId } from '../tokens'
 
-// ─── Segmented view (Kanban / Liste) ──────────────────────────────────
-// 'timeline' arrive avec la vue Timeline (port réel branché sur les échéances
-// de reminders) — le type et l'option seront étendus ensemble.
-export type PipelineView = 'kanban' | 'list'
+// ─── Segmented view (Kanban / Liste / Timeline) ───────────────────────
+export type PipelineView = 'kanban' | 'list' | 'timeline'
 
 export function SugarSegmentedView({
   value, onChange, sp,
@@ -27,8 +25,9 @@ export function SugarSegmentedView({
       borderRadius: 999, boxShadow: sp.shadowSm,
     }}>
       {([
-        { k: 'kanban' as const, label: t('view.kanban') },
-        { k: 'list' as const,   label: t('view.list') },
+        { k: 'kanban' as const,   label: t('view.kanban') },
+        { k: 'list' as const,     label: t('view.list') },
+        { k: 'timeline' as const, label: t('view.timeline') },
       ]).map(v => (
         <button key={v.k} onClick={() => onChange?.(v.k)} style={{
           padding: '9px 18px', borderRadius: 999, border: 0, cursor: 'pointer',
