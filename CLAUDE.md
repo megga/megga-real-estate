@@ -98,6 +98,15 @@ npm run lint         # ESLint
 
 **Direction :** Minimal, transparent, professionnel (Linear/Notion style). Dark/light mode sur dashboard agent.
 
+**⚠ Sugar Pure (Pipeline v2, juillet 2026)** : les surfaces refondues (Pipeline
+kanban/liste/timeline, modale Nouveau deal, fiche deal V4) suivent la grammaire
+« Sugar Pure » qui PRIME sur les règles bento ci-dessous : séparation par **ombre
+douce sans bordure décorative**, accent noir unique (`sp.accent`), teinte sombre
+par défaut **noir #000000** (`SUGAR_DARK_TONE`), teintes d'étape `SG_STAGE_HUE`
++ dérivations `sgMix` figées, pilules à fond plein + texte blanc. Détails :
+[docs/design-system.md](docs/design-system.md) §Sugar Pure ; source pixel =
+handoff `design_handoff_pipeline_refonte_v2`.
+
 **Règles visuelles clés :**
 - Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
 - Boutons : style ghost `border border-theme-border text-theme-secondary` — JAMAIS `bg-accent text-white`
@@ -290,7 +299,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 - Backend conservé intact : `market_listings` (~90k Flatfox, ~50k active), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline (14 stades DB → 8 colonnes UI), Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
 
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 
