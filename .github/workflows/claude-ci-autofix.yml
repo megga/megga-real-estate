@@ -1,0 +1,96 @@
+name: Claude — Auto-fix CI
+
+# AUTO-FIX CI : quand un workflow de test échoue sur une PR de CE repo, Claude
+# analyse l'échec (logs du run + repro locale via les scripts npm) et pousse un
+# correctif MINIMAL sur la branche de la PR — sans mention, automatiquement.
+#
+# GARDES (anti-boucle / sécurité) :
+#   - `conclusion == failure` uniquement (les runs verts ne déclenchent rien) ;
+#   - PR de CE repo seulement (`head_repository == repo`) — JAMAIS un fork : on ne
+#     pousse pas un token privilégié sur du code non fiable ;
+#   - anti-boucle : on saute si le dernier commit porte « [skip-autofix] » (Claude
+#     l'ajoute à son commit de correctif ⇒ un seul passage par échec) ;
+#   - `concurrency` par branche : un seul auto-fix à la fois par PR.
+#
+# ⚠ ACTIVATION : identique à claude.yml (app GitHub « Claude » + secret d'auth).
+#   Un `workflow_run` ne se déclenche QUE lorsque ce fichier est sur `main` — donc
+#   inactif tant que la PR n'est pas mergée (c'est voulu : proposition d'abord).
+#
+# 🔧 RÉGLAGE possible par Julien (voir bas de fichier) : passer d'un déclenchement
+#   systématique à un OPT-IN par label « ci-autofix » si l'auto complet est trop large.
+
+on:
+  workflow_run:
+    workflows:
+      - "Unit Tests (Vitest)"
+      - "Backend Integration Tests"
+      - "E2E Tests (Playwright)"
+    types: [completed]
+
+concurrency:
+  group: claude-autofix-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  autofix:
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      !contains(github.event.workflow_run.head_commit.message, '[skip-autofix]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write        # pousser le correctif sur la branche de PR
+      pull-requests: write   # commenter le diagnostic sur la PR
+      id-token: write        # OIDC (authentification de l'action)
+      actions: read          # lire les logs du run en échec
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Claude auto-fix
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Choisir UNE des deux (voir l'en-tête ACTIVATION) :
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Le workflow CI « ${{ github.event.workflow_run.name }} » a ÉCHOUÉ sur cette PR.
+            Run en échec : ${{ github.event.workflow_run.html_url }}
+
+            Objectif : faire passer la CI SANS tricher.
+            1. Identifie le check en échec et sa cause (lis les logs du run ; reproduis
+               localement avec les scripts npm du repo selon le workflow — test:unit,
+               test:backend, lint, lint:prose, lint:i18n, i18n:parity:ci, lint:deadcode,
+               build).
+            2. Applique le correctif MINIMAL et idiomatique (respecte CLAUDE.md :
+               tokens de thème, i18n 4 langues synchronisées, pas de `any`, etc.).
+            3. INTERDIT : désactiver ou supprimer un test, affaiblir un garde-fou,
+               ajouter un `|| true`, ou masquer l'erreur pour verdir artificiellement.
+            4. Si l'échec est LÉGITIME (la PR ne doit pas merger en l'état — vrai bug,
+               régression voulue par un test), NE force pas : commente ton diagnostic
+               sur la PR et arrête-toi sans commit.
+            5. Quand tu pousses le correctif, ajoute « [skip-autofix] » au message de
+               commit pour empêcher une boucle d'auto-fix.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Variante OPT-IN PAR LABEL (si l'auto systématique est trop large) — Julien :
+# remplacer la condition `if:` du job par une vérification de label sur la PR.
+# Le payload workflow_run ne porte pas les labels ; il faut un lookup API, ex. :
+#
+#   - name: PR a le label ci-autofix ?
+#     id: gate
+#     uses: actions/github-script@v7
+#     with:
+#       script: |
+#         const prs = context.payload.workflow_run.pull_requests;
+#         if (!prs.length) return core.setOutput('go', 'false');
+#         const { data: pr } = await github.rest.pulls.get({
+#           owner: context.repo.owner, repo: context.repo.repo, pull_number: prs[0].number });
+#         core.setOutput('go', String(pr.labels.some(l => l.name === 'ci-autofix')));
+#   # …puis gater l'étape Claude sur `steps.gate.outputs.go == 'true'`.
+# ──────────────────────────────────────────────────────────────────────────────

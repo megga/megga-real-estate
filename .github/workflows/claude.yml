@@ -1,0 +1,55 @@
+name: Claude Code
+
+# Assistant Claude déclenché À LA DEMANDE : commentez « @claude … » sur une PR,
+# une review ou une issue, et Claude applique le correctif / répond dans le fil.
+# C'est la BASE de l'auto-fix CI : commenter « @claude corrige la CI qui échoue »
+# sur une PR suffit à faire diagnostiquer + pousser un fix par Claude.
+# L'auto-déclenchement SUR ÉCHEC de CI (sans mention) vit dans claude-ci-autofix.yml.
+#
+# ⚠ ACTIVATION (Julien — hors périmètre agent, cf. règle no-direct-service) :
+#   1. Installer l'app GitHub « Claude » sur le repo : https://github.com/apps/claude
+#   2. Ajouter UN secret repo d'authentification, puis adapter la clé `with:` :
+#        - CLAUDE_CODE_OAUTH_TOKEN  (recommandé abo Claude ; `claude setup-token`)
+#        - OU ANTHROPIC_API_KEY     (clé API Anthropic à l'usage)
+#   Sans l'app + le secret, le job saute proprement (auth absente) — jamais bloquant.
+#
+# Sécurité : ne se déclenche QUE sur une mention explicite « @claude » (jamais sur
+# chaque commentaire). Envisager d'épingler l'action à un SHA plutôt que @v1.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  claude:
+    if: >
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write        # committer le correctif sur la branche de PR
+      pull-requests: write   # commenter / mettre à jour la PR
+      issues: write          # répondre sur une issue
+      id-token: write        # OIDC (authentification de l'action)
+      actions: read          # lire les logs des workflows de CI en échec
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Choisir UNE des deux (voir l'en-tête ACTIVATION) :
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
