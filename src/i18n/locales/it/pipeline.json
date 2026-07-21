@@ -6,14 +6,7 @@
     "kanban": "Kanban",
     "list": "Lista"
   },
-  "kpi": {
-    "active": "Attivi",
-    "pipeline_value": "Valore pipeline",
-    "at_risk": "A rischio",
-    "conversion": "Conversione"
-  },
   "filter": {
-    "agent": "Agente",
     "stage": "Fase"
   },
   "column": {
@@ -214,15 +207,9 @@
   },
   "board": {
     "noPropertyYet": "Active search",
-    "dealsCount_one": "{{count}} deal",
-    "dealsCount_other": "{{count}} deals",
-    "dealsCountWithValue_one": "{{count}} deal · {{value}}",
-    "dealsCountWithValue_other": "{{count}} deals · {{value}}",
     "dragDealHere": "Drag a deal here",
     "dropToStage": "Drop here → {{stage}}",
     "searchPlaceholder": "Search contact, property, note…",
-    "importLead": "Import a lead",
-    "importLeadHint": "Import a lead via MEGGA AI",
     "commandPaletteComingSoon": "Search, ⌘K (coming soon)",
     "list": {
       "dealContact": "Deal / Contact",
@@ -239,17 +226,15 @@
     "filter": {
       "apply": "Apply",
       "reset": "Reset",
-      "stagesHeader": "Stages",
       "riskHeader": "Risk",
       "periodHeader": "Period",
       "deselectAll": "Deselect all",
-      "allStages": "All",
-      "stagesSelected_one": "{{count}} stage",
-      "stagesSelected_other": "{{count}} stages",
       "lastDays_one": "Last {{count}} day",
       "lastDays_other": "Last {{count}} days",
-      "daysShort": "{{count}}d",
-      "allTime": "All"
+      "allTime": "All",
+      "label": "Filtri",
+      "none": "Nessuno",
+      "resetAll": "Reimposta i filtri"
     },
     "card": {
       "scheduleVisit": "Schedule a visit",
@@ -258,24 +243,64 @@
       "archive": "Archive",
       "markLost": "Mark as lost",
       "reassignTo": "Reassign to",
-      "noOtherAgents": "No other agent in the agency.",
-      "archiveDemoOnly": "Archiving is available on a real deal only (demo data).",
-      "archiveConfirm": "Archive this deal?",
-      "markLostDemoOnly": "Marking as lost is available on a real deal only (demo data).",
-      "lostReasonPrompt": "Reason for loss (optional, logged in the audit trail):",
-      "reassignDemoOnly": "Reassignment is available on a real deal only (demo data).",
       "actionFailed": "Failed: {{message}}",
-      "unknownError": "unknown error"
+      "unknownError": "unknown error",
+      "newDealInColumn": "Nuovo deal · {{stage}}",
+      "planAction": "Pianifica un'azione",
+      "overdue": "In ritardo",
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "sendToAi": "Invia a MEGGA AI",
+      "visitReminderNote": "Visita · {{day}} {{time}}",
+      "visitAiPrompt": "Pianifichi una visita per {{name}}. Proponga degli orari, rediga il messaggio d'invito e la aggiunga alla mia agenda.",
+      "visitAiPromptWithBien": "Pianifichi una visita per {{name}} per «{{bien}}». Proponga degli orari, rediga il messaggio d'invito e la aggiunga alla mia agenda."
     },
     "toast": {
       "moveFailedTitle": "Could not move the deal",
-      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again."
+      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again.",
+      "archived": "Deal archiviato",
+      "lost": "Deal segnato come perso",
+      "reassigned": "Deal riassegnato a {{name}}",
+      "visitScheduled": "Visita pianificata · {{day}} alle {{time}}",
+      "undo": "Annulla"
     },
     "empty": "Nessuna trattativa nella pipeline per ora.",
     "error": {
       "title": "Impossibile caricare la pipeline",
       "message": "Si è verificato un errore. Verifichi la connessione, poi riprovi.",
       "retry": "Riprova"
+    },
+    "sign": {
+      "sealed": "Affare firmato",
+      "eyebrow": "E adesso",
+      "scheduleAct": "Pianifica la firma dell'atto",
+      "scheduleActSub": "Appuntamento dal notaio",
+      "congrats": "Congratulati con {{name}}",
+      "congratsSub": "Messaggio sul canale preferito",
+      "congratsPrompt": "Rediga un messaggio di congratulazioni per {{name}}, che ha appena firmato il suo affare. Tono caloroso e professionale, pronto da inviare sul canale preferito.",
+      "congratsPromptWithBien": "Rediga un messaggio di congratulazioni per {{name}}, che ha appena firmato per «{{bien}}». Tono caloroso e professionale, pronto da inviare sul canale preferito.",
+      "openFile": "Apri il dossier",
+      "openFileSub": "Documenti e dettagli dell'affare",
+      "reopen": "Riapri nella pipeline",
+      "finish": "Fine"
+    },
+    "lostConfirm": {
+      "title": "Segnare questo deal come perso?",
+      "message": "Il deal di {{name}} uscirà dalla pipeline.",
+      "messageNoName": "Questo deal uscirà dalla pipeline.",
+      "cancel": "Annulla",
+      "confirm": "Segna come perso"
+    },
+    "emptyState": {
+      "filtered": {
+        "title": "Nessun deal corrisponde",
+        "body": "Modifichi la ricerca o reimposti i filtri per ritrovare i suoi deal.",
+        "cta": "Reimposta i filtri"
+      },
+      "none": {
+        "title": "Nessun deal in corso",
+        "body": "Crei il suo primo deal. Apparirà qui, nella colonna della sua fase."
+      }
     }
   },
   "kyc": {
@@ -610,6 +635,17 @@
       "inProgress": "In corso",
       "error": "Caricamento non riuscito",
       "retry": "Riprova"
+    }
+  },
+  "timeline": {
+    "kind": {
+      "call": "Chiamata",
+      "match": "Invio match",
+      "kyc": "Dossier KYC",
+      "visit": "Visita",
+      "offer": "Offerta",
+      "note": "Nota",
+      "fallback": "Follow-up"
     }
   }
 }

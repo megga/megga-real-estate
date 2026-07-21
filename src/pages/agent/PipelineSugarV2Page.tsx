@@ -1,30 +1,53 @@
-// MEGGA CRM Sugar v2 — Pipeline page (Tier 3.c).
-// 1:1 port from the Claude Design bundle (crm-screen-pipeline-sugar.jsx — `CRMScreenPipelineSugar`).
+/**
+ * MEGGA CRM — Pipeline v2 « Sugar Pure » (route /dashboard/pipeline, desktop).
+ * Port du handoff crm-screen-pipeline-sugar.jsx (CRMScreenPipelineSugar) monté
+ * dans le cadre bento mono-page de crm-screen-pipeline-proto.jsx.
+ *
+ * Écarts prod assumés (plan Pipeline v2) :
+ *   - données réelles : usePipelineSugar (transactions + reminders) + overlay
+ *     optimiste de drag ; « maintenant » = date réelle (les données vivent, pas
+ *     besoin de l'ancre « deal le plus récent » du proto aux données figées) ;
+ *   - période par défaut « Tous » (0) — un défaut 30 j masquerait les dossiers
+ *     dormants réels (décision produit pré-existante, conservée) ;
+ *   - « won » ⇔ transactions.status='completed', « archivé » ⇔ archived_at ;
+ *   - « Féliciter » et « Envoyer à MEGGA AI » ouvrent le copilote avec un
+ *     brouillon (human-in-the-loop — jamais d'envoi automatique) ;
+ *   - planifier une visite persiste un reminder « visite » réel (pas d'action
+ *     factice) en plus de l'avancement d'étape du proto.
+ */
 
-import { useState, useEffect, useMemo, useRef, type MouseEvent as ReactMouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette, type DarkTone, type StageId, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
+import {
+  CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE,
+  type DarkTone, type StageId,
+} from '@/components/crm-sugar/tokens'
 import { type CrmDeal } from '@/components/crm-sugar/mockData'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { SugarPipelineKycLock } from '@/components/crm-sugar-v3/pipeline/SugarPipelineKycLock'
 import { useLogAudit } from '@/hooks/useAuditLog'
-import { useToast } from '@/components/ui/Toast'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
+import { useAiPanel } from '@/hooks/useAiPanel'
 import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
+import {
+  useUpdateTransactionStatus, useArchiveTransaction, useReassignTransaction,
+} from '@/hooks/useTransactions'
+import { usePipelineReminderCreators, useCancelTransactionReminders } from '@/hooks/usePipelineNextActions'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
 import { CRM_STAGE_PROBS } from '@/components/crm-sugar/pipeline/stageConstants'
 import { SugarStageColumn } from '@/components/crm-sugar/pipeline/SugarStageColumn'
 import { PipelineList } from '@/components/crm-sugar/pipeline/PipelineList'
+import { SignedBento } from '@/components/crm-sugar/pipeline/SignedBento'
+import { LostConfirmModal } from '@/components/crm-sugar/pipeline/LostConfirmModal'
+import type { VisitSlot } from '@/components/crm-sugar/pipeline/SugarCardQuickActions'
 import {
-  SugarKpiTile, SugarSegmentedView, SugarFilterPill,
+  SugarSegmentedView, SugarFilterPill,
   SugarStageFilter, SugarRiskFilter, SugarPeriodFilter,
   type PipelineView, type RiskFilterValue,
 } from '@/components/crm-sugar/pipeline/PipelineFilters'
 import { NewDealDrawer } from '@/components/crm-sugar/pipeline/NewDealDrawer'
-import SugarAiBanner, { type SugarAiInsight } from '@/components/crm-sugar/ai/SugarAiBanner'
 
 const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
@@ -32,10 +55,10 @@ export default function PipelineSugarV2Page() {
   const { t } = useTranslation('pipeline')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const ai = useAiPanel()
 
   // Drilldown depuis le Dashboard Analytics : `?stage=signed,visit-scheduled`.
-  // On parse une fois au mount et on nettoie l'URL pour ne pas que la même
-  // ouverture re-applique le filtre au re-render.
+  // Parse une fois au mount, puis l'URL est nettoyée (effet plus bas).
   const initialFilterStages = useMemo<StageId[]>(() => {
     const raw = searchParams.get('stage')
     if (!raw) return []
@@ -44,7 +67,7 @@ export default function PipelineSugarV2Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Theme: dark/light, persisted (shared with the Today page) ───────
+  // ── Thème dark/light, persisté (partagé entre pages Sugar) ───────────
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     const saved = window.localStorage.getItem('megga.sugar.dark')
@@ -63,118 +86,222 @@ export default function PipelineSugarV2Page() {
 
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
-  // Board kanban (conteneur overflow-x) — réf pour le garde-fou molette/touchpad.
-  const boardRef = useRef<HTMLDivElement>(null)
-  // Ouverture deal : navigate vers DealDetailSugarV3Page (route réelle wired
-  // sur transactions Supabase). L'ancien DealDetailDrawer (737 lignes, lookup
-  // dans CRM_DEALS mock) a été supprimé — il ne pouvait pas afficher de deal
-  // réel (id UUID jamais dans le mock array).
-  const openDeal = (dealId: string) => {
-    navigate(`/dashboard/transactions/${dealId}`)
-  }
+  const openDeal = (dealId: string) => { navigate(`/dashboard/transactions/${dealId}`) }
 
   const logAudit = useLogAudit()
-  const toast = useToast()
 
   // ── Source de vérité : Supabase via usePipelineSugar ────────────────
-  // On lit les contacts/biens via les index réactifs `contactsById`/`biensById`
-  // exposés par le hook (et non le registry global, rempli en post-commit) : un
-  // contact qui charge APRÈS les transactions invalide bien `filteredDeals`, qui
-  // ne reste donc plus collé sur un board vide.
   const {
     deals: liveDeals, updateStage, isError: pipelineError, refetch: pipelineRefetch,
     contactsById, biensById,
   } = usePipelineSugar()
+  const updateStatus = useUpdateTransactionStatus()
+  const archiveTx = useArchiveTransaction()
+  const reassignTx = useReassignTransaction()
+  const { createVisitReminder } = usePipelineReminderCreators()
+  const cancelReminders = useCancelTransactionReminders()
 
-  // ── Optimistic overlay (drag-drop fluide) ────────────────────────────
-  // React Query invalide après mutation → léger délai. On overlay le stage
-  // optimiste localement le temps que la mutation aboutisse pour éviter le
-  // flash visuel (deal qui revient en arrière puis avance).
+  // ── Overlays optimistes ──────────────────────────────────────────────
+  // React Query invalide après mutation → léger délai. On surcouche localement
+  // le stage / le « gagné » le temps que la mutation aboutisse (pas de flash).
   const [pendingStage, setPendingStage] = useState<Map<string, StageId>>(() => new Map())
+  const [pendingWon, setPendingWon] = useState<Set<string>>(() => new Set())
 
   const localDeals = useMemo<CrmDeal[]>(() => {
-    if (pendingStage.size === 0) return liveDeals
+    if (pendingStage.size === 0 && pendingWon.size === 0) return liveDeals
     return liveDeals.map(d => {
       const pending = pendingStage.get(d.id)
-      if (!pending) return d
-      return { ...d, stage: pending, probability: CRM_STAGE_PROBS[pending] || d.probability }
+      const won = pendingWon.has(d.id) || d.won
+      if (!pending && won === d.won) return d
+      return {
+        ...d,
+        stage: pending ?? d.stage,
+        probability: pending ? (CRM_STAGE_PROBS[pending] || d.probability) : d.probability,
+        won,
+      }
     })
-  }, [liveDeals, pendingStage])
+  }, [liveDeals, pendingStage, pendingWon])
+
+  const patchPendingStage = (dealId: string, stage: StageId | null) => {
+    setPendingStage(prev => {
+      const next = new Map(prev)
+      if (stage === null) next.delete(dealId); else next.set(dealId, stage)
+      return next
+    })
+  }
+
+  // ── Toast capsule (unique, 5 s, undo optionnel) ─────────────────────
+  const [pipeToast, setPipeToast] = useState<{ message: string; undo?: () => void } | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const showToast = (message: string, undo?: () => void) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setPipeToast({ message, undo })
+    toastTimer.current = setTimeout(() => setPipeToast(null), 5000)
+  }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+
+  // ── Célébration « Signé » (3 phases) + bento de suites naturelles ────
+  const [signingId, setSigningId] = useState<string | null>(null)
+  const [signExit, setSignExit] = useState(false)
+  const [signedDeal, setSignedDeal] = useState<string | null>(null)
+  const signTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const clearSignTimers = () => { signTimers.current.forEach(clearTimeout); signTimers.current = [] }
+  useEffect(() => () => clearSignTimers(), [])
+
+  const celebrateSign = (dealId: string) => {
+    clearSignTimers()
+    setSigningId(dealId)
+    setSignExit(false)
+    signTimers.current.push(setTimeout(() => setSignExit(true), 1050))
+    signTimers.current.push(setTimeout(() => {
+      // « Gagné » : le deal sort du board actif (status='completed').
+      setPendingWon(prev => new Set(prev).add(dealId))
+      updateStatus.mutateAsync({ id: dealId, status: 'completed' })
+        .catch(() => {
+          setPendingWon(prev => { const n = new Set(prev); n.delete(dealId); return n })
+          showToast(t('board.toast.moveFailedTitle'))
+        })
+      setSigningId(null)
+      setSignExit(false)
+      setSignedDeal(dealId)
+    }, 1750))
+  }
+  const cancelCelebration = () => {
+    clearSignTimers()
+    setSigningId(null)
+    setSignExit(false)
+  }
 
   // ── Drag & drop ──────────────────────────────────────────────────────
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<StageId | null>(null)
 
-  const applyDrop = (dealId: string, targetStage: StageId, onAudit?: () => void) => {
-    // Optimistic overlay
-    setPendingStage(prev => {
-      const next = new Map(prev)
-      next.set(dealId, targetStage)
-      return next
-    })
-    // Mutation Supabase (transactions.stage ; l'event 'stage_change' est émis par le trigger DB trg_transaction_lifecycle)
+  const applyStageMove = (dealId: string, targetStage: StageId, opts?: {
+    onSuccess?: () => void
+    onError?: () => void
+  }) => {
+    patchPendingStage(dealId, targetStage)
     updateStage.mutate(
       { id: dealId, stage: stageIdToTransactionStage(targetStage) },
       {
         // B1 : audit émis SEULEMENT si la mutation réussit — sinon on tracerait
         // un déplacement annulé (piste d'audit LBA inexacte).
-        onSuccess: () => { onAudit?.() },
+        onSuccess: () => { opts?.onSuccess?.() },
         onError: () => {
-          toast.error(t('board.toast.moveFailedTitle'), {
-            description: t('board.toast.moveFailedDescription'),
-          })
+          showToast(t('board.toast.moveFailedTitle'))
+          opts?.onError?.()
         },
-        onSettled: () => {
-          setPendingStage(prev => {
-            if (!prev.has(dealId)) return prev
-            const next = new Map(prev)
-            next.delete(dealId)
-            return next
-          })
-        },
+        onSettled: () => { patchPendingStage(dealId, null) },
       },
     )
   }
 
   const handleDragStart = (dealId: string) => setDraggingId(dealId)
-  const handleDragEnd = () => { setDraggingId(null); setDragOverStage(null) }
+  const handleDragEnd = () => { setDraggingId(null); setDragOverStage(null); stopAutoScroll() }
   const handleDragOver = (stage: StageId) => setDragOverStage(stage)
   const handleDrop = (targetStage: StageId) => {
     if (!draggingId) return
     const deal = localDeals.find(d => d.id === draggingId)
     if (!deal || deal.stage === targetStage) { handleDragEnd(); return }
-    // KYC = compliance-enabling, JAMAIS bloquant : aucun stade ne verrouille le
-    // drag. Le rappel KYC reste affiché en pilule douce (SugarPipelineKycLock),
-    // mais le deal avance toujours. Le notaire finalise (cf KYC non-bloquant).
+    // KYC non-bloquant (CLAUDE.md) : aucun garde-fou — un deal avance librement
+    // vers n'importe quelle étape, KYC validé ou non.
+    const movedId = draggingId
     const contact = contactsById.get(deal.contactId)
     const fromStage = deal.stage
-    applyDrop(deal.id, targetStage, () => {
-      // AuditEvent émis uniquement après succès de la mutation (cf. B1).
-      logAudit.mutate({
-        category: 'deal',
-        severity: 'info',
-        action: 'Étape changée',
-        entityType: 'deal',
-        entityId: deal.id,
-        objectLabel: contact ? `${contact.firstName} ${contact.lastName}` : deal.id,
-        metadata: { from: fromStage, to: targetStage },
-      })
+    applyStageMove(movedId, targetStage, {
+      onSuccess: () => {
+        logAudit.mutate({
+          category: 'deal',
+          severity: 'info',
+          action: 'Étape changée',
+          entityType: 'deal',
+          entityId: movedId,
+          objectLabel: contact ? `${contact.firstName} ${contact.lastName}` : movedId,
+          metadata: { from: fromStage, to: targetStage },
+        })
+      },
+      // Drop sur « Signé » : la célébration démarre au drop (optimiste) — si la
+      // mutation échoue, on l'annule proprement (pas de deal « gagné » fantôme).
+      onError: targetStage === 'signed' ? cancelCelebration : undefined,
     })
     handleDragEnd()
+    if (targetStage === 'signed') celebrateSign(movedId)
   }
 
-  // ── Filter state ─────────────────────────────────────────────────────
+  // ── Auto-scroll horizontal pendant le drag (bords du board) ──────────
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const autoScroll = useRef({ speed: 0, raf: 0 })
+  const stepAutoScroll = () => {
+    const el = scrollRef.current
+    const s = autoScroll.current
+    if (el && s.speed) {
+      el.scrollLeft += s.speed
+      s.raf = requestAnimationFrame(stepAutoScroll)
+    } else {
+      s.raf = 0
+    }
+  }
+  const stopAutoScroll = () => {
+    autoScroll.current.speed = 0
+    if (autoScroll.current.raf) { cancelAnimationFrame(autoScroll.current.raf); autoScroll.current.raf = 0 }
+  }
+  const onBoardDragOver = (e: React.DragEvent) => {
+    const el = scrollRef.current
+    if (!el || !draggingId) return
+    e.preventDefault()
+    const rect = el.getBoundingClientRect()
+    const edge = 110
+    const x = e.clientX
+    let speed = 0
+    if (x < rect.left + edge) speed = -Math.max(6, Math.round((rect.left + edge - x) / edge * 24))
+    else if (x > rect.right - edge) speed = Math.max(6, Math.round((x - (rect.right - edge)) / edge * 24))
+    autoScroll.current.speed = speed
+    if (speed && !autoScroll.current.raf) autoScroll.current.raf = requestAnimationFrame(stepAutoScroll)
+  }
+  useEffect(() => stopAutoScroll, [])
+
+  // ── Molette : geste horizontal → board ; vertical → colonne sinon rien ─
+  // Le bento est un cadre à hauteur fixe : la page ne défile pas. On bloque le
+  // mapping natif « deltaY → scroll horizontal » du navigateur quand aucune
+  // colonne ne peut défiler dans la direction du geste.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || view !== 'kanban') return
+    const canScrollY = (node: EventTarget | null, dir: number): boolean => {
+      let n = node as HTMLElement | null
+      while (n && n !== el && n.nodeType === 1) {
+        const oy = getComputedStyle(n).overflowY
+        if ((oy === 'auto' || oy === 'scroll') && n.scrollHeight > n.clientHeight + 1) {
+          if (dir > 0 && n.scrollTop + n.clientHeight < n.scrollHeight - 1) return true
+          if (dir < 0 && n.scrollTop > 1) return true
+        }
+        n = n.parentElement
+      }
+      return false
+    }
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        el.scrollLeft += e.deltaX
+        e.preventDefault()
+        return
+      }
+      if (canScrollY(e.target, e.deltaY > 0 ? 1 : -1)) return
+      e.preventDefault()
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [view])
+
+  // ── Recherche + filtres ──────────────────────────────────────────────
   const [search, setSearch] = useState('')
   const [filterStages, setFilterStages] = useState<StageId[]>(initialFilterStages)
   const [filterRisk, setFilterRisk] = useState<RiskFilterValue>('all')
-  // Défaut = « tout » (0). Un défaut à 30j masquait silencieusement tout deal
-  // dont la dernière activité datait de plus d'un mois (financement en attente,
-  // dossier qui dort) → board vide à l'ouverture. Sur un pipeline transactionnel,
-  // on montre tous les deals par défaut ; l'agent peut restreindre à 7/30/60/90j.
+  // Défaut = « Tous » (0). Un défaut à 30 j masquerait silencieusement tout deal
+  // dont la dernière activité date de plus d'un mois (dossier qui dort).
   const [filterPeriod, setFilterPeriod] = useState(0)
 
-  // Consume the `?stage=` query param : on l'a injecté dans filterStages,
-  // on retire le param de l'URL pour que F5 ne re-applique pas.
+  // Consomme le `?stage=` : injecté dans filterStages au mount, puis retiré de
+  // l'URL pour que F5 ne re-applique pas le filtre.
   useEffect(() => {
     if (searchParams.has('stage')) {
       const next = new URLSearchParams(searchParams)
@@ -184,35 +311,10 @@ export default function PipelineSugarV2Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Molette / touchpad du kanban (fix handoff, adapté à la prod) ────────
-  // Le board est un conteneur `overflow-x`. Sur Chrome, un geste VERTICAL au
-  // touchpad (souvent un peu en biais) fait DÉRIVER le board latéralement via la
-  // composante deltaX — jamais souhaité. Règle : geste horizontal franc → le board
-  // défile (natif, fluide) ; geste vertical → on fige le board et on transmet le
-  // défilement à la PAGE (au pixel près = momentum touchpad préservé). Le port
-  // verbatim du proto s'appuyait sur un pager vertical, absent en prod.
-  useEffect(() => {
-    const el = boardRef.current
-    if (!el || view !== 'kanban') return
-    const onWheel = (e: WheelEvent) => {
-      // Board non défilable horizontalement → rien à intercepter (scroll natif).
-      if (el.scrollWidth <= el.clientWidth) return
-      // Geste horizontal franc → laisser le board défiler nativement.
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
-      // Geste vertical → figer le board, transmettre le défilement à la page.
-      // Le layout Sugar défile le document (AgentSugarLayout = minHeight:100vh, sans
-      // conteneur overflow) → on scrolle la page directement. Pas de remontée
-      // d'ancêtres + getComputedStyle par event : en boucle chaude (60-120 wheel/s au
-      // touchpad) ça forcerait un recalc de style et nuirait au momentum.
-      e.preventDefault()
-      window.scrollBy(0, e.deltaY)
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [view])
-
   const filteredDeals = useMemo(() => {
     return localDeals.filter(d => {
+      // Hors board : deal rangé, perdu ou gagné (proto : archived || lost || won).
+      if (d.archived || d.won || d.stage === 'lost') return false
       const c = contactsById.get(d.contactId)
       if (!c) return false
       const b = d.bienId ? biensById.get(d.bienId) ?? null : null
@@ -231,14 +333,10 @@ export default function PipelineSugarV2Page() {
       }
       return true
     })
-    // contactsById/biensById en deps : recompute dès que les contacts hydratent
-    // (sinon le board reste collé vide, voir note du destructuring usePipelineSugar).
+    // contactsById/biensById en deps : recompute dès que les contacts hydratent.
   }, [search, filterStages, filterRisk, filterPeriod, localDeals, contactsById, biensById])
 
-  // Pré-calculé une seule fois par render : un Map de stage → deals filtrés.
-  // Évite 9 .filter() séparés appelés inline dans la boucle render des colonnes
-  // (un par stage Kanban). Avec ~50 deals × 9 stages = 450 itérations par render,
-  // optimisé à 50 itérations + 9 lookups O(1).
+  // Map stage → deals filtrés (évite 8 .filter() inline par render).
   const dealsByStage = useMemo(() => {
     const map = new Map<StageId, CrmDeal[]>()
     for (const stage of CRM_STAGE_ORDER) map.set(stage, [])
@@ -254,61 +352,102 @@ export default function PipelineSugarV2Page() {
     setFilterStages([]); setFilterRisk('all'); setFilterPeriod(0); setSearch('')
   }
 
-  // Agrégations basées sur le pipeline complet (non filtré) — memoïsées pour
-  // éviter de scanner ~50 deals à chaque drag (chaque setPendingStage trigger
-  // un render parent).
-  const totalValue = useMemo(
-    () => localDeals.reduce((s, d) => s + (d.value || 0), 0),
-    [localDeals],
-  )
-  const atRisk = useMemo(
-    () => localDeals.filter(d => d.risk !== 'healthy').length,
-    [localDeals],
-  )
-  // Insights du bandeau MEGGA AI — compteurs RÉELS du pipeline live (le compteur
-  // « à risque » colle au KPI). Le bandeau se masque de lui-même si tout est vide.
-  const aiInsights = useMemo<SugarAiInsight[]>(() => {
-    const offers = localDeals.filter(d => d.stage === 'offer').length
-    const stalled = localDeals.filter(d => d.risk === 'stalled').length
-    const out: SugarAiInsight[] = []
-    if (atRisk) out.push({ short: `${atRisk} deal${atRisk > 1 ? 's' : ''} à risque`, tone: 'warn', q: 'Passe en revue mes deals à risque, priorise-les et propose la prochaine meilleure action pour chacun.' })
-    if (offers) out.push({ short: `${offers} offre${offers > 1 ? 's' : ''} à suivre`, tone: 'info', q: 'Quelle offre dois-je relancer en priorité, et rédige-moi la relance.' })
-    if (stalled) out.push({ short: `${stalled} sans activité`, tone: 'danger', q: "Quels deals n'ont eu aucune activité récente et comment les relancer ?" })
-    return out
-  }, [localDeals, atRisk])
-  // ── Conversion : signed / total des stages clôturés (signed + lost) ──
-  // Source : pipeline live. Si pas de deals clôturés, on n'affiche pas de %.
-  const closedDeals = useMemo(
-    () => localDeals.filter(d => d.stage === 'signed' || d.stage === 'lost').length,
-    [localDeals],
-  )
-  const signedDeals = useMemo(
-    () => localDeals.filter(d => d.stage === 'signed').length,
-    [localDeals],
-  )
-  const conversionPct = closedDeals > 0 ? Math.round((signedDeals / closedDeals) * 100) : null
-
-  // ── Dossiers KYC à compléter (rappel doux, NON-bloquant) ────────────
-  // Suggestion sur stages sensibles : visit-done/interest-confirmed/offer/signed.
-  // KYC = nice to have, jamais un verrou — le deal avance quoi qu'il arrive.
-  const pendingKycDeals = useMemo(() => {
-    const sensitive: StageId[] = ['visit-done', 'interest-confirmed', 'offer', 'signed']
-    return localDeals
-      .filter(d => sensitive.includes(d.stage))
-      .map(d => {
-        const c = contactsById.get(d.contactId)
-        if (!c) return null
-        const verified = c.kyc?.status === 'verified'
-        if (verified) return null
-        return {
-          id: d.id,
-          contactFullName: `${c.firstName} ${c.lastName}`,
-        }
+  // ── Actions de carte ────────────────────────────────────────────────
+  const handleReassign = (dealId: string, member: { id: string; name: string }) => {
+    reassignTx.mutateAsync({ id: dealId, assignedTo: member.id })
+      .then(() => showToast(t('board.toast.reassigned', { name: member.name })))
+      .catch(() => showToast(t('board.card.actionFailed', { message: t('board.card.unknownError') })))
+  }
+  const handleArchive = (dealId: string) => {
+    archiveTx.mutateAsync({ id: dealId, archived: true })
+      .then(() => {
+        logAudit.mutate({
+          category: 'deal', severity: 'info', action: 'Deal archivé',
+          entityType: 'deal', entityId: dealId,
+        })
+        showToast(t('board.toast.archived'), () => {
+          void archiveTx.mutateAsync({ id: dealId, archived: false })
+          setPipeToast(null)
+        })
       })
-      .filter((x): x is { id: string; contactFullName: string } => x !== null)
-  }, [localDeals, contactsById])
+      .catch(() => showToast(t('board.card.actionFailed', { message: t('board.card.unknownError') })))
+  }
+  const [lostConfirm, setLostConfirm] = useState<string | null>(null)
+  const handleMarkLost = (dealId: string) => setLostConfirm(dealId)
+  const applyMarkLost = (dealId: string) => {
+    setLostConfirm(null)
+    const deal = localDeals.find(d => d.id === dealId)
+    const fromStage = deal?.stage ?? 'new-lead'
+    applyStageMove(dealId, 'lost', {
+      onSuccess: () => {
+        showToast(t('board.toast.lost'), () => {
+          // Undo : restaure l'étape d'origine (le proto laissait le deal en
+          // stage 'lost' — un « Annuler » qui n'annule pas ; corrigé).
+          applyStageMove(dealId, fromStage)
+          setPipeToast(null)
+        })
+      },
+    })
+  }
+  const handleScheduleVisit = (dealId: string, slot: VisitSlot) => {
+    const deal = localDeals.find(d => d.id === dealId)
+    if (!deal) return
+    // Avance vers « Visite planifiée » seulement si c'est un progrès (jamais de recul).
+    const advance = CRM_STAGE_PROBS['visit-scheduled'] > (CRM_STAGE_PROBS[deal.stage] || 0)
+    if (advance) applyStageMove(dealId, 'visit-scheduled')
+    // Le créneau devient l'échéance réelle du deal — reminder « visite » persisté
+    // (une visite « planifiée » qui ne planifie rien serait une action factice).
+    createVisitReminder({
+      transactionId: dealId,
+      contactId: deal.contactId || null,
+      slotAt: slot.at,
+      note: t('board.card.visitReminderNote', { day: slot.day, time: slot.time }),
+    })
+      .then(() => showToast(t('board.toast.visitScheduled', { day: slot.day, time: slot.time })))
+      .catch(() => showToast(t('board.card.actionFailed', { message: t('board.card.unknownError') })))
+  }
+  const handleAskAiVisit = (dealId: string) => {
+    const deal = localDeals.find(d => d.id === dealId)
+    const c = deal ? contactsById.get(deal.contactId) : null
+    const name = c ? `${c.firstName} ${c.lastName}` : t('deal.buyer_fallback')
+    const b = deal?.bienId ? biensById.get(deal.bienId) : null
+    const prompt = b
+      ? t('board.card.visitAiPromptWithBien', { name, bien: b.title })
+      : t('board.card.visitAiPrompt', { name })
+    if (ai.enabled) ai.askAi(prompt)
+    else if (deal) openDeal(deal.id)
+  }
 
-  // ── Cmd palette + nav (shared with Today) ────────────────────────────
+  // ── Suites naturelles du bento signé ────────────────────────────────
+  const signedDealData = signedDeal ? localDeals.find(d => d.id === signedDeal) ?? null : null
+  const signedContact = signedDealData ? contactsById.get(signedDealData.contactId) ?? null : null
+  const finishSigned = () => {
+    // Hygiène : un deal gagné ne garde pas de relances actives (Focus/Calendrier).
+    if (signedDeal) cancelReminders.mutateAsync(signedDeal).catch(() => {})
+    setSignedDeal(null)
+  }
+  const reopenSigned = () => {
+    if (!signedDeal) return
+    const dealId = signedDeal
+    setSignedDeal(null)
+    setPendingWon(prev => { const n = new Set(prev); n.delete(dealId); return n })
+    updateStatus.mutateAsync({ id: dealId, status: 'active' }).catch(() => {})
+    applyStageMove(dealId, 'interest-confirmed')
+  }
+  const congratsSigned = () => {
+    const name = signedContact ? signedContact.firstName : null
+    const b = signedDealData?.bienId ? biensById.get(signedDealData.bienId) : null
+    const dealId = signedDeal
+    finishSigned()
+    const prompt = b
+      ? t('board.sign.congratsPromptWithBien', { name: name ?? t('deal.buyer_fallback'), bien: b.title })
+      : t('board.sign.congratsPrompt', { name: name ?? t('deal.buyer_fallback') })
+    if (ai.enabled) ai.askAi(prompt)
+    else if (signedContact) navigate(`/dashboard/contacts/${signedContact.id}`)
+    else if (dealId) openDeal(dealId)
+  }
+
+  // ── Nav (partagé avec Today) ────────────────────────────────────────
   const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
@@ -329,196 +468,246 @@ export default function PipelineSugarV2Page() {
     }
   }
 
+  // ── État vide partagé (2 variantes) ─────────────────────────────────
+  const pipeHasAnyActive = localDeals.some(d => !d.archived && !d.won && d.stage !== 'lost')
+  const pipeEmptyCard = (
+    <div style={{
+      pointerEvents: 'auto', textAlign: 'center', background: sp.cardBg, borderRadius: 22,
+      boxShadow: sp.shadow, padding: '34px 46px', maxWidth: 380,
+      animation: 'sugar-fade-up .4s cubic-bezier(.2,.8,.2,1) both',
+    }}>
+      <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+        {pipeHasAnyActive ? t('board.emptyState.filtered.title') : t('board.emptyState.none.title')}
+      </div>
+      <p style={{ margin: '9px 0 0', fontSize: 13, fontWeight: 500, color: sp.ink, lineHeight: 1.55 }}>
+        {pipeHasAnyActive ? t('board.emptyState.filtered.body') : t('board.emptyState.none.body')}
+      </p>
+      <button
+        onClick={pipeHasAnyActive ? resetFilters : () => setNewDealOpen(true)}
+        style={{
+          marginTop: 20, height: 42, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer',
+          background: sp.accent, color: sp.accentInk, fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+        }}>{pipeHasAnyActive ? t('board.emptyState.filtered.cta') : t('new_deal')}</button>
+    </div>
+  )
+
   return (
     <div style={{
-      background: sp.pageBg, minHeight: '100vh',
+      position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
       fontFamily: '"Inter Tight", system-ui, sans-serif', color: sp.ink,
     }}>
       <style>{SUGAR_KEYFRAMES}</style>
+      <style>{`
+        .sgPipeBoard{scrollbar-width:thin;scrollbar-color:${sp.cardBorder} transparent}
+        .sgPipeBoard::-webkit-scrollbar{width:10px;height:10px}
+        .sgPipeBoard::-webkit-scrollbar-track{background:transparent}
+        .sgPipeBoard::-webkit-scrollbar-thumb{background:${sp.cardBorder};border-radius:999px;border:3px solid transparent;background-clip:padding-box}
+        .sgPipeBoard::-webkit-scrollbar-corner{background:transparent}
+      `}</style>
 
-      <SugarTopNav active="pipeline" t={tk} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+      <SugarTopNav active="pipeline" t={tk} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
 
-      <div style={{ display: 'flex' }}>
-        <SugarIconRail
-          active="pipeline"
-          onNavigate={onNavigate}
-          onCmd={onCmd}
-          dark={dark}
-          setDark={setDark}
-          sp={sp}
-        />
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <SugarIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
 
-        <main style={{ flex: 1, padding: '32px 40px 80px 0', minWidth: 0 }}>
-          {/* Page header */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 28 }}>
-            <h1 style={{
-              margin: 0, fontSize: 38, fontWeight: 800, letterSpacing: -1.2, color: sp.ink, lineHeight: 1,
-            }}>{t('title')}</h1>
-            <span style={{
-              fontSize: 13, color: sp.sub, fontWeight: 500, marginBottom: 6,
-            }}>
-              {''}
-            </span>
-            <div style={{ flex: 1 }} />
-            <SugarSegmentedView sp={sp} value={view} onChange={setView} />
-            {/* Sprint 3 — Bouton ✨ Importer un lead (Sugar Pure : ghost à gauche du CTA noir) */}
-            <button
-              onClick={() => navigate('/dashboard/import-lead?returnTo=/dashboard/pipeline')}
-              title={t('board.importLeadHint')}
-              style={{
-                height: 44, padding: '0 18px', borderRadius: 999, border: 0,
-                background: sp.cardBg, color: sp.ink, fontWeight: 600, fontSize: 13,
-                fontFamily: 'inherit', cursor: 'pointer',
-                boxShadow: sp.shadowSm,
-                display: 'flex', alignItems: 'center', gap: 8,
-              }}
-            >
-              <MEIcon name="sparkle" size={14} color={sp.ink} />
-              {t('board.importLead')}
-            </button>
-            <button onClick={() => setNewDealOpen(true)} style={{
-              height: 44, padding: '0 22px', borderRadius: 999, border: 0,
-              background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 14,
-              fontFamily: 'inherit', cursor: 'pointer',
-              boxShadow: sp.focusShadow,
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              <MEIcon name="plus" size={14} color={sp.pageBg} />
-              {t('new_deal')}
-            </button>
-          </div>
-
-          {/* Rappel KYC pipeline (non-bloquant) — pilule discrète Sugar Pure */}
-          <SugarPipelineKycLock
-            pending={pendingKycDeals}
-            onOpenKyc={() => navigate('/dashboard/kyc')}
-            sp={sp}
-          />
-
-          {/* Bandeau proactif MEGGA AI — après le rappel KYC, avant les KPI.
-              Chaque puce ouvre le panneau MEGGA AI pré-rempli (compteurs réels). */}
-          <SugarAiBanner sp={sp} dark={dark} title="Priorités du pipeline" insights={aiInsights} />
-
-          {/* KPI tiles — source : pipeline live (usePipelineSugar) */}
-          <div style={{ display: 'flex', gap: 14, marginBottom: 22 }}>
-            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.active')}
-              value={localDeals.length}
-              sub="" />
-            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.pipeline_value')}
-              value={`CHF ${(totalValue / 1e6).toFixed(2)}M`}
-              sub="" accent={tk.primary} />
-            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.at_risk')}
-              value={atRisk}
-              sub=""
-              accent="#F59E0B" />
-            <SugarKpiTile sp={sp} dark={dark} label={t('kpi.conversion')}
-              value={conversionPct !== null ? `${conversionPct}%` : '—'}
-              sub=""
-              accent="#0E9F6E" />
-          </div>
-
-          {/* Search + filter pills */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 18 }}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+          {/* Grand cadre bento mono-page — clippe le corps du pipeline */}
+          <div style={{
+            position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
+            border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow,
+          }}>
             <div style={{
-              flex: 1, height: 44, padding: '0 16px',
-              background: sp.cardBg, border: `1px solid ${sp.cardBorder}`,
-              borderRadius: 999, boxShadow: sp.shadowSm,
-              display: 'flex', alignItems: 'center', gap: 10,
+              position: 'relative', width: '100%', height: '100%',
+              background: sp.pageBg, color: sp.ink,
+              padding: '30px 34px 22px', boxSizing: 'border-box',
+              display: 'flex', flexDirection: 'column', minHeight: 0,
             }}>
-              <MEIcon name="search" size={14} color={sp.sub} />
-              <input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder={t('board.searchPlaceholder')}
-                style={{
-                  flex: 1, background: 'transparent', border: 0, outline: 'none',
-                  color: sp.ink, fontSize: 13, fontFamily: 'inherit',
-                }}
-              />
-              {search && (
-                <button onClick={() => setSearch('')} style={{
-                  background: 'none', border: 0, cursor: 'pointer',
-                  color: sp.sub, fontFamily: 'inherit', fontSize: 16,
-                }}>×</button>
-              )}
-            </div>
-            <SugarFilterPill sp={sp} dark={dark} label={t('filter.stage')}
-              value={filterStages.length === 0
-                ? t('board.filter.allStages')
-                : filterStages.length === 1
-                  ? t(`stages.${filterStages[0]}`)
-                  : t('board.filter.stagesSelected', { count: filterStages.length })}
-              active={filterStages.length > 0}>
-              <SugarStageFilter sp={sp} dark={dark} value={filterStages} onChange={setFilterStages} />
-            </SugarFilterPill>
-            <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.riskHeader')}
-              value={filterRisk === 'all' ? t('board.risk.all')
-                : filterRisk === 'healthy' ? t('board.risk.healthy')
-                : filterRisk === 'at-risk' ? t('board.risk.atRisk') : t('board.risk.stalled')}
-              active={filterRisk !== 'all'}>
-              <SugarRiskFilter sp={sp} dark={dark} value={filterRisk} onChange={setFilterRisk} />
-            </SugarFilterPill>
-            <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.periodHeader')}
-              value={filterPeriod === 0 ? t('board.filter.allTime') : t('board.filter.daysShort', { count: filterPeriod })}
-              active={filterPeriod !== 0}>
-              <SugarPeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
-            </SugarFilterPill>
-            {activeFilters > 0 && (
-              <button onClick={resetFilters} style={{
-                height: 44, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer',
-                background: sp.ink, color: sp.pageBg, fontWeight: 700, fontSize: 12,
-                fontFamily: 'inherit', boxShadow: sp.focusShadow,
-              }}>{t('board.filter.reset')}</button>
-            )}
-          </div>
-
-          {/* Bandeau d'erreur NON bloquant — le board garde ses colonnes affichées (jamais
-              masquées), on signale seulement l'échec de fetch + un Réessayer. Un état plein écran
-              cacherait la structure même quand seul le fetch échoue en arrière-plan. */}
-          {pipelineError && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, background: sp.cardBg, boxShadow: sp.shadowSm, color: sp.ink, marginBottom: 12 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{t('board.error.title')}</div>
-                <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>{t('board.error.message')}</div>
+              {/* En-tête : titre · recherche · Filtres · vues · Nouveau deal */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexShrink: 0 }}>
+                <h1 style={{
+                  margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: -1.1,
+                  color: sp.ink, lineHeight: 1, marginRight: 4,
+                }}>{t('title')}</h1>
+                <div style={{ flex: 1 }} />
+                <div style={{
+                  flex: '0 1 320px', minWidth: 170, height: 40, padding: '0 16px',
+                  background: sp.cardBg, borderRadius: 999, boxShadow: sp.shadowSm,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <MEIcon name="search" size={14} color={sp.sub} />
+                  <input
+                    value={search} onChange={e => setSearch(e.target.value)}
+                    placeholder={t('board.searchPlaceholder')}
+                    style={{
+                      flex: 1, minWidth: 0, background: 'transparent', border: 0, outline: 'none',
+                      color: sp.ink, fontSize: 13, fontFamily: 'inherit',
+                    }}
+                  />
+                  {search && (
+                    <button onClick={() => setSearch('')} style={{
+                      background: 'none', border: 0, cursor: 'pointer',
+                      color: sp.sub, fontFamily: 'inherit', fontSize: 16,
+                    }}>×</button>
+                  )}
+                </div>
+                <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.label')}
+                  value={activeFilters > 0 ? String(activeFilters) : t('board.filter.none')}
+                  active={activeFilters > 0}>
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'minmax(180px,1fr) minmax(170px,1fr)',
+                    gap: 22, maxHeight: 'min(64vh, 540px)', overflowY: 'auto',
+                  }}>
+                    <div>
+                      <div style={{
+                        fontSize: 10, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase',
+                        color: sp.sub, padding: '2px 4px 8px',
+                      }}>{t('filter.stage')}</div>
+                      <SugarStageFilter sp={sp} dark={dark} value={filterStages} onChange={setFilterStages} />
+                    </div>
+                    <div>
+                      <div style={{
+                        fontSize: 10, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase',
+                        color: sp.sub, padding: '2px 4px 8px',
+                      }}>{t('board.filter.riskHeader')}</div>
+                      <SugarRiskFilter sp={sp} dark={dark} value={filterRisk} onChange={setFilterRisk} />
+                      <div style={{
+                        fontSize: 10, fontWeight: 800, letterSpacing: 0.7, textTransform: 'uppercase',
+                        color: sp.sub, padding: '16px 4px 8px',
+                      }}>{t('board.filter.periodHeader')}</div>
+                      <SugarPeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
+                    </div>
+                  </div>
+                  {activeFilters > 0 && (
+                    <button onClick={resetFilters} style={{
+                      marginTop: 10, padding: '8px 4px', borderRadius: 10, border: 0, cursor: 'pointer',
+                      background: 'transparent', color: sp.sub, fontWeight: 700, fontSize: 12, fontFamily: 'inherit',
+                      textDecoration: 'underline', textUnderlineOffset: 2,
+                    }}>{t('board.filter.resetAll')}</button>
+                  )}
+                </SugarFilterPill>
+                <SugarSegmentedView sp={sp} value={view} onChange={setView} />
+                <button onClick={() => setNewDealOpen(true)} style={{
+                  height: 40, padding: '0 20px', borderRadius: 999, border: 0,
+                  background: sp.accent, color: sp.accentInk, fontWeight: 700, fontSize: 13,
+                  fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow,
+                  display: 'flex', alignItems: 'center', whiteSpace: 'nowrap',
+                }}>{t('new_deal')}</button>
               </div>
-              <button
-                onClick={() => pipelineRefetch()}
-                style={{ height: 30, padding: '0 14px', borderRadius: 999, background: 'transparent', color: sp.ink, border: `1px solid ${sp.cardBorder}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, flexShrink: 0 }}
-              >
-                {t('board.error.retry')}
-              </button>
-            </div>
-          )}
-          {/* Views */}
-          {view === 'kanban' && (
-            <div ref={boardRef} style={{
-              display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 24,
-            }}>
-              {CRM_STAGE_ORDER.map(stage => (
-                <SugarStageColumn
-                  key={stage} stage={stage}
-                  deals={filteredByStage(stage)}
-                  sp={sp} dark={dark}
-                  onOpenDeal={openDeal}
-                  draggingId={draggingId}
-                  dragOver={dragOverStage === stage}
-                  onDragOver={() => handleDragOver(stage)}
-                  onDrop={() => handleDrop(stage)}
-                  onDragLeave={() => dragOverStage === stage && setDragOverStage(null)}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                />
-              ))}
-            </div>
-          )}
 
-          {view === 'list' && (
-            <PipelineList sp={sp} deals={filteredDeals} onOpenDeal={openDeal} />
-          )}
-          {/* 'timeline' view retirée — PipelineTimeline iterait CRM_DEALS mock.
-              Le toggle est aussi retiré de PipelineFilters.SugarSegmentedView.
-              Réintroductible quand on aura des dates start/end par deal. */}
+              {/* Bandeau d'erreur NON bloquant — le board garde ses colonnes affichées. */}
+              {pipelineError && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14,
+                  background: sp.cardBg, boxShadow: sp.shadowSm, color: sp.ink, marginBottom: 12, flexShrink: 0,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{t('board.error.title')}</div>
+                    <div style={{ fontSize: 12, color: sp.sub, marginTop: 2 }}>{t('board.error.message')}</div>
+                  </div>
+                  <button
+                    onClick={() => pipelineRefetch()}
+                    style={{
+                      height: 30, padding: '0 14px', borderRadius: 999, background: 'transparent',
+                      color: sp.ink, border: `1px solid ${sp.cardBorder}`, cursor: 'pointer',
+                      fontFamily: 'inherit', fontSize: 12, fontWeight: 700, flexShrink: 0,
+                    }}>{t('board.error.retry')}</button>
+                </div>
+              )}
+
+              {/* Board — kanban (scroll horizontal interne) ou liste */}
+              <div
+                ref={scrollRef}
+                onDragOver={onBoardDragOver}
+                className="sgPipeBoard"
+                style={{
+                  position: 'relative', flex: 1, minHeight: 0,
+                  overflowY: view === 'kanban' ? 'hidden' : 'auto', overflowX: 'auto',
+                  overscrollBehavior: 'contain',
+                }}
+              >
+                {view === 'kanban' && filteredDeals.length === 0 && (
+                  <div style={{
+                    position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
+                    zIndex: 5, pointerEvents: 'none',
+                  }}>{pipeEmptyCard}</div>
+                )}
+                {view === 'kanban' && (
+                  <div style={{ display: 'flex', gap: 14, paddingBottom: 8, height: '100%' }}>
+                    {CRM_STAGE_ORDER.map(stage => (
+                      <SugarStageColumn
+                        key={stage} stage={stage}
+                        deals={filteredByStage(stage)}
+                        sp={sp} dark={dark}
+                        onOpenDeal={openDeal}
+                        draggingId={draggingId}
+                        signingId={signingId} signExit={signExit}
+                        dragOver={dragOverStage === stage}
+                        onDragOver={() => handleDragOver(stage)}
+                        onDrop={() => handleDrop(stage)}
+                        onDragLeave={() => dragOverStage === stage && setDragOverStage(null)}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onReassign={handleReassign} onArchive={handleArchive} onMarkLost={handleMarkLost}
+                        onScheduleVisit={handleScheduleVisit} onAskAiVisit={handleAskAiVisit}
+                      />
+                    ))}
+                  </div>
+                )}
+                {view === 'list' && (
+                  filteredDeals.length === 0
+                    ? <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>{pipeEmptyCard}</div>
+                    : <PipelineList sp={sp} deals={filteredDeals} onOpenDeal={openDeal} />
+                )}
+              </div>
+            </div>
+          </div>
         </main>
       </div>
+
+      {/* Overlays */}
+      {lostConfirm && (() => {
+        const d = localDeals.find(x => x.id === lostConfirm)
+        const c = d ? contactsById.get(d.contactId) : null
+        return (
+          <LostConfirmModal
+            sp={sp} dark={dark}
+            contactName={c ? `${c.firstName} ${c.lastName}` : null}
+            onCancel={() => setLostConfirm(null)}
+            onConfirm={() => applyMarkLost(lostConfirm)}
+          />
+        )
+      })()}
+
+      {pipeToast && (
+        <div style={{
+          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          background: '#0B0C0E', color: '#fff', padding: '13px 16px 13px 20px', borderRadius: 999,
+          fontSize: 13, fontWeight: 600, zIndex: 240,
+          display: 'flex', alignItems: 'center', gap: 16,
+          boxShadow: '0 12px 40px rgba(0,0,0,.28)', animation: 'sugar-toast .2s ease-out',
+        }}>
+          <span>{pipeToast.message}</span>
+          {pipeToast.undo && (
+            <button onClick={pipeToast.undo} style={{
+              background: 'rgba(255,255,255,.14)', color: '#fff', border: 0, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '6px 14px', borderRadius: 999,
+            }}>{t('board.toast.undo')}</button>
+          )}
+        </div>
+      )}
+
+      {signedDeal && (
+        <SignedBento
+          sp={sp} dark={dark}
+          firstName={signedContact?.firstName ?? null}
+          onScheduleAct={() => { finishSigned(); navigate('/dashboard/calendar') }}
+          onCongrats={congratsSigned}
+          onOpenFile={() => { const id = signedDeal; finishSigned(); if (id) openDeal(id) }}
+          onReopen={reopenSigned}
+          onFinish={finishSigned}
+        />
+      )}
 
       <NewDealDrawer
         open={newDealOpen}
@@ -526,12 +715,6 @@ export default function PipelineSugarV2Page() {
         sp={sp} t={tk} dark={dark}
         prefill={null}
       />
-      {/* DealDetailDrawer retiré : ouvrait CRM_DEALS.find qui ne matche jamais
-          un UUID réel. openDeal() navigue vers /dashboard/transactions/:id
-          (page wired sur transactions). 0 perte de feature. */}
     </div>
   )
 }
-
-// Suppress unused parameter warning on generic types
-export type { ReactMouseEvent }

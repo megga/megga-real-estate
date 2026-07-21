@@ -284,5 +284,26 @@ export const SUGAR_KEYFRAMES = `
   @keyframes sugar-dash-flow {
     to { stroke-dashoffset: -14; }
   }
+  @keyframes sgSignVeil {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes sgSealIn {
+    from { opacity: 0; transform: scale(.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes sgSignExit {
+    0%   { opacity: 1; transform: translateY(0) scale(1); max-height: 340px; margin-top: 0; }
+    30%  { opacity: 1; transform: translateY(-6px) scale(1.015); }
+    100% { opacity: 0; transform: translateY(-26px) scale(.9); max-height: 0; margin-top: -10px; padding-top: 0; padding-bottom: 0; }
+  }
+  @keyframes sfPop {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes qaFade {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: none; }
+  }
 `
 
