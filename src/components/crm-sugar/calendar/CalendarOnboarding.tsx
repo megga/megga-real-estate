@@ -7,11 +7,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, SugarIconRail, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { buildCalPalette, CalPaletteContext, useCalPalette, type CalSugarPalette } from './data'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 function LogoGoogle({ s = 20 }: { s?: number }) {
   return (
@@ -75,7 +75,7 @@ export interface CalendarOnboardingProps {
 export function CalendarOnboarding({ dark, setDark, onDismiss, onConnectGoogle, onConnectOutlook }: CalendarOnboardingProps) {
   const navigate = useNavigate()
   const { t } = useTranslation('calendar')
-  const tk = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const tk = sugarThemeTokens(dark)
   const sp = crmSugarPalette(tk, dark, DARK_TONE)
   const SP: CalSugarPalette = buildCalPalette(dark, tk)
   const [later, setLater] = useState(false)

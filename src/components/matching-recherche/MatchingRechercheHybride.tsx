@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette, type CrmTheme, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type CrmTheme, type DarkTone, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { useToast } from '@/components/ui/Toast'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useAuth } from '@/hooks/useAuth'
@@ -68,7 +68,7 @@ interface Props {
   darkTone?: DarkTone
 }
 
-export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = 'meggaAi' }: Props) {
+export default function MatchingRechercheHybride({ t: crmT, dark, darkTone = SUGAR_DARK_TONE }: Props) {
   const { t } = useTranslation('matching')
   const navigate = useNavigate()
   const toast = useToast()

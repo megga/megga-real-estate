@@ -22,7 +22,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import type { TFunction } from 'i18next'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
 import { fmtDateTime } from '@/components/crm-sugar-v3/tokens'
-import { CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
 import OfferModalSugar from '@/components/crm-sugar-v3/offer-modal/OfferModalSugar'
 import { useTranslation } from 'react-i18next'
@@ -238,7 +238,7 @@ export default function DealDetailSugarV3Page() {
   const navigate = useNavigate()
   const dark = useSugarDark()
   const pal = dark ? DV_DARK : DV_LIGHT
-  const pageBg = crmSugarPalette(dark ? CRM_TOKENS.dark : CRM_TOKENS.light, dark, 'meggaAi').pageBg
+  const pageBg = crmSugarPalette(sugarThemeTokens(dark), dark, SUGAR_DARK_TONE).pageBg
 
   const { data: dealRaw, isLoading, isError, error } = useTransaction(id)
   const deal = dealRaw as TransactionJoined | undefined

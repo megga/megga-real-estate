@@ -3,7 +3,7 @@
 // connecté et jamais passé) et le calendrier. Porte l'état de thème partagé.
 
 import { useEffect, useState } from 'react'
-import { CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { CalendarApp } from '@/components/crm-sugar/calendar/CalendarApp'
 import { CalendarOnboarding } from '@/components/crm-sugar/calendar/CalendarOnboarding'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
@@ -50,8 +50,8 @@ export default function CalendarSugarV2Page() {
 
   // Évite le flash calendrier → onboarding pendant la résolution du statut.
   if (statusLoading && !seen) {
-    const tk = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
-    const sp = crmSugarPalette(tk, dark, 'meggaAi')
+    const tk = sugarThemeTokens(dark)
+    const sp = crmSugarPalette(tk, dark, SUGAR_DARK_TONE)
     return <div style={{ height: '100vh', background: sp.pageBg }} />
   }
 
