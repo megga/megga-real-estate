@@ -4,7 +4,8 @@
   "new_deal": "Nouveau deal",
   "view": {
     "kanban": "Kanban",
-    "list": "Liste"
+    "list": "Liste",
+    "timeline": "Timeline"
   },
   "filter": {
     "stage": "Étape"
@@ -167,7 +168,25 @@
       "offer": "Offre",
       "note": "Note",
       "fallback": "Suivi"
-    }
+    },
+    "groups": {
+      "late": "En retard",
+      "today": "Aujourd'hui",
+      "week": "Cette semaine",
+      "month": "Ce mois",
+      "later": "Plus tard"
+    },
+    "axis": {
+      "contact": "Contact",
+      "due": "Échéance"
+    },
+    "todayChip": "Aujourd'hui · {{date}}",
+    "jMinus": "J-{{count}}",
+    "dealsCount_one": "{{count}} deal",
+    "dealsCount_other": "{{count}} deals",
+    "dragHint": "Glisser pour replanifier",
+    "lastActivity": "Dernière activité · {{date}}",
+    "emptySearch": "Aucun deal ne correspond à la recherche."
   },
   "kyc": {
     "lock": {

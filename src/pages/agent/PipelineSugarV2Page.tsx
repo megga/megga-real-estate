@@ -32,13 +32,16 @@ import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
 import {
   useUpdateTransactionStatus, useArchiveTransaction, useReassignTransaction,
 } from '@/hooks/useTransactions'
-import { usePipelineReminderCreators, useCancelTransactionReminders } from '@/hooks/usePipelineNextActions'
+import {
+  usePipelineReminderCreators, useCancelTransactionReminders, useRescheduleReminder,
+} from '@/hooks/usePipelineNextActions'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
 import { CRM_STAGE_PROBS } from '@/components/crm-sugar/pipeline/stageConstants'
 import { SugarStageColumn } from '@/components/crm-sugar/pipeline/SugarStageColumn'
 import { PipelineList } from '@/components/crm-sugar/pipeline/PipelineList'
+import { PipelineTimeline } from '@/components/crm-sugar/pipeline/PipelineTimeline'
 import { SignedBento } from '@/components/crm-sugar/pipeline/SignedBento'
 import { LostConfirmModal } from '@/components/crm-sugar/pipeline/LostConfirmModal'
 import type { VisitSlot } from '@/components/crm-sugar/pipeline/SugarCardQuickActions'
@@ -104,6 +107,7 @@ export default function PipelineSugarV2Page() {
   const reassignTx = useReassignTransaction()
   const { createVisitReminder } = usePipelineReminderCreators()
   const cancelReminders = useCancelTransactionReminders()
+  const rescheduleReminder = useRescheduleReminder()
 
   // ── Overlays optimistes ──────────────────────────────────────────────
   // React Query invalide après mutation → léger délai. On surcouche localement
@@ -685,7 +689,24 @@ export default function PipelineSugarV2Page() {
                 {view === 'list' && (
                   filteredDeals.length === 0
                     ? <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>{pipeEmptyCard}</div>
-                    : <PipelineList sp={sp} deals={filteredDeals} onOpenDeal={openDeal} />
+                    : <PipelineList sp={sp} dark={dark} deals={filteredDeals} onOpenDeal={openDeal} />
+                )}
+                {view === 'timeline' && (
+                  filteredDeals.length === 0
+                    ? <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>{pipeEmptyCard}</div>
+                    : (
+                      <PipelineTimeline
+                        sp={sp} dark={dark} deals={filteredDeals} onOpenDeal={openDeal}
+                        onReschedule={async (reminderId, triggerAtIso) => {
+                          try {
+                            await rescheduleReminder.mutateAsync({ id: reminderId, triggerAt: triggerAtIso })
+                          } catch (e) {
+                            showToast(t('board.card.actionFailed', { message: t('board.card.unknownError') }))
+                            throw e
+                          }
+                        }}
+                      />
+                    )
                 )}
               </div>
             </div>

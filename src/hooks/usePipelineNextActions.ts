@@ -8,9 +8,27 @@
  */
 
 import { useCallback } from 'react'
-import { useInsertMutation } from '@supabase-cache-helpers/postgrest-react-query'
+import { useInsertMutation, useUpdateMutation } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+
+/** Replanifie l'échéance d'un reminder (poignée de la vue Timeline) : jour
+ *  choisi par le drag, heure d'origine conservée par l'appelant. Repasse le
+ *  statut à 'pending' (un reminder 'triggered'/'snoozed' replanifié redevient
+ *  une échéance à venir). */
+export function useRescheduleReminder() {
+  const update = useUpdateMutation(supabase.from('reminders'), ['id'])
+  return {
+    mutateAsync: async ({ id, triggerAt }: { id: string; triggerAt: string }) => {
+      await update.mutateAsync({
+        id,
+        trigger_at: triggerAt,
+        status: 'pending',
+      } as unknown as Parameters<typeof update.mutateAsync>[0])
+    },
+    isPending: update.isPending,
+  }
+}
 
 /** Créateurs de reminders « prochaine action » du pipeline. */
 export function usePipelineReminderCreators() {
