@@ -10,9 +10,10 @@
  * - Le sceau « vérifié » est un glyphe tracé localement (coche détourée en evenodd)
  *   plutôt qu'une icône du set MEIcon : aucun équivalent bicolore n'y existe.
  * - Triage : deux ronds ghost (écarter / plus tard) + primaire pleine largeur.
- *   Les gestes Intéressé / Pas intéressé / Relance / Visite et la carte KYC restent
- *   au-dessus : ce sont les seuls points d'entrée vers gestes.react, gestes.visit
- *   et le parcours KYC (HITL) depuis cet écran.
+ *   La maquette a retiré d'ici la carte MEGGA AI, la carte KYC et les boutons
+ *   Intéressé / Pas intéressé / Visite. Aucune capacité perdue : `i`, `v` et `r`
+ *   restent des raccourcis clavier (AtelierStage), et la pastille KYC est devenue
+ *   cliquable pour garder le seul accès contextuel au parcours KYC.
  */
 
 import { useTranslation } from 'react-i18next'
@@ -67,24 +68,18 @@ function SgaReasonsGroupes({ reasons }: { reasons: AtelierReason[] }) {
 interface SgaWhyProps {
   b: AtelierBuyer
   poolCount: number
-  canVisit: boolean
   onSend: () => void
   onSkip: () => void
   onLater: () => void
-  onVisit: () => void
   onRelance: () => void
-  onInterested: () => void
-  onNotInterested: () => void
   onPivot: () => void
   onStartKyc: () => void
 }
 
-export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater, onVisit, onRelance, onInterested, onNotInterested, onPivot, onStartKyc }: SgaWhyProps) {
+export default function SgaWhy({ b, poolCount, onSend, onSkip, onLater, onRelance, onPivot, onStartKyc }: SgaWhyProps) {
   const { t } = useTranslation('matching')
   const kyc = SGA_KYC[b.kyc]
   const verified = b.kyc === 'verified'
-  const softKyc = b.kyc === 'none' || b.kyc === 'stale'
-  const showVisit = b.status === 'engaged' && canVisit
   const reasons = [...b.reasons].sort((a, z) => Number(z.ok) - Number(a.ok) || z.pts - a.pts)
   const engageTone = SGA_ENGAGE_TONE[b.status]
 
@@ -106,11 +101,21 @@ export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater
 
       <div className="sga-why-scroll">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {/* Le sceau de la tête porte déjà l'état « vérifié » — pas de doublon */}
+          {/* Le sceau de la tête porte déjà l'état « vérifié » — pas de doublon.
+              La maquette a retiré la CARTE d'action KYC de cette colonne et ne garde
+              que ce signal. On rend donc la pastille cliquable : rendu identique à la
+              maquette, mais l'atelier conserve son seul accès contextuel au KYC du
+              contact (sans elle, `onStartKyc` n'aurait plus aucun point d'entrée —
+              contrairement à Visite/Intéressé/Relance, couverts par `v`/`i`/`r`). */}
           {!verified && (
-            <span className={`sga-spill ${kyc.tone}`}>
+            <button
+              type="button"
+              className={`sga-spill ${kyc.tone}`}
+              onClick={onStartKyc}
+              title={t('atelier.kycToComplete')}
+            >
               <SgaIcon d="shield" size={12} /> {kyc.label}
-            </span>
+            </button>
           )}
           <span className={`sga-spill ${engageTone}`}>
             <SgaIcon d="sparkle" size={11} /> {b.engage}
@@ -127,52 +132,18 @@ export default function SgaWhy({ b, poolCount, canVisit, onSend, onSkip, onLater
           </button>
         )}
 
-        <div className="sga-aicard">
-          <span className="spark"><SgaIcon d="sparkle" size={15} /></span>
-          <div style={{ flex: 1 }}>
-            <div className="t1 semi" style={{ marginBottom: 2, color: 'var(--ink)' }}>MEGGA AI</div>
-            <div className="t1 soft" style={{ lineHeight: 1.5 }}>{b.ai}</div>
-          </div>
-        </div>
-
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
             <span className="eyebrow">{t('atelier.whyMatches')}</span>
           </div>
           <SgaReasonsGroupes reasons={reasons} />
         </div>
-
-        {softKyc && (
-          <div className="sga-aicard">
-            <span className="spark kyc"><SgaIcon d="shield" size={15} /></span>
-            <div style={{ flex: 1 }}>
-              <div className="t1 semi" style={{ marginBottom: 2, color: 'var(--ink)' }}>{t('atelier.kycToComplete')}</div>
-              <div className="t1 muted" style={{ lineHeight: 1.5 }}>{t('atelier.kycSoftReminder')}</div>
-            </div>
-            <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'center' }} onClick={onStartKyc}>{t('atelier.start')}</button>
-          </div>
-        )}
       </div>
 
       <div className="sga-triage">
         {b.status === 'no-reply' && (
-          <>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onInterested}>
-                <SgaIcon d="check" size={16} /> {t('atelier.interested')}
-              </button>
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onNotInterested}>
-                <SgaIcon d="close" size={16} /> {t('atelier.notInterested')}
-              </button>
-            </div>
-            <button className="btn btn-ghost" onClick={onRelance}>
-              <SgaIcon d="refresh" size={15} /> {t('atelier.followUpOtherChannel')}
-            </button>
-          </>
-        )}
-        {showVisit && (
-          <button className="btn btn-ghost" onClick={onVisit}>
-            <SgaIcon d="calendar" size={16} /> {t('atelier.proposeVisit')}
+          <button className="btn btn-ghost" onClick={onRelance}>
+            <SgaIcon d="refresh" size={15} /> {t('atelier.followUpOtherChannel')}
           </button>
         )}
         <div className="btns btns-icon">

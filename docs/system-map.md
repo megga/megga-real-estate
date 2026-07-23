@@ -105,6 +105,22 @@ kyc.megga.ch (magic links KYC publics)        ─┘         ▲
 4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD), plus `SuperAdminGuard` pour l'admin. `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
 QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `networkMode: always`.
 
+**🟪 Arrivée post-connexion** (juil. 2026). La connexion vit sur la vitrine (cf. §4bis) : `megga-auth.js`
+passe les jetons dans le **fragment** d'URL vers `app.megga.ch/auth/callback` (deux origines ⇒ deux
+`localStorage` ; une redirection nue vers `/dashboard` arrive sans session et reboucle — bug du 19.07.2026).
+L'agent traversait ensuite 4 écrans blancs successifs avant le CRM ; ils sont remplacés par **un seul écran**
+aux tokens de la vitrine (fond `#030303`, Inter Tight, barre `#424bfb`, halo bas = le dégradé du pied de page
+vitrine réduit à 22 Ko). Il existe en **deux jumeaux** : `#megga-boot` inline dans `index.html` (peint dès la
+1<sup>re</sup> frame, avant React) et [`BootSplash.tsx`](../src/components/layout/BootSplash.tsx) qui prend le
+relais. ⚠️ Les **styles ne vivent que dans `index.html`** (`<style id="megga-boot-style">`) — le composant React
+n'en réutilise que les classes, et les deux balisages doivent rester identiques sous peine de clignotement.
+Un second temps ([`BootCurtain`](../src/components/layout/BootCurtain.tsx) + `CurtainLift` + le drapeau module
+[`crmEntry.ts`](../src/lib/crmEntry.ts)) tient l'écran **au-dessus** du CRM jusqu'à sa première peinture, pour
+que le squelette `DashboardSkeleton` reste ce qu'il doit être : un état de navigation interne, pas un écran
+d'accueil. ⚠️ Le drapeau est au niveau du **module** et non dans un état React : les routes étant keyées par
+`pathname` (`AnimatedRoutes`), tout l'arbre protégé se remonte à chaque navigation. Cerveau :
+`megga/ecran-arrivee-post-login`.
+
 | Audience | Préfixe | Pages clés |
 |---|---|---|
 | **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
