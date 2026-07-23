@@ -35,13 +35,13 @@ active sur l'import de contacts, le détail marché, le formulaire de bien et to
 | Route | Écran |
 |---|---|
 | `/dashboard` | Cockpit « Aujourd'hui » |
-| `/dashboard/pipeline` | Kanban des affaires (14 stades DB → 8 colonnes UI) |
+| `/dashboard/pipeline` | Pipeline v2 « Sugar Pure » : kanban teinté / liste / timeline (14 stades DB → 8 colonnes UI), célébration de signature + bento de suites, modale « Nouveau deal » plein cadre + création inline |
 | `/dashboard/contacts` · `/new` · `/:id` | Liste, création, fiche contact |
 | `/dashboard/contacts/import` | Import de leads |
 | `/dashboard/import-lead` | Import d'un lead unitaire |
 | `/dashboard/listings` · `/new` · `/:id` · `/:id/edit` | Mes biens, création, fiche, formulaire |
 | `/dashboard/matching` | Matching acquéreur ↔ bien (pager Atelier + Recherche) |
-| `/dashboard/transactions/:id` | Détail affaire |
+| `/dashboard/transactions/:id` | Fiche deal V4 « Atelier scindé » (L'acheteur ‖ L'affaire : matching lead ou négociation) |
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
 | `/dashboard/calendar` | Agenda (Google / Outlook) |

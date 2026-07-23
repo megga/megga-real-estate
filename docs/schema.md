@@ -85,19 +85,24 @@ transactions (
   id, agency_id, property_id, contact_buyer_id, contact_seller_id, assigned_to,
   stage, status,
   price_offered, price_final, mandate_type,
-  notes, created_at, updated_at
+  notes, archived_at, created_at, updated_at
 )
   -- stage (pipeline enrichi Gregory) :
   --   'new_lead' | 'to_qualify' | 'active_search' | 'visit_planned' | 'visit_done' |
   --   'interest_confirmed' | 'offer' | 'negotiation' | 'reserved' |
   --   'financing' | 'notary' | 'signed' | 'closed' | 'lost' | 'to_recontact'
   -- status: 'active' | 'on_hold' | 'cancelled' | 'completed'
+  --   (Pipeline v2 : « gagné » = completed — le deal sort du board actif)
+  -- archived_at (Pipeline v2, migration 20260721150100) : deal rangé hors board
+  --   (action « Archiver », undo = NULL). NULL = visible au pipeline.
 
 -- Relances et reminders automatiques
 reminders (
   id, agency_id,
   contact_id, property_id, transaction_id, match_id,
-  type,             -- 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom'
+  type,             -- 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom' | 'deal_stagnant' | 'match_ignored'
+  kind,             -- Pipeline v2 (migration 20260721150000) : nature UI de la prochaine action
+                    --   'call' | 'visit' | 'kyc' | 'match' | 'offer' | 'note' (NULL = dérivée de type côté front)
   trigger_rule,     -- 'days_after_event' | 'no_response' | 'inactivity' | 'manual'
   trigger_days,     -- Nombre de jours avant déclenchement
   status,           -- 'pending' | 'triggered' | 'done' | 'cancelled' | 'snoozed'

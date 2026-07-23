@@ -53,3 +53,10 @@ agentdb.rvf*
 
 # Deno (edge functions checked via `deno check`, no lockfile tracked)
 deno.lock
+
+# Claude Code / claude-flow — état runtime local (jamais versionné)
+.claude-flow/daemon-state.json
+.claude-flow/daemon.pid
+.claude-flow/harness-active-policy.json
+.claude/proven-config.json
+.claude/.proven-config-version
