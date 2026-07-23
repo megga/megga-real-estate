@@ -81,8 +81,8 @@ function dealToVM(d: CrmDeal): DealVM {
     value: d.value,
     prob: d.probability,
     risk: d.risk,
-    note: d.nextAction.note,
-    noteKind: d.nextAction.kind,
+    note: d.nextAction?.note ?? '',
+    noteKind: d.nextAction?.kind ?? 'note',
     needsKyc,
   }
 }

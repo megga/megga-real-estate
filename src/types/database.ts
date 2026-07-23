@@ -3368,6 +3368,7 @@ export type Database = {
           contact_id: string | null
           created_at: string | null
           id: string
+          kind: string | null
           match_id: string | null
           message_template: string | null
           property_id: string | null
@@ -3385,6 +3386,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string | null
           id?: string
+          kind?: string | null
           match_id?: string | null
           message_template?: string | null
           property_id?: string | null
@@ -3402,6 +3404,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string | null
           id?: string
+          kind?: string | null
           match_id?: string | null
           message_template?: string | null
           property_id?: string | null
@@ -4019,6 +4022,7 @@ export type Database = {
       transactions: {
         Row: {
           agency_id: string
+          archived_at: string | null
           assigned_to: string | null
           contact_buyer_id: string | null
           contact_seller_id: string | null
@@ -4036,6 +4040,7 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          archived_at?: string | null
           assigned_to?: string | null
           contact_buyer_id?: string | null
           contact_seller_id?: string | null
@@ -4053,6 +4058,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          archived_at?: string | null
           assigned_to?: string | null
           contact_buyer_id?: string | null
           contact_seller_id?: string | null
