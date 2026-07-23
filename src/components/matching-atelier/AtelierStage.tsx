@@ -14,7 +14,6 @@ import SgaWhy from './SgaWhy'
 import SgaConfirm from './SgaConfirm'
 import SgaOverlayHost from './SgaOverlayHost'
 import SgaSendSheet from './SgaSendSheet'
-import SgaGallery from './SgaGallery'
 import SgaAnnonceVue from './SgaAnnonceVue'
 import SgaAcheteurMode from './SgaAcheteurMode'
 import { sgaMatchQuery, sgaMatchTab } from './constants'
@@ -88,7 +87,6 @@ export default function AtelierStage({
   const [confirmSend, setConfirmSend] = useState<{ matchId: string; relance?: boolean } | null>(null)
   // Feuille d'envoi (lien privé réception) — remplace la confirmation email pour l'envoi.
   const [sendSheet, setSendSheet] = useState<string | null>(null)
-  const [gallery, setGallery] = useState<{ index: number } | null>(null)
   const [annonce, setAnnonce] = useState(false)
   const [selId, setSelId] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -126,7 +124,6 @@ export default function AtelierStage({
     setToast(null)
     setExiting(null)
     setAnnonce(false)
-    setGallery(null)
     setProcessed({})
     setLaterInfo({})
     setHistory([])
@@ -261,7 +258,7 @@ export default function AtelierStage({
       // `menuOpen` compte comme un overlay : son voile est plein écran mais laisse la
       // file montée derrière. Sans cette garde, une frappe destinée au menu (`x`, `p`,
       // une flèche) partait trier l'acheteur caché dessous, écriture Supabase comprise.
-      if (menuOpen || confirmSend || gallery || annonce || sendSheet) return
+      if (menuOpen || confirmSend || annonce || sendSheet) return
       const tag = ((e.target as HTMLElement)?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       const k = e.key.toLowerCase()
@@ -280,7 +277,7 @@ export default function AtelierStage({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pivotBuyer, selected, menuOpen, confirmSend, gallery, annonce, sendSheet, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
+  }, [pivotBuyer, selected, menuOpen, confirmSend, annonce, sendSheet, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
 
   // ── parking « Reportés » : session + base ───────────────────────────────
   const snoozedList: SnoozedEntry[] = useMemo(() => [
@@ -391,19 +388,19 @@ export default function AtelierStage({
               onOpenListing={() => setAnnonce(true)}
             />
 
+            {/* Intéressé / Pas intéressé / Visite ne sont plus des boutons de la
+                colonne 3 (la maquette les en a retirés). Les gestes restent joignables :
+                `i` et `v` au clavier ci-dessus, et « pas intéressé » vient normalement
+                de l'acheteur lui-même, via sa page de réception. */}
             <section className="sga-panel sga-enter d2" aria-label="Pourquoi ça matche">
               {selected ? (
                 <SgaWhy
                   b={selected}
                   poolCount={poolCountFor(selected.id)}
-                  canVisit={canVisit}
                   onSend={() => requestSend(selected.matchId)}
                   onSkip={() => triage(selected.matchId, 'skipped')}
                   onLater={() => triage(selected.matchId, 'later')}
-                  onVisit={() => gestes.visit(selected.matchId)}
                   onRelance={() => requestRelance(selected.matchId)}
-                  onInterested={() => triage(selected.matchId, 'interested')}
-                  onNotInterested={() => triage(selected.matchId, 'rejected')}
                   onPivot={() => onOpenBuyerPivot(selected.id)}
                   onStartKyc={() => onStartKyc(selected.id)}
                 />
@@ -466,7 +463,6 @@ export default function AtelierStage({
         <SgaOverlayHost dark={dark}>
           <SgaAnnonceVue
             L={pivot.listing}
-            keysOff={!!gallery}
             buyer={selected}
             onClose={() => setAnnonce(false)}
             onPropose={selected ? () => { setAnnonce(false); requestSend(selected.matchId) } : null}
@@ -474,12 +470,6 @@ export default function AtelierStage({
         </SgaOverlayHost>
       )}
 
-      {/* ── galerie photo (lightbox) ── */}
-      {gallery && pivot && (
-        <SgaOverlayHost dark={dark}>
-          <SgaGallery L={pivot.listing} openIndex={gallery.index} onClose={() => setGallery(null)} />
-        </SgaOverlayHost>
-      )}
 
       {/* ── toast triage (undo 5 s · voir le deal) ── */}
       {toast && (
