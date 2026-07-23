@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { galSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
@@ -21,7 +21,7 @@ import { PreferencesFocusSection } from '@/components/crm-sugar/settings/focus/P
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm-sugar/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm-sugar/settings/atoms'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
 const ALLOWED: SectionId[] = ['profile', 'agency', 'notifications', 'preferences', 'integrations', 'security', 'billing']
 
@@ -60,7 +60,7 @@ export default function SettingsSugarV2Page() {
     }
   }, [dark])
 
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const t = sugarThemeTokens(dark)
   const sp = crmSugarPalette(t, dark, DARK_TONE)
   const surf = galSurfaces(sp, dark)
 
@@ -120,7 +120,7 @@ export default function SettingsSugarV2Page() {
   // sombre ; le contenu Facturation est transparent pour laisser passer le dégradé.
   const immersive = active === 'billing'
   const BILL_GRAD = '/billing/gradient.png'
-  const spR = immersive ? crmSugarPalette(CRM_TOKENS.dark, true, DARK_TONE) : sp
+  const spR = immersive ? crmSugarPalette(sugarThemeTokens(true), true, DARK_TONE) : sp
   const surfR = immersive ? galSurfaces(spR, true) : surf
   const darkR = dark || immersive
 

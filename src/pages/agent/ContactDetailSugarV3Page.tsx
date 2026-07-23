@@ -15,7 +15,7 @@ import { type ReactNode, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -35,7 +35,7 @@ import ContactDetailPager, {
 import { useContactNextAction } from '@/hooks/useContactNextAction'
 import { nbaToI18n } from '@/lib/contactNba'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function ContactDetailSugarV3Page() {
   const { id = '' } = useParams()
@@ -50,7 +50,7 @@ export default function ContactDetailSugarV3Page() {
     if (saved === '0') return false
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const t = sugarThemeTokens(dark)
   const sp = crmSugarPalette(t, dark, DARK_TONE)
 
   const { data: fetched, isLoading } = useContact(id)

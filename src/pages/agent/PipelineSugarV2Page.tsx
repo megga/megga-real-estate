@@ -4,10 +4,7 @@
 import { useState, useEffect, useMemo, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import {
-  CRM_TOKENS, CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette,
-  type DarkTone, type StageId,
-} from '@/components/crm-sugar/tokens'
+import { CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette, type DarkTone, type StageId, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { type CrmDeal } from '@/components/crm-sugar/mockData'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { SugarPipelineKycLock } from '@/components/crm-sugar-v3/pipeline/SugarPipelineKycLock'
@@ -29,7 +26,7 @@ import {
 import { NewDealDrawer } from '@/components/crm-sugar/pipeline/NewDealDrawer'
 import SugarAiBanner, { type SugarAiInsight } from '@/components/crm-sugar/ai/SugarAiBanner'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function PipelineSugarV2Page() {
   const { t } = useTranslation('pipeline')
@@ -61,7 +58,7 @@ export default function PipelineSugarV2Page() {
     }
   }, [dark])
 
-  const tk = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const tk = sugarThemeTokens(dark)
   const sp = crmSugarPalette(tk, dark, DARK_TONE)
 
   const [view, setView] = useState<PipelineView>('kanban')

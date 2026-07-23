@@ -18,14 +18,14 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -121,7 +121,7 @@ export default function MatchingPagerPage() {
     }
   }, [dark])
 
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const t = sugarThemeTokens(dark)
   const sp = crmSugarPalette(t, dark, DARK_TONE)
   const lightMode = !dark
 

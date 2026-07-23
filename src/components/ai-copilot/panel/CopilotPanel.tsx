@@ -10,7 +10,7 @@ import {
   useState, useRef, useEffect, useMemo, useCallback,
   type ReactNode, type KeyboardEvent as ReactKeyboardEvent, type ChangeEvent as ReactChangeEvent,
 } from 'react'
-import { CRM_TOKENS, crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import { useCopilot, type PendingActionCard } from '@/hooks/useCopilot'
 import { useUploadChatPhoto } from '@/hooks/useProperties'
 import { useAuth } from '@/hooks/useAuth'
@@ -759,7 +759,7 @@ export default function CopilotPanel() {
   const { impersonating } = useImpersonate()
   const dark = usePanelDark(isOpen)
   const sp = useMemo<AiPalette>(() => {
-    const base = crmSugarPalette(dark ? CRM_TOKENS.dark : CRM_TOKENS.light, dark, 'meggaAi')
+    const base = crmSugarPalette(sugarThemeTokens(dark), dark, SUGAR_DARK_TONE)
     return deriveAiPalette(base, dark)
   }, [dark])
 

@@ -14,7 +14,7 @@
 import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode, type CSSProperties } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
-import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -39,7 +39,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 // ─── Brouillon d'édition (inchangé — câblage réel) ────────────────────────
 interface BienEditDraft {
@@ -394,7 +394,7 @@ export default function BienDetailSugarV3Page() {
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
   }, [dark])
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const t = sugarThemeTokens(dark)
   const navSp = crmSugarPalette(t, dark, DARK_TONE)
   const sp = vxPalette(dark)
 

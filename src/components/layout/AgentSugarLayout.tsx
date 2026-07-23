@@ -10,7 +10,7 @@ import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
-import { CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
 
@@ -53,7 +53,7 @@ function AgentSugarInner() {
   }, [isOpen])
   // Fond Sugar de la page courante → peint la gouttière réservée par le push
   // (sinon elle laisserait voir le fond `body` blanc, dépareillé en mode sombre).
-  const pageBg = crmSugarPalette(dark ? CRM_TOKENS.dark : CRM_TOKENS.light, dark, 'meggaAi').pageBg
+  const pageBg = crmSugarPalette(sugarThemeTokens(dark), dark, SUGAR_DARK_TONE).pageBg
   return (
     <>
       <ImpersonateBanner />
