@@ -161,6 +161,49 @@ export function useUpdateTransactionStage() {
   })
 }
 
+/** Statut d'une transaction — « Terminer » du bento signé (completed) et
+ *  « Rouvrir dans le pipeline » (active, + retour d'étape via useUpdateTransactionStage).
+ *  L'audit status_change est écrit par le trigger DB trg_transaction_lifecycle. */
+export function useUpdateTransactionStatus() {
+  const update = useUpdateMutation(supabase.from('transactions'), ['id'])
+  return {
+    mutateAsync: async ({ id, status }: { id: string; status: TransactionStatus }) => {
+      await update.mutateAsync({ id, status } as unknown as Parameters<typeof update.mutateAsync>[0])
+    },
+    isPending: update.isPending,
+  }
+}
+
+/** Range/dé-range un deal hors du board (action « Archiver » + undo du toast).
+ *  Le trigger lifecycle ne voit pas archived_at — l'appelant logge l'audit
+ *  (useLogAudit) côté page. */
+export function useArchiveTransaction() {
+  const update = useUpdateMutation(supabase.from('transactions'), ['id'])
+  return {
+    mutateAsync: async ({ id, archived }: { id: string; archived: boolean }) => {
+      await update.mutateAsync({
+        id,
+        archived_at: archived ? new Date().toISOString() : null,
+      } as unknown as Parameters<typeof update.mutateAsync>[0])
+    },
+    isPending: update.isPending,
+  }
+}
+
+/** Réassigne un deal à un autre agent de l'agence (action rapide de carte). */
+export function useReassignTransaction() {
+  const update = useUpdateMutation(supabase.from('transactions'), ['id'])
+  return {
+    mutateAsync: async ({ id, assignedTo }: { id: string; assignedTo: string }) => {
+      await update.mutateAsync({
+        id,
+        assigned_to: assignedTo,
+      } as unknown as Parameters<typeof update.mutateAsync>[0])
+    },
+    isPending: update.isPending,
+  }
+}
+
 // Update privée notes d'une transaction (notes internes équipe agence)
 export function useUpdateTransactionNotes() {
   const update = useUpdateMutation(supabase.from('transactions'), ['id'])

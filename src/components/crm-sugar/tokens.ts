@@ -127,6 +127,47 @@ export const CRM_STAGE_ORDER: StageId[] = [
   'new-lead', 'to-qualify', 'searching', 'visit-scheduled',
   'visit-done', 'interest-confirmed', 'offer', 'signed',
 ]
+
+// ─── Teintes d'étape — Pipeline v2 « Sugar Pure » ───────────────────────
+// Balayage de teinte CONTINU le long du funnel (froid → chaud) : chaque étape
+// suit chromatiquement la précédente. Ce sont CES valeurs (pas les gris de
+// CRM_STAGES) qui pilotent le kanban, les pilules, les pastilles et les barres.
+// Source : handoff crm-screen-pipeline-sugar.jsx §SG_STAGE_HUE.
+export const SG_STAGE_HUE: Record<StageId, string> = {
+  'new-lead':           '#5B6BE6', // indigo
+  'to-qualify':         '#3E86E4', // bleu
+  'searching':          '#1FA3D6', // azur
+  'visit-scheduled':    '#0FB9C2', // cyan
+  'visit-done':         '#14BE93', // teal
+  'interest-confirmed': '#46C05F', // vert
+  'offer':              '#C9A31C', // or
+  'signed':             '#E8892A', // orange chaud
+  'lost':               '#C2607E', // rose sombre (hors funnel)
+}
+
+/** Mélange un hex vers une cible (#000/#fff) d'un facteur `amt` — dérive des
+ *  tons lisibles depuis les teintes d'étape saturées. Facteurs figés par le
+ *  handoff : ne pas les changer. */
+export function sgMix(hex: string, target: string, amt: number): string {
+  const h = (hex || '#000000').replace('#', '')
+  const t = (target || '#000000').replace('#', '')
+  if (h.length < 6) return hex
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16)
+  const tr = parseInt(t.slice(0, 2), 16), tg = parseInt(t.slice(2, 4), 16), tb = parseInt(t.slice(4, 6), 16)
+  const m = (a: number, bb: number) => Math.round(a + (bb - a) * amt)
+  return `rgb(${m(r, tr)}, ${m(g, tg)}, ${m(b, tb)})`
+}
+
+/** Teinte dérivée d'une colonne kanban : fond pastel (`panel`) + libellé de
+ *  compteur teinté (`tintInk`) + teinte vive (`hue`). */
+export function sgStageTint(stage: StageId, dark: boolean): { hue: string; panel: string; tintInk: string } {
+  const hue = SG_STAGE_HUE[stage] || '#8A93A5'
+  return {
+    hue,
+    panel: dark ? sgMix(hue, '#141517', 0.85) : sgMix(hue, '#FFFFFF', 0.81),
+    tintInk: dark ? sgMix(hue, '#FFFFFF', 0.35) : sgMix(hue, '#0B0C0E', 0.45),
+  }
+}
 // ─── Formatters ─────────────────────────────────────────────────────────
 export function crmFmtCHF(n: number | null | undefined): string {
   if (n == null) return '—'
@@ -151,6 +192,11 @@ export interface SugarPalette {
   ink: string
   sub: string
   soft: string
+  /** Accent UI unique Sugar Pure : noir franc en clair, encre claire en sombre
+   *  (CTA, sélection, pilules actives). Jamais une couleur vive. */
+  accent: string
+  /** Texte posé sur `accent` (blanc en clair, quasi-noir en sombre). */
+  accentInk: string
   focusBg: string
   focusInk: string
   focusSurface: string
@@ -199,6 +245,8 @@ export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'ma
       ink:           '#0E1410',
       sub:           '#7A8079',
       soft:          '#3F4640',
+      accent:        '#0B0C0E',
+      accentInk:     '#FFFFFF',
       focusBg:       '#0E1410',
       focusInk:      '#FFFFFF',
       focusSurface:  'rgba(255,255,255,.10)',
@@ -229,6 +277,8 @@ export function crmSugarPalette(t: CrmTheme, dark: boolean, tone: DarkTone = 'ma
     ink:           t.ink,
     sub:           t.muted,
     soft:          t.soft,
+    accent:        t.ink,
+    accentInk:     '#0A0A0F',
     focusBg:       t.primary,
     focusInk:      '#FFFFFF',
     focusSurface:  'rgba(255,255,255,.12)',
