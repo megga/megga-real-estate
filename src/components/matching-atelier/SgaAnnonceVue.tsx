@@ -86,12 +86,11 @@ type SgiSheetState = 'open' | 'folding' | 'mini' | 'unfolding'
 interface SgaAnnonceVueProps {
   L: AtelierListing
   buyer: AtelierBuyer | null
-  keysOff: boolean
   onClose: () => void
   onPropose: (() => void) | null
 }
 
-export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose }: SgaAnnonceVueProps) {
+export default function SgaAnnonceVue({ L, buyer, onClose, onPropose }: SgaAnnonceVueProps) {
   const { t } = useTranslation('matching')
   const G = L.gallery
   const hasImg = !!G[0]?.url
@@ -114,26 +113,25 @@ export default function SgaAnnonceVue({ L, buyer, keysOff, onClose, onPropose }:
     if (foldTimer.current) clearTimeout(foldTimer.current)
   }, [])
 
-  // Échap ferme — inhibé quand la galerie ouverte au-dessus gère ses propres touches
+  // Échap ferme. Plus de galerie au-dessus : cette vue est le dernier overlay.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (keysOff) return
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [keysOff, close])
+  }, [close])
 
   // ← / → : photo précédente / suivante
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (keysOff || !hasImg || G.length < 2) return
+      if (!hasImg || G.length < 2) return
       if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); setIdx(i => (i + 1) % G.length) }
       if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); setIdx(i => (i - 1 + G.length) % G.length) }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [keysOff, hasImg, G.length])
+  }, [hasImg, G.length])
 
   const fold = () => { setSheet('folding'); foldTimer.current = setTimeout(() => setSheet('mini'), 260) }
   const unfold = () => { setSheet('unfolding'); foldTimer.current = setTimeout(() => setSheet('open'), 190) }
