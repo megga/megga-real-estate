@@ -222,7 +222,7 @@
     "buyer": "Buyer",
     "view_full_profile": "View full profile",
     "call": "Call",
-    "email": "Email",
+    "email": "E-Mail",
     "message": "Message",
     "capacity": "Budget",
     "purchase_probability": "{{value}}% purchase probability",
@@ -286,7 +286,30 @@
       "lost": "Deal als verloren markiert",
       "offer_sent": "Angebot gesendet",
       "counter_sent": "Gegenangebot gesendet"
-    }
+    },
+    "buyer_eyebrow": "Der Käufer",
+    "affair_eyebrow": "Das Geschäft",
+    "next_action": "Nächste Aktion",
+    "matches_title": "Objekte zum Vorschlagen",
+    "matches_count_one": "{{count}} Match",
+    "matches_count_other": "{{count}} Matches",
+    "no_matches": "Noch kein Objekt des Portfolios passt.",
+    "transmit": "An {{name}} senden",
+    "open_contact": "Kontaktprofil öffnen",
+    "phone": "Telefon",
+    "lang": {
+      "fr": "Französisch",
+      "en": "Englisch",
+      "de": "Deutsch",
+      "it": "Italienisch"
+    },
+    "crit": {
+      "buy": "Kauf",
+      "rent": "Miete",
+      "rooms_min": "≥ {{count}} Zimmer",
+      "budget_max": "≤ {{amount}}"
+    },
+    "property_line": "{{addr}} · {{area}} m² · {{rooms}} Zimmer"
   },
   "offerModal": {
     "cta": {

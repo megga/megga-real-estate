@@ -109,7 +109,7 @@ const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page
 const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
 // Sprint 2 — Sugar v3 (port pixel-près handoff Bien + Deal + Visite)
 const BienDetailSugarV3Page = lazy(() => import('@/pages/agent/BienDetailSugarV3Page'))
-const DealDetailSugarV3Page = lazy(() => import('@/pages/agent/DealDetailSugarV3Page'))
+const DealDetailSugarV4Page = lazy(() => import('@/pages/agent/DealDetailSugarV4Page'))
 const OfferModalSugarV3Page = lazy(() => import('@/pages/agent/OfferModalSugarV3Page'))
 const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
 const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugarV3Page'))
@@ -477,7 +477,7 @@ function AnimatedRoutes() {
                     Mobile (< 768px) : fiche lecture seule (P7). */}
                 <Route path="listings/:id" element={<ResponsiveRoute desktop={<BienDetailSugarV3Page />} mobile={<MobileBienVitrinePage />} />} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
-                <Route path="transactions/:id" element={<ResponsiveRoute desktop={<DealDetailSugarV3Page />} mobile={<MobileDealDetailPage />} />} />
+                <Route path="transactions/:id" element={<ResponsiveRoute desktop={<DealDetailSugarV4Page />} mobile={<MobileDealDetailPage />} />} />
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
                 <Route path="transactions/:id/offre/:kind" element={<OfferModalSugarV3Page />} />
                 {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}

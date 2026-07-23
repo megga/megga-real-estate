@@ -251,7 +251,7 @@
     "buyer": "Acheteur",
     "view_full_profile": "Voir la fiche complète",
     "call": "Appeler",
-    "email": "Email",
+    "email": "E-mail",
     "message": "Message",
     "capacity": "Capacité",
     "purchase_probability": "{{value}}% probabilité d'achat",
@@ -315,7 +315,30 @@
       "lost": "Deal marqué perdu",
       "offer_sent": "Offre envoyée",
       "counter_sent": "Contre-offre envoyée"
-    }
+    },
+    "buyer_eyebrow": "L'acheteur",
+    "affair_eyebrow": "L'affaire",
+    "next_action": "Prochaine action",
+    "matches_title": "Biens à proposer",
+    "matches_count_one": "{{count}} match",
+    "matches_count_other": "{{count}} matchs",
+    "no_matches": "Aucun bien du portefeuille ne correspond encore.",
+    "transmit": "Transmettre à {{name}}",
+    "open_contact": "Ouvrir la fiche contact",
+    "phone": "Téléphone",
+    "lang": {
+      "fr": "Français",
+      "en": "Anglais",
+      "de": "Allemand",
+      "it": "Italien"
+    },
+    "crit": {
+      "buy": "Achat",
+      "rent": "Location",
+      "rooms_min": "≥ {{count}} pièces",
+      "budget_max": "≤ {{amount}}"
+    },
+    "property_line": "{{addr}} · {{area}} m² · {{rooms}} pièces"
   },
   "offerModal": {
     "cta": {
