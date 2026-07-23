@@ -59,152 +59,6 @@
     "signed": "Signé",
     "lost": "Perdu"
   },
-  "newDeal": {
-    "archetype": {
-      "buyerSearch": {
-        "label": "Acquéreur en recherche",
-        "sub": "Pas encore de bien identifié"
-      },
-      "buyerBien": {
-        "label": "Acheteur sur un bien",
-        "sub": "Bien déjà identifié, visite ou intérêt"
-      },
-      "sellerMandate": {
-        "label": "Mandat vendeur",
-        "sub": "Nouveau bien à publier, mandat requis"
-      },
-      "tenant": {
-        "label": "Locataire",
-        "sub": "Cycle court, KYC allégé"
-      }
-    },
-    "action": {
-      "call": {
-        "label": "Appel",
-        "placeholder": "Premier appel de qualification"
-      },
-      "visit": {
-        "label": "Visite",
-        "placeholder": "Planifier la visite du bien"
-      },
-      "match": {
-        "label": "Matching",
-        "placeholder": "Envoyer 3 biens du portefeuille"
-      },
-      "kyc": {
-        "label": "KYC",
-        "placeholder": "Lancer le dossier de vérification LBA"
-      },
-      "doc": {
-        "label": "Document",
-        "placeholder": "Préparer le bon de visite / mandat"
-      },
-      "scheduleLabel": "Action à programmer",
-      "dueLabel": "Échéance",
-      "noteLabel": "Note"
-    },
-    "section": {
-      "dealType": "Type de deal",
-      "contact": "Contact",
-      "bien": "Bien concerné",
-      "stageValue": "Étape & valeur",
-      "nextAction": "Prochaine action"
-    },
-    "ai": {
-      "buttonTitle": "Pré-remplir depuis un email/message",
-      "title": "MEGGA AI · pré-remplissage",
-      "placeholder": "Collez ici un email, une note vocale transcrite ou un message WhatsApp. L'IA en extrait le contact, le bien éventuel, le score et propose une prochaine action.",
-      "analyzing": "Analyse…",
-      "extract": "Extraire",
-      "prefilledNote": "Premier appel suite au message reçu"
-    },
-    "contact": {
-      "selectTitle": "Sélectionner un contact",
-      "createTitle": "Créer un contact",
-      "existing": "Existant",
-      "new": "Nouveau",
-      "searchPlaceholder": "Rechercher nom, email, téléphone…",
-      "kycVerified": "KYC ✓",
-      "kycPending": "KYC en cours",
-      "kycTodo": "KYC à faire",
-      "empty": "Aucun résultat, basculez sur « Nouveau » pour créer ce contact.",
-      "firstName": "Prénom",
-      "lastName": "Nom",
-      "email": "Email",
-      "phone": "Téléphone",
-      "language": "Langue",
-      "duplicate": "Contact existant trouvé : {{name}}. Basculez sur « Existant » pour l'utiliser."
-    },
-    "bien": {
-      "toPublish": "Bien à publier (peut être créé après)",
-      "fromPortfolio": "Bien du portefeuille ou catalogue MEGGA",
-      "searchPlaceholder": "Rechercher titre, référence MG-…, adresse",
-      "rentPerMonth": "CHF {{amount}}/mois",
-      "noneIdentified": "Pas encore de bien identifié"
-    },
-    "stage": {
-      "startLabel": "Étape de départ",
-      "estimatedValue": "Valeur estimée (CHF)",
-      "autoFromRef": "Auto depuis {{ref}}",
-      "optional": "Optionnel",
-      "estimatedCommission": "Commission estimée"
-    },
-    "guard": {
-      "mandate": {
-        "title": "Mandat requis avant publication",
-        "body": "Un wizard mandat sera proposé après création, 3 documents à signer (mandat, conditions, état des lieux)."
-      },
-      "kyc": {
-        "title": "KYC recommandé à cette étape",
-        "body": "Le KYC est proposé comme prochaine action, en appui de la conformité LBA. Il n'empêche aucune étape du pipeline ; la vérification finale revient au notaire."
-      }
-    },
-    "error": {
-      "noAgency": "Aucune agence rattachée, impossible de créer le deal",
-      "demoBien": "Le bien sélectionné est un exemple de démo. Sélectionnez un bien réel du portefeuille agence.",
-      "demoContact": "Le contact sélectionné est un exemple de démo. Sélectionnez un contact réel.",
-      "selectContact": "Sélectionnez un contact",
-      "unknown": "Erreur inconnue"
-    },
-    "footer": {
-      "creating": "Création…",
-      "create": "Créer le deal"
-    },
-    "created": {
-      "badge": "Deal créé",
-      "bienLine": "Bien · {{title}}",
-      "activeSearch": "Recherche active",
-      "typeLine": "Type · {{type}}",
-      "continue": "Continuer",
-      "quickMatch": {
-        "label": "Envoyer 3 biens",
-        "sub": "Matching IA"
-      },
-      "quickVisit": {
-        "label": "Planifier visite",
-        "sub": "Calendrier"
-      },
-      "quickKyc": {
-        "label": "Lancer KYC",
-        "sub": "LBA"
-      },
-      "quickDetail": {
-        "label": "Voir le détail",
-        "sub": "Fiche deal"
-      },
-      "timelineNote": "La timeline du deal commence ici. Les actions ci-dessus ajouteront un évènement à la fiche."
-    },
-    "datetime": {
-      "months": "[\"Janvier\",\"Février\",\"Mars\",\"Avril\",\"Mai\",\"Juin\",\"Juillet\",\"Août\",\"Septembre\",\"Octobre\",\"Novembre\",\"Décembre\"]",
-      "daysShort": "[\"L\",\"M\",\"M\",\"J\",\"V\",\"S\",\"D\"]",
-      "today17": "Aujourd'hui 17h",
-      "tomorrow10": "Demain 10h",
-      "inTwoDays": "Dans 2 jours",
-      "nextMonday": "Lundi prochain",
-      "time": "Heure",
-      "ok": "OK"
-    }
-  },
   "board": {
     "error": {
       "title": "Impossible de charger le pipeline",
@@ -288,7 +142,8 @@
       "lost": "Deal marqué comme perdu",
       "reassigned": "Deal réassigné à {{name}}",
       "visitScheduled": "Visite planifiée · {{day}} à {{time}}",
-      "undo": "Annuler"
+      "undo": "Annuler",
+      "created": "Deal créé"
     },
     "empty": "Aucune affaire dans le pipeline pour l’instant.",
     "emptyState": {
@@ -647,5 +502,49 @@
       "error": "Chargement impossible",
       "retry": "Réessayer"
     }
+  },
+  "modal": {
+    "contact": "Contact",
+    "existing": "Existant",
+    "new": "Nouveau",
+    "searchContact": "Rechercher un contact…",
+    "noContactsYet": "Aucun contact pour l'instant.",
+    "noContactFound": "Aucun contact trouvé.",
+    "createContact": "Créer un contact",
+    "createNamed": "Créer « {{name}} »",
+    "moreContacts_one": "{{count}} autre · précisez la recherche",
+    "moreContacts_other": "{{count}} autres · précisez la recherche",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "bien": "Bien",
+    "removeBien": "Retirer",
+    "searchBien": "Rechercher un bien…",
+    "noActiveBiens": "Aucune annonce active dans le portefeuille.",
+    "noBienFound": "Aucun bien trouvé.",
+    "moreBiens_one": "{{count}} autre annonce · précisez la recherche",
+    "moreBiens_other": "{{count}} autres annonces · précisez la recherche",
+    "valueFromBien": "La valeur du deal reprend le prix du bien choisi.",
+    "value": "Valeur",
+    "close": "Fermer",
+    "cancel": "Annuler",
+    "create": "Créer le deal",
+    "creating": "Création…",
+    "created": "Deal créé.",
+    "seePipeline": "Voir le pipeline",
+    "error": {
+      "noAgency": "Aucune agence rattachée, impossible de créer le deal",
+      "unknown": "Erreur inconnue"
+    }
+  },
+  "inline": {
+    "searchPlaceholder": "Contact, nom, email…",
+    "valuePlaceholder": "Valeur, optionnel",
+    "budgetHint": "budget du contact, modifiable",
+    "create": "Créer",
+    "more": "Plus d'options",
+    "cancelTitle": "Annuler (Échap)",
+    "changeContact": "Changer de contact"
   }
 }

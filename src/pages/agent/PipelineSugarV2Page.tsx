@@ -47,7 +47,8 @@ import {
   SugarStageFilter, SugarRiskFilter, SugarPeriodFilter,
   type PipelineView, type RiskFilterValue,
 } from '@/components/crm-sugar/pipeline/PipelineFilters'
-import { NewDealDrawer } from '@/components/crm-sugar/pipeline/NewDealDrawer'
+import { NewDealModal, type NewDealPrefill } from '@/components/crm-sugar/pipeline/NewDealModal'
+import { SgInlineNewDeal } from '@/components/crm-sugar/pipeline/SgInlineNewDeal'
 
 const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
@@ -86,6 +87,9 @@ export default function PipelineSugarV2Page() {
 
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
+  const [newDealPrefill, setNewDealPrefill] = useState<NewDealPrefill | null>(null)
+  // Création inline (concept B) : quelle colonne a sa carte fantôme ouverte.
+  const [inlineStage, setInlineStage] = useState<StageId | null>(null)
   const openDeal = (dealId: string) => { navigate(`/dashboard/transactions/${dealId}`) }
 
   const logAudit = useLogAudit()
@@ -483,7 +487,7 @@ export default function PipelineSugarV2Page() {
         {pipeHasAnyActive ? t('board.emptyState.filtered.body') : t('board.emptyState.none.body')}
       </p>
       <button
-        onClick={pipeHasAnyActive ? resetFilters : () => setNewDealOpen(true)}
+        onClick={pipeHasAnyActive ? resetFilters : () => { setNewDealPrefill(null); setNewDealOpen(true) }}
         style={{
           marginTop: 20, height: 42, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer',
           background: sp.accent, color: sp.accentInk, fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
@@ -587,7 +591,7 @@ export default function PipelineSugarV2Page() {
                   )}
                 </SugarFilterPill>
                 <SugarSegmentedView sp={sp} value={view} onChange={setView} />
-                <button onClick={() => setNewDealOpen(true)} style={{
+                <button onClick={() => { setNewDealPrefill(null); setNewDealOpen(true) }} style={{
                   height: 40, padding: '0 20px', borderRadius: 999, border: 0,
                   background: sp.accent, color: sp.accentInk, fontWeight: 700, fontSize: 13,
                   fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow,
@@ -626,7 +630,9 @@ export default function PipelineSugarV2Page() {
                   overscrollBehavior: 'contain',
                 }}
               >
-                {view === 'kanban' && filteredDeals.length === 0 && (
+                {/* Masqué pendant une création inline : la carte d'état vide
+                    (pointerEvents:auto) volerait les clics du formulaire. */}
+                {view === 'kanban' && filteredDeals.length === 0 && !inlineStage && (
                   <div style={{
                     position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
                     zIndex: 5, pointerEvents: 'none',
@@ -648,6 +654,28 @@ export default function PipelineSugarV2Page() {
                         onDragLeave={() => dragOverStage === stage && setDragOverStage(null)}
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
+                        onInlineOpen={() => setInlineStage(stage)}
+                        inlineForm={inlineStage === stage ? (
+                          <SgInlineNewDeal
+                            stage={stage} sp={sp} dark={dark}
+                            onCancel={() => setInlineStage(null)}
+                            onCreated={(txId) => {
+                              setInlineStage(null)
+                              // Undo = ranger le deal créé par erreur (pas de DELETE
+                              // client : archived_at préserve l'audit) + annuler sa relance.
+                              showToast(t('board.toast.created'), () => {
+                                void archiveTx.mutateAsync({ id: txId, archived: true })
+                                cancelReminders.mutateAsync(txId).catch(() => {})
+                                setPipeToast(null)
+                              })
+                            }}
+                            onMore={(prefill) => {
+                              setInlineStage(null)
+                              setNewDealPrefill(prefill)
+                              setNewDealOpen(true)
+                            }}
+                          />
+                        ) : null}
                         onReassign={handleReassign} onArchive={handleArchive} onMarkLost={handleMarkLost}
                         onScheduleVisit={handleScheduleVisit} onAskAiVisit={handleAskAiVisit}
                       />
@@ -661,6 +689,15 @@ export default function PipelineSugarV2Page() {
                 )}
               </div>
             </div>
+
+            {/* Modale « Nouveau deal » — plein cadre, confinée au bento (comme le
+                fixed du proto contenu par le transform du pager). */}
+            <NewDealModal
+              open={newDealOpen}
+              onClose={() => setNewDealOpen(false)}
+              sp={sp} dark={dark}
+              prefill={newDealPrefill}
+            />
           </div>
         </main>
       </div>
@@ -709,12 +746,6 @@ export default function PipelineSugarV2Page() {
         />
       )}
 
-      <NewDealDrawer
-        open={newDealOpen}
-        onClose={() => setNewDealOpen(false)}
-        sp={sp} t={tk} dark={dark}
-        prefill={null}
-      />
     </div>
   )
 }

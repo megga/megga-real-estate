@@ -59,152 +59,6 @@
     "signed": "Signed",
     "lost": "Lost"
   },
-  "newDeal": {
-    "archetype": {
-      "buyerSearch": {
-        "label": "Buyer searching",
-        "sub": "No property identified yet"
-      },
-      "buyerBien": {
-        "label": "Buyer on a property",
-        "sub": "Property already identified, visit or interest"
-      },
-      "sellerMandate": {
-        "label": "Seller mandate",
-        "sub": "New property to publish, mandate required"
-      },
-      "tenant": {
-        "label": "Tenant",
-        "sub": "Short cycle, light KYC"
-      }
-    },
-    "action": {
-      "call": {
-        "label": "Call",
-        "placeholder": "First qualification call"
-      },
-      "visit": {
-        "label": "Visit",
-        "placeholder": "Schedule the property visit"
-      },
-      "match": {
-        "label": "Matching",
-        "placeholder": "Send 3 properties from the portfolio"
-      },
-      "kyc": {
-        "label": "KYC",
-        "placeholder": "Start the AML verification file"
-      },
-      "doc": {
-        "label": "Document",
-        "placeholder": "Prepare the visit slip / mandate"
-      },
-      "scheduleLabel": "Action to schedule",
-      "dueLabel": "Due date",
-      "noteLabel": "Note"
-    },
-    "section": {
-      "dealType": "Deal type",
-      "contact": "Contact",
-      "bien": "Property",
-      "stageValue": "Stage & value",
-      "nextAction": "Next action"
-    },
-    "ai": {
-      "buttonTitle": "Pre-fill from an email/message",
-      "title": "MEGGA AI · pre-fill",
-      "placeholder": "Paste an email, a transcribed voice note or a WhatsApp message here. The AI extracts the contact, the property if any, the score and suggests a next action.",
-      "analyzing": "Analyzing…",
-      "extract": "Extract",
-      "prefilledNote": "First call following the message received"
-    },
-    "contact": {
-      "selectTitle": "Select a contact",
-      "createTitle": "Create a contact",
-      "existing": "Existing",
-      "new": "New",
-      "searchPlaceholder": "Search name, email, phone…",
-      "kycVerified": "KYC ✓",
-      "kycPending": "KYC in progress",
-      "kycTodo": "KYC to do",
-      "empty": "No results, switch to “New” to create this contact.",
-      "firstName": "First name",
-      "lastName": "Last name",
-      "email": "Email",
-      "phone": "Phone",
-      "language": "Language",
-      "duplicate": "Existing contact found: {{name}}. Switch to “Existing” to use it."
-    },
-    "bien": {
-      "toPublish": "Property to publish (can be created later)",
-      "fromPortfolio": "Property from the portfolio or MEGGA catalogue",
-      "searchPlaceholder": "Search title, reference MG-…, address",
-      "rentPerMonth": "CHF {{amount}}/month",
-      "noneIdentified": "No property identified yet"
-    },
-    "stage": {
-      "startLabel": "Starting stage",
-      "estimatedValue": "Estimated value (CHF)",
-      "autoFromRef": "Auto from {{ref}}",
-      "optional": "Optional",
-      "estimatedCommission": "Estimated commission"
-    },
-    "guard": {
-      "mandate": {
-        "title": "Mandate required before publication",
-        "body": "A mandate wizard will be offered after creation, 3 documents to sign (mandate, terms, inventory of fixtures)."
-      },
-      "kyc": {
-        "title": "KYC recommended at this stage",
-        "body": "KYC is offered as the next action, supporting AML compliance. It blocks no pipeline step; final verification rests with the notary."
-      }
-    },
-    "error": {
-      "noAgency": "No agency linked, cannot create the deal",
-      "demoBien": "The selected property is a demo example. Select a real property from the agency portfolio.",
-      "demoContact": "The selected contact is a demo example. Select a real contact.",
-      "selectContact": "Select a contact",
-      "unknown": "Unknown error"
-    },
-    "footer": {
-      "creating": "Creating…",
-      "create": "Create deal"
-    },
-    "created": {
-      "badge": "Deal created",
-      "bienLine": "Property · {{title}}",
-      "activeSearch": "Active search",
-      "typeLine": "Type · {{type}}",
-      "continue": "Continue",
-      "quickMatch": {
-        "label": "Send 3 properties",
-        "sub": "AI matching"
-      },
-      "quickVisit": {
-        "label": "Schedule visit",
-        "sub": "Calendar"
-      },
-      "quickKyc": {
-        "label": "Start KYC",
-        "sub": "AML"
-      },
-      "quickDetail": {
-        "label": "View details",
-        "sub": "Deal record"
-      },
-      "timelineNote": "The deal timeline starts here. The actions above will add an event to the record."
-    },
-    "datetime": {
-      "months": "[\"January\",\"February\",\"March\",\"April\",\"May\",\"June\",\"July\",\"August\",\"September\",\"October\",\"November\",\"December\"]",
-      "daysShort": "[\"M\",\"T\",\"W\",\"T\",\"F\",\"S\",\"S\"]",
-      "today17": "Today 5pm",
-      "tomorrow10": "Tomorrow 10am",
-      "inTwoDays": "In 2 days",
-      "nextMonday": "Next Monday",
-      "time": "Time",
-      "ok": "OK"
-    }
-  },
   "board": {
     "noPropertyYet": "Active search",
     "dragDealHere": "Drag a deal here",
@@ -262,7 +116,8 @@
       "lost": "Deal als verloren markiert",
       "reassigned": "Deal an {{name}} übertragen",
       "visitScheduled": "Besichtigung geplant · {{day}} um {{time}}",
-      "undo": "Rückgängig"
+      "undo": "Rückgängig",
+      "created": "Deal erstellt"
     },
     "empty": "Noch keine Geschäfte in der Pipeline.",
     "error": {
@@ -647,5 +502,49 @@
       "note": "Notiz",
       "fallback": "Follow-up"
     }
+  },
+  "modal": {
+    "contact": "Kontakt",
+    "existing": "Bestehend",
+    "new": "Neu",
+    "searchContact": "Kontakt suchen…",
+    "noContactsYet": "Noch keine Kontakte.",
+    "noContactFound": "Kein Kontakt gefunden.",
+    "createContact": "Kontakt erstellen",
+    "createNamed": "„{{name}}“ erstellen",
+    "moreContacts_one": "{{count}} weiterer · Suche verfeinern",
+    "moreContacts_other": "{{count}} weitere · Suche verfeinern",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "email": "E-Mail",
+    "phone": "Telefon",
+    "bien": "Objekt",
+    "removeBien": "Entfernen",
+    "searchBien": "Objekt suchen…",
+    "noActiveBiens": "Kein aktives Inserat im Portfolio.",
+    "noBienFound": "Kein Objekt gefunden.",
+    "moreBiens_one": "{{count}} weiteres Inserat · Suche verfeinern",
+    "moreBiens_other": "{{count}} weitere Inserate · Suche verfeinern",
+    "valueFromBien": "Der Deal-Wert übernimmt den Preis des gewählten Objekts.",
+    "value": "Wert",
+    "close": "Schliessen",
+    "cancel": "Abbrechen",
+    "create": "Deal erstellen",
+    "creating": "Wird erstellt…",
+    "created": "Deal erstellt.",
+    "seePipeline": "Pipeline anzeigen",
+    "error": {
+      "noAgency": "Keine Agentur zugeordnet, Deal kann nicht erstellt werden",
+      "unknown": "Unbekannter Fehler"
+    }
+  },
+  "inline": {
+    "searchPlaceholder": "Kontakt, Name, E-Mail…",
+    "valuePlaceholder": "Wert, optional",
+    "budgetHint": "Budget des Kontakts, anpassbar",
+    "create": "Erstellen",
+    "more": "Mehr Optionen",
+    "cancelTitle": "Abbrechen (Esc)",
+    "changeContact": "Kontakt wechseln"
   }
 }
