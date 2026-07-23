@@ -11,29 +11,36 @@
  * ========================================================================== */
 
 .sga {
-  --ink:#0B0C0E; --ink-soft:#3A3D44; --ink-muted:#7A8088; --ink-dim:#B5BAC2;
-  --black:#0B0C0E; --black-hover:#1F2024;
-  --surface:#FFFFFF; --surface-2:#F4F6F8; --cardsub:#F2F4F7;
+  /* GRIS NEUTRES (CLAUDE.md, grammaire Sugar Pure : « jamais de gris-bleu »).
+     La base était rgb(15,23,42) — le slate-900 de Tailwind, B−R = 27 — héritée du
+     portage initial. Elle teintait filets, ombres et sous-surfaces, et la fusion des
+     panneaux l'a rendue structurelle (les filets SONT les séparateurs). Neutralisée. */
+  --ink:#0B0C0E; --ink-soft:#3C3C40; --ink-muted:#7E7E84; --ink-dim:#B7B7BC;
+  --black:#0B0C0E; --black-hover:#1F1F21;
+  --surface:#FFFFFF; --surface-2:#F4F4F5; --cardsub:#F2F2F3;
   /* Surface OPAQUE garantie (contre-texte des pastilles pleines). Ici identique à
      --surface : le repo n'a pas adopté la surface translucide du handoff. */
   --surface-solid:#FFFFFF;
-  --hairline:rgba(15,23,42,.07); --hairline-2:rgba(15,23,42,.06);
-  --field:#F4F6F8; --field-bd:rgba(15,23,42,.06);
+  --hairline:rgba(17,17,19,.08); --hairline-2:rgba(17,17,19,.06);
+  --field:#F4F4F5; --field-bd:rgba(17,17,19,.07);
   /* couleurs FONCTIONNELLES (données métier — jamais d'accent UI) */
   --sys-green:#059669; --sys-red:#C0453B; --sys-yellow:#C45A00; --sys-blue:#1E5BC6;
   --r-2xs:10px; --r-xs:12px; --r-sm:14px; --r-md:16px; --r-lg:18px; --r-panel:22px; --r-pill:999px;
-  --sh-sm:0 4px 16px rgba(15,23,42,.04);
-  --sh:0 12px 40px rgba(15,23,42,.07), 0 2px 8px rgba(15,23,42,.03);
-  --sh-lg:0 24px 60px rgba(15,23,42,.10), 0 4px 16px rgba(15,23,42,.04);
+  --sh-sm:0 4px 16px rgba(17,17,19,.05);
+  --sh:0 12px 40px rgba(17,17,19,.08), 0 2px 8px rgba(17,17,19,.04);
+  --sh-lg:0 24px 60px rgba(17,17,19,.11), 0 4px 16px rgba(17,17,19,.05);
   font-family:"Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color:var(--ink); -webkit-font-smoothing:antialiased; letter-spacing:-0.01em;
 }
 .sga[data-theme="dark"]{
-  --ink:#F4F6F8; --ink-soft:#C8CCD2; --ink-muted:#878D96; --ink-dim:#5B616B;
-  --surface:#1A1C22; --surface-2:#14161B; --cardsub:#212430;
-  --surface-solid:#1A1C22;
-  --hairline:rgba(255,255,255,.06); --hairline-2:rgba(255,255,255,.05);
-  --field:#14161B; --field-bd:rgba(255,255,255,.07);
+  /* Sombre = gris NEUTRE opaque, valeurs de CLAUDE.md (#17181A surface,
+     #1E1F21 sous-surface, #26272A survol). Remplace #1A1C22/#14161B/#212430,
+     dont le #212430 tirait franchement au bleu (B−R = 15). */
+  --ink:#F3F3F5; --ink-soft:#CACACE; --ink-muted:#8C8C92; --ink-dim:#5E5E64;
+  --surface:#17181A; --surface-2:#121213; --cardsub:#1E1F21;
+  --surface-solid:#17181A;
+  --hairline:rgba(255,255,255,.07); --hairline-2:rgba(255,255,255,.05);
+  --field:#121213; --field-bd:rgba(255,255,255,.07);
   --black:#FFFFFF; --black-hover:#E7E9EE;
   --sh-sm:0 4px 16px rgba(0,0,0,.30);
   --sh:0 12px 40px rgba(0,0,0,.36), 0 2px 8px rgba(0,0,0,.24);
@@ -229,7 +236,7 @@
 .sga-hero-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
 .sga-hero-img.dim{ filter:brightness(.5); }
 .sga-ph{ position:absolute; inset:0; display:grid; place-items:center;
-  background:repeating-linear-gradient(-45deg, transparent 0 14px, rgba(15,23,42,.025) 14px 28px), var(--surface-2); }
+  background:repeating-linear-gradient(-45deg, transparent 0 14px, rgba(17,17,19,.025) 14px 28px), var(--surface-2); }
 .sga-ph .ph-lbl{ display:flex; flex-direction:column; align-items:center; gap:10px; color:var(--ink-dim);
   font-family:ui-monospace, "SF Mono", Menlo, monospace; font-size:11px; letter-spacing:.04em; }
 .sga-hero .count{ position:absolute; right:12px; bottom:12px; background:rgba(11,12,14,.72); backdrop-filter:blur(8px);
@@ -262,10 +269,16 @@
 .sga-why-scroll::-webkit-scrollbar-thumb{ background:var(--hairline); border-radius:8px; }
 .sga-aicard{ display:flex; gap:12px; padding:14px 16px; border-radius:var(--r-sm); background:var(--cardsub); flex-shrink:0; }
 /* ── pilules de statut premium (fill plein teinté + icône blanche) ── */
+/* Reset `border/font` inclus : la pastille KYC est rendue en <button> (elle porte
+   l'accès au parcours KYC du contact) et doit rester visuellement identique aux
+   pastilles inertes voisines. */
 .sga-spill{ display:inline-flex; align-items:center; gap:6px; padding:6px 13px; border-radius:var(--r-pill);
   font-size:12px; font-weight:700; line-height:1; letter-spacing:-0.1px; white-space:nowrap;
-  color:#fff; font-variant-numeric:tabular-nums; }
+  color:#fff; font-variant-numeric:tabular-nums;
+  border:0; font-family:inherit; }
 .sga-spill svg{ flex-shrink:0; }
+button.sga-spill{ cursor:pointer; transition:filter .18s; }
+button.sga-spill:hover{ filter:brightness(1.08); }
 .sga-spill.green{ background:var(--sys-green); }
 .sga-spill.yellow{ background:var(--sys-yellow); }
 .sga-spill.blue{ background:var(--sys-blue); }
@@ -325,7 +338,7 @@
 .sga-toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:60;
   display:flex; align-items:center; gap:14px; padding:12px 14px 12px 20px; border-radius:var(--r-pill);
   background:var(--black); color:#fff; font-size:13.5px; font-weight:600;
-  box-shadow:0 24px 60px rgba(15,23,42,.30), 0 4px 16px rgba(15,23,42,.16);
+  box-shadow:0 24px 60px rgba(17,17,19,.30), 0 4px 16px rgba(17,17,19,.16);
   animation:sgaFadeUp .35s cubic-bezier(.2,.8,.2,1) both; }
 .sga[data-theme="dark"] .sga-toast{ color:#0B0C0E; }
 .sga-toast .undo{ font-family:inherit; cursor:pointer; border:none; border-radius:var(--r-pill);
@@ -358,7 +371,7 @@
 .sga[data-theme="dark"] .sga-overlay{ background:rgba(0,0,0,.55); }
 .sga-modal{ width:min(640px, 100%); max-height:min(780px, calc(100vh - 56px));
   background:var(--surface); border-radius:28px; overflow:hidden; display:flex; flex-direction:column;
-  box-shadow:0 40px 100px rgba(15,23,42,.20), 0 8px 24px rgba(15,23,42,.10);
+  box-shadow:0 40px 100px rgba(17,17,19,.20), 0 8px 24px rgba(17,17,19,.10);
   animation:sgaFadeUp .45s cubic-bezier(.2,.8,.2,1) both; }
 .sga-modal-h{ flex-shrink:0; padding:24px 26px 0; display:flex; align-items:center; gap:14px; }
 .sga-modal-foot{ flex-shrink:0; padding:16px 26px 22px; display:flex; align-items:center; gap:12px; }
@@ -384,10 +397,10 @@
 .sgal-ph{ position:relative; overflow:hidden; background:#E6E9EF; display:grid; place-items:center; }
 .sga[data-theme="dark"] .sgal-ph{ background:#23262E; }
 .sgal-ph-grain{ position:absolute; inset:0;
-  background:repeating-linear-gradient(-45deg, transparent 0 16px, rgba(15,23,42,.035) 16px 32px); }
+  background:repeating-linear-gradient(-45deg, transparent 0 16px, rgba(17,17,19,.035) 16px 32px); }
 .sga[data-theme="dark"] .sgal-ph-grain{ background:repeating-linear-gradient(-45deg, transparent 0 16px, rgba(255,255,255,.03) 16px 32px); }
 .sgal-ph-lbl{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:8px;
-  color:rgba(15,23,42,.42); font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px;
+  color:rgba(17,17,19,.42); font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px;
   letter-spacing:.03em; text-align:center; padding:10px; line-height:1.4; }
 .sga[data-theme="dark"] .sgal-ph-lbl{ color:rgba(255,255,255,.42); }
 .sgal-ph-lbl em{ font-style:normal; font-size:10px; opacity:.7; }
@@ -415,7 +428,7 @@
 .sgal-lb-stage{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; gap:18px; }
 .sgal-lb-photo{ width:100%; height:100%; max-width:min(1180px,100%); border-radius:var(--r-panel);
   box-shadow:0 40px 100px rgba(0,0,0,.5); animation:sgalPop .35s cubic-bezier(.2,.8,.2,1) both; }
-.sgal-lb-photo .sgal-ph-lbl{ color:rgba(15,23,42,.5); font-size:13px; }
+.sgal-lb-photo .sgal-ph-lbl{ color:rgba(17,17,19,.5); font-size:13px; }
 .sgal-nav{ width:50px; min-width:50px; height:50px; border:none; border-radius:var(--r-pill); cursor:pointer;
   display:grid; place-items:center; background:rgba(255,255,255,.12); color:#fff; backdrop-filter:blur(6px);
   transition:transform .2s cubic-bezier(.2,.8,.2,1), background-color .2s; flex-shrink:0; }
@@ -447,9 +460,9 @@
   display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:var(--r-pill);
   background:rgba(255,255,255,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   color:#0B0C0E; font-family:inherit; font-size:12.5px; font-weight:700; line-height:1.2; white-space:nowrap;
-  box-shadow:0 8px 24px rgba(15,23,42,.18);
+  box-shadow:0 8px 24px rgba(17,17,19,.18);
   transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s, background-color .2s; }
-.sga-hero-cta:hover{ transform:translateY(-1px); background:#FFFFFF; box-shadow:0 12px 32px rgba(15,23,42,.26); }
+.sga-hero-cta:hover{ transform:translateY(-1px); background:#FFFFFF; box-shadow:0 12px 32px rgba(17,17,19,.26); }
 
 /* ════════════════════════════════════════════════════════════════════════
  * VUE « ANNONCE COMPLÈTE » — concept IMMERSIF (variante actée) : photo pleine
@@ -573,7 +586,7 @@
    avec le reste du CRM. */
 .sgi-bento-num{ background:var(--surface-solid); border-radius:var(--r-lg); padding:20px 20px 17px;
   display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); row-gap:20px; column-gap:12px;
-  box-shadow:0 1px 2px rgba(15,23,42,.05), 0 12px 30px -14px rgba(40,55,90,.18); }
+  box-shadow:0 1px 2px rgba(17,17,19,.05), 0 12px 30px -14px rgba(24,24,26,.18); }
 .sga[data-theme="dark"] .sgi-bento-num{ background:var(--cardsub);
   box-shadow:0 2px 8px rgba(0,0,0,.4), 0 18px 44px -14px rgba(0,0,0,.6); }
 .sgi-bento-num .ncell{ min-width:0; display:flex; flex-direction:column; gap:5px; }
@@ -583,7 +596,7 @@
   color:var(--ink-muted); }
 
 .sgi-sh-foot{ flex-shrink:0; position:relative; z-index:2; display:flex; gap:10px; padding:14px 20px 20px;
-  background:var(--surface-solid); box-shadow:0 -14px 34px -22px rgba(15,23,42,.30); }
+  background:var(--surface-solid); box-shadow:0 -14px 34px -22px rgba(17,17,19,.30); }
 .sga[data-theme="dark"] .sgi-sh-foot{ box-shadow:0 -14px 34px -22px rgba(0,0,0,.8); }
 /* Duo cohérent : le secondaire reprend le neutre surélevé du reste de l'UI sombre. */
 .sga[data-theme="dark"] .sgi-sh-foot .btn-ghost{ background:var(--cardsub); }
@@ -658,7 +671,7 @@
 .sga .sgk-frac{ font-size:12.5px; font-weight:600; color:var(--ink-muted); white-space:nowrap; }
 .sga .sgk-frac b{ font-weight:800; color:var(--ink); }
 .sga .sgk-frac i{ font-style:normal; }
-.sga .sgk-track{ width:110px; height:5px; border-radius:999px; background:rgba(15,23,42,.10);
+.sga .sgk-track{ width:110px; height:5px; border-radius:999px; background:rgba(17,17,19,.10);
   overflow:hidden; flex-shrink:0; }
 .sga[data-theme="dark"] .sgk-track{ background:rgba(255,255,255,.13); }
 .sga .sgk-fill{ height:100%; background:var(--black); border-radius:999px;
