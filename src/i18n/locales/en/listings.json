@@ -697,7 +697,6 @@
       "title": "Active buyers",
       "pipeline": "Pipeline",
       "buyerFallback": "Buyer",
-      "offerSuffix": " · offer {{amount}}",
       "matchAffinity": "MEGGA AI match · {{score}}% fit",
       "propose": "Propose",
       "kycNotice": "<0>KYC to complete</0> for a buyer, optional at this stage, required before signing.",

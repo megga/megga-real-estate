@@ -697,7 +697,6 @@
       "title": "Acheteurs en cours",
       "pipeline": "Pipeline",
       "buyerFallback": "Acheteur",
-      "offerSuffix": " · offre {{amount}}",
       "matchAffinity": "Match MEGGA AI · {{score}}% d'affinité",
       "propose": "Proposer",
       "kycNotice": "<0>KYC à compléter</0> pour un acheteur, optionnel à ce stade, requis avant signature.",
