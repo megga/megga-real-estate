@@ -1207,7 +1207,7 @@
         "above": "Above",
         "farAbove": "Well above"
       },
-      "descTitle": "Then the description.",
+      "descTitle": "The description.",
       "descSubtitle": "A few enticing lines. Let MEGGA AI draft a first version, or write it yourself.",
       "ai": {
         "title": "MEGGA AI writes it for you",
@@ -1215,7 +1215,11 @@
         "thinking": "Thinking…",
         "regenerate": "Regenerate",
         "generate": "Generate",
-        "error": "La redazione AI non è riuscita. Riprova, o scrivi la descrizione manualmente."
+        "error": "La redazione AI non è riuscita. Riprova, o scrivi la descrizione manualmente.",
+        "promptRefine": "Refine: e.g. make it more premium, shorten…",
+        "promptAsk": "Ask MEGGA AI to write the description…",
+        "refine": "Refine",
+        "create": "Create"
       },
       "tone": {
         "neutre": "Neutral",
@@ -1223,17 +1227,24 @@
         "famille": "Family",
         "invest": "Investor"
       },
-      "descPlaceholder": "Write the property description here… or click Generate.",
+      "descPlaceholder": "Write the property description here… or generate a first draft with MEGGA AI.",
       "counter": {
         "chars_one": "{{count}} character",
         "chars_other": "{{count}} characters",
         "beforeMin_one": " · {{count}} before the minimum",
         "beforeMin_other": " · {{count}} before the minimum",
         "target": " · target {{target}}",
-        "ideal": " · ideal length ✓"
+        "ideal": " · ideal",
+        "zero": "0 characters",
+        "min": " · min. {{count}}"
       },
       "writtenByAi": "Written by MEGGA AI",
-      "editHint": "You can freely edit the generated text."
+      "editHint": "You can freely edit the generated text.",
+      "txSale": "Sale",
+      "txRent": "Rental",
+      "qSalePrice": "What sale price?",
+      "qMonthlyRent": "What monthly rent?",
+      "modify": "edit"
     },
     "step6": {
       "eyebrow": "Step 7 of 8 · Options",

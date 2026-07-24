@@ -1207,7 +1207,7 @@
         "above": "Au-dessus",
         "farAbove": "Très au-dessus"
       },
-      "descTitle": "Puis la description.",
+      "descTitle": "La description.",
       "descSubtitle": "Quelques lignes qui donnent envie. Laissez MEGGA AI rédiger un premier jet, ou écrivez à la main.",
       "ai": {
         "title": "MEGGA AI rédige pour vous",
@@ -1215,7 +1215,11 @@
         "thinking": "Réflexion…",
         "regenerate": "Régénérer",
         "generate": "Générer",
-        "error": "La rédaction IA a échoué. Réessayez, ou saisissez la description à la main."
+        "error": "La rédaction IA a échoué. Réessayez, ou saisissez la description à la main.",
+        "promptRefine": "Affiner : ex. rendre plus premium, raccourcir…",
+        "promptAsk": "Demander à MEGGA AI de rédiger la description…",
+        "refine": "Affiner",
+        "create": "Créer"
       },
       "tone": {
         "neutre": "Neutre",
@@ -1223,17 +1227,24 @@
         "famille": "Famille",
         "invest": "Investisseur"
       },
-      "descPlaceholder": "Écrivez ici la description du bien… ou cliquez sur Générer.",
+      "descPlaceholder": "Écrivez ici la description du bien… ou générez un premier jet avec MEGGA AI.",
       "counter": {
         "chars_one": "{{count}} caractère",
         "chars_other": "{{count}} caractères",
         "beforeMin_one": " · {{count}} avant le minimum",
         "beforeMin_other": " · {{count}} avant le minimum",
         "target": " · objectif {{target}}",
-        "ideal": " · longueur idéale ✓"
+        "ideal": " · idéal",
+        "zero": "0 caractère",
+        "min": " · min. {{count}}"
       },
       "writtenByAi": "Rédigé par MEGGA AI",
-      "editHint": "Vous pouvez librement éditer le texte généré."
+      "editHint": "Vous pouvez librement éditer le texte généré.",
+      "txSale": "Vente",
+      "txRent": "Location",
+      "qSalePrice": "Quel prix de vente ?",
+      "qMonthlyRent": "Quel loyer mensuel ?",
+      "modify": "modifier"
     },
     "step6": {
       "eyebrow": "Étape 7 sur 8 · Options",
