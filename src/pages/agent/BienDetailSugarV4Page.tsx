@@ -39,7 +39,6 @@ import {
   VxSpark, VxAvatar, type VxIconName, type VxPalette,
 } from '@/components/crm-sugar-v3/vitrine/vitrineKit'
 import { fmtDateShort } from '@/components/crm-sugar-v3/tokens'
-import { bdStageLabel } from '@/components/crm-sugar-v3/bien-detail/BdShared'
 import {
   useProperty, useUpdateProperty, type CreatePropertyInput,
 } from '@/hooks/useProperties'
@@ -882,15 +881,13 @@ export default function BienDetailSugarV4Page() {
                       )}
                       {dealsForBien.map(d => {
                         const c = d.contact_buyer_id ? contactsById.get(d.contact_buyer_id) : null
-                        const offer = d.price_offered ?? d.price_final
                         return (
                           <button key={d.id} onClick={() => navigate(`/dashboard/transactions/${d.id}`)} style={{ textAlign: 'left', padding: '13px 18px 13px 15px', background: vx.cardSub, borderRadius: 16, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 13, border: 0, fontFamily: 'inherit', width: 'auto', maxWidth: '100%' }}>
                             {c && <VxAvatar name={c.first_name + ' ' + c.last_name} size={40} dark={dark} />}
                             <div style={{ flex: 1, minWidth: 0 }}>
+                              {/* Verbatim maquette : nom de l'acheteur seul (l'étape/offre du deal
+                                  ne s'affiche pas ici — la fiche renvoie au deal au clic). */}
                               <div style={{ fontSize: 14, fontWeight: 700, color: vx.ink }}>{c ? c.first_name + ' ' + c.last_name : tr('detail.buyers.buyerFallback')}</div>
-                              <div style={{ fontSize: 12, color: vx.muted, fontWeight: 500, marginTop: 1 }}>
-                                {bdStageLabel(d.stage)}{offer ? tr('detail.buyers.offerSuffix', { amount: vxFmtCHF(offer) }) : ''}
-                              </div>
                             </div>
                             <VxIcon name="chevR" size={16} stroke={vx.muted} sw={1.8} />
                           </button>
