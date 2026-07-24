@@ -39,7 +39,7 @@ active sur l'import de contacts, le détail marché, le formulaire de bien et to
 | `/dashboard/contacts` · `/new` · `/:id` | Liste, création, fiche contact |
 | `/dashboard/contacts/import` | Import de leads |
 | `/dashboard/import-lead` | Import d'un lead unitaire |
-| `/dashboard/listings` · `/new` · `/:id` · `/:id/edit` | Mes biens, création, fiche, formulaire |
+| `/dashboard/listings` · `/new` · `/:id` · `/:id/edit` | Mes biens (pager galerie + à-suivre), wizard « Créer un bien » Sugar v2 (7 étapes), fiche bien V4 (bento mono-page), formulaire d'édition |
 | `/dashboard/matching` | Matching acquéreur ↔ bien (pager Atelier + Recherche) |
 | `/dashboard/transactions/:id` | Fiche deal V4 « Atelier scindé » (L'acheteur ‖ L'affaire : matching lead ou négociation) |
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |

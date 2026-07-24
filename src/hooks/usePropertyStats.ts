@@ -4,7 +4,7 @@
  * `visits`). staleTime 60 s.
  */
 // MEGGA CRM Sugar v2 — Stats live d'un bien (Vues / Favoris / Demandes de visite).
-// Utilisé par BienDetailSugarV3Page pour remplacer les KPI hardcodés à 0.
+// Utilisé par BienDetailSugarV4Page pour remplacer les KPI hardcodés à 0.
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'

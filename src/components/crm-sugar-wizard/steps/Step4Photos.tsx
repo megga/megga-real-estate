@@ -1,828 +1,313 @@
-// MEGGA CRM Sugar v2 Wizard — Step 4 : Photos
-// 1:1 port from the Claude Design bundle (crm-wizard-sugar-step4.jsx).
-// 3 modes : ordinateur (dropzone), téléphone (QR géant), drive (connectors).
+// MEGGA CRM Sugar v2 Wizard — Step 4 : Photos (concept « Couverture héro + pellicule »)
+// Port du handoff « complet » (crm-wizard-sugar-step4.jsx — `SgStepPhotos` + `SgCropModal`).
+//
+// Upload RÉEL depuis l'ordinateur (drag-drop ou parcourir) → object URLs d'aperçu.
+// Couverture en grand + pellicule de vignettes : ★ promeut en couverture, corbeille
+// supprime, glisser-déposer réordonne. Recadrage (ratios, poignées, canvas). Compteur.
+//
+// ⚠ Honnêteté des données : on stocke le `File` (pour l'upload bucket + R2 à la
+// publication, cf WizardShell.handlePublish) + `previewUrl` (object URL d'aperçu),
+// JAMAIS l'URL blob dans `url` (réservé aux URLs déjà persistées). Le recadrage
+// produit un VRAI File via canvas.toBlob (pas un dataURL éphémère).
 
-import { useState, useRef, useMemo, type ReactNode } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
-import { SugarV2, shade, sgOn, sgAcc, type WizardData, type WizardPhoto } from '../tokens'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
+import { SugarV2, sgOn, type WizardData, type WizardPhoto } from '../tokens'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
-const STOCK: WizardPhoto[] = [
-  { id: 'p1', label: 'Salon',         kind: 'interior', tone: '#D4DDE3' },
-  { id: 'p2', label: 'Cuisine',       kind: 'interior', tone: '#E2D8C8' },
-  { id: 'p3', label: 'Chambre',       kind: 'interior', tone: '#D8DCE3' },
-  { id: 'p4', label: 'Salle de bain', kind: 'interior', tone: '#CFD7D9' },
-  { id: 'p5', label: 'Façade',        kind: 'exterior', tone: '#C8D2DA' },
-  { id: 'p6', label: 'Jardin',        kind: 'exterior', tone: '#CDD6CC' },
-  { id: 'p7', label: 'Vue',           kind: 'exterior', tone: '#BDCAD3' },
-  { id: 'p8', label: 'Plan',          kind: 'plan',     tone: '#EAEAEA' },
-]
+const rid = (i: number): string => `ph-${Date.now()}-${i}-${(i * 2654435761 % 1e6).toString(36)}`
+const photoSrc = (p: WizardPhoto): string | undefined => p.previewUrl || p.url
 
-// Formats acceptés côté upload (useUploadPropertyPhotos refuse le reste) + plafond
-// aligné sur le texte de la dropzone.
-const ACCEPTED_PHOTO_MIME = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_WIZARD_PHOTOS = 30
+// Bouton rond flottant (★ / recadrer / corbeille). Composant au niveau module
+// (pas déclaré au render — évite les remounts, règle react-hooks/static-components).
+function RoundBtn({ children, onClick, title, danger }: { children: ReactNode; onClick: () => void; title: string; danger?: boolean }) {
+  return (
+    <button onClick={(e) => { e.stopPropagation(); onClick() }} title={title} style={{
+      width: 32, height: 32, borderRadius: 999, border: 0, cursor: 'pointer',
+      background: danger ? 'rgba(142,31,61,0.94)' : 'rgba(255,255,255,0.94)',
+      display: 'grid', placeItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.20)',
+    }}>{children}</button>
+  )
+}
 
 export function Step4Photos({ data, set }: StepProps) {
-  const { t: tr } = useTranslation('listings')
+  const { t } = useTranslation('listings')
   const photos = data.photos || []
-  const [mode, setMode] = useState<'pc' | 'mobile' | 'drive'>('pc')
-  const [dragOver, setDragOver] = useState(false)
-  const [hoverPhoto, setHoverPhoto] = useState<string | null>(null)
-  const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
+  const cover = photos[0]
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [over, setOver] = useState(false)
+  const [drag, setDrag] = useState<number | null>(null)
   const [overIdx, setOverIdx] = useState<number | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [cropId, setCropId] = useState<string | null>(null)
 
-  const addStock = (n = 1) => {
-    const taken = photos.length
-    const next = STOCK.slice(taken, taken + n).map((p, i) => ({
-      ...p, id: `${p.id}-${Date.now()}-${i}`,
-      uploadedAt: new Date().toISOString(),
-    }))
-    set({ photos: [...photos, ...next] })
-  }
-
-  // Dropzone PC = SEUL chemin qui porte de vrais fichiers. On les capture pour de
-  // bon (object URL d'aperçu + File conservé jusqu'à la publication où il est
-  // uploadé bucket + miroir R2). Les modes téléphone (QR) et drive restent
-  // simulés (addStock) faute de backend de transfert — leurs tuiles, sans `file`,
-  // ne sont jamais persistées.
-  const handleFiles = (files: FileList | null) => {
-    if (!files || !files.length) return
-    const room = Math.max(0, MAX_WIZARD_PHOTOS - photos.length)
-    if (room <= 0) return
-    const accepted = Array.from(files)
-      .filter(f => ACCEPTED_PHOTO_MIME.includes(f.type))
-      .slice(0, room)
-    if (!accepted.length) return
-    const mapped: WizardPhoto[] = accepted.map((file, i) => ({
-      id: `up-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
-      label: file.name.replace(/\.[^.]+$/, ''),
+  const addFiles = (files: FileList | null) => {
+    const arr = [...(files || [])].filter(f => f.type && f.type.startsWith('image/'))
+    if (!arr.length) return
+    const items: WizardPhoto[] = arr.map((f, i) => ({
+      id: rid(i),
+      label: f.name,
       kind: 'interior',
       tone: '#D4DDE3',
-      uploadedAt: new Date().toISOString(),
-      file,
-      previewUrl: URL.createObjectURL(file),
+      file: f,
+      previewUrl: URL.createObjectURL(f),
     }))
-    set({ photos: [...photos, ...mapped] })
+    set({ photos: [...photos, ...items] })
   }
-
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault(); setDragOver(false)
-    handleFiles(e.dataTransfer.files)
-  }
-
-  const onPhotoDrop = (e: React.DragEvent, targetIdx: number) => {
-    e.preventDefault()
-    if (draggedIdx == null || draggedIdx === targetIdx) {
-      setDraggedIdx(null); setOverIdx(null); return
-    }
-    const next = [...photos]
-    const [moved] = next.splice(draggedIdx, 1)
-    next.splice(targetIdx, 0, moved)
-    set({ photos: next })
-    setDraggedIdx(null); setOverIdx(null)
-  }
-
   const removePhoto = (id: string) => {
-    const gone = photos.find(p => p.id === id)
-    if (gone?.previewUrl) URL.revokeObjectURL(gone.previewUrl)
+    const target = photos.find(p => p.id === id)
+    if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
     set({ photos: photos.filter(p => p.id !== id) })
   }
-  const clearPhotos = () => {
-    photos.forEach(p => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl) })
-    set({ photos: [] })
-  }
   const setCover = (id: string) => {
-    const idx = photos.findIndex(p => p.id === id)
-    if (idx <= 0) return
-    const next = [...photos]
-    const [moved] = next.splice(idx, 1)
-    next.unshift(moved)
-    set({ photos: next })
+    const i = photos.findIndex(p => p.id === id)
+    if (i <= 0) return
+    const n = [...photos]; const [m] = n.splice(i, 1); n.unshift(m)
+    set({ photos: n })
   }
+  const move = (from: number | null, to: number | null) => {
+    if (from == null || to == null || from === to) return
+    const n = [...photos]; const [m] = n.splice(from, 1); n.splice(to, 0, m)
+    set({ photos: n })
+  }
+  // Recadrage → nouveau File réel (uploadé à la publication), previewUrl rafraîchi.
+  const applyCrop = (id: string, file: File) => set({
+    photos: photos.map(p => {
+      if (p.id !== id) return p
+      if (p.previewUrl) URL.revokeObjectURL(p.previewUrl)
+      return { ...p, file, previewUrl: URL.createObjectURL(file), url: undefined }
+    }),
+  })
+  const pick = () => fileRef.current?.click()
 
-  const quality = computeQuality(photos, tr)
+  const IUp = (c: string, s = 22): ReactNode => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+  const IStar = (c: string, s = 15): ReactNode => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8L6.6 19.6l1-6L3.3 9.4l6-.9z" /></svg>
+  const ITrash = (c: string, s = 15): ReactNode => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /></svg>
+  const ICrop = (c: string, s = 15): ReactNode => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14M18 22V8a2 2 0 0 0-2-2H2" /></svg>
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto',
-      animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
+      <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+        onChange={e => { addFiles(e.target.files); e.target.value = '' }} />
 
-      <div style={{ marginBottom: 36, maxWidth: 760 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 600, color: SugarV2.muted,
-          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>{tr('wizard.step4.eyebrow')}</div>
-        <h1 style={{
-          margin: '0 0 14px', fontSize: 38, fontWeight: 700,
-          color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>{tr('wizard.step4.title')}</h1>
-        <p style={{ margin: 0, fontSize: 15, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55 }}>
-          <Trans
-            t={tr}
-            i18nKey="wizard.step4.intro"
-            components={{ strong: <strong style={{ color: SugarV2.ink }} /> }}
-          />
-        </p>
+      <div style={{ marginBottom: 26, maxWidth: 680 }}>
+        <h1 style={{ margin: '0 0 4px', fontSize: 38, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>{t('wizard.step4.title')}</h1>
       </div>
 
-      {/* Mode picker */}
-      <div style={{
-        display: 'inline-flex', padding: 5, borderRadius: 999,
-        background: SugarV2.card, boxShadow: SugarV2.shadowSm, marginBottom: 24,
-      }}>
-        {[
-          { v: 'pc' as const,     label: tr('wizard.step4.mode.pc'),     icon: 'computer' as const },
-          { v: 'mobile' as const, label: tr('wizard.step4.mode.mobile'), icon: 'phone' as const },
-          { v: 'drive' as const,  label: tr('wizard.step4.mode.drive'),  icon: 'cloud' as const },
-        ].map(m => {
-          const sel = mode === m.v
-          return (
-            <button key={m.v} onClick={() => setMode(m.v)} style={{
-              height: 38, padding: '0 18px', borderRadius: 999, border: 0,
-              background: sel ? SugarV2.black : 'transparent',
-              color: sel ? sgOn() : SugarV2.inkSoft,
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 600, letterSpacing: 0.1,
-              cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              boxShadow: sel ? '0 6px 14px rgba(0,0,0,0.22)' : 'none',
-              transition: 'all .2s ease',
-            }}>
-              <PhotoIcon name={m.icon} size={16} stroke={sel ? sgOn() : SugarV2.inkSoft} />
-              {m.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* MODE PC */}
-      {mode === 'pc' && (
-        <div
-          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            background: SugarV2.card, borderRadius: 28,
-            padding: '56px 32px',
-            boxShadow: dragOver ? SugarV2.shadowHover : SugarV2.shadow,
-            cursor: 'pointer',
-            transform: dragOver ? 'translateY(-2px) scale(1.005)' : 'translateY(0)',
-            transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18,
-            position: 'relative', overflow: 'hidden',
-          }}>
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            background: dragOver
-              ? 'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.04) 0%, transparent 60%)'
-              : 'transparent',
-            transition: 'background .3s',
-          }} />
-          <div style={{
-            width: 88, height: 88, borderRadius: 28,
-            background: dragOver ? SugarV2.black : SugarV2.cardSubtle,
-            color: dragOver ? sgOn() : SugarV2.black,
-            display: 'grid', placeItems: 'center',
-            transition: 'all .25s ease',
-            boxShadow: dragOver ? '0 16px 36px rgba(0,0,0,0.25)' : 'none',
-            transform: dragOver ? 'scale(1.05)' : 'scale(1)',
-          }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 16V4M12 4l-5 5M12 4l5 5"/>
-              <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
-            </svg>
-          </div>
-
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.4, marginBottom: 6 }}>
-              {dragOver ? tr('wizard.step4.dropzone.titleActive') : tr('wizard.step4.dropzone.title')}
-            </div>
-            <div style={{ fontSize: 14, color: SugarV2.inkSoft, fontWeight: 500 }}>
-              <Trans
-                t={tr}
-                i18nKey="wizard.step4.dropzone.browse"
-                components={{ browse: <span style={{ color: SugarV2.black, fontWeight: 700, textDecoration: 'underline' }} /> }}
-              />
-            </div>
-          </div>
-
-          <div style={{
-            display: 'flex', gap: 16, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center',
-          }}>
-            {['JPG · PNG · HEIC', tr('wizard.step4.dropzone.maxPhotos', { count: 30 }), tr('wizard.step4.dropzone.maxSize', { size: 20 })].map(s => (
-              <div key={s} style={{
-                padding: '6px 12px', borderRadius: 999,
-                background: SugarV2.cardSubtle,
-                fontSize: 11.5, fontWeight: 600, color: SugarV2.inkSoft, letterSpacing: 0.1,
-              }}>{s}</div>
-            ))}
-          </div>
-
-          <input ref={fileInputRef} type="file" multiple accept="image/*"
-            onChange={e => handleFiles(e.target.files)}
-            style={{ display: 'none' }} />
-        </div>
-      )}
-
-      {/* MODE MOBILE */}
-      {mode === 'mobile' && <SgPhoneTransfer addStock={addStock} />}
-
-      {/* MODE DRIVE */}
-      {mode === 'drive' && <SgDriveConnect addStock={addStock} />}
-
-      {/* Grille de photos */}
-      <div style={{ marginTop: 36 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h2 style={{
-            margin: 0, fontSize: 18, fontWeight: 700,
-            color: SugarV2.ink, letterSpacing: -0.3,
-          }}>
-            {photos.length === 0 ? tr('wizard.step4.grid.empty') : tr('wizard.step4.grid.count', { count: photos.length })}
-            {photos.length > 0 && (
-              <span style={{ color: SugarV2.muted, fontWeight: 500, marginLeft: 8 }}>
-                {tr('wizard.step4.grid.reorderHint')}
-              </span>
-            )}
-          </h2>
-          {photos.length > 0 && (
-            <button onClick={clearPhotos} style={{
-              border: 0, background: 'transparent', color: SugarV2.muted,
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', padding: '6px 12px', borderRadius: 8,
-            }}>{tr('wizard.step4.grid.clearAll')}</button>
-          )}
-        </div>
-
-        {photos.length === 0 ? (
-          <div style={{
-            background: SugarV2.card, borderRadius: 22,
-            padding: '48px 28px',
-            boxShadow: SugarV2.shadowSm,
-            textAlign: 'center', color: SugarV2.muted, fontSize: 14, fontWeight: 500,
-          }}>
-            {tr('wizard.step4.grid.emptyHint')}
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14,
-          }}>
-            {photos.map((p, idx) => {
-              const isCover = idx === 0
-              const isHover = hoverPhoto === p.id
-              const isDragOver = overIdx === idx && draggedIdx !== idx
-              return (
-                <div key={p.id}
-                  draggable
-                  onDragStart={() => setDraggedIdx(idx)}
-                  onDragOver={e => { e.preventDefault(); setOverIdx(idx) }}
-                  onDragLeave={() => setOverIdx(null)}
-                  onDrop={e => onPhotoDrop(e, idx)}
-                  onMouseEnter={() => setHoverPhoto(p.id)}
-                  onMouseLeave={() => setHoverPhoto(null)}
-                  style={{
-                    position: 'relative',
-                    aspectRatio: '4 / 3', borderRadius: 22,
-                    background: SugarV2.card,
-                    boxShadow: isHover ? SugarV2.shadowHover : SugarV2.shadow,
-                    overflow: 'hidden',
-                    cursor: draggedIdx === idx ? 'grabbing' : 'grab',
-                    transition: 'all .2s cubic-bezier(.2,.8,.2,1)',
-                    transform: isDragOver
-                      ? 'translateY(-4px) scale(1.02)'
-                      : (isHover ? 'translateY(-2px)' : 'translateY(0)'),
-                    opacity: draggedIdx === idx ? 0.45 : 1,
-                    outline: isDragOver ? `3px solid ${SugarV2.black}` : 'none',
-                    outlineOffset: -3,
-                  }}>
-                  <FakePhoto p={p} />
-
-                  {isCover && (
-                    <div style={{
-                      position: 'absolute', top: 10, left: 10,
-                      padding: '5px 11px', borderRadius: 999,
-                      background: SugarV2.black, color: sgOn(),
-                      fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-                      textTransform: 'uppercase',
-                      boxShadow: '0 6px 16px rgba(0,0,0,0.30)',
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                    }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill={sgOn()}>
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
-                      </svg>
-                      {tr('wizard.step4.cover')}
-                    </div>
-                  )}
-                  {!isCover && (
-                    <div style={{
-                      position: 'absolute', top: 10, left: 10,
-                      width: 24, height: 24, borderRadius: 999,
-                      background: sgAcc(0.92), color: SugarV2.ink,
-                      fontSize: 11, fontWeight: 700,
-                      display: 'grid', placeItems: 'center',
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.12)',
-                    }}>{idx + 1}</div>
-                  )}
-
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: isHover
-                      ? 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.55) 100%)'
-                      : 'transparent',
-                    opacity: isHover ? 1 : 0,
-                    transition: 'opacity .2s ease',
-                    display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end',
-                    padding: 10, gap: 6,
-                    pointerEvents: isHover ? 'auto' : 'none',
-                  }}>
-                    {!isCover && (
-                      <button onClick={e => { e.stopPropagation(); setCover(p.id) }}
-                        title={tr('wizard.step4.action.setCover')}
-                        style={{
-                          width: 32, height: 32, borderRadius: 999, border: 0,
-                          background: sgAcc(0.95), color: SugarV2.ink,
-                          cursor: 'pointer', display: 'grid', placeItems: 'center',
-                          boxShadow: '0 6px 14px rgba(0,0,0,0.20)',
-                        }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
-                        </svg>
-                      </button>
-                    )}
-                    <button onClick={e => { e.stopPropagation(); removePhoto(p.id) }}
-                      title={tr('common:actions.delete')}
-                      style={{
-                        width: 32, height: 32, borderRadius: 999, border: 0,
-                        background: sgAcc(0.95), color: SugarV2.err,
-                        cursor: 'pointer', display: 'grid', placeItems: 'center',
-                        boxShadow: '0 6px 14px rgba(0,0,0,0.20)',
-                      }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div style={{
-                    position: 'absolute', bottom: 10, left: 10,
-                    padding: '4px 10px', borderRadius: 999,
-                    background: sgAcc(0.92),
-                    fontSize: 10.5, fontWeight: 600, color: SugarV2.ink,
-                    letterSpacing: 0.2,
-                    opacity: isHover ? 0 : 1,
-                    transition: 'opacity .2s',
-                  }}>{p.id.length === 2 && p.id[0] === 'p' ? tr('wizard.staging.stock.' + p.id) : p.label}</div>
-                </div>
-              )
-            })}
-
-            <button onClick={() => fileInputRef.current?.click()}
-              style={{
-                aspectRatio: '4 / 3', borderRadius: 22, border: 0,
-                background: SugarV2.cardSubtle, color: SugarV2.muted,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-                fontSize: 13, fontWeight: 600,
-                transition: 'all .2s ease',
-                boxShadow: 'inset 0 0 0 2px rgba(0,0,0,0.06)',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = SugarV2.card
-                e.currentTarget.style.color = SugarV2.ink
-                e.currentTarget.style.boxShadow = SugarV2.shadow
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = SugarV2.cardSubtle
-                e.currentTarget.style.color = SugarV2.muted
-                e.currentTarget.style.boxShadow = 'inset 0 0 0 2px rgba(0,0,0,0.06)'
-              }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
-              {tr('common:actions.add')}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* AI Quality bar */}
       {photos.length > 0 && (
-        <div style={{
-          marginTop: 32,
-          background: SugarV2.card, borderRadius: 22, padding: '20px 24px',
-          boxShadow: SugarV2.shadow,
-          display: 'flex', alignItems: 'center', gap: 18,
-          animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both',
-        }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: quality.bg, color: quality.color,
-            display: 'grid', placeItems: 'center', flexShrink: 0,
-            boxShadow: `0 8px 20px ${quality.color}22`,
-          }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: SugarV2.muted, letterSpacing: 1, textTransform: 'uppercase' }}>
-                {tr('wizard.step4.quality.eyebrow')}
-              </span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: quality.color, letterSpacing: -0.1 }}>
-                {quality.label}
-              </span>
-            </div>
-            <div style={{ fontSize: 14, color: SugarV2.ink, fontWeight: 600, letterSpacing: -0.2, marginBottom: 10 }}>
-              {quality.message}
-            </div>
-            <div style={{ height: 6, borderRadius: 999, background: SugarV2.cardSubtle, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%', width: `${quality.score}%`,
-                background: quality.color, borderRadius: 999,
-                transition: 'width .6s cubic-bezier(.2,.8,.2,1)',
-              }} />
-            </div>
-          </div>
-          {quality.suggestions.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0, maxWidth: 280 }}>
-              {quality.suggestions.slice(0, 2).map((s, i) => (
-                <div key={i} style={{
-                  fontSize: 11.5, color: SugarV2.inkSoft, fontWeight: 500,
-                  display: 'flex', alignItems: 'flex-start', gap: 6,
-                }}>
-                  <span style={{ color: SugarV2.muted, flexShrink: 0 }}>·</span>
-                  {s}
-                </div>
-              ))}
-            </div>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: SugarV2.ink }}>{t('wizard.step4.count', { count: photos.length })}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 13px', borderRadius: 999, background: SugarV2.card, boxShadow: SugarV2.shadowSm, fontSize: 12, fontWeight: 600, color: SugarV2.inkSoft }}>
+            {photos.length < 8 ? t('wizard.step4.tipFew') : t('wizard.step4.tipMany')}
+          </span>
         </div>
       )}
 
-    </div>
-  )
-}
-
-// ─── Mode Phone (QR) ───────────────────────────────────────────────────
-function SgPhoneTransfer({ addStock }: { addStock: (n?: number) => void }) {
-  const { t: tr } = useTranslation('listings')
-  const [pulse, setPulse] = useState(false)
-  const [phase, setPhase] = useState<'waiting' | 'connected' | 'receiving'>('waiting')
-
-  const simulateConnect = () => {
-    setPhase('connected')
-    setTimeout(() => setPhase('receiving'), 1200)
-    setTimeout(() => { addStock(2); setPulse(true); setTimeout(() => setPulse(false), 800) }, 2400)
-    setTimeout(() => { addStock(2); setPulse(true); setTimeout(() => setPulse(false), 800) }, 3800)
-    setTimeout(() => setPhase('connected'), 5200)
-  }
-
-  return (
-    <div style={{
-      background: SugarV2.card, borderRadius: 28, padding: 36,
-      boxShadow: SugarV2.shadow,
-      display: 'grid', gridTemplateColumns: '260px 1fr', gap: 36,
-      alignItems: 'center',
-    }}>
-      <div style={{
-        background: SugarV2.cardSubtle, borderRadius: 22,
-        padding: 22,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
-      }}>
-        <FakeQR pulse={pulse} />
-        <div style={{
-          fontSize: 11, fontWeight: 700, color: SugarV2.muted,
-          letterSpacing: 1, textTransform: 'uppercase',
-        }}>{tr('wizard.step4.phone.uniqueCode')}</div>
-        <div style={{
-          fontSize: 13, fontWeight: 700, color: SugarV2.ink, letterSpacing: 1,
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          padding: '4px 10px', borderRadius: 8,
-          background: SugarV2.card,
-        }}>
-          {/* Code d'appairage d'exemple (démo) — hors catalogue i18n. */}
-          {'MGA-7K2P-9X'}
+      {/* Couverture */}
+      {cover ? (
+        <div
+          onDragOver={e => { e.preventDefault(); setOver(true) }}
+          onDragLeave={() => setOver(false)}
+          onDrop={e => { e.preventDefault(); setOver(false); if (drag == null) addFiles(e.dataTransfer.files) }}
+          style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 22, overflow: 'hidden', background: SugarV2.cardSubtle, boxShadow: over ? `inset 0 0 0 3px ${SugarV2.black}, ${SugarV2.shadow}` : SugarV2.shadow, marginBottom: 16 }}>
+          <img src={photoSrc(cover)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <div style={{ position: 'absolute', top: 14, left: 14 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: SugarV2.black, color: sgOn(), fontSize: 11.5, fontWeight: 700, letterSpacing: 0.2 }}>
+              {IStar(sgOn(), 12)}{t('wizard.step4.cover')}
+            </span>
+          </div>
+          <div style={{ position: 'absolute', top: 14, right: 14, display: 'flex', gap: 8 }}>
+            <RoundBtn title={t('wizard.step4.crop')} onClick={() => setCropId(cover.id)}>{ICrop('#0B0C0E')}</RoundBtn>
+            <RoundBtn danger title={t('wizard.step4.delete')} onClick={() => removePhoto(cover.id)}>{ITrash('#fff')}</RoundBtn>
+          </div>
+          {cover.label && <div style={{ position: 'absolute', bottom: 14, left: 14, padding: '6px 12px', borderRadius: 999, background: 'rgba(11,12,14,0.55)', color: '#fff', fontSize: 12, fontWeight: 600, backdropFilter: 'blur(6px)', maxWidth: '70%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cover.label}</div>}
         </div>
-      </div>
-
-      <div>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '5px 11px', borderRadius: 999,
-          background: phase === 'waiting' ? SugarV2.cardSubtle : 'rgba(16,185,129,0.10)',
-          color: phase === 'waiting' ? SugarV2.muted : SugarV2.ok,
-          fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-          marginBottom: 14,
-        }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: 999,
-            background: phase === 'waiting' ? SugarV2.muted : SugarV2.ok,
-            animation: phase !== 'waiting' ? 'sgPulse 1.4s ease-in-out infinite' : 'none',
-          }} />
-          {phase === 'waiting' && tr('wizard.step4.phone.phase.waiting')}
-          {phase === 'connected' && tr('wizard.step4.phone.phase.connected')}
-          {phase === 'receiving' && tr('wizard.step4.phone.phase.receiving')}
+      ) : (
+        <div
+          onClick={pick}
+          onDragOver={e => { e.preventDefault(); setOver(true) }}
+          onDragLeave={() => setOver(false)}
+          onDrop={e => { e.preventDefault(); setOver(false); addFiles(e.dataTransfer.files) }}
+          style={{ cursor: 'pointer', aspectRatio: '16/9', borderRadius: 22, marginBottom: 16, background: over ? SugarV2.cardSubtle : SugarV2.card, boxShadow: over ? `inset 0 0 0 3px ${SugarV2.black}` : `inset 0 0 0 1.5px ${SugarV2.line}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, transition: 'box-shadow .15s, background .15s' }}>
+          <span style={{ width: 60, height: 60, borderRadius: 18, background: SugarV2.black, display: 'grid', placeItems: 'center', boxShadow: '0 10px 24px rgba(11,12,14,0.22)' }}>{IUp(sgOn(), 26)}</span>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: SugarV2.ink }}>{t('wizard.step4.dropTitle')}</div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: SugarV2.muted, marginTop: 4 }}>{t('wizard.step4.dropHint')}</div>
+          </div>
         </div>
+      )}
 
-        <h3 style={{
-          margin: '0 0 10px', fontSize: 24, fontWeight: 700,
-          color: SugarV2.ink, letterSpacing: -0.5, lineHeight: 1.2,
-        }}>{tr('wizard.step4.phone.title')}</h3>
-        <p style={{ margin: '0 0 22px', fontSize: 14, color: SugarV2.inkSoft, fontWeight: 500, lineHeight: 1.55, maxWidth: 480 }}>
-          {tr('wizard.step4.phone.intro')}
-        </p>
-
-        <ol style={{
-          margin: '0 0 24px', padding: 0, listStyle: 'none',
-          display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          {[
-            tr('wizard.step4.phone.step1'),
-            tr('wizard.step4.phone.step2'),
-            tr('wizard.step4.phone.step3'),
-          ].map((t, i) => (
-            <li key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              fontSize: 13.5, color: SugarV2.inkSoft, fontWeight: 500,
-            }}>
-              <span style={{
-                width: 22, height: 22, borderRadius: 999,
-                background: SugarV2.cardSubtle, color: SugarV2.ink,
-                fontSize: 11, fontWeight: 700,
-                display: 'grid', placeItems: 'center', flexShrink: 0,
-              }}>{i + 1}</span>
-              {t}
-            </li>
-          ))}
-        </ol>
-
-        <button onClick={simulateConnect} disabled={phase !== 'waiting'}
-          style={{
-            height: 42, padding: '0 18px', borderRadius: 999, border: 0,
-            background: phase === 'waiting' ? SugarV2.black : SugarV2.cardSubtle,
-            color: phase === 'waiting' ? sgOn() : SugarV2.muted,
-            fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-            cursor: phase === 'waiting' ? 'pointer' : 'not-allowed',
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            boxShadow: phase === 'waiting' ? '0 6px 16px rgba(0,0,0,0.18)' : 'none',
-            transition: 'all .2s ease',
-          }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-          {phase === 'waiting' ? tr('wizard.step4.phone.simulate') : tr('wizard.step4.phone.connected')}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Mode Drive ────────────────────────────────────────────────────────
-function SgDriveConnect({ addStock }: { addStock: (n?: number) => void }) {
-  const { t: tr } = useTranslation('listings')
-  const [connecting, setConnecting] = useState<string | null>(null)
-
-  const SERVICES: { v: string; label: string; color: string; icon: ReactNode }[] = [
-    { v: 'gdrive',   label: 'Google Drive', color: '#1A73E8',
-      icon: <svg width="28" height="28" viewBox="0 0 87.3 78" fill="none">
-        <path d="M6.6 66.85L10.45 73.5C11.25 74.9 12.4 76 13.75 76.8L27.5 53H0C0 54.55 0.4 56.1 1.2 57.5L6.6 66.85Z" fill="#0066DA"/>
-        <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.5C0.413 49.866 -0.001 51.42 0 53H27.5L43.65 25Z" fill="#00AC47"/>
-        <path d="M73.55 76.8C74.9 76 76.05 74.9 76.85 73.5L78.45 70.75L86.1 57.5C86.9 56.1 87.3 54.55 87.3 53H59.799L65.65 64.5L73.55 76.8Z" fill="#EA4335"/>
-        <path d="M43.65 25L57.4 1.2C56.05 0.4 54.5 0 52.9 0H34.4C32.8 0 31.25 0.45 29.9 1.2L43.65 25Z" fill="#00832D"/>
-        <path d="M59.8 53H27.5L13.75 76.8C15.1 77.6 16.65 78 18.25 78H69.05C70.65 78 72.2 77.55 73.55 76.8L59.8 53Z" fill="#2684FC"/>
-        <path d="M73.4 26.5L60.7 4.5C59.9 3.1 58.75 2 57.4 1.2L43.65 25L59.8 53H87.25C87.25 51.45 86.85 49.9 86.05 48.5L73.4 26.5Z" fill="#FFBA00"/>
-      </svg> },
-    { v: 'dropbox', label: 'Dropbox', color: '#0061FF',
-      icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="#0061FF">
-        <path d="M6 1.807L0 5.629l6 3.822 6-3.822-6-3.822zm12 0l-6 3.822 6 3.822 6-3.822-6-3.822zM0 13.274l6 3.822 6-3.822-6-3.823-6 3.823zm18-3.823l-6 3.823 6 3.822 6-3.822-6-3.823zM6 18.371l6 3.822 6-3.822-6-3.822-6 3.822z"/>
-      </svg> },
-    { v: 'onedrive', label: 'OneDrive', color: '#0078D4',
-      icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="#0078D4">
-        <path d="M14.4 9.025c-.7-3-3.3-5.225-6.4-5.225-2.5 0-4.65 1.475-5.65 3.6C1.05 7.55 0 8.85 0 10.4c0 1.6 1.3 2.9 2.9 2.9h11.2c1.65 0 3-1.35 3-3 0-.45-.1-.875-.275-1.275-.6-.225-1.275-.225-1.875 0M16.825 9.5c2.05.275 3.625 2 3.625 4.1 0 2.275-1.85 4.125-4.125 4.125H7.275c-.6 0-1.1-.5-1.1-1.1 0-.075.025-.15.05-.225.55.15 1.1.225 1.675.225h11.2c2.275 0 4.125-1.85 4.125-4.125 0-1.95-1.375-3.6-3.225-4.025-.025-.5-.075-.975-.175-1.45h.025c.95 0 1.85.275 2.625.75.05.275.075.55.075.825 0 .425-.075.825-.2 1.2-.275.075-.55.125-.825.175z"/>
-      </svg> },
-  ]
-
-  const connect = (v: string) => {
-    setConnecting(v)
-    setTimeout(() => { setConnecting(null); addStock(4) }, 1800)
-  }
-
-  return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        {SERVICES.map(s => {
-          const loading = connecting === s.v
-          return (
-            <button key={s.v} onClick={() => !connecting && connect(s.v)}
-              disabled={!!connecting}
-              style={{
-                background: SugarV2.card, borderRadius: 22,
-                padding: 22, border: 0,
-                boxShadow: SugarV2.shadow,
-                cursor: connecting ? 'wait' : 'pointer',
-                fontFamily: 'inherit', textAlign: 'left',
-                display: 'flex', alignItems: 'center', gap: 16,
-                transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
-                transform: loading ? 'translateY(-2px)' : 'translateY(0)',
-              }}
-              onMouseEnter={e => {
-                if (!connecting) {
-                  e.currentTarget.style.boxShadow = SugarV2.shadowHover
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                }
-              }}
-              onMouseLeave={e => {
-                if (!loading) {
-                  e.currentTarget.style.boxShadow = SugarV2.shadow
-                  e.currentTarget.style.transform = 'translateY(0)'
-                }
-              }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 14,
-                background: SugarV2.cardSubtle,
-                display: 'grid', placeItems: 'center', flexShrink: 0,
-              }}>{s.icon}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.2, marginBottom: 2 }}>
-                  {s.label}
-                </div>
-                <div style={{ fontSize: 12.5, color: SugarV2.muted, fontWeight: 500 }}>
-                  {loading ? tr('wizard.step4.drive.connecting') : tr('wizard.step4.drive.connect')}
+      {/* Pellicule */}
+      {photos.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8 }}>
+          {photos.map((p, i) => {
+            const isCover = i === 0
+            return (
+              <div key={p.id} draggable
+                onDragStart={() => setDrag(i)}
+                onDragOver={e => { e.preventDefault(); setOverIdx(i) }}
+                onDrop={e => { e.preventDefault(); move(drag, i); setDrag(null); setOverIdx(null) }}
+                onDragEnd={() => { setDrag(null); setOverIdx(null) }}
+                style={{
+                  position: 'relative', flex: '0 0 auto', width: 132, aspectRatio: '4/3', borderRadius: 14, overflow: 'hidden', background: SugarV2.cardSubtle, cursor: 'grab',
+                  boxShadow: isCover ? `inset 0 0 0 3px ${SugarV2.black}` : SugarV2.shadowSm,
+                  outline: overIdx === i && drag !== i ? `2px dashed ${SugarV2.black}` : 'none', outlineOffset: 2,
+                  opacity: drag === i ? 0.5 : 1,
+                }}>
+                <img src={photoSrc(p)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                {isCover && <div style={{ position: 'absolute', top: 6, left: 6, padding: '3px 8px', borderRadius: 999, background: SugarV2.black, color: sgOn(), fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3 }}>{t('wizard.step4.coverShort')}</div>}
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 5, padding: 6, background: 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.30))' }}>
+                  {!isCover && <RoundBtn title={t('wizard.step4.setCover')} onClick={() => setCover(p.id)}>{IStar('#0B0C0E', 14)}</RoundBtn>}
+                  <RoundBtn title={t('wizard.step4.crop')} onClick={() => setCropId(p.id)}>{ICrop('#0B0C0E', 14)}</RoundBtn>
+                  <RoundBtn danger title={t('wizard.step4.delete')} onClick={() => removePhoto(p.id)}>{ITrash('#fff', 14)}</RoundBtn>
                 </div>
               </div>
-              <div style={{ flexShrink: 0, color: loading ? SugarV2.black : SugarV2.muted }}>
-                {loading ? (
-                  <div style={{
-                    width: 18, height: 18, borderRadius: 999,
-                    border: `2px solid ${SugarV2.cardSubtle}`,
-                    borderTopColor: SugarV2.black,
-                    animation: 'sgSpin .8s linear infinite',
-                  }} />
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18l6-6-6-6"/>
-                  </svg>
-                )}
-              </div>
-            </button>
-          )
-        })}
-      </div>
+            )
+          })}
+          <button onClick={pick} style={{ flex: '0 0 auto', width: 132, aspectRatio: '4/3', borderRadius: 14, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: SugarV2.card, boxShadow: `inset 0 0 0 1.5px ${SugarV2.line}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: SugarV2.ink }}>
+            <span style={{ width: 34, height: 34, borderRadius: 10, background: SugarV2.cardSubtle, display: 'grid', placeItems: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SugarV2.ink} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            </span>
+            <span style={{ fontSize: 12.5, fontWeight: 700 }}>{t('wizard.step4.add')}</span>
+          </button>
+        </div>
+      )}
 
-      <div style={{
-        marginTop: 16, padding: '14px 18px',
-        display: 'flex', alignItems: 'center', gap: 12,
-        color: SugarV2.muted, fontSize: 12.5, fontWeight: 500,
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
-        </svg>
-        {tr('wizard.step4.drive.readOnlyNote')}
-      </div>
+      {cropId && (() => {
+        const ph = photos.find(p => p.id === cropId)
+        return ph ? <SgCropModal photo={ph} onClose={() => setCropId(null)} onApply={(file) => { applyCrop(cropId, file); setCropId(null) }} /> : null
+      })()}
     </div>
   )
 }
 
-// ─── Helpers visuels ───────────────────────────────────────────────────
-function PhotoIcon({ name, size = 16, stroke = 'currentColor' }: { name: 'computer' | 'phone' | 'cloud'; size?: number; stroke?: string }) {
-  const p = {
-    computer: <><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></>,
-    phone:    <><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></>,
-    cloud:    <><path d="M18 10a4 4 0 0 0-7.55-1A4 4 0 1 0 7 18h11a4 4 0 0 0 0-8Z"/></>,
-  }
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      {p[name]}
-    </svg>
-  )
-}
+// ─── Modale de recadrage ───────────────────────────────────────────────
+interface CropBox { x: number; y: number; w: number; h: number }
+const SG_CROP_ASPECTS: { k: string; label: string; r: number | null }[] = [
+  { k: 'free', label: '', r: null },   // label « Libre » via i18n
+  { k: '1', label: '1:1', r: 1 },
+  { k: '43', label: '4:3', r: 4 / 3 },
+  { k: '32', label: '3:2', r: 3 / 2 },
+  { k: '169', label: '16:9', r: 16 / 9 },
+]
 
-function FakePhoto({ p }: { p: WizardPhoto }) {
-  // Vraie photo (dropzone PC) ou URL déjà persistée → on affiche l'image réelle.
-  const realSrc = p.previewUrl || p.url
-  if (realSrc) {
-    return (
-      <img
-        src={realSrc}
-        alt={p.label}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        draggable={false}
-      />
-    )
-  }
-  const stripes = `repeating-linear-gradient(135deg, ${p.tone} 0 14px, ${shade(p.tone, -0.03)} 14px 28px)`
-  return (
-    <div style={{
-      width: '100%', height: '100%', position: 'relative',
-      background: stripes,
-    }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'grid', placeItems: 'center',
-        color: 'rgba(0,0,0,0.18)',
-      }}>
-        {p.kind === 'interior' && (
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
-            <path d="M3 21V11l9-7 9 7v10"/><path d="M9 21v-7h6v7"/>
-          </svg>
-        )}
-        {p.kind === 'exterior' && (
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
-            <circle cx="12" cy="9" r="3"/><path d="M3 21l5-7 4 5 4-3 5 5"/>
-          </svg>
-        )}
-        {p.kind === 'plan' && (
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
-            <rect x="3" y="3" width="18" height="18"/><path d="M3 12h10M13 3v18M13 9h8M13 15h5"/>
-          </svg>
-        )}
-      </div>
-    </div>
-  )
-}
+function SgCropModal({ photo, onClose, onApply }: { photo: WizardPhoto; onClose: () => void; onApply: (file: File) => void }) {
+  const { t } = useTranslation('listings')
+  const imgRef = useRef<HTMLImageElement>(null)
+  const dragRef = useRef<{ mode: string; sx: number; sy: number; box: CropBox } | null>(null)
+  const [disp, setDisp] = useState({ w: 0, h: 0 })
+  const [box, setBox] = useState<CropBox | null>(null)
+  const [aspect, setAspect] = useState<number | null>(null)
+  const [ready, setReady] = useState(false)
 
-function FakeQR({ pulse }: { pulse: boolean }) {
-  const cells = useMemo(() => {
-    const seed = 42
-    const rng = (i: number) => ((Math.sin(i * seed) + 1) / 2) > 0.55
-    const arr: boolean[] = []
-    for (let y = 0; y < 21; y++) {
-      for (let x = 0; x < 21; x++) {
-        const isFinder = (x < 7 && y < 7) || (x > 13 && y < 7) || (x < 7 && y > 13)
-        if (isFinder) {
-          const fx = x < 7 ? x : (x - 14)
-          const fy = y < 7 ? y : (y - 14)
-          const inOuter = fx === 0 || fx === 6 || fy === 0 || fy === 6
-          const inInner = fx >= 2 && fx <= 4 && fy >= 2 && fy <= 4
-          arr.push(inOuter || inInner)
-        } else {
-          arr.push(rng(x * 23 + y * 7))
-        }
-      }
+  const initBox = (w: number, h: number, r: number | null): CropBox => {
+    let bw: number, bh: number
+    if (r) { const mw = w * 0.9, mh = h * 0.9; if (mw / r <= mh) { bw = mw; bh = mw / r } else { bh = mh; bw = mh * r } }
+    else { bw = w * 0.82; bh = h * 0.82 }
+    return { x: (w - bw) / 2, y: (h - bh) / 2, w: bw, h: bh }
+  }
+  useEffect(() => {
+    const el = imgRef.current
+    const measure = (): boolean => {
+      if (!el) return false
+      const w = el.offsetWidth, h = el.offsetHeight
+      if (w && h && el.naturalWidth) { setDisp({ w, h }); setBox(initBox(w, h, aspect)); setReady(true); return true }
+      return false
     }
-    return arr
+    if (measure()) return
+    const onLoad = () => measure()
+    el?.addEventListener('load', onLoad)
+    const iv = setInterval(() => { if (measure()) clearInterval(iv) }, 60)
+    const to = setTimeout(() => clearInterval(iv), 3000)
+    return () => { el?.removeEventListener('load', onLoad); clearInterval(iv); clearTimeout(to) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return (
-    <div style={{
-      width: 200, height: 200, padding: 12, borderRadius: 18,
-      background: sgOn(),
-      boxShadow: pulse
-        ? '0 0 0 6px rgba(16,185,129,0.30), 0 12px 30px rgba(0,0,0,0.08)'
-        : '0 12px 30px rgba(0,0,0,0.08)',
-      transition: 'box-shadow .4s ease',
-      display: 'grid',
-      gridTemplateColumns: 'repeat(21, 1fr)',
-      gap: 1,
-    }}>
-      {cells.map((on, i) => (
-        <div key={i} style={{
-          background: on ? '#0B0C0E' : 'transparent',
-          borderRadius: 1,
-          aspectRatio: '1',
-        }} />
-      ))}
-    </div>
-  )
-}
-
-// ─── Quality scoring ──────────────────────────────────────────────────
-function computeQuality(photos: WizardPhoto[], tr: TFunction) {
-  const n = photos.length
-  const interior = photos.filter(p => p.kind === 'interior').length
-  const exterior = photos.filter(p => p.kind === 'exterior').length
-  const plan = photos.filter(p => p.kind === 'plan').length
-
-  let score = Math.min(100, n * 10)
-  const suggestions: string[] = []
-  if (n < 8) suggestions.push(tr('wizard.step4.quality.suggestion.addMore', { count: 8 - n }))
-  if (exterior === 0) suggestions.push(tr('wizard.step4.quality.suggestion.exterior'))
-  if (plan === 0) suggestions.push(tr('wizard.step4.quality.suggestion.plan'))
-  if (interior < 4 && n > 0) suggestions.push(tr('wizard.step4.quality.suggestion.rooms'))
-
-  let label: string, color: string, bg: string, message: string
-  if (n === 0) {
-    label = tr('wizard.step4.quality.label.none'); color = SugarV2.muted; bg = SugarV2.cardSubtle
-    message = tr('wizard.step4.quality.message.none')
-    score = 5
-  } else if (n < 4) {
-    label = tr('wizard.step4.quality.label.insufficient'); color = '#EF4444'; bg = 'rgba(239,68,68,0.08)'
-    message = tr('wizard.step4.quality.message.insufficient', { count: n })
-  } else if (n < 8) {
-    label = tr('wizard.step4.quality.label.toComplete'); color = '#F59E0B'; bg = 'rgba(245,158,11,0.10)'
-    message = tr('wizard.step4.quality.message.toComplete', { count: n })
-  } else if (n < 12) {
-    label = tr('wizard.step4.quality.label.good'); color = '#10B981'; bg = 'rgba(16,185,129,0.10)'
-    message = tr('wizard.step4.quality.message.good', { count: n })
-  } else {
-    label = tr('wizard.step4.quality.label.excellent'); color = '#10B981'; bg = 'rgba(16,185,129,0.12)'
-    message = tr('wizard.step4.quality.message.excellent', { count: n })
-    score = 100
+  const setA = (r: number | null) => { setAspect(r); if (disp.w) setBox(initBox(disp.w, disp.h, r)) }
+  const clamp = (b: CropBox): CropBox => {
+    let { x, y, w, h } = b
+    w = Math.min(w, disp.w); h = Math.min(h, disp.h)
+    x = Math.max(0, Math.min(x, disp.w - w))
+    y = Math.max(0, Math.min(y, disp.h - h))
+    return { x, y, w, h }
   }
-  return { score, label, color, bg, message, suggestions }
+  const onMove = (e: PointerEvent) => {
+    const d = dragRef.current; if (!d) return
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy
+    const b: CropBox = { ...d.box }
+    if (d.mode === 'move') { b.x += dx; b.y += dy; setBox(clamp(b)); return }
+    if (d.mode.includes('e')) b.w = d.box.w + dx
+    if (d.mode.includes('s')) b.h = d.box.h + dy
+    if (d.mode.includes('w')) { b.w = d.box.w - dx; b.x = d.box.x + dx }
+    if (d.mode.includes('n')) { b.h = d.box.h - dy; b.y = d.box.y + dy }
+    b.w = Math.max(48, b.w); b.h = Math.max(48, b.h)
+    if (aspect) { const nh = b.w / aspect; if (d.mode.includes('n')) b.y = b.y + (b.h - nh); b.h = nh }
+    setBox(clamp(b))
+  }
+  const onUp = () => { dragRef.current = null; window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp) }
+  const start = (mode: string) => (e: React.PointerEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    if (!box) return
+    dragRef.current = { mode, sx: e.clientX, sy: e.clientY, box: { ...box } }
+    window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp)
+  }
+  const apply = () => {
+    const el = imgRef.current; if (!el || !box || !disp.w) return
+    const sX = el.naturalWidth / disp.w, sY = el.naturalHeight / disp.h
+    const cw = Math.max(1, Math.round(box.w * sX)), ch = Math.max(1, Math.round(box.h * sY))
+    const canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch
+    const ctx = canvas.getContext('2d'); if (!ctx) { onClose(); return }
+    try {
+      ctx.drawImage(el, box.x * sX, box.y * sY, box.w * sX, box.h * sY, 0, 0, cw, ch)
+      // VRAI File (uploadé à la publication), pas un dataURL éphémère.
+      canvas.toBlob((blob) => {
+        if (!blob) { onClose(); return }
+        onApply(new File([blob], photo.label ? `${photo.label}.jpg` : 'photo.jpg', { type: 'image/jpeg' }))
+      }, 'image/jpeg', 0.9)
+    } catch { onClose() }
+  }
+  const handle = (pos: string, cursor: string): ReactNode => (
+    <div onPointerDown={start(pos)} style={{
+      position: 'absolute', width: 16, height: 16, background: '#fff', borderRadius: 4, boxShadow: '0 1px 4px rgba(0,0,0,0.4)', cursor,
+      ...(pos.includes('n') ? { top: -8 } : { bottom: -8 }), ...(pos.includes('w') ? { left: -8 } : { right: -8 }),
+    }} />
+  )
+
+  return createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(11,12,14,0.55)', backdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: SugarV2.card, borderRadius: 28, padding: 26, boxShadow: '0 40px 100px rgba(15,23,42,0.28)', maxWidth: 760, width: '100%', animation: 'sgFadeUp .3s cubic-bezier(.2,.8,.2,1) both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3 }}>{t('wizard.step4.cropTitle')}</h3>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {SG_CROP_ASPECTS.map(a => {
+              const sel = aspect === a.r
+              return <button key={a.k} onClick={() => setA(a.r)} style={{ height: 32, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, background: sel ? SugarV2.black : SugarV2.cardSubtle, color: sel ? sgOn() : SugarV2.inkSoft }}>{a.k === 'free' ? t('wizard.step4.aspectFree') : a.label}</button>
+            })}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', placeItems: 'center', background: SugarV2.cardSubtle, borderRadius: 16, padding: 16, marginBottom: 20 }}>
+          <div style={{ position: 'relative', lineHeight: 0, overflow: 'hidden', borderRadius: 8, touchAction: 'none' }}>
+            <img ref={imgRef} src={photoSrc(photo)} alt="" draggable={false} style={{ maxWidth: '100%', maxHeight: '52vh', display: 'block', userSelect: 'none' }} />
+            {ready && box && (
+              <div onPointerDown={start('move')} style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, boxShadow: '0 0 0 9999px rgba(11,12,14,0.5)', outline: '1.5px solid #fff', cursor: 'move' }}>
+                <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)', backgroundSize: '33.33% 33.33%', pointerEvents: 'none' }} />
+                {handle('nw', 'nwse-resize')}{handle('ne', 'nesw-resize')}{handle('sw', 'nesw-resize')}{handle('se', 'nwse-resize')}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: SugarV2.muted }}>{t('wizard.step4.cropHint')}</span>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={onClose} style={{ height: 44, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: 'transparent', color: SugarV2.inkSoft }}>{t('common:actions.cancel')}</button>
+            <button onClick={apply} style={{ height: 44, padding: '0 24px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, background: SugarV2.black, color: sgOn(), boxShadow: '0 8px 22px rgba(11,12,14,0.18)' }}>{t('wizard.step4.crop')}</button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
 }
