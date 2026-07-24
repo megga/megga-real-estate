@@ -6,6 +6,14 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Refonte Mes biens « complet » : wizard + fiche (24 juillet 2026)
+> Sert les objectifs 1 (temps admin) et 5 (remplacer un outil fragmenté). Handoff hi-fi de Julien (`handoff-mes-biens-complet`, consigne « tout absolument identique ») : refonte de bout en bout du **wizard « Créer un bien » Sugar v2** et de la **fiche bien**. Galerie + « À suivre » déjà conformes (itération juillet), inchangées.
+
+- **Wizard « Créer un bien » → Sugar v2 complet** (`crm-sugar-wizard/`, `WizardShell` 8→**7 étapes**) : Step 0 trois portes égales `SgPorteCard` (cap 5 soumissions réelles `seller_leads`, **porte « Importer un mandat » gardée désactivée** : elle injectait un mandat fictif) · Step 3 **caractéristiques guidées** (10 types, 7 questions pilotées par `data.specsQ`) + **Step 3b accordéon détails** (sections conditionnelles au type, familles apt/house/terrain/commerce, `data.det`) · Step 4 **photos couverture-héro + pellicule** (upload réel, ★ couverture, drag-reorder, recadrage canvas → vrai File) · Step 5 deux phases (prix héro puis description, rédaction DeepSeek réelle préservée) · **Step 7 checklist « Prêt à publier »** (5 critères bloquants en PUBLIC seulement ; brouillon/privé jamais bloqués ; mandat non signé → « Publier sur MEGGA »). **Step 6 « Options » supprimé.** Header minimal (× seul) + indicateur d'autosave en footer. `TYPE_TO_ENUM` étendu aux 10 types (+`commercial`).
+- **Fiche bien V4** (`BienDetailSugarV4Page`, remplace la V3) : mono-page dans un bento (look pager, **fond `crmSugarPalette().pageBg` = Today/Pipeline** (la V3 utilisait un dégradé vitrine local)), héro galerie immersive (lightbox **contenue**, clippée au bento) + ruban de specs, bento sectionnée (Description · Performance · Caractéristiques · Acheteurs) + pied Visites | Mandat | Diffusion (portail unique Immobilier.ch). Modales Modifier/Visite sombres opaques `#17181A`. Câblage réel préservé (`useProperty`/`usePropertyStats`/deals/matches/`kyc_cases`/`property_syndications`).
+- **Écarts assumés vs handoff** (fidélité visuelle, honnêteté des données) : **Staging Studio non construit** (`crm-staging-studio.jsx` = fichier orphelin du bundle, monté nulle part) · **modale de publication multi-portails non construite** (contredit portail unique V1 + marketplace désactivée + audiences fabriquées ; 0 caller dans le handoff) · descriptions/features fabriquées du handoff refusées (vraies données ou vide honnête) · toasts d'auto-envoi WhatsApp retirés · `MEG-2026-XXXX` = référence d'affichage (non persistée) · sparkline perf « +18 % » gardée verbatim (décorative). Aucune migration DB.
+
+
 #### Refonte Pipeline v2 « Sugar Pure » (21 juillet 2026)
 > Sert les objectifs 1 (temps admin) et 3 (accélérer le closing). Handoff hi-fi de Julien (`design_handoff_pipeline_refonte_v2`, consigne « ne rien inventer ») livré en 7 PR empilées : tokens → données → board → création → vues → fiche V4 → docs.
 

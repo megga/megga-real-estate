@@ -30,7 +30,7 @@ const num = (v: unknown): number | null => {
 
 /**
  * Fiche bien mobile (/dashboard/listings/:id) — re-skin Sugar Pure de la page
- * déjà câblée (BienDetailSugarV3Page). Lecture seule v1 : hero + galerie,
+ * déjà câblée (BienDetailSugarV4Page). Lecture seule v1 : hero + galerie,
  * identité, caractéristiques, performance (usePropertyStats), mandat, diffusion.
  * C2PA affiché UNIQUEMENT si `c2pa_verified` (jamais fabriqué). Différés :
  * acheteurs/matches, vendeur, édition inline, planif. visite in-fiche, carte.

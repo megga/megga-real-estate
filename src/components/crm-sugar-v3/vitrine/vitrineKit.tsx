@@ -466,6 +466,7 @@ export function VxLightbox({
   count,
   onClose,
   onIndex,
+  contained = false,
 }: {
   open: boolean
   index: number
@@ -473,6 +474,8 @@ export function VxLightbox({
   count: number
   onClose: () => void
   onIndex: (i: number) => void
+  /** Clippé à son parent positionné (le bento fiche) au lieu du plein écran. */
+  contained?: boolean
 }) {
   useEffect(() => {
     if (!open) return
@@ -512,9 +515,9 @@ export function VxLightbox({
     <div
       onClick={onClose}
       style={{
-        position: 'fixed',
+        position: contained ? 'absolute' : 'fixed',
         inset: 0,
-        zIndex: 200,
+        zIndex: contained ? 60 : 200,
         background: 'rgba(8,9,12,.92)',
         display: 'flex',
         flexDirection: 'column',
@@ -656,46 +659,6 @@ export function VxMetaPill({
   )
 }
 
-// ─── Carte section blanche (radius 22, ombre douce, fade-up + lift hover) ─
-export function VxCard({
-  children,
-  padding = 26,
-  style,
-  index = 0,
-  hover,
-  onClick,
-}: {
-  children: ReactNode
-  padding?: number
-  style?: CSSProperties
-  index?: number
-  hover?: boolean
-  onClick?: () => void
-}) {
-  const [h, setH] = useState(false)
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={hover ? () => setH(true) : undefined}
-      onMouseLeave={hover ? () => setH(false) : undefined}
-      style={{
-        background: 'var(--vx-card)',
-        borderRadius: 22,
-        padding,
-        border: '1px solid var(--vx-hairline)',
-        boxShadow: h ? 'var(--vx-shadow-hov)' : 'var(--vx-shadow)',
-        transform: h ? 'translateY(-3px)' : 'none',
-        transition: 'transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s',
-        animation: `vxFadeUp .5s cubic-bezier(.2,.8,.2,1) ${0.04 * index}s both`,
-        cursor: onClick ? 'pointer' : 'default',
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
 // ─── Eyebrow + titre de section ───────────────────────────────────────────
 export function VxSectionHead({
   eyebrow,
@@ -775,62 +738,5 @@ export function VxAvatar({
     >
       {crmInitials(name)}
     </div>
-  )
-}
-
-// ─── Input inline (mode édition) ──────────────────────────────────────────
-export function VxEditInput({
-  value,
-  onChange,
-  type = 'text',
-  style,
-  prefix,
-  suffix,
-  block,
-  dark,
-}: {
-  value: string | number
-  onChange: (v: string) => void
-  type?: string
-  style?: CSSProperties
-  prefix?: ReactNode
-  suffix?: ReactNode
-  block?: boolean
-  dark: boolean
-}) {
-  const sp = vxPalette(dark)
-  return (
-    <span
-      style={{
-        display: block ? 'flex' : 'inline-flex',
-        alignItems: 'baseline',
-        gap: 5,
-        width: block ? '100%' : 'auto',
-        background: sp.cardSub,
-        borderRadius: 11,
-        padding: '4px 11px',
-        boxShadow: 'inset 0 0 0 1px ' + sp.hairline,
-        boxSizing: 'border-box',
-      }}
-    >
-      {prefix && <span style={{ color: sp.muted, fontSize: 14, fontWeight: 500 }}>{prefix}</span>}
-      <input
-        type={type}
-        value={value ?? ''}
-        onChange={e => onChange(e.target.value)}
-        style={{
-          background: 'transparent',
-          border: 0,
-          outline: 'none',
-          fontFamily: 'inherit',
-          color: sp.ink,
-          padding: 0,
-          width: '100%',
-          minWidth: 28,
-          ...style,
-        }}
-      />
-      {suffix && <span style={{ color: sp.muted, fontSize: 14, fontWeight: 500 }}>{suffix}</span>}
-    </span>
   )
 }
