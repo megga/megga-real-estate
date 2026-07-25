@@ -18,6 +18,8 @@ import { crmBienById, crmContactById } from '@/components/crm-sugar/mockData'
 import { formatCHF } from '@/lib/utils'
 import { useConversationHistory } from '@/hooks/useConversationHistory'
 import { filterConversationsByTitle, type ConversationSummary } from '@/lib/conversation-history'
+import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
+import { openAdminConsole } from '@/lib/adminEntry'
 
 // ─── Données utilitaires (proto) ─────────────────────────────────────────────
 const SCOPES = [
@@ -198,6 +200,12 @@ type FlatItem =
   | { kind: 'contact'; id: string }
   | { kind: 'bien'; id: string }
   | { kind: 'deal'; id: string }
+  | { kind: 'admin' }
+
+// Raccourci super-admin : la console n'apparaît QUE sur une requête explicite
+// (et QUE pour un super-admin confirmé par la DB). Aucune trace le reste du
+// temps — la recherche reste le port 1:1 du handoff pour tout le monde.
+const ADMIN_KEYWORDS = ['admin', 'console', 'plateforme', 'platform']
 
 interface Props {
   open: boolean
@@ -241,6 +249,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
   // pas activé (flag OFF) → les sections ci-dessous ne s'affichent simplement pas.
   const { data: conversations } = useConversationHistory(30)
   const convList = useMemo(() => conversations ?? [], [conversations])
+  const { allowed: isSuperAdmin } = useSuperAdminGate()
 
   const ql = q.trim().toLowerCase()
 
@@ -273,7 +282,9 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
   const meggaResults = useMemo(() => filterConversationsByTitle(convList, q, 5), [convList, q])
 
   const showEmpty = !q.trim()
-  const totalResults = meggaResults.length + contactResults.length + bienResults.length + dealResults.length
+  const showAdmin = isSuperAdmin && ql.length >= 2 && ADMIN_KEYWORDS.some(k => k.startsWith(ql))
+  const adminCount = showAdmin ? 1 : 0
+  const totalResults = adminCount + meggaResults.length + contactResults.length + bienResults.length + dealResults.length
 
   // ── Liste plate (ordre = sections affichées) ──
   const flatItems = useMemo<FlatItem[]>(() => {
@@ -282,6 +293,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
       meggaRecent.forEach(c => out.push({ kind: 'megga-convo', id: c.id }))
       AI_PROMPTS.forEach(() => out.push({ kind: 'ai' }))
     } else {
+      if (showAdmin) out.push({ kind: 'admin' })
       meggaResults.forEach(c => out.push({ kind: 'megga-convo', id: c.id }))
       contactResults.forEach(c => out.push({ kind: 'contact', id: c.id }))
       bienResults.forEach(b => out.push({ kind: 'bien', id: b.id }))
@@ -289,7 +301,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
       out.push({ kind: 'ai-query' })
     }
     return out
-  }, [showEmpty, meggaRecent, meggaResults, contactResults, bienResults, dealResults])
+  }, [showEmpty, showAdmin, meggaRecent, meggaResults, contactResults, bienResults, dealResults])
 
   const goJulien = useCallback(() => {
     onClose()
@@ -311,6 +323,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
       case 'contact': onClose(); navigate(`/dashboard/contacts/${item.id}`); break
       case 'bien': onClose(); navigate(`/dashboard/listings/${item.id}`); break
       case 'deal': onClose(); navigate(`/dashboard/transactions/${item.id}`); break
+      case 'admin': onClose(); openAdminConsole(navigate); break
     }
   }, [goJulien, resumeConversation, navigate, onClose])
 
@@ -355,10 +368,11 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
   // Offsets de la liste plate (ordre des sections rendues).
   const offEmptyConvos = 0
   const offEmptyPrompts = meggaRecent.length
-  const offConvos = 0
-  const offContacts = meggaResults.length
-  const offBiens = meggaResults.length + contactResults.length
-  const offDeals = meggaResults.length + contactResults.length + bienResults.length
+  const offAdmin = 0
+  const offConvos = adminCount
+  const offContacts = adminCount + meggaResults.length
+  const offBiens = adminCount + meggaResults.length + contactResults.length
+  const offDeals = adminCount + meggaResults.length + contactResults.length + bienResults.length
 
   return (
     <div
@@ -525,6 +539,30 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 {tr('search.command.askMeggaQuery', { query: q })}
               </button>
             </div>
+          )}
+
+          {/* ── Console admin (super-admin, sur requête explicite) ── */}
+          {!showEmpty && showAdmin && (
+            <Section title={tr('search.command.section.platform')} sp={sp}>
+              <button
+                onClick={() => { onClose(); openAdminConsole(navigate) }}
+                onMouseEnter={() => setActiveIdx(offAdmin)}
+                style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(activeIdx === offAdmin, dark) }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
+                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={sp.ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" />
+                    <path d="M7 7.5h.01M7 16.5h.01" />
+                  </svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: sp.ink, lineHeight: 1.2 }}>
+                    {tr('profile.adminConsole')}
+                  </div>
+                </div>
+                <IconArrowR stroke={activeIdx === offAdmin ? accentBlue : sp.sub} />
+              </button>
+            </Section>
           )}
 
           {/* ── Conversations Megga (sur requête) ── */}

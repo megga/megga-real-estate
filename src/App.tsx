@@ -31,6 +31,8 @@ import StaleBundleDetector from '@/components/layout/StaleBundleDetector'
 import ErrorBoundary from '@/components/layout/ErrorBoundary'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import { ToastProvider } from '@/components/ui/Toast'
+import { ADMIN_ENTRY_URL } from '@/lib/adminEntry'
+import ImpersonationHandoff from '@/components/admin/ImpersonationHandoff'
 import LanguageChangeOverlay from '@/components/ui/LanguageChangeOverlay'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
@@ -153,26 +155,9 @@ const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 
 // Centre d'aide : plus de page SPA — tout `/help/*` redirige vers Intercom
 // (cf. HelpCenterRedirect plus bas).
-// Lazy-loaded super-admin pages
-const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
-const AdminAgenciesPage = lazy(() => import('@/pages/admin/AdminAgenciesPage'))
-const AdminAgencyDetailPage = lazy(() => import('@/pages/admin/AdminAgencyDetailPage'))
-const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
-const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
-const AdminMarketplacePage = lazy(() => import('@/pages/admin/AdminMarketplacePage'))
-const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
-const AdminChangelogPage = lazy(() => import('@/pages/admin/AdminChangelogPage'))
-const AdminFeatureFlagsPage = lazy(() => import('@/pages/admin/AdminFeatureFlagsPage'))
-const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'))
-const AdminLiveFeedPage = lazy(() => import('@/pages/admin/AdminLiveFeedPage'))
-const AdminSecurityAuditPage = lazy(() => import('@/pages/admin/AdminSecurityAuditPage'))
-const AdminNpsPage = lazy(() => import('@/pages/admin/AdminNpsPage'))
-const AdminAutonomyPage = lazy(() => import('@/pages/admin/AdminAutonomyPage'))
-const AdminToolUsagePage = lazy(() => import('@/pages/admin/AdminToolUsagePage'))
-const AdminLearningPage = lazy(() => import('@/pages/admin/AdminLearningPage'))
+// Les pages super-admin ne sont plus dans ce bundle : elles vivent dans
+// l'application `AdminApp` (admin.megga.ch). Voir src/lib/adminEntry.ts.
 
-// Admin guard
-import SuperAdminGuard from '@/components/admin/SuperAdminGuard'
 
 // `PageLoader` (the generic centered spinner) replaced by `<SmartPageLoader>`
 // which picks a route-specific skeleton matching the page being loaded.
@@ -314,6 +299,20 @@ function MarketplaceDisabledRedirect() {
 const VITRINE_LOGIN_URL = 'https://megga.ch/login'
 function VitrineLoginRedirect() {
   if (typeof window !== 'undefined') window.location.replace(VITRINE_LOGIN_URL)
+  return null
+}
+
+/**
+ * Rebond des anciennes URLs `/dashboard/admin/*` vers la console, qui a changé
+ * d'origine. Le sous-chemin est conservé : `/dashboard/admin/users` arrive sur
+ * `admin.megga.ch/users` (les routes y sont montées à la racine).
+ */
+function AdminConsoleRedirect() {
+  const { pathname, search } = useLocation()
+  if (typeof window !== 'undefined') {
+    const sub = pathname.replace(/^\/dashboard\/admin/, '')
+    window.location.replace(`${ADMIN_ENTRY_URL}${sub}${search}`)
+  }
   return null
 }
 
@@ -567,23 +566,11 @@ function AppRoutes() {
                 <Route path="listings/new" element={<ResponsiveRoute desktop={<WizardSugarV2Page />} mobile={<MobileWizardPage />} />} />
                 <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
 
-                {/* Super-Admin routes */}
-                <Route path="admin" element={<SuperAdminGuard><AdminDashboardPage /></SuperAdminGuard>} />
-                <Route path="admin/agencies" element={<SuperAdminGuard><AdminAgenciesPage /></SuperAdminGuard>} />
-                <Route path="admin/agencies/:id" element={<SuperAdminGuard><AdminAgencyDetailPage /></SuperAdminGuard>} />
-                <Route path="admin/users" element={<SuperAdminGuard><AdminUsersPage /></SuperAdminGuard>} />
-                <Route path="admin/monitoring" element={<SuperAdminGuard><AdminMonitoringPage /></SuperAdminGuard>} />
-                <Route path="admin/marketplace" element={<SuperAdminGuard><AdminMarketplacePage /></SuperAdminGuard>} />
-                <Route path="admin/compliance" element={<SuperAdminGuard><AdminCompliancePage /></SuperAdminGuard>} />
-                <Route path="admin/changelog" element={<SuperAdminGuard><AdminChangelogPage /></SuperAdminGuard>} />
-                <Route path="admin/feature-flags" element={<SuperAdminGuard><AdminFeatureFlagsPage /></SuperAdminGuard>} />
-                <Route path="admin/plans" element={<SuperAdminGuard><AdminPlansPage /></SuperAdminGuard>} />
-                <Route path="admin/live" element={<SuperAdminGuard><AdminLiveFeedPage /></SuperAdminGuard>} />
-                <Route path="admin/security" element={<SuperAdminGuard><AdminSecurityAuditPage /></SuperAdminGuard>} />
-                <Route path="admin/nps" element={<SuperAdminGuard><AdminNpsPage /></SuperAdminGuard>} />
-                <Route path="admin/autonomy" element={<SuperAdminGuard><AdminAutonomyPage /></SuperAdminGuard>} />
-                <Route path="admin/tool-usage" element={<SuperAdminGuard><AdminToolUsagePage /></SuperAdminGuard>} />
-                <Route path="admin/learning" element={<SuperAdminGuard><AdminLearningPage /></SuperAdminGuard>} />
+                {/* Console super-admin : elle vit sur SA propre origine
+                    (admin.megga.ch, build `npm run build:admin`) — son bundle
+                    n'est plus servi aux agents. Les anciens liens/favoris
+                    `/dashboard/admin/*` rebondissent vers la console. */}
+                <Route path="admin/*" element={<AdminConsoleRedirect />} />
               </Route>
 
               {/* 404 */}
@@ -625,6 +612,8 @@ export default function App() {
               </ErrorBoundary>
               {/* Panneau MEGGA AI — stable au-dessus de <Routes> (persiste à la nav). */}
               <CopilotPanelHost />
+              {/* Reprise d'une impersonation ouverte depuis la console admin. */}
+              <ImpersonationHandoff />
             </AiPanelProvider>
             {/* Widgets globaux : lazy avec fallback null car invisibles par défaut. */}
             <Suspense fallback={null}>

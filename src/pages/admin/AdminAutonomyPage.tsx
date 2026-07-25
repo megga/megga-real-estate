@@ -1,7 +1,7 @@
 /**
  * Page super-admin — autonomie des agents IA.
  *
- * Route : `/dashboard/admin/autonomy` (section admin, accent violet). Vue en
+ * Route : `/autonomy` (console admin.megga.ch) (accent violet). Vue en
  * lecture seule (observe-only) : par agent × outil, compteurs yes/no des décisions
  * HITL et suggestion de reprise d'autonomie. N'exécute aucune action — la reprise
  * reste un geste humain.

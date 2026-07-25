@@ -1,7 +1,7 @@
 /**
  * Page super-admin — annuaire des utilisateurs de la plateforme.
  *
- * Route : `/dashboard/admin/users` (SuperAdminGuard, accent violet). Table (desktop)
+ * Route : `/users` (accent violet). Table (desktop)
  * / cartes (mobile) avec recherche, filtre par rôle, pagination et export CSV. Un clic
  * sur une ligne ouvre `UserDrawer` (détail + impersonation) ; l'agence renvoie vers sa fiche.
  */
@@ -253,7 +253,7 @@ export default function AdminUsersPage() {
                 <span className="w-28 text-xs text-theme-secondary truncate">
                   {user.agency_name ? (
                     <Link
-                      to={`/dashboard/admin/agencies/${user.agency_id}`}
+                      to={`/agencies/${user.agency_id}`}
                       onClick={(e) => e.stopPropagation()}
                       className="hover:text-admin-accent transition-colors"
                     >

@@ -1,7 +1,7 @@
 /**
  * Page super-admin — tableau de bord plateforme (accueil de la section admin).
  *
- * Route : `/dashboard/admin` (accent violet). Empile un pouls de santé, 5 KPIs
+ * Route : `/` (console admin.megga.ch) (accent violet). Empile un pouls de santé, 5 KPIs
  * (agences, users, biens, transactions, KYC à risque), le flux d'alertes, le
  * journal d'activité, le suivi d'onboarding et le dashboard de facturation.
  */

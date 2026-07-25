@@ -63,5 +63,12 @@
 /dashboard/reseau                            /dashboard/network                301
 /dashboard/marche/:externalId                /dashboard/market/:externalId     301
 
+# Console super-admin — a changé d'origine (admin.megga.ch). Traité AU BORD,
+# donc un ancien favori marche même déconnecté : sans cette règle il faudrait
+# charger le CRM, passer la connexion, puis rebondir (AdminConsoleRedirect, qui
+# reste le filet pour les navigations internes).
+/dashboard/admin                             https://admin.megga.ch/           302
+/dashboard/admin/*                           https://admin.megga.ch/:splat     302
+
 # SPA fallback — MUST stay last
 /*                                           /index.html                       200

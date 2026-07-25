@@ -5002,6 +5002,10 @@ export type Database = {
             }
             Returns: string
           }
+      admin_log_console_entry: {
+        Args: { p_metadata?: Json }
+        Returns: string
+      }
       admin_log_impersonation: {
         Args: { p_action: string; p_metadata?: Json; p_target_id: string }
         Returns: string

@@ -74,7 +74,8 @@ IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions �
                Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
 Email :        Resend (megga.ch DKIM/SPF)
 Payments :     Stripe
-Hosting :      Cloudflare Pages
+Hosting :      Cloudflare Pages — 3 projets : megga-real-estate (megga.ch vitrine),
+               megga-app (app.megga.ch CRM), megga-admin (admin.megga.ch console super-admin)
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
@@ -307,7 +308,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Portail vendeur :** `/portail/:token` — page unique « Votre vente » (VotreVentePage, lecture seule), dev route `/portail` (PortalDevWrapper + mock data).
 
-**Super-Admin :** 16 pages (accent violet), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit.
+**Super-Admin :** application SÉPARÉE sur `admin.megga.ch` (entrée `index.admin.html` → `AdminApp`, `npm run build:admin`, projet Pages `megga-admin`) — 16 pages (accent violet), routes à la racine (`/users`, `/agencies/:id`…), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit. Le bundle admin n'est plus servi aux agents ; l'entrée se fait par la ligne « Console admin » du dropdown profil Sugar et par ⌘K (`src/lib/adminEntry.ts`), et chaque ouverture est journalisée (`admin_console_entered`).
 
 **Intégrations :** Resend, Stripe, Google/Outlook Calendar (OAuth), virtual staging (Gemini), Flatfox sync.
 

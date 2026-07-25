@@ -1,7 +1,7 @@
 /**
  * Page super-admin — plans et abonnements.
  *
- * Route : `/dashboard/admin/plans` (SuperAdminGuard, accent violet). Grille
+ * Route : `/plans` (console admin.megga.ch) (accent violet). Grille
  * comparative des plans (`PLANS`), tableau détaillé des fonctionnalités et
  * gestion de l'abonnement par agence (changement de plan écrit sur `agencies`).
  */

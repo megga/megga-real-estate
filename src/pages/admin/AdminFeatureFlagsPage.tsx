@@ -1,7 +1,7 @@
 /**
  * Page super-admin — feature flags.
  *
- * Route : `/dashboard/admin/feature-flags` (SuperAdminGuard, accent violet).
+ * Route : `/feature-flags` (console admin.megga.ch) (accent violet).
  * Chaque flag est activable globalement ou restreint à certains plans
  * (starter/pro/agency) ; les toggles écrivent directement via `useFeatureFlags`.
  */

@@ -92,17 +92,34 @@ Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge au
 
 **Frontières & flux global :**
 ```
-megga.ch (site statique V3, password-gated)  ─┐
-app.megga.ch (SPA React, /dashboard/*)         ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
+megga.ch (site statique V3, password-gated)   ─┐
+app.megga.ch (SPA React CRM, /dashboard/*)     │
+admin.megga.ch (SPA React console super-admin) ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
 kyc.megga.ch (magic links KYC publics)        ─┘         ▲
                                                          └── pg_cron (flatfox-sync, monitoring…) via pg_net
 ```
+
+**🟪 Console super-admin isolée** (juil. 2026). Les 16 surfaces d'administration ont quitté le bundle du
+CRM : elles ont leur propre entrée Vite ([`index.admin.html`](../index.admin.html) → [`src/AdminApp.tsx`](../src/AdminApp.tsx),
+`npm run build:admin`), leur propre projet Pages (`megga-admin`) et leur propre origine. Conséquences —
+(1) le code d'administration n'est plus servi aux agents, (2) une session volée sur le CRM ne donne pas la
+console (origines distinctes ⇒ ni `localStorage` ni cookies partagés), (3) la console a son **propre écran de
+connexion** par mot de passe (elle ne passe pas par la vitrine), (4) les routes y sont à la **racine**
+(`/users`, `/agencies/:id`…) et `app.megga.ch/dashboard/admin/*` rebondit vers elles.
+Entrée depuis le CRM : ligne « Console admin » du dropdown profil Sugar + recherche ⌘K (les deux gatées par
+`useSuperAdminGate`, cf. [`src/lib/adminEntry.ts`](../src/lib/adminEntry.ts)). L'impersonation, qui est une vue
+DU CRM, se passe par `?impersonate=<id>` ([`ImpersonationHandoff`](../src/components/admin/ImpersonationHandoff.tsx)) :
+l'id ne donne rien par lui-même, c'est la RPC `admin_log_impersonation` (gardée `is_super_admin`) qui décide.
+⚠️ Reste **une seule action manuelle** au tableau de bord Cloudflare : poser une politique **Zero Trust /
+Access** devant `admin.megga.ch` (allow = les e-mails de `super_admin_allowlist()`). Sans elle la console
+reste protégée par la DB, mais elle est joignable — Access la rend invisible avant même le chargement du bundle.
 
 ---
 
 ## 2. Frontend — audiences & routing
 
-4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD), plus `SuperAdminGuard` pour l'admin. `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
+4 audiences, gardées par `ProtectedRoute → ConsentGate` (gate nLPD) ; la console super-admin est une
+application séparée, gardée par `AdminAuthGate` (connexion + `useSuperAdminGate` → RPC `is_super_admin`). `PasswordGate` (« Coming Soon ») a été **retiré** (#555) : le composant n'existe plus.
 QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `networkMode: always`.
 
 **🟪 Arrivée post-connexion** (juil. 2026). La connexion vit sur la vitrine (cf. §4bis) : `megga-auth.js`
@@ -355,12 +372,17 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 ## 8. Dev / test / CI
 
 ```
-npm run dev          # vite (localhost:5173)
+npm run dev          # vite — CRM (localhost:5173)
+npm run dev:admin    # vite — console super-admin (localhost:5174, vite.admin.config.ts)
 npm run build        # tsc -b && vite build  (+ postbuild overlay-storefront)
+npm run build:admin  # tsc -b && vite build --config vite.admin.config.ts → dist-admin/
 npm run lint         # eslint
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
 ```
-CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy.
+CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Trois cibles Pages**,
+un workflow chacune : `deploy.yml` → megga.ch (vitrine, projet `megga-real-estate`), `deploy-app.yml` →
+app.megga.ch (CRM, projet `megga-app`), `deploy-admin.yml` → admin.megga.ch (console, projet `megga-admin`).
+Les trois créent le projet, attachent le domaine et posent le CNAME s'ils manquent — rien à préparer à la main.
 
 **⚠ Asymétrie déploiement edge (source de dette)** : `deploy.yml` ne fait que **déployer** ce qu'il
 trouve dans `supabase/functions/` — rien ne supprime. Retirer une fonction du dépôt ne la retire donc
