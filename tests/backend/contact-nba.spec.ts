@@ -30,6 +30,50 @@ interface Nba {
 const DAY = 86_400_000
 const iso = (deltaMs: number): string => new Date(Date.now() + deltaMs).toISOString()
 
+// ── Frontière de journée suisse ──────────────────────────────────────────────
+// Deux règles du cœur raisonnent en DATE CIVILE Europe/Zurich, pas en delta :
+// R1 situe trigger_at par rapport à v_sod/v_eod, et R3a exige que scheduled_at
+// tombe le MÊME jour suisse que now(). Un `Date.now() + Δ` naïf franchit minuit
+// quand la CI tourne en fin de soirée suisse — la règle a alors raison de ne pas
+// retenir le signal, et c'est le test qui ment (run 30176571768, 21h57 UTC =
+// 23h57 à Zurich : 2 échecs sur le commit qui passait 13 min plus tôt).
+// On ne relâche pas la règle : on refuse de semer à cheval sur la frontière.
+
+const ZURICH_HMS = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/Zurich', hourCycle: 'h23',
+  hour: '2-digit', minute: '2-digit', second: '2-digit',
+})
+
+/**
+ * Millisecondes restantes avant minuit à Zurich. L'arithmétique horloge-murale
+ * est exacte pour ce qui nous intéresse : la bascule DST suisse a lieu à
+ * 02:00/03:00 locales, jamais sur la frontière de jour.
+ */
+const msUntilSwissMidnight = (at: number = Date.now()): number => {
+  const parts = ZURICH_HMS.formatToParts(new Date(at))
+  const field = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? 0)
+  return ((23 - (field('hour') % 24)) * 3600 + (59 - field('minute')) * 60 + (60 - field('second'))) * 1000
+}
+
+const MIN_LEAD_MS = 30_000   // avance plancher d'un signal « futur » vs latence insert + RPC
+const DAY_TAIL_MS = 15_000   // on ne sème jamais dans les 15 dernières secondes du jour suisse
+
+/**
+ * Laisse passer minuit quand la journée suisse est trop entamée pour y semer un
+ * signal daté. Attente bornée à ~47 s, sur ~0,05 % des exécutions ; l'alternative
+ * (skip) créerait un trou de couverture silencieux sur N12/N24/N26.
+ */
+const settleSwissDay = async (): Promise<void> => {
+  const left = msUntilSwissMidnight()
+  if (left < MIN_LEAD_MS + DAY_TAIL_MS) await new Promise((r) => setTimeout(r, left + 2_000))
+}
+
+/** Instant satisfaisant R3a : dans le futur ET sur la même date civile suisse que now(). */
+const visitTodayIso = async (): Promise<string> => {
+  await settleSwissDay()
+  return iso(Math.min(5 * 60_000, msUntilSwissMidnight() - DAY_TAIL_MS))
+}
+
 describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', () => {
   let setup: TwoAgenciesSetup
   let svc: SupabaseClient
@@ -202,13 +246,13 @@ describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', 
     if (tErr) throw new Error(`tx: ${tErr.message}`)
     const { error: vErr } = await svc.from('visits').insert({
       agency_id: setup.agencyAId, contact_id: c, property_id: propId,
-      scheduled_at: iso(5 * 60_000), status: 'planned',
+      scheduled_at: await visitTodayIso(), status: 'planned',
     })
     if (vErr) throw new Error(`visit: ${vErr.message}`)
     const nba = await core(c, setup.agencyAId)
     expect(nba?.action).toBe('visite_preparer')
     expect(nba?.reason_key).toBe('visit_today')
-  })
+  }, 90_000)
 
   it('N16/N17: débrief dans la fenêtre 21 j, exclu au-delà', async () => {
     const cIn = await mkContact({ lastInteraction: iso(-1 * DAY) })
@@ -380,9 +424,12 @@ describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', 
   })
 
   // N24 — R1 : rappel du JOUR (statut 'pending') → reason_key 'reminder_today', days_overdue 0.
-  // trigger_at = maintenant : toujours dans la journée Zurich (>= v_sod, <= v_eod). Couvre le
+  // trigger_at = maintenant, donc dans la journée Zurich (>= v_sod, <= v_eod) — SAUF si minuit
+  // suisse tombe entre l'INSERT et l'appel RPC : v_sod avance d'un jour et le rappel bascule en
+  // 'reminder_overdue'. Fenêtre infime mais réelle, d'où settleSwissDay() (cf. N12/N26). Couvre le
   // statut 'pending' ET la borne haute v_eod (si v_eod régressait à v_sod, ce rappel serait exclu).
   it('N24: rappel pending du jour → rappel / reminder_today, days_overdue 0', async () => {
+    await settleSwissDay()
     const c = await mkContact({ lastInteraction: iso(-1 * DAY) })
     const { error } = await svc.from('reminders').insert({
       agency_id: setup.agencyAId, contact_id: c, type: 'custom', trigger_rule: 'manual',
@@ -393,7 +440,7 @@ describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', 
     expect(nba?.action).toBe('rappel')
     expect(nba?.reason_key).toBe('reminder_today')
     expect(Number(nba?.params.days_overdue)).toBe(0)
-  })
+  }, 90_000)
 
   // N25 — Note KYC : la gate de stage closing-proximate est aussi testée NÉGATIVEMENT.
   // KYC ouvert + deal actif sur un stage précoce (qualified) → kyc_note doit rester null.
@@ -417,7 +464,7 @@ describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', 
     const c = await mkContact({ lastInteraction: iso(-1 * DAY) })
     const { error: v1 } = await svc.from('visits').insert({
       agency_id: setup.agencyAId, contact_id: c, property_id: propId,
-      scheduled_at: iso(5 * 60_000), status: 'planned',
+      scheduled_at: await visitTodayIso(), status: 'planned',
     })
     if (v1) throw new Error(`visit-today: ${v1.message}`)
     const { error: v2 } = await svc.from('visits').insert({
@@ -428,7 +475,7 @@ describe.skipIf(!HAS_KEYS)('contact_next_action — NBA v1 (live + isolation)', 
     const nba = await core(c, setup.agencyAId)
     expect(nba?.action).toBe('visite_preparer')
     expect(nba?.reason_key).toBe('visit_today')
-  })
+  }, 90_000)
 
   // N27 — R2 : offre pending DÉJÀ expirée (cron horaire pas encore passé) reste candidate,
   // avec days_left NÉGATIF (spec « échéance dépassée » ; pas de borne basse sur expires_at).
