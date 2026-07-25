@@ -16,7 +16,12 @@ interface Props {
 }
 
 export default function MrhPhoto({ url, dark, alt = '', fallbackBg, fallbackInk }: Props) {
-  const [broken, setBroken] = useState(false)
+  // L'échec est mémorisé PAR URL, pas en booléen : la même instance rend les
+  // photos successives d'un carrousel (carte de résultat, aperçu carte, lightbox).
+  // Avec un simple `broken`, une seule photo cassée condamnait toutes les
+  // suivantes au repli — sans jamais retenter, puisque rien ne remet l'état à zéro.
+  const [brokenUrl, setBrokenUrl] = useState<string | null>(null)
+  const broken = !!url && brokenUrl === url
   if (!url || broken) {
     return (
       <div style={{ position: 'absolute', inset: 0, background: fallbackBg, display: 'grid', placeItems: 'center' }}>
@@ -30,7 +35,7 @@ export default function MrhPhoto({ url, dark, alt = '', fallbackBg, fallbackInk 
       alt={alt}
       referrerPolicy="no-referrer"
       loading="lazy"
-      onError={() => setBroken(true)}
+      onError={() => setBrokenUrl(url)}
       style={{
         position: 'absolute', inset: 0, width: '100%', height: '100%',
         objectFit: 'cover', display: 'block',
