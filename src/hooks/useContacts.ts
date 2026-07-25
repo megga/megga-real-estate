@@ -1,3 +1,10 @@
+/**
+ * Hooks CRUD des contacts CRM, adossés à Supabase Cache Helpers.
+ *
+ * Toutes les requêtes sont agency-scopées par RLS. Les clés de cache sont
+ * dérivées de la forme de la requête (table + filtres) : les mutations
+ * invalident automatiquement les listes/détails qui touchent `contacts`.
+ */
 // Migrated to @supabase-cache-helpers/postgrest-react-query.
 //
 // What changed:
@@ -26,14 +33,12 @@ import { useAuth } from '@/hooks/useAuth'
 import type { Contact, ContactType } from '@/types/contact'
 import type { ContactScore } from '@/lib/constants'
 
-export interface CreateContactInput {
+interface CreateContactInput {
   firstName: string
   lastName: string
   email: string
   phone?: string
   type: ContactType
-  entityType?: 'pp' | 'pm'
-  formData?: Record<string, unknown>
 }
 
 interface ContactFilters {
@@ -42,8 +47,9 @@ interface ContactFilters {
   search?: string
 }
 
+/** Liste des contacts de l'agence, filtrable par type/score/recherche. */
 export function useContacts(filters?: ContactFilters) {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
 
   // Build the query — Cache Helpers derives the query key from its shape.
   // SELECT * kept intentionally — Contact type requires all columns and
@@ -65,47 +71,14 @@ export function useContacts(filters?: ContactFilters) {
     { enabled: !!user }
   )
 
-  // INSERT — auto-invalidates any cached query against `contacts`, including
-  // the list above and the per-id useContact() below. Primary key needed so
-  // Cache Helpers knows how to identify the row.
-  const createFromOnboarding = useInsertMutation(
-    supabase.from('contacts'),
-    ['id'],
-    null, // no result selection
-    {
-      onSuccess: () => {
-        // Cache Helpers handles invalidation; nothing extra to do here.
-      },
-    }
-  )
-
-  async function callCreateFromOnboarding(input: CreateContactInput): Promise<Contact> {
-    const row = await createFromOnboarding.mutateAsync([
-      {
-        first_name: input.firstName,
-        last_name: input.lastName,
-        email: input.email,
-        phone: input.phone ?? null,
-        type: input.type,
-        source: 'onboarding',
-        user_id: user?.id ?? null,
-        agency_id: profile?.agency_id ?? null,
-        form_data: (input.formData ?? null) as unknown as import('@/types/database').Json | null,
-      },
-    ])
-    // useInsertMutation returns an array (because insert can accept many);
-    // we only inserted one row.
-    return (Array.isArray(row) ? row[0] : row) as unknown as Contact
-  }
 
   return {
     contacts: (contactsQuery.data ?? []) as unknown as Contact[],
     isLoading: contactsQuery.isLoading,
-    createFromOnboarding: callCreateFromOnboarding,
-    isCreating: createFromOnboarding.isPending,
   }
 }
 
+/** Un contact par id (retourne la shape legacy `Contact`, cf. note ci-dessous). */
 export function useContact(id: string | undefined) {
   // Preserve the legacy `Contact` return shape — consumers (e.g.
   // ContactChatPane) still read fields like `ai_seriousness_score` /
@@ -121,13 +94,14 @@ export function useContact(id: string | undefined) {
   }
 }
 
+/** Création manuelle d'un contact (source `manual` par défaut, score `cold`). */
 export function useCreateContact() {
   const { user, profile } = useAuth()
   const insert = useInsertMutation(supabase.from('contacts'), ['id'])
 
   return {
     mutateAsync: async (
-      input: Omit<CreateContactInput, 'entityType' | 'formData'> & {
+      input: CreateContactInput & {
         agency_id?: string
         source?: string
         score?: ContactScore
@@ -138,6 +112,11 @@ export function useCreateContact() {
         /** Catch-all for non-mapped UI fields (civility, lang, assigned_to,
          * linked_bien, etc.) — preserved for future migration. */
         form_data?: Record<string, unknown> | null
+        /** Identité LBA art. 3 — date ISO `yyyy-mm-dd`, pays en ISO 3166-1 alpha-2. */
+        birth_date?: string | null
+        nationality?: string | null
+        residence_country?: string | null
+        home_address?: string | null
       }
     ) => {
       const rows = await insert.mutateAsync([
@@ -151,6 +130,10 @@ export function useCreateContact() {
           score: input.score ?? 'cold',
           tags: input.tags ?? [],
           notes: input.notes ?? null,
+          birth_date: input.birth_date ?? null,
+          nationality: input.nationality ?? null,
+          residence_country: input.residence_country ?? null,
+          home_address: input.home_address ?? null,
           agency_id: input.agency_id ?? profile?.agency_id ?? null,
           user_id: user?.id ?? null,
           search_criteria: (input.search_criteria ?? null) as unknown as import('@/types/database').Json | null,
@@ -163,6 +146,7 @@ export function useCreateContact() {
   }
 }
 
+/** Mise à jour partielle d'un contact identifié par `id`. */
 export function useUpdateContact() {
   const update = useUpdateMutation(supabase.from('contacts'), ['id'])
   return {
@@ -175,6 +159,7 @@ export function useUpdateContact() {
   }
 }
 
+/** Suppression d'un contact par id. */
 export function useDeleteContact() {
   const del = useDeleteMutation(supabase.from('contacts'), ['id'])
   return {

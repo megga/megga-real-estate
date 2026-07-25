@@ -11,9 +11,10 @@
 //   (default / "storefront") → replace dist/ with the static vitrine (megga.ch).
 //
 // NB (juin 2026): recentrage CRM-first. megga.ch sert désormais la VITRINE
-// (sites/megga-vitrine). L'ancien storefront marketplace Property X est conservé
-// en sommeil dans sites/_marketplace-phase-ulterieure/ (réactivable : repointer
-// `storefront` ci-dessous). Les données market_listings restent actives (CRM).
+// (sites/megga-vitrine). L'ancien storefront marketplace Property X a été SUPPRIMÉ
+// du dépôt en juillet 2026 (il y dormait depuis le pivot) ; il reste récupérable
+// via git (commit 0b321bc5 et antérieurs) si la marketplace revient un jour.
+// Les données market_listings restent actives (elles nourrissent le CRM).
 
 import { existsSync, cpSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';

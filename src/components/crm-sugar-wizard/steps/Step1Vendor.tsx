@@ -5,7 +5,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, type WizardData } from '../tokens'
 import { SgAvatar, SgKycChip, SgInput } from '../primitives'
-import { CRM_CONTACTS, type CrmContact } from '@/components/crm-sugar/mockData'
+import { type CrmContact } from '@/components/crm-sugar/mockData'
+import { useContactsSugar } from '@/hooks/useContactsSugar'
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
@@ -15,7 +16,12 @@ export function Step1Vendor({ data, set }: StepProps) {
   const [creating, setCreating] = useState(false)
   const [newContact, setNewContact] = useState({ firstName: '', lastName: '', email: '', phone: '' })
 
-  const allContacts = CRM_CONTACTS as CrmContact[]
+  // Vrais contacts de l'agence (Supabase, RLS agency-scoped, ids = UUID réels
+  // via contactToCrm). Sélectionner un vendeur pose ownerContactId = UUID →
+  // transactions.contact_seller_id valide. Auparavant le mock CRM_CONTACTS
+  // posait un id 'c-001' → 22P02 avalé dans WizardShell, lien vendeur perdu en
+  // silence même dans une agence vierge (elle listait 9 vendeurs fictifs).
+  const { contacts: allContacts } = useContactsSugar()
   const sellers = allContacts.filter(c => c.type === 'seller')
   const others = allContacts.filter(c => c.type !== 'seller')
 
@@ -28,7 +34,18 @@ export function Step1Vendor({ data, set }: StepProps) {
 
   const selected = data.ownerContactId ? allContacts.find(c => c.id === data.ownerContactId) : null
 
-  const selectContact = (c: CrmContact) => set({ ownerContactId: c.id })
+  // Vendeur EXISTANT : on fige un snapshot d'affichage (les étapes aval ne
+  // peuvent pas re-résoudre par id — registry vidé au démontage) et on efface
+  // tout brouillon éventuel (l'agent a finalement choisi un contact réel).
+  const selectContact = (c: CrmContact) => set({
+    ownerContactId: c.id,
+    _ownerContact: {
+      id: c.id, firstName: c.firstName, lastName: c.lastName,
+      email: c.email, phone: c.phone, type: c.type,
+      kyc: { status: c.kyc?.status ?? 'none' }, avatarBg: c.avatarBg,
+    },
+    _newContact: null,
+  })
 
   const startCreate = () => {
     setCreating(true)
@@ -47,6 +64,7 @@ export function Step1Vendor({ data, set }: StepProps) {
     set({
       ownerContactId: id,
       _newContact: { ...newContact, id, type: 'seller', kyc: { status: 'none' }, avatarBg: SugarV2.pop1 },
+      _ownerContact: null,
     })
     setCreating(false)
   }
@@ -92,7 +110,7 @@ export function Step1Vendor({ data, set }: StepProps) {
               {selected.email} · {selected.phone}
             </div>
           </div>
-          <button onClick={() => set({ ownerContactId: null })} style={{
+          <button onClick={() => set({ ownerContactId: null, _ownerContact: null, _newContact: null })} style={{
             height: 36, padding: '0 16px', borderRadius: 999, border: 0,
             background: SugarV2.cardSubtle, color: SugarV2.inkSoft,
             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
@@ -132,14 +150,14 @@ export function Step1Vendor({ data, set }: StepProps) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {q.length === 0 && (
+            {q.length === 0 && sellers.length > 0 && (
               <div style={{
                 fontSize: 11.5, fontWeight: 600, color: SugarV2.muted,
                 letterSpacing: 1, textTransform: 'uppercase',
                 padding: '6px 4px',
               }}>{t('wizard.step1.vendor.recentSellers')}</div>
             )}
-            {matches.length === 0 ? (
+            {q.trim().length > 0 && matches.length === 0 ? (
               <div style={{
                 background: SugarV2.card, borderRadius: 20, padding: 28,
                 boxShadow: SugarV2.shadowSm, textAlign: 'center',

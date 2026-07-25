@@ -1,3 +1,8 @@
+/**
+ * Bandeau horizontal de sélection de jour (agenda mobile) : une pastille par jour,
+ * avec jusqu'à 3 points signalant le nombre d'événements. Défile pour centrer le
+ * jour sélectionné au montage.
+ */
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'

@@ -17,30 +17,40 @@ import { KycBlackPill, KycCircleBtn, KycGhostPill } from '../kyc/kycPrimitives'
 import { KwStepper } from './KwStepper'
 import { useAuth } from '@/hooks/useAuth'
 import { useCreateKycDossier } from '@/hooks/useKycDossier'
+import { useUploadKycDocument } from '@/hooks/useKyc'
 import { useContacts } from '@/hooks/useContacts'
 import { KwStepStart } from './KwStepStart'
 import { KwStepContact } from './KwStepContact'
 import { KwStepVigilance } from './KwStepVigilance'
+import { KwStepImport } from './KwStepImport'
 import { KwStepSuccess } from './KwStepSuccess'
 import { MlkAgentModal } from './MlkAgentModal'
-import { WIZARD_STEPS, type WizardData } from './types'
+import { WIZARD_STEPS, type WizardData, type WizardSource } from './types'
 import type { KycType } from '@/types/kyc'
 
 interface Props {
   onClose: () => void
   /** Si fourni, le wizard atterrit directement à l'étape Vigilance (step=2). */
   initialContactId?: string | null
+  /** Monté DANS le bento du pager (absolute/z-40, sans logo/header d'app). */
+  embedded?: boolean
+  /** Pré-sélectionne la voie (« new » = normal, « import » = rapport externe). */
+  initialMode?: 'new' | 'import'
+  /** Callback à la création (pager) — ouvre la fiche au lieu de naviguer. */
+  onCreated?: (id: string) => void
 }
 
-export function KycWizardModal({ onClose, initialContactId }: Props) {
+export function KycWizardModal({ onClose, initialContactId, embedded = false, initialMode, onCreated }: Props) {
   const { t } = useTranslation('kyc')
   const navigate = useNavigate()
   const sp = useKycPalette()
   const { profile } = useAuth()
   const { contacts = [] } = useContacts()
   const createDossier = useCreateKycDossier()
+  const uploadDoc = useUploadKycDocument()
 
   const preset = !!initialContactId
+  const presetSource: WizardSource | null = preset ? 'existing' : initialMode === 'import' ? 'import' : null
   const [step, setStep] = useState<number>(preset ? 2 : 0)
   const [done, setDone] = useState(false)
   const [createdId, setCreatedId] = useState<string | null>(null)
@@ -50,12 +60,14 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
   const [magicModalOpen, setMagicModalOpen] = useState(false)
 
   const [data, setData] = useState<WizardData>({
-    source: preset ? 'existing' : null,
+    source: presetSource,
     contactId: initialContactId ?? null,
     entityType: 'pp',
     vigilance: null,
     riskLevel: 'low',
     smartReco: 'standard',
+    importFile: null,
+    importParsed: null,
   })
   const set = (patch: Partial<WizardData>) =>
     setData((p) => ({ ...p, ...patch }))
@@ -73,6 +85,8 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
   // page CRM derrière tant qu'il est monté (pas de double-scroll), puis on
   // restaure à la fermeture.
   useEffect(() => {
+    // En mode embedded, le pager gèle déjà le scroll : ne pas toucher au body.
+    if (embedded) return
     const prevBody = document.body.style.overflow
     const prevHtml = document.documentElement.style.overflow
     document.body.style.overflow = 'hidden'
@@ -81,12 +95,12 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
       document.body.style.overflow = prevBody
       document.documentElement.style.overflow = prevHtml
     }
-  }, [])
+  }, [embedded])
 
   const canNext = useMemo(() => {
     if (step === 0) return !!data.source
     if (step === 1) return !!data.contactId
-    if (step === 2) return !!data.vigilance
+    if (step === 2) return data.source === 'import' ? !!data.importParsed : !!data.vigilance
     return true
   }, [step, data])
 
@@ -100,7 +114,9 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
   }
 
   const finish = async () => {
-    if (!data.contactId || !data.vigilance || !profile?.agency_id) {
+    // La voie import ne choisit pas de vigilance → standard par défaut.
+    const vigilance = data.source === 'import' ? data.vigilance ?? 'standard' : data.vigilance
+    if (!data.contactId || !vigilance || !profile?.agency_id) {
       setError(t('wizard.errors.missingContactVigilance'))
       return
     }
@@ -109,9 +125,25 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
         contactId: data.contactId,
         agencyId: profile.agency_id,
         type: inferKycType(),
-        vigilance: data.vigilance,
+        vigilance,
       })
       setCreatedId(dossier.id)
+      // Voie import : on attache le rapport au dossier (pièce compliance). Les
+      // contrôles pré-remplis restent À VALIDER par l'agent (garde-fou MLRO) —
+      // aucune coche automatique ici.
+      if (data.source === 'import' && data.importFile && profile.id) {
+        try {
+          await uploadDoc.mutateAsync({
+            kycCaseId: dossier.id,
+            agencyId: profile.agency_id,
+            file: data.importFile,
+            documentCategory: 'compliance',
+            uploadedBy: profile.id,
+          })
+        } catch {
+          // Le dossier est créé ; l'attache échouée ne l'annule pas.
+        }
+      }
       if (data.source === 'magic') {
         setMagicModalOpen(true)
       } else {
@@ -138,7 +170,11 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
   const prev = () => setStep((s) => Math.max(s - 1, 0))
 
   const handleOpenCreated = () => {
-    if (createdId) navigate(`/dashboard/kyc/${createdId}`)
+    if (createdId) {
+      // Dans le pager (embedded) : ouvre la fiche en overlay via le parent.
+      if (onCreated) onCreated(createdId)
+      else navigate(`/dashboard/kyc/${createdId}`)
+    }
     onClose()
   }
 
@@ -152,16 +188,24 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
   // Libellés du stepper traduits ici (réactifs au changement de langue) ; KwStepper
   // ne lit que `label`. Cf KYC_UI_STEPS / docs/i18n-conventions §5.
   const stepperSteps = useMemo(
-    () => WIZARD_STEPS.map((s) => ({ id: s.id, label: t(s.labelKey) })),
-    [t],
+    () =>
+      WIZARD_STEPS.map((s, i) => ({
+        id: s.id,
+        // Voie import : la 3e étape s'intitule « Rapport » (au lieu de Vigilance).
+        label:
+          i === 2 && data.source === 'import'
+            ? t('wizard.steps.report', { defaultValue: 'Rapport' })
+            : t(s.labelKey),
+      })),
+    [t, data.source],
   )
 
   return (
     <div
       style={{
-        position: 'fixed',
+        position: embedded ? 'absolute' : 'fixed',
         inset: 0,
-        zIndex: 9000,
+        zIndex: embedded ? 40 : 9000,
         background: sp.bgGradient,
         fontFamily: SugarV3.font,
         color: sp.ink,
@@ -195,47 +239,49 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
           zIndex: 10,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-          <img
-            src="/megga-logo.svg"
-            alt="MEGGA"
-            style={{
-              height: 38,
-              width: 'auto',
-              display: 'block',
-              flexShrink: 0,
-              filter: sp.logoInvert ? 'invert(1) brightness(1.6)' : 'none',
-            }}
-            onError={(e) => {
-              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
-            }}
-          />
-          <div style={{ width: 1, height: 28, background: sp.divider }} />
-          <div>
-            <div
+        {!embedded && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+            <img
+              src="/megga-logo.svg"
+              alt="MEGGA"
               style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: sp.muted,
-                letterSpacing: 1,
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
+                height: 38,
+                width: 'auto',
+                display: 'block',
+                flexShrink: 0,
+                filter: sp.logoInvert ? 'invert(1) brightness(1.6)' : 'none',
               }}
-            >
-              {t('wizard.header.eyebrow')}
-            </div>
-            <div
-              style={{
-                fontSize: 18,
-                fontWeight: 700,
-                color: sp.ink,
-                letterSpacing: -0.3,
+              onError={(e) => {
+                ;(e.currentTarget as HTMLImageElement).style.display = 'none'
               }}
-            >
-              {t('wizard.header.title')}
+            />
+            <div style={{ width: 1, height: 28, background: sp.divider }} />
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: sp.muted,
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t('wizard.header.eyebrow')}
+              </div>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: sp.ink,
+                  letterSpacing: -0.3,
+                }}
+              >
+                {t('wizard.header.title')}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
           {!done && (
@@ -257,7 +303,7 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: done ? '32px 32px 80px' : '160px 32px 140px',
+          padding: done ? '32px 32px 80px' : embedded ? '40px 32px 130px' : '160px 32px 140px',
         }}
       >
         {done ? (
@@ -266,7 +312,12 @@ export function KycWizardModal({ onClose, initialContactId }: Props) {
           <>
             {step === 0 && <KwStepStart data={data} set={set} />}
             {step === 1 && <KwStepContact data={data} set={set} />}
-            {step === 2 && <KwStepVigilance data={data} set={set} />}
+            {step === 2 &&
+              (data.source === 'import' ? (
+                <KwStepImport data={data} set={set} />
+              ) : (
+                <KwStepVigilance data={data} set={set} />
+              ))}
           </>
         )}
 

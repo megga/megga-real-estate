@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SugarV2, sgOn, sgAcc, cantonShortFromName, type WizardData } from '../tokens'
 import { SgInput } from '../primitives'
-import { CRM_CONTACTS } from '@/components/crm-sugar/mockData'
+import { crmContactById } from '@/components/crm-sugar/mockData'
 
 const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN as string | undefined) || ''
 const MAPBOX_STYLE = 'mapbox/light-v11'
@@ -39,9 +39,9 @@ declare global {
 
 export function Step2Address({ data, set }: StepProps) {
   const { t } = useTranslation('listings')
-  const allContacts = CRM_CONTACTS
+  // Brouillon inline → snapshot du vendeur existant (figé) → fallback registry.
   const linkedOwner = data.ownerContactId
-    ? (allContacts.find(c => c.id === data.ownerContactId) || data._newContact)
+    ? (data._newContact ?? data._ownerContact ?? crmContactById(data.ownerContactId))
     : null
 
   const [query, setQuery] = useState(data.addr || '')

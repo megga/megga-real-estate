@@ -70,13 +70,6 @@ export interface KycPalette {
 
 // Tons de risque — FIXES dans les 2 thèmes (le risque doit se repérer d'un
 // coup d'œil, comme les couleurs d'étapes du pipeline). Handoff §4.
-export const KYC_RISK_TONE = {
-  low: '#10B981',
-  medium: '#F59E0B',
-  high: '#EF4444',
-  unassessed: '#7A8088',
-} as const
-
 export const KYC_LIGHT: KycPalette = {
   bg: '#EDEFF3',
   bgGradient:

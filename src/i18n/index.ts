@@ -1,3 +1,10 @@
+/**
+ * Configuration i18next (FR/DE/EN/IT, 12 namespaces).
+ *
+ * FR est bundlé synchronement (fallback + langue par défaut) ; DE/EN/IT sont
+ * lazy-loadés à la demande (~420KB hors du main bundle). Détection de langue
+ * limitée à localStorage (`megga-language`) — jamais le navigateur (charte FR-first).
+ */
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
@@ -14,15 +21,12 @@ import frMessages from './locales/fr/messages.json'
 import frCalendar from './locales/fr/calendar.json'
 import frMatching from './locales/fr/matching.json'
 import frAdmin from './locales/fr/admin.json'
-import frDirectory from './locales/fr/directory.json'
-import frCompte from './locales/fr/compte.json'
-import frComingSoon from './locales/fr/comingSoon.json'
 import frAuth from './locales/fr/auth.json'
 
 const NAMESPACES = [
   'common', 'dashboard', 'settings', 'contacts', 'pipeline', 'listings',
   'kyc', 'messages', 'calendar', 'matching',
-  'admin', 'directory', 'compte', 'comingSoon', 'auth',
+  'admin', 'auth',
 ] as const
 
 type Namespace = typeof NAMESPACES[number]
@@ -30,7 +34,7 @@ type SupportedLang = 'fr' | 'de' | 'en' | 'it'
 
 // DE/EN/IT sont lazy-loadés à la demande (évite ~420KB dans le main bundle)
 async function loadDe() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, directory, compte, comingSoon, auth] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth] = await Promise.all([
     import('./locales/de/common.json'),
     import('./locales/de/dashboard.json'),
     import('./locales/de/settings.json'),
@@ -42,16 +46,13 @@ async function loadDe() {
     import('./locales/de/calendar.json'),
     import('./locales/de/matching.json'),
     import('./locales/de/admin.json'),
-    import('./locales/de/directory.json'),
-    import('./locales/de/compte.json'),
-    import('./locales/de/comingSoon.json'),
     import('./locales/de/auth.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, directory: directory.default, compte: compte.default, comingSoon: comingSoon.default, auth: auth.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default }
 }
 
 async function loadEn() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, directory, compte, comingSoon, auth] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth] = await Promise.all([
     import('./locales/en/common.json'),
     import('./locales/en/dashboard.json'),
     import('./locales/en/settings.json'),
@@ -63,16 +64,13 @@ async function loadEn() {
     import('./locales/en/calendar.json'),
     import('./locales/en/matching.json'),
     import('./locales/en/admin.json'),
-    import('./locales/en/directory.json'),
-    import('./locales/en/compte.json'),
-    import('./locales/en/comingSoon.json'),
     import('./locales/en/auth.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, directory: directory.default, compte: compte.default, comingSoon: comingSoon.default, auth: auth.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default }
 }
 
 async function loadIt() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, directory, compte, comingSoon, auth] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth] = await Promise.all([
     import('./locales/it/common.json'),
     import('./locales/it/dashboard.json'),
     import('./locales/it/settings.json'),
@@ -84,14 +82,12 @@ async function loadIt() {
     import('./locales/it/calendar.json'),
     import('./locales/it/matching.json'),
     import('./locales/it/admin.json'),
-    import('./locales/it/directory.json'),
-    import('./locales/it/compte.json'),
-    import('./locales/it/comingSoon.json'),
     import('./locales/it/auth.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, directory: directory.default, compte: compte.default, comingSoon: comingSoon.default, auth: auth.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default }
 }
 
+/** Dispatch vers le loader lazy voulu ; FR renvoie directement les bundles déjà importés. */
 async function loadLanguage(lng: SupportedLang): Promise<Record<Namespace, unknown>> {
   if (lng === 'de') return loadDe()
   if (lng === 'en') return loadEn()
@@ -100,8 +96,7 @@ async function loadLanguage(lng: SupportedLang): Promise<Record<Namespace, unkno
     common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts,
     pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages,
     calendar: frCalendar, matching: frMatching,
-    admin: frAdmin, directory: frDirectory, compte: frCompte,
-    comingSoon: frComingSoon, auth: frAuth,
+    admin: frAdmin, auth: frAuth,
   }
 }
 
@@ -114,8 +109,7 @@ i18n
         common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts,
         pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages,
         calendar: frCalendar, matching: frMatching,
-        admin: frAdmin, directory: frDirectory, compte: frCompte,
-        comingSoon: frComingSoon, auth: frAuth,
+        admin: frAdmin, auth: frAuth,
       },
     },
     fallbackLng: 'fr',
@@ -136,6 +130,7 @@ i18n
     partialBundledLanguages: true,
   })
 
+/** Enregistre à la volée les bundles d'une langue non-FR puis bascule dessus ; idempotent (no-op si déjà chargée). */
 async function ensureLanguageLoaded(lng: string) {
   if (lng === 'fr' || !['de', 'en', 'it'].includes(lng)) return
   if (i18n.hasResourceBundle(lng, 'common')) return

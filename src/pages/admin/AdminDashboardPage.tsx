@@ -1,3 +1,10 @@
+/**
+ * Page super-admin — tableau de bord plateforme (accueil de la section admin).
+ *
+ * Route : `/` (console admin.megga.ch) (accent violet). Empile un pouls de santé, 5 KPIs
+ * (agences, users, biens, transactions, KYC à risque), le flux d'alertes, le
+ * journal d'activité, le suivi d'onboarding et le dashboard de facturation.
+ */
 import { useTranslation } from 'react-i18next'
 import { Building2, Users, Home, GitBranch, ShieldAlert, AlertTriangle, Bell, CreditCard, CheckCircle, AlertCircle } from 'lucide-react'
 import { useAdminStats } from '@/hooks/useAdminStats'
@@ -32,6 +39,7 @@ const ALERT_BORDER_COLORS: Record<string, string> = {
   ticket_created: 'border-l-blue-500',
 }
 
+/** Vue d'ensemble : dérive l'état de santé des KPIs et compose les bandeaux/sections. */
 export default function AdminDashboardPage() {
   const { t } = useTranslation('admin')
   const { kpis, kpisLoading, alerts, alertsLoading } = useAdminStats()

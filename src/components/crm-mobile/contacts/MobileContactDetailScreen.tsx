@@ -1,3 +1,9 @@
+/**
+ * Contenu de la fiche contact mobile, rendu par `MobileContactDetailPage`
+ * sur `/dashboard/contacts/:id`. Hero + rappel KYC inline non-bloquant + 4
+ * onglets (Aperçu / Activité / Matching / Docs). Détail du câblage réel sur le
+ * docstring de `MobileContactDetailScreen`.
+ */
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +19,7 @@ import { useContactTimeline, type TimelineEvent } from '@/hooks/useContactTimeli
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import type { Contact } from '@/types/contact'
 import type { KycDossierSummary } from '@/types/kyc'
+import { countryName } from '@/lib/countries'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import ContactSeal from './ContactSeal'
@@ -39,7 +46,8 @@ const DEMO_CONTACT: Contact = {
   email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02', type: 'buyer',
   source: 'website', score: 'hot', tags: ['Famille'], notes: null,
   created_at: '2026-04-02T09:00:00.000Z', whatsapp_phone: null, language: 'fr',
-  nationality: 'CH', budget_announced: 1250000, budget_estimated_ai: null,
+  birth_date: null, nationality: 'CH', residence_country: 'CH', home_address: null,
+  budget_announced: 1250000, budget_estimated_ai: null,
   search_zones: ['Carouge', 'Champel'],
   search_criteria: { type: 'vente', budget_min: 950000, budget_max: 1250000, zones: ['Carouge', 'Champel'], rooms_min: 4, surface_min: 110, features: ['Balcon', 'Ascenseur'] },
   ai_seriousness_score: null, ai_purchase_probability: 72, ai_timing: null,
@@ -163,11 +171,12 @@ export function MobileContactDetailScreen({ demo = false }: { demo?: boolean }) 
   )
 }
 
+/** Style d'un conteneur plein écran centré (états chargement / erreur / vide). */
 function fullState(): CSSProperties {
   return { minHeight: '60dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 32, fontFamily: MOBILE_FONT }
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────
+/** Carte d'identité : avatar, nom (+ sceau KYC si vérifié), pastilles source/zone/tag, tuiles tél/e-mail cliquables. */
 function Hero({ contact, verified, t, tk }: { contact: Contact; verified: boolean; t: TFunction; tk: MobileTokens }) {
   const src = sourceLabel(contact.source)
   const ville = (contact.search_criteria?.zones ?? contact.search_zones ?? []).filter(Boolean)[0]
@@ -210,11 +219,12 @@ function Hero({ contact, verified, t, tk }: { contact: Contact; verified: boolea
   )
 }
 
+/** Pastille arrondie neutre (source, zone ou tag). */
 function Pill({ children, tk }: { children: ReactNode; tk: MobileTokens }) {
   return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '5px 11px', borderRadius: 999, background: tk.cardSubtle, color: tk.ink, fontSize: 11.5, fontWeight: 700, letterSpacing: 0.1, whiteSpace: 'nowrap' }}>{children}</span>
 }
 
-// ─── KYC inline (rappel doux NON-bloquant) ────────────────────────────────
+/** Rappel KYC inline, jamais bloquant : progression des vérifications + CTA « vérifier ». */
 function KycInline({ dossier, onOpen, t, tk }: { dossier: KycDossierSummary | null; onOpen: () => void; t: TFunction; tk: MobileTokens }) {
   const status = dossier?.dossier_status ?? 'none'
   const m = kycMeta(status)
@@ -247,13 +257,13 @@ function KycInline({ dossier, onOpen, t, tk }: { dossier: KycDossierSummary | nu
   )
 }
 
-// ─── Segmented ────────────────────────────────────────────────────────────
 const TABS: { id: TabId; key: string }[] = [
   { id: 'overview', key: 'mobile.detail.tab.overview' },
   { id: 'activity', key: 'mobile.detail.tab.activity' },
   { id: 'matching', key: 'mobile.detail.tab.matching' },
   { id: 'docs', key: 'mobile.detail.tab.docs' },
 ]
+/** Barre de sélection des 4 onglets. */
 function Segmented({ tab, setTab, t, tk }: { tab: TabId; setTab: (id: TabId) => void; t: TFunction; tk: MobileTokens }) {
   return (
     <div style={{ display: 'flex', gap: 7, margin: '14px 0 4px' }}>
@@ -269,20 +279,23 @@ function Segmented({ tab, setTab, t, tk }: { tab: TabId; setTab: (id: TabId) => 
   )
 }
 
-// ─── Onglet Aperçu (critères + informations) ──────────────────────────────
 const CV_MEGGA_GRAD = 'radial-gradient(100% 88% at 13% 110%, #7C63F0 0%, rgba(124,99,240,0) 58%), radial-gradient(96% 88% at 88% 114%, #C44FB8 0%, rgba(196,79,184,0) 58%), radial-gradient(145% 110% at 50% 124%, #9A6AD9 0%, rgba(154,106,217,0) 64%), linear-gradient(180deg, #07060B 0%, #0C091A 42%, #170E2A 100%)'
 
+/** Pastille translucide posée sur le dégradé de la carte critères. */
 function GlassChip({ children }: { children: ReactNode }) {
   return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 12px', borderRadius: 999, background: 'rgba(255,255,255,0.13)', color: '#fff', fontSize: 11.5, fontWeight: 700, letterSpacing: 0.1, whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>{children}</span>
 }
 
+/** Onglet Aperçu : critères de recherche (carte dégradée) + bloc informations. */
 function OverviewTab({ contact, t, tk, i18nLang, onRefine }: { contact: Contact; t: TFunction; tk: MobileTokens; i18nLang: string; onRefine: () => void }) {
   const sc = contact.search_criteria
   const chips = hasCriteria(sc) ? criteriaChips(sc) : []
   const features = (sc?.features ?? []).filter(Boolean)
   const infos: { labelKey: string; value: string | null }[] = [
     { labelKey: 'mobile.detail.infos.language', value: contact.language ? contact.language.toUpperCase() : null },
-    { labelKey: 'mobile.detail.infos.nationality', value: contact.nationality },
+    // `nationality` est stocké en ISO alpha-2 depuis la migration 20260718160000 :
+    // sans countryName() la fiche afficherait « RU » au lieu de « Russie ».
+    { labelKey: 'mobile.detail.infos.nationality', value: contact.nationality ? countryName(contact.nationality) : null },
     { labelKey: 'mobile.detail.infos.created', value: contact.created_at ? fmtDateFull(contact.created_at, i18nLang) : null },
     { labelKey: 'mobile.detail.infos.lastInteraction', value: contact.last_interaction_at ? fmtDay(contact.last_interaction_at, i18nLang) : null },
   ].filter((r) => r.value)
@@ -327,7 +340,7 @@ function OverviewTab({ contact, t, tk, i18nLang, onRefine }: { contact: Contact;
   )
 }
 
-// ─── Onglet Activité (timeline réelle) ────────────────────────────────────
+/** Onglet Activité : timeline réelle du contact (catégorie, date, auteur si connu). */
 function ActivityTab({ events, loading, t, tk, i18nLang }: { events: TimelineEvent[]; loading: boolean; t: TFunction; tk: MobileTokens; i18nLang: string }) {
   if (loading) return <SkeletonList tk={tk} />
   if (!events.length) return <EmptyState icon="calendar" title={t('mobile.detail.timeline.empty')} tk={tk} />
@@ -355,7 +368,7 @@ function ActivityTab({ events, loading, t, tk, i18nLang }: { events: TimelineEve
   )
 }
 
-// ─── Onglet Matching (biens proposés réels) ───────────────────────────────
+/** Onglet Matching : biens proposés (photo, score IA, statut) ; tape → fiche bien ou atelier. */
 function MatchingTab({ matches, loading, t, tk, onOpen, onAtelier }: { matches: MatchResult[]; loading: boolean; t: TFunction; tk: MobileTokens; onOpen: (m: MatchResult) => void; onAtelier: () => void }) {
   if (loading) return <SkeletonList tk={tk} />
   if (!matches.length) {
@@ -400,7 +413,7 @@ function MatchingTab({ matches, loading, t, tk, onOpen, onAtelier }: { matches: 
   )
 }
 
-// ─── Onglet Documents (réels) ─────────────────────────────────────────────
+/** Onglet Documents : fichiers réels rattachés au contact (lecture seule). */
 function DocsTab({ docs, loading, t, tk, i18nLang }: { docs: DocRow[]; loading: boolean; t: TFunction; tk: MobileTokens; i18nLang: string }) {
   if (loading) return <SkeletonList tk={tk} />
   return (
@@ -427,7 +440,7 @@ function DocsTab({ docs, loading, t, tk, i18nLang }: { docs: DocRow[]; loading: 
   )
 }
 
-// ─── États partagés ───────────────────────────────────────────────────────
+/** État vide générique (icône + titre + description optionnelle). */
 function EmptyState({ icon, title, desc, tk }: { icon: MEIconName; title: string; desc?: string; tk: MobileTokens }) {
   return (
     <div style={{ textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 20, boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>
@@ -440,6 +453,7 @@ function EmptyState({ icon, title, desc, tk }: { icon: MEIconName; title: string
   )
 }
 
+/** Placeholder de chargement (3 barres grises). */
 function SkeletonList({ tk }: { tk: MobileTokens }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>

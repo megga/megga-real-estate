@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import Shimmer from '@/components/ui/Shimmer'
+import { readSugarDark } from '@/lib/sugarDark'
 
 /**
  * `<LanguageChangeOverlay>` is a brief frosted-glass overlay that appears
@@ -33,10 +34,15 @@ export default function LanguageChangeOverlay() {
   const { i18n } = useTranslation()
   const reducedMotion = useReducedMotion()
   const [active, setActive] = useState(false)
+  // Teinte du voile, relue À CHAQUE ouverture : ce composant est monté une fois
+  // pour toute la session (App.tsx), donc une lecture au montage figerait le
+  // thème du tout premier rendu.
+  const [dark, setDark] = useState(false)
 
   useEffect(() => {
     const handler = () => {
       if (reducedMotion) return
+      setDark(readSugarDark())
       setActive(true)
       const id = window.setTimeout(() => setActive(false), OVERLAY_DURATION_MS)
       return () => window.clearTimeout(id)
@@ -59,10 +65,10 @@ export default function LanguageChangeOverlay() {
           transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
           className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6"
           style={{
-            // Frosted glass — slightly tinted toward the page background so the
-            // effect works on both light and dark themes (the 0.92 alpha lets
-            // the underlying theme bleed through, blur softens hard edges).
-            backgroundColor: 'rgba(250, 251, 253, 0.92)',
+            // Verre dépoli teinté vers le fond de page COURANT. L'ancienne valeur
+            // était un blanc cassé en dur : à 0,92 d'opacité, rien ne « transparaît »
+            // du thème dessous, donc le voile virait au blanc plein sur un CRM noir.
+            backgroundColor: dark ? 'rgba(6, 6, 8, 0.92)' : 'rgba(250, 251, 253, 0.92)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
           }}

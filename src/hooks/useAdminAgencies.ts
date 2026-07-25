@@ -1,3 +1,8 @@
+/**
+ * Hooks React Query de la console super-admin des agences : liste enrichie de
+ * compteurs (via RPC `get_agency_stats`), détail d'une agence et ses sous-ressources
+ * (membres, biens, transactions, activité). Alimente AdminAgencyDetailPage.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -20,6 +25,7 @@ export interface AgencyWithStats {
   current_period_end: string | null
 }
 
+/** Liste des agences + compteurs agrégés côté serveur, et mutation suspend/réactive (via edge `admin-agency-lifecycle`). */
 export function useAdminAgencies() {
   const queryClient = useQueryClient()
 
@@ -85,6 +91,7 @@ export function useAdminAgencies() {
   }
 }
 
+/** Détail complet d'une agence par id (`select('*')`). */
 export function useAdminAgency(id: string) {
   return useQuery({
     queryKey: ['admin-agency', id],
@@ -102,6 +109,7 @@ export function useAdminAgency(id: string) {
   })
 }
 
+/** Membres (profiles) d'une agence, les plus récents d'abord. */
 export function useAgencyMembers(agencyId: string) {
   return useQuery({
     queryKey: ['admin-agency-members', agencyId],
@@ -119,6 +127,7 @@ export function useAgencyMembers(agencyId: string) {
   })
 }
 
+/** Biens d'une agence (colonnes de liste seulement, sans description lourde). */
 export function useAgencyProperties(agencyId: string) {
   return useQuery({
     queryKey: ['admin-agency-properties', agencyId],
@@ -136,6 +145,7 @@ export function useAgencyProperties(agencyId: string) {
   })
 }
 
+/** Transactions d'une agence (stade pipeline, statut, montant offert). */
 export function useAgencyTransactions(agencyId: string) {
   return useQuery({
     queryKey: ['admin-agency-transactions', agencyId],
@@ -153,6 +163,7 @@ export function useAgencyTransactions(agencyId: string) {
   })
 }
 
+/** 30 derniers événements d'activité d'une agence. */
 export function useAgencyActivity(agencyId: string) {
   return useQuery({
     queryKey: ['admin-agency-activity', agencyId],

@@ -11,10 +11,9 @@ describe('Intercom LPD allowlist — sanitizeIntercomArgs', () => {
       name: 'Agent Test',
       role: 'agent',
       canton: 'GE',
-      onboarding_completed: true,
     })
     expect(dropped).toEqual([])
-    expect(sanitized).toMatchObject({ user_id: 'u1', role: 'agent', canton: 'GE', onboarding_completed: true })
+    expect(sanitized).toMatchObject({ user_id: 'u1', role: 'agent', canton: 'GE' })
   })
 
   it('STRIP toute clé hors allowlist (PII / donnée client final potentielle)', () => {

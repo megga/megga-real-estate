@@ -1,3 +1,7 @@
+/**
+ * Constantes de la barre d'onglets mobile (crm-mobile/shell) : la table des
+ * 5 destinations et la résolution du chemin courant vers l'onglet actif.
+ */
 import type { MEIconName } from '@/components/propertyx/MEIcon'
 
 export type MobileTab = 'today' | 'pipeline' | 'matching' | 'agenda' | 'more'

@@ -1,3 +1,10 @@
+/**
+ * Page super-admin — annuaire des utilisateurs de la plateforme.
+ *
+ * Route : `/users` (accent violet). Table (desktop)
+ * / cartes (mobile) avec recherche, filtre par rôle, pagination et export CSV. Un clic
+ * sur une ligne ouvre `UserDrawer` (détail + impersonation) ; l'agence renvoie vers sa fiche.
+ */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -21,6 +28,7 @@ const ROLE_I18N: Record<string, string> = {
 
 const ROLE_FILTER_VALUES = ['', 'super_admin', 'admin', 'manager', 'agent', 'assistant']
 
+/** Avatar utilisateur : photo si `avatarUrl`, sinon initiales sur fond déterministe dérivé du nom. */
 function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500']
@@ -45,6 +53,7 @@ function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
   )
 }
 
+/** Lignes squelette affichées pendant le chargement de l'annuaire. */
 function SkeletonRows() {
   return (
     <>
@@ -65,6 +74,7 @@ function SkeletonRows() {
   )
 }
 
+/** État vide, distinguant « aucun utilisateur » de « aucun résultat filtré ». */
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   const { t } = useTranslation('admin')
   return (
@@ -80,6 +90,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   )
 }
 
+/** Page : annuaire utilisateurs filtrable/paginé + drawer de détail au clic sur une ligne. */
 export default function AdminUsersPage() {
   const { t } = useTranslation('admin')
   const { users, isLoading } = useAdminUsers()
@@ -242,7 +253,7 @@ export default function AdminUsersPage() {
                 <span className="w-28 text-xs text-theme-secondary truncate">
                   {user.agency_name ? (
                     <Link
-                      to={`/dashboard/admin/agencies/${user.agency_id}`}
+                      to={`/agencies/${user.agency_id}`}
                       onClick={(e) => e.stopPropagation()}
                       className="hover:text-admin-accent transition-colors"
                     >

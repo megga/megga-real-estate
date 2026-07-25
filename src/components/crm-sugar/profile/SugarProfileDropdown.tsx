@@ -10,14 +10,17 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { SugarPalette } from '../tokens'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
+import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
+import { ADMIN_IS_EXTERNAL, openAdminConsole } from '@/lib/adminEntry'
 
 // ─── Inline icons not in MEIcon ──────────────────────────────────────
-type InlineIconName = 'shield' | 'card' | 'help' | 'logout' | 'chevron' | 'spark'
+type InlineIconName = 'shield' | 'card' | 'help' | 'logout' | 'chevron' | 'spark' | 'console' | 'external'
 
 function InlineIco({
   name, size = 18, stroke = 'currentColor', strokeWidth = 1.6,
@@ -28,6 +31,10 @@ function InlineIco({
     help:    <><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 2"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></>,
     logout:  <><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/><path d="M10 17l-5-5 5-5"/><path d="M15 12H5"/></>,
     chevron: <><path d="m9 6 6 6-6 6"/></>,
+    // Console plateforme : deux baies empilées (lecture « infra », distincte du
+    // bouclier de « Sécurité & sessions » juste en dessous).
+    console: <><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></>,
+    external: <><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></>,
     spark:   <><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></>,
   }
   return (
@@ -165,6 +172,12 @@ export default function SugarProfileDropdown({
   const { t } = useTranslation('common')
   const { profile, user } = useAuth()
   const { agency: agencyData, plan } = useAgencySettings()
+  const navigate = useNavigate()
+  // Seule porte d'entrée vers la console depuis le CRM refondu : le rail et la
+  // TopNav ne portent aucune trace de l'admin, et la sidebar legacy qui le
+  // proposait n'est plus montée sur les surfaces Sugar. Rendu uniquement pour
+  // un super-admin confirmé par la DB (useSuperAdminGate → RPC is_super_admin).
+  const { allowed: isSuperAdmin } = useSuperAdminGate()
 
   const fullName = profile?.full_name?.trim() || user?.email?.split('@')[0] || t('profile.defaultName')
   const initials = fullName
@@ -197,6 +210,18 @@ export default function SugarProfileDropdown({
       animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
       <ProfileHeader sp={sp} name={fullName} initials={initials} subtitle={subtitle} planLabel={planLabel} />
+
+      {isSuperAdmin && (
+        <>
+          <Sep sp={sp} />
+          <Row sp={sp} iconKind="inline" icon="console"
+            label={t('profile.adminConsole')}
+            trail={ADMIN_IS_EXTERNAL
+              ? <InlineIco name="external" size={14} stroke={sp.sub} strokeWidth={1.8} />
+              : <InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
+            onClick={wrap(() => openAdminConsole(navigate))} />
+        </>
+      )}
 
       <Sep sp={sp} />
 

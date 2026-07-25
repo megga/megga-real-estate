@@ -28,8 +28,6 @@ const DEFAULT_DIRS = [
   'src/pages/agent',
   'src/components/matching-atelier',
   'src/components/calendar',
-  'src/components/onboarding-sugar',
-  'src/components/premier-jour-sugar',
   'src/components/seller-portal',
   'src/components/kyc-report',
   'src/components/ai-copilot',

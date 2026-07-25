@@ -1,17 +1,27 @@
+/**
+ * Page de callback d'authentification — route `/auth/callback`.
+ * Aiguille après SIGNED_IN : sauvegarde des tokens Google/Outlook Calendar
+ * (params `gcal` / `outlook`), sinon redirection selon le rôle en corrigeant au
+ * passage le rôle du profil si l'inscription visait un rôle différent.
+ * PASSWORD_RECOVERY → écran de reset ; timeout de secours après 5 s.
+ */
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import BootSplash from '@/components/layout/BootSplash'
 import { supabase } from '@/lib/supabase'
+import { calendarReturnPath } from '@/lib/calendarOauth'
 import { isAgentRole } from '@/types/auth'
 import type { UserRole } from '@/types/auth'
 
 const VALID_ROLES: UserRole[] = ['buyer', 'seller', 'particulier', 'agent', 'manager', 'admin', 'assistant']
 
+/** Destination post-login selon le rôle : agents vers le CRM, particuliers vers le portail. */
 function getRedirectPath(role: UserRole): string {
   if (isAgentRole(role)) return '/dashboard'
   return '/portal'
 }
 
+/** Tient l'écran d'arrivée le temps de l'aiguillage, fait dans onAuthStateChange. */
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
 
@@ -36,7 +46,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/app/settings?tab=applications&gcal=success', { replace: true })
+        navigate(calendarReturnPath(params, '/dashboard/settings?tab=integrations&gcal=success'), { replace: true })
         return
       }
 
@@ -58,7 +68,7 @@ export default function AuthCallbackPage() {
             // Token save failed — user can retry from Settings
           }
         }
-        navigate('/app/settings?tab=applications&outlook=success', { replace: true })
+        navigate(calendarReturnPath(params, '/dashboard/settings?tab=integrations&outlook=success'), { replace: true })
         return
       }
 
@@ -127,10 +137,5 @@ export default function AuthCallbackPage() {
     return () => clearTimeout(timeout)
   }, [navigate])
 
-  return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-accent mb-4" />
-      <p className="text-sm text-muted-foreground">Connexion en cours...</p>
-    </div>
-  )
+  return <BootSplash />
 }

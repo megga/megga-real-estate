@@ -14,7 +14,7 @@
 import { readFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { validateListing } from './lib/validate-listing.mjs'
+import { validateListing } from './_shared/validate-listing.mjs'
 
 // ── Load env ────────────────────────────────────────────────
 const __dirname_fix = dirname(fileURLToPath(import.meta.url))

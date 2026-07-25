@@ -1,3 +1,7 @@
+/**
+ * Toast d'action du matching mobile (accent plein, portail). Porte les gestes
+ * « Annuler » (undo 5 s) et « Voir le deal → » propres au flux matching.
+ */
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'

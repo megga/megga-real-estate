@@ -1,3 +1,7 @@
+/**
+ * Champ d'autocomplétion d'adresse suisse (ListingForm), branché sur le hook
+ * `useSwissAddress`. Rend l'adresse choisie via `onSelect`.
+ */
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -11,6 +15,7 @@ interface SwissAddressAutocompleteProps {
   className?: string
 }
 
+/** Combobox accessible : navigation clavier (flèches / Entrée / Échap), fermeture au clic extérieur. */
 export default function SwissAddressAutocomplete({
   onSelect,
   defaultValue = '',

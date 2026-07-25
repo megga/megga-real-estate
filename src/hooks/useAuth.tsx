@@ -1,3 +1,9 @@
+/**
+ * Contexte d'authentification (Supabase Auth) — source unique session / user / profile.
+ * Expose les gestes de connexion (mot de passe, OTP e-mail, OAuth Google/Microsoft/
+ * Facebook), inscription, reset, updatePassword et signOut, plus les dérivés de rôle
+ * (isAgent / isParticulier). DEV_BYPASS_AUTH (dev-only) injecte un mock sans réseau.
+ */
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
@@ -21,14 +27,14 @@ interface AuthContextType {
   loading: boolean
   isAgent: boolean
   isParticulier: boolean
-  signInWithPassword: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>
-  signInWithEmail: (email: string, captchaToken?: string) => Promise<{ error: string | null }>
+  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithEmail: (email: string) => Promise<{ error: string | null }>
   signInWithGoogle: (role?: UserRole) => Promise<{ error: string | null }>
   signInWithMicrosoft: (role?: UserRole) => Promise<{ error: string | null }>
   signInWithFacebook: (role?: UserRole) => Promise<{ error: string | null }>
-  resetPassword: (email: string, captchaToken?: string) => Promise<{ error: string | null }>
+  resetPassword: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string, fullName: string, role?: UserRole, captchaToken?: string) => Promise<{ error: string | null }>
+  signUp: (email: string, password: string, fullName: string, role?: UserRole) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -58,12 +64,11 @@ async function reportDevice(accessToken: string) {
 // set VITE_DEV_BYPASS_ROLE=super_admin dans .env.local
 const MOCK_ROLE = (import.meta.env.VITE_DEV_BYPASS_ROLE as UserRole | undefined) ?? 'agent'
 
-// Email en `.local` (TLD non routable) : c'est l'échappatoire CI/dev de
-// l'allowlist super-admin (cf. src/lib/superAdmin.ts + la source SQL). Sans ça,
-// le mock VITE_DEV_BYPASS_ROLE=super_admin échoue au `emailOk` de
-// useSuperAdminGate et se fait rediriger vers /dashboard — la suite E2E
-// super-admin (playwright.admin.config.ts) testait alors « Aujourd'hui » au
-// lieu des pages admin. Sans effet en prod (DEV_BYPASS dev-only + mur DB/edge).
+// Email en `.local` (TLD non routable) : échappatoire CI/dev de l'allowlist
+// super-admin, côté SQL (super_admin_allowlist_match tolère le domaine de test).
+// useSuperAdminGate court-circuite désormais la RPC sous DEV_BYPASS — ce mock
+// n'a pas de session Supabase — mais l'échappatoire reste nécessaire aux tests
+// backend qui, eux, parlent à la vraie DB. Sans effet en prod.
 const MOCK_USER = {
   id: 'dev-mock-user',
   email: 'dev@megga.local',
@@ -83,16 +88,14 @@ const MOCK_PROFILE: UserProfile = {
   canton: 'GE',
   agency_id: 'dev-mock-agency',
   created_at: '2026-01-01T00:00:00Z',
-  onboarding_completed: true,
-  onboarding_step: 3,
-  first_day_done: true,
 }
 
+/** Charge le profil depuis `profiles` ; un retry à 500 ms couvre la race « trigger de création pas encore passé », sinon repli minimal construit depuis user_metadata. */
 async function fetchProfile(userId: string, user?: User | null, retry = true): Promise<UserProfile | null> {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, agency_id, email, full_name, avatar_url, role, phone, canton, created_at, onboarding_completed, onboarding_step, first_day_done')
+      .select('id, agency_id, email, full_name, avatar_url, role, phone, canton, created_at')
       .eq('id', userId)
       .single()
     if (error || !data) {
@@ -115,9 +118,6 @@ async function fetchProfile(userId: string, user?: User | null, retry = true): P
           canton: null,
           agency_id: null,
           created_at: user.created_at ?? new Date().toISOString(),
-          onboarding_completed: false,
-          onboarding_step: 0,
-          first_day_done: false,
         } as UserProfile
       }
       return null
@@ -128,6 +128,7 @@ async function fetchProfile(userId: string, user?: User | null, retry = true): P
   }
 }
 
+/** Provider racine : hydrate session + profil au montage, suit onAuthStateChange, expose les gestes d'auth. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(DEV_BYPASS_AUTH ? MOCK_PROFILE : null)
@@ -186,11 +187,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [loadProfile])
 
-  const signInWithPassword = useCallback(async (email: string, password: string, captchaToken?: string) => {
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: captchaToken ? { captchaToken } : undefined,
     })
     if (error) return { error: error.message }
 
@@ -207,12 +207,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }, [])
 
-  const signInWithEmail = useCallback(async (email: string, captchaToken?: string) => {
+  const signInWithEmail = useCallback(async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        ...(captchaToken ? { captchaToken } : {}),
       },
     })
     return { error: error?.message ?? null }
@@ -264,10 +263,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
-  const resetPassword = useCallback(async (email: string, captchaToken?: string) => {
+  // ⚠ Supabase Auth impose un captcha sur /recover : cet appel, qui n'en fournit
+  // pas, est rejeté en `captcha_failed`. Le seul appelant vivant est le bouton
+  // « Recevoir un lien » de Réglages → Sécurité (SecuritySection), cassé de ce
+  // fait — défaut ANTÉRIEUR au retrait du module captcha (celui-ci ne produisait
+  // aucun token faute de VITE_TURNSTILE_SITE_KEY), à traiter séparément.
+  const resetPassword = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
-      ...(captchaToken ? { captchaToken } : {}),
     })
     return { error: error?.message ?? null }
   }, [])
@@ -277,14 +280,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string, fullName: string, role: UserRole = 'particulier', captchaToken?: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string, role: UserRole = 'particulier') => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName, role },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        ...(captchaToken ? { captchaToken } : {}),
       },
     })
     if (error) return { error: error.message }
@@ -346,6 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+/** Accès au contexte d'auth ; lève si appelé hors d'un `AuthProvider`. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)

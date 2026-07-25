@@ -1,3 +1,8 @@
+/**
+ * Écran matching mobile (crm-mobile) — inbox par acheteur, VUE 1 liste ↔ VUE 2 focus.
+ * Orchestration des gestes (undo, flush au démontage) et câblage : voir la docstring
+ * de `MobileMatchingScreen` ci-dessous.
+ */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -498,6 +503,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
   )
 }
 
+/** Style partagé des boutons-icônes ronds de l'en-tête (recherche, menu écran). */
 function iconBtn(tk: ReturnType<typeof useMobileTokens>['tk']) {
   return {
     width: 38,

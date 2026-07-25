@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — annuaire des agences.
+ *
+ * Route : `/agencies` (accent violet). Liste
+ * paginée (10/page) avec recherche, filtre de statut, export CSV et score de
+ * santé par agence. La santé s'appuie sur un résumé d'activité agrégé server-side
+ * (RPC `get_agency_activity_summary`) pour éviter de scanner activity_events.
+ */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -35,6 +43,7 @@ function SubscriptionBadge({ status }: { status: string | null }) {
   return <span className={cn('text-xs font-medium', meta.className)}>{t(meta.i18nKey)}</span>
 }
 
+/** Pastille initiale, couleur dérivée déterministiquement du nom (somme des char codes). */
 function AgencyAvatar({ name }: { name: string }) {
   const letter = (name || '?')[0].toUpperCase()
   const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500']
@@ -47,6 +56,7 @@ function AgencyAvatar({ name }: { name: string }) {
   )
 }
 
+/** Placeholder pulsant du tableau desktop pendant le chargement. */
 function SkeletonRows() {
   return (
     <>
@@ -69,6 +79,7 @@ function SkeletonRows() {
   )
 }
 
+/** Écran annuaire : chargement, filtres, pagination et calcul du score de santé. */
 export default function AdminAgenciesPage() {
   'use no memo'
   const { t } = useTranslation('admin')
@@ -238,7 +249,7 @@ export default function AdminAgenciesPage() {
             paginated.map((agency) => (
               <Link
                 key={agency.id}
-                to={`/dashboard/admin/agencies/${agency.id}`}
+                to={`/agencies/${agency.id}`}
                 className="flex items-center gap-3 p-3 rounded-xl border border-theme-border hover:border-theme-active transition-colors"
               >
                 <AgencyAvatar name={agency.name} />
@@ -284,7 +295,7 @@ export default function AdminAgenciesPage() {
             paginated.map((agency, i) => (
               <Link
                 key={agency.id}
-                to={`/dashboard/admin/agencies/${agency.id}`}
+                to={`/agencies/${agency.id}`}
                 className={cn(
                   'flex items-center px-4 py-3 group hover:bg-theme-hover transition-colors',
                   i < paginated.length - 1 && 'border-b border-theme-border'
@@ -435,6 +446,7 @@ export default function AdminAgenciesPage() {
   )
 }
 
+/** État vide, messages distincts selon qu'un filtre est actif ou non. */
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   const { t } = useTranslation('admin')
   return (

@@ -1,3 +1,10 @@
+/**
+ * Autocomplétion d'adresses suisses via l'API geo.admin.ch (SearchServer).
+ *
+ * Recherche débounced (300ms, min 3 caractères), résultats parsés en champs
+ * structurés (rue/NPA/ville/canton + WGS84) et mis en cache mémoire par requête.
+ * Aucune clé API : service public fédéral.
+ */
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 export interface SwissAddressSuggestion {
@@ -50,10 +57,12 @@ const CANTON_MAP: Record<string, string> = {
   ar: 'AR', ai: 'AI', sg: 'SG', gr: 'GR', ti: 'TI',
 }
 
+/** Retire les balises HTML (l'API renvoie le libellé avec des `<b>` de surlignage). */
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '')
 }
 
+/** Met en casse titre en gérant les mots composés (Vufflens-la-Ville). */
 function capitalize(str: string): string {
   return str
     .split(' ')
@@ -135,6 +144,7 @@ function parseDetail(detail: string, attrs: GeoAdminResult['attrs']): Omit<Swiss
   }
 }
 
+/** Assemble une suggestion complète (id + libellés) à partir d'un résultat brut de l'API. */
 function parseSuggestion(result: GeoAdminResult): SwissAddressSuggestion {
   const parsed = parseDetail(result.attrs.detail, result.attrs)
   return {
@@ -148,6 +158,7 @@ function parseSuggestion(result: GeoAdminResult): SwissAddressSuggestion {
 // Simple in-memory cache
 const cache = new Map<string, SwissAddressSuggestion[]>()
 
+/** Hook d'autocomplétion : `query`/`setQuery` pilotent une recherche débounced, `suggestions` en sort. */
 export function useSwissAddress(initialValue = '') {
   const [query, setQuery] = useState(initialValue)
   const [suggestions, setSuggestions] = useState<SwissAddressSuggestion[]>([])

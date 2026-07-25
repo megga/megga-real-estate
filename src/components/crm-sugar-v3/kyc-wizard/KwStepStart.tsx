@@ -82,10 +82,10 @@ export function KwStepStart({ data, set }: Props) {
           }
           title={t('wizard.start.import.title')}
           sub={t('wizard.start.import.sub')}
-          // Disabled — the wizard's `finish()` treats 'import' identically
-          // to 'existing'; advertising AI-parsing without delivering it
-          // breaks CLAUDE.md's "IA présentée comme automatique" rule.
-          onClick={() => { /* intentionally disabled */ }}
+          // Réactivé (refonte KYC) : l'extraction est réelle (EF kyc-report-import,
+          // Gemini) et les contrôles pré-remplis restent À VALIDER par l'agent
+          // (garde-fou MLRO) — pas d'IA « automatique » vantée sans livraison.
+          onClick={() => set({ source: 'import' })}
         />
         <KwGateCard
           selected={data.source === 'magic'}

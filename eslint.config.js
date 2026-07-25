@@ -114,16 +114,14 @@ export default defineConfig([
       'src/components/kyc-report/**/*.{ts,tsx}',
       'src/pages/agent/**/*.{ts,tsx}',
     ]
-    // Surfaces différées (non encore bilingues : onboarding, premier jour, réseau
-    // inter-agences « en construction », signature de mandat vendeur). On les
-    // laisse en WARN — flaggées mais non bloquantes — jusqu'à leur migration.
+    // Surfaces différées (non encore bilingues : réseau inter-agences « en
+    // construction », signature de mandat vendeur). On les laisse en WARN —
+    // flaggées mais non bloquantes — jusqu'à leur migration.
     // NB : NetworkSugarV2Page vit sous pages/agent/ (verrouillé) mais reste « en
     // construction » → on la repasse en WARN ici (ce bloc vient après le bloc
     // verrouillé : pour ce fichier, le dernier match l'emporte).
     const deferredFamilies = [
       'src/components/seller-portal/**/*.{ts,tsx}',
-      'src/components/onboarding-sugar/**/*.{ts,tsx}',
-      'src/components/premier-jour-sugar/**/*.{ts,tsx}',
       'src/pages/agent/NetworkSugarV2Page.tsx',
       // MEGGA AI (Partie 1) — nouvelle surface FR-only, non encore bilingue.
       // WARN jusqu'à sa migration i18n (comme les familles ci-dessus). Ces globs
@@ -131,6 +129,12 @@ export default defineConfig([
       // bloc venant après le bloc verrouillé, le dernier match l'emporte → WARN.
       'src/components/ai-copilot/panel/**/*.{ts,tsx}',
       'src/components/crm-sugar/ai/**/*.{ts,tsx}',
+      // Refonte KYC (nouveau pager / vigie / fiche stricte / onboarding / import) —
+      // surface FR-first (« FR d'abord »), i18n bilingue différée comme ci-dessus.
+      // Plus spécifique que crm-sugar-v3/** et pages/agent/** → WARN (dernier match).
+      'src/components/crm-sugar-v3/kyc-pager/**/*.{ts,tsx}',
+      'src/components/crm-sugar-v3/kyc-wizard/KwStepImport.tsx',
+      'src/pages/agent/KycOnboardingPage.tsx',
     ]
     return [
       {

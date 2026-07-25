@@ -1,3 +1,8 @@
+/**
+ * Hooks React Query du tableau de bord facturation IA (super-admin).
+ * Lecture seule des tables d'usage et de solde alimentées par l'instrumentation IA
+ * (`ai_usage_logs`, `ai_balance_snapshots`). Agrège tokens/coûts par provider.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -22,6 +27,7 @@ export interface AIUsageDailyPoint {
   claude: number
 }
 
+/** Dernier instantané de solde DeepSeek (ligne la plus récente de `ai_balance_snapshots`). */
 export function useDeepSeekBalance() {
   return useQuery({
     queryKey: ['ai-billing', 'deepseek-balance'],
@@ -40,6 +46,7 @@ export function useDeepSeekBalance() {
   })
 }
 
+/** Agrège tokens et coûts d'usage IA sur la période (`month` = mois courant UTC, `30d` = 30 jours glissants). */
 export function useAIUsageSummary(period: 'month' | '30d' = 'month') {
   return useQuery({
     queryKey: ['ai-billing', 'usage-summary', period],
@@ -82,6 +89,7 @@ export function useAIUsageSummary(period: 'month' | '30d' = 'month') {
   })
 }
 
+/** Série journalière des tokens IA sur `days` jours, jours sans usage inclus à 0 (pour un graphe continu). */
 export function useAIUsageTimeseries(days = 30) {
   return useQuery({
     queryKey: ['ai-billing', 'timeseries', days],
@@ -115,6 +123,7 @@ export function useAIUsageTimeseries(days = 30) {
   })
 }
 
+/** Début du mois courant (jour 1, minuit) en ISO UTC. */
 function startOfMonthISO(): string {
   const now = new Date()
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()

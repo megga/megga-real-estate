@@ -64,6 +64,21 @@ jobs:
         # Baseline nettoyée (PR #848). Allowlist des gardes intentionnels dans le script.
         run: npm run lint:deadcode
 
+      - name: Roster edge functions (dérive tree ↔ monitoring)
+        # Garde-fou monitoring : src/lib/edgeFunctionRoster.ts est GÉNÉRÉ depuis
+        # supabase/functions/ ; échoue si une fonction est ajoutée/retirée sans
+        # régénérer (node scripts/check-edge-roster.mjs --write).
+        run: npm run lint:roster
+
+      - name: Migrations rejouables (idempotence)
+        # Garde-fou déploiement : deploy.yml rejoue TOUTE migration dont le stamp est
+        # >= TODAY (UTC), donc une migration mergée le jour de sa date est ré-appliquée
+        # à chaque push. Non idempotente, elle casse l'étape « Apply Supabase migrations »
+        # et BLOQUE le déploiement des edge functions pour la journée — en imputant la
+        # panne à la PR suivante, souvent sans rapport (incident du 19 juil. 2026, #889
+        # détecté sur #893, corrigé par #894). Allowlist historique dans le script.
+        run: npm run lint:migrations
+
       - name: Setup Deno
         # Edge Functions (supabase/functions/**) tournent sur Deno, pas Node : elles
         # échappent à tsc (exclu du build front) et à vitest (imports https: non résolus).

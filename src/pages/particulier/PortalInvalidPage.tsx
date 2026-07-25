@@ -1,3 +1,7 @@
+/**
+ * Écran d'accès refusé au portail vendeur (rendu par PortalGateway, pas de route propre).
+ * Trois motifs — introuvable / expiré / révoqué — chacun avec icône, titre et texte i18n.
+ */
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ShieldX, Clock, Ban } from 'lucide-react'
@@ -6,6 +10,7 @@ interface PortalInvalidPageProps {
   reason: 'not_found' | 'expired' | 'revoked'
 }
 
+/** Message d'accès invalide paramétré par `reason` (not_found | expired | revoked). */
 export default function PortalInvalidPage({ reason }: PortalInvalidPageProps) {
   const { t } = useTranslation('common')
   const config = {

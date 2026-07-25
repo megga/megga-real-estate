@@ -1,3 +1,11 @@
+/**
+ * Client de l'edge `ai-copilot` (MEGGA AI, DeepSeek) côté CRM.
+ *
+ * Deux transports : streaming SSE (tokens + phases d'outil temps réel) avec
+ * repli sur un appel JSON bloquant si le SSE échoue. Gère l'historique de
+ * conversation, la persistance serveur et les cartes de publication à valider
+ * (HITL, cf. `executePending`).
+ */
 import { useState, useCallback, useRef } from 'react'
 import { supabase, SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase'
 import { FunctionsHttpError } from '@supabase/supabase-js'
@@ -35,8 +43,7 @@ export interface CopilotStreamHandlers {
   onPendingAction?: (pending: PendingActionCard) => void
 }
 
-/* ─── Action detection from natural language ─── */
-
+/** Devine l'action copilote depuis le langage naturel du message (regex FR). Défaut : 'chat'. */
 function detectAction(message: string): CopilotAction {
   const lower = message.toLowerCase()
   if (/résumé|résume|profil|qui est|fiche/.test(lower)) return 'summarize_contact'
@@ -57,6 +64,7 @@ interface CopilotApiResult {
   pendingAction: PendingActionCard | null
 }
 
+/** Appel one-shot (JSON bloquant) de l'edge ai-copilot. Sert de repli quand le SSE échoue. */
 async function callCopilotApi(
   message: string,
   action: CopilotAction,
@@ -103,6 +111,12 @@ interface StreamOutcome {
   conversationId: string | null
 }
 
+/**
+ * Consomme le flux SSE de l'edge ai-copilot : tokens, phases d'outil et carte de
+ * publication en temps réel. Un timeout d'inactivité (AbortController) évite qu'une
+ * connexion half-open ne fige `isLoading` ; relance vers le repli JSON si le flux
+ * s'interrompt avant `done`.
+ */
 async function streamCopilotApi(
   message: string,
   action: CopilotAction,
@@ -241,8 +255,10 @@ async function streamCopilotApi(
   return { text, conversationId: box.convId }
 }
 
-/* ─── Hook ─── */
-
+/**
+ * Hook copilote : `sendMessageStream` (SSE + repli JSON), `sendMessage` (one-shot),
+ * `executePending` (validation HITL), et gestion de l'historique/conversation.
+ */
 export function useCopilot() {
   const [isLoading, setIsLoading] = useState(false)
   const historyRef = useRef<ChatMessage[]>([])

@@ -13,11 +13,16 @@
     "apartment": "Appartamento",
     "house": "Casa",
     "villa": "Villa",
-    "commercial": "Commerciale",
+    "commercial": "Commercial",
     "land": "Terreno",
     "office": "Office",
     "parking": "Parking / Garage",
-    "storage": "Storage / Cellar"
+    "storage": "Storage / Cellar",
+    "attic": "Penthouse",
+    "duplex": "Duplex",
+    "triplex": "Triplex",
+    "loft": "Loft",
+    "chalet": "Chalet"
   },
   "column": {
     "property": "Immobile",
@@ -529,6 +534,87 @@
       },
       "noRequests": "No request or match for this property.",
       "noHistory": "No event recorded."
+    },
+    "followUp": {
+      "title": "Da seguire",
+      "filter": {
+        "all": "Tutte le azioni",
+        "mandates": "Mandati",
+        "drafts": "Bozze",
+        "diffusion": "Da pubblicare"
+      },
+      "bucket": {
+        "mandates": "Mandati da rinnovare",
+        "drafts": "Bozze da completare",
+        "diffusion": "Da pubblicare su Immobilier.ch"
+      },
+      "expiresIn_one": "Scade tra {{count}} g",
+      "expiresIn_other": "Scade tra {{count}} g",
+      "photos_one": "{{count}} foto",
+      "photos_other": "{{count}} foto",
+      "meggaOnly": "Solo MEGGA",
+      "action": {
+        "renew": "Rinnova",
+        "complete": "Completa",
+        "publish": "Pubblica"
+      },
+      "priority": "Da trattare per prime",
+      "priorityFirst": "Da trattare per prima",
+      "mandateEcheance": "Mandato {{type}} · scadenza",
+      "viewOthers_one": "Vedi 1 altro",
+      "viewOthers_other": "Vedi altri {{count}}",
+      "reduce": "Riduci",
+      "empty": {
+        "title": "Tutto aggiornato",
+        "subtitle": "Nessun mandato da rinnovare, nessun annuncio in sospeso."
+      },
+      "emptyFirstRun": {
+        "title": "Ancora nulla da seguire",
+        "subtitle": "Le tue azioni appariranno qui dal primo mandato."
+      },
+      "expiredSince_one": "Scaduto da {{count}} g",
+      "expiredSince_other": "Scaduto da {{count}} g",
+      "expiresToday": "Scade oggi"
+    },
+    "renewModal": {
+      "title": "Rinnova il mandato",
+      "duration": "Durata del rinnovo",
+      "months_one": "{{count}} mese",
+      "months_other": "{{count}} mesi",
+      "newExpiry": "Nuova scadenza",
+      "commission": "Commissione",
+      "send": "Invia per la firma",
+      "delete": "Elimina annuncio",
+      "successTitle": "Mandato aggiornato",
+      "successBody": "La scadenza di {{title}} passa al {{date}}. Trasmetti il rinnovo al proprietario per la firma.",
+      "done": "Fatto",
+      "error": "Aggiornamento non riuscito. Riprova."
+    },
+    "deleteFlow": {
+      "confirmTitle": "Eliminare l'annuncio?",
+      "confirmBody": "{{title}} sarà eliminato. Questa azione è definitiva.",
+      "confirm": "Elimina",
+      "cancel": "Annulla",
+      "deleting": "Eliminazione…",
+      "deletedTitle": "Annuncio eliminato",
+      "deletedBody": "{{title}} è stato eliminato.",
+      "error": "Eliminazione non riuscita. Riprova."
+    },
+    "firstRun": {
+      "title": "I tuoi mandati,\nin un unico posto",
+      "step1": {
+        "title": "Crea l'immobile",
+        "sub": "A mano o importato da un annuncio esistente.\nMEGGA precompila la scheda."
+      },
+      "step2": {
+        "title": "Completa la scheda",
+        "sub": "Foto certificate, mandato, prezzo."
+      },
+      "step3": {
+        "title": "Pubblica",
+        "sub": "Su MEGGA con un clic."
+      },
+      "start": "Inizia"
     }
   },
   "detail": {
@@ -611,7 +697,6 @@
       "title": "Active buyers",
       "pipeline": "Pipeline",
       "buyerFallback": "Buyer",
-      "offerSuffix": " · offer {{amount}}",
       "matchAffinity": "MEGGA AI match · {{score}}% fit",
       "propose": "Propose",
       "kycNotice": "<0>KYC to complete</0> for a buyer, optional at this stage, required before signing.",
@@ -788,11 +873,12 @@
       "subtitle": "Three quick ways to start. You'll refine the content step by step afterwards.",
       "manual": {
         "title": "Enter manually",
-        "sub": "You fill in each section. Ideal when you know the property and have the details to hand."
+        "sub": "Section by section, you stay in control."
       },
       "import": {
         "title": "Import a mandate",
-        "sub": "Mandate PDF. MEGGA AI extracts the details to pre-fill the form."
+        "sub": "MEGGA AI extracts everything from the mandate PDF.",
+        "soon": "Soon"
       },
       "autosave": {
         "title": "Draft saved automatically",
@@ -802,8 +888,13 @@
         "title": "Resume a submission",
         "subtitle": "{{count}} owners have submitted their property. Select one to pre-fill.",
         "emptyTitle": "No submissions",
-        "emptyBody": "No owner has submitted a property yet.",
-        "unknownVendor": "Unknown seller"
+        "emptyBody": "No individual has submitted a property yet.",
+        "unknownVendor": "Unknown seller",
+        "subtitle_one": "1 individual has submitted their property.",
+        "subtitle_other": "{{count}} individuals have submitted their property.",
+        "selectVendor": "Select a seller",
+        "cap_one": "5 submissions shown at most; 1 older one in My properties.",
+        "cap_other": "5 submissions shown at most; {{count}} older ones in My properties."
       }
     },
     "step1": {
@@ -956,8 +1047,43 @@
         "cheminée": "Fireplace",
         "clim": "Air conditioning",
         "buanderie": "Laundry room",
-        "vue": "Open view"
-      }
+        "vue": "Open view",
+        "cheminee": "Fireplace",
+        "vue_lac": "Lake view",
+        "cuisine_agencee": "Fitted kitchen",
+        "dressing": "Walk-in closet",
+        "parquet": "Parquet flooring",
+        "reduit": "Storage room",
+        "cave_a_vin": "Wine cellar",
+        "pompe_chaleur": "Heat pump",
+        "solaire": "Solar panels",
+        "borne_recharge": "EV charging station",
+        "domotique": "Home automation",
+        "fibre": "Fibre optic",
+        "triple_vitrage": "Triple glazing",
+        "abri_pc": "Civil-defence shelter",
+        "velo": "Bike room",
+        "conciergerie": "Concierge service",
+        "plain_pied": "Single-storey",
+        "mansarde": "Converted attic",
+        "accessible_pmr": "Wheelchair access",
+        "animaux": "Pets allowed",
+        "meuble": "Furnished"
+      },
+      "q": {
+        "type": "What type of property?",
+        "surfaceHab": "What is the living area?",
+        "surfaceTerrain": "What is the land area?",
+        "surfaceCommerce": "What is the usable area?",
+        "rooms": "How many rooms?",
+        "year": "Year of construction?",
+        "energy": "Energy class?",
+        "features": "Amenities & highlights",
+        "details": "Property details"
+      },
+      "addFeature": "Add a highlight",
+      "customPlaceholder": "e.g. Sauna, bike storage…",
+      "removeFeature": "Remove"
     },
     "txBadge": {
       "sale": "For sale",
@@ -1045,7 +1171,21 @@
         "connecting": "Connecting…",
         "connect": "Connect my account",
         "readOnlyNote": "Read-only, MEGGA will import a copy. Your original files stay intact."
-      }
+      },
+      "count_one": "{{count}} photo",
+      "count_other": "{{count}} photos",
+      "tipFew": "8 to 12 photos = 3× more enquiries",
+      "tipMany": "Nice set, remember to vary the angles",
+      "dropTitle": "Drop your photos here",
+      "dropHint": "or click to browse · JPG, PNG · several at once",
+      "coverShort": "COVER",
+      "add": "Add",
+      "setCover": "Set as cover",
+      "crop": "Crop",
+      "delete": "Delete",
+      "cropTitle": "Crop the photo",
+      "cropHint": "Drag the frame or its corners to adjust.",
+      "aspectFree": "Free"
     },
     "step5": {
       "eyebrow": "Step 6 of 8 · Price & Description",
@@ -1066,15 +1206,19 @@
         "above": "Above",
         "farAbove": "Well above"
       },
-      "descTitle": "Then the description.",
+      "descTitle": "The description.",
       "descSubtitle": "A few enticing lines. Let MEGGA AI draft a first version, or write it yourself.",
       "ai": {
         "title": "MEGGA AI writes it for you",
         "hint": "Uses the type, surface area, rooms, features and municipality.",
         "thinking": "Thinking…",
-        "writing": "Writing…",
         "regenerate": "Regenerate",
-        "generate": "Generate"
+        "generate": "Generate",
+        "error": "La redazione AI non è riuscita. Riprova, o scrivi la descrizione manualmente.",
+        "promptRefine": "Refine: e.g. make it more premium, shorten…",
+        "promptAsk": "Ask MEGGA AI to write the description…",
+        "refine": "Refine",
+        "create": "Create"
       },
       "tone": {
         "neutre": "Neutral",
@@ -1082,17 +1226,24 @@
         "famille": "Family",
         "invest": "Investor"
       },
-      "descPlaceholder": "Write the property description here… or click Generate.",
+      "descPlaceholder": "Write the property description here… or generate a first draft with MEGGA AI.",
       "counter": {
         "chars_one": "{{count}} character",
         "chars_other": "{{count}} characters",
         "beforeMin_one": " · {{count}} before the minimum",
         "beforeMin_other": " · {{count}} before the minimum",
         "target": " · target {{target}}",
-        "ideal": " · ideal length ✓"
+        "ideal": " · ideal",
+        "zero": "0 characters",
+        "min": " · min. {{count}}"
       },
       "writtenByAi": "Written by MEGGA AI",
-      "editHint": "You can freely edit the generated text."
+      "editHint": "You can freely edit the generated text.",
+      "txSale": "Sale",
+      "txRent": "Rental",
+      "qSalePrice": "What sale price?",
+      "qMonthlyRent": "What monthly rent?",
+      "modify": "edit"
     },
     "step6": {
       "eyebrow": "Step 7 of 8 · Options",
@@ -1188,9 +1339,9 @@
         "public": "Public",
         "network": "MEGGA network",
         "private": "Private",
-        "publicDesc": "Visible on megga.ch and partner portals.",
+        "publicDesc": "Distributed on Immobilier.ch after verification.",
         "networkDesc": "Visible only to MEGGA agents.",
-        "privateDesc": "Visible only via a private link."
+        "privateDesc": "Visible only in your CRM and Matching."
       },
       "recap": {
         "title": "Summary",
@@ -1207,7 +1358,53 @@
         "simple": "Simple",
         "co": "Co-mandate"
       },
-      "urlSlugFallback": "new-listing"
+      "urlSlugFallback": "new-listing",
+      "readyTitle": "Ready to go live?",
+      "check": {
+        "address": "Property address",
+        "surface": "Surface area or number of rooms",
+        "photos": "At least 5 photos ({{count}}/5)",
+        "rent": "Monthly rent",
+        "price": "Sale price",
+        "description": "Listing description"
+      },
+      "checklist": {
+        "heading_one": "1 item to complete before publishing",
+        "heading_other": "{{count}} items to complete before publishing",
+        "hint": "You can also save as a draft and finish later.",
+        "complete": "Complete"
+      },
+      "mandateNote": "Mandate not signed: the listing will appear on MEGGA; Immobilier.ch distribution will start once it is signed.",
+      "cta": {
+        "schedule": "Schedule publication",
+        "draft": "Save draft",
+        "private": "Save privately",
+        "publishIdx": "Publish on Immobilier.ch",
+        "publishMegga": "Publish on MEGGA"
+      },
+      "blockedHint_one": "1 item to complete, or set When to Draft",
+      "blockedHint_other": "{{count}} items to complete, or set When to Draft",
+      "roomsWord": "rooms",
+      "spec": {
+        "surface": "Surface",
+        "rooms": "Rooms",
+        "bedrooms": "Bedrooms",
+        "bathrooms": "Bathrooms",
+        "floor": "Floor",
+        "year": "Year",
+        "charges": "Charges",
+        "epc": "EPC"
+      },
+      "descriptionLabel": "Description",
+      "featuresLabel": "Amenities",
+      "agentFallback": "Your agency",
+      "optionsTitle": "Publishing options",
+      "when": {
+        "now": "Now",
+        "schedule": "Schedule",
+        "draft": "Draft"
+      },
+      "draftNote": "The property stays as a draft in My properties; nothing is distributed."
     },
     "step8": {
       "eyebrow": {
@@ -1273,7 +1470,9 @@
       "publishError": "Publication failed: {{message}}",
       "unknownError": "Unknown error",
       "recommended": "Recommended",
-      "choose": "Choose"
+      "choose": "Choose",
+      "saved": "Saved",
+      "autosave": "Auto-saved"
     },
     "kyc": {
       "verified": "KYC verified",
@@ -1370,6 +1569,136 @@
         "p7": "View",
         "p8": "Floor plan"
       }
+    },
+    "step3b": {
+      "section": {
+        "info": "General information",
+        "surf": "Areas",
+        "pieces": "Rooms",
+        "ext": "Outdoor",
+        "park": "Parking",
+        "equip": "Amenities",
+        "imm": "Building",
+        "energy": "Heating & energy",
+        "lux": "Luxury features"
+      },
+      "reference": "Reference",
+      "auto": "Auto",
+      "availability": "Availability",
+      "renovYear": "Renovation year",
+      "renovYearPlaceholder": "e.g. 2018",
+      "charges": "Monthly charges",
+      "standing": {
+        "label": "Standing",
+        "standard": "Standard",
+        "hautDeGamme": "High-end",
+        "luxe": "Luxury",
+        "ultraLuxe": "Ultra-luxury"
+      },
+      "unit": {
+        "m2": "m²",
+        "chfMonth": "CHF/month",
+        "chf": "CHF"
+      },
+      "datePlaceholder": "Choose…",
+      "toAgree": "To be agreed",
+      "clear": "Clear",
+      "surf": {
+        "ppe": "Condominium area",
+        "hab": "Living area",
+        "utile": "Usable area",
+        "pond": "Weighted area",
+        "balc": "Balcony area",
+        "terr": "Terrace area",
+        "jard": "Private garden",
+        "terrain": "Land area"
+      },
+      "pieces": {
+        "chambres": "Bedrooms",
+        "sdb": "Bathrooms",
+        "wc": "Guest toilets"
+      },
+      "ext": {
+        "balcon": "Balcony",
+        "terrasse": "Terrace",
+        "jardin": "Garden",
+        "piscine": "Swimming pool",
+        "jacuzzi": "Jacuzzi",
+        "vueMontagne": "Mountain view",
+        "vueLac": "Lake view"
+      },
+      "expo": {
+        "label": "Exposure",
+        "sud": "South",
+        "sudOuest": "South-West",
+        "sudEst": "South-East",
+        "est": "East",
+        "ouest": "West",
+        "nord": "North"
+      },
+      "park": {
+        "int": "Indoor parking",
+        "ext": "Outdoor parking",
+        "garage": "Closed garage",
+        "box": "Lock-up garage",
+        "visit": "Visitor spaces",
+        "borne": "EV charging station"
+      },
+      "equip": {
+        "ascenseur": "Lift",
+        "clim": "Air conditioning",
+        "domotique": "Home automation",
+        "cheminee": "Fireplace",
+        "caveVin": "Wine cellar",
+        "alarme": "Alarm",
+        "video": "Video surveillance",
+        "concierge": "Concierge",
+        "pmr": "Wheelchair access"
+      },
+      "imm": {
+        "etage": "Floor",
+        "etagePlaceholder": "e.g. 3",
+        "floors": "Number of floors (building)",
+        "floorsPlaceholder": "e.g. 6",
+        "chargesPPE": "Condominium fees",
+        "fondsReno": "Renovation fund"
+      },
+      "energy": {
+        "heatLabel": "Heating type",
+        "heat": {
+          "pac": "Heat pump",
+          "gaz": "Gas",
+          "mazout": "Oil",
+          "pellets": "Pellets",
+          "electrique": "Electric",
+          "cad": "District heating"
+        },
+        "optionsLabel": "Options",
+        "floorHeat": "Underfloor heating",
+        "pv": "Photovoltaic panels",
+        "solarTherm": "Solar thermal",
+        "glazingLabel": "Glazing",
+        "glazing": {
+          "double": "Double glazing",
+          "triple": "Triple glazing"
+        }
+      },
+      "lux": {
+        "quai": "Private dock",
+        "ponton": "Pontoon",
+        "accesLac": "Lake access",
+        "sauna": "Sauna",
+        "hammam": "Hammam",
+        "piscInt": "Indoor pool",
+        "piscExt": "Outdoor pool",
+        "vue360": "360° view",
+        "accesSecu": "Secured access",
+        "domaine": "Gated estate"
+      }
+    },
+    "porte": {
+      "choose": "Choose",
+      "selected": "Selected"
     }
   },
   "gallery": {
@@ -1460,5 +1789,34 @@
       "price": "Prezzo e pubblicazione"
     },
     "chargesUnit": "CHF / mese"
+  },
+  "fiche": {
+    "offMarket": "Off-market",
+    "edit": {
+      "titleLabel": "Listing title",
+      "addressLabel": "Address"
+    },
+    "performance": {
+      "trendShort": "+{{percent}}%"
+    },
+    "buyers": {
+      "empty": "No buyer positioned yet."
+    },
+    "visits": {
+      "eyebrow": "Visits",
+      "none": "No visit scheduled."
+    },
+    "mandate": {
+      "renew": "Renew the mandate",
+      "renewToastTitle": "Mandate renewal",
+      "renewToastLine": "Prepare the renewal and hand it to the owner for signature."
+    },
+    "diffusion": {
+      "publish": "Publish",
+      "publicPreview": "View public listing",
+      "previewToastTitle": "Public preview",
+      "previewOnlineLine": "The listing is live on immobilier.ch.",
+      "previewOfflineLine": "The listing is not published publicly yet."
+    }
   }
 }

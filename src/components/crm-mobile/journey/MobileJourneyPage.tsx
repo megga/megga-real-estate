@@ -1,3 +1,7 @@
+/**
+ * Page mobile (route /dashboard/journey) : coque à onglets. L'UI et le câblage
+ * données vivent dans MobileJourneyScreen.
+ */
 import MobileShell from '../shell/MobileShell'
 import { MobileJourneyScreen } from './MobileJourneyScreen'
 

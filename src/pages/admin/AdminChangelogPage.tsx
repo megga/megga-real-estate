@@ -1,3 +1,11 @@
+/**
+ * Page super-admin — gestion du changelog produit.
+ *
+ * Route : `/changelog` (console admin.megga.ch) (accent violet). Liste des
+ * entrées avec création (modale) et suppression ; chaque entrée porte version,
+ * titre, contenu et un drapeau publié/brouillon (les brouillons ne sortent pas
+ * vers les utilisateurs finaux).
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, Megaphone, Eye, EyeOff } from 'lucide-react'
@@ -6,6 +14,7 @@ import { useChangelog } from '@/hooks/useChangelog'
 import Modal from '@/components/ui/modal'
 import AnnouncementsTab from '@/components/admin/AnnouncementsTab'
 
+/** Écran « Communication » : changelog public + annonces in-app ciblées (2 onglets). */
 type Tab = 'changelog' | 'announcements'
 
 export default function AdminCommunicationPage() {

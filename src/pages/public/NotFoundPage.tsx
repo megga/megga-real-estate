@@ -3,6 +3,8 @@
 
 import { Link } from 'react-router-dom'
 
+import { HELP_CENTER_URL } from '@/lib/help-articles'
+
 export default function NotFoundPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-theme-page px-6 text-center">
@@ -20,12 +22,14 @@ export default function NotFoundPage() {
         >
           Retour au tableau de bord
         </Link>
-        <Link
-          to="/help"
+        <a
+          href={HELP_CENTER_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className="rounded-lg px-4 py-2 text-sm font-medium text-theme-tertiary transition-colors hover:text-theme-primary"
         >
           Centre d'aide
-        </Link>
+        </a>
       </div>
     </div>
   )

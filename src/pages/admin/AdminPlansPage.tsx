@@ -1,3 +1,10 @@
+/**
+ * Page super-admin — plans et abonnements.
+ *
+ * Route : `/plans` (console admin.megga.ch) (accent violet). Grille
+ * comparative des plans (`PLANS`), tableau détaillé des fonctionnalités et
+ * gestion de l'abonnement par agence (changement de plan écrit sur `agencies`).
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CreditCard, Check, X, ChevronDown, Infinity as InfinityIcon } from 'lucide-react'
@@ -23,6 +30,7 @@ const PLAN_COLORS: Record<string, { header: string; badge: string }> = {
   },
 }
 
+/** Pastille colorée du plan d'une agence ; libellé résolu depuis `PLANS`. */
 function PlanBadge({ plan }: { plan: string }) {
   const normalized = (plan ?? 'starter').toLowerCase()
   const colors = PLAN_COLORS[normalized] ?? PLAN_COLORS.starter
@@ -34,6 +42,7 @@ function PlanBadge({ plan }: { plan: string }) {
   )
 }
 
+/** Menu de changement de plan d'une agence ; mutation directe sur `agencies.plan`. */
 function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; agencyId: string }) {
   const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
@@ -108,6 +117,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
   )
 }
 
+/** Vue principale : grille de plans, tableau des fonctionnalités et liste des agences. */
 export default function AdminPlansPage() {
   const { t } = useTranslation('admin')
   const { agencies, isLoading } = useAdminAgencies()

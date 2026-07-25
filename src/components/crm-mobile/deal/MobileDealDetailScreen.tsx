@@ -1,3 +1,7 @@
+/**
+ * Écran de détail d'un deal (mobile) : UI + câblage données, monté par
+ * MobileDealDetailPage.
+ */
 import { useState, type CSSProperties } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +21,7 @@ import { useSgToast } from '../primitives/useSgToast'
 
 type StageInput = Parameters<typeof mapTransactionStageToStepper>[0]
 
+/** Vue-modèle du deal : agrège transaction, acheteur, bien, KYC et offres pour le rendu. */
 export interface DealData {
   id?: string
   stage: StageInput
@@ -48,6 +53,7 @@ const STATUS_COLOR: Record<OfferStatus, string> = {
   withdrawn: '#7A8088',
 }
 
+/** Style d'un état centré (≥60 % de hauteur), réutilisé par les états chargement / erreur / introuvable. */
 function fullState(mono: string, font: string): CSSProperties {
   return { minHeight: '60dvh', display: 'grid', placeItems: 'center', padding: 32, textAlign: 'center', fontSize: 14, fontWeight: 600, color: mono, fontFamily: font }
 }

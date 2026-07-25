@@ -3,6 +3,7 @@ import {
   buildUserContent,
   serializeContext,
   resolveAuditEntity,
+  buildCopilotModelBody,
 } from './ai-copilot-request'
 
 const PROMPTS = {
@@ -64,5 +65,85 @@ describe('resolveAuditEntity (audit routing, free chat = no log)', () => {
       .toEqual({ entityType: 'property', entityId: 'p' })
     expect(resolveAuditEntity({ transaction_id: 't' }))
       .toEqual({ entityType: 'transaction', entityId: 't' })
+  })
+})
+
+// Frontière DeepSeek du copilote. Le trou fermé ici : copilot-redaction ne couvre que
+// message + contexte + historique, donc seul le PREMIER tour était propre — agent-loop
+// réinjecte les résultats d'outils tels quels, et get_contact_brief renvoie contacts.notes
+// (texte libre de l'agent). Ces tests épinglent la redaction AU POINT D'ÉTRANGLEMENT :
+// si quelqu'un retire redactLlmMessages de buildCopilotModelBody, ils tombent.
+describe('buildCopilotModelBody — redaction PII au point d’étranglement', () => {
+  const toolResult = (notes: string) => JSON.stringify({
+    contact: { id: '11111111-2222-3333-4444-555566667777', first_name: 'Marie', notes },
+  })
+
+  it('rédige le résultat d’outil réinjecté (le tour 2+ qui partait en clair)', () => {
+    const body = buildCopilotModelBody({
+      messages: [
+        { role: 'user', content: 'Fais-moi un brief sur Marie' },
+        { role: 'assistant', content: null, tool_calls: [{ id: 'c1', function: { name: 'get_contact_brief' } }] },
+        { role: 'tool', tool_call_id: 'c1', content: toolResult('Verse l’acompte sur CH93 0076 2011 6238 5295 7, AVS 756.1234.5678.90') },
+      ],
+    })
+    const sent = JSON.stringify(body.messages)
+    expect(sent).toContain('[REDACTED:IBAN]')
+    expect(sent).toContain('[REDACTED:AVS]')
+    expect(sent).not.toContain('CH93')
+    expect(sent).not.toContain('756.1234')
+    // Le travail CRM reste possible : prénom conservé.
+    expect(sent).toContain('Marie')
+  })
+
+  it('préserve les UUID — ce sont des clés fonctionnelles d’outils, pas des PII', () => {
+    const body = buildCopilotModelBody({
+      messages: [{ role: 'tool', tool_call_id: 'c1', content: toolResult('rien de sensible') }],
+    })
+    expect(JSON.stringify(body.messages)).toContain('11111111-2222-3333-4444-555566667777')
+  })
+
+  it('n’altère ni le message system, ni les contents non-string, ni les tool_calls', () => {
+    const messages = [
+      { role: 'system', content: 'Consignes : mot de passe: ne jamais divulguer' },
+      { role: 'assistant', content: null, tool_calls: [{ id: 'c1' }] },
+    ]
+    const body = buildCopilotModelBody({ messages })
+    const out = body.messages as Array<Record<string, unknown>>
+    expect(out[0].content).toBe(messages[0].content) // system exclu par conception
+    expect(out[1].content).toBeNull()
+    expect(out[1].tool_calls).toEqual([{ id: 'c1' }])
+  })
+
+  it('ne mute pas le tableau d’entrée (la boucle continue avec ses messages)', () => {
+    const original = { role: 'tool', tool_call_id: 'c1', content: 'IBAN CH93 0076 2011 6238 5295 7' }
+    const messages = [original]
+    buildCopilotModelBody({ messages })
+    expect(messages[0]).toBe(original)
+    expect(original.content).toBe('IBAN CH93 0076 2011 6238 5295 7')
+  })
+
+  it('idempotent : la redaction amont de copilot-redaction ne double-marque pas', () => {
+    const once = buildCopilotModelBody({ messages: [{ role: 'user', content: 'IBAN CH93 0076 2011 6238 5295 7' }] })
+    const first = (once.messages as Array<Record<string, unknown>>)[0].content
+    const twice = buildCopilotModelBody({ messages: [{ role: 'user', content: first }] })
+    expect((twice.messages as Array<Record<string, unknown>>)[0].content).toBe(first)
+  })
+
+  it('garde le câblage du catalogue d’outils (auto / none / absent)', () => {
+    const msgs = [{ role: 'user', content: 'salut' }]
+    expect(buildCopilotModelBody({ messages: msgs, tools: [{ t: 1 }], withTools: true }).tool_choice).toBe('auto')
+    expect(buildCopilotModelBody({ messages: msgs, tools: [{ t: 1 }], withTools: false }).tool_choice).toBe('none')
+    const noTools = buildCopilotModelBody({ messages: msgs, tools: null })
+    expect(noTools.tools).toBeUndefined()
+    expect(noTools.tool_choice).toBeUndefined()
+  })
+
+  it('conserve les paramètres de flux et le format JSON optionnel', () => {
+    const body = buildCopilotModelBody({ messages: [], responseFormat: 'json_object' })
+    expect(body.model).toBe('deepseek-chat')
+    expect(body.stream).toBe(true)
+    expect(body.stream_options).toEqual({ include_usage: true })
+    expect(body.max_tokens).toBe(2000)
+    expect(body.response_format).toEqual({ type: 'json_object' })
   })
 })

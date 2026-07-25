@@ -1,3 +1,8 @@
+/**
+ * Hook de création d'un lien de réception privé pour une sélection de matches
+ * (edge `buyer-reception-create`), à partager par WhatsApp ou lien copié. Zéro
+ * email : la mutation renvoie le token + l'URL publique `/reception/:token`.
+ */
 // Crée un lien de réception privé pour une sélection de matches (edge
 // buyer-reception-create), à partager par WhatsApp / lien copié. Zéro email.
 
@@ -17,6 +22,7 @@ export interface ReceptionLink {
   url: string
 }
 
+/** Mutation créant le lien de réception et composant l'URL publique via `window.location.origin`. */
 export function useCreateReceptionLink() {
   return useMutation({
     mutationFn: async ({ contactId, matchIds, channel }: CreateReceptionInput): Promise<ReceptionLink> => {

@@ -1,9 +1,17 @@
+/**
+ * Page publique — gestion d'une visite par l'acheteur (sans login).
+ *
+ * Route : `/visit/:id/edit` ; l'auth se fait via le `?token=` du lien (le `:id`
+ * n'est qu'affichage). Permet de reporter (choix date + créneau) ou d'annuler
+ * la visite ; l'agent est notifié. Machine à 4 états : view / reschedule /
+ * cancelled / rescheduled.
+ */
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CalendarDays, MapPin, Check, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePublicVisit, useRescheduleVisit, useCancelVisit } from '@/hooks/useVisits'
-import HomeStickyHeader from '@/components/home/HomeStickyHeader'
+import PublicPageHeader from '@/components/layout/PublicPageHeader'
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
 
@@ -23,7 +31,7 @@ export default function VisitManagePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <HomeStickyHeader alwaysShow />
+        <PublicPageHeader />
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
           <p className="text-sm text-gray-500">Chargement...</p>
@@ -35,7 +43,7 @@ export default function VisitManagePage() {
   if (!visit || !token) {
     return (
       <div className="min-h-screen bg-white">
-        <HomeStickyHeader alwaysShow />
+        <PublicPageHeader />
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <p className="text-xl font-semibold text-gray-900 mb-2">Lien invalide</p>
           <p className="text-sm text-gray-500">Ce lien de gestion de visite est expiré ou invalide.</p>
@@ -74,7 +82,7 @@ export default function VisitManagePage() {
   if (mode === 'cancelled') {
     return (
       <div className="min-h-screen bg-white">
-        <HomeStickyHeader alwaysShow />
+        <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <div className="h-12 w-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="h-6 w-6 text-red-500" />
@@ -89,7 +97,7 @@ export default function VisitManagePage() {
   if (mode === 'rescheduled') {
     return (
       <div className="min-h-screen bg-white">
-        <HomeStickyHeader alwaysShow />
+        <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <div className="h-12 w-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="h-6 w-6 text-emerald-600" />
@@ -104,7 +112,7 @@ export default function VisitManagePage() {
   if (visit.status === 'cancelled') {
     return (
       <div className="min-h-screen bg-white">
-        <HomeStickyHeader alwaysShow />
+        <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <p className="text-lg font-semibold text-gray-900">Cette visite a été annulée</p>
         </div>
@@ -114,7 +122,7 @@ export default function VisitManagePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <HomeStickyHeader alwaysShow />
+      <PublicPageHeader />
       <div className="max-w-md mx-auto px-4 py-12">
         {/* Visit summary card */}
         <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">

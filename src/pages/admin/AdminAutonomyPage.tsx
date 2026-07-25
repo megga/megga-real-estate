@@ -1,8 +1,17 @@
+/**
+ * Page super-admin — autonomie des agents IA.
+ *
+ * Route : `/autonomy` (console admin.megga.ch) (accent violet). Vue en
+ * lecture seule (observe-only) : par agent × outil, compteurs yes/no des décisions
+ * HITL et suggestion de reprise d'autonomie. N'exécute aucune action — la reprise
+ * reste un geste humain.
+ */
 import { useTranslation } from 'react-i18next'
 import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminAutonomy } from '@/hooks/useAdminAutonomy'
 
+/** Tableau des décisions d'autonomie ; met en évidence les lignes suggérant une reprise. */
 export default function AdminAutonomyPage() {
   const { t } = useTranslation('admin')
   const { data: rows = [], isLoading, error } = useAdminAutonomy()

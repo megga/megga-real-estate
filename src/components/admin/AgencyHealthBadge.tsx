@@ -1,3 +1,4 @@
+/** Pastille de santé d'agence : point coloré (vert/ambre/rouge) selon `level`, avec score optionnel. */
 import { cn } from '@/lib/utils'
 
 interface AgencyHealthBadgeProps {

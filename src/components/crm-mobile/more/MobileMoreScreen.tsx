@@ -1,3 +1,8 @@
+/**
+ * Écran « Plus » du CRM mobile (crm-mobile/more) — onglet de la barre inférieure
+ * regroupant profil, préférences (thème/langue) et accès aux écrans secondaires.
+ * Ouvre la feuille Notifications (MrNotifSheet).
+ */
 import { useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -26,6 +31,7 @@ const MORE_DESTS: MoreDest[] = [
   { labelKey: 'nav.settings', icon: 'settings', route: '/dashboard/settings' },
 ]
 
+/** Bascule segmentée (pilule) générique — sert aux réglages Apparence et Langue. */
 function Segment<T extends string>({
   options,
   value,

@@ -1,6 +1,13 @@
+/**
+ * Intégration calendrier Outlook (Microsoft Graph) via OAuth Azure.
+ * Statut de connexion + événements + mutations de synchro (connect/disconnect,
+ * push/update/remove d'une visite, sync complète) déléguées à l'Edge Function
+ * `outlook-calendar-sync`. Pendant de `useGoogleCalendar` pour le calendrier V3.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { calendarAuthMethod, calendarRedirectTo, type CalendarConnectOrigin } from '@/lib/calendarOauth'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 // ── Types ──
@@ -23,8 +30,7 @@ interface OutlookCalendarEventRaw {
   isAllDay?: boolean
 }
 
-// ── Convert Outlook event to CalendarEvent ──
-
+/** Mappe un événement Microsoft Graph brut vers le `CalendarEvent` interne (normalise le fuseau). */
 function outlookEventToCalendarEvent(oe: OutlookCalendarEventRaw): CalendarEvent {
   // Microsoft Graph returns dateTime without Z suffix for timezone-aware events
   const startStr = oe.start?.dateTime ?? ''
@@ -43,8 +49,11 @@ function outlookEventToCalendarEvent(oe: OutlookCalendarEventRaw): CalendarEvent
   }
 }
 
-// ── Hook ──
-
+/**
+ * Expose l'état de connexion Outlook, les événements du calendrier sur `dateRange`,
+ * et les actions de synchro (connect/disconnect, push d'une visite, sync complète).
+ * Toutes les mutations passent par l'Edge Function `outlook-calendar-sync`.
+ */
 export function useOutlookCalendar(dateRange?: { start: Date; end: Date }) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
@@ -91,17 +100,26 @@ export function useOutlookCalendar(dateRange?: { start: Date; end: Date }) {
   })
 
   // Connect Outlook Calendar (initiates OAuth via Azure provider)
-  function connectOutlookCalendar() {
-    supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        scopes: 'https://graph.microsoft.com/Calendars.ReadWrite offline_access User.Read',
-        redirectTo: `${window.location.origin}/auth/callback?outlook=1`,
-        queryParams: {
-          prompt: 'consent',
-        },
+  //
+  // Même règle que useGoogleCalendar : on lie l'identité au compte connecté
+  // (`linkIdentity`) au lieu de ré-authentifier la session, sauf si l'identité
+  // Azure est déjà celle du compte courant — auquel cas `signInWithOAuth` est
+  // sans risque de bascule et permet de re-consentir aux scopes Calendars.
+  // `from` = énumération d'écrans de retour, pas une URL (cf. useGoogleCalendar).
+  // Ne jette jamais ; exige « Manual linking » activé côté projet Supabase.
+  async function connectOutlookCalendar(opts?: { from?: CalendarConnectOrigin }): Promise<{ error: string | null }> {
+    const options = {
+      scopes: 'https://graph.microsoft.com/Calendars.ReadWrite offline_access User.Read',
+      redirectTo: calendarRedirectTo(window.location.origin, 'azure', opts?.from),
+      queryParams: {
+        prompt: 'consent',
       },
-    })
+    }
+    const { data: idData } = await supabase.auth.getUserIdentities()
+    const { error } = calendarAuthMethod('azure', idData?.identities) === 'reauth'
+      ? await supabase.auth.signInWithOAuth({ provider: 'azure', options })
+      : await supabase.auth.linkIdentity({ provider: 'azure', options })
+    return { error: error ? error.message : null }
   }
 
   // Disconnect Outlook Calendar

@@ -14,8 +14,6 @@ import { execSync } from 'node:child_process';
 // Fichiers entièrement exemptés (barrel/kits conservés volontairement).
 const ALLOW_FILES = new Set([
   'src/components/megga-x/index.ts',        // barrel re-exporté, consommé par MeggaXStyleGuidePage (lazy) — invisible pour ts-prune
-  'src/components/ui/PullToRefresh.tsx',     // kit UI conservé (réutilisable)
-  'src/components/ui/StaggerList.tsx',       // kit UI conservé (réutilisable)
 ]);
 
 // Symboles précis exemptés : `chemin:symbole`.

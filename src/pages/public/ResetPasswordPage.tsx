@@ -1,3 +1,10 @@
+/**
+ * Page publique — définition d'un nouveau mot de passe.
+ *
+ * Route : `/reset-password`. Atterrissage du lien Supabase Auth (la session de
+ * récupération est déjà établie par le token du mail) : le formulaire n'appelle
+ * que `updateUser({ password })`, puis redirige vers `/login` après 2 s.
+ */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Lock, Check, Loader2 } from 'lucide-react'

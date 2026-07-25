@@ -1,12 +1,11 @@
 // MEGGA CRM Sugar v2 — Settings · Sécurité — maquette « Sugar Pure » (bento).
 //
-// Layout BENTO (SecBentoBare) : colonne, gap 14, maxWidth 1040.
-//   1. HERO sombre (BentoSecurity2FA) : titre + verdict + SetRing + 2FA inline.
+// Layout BENTO : colonne, gap 14, maxWidth 1040.
+//   1. HERO sombre : titre + sous-titre.
 //   2. grille 1fr/1fr : carte Mot de passe (PwdVaultLight) + carte SSO.
 //   3. carte Sessions pleine largeur.
 //
 // CÂBLAGE RÉEL :
-//   - 2FA TOTP        → useMfaTotp (supabase.auth.mfa enroll/challenge/verify/unenroll)
 //   - Mot de passe    → useAuth().updatePassword / resetPassword (supabase.auth)
 //   - Appareils       → useUserDevices (table user_devices, RLS self)
 //   - SSO             → SSOConnectionsCard (useSsoIdentities)
@@ -14,36 +13,20 @@
 // Le hero est volontairement sombre (texte blanc) dans les deux thèmes :
 //   fond #0B0C0E en light, #16171F en dark — seule surface hors tokens clairs.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ui/Toast'
-import { SetIcon, SetRing } from './atoms'
+import { SetIcon } from './atoms'
 import { SET_PALETTE, SET_DARK } from './data'
 import { SSOConnectionsCard } from './SSOConnectionsCard'
-import { useMfaTotp } from '@/hooks/useMfaTotp'
 import { useUserDevices, type UserDevice } from '@/hooks/useUserDevices'
 
 const SET = SET_PALETTE
 
-// Tons explicites du hero sombre (constants — jamais sur fond clair).
-const TONE_OK = '#34C796'
-const TONE_WARN = '#F2B855'
-
 // Détection dark : SET_PALETTE est muté par applySetTheme avant le render ;
 // la card dark vaut #16171F (signal stable). Sert au fond du hero.
 const isDark = () => SET.card === SET_DARK.card
-
-// ════════════════════════════════════════════════════════════════════════
-//  Modèle de posture — 2FA off = 78 (Bon) / on = 100 (Excellent)
-//  verdictKey / actionLabelKey sont résolus via t() dans HeroSecurity.
-// ════════════════════════════════════════════════════════════════════════
-function secModel(twoFAOn: boolean) {
-  const score = twoFAOn ? 100 : 78
-  return twoFAOn
-    ? { score, verdictKey: 'security.posture.verdictExcellent', tone: TONE_OK, actions: 0, actionLabelKey: 'security.posture.fullyProtected' }
-    : { score, verdictKey: 'security.posture.verdictGood', tone: TONE_WARN, actions: 1, actionLabelKey: 'security.posture.oneActionRecommended' }
-}
 
 // ════════════════════════════════════════════════════════════════════════
 //  Force d'un mot de passe (0–4) — barème de la maquette
@@ -768,438 +751,12 @@ const ghostInline: React.CSSProperties = {
   boxShadow: `inset 0 0 0 1px ${SET.line}`,
 }
 
-// ════════════════════════════════════════════════════════════════════════
-//  Saisie code 6 cases (sur fond sombre du hero)
-// ════════════════════════════════════════════════════════════════════════
-function CodeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const refs = useRef<(HTMLInputElement | null)[]>([])
-  const set = (i: number, v: string) => {
-    const d = v.replace(/\D/g, '').slice(-1)
-    const next = value.split('')
-    next[i] = d
-    const joined = next.join('').slice(0, 6)
-    onChange(joined)
-    if (d && i < 5) refs.current[i + 1]?.focus()
-  }
-  const onKey = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !value[i] && i > 0) refs.current[i - 1]?.focus()
-  }
-  return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      {[0, 1, 2, 3, 4, 5].map(i => (
-        <input
-          key={i}
-          ref={el => {
-            refs.current[i] = el
-          }}
-          value={value[i] || ''}
-          onChange={e => set(i, e.target.value)}
-          onKeyDown={e => onKey(i, e)}
-          inputMode="numeric"
-          maxLength={1}
-          style={{
-            width: 44,
-            height: 54,
-            textAlign: 'center',
-            fontFamily: 'inherit',
-            fontSize: 22,
-            fontWeight: 700,
-            color: '#fff',
-            background: 'rgba(255,255,255,0.06)',
-            border: 0,
-            borderRadius: 13,
-            outline: 'none',
-            boxShadow: `inset 0 0 0 1.5px ${value[i] ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.12)'}`,
-            transition: 'box-shadow .15s',
-          }}
-        />
-      ))}
-    </div>
-  )
-}
 
 // ════════════════════════════════════════════════════════════════════════
-//  CARTE 2FA — embed dans le hero sombre. idle → scan → verify → done.
-//  Câblage réel via useMfaTotp (enroll/challenge+verify/unenroll), hook LEVÉ
-//  dans SecuritySection pour que le score du hero suive `isEnabled` sans
-//  effet de synchronisation (l'étape « done » est dérivée de l'état réel).
+//  HERO sombre — titre + sous-titre de la page Sécurité
 // ════════════════════════════════════════════════════════════════════════
-function TwoFACard({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
+function HeroSecurity() {
   const { t } = useTranslation('settings')
-  const { isEnabled, isLoading, enroll, verify, disable, qr, secret, error } = mfa
-  // `flow` ne porte QUE le parcours d'enrôlement ; l'état « done » vient du
-  // hook (isEnabled). On dérive donc l'étape affichée sans miroir d'état.
-  const [flow, setFlow] = useState<'idle' | 'scan' | 'verify'>('idle')
-  const [code, setCode] = useState('')
-  const [acting, setActing] = useState(false)
-  const valid = code.length === 6
-  const step: 'idle' | 'scan' | 'verify' | 'done' = isEnabled ? 'done' : flow
-
-  const ghostBtn: React.CSSProperties = {
-    height: 44,
-    padding: '0 18px',
-    borderRadius: 999,
-    background: 'transparent',
-    border: 0,
-    boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.18)',
-    color: 'rgba(255,255,255,0.85)',
-    fontFamily: 'inherit',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-  }
-  const whiteBtn = (enabled: boolean): React.CSSProperties => ({
-    height: 44,
-    padding: '0 22px',
-    borderRadius: 999,
-    border: 0,
-    background: enabled ? '#fff' : 'rgba(255,255,255,0.15)',
-    color: enabled ? '#0B0C0E' : 'rgba(255,255,255,0.4)',
-    fontFamily: 'inherit',
-    fontSize: 13.5,
-    fontWeight: 700,
-    cursor: enabled ? 'pointer' : 'not-allowed',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 8,
-    boxShadow: enabled ? '0 6px 16px rgba(0,0,0,0.25)' : 'none',
-    transition: 'background .2s, color .2s',
-  })
-
-  const startEnroll = async () => {
-    setActing(true)
-    const ok = await enroll()
-    setActing(false)
-    if (ok) setFlow('scan')
-  }
-  const submitCode = async () => {
-    if (!valid) return
-    setActing(true)
-    const ok = await verify(code)
-    setActing(false)
-    if (ok) {
-      // verify() bascule isEnabled→true dans le hook : l'étape « done » est
-      // dérivée automatiquement. On nettoie juste la saisie + le parcours.
-      setCode('')
-      setFlow('idle')
-    }
-  }
-  const turnOff = async () => {
-    setActing(true)
-    await disable()
-    setActing(false)
-    setFlow('idle')
-  }
-
-  return (
-    <div style={{ position: 'relative' }}>
-      {/* En-tête partagé */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            flexShrink: 0,
-            background: step === 'done' ? TONE_OK : 'rgba(255,255,255,0.1)',
-            display: 'grid',
-            placeItems: 'center',
-            transition: 'background .25s',
-          }}
-        >
-          <SetIcon name={step === 'done' ? 'check' : 'shield'} size={20} stroke="#fff" sw={1.9} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, letterSpacing: -0.3, color: '#fff' }}>
-              {t('security.twoFactor.title')}
-            </h3>
-            {step === 'done' ? (
-              <span
-                style={{
-                  height: 22,
-                  padding: '0 9px',
-                  borderRadius: 999,
-                  background: TONE_OK,
-                  color: '#04210f',
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  letterSpacing: 0.2,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                }}
-              >
-                {t('security.twoFactor.badgeEnabled')}
-              </span>
-            ) : (
-              <span
-                style={{
-                  height: 22,
-                  padding: '0 9px',
-                  borderRadius: 999,
-                  background: TONE_WARN,
-                  color: '#1a1205',
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  letterSpacing: 0.2,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                }}
-              >
-                {t('security.twoFactor.badgeRecommended')}
-              </span>
-            )}
-          </div>
-          {step !== 'idle' && (
-            <p
-              style={{
-                margin: '5px 0 0',
-                fontSize: 13,
-                color: 'rgba(255,255,255,0.62)',
-                fontWeight: 500,
-                lineHeight: 1.5,
-              }}
-            >
-              {step === 'scan' && t('security.twoFactor.stepScan')}
-              {step === 'verify' && t('security.twoFactor.stepVerify')}
-              {step === 'done' && t('security.twoFactor.stepDone')}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Erreur honnête (MFA non activé projet, code invalide, etc.) */}
-      {error && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 9,
-            padding: '11px 13px',
-            borderRadius: 12,
-            background: 'rgba(242,184,85,0.12)',
-            boxShadow: 'inset 0 0 0 1px rgba(242,184,85,0.30)',
-            marginBottom: 16,
-          }}
-        >
-          <SetIcon name="info" size={14} stroke={TONE_WARN} sw={2} />
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 500, lineHeight: 1.5 }}>{error}</div>
-        </div>
-      )}
-
-      {/* IDLE */}
-      {step === 'idle' && (
-        <>
-          <div
-            style={{
-              padding: 18,
-              borderRadius: 18,
-              background: 'rgba(255,255,255,0.06)',
-              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.09)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 16,
-              alignSelf: 'flex-start',
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                flexShrink: 0,
-                background: '#fff',
-                display: 'grid',
-                placeItems: 'center',
-              }}
-            >
-              <SetIcon name="shield" size={22} stroke="#0B0C0E" sw={1.8} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: -0.2, color: '#fff', whiteSpace: 'nowrap' }}>
-                {t('security.twoFactor.authenticatorApp')}
-              </span>
-              <div style={{ display: 'flex', gap: 6, marginTop: 9, flexWrap: 'wrap' }}>
-                {['Google Authenticator', 'Authy', '1Password'].map(a => (
-                  <span
-                    key={a}
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: 'rgba(255,255,255,0.62)',
-                      padding: '3px 9px',
-                      borderRadius: 999,
-                      background: 'rgba(255,255,255,0.07)',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {a}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
-            <button onClick={startEnroll} disabled={acting || isLoading} style={whiteBtn(!acting && !isLoading)}>
-              {acting ? t('security.twoFactor.preparing') : t('security.twoFactor.enable')}
-              {!acting && <SetIcon name="arrowR" size={14} stroke="#0B0C0E" sw={2.2} />}
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* SCAN — QR réel du hook */}
-      {step === 'scan' && (
-        <div style={{ animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both', paddingLeft: 54 }}>
-          <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div
-              style={{
-                padding: 12,
-                background: '#fff',
-                borderRadius: 18,
-                flexShrink: 0,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-                width: 156,
-                height: 156,
-                display: 'grid',
-                placeItems: 'center',
-              }}
-            >
-              {qr ? (
-                <img src={qr} alt={t('security.twoFactor.qrAlt')} width={132} height={132} style={{ display: 'block' }} />
-              ) : (
-                <span style={{ fontSize: 12, color: '#5F6368', fontWeight: 600 }}>{t('security.twoFactor.qrUnavailable')}</span>
-              )}
-            </div>
-            <div style={{ flex: '1 1 200px', minWidth: 180, maxWidth: 360 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: 0.6,
-                  textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.45)',
-                  marginBottom: 8,
-                }}
-              >
-                {t('security.twoFactor.manualEntry')}
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '11px 13px',
-                  borderRadius: 12,
-                  background: 'rgba(255,255,255,0.06)',
-                  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
-                }}
-              >
-                <span
-                  style={{
-                    flex: 1,
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    letterSpacing: 1,
-                    color: '#fff',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  {secret ?? '—'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <button onClick={() => setFlow('idle')} style={ghostBtn}>
-              {t('common:actions.cancel')}
-            </button>
-            <button onClick={() => setFlow('verify')} style={whiteBtn(true)}>
-              {t('security.twoFactor.scanned')} <SetIcon name="arrowR" size={14} stroke="#0B0C0E" sw={2.2} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* VERIFY */}
-      {step === 'verify' && (
-        <div style={{ animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both' }}>
-          <CodeInput value={code} onChange={setCode} />
-          <p style={{ margin: '14px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500, lineHeight: 1.5 }}>
-            {t('security.twoFactor.codeCaption')}
-          </p>
-          <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <button
-              onClick={() => {
-                setCode('')
-                setFlow('scan')
-              }}
-              style={ghostBtn}
-            >
-              {t('common:actions.back')}
-            </button>
-            <button onClick={submitCode} disabled={!valid || acting} style={whiteBtn(valid && !acting)}>
-              {acting ? t('security.twoFactor.verifying') : t('security.twoFactor.verifyEnable')}
-              {!acting && <SetIcon name="check" size={15} stroke={valid ? '#0B0C0E' : 'rgba(255,255,255,0.4)'} sw={2.2} />}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* DONE */}
-      {step === 'done' && (
-        <div
-          style={{
-            animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            padding: '16px 16px',
-            borderRadius: 16,
-            background: 'rgba(255,255,255,0.06)',
-            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
-          }}
-        >
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 11,
-              flexShrink: 0,
-              background: 'rgba(255,255,255,0.08)',
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            <SetIcon name="shield" size={18} stroke="#fff" sw={1.7} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.1, color: '#fff' }}>
-              {t('security.twoFactor.authenticatorApp')}
-            </div>
-            <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', fontWeight: 500, marginTop: 3 }}>
-              {t('security.twoFactor.configuredPrimary')}
-            </div>
-          </div>
-          <button onClick={turnOff} disabled={acting} style={ghostBtn}>
-            {acting ? '…' : t('security.twoFactor.disable')}
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  HERO sombre — titre + verdict + SetRing + 2FA inline
-// ════════════════════════════════════════════════════════════════════════
-function HeroSecurity({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
-  const { t } = useTranslation('settings')
-  // Le score suit l'état réel de la 2FA (isEnabled) — pas de state miroir.
-  const { score, verdictKey, tone, actions, actionLabelKey } = secModel(mfa.isEnabled)
-  const verdict = t(verdictKey)
-  const actionLabel = t(actionLabelKey)
   const heroBg = isDark() ? '#16171F' : '#0B0C0E'
   return (
     <div
@@ -1213,65 +770,23 @@ function HeroSecurity({ mfa }: { mfa: ReturnType<typeof useMfaTotp> }) {
         overflow: 'hidden',
       }}
     >
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 28,
-          flexWrap: 'wrap',
-        }}
-      >
-        <div style={{ minWidth: 260 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
-          <p
-            style={{
-              margin: '8px 0 0',
-              fontSize: 13.5,
-              color: 'rgba(255,255,255,0.6)',
-              fontWeight: 500,
-              lineHeight: 1.5,
-              maxWidth: 440,
-            }}
-          >
-            {t('security.hero.subtitleLine1')}
-            <br />
-            {t('security.hero.subtitleLine2')}
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.6, transition: 'color .3s' }}>{verdict}</div>
-            <div
-              style={{
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: tone,
-                marginTop: 4,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <SetIcon name={actions > 0 ? 'alert' : 'check'} size={13} stroke={tone} sw={2} /> {actionLabel}
-            </div>
-          </div>
-          <SetRing
-            value={score}
-            size={100}
-            sw={10}
-            showPercent
-            centerSuffix=""
-            tone={tone}
-            trackColor="rgba(255,255,255,0.12)"
-            centerColor="#fff"
-            checkAt100={false}
-          />
-        </div>
+      <div style={{ minWidth: 260 }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -0.8 }}>{t('security.hero.title')}</h1>
+        <p
+          style={{
+            margin: '8px 0 0',
+            fontSize: 13.5,
+            color: 'rgba(255,255,255,0.6)',
+            fontWeight: 500,
+            lineHeight: 1.5,
+            maxWidth: 440,
+          }}
+        >
+          {t('security.hero.subtitleLine1')}
+          <br />
+          {t('security.hero.subtitleLine2')}
+        </p>
       </div>
-      <div style={{ position: 'relative', height: 1, background: 'rgba(255,255,255,0.1)', margin: '26px 0 24px' }} />
-      <TwoFACard mfa={mfa} />
     </div>
   )
 }
@@ -1600,10 +1115,6 @@ function SessionsCard() {
 //  SECTION — bento (colonne, gap 14, maxWidth 1040)
 // ════════════════════════════════════════════════════════════════════════
 export function SecuritySection() {
-  // Hook MFA LEVÉ ici : partagé entre le hero (score 78 → 100 selon isEnabled)
-  // et la carte 2FA embarquée — une seule source de vérité, zéro state miroir.
-  const mfa = useMfaTotp()
-
   return (
     <div
       style={{
@@ -1616,7 +1127,7 @@ export function SecuritySection() {
         animation: 'setFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
       }}
     >
-      <HeroSecurity mfa={mfa} />
+      <HeroSecurity />
 
       <div
         style={{

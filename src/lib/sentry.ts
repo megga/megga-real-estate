@@ -1,3 +1,10 @@
+/**
+ * Initialisation Sentry (monitoring erreurs + session replay) du frontend.
+ *
+ * Scrub obligatoire des tokens secrets (/kyc/<token>, /portail/<token>) et query
+ * strings avant tout envoi au tiers Sentry (cf. audit S27) ; PII désactivée,
+ * replay masqué. `initSentry()` est idempotent (appelé une fois au boot).
+ */
 import * as Sentry from '@sentry/react'
 
 // Sentry DSN is public by design — it identifies the project to send events to
@@ -16,6 +23,7 @@ function scrubSecretUrl(u: string): string {
   return u.replace(/\/(kyc|portail)\/[^/?#]+/gi, '/$1/[redacted]').replace(/[?#].*$/, '')
 }
 
+/** Configure et démarre Sentry (idempotent). No-op si déjà initialisé ou DSN absent. */
 export function initSentry() {
   if (sentryInitialized || !SENTRY_DSN) return
 
@@ -71,11 +79,13 @@ export function initSentry() {
   sentryInitialized = true
 }
 
+/** Associe l'utilisateur courant aux événements Sentry (id + email optionnel). */
 export function identifySentryUser(userId: string, email?: string) {
   if (!sentryInitialized) return
   Sentry.setUser({ id: userId, ...(email ? { email } : {}) })
 }
 
+/** Dissocie l'utilisateur des événements Sentry (à la déconnexion). */
 export function clearSentryUser() {
   if (!sentryInitialized) return
   Sentry.setUser(null)

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/lib/supabase'
 import { BENTO_GLOBAL_CSS, bentoTokens } from './tokens'
 import { BentoLogoGG } from './primitives'
 import { BentoPortalToggle, BentoThemeToggle, type Portail } from './toggles'
@@ -15,7 +14,6 @@ import {
 } from './BentoFormCard'
 import { logAuthEvent } from './auditLog'
 import { useIsMobile } from './useIsMobile'
-import { executeCaptcha, resetCaptcha } from '@/lib/captcha'
 
 // ─── Theme persistence (cookie megga.theme) ──────────────────────────
 
@@ -58,15 +56,11 @@ export type AuthRoute =
   | { portail: 'agent'; etat: 'reset' }
   | { portail: 'agent'; etat: 'resetsent' }
   | { portail: 'agent'; etat: 'setNewPassword' }
-  | { portail: 'agent'; etat: 'mfa' }
 
 export function AuthBentoApp({
   route,
-  onVerified,
 }: {
   route: AuthRoute
-  /** Appelé quand le step-up 2FA (etat 'mfa') a réussi — utilisé par le gate. */
-  onVerified?: () => void
 }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -94,12 +88,20 @@ export function AuthBentoApp({
   }
 
   // ─── Supabase handlers ────────────────────────────────────────────
+  //
+  // ⚠ Seuls `onSetNewPassword` et `onBackToSignIn` sont encore atteignables :
+  // depuis le pivot CRM-first, la seule route vivante montant cet écran est
+  // /auth/forgot-password/reset ; toutes les autres redirigent vers la vitrine
+  // (VitrineLoginRedirect dans App.tsx), qui porte le vrai formulaire d'auth.
+  // Les handlers restants n'envoient donc PLUS de token captcha — Supabase Auth
+  // exigeant un captcha, les réactiver tels quels échouerait en `captcha_failed`.
+  // Toute résurrection d'un écran d'auth in-app doit d'abord se doter d'un
+  // captcha (voir sites/megga-vitrine/js/megga-auth.js pour l'implémentation
+  // vivante, et son piège : les callbacks Turnstile sont figés au render()).
 
   const handlers: AuthHandlers = {
     onMagicLink: async (email) => {
-      const captchaToken = await executeCaptcha()
-      const { error } = await auth.signInWithEmail(email, captchaToken)
-      resetCaptcha()
+      const { error } = await auth.signInWithEmail(email)
       if (error) {
         await logAuthEvent('magic_link.failure', { detail: error })
         navigate(`/auth/login/error?reason=${encodeURIComponent('rate_limited')}`, {
@@ -114,9 +116,7 @@ export function AuthBentoApp({
     },
     onResend: async () => {
       if (!currentEmail) return
-      const captchaToken = await executeCaptcha()
-      const { error } = await auth.signInWithEmail(currentEmail, captchaToken)
-      resetCaptcha()
+      const { error } = await auth.signInWithEmail(currentEmail)
       await logAuthEvent(error ? 'magic_link.failure' : 'magic_link.sent', {
         detail: error ?? 'resend',
       })
@@ -127,9 +127,7 @@ export function AuthBentoApp({
         navigate('/auth/login', { replace: true })
         return
       }
-      const captchaToken = await executeCaptcha()
-      const { error } = await auth.signInWithEmail(currentEmail, captchaToken)
-      resetCaptcha()
+      const { error } = await auth.signInWithEmail(currentEmail)
       await logAuthEvent(error ? 'magic_link.failure' : 'magic_link.sent', {
         detail: error ?? 'retry',
       })
@@ -138,9 +136,7 @@ export function AuthBentoApp({
       })
     },
     onSignin: async (email, password) => {
-      const captchaToken = await executeCaptcha()
-      const { error } = await auth.signInWithPassword(email, password, captchaToken)
-      resetCaptcha()
+      const { error } = await auth.signInWithPassword(email, password)
       if (error) {
         await logAuthEvent('signin.failure', { detail: error })
         return { ok: false }
@@ -149,9 +145,7 @@ export function AuthBentoApp({
       return { ok: true }
     },
     onSignup: async ({ name, email, password }) => {
-      const captchaToken = await executeCaptcha()
-      const { error } = await auth.signUp(email, password, name.trim(), 'agent', captchaToken)
-      resetCaptcha()
+      const { error } = await auth.signUp(email, password, name.trim(), 'agent')
       if (error) {
         await logAuthEvent('signup.failure', { detail: error })
         return
@@ -163,18 +157,14 @@ export function AuthBentoApp({
       )
     },
     onResendVerification: async (email) => {
-      const captchaToken = await executeCaptcha()
-      const { error } = await auth.signInWithEmail(email, captchaToken)
-      resetCaptcha()
+      const { error } = await auth.signInWithEmail(email)
       await logAuthEvent(error ? 'magic_link.failure' : 'magic_link.sent', {
         detail: error ?? 'resend-verification',
       })
     },
     onBackToSignup: () => navigate('/auth/signup', { replace: true }),
     onResetRequest: async (email) => {
-      const captchaToken = await executeCaptcha()
-      const { error } = await auth.resetPassword(email, captchaToken)
-      resetCaptcha()
+      const { error } = await auth.resetPassword(email)
       await logAuthEvent(
         error ? 'password.reset_failure' : 'password.reset_requested',
         { detail: error ?? undefined },
@@ -208,34 +198,6 @@ export function AuthBentoApp({
     onGoSignUp: () => navigate('/auth/signup', { replace: true }),
     onGoSignIn: () => navigate('/auth/login?pro', { replace: true }),
     onBackToSignIn: () => navigate('/auth/login?pro', { replace: true }),
-    // Step-up 2FA au login : intervient APRÈS la session AAL1 (signInWithPassword
-    // n'est pas touché). Challenge + verify du facteur TOTP vérifié → AAL2.
-    onMfaVerify: async (code) => {
-      try {
-        const { data: factors, error: lErr } = await supabase.auth.mfa.listFactors()
-        if (lErr) throw lErr
-        const totp = (factors?.all ?? []).find(
-          (f) => f.factor_type === 'totp' && f.status === 'verified',
-        )
-        if (!totp) return { ok: false }
-        const { data: ch, error: cErr } = await supabase.auth.mfa.challenge({ factorId: totp.id })
-        if (cErr) throw cErr
-        const { error: vErr } = await supabase.auth.mfa.verify({
-          factorId: totp.id,
-          challengeId: ch.id,
-          code,
-        })
-        if (vErr) return { ok: false }
-        onVerified?.()
-        return { ok: true }
-      } catch {
-        return { ok: false }
-      }
-    },
-    onMfaCancel: async () => {
-      await auth.signOut()
-      navigate('/auth/login?pro', { replace: true })
-    },
   }
 
   return (

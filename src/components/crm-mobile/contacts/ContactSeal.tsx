@@ -1,3 +1,4 @@
+/** Badge SVG « sceau KYC vérifié » — utilisé dans la liste et la fiche contact mobile. */
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 

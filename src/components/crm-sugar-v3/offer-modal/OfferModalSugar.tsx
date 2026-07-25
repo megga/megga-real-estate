@@ -12,7 +12,7 @@
 //
 // Réutilisé par :
 //   - OfferModalSugarV3Page (route /dashboard/transactions/:id/offre/:kind, plein écran)
-//   - DealDetailSugarV3Page (embarquée `contained` dans le bento de la fiche)
+//   - DealDetailSugarV4Page (embarquée `contained` dans le bento de la fiche)
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'

@@ -29,7 +29,9 @@ import {
   useAtelierMatching,
   type GesteContext,
 } from '@/hooks/useAtelierMatching'
+import { useAgencyProperties } from '@/hooks/useProperties'
 import AtelierStage from '@/components/matching-atelier/AtelierStage'
+import MatchingFirstRun from '@/components/matching-atelier/MatchingFirstRun'
 import { useSugarDark } from '@/components/matching-atelier/useSugarDark'
 import { PendingRegistry, type AtelierGestes } from '@/components/matching-atelier/pendingTriage'
 import type { AtelierBuyer, AtelierListing } from '@/components/matching-atelier/types'
@@ -37,7 +39,12 @@ import { useToast } from '@/components/ui/Toast'
 import '@/components/matching-atelier/atelier.css'
 
 export default function MatchingAtelierPage(
-  { embedded = false, dark: darkOverride }: { embedded?: boolean; dark?: boolean } = {},
+  { embedded = false, dark: darkOverride, onOpenRecherche }: {
+    embedded?: boolean
+    dark?: boolean
+    /** glisse le pager vers la page Recherche — fourni par MatchingPagerPage seul */
+    onOpenRecherche?: () => void
+  } = {},
 ) {
   const { t } = useTranslation('matching')
   const toast = useToast()
@@ -49,6 +56,17 @@ export default function MatchingAtelierPage(
   const dark = darkOverride ?? darkAuto
   const { user, profile } = useAuth()
   const { isLoading, isError, pivots, pivotByKey, defaultPivotKey, poolFor, buyerFor, refresh } = useAtelierMatching()
+
+  // ── « compte neuf » vs « rien à trier » ────────────────────────────────
+  // Deux écrans DISTINCTS dans le handoff : la couverture explique la boucle de
+  // match à une agence qui n'a encore aucun mandat (le scan ne peut rien
+  // produire), l'état vide du triptyque s'adresse à une agence équipée dont le
+  // moteur n'a simplement rien proposé. Le flag `window.__matchingFresh` du
+  // prototype est remplacé par le signal réel : zéro bien ET zéro match.
+  const { data: properties = [], isLoading: biensLoading, isError: biensError } = useAgencyProperties()
+  const fresh =
+    !isLoading && !isError && !biensLoading && !biensError &&
+    pivots.length === 0 && properties.length === 0
 
   // ── pivots (annonce ?annonce= · acheteur ?contact=) ─────────────────────
   const annonceParam = searchParams.get('annonce')
@@ -141,6 +159,15 @@ export default function MatchingAtelierPage(
     setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams])
 
+  // Bascule d'annonce depuis le cockpit — même canal que le deep-link `?annonce=`,
+  // pour qu'un partage d'URL rejoue exactement la file affichée.
+  const pickPivot = useCallback((key: string) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('annonce', key)
+    next.delete('contact')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
   const closeBuyerPivot = useCallback(() => {
     const next = new URLSearchParams(searchParams)
     next.delete('contact')
@@ -170,6 +197,12 @@ export default function MatchingAtelierPage(
 
   const pool = pivotBuyer ? poolFor(pivotBuyer.id, pivotKey) : []
 
+  // Couverture premier lancement — remplace la page 0 du pager (le reste du
+  // pager, dont la Recherche, demeure accessible).
+  if (fresh) {
+    return <MatchingFirstRun onCreateListing={() => navigate('/dashboard/listings/new')} />
+  }
+
   return (
     <AtelierStage
       key={errorKey /* une erreur post-flush rafraîchit l'étage (rows réelles) */}
@@ -179,6 +212,9 @@ export default function MatchingAtelierPage(
       isError={isError}
       onRetry={refresh}
       pivot={pivot}
+      pivots={pivots}
+      onPickPivot={pickPivot}
+      onOpenRecherche={onOpenRecherche}
       pivotBuyer={pivotBuyer}
       pool={pool}
       poolCountFor={contactId => poolFor(contactId, pivotKey).length}
@@ -188,6 +224,7 @@ export default function MatchingAtelierPage(
       onOpenBuyerPivot={openBuyerPivot}
       onCloseBuyerPivot={closeBuyerPivot}
       onStartKyc={contactId => navigate(`/dashboard/kyc?openContactId=${contactId}`)}
+      onOpenContacts={() => navigate('/dashboard/contacts')}
       emptyAction={{ label: t('atelier.empty.scanCta'), busy: scanning, run: () => void runScan() }}
     />
   )

@@ -421,30 +421,6 @@
       "strengthGood": "Good",
       "strengthStrong": "Strong"
     },
-    "twoFactor": {
-      "title": "Two-factor authentication",
-      "enabled": "Attivata, il Suo account è protetto",
-      "disabled": "Disattivata, consigliata per maggiore sicurezza",
-      "comingSoon": "Prossimamente disponibile",
-      "recommendation": "Consigliamo di attivare la 2FA per proteggere il Suo account, soprattutto per uno strumento di conformità LRD/KYC.",
-      "badgeEnabled": "Enabled",
-      "badgeRecommended": "Recommended",
-      "stepScan": "Step 1 of 2, Scan this QR code in your authenticator app.",
-      "stepVerify": "Step 2 of 2, Enter the 6-digit code shown in the app.",
-      "stepDone": "Your account is protected. A code will be required on each new sign-in.",
-      "authenticatorApp": "Authenticator app",
-      "enable": "Enable 2FA",
-      "preparing": "Preparing…",
-      "qrAlt": "2FA QR code",
-      "qrUnavailable": "QR unavailable",
-      "manualEntry": "Manual entry",
-      "scanned": "I've scanned",
-      "codeCaption": "The code changes every 30 seconds. Enter the one currently shown.",
-      "verifying": "Verifying…",
-      "verifyEnable": "Verify & enable",
-      "configuredPrimary": "Configured · primary factor",
-      "disable": "Disable"
-    },
     "sessions": {
       "title": "Devices & sessions",
       "devicesConnected": "{{count}} dispositivi connessi",
@@ -517,12 +493,6 @@
       "title": "Account security",
       "subtitleLine1": "MEGGA handles sensitive transaction data.",
       "subtitleLine2": "Keep your account locked and monitor its activity."
-    },
-    "posture": {
-      "verdictExcellent": "Excellent",
-      "verdictGood": "Good",
-      "fullyProtected": "Account fully protected",
-      "oneActionRecommended": "1 recommended action"
     },
     "sso": {
       "title": "Sign-in methods",
@@ -756,6 +726,7 @@
     "toast": {
       "disconnected": "{{name}} disconnected",
       "disconnectFailed": "Disconnect failed: {{error}}",
+      "connectFailed": "Connessione non riuscita: {{error}}",
       "unknownError": "Unknown error",
       "skribbleConnected": "Skribble connected"
     },

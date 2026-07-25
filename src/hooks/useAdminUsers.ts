@@ -1,3 +1,11 @@
+/**
+ * Hooks super-admin — annuaire des utilisateurs de la plateforme.
+ *
+ * `useAdminUsers` liste tous les profils (nom d'agence résolu) et expose la
+ * mutation de rôle via RPC `admin_set_user_role`. `useUserActivity` charge les
+ * 10 derniers événements d'audit d'un utilisateur ; `useDsarExport` télécharge
+ * l'export DSAR (nLPD art. 25) journalisé côté serveur.
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -14,6 +22,7 @@ export interface AdminUser {
   is_suspended: boolean
 }
 
+/** Liste des profils (récents d'abord) avec nom d'agence résolu, plus la mutation de rôle (RPC super-admin). */
 export function useAdminUsers() {
   const queryClient = useQueryClient()
 
@@ -62,6 +71,7 @@ export function useAdminUsers() {
   }
 }
 
+/** 10 derniers événements d'audit (`activity_events`) émis par un utilisateur donné. */
 export function useUserActivity(userId: string) {
   return useQuery({
     queryKey: ['admin-user-activity', userId],

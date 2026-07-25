@@ -1,3 +1,9 @@
+/**
+ * Hook super-admin — journal d'audit sécurité (page /security de la console admin).
+ * Lit les événements sensibles de `activity_events` (connexion, changement de
+ * rôle, KYC, impersonation, exports…), résout le nom/email de l'acteur depuis
+ * `profiles`, et expose les tables de libellés + gravité que consomme la vue.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -14,7 +20,7 @@ export interface AuditEntry {
   actor_email?: string
 }
 
-// These are the sensitive actions we track
+/** Actions « sensibles » retenues par l'audit (whitelist du filtre par défaut). */
 export const SENSITIVE_ACTIONS = [
   'user_login',
   'user_logout',
@@ -25,6 +31,7 @@ export const SENSITIVE_ACTIONS = [
   'kyc_validated',
   'kyc_screening_match',
   'kyc_risk_changed',
+  'admin_console_entered',
   'impersonate_start',
   'impersonate_stop',
   'data_exported',
@@ -36,6 +43,7 @@ export const SENSITIVE_ACTIONS = [
   'weekly_report_sent',
 ] as const
 
+/** Libellés FR affichés pour chaque action auditée. */
 export const AUDIT_ACTION_LABELS: Record<string, string> = {
   user_login: 'Connexion',
   user_logout: 'Deconnexion',
@@ -46,6 +54,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   kyc_validated: 'KYC valide',
   kyc_screening_match: 'Alerte PEP/Sanctions',
   kyc_risk_changed: 'Niveau risque KYC modifie',
+  admin_console_entered: 'Console admin ouverte',
   impersonate_start: 'Impersonate demarre',
   impersonate_stop: 'Impersonate arrete',
   data_exported: 'Donnees exportees',
@@ -57,6 +66,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   weekly_report_sent: 'Rapport hebdo envoye',
 }
 
+/** Gravité par action (pilote la couleur du badge et le tri de la vue). */
 export const AUDIT_SEVERITY: Record<string, 'critical' | 'warning' | 'info'> = {
   user_login: 'info',
   user_logout: 'info',
@@ -67,6 +77,7 @@ export const AUDIT_SEVERITY: Record<string, 'critical' | 'warning' | 'info'> = {
   kyc_validated: 'warning',
   kyc_screening_match: 'critical',
   kyc_risk_changed: 'warning',
+  admin_console_entered: 'warning',
   impersonate_start: 'critical',
   impersonate_stop: 'info',
   data_exported: 'warning',
@@ -84,6 +95,10 @@ interface AuditFilters {
   limit?: number
 }
 
+/**
+ * Charge les N derniers événements d'audit sensibles (défaut 200), filtrables
+ * par action, avec nom/email de l'acteur résolus depuis `profiles`.
+ */
 export function useSecurityAudit(filters?: AuditFilters) {
   return useQuery({
     queryKey: ['admin-security-audit', filters],

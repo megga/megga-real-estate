@@ -2,16 +2,19 @@
 // MEGGA extrait des engagements datés depuis les conversations WhatsApp
 // (deriveFollowups → whatsapp_followup_suggestions). Sans cette surface ils ne sont
 // visibles qu'en ouvrant chaque fiche. Ici un ruban compact les remonte À TRAVERS
-// les contacts ; chaque puce ouvre la fiche du contact, où l'agent accepte
-// (→ vrai rappel) ou écarte (HITL — jamais d'action auto invisible, CLAUDE.md).
+// les contacts ; l'agent accepte (→ vrai rappel) ou écarte DIRECTEMENT sur la puce
+// (HITL — jamais d'action auto invisible, CLAUDE.md). Le corps de la puce ouvre la
+// fiche du contact (contexte du fil). L'accept vivait sur la fiche (carte #768)
+// jusqu'à la refonte #823 : le cockpit est depuis la seule surface des suivis.
 //
 // Données RÉELLES uniquement (RLS agence) — masqué s'il n'y a aucun suivi en
 // attente (empty-state honnête, comme CockpitAiInsights). Grammaire cockpit (TK).
 
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TK } from '@/components/crm-sugar/today/tk'
-import { useAgencyFollowupSuggestions, AGENCY_FOLLOWUPS_LIMIT, type AgencyFollowupRow } from '@/hooks/useAgencyFollowupSuggestions'
+import { useAgencyFollowupSuggestions, useAgencyFollowupActions, AGENCY_FOLLOWUPS_LIMIT, type AgencyFollowupRow } from '@/hooks/useAgencyFollowupSuggestions'
 import { followupDueLabel, type FollowupUrgency } from '@/lib/whatsappFollowupDue'
 
 const WA_BLUE = '#6F8CFF'      // accent MEGGA AI (dark) — cohérent avec CockpitAiInsights
@@ -27,31 +30,67 @@ const URGENCY_TONE: Record<FollowupUrgency, CkTone> = {
   overdue: 'danger', today: 'warn', tomorrow: 'info', dated: 'info', none: 'info',
 }
 
+// Petit bouton d'action rond (✓ accepter / ✕ écarter) — vit DANS la puce, donc la
+// puce elle-même est un div role=button (un <button> imbriqué serait du HTML invalide).
+function ChipAction({ title, onClick, disabled, children }: {
+  title: string; onClick: () => void; disabled: boolean; children: ReactNode
+}) {
+  const [h, setH] = useState(false)
+  return (
+    <button
+      type="button" title={title} aria-label={title} disabled={disabled}
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{
+        width: 22, height: 22, borderRadius: 999, flexShrink: 0, padding: 0,
+        display: 'grid', placeItems: 'center', cursor: disabled ? 'default' : 'pointer',
+        background: h && !disabled ? TK.cardHi : 'transparent',
+        border: `1px solid ${TK.cardBorder}`, color: TK.sub,
+        opacity: disabled ? 0.45 : 1, transition: 'background .16s',
+      }}>
+      {children}
+    </button>
+  )
+}
+
 function FollowupChip({ row }: { row: AgencyFollowupRow }) {
   const [h, setH] = useState(false)
   const navigate = useNavigate()
+  const { accept, dismiss } = useAgencyFollowupActions()
+  // Occupé = une mutation en vol POUR CETTE puce (les hooks sont partagés entre puces).
+  const busy = (accept.isPending && accept.variables === row.id) || (dismiss.isPending && dismiss.variables === row.id)
   const due = followupDueLabel(row.due_at)
   const p = TK[URGENCY_TONE[due.urgency]] || TK.neutral
+  const open = () => navigate(`/dashboard/contacts/${row.contact_id}`)
   return (
-    <button
-      onClick={() => navigate(`/dashboard/contacts/${row.contact_id}`)}
+    <div
+      role="button" tabIndex={0}
+      onClick={open}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }}
       onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       title={`${row.contact_name} — ${row.action}`}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
         height: 32, padding: '0 6px 0 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-        maxWidth: 340,
+        maxWidth: 400, opacity: busy ? 0.55 : 1,
         background: h ? TK.cardHi : TK.card,
         border: `1px solid ${h ? TK.borderHi : TK.cardBorder}`,
         transform: h ? 'translateY(-1px)' : 'none',
-        transition: 'background .16s, border-color .16s, transform .16s',
+        transition: 'background .16s, border-color .16s, transform .16s, opacity .16s',
       }}>
       {/* Nom plafonné (ne mange pas toute la largeur) · action flexible · pastille d'échéance. */}
       <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: -0.1, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100, flexShrink: 0 }}>{row.contact_name}</span>
       <span style={{ fontSize: 11.5, fontWeight: 600, color: TK.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: '1 1 auto', minWidth: 0 }}>{row.action}</span>
       {/* Pastille d'échéance : paire DS bg/fg (jamais fg nu). Porte la tonalité (en retard = danger…). */}
       <span style={{ background: p.bg, color: p.fg, padding: '2px 9px', borderRadius: 999, fontSize: 10, fontWeight: 800, letterSpacing: 0.2, whiteSpace: 'nowrap', flexShrink: 0 }}>{due.text}</span>
-    </button>
+      {/* Actions HITL inline : accepter → vrai rappel (RPC idempotent) · écarter → jamais re-proposé. */}
+      <ChipAction title="Accepter (créer un rappel)" disabled={busy} onClick={() => accept.mutate(row.id)}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+      </ChipAction>
+      <ChipAction title="Écarter" disabled={busy} onClick={() => dismiss.mutate(row.id)}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      </ChipAction>
+    </div>
   )
 }
 

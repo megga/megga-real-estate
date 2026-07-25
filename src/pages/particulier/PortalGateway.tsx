@@ -1,9 +1,16 @@
+/**
+ * Portail vendeur — porte d'entrée de la route `/portal/:token`.
+ * Valide le token (useSellerPortalAccess) puis rend « Votre vente » dans un
+ * SellerPortalProvider ; sinon affiche PortalInvalidPage selon le motif
+ * (révoqué / expiré / introuvable).
+ */
 import { useParams } from 'react-router-dom'
 import { useSellerPortalAccess } from '@/hooks/useSellerPortal'
 import { SellerPortalProvider } from '@/hooks/useSellerPortalContext'
 import VotreVentePage from './VotreVentePage'
 import PortalInvalidPage from './PortalInvalidPage'
 
+/** Résout l'accès au token et bascule entre la page vente et l'écran d'accès invalide. */
 export default function PortalGateway() {
   const { token } = useParams<{ token: string }>()
   const { isValid, isExpired, isRevoked, isLoading, data } = useSellerPortalAccess(token)

@@ -1,3 +1,10 @@
+/**
+ * Écran de réglages mobile (P9). Le fichier = le composant public
+ * `MobileSettingsScreen` (routeur `view` interne + câblage hooks) suivi des
+ * atomes de présentation partagés (Header, Card, Field, Toggle, Segment, Ring…)
+ * puis d'une section par vue (Hub, Profil, Agence, Notifications, Facturation,
+ * Préférences).
+ */
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -228,6 +235,7 @@ interface SectionCtx {
   isDark: boolean
 }
 
+/** En-tête d'une section détail : bouton-retour pilule + grand titre. */
 function Header({ tk, backLabel, onBack, title }: { tk: MobileTokens; backLabel: string; onBack: () => void; title: string }) {
   return (
     <>
@@ -249,6 +257,7 @@ function Header({ tk, backLabel, onBack, title }: { tk: MobileTokens; backLabel:
   )
 }
 
+/** Carte de section (bento arrondi) avec titre optionnel. */
 function Card({ tk, title, children, pad = 18 }: { tk: MobileTokens; title?: string; children: ReactNode; pad?: number }) {
   return (
     <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 20, boxShadow: tk.shadowSm, overflow: 'hidden' }}>
@@ -262,6 +271,7 @@ function Card({ tk, title, children, pad = 18 }: { tk: MobileTokens; title?: str
   )
 }
 
+/** Champ libellé ; anneau d'accent au focus, grisé et non éditable si `disabled`. */
 function Field({
   tk, label, value, onChange, type = 'text', disabled, hint, placeholder, inputMode,
 }: {
@@ -290,6 +300,7 @@ function Field({
   )
 }
 
+/** Zone de texte multiligne, même habillage que `Field`. */
 function Textarea({ tk, value, onChange, placeholder }: { tk: MobileTokens; value: string; onChange?: (v: string) => void; placeholder?: string }) {
   const [focus, setFocus] = useState(false)
   return (
@@ -307,6 +318,7 @@ function Textarea({ tk, value, onChange, placeholder }: { tk: MobileTokens; valu
   )
 }
 
+/** Interrupteur on/off (`role="switch"`). */
 function Toggle({ tk, on, onChange, disabled }: { tk: MobileTokens; on: boolean; onChange: () => void; disabled?: boolean }) {
   return (
     <button
@@ -322,6 +334,7 @@ function Toggle({ tk, on, onChange, disabled }: { tk: MobileTokens; on: boolean;
   )
 }
 
+/** Sélecteur segmenté générique (une seule option active). */
 function Segment<T extends string>({ tk, options, value, onChange }: { tk: MobileTokens; options: { id: T; label: string; icon?: MEIconName }[]; value: T; onChange: (v: T) => void }) {
   return (
     <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: tk.cardSubtle }}>
@@ -343,6 +356,7 @@ function Segment<T extends string>({ tk, options, value, onChange }: { tk: Mobil
   )
 }
 
+/** Anneau de progression SVG (valeur 0–100, bornée). */
 function Ring({ tk, value, size }: { tk: MobileTokens; value: number; size: number }) {
   const sw = 4
   const r = (size - sw) / 2
@@ -356,6 +370,7 @@ function Ring({ tk, value, size }: { tk: MobileTokens; value: number; size: numb
   )
 }
 
+/** Pastille ronde d'initiales sur fond accent. */
 function Avatar({ tk, initials, size }: { tk: MobileTokens; initials: string; size: number }) {
   return (
     <span style={{ width: size, height: size, borderRadius: 999, display: 'grid', placeItems: 'center', background: tk.accent, color: tk.accentInk, fontSize: size * 0.36, fontWeight: 800, flexShrink: 0 }}>
@@ -364,6 +379,7 @@ function Avatar({ tk, initials, size }: { tk: MobileTokens; initials: string; si
   )
 }
 
+/** Bouton d'enregistrement pleine largeur (accent). */
 function SaveButton({ tk, t, label, onClick, disabled }: { tk: MobileTokens; t: TFunction; label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <button
@@ -377,6 +393,7 @@ function SaveButton({ tk, t, label, onClick, disabled }: { tk: MobileTokens; t: 
   )
 }
 
+/** Bandeau d'info affiché quand le backend est absent (édits désactivés). */
 function SignedOutBanner({ tk, t }: { tk: MobileTokens; t: TFunction }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '13px 15px', borderRadius: 16, background: tk.riskBg }}>
@@ -386,7 +403,7 @@ function SignedOutBanner({ tk, t }: { tk: MobileTokens; t: TFunction }) {
   )
 }
 
-// Coque commune des sections : header + scroll. Padding bas pour la tab bar.
+/** Coque commune des sections détail : en-tête retour + zone scrollable (padding bas pour la tab bar). */
 function Section({ tk, t, title, onBack, children }: { tk: MobileTokens; t: TFunction; title: string; onBack: () => void; children: ReactNode }) {
   return (
     <div>
@@ -406,6 +423,7 @@ interface Tile {
   status?: string
 }
 
+/** Vue « hub » : hero compte (→ Profil) + grille de tuiles + déconnexion. */
 function Hub({
   ctx, profile, notifCount, plan, onBack, onGo, onLogout,
 }: {
@@ -483,6 +501,7 @@ function Hub({
 // ════════════════════════════════════════════════════════════════════════════
 //  PROFIL
 // ════════════════════════════════════════════════════════════════════════════
+/** Section Profil : identité, contacts, présentation publique (e-mail en lecture seule). */
 function ProfileSection({
   ctx, form, editable, isSaving, signedOut, onChange, onSave, onBack,
 }: {
@@ -539,6 +558,7 @@ function ProfileSection({
 // ════════════════════════════════════════════════════════════════════════════
 //  AGENCE (+ Objectif annuel)
 // ════════════════════════════════════════════════════════════════════════════
+/** Section Agence : identité légale, contact public + objectif annuel (RPC audité, save séparé). */
 function AgencySection({
   ctx, form, yearly, editable, isSaving, isSavingTarget, signedOut,
   onChange, onYearly, onSave, onSaveYearly, onBack,
@@ -608,6 +628,7 @@ function AgencySection({
 // ════════════════════════════════════════════════════════════════════════════
 //  NOTIFICATIONS
 // ════════════════════════════════════════════════════════════════════════════
+/** Section Notifications : bascule par canal (email/SMS/WhatsApp/in-app). */
 function NotificationsSection({
   ctx, form, count, editable, signedOut, onToggle, onBack,
 }: {
@@ -660,6 +681,7 @@ function NotificationsSection({
 // ════════════════════════════════════════════════════════════════════════════
 //  FACTURATION (plan lecture seule — gestion sur le bureau)
 // ════════════════════════════════════════════════════════════════════════════
+/** Section Facturation : plan courant en lecture seule (gestion sur le desktop). */
 function BillingSection({ ctx, plan, onBack }: { ctx: SectionCtx; plan: AgencyPlan | null; onBack: () => void }) {
   const { t, tk } = ctx
   return (
@@ -686,6 +708,7 @@ function BillingSection({ ctx, plan, onBack }: { ctx: SectionCtx; plan: AgencyPl
 // ════════════════════════════════════════════════════════════════════════════
 //  PRÉFÉRENCES (thème + langue LIVE)
 // ════════════════════════════════════════════════════════════════════════════
+/** Section Préférences : langue + thème, appliqués en direct (LIVE). */
 function PreferencesSection({
   ctx, lang, onLang, onTheme, onBack,
 }: {

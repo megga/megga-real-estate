@@ -1,0 +1,147 @@
+name: Deploy admin console to admin.megga.ch
+
+# Troisième cible de déploiement du dépôt :
+#   megga.ch       → vitrine statique          (deploy.yml,     projet megga-real-estate)
+#   app.megga.ch   → CRM agent                 (deploy-app.yml, projet megga-app)
+#   admin.megga.ch → console super-admin       (ce workflow,    projet megga-admin)
+#
+# La console a son propre bundle (`npm run build:admin`, entrée index.admin.html)
+# et donc sa propre origine : le code d'administration n'est plus servi aux
+# agents, et une session volée sur le CRM ne donne pas la console (origines
+# distinctes = ni localStorage ni cookies partagés).
+#
+# Le job crée le projet Pages, attache le domaine et pose le CNAME s'ils
+# n'existent pas — même mécanique que deploy-app.yml, donc rien à préparer à la
+# main. Reste à faire une seule fois au tableau de bord : la politique
+# Cloudflare Access devant admin.megga.ch (cf. docs/system-map.md).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROJECT_NAME: megga-admin
+  CUSTOM_DOMAIN: admin.megga.ch
+  ZONE_NAME: megga.ch
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (admin console)
+        run: npm run build:admin
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      - name: Ensure Pages project exists
+        if: github.event_name != 'pull_request'
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -e
+          STATUS=$(curl -s -o /tmp/proj.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CF_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/$PROJECT_NAME")
+          if [ "$STATUS" = "404" ]; then
+            echo "Creating Pages project $PROJECT_NAME"
+            curl -sS -X POST \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects" \
+              -d "{\"name\":\"$PROJECT_NAME\",\"production_branch\":\"main\"}" \
+              | jq '.success, .errors'
+          else
+            echo "Project $PROJECT_NAME already exists (HTTP $STATUS)"
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        if: github.event_name != 'pull_request'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.86.0"
+          command: pages deploy dist-admin --project-name=megga-admin --branch=main --commit-message="deploy ${{ github.sha }}" --commit-dirty=true
+
+      - name: Attach custom domain
+        if: github.event_name != 'pull_request'
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -e
+          STATUS=$(curl -s -o /tmp/dom.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CF_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/$PROJECT_NAME/domains/$CUSTOM_DOMAIN")
+          if [ "$STATUS" = "404" ]; then
+            echo "Attaching $CUSTOM_DOMAIN to project"
+            curl -sS -X POST \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/$PROJECT_NAME/domains" \
+              -d "{\"name\":\"$CUSTOM_DOMAIN\"}" \
+              | jq '.success, .errors, .result.status'
+          else
+            echo "Domain already attached (HTTP $STATUS)"
+            jq '.result.status' /tmp/dom.json
+          fi
+
+      - name: Ensure DNS CNAME record
+        if: github.event_name != 'pull_request'
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -e
+          ZONE_RESP=$(curl -sS \
+            -H "Authorization: Bearer $CF_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/zones?name=$ZONE_NAME")
+          ZONE_ID=$(echo "$ZONE_RESP" | jq -r '.result[0].id // empty')
+          if [ -z "$ZONE_ID" ]; then
+            echo "::warning::Could not find zone $ZONE_NAME — add CNAME manually: $CUSTOM_DOMAIN -> $PROJECT_NAME.pages.dev"
+            exit 0
+          fi
+
+          EXISTING=$(curl -sS \
+            -H "Authorization: Bearer $CF_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$CUSTOM_DOMAIN")
+          COUNT=$(echo "$EXISTING" | jq -r '.result | length')
+          if [ "$COUNT" -gt 0 ]; then
+            echo "DNS record for $CUSTOM_DOMAIN already exists:"
+            echo "$EXISTING" | jq '.result[] | {type, content, proxied}'
+            exit 0
+          fi
+
+          echo "Creating CNAME $CUSTOM_DOMAIN -> $PROJECT_NAME.pages.dev"
+          CREATE_RESP=$(curl -sS -X POST \
+            -H "Authorization: Bearer $CF_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+            -d "{\"type\":\"CNAME\",\"name\":\"$CUSTOM_DOMAIN\",\"content\":\"$PROJECT_NAME.pages.dev\",\"proxied\":true,\"ttl\":1}")
+          SUCCESS=$(echo "$CREATE_RESP" | jq -r '.success')
+          if [ "$SUCCESS" != "true" ]; then
+            echo "::warning::Failed to create CNAME — token may lack Zone:DNS:Edit scope"
+            echo "$CREATE_RESP" | jq '.errors'
+          else
+            echo "DNS record created."
+          fi

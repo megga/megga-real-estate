@@ -17,12 +17,14 @@ import { BnScoreBadge } from '../BnScoreBadge'
 interface GalCardProps {
   bien: CrmBien
   onOpen: () => void
+  /** Brouillon → « Finir » : reprend l'édition (sinon retombe sur onOpen). */
+  onFinish?: () => void
   sp: SugarPalette
   surf: GalSurfaces
   dark: boolean
 }
 
-export function GalCard({ bien, onOpen, sp, surf, dark }: GalCardProps) {
+export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps) {
   const { t } = useTranslation('listings')
   const [hov, setHov] = useState(false)
   const isRent = bien.transaction === 'location'
@@ -170,7 +172,7 @@ export function GalCard({ bien, onOpen, sp, surf, dark }: GalCardProps) {
             <button
               onClick={e => {
                 e.stopPropagation()
-                onOpen()
+                ;(onFinish ?? onOpen)()
               }}
               style={{
                 height: 34,

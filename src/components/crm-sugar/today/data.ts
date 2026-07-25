@@ -37,14 +37,14 @@ export interface EnsuiteItemData {
   tag: string
 }
 
-export interface PipelineStageData {
+interface PipelineStageData {
   key: string
   count: number
   value: number
   risk?: number
 }
 
-export interface MatchData {
+interface MatchData {
   contact: string
   initials: string
   av: string

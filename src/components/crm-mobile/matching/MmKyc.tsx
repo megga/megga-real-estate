@@ -1,3 +1,4 @@
+/** Chip KYC du matching mobile — rappel de statut de conformité, non-bloquant. */
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'

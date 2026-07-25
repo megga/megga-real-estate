@@ -28,19 +28,14 @@
 # Account
 /compte                                      /account                          301
 
-# Help center
-/aide                                        /help                             301
-/aide/demarrage                              /help/start                       301
-/aide/contact                                /help/contact                     301
-/aide/statut                                 /help/status                      301
-/aide/nouveautes                             /help/changelog                   301
-/aide/raccourcis                             /help/shortcuts                   301
-/aide/conformite                             /help/compliance                  301
-/aide/limites                                /help/limits                      301
-/aide/ressources                             /help/resources                   301
-/aide/glossaire                              /help/glossary                    301
-/aide/:category                              /help/:category                   301
-/aide/:category/:slug                        /help/:category/:slug             301
+# Help center — le corpus vit dans Intercom (18 articles FR+EN). Les 12 pages SPA
+# /help/* ont été retirées le 2026-07-20 (second corpus figé, hérité du site
+# public). On redirige au bord : l'utilisateur atterrit sur le centre d'aide sans
+# charger l'app React au passage.
+/aide                                        https://intercom.help/megga/fr    301
+/aide/*                                      https://intercom.help/megga/fr    301
+/help                                        https://intercom.help/megga/fr    301
+/help/*                                      https://intercom.help/megga/fr    301
 
 # Seller portal
 /portail                                     /portal                           301
@@ -67,6 +62,13 @@
 /dashboard/parcours                          /dashboard/journey                301
 /dashboard/reseau                            /dashboard/network                301
 /dashboard/marche/:externalId                /dashboard/market/:externalId     301
+
+# Console super-admin — a changé d'origine (admin.megga.ch). Traité AU BORD,
+# donc un ancien favori marche même déconnecté : sans cette règle il faudrait
+# charger le CRM, passer la connexion, puis rebondir (AdminConsoleRedirect, qui
+# reste le filet pour les navigations internes).
+/dashboard/admin                             https://admin.megga.ch/           302
+/dashboard/admin/*                           https://admin.megga.ch/:splat     302
 
 # SPA fallback — MUST stay last
 /*                                           /index.html                       200

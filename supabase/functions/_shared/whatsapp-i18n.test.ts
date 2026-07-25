@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   detectLang, asWaLang, t, confirmSuffix, confirmSuffixCorrectable, kycTypeLabel, vigilanceLabel,
   confirmOpenKyc, openKycResult, confirmUpdatePipeline, pipelineWhoNamed,
+  confirmDeleteContact, deleteContactPreview,
 } from './whatsapp-i18n'
 
 describe('detectLang', () => {
@@ -52,6 +53,30 @@ describe('confirmSuffixCorrectable', () => {
   it('invite à corriger en plus de oui/non (FR/EN)', () => {
     expect(confirmSuffixCorrectable('fr')).toBe('Tu confirmes ? (« oui » / « non », ou dis-moi quoi changer)')
     expect(confirmSuffixCorrectable('en')).toBe('Confirm? (« yes » / « no », or tell me what to change)')
+  })
+})
+
+describe('confirmDeleteContact', () => {
+  it('nomme le contact, marque l\'irréversibilité et rappelle la rétention KYC (FR/EN)', () => {
+    const fr = confirmDeleteContact('fr', 'Jean Dubois')
+    expect(fr).toContain('Jean Dubois')
+    expect(fr).toMatch(/irréversible/i)
+    expect(fr).toMatch(/KYC/)
+    expect(fr).toContain(confirmSuffix('fr'))
+    const en = confirmDeleteContact('en', 'Jean Dubois')
+    expect(en).toContain('Jean Dubois')
+    expect(en).toMatch(/can't be undone/i)
+    expect(en).toContain(confirmSuffix('en'))
+  })
+})
+
+describe('deleteContactPreview', () => {
+  it('distingue ce qui part de ce qui survit (rétention) et nomme le contact (FR/EN)', () => {
+    const fr = deleteContactPreview('fr', 'Mme Vaucher')
+    expect(fr).toContain('Mme Vaucher')
+    expect(fr).toMatch(/KYC/)
+    expect(fr).toMatch(/irréversible/i)
+    expect(deleteContactPreview('en', 'Mme Vaucher')).toMatch(/KYC files/i)
   })
 })
 

@@ -1,3 +1,4 @@
+/** Page mobile « Plus » — monte `MobileMoreScreen` dans la coque à onglets. */
 import MobileShell from '../shell/MobileShell'
 import MobileMoreScreen from './MobileMoreScreen'
 

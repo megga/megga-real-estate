@@ -1,3 +1,8 @@
+/**
+ * Écran vitrine DEV — route `/dev/mobile` (non destiné à la prod).
+ * Empile tous les écrans et primitives du CRM mobile Sugar Pure avec des données
+ * fictives (DEMO_OFFER / DEMO_DEAL / DEMO_LISTING) pour vérifier leur fidélité sans auth.
+ */
 import { useState, type CSSProperties } from 'react'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { MOBILE_FONT } from '@/components/crm-mobile/tokens'
@@ -68,6 +73,7 @@ export default function MobileShowcasePage() {
   )
 }
 
+/** Contenu du harnais : empile chaque écran mobile (mode `demo`) puis les démos des primitives (menu, confirm, sheet, toast). */
 function ShowcaseInner() {
   const { tk } = useMobileTokens()
   const [menuOpen, setMenuOpen] = useState(false)

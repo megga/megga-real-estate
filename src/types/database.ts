@@ -1,3 +1,10 @@
+/**
+ * Types TypeScript générés depuis le schéma Postgres Supabase (source de vérité DB).
+ *
+ * Fichier AUTO-GÉNÉRÉ (`supabase gen types typescript`) — ne pas éditer à la main :
+ * toute modification est écrasée à la prochaine régénération. Expose `Database`
+ * (Tables / Views / Functions / Enums du schéma `public`) consommé par le client typé.
+ */
 export type Json =
   | string
   | number
@@ -806,81 +813,6 @@ export type Database = {
           },
         ]
       }
-      agent_reviews: {
-        Row: {
-          agent_profile_id: string
-          agent_responded_at: string | null
-          agent_response: string | null
-          comment: string | null
-          created_at: string | null
-          id: string
-          is_verified: boolean | null
-          moderated_at: string | null
-          rating_local_knowledge: number
-          rating_negotiation: number
-          rating_overall: number | null
-          rating_process_expertise: number
-          rating_responsiveness: number
-          reviewer_contact_id: string | null
-          reviewer_email: string | null
-          reviewer_name: string
-          status: string
-        }
-        Insert: {
-          agent_profile_id: string
-          agent_responded_at?: string | null
-          agent_response?: string | null
-          comment?: string | null
-          created_at?: string | null
-          id?: string
-          is_verified?: boolean | null
-          moderated_at?: string | null
-          rating_local_knowledge: number
-          rating_negotiation: number
-          rating_overall?: number | null
-          rating_process_expertise: number
-          rating_responsiveness: number
-          reviewer_contact_id?: string | null
-          reviewer_email?: string | null
-          reviewer_name: string
-          status?: string
-        }
-        Update: {
-          agent_profile_id?: string
-          agent_responded_at?: string | null
-          agent_response?: string | null
-          comment?: string | null
-          created_at?: string | null
-          id?: string
-          is_verified?: boolean | null
-          moderated_at?: string | null
-          rating_local_knowledge?: number
-          rating_negotiation?: number
-          rating_overall?: number | null
-          rating_process_expertise?: number
-          rating_responsiveness?: number
-          reviewer_contact_id?: string | null
-          reviewer_email?: string | null
-          reviewer_name?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_reviews_agent_profile_id_fkey"
-            columns: ["agent_profile_id"]
-            isOneToOne: false
-            referencedRelation: "agent_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agent_reviews_reviewer_contact_id_fkey"
-            columns: ["reviewer_contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ai_balance_snapshots: {
         Row: {
           captured_at: string
@@ -1279,71 +1211,6 @@ export type Database = {
           },
         ]
       }
-      chat_conversations: {
-        Row: {
-          accepted_at: string | null
-          category: string | null
-          conversation_ref: string
-          created_at: string | null
-          id: string
-          status: string | null
-          user_id: string | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          category?: string | null
-          conversation_ref: string
-          created_at?: string | null
-          id?: string
-          status?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          accepted_at?: string | null
-          category?: string | null
-          conversation_ref?: string
-          created_at?: string | null
-          id?: string
-          status?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      chat_messages: {
-        Row: {
-          content: string
-          conversation_id: string | null
-          created_at: string | null
-          id: string
-          metadata: Json | null
-          role: string
-        }
-        Insert: {
-          content: string
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          role: string
-        }
-        Update: {
-          content?: string
-          conversation_id?: string | null
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          role?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "chat_conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       client_searches: {
         Row: {
           agency_id: string
@@ -1394,33 +1261,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      coming_soon_subscribers: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          locale: string
-          source: string
-          user_agent: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          locale?: string
-          source?: string
-          user_agent?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          locale?: string
-          source?: string
-          user_agent?: string | null
-        }
-        Relationships: []
       }
       contact_messages: {
         Row: {
@@ -1587,6 +1427,10 @@ export type Database = {
           phone: string | null
           score: string | null
           search_criteria: Json | null
+          birth_date: string | null
+          nationality: string | null
+          residence_country: string | null
+          home_address: string | null
           source: string
           tags: string[] | null
           type: string
@@ -1610,6 +1454,10 @@ export type Database = {
           phone?: string | null
           score?: string | null
           search_criteria?: Json | null
+          birth_date?: string | null
+          nationality?: string | null
+          residence_country?: string | null
+          home_address?: string | null
           source?: string
           tags?: string[] | null
           type?: string
@@ -1633,6 +1481,10 @@ export type Database = {
           phone?: string | null
           score?: string | null
           search_criteria?: Json | null
+          birth_date?: string | null
+          nationality?: string | null
+          residence_country?: string | null
+          home_address?: string | null
           source?: string
           tags?: string[] | null
           type?: string
@@ -1742,69 +1594,6 @@ export type Database = {
           },
         ]
       }
-      daily_actions: {
-        Row: {
-          action_type: string | null
-          agency_id: string
-          agent_id: string
-          category: string
-          completed_at: string | null
-          description: string | null
-          entity_id: string | null
-          entity_type: string | null
-          generated_at: string | null
-          id: string
-          is_completed: boolean | null
-          priority: string
-          title: string
-        }
-        Insert: {
-          action_type?: string | null
-          agency_id: string
-          agent_id: string
-          category: string
-          completed_at?: string | null
-          description?: string | null
-          entity_id?: string | null
-          entity_type?: string | null
-          generated_at?: string | null
-          id?: string
-          is_completed?: boolean | null
-          priority: string
-          title: string
-        }
-        Update: {
-          action_type?: string | null
-          agency_id?: string
-          agent_id?: string
-          category?: string
-          completed_at?: string | null
-          description?: string | null
-          entity_id?: string | null
-          entity_type?: string | null
-          generated_at?: string | null
-          id?: string
-          is_completed?: boolean | null
-          priority?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "daily_actions_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "daily_actions_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       documents: {
         Row: {
           agency_id: string | null
@@ -1892,86 +1681,6 @@ export type Database = {
           },
         ]
       }
-      email_messages_cache: {
-        Row: {
-          ai_classification: string | null
-          ai_classified_at: string | null
-          ai_intents: Json | null
-          ai_priority: number | null
-          ai_suggested_replies: Json | null
-          cc_addresses: string[] | null
-          contact_id: string | null
-          external_message_id: string
-          external_thread_id: string | null
-          fetched_at: string | null
-          from_address: string | null
-          from_name: string | null
-          has_attachments: boolean | null
-          id: string
-          is_unread: boolean | null
-          provider: string
-          sent_at: string
-          snippet: string | null
-          subject: string | null
-          to_addresses: string[] | null
-          user_id: string
-        }
-        Insert: {
-          ai_classification?: string | null
-          ai_classified_at?: string | null
-          ai_intents?: Json | null
-          ai_priority?: number | null
-          ai_suggested_replies?: Json | null
-          cc_addresses?: string[] | null
-          contact_id?: string | null
-          external_message_id: string
-          external_thread_id?: string | null
-          fetched_at?: string | null
-          from_address?: string | null
-          from_name?: string | null
-          has_attachments?: boolean | null
-          id?: string
-          is_unread?: boolean | null
-          provider: string
-          sent_at: string
-          snippet?: string | null
-          subject?: string | null
-          to_addresses?: string[] | null
-          user_id: string
-        }
-        Update: {
-          ai_classification?: string | null
-          ai_classified_at?: string | null
-          ai_intents?: Json | null
-          ai_priority?: number | null
-          ai_suggested_replies?: Json | null
-          cc_addresses?: string[] | null
-          contact_id?: string | null
-          external_message_id?: string
-          external_thread_id?: string | null
-          fetched_at?: string | null
-          from_address?: string | null
-          from_name?: string | null
-          has_attachments?: boolean | null
-          id?: string
-          is_unread?: boolean | null
-          provider?: string
-          sent_at?: string
-          snippet?: string | null
-          subject?: string | null
-          to_addresses?: string[] | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_messages_cache_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       esign_provider_connections: {
         Row: {
           agency_id: string
@@ -2044,116 +1753,6 @@ export type Database = {
           },
         ]
       }
-      external_listings: {
-        Row: {
-          address: string | null
-          agency_id: string | null
-          canton: string | null
-          city: string | null
-          expires_at: string | null
-          external_id: string | null
-          fetched_at: string | null
-          id: string
-          photo_url: string | null
-          price: number | null
-          rooms: number | null
-          search_hash: string
-          source_agency: string | null
-          source_logo_url: string | null
-          source_portal: string | null
-          source_url: string
-          surface_m2: number | null
-          title: string | null
-          type: string | null
-        }
-        Insert: {
-          address?: string | null
-          agency_id?: string | null
-          canton?: string | null
-          city?: string | null
-          expires_at?: string | null
-          external_id?: string | null
-          fetched_at?: string | null
-          id?: string
-          photo_url?: string | null
-          price?: number | null
-          rooms?: number | null
-          search_hash: string
-          source_agency?: string | null
-          source_logo_url?: string | null
-          source_portal?: string | null
-          source_url: string
-          surface_m2?: number | null
-          title?: string | null
-          type?: string | null
-        }
-        Update: {
-          address?: string | null
-          agency_id?: string | null
-          canton?: string | null
-          city?: string | null
-          expires_at?: string | null
-          external_id?: string | null
-          fetched_at?: string | null
-          id?: string
-          photo_url?: string | null
-          price?: number | null
-          rooms?: number | null
-          search_hash?: string
-          source_agency?: string | null
-          source_logo_url?: string | null
-          source_portal?: string | null
-          source_url?: string
-          surface_m2?: number | null
-          title?: string | null
-          type?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "external_listings_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      favorites: {
-        Row: {
-          created_at: string
-          id: string
-          listing_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          listing_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          listing_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "favorites_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "favorites_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       flatfox_sync_runs: {
         Row: {
           chunks_completed: number | null
@@ -2211,48 +1810,6 @@ export type Database = {
           total_updated?: number | null
           total_upserted?: number | null
           trigger_source?: string | null
-        }
-        Relationships: []
-      }
-      gmail_tokens: {
-        Row: {
-          access_token: string
-          created_at: string | null
-          gmail_email: string | null
-          id: string
-          last_sync_at: string | null
-          refresh_token: string
-          scopes: string
-          sync_enabled: boolean | null
-          token_expires_at: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string | null
-          gmail_email?: string | null
-          id?: string
-          last_sync_at?: string | null
-          refresh_token: string
-          scopes?: string
-          sync_enabled?: boolean | null
-          token_expires_at: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string | null
-          gmail_email?: string | null
-          id?: string
-          last_sync_at?: string | null
-          refresh_token?: string
-          scopes?: string
-          sync_enabled?: boolean | null
-          token_expires_at?: string
-          updated_at?: string | null
-          user_id?: string
         }
         Relationships: []
       }
@@ -2754,185 +2311,6 @@ export type Database = {
           },
         ]
       }
-      listing_reports: {
-        Row: {
-          comment: string | null
-          created_at: string
-          id: string
-          listing_id: string
-          reason: Database["public"]["Enums"]["listing_report_reason"]
-          status: Database["public"]["Enums"]["listing_report_status"]
-          user_id: string | null
-        }
-        Insert: {
-          comment?: string | null
-          created_at?: string
-          id?: string
-          listing_id: string
-          reason: Database["public"]["Enums"]["listing_report_reason"]
-          status?: Database["public"]["Enums"]["listing_report_status"]
-          user_id?: string | null
-        }
-        Update: {
-          comment?: string | null
-          created_at?: string
-          id?: string
-          listing_id?: string
-          reason?: Database["public"]["Enums"]["listing_report_reason"]
-          status?: Database["public"]["Enums"]["listing_report_status"]
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      listings: {
-        Row: {
-          agency_id: string
-          description_ai: string | null
-          expires_at: string | null
-          favorites_count: number
-          id: string
-          is_featured: boolean
-          is_hot: boolean
-          price_display: string | null
-          property_id: string
-          published_at: string | null
-          title: string
-          views_count: number
-        }
-        Insert: {
-          agency_id: string
-          description_ai?: string | null
-          expires_at?: string | null
-          favorites_count?: number
-          id?: string
-          is_featured?: boolean
-          is_hot?: boolean
-          price_display?: string | null
-          property_id: string
-          published_at?: string | null
-          title: string
-          views_count?: number
-        }
-        Update: {
-          agency_id?: string
-          description_ai?: string | null
-          expires_at?: string | null
-          favorites_count?: number
-          id?: string
-          is_featured?: boolean
-          is_hot?: boolean
-          price_display?: string | null
-          property_id?: string
-          published_at?: string | null
-          title?: string
-          views_count?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listings_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listings_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: true
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      market_changes: {
-        Row: {
-          change_pct: number | null
-          change_type: string
-          detected_at: string | null
-          id: string
-          listing_canton: string | null
-          listing_city: string | null
-          listing_rooms: number | null
-          listing_title: string | null
-          listing_type: string | null
-          market_listing_id: string | null
-          new_price: number | null
-          old_price: number | null
-        }
-        Insert: {
-          change_pct?: number | null
-          change_type: string
-          detected_at?: string | null
-          id?: string
-          listing_canton?: string | null
-          listing_city?: string | null
-          listing_rooms?: number | null
-          listing_title?: string | null
-          listing_type?: string | null
-          market_listing_id?: string | null
-          new_price?: number | null
-          old_price?: number | null
-        }
-        Update: {
-          change_pct?: number | null
-          change_type?: string
-          detected_at?: string | null
-          id?: string
-          listing_canton?: string | null
-          listing_city?: string | null
-          listing_rooms?: number | null
-          listing_title?: string | null
-          listing_type?: string | null
-          market_listing_id?: string | null
-          new_price?: number | null
-          old_price?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "market_changes_market_listing_id_fkey"
-            columns: ["market_listing_id"]
-            isOneToOne: false
-            referencedRelation: "market_listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      market_favorites: {
-        Row: {
-          created_at: string
-          listing_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          listing_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          listing_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      market_hidden: {
-        Row: {
-          created_at: string
-          listing_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          listing_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          listing_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       market_listings: {
         Row: {
           absent_first_at: string | null
@@ -3252,93 +2630,6 @@ export type Database = {
           },
         ]
       }
-      marketplace_inquiries: {
-        Row: {
-          agency_name: string | null
-          created_at: string
-          email: string
-          full_name: string
-          id: string
-          ip_address: unknown
-          listing_canton: string | null
-          listing_city: string | null
-          listing_prefixed_id: string | null
-          listing_title: string | null
-          listing_transaction_type: string | null
-          market_listing_id: string | null
-          message: string | null
-          phone: string | null
-          property_id: string | null
-          referer: string | null
-          source_portal: string | null
-          source_url: string | null
-          status: string
-          updated_at: string
-          user_agent: string | null
-        }
-        Insert: {
-          agency_name?: string | null
-          created_at?: string
-          email: string
-          full_name: string
-          id?: string
-          ip_address?: unknown
-          listing_canton?: string | null
-          listing_city?: string | null
-          listing_prefixed_id?: string | null
-          listing_title?: string | null
-          listing_transaction_type?: string | null
-          market_listing_id?: string | null
-          message?: string | null
-          phone?: string | null
-          property_id?: string | null
-          referer?: string | null
-          source_portal?: string | null
-          source_url?: string | null
-          status?: string
-          updated_at?: string
-          user_agent?: string | null
-        }
-        Update: {
-          agency_name?: string | null
-          created_at?: string
-          email?: string
-          full_name?: string
-          id?: string
-          ip_address?: unknown
-          listing_canton?: string | null
-          listing_city?: string | null
-          listing_prefixed_id?: string | null
-          listing_title?: string | null
-          listing_transaction_type?: string | null
-          market_listing_id?: string | null
-          message?: string | null
-          phone?: string | null
-          property_id?: string | null
-          referer?: string | null
-          source_portal?: string | null
-          source_url?: string | null
-          status?: string
-          updated_at?: string
-          user_agent?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "marketplace_inquiries_market_listing_id_fkey"
-            columns: ["market_listing_id"]
-            isOneToOne: false
-            referencedRelation: "market_listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marketplace_inquiries_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       matches: {
         Row: {
           agency_id: string
@@ -3482,103 +2773,6 @@ export type Database = {
           },
         ]
       }
-      message_threads: {
-        Row: {
-          agency_id: string
-          buyer_user_id: string | null
-          channel: string | null
-          contact_id: string | null
-          contact_name: string
-          contact_type: string
-          created_at: string | null
-          id: string
-          last_message: string | null
-          last_message_at: string | null
-          property_id: string | null
-          property_title: string | null
-          unread_count: number | null
-        }
-        Insert: {
-          agency_id: string
-          buyer_user_id?: string | null
-          channel?: string | null
-          contact_id?: string | null
-          contact_name: string
-          contact_type: string
-          created_at?: string | null
-          id?: string
-          last_message?: string | null
-          last_message_at?: string | null
-          property_id?: string | null
-          property_title?: string | null
-          unread_count?: number | null
-        }
-        Update: {
-          agency_id?: string
-          buyer_user_id?: string | null
-          channel?: string | null
-          contact_id?: string | null
-          contact_name?: string
-          contact_type?: string
-          created_at?: string | null
-          id?: string
-          last_message?: string | null
-          last_message_at?: string | null
-          property_id?: string | null
-          property_title?: string | null
-          unread_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_threads_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      messages: {
-        Row: {
-          content: string
-          created_at: string | null
-          id: string
-          read_at: string | null
-          sender_id: string
-          sender_name: string
-          sender_type: string
-          thread_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          id?: string
-          read_at?: string | null
-          sender_id: string
-          sender_name: string
-          sender_type: string
-          thread_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          id?: string
-          read_at?: string | null
-          sender_id?: string
-          sender_name?: string
-          sender_type?: string
-          thread_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "message_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       moderation_actions: {
         Row: {
           action: string
@@ -3617,121 +2811,6 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      newsletter_subscribers: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          lang: string
-          source: string
-          status: string
-          unsubscribed_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          lang?: string
-          source?: string
-          status?: string
-          unsubscribed_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          lang?: string
-          source?: string
-          status?: string
-          unsubscribed_at?: string | null
-        }
-        Relationships: []
-      }
-      offers: {
-        Row: {
-          agency_id: string | null
-          amount: number
-          buyer_name: string
-          conditions: string | null
-          contact_buyer_id: string | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          property_id: string
-          responded_at: string | null
-          status: string
-        }
-        Insert: {
-          agency_id?: string | null
-          amount: number
-          buyer_name: string
-          conditions?: string | null
-          contact_buyer_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          property_id: string
-          responded_at?: string | null
-          status?: string
-        }
-        Update: {
-          agency_id?: string | null
-          amount?: number
-          buyer_name?: string
-          conditions?: string | null
-          contact_buyer_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          property_id?: string
-          responded_at?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "offers_contact_buyer_id_fkey"
-            columns: ["contact_buyer_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      onboarding_checklist: {
-        Row: {
-          agency_id: string | null
-          completed: boolean | null
-          completed_at: string | null
-          id: string
-          step_key: string
-          user_id: string
-        }
-        Insert: {
-          agency_id?: string | null
-          completed?: boolean | null
-          completed_at?: string | null
-          id?: string
-          step_key: string
-          user_id: string
-        }
-        Update: {
-          agency_id?: string | null
-          completed?: boolean | null
-          completed_at?: string | null
-          id?: string
-          step_key?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "onboarding_checklist_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
         ]
@@ -3803,48 +2882,6 @@ export type Database = {
           last_sync_at?: string | null
           outlook_email?: string | null
           refresh_token?: string
-          sync_enabled?: boolean | null
-          token_expires_at?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      outlook_mail_tokens: {
-        Row: {
-          access_token: string
-          created_at: string | null
-          id: string
-          last_sync_at: string | null
-          outlook_email: string | null
-          refresh_token: string
-          scopes: string
-          sync_enabled: boolean | null
-          token_expires_at: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string | null
-          id?: string
-          last_sync_at?: string | null
-          outlook_email?: string | null
-          refresh_token: string
-          scopes?: string
-          sync_enabled?: boolean | null
-          token_expires_at: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string | null
-          id?: string
-          last_sync_at?: string | null
-          outlook_email?: string | null
-          refresh_token?: string
-          scopes?: string
           sync_enabled?: boolean | null
           token_expires_at?: string
           updated_at?: string | null
@@ -4452,6 +3489,7 @@ export type Database = {
           contact_id: string | null
           created_at: string | null
           id: string
+          kind: string | null
           match_id: string | null
           message_template: string | null
           property_id: string | null
@@ -4469,6 +3507,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string | null
           id?: string
+          kind?: string | null
           match_id?: string | null
           message_template?: string | null
           property_id?: string | null
@@ -4486,6 +3525,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string | null
           id?: string
+          kind?: string | null
           match_id?: string | null
           message_template?: string | null
           property_id?: string | null
@@ -4533,48 +3573,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      saved_searches: {
-        Row: {
-          alert_email: string | null
-          alert_enabled: boolean | null
-          alert_frequency: string | null
-          created_at: string | null
-          filters: Json
-          id: string
-          last_alerted_at: string | null
-          name: string
-          results_count: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          alert_email?: string | null
-          alert_enabled?: boolean | null
-          alert_frequency?: string | null
-          created_at?: string | null
-          filters: Json
-          id?: string
-          last_alerted_at?: string | null
-          name: string
-          results_count?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          alert_email?: string | null
-          alert_enabled?: boolean | null
-          alert_frequency?: string | null
-          created_at?: string | null
-          filters?: Json
-          id?: string
-          last_alerted_at?: string | null
-          name?: string
-          results_count?: number | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
       }
       seller_leads: {
         Row: {
@@ -5142,124 +4140,10 @@ export type Database = {
           },
         ]
       }
-      ticket_canned_responses: {
-        Row: {
-          body: string
-          category: string | null
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          shortcut: string | null
-          title: string
-        }
-        Insert: {
-          body: string
-          category?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          shortcut?: string | null
-          title: string
-        }
-        Update: {
-          body?: string
-          category?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          shortcut?: string | null
-          title?: string
-        }
-        Relationships: []
-      }
-      ticket_events: {
-        Row: {
-          action: string
-          actor_id: string | null
-          actor_type: string
-          created_at: string | null
-          id: string
-          new_value: string | null
-          old_value: string | null
-          ticket_id: string
-        }
-        Insert: {
-          action: string
-          actor_id?: string | null
-          actor_type: string
-          created_at?: string | null
-          id?: string
-          new_value?: string | null
-          old_value?: string | null
-          ticket_id: string
-        }
-        Update: {
-          action?: string
-          actor_id?: string | null
-          actor_type?: string
-          created_at?: string | null
-          id?: string
-          new_value?: string | null
-          old_value?: string | null
-          ticket_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ticket_events_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "support_tickets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ticket_messages: {
-        Row: {
-          attachments: Json | null
-          author_id: string | null
-          author_name: string
-          author_type: string
-          body: string
-          created_at: string | null
-          id: string
-          is_internal_note: boolean | null
-          ticket_id: string
-        }
-        Insert: {
-          attachments?: Json | null
-          author_id?: string | null
-          author_name: string
-          author_type: string
-          body: string
-          created_at?: string | null
-          id?: string
-          is_internal_note?: boolean | null
-          ticket_id: string
-        }
-        Update: {
-          attachments?: Json | null
-          author_id?: string | null
-          author_name?: string
-          author_type?: string
-          body?: string
-          created_at?: string | null
-          id?: string
-          is_internal_note?: boolean | null
-          ticket_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ticket_messages_ticket_id_fkey"
-            columns: ["ticket_id"]
-            isOneToOne: false
-            referencedRelation: "support_tickets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       transactions: {
         Row: {
           agency_id: string
+          archived_at: string | null
           assigned_to: string | null
           contact_buyer_id: string | null
           contact_seller_id: string | null
@@ -5277,6 +4161,7 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          archived_at?: string | null
           assigned_to?: string | null
           contact_buyer_id?: string | null
           contact_seller_id?: string | null
@@ -5294,6 +4179,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          archived_at?: string | null
           assigned_to?: string | null
           contact_buyer_id?: string | null
           contact_seller_id?: string | null
@@ -5446,108 +4332,6 @@ export type Database = {
           session_id?: string | null
           trusted?: boolean
           user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_profile_meta: {
-        Row: {
-          bio: string
-          created_at: string
-          mode: string
-          notifications: Json
-          preferences: Json
-          privacy: Json
-          security: Json
-          updated_at: string
-          user_id: string
-          verifications: Json
-        }
-        Insert: {
-          bio?: string
-          created_at?: string
-          mode?: string
-          notifications?: Json
-          preferences?: Json
-          privacy?: Json
-          security?: Json
-          updated_at?: string
-          user_id: string
-          verifications?: Json
-        }
-        Update: {
-          bio?: string
-          created_at?: string
-          mode?: string
-          notifications?: Json
-          preferences?: Json
-          privacy?: Json
-          security?: Json
-          updated_at?: string
-          user_id?: string
-          verifications?: Json
-        }
-        Relationships: []
-      }
-      vendor_dossiers: {
-        Row: {
-          address: string
-          agent: Json
-          created_at: string
-          estimation: Json | null
-          id: string
-          msg_id: string | null
-          next_action: Json | null
-          photos_count: number
-          property_type: string
-          publication: Json | null
-          rooms: number | null
-          status: string
-          status_history: Json
-          surface: string | null
-          title: string
-          transaction: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          address: string
-          agent: Json
-          created_at?: string
-          estimation?: Json | null
-          id: string
-          msg_id?: string | null
-          next_action?: Json | null
-          photos_count?: number
-          property_type: string
-          publication?: Json | null
-          rooms?: number | null
-          status?: string
-          status_history?: Json
-          surface?: string | null
-          title: string
-          transaction: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          address?: string
-          agent?: Json
-          created_at?: string
-          estimation?: Json | null
-          id?: string
-          msg_id?: string | null
-          next_action?: Json | null
-          photos_count?: number
-          property_type?: string
-          publication?: Json | null
-          rooms?: number | null
-          status?: string
-          status_history?: Json
-          surface?: string | null
-          title?: string
-          transaction?: string
-          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -6339,6 +5123,10 @@ export type Database = {
             }
             Returns: string
           }
+      admin_log_console_entry: {
+        Args: { p_metadata?: Json }
+        Returns: string
+      }
       admin_log_impersonation: {
         Args: { p_action: string; p_metadata?: Json; p_target_id: string }
         Returns: string
@@ -7227,7 +6015,38 @@ export type Database = {
           n: number
         }[]
       }
+      search_market_listings: {
+        Args: {
+          p_tx: string
+          p_budget_min?: number
+          p_budget_max?: number
+          p_margin?: number
+          p_cantons?: string[]
+          p_types?: string[]
+          p_min_quality?: number
+          p_limit?: number
+          p_city?: string
+        }
+        Returns: {
+          id: string
+          created_at: string
+        }[]
+      }
+      count_market_listings: {
+        Args: {
+          p_tx: string
+          p_budget_min?: number
+          p_budget_max?: number
+          p_margin?: number
+          p_cantons?: string[]
+          p_types?: string[]
+          p_min_quality?: number
+          p_city?: string
+        }
+        Returns: number
+      }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      soft_delete_property: { Args: { p_property_id: string }; Returns: boolean }
       pg_database_size_mb: { Args: never; Returns: number }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -7316,17 +6135,9 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string }
         Returns: undefined
       }
-      run_search_alerts: { Args: never; Returns: undefined }
-      search_agencies: {
-        Args: { lim?: number; q: string }
-        Returns: {
-          canton: string
-          city: string
-          id: string
-          logo_url: string
-          member_count: number
-          name: string
-        }[]
+      provision_solo_agency: {
+        Args: { p_display_name: string; p_user: string }
+        Returns: string
       }
       search_directory: {
         Args: {
@@ -7975,8 +6786,6 @@ export type Database = {
     }
     Enums: {
       agency_plan: "starter" | "pro" | "agency" | "enterprise"
-      contact_score: "hot" | "warm" | "cold"
-      contact_type: "buyer" | "seller" | "both" | "lead"
       crm_offer_kind: "offer" | "counter"
       crm_offer_party: "buyer" | "seller"
       crm_offer_status:
@@ -7985,7 +6794,6 @@ export type Database = {
         | "rejected"
         | "expired"
         | "withdrawn"
-      document_status: "pending" | "validated" | "rejected"
       invitation_status: "pending" | "accepted" | "cancelled" | "expired"
       kyc_magic_link_mode: "libre" | "verifiee"
       kyc_magic_link_status:
@@ -8014,14 +6822,12 @@ export type Database = {
         | "review"
         | "validated"
         | "rejected"
-      listing_report_reason:
         | "wrong_price"
         | "already_taken"
         | "wrong_photos"
         | "inaccurate_description"
         | "spam_fraud"
         | "other"
-      listing_report_status: "open" | "reviewing" | "resolved" | "dismissed"
       mandate_type: "simple" | "semi_exclusive" | "exclusive"
       property_status: "draft" | "active" | "reserved" | "sold" | "archived"
       property_type: "apartment" | "house" | "villa" | "commercial" | "land"

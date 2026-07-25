@@ -1,10 +1,15 @@
+/**
+ * Hooks React Query pour le CRUD des biens (`properties`) : lecture unité/
+ * liste, création, mise à jour (verrou optimiste) et uploads
+ * photos/plans (staging Supabase → miroir Cloudflare R2, EXIF strippé côté
+ * client). Partiellement migré vers @supabase-cache-helpers — détail ci-dessous.
+ */
 // Migrated to @supabase-cache-helpers/postgrest-react-query (partial).
 //
 // What migrated:
 //   - useProperty (single read)
 //   - useAgencyProperties (list read)
 //   - useCreateProperty
-//   - useDeleteProperty (soft-delete via UPDATE deleted_at)
 //
 // What stayed on classic React Query (with reason):
 //   - useUpdateProperty: optimistic locking adds `.eq('updated_at', expected)`
@@ -12,6 +17,8 @@
 //     PropertyUpdateConflictError. Cache Helpers' useUpdateMutation forces
 //     PK-only WHERE and discards row count. Migrating it would lose the
 //     conflict detection used by ListingFormPage.
+//   - useDeleteProperty: RPC `soft_delete_property` (pas une mutation
+//     postgrest — voir le commentaire du hook) → invalidations manuelles.
 //   - useUploadFloorPlan / useUploadPropertyPhotos: storage uploads, not
 //     postgrest mutations.
 //
@@ -35,6 +42,7 @@ import type { TablesInsert, TablesUpdate } from '@/types/database'
 
 // ── Query single property (for edit mode) ──
 
+/** Lecture d'un bien par id pour l'édition ; `enabled` gère l'absence d'id (UUID sentinelle sinon, car Cache Helpers exige une requête valide). */
 export function useProperty(id: string | undefined) {
   // Cache Helpers needs a valid query expression even when disabled; we pass
   // a sentinel UUID and gate via `enabled`.
@@ -55,11 +63,16 @@ export function useProperty(id: string | undefined) {
 
 // ── Query all agency properties (including drafts without listings) ──
 
+/** Liste des biens de l'agence (portée par RLS), brouillons inclus, enrichie des stats du listing joint. */
 export function useAgencyProperties() {
   const result = useQuery(
     supabase
       .from('properties')
-      .select('id, title, type, status, price, rooms, bedrooms, surface_m2, address, city, canton, postal_code, photos, created_at, updated_at, listing:listings(id, views_count, favorites_count, published_at)')
+      // Colonnes mandat + transaction_type + attributs (baths/année/charges/énergie)
+      // ajoutées pour la page « Mes biens » (galerie honnête + bucket « À suivre »
+      // Mandats à renouveler). Toutes scalaires légères → pas de coût liste (cf.
+      // CLAUDE.md §7 : jamais de colonne lourde type description en liste).
+      .select('id, title, type, status, price, transaction_type, rooms, bedrooms, bathrooms, surface_m2, year_built, charges_monthly, energy_class, address, city, canton, postal_code, photos, mandate_type, mandate_commission_pct, mandate_signed_at, mandate_expires_at, published_at, created_at, updated_at, listing:listings(id, views_count, favorites_count, published_at)')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
   )
@@ -110,6 +123,7 @@ export interface CreatePropertyInput {
   published_at?: string
 }
 
+/** Insertion d'un bien ; injecte `agency_id`/`created_by` depuis le profil et renvoie `{ id, updated_at }`. */
 export function useCreateProperty() {
   const { user, profile } = useAuth()
   const insert = useInsertMutation(
@@ -145,6 +159,7 @@ export function useCreateProperty() {
 // only filters by primary key. The conflict-detection contract used by
 // ListingFormPage would break otherwise.
 
+/** Levée quand une mise à jour à verrou optimiste ne matche aucune ligne : le bien a été modifié ailleurs entre-temps. */
 export class PropertyUpdateConflictError extends Error {
   constructor() {
     super('Ce bien a été modifié ailleurs. Rechargez la page avant de re-sauvegarder.')
@@ -152,6 +167,7 @@ export class PropertyUpdateConflictError extends Error {
   }
 }
 
+/** Mise à jour d'un bien avec verrou optimiste optionnel (`expected_updated_at`) ; invalide manuellement les caches property/listings liés. */
 export function useUpdateProperty() {
   const queryClient = useQueryClient()
 
@@ -191,7 +207,39 @@ export function useUpdateProperty() {
   })
 }
 
-// ── Soft-delete property ──
+// ── Delete property (soft-delete) ──
+// Soft-delete via la RPC SECURITY DEFINER `soft_delete_property` (migration
+// 20260718032751). Un UPDATE client posant `deleted_at` est IMPOSSIBLE sous
+// RLS : la policy SELECT (`deleted_at IS NULL`) est aussi appliquée à la ligne
+// modifiée dès que l'UPDATE lit la table → « new row violates row-level
+// security policy » (vérifié empiriquement en rôle authenticated). La RPC
+// re-vérifie l'agence côté serveur, et le trigger `trg_properties_audit`
+// journalise `bien_soft_deleted` dans activity_events — la trace survit à la
+// suppression (rétention LBA art. 7 al. 3). Les lectures filtrent
+// `.is('deleted_at', null)`, donc le bien disparaît des listes ; l'appelant
+// déclenche le refetch (useBiensSugar.refetch) après succès.
+
+/** Soft-delete d'un bien (RPC agency-scopée) — dépublie et retire des listes ; le trigger DB journalise l'audit. */
+export function useDeleteProperty() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.rpc('soft_delete_property', { p_property_id: id })
+      if (error) throw error
+      if (!data) throw new Error('Bien introuvable ou déjà supprimé')
+      return id
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ['property', id] })
+      queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
+      queryClient.invalidateQueries({ queryKey: ['listings'] })
+    },
+  })
+}
+
+// ── Soft-delete property (photos R2 mirror helper) ──
 // Soft-delete by default (sets deleted_at). The audit trigger turns this
 // into a `bien_soft_deleted` event so the audit trail survives the deletion
 // (LBA art. 7 al. 3 retention). Hard delete is reserved for the pg_cron
@@ -221,6 +269,7 @@ async function mirrorPhotosToR2(
 
 // ── Upload floor plan image to Supabase Storage (puis miroir R2) ──
 
+/** Upload d'un plan d'étage (staging Supabase, EXIF strippé) puis miroir R2 ; renvoie l'URL R2 ou l'URL Supabase en repli. */
 export function useUploadFloorPlan() {
   const { profile } = useAuth()
 
@@ -344,6 +393,7 @@ export function useUploadChatPhoto() {
   })
 }
 
+/** Upload de N photos de bien (staging Supabase, EXIF strippé) puis miroir R2 en lot ; renvoie les URLs R2, ou les URLs Supabase si le miroir échoue. */
 export function useUploadPropertyPhotos() {
   const { profile } = useAuth()
 

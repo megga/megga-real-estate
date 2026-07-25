@@ -561,7 +561,11 @@ main {
 .megga-shimmer {
   position: relative;
   overflow: hidden;
-  background-color: var(--theme-section, rgba(127, 127, 127, 0.12));
+  /* Gris neutre semi-transparent À DESSEIN : il s'assombrit ou s'éclaircit selon
+     la surface qui le porte, donc il reste visible sur une card comme sur un
+     fond de page, dans les deux thèmes. Ne PAS le brancher sur un token opaque
+     (--color-bg-section vaut #F9FAFB en clair : invisible sur une card blanche). */
+  background-color: rgba(127, 127, 127, 0.12);
   background-image: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
@@ -595,5 +599,29 @@ main {
   .megga-shimmer {
     animation: none;
     background-image: none;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Écrans d'attente de route (fallback Suspense) — apparition retardée.
+   Un chunk qui arrive en 80 ms ne doit RIEN faire clignoter : on ouvre
+   l'opacité après 120 ms, donc le squelette n'est visible que si l'attente
+   est réelle. Le composant reste monté tout du long (aucune temporisation
+   JS, aucun état à gérer) — c'est la peinture qui est différée.
+   Utilisé par src/components/skeletons/SugarPageSkeleton.tsx.
+   ────────────────────────────────────────────────────────────────────── */
+.megga-fallback {
+  animation: megga-fallback-in 180ms ease 120ms both;
+}
+
+@keyframes megga-fallback-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .megga-fallback {
+    /* Le délai reste (c'est lui qui tue le clignotement), le fondu disparaît. */
+    animation: megga-fallback-in 1ms linear 120ms both;
   }
 }

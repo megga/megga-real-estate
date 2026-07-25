@@ -286,11 +286,13 @@ export default function SgaAcheteurMode({ b, pool, gestes, onOpenDeal }: SgaAche
       const tag = ((e.target as HTMLElement)?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       const k = e.key.toLowerCase()
-      if (k === 'e' || e.key === 'ArrowRight') { e.preventDefault(); if (selected) requestSend(selected.lid) }
-      else if (k === 'x' || e.key === 'ArrowLeft') { e.preventDefault(); if (selected) triage(selected.lid, 'skipped') }
+      // ←/→ naviguent (même convention que l'atelier par annonce) : une touche de
+      // déplacement ne doit pas écrire un triage.
+      if (k === 'e') { e.preventDefault(); if (selected) requestSend(selected.lid) }
+      else if (k === 'x') { e.preventDefault(); if (selected) triage(selected.lid, 'skipped') }
       else if (k === 'p') { e.preventDefault(); if (selected) triage(selected.lid, 'later') }
-      else if (k === 'j' || e.key === 'ArrowDown') { e.preventDefault(); move(1) }
-      else if (k === 'k' || e.key === 'ArrowUp') { e.preventDefault(); move(-1) }
+      else if (k === 'j' || e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); move(1) }
+      else if (k === 'k' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); move(-1) }
       else if (e.key === 'Backspace') { e.preventDefault(); undo() }
     }
     window.addEventListener('keydown', onKey)

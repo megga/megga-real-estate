@@ -18,7 +18,7 @@ import { readDocument, describeInboundMedia, ID_DOC_REDACTION_FR } from '../_sha
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { meggaProse } from '../_shared/megga-prose.ts'
-import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, executeDeleteContact, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, detectLang, t, type WaLang, undoneStage, undoStateChanged, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 
 const corsHeaders = {
@@ -1201,6 +1201,10 @@ async function executePending(
         : `✅ Texte envoyé au client — mais ${missing}/${imagesAttempted} photo${imagesAttempted > 1 ? 's' : ''} n'${missing > 1 ? 'ont' : 'a'} pas pu partir (seul le texte est arrivé).`
     }
     return t(lang, 'listingsSent')
+  }
+  if (pending.tool === 'delete_contact') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executeDeleteContact(ctx, pending.args).then((r) => r.message)
   }
   if (pending.tool === 'open_kyc_case') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }

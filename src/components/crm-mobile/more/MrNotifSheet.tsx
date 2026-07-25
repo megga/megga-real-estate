@@ -1,3 +1,8 @@
+/**
+ * Feuille Notifications du CRM mobile (crm-mobile/more) — bottom-sheet plein
+ * écran ouvert depuis le hub « Plus ». Digest des priorités + liste groupée par
+ * jour, alimentée par `useAgentNotifications` (instance passée en props).
+ */
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
@@ -24,6 +29,7 @@ const GROUPS: { id: NotifGroup; labelKey: string }[] = [
 
 const SHEET_SPRING = { type: 'spring' as const, stiffness: 320, damping: 34, mass: 0.95 }
 
+/** Convertit un hex en `rgba()` avec alpha — pour teinter le fond d'une pastille d'icône. */
 function tint(hex: string, a: number): string {
   const h = hex.replace('#', '')
   const r = parseInt(h.slice(0, 2), 16)

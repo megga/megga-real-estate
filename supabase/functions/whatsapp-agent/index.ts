@@ -19,7 +19,7 @@ import {
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   execCreateDeal, execSearchListings, execGetKycStatus,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink,
-  prepareSendClientEmail,
+  prepareSendClientEmail, prepareDeleteContact,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   execSummarizeGroupThread, execCheckGroupLeak,
   execDraftListingCopy, execPrepareMeeting,
@@ -34,6 +34,7 @@ import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import { composeAgentSystemPrompt } from '../_shared/agent-system-prompt.ts'
 import { redactPII } from '../_shared/pii-redaction.ts'
 import { redactLlmMessages } from '../_shared/wa-agent-redaction.ts'
+import { fetchHotContactBlock } from '../_shared/contact-memory.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -43,7 +44,7 @@ const SYSTEM = `Tu es MEGGA, l'assistante de l'agent immobilier sur WhatsApp. Co
 Ton : naturel, comme un vrai humain qui texte — JAMAIS comme une IA. Phrases courtes et variées, droit au but, chaleureux mais sobre. Tutoiement avec l'agent. Pas de jargon ni d'identifiants bruts. (La langue de réponse est précisée plus bas.)
 Écris humain — bannis : les formules creuses (« n'hésite pas », « je reste à ta disposition », « avec plaisir », « bien sûr ! »), la règle de trois systématique, les adjectifs gonflés (« parfait », « excellent », « ravi »), les emojis en série, le ton commercial. Si une phrase suffit, une seule phrase.
 Mise en forme WhatsApp : le gras s'écrit avec UNE étoile *comme ça* (jamais ** **), l'italique avec _underscores_, les listes avec « - ». N'utilise pas la syntaxe Markdown.
-Tu peux AGIR via les outils fournis : créer/qualifier des contacts, ajouter des notes, planifier des visites, créer des rappels, ouvrir un dossier, déplacer un dossier dans le pipeline, enregistrer une offre, rechercher des biens sur le marché, envoyer une sélection de biens au client, consulter l'agenda / les fiches / les correspondances, préparer un rendez-vous (synthèse + 3 points à aborder, pour l'agent), lire un document que l'agent t'envoie (photo/scan/PDF) et le classer dans une fiche, et côté conformité : ouvrir un KYC, lancer le screening, joindre une pièce, consulter le statut KYC, envoyer le lien KYC au client.
+Tu peux AGIR via les outils fournis : créer/qualifier des contacts, ajouter des notes, supprimer un contact, planifier des visites, créer des rappels, ouvrir un dossier, déplacer un dossier dans le pipeline, enregistrer une offre, rechercher des biens sur le marché, envoyer une sélection de biens au client, consulter l'agenda / les fiches / les correspondances, préparer un rendez-vous (synthèse + 3 points à aborder, pour l'agent), lire un document que l'agent t'envoie (photo/scan/PDF) et le classer dans une fiche, et côté conformité : ouvrir un KYC, lancer le screening, joindre une pièce, consulter le statut KYC, envoyer le lien KYC au client.
 Règles:
 - Le KYC est FACULTATIF et ne bloque jamais rien (ni pipeline, ni offre, ni visite). Ne le présente jamais comme obligatoire ; propose-le quand c'est utile, sans l'imposer.
 - Si une offre ou un changement de pipeline échoue faute de dossier, ouvre le dossier (create_deal) puis réessaie.
@@ -55,6 +56,7 @@ Règles:
 - Pour AGIR (créer/qualifier un contact, planifier une visite, créer un rappel, déplacer le pipeline, enregistrer une offre, envoyer au client), appelle DIRECTEMENT l'outil correspondant. Ne demande pas toi-même « tu confirmes ? » et n'annonce pas que tu vas le faire : le système ajoute lui-même l'étape de confirmation quand elle est nécessaire. Ne refuse jamais une action en supposant l'état du CRM (dossier, disponibilité…) — appelle l'outil, c'est lui qui te dira.
 - Si une info manque (quel contact ? quel bien ? quelle date ?), pose UNE question courte au lieu de deviner.
 - Pour agir sur un contact existant, retrouve d'abord son id via search_contacts. N'invente jamais d'identifiant.
+- Suppression (delete_contact) : réservée à une VRAIE demande explicite de suppression (« supprime la fiche de Dubois », « efface ce contact »). C'est DÉFINITIF et irréversible. Ne l'utilise JAMAIS pour « archiver », « marquer perdu » ou ranger un dossier (ça, c'est update_pipeline vers « Perdu »). Ne propose jamais toi-même de supprimer un contact ; appelle l'outil seulement quand l'agent le demande, et le système ajoutera la confirmation.
 - Après une action, confirme en une phrase, en langage humain. Sois proactive : propose l'étape suivante utile quand c'est pertinent.
 - Recherche de biens (search_listings) : annonce le NOMBRE TOTAL renvoyé par l'outil (champ \`total\`, formulé « environ X biens » car c'est une estimation) et présente le reste comme un échantillon / une sélection. search_listings interroge l'inventaire MARCHÉ réel — n'invente JAMAIS d'excuse sur l'accès aux plateformes (ImmoScout, Homegate, etc.) et ne confonds pas le marché avec le CRM de l'agence.
 - Un message destiné à un CLIENT se soigne comme la vitrine de l'agence : courtois, clair, sans faute — il sera soumis à l'agent avant tout envoi.
@@ -103,7 +105,7 @@ serve(async (req) => {
 
   // Apprentissage T1 : style appris de l'agent, injecté SEULEMENT si activé (human-in-the-loop).
   const { data: prof } = await supabase.from('agent_ai_profiles')
-    .select('learned_style').eq('agent_id', profileId).maybeSingle()
+    .select('learned_style, hot_contact_id, hot_contact_at').eq('agent_id', profileId).maybeSingle()
   const styleBlock = formatStyleBlock((prof?.learned_style as LearnedStyle | null) ?? null)
 
   // Mimétisme de voix (few-shot) : vrais messages clients de l'agence, pour les messages DESTINÉS À UN CLIENT.
@@ -154,6 +156,11 @@ serve(async (req) => {
 - search_contacts : si plusieurs contacts correspondent, liste les noms et demande lequel — ne devine pas avant d'agir.
 - attach_kyc_document : ne dis jamais qu'une pièce est validée ni le dossier complet (la validation n'est pas faite par l'IA) ; ne restitue que les champs réellement lus.`
 
+  // Mémoire cross-canal : bloc « contact chaud » (<6h, posé par les exécuteurs des DEUX
+  // canaux). VOLATIL → injecté dans le SUFFIXE system avec l'horodatage, jamais dans le
+  // préfixe stable (cache DeepSeek). Déjà rédigé (redactPII) et borné par le module.
+  const hotBlock = await fetchHotContactBlock(supabase, ctx.agencyId, prof ?? null, lang === 'en' ? 'en' : 'fr')
+
   // Le garde-fou NBA (anti-initiative) est injecté par composeAgentSystemPrompt (baked-in),
   // gardé par agent-system-prompt.test.ts — plus besoin de le concaténer à la main ici.
 
@@ -166,13 +173,21 @@ serve(async (req) => {
     console.warn('C1 skipped: no waNumber for profile', profileId)
   } else {
     const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    const { data: histRows } = await supabase
+    // Cloisonnement inter-agences (défense en profondeur) : borne l'historique à l'agence
+    // VÉRIFIÉE du lien (ctx.agencyId = link.agency_id, re-dérivé, jamais le body). Le fil
+    // agent↔MEGGA est déjà propre à l'agent (les messages clients ont d'autres wa_from/wa_to),
+    // mais ça ferme le cas limite d'un numéro recyclé entre agences dans la fenêtre 24h.
+    // Sauté si l'agent n'a pas d'agence (eq(null) ne matcherait rien d'utile ; aucun outil
+    // ne fonctionne de toute façon sans agence).
+    let histQ = supabase
       .from('whatsapp_messages')
       .select('direction, body, transcript')
       .or(`wa_from.eq.${waNumber},wa_to.eq.${waNumber}`)
       .eq('is_agent_error', false) // anti-écho : ne jamais relire une réponse d'échec (leçon 5)
       .neq('provider_message_id', currentMessageId ?? '')
       .gt('created_at', sinceIso)
+    if (ctx.agencyId) histQ = histQ.eq('agency_id', ctx.agencyId)
+    const { data: histRows } = await histQ
       .order('created_at', { ascending: false })
       .limit(12)
     history = buildHistoryMessages((histRows ?? []) as WaHistoryRow[])
@@ -197,7 +212,7 @@ serve(async (req) => {
     antiFab: antiFabBlock,
   })
   const messages: Array<Record<string, unknown>> = [
-    { role: 'system', content: `${systemStable}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.` },
+    { role: 'system', content: `${systemStable}${hotBlock}\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.` },
     ...history,
     { role: 'user', content: message },
   ]
@@ -475,7 +490,11 @@ async function stashPending(
   // (et on ne stocke rien), au lieu de promettre une action qui planterait au « oui ».
   let prompt = t(ctx.lang ?? 'fr', 'confirmGeneric')
   let storeArgs: Record<string, unknown> = args
-  if (tool === 'open_kyc_case') {
+  if (tool === 'delete_contact') {
+    const p = await prepareDeleteContact(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'open_kyc_case') {
     const p = await prepareOpenKycCase(ctx, args)
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload

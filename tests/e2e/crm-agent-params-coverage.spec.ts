@@ -41,11 +41,23 @@ test.describe('CRM agent — parametric routes (mock IDs)', () => {
       await page.goto(route.path)
       await page.waitForLoadState('networkidle')
 
+      // Seuil calibré sur le PLUS COURT état vide légitime du CRM :
+      // « Deal introuvable. » (17), « Visite introuvable. » (19),
+      // « Dossier introuvable. » (20) — des pages plein écran, sans chrome de
+      // navigation autour. C'est exactement le rendu que l'en-tête de ce fichier
+      // décrit comme acceptable.
+      //
+      // L'ancien seuil de 50 ne tenait que grâce à la bannière cookies, montée
+      // globalement dans App.tsx : elle ajoutait 580 caractères au body de
+      // CHAQUE page, portant ces routes à ~600 et masquant leur vraie valeur.
+      // La bannière retirée, le seuil mesurait donc un élément décoratif, pas
+      // la page. Le vrai détecteur de plantage reste l'assertion suivante
+      // (zéro erreur console) ; ici on ne dépiste qu'un écran blanc.
       const bodyText = await page.locator('body').innerText()
       expect(
-        bodyText.length,
-        `${route.path}: body too small (${bodyText.length} chars) — likely a render crash`
-      ).toBeGreaterThan(50)
+        bodyText.trim().length,
+        `${route.path}: body too small (${bodyText.trim().length} chars) — likely a render crash`
+      ).toBeGreaterThan(10)
 
       expect(
         collector.errors,

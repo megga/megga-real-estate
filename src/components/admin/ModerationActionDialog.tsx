@@ -1,3 +1,8 @@
+/**
+ * Modale de modération d'un bien en super-admin : signalement (`flag`) ou
+ * retrait (`remove`). Impose un motif — pilule prédéfinie ou saisie libre —
+ * avant de valider ; le motif est remonté au parent via `onConfirm`.
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Building2 } from 'lucide-react'
@@ -20,6 +25,7 @@ const REASON_KEYS = [
   'moderation.reason.inappropriate',
 ]
 
+/** Dialogue de confirmation d'une action de modération ; teinte ambre (flag) ou rouge (remove). */
 export default function ModerationActionDialog({
   open,
   onClose,
@@ -35,6 +41,7 @@ export default function ModerationActionDialog({
   const isFlag = action === 'flag'
   const actionLabel = isFlag ? t('moderation.flagTitle') : t('moderation.removeTitle')
 
+  // '__custom' = sentinelle de la pilule « autre » : le motif vient alors du textarea.
   const finalReason = selectedReason === '__custom' ? customReason.trim() : selectedReason ?? ''
 
   function handleConfirm() {

@@ -16,6 +16,7 @@ import { calEventToVM, demoEvents, fmtDur, minutesOf, sameDay, type AgEventVM } 
 type AgView = 'list' | 'block'
 const NOW_RED = '#E54D38'
 
+/** Minuit local du jour de `d` — borne pour les comparaisons jour à jour. */
 function startOfDay(d: Date): Date {
   const x = new Date(d)
   x.setHours(0, 0, 0, 0)

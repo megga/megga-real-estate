@@ -1,3 +1,9 @@
+/**
+ * Palette de commandes (⌘K) du CRM agent. Overlay modal listant pages, contacts
+ * (recherche Supabase live dès 2 caractères) et actions rapides, groupés par
+ * catégorie, avec navigation clavier (flèches / Entrée / Échap).
+ * Ouverture/fermeture pilotées par le parent via `isOpen`/`onClose`.
+ */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
@@ -56,6 +62,7 @@ interface CommandPaletteProps {
   onCreateContact?: () => void
 }
 
+/** Filtre côté client sur un catalogue statique + contacts distants ; l'action « Créer un contact » ouvre le dialog rapide au lieu de naviguer. */
 export default function CommandPalette({ isOpen, onClose, onCreateContact }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)

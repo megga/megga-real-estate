@@ -1,3 +1,8 @@
+/**
+ * Écran KYC mobile (crm-mobile, P9) — liste des dossiers de conformité.
+ * Câblage, filtres et comportement des deep-links : voir la docstring de
+ * `MobileKycListScreen` ci-dessous.
+ */
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -26,6 +31,7 @@ const DEMO: KycRow[] = [
   { id: 'k3', contact: { id: 'c3', first_name: 'Nadia', last_name: 'Berset', type: 'buyer' }, dossier_status: 'none', risk_level: 'high', checks_total: 5, checks_completed: 0 },
 ]
 
+/** Mappe un niveau de risque KYC sur une teinte de token (pastille de la ligne). */
 function riskTone(level: KycRiskLevel, tk: MobileTokens): string {
   // Informatif, jamais alarmant (rouge proscrit pour le KYC, CLAUDE.md).
   if (level === 'low') return tk.goal
@@ -137,6 +143,7 @@ export function MobileKycListScreen({ demo = false }: { demo?: boolean }) {
   )
 }
 
+/** Anneau de progression des contrôles KYC (done/total) ; teinte « objectif » si vérifié. */
 function Ring({ done, total, verified, tk }: { done: number; total: number; verified: boolean; tk: MobileTokens }) {
   const size = 50, stroke = 5
   const r = (size - stroke) / 2
@@ -154,6 +161,7 @@ function Ring({ done, total, verified, tk }: { done: number; total: number; veri
   )
 }
 
+/** Ligne dossier : avatar, identité, statut + risque (non-bloquants) et anneau. Tap → détail. */
 function Row({ d, t, tk, onOpen }: { d: KycRow; t: TFunction; tk: MobileTokens; onOpen: () => void }) {
   const c = d.contact!
   const initials = `${(c.first_name || ' ')[0]}${(c.last_name || ' ')[0]}`.toUpperCase()

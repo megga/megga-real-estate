@@ -1,3 +1,9 @@
+/**
+ * Membres de l'équipe de l'agence courante (table `profiles`, scopée `agency_id`).
+ *
+ * Les dividers en fin de fichier réservent la place des hooks d'invitation/rôle
+ * (invite, resend, cancel, change role, remove) restant à câbler.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,8 +18,7 @@ export interface TeamMember {
   created_at: string
 }
 
-// ─── Team Members ───
-
+/** Liste les collègues de l'agence, triés par ancienneté (created_at croissant). */
 export function useTeamMembers() {
   const { user, profile } = useAuth()
 

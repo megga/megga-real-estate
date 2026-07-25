@@ -36,6 +36,7 @@ import {
 // `avatarUrl` est persisté séparément par useAvatar (upload Storage + avatar_url),
 // donc absent de cette liste qui couvre uniquement le payload de save().
 
+/** Sépare un nom complet en prénom / nom (premier mot vs. le reste). */
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const trimmed = (fullName ?? '').trim()
   if (!trimmed) return { firstName: '', lastName: '' }
@@ -45,6 +46,7 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
   return { firstName, lastName }
 }
 
+/** Initiales majuscules depuis prénom + nom (`??` si vides). */
 function initialsOf(firstName: string, lastName: string): string {
   return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || '??'
 }
@@ -77,6 +79,7 @@ interface ProfileJoinRow {
     | null
 }
 
+/** Déballe une relation Supabase (objet ou tableau) en un seul enregistrement ou null. */
 function unwrap<T>(v: T | T[] | null | undefined): T | null {
   if (!v) return null
   return Array.isArray(v) ? v[0] ?? null : v
@@ -97,6 +100,12 @@ export interface UseAgentProfileSugarReturn {
   save: (next: ProfileData) => Promise<void>
 }
 
+/**
+ * Source de vérité du ProfileSection (Réglages) : joint `profiles` + `agencies`
+ * + `agent_profiles` en un `ProfileData` éditable et le persiste via `save()`.
+ * Fallback vide (jamais le mock) hors session ; `hasAgentProfile` signale si les
+ * champs d'annuaire (bio, langues…) sont réellement persistables.
+ */
 export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentProfileSugarReturn {
   const enabled = options?.enabled ?? true
   const { profile: authProfile } = useAuth()
@@ -210,9 +219,9 @@ export function useAgentProfileSugar(options?: { enabled?: boolean }): UseAgentP
         if (aErr) throw aErr
       }
       // Note : si pas de record agent_profiles, on ne le crée pas ici (besoin
-      // d'un slug unique). À gérer lors de l'onboarding ou via un Edge Function
-      // dédié. C'est OK : l'agent peut sauvegarder profiles, le reste reviendra
-      // en sync quand son agent_profile sera créé.
+      // d'un slug unique). À gérer via un Edge Function dédié. C'est OK :
+      // l'agent peut sauvegarder profiles, le reste reviendra en sync quand
+      // son agent_profile sera créé.
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-profile-sugar', profileId] })

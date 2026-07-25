@@ -12,6 +12,7 @@ import { parseContactNba, type ContactNba } from '@/lib/contactNba'
 const rpcUntyped = supabase.rpc as unknown as
   (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>
 
+/** Prochaine action estimée (NBA) d'un contact via le RPC `get_contact_next_action` ; best-effort (erreur → null, jamais de throw). */
 export function useContactNextAction(contactId: string | undefined) {
   return useQuery({
     queryKey: ['contact-nba', contactId],

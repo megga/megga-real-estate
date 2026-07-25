@@ -34,6 +34,7 @@ export interface ContactLoop {
 }
 
 const num = (x: unknown): number | null => (x == null || Number.isNaN(Number(x)) ? null : Number(x))
+/** Première URL de photo valide d'un bien, en préférant les dérivés Cloudflare (`photos_cf`) aux originaux. */
 const firstPhoto = (row: Record<string, unknown> | null): string | null => {
   if (!row) return null
   const cf = Array.isArray(row.photos_cf) ? (row.photos_cf as unknown[]) : []
@@ -55,6 +56,10 @@ interface MatchRow {
   market_listing: Record<string, unknown> | Record<string, unknown>[] | null
 }
 
+/**
+ * Boucle de match d'un contact : dossiers transmis + état de réception
+ * (sent/seen/liked/dismissed), rafraîchie en realtime sur les `matches` du contact.
+ */
 export function useContactSentMatches(contactId: string | undefined): ContactLoop & { isLoading: boolean } {
   const qc = useQueryClient()
   const channelId = useId()

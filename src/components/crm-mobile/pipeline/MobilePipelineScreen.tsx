@@ -1,3 +1,8 @@
+/**
+ * Écran Pipeline mobile (crm-mobile/pipeline) — contenu de la route
+ * /dashboard/pipeline : onglets de stade + liste des affaires du stade actif.
+ * Câblé sur les vrais deals (usePipelineSugar) ; seeds de démo derrière `demo`.
+ */
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -59,6 +64,7 @@ const DEMO_VMS: DealVM[] = [
   { id: 'd7', stage: 'signed', name: 'Béatrice Nussbaum', initials: 'BN', av: '#0041D9', bienTitle: '3 pièces · Champel', value: 500000, prob: 92, risk: 'healthy', note: 'Compromis chez le notaire', noteKind: 'file', needsKyc: false },
 ]
 
+/** Projette un deal live (CrmDeal) en view-model d'affichage ; dérive KYC non-vérifié pour le rappel doux. */
 function dealToVM(d: CrmDeal): DealVM {
   const c = crmContactById(d.contactId)
   const b = d.bienId ? crmBienById(d.bienId) : null
@@ -75,12 +81,13 @@ function dealToVM(d: CrmDeal): DealVM {
     value: d.value,
     prob: d.probability,
     risk: d.risk,
-    note: d.nextAction.note,
-    noteKind: d.nextAction.kind,
+    note: d.nextAction?.note ?? '',
+    noteKind: d.nextAction?.kind ?? 'note',
     needsKyc,
   }
 }
 
+/** Anneau SVG de probabilité (donut) avec le pourcentage au centre. */
 function ProbRing({ pct, color }: { pct: number; color: string }) {
   const { tk } = useMobileTokens()
   const size = 38
@@ -355,6 +362,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
 
 // États honnêtes (chargement / erreur+réessayer / vide) — sinon un échec RLS
 // s'affiche comme un pipeline vide silencieux indiscernable d'un vrai vide.
+/** Placeholder de chargement — 4 cartes grisées. */
 function PipelineSkeleton({ tk }: { tk: MobileTokens }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 11, padding: '18px 18px 0' }}>
@@ -365,6 +373,7 @@ function PipelineSkeleton({ tk }: { tk: MobileTokens }) {
   )
 }
 
+/** Panneau vide/erreur générique ; affiche un bouton « réessayer » quand `onRetry` est fourni. */
 function PipelineState({ tk, title, body, onRetry, retryLabel }: { tk: MobileTokens; title: string; body?: string; onRetry?: () => void; retryLabel?: string }) {
   return (
     <div style={{ margin: '22px 18px 0', textAlign: 'center', padding: '40px 24px', background: tk.card, borderRadius: 20, boxShadow: tk.shadowSm, border: `1px solid ${tk.cardBorder}` }}>

@@ -1,3 +1,7 @@
+/**
+ * Hook d'impersonation super-admin (« voir en tant que »), stocké en
+ * localStorage côté client ; le vrai contrôle d'accès reste porté par RLS.
+ */
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 

@@ -1,3 +1,9 @@
+/**
+ * Système de toasts (notifications éphémères) partagé du CRM.
+ * `<ToastProvider>` enveloppe l'app ; tout descendant appelle `useToast()`.
+ * Rendu via `createPortal(document.body)`, empilé en haut (top-right desktop,
+ * top-center mobile). Détails de design et d'API dans le bloc ci-dessous.
+ */
 import {
   createContext,
   useCallback,
@@ -55,6 +61,7 @@ interface ToastApi {
 
 const ToastCtx = createContext<ToastApi | null>(null)
 
+/** Accès à l'API toast depuis le contexte. Hors provider : no-op (évite le crash en arbre sans provider / Storybook). */
 export function useToast(): ToastApi {
   const api = useContext(ToastCtx)
   if (!api) {
@@ -80,6 +87,7 @@ interface ToastProviderProps {
 
 let idCounter = 0
 
+/** Fournit le contexte toast et rend le viewport. `max` plafonne le nombre visible (surplus tronqué), `defaultDuration` = auto-dismiss par défaut. */
 export function ToastProvider({ children, max = 4, defaultDuration = 4000 }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastEntry[]>([])
 
@@ -131,6 +139,7 @@ const TYPE_STYLES: Record<ToastType, { icon: MEIconName; ring: string; iconClass
   warn:    { icon: 'alert',  ring: 'ring-amber-500/30',   iconClass: 'text-amber-500' },
 }
 
+/** Conteneur porté sur `document.body` qui empile les toasts actifs (région aria-live polite). */
 function ToastViewport({ toasts, onDismiss }: { toasts: ToastEntry[]; onDismiss: (id: number) => void }) {
   if (typeof document === 'undefined') return null
 
@@ -151,6 +160,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: ToastEntry[]; onDismiss:
   )
 }
 
+/** Une carte toast : slide + FLIP de mise en page, auto-dismiss dont le timer se met en pause au survol ; clic = fermeture. */
 function ToastCard({ toast, onDismiss }: { toast: ToastEntry; onDismiss: (id: number) => void }) {
   const reducedMotion = useReducedMotion()
   const { icon: Icon, ring, iconClass } = TYPE_STYLES[toast.type]

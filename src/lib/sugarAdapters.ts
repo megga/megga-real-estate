@@ -1,7 +1,9 @@
-// MEGGA CRM Sugar v2 — Adaptateurs partagés Supabase → shapes mock (CrmContact / CrmBien / etc).
-// Centralise les mappings réutilisés par useMatchingSugar, useContactsSugar,
-// useDealsSugar, etc. Les pages UI continuent de consommer Crm* shapes du mock,
-// et les hooks adapter remplissent le registry runtime de mockData.ts.
+/**
+ * MEGGA CRM Sugar v2 — Adaptateurs partagés Supabase → shapes mock (CrmContact / CrmBien / etc).
+ * Centralise les mappings réutilisés par useMatchingSugar, useContactsSugar,
+ * useDealsSugar, etc. Les pages UI continuent de consommer Crm* shapes du mock,
+ * et les hooks adapter remplissent le registry runtime de mockData.ts.
+ */
 
 import type { Contact, SearchCriteria } from '@/types/contact'
 import { splitZones, PROP_TYPE_EN_TO_FR } from '@/lib/contactCriteria'
@@ -25,7 +27,7 @@ export function mapKycStatus(
   return dbDossierStatus  // 'none' | 'pending' | 'verified' | 'stale'
 }
 
-// ─── Mapping Contact.type DB → CrmContact.type ─────────────────────────
+/** Contact.type (DB) → CrmContact.type (UI). investor et lead retombent sur 'buyer'. */
 export function mapContactType(t: Contact['type']): CrmContact['type'] {
   switch (t) {
     case 'buyer':    return 'buyer'
@@ -39,7 +41,7 @@ export function mapContactType(t: Contact['type']): CrmContact['type'] {
   }
 }
 
-// ─── SearchCriteria DB → CrmContact.criteria ───────────────────────────
+/** SearchCriteria (DB) → bloc `criteria` du CrmContact (sépare villes/cantons, libellés de type en FR). */
 export function mapCriteria(c: SearchCriteria | null): CrmContact['criteria'] {
   if (!c) return undefined
   // `zones` mélange villes et codes cantons → on sépare. `type` est en anglais
@@ -71,7 +73,7 @@ export function pickAvatarBg(id: string): string {
   return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length]
 }
 
-// ─── Score (ContactScore enum DB) → number UI ──────────────────────────
+/** Score qualitatif DB (hot/warm/cold) → note numérique 0–90 attendue par l'UI. */
 export function mapContactScore(score: Contact['score']): number {
   return score === 'hot' ? 90 : score === 'warm' ? 60 : score === 'cold' ? 30 : 0
 }
@@ -84,7 +86,7 @@ function mapContactStatus(t: Contact['type']): CrmContact['status'] {
   return t === 'lead' ? 'lead' : 'active'
 }
 
-// ─── Contact + KycCase → CrmContact ────────────────────────────────────
+/** Assemble un CrmContact complet depuis un Contact DB et son KycCase éventuel. */
 export function contactToCrm(c: Contact, kyc: KycCase | undefined): CrmContact {
   return {
     id: c.id,
@@ -163,6 +165,45 @@ export function stageIdToTransactionStage(s: StageId): TransactionStage {
   }
 }
 
+// ─── Reminders (Supabase) → CrmDeal.nextAction ─────────────────────────
+// Pipeline v2 : la « prochaine action » d'un deal = son prochain reminder
+// actif (pending/triggered/snoozed, trigger_at le plus proche). `kind` (colonne
+// dédiée, migration 20260721150000) pilote l'icône ; pour les lignes historiques
+// et celles créées par l'automation (sans kind), repli statique type→kind.
+export const REMINDER_KIND_BY_TYPE: Record<string, string> = {
+  follow_up_sent_property: 'match',
+  match_ignored: 'match',
+  post_visit_feedback: 'visit',
+  missing_document: 'kyc',
+  dormant_lead: 'call',
+  deal_stagnant: 'call',
+  price_change: 'note',
+  custom: 'note',
+}
+
+/** Shape minimal d'une ligne `reminders` consommée par le pipeline. */
+export interface PipelineReminderRow {
+  id: string
+  transaction_id: string | null
+  type: string
+  kind: string | null
+  trigger_at: string | null
+  message_template: string | null
+}
+
+/** Ligne reminder → nextAction de CrmDeal. null si pas d'échéance exploitable.
+ *  `note` peut être vide (message_template absent) — l'UI retombe alors sur le
+ *  libellé localisé du kind (t('timeline.kind.*')). */
+export function reminderToNextAction(r: PipelineReminderRow): CrmDeal['nextAction'] {
+  if (!r.trigger_at) return null
+  return {
+    kind: r.kind ?? REMINDER_KIND_BY_TYPE[r.type] ?? 'note',
+    dueAt: r.trigger_at,
+    note: r.message_template?.trim() ?? '',
+    reminderId: r.id,
+  }
+}
+
 // ─── ContactTransaction (Supabase) → CrmDeal (mock UI shape) ───────────
 // Le hook `useContactTransactions(contactId)` renvoie un shape allégé
 // (id, stage, status, prix, updated_at, property). Le mock CrmDeal porte
@@ -172,7 +213,9 @@ export function stageIdToTransactionStage(s: StageId): TransactionStage {
 //   - risk : dérivé du status DB (pas de colonne risk dédiée). Enum réel
 //     transactions.status = {active,on_hold,cancelled,completed} :
 //     on_hold → at-risk, cancelled → stalled, sinon healthy.
-//   - nextAction : placeholder (à brancher quand `tasks` table existe)
+//   - nextAction : null ici — attachée par usePipelineSugar depuis `reminders`
+//     (reminderToNextAction) ; les consommateurs hors pipeline la laissent nulle.
+//   - won/archived : status='completed' / archived_at non NULL (exclusion board)
 //   - bienId : transaction.property?.id (peut être null)
 const STAGE_PROBABILITY: Record<StageId, number> = {
   'new-lead': 5, 'to-qualify': 15, 'searching': 30,
@@ -194,10 +237,12 @@ export function transactionToCrmDeal(
     stage,
     value,
     probability: STAGE_PROBABILITY[stage] ?? 0,
-    ownerAgentId: '',
-    nextAction: { kind: 'note', dueAt: t.updated_at, note: 'Prochaine étape à définir' },
+    ownerAgentId: t.assigned_to ?? '',
+    nextAction: null,
     risk: t.status === 'on_hold' ? 'at-risk' :
           t.status === 'cancelled' ? 'stalled' : 'healthy',
+    won: t.status === 'completed',
+    archived: t.archived_at != null,
     updatedAt: t.updated_at,
   }
 }
@@ -210,6 +255,22 @@ export function transactionToCrmDeal(
 // Utilisé pour afficher les biens dont un contact vendeur est propriétaire.
 // Le mock CrmBien est très riche (mandat, stats, photoCount/signedPhotoCount,
 // energy, accent). On remplit ce qu'on peut depuis Property + listing joints.
+/** `properties.mandate_type` (texte libre : enum DB 'exclusive|semi_exclusive|simple'
+ *  OU valeurs héritées) → CrmBien.mandat.type. semi_exclusive retombe sur 'simple'
+ *  (l'UI ne réserve le badge exclusif qu'au vrai mandat exclusif). */
+function mapMandateType(t?: string | null): CrmBien['mandat']['type'] {
+  switch ((t ?? '').toLowerCase()) {
+    case 'exclusive':
+    case 'exclusif':
+      return 'exclusif'
+    case 'recherche':
+    case 'search':
+      return 'recherche'
+    default:
+      return 'simple'
+  }
+}
+
 export function propertyToCrmBien(p: Property, ownerContactId: string | null): CrmBien {
   const typeMap: Record<string, CrmBien['type']> = {
     apartment: 'appartement', appartement: 'appartement',
@@ -217,7 +278,11 @@ export function propertyToCrmBien(p: Property, ownerContactId: string | null): C
     commercial: 'commercial', office: 'office',
     parking: 'parking', storage: 'storage', land: 'land',
   }
-  const isRental = !!p.price && p.price < 20000   // heuristique idem listingToBien
+  // Vente/Location = vrai `transaction_type` DB ('buy' | 'rent') en priorité ;
+  // repli sur l'heuristique de prix quand la colonne n'est pas renseignée.
+  const isRental = p.transaction_type
+    ? p.transaction_type === 'rent'
+    : (!!p.price && p.price < 20000)
   return {
     id: p.id,
     ref: p.id.slice(0, 12).toUpperCase(),
@@ -227,6 +292,7 @@ export function propertyToCrmBien(p: Property, ownerContactId: string | null): C
     title: p.title || `${typeMap[p.type] ?? 'Bien'} ${p.city ?? ''}`.trim(),
     addr: [p.address, p.city].filter(Boolean).join(', '),
     canton: p.canton ?? '',
+    city: p.city ?? undefined,
     price: isRental ? null : (p.price || null),
     rent: isRental ? p.price : null,
     charges: p.charges_monthly ?? null,
@@ -235,9 +301,17 @@ export function propertyToCrmBien(p: Property, ownerContactId: string | null): C
     beds: p.bedrooms ?? 0,
     baths: p.bathrooms ?? 0,
     year: p.year_built ?? 0,
-    energy: '',
+    energy: p.energy_class ?? '',
     ownerContactId,
-    mandat: { type: 'simple' },
+    // Mandat réel (colonnes `mandate_*` du bien) — alimente le bucket « Mandats à
+    // renouveler » de « À suivre » et le §Mandat de la fiche. `expiresAt` est
+    // informatif (le cron d'auto-dépublication à l'échéance est dormant).
+    mandat: {
+      type: mapMandateType(p.mandate_type),
+      commission: p.mandate_commission_pct ?? undefined,
+      signedAt: p.mandate_signed_at ?? undefined,
+      expiresAt: p.mandate_expires_at ?? undefined,
+    },
     visibility: 'agency',
     stats: { views: 0, favorites: 0, visitRequests: 0 },
     photoCount: p.photos?.length ?? 0,

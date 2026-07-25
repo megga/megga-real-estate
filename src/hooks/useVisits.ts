@@ -120,6 +120,11 @@ function calendarEventToVisitPayload(event: CalendarEvent, agencyId: string) {
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
+/**
+ * Visites de l'agence courante mappées en `CalendarEvent` pour le calendrier agent,
+ * plus les mutations create/update/delete (Cache Helpers, invalidation auto).
+ * L'update est partiel : le `status` n'est écrasé que s'il est explicitement fourni.
+ */
 export function useVisits() {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -215,6 +220,10 @@ export interface FocusVisitRow {
   propertyCity: string | null
 }
 
+/**
+ * Colonnes de signal brutes des visites pour la file Focus (débrief manquant, no-show),
+ * bornées à la fenêtre actionnable [-21 j … fin de journée]. Voir le commentaire du WHERE.
+ */
 export function useFocusVisits(limit = 100) {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -291,6 +300,7 @@ export interface PublicVisitData {
 // visite dont le client détient le token (uuid = capability non devinable).
 // Les RPC token ne sont pas dans les types générés (database.ts en retard) →
 // cast localisé, même pattern que useFollowupSuggestions.
+/** Lecture publique d'une visite par capability token (RPC SECURITY DEFINER `get_visit_by_token`). */
 export function usePublicVisit(token: string | undefined) {
   return useRqQuery({
     queryKey: ['public-visit', token],
@@ -313,6 +323,7 @@ export function usePublicVisit(token: string | undefined) {
 const rpcByToken = (fn: string, args: Record<string, unknown>) =>
   (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>)(fn, args)
 
+/** Replanification publique (par token) via RPC `reschedule_visit_by_token`. */
 export function useRescheduleVisit() {
   return useMutation({
     mutationFn: async ({ token, newDate }: { token: string; newDate: string }) => {
@@ -322,6 +333,7 @@ export function useRescheduleVisit() {
   })
 }
 
+/** Annulation publique (par token) via RPC `cancel_visit_by_token`. */
 export function useCancelVisit() {
   return useMutation({
     mutationFn: async (token: string) => {
@@ -342,6 +354,7 @@ export interface VisitFeedbackInput {
   offerInterest: 'yes' | 'maybe' | 'no'
 }
 
+/** Dépôt public du feedback visite (note + objections/intérêt) via RPC `submit_visit_feedback_by_token`. */
 export function useSubmitFeedback() {
   return useMutation({
     mutationFn: async (input: VisitFeedbackInput) => {

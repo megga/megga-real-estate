@@ -62,7 +62,7 @@ export default function AgencyUsageOverview() {
                   return (
                     <Link
                       key={r.agency_id}
-                      to={`/dashboard/admin/agencies/${r.agency_id}`}
+                      to={`/agencies/${r.agency_id}`}
                       className={cn('grid grid-cols-[1.5fr_90px_90px_90px_90px_80px] px-4 py-2.5 text-xs items-center hover:bg-theme-hover transition-colors', i > 0 && 'border-t border-theme-border-subtle')}
                     >
                       <span className="text-theme-primary font-medium truncate pr-2">{r.agency_name}</span>

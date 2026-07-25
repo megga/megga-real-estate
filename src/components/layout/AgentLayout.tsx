@@ -1,5 +1,13 @@
+/**
+ * Shell du CRM agent — layout de toutes les routes `/dashboard/*` (React Router
+ * `<Outlet>`). Assemble sidebar, header mobile, breadcrumb, command palette (⌘K),
+ * création rapide de contact (⌘⇧C), bannière d'impersonation, bottom tab bar et
+ * sondage NPS. Enveloppé de `ThemeProvider` (dark mode limité au dashboard) et
+ * `CopilotContextProvider`. En mobile, court-circuite le chrome legacy au profit
+ * du MobileShell fourni par les pages.
+ */
 import { useState, useEffect, useCallback } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { ThemeProvider } from '@/hooks/useTheme'
@@ -11,8 +19,8 @@ import NewContactDialog from '@/components/contacts/NewContactDialog'
 import BottomTabBar from '@/components/layout/BottomTabBar'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import AnnouncementsBanner from '@/components/layout/AnnouncementsBanner'
-import NpsSurvey from '@/components/feedback/NpsSurvey'
 
+/** Corps du layout (à l'intérieur des providers) : gère l'état du chrome et les raccourcis globaux. */
 function AgentLayoutInner() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -44,17 +52,14 @@ function AgentLayoutInner() {
 
   // Mobile (< 768px) : on neutralise le chrome legacy (Sidebar, header mobile,
   // Breadcrumb, BottomTabBar) — les pages mobiles fournissent leur propre
-  // MobileShell via ResponsiveRoute. L'admin conserve son chrome legacy (hors
-  // cible mobile V1). Desktop ≥ 768px : strictement inchangé.
+  // MobileShell via ResponsiveRoute. Desktop ≥ 768px : strictement inchangé.
   const isMobile = useIsMobile()
-  const { pathname } = useLocation()
-  if (isMobile && !pathname.startsWith('/dashboard/admin')) {
+  if (isMobile) {
     return (
       <div className="min-h-[100dvh] bg-theme-section">
         <ImpersonateBanner />
         <AnnouncementsBanner />
         <Outlet />
-        <NpsSurvey />
       </div>
     )
   }
@@ -108,13 +113,11 @@ function AgentLayoutInner() {
 
       {/* Mobile bottom tab bar */}
       <BottomTabBar />
-
-      {/* NPS satisfaction survey (floating, bottom-right) */}
-      <NpsSurvey />
     </div>
   )
 }
 
+/** Point d'entrée exporté : monte les providers (thème, contexte copilote) autour du shell. */
 // Wrap with ThemeProvider so dark mode only applies to the dashboard
 export default function AgentLayout() {
   return (

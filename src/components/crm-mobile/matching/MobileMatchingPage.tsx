@@ -1,3 +1,4 @@
+/** Page mobile Matching — monte `MobileMatchingScreen` dans la coque à onglets. */
 import MobileShell from '../shell/MobileShell'
 import { MobileMatchingScreen } from './MmMatchingScreen'
 

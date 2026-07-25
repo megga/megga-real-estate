@@ -19,7 +19,7 @@ import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDe
 import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
-import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint } from './whatsapp-i18n.ts'
+import { type WaLang, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint, confirmDeleteContact, deleteContactPreview } from './whatsapp-i18n.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
@@ -29,6 +29,9 @@ import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts
 import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 import { logDeepSeekUsageWith } from './ai-usage.ts'
 import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
+import { touchHotContact } from './contact-memory.ts'
+import { redactPII } from './pii-redaction.ts'
+import { buildDocReadPrompt } from './whatsapp-doc-prompt.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -233,15 +236,20 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
     .select('id, first_name, last_name, phone, email, type, score, tags, notes, search_criteria, last_interaction_at')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
   if (!c) return 'Contact introuvable dans votre agence.'
+  // Mémoire cross-canal : consulter la fiche = travailler ce contact (fire-and-forget).
+  touchHotContact(ctx.supabase, ctx.profileId, ctx.agencyId, c.id)
+  // Sous-requêtes bornées à l'agence (défense en profondeur) : le contact est déjà validé
+  // in-agency ci-dessus, on double la garde sur ses events/recherches (activity_events et
+  // client_searches portent agency_id) — jamais de contenu d'une autre agence dans le brief.
   const { data: timeline } = await ctx.supabase
     .from('activity_events').select('action, object_label, created_at')
-    .eq('entity_type', 'contact').eq('entity_id', contactId)
+    .eq('entity_type', 'contact').eq('entity_id', contactId).eq('agency_id', ctx.agencyId)
     .order('created_at', { ascending: false }).limit(5)
   const { data: searches } = await ctx.supabase
     .from('client_searches').select('label, criteria')
-    .eq('contact_id', contactId).eq('is_active', true).limit(3)
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const { data: insight } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, source_message_count, generated_at, crm_summary, crm_summary_updated_at')
     .eq('contact_id', c.id).eq('agency_id', ctx.agencyId).maybeSingle()
   // NBA déterministe (cerveau partagé WhatsApp ⇄ copilote) — best-effort : ne casse
   // JAMAIS le brief. supabase.rpc() ne throw pas → on consulte `error` explicitement
@@ -366,13 +374,16 @@ export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<strin
 const frDateTime = (iso: string): string =>
   new Date(iso).toLocaleString('fr-CH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Zurich' })
 
-/** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null. */
+/** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null.
+ *  Effet de bord voulu : pose le « contact chaud » de l'agent (mémoire cross-canal),
+ *  fire-and-forget — résoudre un contact = travailler dessus. */
 async function contactInAgency(
   ctx: ActionCtx, contactId: string,
 ): Promise<{ id: string; first_name: string | null; last_name: string | null } | null> {
   const { data } = await ctx.supabase
     .from('contacts').select('id, first_name, last_name')
     .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (data) touchHotContact(ctx.supabase, ctx.profileId, ctx.agencyId, (data as { id: string }).id)
   return (data as { id: string; first_name: string | null; last_name: string | null } | null) ?? null
 }
 
@@ -1011,6 +1022,96 @@ export async function executeRecordOffer(ctx: ActionCtx, payload: Args): Promise
     : `Offre de ${fmtCHF(amount)} enregistrée sur le dossier (statut : en attente).`
 }
 
+// -- Suppression de contact (delete_contact, tier confirm) -------------------
+// Miroir IA de la suppression manuelle (bouton fiche contact → useDeleteContact),
+// exposé aux DEUX canaux. DESTRUCTIVE + IRRÉVERSIBLE → tier confirm partout (jamais
+// auto) : WhatsApp exige le « oui » de l'agent, le copilote web une carte HITL
+// (execute_pending) gatée copilot_delete_enabled. Suppression DURE, scopée à
+// l'agence au SQL. Rétention LBA préservée par le SCHÉMA : kyc_cases.contact_id et
+// transactions.contact_* sont ON DELETE SET NULL → les dossiers KYC (art. 7, 10 ans)
+// et les transactions survivent, simplement déliés ; matches/visits/scores/insights
+// cascadent (données dérivées). Certaines FK sont NO ACTION (offers, seller_leads,
+// message_threads, agent_reviews, support_tickets) : un contact qui y est référencé
+// BLOQUE la suppression (23503) → on remonte un message humain, pas un code brut.
+
+/** Confirm-tier : valide le contact dans l'agence + construit prompt/aperçu/charge figée. */
+export async function prepareDeleteContact(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(a.contact_id)
+  if (!contactId) {
+    return { ok: false, error: lang === 'en'
+      ? 'Which contact should I delete? Find them via search_contacts first.'
+      : 'Quel contact veux-tu supprimer ? Retrouve-le d’abord via search_contacts.' }
+  }
+  const { data: contact } = await ctx.supabase
+    .from('contacts').select('id, first_name, last_name, phone, email')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (!contact) return { ok: false, error: lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.' }
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
+    || s(contact.email) || s(contact.phone) || (lang === 'en' ? 'this contact' : 'ce contact')
+  return {
+    ok: true,
+    kind: 'delete_contact',
+    prompt: confirmDeleteContact(lang, name),
+    preview: deleteContactPreview(lang, name),
+    // payload.title : titre de la carte HITL web (convention lue par makePrepareConfirm).
+    payload: { contact_id: contactId, title: name },
+  }
+}
+
+/** Post-« oui » (WhatsApp) / clic carte (web) : suppression DURE scopée agence.
+ *  Contrat {ok,message} aligné sur executePublishToPortals (l'UI n'affiche un succès
+ *  que si ok ; le webhook WhatsApp relaie r.message). `retryable:false` signale un échec
+ *  DÉFINITIF (contact déjà supprimé, action incomplète) → le copilote ne réarme pas la
+ *  carte HITL (un 23503 réversible, lui, reste réessayable = retryable absent). */
+export async function executeDeleteContact(ctx: ActionCtx, payload: Args): Promise<{ ok: boolean; message: string; retryable?: boolean }> {
+  if (!hasAgency(ctx)) return { ok: false, message: NO_AGENCY, retryable: false }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(payload.contact_id)
+  if (!contactId) return { ok: false, message: lang === 'en' ? 'Incomplete action — nothing deleted.' : 'Action incomplète, rien supprimé.', retryable: false }
+  // Re-résolution DANS l'agence (garde SQL, helper partagé contactInAgency) + capture du nom
+  // pour l'audit AVANT le delete. Contact déjà disparu = échec DÉFINITIF (re-résoudre ne le
+  // fera pas revenir) → retryable:false pour ne pas réarmer une carte web vouée à échouer.
+  const contact = await contactInAgency(ctx, contactId)
+  if (!contact) return { ok: false, message: lang === 'en' ? 'Contact not found in your agency (already deleted?).' : 'Contact introuvable dans votre agence (déjà supprimé ?).', retryable: false }
+  const label = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim() || (lang === 'en' ? 'the contact' : 'le contact')
+
+  const { error } = await ctx.supabase
+    .from('contacts').delete().eq('id', contactId).eq('agency_id', ctx.agencyId)
+  if (error) {
+    // 23503 = FK NO ACTION (offre / dossier vendeur / fil / avis / ticket lié) → bloqué.
+    // RÉESSAYABLE (retryable absent) : l'agent détache l'élément puis relance depuis la carte.
+    if ((error as { code?: string }).code === '23503') {
+      return { ok: false, message: lang === 'en'
+        ? `Can't delete ${label}: they're still linked to records that must be kept (an offer, a seller lead, a conversation…). Remove those links first.`
+        : `Impossible de supprimer ${label} : il reste rattaché à des éléments à conserver (une offre, un dossier vendeur, une conversation…). Détache-les d'abord.` }
+    }
+    return { ok: false, message: (lang === 'en' ? 'Deletion failed: ' : 'Échec de la suppression : ') + error.message }
+  }
+
+  // Audit LBA (append-only) APRÈS succès : le contact a disparu (entity_id pointe vers une
+  // ligne absente, activity_events n'a pas de FK vers contacts) mais son nom est conservé en
+  // metadata pour la traçabilité. Best-effort (jamais bloquant) MAIS observable : un audit
+  // manquant sur une action IRRÉVERSIBLE doit se voir dans les logs (comme logTimeline) —
+  // on trace donc l'erreur RETOURNÉE (contrainte CHECK) autant que l'exception (réseau).
+  try {
+    const { error: auditErr } = await ctx.supabase.from('activity_events').insert({
+      agency_id: ctx.agencyId, actor_id: null, actor_kind: 'ai',
+      action: 'contact_deleted', entity_type: 'contact', entity_id: contactId,
+      object_label: label.slice(0, 500), category: 'contact', severity: 'warn',
+      metadata: { via: ctx.via ?? 'whatsapp', profile_id: ctx.profileId, deleted_contact_name: label },
+    })
+    if (auditErr) console.error('[delete_contact] audit insert failed:', auditErr.message)
+  } catch (e) {
+    console.error('[delete_contact] audit insert threw:', (e as Error)?.message ?? 'error')
+  }
+
+  return { ok: true, message: lang === 'en'
+    ? `${label} deleted. Their KYC files and transactions are kept (unlinked), as the law requires.`
+    : `${label} supprimé. Ses dossiers KYC et transactions sont conservés (déliés), comme la loi l'exige.` }
+}
+
 // -- KYC par WhatsApp (Task 4) : open_kyc_case (tier confirm) -----------------
 
 /** Confirm-tier : valide le contact + dérive le typage, construit le prompt + payload figé. */
@@ -1514,10 +1615,13 @@ RÈGLES ABSOLUES (s'imposent à tout le reste) :
 
 Réponds UNIQUEMENT en JSON strict : {"subject":"…","body":"…"}`
 
-  const userPrompt = `Rédige un email immobilier suisse au client "${clientName}".
+  // Frontière DeepSeek rédigée par elle-même (même invariant que prepare_meeting) : instruction
+  // et insight sont déjà rédigés en amont, mais la défense en profondeur ne suppose rien.
+  // Aucun identifiant fonctionnel dans ce prompt → redaction du bloc assemblé sans blindage.
+  const userPrompt = redactPII(`Rédige un email immobilier suisse au client "${clientName}".
 
 Instruction de l'agent : ${instruction}
-${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`
+${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`).redactedText
 
   let subject = ''
   let body = ''
@@ -1664,11 +1768,13 @@ export async function execSummarizeGroupThread(ctx: ActionCtx, a: Args): Promise
 
   // Prompt : digest strict en JSON, attribution aux intervenants quand c'est clair, AUCUNE
   // invention. Fil borné à ~4000 caractères (anti-explosion de tokens).
+  // Redaction AVANT troncature (un slice qui coupe un IBAN/AVS en deux le rend invisible au
+  // pattern) : le fil collé peut contenir n'importe quoi — frontière DeepSeek rédigée elle-même.
   const prompt =
     'Voici un fil de groupe (plusieurs intervenants). Résume en JSON ' +
     '{"resume":"2-3 phrases","decisions":["…"],"en_attente":["qui attend quoi"],"bloquant":"le point qui bloque ou null"}. ' +
     "Attribue les propos aux intervenants quand c'est clair. AUCUNE invention.\n\n" +
-    thread.slice(0, 4000)
+    redactPII(thread).redactedText.slice(0, 4000)
 
   let parsed: Record<string, unknown> = {}
   try {
@@ -1770,10 +1876,12 @@ export async function execCheckGroupLeak(ctx: ActionCtx, a: Args): Promise<strin
     ? "I couldn't verify the draft — read it carefully before posting."
     : "Je n'ai pas pu vérifier, relis à la main avant de poster."
 
+  // Redaction AVANT troncature (cf. summarize_group_thread). Un marqueur [REDACTED:*] dans le
+  // brouillon reste détectable comme fuite par DeepSeek — la vérification n'est pas affaiblie.
   const prompt =
     "Tu es un garde-fou de confidentialité immobilière. " +
-    "Parties dans le groupe : " + parties.slice(0, 500) + ". " +
-    "Brouillon que l'agent veut poster À TOUT LE GROUPE : " + draft.slice(0, 2000) + ". " +
+    "Parties dans le groupe : " + redactPII(parties).redactedText.slice(0, 500) + ". " +
+    "Brouillon que l'agent veut poster À TOUT LE GROUPE : " + redactPII(draft).redactedText.slice(0, 2000) + ". " +
     "Y a-t-il une info qui ne devrait PAS être vue par une des parties " +
     "(budget/plafond/plancher d'une partie, sa motivation/urgence, son KYC, une stratégie) ? " +
     'Réponds en JSON {"fuite":true|false,"raison":"courte, sans répéter le secret en clair","reformulation":"version sûre sans la fuite, ou null"}. ' +
@@ -2049,13 +2157,16 @@ RÈGLES ABSOLUES :
 
 Réponds UNIQUEMENT en JSON strict : {"titre":"…","description_fr":"…","description_en":"…"}`
 
-  const userPrompt = `Rédige le contenu d'une annonce immobilière suisse à partir de ces données (n'utilise QUE celles-ci) :
+  // Frontière DeepSeek rédigée par elle-même (même invariant que prepare_meeting). Les facts
+  // sont des données de bien (pièces, m², CHF avec apostrophes — aucun pattern ne mord),
+  // mais l'invariant ne se raisonne pas champ par champ : redaction du bloc assemblé.
+  const userPrompt = redactPII(`Rédige le contenu d'une annonce immobilière suisse à partir de ces données (n'utilise QUE celles-ci) :
 Type de transaction : ${txLabel || (lang === 'en' ? 'not specified' : 'non précisé')}
 Localisation : ${locationForCopy || (lang === 'en' ? 'not specified' : 'non précisée')}
 Détails :
 ${facts || (lang === 'en' ? '(none)' : '(aucun)')}
 
-Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). Description élégante et sobre, 2 à 4 paragraphes, en français (description_fr) et en anglais (description_en).`
+Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). Description élégante et sobre, 2 à 4 paragraphes, en français (description_fr) et en anglais (description_en).`).redactedText
 
   let parsed: Record<string, unknown> = {}
   try {
@@ -2199,23 +2310,26 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
   // 2. Compréhension du fil + timeline + recherches actives (mêmes requêtes que execGetContactBrief).
   const { data: insightRow } = await ctx.supabase.from('whatsapp_conversation_insights')
-    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments')
+    .select('summary, rolling_summary, intent, sentiment, urgency, language, objections, next_action, commitments, crm_summary, crm_summary_updated_at')
     .eq('contact_id', contact.id).eq('agency_id', ctx.agencyId).maybeSingle()
   const insight = insightRow as {
     summary: string | null; rolling_summary: string | null; intent: string | null; sentiment: string | null
     urgency: string | null; language: string | null; objections: unknown
     next_action: unknown; commitments: unknown
+    crm_summary: string | null; crm_summary_updated_at: string | null
   } | null
 
+  // Sous-requêtes bornées à l'agence (défense en profondeur, comme execGetContactBrief) :
+  // contact déjà validé in-agency, on double la garde sur ses events/recherches.
   const { data: timelineRows } = await ctx.supabase
     .from('activity_events').select('action, object_label, created_at')
-    .eq('entity_type', 'contact').eq('entity_id', contactId)
+    .eq('entity_type', 'contact').eq('entity_id', contactId).eq('agency_id', ctx.agencyId)
     .order('created_at', { ascending: false }).limit(5)
   const timeline = (timelineRows ?? []) as Array<{ action: string | null; object_label: string | null; created_at: string | null }>
 
   const { data: searchRows } = await ctx.supabase
     .from('client_searches').select('label, criteria')
-    .eq('contact_id', contactId).eq('is_active', true).limit(3)
+    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const searches = (searchRows ?? []) as Array<{ label: string | null; criteria: unknown }>
 
   // 3. Biens correspondants (matches top 5) — mêmes requête/scope que execGetMatches, enrichis
@@ -2300,6 +2414,8 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     ctxLines.push(`Contact : ${fullName}${contact.type ? ` (${contact.type})` : ''}${typeof contact.score === 'number' ? `, score ${contact.score}` : ''}`)
     if (insight?.summary) ctxLines.push(`Résumé de la dernière conversation : ${insight.summary}`)
     if (insight?.rolling_summary) ctxLines.push(`Mémoire longue de la conversation : ${insight.rolling_summary}`)
+    // mémoire CRM cross-canal : ce que le copilote CRM a travaillé sur ce contact (autre canal).
+    if (insight?.crm_summary) ctxLines.push(`Travail effectué côté CRM (autre canal) : ${insight.crm_summary}`)
     if (insight?.intent) ctxLines.push(`Intention : ${insight.intent}`)
     if (insight?.sentiment) ctxLines.push(`Ressenti : ${insight.sentiment}`)
     if (insight?.urgency) ctxLines.push(`Urgence du besoin : ${insight.urgency}`)
@@ -2318,7 +2434,11 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     if (visit?.scheduled_at) {
       ctxLines.push(`Visite prévue : ${swissDateTime(visit.scheduled_at)}${visitTitle ? ` — ${visitTitle}` : ''}${visit.visit_type ? ` (${visit.visit_type})` : ''}`)
     }
-    const context = ctxLines.join('\n').slice(0, 3000)
+    // Redaction AVANT troncature : un slice qui coupe un IBAN/AVS en deux empêcherait le
+    // pattern de matcher et laisserait fuir la moitié restante. Les champs (insight, NBA,
+    // engagements) sont rédigés à l'écriture par ailleurs, mais cette frontière DeepSeek
+    // doit être propre par elle-même — même invariant que wa-agent-redaction/copilot-redaction.
+    const context = redactPII(ctxLines.join('\n')).redactedText.slice(0, 3000)
 
     const prompt =
       "Voici le contexte d'un rendez-vous immobilier (fiche client, compréhension de la dernière " +
@@ -2508,19 +2628,17 @@ async function readInboundDocument(ctx: ActionCtx, focus: string | null): Promis
   // 3. Lecture STRUCTURÉE via DeepSeek (compréhension = DeepSeek). Fidèle, aucune invention.
   //    Dégradation propre : sans clé ou si DeepSeek tombe, on rend un extrait OCR borné — fidèle,
   //    juste non mis en forme (on ne perd jamais la lecture brute).
-  ocrText = ocrText.slice(0, 8000)
+  //    rawFallback n'est PAS rédigé, et ce n'est pas parce qu'il resterait hors du modèle : il
+  //    remonte en résultat d'outil (role:'tool') et traverse donc redactLlmMessages, le point
+  //    d'étranglement de whatsapp-agent, qui le rédige à ce moment-là. Le rédiger ici en plus ne
+  //    protégerait rien. Contrepartie assumée : la note timeline d'execFileDocument garde les
+  //    valeurs réelles sur ce chemin de repli, là où elle porte des marqueurs quand DeepSeek répond.
   const rawFallback = ocrText.slice(0, 1500)
   const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
   if (!apiKey) return { ok: true, digest: rawFallback, failMessage: null }
 
-  const focusLine = focus ? `\nCONSIGNE de l'agent (priorise ça) : ${focus.slice(0, 300)}` : ''
-  const prompt =
-    'Tu lis un document professionnel (souvent immobilier : mandat, relevé, courrier, attestation, pièce). ' +
-    'À partir du TEXTE OCR ci-dessous, rends une lecture FIDÈLE et COMPACTE en ' +
-    (lang === 'en' ? 'anglais' : 'français') + ' (quelques lignes, ~500 caractères max). Structure : ' +
-    'type de document ; personnes / parties ; montants et chiffres clés ; dates / échéances ; objet en une phrase. ' +
-    "N'invente RIEN : une info absente est OMISE ; une info partiellement lisible est suivie de « (à vérifier) ». " +
-    'Pas de préambule, pas de formule commerciale.' + focusLine + '\n\nTEXTE OCR :\n' + ocrText
+  // Prompt assemblé par un helper PUR (testable) qui rédige ocrText + focus avant troncature.
+  const prompt = buildDocReadPrompt({ ocrText, focus, lang })
 
   try {
     const started = Date.now()

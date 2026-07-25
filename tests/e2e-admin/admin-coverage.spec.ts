@@ -1,8 +1,9 @@
-// Phase C (part 2) — Couverture super-admin (16 pages + détail agence mock).
-// Cette suite tourne avec un serveur Vite séparé sur :5174 avec
-// VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts).
-// Les routes /dashboard/admin/* sont wrappées dans SuperAdminGuard,
-// donc inaccessibles avec le role 'agent' par défaut.
+// Phase C (part 2) — Couverture super-admin (17 pages).
+// La console vit sur son PROPRE bundle (index.admin.html / AdminApp) : cette
+// suite lance donc `npm run dev:admin` sur :5174, avec
+// VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts). Les routes
+// y sont à la RACINE (`/users`, plus `/dashboard/admin/users`), et AdminAuthGate
+// rend un écran de refus au lieu de la console si le rôle ne passe pas.
 
 import { test, expect } from '@playwright/test'
 import { collectConsoleErrors } from '../e2e/helpers/console'
@@ -15,23 +16,23 @@ interface RouteSpec {
 }
 
 const ADMIN_ROUTES: RouteSpec[] = [
-  { path: '/dashboard/admin', label: 'Admin dashboard' },
-  { path: '/dashboard/admin/agencies', label: 'Admin > Agences' },
-  { path: `/dashboard/admin/agencies/${MOCK_UUID}`, label: 'Admin > Agence detail (mock)' },
-  { path: '/dashboard/admin/users', label: 'Admin > Users' },
-  { path: '/dashboard/admin/end-users', label: 'Admin > Clients finaux' },
-  { path: '/dashboard/admin/monitoring', label: 'Admin > Monitoring' },
-  { path: '/dashboard/admin/marketplace', label: 'Admin > Marketplace' },
-  { path: '/dashboard/admin/compliance', label: 'Admin > Compliance' },
-  { path: '/dashboard/admin/changelog', label: 'Admin > Changelog' },
-  { path: '/dashboard/admin/feature-flags', label: 'Admin > Feature flags' },
-  { path: '/dashboard/admin/plans', label: 'Admin > Plans / billing' },
-  { path: '/dashboard/admin/live', label: 'Admin > Live feed' },
-  { path: '/dashboard/admin/security', label: 'Admin > Security audit' },
-  { path: '/dashboard/admin/nps', label: 'Admin > NPS' },
-  { path: '/dashboard/admin/autonomy', label: 'Admin > Autonomie WhatsApp' },
-  { path: '/dashboard/admin/tool-usage', label: 'Admin > Outils IA' },
-  { path: '/dashboard/admin/learning', label: 'Admin > Apprentissage' },
+  { path: '/', label: 'Admin dashboard' },
+  { path: '/agencies', label: 'Admin > Agences' },
+  { path: `/agencies/${MOCK_UUID}`, label: 'Admin > Agence detail (mock)' },
+  { path: '/users', label: 'Admin > Users' },
+  { path: '/end-users', label: 'Admin > Clients finaux' },
+  { path: '/monitoring', label: 'Admin > Monitoring' },
+  { path: '/marketplace', label: 'Admin > Marketplace' },
+  { path: '/compliance', label: 'Admin > Compliance' },
+  { path: '/changelog', label: 'Admin > Communication' },
+  { path: '/feature-flags', label: 'Admin > Feature flags' },
+  { path: '/plans', label: 'Admin > Plans / billing' },
+  { path: '/live', label: 'Admin > Live feed' },
+  { path: '/security', label: 'Admin > Security audit' },
+  { path: '/nps', label: 'Admin > NPS' },
+  { path: '/autonomy', label: 'Admin > Autonomie WhatsApp' },
+  { path: '/tool-usage', label: 'Admin > Outils IA' },
+  { path: '/learning', label: 'Admin > Apprentissage' },
 ]
 
 test.describe('Super-admin — parametric route coverage', () => {
@@ -49,13 +50,17 @@ test.describe('Super-admin — parametric route coverage', () => {
         })
         .toBeGreaterThan(50)
 
-      // La route admin doit VRAIMENT rendre (pas se faire rediriger vers
-      // /dashboard par SuperAdminGuard). Garde la régression exacte qui faisait
-      // que la suite testait « Aujourd'hui » au lieu des pages admin.
+      // La console doit VRAIMENT rendre : ni redirection, ni écran de refus.
+      // Garde la régression exacte qui faisait que la suite testait un écran
+      // d'accueil au lieu des pages admin.
       expect(
         page.url(),
-        `${route.path}: redirigé hors de /dashboard/admin (URL=${page.url()})`
-      ).toContain('/dashboard/admin')
+        `${route.path}: URL inattendue (URL=${page.url()})`
+      ).toContain(route.path)
+      expect(
+        await page.locator('body').innerText(),
+        `${route.path}: écran « Accès refusé » au lieu de la console`
+      ).not.toContain('Accès refusé')
 
       // Laisse les requêtes data émettre d'éventuelles erreurs console avant de
       // vérifier. `networkidle` borné (retour anticipé dès que le réseau est

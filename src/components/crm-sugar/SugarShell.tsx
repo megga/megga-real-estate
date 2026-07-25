@@ -12,7 +12,6 @@ import SugarNotificationsPopover from './notifications/SugarNotificationsPopover
 import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import SugarProfileDropdown from './profile/SugarProfileDropdown'
 import { useAuth } from '@/hooks/useAuth'
-import { showIntercomSpace, isIntercomEnabled } from '@/lib/intercom'
 import { openHelpFor } from '@/lib/help-articles'
 import { openSugarSearch } from './search/openSearch'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -147,8 +146,8 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <SugarRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openSugarSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={18} /></SugarRoundIconBtn>
         {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
-            Centre d'aide à défaut). Fallback /help si Intercom n'est pas configuré. */}
-        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => { if (!openHelpFor(active)) navigate('/help') }}><AnimatedTopIcon name="help" color={sp.soft} size={18} /></SugarRoundIconBtn>
+            Centre d'aide à défaut, public si Intercom n'est pas configuré). */}
+        <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => openHelpFor(active)}><AnimatedTopIcon name="help" color={sp.soft} size={18} /></SugarRoundIconBtn>
         {/* Bouton Megga — ouvre le panneau MEGGA AI docké (ou la page Julien en repli) */}
         <button
           onClick={() => {
@@ -241,7 +240,7 @@ export function SugarTopNav({ active = 'today', t, sp, onNavigate, dark = false 
               onSettings={() => navigate('/dashboard/settings')}
               onKyc={() => navigate('/dashboard/kyc')}
               onAgencyPublic={() => window.open('/agencies', '_blank', 'noopener,noreferrer')}
-              onHelp={() => { if (isIntercomEnabled()) showIntercomSpace('help'); else navigate('/help') }}
+              onHelp={() => openHelpFor()}
               onLogout={async () => { await signOut(); navigate('/login') }}
             />
           )}
@@ -284,6 +283,27 @@ export const SUGAR_KEYFRAMES = `
   }
   @keyframes sugar-dash-flow {
     to { stroke-dashoffset: -14; }
+  }
+  @keyframes sgSignVeil {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes sgSealIn {
+    from { opacity: 0; transform: scale(.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes sgSignExit {
+    0%   { opacity: 1; transform: translateY(0) scale(1); max-height: 340px; margin-top: 0; }
+    30%  { opacity: 1; transform: translateY(-6px) scale(1.015); }
+    100% { opacity: 0; transform: translateY(-26px) scale(.9); max-height: 0; margin-top: -10px; padding-top: 0; padding-bottom: 0; }
+  }
+  @keyframes sfPop {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes qaFade {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: none; }
   }
 `
 

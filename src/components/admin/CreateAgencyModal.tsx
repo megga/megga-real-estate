@@ -33,7 +33,7 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
         onSuccess: (id) => {
           toast.success(t('createAgency.created'))
           onClose()
-          navigate(`/dashboard/admin/agencies/${id}`)
+          navigate(`/agencies/${id}`)
         },
         onError: (e) => toast.error((e as Error).message.includes('already exists')
           ? t('createAgency.duplicate')

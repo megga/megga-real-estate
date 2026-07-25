@@ -4,7 +4,7 @@
 // DÉTERMINISTE + EXPLICABLE (module pur focusScore.ts) :
 //   1. Reminders du jour/échus (useReminders).
 //   2. Deals (usePipelineSugar) — risque dérivé du status (on_hold/cancelled),
-//      poids modeste (nextAction = placeholder, pas de vraie échéance).
+//      poids modeste ; nextAction = prochain reminder réel du deal (nullable).
 //   3. Matches 'suggested' à fort score (RPC focus_top_matches via useFocusMatches)
 //      — le signal vivant dominant, internes (mandat propre) vs marché distingués.
 // Chaque item porte score (estimation), reason (« pourquoi #1 ») et tier

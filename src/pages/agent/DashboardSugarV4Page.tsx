@@ -15,11 +15,11 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { CRM_TOKENS, crmSugarPalette, type DarkTone } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, type DarkTone, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import AxDashboardBody from '@/components/crm-sugar/analytics/AxDashboard'
 import { AXCtx, AX, AX_DARK } from '@/components/crm-sugar/analytics/tokens'
 
-const DARK_TONE: DarkTone = 'meggaAi'
+const DARK_TONE: DarkTone = SUGAR_DARK_TONE
 
 export default function DashboardSugarV4Page() {
   const navigate = useNavigate()
@@ -27,7 +27,7 @@ export default function DashboardSugarV4Page() {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem('megga.sugar.dark') === '1'
   })
-  const t = dark ? CRM_TOKENS.dark : CRM_TOKENS.light
+  const t = sugarThemeTokens(dark)
   const sp = useMemo(() => crmSugarPalette(t, dark, DARK_TONE), [t, dark])
   const axTheme = dark ? AX_DARK : AX
 
@@ -72,9 +72,6 @@ export default function DashboardSugarV4Page() {
         break
       case 'biens-new':
         navigate('/dashboard/listings/new')
-        break
-      case 'reseau':
-        navigate('/dashboard/network')
         break
       default:
     }

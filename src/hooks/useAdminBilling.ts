@@ -1,3 +1,9 @@
+/**
+ * Hook super-admin — métriques de facturation Stripe (MRR, churn, ARPU, plans).
+ * Tente d'abord l'Edge Function `admin-stripe-metrics` (API Stripe live) ; si elle
+ * est absente ou Stripe non configuré, retombe sur un calcul dérivé de la table
+ * `subscriptions`. Le champ `source` indique laquelle a répondu.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { PLANS } from '@/lib/plans'
@@ -42,6 +48,10 @@ export interface StripeBillingData {
   source: 'stripe' | 'supabase'
 }
 
+/**
+ * Récupère les métriques de facturation (MRR, abonnements, churn, plans) pour le
+ * dashboard admin. staleTime 2 min car les appels Stripe sont coûteux.
+ */
 export function useAdminBilling() {
   return useQuery({
     queryKey: ['admin-billing-stripe'],

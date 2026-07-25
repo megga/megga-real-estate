@@ -1,3 +1,11 @@
+/**
+ * Sidebar principale du CRM agent. Trois points de rupture partageant le même
+ * contenu (`sidebarContent(isCol)`) : desktop pleine largeur et réductible,
+ * tablette toujours réduite, overlay mobile. Navigation agent uniquement
+ * (`NAV_SECTIONS`) : le mode admin qui vivait ici a suivi la console sur son
+ * propre domaine (AdminShell, admin.megga.ch) — l'entrée se fait par le
+ * dropdown profil Sugar (cf. src/lib/adminEntry.ts).
+ */
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -7,8 +15,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 import { useAvatar } from '@/hooks/useAvatar'
 import { usePreferences } from '@/hooks/usePreferences'
-import AdminNotificationPanel from '@/components/admin/AdminNotificationPanel'
-import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -39,37 +45,6 @@ const NAV_SECTIONS: NavSection[] = [
   ]},
 ]
 
-// Nav super-admin groupée en 5 sections (P6b) — remplace la liste plate de 15+
-// items devenue illisible. Ordre des sections = du pilotage quotidien au produit.
-const ADMIN_NAV_SECTIONS: NavSection[] = [
-  { labelKey: 'nav.adminSectionPilotage', items: [
-    { labelKey: 'nav.adminLive', href: '/dashboard/admin/live', icon: 'broadcast' },
-    { labelKey: 'nav.adminOverview', href: '/dashboard/admin', icon: 'dashboard' },
-  ]},
-  { labelKey: 'nav.adminSectionClients', items: [
-    { labelKey: 'nav.adminAgencies', href: '/dashboard/admin/agencies', icon: 'building' },
-    { labelKey: 'nav.adminUsers', href: '/dashboard/admin/users', icon: 'users' },
-    { labelKey: 'nav.adminEndUsers', href: '/dashboard/admin/end-users', icon: 'users' },
-    { labelKey: 'nav.adminMarketplace', href: '/dashboard/admin/marketplace', icon: 'store' },
-  ]},
-  { labelKey: 'nav.adminSectionRevenue', items: [
-    { labelKey: 'nav.adminPlans', href: '/dashboard/admin/plans', icon: 'credit-card' },
-  ]},
-  { labelKey: 'nav.adminSectionOps', items: [
-    { labelKey: 'nav.adminMonitoring', href: '/dashboard/admin/monitoring', icon: 'broadcast' },
-    { labelKey: 'nav.adminSecurity', href: '/dashboard/admin/security', icon: 'shield' },
-    { labelKey: 'nav.adminCompliance', href: '/dashboard/admin/compliance', icon: 'shield' },
-  ]},
-  { labelKey: 'nav.adminSectionProduct', items: [
-    { labelKey: 'nav.adminChangelog', href: '/dashboard/admin/changelog', icon: 'megaphone' },
-    { labelKey: 'nav.adminFlags', href: '/dashboard/admin/feature-flags', icon: 'bolt' },
-    { labelKey: 'nav.adminNps', href: '/dashboard/admin/nps', icon: 'star' },
-    { labelKey: 'nav.adminAutonomy', href: '/dashboard/admin/autonomy', icon: 'sparkle' },
-    { labelKey: 'nav.adminLearning', href: '/dashboard/admin/learning', icon: 'sparkle' },
-    { labelKey: 'nav.adminToolUsage', href: '/dashboard/admin/tool-usage', icon: 'sparkle' },
-  ]},
-]
-
 // ─── PROPS ──────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
@@ -81,8 +56,7 @@ interface SidebarProps {
   onQuickContact?: () => void
 }
 
-// ─── HELPER: fade label (always rendered, hidden via opacity + overflow) ────
-
+/** Classe d'un libellé toujours monté mais masqué (opacité + largeur nulle) quand la sidebar est réduite. */
 const fadeLabel = (collapsed: boolean) =>
   cn(
     'overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-200 ease-out',
@@ -91,6 +65,7 @@ const fadeLabel = (collapsed: boolean) =>
 
 // ─── SUB-COMPONENTS ─────────────────────────────────────────────────────────
 
+/** Avatar utilisateur : photo si disponible, sinon initiales sur fond accent. */
 function UserAvatar({ name, avatarUrl, size = 'default' }: { name: string; avatarUrl?: string | null; size?: 'default' | 'small' }) {
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const s = size === 'small' ? 'h-7 w-7 text-xs' : 'h-8 w-8 text-xs'
@@ -104,6 +79,7 @@ function UserAvatar({ name, avatarUrl, size = 'default' }: { name: string; avata
   )
 }
 
+/** Info-bulle affichée à droite d'une icône quand la sidebar est réduite (rendue seulement si `show`). */
 function CollapsedTooltip({ show, children }: { show: boolean; children: React.ReactNode }) {
   if (!show) return null
   return (
@@ -115,6 +91,7 @@ function CollapsedTooltip({ show, children }: { show: boolean; children: React.R
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 
+/** Rend la sidebar aux trois points de rupture (desktop, tablette réduite, overlay mobile). */
 export default function Sidebar({ mobileOpen, collapsed = false, onClose, onToggleCollapse, onOpenCommandPalette, onQuickContact }: SidebarProps) {
   const location = useLocation()
   const { signOut, profile } = useAuth()
@@ -123,9 +100,6 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
   const { avatarUrl } = useAvatar()
   const { preferences } = usePreferences()
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
-  const isAdminRoute = location.pathname.startsWith('/dashboard/admin')
-  const [adminMode, setAdminMode] = useState(isAdminRoute)
-  const [adminSearchOpen, setAdminSearchOpen] = useState(false)
   const isMinimalSidebar = preferences.sidebarStyle === 'minimal'
 
   function isActive(href: string) {
@@ -228,166 +202,45 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
 
       {/* ── Navigation ── */}
       <nav aria-label="Navigation agent" className="flex-1 overflow-y-auto overflow-x-hidden py-1 scrollbar-hide">
-        {adminMode ? (
-          /* ── Admin Mode ── */
-          <>
-            {/* Back to agent button */}
-            <div className="mb-2">
-              <button
-                onClick={() => setAdminMode(false)}
-                className={cn(
-                  navRow(isCol, false),
-                  'w-full text-theme-secondary hover:text-theme-primary'
-                )}
-              >
-                <MEIcon name="chevron-down" className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8] rotate-90" />
-                <span className={fadeLabel(isCol)}>Retour agent</span>
-              </button>
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.labelKey}>
+              {isCol || isMinimalSidebar ? (
+                <div className="mt-3" />
+              ) : (
+                <div className="mt-6 mb-1 px-3">
+                  <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
+                    {t(section.labelKey)}
+                  </span>
+                </div>
+              )}
+
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const active = isActive(item.href)
+                  const label = t(item.labelKey)
+                  return (
+                    <div key={item.href} className="relative">
+                      <Link
+                        to={item.href}
+                        onClick={onClose}
+                        onMouseEnter={() => isCol ? setHoveredItem(item.href) : undefined}
+                        onMouseLeave={() => setHoveredItem(null)}
+                        className={navRow(isCol, active)}
+                      >
+                        <div className="relative flex-shrink-0">
+                          <MEIcon name={item.icon as MEIconName} className="w-[18px] h-[18px] stroke-[1.8]" />
+                        </div>
+                        <span className={fadeLabel(isCol)}>{label}</span>
+                      </Link>
+                      <CollapsedTooltip show={isCol && hoveredItem === item.href}>
+                        {label}
+                      </CollapsedTooltip>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-
-            {/* Admin header */}
-            {!isCol && !isMinimalSidebar && (
-              <div className="px-3 mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-admin-accent" />
-                  <span className="text-xs font-semibold text-admin-accent">Admin MEGGA</span>
-                </div>
-              </div>
-            )}
-
-            {/* Admin search */}
-            <div className="mb-2">
-              <button
-                onClick={() => setAdminSearchOpen(true)}
-                className={cn(navRow(isCol, false), 'w-full text-theme-secondary')}
-              >
-                <MEIcon name="search" className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
-                <span className={fadeLabel(isCol)}>Rechercher...</span>
-              </button>
-            </div>
-            <AdminSearchDialog open={adminSearchOpen} onClose={() => setAdminSearchOpen(false)} />
-
-            {/* Admin items — groupés en 5 sections (P6b) */}
-            {ADMIN_NAV_SECTIONS.map((section) => (
-              <div key={section.labelKey}>
-                {isCol || isMinimalSidebar ? (
-                  <div className="mt-3" />
-                ) : (
-                  <div className="mt-4 mb-1 px-3">
-                    <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
-                      {t(section.labelKey)}
-                    </span>
-                  </div>
-                )}
-
-                <div className="space-y-0.5">
-                  {section.items.map((item) => {
-                    const isItemActive = location.pathname === item.href ||
-                      (item.href !== '/dashboard/admin' && location.pathname.startsWith(item.href))
-                    const label = t(item.labelKey)
-                    return (
-                      <div key={item.href} className="relative">
-                        <Link
-                          to={item.href}
-                          onClick={onClose}
-                          onMouseEnter={() => isCol ? setHoveredItem(item.href) : undefined}
-                          onMouseLeave={() => setHoveredItem(null)}
-                          className={cn(
-                            navRow(isCol, isItemActive),
-                            isItemActive && '!bg-admin-accent/8 !text-admin-accent'
-                          )}
-                        >
-                          <div className="relative flex-shrink-0">
-                            <MEIcon name={item.icon as MEIconName} className={cn('h-[18px] w-[18px] stroke-[1.8]', isItemActive && 'text-admin-accent')} />
-                          </div>
-                          <span className={fadeLabel(isCol)}>{label}</span>
-                        </Link>
-                        <CollapsedTooltip show={isCol && hoveredItem === item.href}>
-                          {label}
-                        </CollapsedTooltip>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </>
-        ) : (
-          /* ── Agent Mode (default) ── */
-          <>
-            {/* Admin switch — pinned at the top for super_admin so the
-                feature is discoverable on first load. Previously this lived
-                at the bottom of the nav and was easy to miss (audit B2). */}
-            {profile?.role === 'super_admin' && (
-              <>
-                {!isCol && !isMinimalSidebar && (
-                  <div className="px-3 mb-1 mt-1">
-                    <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
-                      {t('nav.platformSection', { defaultValue: 'Plateforme' })}
-                    </span>
-                  </div>
-                )}
-                <div className="relative mb-2">
-                  <button
-                    onClick={() => setAdminMode(true)}
-                    onMouseEnter={() => isCol ? setHoveredItem('admin-switch') : undefined}
-                    onMouseLeave={() => setHoveredItem(null)}
-                    className={cn(
-                      navRow(isCol, false),
-                      'w-full text-admin-accent hover:!bg-admin-accent/8'
-                    )}
-                  >
-                    <MEIcon name="shield" className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
-                    <span className={fadeLabel(isCol)}>Admin MEGGA</span>
-                  </button>
-                  <CollapsedTooltip show={isCol && hoveredItem === 'admin-switch'}>
-                    Admin MEGGA
-                  </CollapsedTooltip>
-                </div>
-              </>
-            )}
-
-            {NAV_SECTIONS.map((section) => (
-              <div key={section.labelKey}>
-                {isCol || isMinimalSidebar ? (
-                  <div className="mt-3" />
-                ) : (
-                  <div className="mt-6 mb-1 px-3">
-                    <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
-                      {t(section.labelKey)}
-                    </span>
-                  </div>
-                )}
-
-                <div className="space-y-0.5">
-                  {section.items.map((item) => {
-                    const active = isActive(item.href)
-                    const label = t(item.labelKey)
-                    return (
-                      <div key={item.href} className="relative">
-                        <Link
-                          to={item.href}
-                          onClick={onClose}
-                          onMouseEnter={() => isCol ? setHoveredItem(item.href) : undefined}
-                          onMouseLeave={() => setHoveredItem(null)}
-                          className={navRow(isCol, active)}
-                        >
-                          <div className="relative flex-shrink-0">
-                            <MEIcon name={item.icon as MEIconName} className="w-[18px] h-[18px] stroke-[1.8]" />
-                          </div>
-                          <span className={fadeLabel(isCol)}>{label}</span>
-                        </Link>
-                        <CollapsedTooltip show={isCol && hoveredItem === item.href}>
-                          {label}
-                        </CollapsedTooltip>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
+          ))}
       </nav>
 
       {/* ── Bottom ── */}
@@ -410,19 +263,6 @@ export default function Sidebar({ mobileOpen, collapsed = false, onClose, onTogg
             <CollapsedTooltip show={hoveredItem === 'expand'}>Déplier</CollapsedTooltip>
           </div>
         </div>
-
-        {/* Admin notifications — super_admin only */}
-        {profile?.role === 'super_admin' && adminMode && (
-          <div className="relative"
-            onMouseEnter={() => isCol ? setHoveredItem('admin-notif') : undefined}
-            onMouseLeave={() => setHoveredItem(null)}
-          >
-            <AdminNotificationPanel />
-            <CollapsedTooltip show={isCol && hoveredItem === 'admin-notif'}>
-              Notifications
-            </CollapsedTooltip>
-          </div>
-        )}
 
         {/* Theme toggle */}
         <div className="relative"

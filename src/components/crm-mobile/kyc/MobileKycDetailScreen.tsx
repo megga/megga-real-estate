@@ -1,3 +1,7 @@
+/**
+ * Écran de détail d'un dossier KYC (mobile, P9) : surface compliance
+ * read-focused + un seul geste d'écriture, monté par MobileKycDetailPage.
+ */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -124,7 +128,7 @@ export function MobileKycDetailScreen({ demo = false }: { demo?: boolean }) {
   const { toast, showToast } = useSgToast()
 
   // nLPD art. 12 — log d'accès consultation (une fois par montage, ref-guardé,
-  // LIVE seulement). Verbatim du desktop (KycDossierDetail.tsx:128-139).
+  // LIVE seulement). Même règle que la fiche desktop.
   const readLoggedRef = useRef<string | null>(null)
   const logReadMutate = logRead.mutate
   useEffect(() => {
@@ -260,7 +264,7 @@ export function MobileKycDetailScreen({ demo = false }: { demo?: boolean }) {
 
 interface Ctx { t: TFunction; tk: MobileTokens; lang: string }
 
-// ─── Jauge done/total (monochrome, miroir liste — jamais rouge) ───────────────
+/** Jauge circulaire done/total des contrôles (monochrome, miroir de la liste, jamais rouge). */
 function Gauge({ done, total, verified, tk, size = 60 }: { done: number; total: number; verified: boolean; tk: MobileTokens; size?: number }) {
   const stroke = 5
   const r = (size - stroke) / 2
@@ -278,6 +282,7 @@ function Gauge({ done, total, verified, tk, size = 60 }: { done: number; total: 
   )
 }
 
+/** En-tête fiche : avatar, nom, sceau « vérifié » et jauge d'avancement des contrôles. */
 function DetailHeader({ ctx, name, initials, avatarId, verified, done, total }: { ctx: Ctx; name: string; initials: string; avatarId: string; verified: boolean; done: number; total: number }) {
   const { tk } = ctx
   return (
@@ -296,6 +301,7 @@ function DetailHeader({ ctx, name, initials, avatarId, verified, done, total }: 
   )
 }
 
+/** Onglets segmentés synthèse / contrôles / documents / audit, avec compteurs. */
 function SegTabs({ ctx, tab, onChange, docCount }: { ctx: Ctx; tab: TabId; onChange: (t: TabId) => void; docCount: number }) {
   const { t, tk } = ctx
   const tabs: { id: TabId; label: string; count?: number }[] = [
@@ -318,15 +324,16 @@ function SegTabs({ ctx, tab, onChange, docCount }: { ctx: Ctx; tab: TabId; onCha
   )
 }
 
-// ─── Carte générique ──────────────────────────────────────────────────────────
+/** Carte générique (fond, bordure, ombre légère) réutilisée par les onglets. */
 function Card({ tk, children, pad = 18 }: { tk: MobileTokens; children: ReactNode; pad?: number }) {
   return <div style={{ background: tk.card, border: `1px solid ${tk.cardBorder}`, borderRadius: 20, boxShadow: tk.shadowSm, padding: pad }}>{children}</div>
 }
+/** Sur-titre en petites capitales espacées, en tête de section. */
 function Eyebrow({ tk, children }: { tk: MobileTokens; children: ReactNode }) {
   return <div style={{ fontSize: 10.5, fontWeight: 800, color: tk.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>{children}</div>
 }
 
-// ─── Onglet Synthèse ──────────────────────────────────────────────────────────
+/** Onglet « Synthèse » : état du dossier (non-bloquant), encart screening, les 5 contrôles et les infos clés. */
 function SyntheseTab({
   ctx, dossier, checksByCategory, lastScreeningAt, isVerified, canMarkAll, markAllPending,
   markAllBlockedLabel, screeningGuard, onMarkAll, goControles, onSeeContact,
@@ -419,7 +426,7 @@ function SyntheseTab({
   )
 }
 
-// Encart screening : match (ambre informatif, examen sur bureau) / faux positif écarté (vert).
+/** Encart screening : un match sanctions/PEP s'affiche en ambre informatif (jamais rouge ni bloquant), examen renvoyé au bureau ; sinon rien. */
 function ComplianceNote({ ctx, guard }: { ctx: Ctx; guard: ScreeningGuard }) {
   const { t, tk } = ctx
   if (guard.status === 'match') {
@@ -436,6 +443,7 @@ function ComplianceNote({ ctx, guard }: { ctx: Ctx; guard: ScreeningGuard }) {
   return null
 }
 
+/** Pastille d'état d'un contrôle (fait / non requis / à vérifier), monochrome. */
 function CheckPill({ ctx, state }: { ctx: Ctx; state: 'done' | 'na' | 'pending' }) {
   const { t, tk } = ctx
   const label = state === 'done' ? t('mobile.check.done') : state === 'na' ? t('mobile.check.na') : t('mobile.check.pending')
@@ -443,7 +451,7 @@ function CheckPill({ ctx, state }: { ctx: Ctx; state: 'done' | 'na' | 'pending' 
   return <span style={{ fontSize: 11.5, fontWeight: 800, color: col, letterSpacing: -0.1, whiteSpace: 'nowrap' }}>{label}</span>
 }
 
-// ─── Onglet Contrôles ─────────────────────────────────────────────────────────
+/** Onglet « Contrôles » : les 5 contrôles LBA en détail + geste « marquer vérifié » par contrôle. */
 function ControlesTab({ ctx, checksByCategory, markPending, onMark }: { ctx: Ctx; checksByCategory: Record<KycCheckCategory, KycChecklistItem | null>; markPending: boolean; onMark: (k: KycCheckCategory) => void }) {
   const { t, tk } = ctx
   return (
@@ -484,7 +492,7 @@ function ControlesTab({ ctx, checksByCategory, markPending, onMark }: { ctx: Ctx
   )
 }
 
-// ─── Onglet Documents (lecture + aperçu URL signée ; upload différé v2) ────────
+/** Onglet « Documents » : liste en lecture, aperçu via URL signée 60 s (Storage) ; upload différé v2. */
 function DocumentsTab({ ctx, docs, live, onPreviewError }: { ctx: Ctx; docs: KycDocument[]; live: boolean; onPreviewError: (m: string) => void }) {
   const { t, tk, lang } = ctx
   const fmtSize = (b: number | null) => (b == null ? '' : b > 1_000_000 ? `${(b / 1_000_000).toFixed(1)} Mo` : `${Math.max(1, Math.round(b / 1000))} Ko`)
@@ -519,12 +527,12 @@ function DocumentsTab({ ctx, docs, live, onPreviewError }: { ctx: Ctx; docs: Kyc
   )
 }
 
-// ─── Onglet Audit (events réels — Fil ↔ Registre) ─────────────────────────────
+/** Onglet « Audit » : événements réels du dossier, bascule Timeline (fil) / Registre (tableau). */
 function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
   const { t, tk, lang } = ctx
   const [view, setView] = useState<'timeline' | 'registre'>('timeline')
   const actorOf = (ev: KycAuditEvent): string => {
-    // Ordre défensif (miroir desktop KycAuditTrail.tsx:25-32) : le type d'acteur
+    // Ordre défensif (miroir de la piste d'audit desktop) : le type d'acteur
     // prime sur la jointure profil — un événement IA/système ne peut jamais être
     // crédité à un humain (honnêteté de la piste d'audit).
     if (ev.actor_kind === 'ai') return t('mobile.audit.actorAi')
@@ -611,7 +619,7 @@ function AuditTab({ ctx, events }: { ctx: Ctx; events: KycAuditEvent[] }) {
   )
 }
 
-// ─── Confirmation « tout marquer vérifié » (LBA art. 7) ───────────────────────
+/** Feuille de confirmation « tout marquer vérifié » (LBA art. 7) : rappelle les statuts sanctions/PEP/vigilance avant l'écriture. */
 function ConfirmMarkAllOverlay({ ctx, dossier, pending, onCancel, onConfirm }: { ctx: Ctx; dossier: KycCaseWithChecklist; pending: boolean; onCancel: () => void; onConfirm: () => void }) {
   const { t, tk } = ctx
   const statusLabel = (s: string) => (s === 'clear' ? t('dossier.confirm.clear') : t(`dossier.confirm.status.${s}`, { defaultValue: s }))

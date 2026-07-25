@@ -66,16 +66,6 @@ export const SUGAR_V3_KEYFRAMES = `
 
 // ─── Formatters ─────────────────────────────────────────────────────────
 
-/** Formate une date en `12 avril 2026`. */
-export function fmtDateLong(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('fr-CH', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
 /** Formate une date en `12 avr. 2026`. */
 export function fmtDateShort(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -124,15 +114,6 @@ export const KYC_CHECK_LABELS: Record<
     get title() { return i18n.t('kyc:check.funds.title') },
     get sub() { return i18n.t('kyc:check.funds.sub') },
   },
-}
-
-/** Mapping canonique catégorie LBA → icône Sg. */
-export const KYC_CHECK_ICONS: Record<KycCheckCategory, string> = {
-  id: 'id',
-  address: 'home',
-  pep: 'flag',
-  sanctions: 'ban',
-  funds: 'coins',
 }
 
 /** Labels + pastilles colorées pour les 5 statuts dossier (handoff). */

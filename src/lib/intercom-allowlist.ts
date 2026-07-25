@@ -22,7 +22,6 @@ export const INTERCOM_ALLOWED_KEYS = [
   'intercom_user_jwt',
   'role',
   'canton',
-  'onboarding_completed',
   'company',
 ] as const
 

@@ -86,6 +86,11 @@ export interface UseAgencySettingsReturn {
   save: (next: AgencySettingsData) => Promise<void>
 }
 
+/**
+ * Réglages de l'agence courante (dérivée de `profile.agency_id`) : hydrate un état
+ * local éditable depuis la ligne `agencies` et le persiste via `save()`. `plan` est
+ * exposé en lecture seule. `enabled: false` évite de charger hors du contexte Réglages.
+ */
 export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySettingsReturn {
   const enabled = options?.enabled ?? true
   const { profile } = useAuth()

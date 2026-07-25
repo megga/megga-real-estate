@@ -18,7 +18,6 @@ import {
   Intercom,
   update as sdkUpdate,
   shutdown as sdkShutdown,
-  show as sdkShow,
   showSpace as sdkShowSpace,
   showArticle as sdkShowArticle,
   trackEvent as sdkTrackEvent,
@@ -73,12 +72,6 @@ export function shutdownIntercom() {
   booted = false
 }
 
-/** Ouvre le Messenger (déclencheur « Aide » de la sidebar / pages publiques). */
-export function showIntercom() {
-  if (!APP_ID || !booted) return
-  sdkShow()
-}
-
 /** Espaces du Messenger Intercom. */
 export type IntercomSpace = 'home' | 'messages' | 'help' | 'news' | 'tasks' | 'tickets'
 
@@ -98,7 +91,6 @@ export function showIntercomArticle(articleId: string) {
  *  Tout nouvel event passe par ici : évite les typos et garde le ciblage cohérent.
  *  ⚠️ Un event custom ne devient ciblable dans Intercom qu'après réception d'un VRAI user en prod. */
 export const INTERCOM_EVENTS = {
-  ONBOARDING_COMPLETED: 'onboarding_completed',
   PROFILE_COMPLETED: 'profile_completed',
   LEAD_IMPORTED: 'lead_imported',
   FIRST_CONTACTS_IMPORTED: 'first_contacts_imported',

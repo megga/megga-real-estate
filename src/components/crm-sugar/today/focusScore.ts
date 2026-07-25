@@ -309,7 +309,7 @@ export function normalizeMatch(
   return clamp01(base + kindBonus + quality)
 }
 
-// ── 1.3 deal → signal [0..1] (poids modeste : nextAction = placeholder) ─────
+// ── 1.3 deal → signal [0..1] (poids modeste ; l'échéance vit dans le signal reminder) ─
 export function normalizeDeal(
   input: Pick<FocusScoreInput, 'stageProb' | 'dealRisk' | 'dealValue'>,
   cfg: FocusConfig = FOCUS_DEFAULTS,

@@ -16,7 +16,7 @@
 > **Docs détaillés (externalisés pour économiser des tokens) :**
 > - 🧠 Carte système / rouages : [docs/system-map.md](docs/system-map.md)
 > - Schéma DB complet : [docs/schema.md](docs/schema.md)
-> - Pages MVP (42 écrans) : [docs/pages.md](docs/pages.md)
+> - Pages et routes réelles (inventaire, pas spec) : [docs/pages.md](docs/pages.md)
 > - Modules IA (specs Gregory) : [docs/ai-modules.md](docs/ai-modules.md)
 > - Design system patterns (Sugar v2 CRM) : [docs/design-system.md](docs/design-system.md)
 > - Design system Property X (Marketplace — ⚠ ARCHIVÉ, marketplace désactivée) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
@@ -74,7 +74,8 @@ IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions �
                Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
 Email :        Resend (megga.ch DKIM/SPF)
 Payments :     Stripe
-Hosting :      Cloudflare Pages
+Hosting :      Cloudflare Pages — 3 projets : megga-real-estate (megga.ch vitrine),
+               megga-app (app.megga.ch CRM), megga-admin (admin.megga.ch console super-admin)
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
@@ -97,6 +98,15 @@ npm run lint         # ESLint
 > Patterns détaillés (composants, exemples TSX) : voir [docs/design-system.md](docs/design-system.md)
 
 **Direction :** Minimal, transparent, professionnel (Linear/Notion style). Dark/light mode sur dashboard agent.
+
+**⚠ Sugar Pure (Pipeline v2, juillet 2026)** : les surfaces refondues (Pipeline
+kanban/liste/timeline, modale Nouveau deal, fiche deal V4) suivent la grammaire
+« Sugar Pure » qui PRIME sur les règles bento ci-dessous : séparation par **ombre
+douce sans bordure décorative**, accent noir unique (`sp.accent`), teinte sombre
+par défaut **noir #000000** (`SUGAR_DARK_TONE`), teintes d'étape `SG_STAGE_HUE`
++ dérivations `sgMix` figées, pilules à fond plein + texte blanc. Détails :
+[docs/design-system.md](docs/design-system.md) §Sugar Pure ; source pixel =
+handoff `design_handoff_pipeline_refonte_v2`.
 
 **Règles visuelles clés :**
 - Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
@@ -128,6 +138,26 @@ Tokens :      bg-theme-page, bg-theme-card, bg-theme-section, bg-theme-sidebar, 
 Composants : PascalCase (ListingCard.tsx) | Hooks : use* (useListings.ts)
 Types : PascalCase | SQL : snake_case | Edge Functions : kebab-case
 ```
+
+### Structure des dossiers (où va quoi) — 3 runtimes séparés
+
+Le code vit dans **3 runtimes distincts** ; un fichier ne « déménage » pas librement de l'un à l'autre.
+
+| Dossier | Runtime | Contenu autorisé |
+|---|---|---|
+| `src/` | Navigateur (bundle Vite, **TS only**) | Code d'app **importé et rendu**, rien d'autre |
+| `scripts/` | Node (`node scripts/*.mjs`, brut, **aucun loader TS**) | **Exécutables** seuls ; helpers partagés → `scripts/_shared/`, fixtures de données → `scripts/_data/` |
+| `supabase/functions/` | Deno (edge) | Edge functions ; code partagé → `_shared/` |
+
+- ⛔ **JAMAIS de helper ni de donnée de script dans `src/`** : c'est le bundle navigateur, et un script Node ne peut importer ni un `.ts` ni l'arbre frontend. Un helper de script va dans `scripts/_shared/`, pas dans `src/lib/`.
+- `src/lib/` et `src/hooks/` sont **PLATS volontairement** — ne PAS les réorganiser en sous-dossiers thématiques (churn massif d'imports + conflits de merge ; le plat est idiomatique, l'alias `@/` suffit). `src/components/` est foldered par thème.
+- Pas de dossier vide (`.gitkeep` orphelin), pas de code mort (0 fichier non-joignable depuis `main.tsx`, 0 export mort — `npm run lint:deadcode`).
+- **Avant tout déplacement/renommage** : `git mv` (préserve l'historique) + greper TOUS les usages (imports relatifs ET `@/`, docs, skills, workflows CI), corriger les chemins, puis `npm run build`.
+
+### Documentation du code
+
+- En-tête `/** */` par fichier (rôle, route si page, comportements non-évidents) + docstring concise par unité **exportée** (composant/hook/TSDoc lib) + commentaires **« pourquoi »** là où la logique n'est pas évidente.
+- ⛔ PAS de glose ligne-à-ligne, PAS de docstring sur chaque helper trivial, PAS de commentaire qui répète le code. Le commentaire dit le **pourquoi**, pas le **quoi** ; match la densité existante.
 
 ### Pattern composant
 ```tsx
@@ -179,6 +209,9 @@ useEffect(() => {
 - Audit trail : `activity_events` pour toute action (y compris IA avec `actor_id = 'ai'`)
 - Scores IA affichés comme "estimation" (icône sparkle/ai)
 - Timeline unifiée par contact
+- `scripts/` = exécutables seuls (helpers → `scripts/_shared/`, données → `scripts/_data/`)
+- Documenter le **pourquoi** : en-tête `/** */` par fichier + docstring par export
+- `git mv` + corriger tous les imports (relatifs ET `@/`) avant `npm run build`
 
 ### DON'T ❌
 - `any` en TypeScript
@@ -197,6 +230,10 @@ useEffect(() => {
 - Mentionner "Lovable", "Claude", "ChatGPT" dans l'interface
 - IA présentée comme "automatique" ou "garantie" → "assistance"
 - Fonctionnalité hors les 5 objectifs du Document Maître
+- Helper ou donnée de script dans `src/` (mauvais runtime — va dans `scripts/_shared/` ou `_data/`)
+- Réorganiser `src/lib/` ou `src/hooks/` en sous-dossiers (churn d'imports + conflits de merge)
+- Commenter chaque ligne / docstring-er chaque helper trivial (bruit qui se périme)
+- Laisser un dossier vide (`.gitkeep` orphelin) ou du code mort
 
 ---
 
@@ -206,7 +243,7 @@ useEffect(() => {
 Devise :     CHF (apostrophe : CHF 720'000)
 Surface :    120 m²
 Date :       16.03.2026 (DD.MM.YYYY) ou relatif
-Langues :    FR (défaut), DE, EN, IT — react-i18next, 15 namespaces
+Langues :    FR (défaut), DE, EN, IT — react-i18next, 12 namespaces
 Cantons :    GE VD VS NE FR BE JU BS BL AG SO ZH LU ZG SZ NW OW UR GL SH TG AR AI SG GR TI
 ```
 
@@ -263,7 +300,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 - Backend conservé intact : `market_listings` (~90k Flatfox, ~50k active), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline (14 stades DB → 8 colonnes UI), Matching, Listings, KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
 
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 
@@ -271,7 +308,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Portail vendeur :** `/portail/:token` — page unique « Votre vente » (VotreVentePage, lecture seule), dev route `/portail` (PortalDevWrapper + mock data).
 
-**Super-Admin :** 16 pages (accent violet), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit.
+**Super-Admin :** application SÉPARÉE sur `admin.megga.ch` (entrée `index.admin.html` → `AdminApp`, `npm run build:admin`, projet Pages `megga-admin`) — 16 pages (accent violet), routes à la racine (`/users`, `/agencies/:id`…), impersonate avec audit trail, Stripe billing, monitoring Pro (pg_cron hourly), feature flags, NPS, security audit. Le bundle admin n'est plus servi aux agents ; l'entrée se fait par la ligne « Console admin » du dropdown profil Sugar et par ⌘K (`src/lib/adminEntry.ts`), et chaque ouverture est journalisée (`admin_console_entered`).
 
 **Intégrations :** Resend, Stripe, Google/Outlook Calendar (OAuth), virtual staging (Gemini), Flatfox sync.
 

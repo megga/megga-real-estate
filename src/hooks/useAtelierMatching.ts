@@ -73,6 +73,7 @@ interface RawPropertyRow {
 }
 
 interface RawMarketRow extends Omit<RawPropertyRow, 'features' | 'created_at'> {
+  status: string | null
   source_id: string | null
   source_portal: string | null
   source_url: string | null
@@ -144,6 +145,7 @@ function gallery(photos: string[] | null): AtelierListing['gallery'] {
   }))
 }
 
+/** Bien de veille marché (market_listings) → AtelierListing : clé `m:<id>`, prix courant + prix barré si baisse détectée. */
 export function mapMarketListing(row: RawMarketRow): AtelierListing {
   const features = featureList(row.features).map(f => f.toLowerCase())
   const price = num(row.current_price) ?? num(row.price) ?? 0
@@ -186,6 +188,7 @@ export function mapMarketListing(row: RawMarketRow): AtelierListing {
   }
 }
 
+/** Bien interne (properties) → AtelierListing : clé `p:<id>`, jours-sur-marché dérivés de created_at. */
 export function mapProperty(row: RawPropertyRow): AtelierListing {
   const features = featureList(row.features).map(f => f.toLowerCase())
   const photos = row.photos ?? []
@@ -291,6 +294,11 @@ export interface UseAtelierMatchingReturn {
   refresh: () => void
 }
 
+/**
+ * Données de l'Atelier Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
+ * groupés par annonce (pivots) et re-groupables par acheteur (poolFor / buyerFor).
+ * Les couples écartés/rejetés sont exclus de la file.
+ */
 export function useAtelierMatching(): UseAtelierMatchingReturn {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -315,7 +323,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
     [rawMatches],
   )
 
-  const { data: kycCases = [], isLoading: kycLoading, isError: kycError } = useQuery({
+  const { data: kycCases = [], isError: kycError } = useQuery({
     queryKey: ['atelier-kyc', agencyId, buyerIds],
     queryFn: async (): Promise<KycCase[]> => {
       if (!agencyId || buyerIds.length === 0) return []
@@ -380,6 +388,11 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
     const groups = new Map<string, AtelierPivot>()
     for (const m of rawMatches) {
       if (m.status === 'ignored' || m.status === 'rejected') continue
+      // Annonce retirée du marché → bien disparu, on ne le propose pas à l'agent.
+      // Défense intra-journée : la purge nocturne (purge_stale_market_matches)
+      // supprime ces matchs à la source, ce filtre couvre la fenêtre entre deux
+      // passes (une annonce marquée 'removed' au sync du matin).
+      if (m.market_listing && m.market_listing.status === 'removed') continue
       const L = listingOf(m)
       const b = toBuyer(m)
       if (!L || !b) continue
@@ -428,7 +441,9 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }, [queryClient])
 
   return {
-    isLoading: matchesLoading || kycLoading,
+    // Idem useContactsSugar : le KYC n'alimente qu'un badge, il ne doit pas
+    // remettre tout l'atelier en écran de chargement quand il se rafraîchit.
+    isLoading: matchesLoading,
     isError: matchesError || kycError,
     pivots,
     pivotByKey,
@@ -439,6 +454,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }
 }
 
+/** true tant que le report (snooze) d'un match n'est pas échu. */
 export const isSnoozed = (until: string | null): boolean =>
   until != null && new Date(until).getTime() > Date.now()
 

@@ -1,7 +1,14 @@
 // First backend integration test — verifies the local Supabase instance is
-// reachable and that the anon client can query a public marketplace view.
+// reachable, via one anon client probe and one service_role probe.
 // If this fails, the rest of the backend suite won't make sense — that's why
 // it lives in its own file with a descriptive name.
+//
+// L'ancienne sonde anon lisait `market_listings` et exigeait `error === null`.
+// La lecture anon de cette table a été fermée (migration 20260719110000 : la
+// marketplace publique est désactivée depuis le pivot CRM-first). La sonde teste
+// désormais que la fermeture est effective — ce qui prouve toujours que le serveur
+// répond, à condition d'exiger l'erreur PRÉCISE de refus et pas n'importe laquelle
+// (sinon une panne réseau ferait passer le test au vert).
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { anonClient, serviceRoleClient } from './helpers/supabase'
@@ -18,15 +25,23 @@ describe.skipIf(!HAS_KEYS)('backend smoke — local Supabase is reachable', () =
   })
 
 
-  it('anon client can SELECT from market_listings (no RLS-sensitive columns)', async () => {
+  it('anon client is refused on market_listings (lecture publique fermée)', async () => {
     const supabase = anonClient()
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('market_listings')
       .select('id')
       .limit(1)
 
-    expect(error, `query error: ${error?.message ?? 'none'}`).toBeNull()
-    expect(Array.isArray(data)).toBe(true)
+    // Le serveur doit répondre, et répondre un REFUS. On exige le code/message
+    // exact : un `error` quelconque (DNS, connexion refusée, timeout) signifierait
+    // que le backend est injoignable, ce que cette sonde est justement censée détecter.
+    expect(error, 'anon ne doit plus lire market_listings').not.toBeNull()
+    const code = error!.code ?? ''
+    const msg = error!.message.toLowerCase()
+    expect(
+      code === '42501' || /permission|policy|denied|row.?level/i.test(msg),
+      `refus RLS attendu, reçu code=${code} message=${error!.message}`
+    ).toBe(true)
   })
 
   it('service-role client can query any table (bypasses RLS)', async () => {

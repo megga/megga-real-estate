@@ -1,3 +1,11 @@
+/**
+ * Drawer latéral de gestion d'un utilisateur (section super-admin).
+ *
+ * Rendu via `createPortal` (z-100, focus trap, Escape/clic overlay pour fermer).
+ * Affiche l'identité, permet le changement de rôle, l'impersonation (audit-first),
+ * l'export DSAR (nLPD art. 25) et les actions de cycle de vie
+ * (suspendre / réinitialiser le mot de passe / supprimer), plus la timeline d'activité.
+ */
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -7,7 +15,7 @@ import { X, Mail, Phone, Building2, Clock, Eye, FileDown, Ban, KeyRound, Trash2 
 import { cn, formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
 import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
-import { useImpersonate } from '@/hooks/useImpersonate'
+import { openImpersonationInCrm } from '@/lib/adminEntry'
 import { useToast } from '@/components/ui/Toast'
 
 const ROLE_OPTIONS = [
@@ -23,6 +31,7 @@ interface UserDrawerProps {
   onClose: () => void
 }
 
+/** Avatar utilisateur : photo si fournie, sinon initiales sur fond de couleur déterministe dérivée du nom. */
 function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   const initials = (name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   const colors = ['bg-admin-accent', 'bg-accent', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500']
@@ -47,11 +56,11 @@ function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | nul
   )
 }
 
+/** Panneau de détail/gestion d'un compte, résolu depuis la liste `useAdminUsers` par `userId`. */
 export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { t } = useTranslation('admin')
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
-  const { startImpersonate } = useImpersonate()
   const dsarExport = useDsarExport()
   const { lifecycle, deleteAccount } = useAdminUserLifecycle()
   const toast = useToast()
@@ -139,7 +148,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 <span className="text-sm text-theme-secondary w-20 flex-shrink-0">{t('userDrawer.agency')}</span>
                 {user.agency_name && user.agency_id ? (
                   <Link
-                    to={`/dashboard/admin/agencies/${user.agency_id}`}
+                    to={`/agencies/${user.agency_id}`}
                     onClick={onClose}
                     className="text-sm text-admin-accent hover:underline truncate"
                   >
@@ -187,21 +196,11 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
             {/* Impersonate button */}
             <button
-              onClick={async () => {
-                // Audit-first : l'impersonation ne s'active que si l'événement
-                // d'audit serveur a été journalisé (RPC admin_log_impersonation).
-                const ok = await startImpersonate({
-                  id: user.id,
-                  full_name: user.full_name ?? 'Utilisateur',
-                  email: user.email,
-                  role: user.role ?? 'agent',
-                  agency_id: user.agency_id,
-                  agency_name: user.agency_name,
-                })
-                if (!ok) {
-                  toast.error(t('userDrawer.impersonateAuditFailed'))
-                  return
-                }
+              onClick={() => {
+                // La vue impersonée est une vue du CRM, qui vit sur une AUTRE
+                // origine : on l'y ouvre. C'est le CRM qui journalise (audit-first,
+                // RPC admin_log_impersonation) avant d'activer quoi que ce soit.
+                openImpersonationInCrm(user.id)
                 onClose()
               }}
               className="w-full h-9 flex items-center justify-center gap-2 text-sm font-medium border border-admin-accent/30 text-admin-accent rounded-lg hover:bg-admin-accent/5 transition-colors"

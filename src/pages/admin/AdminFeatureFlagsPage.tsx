@@ -1,3 +1,10 @@
+/**
+ * Page super-admin — feature flags.
+ *
+ * Route : `/feature-flags` (console admin.megga.ch) (accent violet).
+ * Chaque flag est activable globalement ou restreint à certains plans
+ * (starter/pro/agency) ; les toggles écrivent directement via `useFeatureFlags`.
+ */
 import { useMemo, useState } from 'react'
 import { Check, ChevronDown, ToggleLeft, ToggleRight, X, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'

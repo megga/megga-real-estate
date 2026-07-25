@@ -1,3 +1,8 @@
+/**
+ * Vue « time-block » de l'agenda mobile : grille horaire proportionnelle (1.7 px/min)
+ * avec blocs positionnés à la minute, rendu compact sous ~56 px, et ligne « maintenant »
+ * (uniquement le jour même, entre le premier et le dernier créneau visible).
+ */
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 import { agTone, fmtDur, fmtTime, type AgEventVM } from './vm'
@@ -14,6 +19,7 @@ interface AgTimeGridProps {
   onTap: (e: AgEventVM) => void
 }
 
+/** Zéro-pad sur 2 chiffres (labels heures/minutes). */
 const pad2 = (n: number): string => String(n).padStart(2, '0')
 
 /** Grille time-block proportionnelle (port du proto `AgTimeGrid`). Blocs positionnés à la minute. */

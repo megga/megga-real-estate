@@ -1,3 +1,9 @@
+/**
+ * Hook super-admin — suivi d'onboarding des agences.
+ * Pour chaque agence, dérive l'avancement des 6 jalons (contact, bien, KYC,
+ * transaction, match…) via le RPC `get_onboarding_milestones` (un seul SQL avec
+ * EXISTS), plus un statut active/at_risk/dormant selon la dernière activité.
+ */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
@@ -20,6 +26,7 @@ interface AgencyOnboarding {
 
 export type { AgencyOnboarding }
 
+/** Query toutes les agences + leurs jalons d'onboarding, avec % de complétion et statut d'activité. */
 export function useOnboardingTracker() {
   return useQuery({
     queryKey: ['admin-onboarding-tracker'],

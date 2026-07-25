@@ -1,3 +1,4 @@
+/** Toast en forme de pilule du CRM mobile — primitive « Sugar ». */
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'

@@ -1,7 +1,10 @@
 // Glyphes de marque pour la refonte Contacts (handoff Claude Design).
-// - WhatsAppGlyph : glyphe WhatsApp plein (marque tierce #25D366) — porté 1:1 de
-//   `crm-contacts-firstrun.jsx` (CfrWhatsAppIcon). En production, remplacer par
-//   l'asset officiel WhatsApp autorisé si requis (cf. README handoff §8).
+// - WhatsAppGlyph : glyphe WhatsApp plein MONOCHROME (combiné seul, teinté
+//   #25D366) — porté 1:1 de `crm-contacts-firstrun.jsx` (CfrWhatsAppIcon).
+//   Réservé au lockup et au CTA de la modale. La marque officielle EN COULEUR
+//   (combiné blanc sur pastille verte) est un asset distinct, `public/contacts/
+//   whatsapp.svg`, utilisée uniquement sur la couverture premier lancement.
+//   Vérifier les conditions d'usage de la marque WhatsApp (README handoff §8).
 // - GgMonogram : monogramme GG du logo MEGGA (sans le badge bleu), recolorable
 //   selon le thème — porté 1:1 de `CfrGGMark`.
 

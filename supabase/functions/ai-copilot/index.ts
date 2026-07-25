@@ -5,7 +5,11 @@
 //  • Auth RÉELLE : requireAgentAuth (JWT vérifié, agency_id dérivé serveur) — le
 //    chemin principal ne se contente plus de la présence d'un header Bearer.
 //  • Rédaction PII (AVS/IBAN/carte/…) sur message + contexte + historique AVANT
-//    tout envoi au LLM (copilot-redaction).
+//    tout envoi au LLM (copilot-redaction), PUIS au fil dans makeCallModel via
+//    buildCopilotModelBody — point d'étranglement de la BOUCLE, qui couvre aussi
+//    les résultats d'outils réinjectés (le 1er tour seul était propre avant).
+//    Les autres appels DeepSeek d'ici (daily-brief) ou des outils rédigent à
+//    leur propre frontière.
 //  • Audit LBA complet : le free chat (sans entity id) est journalisé aussi.
 //  • Tool-calling read-only (flag app_config `copilot_tools_enabled`) : boucle
 //    portée de whatsapp-agent (agent-loop) + catalogue web (copilot-tools) —
@@ -18,7 +22,7 @@ import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supa
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { meggaProse, MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { persistCopilotTurn, persistenceFlagOn, type ConversationMessage, type ConversationStore } from '../_shared/copilot-persistence.ts'
-import { buildUserContent, resolveAuditEntity } from '../_shared/ai-copilot-request.ts'
+import { buildUserContent, resolveAuditEntity, buildCopilotModelBody } from '../_shared/ai-copilot-request.ts'
 import { requireAgentAuth, type AgentAuthContext } from '../_shared/require-agent-auth.ts'
 import { redactCopilotRequest } from '../_shared/copilot-redaction.ts'
 import { redactPII } from '../_shared/pii-redaction.ts'
@@ -45,8 +49,10 @@ import {
   execCreateProperty, execUpdateProperty, execDraftListingCopy, execWebAttachPropertyPhotos,
   preparePublishToPortals, prepareWithdrawFromPortals,
   executePublishToPortals, executeWithdrawFromPortals,
+  prepareDeleteContact, executeDeleteContact,
   type ActionCtx, type Prepared,
 } from '../_shared/whatsapp-actions.ts'
+import { fetchHotContactBlock, distillCrmTurn } from '../_shared/contact-memory.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,6 +64,7 @@ const CALL_TIMEOUT_MS = 60_000   // par appel modèle (streaming inclus)
 const LOOP_BUDGET_MS = 90_000    // budget global de la boucle d'outils
 const MAX_TURNS = 5
 const MAX_TOOL_CALLS = 8
+const MIN_SUBSTANCE_CHARS = 80  // en-deçà, le tour n'a rien à distiller (écho, question courte)
 
 // LBA/IA compliance : log de TOUTE interaction copilote dans activity_events,
 // actor_kind='ai'. Le free chat (aucune entité CRM dans le contexte) est
@@ -312,18 +319,15 @@ function makeCallModel(opts: {
   module?: string
 }) {
   return async (messages: LoopMessage[], withTools: boolean): Promise<ModelTurn | null> => {
-    const body: Record<string, unknown> = {
-      model: 'deepseek-chat',
-      max_tokens: 2000,
+    // Assemblage PUR (testable) : c'est lui qui porte la redaction PII au fil — point
+    // d'étranglement unique de la frontière DeepSeek du copilote, que ni la passe finale
+    // forcée ni un futur site de push d'outil ne peuvent contourner.
+    const body = buildCopilotModelBody({
       messages,
-      stream: true,
-      stream_options: { include_usage: true },
-    }
-    if (opts.tools) {
-      body.tools = opts.tools
-      body.tool_choice = withTools ? 'auto' : 'none'
-    }
-    if (opts.responseFormat) body.response_format = { type: opts.responseFormat }
+      tools: opts.tools,
+      withTools,
+      responseFormat: opts.responseFormat,
+    })
 
     const started = Date.now()
     try {
@@ -369,9 +373,16 @@ function makeCallModel(opts: {
   }
 }
 
+// Outils dont l'argument contact_id désigne le contact TRAVAILLÉ ce tour (pour le
+// distillat mémoire CRM). search_contacts est exclu : chercher n'est pas travailler.
+const CONTACT_TOOLS = new Set(['get_contact_brief', 'add_note', 'create_reminder', 'prepare_meeting', 'get_kyc_status', 'get_matches'])
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // ─── Exécuteurs d'outils (partagés WhatsApp + web) ───────────────────────────
-function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx) {
+function makeRunTool(actionCtx: ActionCtx, webCtx: WebToolCtx, onContact?: (id: string) => void) {
   return async (name: string, args: Record<string, unknown>): Promise<string> => {
+    const cid = typeof args.contact_id === 'string' ? args.contact_id : ''
+    if (onContact && CONTACT_TOOLS.has(name) && UUID_RE.test(cid)) onContact(cid)
     switch (name) {
       case 'get_my_agenda': return execGetMyAgenda(actionCtx, args)
       case 'search_contacts': return execSearchContacts(actionCtx, args)
@@ -416,9 +427,10 @@ function makePrepareConfirm(ctx: ActionCtx) {
     let prep: Prepared
     if (name === 'publish_to_portals') prep = await preparePublishToPortals(ctx, args)
     else if (name === 'withdraw_from_portals') prep = await prepareWithdrawFromPortals(ctx, args)
+    else if (name === 'delete_contact') prep = await prepareDeleteContact(ctx, args)
     else return { ok: false, error: `Action non préparable ici : ${name}` }
     if (!prep.ok) return { ok: false, error: prep.error }
-    // preview obligatoire pour la carte ; prepare de publication le fournit toujours.
+    // preview obligatoire pour la carte ; publication et suppression le fournissent toujours.
     if (!prep.preview) return { ok: false, error: "Aperçu indisponible pour cette action." }
     return {
       ok: true,
@@ -478,14 +490,18 @@ async function handleExecutePending(params: {
   const json = (obj: unknown, status = 200) =>
     new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-  // Re-vérifie le flag au moment de l'exécution (coupé entre préparer et valider = refus).
+  // Flags lus au moment de l'exécution (coupés entre préparer et valider = refus). Le gate
+  // PRÉCIS dépend de l'outil de la carte (publication vs suppression) et se fait après la
+  // consommation atomique, une fois row.tool connu.
+  let publishOn = false, deleteOn = false
   try {
     const { data: flags } = await auth.supabase
-      .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_publish_enabled'])
+      .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_publish_enabled', 'copilot_delete_enabled'])
     const val = (k: string) => flags?.find((f) => f.key === k)?.value
-    if (val('copilot_tools_enabled') !== 'true' || val('copilot_publish_enabled') !== 'true') {
-      return json({ error: 'La publication est désactivée.' }, 403)
-    }
+    const toolsOn = val('copilot_tools_enabled') === 'true'
+    publishOn = toolsOn && val('copilot_publish_enabled') === 'true'
+    deleteOn = toolsOn && val('copilot_delete_enabled') === 'true'
+    if (!toolsOn) return json({ error: 'Les actions du copilote sont désactivées.' }, 403)
   } catch {
     return json({ error: 'Impossible de vérifier la configuration.' }, 500)
   }
@@ -507,7 +523,22 @@ async function handleExecutePending(params: {
   const row = Array.isArray(rows) ? rows[0] : null
   if (!row) return json({ error: 'Action introuvable ou déjà traitée.' }, 404)
   if (Date.parse(String(row.expires_at)) <= Date.now()) {
-    return json({ error: 'Cette action a expiré — relance la publication.' }, 410)
+    return json({ error: 'Cette action a expiré — relance-la depuis le panneau.' }, 410)
+  }
+
+  // Gate PRÉCIS par capacité (la carte a pu être créée quand la capacité était on puis coupée).
+  // Si la capacité de CETTE action est off, on RÉINSÈRE la carte consommée (même id/charge/TTL)
+  // et on refuse — rien n'a été exécuté.
+  const capOk = row.tool === 'delete_contact' ? deleteOn : publishOn
+  if (!capOk) {
+    try {
+      await auth.supabase.from('copilot_pending_actions').insert({
+        id: pendingId, user_id: auth.user.id, agency_id: row.agency_id,
+        kind: row.kind, tool: row.tool, payload: row.payload,
+        preview: row.preview, title: row.title, expires_at: row.expires_at,
+      })
+    } catch { /* réinsertion best-effort */ }
+    return json({ error: row.tool === 'delete_contact' ? 'La suppression est désactivée.' : 'La publication est désactivée.' }, 403)
   }
 
   const payload = (row.payload ?? {}) as Record<string, unknown>
@@ -521,20 +552,25 @@ async function handleExecutePending(params: {
   }
 
   // Contrat {ok,message} : on distingue succès et échec métier → l'UI n'affiche un
-  // succès (« publié ») QUE si ok.
-  let outcome: { ok: boolean; message: string }
+  // succès (« publié ») QUE si ok. `retryable:false` (suppression d'un contact déjà parti)
+  // = échec DÉFINITIF → on ne réarme pas la carte (sinon elle traînerait jusqu'au TTL).
+  let outcome: { ok: boolean; message: string; retryable?: boolean }
   try {
     if (row.tool === 'publish_to_portals') outcome = await executePublishToPortals(ctx, payload)
     else if (row.tool === 'withdraw_from_portals') outcome = await executeWithdrawFromPortals(ctx, payload)
+    else if (row.tool === 'delete_contact') outcome = await executeDeleteContact(ctx, payload)
     else outcome = { ok: false, message: lang === 'en' ? 'Unknown action.' : 'Action inconnue.' }
   } catch (e) {
     outcome = { ok: false, message: (lang === 'en' ? 'Action failed: ' : "Échec de l'action : ") + ((e as Error)?.message ?? 'inconnue') }
   }
 
-  // La carte a été consommée par le claim atomique. Sur ÉCHEC métier, on la RÉINSÈRE
-  // (même id, même charge, même TTL d'origine) pour permettre un nouvel essai depuis la
-  // carte — sans avoir doublé l'exécution ni l'audit. Best-effort.
-  if (!outcome.ok) {
+  // La carte a été consommée par le claim atomique. Sur ÉCHEC métier RÉESSAYABLE, on la
+  // RÉINSÈRE (même id, même charge, même TTL d'origine) pour permettre un nouvel essai depuis
+  // la carte — sans avoir doublé l'exécution ni l'audit. Best-effort. Un échec DÉFINITIF
+  // (retryable:false — ex. contact déjà supprimé) NE réinsère PAS : réessayer échouerait
+  // à l'identique et la carte traînerait jusqu'au TTL ; on la laisse consommée (un nouveau
+  // clic → 404, la modale se ferme).
+  if (!outcome.ok && outcome.retryable !== false) {
     try {
       await auth.supabase.from('copilot_pending_actions').insert({
         id: pendingId, user_id: auth.user.id, agency_id: row.agency_id,
@@ -600,11 +636,13 @@ async function buildSystemPrompt(params: {
   toolsOn: boolean
   writesOn: boolean
   publishOn: boolean
+  deleteOn: boolean
+  hotBlockOn: boolean  // injection mémoire contact chaud — false pour detect_intent (classifieur JSON strict, jamais de contexte contact ambiant)
 }): Promise<string> {
-  const { auth, language, toolsOn, writesOn, publishOn } = params
+  const { auth, language, toolsOn, writesOn, publishOn, deleteOn, hotBlockOn } = params
   let systemPrompt = MEGGA_SYSTEM
   systemPrompt += `\n\n${MEGGA_STYLE_BLOCK}`
-  if (toolsOn) systemPrompt += copilotToolsBlock(writesOn, publishOn)
+  if (toolsOn) systemPrompt += copilotToolsBlock(writesOn, publishOn, deleteOn)
 
   // Ancrage temporel : indispensable pour résoudre « demain », « cette semaine »
   // en ISO 8601 (get_my_agenda) et dater correctement les réponses.
@@ -616,11 +654,12 @@ async function buildSystemPrompt(params: {
   if (language !== 'fr') systemPrompt += `\n\nLangue de réponse : ${language}`
 
   // Personnalisation (Day 0 + style appris + voix + corrections). Best-effort.
+  let hotBlock = ''
   try {
     const sb = auth.supabase
     const { data: aiProfile } = await sb
       .from('agent_ai_profiles')
-      .select('brief, learned_style')
+      .select('brief, learned_style, hot_contact_id, hot_contact_at')
       .eq('agent_id', auth.user.id)
       .maybeSingle()
     const addendum = (aiProfile?.brief as { system_addendum?: string } | null)?.system_addendum
@@ -649,6 +688,15 @@ async function buildSystemPrompt(params: {
     const corrections = (await fetchCorrectionExamples(sb, auth.user.id))
       .map((c) => ({ draft: redactPII(c.draft).redactedText, final: redactPII(c.final).redactedText }))
     systemPrompt += formatCorrectionExamples(corrections, voiceLang)
+
+    // Mémoire cross-canal : bloc « contact chaud » (<6h, posé par les exécuteurs des DEUX
+    // canaux — un contact travaillé sur WhatsApp resurface ici). VOLATIL → appendu juste
+    // avant l'horodatage, jamais dans les blocs stables (cache DeepSeek). Déjà rédigé + borné.
+    // Gated hotBlockOn (comme copilot_tools et knowledge) : detect_intent n'en reçoit
+    // jamais — et on évite aussi ses lectures DB sur ce chemin.
+    if (hotBlockOn) {
+      hotBlock = await fetchHotContactBlock(sb, auth.profile.agency_id, aiProfile ?? null, language === 'en' ? 'en' : 'fr')
+    }
   } catch (_) {
     // personnalisation optionnelle — ne jamais bloquer la réponse IA
   }
@@ -656,6 +704,7 @@ async function buildSystemPrompt(params: {
   // Horodatage volatil en DERNIER (voir note CACHE CONTEXTE plus haut) : tout le préfixe
   // ci-dessus (système + style + outils + personnalisation) reste stable d'une minute à
   // l'autre ; seul ce court suffixe daté change, donc le cache n'est invalidé que là.
+  systemPrompt += hotBlock
   const nowZurich = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich', dateStyle: 'full', timeStyle: 'short' })
   systemPrompt += `\n\nDate/heure actuelles (Europe/Zurich) : ${nowZurich}.`
 
@@ -850,20 +899,27 @@ serve(async (req: Request) => {
     let toolsOn = false
     let writesOn = false
     let publishOn = false
+    let deleteOn = false
+    let crmWritebackOn = false
     if (action !== 'detect_intent') {
       try {
         const { data: flags } = await auth.supabase
-          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled', 'copilot_publish_enabled'])
+          .from('app_config').select('key, value').in('key', ['copilot_tools_enabled', 'copilot_writes_enabled', 'copilot_publish_enabled', 'copilot_delete_enabled', 'contact_memory_crm_writeback_enabled'])
         const val = (k: string) => flags?.find((f) => f.key === k)?.value
         toolsOn = val('copilot_tools_enabled') === 'true'
         writesOn = toolsOn && val('copilot_writes_enabled') === 'true'
         // Publication externe (immobilier.ch) : 3e flag, indépendant des écritures
         // internes. Confirm-tier → jamais exécutée dans la boucle (validée par carte HITL).
         publishOn = toolsOn && val('copilot_publish_enabled') === 'true'
-      } catch { toolsOn = false; writesOn = false; publishOn = false }
+        // Suppression de contact : 4e flag, indépendant. Confirm-tier + destructif →
+        // jamais dans la boucle, validé par carte HITL (execute_pending). OFF par défaut.
+        deleteOn = toolsOn && val('copilot_delete_enabled') === 'true'
+        // Write-back mémoire CRM (distillat post-tour) : 5e flag, indépendant. OFF par défaut.
+        crmWritebackOn = toolsOn && val('contact_memory_crm_writeback_enabled') === 'true'
+      } catch { toolsOn = false; writesOn = false; publishOn = false; deleteOn = false; crmWritebackOn = false }
     }
 
-    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn, publishOn })
+    const systemPrompt = await buildSystemPrompt({ auth, language, toolsOn, writesOn, publishOn, deleteOn, hotBlockOn: action !== 'detect_intent' })
 
     // ── Savoir métier vérifié (Phase 2) : retrieval déterministe de snippets
     // juridiques suisses SOURCÉS + DATÉS, injectés selon l'intent. Gated par
@@ -935,7 +991,8 @@ serve(async (req: Request) => {
       profileId: auth.user.id,
       agencyId: auth.profile.agency_id,
     }
-    const runTool = makeRunTool(actionCtx, webCtx)
+    const turnContactIds = new Set<string>()
+    const runTool = makeRunTool(actionCtx, webCtx, (id) => { turnContactIds.add(id) })
 
     // ── Un tour complet (boucle d'outils ou appel simple) + post-traitements. ──
     const runTurn = async (emit: (ev: LoopEvent) => void): Promise<{
@@ -954,15 +1011,15 @@ serve(async (req: Request) => {
       let stashFailed = false
 
       if (toolsOn) {
-        const catalog = copilotTools(writesOn, publishOn)
+        const catalog = copilotTools(writesOn, publishOn, deleteOn)
         const res = await runAgentLoop({
           callModel: makeCallModel({ apiKey: deepseekApiKey, tools: catalog, wantStream: stream, emit, client: auth.supabase, agencyId: auth.profile.agency_id, module: 'copilot' }),
           runTool,
           tierOf: webToolTier,
           allowWrites: writesOn,
-          // Publication (tier confirm) : préparée puis surfacée en carte HITL, jamais
-          // exécutée dans la boucle. Absent si la publication n'est pas activée.
-          prepareConfirm: publishOn ? makePrepareConfirm(actionCtx) : undefined,
+          // Actions confirm (publication OU suppression) : préparées puis surfacées en carte
+          // HITL, jamais exécutées dans la boucle. Absent si aucune n'est activée.
+          prepareConfirm: (publishOn || deleteOn) ? makePrepareConfirm(actionCtx) : undefined,
           emit,
           maxTurns: MAX_TURNS,
           maxToolCalls: MAX_TOOL_CALLS,
@@ -1009,9 +1066,11 @@ serve(async (req: Request) => {
       // Carte de validation attendue mais non stashée (échec DB) → ne pas laisser le texte
       // inviter l'agent à valider une carte qui n'apparaîtra pas.
       if (stashFailed && action !== 'detect_intent') {
+        // Neutre (publication OU suppression passent par cette carte) : ne présume pas
+        // du type d'action — « publier » induisait en erreur une demande de suppression.
         final += language === 'en'
-          ? "\n\n(I couldn't prepare the validation card — restate your publish request.)"
-          : "\n\n(Je n'ai pas pu préparer la carte de validation — reformule ta demande de publication.)"
+          ? "\n\n(I couldn't prepare the validation card — restate your request.)"
+          : "\n\n(Je n'ai pas pu préparer la carte de validation — reformule ta demande.)"
       }
 
       // Garde anti-citation-inventée (Phase 2) : quand le savoir vérifié est actif,
@@ -1035,6 +1094,23 @@ serve(async (req: Request) => {
         streamed: stream,
         degraded,
       })
+
+      // Write-back mémoire CRM (gated) : distille ce tour dans le dossier par-contact
+      // partagé (whatsapp_conversation_insights.crm_summary) — le canal WhatsApp le lira.
+      // Fire-and-forget via waitUntil : zéro latence ajoutée ; substance minimale exigée.
+      // Exactement UN contact travaillé ce tour — 0 ou 2+ = ambigu, on ne distille pas (mésattribution).
+      if (crmWritebackOn && turnContactIds.size === 1 && action !== 'detect_intent' && final.trim().length >= MIN_SUBSTANCE_CHARS) {
+        const [soleContactId] = turnContactIds
+        const work = distillCrmTurn({
+          supabase: auth.supabase, apiKey: deepseekApiKey,
+          agencyId: auth.profile.agency_id, contactId: soleContactId,
+          userMessage: red.message, assistantText: final,
+          lang: language === 'en' ? 'en' : 'fr',
+        })
+        const edge = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime
+        if (edge?.waitUntil) edge.waitUntil(work)
+        else void work
+      }
 
       let conversationId: string | null = null
       if (persist) {

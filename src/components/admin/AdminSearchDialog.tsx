@@ -1,3 +1,8 @@
+/**
+ * Palette de recherche globale super-admin (Cmd-K), rendue en portal z-[100].
+ * Interroge agences / utilisateurs / biens / tickets via `useAdminSearch`
+ * (min. 2 caractères) et regroupe les résultats par type.
+ */
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -18,6 +23,7 @@ const TYPE_META: Record<AdminSearchResult['type'], { icon: MEIconName; i18nKey: 
   property: { icon: 'home', i18nKey: 'search.type.properties' },
 }
 
+/** Modale de recherche : auto-focus, fermeture Échap/overlay, navigation vers `result.href` au clic. */
 export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogProps) {
   'use no memo'
   const { t } = useTranslation('admin')

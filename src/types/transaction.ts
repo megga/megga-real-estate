@@ -1,3 +1,7 @@
+/**
+ * Type d'une transaction (`Transaction`) — un deal du pipeline reliant un bien,
+ * un acheteur et un vendeur, positionné sur un `stage` (14 stades DB → 8 colonnes UI).
+ */
 import type { TransactionStage } from '@/lib/constants'
 
 export type TransactionStatus = 'active' | 'on_hold' | 'cancelled' | 'completed'
@@ -16,6 +20,8 @@ export interface Transaction {
   price_final: number | null
   mandate_type: MandateType | null
   notes: string | null
+  /** Deal rangé hors pipeline (kanban/liste/timeline). NULL = visible ; undo = remise à NULL. */
+  archived_at: string | null
   created_at: string
   updated_at: string
 }

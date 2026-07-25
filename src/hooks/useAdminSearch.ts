@@ -1,3 +1,8 @@
+/**
+ * Recherche globale admin (palette) sur agences, utilisateurs, biens et tickets
+ * de support. Débouncée 300ms, minimum 2 caractères ; la requête tickets est
+ * tolérante à l'absence de la table.
+ */
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -9,8 +14,11 @@ export interface AdminSearchResult {
   href: string
 }
 
+/**
+ * Recherche multi-entités déclenchée par `query`, retourne { results, loading }.
+ */
 export function useAdminSearch(query: string) {
-  'use no memo'
+  'use no memo' // opt-out de la mémoïsation du compilateur React pour ce hook
   const [results, setResults] = useState<AdminSearchResult[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -36,21 +44,21 @@ export function useAdminSearch(query: string) {
           id: a.id,
           title: a.name,
           subtitle: a.email ?? 'Agence',
-          href: `/dashboard/admin/agencies/${a.id}`,
+          href: `/agencies/${a.id}`,
         })),
         ...(users.data ?? []).map(u => ({
           type: 'user' as const,
           id: u.id,
           title: u.full_name ?? u.email,
           subtitle: `${u.role} · ${u.email}`,
-          href: '/dashboard/admin/users',
+          href: '/users',
         })),
         ...(properties.data ?? []).map(p => ({
           type: 'property' as const,
           id: p.id,
           title: p.title ?? 'Bien',
           subtitle: p.city ?? '',
-          href: '/dashboard/admin/marketplace',
+          href: '/marketplace',
         })),
       ]
 

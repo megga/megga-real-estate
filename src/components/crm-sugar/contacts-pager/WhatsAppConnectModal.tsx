@@ -1,10 +1,13 @@
 // MEGGA CRM — Modale « Associer votre compte WhatsApp » (refonte Contacts).
 // Port fidèle de `crm-contacts-firstrun.jsx` (CfrWhatsAppConnect) : overlay .cfr-ov,
-// carte .cfr-modal (fond = couleur du bento), lockup co-brandé GG × WhatsApp,
-// 3 bénéfices, CTA plein noir. CÂBLAGE RÉEL via `useWhatsAppPairing` : le CTA
-// génère un vrai code d'appairage (ou affiche l'état connecté si déjà vérifié).
+// carte .cfr-modal (fond = couleur du bento), lockup co-brandé GG × WhatsApp
+// (glyphes nus, sans tuile ni ombre — Beta v1), 3 bénéfices, CTA plein noir.
+// Rendue en createPortal(document.body) pour sortir du contexte d'empilement du
+// pager. CÂBLAGE RÉEL via `useWhatsAppPairing` : le CTA génère un vrai code
+// d'appairage (ou affiche l'état connecté si déjà vérifié).
 
 import { useState, type JSX } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { WhatsAppGlyph, GgMonogram } from '@/components/crm-sugar/contacts-pager/glyphs'
@@ -59,7 +62,9 @@ export default function WhatsAppConnectModal({
     }
   }
 
-  return (
+  // Portal + z-index 120 : la modale doit échapper au contexte d'empilement du
+  // pager (transformé/animé), sinon elle se retrouverait clipée par la page.
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -100,21 +105,20 @@ export default function WhatsAppConnectModal({
           <NcvIcon name="x" size={16} stroke={sp.sub} />
         </button>
 
-        {/* Lockup co-brandé : MEGGA (GG) × WhatsApp */}
+        {/* Lockup co-brandé : MEGGA (GG) × WhatsApp — glyphes nus, sans tuile.
+            Le « × » est recentré sur l'axe des glyphes : `height: 44` + placeItems
+            l'alignent sur le GG, `lineHeight: 0` neutralise la descente du cadratin
+            et `marginLeft: -6` compense le blanc à gauche du monogramme (son <g>
+            porte translate(3, 8.5) dans un viewBox 32). Valeurs mesurées. */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 4, marginBottom: 20 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 16, background: sp.solidBg,
-            boxShadow: dark ? '0 2px 10px rgba(0,0,0,.45)' : '0 2px 10px rgba(15,23,42,.09)', display: 'grid', placeItems: 'center',
-          }}>
-            <GgMonogram size={42} color={sp.ink} />
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 500, color: sp.sub, lineHeight: 1 }}>×</span>
-          <div style={{
-            width: 56, height: 56, borderRadius: 16, background: sp.solidBg,
-            boxShadow: dark ? '0 2px 10px rgba(0,0,0,.45)' : '0 2px 10px rgba(15,23,42,.09)', display: 'grid', placeItems: 'center',
-          }}>
-            <WhatsAppGlyph size={30} color={WA_GREEN} />
-          </div>
+          <GgMonogram size={44} color={sp.ink} />
+          <span
+            aria-hidden="true"
+            style={{ height: 44, display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 500, color: sp.sub, lineHeight: 0, marginLeft: -6 }}
+          >
+            ×
+          </span>
+          <WhatsAppGlyph size={38} color={WA_GREEN} />
         </div>
 
         <h2 style={{ margin: 0, textAlign: 'center', fontSize: 21, fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>
@@ -178,6 +182,7 @@ export default function WhatsAppConnectModal({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

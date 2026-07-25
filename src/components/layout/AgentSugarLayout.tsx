@@ -1,14 +1,20 @@
+/**
+ * Layout des pages CRM Sugar v2 (route parente des surfaces agent). Volontairement
+ * dépouillé : ni sidebar, ni breadcrumb, ni bottom bar — les pages Sugar portent
+ * leur propre chrome. Fournit thème + contexte copilote, la bannière
+ * d'impersonation et le « push » du contenu quand le panneau MEGGA AI est ouvert.
+ */
 import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
-import { CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sugarThemeTokens, SUGAR_DARK_TONE } from '@/components/crm-sugar/tokens'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
-import NpsSurvey from '@/components/feedback/NpsSurvey'
 import CrmSugarSearchHost from '@/components/crm-sugar/search/CrmSugarSearchHost'
 
+/** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
 // Mode sombre Sugar (même clé localStorage que les pages). Réactif : `storage`
 // (cross-onglet) + relecture courte tant que le panneau est ouvert (le fond de
 // la gouttière du push doit suivre le thème Sugar, pas le thème app `data-theme`).
@@ -32,15 +38,21 @@ function readSugarDark(): boolean {
  *    the app's CSS variables, even though Sugar uses its own tokens)
  *  - CopilotContextProvider (kept for cross-page MEGGA AI context)
  *  - Push du contenu quand le panneau MEGGA AI est ouvert (le panneau lui-même
- *    est monté dans App.tsx, au-dessus des Routes keyées, pour persister à la nav)
+ *    est monté dans App.tsx, au-dessus de <Routes>, pour persister à la nav)
  *  - ImpersonateBanner (super-admin must always see they are impersonating)
- *  - NpsSurvey (user feedback flow)
  */
 function AgentSugarInner() {
   const { isOpen } = useAiPanel()
   const [dark, setDark] = useState(readSugarDark)
   useEffect(() => {
     const sync = () => setDark(readSugarDark())
+    // Relecture IMMÉDIATE à chaque passage : ce layout ne se remonte plus à la
+    // navigation (les routes ne sont plus keyées par pathname), donc la valeur
+    // lue au montage peut dater de plusieurs écrans — une bascule clair/sombre
+    // faite depuis le rail d'une page n'est pas notifiée dans le même onglet
+    // (`storage` ne concerne que les autres). Sans ça, la gouttière du push
+    // s'ouvrirait à l'ancienne teinte.
+    sync()
     window.addEventListener('storage', sync)
     let id: number | undefined
     if (isOpen) id = window.setInterval(sync, 400)
@@ -48,7 +60,7 @@ function AgentSugarInner() {
   }, [isOpen])
   // Fond Sugar de la page courante → peint la gouttière réservée par le push
   // (sinon elle laisserait voir le fond `body` blanc, dépareillé en mode sombre).
-  const pageBg = crmSugarPalette(dark ? CRM_TOKENS.dark : CRM_TOKENS.light, dark, 'meggaAi').pageBg
+  const pageBg = crmSugarPalette(sugarThemeTokens(dark), dark, SUGAR_DARK_TONE).pageBg
   return (
     <>
       <ImpersonateBanner />
@@ -65,13 +77,13 @@ function AgentSugarInner() {
         <Outlet />
       </div>
       <CrmSugarSearchHost />
-      <NpsSurvey />
-      {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus des Routes keyées)
+      {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus de <Routes>)
           pour persister à la navigation ; ici on ne fait que « pousser » le contenu. */}
     </>
   )
 }
 
+/** Enrobe le layout interne des providers thème + contexte copilote. */
 export default function AgentSugarLayout() {
   return (
     <ThemeProvider>

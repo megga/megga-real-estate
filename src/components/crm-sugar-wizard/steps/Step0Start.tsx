@@ -1,15 +1,24 @@
 // MEGGA CRM Sugar v2 Wizard — Step 0 : Démarrer
-// 1:1 port from the Claude Design bundle (crm-wizard-sugar-v2.jsx — `SgStepStart`).
+// Port du handoff « complet » (crm-wizard-sugar-v2.jsx — `SgStepStart` + `SgPorteCard`).
 //
-// Le panneau "Reprendre une soumission" lit les vraies soumissions vendeur
-// via useSellerLeads (table `seller_leads`, alimentée par le formulaire
-// public `/sell`). Plus de CRM_SUBMISSIONS mock — chaque agence voit ses
-// propres leads vendeur (filter status='new').
+// Trois portes ÉGALES et centrées (SgPorteCard : ring noir 2px inset à la sélection,
+// pilule « Sélectionné », aucune animation de survol). Titre centré unique — l'eyebrow,
+// le sous-titre et la note d'autosave du port précédent tombent (l'indicateur d'autosave
+// vit désormais dans le footer du shell).
+//
+// Le panneau « Reprendre une soumission » lit les vraies soumissions vendeur via
+// useSellerLeads (table `seller_leads`, alimentée par le formulaire public `/sell`) —
+// aucune donnée mock. Cap système : 5 soumissions (les plus récentes).
+//
+// ⛔ La porte « Importer un mandat » reste DÉSACTIVÉE : l'extraction PDF réelle n'est
+// pas branchée et l'ancien chemin injectait un mandat FICTIF en base (fabrication
+// compliance interdite). Le handoff la montre active ; on garde la désactivation
+// (divergence d'honnêteté assumée) jusqu'à un vrai OCR (Gemini).
 
-import { useMemo, useState } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SugarV2, type WizardData } from '../tokens'
-import { SgGateCard, SgIcon } from '../primitives'
+import { SgIcon } from '../primitives'
 import { useSellerLeads, type SellerLeadRow } from '@/hooks/useSellerLeads'
 
 interface CrmSubmission {
@@ -17,6 +26,10 @@ interface CrmSubmission {
   title: string
   contactId?: string
   contactDraft?: { firstName: string; lastName: string; email: string; phone: string }
+  // Affichage du contact (nom/email/tél) toujours présent — sert de snapshot
+  // _ownerContact quand la soumission a déjà un contact_id (le chemin saute
+  // Step1Vendor, donc rien ne peuple le registry en aval).
+  contactDisplay: { firstName: string; lastName: string; email: string; phone: string }
   type: 'appartement' | 'maison' | 'villa' | 'terrain'
   transaction: 'vente' | 'location'
   addr: string
@@ -60,6 +73,12 @@ function leadToSubmission(lead: SellerLeadRow): CrmSubmission {
           email: lead.contact_email,
           phone: lead.contact_phone ?? '',
         },
+    contactDisplay: {
+      firstName: fullName[0] || '',
+      lastName: fullName.slice(1).join(' ') || '',
+      email: lead.contact_email,
+      phone: lead.contact_phone ?? '',
+    },
     type: mapPropertyType(lead.property_data.type),
     transaction: 'vente',
     addr: lead.property_data.address,
@@ -80,6 +99,60 @@ function leadToSubmission(lead: SellerLeadRow): CrmSubmission {
 
 interface StepProps { data: WizardData; set: (patch: Partial<WizardData>) => void }
 
+// ─── Porte « Trois portes épurées » — centrée, CTA par carte ──────────────
+// Sélection Sugar : ring noir 2px inset + fond cardSubtle. Aucune animation de survol.
+interface PorteCardProps {
+  media: ReactNode
+  title: string
+  sub: string
+  selected?: boolean
+  disabled?: boolean
+  onClick?: () => void
+  ctaLabel: string
+  selectedLabel: string
+  children?: ReactNode
+}
+
+function SgPorteCard({
+  media, title, sub, selected, disabled, onClick, ctaLabel, selectedLabel, children,
+}: PorteCardProps) {
+  return (
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      onClick={() => { if (!disabled) onClick?.() }}
+      onKeyDown={(e) => {
+        if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick?.() }
+      }}
+      style={{
+        flex: 1, minWidth: 0,
+        background: selected ? SugarV2.cardSubtle : SugarV2.card,
+        borderRadius: 22,
+        boxShadow: selected ? `0 0 0 2px ${SugarV2.black} inset, ${SugarV2.shadow}` : SugarV2.shadow,
+        padding: '38px 28px 30px',
+        textAlign: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
+        outline: 'none',
+      }}
+    >
+      {media}
+      <div style={{ fontSize: 18, fontWeight: 700, color: SugarV2.ink, letterSpacing: -0.3, marginTop: 22 }}>{title}</div>
+      <div style={{ fontSize: 13.5, fontWeight: 500, color: SugarV2.inkSoft, lineHeight: 1.5, marginTop: 8, maxWidth: 260 }}>{sub}</div>
+      <span style={{
+        marginTop: 26, height: 42, padding: '0 26px', borderRadius: 999,
+        display: 'inline-flex', alignItems: 'center',
+        background: selected ? SugarV2.black : SugarV2.cardSubtle,
+        color: selected ? SugarV2.onBlack : SugarV2.ink,
+        fontSize: 13.5, fontWeight: 700,
+        boxShadow: selected ? 'none' : SugarV2.shadowSm,
+      }}>{selected ? selectedLabel : ctaLabel}</span>
+      {children}
+    </div>
+  )
+}
+
 export function Step0Start({ data, set }: StepProps) {
   const { t } = useTranslation('listings')
   // Filtre status='new' : seules les soumissions encore à traiter (les autres
@@ -87,118 +160,21 @@ export function Step0Start({ data, set }: StepProps) {
   const { data: leads = [] } = useSellerLeads('new')
   const subs = useMemo(() => leads.map(leadToSubmission), [leads])
 
-  return (
-    <div style={{
-      maxWidth: 1100, margin: '0 auto',
-      animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
-    }}>
-      {/* Header de page */}
-      <div style={{ marginBottom: 48, maxWidth: 720 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 600, color: SugarV2.muted,
-          letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 14,
-        }}>{t('wizard.step0.eyebrow')}</div>
-        <h1 style={{
-          margin: '0 0 14px', fontSize: 38, fontWeight: 700,
-          color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
-        }}>
-          {t('wizard.step0.title')}
-        </h1>
-        <p style={{
-          margin: 0, fontSize: 15, color: SugarV2.inkSoft,
-          fontWeight: 500, lineHeight: 1.55,
-        }}>
-          {t('wizard.step0.subtitle')}
-        </p>
-      </div>
-
-      {/* 3 portes — la recommandée à gauche prend plus d'espace */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1.15fr 1fr 1.4fr',
-        gap: 22,
-      }}>
-        <div style={{ display: 'flex' }}>
-          <SgGateCard
-            recommended
-            icon={<SgIcon name="edit" size={26} stroke={SugarV2.black} />}
-            title={t('wizard.step0.manual.title')}
-            sub={t('wizard.step0.manual.sub')}
-            onClick={() => set({ source: 'manual', fromSubmissionId: null, ownerContactId: null })} />
-        </div>
-        <div style={{ display: 'flex' }}>
-          <SgGateCard
-            icon={<SgIcon name="upload" size={26} stroke={SugarV2.black} />}
-            title={t('wizard.step0.import.title')}
-            sub={t('wizard.step0.import.sub')}
-            onClick={() => set({ source: 'import', fromSubmissionId: null, ownerContactId: null })} />
-        </div>
-        <div style={{ display: 'flex' }}>
-          <SubmissionsCard subs={subs} data={data} set={set} />
-        </div>
-      </div>
-
-      {/* Note discrète en bas */}
-      <div style={{
-        marginTop: 56, padding: '20px 24px',
-        background: 'transparent',
-        display: 'flex', alignItems: 'center', gap: 14,
-        color: SugarV2.muted, fontSize: 13, fontWeight: 500,
-      }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 999,
-          background: SugarV2.cardSubtle,
-          display: 'grid', placeItems: 'center', flexShrink: 0,
-        }}>
-          <SgIcon name="check" size={16} stroke={SugarV2.inkSoft} />
-        </div>
-        <div>
-          <div style={{ color: SugarV2.ink, fontWeight: 600, marginBottom: 2 }}>
-            {t('wizard.step0.autosave.title')}
-          </div>
-          {t('wizard.step0.autosave.note')}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Card "Reprendre une soumission" ────────────────────────────────────
-function SubmissionsCard({
-  subs, data, set,
-}: { subs: CrmSubmission[]; data: WizardData; set: (patch: Partial<WizardData>) => void }) {
-  const { t } = useTranslation('listings')
-  const [hover, setHover] = useState<string | null>(null)
-
-  if (subs.length === 0) {
-    return (
-      <div style={{
-        background: SugarV2.card, borderRadius: 28, padding: 28,
-        boxShadow: SugarV2.shadow, opacity: 0.55, cursor: 'not-allowed',
-        flex: 1, display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 14,
-          background: SugarV2.cardSubtle,
-          display: 'grid', placeItems: 'center',
-        }}>
-          <SgIcon name="inbox" size={26} stroke={SugarV2.muted} />
-        </div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: SugarV2.muted, letterSpacing: -0.3 }}>
-          {t('wizard.step0.submissions.emptyTitle')}
-        </div>
-        <div style={{ fontSize: 13, color: SugarV2.muted, fontWeight: 500, lineHeight: 1.5 }}>
-          {t('wizard.step0.submissions.emptyBody')}
-        </div>
-      </div>
-    )
-  }
-
   const selectSubmission = (sub: CrmSubmission) => {
     let ownerId: string | null = null
     let newContact: WizardData['_newContact'] = null
+    let ownerContact: WizardData['_ownerContact'] = null
     if (sub.contactId) {
       ownerId = sub.contactId
+      // Contact existant → snapshot d'affichage pour les étapes aval (ce chemin
+      // saute Step1Vendor ; sans snapshot le vendeur s'afficherait « — »).
+      ownerContact = {
+        id: sub.contactId, type: 'seller',
+        firstName: sub.contactDisplay.firstName, lastName: sub.contactDisplay.lastName,
+        email: sub.contactDisplay.email, phone: sub.contactDisplay.phone,
+        kyc: { status: 'none' },
+        avatarBg: sub.accent || '#0041D9',
+      }
     } else if (sub.contactDraft) {
       const id = `c-from-${sub.id}`
       newContact = {
@@ -215,6 +191,7 @@ function SubmissionsCard({
       fromSubmissionId: sub.id,
       ownerContactId: ownerId,
       _newContact: newContact,
+      _ownerContact: ownerContact,
       type: sub.type, transaction: sub.transaction,
       addr: sub.addr, canton: sub.canton,
       area: sub.area, rooms: sub.rooms, bedrooms: sub.beds, bathrooms: sub.baths,
@@ -224,101 +201,150 @@ function SubmissionsCard({
     })
   }
 
-  const isSelected = data.source === 'submission'
+  const subName = (sub: CrmSubmission): string =>
+    sub.contactDisplay.firstName || sub.contactDisplay.lastName
+      ? `${sub.contactDisplay.firstName} ${sub.contactDisplay.lastName}`.trim()
+      : t('wizard.step0.submissions.unknownVendor')
+  const subInitials = (name: string): string =>
+    name.split(' ').filter(Boolean).map(p => p[0]).join('').substring(0, 2).toUpperCase()
+
+  const subSelected = data.source === 'submission'
+  // Limite système : 5 soumissions max reprises dans le wizard (les plus récentes).
+  const SUB_CAP = 5
+  const subsShown = [...subs]
+    .sort((a, b) => +new Date(b.receivedAt || 0) - +new Date(a.receivedAt || 0))
+    .slice(0, SUB_CAP)
+  const subsHidden = subs.length - subsShown.length
+
+  const iconCircle = (name: 'edit' | 'upload' | 'inbox'): ReactNode => (
+    <div style={{
+      width: 64, height: 64, borderRadius: 999,
+      background: SugarV2.cardSubtle, boxShadow: SugarV2.shadowSm,
+      display: 'grid', placeItems: 'center', flexShrink: 0,
+    }}>
+      <SgIcon name={name} size={24} stroke={SugarV2.black} />
+    </div>
+  )
 
   return (
     <div style={{
-      background: isSelected ? SugarV2.black : SugarV2.card, color: isSelected ? SugarV2.onBlack : SugarV2.ink,
-      borderRadius: 28, padding: 22,
-      boxShadow: isSelected
-        ? SugarV2.shadowLg
-        : SugarV2.shadow,
-      flex: 1, display: 'flex', flexDirection: 'column', gap: 14,
-      transition: 'all .25s cubic-bezier(.2,.8,.2,1)',
-      transform: isSelected ? 'translateY(-3px)' : 'translateY(0)',
+      maxWidth: 1060, margin: '0 auto', paddingTop: 14,
+      animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
     }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '6px 6px 0' }}>
-        <div style={{
-          width: 52, height: 52, borderRadius: 14,
-          background: isSelected ? SugarV2.onAcc10 : SugarV2.cardSubtle,
-          display: 'grid', placeItems: 'center', flexShrink: 0,
-        }}>
-          <SgIcon name="inbox" size={26} stroke={isSelected ? SugarV2.onBlack : SugarV2.black} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.3, marginBottom: 2 }}>
-            {t('wizard.step0.submissions.title')}
-          </div>
-          <div style={{
-            fontSize: 12.5, fontWeight: 500, lineHeight: 1.45,
-            color: isSelected ? SugarV2.onAcc70 : SugarV2.inkSoft,
-          }}>
-            {t('wizard.step0.submissions.subtitle', { count: subs.length })}
-          </div>
-        </div>
-      </div>
+      <h1 style={{
+        margin: 0, fontSize: 38, fontWeight: 700, textAlign: 'center',
+        color: SugarV2.ink, letterSpacing: -0.8, lineHeight: 1.1,
+      }}>
+        {t('wizard.step0.title')}
+      </h1>
 
-      {/* Liste des soumissions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-        {subs.map(sub => {
-          const sel = data.fromSubmissionId === sub.id
-          // Pas de lookup CRM_CONTACTS — seller_leads embarque contact_name +
-          // contact_email + contact_phone directement, donc contactDraft est
-          // toujours rempli côté adapter leadToSubmission().
-          const name = sub.contactDraft
-            ? `${sub.contactDraft.firstName} ${sub.contactDraft.lastName}`
-            : t('wizard.step0.submissions.unknownVendor')
-          const initials = name.split(' ').filter(Boolean).map(p => p[0]).join('').substring(0, 2).toUpperCase()
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 22, marginTop: 48, alignItems: 'start' }}>
+        {/* Porte 1 — Saisir manuellement (recommandée) */}
+        <SgPorteCard
+          media={iconCircle('edit')}
+          title={t('wizard.step0.manual.title')}
+          sub={t('wizard.step0.manual.sub')}
+          selected={data.source === 'manual'}
+          ctaLabel={t('wizard.porte.choose')}
+          selectedLabel={t('wizard.porte.selected')}
+          onClick={() => set({ source: 'manual', fromSubmissionId: null, ownerContactId: null })}
+        />
 
-          return (
-            <button key={sub.id}
-              onClick={e => { e.stopPropagation(); selectSubmission(sub) }}
-              onMouseEnter={() => setHover(sub.id)}
-              onMouseLeave={() => setHover(null)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 14px', borderRadius: 14, border: 0,
-                background: sel
-                  ? (isSelected ? SugarV2.onAcc16 : SugarV2.black)
-                  : (hover === sub.id
-                      ? (isSelected ? SugarV2.onAcc08 : SugarV2.cardSubtle)
-                      : (isSelected ? SugarV2.onAcc04 : 'transparent')),
-                color: sel
-                  ? SugarV2.onBlack
-                  : (isSelected ? SugarV2.onBlack : SugarV2.ink),
-                fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer',
-                transition: 'all .18s ease',
-              }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 999,
-                background: sub.accent || '#0041D9',
-                color: '#fff', display: 'grid', placeItems: 'center',
-                fontSize: 11, fontWeight: 700, flexShrink: 0,
-              }}>{initials}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontSize: 13, fontWeight: 700, letterSpacing: -0.2,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 1,
-                }}>
-                  {name}
-                </div>
-                <div style={{
-                  fontSize: 11, fontWeight: 500,
-                  color: sel
-                    ? (isSelected ? SugarV2.onAcc80 : SugarV2.onAcc75)
-                    : (isSelected ? SugarV2.onAcc55 : SugarV2.muted),
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
-                  {sub.title}
-                </div>
+        {/* Porte 2 — Importer un mandat : DÉSACTIVÉE (compliance, cf. en-tête). */}
+        <SgPorteCard
+          disabled
+          media={iconCircle('upload')}
+          title={t('wizard.step0.import.title')}
+          sub={t('wizard.step0.import.sub')}
+          ctaLabel={t('wizard.step0.import.soon')}
+          selectedLabel={t('wizard.porte.selected')}
+        />
+
+        {/* Porte 3 — Reprendre une soumission (vraies soumissions vendeur, cap 5) */}
+        <SgPorteCard
+          media={
+            subs.length > 0 ? (
+              <div style={{ display: 'flex', height: 64, alignItems: 'center' }}>
+                {subs.slice(0, 3).map((sub, i) => (
+                  <span key={sub.id} style={{
+                    width: 40, height: 40, borderRadius: 999,
+                    background: sub.accent || '#0041D9', color: '#fff',
+                    display: 'grid', placeItems: 'center',
+                    fontSize: 12, fontWeight: 800,
+                    marginLeft: i === 0 ? 0 : -12,
+                    boxShadow: `0 0 0 3px ${subSelected ? SugarV2.cardSubtle : SugarV2.card}`,
+                  }}>{subInitials(subName(sub))}</span>
+                ))}
+                {subs.length > 3 && (
+                  <span style={{
+                    width: 40, height: 40, borderRadius: 999,
+                    background: subSelected ? SugarV2.card : SugarV2.cardSubtle, color: SugarV2.inkSoft,
+                    display: 'grid', placeItems: 'center',
+                    fontSize: 12.5, fontWeight: 800, marginLeft: -12,
+                    boxShadow: `0 0 0 3px ${subSelected ? SugarV2.cardSubtle : SugarV2.card}`,
+                  }}>+{subs.length - 3}</span>
+                )}
               </div>
-              {sel && (
-                <span style={{ fontSize: 14, fontWeight: 700, color: SugarV2.onBlack }}>✓</span>
+            ) : iconCircle('inbox')
+          }
+          title={t('wizard.step0.submissions.title')}
+          sub={subs.length > 0
+            ? t('wizard.step0.submissions.subtitle', { count: subs.length })
+            : t('wizard.step0.submissions.emptyBody')}
+          selected={subSelected}
+          disabled={subs.length === 0}
+          ctaLabel={t('wizard.porte.choose')}
+          selectedLabel={subSelected && !data.fromSubmissionId
+            ? t('wizard.step0.submissions.selectVendor')
+            : t('wizard.porte.selected')}
+          onClick={() => { if (!subSelected) set({ source: 'submission', fromSubmissionId: null, ownerContactId: null }) }}
+        >
+          {subSelected && subs.length > 0 && (
+            <div style={{
+              width: '100%', display: 'flex', flexDirection: 'column', gap: 6, marginTop: 22,
+              maxHeight: 264, overflowY: 'auto',
+              animation: 'sgFadeUp .35s cubic-bezier(.2,.8,.2,1) both',
+            }}>
+              {subsShown.map((sub) => {
+                const name = subName(sub)
+                const sel = data.fromSubmissionId === sub.id
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={(e) => { e.stopPropagation(); selectSubmission(sub) }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '11px 14px', borderRadius: 14, border: 0,
+                      background: sel ? SugarV2.black : SugarV2.card,
+                      color: sel ? SugarV2.onBlack : SugarV2.ink,
+                      fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer',
+                      boxShadow: sel ? 'none' : SugarV2.shadowSm,
+                    }}
+                  >
+                    <span style={{
+                      width: 30, height: 30, borderRadius: 999,
+                      background: sub.accent || '#0041D9', color: '#fff',
+                      display: 'grid', placeItems: 'center',
+                      fontSize: 10.5, fontWeight: 800, flexShrink: 0,
+                    }}>{subInitials(name)}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{
+                        display: 'block', fontSize: 13, fontWeight: 700, letterSpacing: -0.2,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>{name}</span>
+                    </span>
+                    {sel && <SgIcon name="check" size={14} stroke={SugarV2.onBlack} />}
+                  </button>
+                )
+              })}
+              {subsHidden > 0 && (
+                <div style={{ padding: '9px 14px 3px', fontSize: 12, fontWeight: 600, color: SugarV2.muted, textAlign: 'center' }}>
+                  {t('wizard.step0.submissions.cap', { count: subsHidden })}
+                </div>
               )}
-            </button>
-          )
-        })}
+            </div>
+          )}
+        </SgPorteCard>
       </div>
     </div>
   )

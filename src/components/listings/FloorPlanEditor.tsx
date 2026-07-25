@@ -1,3 +1,9 @@
+/**
+ * Éditeur de plan d'étage du ListingForm : upload du plan (drag & drop ou
+ * fichier), pose de points (« hotspots ») positionnés en % au clic, chacun
+ * associé à une pièce et à des photos du bien. Déplacement des points en drag
+ * unifié souris + tactile.
+ */
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -18,6 +24,7 @@ interface FloorPlanEditorProps {
   isUploading?: boolean
 }
 
+/** Accordéon repliable ; état local (hotspot actif, drag) ; remonte plan et hotspots via callbacks contrôlés. */
 export default function FloorPlanEditor({
   floorPlanUrl,
   hotspots,
