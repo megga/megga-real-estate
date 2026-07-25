@@ -3,17 +3,22 @@
  * surfaces, recherche admin, notifications, bascule de thème, retour au CRM et
  * déconnexion. Rend les pages via `<Outlet>`.
  *
- * Reprend à l'identique la grammaire visuelle du mode admin de l'ancienne
- * sidebar (tokens `theme-*`, accent violet `admin-accent`) : la console change
- * d'origine, pas d'apparence. Le passage à la grammaire Sugar du CRM est un
- * chantier distinct (audit visuel, lot 0) et atterrira ici.
+ * Grammaire Sugar (lot 0 de l'audit visuel) : séparation par ombre douce
+ * plutôt que par bordure, surfaces arrondies, Inter Tight, et la teinte sombre
+ * du CRM (noir franc). Les couleurs viennent des variables re-teintes par
+ * `src/styles/admin-console.css` — les pages, elles, n'ont pas bougé.
+ *
+ * L'accent violet est CONSERVÉ, à contre-courant de l'accent unique de Sugar
+ * Pure : une fois le chrome unifié, c'est le seul signal qui dit « tu n'es plus
+ * dans ton agence, tu es dans la plateforme ». Il est réduit à sa portion utile
+ * (pastille, item actif) — jamais un bouton plein.
  */
 import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
-import { useTheme } from '@/hooks/useTheme'
+import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import { cn } from '@/lib/utils'
 import { CRM_APP_URL } from '@/lib/adminEntry'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
@@ -63,18 +68,18 @@ const NAV_SECTIONS: NavSection[] = [
   ]},
 ]
 
-const ROW = 'flex items-center h-9 mx-2 px-2.5 gap-2.5 text-sm rounded-lg cursor-pointer select-none transition-colors duration-150'
+const ROW = 'flex items-center h-9 mx-2 px-2.5 gap-2.5 text-sm rounded-xl cursor-pointer select-none transition-colors duration-150'
 
 /** Contenu du rail — partagé entre le rail fixe (desktop) et le tiroir (mobile). */
 function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation('common')
   const { signOut, profile } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const { dark, toggle } = useAdminTheme()
   const [searchOpen, setSearchOpen] = useState(false)
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="h-14 flex items-center px-4 border-b border-theme-border-subtle shrink-0">
+      <div className="h-14 flex items-center px-4 shrink-0">
         <img src="/megga-logo.svg" alt="MEGGA" className="h-5 w-auto" style={{ filter: 'var(--logo-filter, none)' }} />
       </div>
 
@@ -123,18 +128,18 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="mt-auto shrink-0">
-        <div className="mx-3 border-t border-theme-border-subtle mt-2 mb-2" />
+        <div className="mx-3 h-px bg-theme-border-subtle mt-2 mb-2" />
 
         <AdminNotificationPanel />
 
         <button
-          onClick={toggleTheme}
-          aria-label={theme === 'light' ? 'Activer le mode sombre' : 'Activer le mode clair'}
+          onClick={toggle}
+          aria-label={dark ? 'Activer le mode clair' : 'Activer le mode sombre'}
           data-testid="theme-toggle"
           className={cn(ROW, 'w-[calc(100%-1rem)] text-theme-secondary hover:bg-theme-hover hover:text-theme-primary')}
         >
-          <MEIcon name={theme === 'light' ? 'moon' : 'sun'} className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
-          <span>{theme === 'light' ? t('nav.darkMode') : t('nav.lightMode')}</span>
+          <MEIcon name={dark ? 'sun' : 'moon'} className="w-[18px] h-[18px] stroke-[1.8] flex-shrink-0" />
+          <span>{dark ? t('nav.lightMode') : t('nav.darkMode')}</span>
         </button>
 
         {/* Retour au CRM : autre origine, donc lien plein — pas de React Router. */}
@@ -146,7 +151,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
           <span>{t('nav.backToCrm')}</span>
         </a>
 
-        <div className="border-t border-theme-border-subtle flex items-center gap-2.5 p-3 mx-1 mb-1 mt-1 rounded-lg">
+        <div className="flex items-center gap-2.5 p-3 mx-1 mb-1 mt-1 rounded-xl bg-theme-hover/60">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-theme-primary leading-tight truncate">
               {profile?.full_name ?? profile?.email ?? '—'}
@@ -171,22 +176,22 @@ export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-theme-section isolate">
-      <aside className="hidden lg:flex flex-shrink-0 w-64 bg-theme-card border-r border-theme-border h-screen sticky top-0 z-40">
+    <div className="flex h-screen overflow-hidden bg-theme-page isolate">
+      <aside className="hidden lg:flex flex-shrink-0 w-64 bg-theme-card console-shadow h-screen sticky top-0 z-40">
         <ShellNav />
       </aside>
 
       {drawerOpen && (
         <>
           <div className="fixed inset-0 bg-theme-overlay/30 backdrop-blur-sm z-40 lg:hidden" onClick={() => setDrawerOpen(false)} />
-          <aside className="fixed inset-y-0 left-0 w-64 bg-theme-card z-50 lg:hidden shadow-modal">
+          <aside className="fixed inset-y-0 left-0 w-64 bg-theme-card z-50 lg:hidden console-shadow-lg">
             <ShellNav onNavigate={() => setDrawerOpen(false)} />
           </aside>
         </>
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="lg:hidden h-14 bg-theme-card border-b border-theme-border flex items-center px-4 sticky top-0 z-30">
+        <header className="lg:hidden h-14 bg-theme-card console-shadow flex items-center px-4 sticky top-0 z-30">
           <button onClick={() => setDrawerOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-theme-hover">
             <MEIcon name="menu" className="h-5 w-5 text-theme-secondary" />
           </button>
