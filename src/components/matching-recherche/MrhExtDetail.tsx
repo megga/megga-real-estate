@@ -335,6 +335,8 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                       center={{ lng: bien.lng as number, lat: bien.lat as number, zoom: 14 }}
                       markers={[{ id: 'loc', lng: bien.lng as number, lat: bien.lat as number, anchor: 'bottom', el: pinSvg }]}
                       dark={dark} radius={18} interactive={false}
+                      // pilules à bottom 14 sur 30 de haut → chrome Mapbox au-dessus
+                      chromeInset={48}
                       overlay={locChips()}
                       fallback={<>{mapSurface()}{locChips()}</>}
                     />
@@ -361,6 +363,8 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                   // zoom à GAUCHE : le bouton « Fermer » occupe le coin haut-droit
                   // et recouvrirait les contrôles (même contexte d'empilement).
                   dark={dark} radius={0} controls controlsPosition="top-left"
+                  // pilules à bottom 18 sur 34 de haut → chrome Mapbox au-dessus
+                  chromeInset={56}
                   overlay={locChips(true)}
                   fallback={<>{mapSurface(true)}{locChips(true)}</>}
                 />
