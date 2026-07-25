@@ -111,11 +111,42 @@ export function plausible(v: number | null | undefined, min: number, max: number
   return v == null || v < min || v > max ? null : v
 }
 
-/** Idem pour une date ISO : hors [2000, 2100] = parse cassé côté portail. */
+/**
+ * Idem pour une date ISO : hors [2000, 2100] = parse cassé côté portail.
+ *
+ * La date est aussi validée pour de vrai, pas seulement son année : le
+ * consommateur la passe à `formatDate`, qui lève une RangeError sur une date
+ * invalide et blanchirait la fiche. `availability_date` est aujourd'hui une
+ * colonne `date` côté Postgres, donc toujours valide — mais ce helper est
+ * générique et rien n'empêchera de l'appliquer demain à une colonne texte.
+ */
 export function plausibleDate(iso: string | null | undefined): string | null {
   if (!iso) return null
-  const year = Number(iso.slice(0, 4))
-  return Number.isFinite(year) && year >= 2000 && year <= 2100 ? iso : null
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  if (!m) return null
+  const year = Number(m[1])
+  if (year < 2000 || year > 2100) return null
+  // Aller-retour obligatoire : JS ne rejette pas les débordements, il les reporte
+  // en silence — `new Date('2026-02-31')` vaut le 3 mars. Afficher « 03.03.2026 »
+  // pour une donnée qui dit « 31.02 » serait pire que ne rien afficher.
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() + 1 !== Number(m[2]) || d.getUTCDate() !== Number(m[3])) return null
+  return iso
+}
+
+/**
+ * Étage → clé i18n + paramètre, sans dépendre du traducteur.
+ *
+ * Extrait du composant pour être testable : 4 406 annonces actives sont au rez
+ * et 2 455 en sous-sol, et une inversion des branches (`n < 0` avant `n === -1`)
+ * donnerait « 1e sous-sol » au lieu de « Sous-sol » sans que rien ne le signale.
+ */
+export function floorLabelKey(n: number): { key: string; n?: number } {
+  if (n === 0) return { key: 'floorGround' }
+  if (n === -1) return { key: 'floorBasement' }
+  if (n < 0) return { key: 'floorBasementN', n: Math.abs(n) }
+  return { key: 'floorNth', n }
 }
 
 export interface MrhCriteria {

@@ -30,7 +30,7 @@ import MrhLightbox from './MrhLightbox'
 import { useMarketListingDetail } from '@/hooks/useMatchingRecherche'
 import { formatCHF, formatDate } from '@/lib/utils'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
-import type { MrhBien, MrhContact } from './types'
+import { floorLabelKey, type MrhBien, type MrhContact } from './types'
 import type { MrhSurf } from './mrhCtx'
 
 // Carte réelle isolée + lazy → mapbox-gl ne charge qu'à l'ouverture d'une fiche avec token.
@@ -80,7 +80,11 @@ interface Props {
 
 export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, ONACC, buyer, on, onToggle, onClose }: Props) {
   const { t } = useTranslation('matching')
-  const { data: detail } = useMarketListingDetail(bien.id)
+  // `isPending`/`isError` ne sont pas décoratifs : la description s'insère AU-DESSUS
+  // des caractéristiques, donc sans place réservée toute la fiche saute quand la
+  // requête revient. Et un échec rendu comme une absence ferait affirmer à l'écran
+  // que le portail n'a rien publié, sans l'avoir vérifié.
+  const { data: detail, isPending: detailPending, isError: detailError } = useMarketListingDetail(bien.id)
 
   const [lb, setLb] = useState(-1)
   const [mapOpen, setMapOpen] = useState(false)
@@ -117,6 +121,14 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   const photos = bien.photos
   const hasCoords = bien.lat != null && bien.lng != null
 
+  // Mosaïque ajustée au nombre réel de vignettes : 16 843 annonces actives sur
+  // 78 354 (21,5 %) ont 1 à 4 photos et 1 179 n'en ont aucune. Une grille figée à
+  // 3 × 2 leur laisserait les deux tiers du bento en aplat vide.
+  const thumbs = photos.slice(1, 5)
+  const galCols = thumbs.length >= 3 ? '2fr 1fr 1fr' : thumbs.length >= 1 ? '2fr 1fr' : '1fr'
+  const galRows = thumbs.length >= 2 ? '1fr 1fr' : '1fr'
+  const galMainRow = thumbs.length >= 2 ? '1 / span 2' : '1'
+
   const onMarket = bien.days_on_market == null ? '—'
     : bien.days_on_market <= 0 ? t('recherche.detail.onMarketLessDay')
       : t('recherche.detail.onMarketDays', { count: bien.days_on_market })
@@ -125,12 +137,11 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   // et les détails dans un seul bloc). Tout champ absent est simplement omis.
   const specs: Spec[] = useMemo(() => {
     const d = detail
-    /** Étage : « Rez » au niveau 0, sous-sols nommés (2 455 annonces sont < 0). */
-    const floorLabel = (n: number): string =>
-      n === 0 ? t('recherche.detail.floorGround')
-        : n === -1 ? t('recherche.detail.floorBasement')
-          : n < 0 ? t('recherche.detail.floorBasementN', { n: Math.abs(n) })
-            : t('recherche.detail.floorNth', { n })
+    /** Étage : « Rez » au niveau 0, sous-sols nommés — routage testé dans types.ts. */
+    const floorLabel = (n: number): string => {
+      const f = floorLabelKey(n)
+      return t(`recherche.detail.${f.key}`, { n: f.n })
+    }
     const out: Spec[] = [
       { k: t('recherche.detail.factRooms'), v: bien.rooms != null ? String(bien.rooms) : '—' },
       { k: t('recherche.detail.factSurface'), v: bien.area ? bien.area + ' m²' : '—' },
@@ -172,17 +183,31 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   )
   const rule = <div style={{ height: 1, background: line, margin: '22px 0' }} />
 
+  /**
+   * Géométrie de la bande de pilules — UNE seule source, lue à la fois par
+   * `locChips` et par `chromeInset`. Sans ça, changer la hauteur d'une pilule
+   * recouvre à nouveau l'attribution Mapbox, en silence : exactement le défaut
+   * que `chromeInset` existe pour corriger.
+   */
+  const CHIPS = { sm: { edge: 14, h: 30 }, lg: { edge: 18, h: 34 } }
+  const chipsBox = (big?: boolean) => (big ? CHIPS.lg : CHIPS.sm)
+  /** Hauteur à laisser libre sous la carte pour le logo et l'attribution Mapbox. */
+  const chromeInset = (big?: boolean) => chipsBox(big).edge + chipsBox(big).h + 4
+
   /** Pilules adresse + coordonnées, posées au bas de la carte. */
-  const locChips = (big?: boolean): ReactNode => (
-    <div style={{ position: 'absolute', left: big ? 18 : 14, right: big ? 18 : 14, bottom: big ? 18 : 14, zIndex: 2, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', height: big ? 34 : 30, padding: big ? '0 15px' : '0 13px', borderRadius: 999, maxWidth: '100%', background: dark ? 'rgba(11,12,14,.8)' : 'rgba(255,255,255,.94)', color: sp.ink, fontSize: big ? 13.5 : 12.5, fontWeight: 700, boxShadow: '0 2px 8px rgba(15,23,42,.12)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bien.addr}</span>
-      {hasCoords && (
-        <span style={{ display: 'inline-flex', alignItems: 'center', height: big ? 30 : 26, padding: big ? '0 13px' : '0 11px', borderRadius: 999, background: dark ? 'rgba(11,12,14,.66)' : 'rgba(255,255,255,.85)', color: sp.sub, fontSize: big ? 11.5 : 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
-          {(bien.lat as number).toFixed(4) + ', ' + (bien.lng as number).toFixed(4)}
-        </span>
-      )}
-    </div>
-  )
+  const locChips = (big?: boolean): ReactNode => {
+    const box = chipsBox(big)
+    return (
+      <div style={{ position: 'absolute', left: box.edge, right: box.edge, bottom: box.edge, zIndex: 2, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h, padding: big ? '0 15px' : '0 13px', borderRadius: 999, maxWidth: '100%', background: dark ? 'rgba(11,12,14,.8)' : 'rgba(255,255,255,.94)', color: sp.ink, fontSize: big ? 13.5 : 12.5, fontWeight: 700, boxShadow: '0 2px 8px rgba(15,23,42,.12)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bien.addr}</span>
+        {hasCoords && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h - 4, padding: big ? '0 13px' : '0 11px', borderRadius: 999, background: dark ? 'rgba(11,12,14,.66)' : 'rgba(255,255,255,.85)', color: sp.sub, fontSize: big ? 11.5 : 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
+            {(bien.lat as number).toFixed(4) + ', ' + (bien.lng as number).toFixed(4)}
+          </span>
+        )}
+      </div>
+    )
+  }
 
   /** Fond de carte stylisé — repli sans token Mapbox, et décor du plein écran. */
   const mapSurface = (big?: boolean): ReactNode => (
@@ -222,8 +247,8 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
 
           {/* ── Bento 1 · Affiche (collage photo + identité + prix) ── */}
           <div style={{ background: surf.card, borderRadius: 26, boxShadow: dark ? surf.shadow : '0 24px 60px rgba(15,23,42,0.10), 0 6px 18px rgba(15,23,42,0.06)', padding: 14 }}>
-            <div className="mrh-gallery" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 8, height: 420 }}>
-              <button className="mrh-gal-main" onClick={() => photos.length && setLb(0)} title={t('recherche.detail.seePhotos')} style={{ gridColumn: '1', gridRow: '1 / span 2', position: 'relative', border: 0, cursor: photos.length ? 'zoom-in' : 'default', padding: 0, borderRadius: 16, overflow: 'hidden', background: subBg }}>
+            <div className="mrh-gallery" style={{ display: 'grid', gridTemplateColumns: galCols, gridTemplateRows: galRows, gap: 8, height: 420 }}>
+              <button className="mrh-gal-main" onClick={() => photos.length && setLb(0)} title={t('recherche.detail.seePhotos')} style={{ gridColumn: '1', gridRow: galMainRow, position: 'relative', border: 0, cursor: photos.length ? 'zoom-in' : 'default', padding: 0, borderRadius: 16, overflow: 'hidden', background: subBg }}>
                 <MrhPhoto url={photos[0]} dark={dark} alt={bien.title} fallbackBg={subBg} fallbackInk={sp.sub} />
                 {bien.status === 'price_reduced' && (
                   <span style={{ position: 'absolute', top: 16, left: 16, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, background: '#C45A00', color: '#fff', fontSize: 12, fontWeight: 700, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>{t('recherche.card.priceDrop')}</span>
@@ -234,10 +259,13 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                   </span>
                 )}
               </button>
-              {photos.slice(1, 5).map((p, i) => {
+              {thumbs.map((p, i) => {
                 const overflow = i === 3 && photos.length > 5
+                // À 3 vignettes, la dernière prend les deux colonnes de la 2ᵉ rangée
+                // — sinon il resterait une cellule vide en bas à droite.
+                const wide = thumbs.length === 3 && i === 2
                 return (
-                  <button key={p + String(i)} className="mrh-gal-thumb" onClick={() => setLb(i + 1)} title={t('recherche.detail.seePhotos')} style={{ position: 'relative', border: 0, cursor: 'zoom-in', padding: 0, borderRadius: 12, overflow: 'hidden', background: subBg }}>
+                  <button key={p + String(i)} className="mrh-gal-thumb" onClick={() => setLb(i + 1)} title={t('recherche.detail.seePhotos')} style={{ position: 'relative', gridColumn: wide ? 'span 2' : undefined, border: 0, cursor: 'zoom-in', padding: 0, borderRadius: 12, overflow: 'hidden', background: subBg }}>
                     <MrhPhoto url={p} dark={dark} alt="" fallbackBg={subBg} fallbackInk={sp.sub} />
                     {overflow && (
                       <span style={{ position: 'absolute', inset: 0, background: 'rgba(6,7,9,.52)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>{'+' + (photos.length - 5)}</span>
@@ -272,13 +300,28 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
           <div style={{ marginTop: 24, background: surf.card, borderRadius: 22, boxShadow: surf.shadow, padding: 24 }}>
             <div className="mrh-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 28, alignItems: 'start' }}>
               <div style={{ minWidth: 0 }}>
-                {detail?.description && (
+                {detailPending ? (
+                  // Place réservée pendant le chargement : 4 lignes, exactement la
+                  // hauteur du clamp de MrhDescription, pour que l'arrivée du texte
+                  // ne pousse rien vers le bas.
+                  <>
+                    {eyebrow(t('recherche.detail.sectionDescription'))}
+                    <div aria-hidden="true" style={{ height: 95, borderRadius: 10, background: chipBg }} />
+                    {rule}
+                  </>
+                ) : detailError ? (
+                  <>
+                    {eyebrow(t('recherche.detail.sectionDescription'))}
+                    <div style={{ fontSize: 13.5, fontWeight: 500, color: sp.sub }}>{t('recherche.detail.detailError')}</div>
+                    {rule}
+                  </>
+                ) : detail?.description ? (
                   <>
                     {eyebrow(t('recherche.detail.sectionDescription'))}
                     <MrhDescription text={detail.description} sp={sp} />
                     {rule}
                   </>
-                )}
+                ) : null}
                 <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sp.sub, marginBottom: 14 }}>{t('recherche.detail.sectionSpecs')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '16px 22px' }}>
                   {specs.map((s) => (
@@ -301,7 +344,11 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                 )}
               </div>
 
-              <div>
+              {/* sticky : la colonne de gauche fait jusqu'à ~9 300 signes de
+                  description plus une vingtaine de caractéristiques. Sans ça, les
+                  deux seules actions de la fiche — ouvrir le portail, ajouter à la
+                  sélection — sortent de l'écran dès qu'on déroule pour lire. */}
+              <div style={{ position: 'sticky', top: 6 }}>
                 <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sp.sub }}>{t('recherche.detail.agency')}</div>
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: 13.5, fontWeight: 800 }}>{agencyInit || '—'}</span>
@@ -335,10 +382,11 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                       center={{ lng: bien.lng as number, lat: bien.lat as number, zoom: 14 }}
                       markers={[{ id: 'loc', lng: bien.lng as number, lat: bien.lat as number, anchor: 'bottom', el: pinSvg }]}
                       dark={dark} radius={18} interactive={false}
-                      // pilules à bottom 14 sur 30 de haut → chrome Mapbox au-dessus
-                      chromeInset={48}
+                      chromeInset={chromeInset()}
                       overlay={locChips()}
-                      fallback={<>{mapSurface()}{locChips()}</>}
+                      // pas de `locChips` ici : MrhMapbox rend `{fallback}{overlay}`,
+                      // les pilules se dédoubleraient si la carte échoue.
+                      fallback={mapSurface()}
                     />
                   </Suspense>
                 ) : (
@@ -353,8 +401,10 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
       {lb >= 0 && photos.length > 0 && <MrhLightbox photos={photos} index={lb} onIndex={setLb} onClose={() => setLb(-1)} />}
 
       {mapOpen && createPortal(
-        <div onClick={() => setMapOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: mapBg, animation: 'sgFadeUp .22s cubic-bezier(.2,.8,.2,1) both' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        // Pas de « clic à côté pour fermer » : la carte occupe tout le calque, il
+        // n'y a aucun à-côté. Le bouton et Échap sont les deux sorties.
+        <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: mapBg, animation: 'sgFadeUp .22s cubic-bezier(.2,.8,.2,1) both' }}>
+          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
             {HAS_MAPBOX && hasCoords ? (
               <Suspense fallback={<div style={{ position: 'absolute', inset: 0, background: mapBg }} />}>
                 <MrhMapbox
@@ -363,10 +413,9 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                   // zoom à GAUCHE : le bouton « Fermer » occupe le coin haut-droit
                   // et recouvrirait les contrôles (même contexte d'empilement).
                   dark={dark} radius={0} controls controlsPosition="top-left"
-                  // pilules à bottom 18 sur 34 de haut → chrome Mapbox au-dessus
-                  chromeInset={56}
+                  chromeInset={chromeInset(true)}
                   overlay={locChips(true)}
-                  fallback={<>{mapSurface(true)}{locChips(true)}</>}
+                  fallback={mapSurface(true)}
                 />
               </Suspense>
             ) : (

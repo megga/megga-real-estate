@@ -136,8 +136,8 @@
       "parkingSpots_other": "{{count}} places",
       "floorGround": "Rez",
       "floorBasement": "Sous-sol",
-      "floorBasementN": "{{n}}e sous-sol",
-      "floorNth": "{{n}}e",
+      "floorBasementN": "{{n}}ᵉ sous-sol",
+      "floorNth": "{{n}}ᵉ",
       "dRenovated": "Rénové en",
       "dUsableSurface": "Surface utile",
       "dChargesRent": "Charges mensuelles",
@@ -147,7 +147,8 @@
       "dAvailability": "Disponibilité",
       "dVisitContact": "Contact visite",
       "expandMap": "Agrandir la carte",
-      "portalFallback": "portail"
+      "portalFallback": "portail",
+      "detailError": "Détail indisponible pour le moment."
     },
     "view": {
       "group": "Affichage des résultats",

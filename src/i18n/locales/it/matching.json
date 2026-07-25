@@ -144,7 +144,8 @@
       "dAvailability": "Disponibilità",
       "dVisitContact": "Contatto per visite",
       "expandMap": "Ingrandisci la mappa",
-      "portalFallback": "portale"
+      "portalFallback": "portale",
+      "detailError": "Dettagli non disponibili al momento."
     },
     "view": {
       "group": "Visualizzazione dei risultati",

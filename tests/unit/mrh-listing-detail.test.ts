@@ -20,6 +20,7 @@ import { describe, it, expect } from 'vitest'
 import {
   plausible,
   plausibleDate,
+  floorLabelKey,
   mapListingDetailRow,
   mapListingRow,
 } from '@/components/matching-recherche/types'
@@ -61,6 +62,34 @@ describe('plausibleDate', () => {
     expect(plausibleDate(null)).toBeNull()
     expect(plausibleDate('')).toBeNull()
     expect(plausibleDate('bientôt')).toBeNull()
+  })
+  it('rejects a well-shaped but impossible date', () => {
+    // Sans ce filtre, `formatDate` reçoit une Invalid Date et date-fns lève une
+    // RangeError, ce qui blanchit toute la fiche.
+    expect(plausibleDate('2026-13-45')).toBeNull()
+    expect(plausibleDate('2026-02-31')).toBeNull()
+    expect(plausibleDate('2026-00-10')).toBeNull()
+  })
+})
+
+describe('floorLabelKey', () => {
+  it('routes ground floor and basements', () => {
+    expect(floorLabelKey(0)).toEqual({ key: 'floorGround' })
+    expect(floorLabelKey(-1)).toEqual({ key: 'floorBasement' })
+    expect(floorLabelKey(-2)).toEqual({ key: 'floorBasementN', n: 2 })
+    expect(floorLabelKey(-6)).toEqual({ key: 'floorBasementN', n: 6 })
+  })
+  it('routes ordinary storeys', () => {
+    expect(floorLabelKey(1)).toEqual({ key: 'floorNth', n: 1 })
+    expect(floorLabelKey(12)).toEqual({ key: 'floorNth', n: 12 })
+  })
+  it('never sends a negative n to the plural forms', () => {
+    // « -2ᵉ sous-sol » au lieu de « 2ᵉ sous-sol » : le signe est porté par la clé,
+    // jamais par le paramètre.
+    for (const n of [-1, -2, -6]) {
+      const f = floorLabelKey(n)
+      expect(f.n ?? 0).toBeGreaterThanOrEqual(0)
+    }
   })
 })
 

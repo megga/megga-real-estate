@@ -147,7 +147,8 @@
       "dAvailability": "Availability",
       "dVisitContact": "Viewing contact",
       "expandMap": "Expand map",
-      "portalFallback": "portal"
+      "portalFallback": "portal",
+      "detailError": "Details unavailable right now."
     },
     "view": {
       "group": "Results display",

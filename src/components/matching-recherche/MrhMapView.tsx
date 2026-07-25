@@ -282,7 +282,10 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
   ]
 
   return (
-    <div className="mrh-split" style={{ flex: 1, minHeight: 0, padding: '8px 30px 30px', animation: 'mrhViewIn .28s cubic-bezier(.2,.8,.2,1) both' }}>
+    <div className="mrh-split"
+      // `backwards` : `both` figerait un `translateY(0)`, et un transform non nul
+      // piège tout descendant en `position: fixed` dans ce conteneur.
+      style={{ flex: 1, minHeight: 0, padding: '8px 30px 30px', animation: 'mrhViewIn .28s cubic-bezier(.2,.8,.2,1) backwards' }}>
       <div className="mrh-split-list mrh-scroll" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 8 }}>
         {strict.length === 0 && <div style={{ ...labStyle, padding: '4px 2px 2px' }}>{t('recherche.map.nearHere')}</div>}
         {strict.map(rowOf)}
