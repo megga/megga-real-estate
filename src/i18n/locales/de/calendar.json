@@ -435,6 +435,7 @@
     "title": "Verbinden Sie Ihren Kalender",
     "connectGoogle": "Google verbinden",
     "connectOutlook": "Outlook verbinden",
-    "privacy": "Ihre persönlichen Termine bleiben privat."
+    "privacy": "Ihre persönlichen Termine bleiben privat.",
+    "connectFailed": "Verbindung fehlgeschlagen: {{error}}"
   }
 }

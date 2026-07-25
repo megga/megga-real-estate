@@ -116,6 +116,8 @@ export interface CalendarInvite {
   onConnectGoogle: () => void
   onConnectOutlook: () => void
   onDismiss: () => void
+  /** Échec de la dernière tentative de connexion (sinon la redirection a lieu). */
+  error?: string | null
 }
 
 /**
@@ -136,7 +138,9 @@ function CalConnectBanner({ invite }: { invite: CalendarInvite }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700 }}>{t('onboarding.title')}</div>
-        <div style={{ fontSize: 11.5, color: SP.muted }}>{t('onboarding.privacy')}</div>
+        <div style={{ fontSize: 11.5, color: SP.muted }}>
+          {invite.error ? t('onboarding.connectFailed', { error: invite.error }) : t('onboarding.privacy')}
+        </div>
       </div>
       <button onClick={invite.onConnectGoogle} style={btn}>{t('onboarding.connectGoogle')}</button>
       <button onClick={invite.onConnectOutlook} style={btn}>{t('onboarding.connectOutlook')}</button>

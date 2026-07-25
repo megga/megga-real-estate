@@ -435,6 +435,7 @@
     "title": "Connect your calendar",
     "connectGoogle": "Connect Google",
     "connectOutlook": "Connect Outlook",
-    "privacy": "Your personal events stay private."
+    "privacy": "Your personal events stay private.",
+    "connectFailed": "Connection failed: {{error}}"
   }
 }

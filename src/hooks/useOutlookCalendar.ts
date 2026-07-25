@@ -99,20 +99,28 @@ export function useOutlookCalendar(dateRange?: { start: Date; end: Date }) {
   })
 
   // Connect Outlook Calendar (initiates OAuth via Azure provider)
-  // `from` : voir useGoogleCalendar — énumération d'écrans de retour, pas une
-  // URL, pour que /auth/callback ne puisse pas rediriger n'importe où.
-  function connectOutlookCalendar(opts?: { from?: 'calendar' }) {
+  //
+  // Même règle que useGoogleCalendar : on lie l'identité au compte connecté
+  // (`linkIdentity`) au lieu de ré-authentifier la session, sauf si l'identité
+  // Azure est déjà celle du compte courant — auquel cas `signInWithOAuth` est
+  // sans risque de bascule et permet de re-consentir aux scopes Calendars.
+  // `from` = énumération d'écrans de retour, pas une URL (cf. useGoogleCalendar).
+  // Ne jette jamais ; exige « Manual linking » activé côté projet Supabase.
+  async function connectOutlookCalendar(opts?: { from?: 'calendar' }): Promise<{ error: string | null }> {
     const from = opts?.from === 'calendar' ? '&from=calendar' : ''
-    supabase.auth.signInWithOAuth({
-      provider: 'azure',
-      options: {
-        scopes: 'https://graph.microsoft.com/Calendars.ReadWrite offline_access User.Read',
-        redirectTo: `${window.location.origin}/auth/callback?outlook=1${from}`,
-        queryParams: {
-          prompt: 'consent',
-        },
+    const options = {
+      scopes: 'https://graph.microsoft.com/Calendars.ReadWrite offline_access User.Read',
+      redirectTo: `${window.location.origin}/auth/callback?outlook=1${from}`,
+      queryParams: {
+        prompt: 'consent',
       },
-    })
+    }
+    const { data: idData } = await supabase.auth.getUserIdentities()
+    const alreadyMine = idData?.identities?.some(i => i.provider === 'azure') ?? false
+    const { error } = alreadyMine
+      ? await supabase.auth.signInWithOAuth({ provider: 'azure', options })
+      : await supabase.auth.linkIdentity({ provider: 'azure', options })
+    return { error: error ? error.message : null }
   }
 
   // Disconnect Outlook Calendar

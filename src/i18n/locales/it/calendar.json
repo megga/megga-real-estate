@@ -435,6 +435,7 @@
     "title": "Collega la tua agenda",
     "connectGoogle": "Collega Google",
     "connectOutlook": "Collega Outlook",
-    "privacy": "I tuoi eventi personali restano privati."
+    "privacy": "I tuoi eventi personali restano privati.",
+    "connectFailed": "Connessione non riuscita: {{error}}"
   }
 }

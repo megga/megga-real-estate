@@ -102,25 +102,43 @@ export function useGoogleCalendar(dateRange?: { start: Date; end: Date }) {
   })
 
   // Connect Google Calendar (initiates OAuth)
+  //
+  // On LIE l'identité au compte connecté (`linkIdentity`) plutôt que
+  // `signInWithOAuth` : ce dernier ré-authentifie la session entière, donc sur
+  // un compte e-mail/mot de passe dont l'adresse Google diffère de l'e-mail
+  // CRM, il bascule silencieusement l'agent sur un autre compte (rôle par
+  // défaut `particulier` → renvoyé vers /portal). `linkIdentity` ne peut pas
+  // changer de compte : si l'identité appartient à quelqu'un d'autre, il
+  // échoue au lieu de basculer.
+  // Exception : quand l'identité Google est DÉJÀ celle du compte courant, la
+  // liaison échouerait (identité déjà prise) alors que `signInWithOAuth` ne
+  // risque aucune bascule — c'est la bonne voie pour re-consentir aux scopes
+  // Calendar.
+  //
   // `from` désigne l'écran d'où part la connexion : /auth/callback s'en sert
   // pour y ramener l'agent au lieu de le déposer dans Réglages. C'est une
   // énumération et non une URL — une URL de retour libre dans le callback
-  // serait une redirection ouverte. Un handler passé en référence
-  // (`onClick={connectGoogleCalendar}`) reçoit un MouseEvent : `opts.from` y
-  // est absent, donc le comportement par défaut est conservé.
-  function connectGoogleCalendar(opts?: { from?: 'calendar' }) {
+  // serait une redirection ouverte. Un handler passé en référence reçoit un
+  // MouseEvent : `opts.from` y est absent, donc le défaut est conservé.
+  //
+  // Ne jette jamais : renvoie le message d'erreur à afficher par l'appelant.
+  // ⚠ `linkIdentity` exige « Manual linking » activé sur le projet Supabase.
+  async function connectGoogleCalendar(opts?: { from?: 'calendar' }): Promise<{ error: string | null }> {
     const from = opts?.from === 'calendar' ? '&from=calendar' : ''
-    supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        scopes: 'https://www.googleapis.com/auth/calendar',
-        redirectTo: `${window.location.origin}/auth/callback?gcal=1${from}`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
+    const options = {
+      scopes: 'https://www.googleapis.com/auth/calendar',
+      redirectTo: `${window.location.origin}/auth/callback?gcal=1${from}`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
       },
-    })
+    }
+    const { data: idData } = await supabase.auth.getUserIdentities()
+    const alreadyMine = idData?.identities?.some(i => i.provider === 'google') ?? false
+    const { error } = alreadyMine
+      ? await supabase.auth.signInWithOAuth({ provider: 'google', options })
+      : await supabase.auth.linkIdentity({ provider: 'google', options })
+    return { error: error ? error.message : null }
   }
 
   // Disconnect Google Calendar

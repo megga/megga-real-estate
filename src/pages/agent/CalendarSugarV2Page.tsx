@@ -49,14 +49,24 @@ export default function CalendarSugarV2Page() {
     setDismissed(true)
   }
 
+  // En cas de succès le navigateur part sur l'OAuth du fournisseur : on ne
+  // repasse ici que sur échec (« Manual linking » désactivé côté projet,
+  // identité déjà liée à un autre compte…), et le bandeau le dit.
+  const [connectError, setConnectError] = useState<string | null>(null)
+  const runConnect = (start: () => Promise<{ error: string | null }>) => {
+    setConnectError(null)
+    void start().then(({ error }) => setConnectError(error))
+  }
+
   return (
     <CalendarApp
       dark={dark}
       setDark={setDark}
       invite={showInvite ? {
-        onConnectGoogle: () => google.connectGoogleCalendar({ from: 'calendar' }),
-        onConnectOutlook: () => outlook.connectOutlookCalendar({ from: 'calendar' }),
+        onConnectGoogle: () => runConnect(() => google.connectGoogleCalendar({ from: 'calendar' })),
+        onConnectOutlook: () => runConnect(() => outlook.connectOutlookCalendar({ from: 'calendar' })),
         onDismiss: dismiss,
+        error: connectError,
       } : undefined}
     />
   )

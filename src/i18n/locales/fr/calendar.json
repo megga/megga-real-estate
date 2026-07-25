@@ -435,6 +435,7 @@
     "title": "Connectez votre agenda",
     "connectGoogle": "Connecter Google",
     "connectOutlook": "Connecter Outlook",
-    "privacy": "Vos événements perso restent privés."
+    "privacy": "Vos événements perso restent privés.",
+    "connectFailed": "Échec de la connexion : {{error}}"
   }
 }
