@@ -116,10 +116,22 @@ relais. ⚠️ Les **styles ne vivent que dans `index.html`** (`<style id="megga
 n'en réutilise que les classes, et les deux balisages doivent rester identiques sous peine de clignotement.
 Un second temps ([`BootCurtain`](../src/components/layout/BootCurtain.tsx) + `CurtainLift` + le drapeau module
 [`crmEntry.ts`](../src/lib/crmEntry.ts)) tient l'écran **au-dessus** du CRM jusqu'à sa première peinture, pour
-que le squelette `DashboardSkeleton` reste ce qu'il doit être : un état de navigation interne, pas un écran
-d'accueil. ⚠️ Le drapeau est au niveau du **module** et non dans un état React : les routes étant keyées par
-`pathname` (`AnimatedRoutes`), tout l'arbre protégé se remonte à chaque navigation. Cerveau :
-`megga/ecran-arrivee-post-login`.
+que le squelette de route reste ce qu'il doit être : un état de navigation interne, pas un écran d'accueil.
+⚠️ Le drapeau est au niveau du **module** et non dans un état React, pour survivre à tout remontage de l'arbre
+protégé. Cerveau : `megga/ecran-arrivee-post-login`.
+
+**Écrans d'attente de route (refonte 25.07.2026).** `<Routes>` n'est plus keyé par `pathname` et n'est plus
+enveloppé d'`AnimatePresence` : la frontière Suspense de `ProtectedRoute` est donc **préservée** d'une route
+sœur à l'autre, et React garde la page précédente à l'écran pendant le téléchargement du chunk — plus aucun
+écran de chargement entre deux pages CRM. Les feuilles dont l'identité vient de l'URL (`contacts/:id`,
+`listings/:id`, `transactions/:id`, `visits/:id`, `kyc/:dossierId`…) sont remontées explicitement par le
+wrapper `ByParam` d'`App.tsx`. Quand un fallback est malgré tout nécessaire,
+[`SmartPageLoader`](../src/components/skeletons/SmartPageLoader.tsx) aiguille sur **deux** squelettes, car
+`/dashboard` recouvre deux chromes : [`SugarPageSkeleton`](../src/components/skeletons/SugarPageSkeleton.tsx)
+(top-nav + rail d'icônes, couleurs lues sur `megga.sugar.dark`) pour les surfaces Sugar, et `DashboardSkeleton`
+(sidebar + header) pour les routes `AgentLayout` (`/dashboard/admin*`, `contacts/import`, `listings/new`,
+`listings/:id/edit`, `market/:externalId`). ⚠️ Le nettoyage de `data-theme` dans `useTheme` est **ref-compté** :
+sans ça, le démontage de l'ancien `ThemeProvider` arrachait l'attribut que le nouveau venait de poser.
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|

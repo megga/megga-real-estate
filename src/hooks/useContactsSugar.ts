@@ -65,7 +65,7 @@ export function useContactsSugar(): UseContactsSugarReturn {
   // (achat + vente), on ne veut que le dossier acheteur pour le matching UI.
   const contactIds = useMemo(() => rawContacts.map(c => c.id), [rawContacts])
 
-  const { data: kycCases = [], isLoading: kycLoading } = useQuery({
+  const { data: kycCases = [] } = useQuery({
     queryKey: ['contacts-sugar-kyc', agencyId, contactIds],
     queryFn: async (): Promise<KycCase[]> => {
       if (!agencyId || contactIds.length === 0) return []
@@ -111,7 +111,11 @@ export function useContactsSugar(): UseContactsSugarReturn {
 
   return {
     contacts,
-    isLoading: contactsLoading || kycLoading,
+    // Le KYC est un signal NON-BLOQUANT : il n'alimente qu'un badge par ligne.
+    // Le replier ici faisait remplacer TOUTE la liste par des squelettes le temps
+    // de rafraîchir ce badge — la liste « rechargeait » alors qu'elle était déjà
+    // en cache. Seuls les contacts commandent l'état de chargement.
+    isLoading: contactsLoading,
     isError: contactsError,
     refetch,
   }
