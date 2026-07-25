@@ -190,6 +190,31 @@ serve(async (req) => {
       )
     } catch (e) { console.error('whatsapp deadletter metrics failed:', (e as Error)?.message ?? 'error') }
 
+    // ── Santé des intégrations + MRR estimé (P7) — 2 RPC serveur, best-effort.
+    // mrr_estimate + calendar_sync_stale_count + stripe_webhook_age_hours →
+    // tendance dans platform_metrics + signaux passés à l'alerting.
+    let calendarStaleCount: number | undefined
+    let stripeWebhookAgeHours: number | null | undefined
+    let activeSubscriptions: number | undefined
+    try {
+      const { data: mrr, error: mrrErr } = await supabaseAdmin.rpc('compute_platform_mrr_estimate')
+      if (mrrErr) throw mrrErr
+      metrics.push({ metric_type: 'mrr_estimate', metric_value: Number(mrr ?? 0) })
+
+      const { data: health, error: healthErr } = await supabaseAdmin.rpc('get_admin_integrations_health')
+      if (healthErr) throw healthErr
+      const h = (health ?? {}) as Record<string, Record<string, unknown>>
+      calendarStaleCount = Number(h.calendar?.stale_total ?? 0) || 0
+      stripeWebhookAgeHours = h.stripe_webhook?.age_hours == null ? null : Number(h.stripe_webhook.age_hours)
+      activeSubscriptions = Number(h.stripe_webhook?.active_subscriptions ?? 0) || 0
+      metrics.push(
+        { metric_type: 'calendar_sync_stale_count', metric_value: calendarStaleCount },
+        { metric_type: 'stripe_webhook_age_hours', metric_value: stripeWebhookAgeHours ?? -1 },
+      )
+    } catch (e) {
+      console.error('[admin-monitoring] integrations health failed:', (e as Error)?.message ?? 'error')
+    }
+
     await supabaseAdmin.from('platform_metrics').insert(metrics)
 
     // ── Alerting proactif (P3) — seuils app_config, dédup 24h, email aux
@@ -199,6 +224,9 @@ serve(async (req) => {
         errorCount24h: errorCount.count ?? 0,
         flatfoxLastSeen,
         waDeadletters,
+        calendarStaleCount,
+        stripeWebhookAgeHours,
+        activeSubscriptions,
         now,
       })
     } catch (e) {

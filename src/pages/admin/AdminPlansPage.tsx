@@ -13,6 +13,7 @@ import { PLANS } from '@/lib/plans'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { supabase } from '@/lib/supabase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/ui/Toast'
 
 const PLAN_COLORS: Record<string, { header: string; badge: string }> = {
   starter: {
@@ -46,19 +47,34 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
   const { t } = useTranslation('admin')
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
+  const toast = useToast()
 
   const changePlan = useMutation({
     mutationFn: async (newPlan: string) => {
-      const { error } = await supabase
-        .from('agencies')
-        .update({ plan: newPlan as 'starter' | 'pro' | 'agency' | 'enterprise' })
-        .eq('id', agencyId)
+      // La RPC upsert subscriptions avec p_status (défaut 'active') : on lit le
+      // statut courant pour ne pas écraser un trialing/past_due existant.
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('status')
+        .eq('agency_id', agencyId)
+        .maybeSingle()
+      const keepable = ['active', 'trialing', 'past_due', 'canceled']
+      const { error } = await supabase.rpc('admin_set_agency_plan', {
+        p_agency_id: agencyId,
+        p_plan: newPlan,
+        p_status: sub?.status && keepable.includes(sub.status) ? sub.status : 'active',
+        p_note: 'via AdminPlansPage',
+      })
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-agencies'] })
+      toast.success(t('plans.changeDone'))
+      void queryClient.invalidateQueries({ queryKey: ['admin-agencies'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin-agency-billing'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin-billing-stripe'] })
       setOpen(false)
     },
+    onError: () => toast.error(t('plans.changeError')),
   })
 
   const normalized = (currentPlan ?? 'starter').toLowerCase()
@@ -277,8 +293,14 @@ export default function AdminPlansPage() {
                       <p className="text-xs text-theme-tertiary truncate">{agency.email}</p>
                     )}
                   </div>
-                  <div className="px-4 py-3 flex justify-center">
+                  <div className="px-4 py-3 flex flex-col items-center gap-0.5">
                     <PlanBadge plan={agency.plan ?? 'starter'} />
+                    {agency.subscription_status === 'trialing' && (
+                      <span className="text-xs font-medium text-blue-500">{t('agencies.sub.trialing')}</span>
+                    )}
+                    {agency.subscription_status === 'past_due' && (
+                      <span className="text-xs font-medium text-red-500">{t('agencies.sub.pastDue')}</span>
+                    )}
                   </div>
                   <div className="px-4 py-3 text-center">
                     <span className="text-sm text-theme-secondary">{agency.agent_count}</span>

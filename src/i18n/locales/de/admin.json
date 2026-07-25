@@ -667,5 +667,238 @@
   "learning.traitsPlaceholder": "z. B. prägnant, herzlich, kommt auf den Punkt",
   "learning.edit": "Bearbeiten",
   "learning.save": "Speichern",
-  "learning.cancel": "Abbrechen"
+  "learning.cancel": "Abbrechen",
+  "featureFlags": {
+    "agencies": "Freigeschaltete Agenturen:",
+    "targetAgency": "Agentur freischalten",
+    "searchAgency": "Agentur suchen",
+    "noAgencyFound": "Keine Agentur gefunden",
+    "removeAgency": "Diese Agentur entfernen",
+    "unknownAgency": "Gelöschte Agentur"
+  },
+  "plans": {
+    "changeDone": "Plan aktualisiert",
+    "changeError": "Planwechsel fehlgeschlagen"
+  },
+  "common": {
+    "saving": "Speichern...",
+    "edit": "Bearbeiten"
+  },
+  "agencyDetail": {
+    "tab": {
+      "usage": "Nutzung & Kontingente"
+    }
+  },
+  "agencies": {
+    "sub": {
+      "trialing": "Testphase",
+      "pastDue": "Überfällig"
+    },
+    "create": "Agentur erstellen"
+  },
+  "usage": {
+    "error": "Nutzung konnte nicht geladen werden.",
+    "never": "Nie",
+    "lastActivity": "Letzte Aktivität",
+    "card": {
+      "properties": "Aktive Objekte",
+      "contacts": "Kontakte",
+      "aiCost": "KI-Kosten (Monat)",
+      "aiCalls": "{{count}} KI-Aufrufe",
+      "whatsapp": "WhatsApp (Monat)",
+      "storage": "Speicher",
+      "storageEstimate": "Schätzung",
+      "portals": "Aktive Portale"
+    },
+    "quota": {
+      "title": "Kontingente bearbeiten",
+      "subtitle": "Leere Felder = unbegrenzt. Keine automatische Sperre, nur eine Warnung.",
+      "heading": "Nutzungslimits",
+      "headingSub": "Warnung ab {{threshold}}% des Limits",
+      "edit": "Bearbeiten",
+      "aiCost": "Monatliche KI-Kosten",
+      "properties": "Aktive Objekte",
+      "whatsapp": "WhatsApp-Nachrichten / Monat",
+      "storage": "Speicher (MB)",
+      "unlimited": "Unbegrenzt",
+      "threshold": "Warnschwelle",
+      "thresholdError": "Die Schwelle muss zwischen 50 und 100 liegen.",
+      "note": "Notiz",
+      "notePlaceholder": "Grund der Änderung (optional)",
+      "saved": "Kontingente gespeichert",
+      "saveError": "Kontingente konnten nicht gespeichert werden"
+    },
+    "overview": {
+      "title": "Nutzung pro Agentur",
+      "empty": "Keine Agentur.",
+      "agency": "Agentur",
+      "aiCost": "KI-Kosten",
+      "properties": "Objekte",
+      "whatsapp": "WhatsApp",
+      "storage": "Speicher",
+      "portals": "Portale"
+    }
+  },
+  "endUsers": {
+    "title": "Endkunden",
+    "subtitle": "Verkäufer, Leads und KYC-Kunden ohne Konto.",
+    "portals": {
+      "title": "Verkäuferportale",
+      "active": "Aktiv",
+      "expired": "Abgelaufen",
+      "viewed7d": "Aufgerufen (7T)",
+      "totalViews": "Aufrufe gesamt",
+      "empty": "Keine Portale.",
+      "col": {
+        "contact": "Verkäufer",
+        "agency": "Agentur",
+        "property": "Objekt",
+        "views": "Aufrufe",
+        "expires": "Läuft ab"
+      }
+    },
+    "portalStatus": {
+      "active": "Aktiv",
+      "expired": "Abgelaufen",
+      "revoked": "Widerrufen"
+    },
+    "leads": {
+      "title": "Eingehende Leads",
+      "total": "Verkäufer-Leads",
+      "new30d": "Neu (30T)",
+      "messages": "Kontaktnachrichten"
+    },
+    "kyc": {
+      "title": "Öffentliche KYC-Vorgänge",
+      "sent": "Gesendet (30T)",
+      "opened": "Geöffnet",
+      "uploaded": "Dokumente hochgeladen",
+      "confirmed": "Bestätigt",
+      "conversion": "Conversion",
+      "empty": "Keine Vorgänge.",
+      "col": {
+        "contact": "Kunde",
+        "agency": "Agentur",
+        "status": "Status",
+        "mode": "Modus",
+        "sent": "Gesendet"
+      }
+    },
+    "kycStatus": {
+      "pending": "Ausstehend",
+      "opened": "Geöffnet",
+      "uploading": "Upload läuft",
+      "verifying": "Prüfung",
+      "submitted": "Eingereicht",
+      "expired": "Abgelaufen"
+    }
+  },
+  "integrations": {
+    "title": "Integrationsstatus",
+    "emails": {
+      "title": "E-Mails (Resend)",
+      "sent": "{{count24}} gesendet (24h) · {{count7}} (7T)",
+      "errors": "{{count}} Fehler (7T)"
+    },
+    "stripe": {
+      "title": "Stripe-Webhooks",
+      "last": "Letztes Ereignis {{when}}",
+      "none": "Keine Ereignisse empfangen",
+      "events": "{{count}} Ereignisse (7T) · {{failed}} Zahlungsfehler"
+    },
+    "calendar": {
+      "title": "OAuth-Kalender",
+      "connected": "Google {{google}} · Outlook {{outlook}}",
+      "stale": "{{count}} veraltete Synchro(s) (>48h)"
+    },
+    "realtime": {
+      "title": "Realtime",
+      "status_checking": "Test läuft...",
+      "status_ok": "Betriebsbereit",
+      "status_slow": "Langsam",
+      "status_down": "Nicht erreichbar",
+      "latency": "{{ms}} ms"
+    }
+  },
+  "billing": {
+    "mrrTrend": "Geschätzter MRR-Trend",
+    "mrrTrendDays": "{{count}} Punkte (30T)"
+  },
+  "communication": {
+    "title": "Kommunikation",
+    "subtitle": "Produkt-Changelog und In-App-Ankündigungen.",
+    "tab": {
+      "changelog": "Changelog",
+      "announcements": "Ankündigungen"
+    }
+  },
+  "announcements": {
+    "new": "Neue Ankündigung",
+    "draft": "Entwurf",
+    "publish": "Veröffentlichen",
+    "unpublish": "Zurückziehen",
+    "targeted": "Zielgerichtet · {{plans}} Plan/Pläne · {{agencies}} Agentur(en)",
+    "empty": {
+      "title": "Keine Ankündigungen",
+      "subtitle": "Erstellen Sie eine Ankündigung, um Agenturen zu informieren."
+    },
+    "severity": {
+      "info": "Info",
+      "warning": "Warnung",
+      "critical": "Kritisch"
+    },
+    "form": {
+      "newTitle": "Neue Ankündigung",
+      "editTitle": "Ankündigung bearbeiten",
+      "title": "Titel",
+      "body": "Nachricht",
+      "severity": "Schweregrad",
+      "plans": "Zielpläne",
+      "allPlans": "Leer = alle Pläne",
+      "agencies": "Zielagenturen",
+      "allAgencies": "Leer = alle Agenturen",
+      "addAgency": "Hinzufügen",
+      "searchAgency": "Agentur suchen",
+      "startsAt": "Beginn",
+      "endsAt": "Ende (optional)",
+      "ctaLabel": "Button-Text",
+      "ctaHref": "Link",
+      "published": "Veröffentlicht",
+      "required": "Titel und Nachricht erforderlich.",
+      "saved": "Ankündigung gespeichert",
+      "error": "Speichern fehlgeschlagen"
+    }
+  },
+  "createAgency": {
+    "title": "Agentur erstellen",
+    "name": "Agenturname",
+    "city": "Stadt",
+    "canton": "Kanton",
+    "plan": "Plan",
+    "solo": "Einzelmakler (solo)",
+    "note": "Interne Notiz",
+    "notePlaceholder": "Kontext (optional)",
+    "inviteHint": "Der Inhaber wird separat über den Team-Tab eingeladen.",
+    "submit": "Agentur erstellen",
+    "nameRequired": "Name erforderlich (min. 2 Zeichen).",
+    "created": "Agentur erstellt",
+    "duplicate": "Eine Agentur mit diesem Namen existiert bereits.",
+    "error": "Erstellung fehlgeschlagen"
+  },
+  "invoices": {
+    "title": "Rechnungen",
+    "load": "Rechnungen laden",
+    "error": "Rechnungen konnten nicht geladen werden.",
+    "notConfigured": "Kein Stripe-Kunde mit dieser Agentur verknüpft.",
+    "upcoming": "Nächste Fälligkeit: {{amount}}",
+    "empty": "Keine Rechnungen.",
+    "open": "Rechnung öffnen",
+    "status": {
+      "paid": "Bezahlt",
+      "open": "Offen",
+      "draft": "Entwurf",
+      "void": "Storniert",
+      "uncollectible": "Uneinbringlich"
+    }
+  }
 }

@@ -21,6 +21,8 @@ interface AlertThresholds {
   whatsapp_token_days: number
   edge_errors_24h: number
   whatsapp_deadletter_max: number
+  calendar_sync_stale_max: number
+  stripe_webhook_stale_hours: number
 }
 
 const DEFAULT_THRESHOLDS: AlertThresholds = {
@@ -32,9 +34,23 @@ const DEFAULT_THRESHOLDS: AlertThresholds = {
   // Nouveaux échecs définitifs WhatsApp sur 24h (média non rejouable + jobs KYC
   // async échoués). Au-delà → alerte. Taux fenêtré, pas backlog cumulatif.
   whatsapp_deadletter_max: 5,
+  // Nb de calendriers OAuth « stale » (sync activée mais last_sync_at > 48h)
+  // au-delà duquel on alerte. NON basé sur token_expires_at (refresh normal).
+  calendar_sync_stale_max: 3,
+  // Âge (heures) du dernier événement webhook Stripe au-delà duquel on alerte,
+  // UNIQUEMENT s'il existe ≥1 abonnement actif (sinon aucun trafic = normal).
+  stripe_webhook_stale_hours: 72,
 }
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000
+
+// Libellés FR des métriques de quota (P6a) pour les emails d'alerte.
+const QUOTA_METRIC_LABELS: Record<string, string> = {
+  ai_cost_usd: 'coût IA mensuel',
+  active_properties: 'biens actifs',
+  whatsapp_messages: 'messages WhatsApp mensuels',
+  storage_mb: 'stockage',
+}
 
 export interface WhatsAppDeadletters {
   processing_failed: number
@@ -51,6 +67,10 @@ interface AlertSignals {
   errorCount24h: number
   flatfoxLastSeen: string | null
   waDeadletters?: WhatsAppDeadletters
+  /** P7 — santé intégrations (issus de get_admin_integrations_health). */
+  calendarStaleCount?: number
+  stripeWebhookAgeHours?: number | null
+  activeSubscriptions?: number
   now: Date
 }
 
@@ -168,6 +188,50 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
         body: `${newlyStuck} nouvel(le)(s) file(s) WhatsApp en échec définitif sur 24h (seuil : ${thresholds.whatsapp_deadletter_max}) — ${dl.processing_deadletter_24h} média/transcription non rejouable(s) et ${dl.async_jobs_failed_24h} job(s) KYC async échoué(s). Backlog cumulatif : ${dl.processing_deadletter}. Voir /dashboard/admin/monitoring.`,
       })
     }
+  }
+
+  // 7. Quotas d'agence proches/dépassés (P6a). L'agrégation usage-vs-cap est
+  // faite côté serveur par la RPC get_admin_quota_breaches (seuil par agence
+  // dans agency_usage_quotas.alert_threshold_pct) — ici on se contente
+  // d'émettre une alerte par (agence × métrique) en dépassement. AUCUN blocage :
+  // le super-admin décide (relever le cap, contacter l'agence, upgrade de plan).
+  try {
+    const { data: breaches } = await admin.rpc('get_admin_quota_breaches')
+    for (const b of (breaches ?? []) as Array<{
+      agency_id: string; agency_name: string; metric: string
+      usage: number; cap: number; threshold_pct: number
+    }>) {
+      const pct = b.cap > 0 ? Math.round((Number(b.usage) / Number(b.cap)) * 100) : 0
+      alerts.push({
+        key: `quota:${b.agency_id}:${b.metric}`,
+        subject: `Quota ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} — ${b.agency_name}`,
+        body: `L'agence « ${b.agency_name} » atteint ${pct}% de son plafond ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} (${b.usage} / ${b.cap}, alerte dès ${b.threshold_pct}%). Aucun blocage appliqué — voir /dashboard/admin/agencies.`,
+      })
+    }
+  } catch (e) {
+    console.error('[admin-alerts] quota breaches read failed:', (e as Error)?.message)
+  }
+
+  // 8. Calendriers OAuth « stale » (P7) — sync activée mais aucun last_sync_at
+  // depuis > 48h. On n'alerte PAS sur token_expires_at (refresh OAuth normal).
+  if (typeof signals.calendarStaleCount === 'number' && signals.calendarStaleCount > thresholds.calendar_sync_stale_max) {
+    alerts.push({
+      key: 'calendar:stale',
+      subject: 'Synchros calendrier en panne',
+      body: `${signals.calendarStaleCount} calendrier(s) OAuth sans synchro depuis plus de 48h (seuil : ${thresholds.calendar_sync_stale_max}). Les rendez-vous ne remontent plus. Voir /dashboard/admin/monitoring.`,
+    })
+  }
+
+  // 9. Webhook Stripe muet (P7) — dernier événement d'abonnement trop ancien,
+  // UNIQUEMENT s'il y a du trafic à attendre (≥1 abonnement actif).
+  if ((signals.activeSubscriptions ?? 0) >= 1 &&
+      typeof signals.stripeWebhookAgeHours === 'number' &&
+      signals.stripeWebhookAgeHours > thresholds.stripe_webhook_stale_hours) {
+    alerts.push({
+      key: 'stripe:webhook',
+      subject: 'Webhook Stripe silencieux',
+      body: `Aucun événement Stripe reçu depuis ${Math.round(signals.stripeWebhookAgeHours)}h (seuil : ${thresholds.stripe_webhook_stale_hours}h) alors que ${signals.activeSubscriptions} abonnement(s) sont actifs. Vérifier la config webhook Stripe. Voir /dashboard/admin/monitoring.`,
+    })
   }
 
   if (alerts.length === 0) return

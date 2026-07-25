@@ -6,6 +6,7 @@
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { PLANS } from '@/lib/plans'
 
 interface PlanBreakdown {
   plan: string
@@ -65,30 +66,37 @@ export function useAdminBilling() {
         // Edge Function not deployed yet or Stripe not configured — fallback
       }
 
-      // Fallback: read from subscriptions table
+      // Fallback : table subscriptions (miroir stripe-webhook). Elle ne stocke
+      // aucun montant — le prix mensuel est dérivé du catalogue PLANS selon
+      // billing_period (price_yearly = prix mensuel en facturation annuelle).
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-      const { data: subs } = await supabase
+      const { data: subs, error: subsError } = await supabase
         .from('subscriptions')
-        .select('id, agency_id, plan, status, price, interval, created_at')
+        .select('id, agency_id, plan, status, billing_period, created_at, updated_at')
         .order('created_at', { ascending: false })
+      if (subsError) throw subsError
+
+      const monthlyPrice = (plan: string | null, billingPeriod: string | null) => {
+        const config = PLANS.find(p => p.id === plan)
+        if (!config) return 0
+        return billingPeriod === 'yearly' ? config.price_yearly : config.price_monthly
+      }
 
       const allSubs = subs ?? []
       const activeSubs = allSubs.filter(s => s.status === 'active')
 
-      const mrr = activeSubs.reduce((sum, s) => {
-        const monthly = s.interval === 'year' ? (s.price ?? 0) / 12 : (s.price ?? 0)
-        return sum + monthly
-      }, 0)
+      const mrr = activeSubs.reduce((sum, s) => sum + monthlyPrice(s.plan, s.billing_period), 0)
 
-      const churned = allSubs.filter(s => s.status === 'canceled' && (s.created_at ?? '') >= monthStart).length
+      // Annulations du mois : updated_at porte la bascule de statut posée par
+      // stripe-webhook (created_at = date de souscription, pas d'annulation).
+      const churned = allSubs.filter(s => s.status === 'canceled' && (s.updated_at ?? '') >= monthStart).length
       const pastDue = allSubs.filter(s => s.status === 'past_due').length
 
       const planMap = new Map<string, { count: number; mrr: number }>()
       for (const sub of activeSubs) {
         const plan = sub.plan ?? 'unknown'
         const existing = planMap.get(plan) ?? { count: 0, mrr: 0 }
-        const monthly = sub.interval === 'year' ? (sub.price ?? 0) / 12 : (sub.price ?? 0)
-        planMap.set(plan, { count: existing.count + 1, mrr: existing.mrr + monthly })
+        planMap.set(plan, { count: existing.count + 1, mrr: existing.mrr + monthlyPrice(sub.plan, sub.billing_period) })
       }
 
       return {

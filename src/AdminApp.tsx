@@ -25,6 +25,7 @@ const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage')
 const AdminAgenciesPage = lazy(() => import('@/pages/admin/AdminAgenciesPage'))
 const AdminAgencyDetailPage = lazy(() => import('@/pages/admin/AdminAgencyDetailPage'))
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'))
+const AdminEndUsersPage = lazy(() => import('@/pages/admin/AdminEndUsersPage'))
 const AdminMonitoringPage = lazy(() => import('@/pages/admin/AdminMonitoringPage'))
 const AdminMarketplacePage = lazy(() => import('@/pages/admin/AdminMarketplacePage'))
 const AdminCompliancePage = lazy(() => import('@/pages/admin/AdminCompliancePage'))
@@ -67,6 +68,7 @@ export default function AdminApp() {
                         <Route path="agencies" element={<AdminAgenciesPage />} />
                         <Route path="agencies/:id" element={<AdminAgencyDetailPage />} />
                         <Route path="users" element={<AdminUsersPage />} />
+                        <Route path="end-users" element={<AdminEndUsersPage />} />
                         <Route path="monitoring" element={<AdminMonitoringPage />} />
                         <Route path="marketplace" element={<AdminMarketplacePage />} />
                         <Route path="compliance" element={<AdminCompliancePage />} />

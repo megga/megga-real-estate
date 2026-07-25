@@ -161,6 +161,127 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_usage_quotas: {
+        Row: {
+          agency_id: string
+          ai_monthly_cost_cap_usd: number | null
+          active_properties_cap: number | null
+          whatsapp_monthly_cap: number | null
+          storage_cap_mb: number | null
+          alert_threshold_pct: number
+          note: string | null
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          ai_monthly_cost_cap_usd?: number | null
+          active_properties_cap?: number | null
+          whatsapp_monthly_cap?: number | null
+          storage_cap_mb?: number | null
+          alert_threshold_pct?: number
+          note?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          ai_monthly_cost_cap_usd?: number | null
+          active_properties_cap?: number | null
+          whatsapp_monthly_cap?: number | null
+          storage_cap_mb?: number | null
+          alert_threshold_pct?: number
+          note?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_usage_quotas_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_announcements: {
+        Row: {
+          id: string
+          title: string
+          body: string
+          severity: string
+          audience_plans: string[]
+          audience_agencies: string[]
+          starts_at: string
+          ends_at: string | null
+          cta_label: string | null
+          cta_href: string | null
+          published: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          body: string
+          severity?: string
+          audience_plans?: string[]
+          audience_agencies?: string[]
+          starts_at?: string
+          ends_at?: string | null
+          cta_label?: string | null
+          cta_href?: string | null
+          published?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          body?: string
+          severity?: string
+          audience_plans?: string[]
+          audience_agencies?: string[]
+          starts_at?: string
+          ends_at?: string | null
+          cta_label?: string | null
+          cta_href?: string | null
+          published?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          user_id: string
+          dismissed_at: string
+        }
+        Insert: {
+          announcement_id: string
+          user_id: string
+          dismissed_at?: string
+        }
+        Update: {
+          announcement_id?: string
+          user_id?: string
+          dismissed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "platform_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_notes: {
         Row: {
           author_id: string | null
@@ -5024,6 +5145,97 @@ export type Database = {
           cost_usd: number
         }[]
       }
+      get_admin_agency_usage: {
+        Args: { p_agency_id: string }
+        Returns: {
+          active_properties: number
+          contacts_count: number
+          ai_cost_month_usd: number
+          ai_calls_month: number
+          wa_messages_month: number
+          storage_est_mb: number
+          portals_active: number
+          last_activity_at: string | null
+        }[]
+      }
+      get_admin_usage_overview: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agency_id: string
+          agency_name: string
+          plan: string
+          status: string
+          active_properties: number
+          contacts_count: number
+          ai_cost_month_usd: number
+          wa_messages_month: number
+          storage_est_mb: number
+          portals_active: number
+          last_activity_at: string | null
+          caps: Json
+        }[]
+      }
+      get_admin_quota_breaches: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          agency_id: string
+          agency_name: string
+          metric: string
+          usage: number
+          cap: number
+          threshold_pct: number
+        }[]
+      }
+      admin_set_agency_quotas: {
+        Args: { p_agency_id: string; p_quotas: Json; p_note?: string }
+        Returns: undefined
+      }
+      get_admin_integrations_health: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      compute_platform_mrr_estimate: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_my_agency_plan: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_admin_end_user_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_admin_seller_portals: {
+        Args: { p_status?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          status: string
+          created_at: string
+          expires_at: string
+          last_viewed_at: string | null
+          view_count: number
+          agency_name: string | null
+          contact_name: string | null
+          property_title: string | null
+          agent_name: string | null
+        }[]
+      }
+      get_admin_kyc_magic_links: {
+        Args: { p_status?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          status: string
+          mode: string
+          sent_at: string
+          opened_at: string | null
+          uploaded_at: string | null
+          confirmed_at: string | null
+          expires_at: string
+          agency_name: string | null
+          contact_name: string | null
+        }[]
+      }
       get_admin_consent_stats: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -5047,6 +5259,17 @@ export type Database = {
       admin_set_agency_plan: {
         Args: { p_agency_id: string; p_plan: string; p_status?: string; p_note?: string }
         Returns: undefined
+      }
+      admin_create_agency: {
+        Args: {
+          p_name: string
+          p_city?: string
+          p_canton?: string
+          p_plan?: string
+          p_solo?: boolean
+          p_note?: string
+        }
+        Returns: string
       }
       admin_set_user_role: {
         Args: { p_role: string; p_user_id: string }

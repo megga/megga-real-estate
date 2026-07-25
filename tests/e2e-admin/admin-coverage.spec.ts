@@ -1,4 +1,4 @@
-// Phase C (part 2) — Couverture super-admin (13 pages).
+// Phase C (part 2) — Couverture super-admin (17 pages).
 // La console vit sur son PROPRE bundle (index.admin.html / AdminApp) : cette
 // suite lance donc `npm run dev:admin` sur :5174, avec
 // VITE_DEV_BYPASS_ROLE=super_admin (cf playwright.admin.config.ts). Les routes
@@ -20,15 +20,19 @@ const ADMIN_ROUTES: RouteSpec[] = [
   { path: '/agencies', label: 'Admin > Agences' },
   { path: `/agencies/${MOCK_UUID}`, label: 'Admin > Agence detail (mock)' },
   { path: '/users', label: 'Admin > Users' },
+  { path: '/end-users', label: 'Admin > Clients finaux' },
   { path: '/monitoring', label: 'Admin > Monitoring' },
   { path: '/marketplace', label: 'Admin > Marketplace' },
   { path: '/compliance', label: 'Admin > Compliance' },
-  { path: '/changelog', label: 'Admin > Changelog' },
+  { path: '/changelog', label: 'Admin > Communication' },
   { path: '/feature-flags', label: 'Admin > Feature flags' },
   { path: '/plans', label: 'Admin > Plans / billing' },
   { path: '/live', label: 'Admin > Live feed' },
   { path: '/security', label: 'Admin > Security audit' },
   { path: '/nps', label: 'Admin > NPS' },
+  { path: '/autonomy', label: 'Admin > Autonomie WhatsApp' },
+  { path: '/tool-usage', label: 'Admin > Outils IA' },
+  { path: '/learning', label: 'Admin > Apprentissage' },
 ]
 
 test.describe('Super-admin — parametric route coverage', () => {

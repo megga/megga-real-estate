@@ -69,6 +69,59 @@ Retrait complet du wizard d'onboarding (`/dashboard/onboarding`, `onboarding-sug
 - **Migration `20260718130000`** (appliquée live) : trigger + backfill, `onboarding_completed`/`first_day_done` `DEFAULT true` + backfill (cohérence attribut Intercom), `DROP` de `onboarding_checklist` (0 ligne) et `search_agencies` (orphelin).
 - **Conservés et dormants** : `create_agency_and_join`/`join_agency` (chemins légitimes `agency_id`), `day0_payload` + `compute_agent_preferences` + gate d'autonomie WhatsApp (défauts NULL sûrs — jamais d'auto-envoi) + `agent_ai_profiles` ; le futur réglage d'autonomie vivra dans Réglages.
 - **Retombées nettoyées** : événement/attribut Intercom `onboarding_completed`, bloc i18n mort `common.onboarding` (×4 langues, relique du tunnel marketplace), export mort `useContacts.createFromOnboarding`, `swissCantons.ts` orphelin, allowlists ESLint/i18n-scan, e2e coverage, spec `onboarding-gate`. ⚠ Undeploy manuel de `day0-activation-setup` au dashboard Supabase.
+#### Super-Admin P8b — création d'agence + factures détaillées (14 juillet 2026)
+> Dernière phase de la reprise super-admin (croissance). Outille un onboarding piloté par l'équipe et la facturation par agence. Clôt le plan P5→P8b. Migration `20260714100000` (1 RPC) + 1 edge à la demande.
+
+- **Créer une agence depuis l'admin** : bouton et modal dans la page Agences → RPC `admin_create_agency` (nom, ville, canton, plan, solo, note). Contrairement à l'onboarding self-service, le super-admin **ne se rattache pas** à l'agence créée (le propriétaire est invité séparément) ; l'anti-doublon sur le nom et l'audit `agency_created` sont hérités de la logique existante.
+- **Factures Stripe par agence** : section « Factures » dans l'onglet Usage & quotas de la fiche agence, chargée **à la demande** (l'API Stripe est coûteuse) via la nouvelle edge `admin-stripe-agency-billing` — abonnement courant, 12 dernières factures (avec lien Stripe) et échéance à venir. Repli propre si aucun client Stripe n'est rattaché.
+- **Tests** : spec backend live `admin-create-agency` (gate, création sans rattachement, audit, collision de nom) ; la nouvelle edge rejoint la batterie de gardes 401.
+
+#### Super-Admin P8a — annonces in-app ciblées (13-14 juillet 2026)
+> Cinquième phase de la reprise super-admin (croissance, hors jalon lancement). Permet à l'équipe de pousser des annonces produit ciblées dans le CRM, sans email de masse. Objectifs 1, 4, 5. Migration `20260713200000` (2 tables + helper + trigger d'audit).
+
+- **Annonces ciblées** : nouvelle table `platform_announcements` (sévérité, ciblage par plan et/ou agence, fenêtre de diffusion, CTA optionnel). La **visibilité est portée par la RLS** — un agent ne voit une annonce que si elle est publiée, dans sa fenêtre et ciblée sur son plan/agence (tableaux vides = universel). Écriture réservée au super-admin ; publication auditée par trigger (`announcement_published`).
+- **Back-office** : la page Changelog devient **« Communication »** à deux onglets (Changelog produit | Annonces). Le formulaire d'annonce réutilise les pills de plans et un multi-select d'agences, avec fenêtre de diffusion, sévérité et brouillon/publication.
+- **Côté agent** : bannière discrète sous le bandeau d'impersonation, avec pastille de sévérité et CTA ; la fermeture enregistre un *dismissal* par utilisateur (`platform_announcement_dismissals`), self-only.
+- **Tests** : spec backend live `announcements-rls` couvrant la matrice de visibilité complète (ciblage plan/agence, hors-fenêtre, brouillon, écriture agent refusée, dismissal self-only). UI vérifiée au navigateur (onglets, rendu, zéro erreur console).
+
+#### Super-Admin P7 — santé des intégrations + monitoring V2 · JALON « prêt lancement » (13 juillet 2026)
+> Quatrième phase de la reprise super-admin. Aucune intégration critique (emails, webhooks Stripe, calendriers OAuth, Realtime) ne peut plus casser en silence avant le lancement. Objectifs 1 (temps admin) et 5, fiabilité pré-lancement. Migration `20260713170000` (2 RPC). **Marque la fin du jalon « prêt lancement »** (P5 dette purgée + P6a/b pilotage 360° + P7 intégrations).
+
+- **Carte « Santé des intégrations »** dans le monitoring : 4 cartes avec pastille de statut — **Resend** (envois 24h/7j, erreurs `send-*`), **Webhooks Stripe** (âge du dernier événement, échecs de paiement 7j), **Calendriers OAuth** (connectés Google/Outlook, synchros en retard), **Realtime** (probe live mesurant la latence jusqu'à `SUBSCRIBED`, remplace le faux `0` retiré en P5).
+- **Alertes proactives étendues** : le cron `admin-monitoring` alerte désormais sur les synchros calendrier en panne (> 48 h sans `last_sync_at`, seuil 3) et sur un webhook Stripe silencieux (> 72 h **si** au moins un abonnement actif). Un `token_expires_at` expiré n'est **pas** un signal d'alerte (refresh OAuth normal).
+- **Tendance MRR** : `compute_platform_mrr_estimate` (somme des abonnements actifs valorisés par `app_config.plan_pricing`) historisée chaque heure dans `platform_metrics` et affichée en sparkline sous les KPIs de facturation.
+- **Tests** : specs backend live `admin-integrations-health` (gate, forme, comptage d'un calendrier stale, MRR = 288 pour pro mensuel + entreprise annuel).
+- **À faire au go-live** : revoir les seuils d'alerte (`app_config.admin_alert_thresholds`) avec Thomas/Julien.
+
+#### Super-Admin P6b — supervision des utilisateurs finaux + nav groupée (13 juillet 2026)
+> Troisième phase de la reprise super-admin. Donne une visibilité sur les audiences **sans compte** (vendeurs, leads, clients KYC) et range la nav en 5 sections. Objectifs 4 (transparence), 2 (parcours KYC bloqués visibles), 3 (leads non traités visibles). Migration `20260713140000` (3 RPC de lecture).
+
+- **Nouvelle page « Clients finaux »** (`/dashboard/admin/end-users`) : 3 sections — **Portails vendeurs** (statuts + vues, liste filtrable), **Leads entrants** (les deux files `SellerLeadsInbox` + `ContactMessagesInbox` **déménagées** depuis la modération, qui redevient modération pure), **Parcours KYC publics** (funnel envoyé → ouvert → déposé → confirmé + taux de conversion).
+- **Zéro secret exposé** : les RPC `get_admin_seller_portals` et `get_admin_kyc_magic_links` ne renvoient **jamais** le `token` (règle capability-URL #844/#845) ni `client_ip`/`client_user_agent` (minimisation nLPD). Assertion de non-régression dans la spec backend live.
+- **Nav admin groupée** : la liste plate de 15+ items passe à **5 sections** (Pilotage, Clients, Revenus, Opérations, Produit & IA), sur le même patron que la nav agent. Clé morte `nav.adminSupport` retirée.
+- **Stats agrégées côté serveur** (`get_admin_end_user_stats`) : portails, funnel magic-link 30 j, leads par statut/source, messages de contact par statut.
+
+#### Super-Admin P6a — pilotage clients 360° : usage consolidé + quotas (13 juillet 2026)
+> Deuxième phase de la reprise super-admin (plan P5→P8b). Donne à l'équipe une vue d'usage par agence et des plafonds configurables avec alerte. Sert les objectifs 1 (temps admin — plus d'allers-retours Stripe/DeepSeek/SQL) et 5 (remplace un outil fragmenté), et la maîtrise du coût IA. Migration `20260713100000` (1 table + 4 RPC).
+
+- **Usage consolidé par agence** : nouvelle RPC `get_admin_agency_usage(agency)` agrège côté serveur, sur le mois courant, biens actifs + contacts + coût/appels IA + messages WhatsApp + stockage estimé + portails actifs + dernière activité. Surfacé dans un onglet **« Usage & quotas »** de la fiche agence (cartes + barres usage/plafond) et un bloc repliable **« Usage par agence »** (`get_admin_usage_overview`, tri coût IA décroissant) en tête de la liste des agences.
+- **Quotas configurables** : table `agency_usage_quotas` (plafonds nullables IA/biens/WhatsApp/stockage + seuil d'alerte 50-100 %, défaut 80). Édition via RPC auditée `admin_set_agency_quotas` (événement `quota_changed`), formulaire en modal. Champs vides = illimité.
+- **Alerte à l'approche, sans blocage** : le cron `admin-monitoring` lit `get_admin_quota_breaches` (usage ≥ plafond × seuil) et pousse une alerte email par agence×métrique via `_shared/admin-alerts.ts` (dédup 24h). **Aucun blocage automatique** — la décision reste humaine.
+- **Trials surfacés** : `useAdminAgencies` joint `subscriptions` → badges `trialing`/`past_due` dans la liste des agences et le tableau des plans.
+- **Stockage = estimation** (documents + uploads KYC ; les photos R2 ne sont pas attribuables par agence), libellé comme tel dans l'UI. Correctif au passage : `PLAN_LABEL` de la liste des agences (`entreprise`, plus `agency`).
+- **Tests** : specs backend live `admin-quotas-rpc` (gate, upsert + audit, seuil invalide) et `admin-usage-rpcs` (gate, exactitude sur données seedées, overview + caps, détection de dépassement).
+
+#### Super-Admin P5 — fiabilisation de la dette (12-13 juillet 2026)
+> Première phase de la reprise du chantier super-admin (plan P5→P8b). Purge la dette repérée à l'audit pré-lancement. Sert les objectifs 1 (temps admin) et 4 (transparence). Migration `20260712123000`, e2e admin 16/16, spec backend `admin-monitoring-health.spec.ts`.
+
+- **MRR fiable** : `useAdminStats.estimatedMRR` (champ mort, toujours 0) supprimé. Le fallback `useAdminBilling` était silencieusement cassé — il sélectionnait `subscriptions.price`/`interval` qui **n'existent pas** (schéma réel : `plan`/`billing_period`) → MRR à 0 dès que l'edge Stripe échoue. Réécrit : prix dérivé de `PLANS` (`lib/plans.ts`) × `billing_period`, churn calculé sur `updated_at`, erreur non avalée.
+- **Changement de plan audité** : `AdminPlansPage` passait par un `update` nu de `agencies.plan` (avec cast vers `'agency'`/`'enterprise'`, valeurs **hors enum** `agency_plan`), contournant l'audit. Bascule sur la RPC `admin_set_agency_plan` (auditée `subscription_changed`, préserve le statut d'abonnement courant).
+- **Live feed — Pause réelle** : le bouton était un no-op (`paused ? events : events`). Gèle désormais un snapshot (`frozenEvents`) pendant que le Realtime continue d'alimenter en arrière-plan.
+- **Recherche ⌘K nettoyée** : retrait de `support_tickets` (table dormante depuis Intercom) et du type `ticket` qui pointait vers `/dashboard/admin/support` (route inexistante, lien mort) ; 49 clés i18n `support.*` purgées × 4 langues.
+- **Compliance lecture seule** : `updateRiskLevel` (mutation morte) retiré — la classification LBA appartient à l'agence (MLRO), l'oversight plateforme reste en lecture (décision D5).
+- **Monitoring honnête** : `get_admin_monitoring_health` v2 (migration `20260712123000`, DROP+CREATE) expose `db_limit_mb`/`storage_limit_mb` depuis `app_config.admin_platform_limits` (plus de plafond codé en dur côté client) et ajoute un **guard** `is_super_admin() OR is_service_role()` (42501) — la v1 était lisible par tout `authenticated` (régression de sécurité fermée). Le faux `realtimeConnections: 0` est retiré (le vrai probe arrive en P7).
+- **Feature flags — ciblage par agence** : pills corrigées en `['starter','pro','entreprise']` (`'agency'` ne matchait jamais) + UI multi-select d'agences (chips → `enabled_agencies`, déjà supporté par `useFeatureFlags`).
+- **Couverture e2e** : `autonomy`, `tool-usage`, `learning` ajoutées aux `ADMIN_ROUTES` (13 → 16 routes).
 
 #### Morning brief WhatsApp proactif 07h30 (5 juillet 2026 — livré, gated OFF)
 > Inverse le pull (outil `get_daily_brief`) en push quotidien. Sert les objectifs 1 (temps admin) et 3 (closing). 0 LLM, agent-facing (pas de HITL).

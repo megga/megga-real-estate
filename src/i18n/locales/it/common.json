@@ -61,7 +61,13 @@
     "help": "Aiuto",
     "notifications": "Notifications",
     "callbacksToday": "Today's callbacks",
-    "importLeads": "Import leads"
+    "importLeads": "Import leads",
+    "adminSectionPilotage": "Pilotaggio",
+    "adminSectionClients": "Clienti",
+    "adminSectionRevenue": "Ricavi",
+    "adminSectionOps": "Operazioni",
+    "adminSectionProduct": "Prodotto e IA",
+    "adminEndUsers": "Utenti finali"
   },
   "sections": {
     "main": "Principale",
@@ -652,5 +658,8 @@
     "body": "Qualcosa non ha funzionato dalla nostra parte. Può ricaricare la pagina o tornare alla dashboard.",
     "reload": "Ricarica",
     "dashboard": "Torna alla dashboard"
+  },
+  "announcements": {
+    "dismiss": "Chiudi"
   }
 }

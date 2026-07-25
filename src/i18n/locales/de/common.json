@@ -61,7 +61,13 @@
     "help": "Hilfe",
     "notifications": "Notifications",
     "callbacksToday": "Today's callbacks",
-    "importLeads": "Import leads"
+    "importLeads": "Import leads",
+    "adminSectionPilotage": "Steuerung",
+    "adminSectionClients": "Kunden",
+    "adminSectionRevenue": "Umsatz",
+    "adminSectionOps": "Betrieb",
+    "adminSectionProduct": "Produkt & KI",
+    "adminEndUsers": "Endkunden"
   },
   "sections": {
     "main": "Hauptmenü",
@@ -652,5 +658,8 @@
     "body": "Auf unserer Seite ist etwas schiefgelaufen. Sie können die Seite neu laden oder zu Ihrem Dashboard zurückkehren.",
     "reload": "Neu laden",
     "dashboard": "Zurück zum Dashboard"
+  },
+  "announcements": {
+    "dismiss": "Schließen"
   }
 }

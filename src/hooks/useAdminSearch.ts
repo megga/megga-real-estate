@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export interface AdminSearchResult {
-  type: 'agency' | 'user' | 'property' | 'ticket'
+  type: 'agency' | 'user' | 'property'
   id: string
   title: string
   subtitle: string
@@ -38,25 +38,6 @@ export function useAdminSearch(query: string) {
         supabase.from('properties').select('id, title, city, price').or(`title.ilike.${q},city.ilike.${q}`).limit(5),
       ])
 
-      // Tickets query is optional — table may not exist yet
-      let ticketResults: AdminSearchResult[] = []
-      try {
-        const { data } = await supabase
-          .from('support_tickets')
-          .select('id, subject, status')
-          .ilike('subject', q)
-          .limit(5)
-        ticketResults = (data ?? []).map(t => ({
-          type: 'ticket' as const,
-          id: t.id,
-          title: t.subject ?? 'Ticket',
-          subtitle: t.status ?? '',
-          href: '/support',
-        }))
-      } catch {
-        /* table may not exist — silently ignore */
-      }
-
       const mapped: AdminSearchResult[] = [
         ...(agencies.data ?? []).map(a => ({
           type: 'agency' as const,
@@ -79,7 +60,6 @@ export function useAdminSearch(query: string) {
           subtitle: p.city ?? '',
           href: '/marketplace',
         })),
-        ...ticketResults,
       ]
 
       setResults(mapped)

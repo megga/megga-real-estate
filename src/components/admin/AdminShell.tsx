@@ -27,22 +27,40 @@ interface NavItem {
   end?: boolean
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { labelKey: 'nav.adminLive', href: '/live', icon: 'broadcast' },
-  { labelKey: 'nav.adminOverview', href: '/', icon: 'dashboard', end: true },
-  { labelKey: 'nav.adminAgencies', href: '/agencies', icon: 'building' },
-  { labelKey: 'nav.adminUsers', href: '/users', icon: 'users' },
-  { labelKey: 'nav.adminMonitoring', href: '/monitoring', icon: 'broadcast' },
-  { labelKey: 'nav.adminMarketplace', href: '/marketplace', icon: 'store' },
-  { labelKey: 'nav.adminCompliance', href: '/compliance', icon: 'shield' },
-  { labelKey: 'nav.adminChangelog', href: '/changelog', icon: 'megaphone' },
-  { labelKey: 'nav.adminFlags', href: '/feature-flags', icon: 'bolt' },
-  { labelKey: 'nav.adminPlans', href: '/plans', icon: 'credit-card' },
-  { labelKey: 'nav.adminSecurity', href: '/security', icon: 'shield' },
-  { labelKey: 'nav.adminNps', href: '/nps', icon: 'star' },
-  { labelKey: 'nav.adminAutonomy', href: '/autonomy', icon: 'sparkle' },
-  { labelKey: 'nav.adminLearning', href: '/learning', icon: 'sparkle' },
-  { labelKey: 'nav.adminToolUsage', href: '/tool-usage', icon: 'sparkle' },
+interface NavSection {
+  labelKey: string
+  items: NavItem[]
+}
+
+// Nav groupée en 5 sections (P6b) — une liste plate de 17 entrées était devenue
+// illisible. Ordre des sections = du pilotage quotidien au produit.
+const NAV_SECTIONS: NavSection[] = [
+  { labelKey: 'nav.adminSectionPilotage', items: [
+    { labelKey: 'nav.adminLive', href: '/live', icon: 'broadcast' },
+    { labelKey: 'nav.adminOverview', href: '/', icon: 'dashboard', end: true },
+  ]},
+  { labelKey: 'nav.adminSectionClients', items: [
+    { labelKey: 'nav.adminAgencies', href: '/agencies', icon: 'building' },
+    { labelKey: 'nav.adminUsers', href: '/users', icon: 'users' },
+    { labelKey: 'nav.adminEndUsers', href: '/end-users', icon: 'users' },
+    { labelKey: 'nav.adminMarketplace', href: '/marketplace', icon: 'store' },
+  ]},
+  { labelKey: 'nav.adminSectionRevenue', items: [
+    { labelKey: 'nav.adminPlans', href: '/plans', icon: 'credit-card' },
+  ]},
+  { labelKey: 'nav.adminSectionOps', items: [
+    { labelKey: 'nav.adminMonitoring', href: '/monitoring', icon: 'broadcast' },
+    { labelKey: 'nav.adminSecurity', href: '/security', icon: 'shield' },
+    { labelKey: 'nav.adminCompliance', href: '/compliance', icon: 'shield' },
+  ]},
+  { labelKey: 'nav.adminSectionProduct', items: [
+    { labelKey: 'nav.adminChangelog', href: '/changelog', icon: 'megaphone' },
+    { labelKey: 'nav.adminFlags', href: '/feature-flags', icon: 'bolt' },
+    { labelKey: 'nav.adminNps', href: '/nps', icon: 'star' },
+    { labelKey: 'nav.adminAutonomy', href: '/autonomy', icon: 'sparkle' },
+    { labelKey: 'nav.adminLearning', href: '/learning', icon: 'sparkle' },
+    { labelKey: 'nav.adminToolUsage', href: '/tool-usage', icon: 'sparkle' },
+  ]},
 ]
 
 const ROW = 'flex items-center h-9 mx-2 px-2.5 gap-2.5 text-sm rounded-lg cursor-pointer select-none transition-colors duration-150'
@@ -73,23 +91,34 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
       </button>
       <AdminSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 
-      <nav aria-label="Navigation admin" className="flex-1 overflow-y-auto overflow-x-hidden py-2 space-y-0.5 scrollbar-hide">
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.href}
-            to={item.href}
-            end={item.end}
-            onClick={onNavigate}
-            className={({ isActive }) => cn(
-              ROW,
-              isActive
-                ? 'bg-admin-accent/8 text-admin-accent font-medium'
-                : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary',
-            )}
-          >
-            <MEIcon name={item.icon} className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
-            <span>{t(item.labelKey)}</span>
-          </NavLink>
+      <nav aria-label="Navigation admin" className="flex-1 overflow-y-auto overflow-x-hidden py-2 scrollbar-hide">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.labelKey}>
+            <div className="mt-4 mb-1 px-3 first:mt-0">
+              <span className="text-xs capitalize text-theme-tertiary font-medium select-none">
+                {t(section.labelKey)}
+              </span>
+            </div>
+            <div className="space-y-0.5">
+              {section.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  end={item.end}
+                  onClick={onNavigate}
+                  className={({ isActive }) => cn(
+                    ROW,
+                    isActive
+                      ? 'bg-admin-accent/8 text-admin-accent font-medium'
+                      : 'text-theme-secondary hover:bg-theme-hover hover:text-theme-primary',
+                  )}
+                >
+                  <MEIcon name={item.icon} className="h-[18px] w-[18px] flex-shrink-0 stroke-[1.8]" />
+                  <span>{t(item.labelKey)}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 

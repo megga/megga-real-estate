@@ -667,5 +667,238 @@
   "learning.traitsPlaceholder": "ex. concis, chaleureux, va droit au but",
   "learning.edit": "Modifier",
   "learning.save": "Enregistrer",
-  "learning.cancel": "Annuler"
+  "learning.cancel": "Annuler",
+  "featureFlags": {
+    "agencies": "Agences ciblées :",
+    "targetAgency": "Cibler une agence",
+    "searchAgency": "Rechercher une agence",
+    "noAgencyFound": "Aucune agence trouvée",
+    "removeAgency": "Retirer cette agence",
+    "unknownAgency": "Agence supprimée"
+  },
+  "plans": {
+    "changeDone": "Plan mis à jour",
+    "changeError": "Échec du changement de plan"
+  },
+  "common": {
+    "saving": "Enregistrement...",
+    "edit": "Modifier"
+  },
+  "agencyDetail": {
+    "tab": {
+      "usage": "Usage & quotas"
+    }
+  },
+  "agencies": {
+    "sub": {
+      "trialing": "Essai",
+      "pastDue": "Impayé"
+    },
+    "create": "Créer une agence"
+  },
+  "usage": {
+    "error": "Impossible de charger l'usage.",
+    "never": "Jamais",
+    "lastActivity": "Dernière activité",
+    "card": {
+      "properties": "Biens actifs",
+      "contacts": "Contacts",
+      "aiCost": "Coût IA (mois)",
+      "aiCalls": "{{count}} appels IA",
+      "whatsapp": "WhatsApp (mois)",
+      "storage": "Stockage",
+      "storageEstimate": "estimation",
+      "portals": "Portails actifs"
+    },
+    "quota": {
+      "title": "Modifier les quotas",
+      "subtitle": "Champs vides = illimité. Aucun blocage automatique, seulement une alerte.",
+      "heading": "Plafonds d'usage",
+      "headingSub": "Alerte dès {{threshold}}% du plafond",
+      "edit": "Modifier",
+      "aiCost": "Coût IA mensuel",
+      "properties": "Biens actifs",
+      "whatsapp": "Messages WhatsApp / mois",
+      "storage": "Stockage (MB)",
+      "unlimited": "Illimité",
+      "threshold": "Seuil d'alerte",
+      "thresholdError": "Le seuil doit être entre 50 et 100.",
+      "note": "Note",
+      "notePlaceholder": "Motif du changement (facultatif)",
+      "saved": "Quotas enregistrés",
+      "saveError": "Échec de l'enregistrement des quotas"
+    },
+    "overview": {
+      "title": "Usage par agence",
+      "empty": "Aucune agence.",
+      "agency": "Agence",
+      "aiCost": "Coût IA",
+      "properties": "Biens",
+      "whatsapp": "WhatsApp",
+      "storage": "Stockage",
+      "portals": "Portails"
+    }
+  },
+  "endUsers": {
+    "title": "Clients finaux",
+    "subtitle": "Vendeurs, leads et clients KYC sans compte.",
+    "portals": {
+      "title": "Portails vendeurs",
+      "active": "Actifs",
+      "expired": "Expirés",
+      "viewed7d": "Vus (7j)",
+      "totalViews": "Vues totales",
+      "empty": "Aucun portail.",
+      "col": {
+        "contact": "Vendeur",
+        "agency": "Agence",
+        "property": "Bien",
+        "views": "Vues",
+        "expires": "Expire"
+      }
+    },
+    "portalStatus": {
+      "active": "Actifs",
+      "expired": "Expirés",
+      "revoked": "Révoqués"
+    },
+    "leads": {
+      "title": "Leads entrants",
+      "total": "Leads vendeurs",
+      "new30d": "Nouveaux (30j)",
+      "messages": "Messages contact"
+    },
+    "kyc": {
+      "title": "Parcours KYC publics",
+      "sent": "Envoyés (30j)",
+      "opened": "Ouverts",
+      "uploaded": "Documents déposés",
+      "confirmed": "Confirmés",
+      "conversion": "Conversion",
+      "empty": "Aucun parcours.",
+      "col": {
+        "contact": "Client",
+        "agency": "Agence",
+        "status": "Statut",
+        "mode": "Mode",
+        "sent": "Envoyé"
+      }
+    },
+    "kycStatus": {
+      "pending": "En attente",
+      "opened": "Ouvert",
+      "uploading": "Dépôt en cours",
+      "verifying": "Vérification",
+      "submitted": "Soumis",
+      "expired": "Expiré"
+    }
+  },
+  "integrations": {
+    "title": "Santé des intégrations",
+    "emails": {
+      "title": "Emails (Resend)",
+      "sent": "{{count24}} envoyés (24h) · {{count7}} (7j)",
+      "errors": "{{count}} erreur(s) (7j)"
+    },
+    "stripe": {
+      "title": "Webhooks Stripe",
+      "last": "Dernier événement {{when}}",
+      "none": "Aucun événement reçu",
+      "events": "{{count}} événement(s) (7j) · {{failed}} échec(s) paiement"
+    },
+    "calendar": {
+      "title": "Calendriers OAuth",
+      "connected": "Google {{google}} · Outlook {{outlook}}",
+      "stale": "{{count}} synchro(s) en retard (>48h)"
+    },
+    "realtime": {
+      "title": "Realtime",
+      "status_checking": "Test en cours...",
+      "status_ok": "Opérationnel",
+      "status_slow": "Lent",
+      "status_down": "Injoignable",
+      "latency": "{{ms}} ms"
+    }
+  },
+  "billing": {
+    "mrrTrend": "Tendance MRR estimé",
+    "mrrTrendDays": "{{count}} points (30j)"
+  },
+  "communication": {
+    "title": "Communication",
+    "subtitle": "Changelog produit et annonces in-app.",
+    "tab": {
+      "changelog": "Changelog",
+      "announcements": "Annonces"
+    }
+  },
+  "announcements": {
+    "new": "Nouvelle annonce",
+    "draft": "Brouillon",
+    "publish": "Publier",
+    "unpublish": "Dépublier",
+    "targeted": "Ciblé · {{plans}} plan(s) · {{agencies}} agence(s)",
+    "empty": {
+      "title": "Aucune annonce",
+      "subtitle": "Créez une annonce pour informer les agences."
+    },
+    "severity": {
+      "info": "Info",
+      "warning": "Avertissement",
+      "critical": "Critique"
+    },
+    "form": {
+      "newTitle": "Nouvelle annonce",
+      "editTitle": "Modifier l'annonce",
+      "title": "Titre",
+      "body": "Message",
+      "severity": "Sévérité",
+      "plans": "Plans ciblés",
+      "allPlans": "Vide = tous les plans",
+      "agencies": "Agences ciblées",
+      "allAgencies": "Vide = toutes les agences",
+      "addAgency": "Ajouter",
+      "searchAgency": "Rechercher une agence",
+      "startsAt": "Début",
+      "endsAt": "Fin (optionnel)",
+      "ctaLabel": "Libellé du bouton",
+      "ctaHref": "Lien",
+      "published": "Publiée",
+      "required": "Titre et message requis.",
+      "saved": "Annonce enregistrée",
+      "error": "Échec de l'enregistrement"
+    }
+  },
+  "createAgency": {
+    "title": "Créer une agence",
+    "name": "Nom de l'agence",
+    "city": "Ville",
+    "canton": "Canton",
+    "plan": "Plan",
+    "solo": "Agent indépendant (solo)",
+    "note": "Note interne",
+    "notePlaceholder": "Contexte (facultatif)",
+    "inviteHint": "Le propriétaire sera invité séparément depuis l'onglet Équipe.",
+    "submit": "Créer l'agence",
+    "nameRequired": "Nom requis (2 caractères min).",
+    "created": "Agence créée",
+    "duplicate": "Une agence porte déjà ce nom.",
+    "error": "Échec de la création"
+  },
+  "invoices": {
+    "title": "Factures",
+    "load": "Charger les factures",
+    "error": "Impossible de charger les factures.",
+    "notConfigured": "Aucun client Stripe rattaché à cette agence.",
+    "upcoming": "Prochaine échéance : {{amount}}",
+    "empty": "Aucune facture.",
+    "open": "Ouvrir la facture",
+    "status": {
+      "paid": "Payée",
+      "open": "En attente",
+      "draft": "Brouillon",
+      "void": "Annulée",
+      "uncollectible": "Irrécouvrable"
+    }
+  }
 }

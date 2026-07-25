@@ -67,7 +67,13 @@
     "help": "Aide",
     "notifications": "Notifications",
     "callbacksToday": "Relances du jour",
-    "importLeads": "Importer des leads"
+    "importLeads": "Importer des leads",
+    "adminSectionPilotage": "Pilotage",
+    "adminSectionClients": "Clients",
+    "adminSectionRevenue": "Revenus",
+    "adminSectionOps": "Opérations",
+    "adminSectionProduct": "Produit & IA",
+    "adminEndUsers": "Clients finaux"
   },
   "sections": {
     "main": "Principal",
@@ -652,5 +658,8 @@
       },
       "backHome": "Retour à l'accueil"
     }
+  },
+  "announcements": {
+    "dismiss": "Fermer"
   }
 }

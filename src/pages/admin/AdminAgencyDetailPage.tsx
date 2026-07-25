@@ -22,11 +22,13 @@ import {
 import PageTransition from '@/components/layout/PageTransition'
 import { openImpersonationInCrm } from '@/lib/adminEntry'
 import AdminBillingCard from '@/components/admin/AdminBillingCard'
+import AgencyUsagePanel from '@/components/admin/AgencyUsagePanel'
 
-type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions'
+type Tab = 'infos' | 'equipe' | 'activite' | 'biens' | 'transactions' | 'usage'
 
 const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
   { key: 'infos', i18nKey: 'agencyDetail.tab.infos' },
+  { key: 'usage', i18nKey: 'agencyDetail.tab.usage' },
   { key: 'equipe', i18nKey: 'agencyDetail.tab.team' },
   { key: 'activite', i18nKey: 'agencyDetail.tab.activity' },
   { key: 'biens', i18nKey: 'agencyDetail.tab.properties' },
@@ -36,7 +38,7 @@ const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
 const PLAN_I18N: Record<string, string> = {
   starter: 'common.plan.starter',
   pro: 'common.plan.pro',
-  agency: 'common.plan.agency',
+  entreprise: 'common.plan.entreprise',
 }
 
 const STATUS_I18N: Record<string, string> = {
@@ -208,6 +210,7 @@ export default function AdminAgencyDetailPage() {
         {/* Tab content */}
         <div>
           {activeTab === 'infos' && <InfosTab agency={agency} />}
+          {activeTab === 'usage' && <AgencyUsagePanel agencyId={agency.id} />}
           {activeTab === 'equipe' && <EquipeTab agencyId={agency.id} />}
           {activeTab === 'activite' && <ActiviteTab agencyId={agency.id} />}
           {activeTab === 'biens' && <BiensTab agencyId={agency.id} />}
