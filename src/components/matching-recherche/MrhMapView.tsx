@@ -190,8 +190,10 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
   const bnds0 = useMemo(() => mrhBounds(groups), [groups])
   const [zoom, setZoom] = useState(1)
   const [ctr, setCtr] = useState<{ lng: number; lat: number } | null>(null)
-  const zoomRef = useRef(1), ctrRef = useRef<{ lng: number; lat: number } | null>(null)
-  zoomRef.current = zoom; ctrRef.current = ctr
+  // Pas de ref-miroir de `zoom`/`ctr` : les handlers ci-dessous sont de simples
+  // fonctions recréées à chaque rendu, donc elles capturent déjà la valeur
+  // courante. Les refs d'origine étaient redondantes et leur écriture pendant
+  // le rendu enfreignait react-hooks/refs.
   const bnds = useMemo(() => {
     if (!bnds0) return null
     const cLng = ctr ? ctr.lng : (bnds0.minLo + bnds0.maxLo) / 2
@@ -215,7 +217,7 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
     const el = stageRef.current!
     const r = el.getBoundingClientRect()
     const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height
-    const z = zoomRef.current, c = ctrRef.current
+    const z = zoom, c = ctr
     const spanLo = bnds0.maxLo - bnds0.minLo, spanLa = bnds0.maxLa - bnds0.minLa
     const baseLng = (bnds0.minLo + bnds0.maxLo) / 2, baseLat = (bnds0.minLa + bnds0.maxLa) / 2
     const nz = Math.min(48, Math.max(1, z * (e.deltaY < 0 ? 1.25 : 0.8)))
@@ -239,14 +241,14 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
     const r = el.getBoundingClientRect()
     const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y
     drag.current = { x: e.clientX, y: e.clientY }
-    const z = Math.max(1, zoomRef.current), c = ctrRef.current
+    const z = Math.max(1, zoom), c = ctr
     const spanLo = bnds0.maxLo - bnds0.minLo, spanLa = bnds0.maxLa - bnds0.minLa
     const baseLng = (bnds0.minLo + bnds0.maxLo) / 2, baseLat = (bnds0.minLa + bnds0.maxLa) / 2
     const hLo = spanLo / 2 / z, hLa = spanLa / 2 / z
     const cLng = c ? c.lng : baseLng, cLat = c ? c.lat : baseLat
     setCtr({ lng: cLng - (dx / r.width) * 2 * hLo, lat: cLat + (dy / r.height) * 2 * hLa })
   }
-  const onUp = (e: ReactPointerEvent) => { drag.current = null; (e.currentTarget as HTMLElement).style.cursor = zoomRef.current > 1 ? 'grab' : 'default' }
+  const onUp = (e: ReactPointerEvent) => { drag.current = null; (e.currentTarget as HTMLElement).style.cursor = zoom > 1 ? 'grab' : 'default' }
 
   const act = groups.find((x) => x.b.id === hoverId)
   const actPos = act && posById[act.b.id] ? posById[act.b.id] : null
@@ -255,26 +257,29 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
 
   // Marqueurs pour la carte réelle (Mapbox) : pastilles prix + aperçu du survol.
   const mbBounds: [[number, number], [number, number]] | null = bnds0 ? [[bnds0.minLo, bnds0.minLa], [bnds0.maxLo, bnds0.maxLa]] : null
-  const mbMarkers: MrhMarker[] = located.map((x) => ({
-    id: x.b.id,
-    lng: x.b.lng as number,
-    lat: x.b.lat as number,
-    el: <PinPill b={x.b} active={x.b.id === hoverId} near={x.near} on={ctx.sel.includes(x.b.id)} />,
-    z: x.b.id === hoverId ? 60 : ctx.sel.includes(x.b.id) ? 40 : 10,
-    onClick: () => ctx.onOpen(x.b),
-    onEnter: () => setHover(x.b.id),
-    onLeave: () => setHover(null),
-  }))
-  if (act && act.b.lat != null && act.b.lng != null) {
-    mbMarkers.push({
+  // Construit en une expression (spread), pas par `.push` : `setHover` lit une
+  // ref, et la passer à un appel de fonction pendant le rendu déclenche
+  // react-hooks/refs. L'étalement produit le même tableau sans l'appel.
+  const mbMarkers: MrhMarker[] = [
+    ...located.map((x) => ({
+      id: x.b.id,
+      lng: x.b.lng as number,
+      lat: x.b.lat as number,
+      el: <PinPill b={x.b} active={x.b.id === hoverId} near={x.near} on={ctx.sel.includes(x.b.id)} />,
+      z: x.b.id === hoverId ? 60 : ctx.sel.includes(x.b.id) ? 40 : 10,
+      onClick: () => ctx.onOpen(x.b),
+      onEnter: () => setHover(x.b.id),
+      onLeave: () => setHover(null),
+    })),
+    ...(act && act.b.lat != null && act.b.lng != null ? [{
       id: 'pop-' + act.b.id,
-      lng: act.b.lng, lat: act.b.lat, anchor: 'bottom', z: 80,
+      lng: act.b.lng, lat: act.b.lat, anchor: 'bottom' as const, z: 80,
       el: <div style={{ marginBottom: 12, animation: 'sgFadeUp .16s cubic-bezier(.2,.8,.2,1) both' }}><MapPopoverCard b={act.b} m={act.m} ctx={ctx} /></div>,
       onClick: () => ctx.onOpen(act.b),
       onEnter: () => setHover(act.b.id),
       onLeave: () => setHover(null),
-    })
-  }
+    }] : []),
+  ]
 
   return (
     <div className="mrh-split" style={{ flex: 1, minHeight: 0, padding: '8px 30px 30px', animation: 'mrhViewIn .28s cubic-bezier(.2,.8,.2,1) both' }}>
