@@ -336,6 +336,39 @@ function listingPath(offerType: string): string {
   return offerType === 'rent' ? 'louer' : 'acheter'
 }
 
+// Bornes des colonnes numeric de market_listings. Une valeur hors borne ne fait PAS
+// échouer que sa ligne : `upsertRows` envoie par lots de 25 et Postgres rejette le lot
+// ENTIER sur un « numeric field overflow ». Mesuré le 25/07/2026 pendant l'énumération
+// des 26 cantons : 38 lignes perdues (2 lots) pour une poignée de valeurs aberrantes,
+// dont ~36 biens parfaitement valides tombés en dommage collatéral.
+//
+// On neutralise donc la valeur fautive plutôt que de sacrifier ses voisines. Rien n'est
+// vraiment perdu : le payload RA brut reste stocké tel quel dans `source_payload`.
+//
+// ⚠ Élargir la colonne ne remplacerait PAS cette garde : `rooms` est en numeric(3,1)
+// (plafond 99,9 ; le max réellement observé chez RA est 80,0), mais toute colonne a un
+// plafond, et une valeur assez aberrante le franchira toujours. La garde est ce qui
+// borne le dégât à 1 ligne au lieu de 25.
+const NUMERIC_CAPS = {
+  rooms: 99.9,                    // numeric(3,1)
+  surface_m2: 999_999.99,         // numeric(8,2)
+  usable_surface: 999_999.99,     // numeric(8,2)
+  land_surface: 999_999.99,       // numeric(8,2)
+  price_per_m2: 99_999_999.99,    // numeric(10,2)
+} as const
+
+// Renvoie la valeur si elle tient dans la colonne, sinon null. Conserve la sémantique
+// historique de `Number(x) || null` : 0, NaN et non-numérique ⇒ null.
+function fitNumeric(raw: unknown, cap: number): number | null {
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n === 0) return null
+  if (Math.abs(n) > cap) {
+    console.warn(`[mapHit] valeur hors borne ignorée (${n} > ${cap}) — ligne conservée, champ à null`)
+    return null
+  }
+  return n
+}
+
 function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, unknown> | null {
   if (h.id === undefined || h.id === null || h.id === '') return null
   const sourceId = String(h.id)
@@ -349,7 +382,8 @@ function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, un
   const rawType = h.property_main_type || h.property_type || 'APPT'
   const photos = buildPhotos(h.images)
   const parking = typeof h.number_of_parking === 'number' ? h.number_of_parking : null
-  const surface = Number(h.living_surface) || Number(h.computed_surface) || null
+  const surface = fitNumeric(h.living_surface, NUMERIC_CAPS.surface_m2)
+    ?? fitNumeric(h.computed_surface, NUMERIC_CAPS.surface_m2)
 
   const row: Record<string, unknown> = {
     source_portal: 'realadvisor',
@@ -364,12 +398,14 @@ function mapHit(h: RawHit, offerType: string, nowIso: string): Record<string, un
     price,
     price_at_first_seen: price,
     current_price: price,
-    price_per_m2: offerType === 'rent' ? null : (Number(h.sale_price_per_living_surface) || null),
-    rooms: Number(h.number_of_rooms) || null,
+    price_per_m2: offerType === 'rent'
+      ? null
+      : fitNumeric(h.sale_price_per_living_surface, NUMERIC_CAPS.price_per_m2),
+    rooms: fitNumeric(h.number_of_rooms, NUMERIC_CAPS.rooms),
     bathrooms: Number(h.number_of_bathrooms) || null,
     surface_m2: surface,
-    usable_surface: Number(h.usable_surface) || null,
-    land_surface: Number(h.land_surface) || null,
+    usable_surface: fitNumeric(h.usable_surface, NUMERIC_CAPS.usable_surface),
+    land_surface: fitNumeric(h.land_surface, NUMERIC_CAPS.land_surface),
     year_built: (h.construction_year as number) ?? null,
     year_renovated: (h.renovation_year as number) ?? null,
     parking_count: parking,

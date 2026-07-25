@@ -8,17 +8,16 @@
 // quel que soit le thème de l'app. Ne PAS « corriger » ces couleurs vers les
 // tokens sp.* : la maquette repose dessus.
 //
-// COUVERTURE : le handoff prévoit une illustration plein cadre (motifs
-// violet/magenta sur noir, façon cover KYC). L'asset n'est PAS livré avec le
-// paquet de design — COVER_SRC reste donc `null` et le fond #0A0B0D nu tient
-// l'écran (les textes portent déjà leurs propres ombres). Déposer le fichier
-// dans `public/matching/` puis renseigner COVER_SRC suffit à l'activer.
+// COUVERTURE : illustration plein cadre (halftone violet/magenta sur noir,
+// façon cover KYC), livrée avec le paquet de design du 25 juillet. Les motifs
+// occupent le coin haut-droit et le coin bas-gauche : le contenu est donc
+// remonté (paddingBottom) pour ne pas s'asseoir dessus.
 
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 
 /** Illustration plein cadre de la couverture. `null` ⇒ fond plat #0A0B0D. */
-const COVER_SRC: string | null = null
+const COVER_SRC: string | null = '/matching/matching-cover.png'
 
 /** Les 3 étapes de la boucle de match — icône + clé i18n. */
 const STEPS: { icon: MEIconName; key: string }[] = [
@@ -62,14 +61,11 @@ export default function MatchingFirstRun({ onCreateListing }: MatchingFirstRunPr
         />
       )}
 
-      <div style={{ position: 'relative', zIndex: 2, minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '56px 40px' }}>
+      <div style={{ position: 'relative', zIndex: 2, minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '56px 40px', paddingBottom: 180 }}>
         <div style={{ maxWidth: 920, width: '100%', textAlign: 'center' }}>
           <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: -1, lineHeight: 1.1, color: '#FFFFFF', textShadow: '0 0 24px rgba(255,255,255,0.5)' }}>
             {t('firstRun.title')}
           </h1>
-          <p style={{ margin: '12px auto 0', maxWidth: 560, fontSize: 14.5, lineHeight: 1.55, fontWeight: 500, color: 'rgba(255,255,255,0.78)', textWrap: 'pretty' }}>
-            {t('firstRun.subtitle')}
-          </p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, maxWidth: 860, width: '100%', marginTop: 40 }}>
