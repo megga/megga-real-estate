@@ -86,7 +86,7 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
         <div style={{ fontSize: 12.5, color: sp.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.addr}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
           <span style={{ minWidth: 0, flex: 1, fontSize: 11.5, color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.postedAt}</span>
-          <MrhAgencyLogo name={bien.agency} logoUrl={bien.agency_logo_url} sp={sp} chipBg={chipBg} line={line} />
+          <MrhAgencyLogo name={bien.agency} logoUrl={bien.agency_logo_url} sp={sp} line={line} />
         </div>
         {reasonText && (
           <div style={{ marginTop: 8, fontSize: 11.5, color: sp.sub, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }}>
