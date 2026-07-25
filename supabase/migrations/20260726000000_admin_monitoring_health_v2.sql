@@ -13,6 +13,13 @@
 --    is_service_role(), ERRCODE 42501.
 --
 -- DROP obligatoire : le type de retour change (RETURNS TABLE).
+--
+-- ⚠ RE-HORODATÉE (était 20260712123000). Entre-temps, main a rejoué cette
+-- fonction dans 20260717190000 (durcissement phase A batch 2) avec la
+-- signature à 6 colonnes : appliquée APRÈS celle-ci, elle échouait en
+-- « cannot change return type » (42P13) et bloquait toute la suite des
+-- migrations. Le stamp passe donc après le durcissement, dont on reprend le
+-- search_path complet ('public', 'pg_temp') pour ne pas le régresser.
 -- =====================================================================
 
 insert into public.app_config (key, value)
@@ -35,7 +42,7 @@ returns table (
 language plpgsql
 stable
 security definer
-set search_path to 'public'
+set search_path to 'public', 'pg_temp'
 as $$
 declare
   v_limits jsonb;

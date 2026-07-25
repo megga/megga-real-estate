@@ -12,6 +12,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'admin-agency-lifecycle',
   'admin-dsar-export',
   'admin-monitoring',
+  'admin-stripe-agency-billing',
   'admin-stripe-metrics',
   'admin-user-lifecycle',
   'ai-billing-monitor',
